@@ -13,8 +13,13 @@ class Main extends CI_Controller {
 
         $json_data = file_get_contents($file_path);
 
-        $Data['CountryInfo'] = json_decode($json_data, true);
+        $Countries = json_decode($json_data, true);
+        usort($Countries, function ($a, $b) {
+            return strcmp($a['name'], $b['name']);
+        });
 
+        $Data['CountryInfo'] = $Countries;
+        
         $this->load->view('main/dashboardview', $Data);
 
     }

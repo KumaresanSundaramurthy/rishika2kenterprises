@@ -15,9 +15,19 @@ $(window).on('load', function () {
         $(this).addClass('active');
 
         var data = $(this).attr('data-filter');
+
+        $('#other_sweets_snacks').addClass('d-none');
+        // $('#MenuItemsMore').removeClass('d-none');
+        if(data == '.sweetssnacks' || data == '.homevessels' || data == '.clothes') {
+            if(data == '.sweetssnacks')
+                $('#other_sweets_snacks').removeClass('d-none');
+            // $('#MenuItemsMore').addClass('d-none');
+        }
+
         $grid.isotope({
             filter: data
         })
+
     });
 
     var $grid = $(".grid").isotope({
@@ -39,6 +49,11 @@ $(document).ready(function() {
         $('html, body').animate({
             scrollTop: $("#"+getData).offset().top
         }, 500);
+        var getMenuLink = $(this).data('getlink');
+        if(getMenuLink !== undefined) {
+            $('#main_header_section #navbarSupportedContent ul').find('li').removeClass('active');
+            $(this).closest('li').addClass('active');
+        }
     });
 
 });

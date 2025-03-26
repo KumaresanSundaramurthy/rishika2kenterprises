@@ -908,7 +908,7 @@ a:focus {
   background-color: #222831;
   color: #ffffff;
   padding: 75px 0 40px 0;
-  text-align: center;
+  /* text-align: center; */
 }
 
 .footer_section h4 {
@@ -1013,7 +1013,9 @@ a:focus {
 /*# sourceMappingURL=style.css.map */
 
 .bg-subscribe {
-  background-color: #e6f3fb !important;
+  background-color: #f9ebe7 !important;
+  /* background-color: #e6f3fa !important; */
+  /* background-color: #F0F9FF !important; */  
 }
 
 .bg-border-radius {
@@ -1036,4 +1038,27 @@ div.selectdisp>ul {
   /* Adjust the height to show 10 options */
   overflow-y: scroll !important;
   /* Add vertical scrolling */
+}
+
+.img-flag {
+  width: 20px;
+  height: 15px;
+  margin-right: 10px;
+  vertical-align: middle;
+}
+
+.header_section {
+  /* padding: 15px 0;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background-color: #000000;
+  color: white;
+  padding: 10px 0;
+  z-index: 1000; */
+}
+
+.spinner-border {
+  vertical-align: middle;
 }

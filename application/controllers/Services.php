@@ -31,7 +31,7 @@ class Services extends CI_Controller
                                 <style>
                                     body { font-family: Arial, sans-serif; }
                                     .content { background-color: #f4f4f4; padding: 20px; }
-                                    .header { background-color: #4CAF50; color: white; padding: 10px; text-align: center; }
+                                    .header { background-color: #4CAF50; color: white; padding: 0px; text-align: center; }
                                     .footer { font-size: 12px; color: #888; text-align: center; margin-top: 20px; }
                                     .button {
                                         background-color: #4CAF50;

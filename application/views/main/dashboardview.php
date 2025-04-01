@@ -284,37 +284,37 @@
                         <div class="box">
                             <div>
                                 <div class="img-box">
-                                    <div id="GroceriesCarousel" class="carousel slide" data-ride="carousel" data-bs-interval="2000">
+                                    <div id="DalPulsesCarousel" class="carousel slide" data-ride="carousel" data-bs-interval="2000">
                                         <div class="carousel-inner">
                                             <div class="carousel-item active">
-                                                <img src="images/groceries/dal_pulses/chana_beans.png" alt="Chana Beans">
+                                                <img class="openImgModalBtn" src="images/groceries/dal_pulses/chana_beans.png" alt="Chana Beans">
                                             </div>
                                             <div class="carousel-item">
-                                                <img src="images/groceries/dal_pulses/val_dal.png" alt="Val Dal">
+                                                <img class="openImgModalBtn" src="images/groceries/dal_pulses/val_dal.png" alt="Val Dal">
                                             </div>
                                             <div class="carousel-item">
-                                                <img src="images/groceries/dal_pulses/toor_dal.png" alt="Toor Dal">
+                                                <img class="openImgModalBtn" src="images/groceries/dal_pulses/toor_dal.png" alt="Toor Dal">
                                             </div>
                                             <div class="carousel-item">
-                                                <img src="images/groceries/dal_pulses/red_kidney_beans.png" alt="Red Kidney Beans">
+                                                <img class="openImgModalBtn" src="images/groceries/dal_pulses/red_kidney_beans.png" alt="Red Kidney Beans">
                                             </div>
                                             <div class="carousel-item">
-                                                <img src="images/groceries/dal_pulses/moth_beans.png" alt="Moth Beans">
+                                                <img class="openImgModalBtn" src="images/groceries/dal_pulses/moth_beans.png" alt="Moth Beans">
                                             </div>
                                             <div class="carousel-item">
-                                                <img src="images/groceries/dal_pulses/moong_dal.png" alt="Moong Dal">
+                                                <img class="openImgModalBtn" src="images/groceries/dal_pulses/moong_dal.png" alt="Moong Dal">
                                             </div>
                                             <div class="carousel-item">
-                                                <img src="images/groceries/dal_pulses/hara_chana.png" alt="Hara Chana">
+                                                <img class="openImgModalBtn" src="images/groceries/dal_pulses/hara_chana.png" alt="Hara Chana">
                                             </div>
                                             <div class="carousel-item">
-                                                <img src="images/groceries/dal_pulses/kulthi_kollu.png" alt="Kulthi | Kollu">
+                                                <img class="openImgModalBtn" src="images/groceries/dal_pulses/kulthi_kollu.png" alt="Kulthi | Kollu">
                                             </div>
                                             <div class="carousel-item">
-                                                <img src="images/groceries/dal_pulses/kala_chana.png" alt="Kala Chana">
+                                                <img class="openImgModalBtn" src="images/groceries/dal_pulses/kala_chana.png" alt="Kala Chana">
                                             </div>
                                             <div class="carousel-item">
-                                                <img src="images/groceries/dal_pulses/chana_dal.png" alt="Chana Dal">
+                                                <img class="openImgModalBtn" src="images/groceries/dal_pulses/chana_dal.png" alt="Chana Dal">
                                             </div>
                                         </div>
                                     </div>
@@ -335,11 +335,32 @@
                         <div class="box">
                             <div>
                                 <div class="img-box">
-                                    <img src="images/groceries/golden_grain/basmati_rice.png" alt="Basmati Rice">
+                                    <div id="GrainCarousel" class="carousel slide" data-ride="carousel" data-bs-interval="1000">
+                                        <div class="carousel-inner">
+                                            <div class="carousel-item active">
+                                                <img class="openImgModalBtn" src="images/groceries/golden_grain/basmati_rice.png" data-bs-interval="1000" alt="Basmati Rice">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/groceries/golden_grain/ponni_rice.png" alt="Ponni Rice">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/groceries/golden_grain/wheat.png" alt="Wheat">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/groceries/golden_grain/pearl_barley.png" alt="Pearl Barley">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/groceries/golden_grain/red_rice.png" alt="Red Rice">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/groceries/golden_grain/raw_poha.png" alt="Raw Poha">
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="detail-box">
                                     <h5>
-                                        Golden Grain Exports
+                                        Golden Grain
                                     </h5>
                                     <p>
                                         We export premium Basmati, Non-Basmati, and organic rice sourced from the finest farms. Hygienically packed, our rice ensures a rich aroma and superior taste.
@@ -353,14 +374,38 @@
                         <div class="box">
                             <div>
                                 <div class="img-box">
-                                    <img src="images/f3.png" alt="">
+                                    <div id="HomeTouchesCarousel" class="carousel slide" data-ride="carousel" data-bs-interval="1000">
+                                        <div class="carousel-inner">
+                                            <div class="carousel-item active">
+                                                <img class="openImgModalBtn" src="images/household/home_decor/stylish_vases_decorative.png" data-bs-interval="1000" alt="Stylish Vases Decorative">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/household/home_decor/garland.png" alt="Garland">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/household/home_decor/plain_dream_catcher.png" alt="Dream Catcher">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/household/home_decor/wall_hangings.png" alt="Wall Hangings">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/household/home_decor/plain_curtains.png" alt="Curtains">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/household/home_decor/dream_catcher.png" alt="Dream Catcher">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/household/home_decor/baubles_with_snowflakes.png" alt="Baubles Snowflakes">
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="detail-box">
                                     <h5>
                                         Elegant Home Touches
                                     </h5>
                                     <p>
-                                        Enhance your festivities with our premium home décor for Diwali, Christmas, and more. From traditional to modern designs, we offer global export with reliable delivery.
+                                        Enhance your festivities with our premium home decor for Diwali, Christmas, and more. From traditional to modern designs, we offer global export with reliable delivery.
                                     </p>
                                 </div>
                             </div>
@@ -371,7 +416,28 @@
                         <div class="box">
                             <div>
                                 <div class="img-box">
-                                    <img src="images/f3.png" alt="">
+                                    <div id="NaturalSweetenersCarousel" class="carousel slide" data-ride="carousel" data-bs-interval="1000">
+                                        <div class="carousel-inner">
+                                            <div class="carousel-item active">
+                                                <img class="openImgModalBtn" src="images/groceries/natural_sweeteners/honey_dripping.png" data-bs-interval="1000" alt="Honey Dripping">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/groceries/natural_sweeteners/jaggery_orange.png" alt="Jaggery Orange">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/groceries/natural_sweeteners/honey_isolated.png" alt="Honey">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/groceries/natural_sweeteners/healthy_jaggery.png" alt="Healthy Jaggery">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/groceries/natural_sweeteners/sweet_dates.png" alt="Dates">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/groceries/natural_sweeteners/sugar_cubes.png" alt="Sugar Cubes">
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="detail-box">
                                     <h5>
@@ -389,7 +455,22 @@
                         <div class="box">
                             <div>
                                 <div class="img-box">
-                                    <img src="images/f3.png" alt="">
+                                    <div id="StationeryCarousel" class="carousel slide" data-ride="carousel" data-bs-interval="1000">
+                                        <div class="carousel-inner">
+                                            <div class="carousel-item active">
+                                                <img class="openImgModalBtn" src="images/household/stationery/colorful_pencils_notepad.png" data-bs-interval="1000" alt="Colorful Pencils Notepad">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/household/stationery/allset_stationery.png" alt="All Set Stationery Items">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/household/stationery/color_mapping_babies.png" alt="Color Mapping for Babies">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/household/stationery/road_mapping.png" alt="Road Mapping for Babies">
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="detail-box">
                                     <h5>
@@ -407,7 +488,31 @@
                         <div class="box">
                             <div>
                                 <div class="img-box">
-                                    <img src="images/f3.png" alt="">
+                                    <div id="SpicesCarousel" class="carousel slide" data-ride="carousel" data-bs-interval="1000">
+                                        <div class="carousel-inner">
+                                            <div class="carousel-item active">
+                                                <img class="openImgModalBtn" src="images/groceries/spices/black_pepper.png" data-bs-interval="1000" alt="Black Pepper">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/groceries/spices/black_mustard.png" alt="Black Mustard">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/groceries/spices/cardamom.png" alt="Cardamom">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/groceries/spices/coriander_seeds.png" alt="Coriander Seeds">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/groceries/spices/cumin_seeds.png" alt="Cumin Seeds">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/groceries/spices/fenugreek.png" alt="Fenugreek">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/groceries/spices/white_pepper_grains.png" alt="White Pepper Grains">
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="detail-box">
                                     <h5>
@@ -425,7 +530,25 @@
                         <div class="box">
                             <div>
                                 <div class="img-box">
-                                    <img src="images/f3.png" alt="">
+                                    <div id="RefreshBeveragesCarousel" class="carousel slide" data-ride="carousel" data-bs-interval="1000">
+                                        <div class="carousel-inner">
+                                            <div class="carousel-item active">
+                                                <img class="openImgModalBtn" src="images/groceries/refresh_beverages/levista_instant_coffee.png" data-bs-interval="1000" alt="Levista Instant Coffee">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/groceries/refresh_beverages/avt_coffee_premium.png" alt="AVT Premium">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/groceries/refresh_beverages/bru_coffee.png" alt="Bru Coffee">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/groceries/refresh_beverages/green_tea.png" alt="Green Tea">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/groceries/refresh_beverages/black_tea_dried.png" alt="Black Tea">
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="detail-box">
                                     <h5>
@@ -443,7 +566,25 @@
                         <div class="box">
                             <div>
                                 <div class="img-box">
-                                    <img src="images/f3.png" alt="">
+                                    <div id="EdibleOilCarousel" class="carousel slide" data-ride="carousel" data-bs-interval="1000">
+                                        <div class="carousel-inner">
+                                            <div class="carousel-item active">
+                                                <img class="openImgModalBtn" src="images/groceries/edible_oils/coconut_oil.png" data-bs-interval="1000" alt="Coconut Oil">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/groceries/edible_oils/sunflower_oil.png" alt="Sunflower Oil">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/groceries/edible_oils/olive_oil.png" alt="Olive Oil">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/groceries/edible_oils/gingerly_oil.png" alt="Gingerly Oil">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/groceries/edible_oils/peeled_sesame_seeds.png" alt="Peeled Sesame Seeds">
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="detail-box">
                                     <h5>
@@ -461,14 +602,29 @@
                         <div class="box">
                             <div>
                                 <div class="img-box">
-                                    <img src="images/f3.png" alt="">
+                                    <div id="MilletFlourCarousel" class="carousel slide" data-ride="carousel" data-bs-interval="1000">
+                                        <div class="carousel-inner">
+                                            <div class="carousel-item active">
+                                                <img class="openImgModalBtn" src="images/groceries/millet_flour/raagi_flour.png" data-bs-interval="1000" alt="Raagi Flour">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/groceries/millet_flour/bajra_flour.png" alt="Bajra Flour">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/groceries/millet_flour/kodo_millet_flour.png" alt="Kodo Flour">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/groceries/millet_flour/foxtail_millet_flourr.png" alt="Foxtail Flour">
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="detail-box">
                                     <h5>
                                         Millet Flour
                                     </h5>
                                     <p>
-                                        Our premium millet flour, including Ragi, Jowar, Bajra, and Foxtail, is rich in fiber, protein, and nutrients—perfect for rotis, dosas, and healthy baking.
+                                        Our premium millet flour, including Ragi, Jowar, Bajra, and Foxtail, is rich in fiber, protein, and nutrients perfect for rotis, dosas, and healthy baking.
                                     </p>
                                 </div>
                             </div>
@@ -479,7 +635,25 @@
                         <div class="box">
                             <div>
                                 <div class="img-box">
-                                    <img src="images/f3.png" alt="">
+                                    <div id="WholeGrainMilletCarousel" class="carousel slide" data-ride="carousel" data-bs-interval="1000">
+                                        <div class="carousel-inner">
+                                            <div class="carousel-item active">
+                                                <img class="openImgModalBtn" src="images/groceries/whole_grain_millet/barnyard_millet.png" data-bs-interval="1000" alt="Barnyard Millet">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/groceries/whole_grain_millet/foxtail_millet.png" alt="Foxtail Millet">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/groceries/whole_grain_millet/kodo_millet.png" alt="Kodo Millet">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/groceries/whole_grain_millet/ragi_millet.png" alt="Ragi Millet">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/groceries/whole_grain_millet/sorghum_millet.png" alt="Sorghum Millet">
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="detail-box">
                                     <h5>
@@ -497,7 +671,28 @@
                         <div class="box">
                             <div>
                                 <div class="img-box">
-                                    <img src="images/home_vessels/pooja_items.png" alt="God Pooja Items">
+                                    <div id="PoojaVesselsCarousel" class="carousel slide" data-ride="carousel" data-bs-interval="1000">
+                                        <div class="carousel-inner">
+                                            <div class="carousel-item active">
+                                                <img class="openImgModalBtn" src="images/household/pooja_vessels/lord_murugan.png" data-bs-interval="1000" alt="Lord Murugan">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/household/pooja_vessels/nel_vilakku.png" alt="Nel Vilakku">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/household/pooja_vessels/kuthuvilakku.png" alt="Kuthuvilakku">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/household/pooja_vessels/shiva.png" alt="Shiva">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/household/pooja_vessels/murugan.png" alt="Murugan">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/household/pooja_vessels/vilakku.png" alt="Vilakku">
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="detail-box">
                                     <h5>
@@ -516,7 +711,31 @@
                         <div class="box">
                             <div>
                                 <div class="img-box">
-                                    <img src="images/sweets_snacks/A2B_logo.png" alt="A2B Sweets & Snacks">
+                                    <div id="A2BCarousel" class="carousel slide" data-ride="carousel" data-bs-interval="1000">
+                                        <div class="carousel-inner">
+                                            <div class="carousel-item active">
+                                                <img class="openImgModalBtn" src="images/sweets_snacks/a2b/a2b_logo.png" data-bs-interval="1000" alt="A2B Logo">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/sweets_snacks/a2b/soanpapdi.png" alt="Soanpapdi">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/sweets_snacks/a2b/pepper_sev.png" alt="Pepper Sev">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/sweets_snacks/a2b/athirasam.png" alt="Athirasam">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/sweets_snacks/a2b/ribbon_pakoda.png" alt="Ribbon Pakoda">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/sweets_snacks/a2b/seedai.png" alt="Seedai">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/sweets_snacks/a2b/special_mixture.png" alt="Special Mixture">
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="detail-box">
                                     <h5>
@@ -534,7 +753,31 @@
                         <div class="box">
                             <div>
                                 <div class="img-box">
-                                    <img src="images/sweets_snacks/A2B_logo.png" alt="A2B Sweets & Snacks">
+                                    <div id="NutsDryFruitsCarousel" class="carousel slide" data-ride="carousel" data-bs-interval="1000">
+                                        <div class="carousel-inner">
+                                            <div class="carousel-item active">
+                                                <img class="openImgModalBtn" src="images/sweets_snacks/nuts_dry_fruits/badam.png" data-bs-interval="1000" alt="Badam">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/sweets_snacks/nuts_dry_fruits/dried_fig.png" alt="Dried Fig">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/sweets_snacks/nuts_dry_fruits/pista.png" alt="Pista">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/sweets_snacks/nuts_dry_fruits/golden_raisins.png" alt="Raisins">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/sweets_snacks/nuts_dry_fruits/dates.png" alt="Dates">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/sweets_snacks/nuts_dry_fruits/walnuts.png" alt="Walnuts">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/sweets_snacks/nuts_dry_fruits/cashew_nut.png" alt="Cashew">
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="detail-box">
                                     <h5>
@@ -552,7 +795,22 @@
                         <div class="box">
                             <div>
                                 <div class="img-box">
-                                    <img src="images/sweets_snacks/Geetham_logo.png" alt="Geetham Sweets & Snacks">
+                                    <div id="GeethamCarousel" class="carousel slide" data-ride="carousel" data-bs-interval="1000">
+                                        <div class="carousel-inner">
+                                            <div class="carousel-item active">
+                                                <img class="openImgModalBtn" src="images/sweets_snacks/geetham/geetham_logo.png" data-bs-interval="1000" alt="Geetham Logo">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/sweets_snacks/geetham/mysore_pak.png" alt="Mysore Pak">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/sweets_snacks/geetham/badam_halwa.png" alt="Badam Halwa">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/sweets_snacks/geetham/badam_barfi.png" alt="Badam Barfi">
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="detail-box">
                                     <h5>
@@ -570,21 +828,48 @@
                         <div class="box">
                             <div>
                                 <div class="img-box">
-                                    <img src="images/sweets_snacks/Haldirams_logo.png" alt="Haldirams Sweets & Snacks">
+                                    <div id="HaldiramsCarousel" class="carousel slide" data-ride="carousel" data-bs-interval="1000">
+                                        <div class="carousel-inner">
+                                            <div class="carousel-item active">
+                                                <img class="openImgModalBtn" src="images/sweets_snacks/haldirams/haldirams_logo.png" data-bs-interval="1000" alt="Haldirams Logo">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/sweets_snacks/haldirams/mixture.png" alt="Mixture">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/sweets_snacks/haldirams/masala_kaju.png" alt="Masala Kaju">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/sweets_snacks/haldirams/bhujia_sev.png" alt="Bhujia Sev">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/sweets_snacks/haldirams/aloo_bhujia.png" alt="Aloo Bhujia">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/sweets_snacks/haldirams/moong_dal.png" alt="Moong Dal">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/sweets_snacks/haldirams/peanuts.png" alt="Peanuts">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/sweets_snacks/haldirams/murukku.png" alt="Murukku">
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="detail-box">
                                     <h5>
                                         Haldiram&#39;s Delicacies
                                     </h5>
                                     <p>
-                                        India’s most renowned brand for sweets, snacks, and namkeens! Famous for Rasgulla, Soan Papdi, and crunchy Aloo Sev, loved worldwide!
+                                        India&#39;s most renowned brand for sweets, snacks, and namkeens! Famous for Rasgulla, Soan Papdi, and crunchy Aloo Sev, loved worldwide!
                                     </p>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="col-sm-12 col-lg-12 all sweetssnacks d-none" id="other_sweets_snacks">
+                    <div class="col-sm-12 col-lg-8 all sweetssnacks d-none" id="other_sweets_snacks">
                         <div class="box">
                             <div class="d-flex">
                                 <div class="col-6 detail-box">
@@ -911,6 +1196,14 @@
         </div>
     </div>
 
+    <!-- Image View Modal Structure -->
+    <div id="imageModal" class="modal">
+        <div class="modal-content image-modal-content">
+            <span id="closeImgModalBtn" class="close-btn">&times;</span>
+            <img id="modalImageView" src="" alt="Image">
+        </div>
+    </div>
+
     <!-- jQery -->
     <script src="js/jquery-3.4.1.min.js"></script>
 
@@ -1004,6 +1297,24 @@
 
                 }
             });
+        });
+
+        $(".openImgModalBtn").click(function() {
+            var getSrc = $(this).attr('src');
+            if (getSrc) {
+                $('#modalImageView').attr('src', getSrc);
+                $("#imageModal").fadeIn();
+            }
+        });
+
+        $("#closeImgModalBtn").click(function() {
+            $("#imageModal").fadeOut();
+        });
+
+        $(window).click(function(event) {
+            if ($(event.target).is("#imageModal")) {
+                $("#imageModal").fadeOut();
+            }
         });
 
         // var myCarousel = document.querySelector('#carouselExampleInterval')

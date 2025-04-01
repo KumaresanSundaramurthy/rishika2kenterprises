@@ -15,3 +15,13 @@ function getEmailConfiguration() {
 	return $EndReturnData;
 	
 }
+
+function changeTimeZomeDateFormat($TimeStamp, $TimeZone) {
+	
+	$DateTime = new DateTime(date('Y-m-d H:i:s', $TimeStamp));
+	$DateTime->setTimezone(new DateTimeZone($TimeZone));
+	$DateTime = $DateTime->format('d M Y h:i A');
+	
+	return $DateTime;
+
+}

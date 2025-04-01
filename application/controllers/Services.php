@@ -19,6 +19,7 @@ class Services extends CI_Controller
             $SubsEmail = $this->input->post('SubsEmail');
             $SubsCcode = $this->input->post('SubsCountryCode');
             $SubsMobile = $this->input->post('SubsMobile');
+            $SubsTimezone = $this->input->post('CustTimezone');
             $SubsComment = $this->input->post('SubsComment') ? $this->input->post('SubsComment') : '-';
             
             $this->load->library('emailservice');
@@ -52,6 +53,7 @@ class Services extends CI_Controller
                                     <p><strong>Email:</strong> '.$SubsEmail.'</p>
                                     <p><strong>Mobile Number:</strong> '.$SubsCcode.' '.$SubsMobile.'</p>
                                     <p><strong>Comment:</strong> '.$SubsComment.'</p>
+                                    <p><strong>Date & Time:</strong> '.changeTimeZomeDateFormat(time(), $SubsTimezone).'</p>
                                 </div>
                             </body>
                         </html>';

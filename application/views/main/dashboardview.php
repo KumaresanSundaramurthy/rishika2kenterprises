@@ -848,7 +848,31 @@
                         <div class="box">
                             <div>
                                 <div class="img-box">
-                                    <img src="images/clothes/babies_clothes.png" alt="Baby Clothes">
+                                    <div id="FashionCarousel" class="carousel slide" data-ride="carousel" data-bs-interval="1000">
+                                        <div class="carousel-inner">
+                                            <div class="carousel-item active">
+                                                <img class="openImgModalBtn" src="images/clothes/fashion_all/coat_suit.png" data-title="Men's Coat Suit" alt="Men's Coat Suit">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/clothes/fashion_all/women_jeans.png" data-title="Women's Jeans" alt="Women's Jeans">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/clothes/fashion_all/baby2.png" data-title="1Yr Baby" alt="1Yr Baby">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/clothes/fashion_all/baby.png" data-title="New Born Baby" alt="New Born Baby">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/clothes/fashion_all/baby3.png" data-title="Babies Fashion" alt="Babies Fashion">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/clothes/fashion_all/mens_fashion.png" data-title="Men's Fashion" alt="Men's Fashion">
+                                            </div>
+                                            <div class="carousel-item">
+                                                <img class="openImgModalBtn" src="images/clothes/fashion_all/mens_jeans.png" data-title="Men's Jeans" alt="Men's Jeans">
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="detail-box">
                                     <h5>

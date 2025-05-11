@@ -14,7 +14,8 @@ class Whatsappservice {
 
         $this->CI =& get_instance();
         
-        $this->Client = new Client(getenv('TWILIO_ACC_SID'), getenv('TWILIO_AUTH_TOKEN'));
+        // $this->Client = new Client(getenv('TWILIO_ACC_SID'), getenv('TWILIO_AUTH_TOKEN'));
+        $this->Client = new Client(getAWSConfigurationDetails()->TWILIO_ACC_SID, getAWSConfigurationDetails()->TWILIO_AUTH_TOKEN);
 
     }
 
@@ -27,7 +28,7 @@ class Whatsappservice {
             $MessageResp = $this->Client->messages->create(
                 $ToNumber,
                 [
-                    'from' => getEmailConfiguration()->TwilioPhoneNum,
+                    'from' => getSiteConfiguration()->TwilioPhoneNum,
                     'body' => $Message
                 ]
             );

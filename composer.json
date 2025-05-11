@@ -11,10 +11,14 @@
 		"source": "https://github.com/bcit-ci/CodeIgniter"
 	},
 	"require": {
-		"php": ">=5.3.7",
+		"php": ">=7.2.5",
 		"aws/aws-sdk-php": "^3.339",
 		"phpmailer/phpmailer": "^6.9",
-		"twilio/sdk": "^8.3"
+		"twilio/sdk": "^8.3",
+		"predis/predis": "^2.2",
+		"firebase/php-jwt": "^6.8",
+		"ramsey/uuid": "^4.7",
+		"google/apiclient": "^2.15"
 	},
 	"suggest": {
 		"paragonie/random_compat": "Provides better randomness in PHP 5.x"

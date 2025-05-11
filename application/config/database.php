@@ -73,12 +73,22 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 $active_group = 'default';
 $query_builder = TRUE;
 
+$HostName = "34.93.73.254";
+$UserName = "root";
+$Password = "Rishika@2024";
+$Port = 3306;
+
+// $HostName = "host.docker.internal";
+// $UserName = "kumaresan";
+// $Password = "Kumaresan@123";
+
 $db['default'] = array(
 	'dsn'	=> '',
-	'hostname' => 'localhost',
-	'username' => '',
-	'password' => '',
-	'database' => '',
+	'hostname' => $HostName,
+	'username' => $UserName,
+	'password' => $Password,
+	'database' => 'organisation',
+	'port' => $Port,
 	'dbdriver' => 'mysqli',
 	'dbprefix' => '',
 	'pconnect' => FALSE,
@@ -87,6 +97,52 @@ $db['default'] = array(
 	'cachedir' => '',
 	'char_set' => 'utf8',
 	'dbcollat' => 'utf8_general_ci',
+	'swap_pre' => '',
+	'encrypt' => FALSE,
+	'compress' => FALSE,
+	'stricton' => FALSE,
+	'failover' => array(),
+	'save_queries' => TRUE
+);
+
+$db['Users'] = array(
+    'dsn'   => '',
+    'hostname' => $HostName,
+	'username' => $UserName,
+	'password' => $Password,
+    'database' => 'Users',
+	'port' => $Port,
+    'dbdriver' => 'mysqli',
+    'dbprefix' => '',
+    'pconnect' => FALSE,
+    'db_debug' => (ENVIRONMENT !== 'production'),
+    'cache_on' => FALSE,
+	'cachedir' => '',
+    'char_set' => 'utf8',
+    'dbcollat' => 'utf8_general_ci',
+	'swap_pre' => '',
+	'encrypt' => FALSE,
+	'compress' => FALSE,
+	'stricton' => FALSE,
+	'failover' => array(),
+	'save_queries' => TRUE
+);
+
+$db['UserRole'] = array(
+    'dsn'   => '',
+    'hostname' => $HostName,
+	'username' => $UserName,
+	'password' => $Password,
+    'database' => 'UserRole',
+	'port' => $Port,
+    'dbdriver' => 'mysqli',
+    'dbprefix' => '',
+    'pconnect' => FALSE,
+    'db_debug' => (ENVIRONMENT !== 'production'),
+    'cache_on' => FALSE,
+	'cachedir' => '',
+    'char_set' => 'utf8',
+    'dbcollat' => 'utf8_general_ci',
 	'swap_pre' => '',
 	'encrypt' => FALSE,
 	'compress' => FALSE,

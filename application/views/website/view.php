@@ -11,14 +11,14 @@
     <meta name="keywords" content="" />
     <meta name="description" content="" />
     <meta name="author" content="" />
-    <link rel="shortcut icon" href="images/logo/R2kE_Logo_square.png" type="">
+    <link rel="shortcut icon" href="https://r2k-enterprises.s3.ap-south-1.amazonaws.com/website/images/logo/R2kE_Logo_square.png" type="">
 
     <title> Rishika2K Enterprises</title>
 
     <!-- bootstrap core css -->
     <link rel="stylesheet" type="text/css" href="css/bootstrap.css" />
 
-    <!--owl slider stylesheet -->
+    <!-- owl slider stylesheet -->
     <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/assets/owl.carousel.min.css" />
 
     <!-- select2 -->
@@ -34,12 +34,11 @@
     <link href="css/responsive.css" rel="stylesheet" />
 
 </head>
-
 <body>
 
     <div class="hero_area">
         <div class="bg-box">
-            <img src="https://rishika2ktransport.s3.ap-south-1.amazonaws.com/website/main-page.jpeg" alt="Indian Sweets Snacks">
+            <img src="https://r2k-enterprises.s3.ap-south-1.amazonaws.com/website/images/main-page.jpeg" alt="Indian Sweets Snacks">
         </div>
 
         <!-- Main header section strats -->
@@ -1137,7 +1136,7 @@
 
                 <div class="col-md-4 footer-col">
                     <div class="footer_detail">
-                        <h4><?php echo getEmailConfiguration()->Name; ?></h4>
+                        <h4><?php echo getSiteConfiguration()->Name; ?></h4>
                         <p class="text-justify">Explore our wide range of fresh groceries, premium snacks, and essential household items. Transform your home with our stylish décor and find the latest fashion trends in clothing and accessories. Quality, convenience, and style – all in one place.
 
                         </p>
@@ -1205,7 +1204,7 @@
             </div>
             <div class="footer-info">
                 <p>
-                    &copy; <span id="displayYear"></span> <?php echo getEmailConfiguration()->Name; ?> | All Rights Reserved.
+                    &copy; <span id="displayYear"></span> <?php echo getSiteConfiguration()->Name; ?> | All Rights Reserved.
                     <a href="https://html.design/" class="d-none">Free Html Templates</a><br>
                 </p>
             </div>
@@ -1267,13 +1266,13 @@
     </div>
 
     <!-- jQery -->
-    <script src="js/jquery-3.4.1.min.js"></script>
+    <script src="js/common/jquery-3.4.1.min.js"></script>
 
     <!-- popper js -->
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
 
     <!-- bootstrap js -->
-    <script src="js/bootstrap.js"></script>
+    <script src="bootstrap5/js/bootstrap.min.js"></script>
 
     <!-- owl slider -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/owl.carousel.min.js"></script>
@@ -1285,7 +1284,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
 
     <!-- custom js -->
-    <script src="js/custom.js"></script>
+    <script src="js/common/custom.js"></script>
 
     <!-- Google Map -->
     <!-- <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCh39n5U-4IoWpsVGUHWdqB6puEkhRLdmI&callback=myMap"></script> -->

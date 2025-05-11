@@ -1,16 +1,15 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed');
 
-class Services extends CI_Controller
-{
+class Services extends CI_Controller {
 
-    public function __construct()
-    {
+    private $EndReturnData;
+
+    public function __construct() {
         parent::__construct();
 
     }
 
-    public function SubscribeSendEmail()
-    {
+    public function SubscribeSendEmail() {
 
         $this->EndReturnData = new stdClass();
 		try {
@@ -60,7 +59,7 @@ class Services extends CI_Controller
 
             $PlainText = "New Subscriber - ".$SubsName." - ".$SubsEmail.' - '.$SubsCcode.' '.$SubsMobile." - ".$SubsComment;
             
-            $ServiceResponse = $this->emailservice->sendEmailUsingSES(getEmailConfiguration()->FromEmail, getEmailConfiguration()->ToEmail, $Subject, $BodyHtml, $PlainText);
+            $ServiceResponse = $this->emailservice->sendEmailUsingSES(getSiteConfiguration()->FromEmail, getSiteConfiguration()->ToEmail, $Subject, $BodyHtml, $PlainText);
 
             if($ServiceResponse->Error) {
 
@@ -71,7 +70,7 @@ class Services extends CI_Controller
                 // $WhatsappMessage .= "Comment: ".$SubsComment."\n";
 
                 // $this->load->library('whatsappservice');
-                // $ReturnResp = $this->whatsappservice->SendWhatsAppMessage(getEmailConfiguration()->WhatsAppPhoneNumber, $WhatsappMessage);
+                // $ReturnResp = $this->whatsappservice->SendWhatsAppMessage(getSiteConfiguration()->WhatsAppPhoneNumber, $WhatsappMessage);
 
                 $this->EndReturnData->Error = TRUE;
                 $this->EndReturnData->Message = $ServiceResponse->Message;
@@ -100,7 +99,7 @@ class Services extends CI_Controller
 
         $message = urlencode($MessageInfo);
 
-        $whatsapp_url = "https://api.whatsapp.com/send?phone=".getEmailConfiguration()->PhoneNumber."&text=$message";
+        $whatsapp_url = "https://api.whatsapp.com/send?phone=".getSiteConfiguration()->PhoneNumber."&text=$message";
 
         redirect($whatsapp_url);
 

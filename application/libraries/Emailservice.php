@@ -17,8 +17,7 @@ class Emailservice {
 
         $this->CI =& get_instance();
         
-        // $credentials = new Aws\Credentials\Credentials(getenv('AWS_KEY'), getenv('AWS_SECRET'));
-        $credentials = new Aws\Credentials\Credentials(getAWSConfigurationDetails()->AWS_KEY, getAWSConfigurationDetails()->AWS_SECRET);
+        $credentials = new Aws\Credentials\Credentials(getenv('AWS_KEY'), getenv('AWS_SECRET'));
 
         $this->config = array(
             'version'     => 'latest',

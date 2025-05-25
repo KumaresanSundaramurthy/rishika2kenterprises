@@ -10,11 +10,11 @@ Class Cacheservice {
     function __construct() {
         
         $this->Client = new Predis\Client([
-            'host' => getAWSConfigurationDetails()->REDIS_HOST,
-            'port' => getAWSConfigurationDetails()->REDIS_PORT,
-            'database' => getAWSConfigurationDetails()->REDIS_DATABASE,
-            'username' => getAWSConfigurationDetails()->REDIS_USERNAME,
-            'password'=> getAWSConfigurationDetails()->REDIS_PASSWORD,
+            'host' => getenv('REDIS_HOST'),
+            'port' => getenv('REDIS_PORT'),
+            'database' => getenv('REDIS_DATABASE'),
+            'username' => getenv('REDIS_USERNAME'),
+            'password'=> getenv('REDIS_PASSWORD'),
         ]);
 
     } 

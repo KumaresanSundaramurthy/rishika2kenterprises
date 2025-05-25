@@ -292,6 +292,38 @@ jQuery(document).ajaxStart(function () {
 });
 // AJAX Indication Stops //
 
+function validateMobileNumber(countryCode, mobileNumber) {
+    
+    mobileNumber = mobileNumber.replace(/[\s\-]/g, '');
+
+    switch (countryCode.toUpperCase()) {
+        case 'IN': // India
+            return /^[6-9]\d{9}$/.test(mobileNumber); // 10 digits, starts with 6-9
+
+        case 'US': // United States
+            return /^\d{10}$/.test(mobileNumber); // 10-digit format
+
+        case 'AE': // UAE
+            return /^5[0-9]{8}$/.test(mobileNumber); // Mobile starts with 5, 9 digits
+
+        case 'UK': // United Kingdom
+            return /^\d{10}$/.test(mobileNumber); // 10-digit format
+            
+        case 'GB':
+            return /^7\d{9}$/.test(mobileNumber); // UK mobiles typically start with 7, 10 digits
+
+        case 'PK': // Pakistan
+            return /^3\d{9}$/.test(mobileNumber); // Starts with 3, 10 digits
+
+        case 'BD': // Bangladesh
+            return /^1[3-9]\d{8}$/.test(mobileNumber); // 11 digits, starts with 13–19
+
+        default:
+            return /^[6-9]\d{9}$/.test(mobileNumber);
+    }
+
+}
+
 function inlineMessageAlert(FieldName, Type, Message, IsLoading = false, ShowCloseBtn = false) {
 
     let HtmlData = '<div class="alert alert-'+Type+' alert-dismissible fade show" role="alert">';

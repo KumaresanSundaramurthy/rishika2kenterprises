@@ -14,8 +14,7 @@ class Whatsappservice {
 
         $this->CI =& get_instance();
         
-        // $this->Client = new Client(getenv('TWILIO_ACC_SID'), getenv('TWILIO_AUTH_TOKEN'));
-        $this->Client = new Client(getAWSConfigurationDetails()->TWILIO_ACC_SID, getAWSConfigurationDetails()->TWILIO_AUTH_TOKEN);
+        $this->Client = new Client(getenv('TWILIO_ACC_SID'), getenv('TWILIO_AUTH_TOKEN'));
 
     }
 

@@ -121,16 +121,16 @@ class Login extends CI_Controller {
 
     public function logout() {
 
-        $JwtEncoded = get_cookie(getAWSConfigurationDetails()->JWT_COOKIE_NAME);
+        $JwtEncoded = get_cookie(getenv('JWT_COOKIE_NAME'));
 
         if(isset($JwtEncoded)) {
 
-			$JwtData = JWT::decode($JwtEncoded, new Key(getAWSConfigurationDetails()->JWT_KEY, 'HS256'));
+			$JwtData = JWT::decode($JwtEncoded, new Key(getenv('JWT_KEY'), 'HS256'));
 			if(isset($JwtData->key) && !empty($JwtData->key)) {
 				$this->cacheservice->delete($JwtData->key);
 			}
 
-			delete_cookie(getAWSConfigurationDetails()->JWT_COOKIE_NAME);
+			delete_cookie(getenv('JWT_COOKIE_NAME'));
 
 		}
 

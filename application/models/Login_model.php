@@ -28,6 +28,9 @@ class Login_model extends CI_Model {
             $JwtUserData['LastName'] = $UserData->UserLastName;
             $JwtUserData['UserName'] = $UserData->UserName;
             $JwtUserData['EmailAddress'] = $UserData->UserEmailAddress;
+            $JwtUserData['OrgUID'] = $UserData->UserOrgUID;
+            $JwtUserData['RoleUID'] = $UserData->UserRoleUID;
+            $JwtUserData['RoleName'] = $UserData->UserRoleName;
 
             $MainModule = $this->getUserRightsMainModule($UserData->UserUID)->Data;
             $SubModule = $this->getUserRightsSubModule($UserData->UserUID)->Data;
@@ -66,11 +69,9 @@ class Login_model extends CI_Model {
             $jwtData['nbf'] = time();
             $jwtData['exp'] = time() + $Expiry; 
 
-            // $jwtEncoded = JWT::encode($jwtData, getenv('JWT_KEY'), 'HS256');
-            $jwtEncoded = JWT::encode($jwtData, getAWSConfigurationDetails()->JWT_KEY, 'HS256');
+            $jwtEncoded = JWT::encode($jwtData, getenv('JWT_KEY'), 'HS256');
 
-            // set_cookie(getenv('JWT_COOKIE_NAME'), $jwtEncoded, $Expiry);
-            set_cookie(getAWSConfigurationDetails()->JWT_COOKIE_NAME, $jwtEncoded, $Expiry);
+            set_cookie(getenv('JWT_COOKIE_NAME'), $jwtEncoded, $Expiry);
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Message = 'Success';

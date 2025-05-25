@@ -11,22 +11,22 @@ $(function() {
     var Filter = {};
     var global_base_url = '<?php echo base_url(); ?>';
 
-    var tm = new Date();
-    tm = '<h3>Loading... Pls. wait...<h3><span style="color:yellow;">' + tm.getHours() + ":" + tm.getMinutes()+ ":" + tm.getSeconds() + '</span>'  ;
-    $.blockUI({
-        message: tm, 
-        css: { 
-            border: 'none', 
-            padding: '15px', 
-            backgroundColor: '#000', 
-            '-webkit-border-radius': '10px', 
-            '-moz-border-radius': '10px', 
-            opacity: .5, 
-            color: '#fff',
-        }
-    });
+    // var tm = new Date();
+    // tm = '<h3>Loading... Pls. wait...<h3><span style="color:yellow;">' + tm.getHours() + ":" + tm.getMinutes()+ ":" + tm.getSeconds() + '</span>'  ;
+    // $.blockUI({
+    //     message: tm, 
+    //     css: { 
+    //         border: 'none', 
+    //         padding: '15px', 
+    //         backgroundColor: '#000', 
+    //         '-webkit-border-radius': '10px', 
+    //         '-moz-border-radius': '10px', 
+    //         opacity: .5, 
+    //         color: '#fff',
+    //     }
+    // });
 
-    $.unblockUI();
+    // $.unblockUI();
 
     $('#ChangePasswordBtn').click(function(e) {
         e.preventDefault();

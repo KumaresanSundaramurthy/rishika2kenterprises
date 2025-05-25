@@ -22,14 +22,12 @@ class Middleware {
 
 			//check JWT
 
-			// $JwtEncoded = get_cookie(getenv('JWT_COOKIE_NAME'));
-			$JwtEncoded = get_cookie(getAWSConfigurationDetails()->JWT_COOKIE_NAME);
+			$JwtEncoded = get_cookie(getenv('JWT_COOKIE_NAME'));
 			if(isset($JwtEncoded)) {
 
 				try{
 
-					// $JwtData = JWT::decode($JwtEncoded, new Key(getenv('JWT_KEY'), 'HS256'));
-					$JwtData = JWT::decode($JwtEncoded, new Key(getAWSConfigurationDetails()->JWT_KEY, 'HS256'));
+					$JwtData = JWT::decode($JwtEncoded, new Key(getenv('JWT_KEY'), 'HS256'));
 					if(!empty($JwtData->key)) {
 
 						$RedisData = $CI->cacheservice->get($JwtData->key);

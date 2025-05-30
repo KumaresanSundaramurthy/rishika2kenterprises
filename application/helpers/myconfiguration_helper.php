@@ -7,6 +7,7 @@ function getSiteConfiguration() {
 	$EndReturnData->Name = 'Rishika 2K Enterprises';
 	$EndReturnData->ShortName = 'R2K Enterprises';
 	$EndReturnData->MenuName = 'R2K Global';
+	$EndReturnData->RedisName = 'r2k-enterprises';
 	$EndReturnData->FromEmail = 'kumarbtechguru@gmail.com';
 	$EndReturnData->ToEmail = 'rishika2kenterprises@gmail.com';
 	$EndReturnData->PhoneNumber = +919790831180;
@@ -15,6 +16,21 @@ function getSiteConfiguration() {
 	$EndReturnData->TwilioPhoneNum = "whatsapp:+14842635241";
     
 	return $EndReturnData;
+	
+}
+
+function pageResultCount($pageno, $per_page, $total_rows) {
+
+	$pageno = $pageno == 0 ? 1 : $pageno;
+
+    $start = (int)$pageno == 1 ? $pageno : (($pageno-1)*$per_page)+1;
+    $end = ($pageno == ceil($total_rows/ $per_page))? $total_rows : (int)$pageno*$per_page;
+	
+	if($end>$total_rows){
+		$end = $total_rows;
+	}
+	
+	return "Showing ".$start." - ".$end." of ".$total_rows." Results";
 	
 }
 

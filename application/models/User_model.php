@@ -21,7 +21,7 @@ class User_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->UserDb->select('User.UserUID as UserUID, User.FirstName as UserFirstName, User.LastName as UserLastName, User.UserName as UserName, User.EmailAddress as UserEmailAddress, User.Password as UserPassword, Roles.RoleUID as UserRoleUID, Roles.Name as UserRoleName, Org.OrgUID as UserOrgUID');
+            $this->UserDb->select('User.UserUID as UserUID, User.FirstName as UserFirstName, User.LastName as UserLastName, User.UserName as UserName, User.EmailAddress as UserEmailAddress, User.Password as UserPassword, Roles.RoleUID as UserRoleUID, Roles.Name as UserRoleName, Org.OrgUID as UserOrgUID, Org.Logo as UserOrgLogo, Org.CountryCode as UserOrgCCode, Org.CountryISO2 as UserOrgCISO2');
             $this->UserDb->from('Users.UserTbl as User');
             $this->UserDb->join($this->UserRoleDb->database.'.RolesTbl as Roles', 'Roles.RoleUID = User.RoleUID', 'left');
             $this->UserDb->join($this->OrgDb->database.'.OrganisationTbl as Org', 'Org.OrgUID = User.OrgUID', 'left');

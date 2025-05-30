@@ -78,6 +78,7 @@ class CI_Pagination {
 	 * @var	int
 	 */
 	protected $total_rows = 0;
+	protected $result_count = 0;
 
 	/**
 	 * Number of links to show
@@ -152,14 +153,14 @@ class CI_Pagination {
 	 *
 	 * @var	string
 	 */
-	protected $full_tag_open = '';
+	protected $full_tag_open = '<div class="d-md-flex justify-content-between align-items-center col-md-auto mt-0">';
 
 	/**
 	 * Full tag close
 	 *
 	 * @var	string
 	 */
-	protected $full_tag_close = '';
+	protected $full_tag_close = '</div>';
 
 	/**
 	 * First tag open
@@ -203,14 +204,14 @@ class CI_Pagination {
 	 *
 	 * @var	string
 	 */
-	protected $cur_tag_open = '<strong>';
+	protected $cur_tag_open = '<li class="dt-paging-button page-item active"><span class="page-link">';
 
 	/**
 	 * Current tag close
 	 *
 	 * @var	string
 	 */
-	protected $cur_tag_close = '</strong>';
+	protected $cur_tag_close = '</span></li>';
 
 	/**
 	 * Next tag open
@@ -562,7 +563,7 @@ class CI_Pagination {
 		$end	= (($this->cur_page + $this->num_links) < $num_pages) ? $this->cur_page + $this->num_links : $num_pages;
 
 		// And here we go...
-		$output = '';
+		$output = '<div class="dt-paging"><nav aria-label="pagination"><ul class="pagination">';
 
 		// Render the "First" link.
 		if ($this->first_link !== FALSE && $this->cur_page > ($this->num_links + 1 + ! $this->num_links))
@@ -570,8 +571,8 @@ class CI_Pagination {
 			// Take the general parameters, and squeeze this pagination-page attr in for JS frameworks.
 			$attributes = sprintf('%s %s="%d"', $this->_attributes, $this->data_page_attr, 1);
 
-			$output .= $this->first_tag_open.'<a href="'.$first_url.'"'.$attributes.$this->_attr_rel('start').'>'
-				.$this->first_link.'</a>'.$this->first_tag_close;
+			$output .= $this->first_tag_open.'<li class="dt-paging-button page-item"><a class="page-link" href="'.$first_url.'"'.$attributes.$this->_attr_rel('start').'>'
+				.$this->first_link.'</a></li>'.$this->first_tag_close;
 		}
 
 		// Render the "Previous" link.
@@ -584,14 +585,14 @@ class CI_Pagination {
 			if ($i === $base_page)
 			{
 				// First page
-				$output .= $this->prev_tag_open.'<a href="'.$first_url.'"'.$attributes.$this->_attr_rel('prev').'>'
-					.$this->prev_link.'</a>'.$this->prev_tag_close;
+				$output .= $this->prev_tag_open.'<li class="dt-paging-button page-item"><a class="page-link" href="'.$first_url.'"'.$attributes.$this->_attr_rel('prev').'>'
+					.$this->prev_link.'</a></li>'.$this->prev_tag_close;
 			}
 			else
 			{
 				$append = $this->prefix.$i.$this->suffix;
-				$output .= $this->prev_tag_open.'<a href="'.$base_url.$append.'"'.$attributes.$this->_attr_rel('prev').'>'
-					.$this->prev_link.'</a>'.$this->prev_tag_close;
+				$output .= $this->prev_tag_open.'<li class="dt-paging-button page-item"><a class="page-link" href="'.$base_url.$append.'"'.$attributes.$this->_attr_rel('prev').'>'
+					.$this->prev_link.'</a></li>'.$this->prev_tag_close;
 			}
 
 		}
@@ -616,14 +617,14 @@ class CI_Pagination {
 					elseif ($i === $base_page)
 					{
 						// First page
-						$output .= $this->num_tag_open.'<a href="'.$first_url.'"'.$attributes.$this->_attr_rel('start').'>'
-							.$loop.'</a>'.$this->num_tag_close;
+						$output .= $this->num_tag_open.'<li class="dt-paging-button page-item"><a class="page-link" href="'.$first_url.'"'.$attributes.$this->_attr_rel('start').'>'
+							.$loop.'</a></li>'.$this->num_tag_close;
 					}
 					else
 					{
 						$append = $this->prefix.$i.$this->suffix;
-						$output .= $this->num_tag_open.'<a href="'.$base_url.$append.'"'.$attributes.'>'
-							.$loop.'</a>'.$this->num_tag_close;
+						$output .= $this->num_tag_open.'<li class="dt-paging-button page-item"><a class="page-link" href="'.$base_url.$append.'"'.$attributes.'>'
+							.$loop.'</a></li>'.$this->num_tag_close;
 					}
 				}
 			}
@@ -636,8 +637,8 @@ class CI_Pagination {
 
 			$attributes = sprintf('%s %s="%d"', $this->_attributes, $this->data_page_attr, $this->cur_page + 1);
 
-			$output .= $this->next_tag_open.'<a href="'.$base_url.$this->prefix.$i.$this->suffix.'"'.$attributes
-				.$this->_attr_rel('next').'>'.$this->next_link.'</a>'.$this->next_tag_close;
+			$output .= $this->next_tag_open.'<li class="dt-paging-button page-item"><a class="page-link" href="'.$base_url.$this->prefix.$i.$this->suffix.'"'.$attributes
+				.$this->_attr_rel('next').'>'.$this->next_link.'</a></li>'.$this->next_tag_close;
 		}
 
 		// Render the "Last" link
@@ -647,13 +648,17 @@ class CI_Pagination {
 
 			$attributes = sprintf('%s %s="%d"', $this->_attributes, $this->data_page_attr, $num_pages);
 
-			$output .= $this->last_tag_open.'<a href="'.$base_url.$this->prefix.$i.$this->suffix.'"'.$attributes.'>'
-				.$this->last_link.'</a>'.$this->last_tag_close;
+			$output .= $this->last_tag_open.'<li class="dt-paging-button page-item"><a class="page-link" href="'.$base_url.$this->prefix.$i.$this->suffix.'"'.$attributes.'>'
+				.$this->last_link.'</a></li>'.$this->last_tag_close;
 		}
+
+		$output .= '</ul></nav></div>';
 
 		// Kill double slashes. Note: Sometimes we can end up with a double slash
 		// in the penultimate link so we'll kill all double slashes.
 		$output = preg_replace('#([^:"])//+#', '\\1/', $output);
+
+		$this->full_tag_open = $this->full_tag_open.'<div>'.$this->result_count.'</div></div><div class="d-md-flex justify-content-between align-items-center col-md-auto mb-md-0 pt-2">';
 
 		// Add the wrapper HTML if exists
 		return $this->full_tag_open.$output.$this->full_tag_close;

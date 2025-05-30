@@ -13,14 +13,17 @@
     <!-- endbuild -->
 
     <!-- Vendors JS -->
-
+    
     <!-- Select2 JS -->
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
     <!-- Main JS -->
     <script type="text/javascript" src="/assets/js/main.js"></script>
     
-    <script type="text/javascript" src="<?php echo base_url(); ?>js/common/default.js"></script>
+    <script type="text/javascript" src="/bootstrap/js/jquery.blockUI.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+
+    <script type="text/javascript" src="/js/common/default.js"></script>
 
     <?php $this->load->view('common/footer_script'); ?>
 

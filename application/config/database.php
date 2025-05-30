@@ -73,10 +73,10 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 $active_group = 'default';
 $query_builder = TRUE;
 
-$HostName = "34.93.73.254";
-$UserName = "root";
-$Password = "Rishika@2024";
-$Port = 3306;
+$HostName = getenv('DB_HOSTNAME');
+$UserName = getenv('DB_USERNAME');
+$Password = getenv('DB_PASSWORD');
+$Port = getenv('DB_PORT');
 
 // $HostName = "host.docker.internal";
 // $UserName = "kumaresan";
@@ -180,6 +180,29 @@ $db['Global'] = array(
 	'username' => $UserName,
 	'password' => $Password,
     'database' => 'Global',
+	'port' => $Port,
+    'dbdriver' => 'mysqli',
+    'dbprefix' => '',
+    'pconnect' => FALSE,
+    'db_debug' => (ENVIRONMENT !== 'production'),
+    'cache_on' => FALSE,
+	'cachedir' => '',
+    'char_set' => 'utf8',
+    'dbcollat' => 'utf8_general_ci',
+	'swap_pre' => '',
+	'encrypt' => FALSE,
+	'compress' => FALSE,
+	'stricton' => FALSE,
+	'failover' => array(),
+	'save_queries' => TRUE
+);
+
+$db['Customers'] = array(
+    'dsn'   => '',
+    'hostname' => $HostName,
+	'username' => $UserName,
+	'password' => $Password,
+    'database' => 'Customers',
 	'port' => $Port,
     'dbdriver' => 'mysqli',
     'dbprefix' => '',

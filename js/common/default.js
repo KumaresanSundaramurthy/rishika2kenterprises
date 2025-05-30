@@ -7,6 +7,43 @@ jQuery.fn.center = function () {
     return this;
 }
 
+function showUIBlock() {
+
+    $.blockUI({
+        message: `
+            <div class="d-flex flex-column justify-content-center align-items-center" style="height: 100vh;">
+                <div class="spinner-border text-info" role="status" style="width: 4rem; height: 4rem;">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <h4 class="mt-3 text-white animate__animated animate__infinite">Processing... Please wait</h4>
+            </div>
+        `,
+        css: {
+            border: 'none',
+            padding: 0,
+            backgroundColor: 'transparent',
+            width: '100%',
+            top: '0',
+            left: '0',
+            position: 'fixed',
+            zIndex: 2000,
+            textAlign: 'center'
+        },
+        overlayCSS: {
+            backgroundColor: '#111',
+            opacity: 0.7,
+            backdropFilter: 'blur(4px)',  // Blurred effect
+            zIndex: 1999,
+            cursor: 'wait'
+        }
+    });
+
+}
+
+function hideUIBlock() {
+    $.unblockUI();
+}
+
 function alertPopup(msg, delay = 8000, colour = 'yellow') {
     if ($("#alert").length) {
         $("#alert").remove();
@@ -286,9 +323,11 @@ function ajaxindicatorstop() {
 }
 
 jQuery(document).ajaxStart(function () {
-    ajaxindicatorstart('loading data... please wait...');
+    showUIBlock();
+    // ajaxindicatorstart('loading... please wait...');
 }).ajaxStop(function () {
-    ajaxindicatorstop();
+    hideUIBlock()
+    // ajaxindicatorstop();
 });
 // AJAX Indication Stops //
 
@@ -340,6 +379,14 @@ function inlineMessageAlert(FieldName, Type, Message, IsLoading = false, ShowClo
 
 }
 
+function changeHandler(val) {
+    if (Number(val.value) > 100) {
+        let str = val.value;
+        let mark = str.slice(0, -1);
+        val.value = mark;
+    }
+}
+
 function resetUserPassword(formData) {
 
     $('#ResetPasswordSubBtn').prop('disabled', 'disabled');
@@ -366,4 +413,25 @@ function resetUserPassword(formData) {
         }
 	});
 
+}
+
+function fileSelect(id) {
+    $('#image-error').addClass('d-none');
+
+    var fileType = id.target.files[0].type;
+    var allowedTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+    if (!allowedTypes.includes(fileType)) {
+        $('#image-error').removeClass('d-none');
+        $('#image-error').text('Please upload only image.');
+    } else {
+        var fSizeMB = id.target.files[0].size / Math.pow(1024, 2);
+        if (fSizeMB <= 1) {
+            var tmppath = URL.createObjectURL(id.target.files[0]);
+            $('#uploadedAvatar').attr("src", tmppath);
+            imageChange = 1;
+        } else {
+            $('#image-error').removeClass('d-none');
+            $('#image-error').text('Upload Max of 1 MB');
+        }
+    }
 }

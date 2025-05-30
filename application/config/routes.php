@@ -55,3 +55,6 @@ $route['translate_uri_dashes'] = FALSE;
 
 // Login
 $route['portal/login'] = 'login/login';
+
+// Customers
+$route['customers/(:num)/edit'] = 'customers/edit/$1';

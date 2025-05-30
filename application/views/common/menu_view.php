@@ -1,5 +1,8 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
+<?php $CI =& get_instance();
+$ControllerName = get_class($CI); ?>
+
 <!-- Menu -->
 <aside id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme">
     <div class="app-brand demo">
@@ -28,35 +31,37 @@
         </li>
 
         <?php if (sizeof($JwtData->UserMainModule) > 0) {
-            foreach ($JwtData->UserMainModule as $MMKey => $MMVal) { ?>
+            foreach ($JwtData->UserMainModule as $MMKey => $MMVal) {
+                $SubMenuData = [];
+                if (sizeof($JwtData->UserSubModule) > 0) {
+                    $SubMenuData = filterByMainMenuUID($JwtData->UserSubModule, $MMVal->MainMenuUID);
+                } ?>
 
                 <!-- All Pages -->
-                <li class="menu-item">
+                <li class="menu-item <?php echo in_array(strtolower($ControllerName), array_column($SubMenuData, 'ControllerName')) ? 'active' : ''; ?>">
                     <a href="javascript:void(0);" class="menu-link menu-toggle">
                         <i class="menu-icon tf-icons bx bx-briefcase-alt"></i>
                         <div data-i18n="<?php echo $MMVal->MainMenuName; ?>"><?php echo $MMVal->MainMenuName; ?></div>
                     </a>
 
-                    <?php if (sizeof($JwtData->UserSubModule) > 0) {
-                        $SubMenuData = filterByMainMenuUID($JwtData->UserSubModule, $MMVal->MainMenuUID);
-                        if (sizeof($SubMenuData) > 0) { ?>
 
-                            <ul class="menu-sub">
+                    <?php if (sizeof($SubMenuData) > 0) { ?>
 
-                                <?php foreach ($SubMenuData as $SMKey => $SMVal) { ?>
+                        <ul class="menu-sub">
 
-                                    <li class="menu-item <?php echo $ControllerName == $SMVal->ControllerName ? 'active' : ''; ?>">
-                                        <a href="/<?php echo $SMVal->ControllerName; ?>" class="menu-link">
-                                            <div data-i18n="<?php echo $SMVal->SubMenuName; ?>"><?php echo $SMVal->SubMenuName; ?></div>
-                                        </a>
-                                    </li>
+                            <?php foreach ($SubMenuData as $SMKey => $SMVal) { ?>
 
-                                <?php } ?>
+                                <li class="menu-item <?php echo strtolower($ControllerName) == strtolower($SMVal->ControllerName) ? 'active' : ''; ?>">
+                                    <a href="/<?php echo $SMVal->ControllerName; ?>" class="menu-link">
+                                        <div data-i18n="<?php echo $SMVal->SubMenuName; ?>"><?php echo $SMVal->SubMenuName; ?></div>
+                                    </a>
+                                </li>
 
-                            </ul>
+                            <?php } ?>
 
-                    <?php }
-                    } ?>
+                        </ul>
+
+                    <?php } ?>
 
                 </li>
 

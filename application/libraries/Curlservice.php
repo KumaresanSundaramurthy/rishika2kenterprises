@@ -10,7 +10,7 @@ class Curlservice {
     }
 
 
-    public function retrieve($URL, $Method, $PostData) {
+    public function retrieve($URL, $Method, $PostData, $Headers = array("Content-Type: application/json")) {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -19,7 +19,7 @@ class Curlservice {
             curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $Method);
             curl_setopt($ch, CURLOPT_POSTFIELDS, $PostData);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
-            curl_setopt($ch, CURLOPT_HTTPHEADER, array("Content-Type: application/json"));
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $Headers ? $Headers : array("Content-Type: application/json"));
             
             $JsonResp = json_decode(curl_exec($ch), TRUE);
 

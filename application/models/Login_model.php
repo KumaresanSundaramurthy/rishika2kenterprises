@@ -29,6 +29,9 @@ class Login_model extends CI_Model {
             $JwtUserData['UserName'] = $UserData->UserName;
             $JwtUserData['EmailAddress'] = $UserData->UserEmailAddress;
             $JwtUserData['OrgUID'] = $UserData->UserOrgUID;
+            $JwtUserData['OrgCCode'] = $UserData->UserOrgCCode;
+            $JwtUserData['OrgCISO2'] = $UserData->UserOrgCISO2;
+            $JwtUserData['OrgLogo'] = $UserData->UserOrgLogo;
             $JwtUserData['RoleUID'] = $UserData->UserRoleUID;
             $JwtUserData['RoleName'] = $UserData->UserRoleName;
 

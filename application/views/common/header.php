@@ -1,7 +1,7 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <!doctype html>
-<html lang="en" data-layout="horizontal" data-topbar="dark" data-sidebar-size="lg" data-sidebar="light" data-sidebar-image="none" data-preloader="disable">
+<html lang="en" class="layout-navbar-fixed layout-menu-fixed layout-compact" data-layout="horizontal" data-topbar="dark" data-sidebar-size="lg" data-sidebar="light" data-sidebar-image="none" data-preloader="disable" dir="ltr" data-skin="default" data-assets-path="/assets/" data-template="vertical-menu-template" data-bs-theme="light">
 
 <head>
 
@@ -20,9 +20,9 @@
 
     <!-- Icons. Uncomment required icon fonts -->
     <link rel="stylesheet" href="/assets/vendor/fonts/boxicons.css" />
-
+    
     <!-- Core CSS -->
-    <!-- <link rel="stylesheet" href="/bootstrap5/css/bootstrap.min.css" /> -->
+    <link rel="stylesheet" href="/assets/vendor/libs/pickr/pickr-themes.css">
     <link rel="stylesheet" href="/assets/vendor/css/core.css" class="template-customizer-core-css" />
     <link rel="stylesheet" href="/assets/vendor/css/theme-default.css" class="template-customizer-theme-css" />
     <link rel="stylesheet" href="/assets/css/demo.css" />    
@@ -39,6 +39,8 @@
     <script src="/assets/vendor/js/helpers.js"></script>
 
     <!--! Template customizer & Theme config files MUST be included after core stylesheets and helpers.js in the <head> section -->
+    <script src="/assets/vendor/js/template-customizer.js"></script>
+
     <!--? Config:  Mandatory theme config file contain global vars & default theme options, Set your preferred theme option in this file.  -->
     <script src="/assets/js/config.js"></script>
     

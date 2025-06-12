@@ -25903,7 +25903,7 @@ li:not(:first-child) .dropdown-item,.dropdown-menu .dropdown-item:not(:first-chi
 .menu-vertical .menu-item .menu-toggle {
     padding-inline-end:calc(var(--bs-menu-vertical-link-padding-x) + 1.76em)}
 
-.menu-vertical .menu-item .menu-toggle: :after {
+.menu-vertical .menu-item .menu-toggle::after {
     inset-inline-end:calc(var(--bs-menu-vertical-link-padding-x) + .3rem);
     transition: transform .3s
 }

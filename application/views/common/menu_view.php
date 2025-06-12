@@ -4,16 +4,16 @@
 $ControllerName = get_class($CI); ?>
 
 <!-- Menu -->
-<aside id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme">
+<aside id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme" data-bs-theme="dark">
     <div class="app-brand demo">
         <a href="/dashboard" class="app-brand-link">
             <span class="app-brand-logo demo">
-                <img src="<?php echo getenv('CDN_URL'); ?>/global/images/logo/favicon_io/android-chrome-512x512.png" width="40px;" height="40px;" alt="<?php echo strtoupper(getSiteConfiguration()->MenuName); ?>" />
+                <img src="<?php echo getenv('CDN_URL'); ?>/global/images/logo/favicon_io/android-chrome-512x512-1.png" width="40px;" height="40px;" alt="<?php echo strtoupper(getSiteConfiguration()->MenuName); ?>" />
             </span>
             <span class="app-brand-text demo menu-text fw-bolder ms-2"><?php echo strtoupper(getSiteConfiguration()->MenuName); ?></span>
         </a>
 
-        <a href="javascript: void(0);" class="layout-menu-toggle menu-link text-large ms-auto d-block d-xl-none">
+        <a href="javascript: void(0);" class="layout-menu-toggle menu-link text-large ms-auto">
             <i class="bx bx-chevron-left bx-sm align-middle"></i>
         </a>
     </div>
@@ -25,7 +25,7 @@ $ControllerName = get_class($CI); ?>
         <!-- Dashboard -->
         <li class="menu-item <?php echo $ControllerName == "Dashboard" ? 'active' : ''; ?>">
             <a href="/dashboard" class="menu-link">
-                <i class="menu-icon tf-icons bx bx-home-circle"></i>
+                <i class="menu-icon tf-icons bx bx-home-smile"></i>
                 <div data-i18n="Main Menu">Dashboard</div>
             </a>
         </li>
@@ -40,7 +40,7 @@ $ControllerName = get_class($CI); ?>
                 <!-- All Pages -->
                 <li class="menu-item <?php echo in_array(strtolower($ControllerName), array_column($SubMenuData, 'ControllerName')) ? 'active' : ''; ?>">
                     <a href="javascript:void(0);" class="menu-link menu-toggle">
-                        <i class="menu-icon tf-icons bx bx-briefcase-alt"></i>
+                        <i class="menu-icon tf-icons <?php echo $MMVal->MainMenuIcons; ?>"></i>
                         <div data-i18n="<?php echo $MMVal->MainMenuName; ?>"><?php echo $MMVal->MainMenuName; ?></div>
                     </a>
 

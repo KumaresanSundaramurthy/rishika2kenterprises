@@ -95,7 +95,7 @@ class Login_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->UserRoleDb->select('UserMM.UserMainMenuUID as UserMainMenuUID, UserMM.MainMenuUID as MainMenuUID, MainMenu.Name as MainMenuName');
+            $this->UserRoleDb->select('UserMM.UserMainMenuUID as UserMainMenuUID, UserMM.MainMenuUID as MainMenuUID, MainMenu.Name as MainMenuName, MainMenu.Icons as MainMenuIcons');
             $this->UserRoleDb->from('UserRole.UserMainMenusTbl as UserMM');
             $this->UserRoleDb->join('UserRole.MainMenusTbl as MainMenu', 'MainMenu.MainMenuUID = UserMM.MainMenuUID', 'left');
             $this->UserRoleDb->where('UserMM.UserUID', $UserUID);

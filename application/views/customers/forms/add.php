@@ -17,7 +17,18 @@
             <div class="content-wrapper">
 
                 <div class="container-xxl flex-grow-1 container-p-y">
-                    <h4 class="fw-bold py-1 mb-4"><span class="text-muted fw-light">Masters/ Customers /</span> <?php echo 'Add Customer'; ?></h4>
+
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb breadcrumb-style1">
+                            <li class="breadcrumb-item">
+                                <a href="/dashboard">Dashboard</a>
+                            </li>
+                            <li class="breadcrumb-item">
+                                <a href="/customers">Customers</a>
+                            </li>
+                            <li class="breadcrumb-item active">Add Customer</li>
+                        </ol>
+                    </nav>
 
                     <?php $FormAttribute = array('id' => 'AddCustomerForm', 'name' => 'AddCustomerForm', 'class' => '', 'autocomplete' => 'off');
                     echo form_open('customers/addCustomer', $FormAttribute); ?>
@@ -91,22 +102,22 @@
                                 <div class="mb-3 col-md-12">
                                     <label for="text" class="form-label">Opening Balance</label>
                                     <!-- <div class="input-group input-group-merge"> -->
-                                        <div class="col-md-12 mb-3">
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="radio" name="DebitCreditCheck" id="DebitType" value="Debit" checked />
-                                                <label class="form-check-label" for="DebitType">Debit (Customer Pays you)</label>
-                                            </div>
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="radio" name="DebitCreditCheck" id="CreditType" value="Credit" />
-                                                <label class="form-check-label" for="CreditType">Credit (You Pay the Customer)</label>
-                                            </div>
+                                    <div class="col-md-12 mb-3">
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="DebitCreditCheck" id="DebitType" value="Debit" checked />
+                                            <label class="form-check-label" for="DebitType">Debit (Customer Pays you)</label>
                                         </div>
-                                        <div class="col-md-12">
-                                            <div class="input-group mb-3">
-                                                <span class="input-group-text">₹</span>
-                                                <input type="number" class="form-control" name="DebitCreditAmount" id="DebitCreditAmount" min="0" placeholder="Debit / Credit Amount" onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))" oninput="this.value=this.value.slice(0,this.maxLength)" maxLength="6" pattern="[0-9]*" value="0" />
-                                            </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="DebitCreditCheck" id="CreditType" value="Credit" />
+                                            <label class="form-check-label" for="CreditType">Credit (You Pay the Customer)</label>
                                         </div>
+                                    </div>
+                                    <div class="col-md-12">
+                                        <div class="input-group mb-3">
+                                            <span class="input-group-text">₹</span>
+                                            <input type="number" class="form-control" name="DebitCreditAmount" id="DebitCreditAmount" min="0" placeholder="Debit / Credit Amount" onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))" oninput="this.value=this.value.slice(0,this.maxLength)" maxLength="6" pattern="[0-9]*" value="0" />
+                                        </div>
+                                    </div>
                                     <!-- </div> -->
                                 </div>
                             </div>
@@ -127,7 +138,7 @@
                                     <div class="row mt-3">
                                         <div class="mb-3 col-md-6">
                                             <div class="d-flex align-items-start align-items-sm-center gap-4">
-                                                <img src="<?php echo getenv('CDN_URL') . '/website/images/logo/avathar_user.png'; ?>" alt="user-avatar" class="d-block rounded" height="100" width="100" id="uploadedAvatar" />
+                                                <img src="/images/logo/avathar_user.png" alt="user-avatar" class="d-block rounded" height="100" width="100" id="uploadedAvatar" />
                                                 <div class="button-wrapper">
                                                     <label for="UploadImage" class="btn btn-primary me-2 mb-4" tabindex="0">
                                                         <span class="d-none d-sm-block">Upload new photo</span>
@@ -161,11 +172,11 @@
                                         </div>
                                         <div class="mb-3 col-md-6">
                                             <label class="form-label" for="Tags">Tags </label>
-                                            <select id="Tags" name="Tags" class="select2 form-select" multiple="multiple"></select>
+                                            <select id="Tags" name="Tags[]" class="select2 form-select" multiple="multiple"></select>
                                         </div>
                                         <div class="mb-3 col-md-6">
                                             <label class="form-label" for="CCEmails">CC Emails </label>
-                                            <select id="CCEmails" name="CCEmails" class="select2 form-select" multiple="multiple"></select>
+                                            <select id="CCEmails" name="CCEmails[]" class="select2 form-select" multiple="multiple"></select>
                                         </div>
                                     </div>
 
@@ -180,7 +191,7 @@
                             <div id="addFormAlert" class="d-none col-lg-12 px-4 pt-4" role="alert"></div>
 
                             <div class="m-3">
-                                <button type="submit" id="OrgSubBtn" class="btn btn-primary me-2">Save changes</button>
+                                <button type="submit" id="AddCustomerBtn" class="btn btn-primary me-2">Save changes</button>
                                 <a href="javascript: history.back();" class="btn btn-outline-secondary">Cancel</a>
                             </div>
 
@@ -206,7 +217,6 @@
 <script src="/js/customers.js"></script>
 
 <script>
-    var CDN_URL = '<?php echo getenv('CDN_URL'); ?>';
     var defaultImg = '<?php echo '/website/images/logo/avathar_user.png'; ?>';
     var imageChange = 0;
     $(function() {
@@ -214,13 +224,11 @@
 
         $('#CountryCode').select2({
             placeholder: '-- Select Country --',
-            selectOnClose: true,
         });
 
         $("#Tags,#CCEmails").select2({
             tags: "true",
-            placeholder: "Type and press enter...",
-            allowClear: true
+            placeholder: "Type and press enter..."
         });
 
         $('#image_reset_btn').click(function(e) {
@@ -231,47 +239,37 @@
 
         $('#AddCustomerForm').submit(function(e) {
             e.preventDefault();
+
             var formData = new FormData($('#AddCustomerForm')[0]);
             formData.append('CountryISO2', $('#CountryCode').find('option:selected').data('ccode'));
+            formData.append('imageChange', imageChange);
+
+            var BillAddrLine1 = $('#BillAddrLine1').val();
+            if (BillAddrLine1 != null && BillAddrLine1 != '' && BillAddrLine1 !== undefined) {
+                var BillAddrCity = $('#BillAddrCity').find('option:selected').val();
+                if (BillAddrCity != null && BillAddrCity != '' && BillAddrCity !== undefined) {
+                    formData.append('BillAddrCityText', $('#BillAddrCity').find('option:selected').text());
+                }
+                var BillAddrState = $('#BillAddrState').find('option:selected').val();
+                if (BillAddrState != null && BillAddrState != '' && BillAddrState !== undefined) {
+                    formData.append('BillAddrStateText', $('#BillAddrState').find('option:selected').text());
+                }
+            }
+
+            var ShipAddrLine1 = $('#ShipAddrLine1').val();
+            if (ShipAddrLine1 != null && ShipAddrLine1 != '' && ShipAddrLine1 !== undefined) {
+                var ShipAddrCity = $('#ShipAddrCity').find('option:selected').val();
+                if (ShipAddrCity != null && ShipAddrCity != '' && ShipAddrCity !== undefined) {
+                    formData.append('ShipAddrCityText', $('#ShipAddrCity').find('option:selected').text());
+                }
+                var ShipAddrState = $('#ShipAddrState').find('option:selected').val();
+                if (ShipAddrState != null && ShipAddrState != '' && ShipAddrState !== undefined) {
+                    formData.append('ShipAddrStateText', $('#ShipAddrState').find('option:selected').text());
+                }
+            }
+
             addCustomerData(formData);
-        });
 
-        $('#addBillingAddress').click(function(e) {
-            e.preventDefault();
-
-            var DivId = $(this).data('divid');
-            $('#'+DivId).addClass('d-none').html('');
-            
-            var formData = new FormData();
-            formData.append('AddressType', 1);
-            formData.append('CountryCode', $('#CountryCode').find('option:selected').data('ccode'));
-            showAddressInfo(formData, 'addBillingAddress', DivId);
-
-        });
-
-        $('#addShippingAddress').click(function(e) {
-            e.preventDefault();
-
-            var DivId = $(this).data('divid');
-            $('#'+DivId).addClass('d-none').html('');
-            
-            var formData = new FormData();
-            formData.append('AddressType', 2);
-            formData.append('CountryCode', $('#CountryCode').find('option:selected').data('ccode'));
-            showAddressInfo(formData, 'addShippingAddress', DivId);
-
-        });
-
-        $(document).on('click', '#deleteBillingAddress', function(e) {
-            e.preventDefault();
-            $('#appendBillingAddress').addClass('d-none').html(' ');
-            $('#addBillingAddress').removeClass('d-none');
-        });
-
-        $(document).on('click', '#deleteShippingAddress', function(e) {
-            e.preventDefault();
-            $('#appendShippingAddress').addClass('d-none').html(' ');
-            $('#addShippingAddress').removeClass('d-none');
         });
 
     });

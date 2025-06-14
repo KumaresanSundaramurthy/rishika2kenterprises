@@ -144,4 +144,54 @@ class Customers_model extends CI_Model {
 
     }
 
+    public function getCustomerAddress($FilterArray) {
+
+        $this->EndReturnData = new StdClass();
+        try {
+
+            $this->CustomerDb->db_debug = FALSE;
+
+            $select_ary = array(
+                'CustAddress.CustAddressUID AS CustAddressUID',
+                'CustAddress.OrgUID AS OrgUID',
+                'CustAddress.CustomerUID AS CustomerUID',
+                'CustAddress.AddressType as AddressType',
+                'CustAddress.Line1 as Line1',
+                'CustAddress.Line2 as Line2',
+                'CustAddress.Pincode as Pincode',
+                'CustAddress.City as City',
+                'CustAddress.CityText as CityText',
+                'CustAddress.State as State',
+                'CustAddress.StateText as StateText',
+            );
+            $WhereCondition = array(
+                'CustAddress.IsDeleted' => 0,
+                'CustAddress.IsActive' => 1,
+            );
+
+            $this->CustomerDb->select($select_ary);
+            $this->CustomerDb->from('Customers.CustAddressTbl as CustAddress');
+            $this->CustomerDb->where($WhereCondition);
+            if(sizeof($FilterArray) > 0) {
+                $this->CustomerDb->where($FilterArray);
+            }
+            $this->CustomerDb->group_by('CustAddress.CustAddressUID');
+            $query = $this->CustomerDb->get();
+            $error = $this->CustomerDb->error();
+            if ($error['code']) {
+                throw new Exception($error['message']);
+            } else {
+                $this->EndReturnData->Data = $query->result();
+            }
+            
+            return $this->EndReturnData->Data;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+            throw new Exception($this->EndReturnData->Message);
+        }
+
+    }
+
 }

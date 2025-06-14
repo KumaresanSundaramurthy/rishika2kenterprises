@@ -11,7 +11,7 @@
     <meta name="keywords" content="" />
     <meta name="description" content="" />
     <meta name="author" content="" />
-    <link rel="shortcut icon" href="/images/logo/R2kE_Logo_square.png" type="">
+    <link rel="shortcut icon" href="<?php echo getenv('CDN_URL'); ?>/website/images/logo/R2kE_Logo_square.png" type="">
 
     <title> Rishika2K Enterprises</title>
 
@@ -38,7 +38,7 @@
 
     <div class="hero_area">
         <div class="bg-box">
-            <img src="/images/main-page.jpeg" alt="Indian Sweets Snacks">
+            <img src="<?php echo getenv('CDN_URL'); ?>/website/images/main-page.jpeg" alt="Indian Sweets Snacks">
         </div>
 
         <!-- Main header section strats -->
@@ -48,7 +48,7 @@
 
                     <div class="col-3">
                         <a class="navbar-brand" href="javascript: void(0);">
-                            <img src="/images/logo/R2kE_Logo_square.png" alt="logo" class="img-fluid">
+                            <img src="<?php echo getenv('CDN_URL'); ?>/website/images/logo/R2kE_Logo_square.png" alt="logo" class="img-fluid">
                         </a>
                     </div>
 
@@ -173,7 +173,7 @@
                     <div class="col-md-6  ">
                         <div class="box ">
                             <div class="img-box">
-                                <img class="openImgModalBtn" src="/images/home_made_orders/hm_sweets.png" data-title="Sweets" alt="All Sweets">
+                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/home_made_orders/hm_sweets.png" data-title="Sweets" alt="All Sweets">
                             </div>
                             <div class="detail-box">
                                 <h5>
@@ -213,7 +213,7 @@
                     <div class="col-md-6">
                         <div class="box">
                             <div class="img-box">
-                                <img class="openImgModalBtn" src="/images/home_made_orders/hm_murukku.png" data-title="Murukku" alt="Murukku">
+                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/home_made_orders/hm_murukku.png" data-title="Murukku" alt="Murukku">
                             </div>
                             <div class="detail-box">
                                 <h5>
@@ -286,25 +286,25 @@
                                     <div id="SpicesCarousel" class="carousel slide" data-ride="carousel" data-bs-interval="1000">
                                         <div class="carousel-inner">
                                             <div class="carousel-item active">
-                                                <img class="openImgModalBtn" src="/images/groceries/spices/black_pepper.png" data-title="Black Pepper" alt="Black Pepper">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/groceries/spices/black_pepper.png" data-title="Black Pepper" alt="Black Pepper">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/groceries/spices/black_mustard.png" data-title="Black Mustard" alt="Black Mustard">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/groceries/spices/black_mustard.png" data-title="Black Mustard" alt="Black Mustard">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/groceries/spices/cardamom.png" data-title="Cardamom" alt="Cardamom">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/groceries/spices/cardamom.png" data-title="Cardamom" alt="Cardamom">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/groceries/spices/coriander_seeds.png" data-title="Coriander Seeds" alt="Coriander Seeds">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/groceries/spices/coriander_seeds.png" data-title="Coriander Seeds" alt="Coriander Seeds">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/groceries/spices/cumin_seeds.png" data-title="Cumin Seeds" alt="Cumin Seeds">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/groceries/spices/cumin_seeds.png" data-title="Cumin Seeds" alt="Cumin Seeds">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/groceries/spices/fenugreek.png" data-title="Fenugreek" alt="Fenugreek">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/groceries/spices/fenugreek.png" data-title="Fenugreek" alt="Fenugreek">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/groceries/spices/white_pepper_grains.png" data-title="White Pepper Grains" alt="White Pepper Grains">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/groceries/spices/white_pepper_grains.png" data-title="White Pepper Grains" alt="White Pepper Grains">
                                             </div>
                                         </div>
                                     </div>
@@ -328,25 +328,25 @@
                                     <div id="A2BCarousel" class="carousel slide" data-ride="carousel" data-bs-interval="1000">
                                         <div class="carousel-inner">
                                             <div class="carousel-item active">
-                                                <img class="openImgModalBtn" src="/images/sweets_snacks/a2b/a2b_logo.png" data-title="A2B Sweets & Snacks" alt="A2B Logo">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/sweets_snacks/a2b/a2b_logo.png" data-title="A2B Sweets & Snacks" alt="A2B Logo">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/sweets_snacks/a2b/soanpapdi.png" data-title="Soanpapdi" alt="Soanpapdi">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/sweets_snacks/a2b/soanpapdi.png" data-title="Soanpapdi" alt="Soanpapdi">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/sweets_snacks/a2b/pepper_sev.png" data-title="Pepper Sev" alt="Pepper Sev">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/sweets_snacks/a2b/pepper_sev.png" data-title="Pepper Sev" alt="Pepper Sev">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/sweets_snacks/a2b/athirasam.png" data-title="Athirasam" alt="Athirasam">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/sweets_snacks/a2b/athirasam.png" data-title="Athirasam" alt="Athirasam">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/sweets_snacks/a2b/ribbon_pakoda.png" data-title="Ribbon Pakoda" alt="Ribbon Pakoda">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/sweets_snacks/a2b/ribbon_pakoda.png" data-title="Ribbon Pakoda" alt="Ribbon Pakoda">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/sweets_snacks/a2b/seedai.png" data-title="Seedai" alt="Seedai">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/sweets_snacks/a2b/seedai.png" data-title="Seedai" alt="Seedai">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/sweets_snacks/a2b/special_mixture.png" data-title="Special Mixture" alt="Special Mixture">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/sweets_snacks/a2b/special_mixture.png" data-title="Special Mixture" alt="Special Mixture">
                                             </div>
                                         </div>
                                     </div>
@@ -370,19 +370,19 @@
                                     <div id="WholeGrainMilletCarousel" class="carousel slide" data-ride="carousel" data-bs-interval="1000">
                                         <div class="carousel-inner">
                                             <div class="carousel-item active">
-                                                <img class="openImgModalBtn" src="/images/groceries/whole_grain_millet/barnyard_millet.png" data-title="Barnyard Millet" alt="Barnyard Millet">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/groceries/whole_grain_millet/barnyard_millet.png" data-title="Barnyard Millet" alt="Barnyard Millet">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/groceries/whole_grain_millet/foxtail_millet.png" data-title="Foxtail Millet" alt="Foxtail Millet">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/groceries/whole_grain_millet/foxtail_millet.png" data-title="Foxtail Millet" alt="Foxtail Millet">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/groceries/whole_grain_millet/kodo_millet.png" data-title="Kodo Millet" alt="Kodo Millet">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/groceries/whole_grain_millet/kodo_millet.png" data-title="Kodo Millet" alt="Kodo Millet">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/groceries/whole_grain_millet/ragi_millet.png" data-title="Ragi Millet" alt="Ragi Millet">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/groceries/whole_grain_millet/ragi_millet.png" data-title="Ragi Millet" alt="Ragi Millet">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/groceries/whole_grain_millet/sorghum_millet.png" data-title="Sorghum Millet" alt="Sorghum Millet">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/groceries/whole_grain_millet/sorghum_millet.png" data-title="Sorghum Millet" alt="Sorghum Millet">
                                             </div>
                                         </div>
                                     </div>
@@ -406,19 +406,19 @@
                                     <div id="RefreshBeveragesCarousel" class="carousel slide" data-ride="carousel" data-bs-interval="1000">
                                         <div class="carousel-inner">
                                             <div class="carousel-item active">
-                                                <img class="openImgModalBtn" src="/images/groceries/refresh_beverages/levista_instant_coffee.png" data-title="Levista Instant Coffee" alt="Levista Instant Coffee">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/groceries/refresh_beverages/levista_instant_coffee.png" data-title="Levista Instant Coffee" alt="Levista Instant Coffee">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/groceries/refresh_beverages/avt_coffee_premium.png" data-title="AVT Premium" alt="AVT Premium">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/groceries/refresh_beverages/avt_coffee_premium.png" data-title="AVT Premium" alt="AVT Premium">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/groceries/refresh_beverages/bru_coffee.png" data-title="Bru Coffee" alt="Bru Coffee">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/groceries/refresh_beverages/bru_coffee.png" data-title="Bru Coffee" alt="Bru Coffee">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/groceries/refresh_beverages/green_tea.png" data-title="Green Tea" alt="Green Tea">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/groceries/refresh_beverages/green_tea.png" data-title="Green Tea" alt="Green Tea">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/groceries/refresh_beverages/black_tea_dried.png" data-title="Black Tea" alt="Black Tea">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/groceries/refresh_beverages/black_tea_dried.png" data-title="Black Tea" alt="Black Tea">
                                             </div>
                                         </div>
                                     </div>
@@ -442,22 +442,22 @@
                                     <div id="NaturalSweetenersCarousel" class="carousel slide" data-ride="carousel" data-bs-interval="1000">
                                         <div class="carousel-inner">
                                             <div class="carousel-item active">
-                                                <img class="openImgModalBtn" src="/images/groceries/natural_sweeteners/honey_dripping.png" data-title="Honey Dripping" alt="Honey Dripping">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/groceries/natural_sweeteners/honey_dripping.png" data-title="Honey Dripping" alt="Honey Dripping">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/groceries/natural_sweeteners/jaggery_orange.png" data-title="Jaggery Orange" alt="Jaggery Orange">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/groceries/natural_sweeteners/jaggery_orange.png" data-title="Jaggery Orange" alt="Jaggery Orange">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/groceries/natural_sweeteners/honey_isolated.png" data-title="Honey" alt="Honey">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/groceries/natural_sweeteners/honey_isolated.png" data-title="Honey" alt="Honey">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/groceries/natural_sweeteners/healthy_jaggery.png" data-title="Healthy Jaggery" alt="Healthy Jaggery">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/groceries/natural_sweeteners/healthy_jaggery.png" data-title="Healthy Jaggery" alt="Healthy Jaggery">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/groceries/natural_sweeteners/sweet_dates.png" data-title="Dates" alt="Dates">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/groceries/natural_sweeteners/sweet_dates.png" data-title="Dates" alt="Dates">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/groceries/natural_sweeteners/sugar_cubes.png" data-title="Sugar Cubes" alt="Sugar Cubes">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/groceries/natural_sweeteners/sugar_cubes.png" data-title="Sugar Cubes" alt="Sugar Cubes">
                                             </div>
                                         </div>
                                     </div>
@@ -481,34 +481,34 @@
                                     <div id="DalPulsesCarousel" class="carousel slide" data-ride="carousel" data-bs-interval="2000">
                                         <div class="carousel-inner">
                                             <div class="carousel-item active">
-                                                <img class="openImgModalBtn" src="/images/groceries/dal_pulses/chana_beans.png" data-title="Chana Beans" alt="Chana Beans">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/groceries/dal_pulses/chana_beans.png" data-title="Chana Beans" alt="Chana Beans">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/groceries/dal_pulses/val_dal.png" data-title="Val Dal" alt="Val Dal">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/groceries/dal_pulses/val_dal.png" data-title="Val Dal" alt="Val Dal">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/groceries/dal_pulses/toor_dal.png" data-title="Toor Dal" alt="Toor Dal">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/groceries/dal_pulses/toor_dal.png" data-title="Toor Dal" alt="Toor Dal">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/groceries/dal_pulses/red_kidney_beans.png" data-title="Red Kidney Beans" alt="Red Kidney Beans">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/groceries/dal_pulses/red_kidney_beans.png" data-title="Red Kidney Beans" alt="Red Kidney Beans">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/groceries/dal_pulses/moth_beans.png" data-title="Moth Beans" alt="Moth Beans">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/groceries/dal_pulses/moth_beans.png" data-title="Moth Beans" alt="Moth Beans">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/groceries/dal_pulses/moong_dal.png" data-title="Moong Dal" alt="Moong Dal">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/groceries/dal_pulses/moong_dal.png" data-title="Moong Dal" alt="Moong Dal">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/groceries/dal_pulses/hara_chana.png" data-title="Hara Chana" alt="Hara Chana">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/groceries/dal_pulses/hara_chana.png" data-title="Hara Chana" alt="Hara Chana">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/groceries/dal_pulses/kulthi_kollu.png" data-title="Kulthi | Kollu" alt="Kulthi | Kollu">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/groceries/dal_pulses/kulthi_kollu.png" data-title="Kulthi | Kollu" alt="Kulthi | Kollu">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/groceries/dal_pulses/kala_chana.png" data-title="Kala Chana" alt="Kala Chana">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/groceries/dal_pulses/kala_chana.png" data-title="Kala Chana" alt="Kala Chana">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/groceries/dal_pulses/chana_dal.png" data-title="Chana Dal" alt="Chana Dal">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/groceries/dal_pulses/chana_dal.png" data-title="Chana Dal" alt="Chana Dal">
                                             </div>
                                         </div>
                                     </div>
@@ -532,22 +532,22 @@
                                     <div id="GrainCarousel" class="carousel slide" data-ride="carousel" data-bs-interval="1000">
                                         <div class="carousel-inner">
                                             <div class="carousel-item active">
-                                                <img class="openImgModalBtn" src="/images/groceries/golden_grain/basmati_rice.png" data-title="Basmati Rice" alt="Basmati Rice">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/groceries/golden_grain/basmati_rice.png" data-title="Basmati Rice" alt="Basmati Rice">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/groceries/golden_grain/ponni_rice.png" data-title="Ponni Rice" alt="Ponni Rice">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/groceries/golden_grain/ponni_rice.png" data-title="Ponni Rice" alt="Ponni Rice">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/groceries/golden_grain/wheat.png" data-title="Wheat" alt="Wheat">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/groceries/golden_grain/wheat.png" data-title="Wheat" alt="Wheat">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/groceries/golden_grain/pearl_barley.png" data-title="Pearl Barley" alt="Pearl Barley">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/groceries/golden_grain/pearl_barley.png" data-title="Pearl Barley" alt="Pearl Barley">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/groceries/golden_grain/red_rice.png" data-title="Red Rice" alt="Red Rice">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/groceries/golden_grain/red_rice.png" data-title="Red Rice" alt="Red Rice">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/groceries/golden_grain/raw_poha.png" data-title="Raw Poha" alt="Raw Poha">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/groceries/golden_grain/raw_poha.png" data-title="Raw Poha" alt="Raw Poha">
                                             </div>
                                         </div>
                                     </div>
@@ -571,28 +571,28 @@
                                     <div id="HaldiramsCarousel" class="carousel slide" data-ride="carousel" data-bs-interval="1000">
                                         <div class="carousel-inner">
                                             <div class="carousel-item active">
-                                                <img class="openImgModalBtn" src="/images/sweets_snacks/haldirams/haldirams_logo.png" data-title="Haldirams Snacks" alt="Haldirams Logo">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/sweets_snacks/haldirams/haldirams_logo.png" data-title="Haldirams Snacks" alt="Haldirams Logo">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/sweets_snacks/haldirams/mixture.png" data-title="Mixture" alt="Mixture">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/sweets_snacks/haldirams/mixture.png" data-title="Mixture" alt="Mixture">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/sweets_snacks/haldirams/masala_kaju.png" data-title="Masala Kaju" alt="Masala Kaju">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/sweets_snacks/haldirams/masala_kaju.png" data-title="Masala Kaju" alt="Masala Kaju">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/sweets_snacks/haldirams/bhujia_sev.png" data-title="Bhujia Sev" alt="Bhujia Sev">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/sweets_snacks/haldirams/bhujia_sev.png" data-title="Bhujia Sev" alt="Bhujia Sev">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/sweets_snacks/haldirams/aloo_bhujia.png" data-title="Aloo Bhujia" alt="Aloo Bhujia">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/sweets_snacks/haldirams/aloo_bhujia.png" data-title="Aloo Bhujia" alt="Aloo Bhujia">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/sweets_snacks/haldirams/moong_dal.png" data-title="Moong Dal" alt="Moong Dal">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/sweets_snacks/haldirams/moong_dal.png" data-title="Moong Dal" alt="Moong Dal">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/sweets_snacks/haldirams/peanuts.png" data-title="Peanuts" alt="Peanuts">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/sweets_snacks/haldirams/peanuts.png" data-title="Peanuts" alt="Peanuts">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/sweets_snacks/haldirams/murukku.png" data-title="Murukku" alt="Murukku">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/sweets_snacks/haldirams/murukku.png" data-title="Murukku" alt="Murukku">
                                             </div>
                                         </div>
                                     </div>
@@ -616,31 +616,31 @@
                                     <div id="SteelVerseCarousel" class="carousel slide" data-ride="carousel" data-bs-interval="1000">
                                         <div class="carousel-inner">
                                             <div class="carousel-item active">
-                                                <img class="openImgModalBtn" src="/images/household/steel_verse/aluminium_kadai.png" data-title="Aluminium Kadai" alt="Aluminium Kadai">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/household/steel_verse/aluminium_kadai.png" data-title="Aluminium Kadai" alt="Aluminium Kadai">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/household/steel_verse/cavity_appam.png" data-title="Cavity Appam" alt="Cavity Appam">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/household/steel_verse/cavity_appam.png" data-title="Cavity Appam" alt="Cavity Appam">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/household/steel_verse/cooker.png" data-title="Cooker" alt="Cooker">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/household/steel_verse/cooker.png" data-title="Cooker" alt="Cooker">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/household/steel_verse/idli_cooker.png" data-title="Idli Cooker" alt="Idli Cooker">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/household/steel_verse/idli_cooker.png" data-title="Idli Cooker" alt="Idli Cooker">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/household/steel_verse/murukku_maker.png" data-title="Murukku" alt="Murukku Maker">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/household/steel_verse/murukku_maker.png" data-title="Murukku" alt="Murukku Maker">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/household/steel_verse/non_stick_fry_pan.png" data-title="Non-Stick Fry Pan" alt="Non-Stick Fry Pan">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/household/steel_verse/non_stick_fry_pan.png" data-title="Non-Stick Fry Pan" alt="Non-Stick Fry Pan">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/household/steel_verse/puttu_maker.png" data-title="Puttu Maker" alt="Puttu Maker">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/household/steel_verse/puttu_maker.png" data-title="Puttu Maker" alt="Puttu Maker">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/household/steel_verse/tea_pan.png" data-title="Tea Pan" alt="Tea Pan">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/household/steel_verse/tea_pan.png" data-title="Tea Pan" alt="Tea Pan">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/household/steel_verse/wooden_spatulas.png" data-title="Wooden Spatulas" alt="Wooden Spatulas">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/household/steel_verse/wooden_spatulas.png" data-title="Wooden Spatulas" alt="Wooden Spatulas">
                                             </div>
                                         </div>
                                     </div>
@@ -664,19 +664,19 @@
                                     <div id="EdibleOilCarousel" class="carousel slide" data-ride="carousel" data-bs-interval="1000">
                                         <div class="carousel-inner">
                                             <div class="carousel-item active">
-                                                <img class="openImgModalBtn" src="/images/groceries/edible_oils/coconut_oil.png" data-title="Coconut Oil" alt="Coconut Oil">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/groceries/edible_oils/coconut_oil.png" data-title="Coconut Oil" alt="Coconut Oil">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/groceries/edible_oils/sunflower_oil.png" data-title="Sunflower Oil" alt="Sunflower Oil">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/groceries/edible_oils/sunflower_oil.png" data-title="Sunflower Oil" alt="Sunflower Oil">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/groceries/edible_oils/olive_oil.png" data-title="Olive Oil" alt="Olive Oil">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/groceries/edible_oils/olive_oil.png" data-title="Olive Oil" alt="Olive Oil">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/groceries/edible_oils/gingerly_oil.png" data-title="Gingerly Oil" alt="Gingerly Oil">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/groceries/edible_oils/gingerly_oil.png" data-title="Gingerly Oil" alt="Gingerly Oil">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/groceries/edible_oils/peeled_sesame_seeds.png" data-title="Peeled Sesame Seeds" alt="Peeled Sesame Seeds">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/groceries/edible_oils/peeled_sesame_seeds.png" data-title="Peeled Sesame Seeds" alt="Peeled Sesame Seeds">
                                             </div>
                                         </div>
                                     </div>
@@ -700,16 +700,16 @@
                                     <div id="MilletFlourCarousel" class="carousel slide" data-ride="carousel" data-bs-interval="1000">
                                         <div class="carousel-inner">
                                             <div class="carousel-item active">
-                                                <img class="openImgModalBtn" src="/images/groceries/millet_flour/raagi_flour.png" data-title="Raagi Flour" alt="Raagi Flour">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/groceries/millet_flour/raagi_flour.png" data-title="Raagi Flour" alt="Raagi Flour">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/groceries/millet_flour/bajra_flour.png" data-title="Bajra Flour" alt="Bajra Flour">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/groceries/millet_flour/bajra_flour.png" data-title="Bajra Flour" alt="Bajra Flour">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/groceries/millet_flour/kodo_millet_flour.png" data-title="Kodo Flour" alt="Kodo Flour">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/groceries/millet_flour/kodo_millet_flour.png" data-title="Kodo Flour" alt="Kodo Flour">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/groceries/millet_flour/foxtail_millet_flourr.png" data-title="Foxtail Flour" alt="Foxtail Flour">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/groceries/millet_flour/foxtail_millet_flourr.png" data-title="Foxtail Flour" alt="Foxtail Flour">
                                             </div>
                                         </div>
                                     </div>
@@ -733,25 +733,25 @@
                                     <div id="CleaningCarousel" class="carousel slide" data-ride="carousel" data-bs-interval="1000">
                                         <div class="carousel-inner">
                                             <div class="carousel-item active">
-                                                <img class="openImgModalBtn" src="/images/household/cleaning_items/gala_scrub.png" data-title="Gala Scrub" alt="Gala Scrub">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/household/cleaning_items/gala_scrub.png" data-title="Gala Scrub" alt="Gala Scrub">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/household/cleaning_items/scotch_brite.png" data-title="Scotch Brite" alt="Scotch Brite">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/household/cleaning_items/scotch_brite.png" data-title="Scotch Brite" alt="Scotch Brite">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/household/cleaning_items/steel_wire_dishwashing.png" data-title="Steel Wire Dishwashing" alt="Steel Wire Dishwashing">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/household/cleaning_items/steel_wire_dishwashing.png" data-title="Steel Wire Dishwashing" alt="Steel Wire Dishwashing">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/household/cleaning_items/bear_grips.png" data-title="Bear Grips" alt="Bear Grips">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/household/cleaning_items/bear_grips.png" data-title="Bear Grips" alt="Bear Grips">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/household/cleaning_items/brush_set.png" data-title="Brush Set" alt="Brush Set">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/household/cleaning_items/brush_set.png" data-title="Brush Set" alt="Brush Set">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/household/cleaning_items/cleaning_cloth.png" data-title="Cleaning Cloth" alt="Cleaning Cloth">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/household/cleaning_items/cleaning_cloth.png" data-title="Cleaning Cloth" alt="Cleaning Cloth">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/household/cleaning_items/wiper.png" data-title="Wiper" alt="Wiper">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/household/cleaning_items/wiper.png" data-title="Wiper" alt="Wiper">
                                             </div>
                                         </div>
                                     </div>
@@ -775,25 +775,25 @@
                                     <div id="NutsDryFruitsCarousel" class="carousel slide" data-ride="carousel" data-bs-interval="1000">
                                         <div class="carousel-inner">
                                             <div class="carousel-item active">
-                                                <img class="openImgModalBtn" src="/images/sweets_snacks/nuts_dry_fruits/badam.png" data-title="Badam" alt="Badam">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/sweets_snacks/nuts_dry_fruits/badam.png" data-title="Badam" alt="Badam">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/sweets_snacks/nuts_dry_fruits/dried_fig.png" data-title="Dried Fig" alt="Dried Fig">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/sweets_snacks/nuts_dry_fruits/dried_fig.png" data-title="Dried Fig" alt="Dried Fig">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/sweets_snacks/nuts_dry_fruits/pista.png" data-title="Pista" alt="Pista">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/sweets_snacks/nuts_dry_fruits/pista.png" data-title="Pista" alt="Pista">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/sweets_snacks/nuts_dry_fruits/golden_raisins.png" data-title="Raisins" alt="Raisins">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/sweets_snacks/nuts_dry_fruits/golden_raisins.png" data-title="Raisins" alt="Raisins">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/sweets_snacks/nuts_dry_fruits/dates.png" data-title="Dates" alt="Dates">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/sweets_snacks/nuts_dry_fruits/dates.png" data-title="Dates" alt="Dates">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/sweets_snacks/nuts_dry_fruits/walnuts.png" data-title="Walnuts" alt="Walnuts">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/sweets_snacks/nuts_dry_fruits/walnuts.png" data-title="Walnuts" alt="Walnuts">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/sweets_snacks/nuts_dry_fruits/cashew_nut.png" data-title="Cashew" alt="Cashew">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/sweets_snacks/nuts_dry_fruits/cashew_nut.png" data-title="Cashew" alt="Cashew">
                                             </div>
                                         </div>
                                     </div>
@@ -817,16 +817,16 @@
                                     <div id="GeethamCarousel" class="carousel slide" data-ride="carousel" data-bs-interval="1000">
                                         <div class="carousel-inner">
                                             <div class="carousel-item active">
-                                                <img class="openImgModalBtn" src="/images/sweets_snacks/geetham/geetham_logo.png" data-title="Geetham Sweets" alt="Geetham Logo">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/sweets_snacks/geetham/geetham_logo.png" data-title="Geetham Sweets" alt="Geetham Logo">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/sweets_snacks/geetham/mysore_pak.png" data-title="Mysore Pak" alt="Mysore Pak">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/sweets_snacks/geetham/mysore_pak.png" data-title="Mysore Pak" alt="Mysore Pak">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/sweets_snacks/geetham/badam_halwa.png" data-title="Badam Halwa" alt="Badam Halwa">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/sweets_snacks/geetham/badam_halwa.png" data-title="Badam Halwa" alt="Badam Halwa">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/sweets_snacks/geetham/badam_barfi.png" data-title="Badam Barfi" alt="Badam Barfi">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/sweets_snacks/geetham/badam_barfi.png" data-title="Badam Barfi" alt="Badam Barfi">
                                             </div>
                                         </div>
                                     </div>
@@ -850,25 +850,25 @@
                                     <div id="FashionCarousel" class="carousel slide" data-ride="carousel" data-bs-interval="1000">
                                         <div class="carousel-inner">
                                             <div class="carousel-item active">
-                                                <img class="openImgModalBtn" src="/images/clothes/fashion_all/coat_suit.png" data-title="Men's Coat Suit" alt="Men's Coat Suit">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/clothes/fashion_all/coat_suit.png" data-title="Men's Coat Suit" alt="Men's Coat Suit">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/clothes/fashion_all/women_jeans.png" data-title="Women's Jeans" alt="Women's Jeans">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/clothes/fashion_all/women_jeans.png" data-title="Women's Jeans" alt="Women's Jeans">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/clothes/fashion_all/baby2.png" data-title="1Yr Baby" alt="1Yr Baby">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/clothes/fashion_all/baby2.png" data-title="1Yr Baby" alt="1Yr Baby">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/clothes/fashion_all/baby.png" data-title="New Born Baby" alt="New Born Baby">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/clothes/fashion_all/baby.png" data-title="New Born Baby" alt="New Born Baby">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/clothes/fashion_all/baby3.png" data-title="Babies Fashion" alt="Babies Fashion">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/clothes/fashion_all/baby3.png" data-title="Babies Fashion" alt="Babies Fashion">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/clothes/fashion_all/mens_fashion.png" data-title="Men's Fashion" alt="Men's Fashion">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/clothes/fashion_all/mens_fashion.png" data-title="Men's Fashion" alt="Men's Fashion">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/clothes/fashion_all/mens_jeans.png" data-title="Men's Jeans" alt="Men's Jeans">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/clothes/fashion_all/mens_jeans.png" data-title="Men's Jeans" alt="Men's Jeans">
                                             </div>
                                         </div>
                                     </div>
@@ -892,25 +892,25 @@
                                     <div id="HomeTouchesCarousel" class="carousel slide" data-ride="carousel" data-bs-interval="1000">
                                         <div class="carousel-inner">
                                             <div class="carousel-item active">
-                                                <img class="openImgModalBtn" src="/images/household/home_decor/stylish_vases_decorative.png" data-title="Stylish Vases Decorative" alt="Stylish Vases Decorative">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/household/home_decor/stylish_vases_decorative.png" data-title="Stylish Vases Decorative" alt="Stylish Vases Decorative">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/household/home_decor/garland.png" data-title="Garland" alt="Garland">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/household/home_decor/garland.png" data-title="Garland" alt="Garland">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/household/home_decor/plain_dream_catcher.png" data-title="Dream Catcher" alt="Dream Catcher">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/household/home_decor/plain_dream_catcher.png" data-title="Dream Catcher" alt="Dream Catcher">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/household/home_decor/wall_hangings.png" data-title="Wall Hangings" alt="Wall Hangings">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/household/home_decor/wall_hangings.png" data-title="Wall Hangings" alt="Wall Hangings">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/household/home_decor/plain_curtains.png" data-title="Curtains" alt="Curtains">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/household/home_decor/plain_curtains.png" data-title="Curtains" alt="Curtains">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/household/home_decor/dream_catcher.png" data-title="Dream Catcher" alt="Dream Catcher">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/household/home_decor/dream_catcher.png" data-title="Dream Catcher" alt="Dream Catcher">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/household/home_decor/baubles_with_snowflakes.png" data-title="Baubles Snowflakes" alt="Baubles Snowflakes">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/household/home_decor/baubles_with_snowflakes.png" data-title="Baubles Snowflakes" alt="Baubles Snowflakes">
                                             </div>
                                         </div>
                                     </div>
@@ -934,16 +934,16 @@
                                     <div id="StationeryCarousel" class="carousel slide" data-ride="carousel" data-bs-interval="1000">
                                         <div class="carousel-inner">
                                             <div class="carousel-item active">
-                                                <img class="openImgModalBtn" src="/images/household/stationery/colorful_pencils_notepad.png" data-title="Colorful Pencils Notepad" alt="Colorful Pencils Notepad">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/household/stationery/colorful_pencils_notepad.png" data-title="Colorful Pencils Notepad" alt="Colorful Pencils Notepad">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/household/stationery/allset_stationery.png" data-title="All Set Stationery Items" alt="All Set Stationery Items">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/household/stationery/allset_stationery.png" data-title="All Set Stationery Items" alt="All Set Stationery Items">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/household/stationery/color_mapping_babies.png" data-title="Color Mapping for Babies" alt="Color Mapping for Babies">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/household/stationery/color_mapping_babies.png" data-title="Color Mapping for Babies" alt="Color Mapping for Babies">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/household/stationery/road_mapping.png" data-title="Road Mapping for Babies" alt="Road Mapping for Babies">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/household/stationery/road_mapping.png" data-title="Road Mapping for Babies" alt="Road Mapping for Babies">
                                             </div>
                                         </div>
                                     </div>
@@ -967,22 +967,22 @@
                                     <div id="PoojaVesselsCarousel" class="carousel slide" data-ride="carousel" data-bs-interval="1000">
                                         <div class="carousel-inner">
                                             <div class="carousel-item active">
-                                                <img class="openImgModalBtn" src="/images/household/pooja_vessels/lord_murugan.png" data-title="Lord Murugan" alt="Lord Murugan">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/household/pooja_vessels/lord_murugan.png" data-title="Lord Murugan" alt="Lord Murugan">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/household/pooja_vessels/nel_vilakku.png" data-title="Nel Vilakku" alt="Nel Vilakku">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/household/pooja_vessels/nel_vilakku.png" data-title="Nel Vilakku" alt="Nel Vilakku">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/household/pooja_vessels/kuthuvilakku.png" data-title="Kuthuvilakku" alt="Kuthuvilakku">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/household/pooja_vessels/kuthuvilakku.png" data-title="Kuthuvilakku" alt="Kuthuvilakku">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/household/pooja_vessels/shiva.png" data-title="Shiva" alt="Shiva">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/household/pooja_vessels/shiva.png" data-title="Shiva" alt="Shiva">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/household/pooja_vessels/murugan.png" data-title="Murugan" alt="Murugan">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/household/pooja_vessels/murugan.png" data-title="Murugan" alt="Murugan">
                                             </div>
                                             <div class="carousel-item">
-                                                <img class="openImgModalBtn" src="/images/household/pooja_vessels/vilakku.png" data-title="Vilakku" alt="Vilakku">
+                                                <img class="openImgModalBtn" src="<?php echo getenv('CDN_URL'); ?>/website/images/household/pooja_vessels/vilakku.png" data-title="Vilakku" alt="Vilakku">
                                             </div>
                                         </div>
                                     </div>
@@ -1008,7 +1008,7 @@
                                     <a href="javascript: void(0);" class="btn btn-lg btn-success">Order Online</a>
                                 </div>
                                 <div class="col-6 img-box">
-                                    <img src="/images/sweets_snacks/All_logos.png" alt="All Sweets & Snacks">
+                                    <img src="<?php echo getenv('CDN_URL'); ?>/website/images/sweets_snacks/All_logos.png" alt="All Sweets & Snacks">
                                 </div>
                             </div>
                         </div>
@@ -1040,7 +1040,7 @@
             <div class="row">
                 <div class="col-md-6 ">
                     <div class="img-box">
-                        <img src="/images/indian_snacks_main.png" alt="Indian Snacks">
+                        <img src="<?php echo getenv('CDN_URL'); ?>/website/images/indian_snacks_main.png" alt="Indian Snacks">
                     </div>
                 </div>
                 <div class="col-md-6">
@@ -1066,7 +1066,7 @@
     <!-- order section -->
     <section id="order_online_details" class="order_section_details layout_padding">
         <div class="container">
-            <div class="bg-subscribe py-3 bg-border-radius" style="background: url('/images/bg-leaves-img-pattern.png') no-repeat;">
+            <div class="bg-subscribe py-3 bg-border-radius" style="background: url('<?php echo getenv('CDN_URL'); ?>/website/images/bg-leaves-img-pattern.png') no-repeat;">
                 <div class="container my-5">
                     <div class="row">
                         <div class="col-md-6 p-5">

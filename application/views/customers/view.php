@@ -31,6 +31,7 @@
                                         </li>
                                     </ul>
                                     <div class="d-flex mt-2 mt-md-0">
+                                        <a href="javascript: void(0);" class="btn me-2"><i class='bx bx-plus'></i> New Customer</a>
                                         <div class="me-2"><input type="text" class="form-control" name="CustomerSearch" id="CustomerSearch" placeholder="Search customer..." /></div>
                                         <a href="/customers/add" class="btn btn-primary px-3"><i class='bx bx-plus'></i> New Customer</a>
                                     </div>
@@ -102,6 +103,26 @@
             e.preventDefault();
             PageNo = $(this).attr('data-ci-pagination-page');
             getCustomersDetails(PageNo, RowLimit, Filter);
+        });
+
+        $(document).on('click', '.DeleteCustomer', function(e) {
+            e.preventDefault();
+            var GetId = $(this).data('customeruid');
+            if (GetId) {
+                Swal.fire({
+                    title: "Do you want to delete the customer?",
+                    text: "You won't be able to revert this!",
+                    icon: "info",
+                    showCancelButton: true,
+                    confirmButtonColor: "#d33",
+                    confirmButtonText: "Yes, delete it!",
+                    cancelButtonColor: "#3085d6",
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        deleteCustomer(GetId);
+                    }
+                });
+            }
         });
 
     });

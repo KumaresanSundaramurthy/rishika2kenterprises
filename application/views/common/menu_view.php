@@ -8,7 +8,7 @@ $ControllerName = get_class($CI); ?>
     <div class="app-brand demo">
         <a href="/dashboard" class="app-brand-link">
             <span class="app-brand-logo demo">
-                <img src="<?php echo getenv('CDN_URL'); ?>/global/images/logo/favicon_io/android-chrome-512x512-1.png" width="40px;" height="40px;" alt="<?php echo strtoupper(getSiteConfiguration()->MenuName); ?>" />
+                <img src="/images/logo/favicon_io/android-chrome-512x512-1.png" width="40px;" height="40px;" alt="<?php echo strtoupper(getSiteConfiguration()->MenuName); ?>" />
             </span>
             <span class="app-brand-text demo menu-text fw-bolder ms-2"><?php echo strtoupper(getSiteConfiguration()->MenuName); ?></span>
         </a>

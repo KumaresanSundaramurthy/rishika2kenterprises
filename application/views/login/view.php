@@ -4,21 +4,21 @@
 
 <div class="authentication-wrapper authentication-cover">
 
-    <!-- <a href="javascript: void(0);" class="app-brand auth-cover-brand gap-2">
+    <a href="javascript: void(0);" class="app-brand auth-cover-brand gap-2">
         <span class="app-brand-logo demo">
             <span class="text-primary">
-                <img src="<?php // echo getenv('CDN_URL'); ?>/global/images/logo/favicon_io/favicon_32x32.png" alt="Logo" width="25" height="38">
+                <img src="/images/logo/favicon_io/favicon-32x32.png" alt="Logo" width="25" height="38">
             </span>
         </span>
-        <span class="app-brand-text demo text-heading fw-bold"><?php // echo getSiteConfiguration()->ShortName; ?></span>
-    </a> -->
+        <span class="app-brand-text demo text-heading fw-bold"><?php echo getSiteConfiguration()->ShortName; ?></span>
+    </a>
 
     <div class="authentication-inner row m-0">
-        
+
         <!-- /Left Text -->
         <div class="d-none d-lg-flex col-lg-7 col-xl-8 align-items-center p-5">
             <div class="w-100 d-flex justify-content-center">
-                <img src="/images/login_page.png" class="img-fluid" alt="Login image" width="700" data-app-dark-img="illustrations/boy-with-rocket-dark.png" data-app-light-img="illustrations/boy-with-rocket-light.png" style="visibility: visible;">
+                <img src="/images/login_page.png" class="img-fluid" alt="Login image" width="700" style="visibility: visible;">
             </div>
         </div>
         <!-- /Left Text -->
@@ -30,37 +30,35 @@
                 <p class="mb-6">Please sign-in to your account and start the adventure</p>
 
                 <?php $FormAttribute = array('id' => 'doLoginForm', 'name' => 'doLoginForm', 'class' => 'mb-6 fv-plugins-bootstrap5 fv-plugins-framework', 'autocomplete' => 'off');
-                    echo form_open('login/doLoginForm', $FormAttribute); ?>
+                echo form_open('login/doLoginForm', $FormAttribute); ?>
 
-                    <?php $this->load->view('login/alerts'); ?>
+                <?php $this->load->view('login/alerts'); ?>
 
-                    <div class="mb-6 form-control-validation fv-plugins-icon-container">
-                        <label for="UserName" class="form-label">Email or Username</label>
-                        <input type="text" class="form-control" id="UserName" name="UserName" placeholder="Enter your email or username">
-                        <div class="fv-plugins-message-container fv-plugins-message-container--enabled invalid-feedback"></div>
+                <div class="mb-6 form-control-validation">
+                    <label for="UserName" class="form-label">Email or Username</label>
+                    <input type="text" class="form-control" id="UserName" name="UserName" placeholder="Enter your email or username" />
+                </div>
+                <div class="form-password-toggle form-control-validation">
+                    <label class="form-label" for="UserPassword">Password</label>
+                    <div class="input-group input-group-merge has-validation">
+                        <input type="password" id="UserPassword" class="form-control" name="UserPassword" placeholder="············" aria-describedby="password" />
+                        <span class="input-group-text cursor-pointer"><i class="icon-base bx bx-hide"></i></span>
                     </div>
-                    <div class="form-password-toggle form-control-validation fv-plugins-icon-container">
-                        <label class="form-label" for="UserPassword">Password</label>
-                        <div class="input-group input-group-merge has-validation">
-                            <input type="password" id="UserPassword" class="form-control" name="UserPassword" placeholder="············" aria-describedby="password">
-                            <span class="input-group-text cursor-pointer"><i class="icon-base bx bx-hide"></i></span>
+                </div>
+                <div class="my-7">
+                    <div class="d-flex justify-content-between">
+                        <div class="form-check mb-0">
+                            <input class="form-check-input" type="checkbox" id="remember-me">
+                            <label class="form-check-label" for="remember-me">Remember Me</label>
                         </div>
-                        <div class="fv-plugins-message-container fv-plugins-message-container--enabled invalid-feedback"></div>
+                        <a href="javascript: void(0);">
+                            <p class="mb-0">Forgot Password?</p>
+                        </a>
                     </div>
-                    <div class="my-7">
-                        <div class="d-flex justify-content-between">
-                            <div class="form-check mb-0">
-                                <input class="form-check-input" type="checkbox" id="remember-me">
-                                <label class="form-check-label" for="remember-me">Remember Me</label>
-                            </div>
-                            <a href="javascript: void(0);">
-                                <p class="mb-0">Forgot Password?</p>
-                            </a>
-                        </div>
-                    </div>
+                </div>
 
-                    <button class="btn btn-primary d-grid w-100">Sign in</button>
-                    
+                <button class="btn btn-primary d-grid w-100">Sign in</button>
+
                 <?php echo form_close(); ?>
 
                 <p class="text-center d-none">
@@ -101,3 +99,11 @@
 </div>
 
 <?php $this->load->view('login/footer'); ?>
+<script>
+    $(function() {
+        'use strict'
+
+        $('#template-customizer').addClass('d-none');
+
+    });
+</script>

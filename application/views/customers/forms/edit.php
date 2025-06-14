@@ -17,10 +17,23 @@
             <div class="content-wrapper">
 
                 <div class="container-xxl flex-grow-1 container-p-y">
-                    <h4 class="fw-bold py-1 mb-4"><span class="text-muted fw-light">Masters/ Customers /</span> <?php echo $EditData->Name; ?></h4>
+
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb breadcrumb-style1">
+                            <li class="breadcrumb-item">
+                                <a href="/dashboard">Dashboard</a>
+                            </li>
+                            <li class="breadcrumb-item">
+                                <a href="/customers">Customers</a>
+                            </li>
+                            <li class="breadcrumb-item active"><?php echo $EditData->Name; ?></li>
+                        </ol>
+                    </nav>
 
                     <?php $FormAttribute = array('id' => 'EditCustomerForm', 'name' => 'EditCustomerForm', 'class' => '', 'autocomplete' => 'off');
                     echo form_open('customers/editCustomer', $FormAttribute); ?>
+
+                    <input type="hidden" name="CustomerUID" id="CustomerUID" value="<?php echo isset($EditData->CustomerUID) ? $EditData->CustomerUID : ''; ?>" />
 
                     <div class="card mb-3">
                         <h5 class="card-header">Basic Details</h5>
@@ -77,12 +90,29 @@
                     </div>
 
                     <h6 class="mb-2">Billing Address</h6>
-                    <button type="button" class="btn btn-info mb-3" id="addBillingAddress" data-divid="appendBillingAddress"><i class="bx bx-plus-circle me-1"></i> Billing Address</button>
-                    <div id="appendBillingAddress" class="d-none"></div>
+
+                    <?php if (is_array($BillingAddr) && sizeof($BillingAddr) > 0) {
+                        $AddressDetails['AddressType'] = 1;
+                        $AddressDetails['AddressData'] = $BillingAddr[0];
+                        $AddressDetails['StateData'] = $StateData;
+                        $AddressDetails['CityData'] = $CityData;
+                        $this->load->view('customers/forms/editaddressform', $AddressDetails);
+                    } else { ?>
+                        <button type="button" class="btn btn-info mb-3" id="addBillingAddress" data-divid="appendBillingAddress"><i class="bx bx-plus-circle me-1"></i> Billing Address</button>
+                        <div id="appendBillingAddress" class="d-none"></div>
+                    <?php } ?>
 
                     <h6 class="mb-2">Shipping Address</h6>
-                    <button type="button" class="btn btn-info mb-3" id="addShippingAddress" data-divid="appendShippingAddress"><i class="bx bx-plus-circle me-1"></i> Shipping Address</button>
-                    <div id="appendShippingAddress" class="d-none"></div>
+                    <?php if (is_array($ShippingAddr) && sizeof($ShippingAddr) > 0) {
+                        $AddressDetails['AddressType'] = 2;
+                        $AddressDetails['AddressData'] = $ShippingAddr[0];
+                        $AddressDetails['StateData'] = $StateData;
+                        $AddressDetails['CityData'] = $CityData;
+                        $this->load->view('customers/forms/editaddressform', $AddressDetails);
+                    } else { ?>
+                        <button type="button" class="btn btn-info mb-3" id="addShippingAddress" data-divid="appendShippingAddress"><i class="bx bx-plus-circle me-1"></i> Shipping Address</button>
+                        <div id="appendShippingAddress" class="d-none"></div>
+                    <?php } ?>
 
                     <div class="card mb-3">
                         <h5 class="card-header">Optional Details</h5>
@@ -91,22 +121,22 @@
                                 <div class="mb-3 col-md-12">
                                     <label for="text" class="form-label">Opening Balance</label>
                                     <!-- <div class="input-group input-group-merge"> -->
-                                        <div class="col-md-12 mb-3">
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="radio" name="DebitCreditCheck" id="DebitType" value="Debit" <?php echo isset($EditData->DebitCreditType) && $EditData->DebitCreditType == "Debit" ? 'checked' : ''; ?> />
-                                                <label class="form-check-label" for="DebitType">Debit (Customer Pays you)</label>
-                                            </div>
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="radio" name="DebitCreditCheck" id="CreditType" value="Credit" <?php echo isset($EditData->DebitCreditType) && $EditData->DebitCreditType == "Credit" ? 'checked' : ''; ?> />
-                                                <label class="form-check-label" for="CreditType">Credit (You Pay the Customer)</label>
-                                            </div>
+                                    <div class="col-md-12 mb-3">
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="DebitCreditCheck" id="DebitType" value="Debit" <?php echo isset($EditData->DebitCreditType) && $EditData->DebitCreditType == "Debit" ? 'checked' : ''; ?> />
+                                            <label class="form-check-label" for="DebitType">Debit (Customer Pays you)</label>
                                         </div>
-                                        <div class="col-md-12">
-                                            <div class="input-group mb-3">
-                                                <span class="input-group-text">₹</span>
-                                                <input type="number" class="form-control" name="DebitCreditAmount" id="DebitCreditAmount" min="0" placeholder="Debit / Credit Amount" onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))" oninput="this.value=this.value.slice(0,this.maxLength)" maxLength="6" pattern="[0-9]*" value="<?php echo isset($EditData->DebitCreditAmount) ? $EditData->DebitCreditAmount : '0'; ?>" />
-                                            </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="DebitCreditCheck" id="CreditType" value="Credit" <?php echo isset($EditData->DebitCreditType) && $EditData->DebitCreditType == "Credit" ? 'checked' : ''; ?> />
+                                            <label class="form-check-label" for="CreditType">Credit (You Pay the Customer)</label>
                                         </div>
+                                    </div>
+                                    <div class="col-md-12">
+                                        <div class="input-group mb-3">
+                                            <span class="input-group-text">₹</span>
+                                            <input type="number" class="form-control" name="DebitCreditAmount" id="DebitCreditAmount" min="0" placeholder="Debit / Credit Amount" onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))" oninput="this.value=this.value.slice(0,this.maxLength)" maxLength="6" pattern="[0-9]*" value="<?php echo isset($EditData->DebitCreditAmount) ? $EditData->DebitCreditAmount : '0'; ?>" />
+                                        </div>
+                                    </div>
                                     <!-- </div> -->
                                 </div>
                             </div>
@@ -127,7 +157,7 @@
                                     <div class="row mt-3">
                                         <div class="mb-3 col-md-6">
                                             <div class="d-flex align-items-start align-items-sm-center gap-4">
-                                                <img src="<?php echo getenv('CDN_URL') . '/website/images/logo/avathar_user.png'; ?>" alt="user-avatar" class="d-block rounded" height="100" width="100" id="uploadedAvatar" />
+                                                <img src="<?php echo (isset($EditData->Image) ? getenv('CDN_URL').$EditData->Image : '/images/logo/avathar_user.png'); ?>" alt="user-avatar" class="d-block rounded" height="100" width="100" id="uploadedAvatar" />
                                                 <div class="button-wrapper">
                                                     <label for="UploadImage" class="btn btn-primary me-2 mb-4" tabindex="0">
                                                         <span class="d-none d-sm-block">Upload new photo</span>
@@ -161,11 +191,27 @@
                                         </div>
                                         <div class="mb-3 col-md-6">
                                             <label class="form-label" for="Tags">Tags </label>
-                                            <select id="Tags" name="Tags" class="select2 form-select" multiple="multiple"></select>
+                                            <select id="Tags" name="Tags[]" class="select2 form-select" multiple="multiple">
+                                                <?php if (isset($EditData->Tags) && !empty($EditData->Tags)) {
+                                                    foreach (explode(',', $EditData->Tags) as $Tags) { ?>
+
+                                                        <option value="<?php echo $Tags; ?>" selected><?php echo $Tags; ?></option>
+
+                                                <?php }
+                                                } ?>
+                                            </select>
                                         </div>
                                         <div class="mb-3 col-md-6">
                                             <label class="form-label" for="CCEmails">CC Emails </label>
-                                            <select id="CCEmails" name="CCEmails" class="select2 form-select" multiple="multiple"></select>
+                                            <select id="CCEmails" name="CCEmails[]" class="select2 form-select" multiple="multiple">
+                                                <?php if (isset($EditData->CCEmails) && !empty($EditData->CCEmails)) {
+                                                    foreach (explode(',', $EditData->CCEmails) as $CCEmails) { ?>
+
+                                                        <option value="<?php echo $CCEmails; ?>" selected><?php echo $CCEmails; ?></option>
+
+                                                <?php }
+                                                } ?>
+                                            </select>
                                         </div>
                                     </div>
 
@@ -177,10 +223,10 @@
                     <div class="card mb-3">
                         <div class="card-body p-0">
 
-                            <div id="addFormAlert" class="d-none col-lg-12 px-4 pt-4" role="alert"></div>
+                            <div id="editFormAlert" class="d-none col-lg-12 px-4 pt-4" role="alert"></div>
 
                             <div class="m-3">
-                                <button type="submit" id="OrgSubBtn" class="btn btn-primary me-2">Save changes</button>
+                                <button type="submit" id="EditCustomerBtn" class="btn btn-primary me-2">Save changes</button>
                                 <a href="javascript: history.back();" class="btn btn-outline-secondary">Cancel</a>
                             </div>
 
@@ -206,15 +252,42 @@
 <script src="/js/customers.js"></script>
 
 <script>
-    var CDN_URL = '<?php echo getenv('CDN_URL'); ?>';
-    var defaultImg = '<?php echo '/website/images/logo/avathar_user.png'; ?>';
+    var defaultImg = '<?php echo isset($EditData->Image) ? $EditData->Image : '/website/images/logo/avathar_user.png'; ?>';
     var imageChange = 0;
     $(function() {
         'use strict'
 
+        <?php if (is_array($BillingAddr) && sizeof($BillingAddr) > 0) { ?>
+
+            $('#BillAddrState').select2({
+                placeholder: '-- Select State --',
+                allowClear: true,
+            });
+
+            $('#BillAddrCity').select2({
+                placeholder: '-- Select City --',
+                allowClear: true,
+            });
+
+        <?php } ?>
+
+        <?php if (is_array($ShippingAddr) && sizeof($ShippingAddr) > 0) { ?>
+            
+            $('#ShipAddrState').select2({
+                placeholder: '-- Select State --',
+                allowClear: true,
+            });
+
+            $('#ShipAddrCity').select2({
+                placeholder: '-- Select City --',
+                allowClear: true,
+            });
+
+        <?php } ?>
+
         $('#CountryCode').select2({
             placeholder: '-- Select Country --',
-            selectOnClose: true,
+            allowClear: true,
         });
 
         $("#Tags,#CCEmails").select2({
@@ -229,49 +302,39 @@
             $('#uploadedAvatar').attr("src", CDN_URL + defaultImg);
         });
 
-        $('#AddCustomerForm').submit(function(e) {
+        $('#EditCustomerForm').submit(function(e) {
             e.preventDefault();
-            var formData = new FormData($('#AddCustomerForm')[0]);
+
+            var formData = new FormData($('#EditCustomerForm')[0]);
             formData.append('CountryISO2', $('#CountryCode').find('option:selected').data('ccode'));
-            addCustomerData(formData);
-        });
+            formData.append('imageChange', imageChange);
 
-        $('#addBillingAddress').click(function(e) {
-            e.preventDefault();
+            var BillAddrLine1 = $('#BillAddrLine1').val();
+            if (BillAddrLine1 != null && BillAddrLine1 != '' && BillAddrLine1 !== undefined) {
+                var BillAddrCity = $('#BillAddrCity').find('option:selected').val();
+                if (BillAddrCity != null && BillAddrCity != '' && BillAddrCity !== undefined) {
+                    formData.append('BillAddrCityText', $('#BillAddrCity').find('option:selected').text());
+                }
+                var BillAddrState = $('#BillAddrState').find('option:selected').val();
+                if (BillAddrState != null && BillAddrState != '' && BillAddrState !== undefined) {
+                    formData.append('BillAddrStateText', $('#BillAddrState').find('option:selected').text());
+                }
+            }
 
-            var DivId = $(this).data('divid');
-            $('#'+DivId).addClass('d-none').html('');
-            
-            var formData = new FormData();
-            formData.append('AddressType', 1);
-            formData.append('CountryCode', $('#CountryCode').find('option:selected').data('ccode'));
-            showAddressInfo(formData, 'addBillingAddress', DivId);
+            var ShipAddrLine1 = $('#ShipAddrLine1').val();
+            if (ShipAddrLine1 != null && ShipAddrLine1 != '' && ShipAddrLine1 !== undefined) {
+                var ShipAddrCity = $('#ShipAddrCity').find('option:selected').val();
+                if (ShipAddrCity != null && ShipAddrCity != '' && ShipAddrCity !== undefined) {
+                    formData.append('ShipAddrCityText', $('#ShipAddrCity').find('option:selected').text());
+                }
+                var ShipAddrState = $('#ShipAddrState').find('option:selected').val();
+                if (ShipAddrState != null && ShipAddrState != '' && ShipAddrState !== undefined) {
+                    formData.append('ShipAddrStateText', $('#ShipAddrState').find('option:selected').text());
+                }
+            }
 
-        });
+            editCustomerData(formData);
 
-        $('#addShippingAddress').click(function(e) {
-            e.preventDefault();
-
-            var DivId = $(this).data('divid');
-            $('#'+DivId).addClass('d-none').html('');
-            
-            var formData = new FormData();
-            formData.append('AddressType', 2);
-            formData.append('CountryCode', $('#CountryCode').find('option:selected').data('ccode'));
-            showAddressInfo(formData, 'addShippingAddress', DivId);
-
-        });
-
-        $(document).on('click', '#deleteBillingAddress', function(e) {
-            e.preventDefault();
-            $('#appendBillingAddress').addClass('d-none').html(' ');
-            $('#addBillingAddress').removeClass('d-none');
-        });
-
-        $(document).on('click', '#deleteShippingAddress', function(e) {
-            e.preventDefault();
-            $('#appendShippingAddress').addClass('d-none').html(' ');
-            $('#addShippingAddress').removeClass('d-none');
         });
 
     });

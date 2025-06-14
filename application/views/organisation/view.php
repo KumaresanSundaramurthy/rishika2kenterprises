@@ -17,7 +17,15 @@
             <div class="content-wrapper">
 
                 <div class="container-xxl flex-grow-1 container-p-y">
-                    <h4 class="fw-bold py-1 mb-4"><span class="text-muted fw-light">Masters /</span> Organisation</h4>
+
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb breadcrumb-style1">
+                            <li class="breadcrumb-item">
+                                <a href="/dashboard">Dashboard</a>
+                            </li>
+                            <li class="breadcrumb-item active">Organisation</li>
+                        </ol>
+                    </nav>
 
                     <!-- Org Details -->
                     <?php $FormAttribute = array('id' => 'OrganisationForm', 'name' => 'OrganisationForm', 'class' => '', 'autocomplete' => 'off');
@@ -29,7 +37,7 @@
                         <h5 class="card-header">Organisation Details</h5>
                         <div class="card-body">
                             <div class="d-flex align-items-start align-items-sm-center gap-4">
-                                <img src="<?php echo getenv('CDN_URL'); ?><?php echo isset($EditOrgData->Logo) ? $EditOrgData->Logo : '/website/images/logo/avathar_user.png' ?>" alt="user-avatar" class="d-block rounded" height="100" width="100" id="uploadedAvatar" />
+                                <img src="<?php echo isset($EditOrgData->Logo) ? getenv('CDN_URL').$EditOrgData->Logo : '/images/logo/avathar_user.png' ?>" alt="user-avatar" class="d-block rounded" height="100" width="100" id="uploadedAvatar" />
                                 <div class="button-wrapper">
                                     <label for="UploadImage" class="btn btn-primary me-2 mb-4" tabindex="0">
                                         <span class="d-none d-sm-block">Upload new photo</span>
@@ -49,7 +57,7 @@
 
                     <div class="card mb-3">
                         <div class="card-body">
-                            
+
                             <div class="row">
                                 <div class="mb-3 col-md-6">
                                     <label for="Name" class="form-label">Company Name <span style="color:red">*</span></label>
@@ -260,7 +268,7 @@
 
             <?php $this->load->view('common/footer_desc'); ?>
 
-        </div>        
+        </div>
 
     </div>
 </div>
@@ -278,7 +286,7 @@
 
         $('#CountryCode').select2({
             placeholder: '-- Select Country --',
-            selectOnClose: true,
+            allowClear: true,
             // templateSelection: function(data) {
             //     if (!data.id) {
             //         return data.text; // return placeholder
@@ -292,18 +300,16 @@
 
         $('#TimezoneUID').select2({
             placeholder: '-- Select Timezone --',
-            selectOnClose: true,
+            allowClear: true,
         });
 
         $('#BillAddrState,#ShipAddrState').select2({
             placeholder: '-- Select State --',
-            selectOnClose: true,
             allowClear: true,
         });
 
         $('#BillAddrCity,#ShipAddrCity').select2({
             placeholder: '-- Select City --',
-            selectOnClose: true,
             allowClear: true,
         });
 

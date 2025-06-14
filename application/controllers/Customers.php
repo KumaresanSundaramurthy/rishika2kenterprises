@@ -125,24 +125,23 @@ class Customers extends CI_Controller {
                 $this->load->model('dbwrite_model');
 
                 $CustomerUID = 0;
-
                 $customerFormData = [
                     'Name' => $PostData['Name'],
                     'OrgUID' => $this->pageData['JwtData']->User->OrgUID,
                     'CountryCode' => $PostData['CountryCode'],
                     'CountryISO2' => isset($PostData['CountryISO2']) ? $PostData['CountryISO2'] : 'IN',
-                    'MobileNumber' => isset($PostData['MobileNumber']) ? $PostData['MobileNumber'] : null,
-                    'EmailAddress' => isset($PostData['EmailAddress']) ? $PostData['EmailAddress'] : null,
-                    'GSTIN' => isset($PostData['GSTIN']) ? $PostData['GSTIN'] : null,
-                    'CompanyName' => isset($PostData['CompanyName']) ? $PostData['CompanyName'] : null,
+                    'MobileNumber' => (isset($PostData['MobileNumber']) && !empty($PostData['MobileNumber'])) ? $PostData['MobileNumber'] : NULL,
+                    'EmailAddress' => (isset($PostData['EmailAddress']) && !empty($PostData['EmailAddress'])) ? $PostData['EmailAddress'] : NULL,
+                    'GSTIN' => (isset($PostData['GSTIN']) && !empty($PostData['GSTIN'])) ? $PostData['GSTIN'] : NULL,
+                    'CompanyName' => (isset($PostData['CompanyName']) && !empty($PostData['CompanyName'])) ? $PostData['CompanyName'] : NULL,
                     'DebitCreditType' => isset($PostData['DebitCreditCheck']) ? $PostData['DebitCreditCheck'] : 'Debit',
                     'DebitCreditAmount' => isset($PostData['DebitCreditAmount']) ? $PostData['DebitCreditAmount'] : 0,
-                    'PANNumber' => isset($PostData['PANNumber']) ? $PostData['PANNumber'] : null,
+                    'PANNumber' => (isset($PostData['PANNumber']) && !empty($PostData['PANNumber'])) ? $PostData['PANNumber'] : NULL,
                     'DiscountPercent' => isset($PostData['DiscountPercent']) ? $PostData['DiscountPercent'] : 0,
                     'CreditLimit' => isset($PostData['CreditLimit']) ? $PostData['CreditLimit'] : 0,
-                    'Notes' => isset($PostData['Notes']) ? $PostData['Notes'] : null,
-                    'Tags' => isset($PostData['Tags']) ? $PostData['Tags'] : null,
-                    'CCEmails' => isset($PostData['CCEmails']) ? $PostData['CCEmails'] : null,
+                    'Notes' => (isset($PostData['Notes']) && !empty($PostData['Notes'])) ? implode(',', $PostData['Notes']) : NULL,
+                    'Tags' => (isset($PostData['Tags']) && !empty($PostData['Tags'])) ? implode(',', $PostData['Tags']) : NULL,
+                    'CCEmails' => (isset($PostData['CCEmails']) && !empty($PostData['CCEmails'])) ? $PostData['CCEmails'] : NULL,
                     'CreatedBy' => $this->pageData['JwtData']->User->UserUID,
                     'UpdatedBy' => $this->pageData['JwtData']->User->UserUID,
                     'CreatedOn' => time(),
@@ -251,7 +250,7 @@ class Customers extends CI_Controller {
 
     private function imageUpload($tempName, $fullPath) {
 
-        $uploadPath = 'org/images/' . $fullPath;
+        $uploadPath = 'customers/images/' . $fullPath;
 
         $this->load->library('fileupload');
         $uploadDetail = $this->fileupload->fileUpload('file', $uploadPath, $tempName);
@@ -298,6 +297,21 @@ class Customers extends CI_Controller {
                 }
                 
                 $this->pageData['EditData'] = $GetCustomerData[0];
+                $this->pageData['BillingAddr'] = $this->customers_model->getCustomerAddress(['CustAddress.CustomerUID' => $GetCustomerData[0]->CustomerUID, 'CustAddress.AddressType' => 'Billing']);
+                $this->pageData['ShippingAddr'] = $this->customers_model->getCustomerAddress(['CustAddress.CustomerUID' => $GetCustomerData[0]->CustomerUID, 'CustAddress.AddressType' => 'Shipping']);
+
+                $this->pageData['StateData'] = [];
+                $this->pageData['CityData'] = [];
+
+                $StateInfo = $this->global_model->getStateofCountry($GetCustomerData[0]->CountryISO2);
+                if($StateInfo->Error === FALSE) {
+                    $this->pageData['StateData'] = $StateInfo->Data;
+                }
+
+                $CityInfo = $this->global_model->getCityofCountry($GetCustomerData[0]->CountryISO2);
+                if($CityInfo->Error === FALSE) {
+                    $this->pageData['CityData'] = $CityInfo->Data;
+                }
 
                 $this->load->view('customers/forms/edit', $this->pageData);
 
@@ -308,6 +322,207 @@ class Customers extends CI_Controller {
         } else {
 			redirect('customers');
 		}
+
+    }
+
+    public function updateCustomerData() {
+
+        $this->EndReturnData = new stdClass();
+		try {
+
+            $this->load->model('formvalidation_model');
+
+            $PostData = $this->input->post();
+            $ErrorInForm = $this->formvalidation_model->custValidateForm($PostData);
+            if(empty($ErrorInForm)) {
+
+                $this->load->model('dbwrite_model');
+
+                $CustomerUID = $PostData['CustomerUID'];
+                $customerFormData = [
+                    'Name' => $PostData['Name'],
+                    'CountryCode' => $PostData['CountryCode'],
+                    'CountryISO2' => isset($PostData['CountryISO2']) ? $PostData['CountryISO2'] : 'IN',
+                    'MobileNumber' => (isset($PostData['MobileNumber']) && !empty($PostData['MobileNumber'])) ? $PostData['MobileNumber'] : NULL,
+                    'EmailAddress' => (isset($PostData['EmailAddress']) && !empty($PostData['EmailAddress'])) ? $PostData['EmailAddress'] : NULL,
+                    'GSTIN' => (isset($PostData['GSTIN']) && !empty($PostData['GSTIN'])) ? $PostData['GSTIN'] : NULL,
+                    'CompanyName' => (isset($PostData['CompanyName']) && !empty($PostData['CompanyName'])) ? $PostData['CompanyName'] : NULL,
+                    'DebitCreditType' => isset($PostData['DebitCreditCheck']) ? $PostData['DebitCreditCheck'] : 'Debit',
+                    'DebitCreditAmount' => isset($PostData['DebitCreditAmount']) ? $PostData['DebitCreditAmount'] : 0,
+                    'PANNumber' => (isset($PostData['PANNumber']) && !empty($PostData['PANNumber'])) ? $PostData['PANNumber'] : NULL,
+                    'DiscountPercent' => isset($PostData['DiscountPercent']) ? $PostData['DiscountPercent'] : 0,
+                    'CreditLimit' => isset($PostData['CreditLimit']) ? $PostData['CreditLimit'] : 0,
+                    'Notes' => (isset($PostData['Notes']) && !empty($PostData['Notes'])) ? $PostData['Notes'] : NULL,
+                    'Tags' => (isset($PostData['Tags']) && !empty($PostData['Tags'])) ? implode(',', $PostData['Tags']) : NULL,
+                    'CCEmails' => (isset($PostData['CCEmails']) && !empty($PostData['CCEmails'])) ? implode(',', $PostData['CCEmails']) : NULL,
+                    'UpdatedBy' => $this->pageData['JwtData']->User->UserUID,
+                    'UpdatedOn' => time(),
+                ];
+
+                $UpdateDataResp = $this->dbwrite_model->updateData('Customers', 'CustomerTbl', $customerFormData, array('CustomerUID' => $CustomerUID));
+                if($UpdateDataResp->Error) {
+                    throw new Exception($UpdateDataResp->Message);
+                }
+
+                // Image Upload
+                if($PostData['imageChange'] == 1) {
+
+                    $imagePath = NULL;
+
+                    if (isset($_FILES['UploadImage']['tmp_name']) && !empty($_FILES['UploadImage']['tmp_name'])) {
+
+                        $ext = pathinfo($_FILES['UploadImage']['name'], PATHINFO_EXTENSION);
+                        $fileName = substr(str_replace('.'.$ext, '', str_replace(' ', '_', $_FILES['UploadImage']['name'])), 0, 50).'_'.uniqid().'.'.$ext;
+                        $imagePath = $this->imageUpload($_FILES['UploadImage']['tmp_name'], $fileName);
+
+                    }
+
+                    if($imagePath) {
+                        $updateCustImgData = [
+                            'Image' => $imagePath,
+                        ];
+                        $UpdateImgResp = $this->dbwrite_model->updateData('Customers', 'CustomerTbl', $updateCustImgData, array('CustomerUID' => $CustomerUID));
+                        if($UpdateImgResp->Error) {
+                            throw new Exception($UpdateImgResp->Message);
+                        }
+                    }
+
+                }
+
+                if(isset($PostData['BillAddrLine1']) && $PostData['BillAddrLine1'] != '') {
+
+                    $BillingAddressData = [
+                        'CustomerUID' => $CustomerUID,
+                        'OrgUID' => $this->pageData['JwtData']->User->OrgUID,
+                        'AddressType' => 'Billing',
+                        'Line1' => $PostData['BillAddrLine1'],
+                        'Line2' => $PostData['BillAddrLine2'] ? $PostData['BillAddrLine2'] : NULL,
+                        'Pincode' => $PostData['BillAddrPincode'],
+                        'City' => $PostData['BillAddrCity'] ? $PostData['BillAddrCity'] : NULL,
+                        'CityText' => $PostData['BillAddrCityText'] ? $PostData['BillAddrCityText'] : NULL,
+                        'State' => $PostData['BillAddrState'] ? $PostData['BillAddrState'] : NULL,
+                        'StateText' => $PostData['BillAddrStateText'] ? $PostData['BillAddrStateText'] : NULL,
+                        'UpdatedBy' => $this->pageData['JwtData']->User->UserUID,
+                        'UpdatedOn' => time(),
+                    ];
+
+                    if(isset($PostData['BillAddressUID']) && $PostData['BillAddressUID'] == 0) {
+
+                        $BillingAddressData['CreatedBy'] = $this->pageData['JwtData']->User->UserUID;
+                        $BillingAddressData['CreatedOn'] = time();
+
+                        $InsertBillAddrResp = $this->dbwrite_model->insertData('Customers', 'CustAddressTbl', $BillingAddressData);
+                        if($InsertBillAddrResp->Error) {
+                            throw new Exception($InsertBillAddrResp->Message);
+                        }
+
+                    } else if(isset($PostData['BillAddressUID']) && $PostData['BillAddressUID'] > 0) {
+
+                        $UpdateBillAddrResp = $this->dbwrite_model->updateData('Customers', 'CustAddressTbl', $BillingAddressData, array('CustAddressUID' => $PostData['BillAddressUID']));
+                        if($UpdateBillAddrResp->Error) {
+                            throw new Exception($UpdateBillAddrResp->Message);
+                        }
+
+                    }
+                    
+                }
+
+                if(isset($PostData['ShipAddrLine1']) && $PostData['ShipAddrLine1'] != '') {
+
+                    $ShippingAddressData = [
+                        'CustomerUID' => $CustomerUID,
+                        'OrgUID' => $this->pageData['JwtData']->User->OrgUID,
+                        'AddressType' => 'Shipping',
+                        'Line1' => $PostData['ShipAddrLine1'],
+                        'Line2' => $PostData['ShipAddrLine2'] ? $PostData['ShipAddrLine2'] : NULL,
+                        'Pincode' => $PostData['ShipAddrPincode'],
+                        'City' => $PostData['ShipAddrCity'] ? $PostData['ShipAddrCity'] : NULL,
+                        'CityText' => $PostData['ShipAddrCityText'] ? $PostData['ShipAddrCityText'] : NULL,
+                        'State' => $PostData['ShipAddrState'] ? $PostData['ShipAddrState'] : NULL,
+                        'StateText' => $PostData['ShipAddrStateText'] ? $PostData['ShipAddrStateText'] : NULL,
+                        'UpdatedBy' => $this->pageData['JwtData']->User->UserUID,
+                        'UpdatedOn' => time(),
+                    ];
+
+                    if(isset($PostData['ShipAddressUID']) && $PostData['ShipAddressUID'] == 0) {
+
+                        $ShippingAddressData['CreatedBy'] = $this->pageData['JwtData']->User->UserUID;
+                        $ShippingAddressData['CreatedOn'] = time();
+
+                        $InsertShipAddrResp = $this->dbwrite_model->insertData('Customers', 'CustAddressTbl', $ShippingAddressData);
+                        if($InsertShipAddrResp->Error) {
+                            throw new Exception($InsertShipAddrResp->Message);
+                        }
+
+                    } else if(isset($PostData['ShipAddressUID']) && $PostData['ShipAddressUID'] > 0) {
+
+                        $UpdateShipAddrResp = $this->dbwrite_model->updateData('Customers', 'CustAddressTbl', $ShippingAddressData, array('CustAddressUID' => $PostData['ShipAddressUID']));
+                        if($UpdateShipAddrResp->Error) {
+                            throw new Exception($UpdateShipAddrResp->Message);
+                        }
+
+                    }
+
+                }
+
+                $this->EndReturnData->Error = FALSE;
+                $this->EndReturnData->Message = 'Updated Successfully';
+
+            } else {
+                throw new Exception($ErrorInForm);
+            }
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+		$this->output->set_status_header(200)
+            ->set_content_type('application/json', 'utf-8')
+            ->set_output(json_encode($this->EndReturnData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES))
+            ->_display();
+        exit;
+
+    }
+
+    public function deleteCustomerData() {
+
+        $this->EndReturnData = new stdClass();
+		try {
+
+            $CustomerUID = $this->input->post('CustomerUID');
+            if($CustomerUID) {
+
+                $updateCustData = [
+                    'IsDeleted' => 1,
+                    'UpdatedBy' => $this->pageData['JwtData']->User->UserUID,
+                    'UpdatedOn' => time(),
+                ];
+
+                $this->load->model('dbwrite_model');
+                
+                $UpdateResp = $this->dbwrite_model->updateData('Customers', 'CustomerTbl', $updateCustData, array('CustomerUID' => $CustomerUID));
+                if($UpdateResp->Error) {
+                    throw new Exception($UpdateResp->Message);
+                }
+
+                $this->EndReturnData->Error = FALSE;
+                $this->EndReturnData->Message = 'Deleted Successfully';
+
+            } else {
+                throw new Exception('Customer Information is Missing to Delete');
+            }
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+		$this->output->set_status_header(200)
+            ->set_content_type('application/json', 'utf-8')
+            ->set_output(json_encode($this->EndReturnData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES))
+            ->_display();
+        exit;
 
     }
 

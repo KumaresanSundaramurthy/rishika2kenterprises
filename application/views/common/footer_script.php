@@ -8,6 +8,7 @@ var PageNo = 0;
 var Filter = {};
 var global_base_url = '<?php echo base_url(); ?>';
 var CDN_URL = '<?php echo getenv('CDN_URL') ?>';
+var defUserImg = '<?php echo '/website/images/logo/avathar_user.png'; ?>';
 $(function() {
 	'use strict'
 

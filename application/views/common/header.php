@@ -9,7 +9,7 @@
     <title><?php echo getSiteConfiguration()->ShortName; ?></title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <link rel="shortcut icon" href="<?php echo getenv('CDN_URL'); ?>/global/images/logo/favicon_io/favicon_32x32.png" type="image/png">
+    <link rel="shortcut icon" href="/images/logo/favicon_io/favicon-32x32.png" type="image/png">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -29,9 +29,11 @@
 
     <!-- Vendors CSS -->
     <link rel="stylesheet" href="/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css" />
+    <link rel="stylesheet" href="/assets/vendor/libs/sweetalert2/sweetalert2.css">
 
     <!-- Select2 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <!-- <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" /> -->
+    <link rel="stylesheet" href="/assets/vendor/libs/select2/select2.css">
 
     <!-- Page CSS -->
 

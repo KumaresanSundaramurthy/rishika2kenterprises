@@ -15,7 +15,7 @@
             <td>
                 <div class="d-flex align-items-sm-center justify-content-sm-center">
                     <a href="/customers/<?php echo $list->CustomerUID; ?>/edit" class="btn btn-icon text-warning"><i class="bx bx-edit me-1"></i></a>
-                    <button class="btn btn-icon text-danger"><i class="bx bx-trash"></i></button>
+                    <button class="btn btn-icon text-danger DeleteCustomer" data-customeruid="<?php echo $list->CustomerUID; ?>"><i class="bx bx-trash"></i></button>
                 </div>
             </td>
         </tr>

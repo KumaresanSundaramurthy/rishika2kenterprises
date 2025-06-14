@@ -1,7 +1,7 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <!doctype html>
-<html lang="en" data-layout="horizontal" data-topbar="dark" data-sidebar-size="lg" data-sidebar="light" data-sidebar-image="none" data-preloader="disable">
+<html lang="en" data-layout="horizontal" data-topbar="dark" data-sidebar-size="lg" data-sidebar="light" data-sidebar-image="none" data-preloader="disable" dir="ltr" data-skin="default" data-assets-path="/assets/" data-template="vertical-menu-template" data-bs-theme="light">
 
 <head>
 
@@ -9,7 +9,7 @@
     <title>Sign In :: <?php echo getSiteConfiguration()->ShortName; ?></title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <link rel="shortcut icon" href="<?php echo getenv('CDN_URL'); ?>/global/images/logo/favicon_io/favicon_32x32.png" type="image/png">
+    <link rel="shortcut icon" href="/images/logo/favicon_io/favicon-32x32.png" type="image/png">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -22,9 +22,10 @@
     <link rel="stylesheet" href="/assets/vendor/fonts/boxicons.css" />
 
     <!-- Core CSS -->
+    <link rel="stylesheet" href="/assets/vendor/libs/pickr/pickr-themes.css">
     <link rel="stylesheet" href="/assets/vendor/css/core.css" class="template-customizer-core-css" />
     <link rel="stylesheet" href="/assets/vendor/css/theme-default.css" class="template-customizer-theme-css" />
-    <link rel="stylesheet" href="/assets/css/demo.css" />    
+    <link rel="stylesheet" href="/assets/css/demo.css" />
 
     <!-- Vendors CSS -->
     <link rel="stylesheet" href="/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css" />
@@ -38,8 +39,11 @@
     <script src="/assets/vendor/js/helpers.js"></script>
 
     <!--! Template customizer & Theme config files MUST be included after core stylesheets and helpers.js in the <head> section -->
+    <script src="/assets/vendor/js/template-customizer.js"></script>
+
     <!--? Config:  Mandatory theme config file contain global vars & default theme options, Set your preferred theme option in this file.  -->
     <script src="/assets/js/config.js"></script>
-    
+
 </head>
+
 <body>

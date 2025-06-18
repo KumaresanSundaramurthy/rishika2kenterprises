@@ -127,6 +127,7 @@ class Customers extends CI_Controller {
                 $CustomerUID = 0;
                 $customerFormData = [
                     'Name' => $PostData['Name'],
+                    'VillageName' => $PostData['VillageName'] ? $PostData['VillageName'] : '',
                     'OrgUID' => $this->pageData['JwtData']->User->OrgUID,
                     'CountryCode' => $PostData['CountryCode'],
                     'CountryISO2' => isset($PostData['CountryISO2']) ? $PostData['CountryISO2'] : 'IN',
@@ -281,6 +282,48 @@ class Customers extends CI_Controller {
 
     }
 
+    public function searchCustomers() {
+
+        $this->EndReturnData = new stdClass();
+		try {
+
+            $term = trim($this->input->get('term'));
+            
+            if($term) {
+
+                $this->load->model('customers_model');
+                $CustomersData = $this->customers_model->getCustomersDetails($term, []);
+
+                $CustomersDetails = array();
+                if (sizeof($CustomersData) > 0) {
+                    foreach ($CustomersData as $key => $value) {
+                        $CustomersDetails[] = array(
+                            'id' => $value->CustomerUID,
+                            'text' => $value->VillageName ? $value->Name.' ('.$value->VillageName.')' : $value->Name,
+                        );
+                    }
+                }
+
+                $this->EndReturnData->Lists = $CustomersDetails;
+
+            } else {
+                $this->EndReturnData->Lists = [];
+            }
+            
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->output->set_status_header(200)
+            ->set_content_type('application/json', 'utf-8')
+            ->set_output(json_encode($this->EndReturnData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES))
+            ->_display();
+        exit;
+        
+    }
+
     public function edit($CustomerUID) {
 
         $CustomerUID = (int) $CustomerUID;
@@ -341,6 +384,7 @@ class Customers extends CI_Controller {
                 $CustomerUID = $PostData['CustomerUID'];
                 $customerFormData = [
                     'Name' => $PostData['Name'],
+                    'VillageName' => $PostData['VillageName'] ? $PostData['VillageName'] : '',
                     'CountryCode' => $PostData['CountryCode'],
                     'CountryISO2' => isset($PostData['CountryISO2']) ? $PostData['CountryISO2'] : 'IN',
                     'MobileNumber' => (isset($PostData['MobileNumber']) && !empty($PostData['MobileNumber'])) ? $PostData['MobileNumber'] : NULL,

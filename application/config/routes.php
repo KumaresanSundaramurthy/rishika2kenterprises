@@ -58,3 +58,6 @@ $route['portal/login'] = 'login/login';
 
 // Customers
 $route['customers/(:num)/edit'] = 'customers/edit/$1';
+
+// Vendors
+$route['vendors/(:num)/edit'] = 'vendors/edit/$1';

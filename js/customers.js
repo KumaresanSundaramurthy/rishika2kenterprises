@@ -170,7 +170,7 @@ function deleteCustomer(DeleteId) {
             if (response.Error) {
                 Swal.fire(response.Message, "", "danger");
             } else {
-                getCustomersDetails(1, RowLimit, Filter);
+                getCustomersDetails(0, RowLimit, Filter);
                 Swal.fire(response.Message, "", "success");
             }
 

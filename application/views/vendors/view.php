@@ -24,24 +24,21 @@
                                 <div class="d-flex flex-column flex-md-row justify-content-between align-items-center p-3">
                                     <ul class="nav nav-pills nav nav-pills flex-row" role="tablist">
                                         <li class="nav-item">
-                                            <a class="nav-link active" role="tab" ata-bs-toggle="tab" data-bs-toggle="tab" data-bs-target="#NavAccountPage" aria-controls="NavAccountPage" aria-selected="true" href="javascript: void(0);"><i class="bx bx-user me-1"></i> Account</a>
-                                        </li>
-                                        <li class="nav-item">
-                                            <a class="nav-link" role="tab" ata-bs-toggle="tab" data-bs-toggle="tab" data-bs-target="#NavGroupPage" aria-controls="NavGroupPage" aria-selected="true" href="javascript: void(0);"><i class="bx bx-group me-1"></i> Groups</a>
+                                            <a class="nav-link active" role="tab" ata-bs-toggle="tab" data-bs-toggle="tab" data-bs-target="#NavVendorPage" aria-controls="NavVendorPage" aria-selected="true" href="javascript: void(0);"><i class="bx bx-user me-1"></i> Vendor</a>
                                         </li>
                                     </ul>
                                     <div class="d-flex mt-2 mt-md-0">
                                         <a href="javascript: void(0);" class="btn PageRefresh"><i class='bx bx-refresh' style="font-size: 22px;"></i> </a>
-                                        <div class="me-2"><input type="text" class="form-control CustomerSearch" name="CustomerSearch" id="CustomerSearch" placeholder="Search customer details..." /></div>
-                                        <a href="/customers/add" class="btn btn-primary px-3"><i class='bx bx-plus'></i> New Customer</a>
+                                        <div class="me-2"><input type="text" class="form-control VendorSearch" name="VendorSearch" id="VendorSearch" placeholder="Search vendor details..." /></div>
+                                        <a href="/vendors/add" class="btn btn-primary px-3"><i class='bx bx-plus'></i> New Vendor</a>
                                     </div>
                                 </div>
                                 <div class="tab-content p-0">
 
-                                    <div class="tab-pane fade show active" id="NavAccountPage" role="tabpanel">
+                                    <div class="tab-pane fade show active" id="NavVendorPage" role="tabpanel">
 
                                         <div class="table-responsive text-nowrap h-100 tablecard">
-                                            <table class="table table-sm table-striped table-hover" id="CustomersTable">
+                                            <table class="table table-sm table-striped table-hover" id="VendorsTable">
                                                 <thead>
                                                     <tr>
                                                         <th></th>
@@ -57,21 +54,8 @@
                                             </table>
                                         </div>
                                         <hr class="my-0" />
-                                        <div class="row mx-3 justify-content-between CustomersPagination" id="CustomersPagination"></div>
+                                        <div class="row mx-3 justify-content-between VendorsPagination" id="VendorsPagination"></div>
 
-                                    </div>
-
-
-                                    <div class="tab-pane fade" id="NavGroupPage" role="tabpanel">
-                                        <p>
-                                            Donut dragée jelly pie halvah. Danish gingerbread bonbon cookie wafer candy oat cake ice
-                                            cream. Gummies halvah tootsie roll muffin biscuit icing dessert gingerbread. Pastry ice cream
-                                            cheesecake fruitcake.
-                                        </p>
-                                        <p class="mb-0">
-                                            Jelly-o jelly beans icing pastry cake cake lemon drops. Muffin muffin pie tiramisu halvah
-                                            cotton candy liquorice caramels.
-                                        </p>
                                     </div>
 
                                 </div>
@@ -93,39 +77,39 @@
 
 <?php $this->load->view('common/footer'); ?>
 
-<script src="/js/customers.js"></script>
+<script src="/js/vendors.js"></script>
 
 <script>
 $(function() {
     'use strict'
 
-    $('#CustomerSearch').val('');
+    $('#VendorSearch').val('');
 
-    $('.CustomersPagination').on('click', 'a', function(e) {
+    $('.VendorsPagination').on('click', 'a', function(e) {
         e.preventDefault();
         PageNo = $(this).attr('data-ci-pagination-page');
-        getCustomersDetails(PageNo, RowLimit, Filter);
+        getVendorsDetails(PageNo, RowLimit, Filter);
     });
 
     $(document).on('click', '.PageRefresh', function(e) {
         e.preventDefault();
-        getCustomersDetails(0, RowLimit, Filter);
+        getVendorsDetails(0, RowLimit, Filter);
     });
 
-    $('.CustomerSearch').keyup(inputDelay(function (e) {
+    $('.VendorSearch').keyup(inputDelay(function (e) {
         PageNo = 0;
-        if($('#CustomerSearch').val()) {
-            Filter['Name'] = $('#CustomerSearch').val();
+        if($('#VendorSearch').val()) {
+            Filter['Name'] = $('#VendorSearch').val();
         }
-        getCustomersDetails(PageNo, RowLimit, Filter);
+        getVendorsDetails(PageNo, RowLimit, Filter);
     }, 500));
 
-    $(document).on('click', '.DeleteCustomer', function(e) {
+    $(document).on('click', '.DeleteVendor', function(e) {
         e.preventDefault();
-        var GetId = $(this).data('customeruid');
+        var GetId = $(this).data('vendoruid');
         if (GetId) {
             Swal.fire({
-                title: "Do you want to delete the customer?",
+                title: "Do you want to delete the vendor?",
                 text: "You won't be able to revert this!",
                 icon: "info",
                 showCancelButton: true,
@@ -134,7 +118,7 @@ $(function() {
                 cancelButtonColor: "#3085d6",
             }).then((result) => {
                 if (result.isConfirmed) {
-                    deleteCustomer(GetId);
+                    deleteVendor(GetId);
                 }
             });
         }
@@ -143,7 +127,7 @@ $(function() {
 });
 $(window).on('load', function() {
 
-    getCustomersDetails(PageNo, RowLimit, Filter);
+    getVendorsDetails(PageNo, RowLimit, Filter);
 
 });
 </script>

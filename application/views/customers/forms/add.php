@@ -37,9 +37,13 @@
                         <h5 class="card-header">Basic Details</h5>
                         <div class="card-body">
                             <div class="row">
-                                <div class="mb-3 col-md-12">
+                                <div class="mb-3 col-md-6">
                                     <label for="Name" class="form-label">Name <span style="color:red">*</span></label>
                                     <input class="form-control" type="text" id="Name" name="Name" placeholder="Name" maxlength="100" required />
+                                </div>
+                                <div class="mb-3 col-md-6">
+                                    <label for="Name" class="form-label">Village Name </label>
+                                    <input class="form-control" type="text" id="VillageName" name="VillageName" placeholder="Village" maxlength="100" />
                                 </div>
                                 <div class="mb-3 col-md-6">
                                     <label class="form-label" for="MobileNumber">Mobile Number </label>

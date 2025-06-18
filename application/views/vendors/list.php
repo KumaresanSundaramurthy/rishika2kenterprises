@@ -1,11 +1,11 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
-<?php if (sizeof($CustomersList) > 0) {
-    foreach ($CustomersList as $list) { ?>
+<?php if (sizeof($VendorsList) > 0) {
+    foreach ($VendorsList as $list) { ?>
 
         <tr>
             <td>
-                <div class="form-check form-check-inline"><input class="form-check-input customersCheck" type="checkbox" value="<?php echo $list->CustomerUID; ?>"></div>
+                <div class="form-check form-check-inline"><input class="form-check-input vendorsCheck" type="checkbox" value="<?php echo $list->VendorUID; ?>"></div>
             </td>
             <td><?php echo $list->Name; ?></td>
             <td><?php echo $list->VillageName ? $list->VillageName : '-'; ?></td>
@@ -14,8 +14,8 @@
             <td class="text-end"><?php echo $list->UpdatedOn ? changeTimeZomeDateFormat($list->UpdatedOn, 'Asia/Kolkata') : ''; ?></td>
             <td>
                 <div class="d-flex align-items-sm-center justify-content-sm-center">
-                    <a href="/customers/<?php echo $list->CustomerUID; ?>/edit" class="btn btn-icon text-warning"><i class="bx bx-edit me-1"></i></a>
-                    <button class="btn btn-icon text-danger DeleteCustomer" data-customeruid="<?php echo $list->CustomerUID; ?>"><i class="bx bx-trash"></i></button>
+                    <a href="/vendors/<?php echo $list->VendorUID; ?>/edit" class="btn btn-icon text-warning"><i class="bx bx-edit me-1"></i></a>
+                    <button class="btn btn-icon text-danger DeleteVendor" data-vendoruid="<?php echo $list->VendorUID; ?>"><i class="bx bx-trash"></i></button>
                 </div>
             </td>
         </tr>
@@ -33,9 +33,9 @@
                     </div>
 
                     <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                        <span class="mb-2">Add a Customer Now</span>
-                        <a href="/customers/add" class="btn btn-primary px-3">
-                            <i class="bx bx-plus"></i> New Customer
+                        <span class="mb-2">Add a Vendor Now</span>
+                        <a href="/vendors/add" class="btn btn-primary px-3">
+                            <i class="bx bx-plus"></i> New Vendor
                         </a>
                     </div>
 

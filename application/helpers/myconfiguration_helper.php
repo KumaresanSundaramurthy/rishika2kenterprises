@@ -58,3 +58,12 @@ function filterByMainMenuUID($data, $mainMenuUID) {
         return $item->MainMenuUID == $mainMenuUID;
     }));
 }
+
+function smartDecimal($number) {
+    // Convert to float first to remove unnecessary zeros
+    $number = (float) $number;
+
+    // Remove trailing zeros while keeping necessary decimal precision
+    return rtrim(rtrim(number_format($number, 6, '.', ''), '0'), '.');
+	
+}

@@ -61,3 +61,6 @@ $route['customers/(:num)/edit'] = 'customers/edit/$1';
 
 // Vendors
 $route['vendors/(:num)/edit'] = 'vendors/edit/$1';
+
+// Products
+$route['products/(:num)/edit'] = 'products/edit/$1';

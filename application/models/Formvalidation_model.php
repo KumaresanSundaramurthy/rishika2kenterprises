@@ -138,7 +138,7 @@ class Formvalidation_model extends CI_Model {
 
         $this->form_validation->set_data($data);
 
-        $dd['VeendorUID'] = array('field' => 'VeendorUID', 'label' => 'Vendor UID', 'rules' => 'required|xss_clean|trim|numeric');
+        $dd['VendorUID'] = array('field' => 'VendorUID', 'label' => 'Vendor UID', 'rules' => 'required|xss_clean|trim|numeric');
         $dd['Name'] = array('field' => 'Name', 'label' => 'Name', 'rules' => 'trim|required|xss_clean|min_length[3]|max_length[100]');
         $dd['VillageName'] = array('field' => 'VillageName', 'label' => 'Village Name', 'rules' => 'trim|xss_clean|min_length[3]|max_length[100]');
         $dd['CountryCode'] = array('field' => 'CountryCode', 'label' => 'Country', 'rules' => 'trim|required|xss_clean');
@@ -159,6 +159,88 @@ class Formvalidation_model extends CI_Model {
         $dd['Notes'] = array('field' => 'Notes', 'label' => 'Notes', 'rules' => 'trim|xss_clean|max_length[250]');
         $dd['Tags'] = array('field' => 'Tags', 'label' => 'Tags', 'rules' => 'trim|xss_clean');
         $dd['CCEmails'] = array('field' => 'CCEmails', 'label' => 'CCEmails', 'rules' => 'trim|xss_clean');
+
+        $config = array();
+
+        foreach($data as $key=>$value) {
+            if (array_key_exists($key, $dd)) {
+                array_push($config, $dd[$key]);
+            }
+        }
+
+        $this->form_validation->set_rules($config);
+
+        if ($this->form_validation->run() == FALSE) {
+
+            return validation_errors();
+            
+        } else {
+
+            return '';
+        }
+
+    }
+
+    public function productValidateForm($data) {
+
+        $this->form_validation->set_data($data);
+
+        $dd['ProductUID'] = array('field' => 'ProductUID', 'label' => 'Product UID', 'rules' => 'required|xss_clean|trim|numeric');
+        $dd['ItemName'] = array('field' => 'ItemName', 'label' => 'Item Name', 'rules' => 'trim|required|xss_clean|min_length[3]|max_length[100]');
+        $dd['ProductType'] = array('field' => 'ProductType', 'label' => 'Product Type', 'rules' => 'trim|xss_clean|required|in_list[Product,Service]');
+        $dd['SellingPrice'] = array('field' => 'SellingPrice', 'label' => 'Selling Price', 'rules' => 'trim|required|xss_clean|numeric|greater_than[0]');
+        $dd['SellingTaxOption'] = array('field' => 'SellingTaxOption', 'label' => 'Selling Tax Option', 'rules' => 'trim|required|xss_clean|numeric');
+        $dd['TaxPercentage'] = array('field' => 'TaxPercentage', 'label' => 'Tax Percentage', 'rules' => 'trim|xss_clean|required|numeric');
+        $dd['PrimaryUnit'] = array('field' => 'PrimaryUnit', 'label' => 'Primary Unit', 'rules' => 'trim|xss_clean|required|numeric');
+        $dd['Category'] = array('field' => 'Category', 'label' => 'Category', 'rules' => 'trim|xss_clean|required|numeric');
+
+        $dd['HSNCode'] = array('field' => 'HSNCode', 'label' => 'HSN/ SAC Code', 'rules' => 'trim|xss_clean|max_length[100]');
+        $dd['PurchasePrice'] = array('field' => 'PurchasePrice', 'label' => 'Purchase Price', 'rules' => 'trim|xss_clean|numeric|greater_than[0]');
+        $dd['PurchaseTaxOption'] = array('field' => 'PurchaseTaxOption', 'label' => 'Purchase Tax Option', 'rules' => 'trim|xss_clean|numeric');
+        $dd['PartNumber'] = array('field' => 'PartNumber', 'label' => 'Part Number', 'rules' => 'trim|xss_clean|max_length[25]');
+
+        $dd['OpeningQuantity'] = array('field' => 'OpeningQuantity', 'label' => 'Opening Quantity', 'rules' => 'trim|xss_clean|numeric');
+        $dd['OpeningPurchasePrice'] = array('field' => 'OpeningPurchasePrice', 'label' => 'Opening Purchase Price', 'rules' => 'trim|xss_clean|numeric');
+        $dd['OpeningStockValue'] = array('field' => 'OpeningStockValue', 'label' => 'Opening Stock Value', 'rules' => 'trim|xss_clean|numeric');
+        
+        $dd['UploadImage'] = array('field' => 'UploadImage', 'label' => 'Upload Image', 'rules' => 'callback_checkImageType');
+        
+        $dd['Discount'] = array('field' => 'Discount', 'label' => 'Discount', 'rules' => 'trim|xss_clean|numeric');
+        $dd['DiscountOption'] = array('field' => 'DiscountOption', 'label' => 'Discount Option', 'rules' => 'trim|required|xss_clean|numeric');
+        $dd['LowStockAlert'] = array('field' => 'LowStockAlert', 'label' => 'Low Stock Alert at', 'rules' => 'trim|xss_clean|numeric');
+
+        $dd['BrandUID'] = array('field' => 'BrandUID', 'label' => 'Brand UID', 'rules' => 'xss_clean|trim|numeric');
+        $dd['Standard'] = array('field' => 'Standard', 'label' => 'Standard', 'rules' => 'xss_clean|trim|max_length[100]');
+        $dd['IsSizeApplicable'] = array('field' => 'IsSizeApplicable', 'label' => 'Is Size Applicable', 'rules' => 'xss_clean|trim|callback_CheckSizeRequired');
+
+        $config = array();
+
+        foreach($data as $key=>$value) {
+            if (array_key_exists($key, $dd)) {
+                array_push($config, $dd[$key]);
+            }
+        }
+
+        $this->form_validation->set_rules($config);
+
+        if ($this->form_validation->run() == FALSE) {
+
+            return validation_errors();
+            
+        } else {
+
+            return '';
+        }
+
+    }
+
+    public function categoryValidateForm($data) {
+
+        $this->form_validation->set_data($data);
+
+        $dd['CategoryUID'] = array('field' => 'CategoryUID', 'label' => 'Category UID', 'rules' => 'required|xss_clean|trim|numeric');
+        $dd['Name'] = array('field' => 'Name', 'label' => 'Name', 'rules' => 'trim|required|xss_clean|min_length[3]|max_length[100]');
+        $dd['Description'] = array('field' => 'Description', 'label' => 'Description', 'rules' => 'trim|xss_clean|max_length[250]');
 
         $config = array();
 

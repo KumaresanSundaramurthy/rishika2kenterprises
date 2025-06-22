@@ -24,10 +24,10 @@
                                 <div class="d-flex flex-column flex-md-row justify-content-between align-items-center p-3">
                                     <ul class="nav nav-pills nav nav-pills flex-row" role="tablist">
                                         <li class="nav-item">
-                                            <a class="nav-link active" role="tab" ata-bs-toggle="tab" data-bs-toggle="tab" data-bs-target="#NavAccountPage" aria-controls="NavAccountPage" aria-selected="true" href="javascript: void(0);"><i class="bx bx-user me-1"></i> Account</a>
+                                            <a class="nav-link active" role="tab" data-bs-toggle="tab" data-bs-target="#NavAccountPage" aria-controls="NavAccountPage" aria-selected="true" href="javascript: void(0);"><i class="bx bx-user me-1"></i> Account</a>
                                         </li>
                                         <li class="nav-item">
-                                            <a class="nav-link" role="tab" ata-bs-toggle="tab" data-bs-toggle="tab" data-bs-target="#NavGroupPage" aria-controls="NavGroupPage" aria-selected="true" href="javascript: void(0);"><i class="bx bx-group me-1"></i> Groups</a>
+                                            <a class="nav-link" role="tab" data-bs-toggle="tab" data-bs-target="#NavGroupPage" aria-controls="NavGroupPage" aria-selected="true" href="javascript: void(0);"><i class="bx bx-group me-1"></i> Groups</a>
                                         </li>
                                     </ul>
                                     <div class="d-flex mt-2 mt-md-0">
@@ -53,7 +53,10 @@
                                                         <th class="text-center">Actions</th>
                                                     </tr>
                                                 </thead>
-                                                <tbody class="table-border-bottom-0"></tbody>
+                                                <tbody class="table-border-bottom-0">
+                                                <?php $PageData['CustomersList'] = [];
+                                                    echo $this->load->view('customers/list', $PageData, TRUE); ?>
+                                                </tbody>
                                             </table>
                                         </div>
                                         <hr class="my-0" />
@@ -96,54 +99,54 @@
 <script src="/js/customers.js"></script>
 
 <script>
-$(function() {
-    'use strict'
+    $(function() {
+        'use strict'
 
-    $('#CustomerSearch').val('');
+        $('#CustomerSearch').val('');
 
-    $('.CustomersPagination').on('click', 'a', function(e) {
-        e.preventDefault();
-        PageNo = $(this).attr('data-ci-pagination-page');
+        $('.CustomersPagination').on('click', 'a', function(e) {
+            e.preventDefault();
+            PageNo = $(this).attr('data-ci-pagination-page');
+            getCustomersDetails(PageNo, RowLimit, Filter);
+        });
+
+        $(document).on('click', '.PageRefresh', function(e) {
+            e.preventDefault();
+            getCustomersDetails(0, RowLimit, Filter);
+        });
+
+        $('.CustomerSearch').keyup(inputDelay(function(e) {
+            PageNo = 0;
+            if ($('#CustomerSearch').val()) {
+                Filter['Name'] = $('#CustomerSearch').val();
+            }
+            getCustomersDetails(PageNo, RowLimit, Filter);
+        }, 500));
+
+        $(document).on('click', '.DeleteCustomer', function(e) {
+            e.preventDefault();
+            var GetId = $(this).data('customeruid');
+            if (GetId) {
+                Swal.fire({
+                    title: "Do you want to delete the customer?",
+                    text: "You won't be able to revert this!",
+                    icon: "info",
+                    showCancelButton: true,
+                    confirmButtonColor: "#d33",
+                    confirmButtonText: "Yes, delete it!",
+                    cancelButtonColor: "#3085d6",
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        deleteCustomer(GetId);
+                    }
+                });
+            }
+        });
+
+    });
+    $(window).on('load', function() {
+
         getCustomersDetails(PageNo, RowLimit, Filter);
+
     });
-
-    $(document).on('click', '.PageRefresh', function(e) {
-        e.preventDefault();
-        getCustomersDetails(0, RowLimit, Filter);
-    });
-
-    $('.CustomerSearch').keyup(inputDelay(function (e) {
-        PageNo = 0;
-        if($('#CustomerSearch').val()) {
-            Filter['Name'] = $('#CustomerSearch').val();
-        }
-        getCustomersDetails(PageNo, RowLimit, Filter);
-    }, 500));
-
-    $(document).on('click', '.DeleteCustomer', function(e) {
-        e.preventDefault();
-        var GetId = $(this).data('customeruid');
-        if (GetId) {
-            Swal.fire({
-                title: "Do you want to delete the customer?",
-                text: "You won't be able to revert this!",
-                icon: "info",
-                showCancelButton: true,
-                confirmButtonColor: "#d33",
-                confirmButtonText: "Yes, delete it!",
-                cancelButtonColor: "#3085d6",
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    deleteCustomer(GetId);
-                }
-            });
-        }
-    });
-
-});
-$(window).on('load', function() {
-
-    getCustomersDetails(PageNo, RowLimit, Filter);
-
-});
 </script>

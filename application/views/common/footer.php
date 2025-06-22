@@ -14,15 +14,20 @@
     <!-- endbuild -->
 
     <!-- Vendors JS -->
-    
+    <script src="/assets/vendor/libs/quill/katex.js"></script>
+    <script src="/assets/vendor/libs/quill/quill.js"></script>
+
     <!-- Select2 JS -->
     <!-- <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script> -->
     <script src="/assets/vendor/libs/select2/select2.js"></script>
+
+    <script src="/assets/vendor/libs/dropzone/dropzone.js"></script>
 
     <!-- Main JS -->
     <script type="text/javascript" src="/assets/js/main.js"></script>
 
     <!-- Vendors JS -->
+    
     <script src="/assets/vendor/libs/sweetalert2/sweetalert2.js"></script>
     
     <script type="text/javascript" src="/bootstrap/js/jquery.blockUI.js"></script>

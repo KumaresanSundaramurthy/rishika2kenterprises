@@ -9,11 +9,13 @@ class Login_model extends CI_Model {
     
     private $EndReturnData;
     private $UserRoleDb;
+    private $OrgDb;
 
 	function __construct() {
         parent::__construct();
 
 		$this->UserRoleDb = $this->load->database('UserRole', TRUE);
+		$this->OrgDb = $this->load->database('Organisation', TRUE);
 
     }
 
@@ -38,7 +40,10 @@ class Login_model extends CI_Model {
             $MainModule = $this->getUserRightsMainModule($UserData->UserUID)->Data;
             $SubModule = $this->getUserRightsSubModule($UserData->UserUID)->Data;
 
-            $jwtPayload = array('User' => $JwtUserData, 'UserMainModule' => $MainModule, 'UserSubModule' => $SubModule);
+            // Organisation Settings
+            $GeneralSettings = $this->getOrgGeneralSettings($UserData->UserOrgUID)->Data[0];
+
+            $jwtPayload = array('User' => $JwtUserData, 'UserMainModule' => $MainModule, 'UserSubModule' => $SubModule, 'GenSettings' => $GeneralSettings);
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Message = 'Success';
@@ -131,6 +136,33 @@ class Login_model extends CI_Model {
             $this->UserRoleDb->where('UserSM.IsActive', 1);
             $this->UserRoleDb->where('UserSM.IsDeleted', 0);
             $query = $this->UserRoleDb->get();
+
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Message = 'Success';
+            $this->EndReturnData->Data = $query->result();
+
+            return $this->EndReturnData;
+
+        } catch(Exception $e) {
+
+            $this->EndReturnData->Error = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+            throw new Exception($this->EndReturnData->Message);
+
+        }
+
+    }
+
+    public function getOrgGeneralSettings($OrgUID) {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $this->OrgDb->select('GeneralSettg.DecimalPoints as DecimalPoints, GeneralSettg.CurrenySymbol as CurrenySymbol, GeneralSettg.DiscountType as DiscountType, GeneralSettg.ProductType as ProductType, GeneralSettg.ProductTax as ProductTax, GeneralSettg.TaxDetail as TaxDetail, GeneralSettg.PriceMaxLength as PriceMaxLength');
+            $this->OrgDb->from('Organisation.OrgSettingsTbl as GeneralSettg');
+            $this->OrgDb->where('GeneralSettg.OrgUID', $OrgUID);
+            $this->OrgDb->limit(1);
+            $query = $this->OrgDb->get();
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Message = 'Success';

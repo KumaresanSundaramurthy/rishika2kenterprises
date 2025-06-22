@@ -9,7 +9,7 @@ jQuery.fn.center = function () {
 
 function inputDelay(callback, ms) {
     var timer = 0;
-    return function() {
+    return function () {
         var context = this, args = arguments;
         clearTimeout(timer);
         timer = setTimeout(function () {
@@ -111,6 +111,7 @@ function blankControls() {
 }
 
 $(document).ready(function () {
+
     $("input[type=number]").click(function () {
         $(this).select();
     });
@@ -123,10 +124,12 @@ $(document).ready(function () {
         }
     });
 
+    $('#AutoGeneratePartNoBtn').click(function (e) {
+        e.preventDefault();
+        $('#' + $(this).data('field')).val(generateTimestampRandomNumber(8));
+    });
+
 });
-
-
-
 
 function myAlert(arg) {
     // alert("FFF");
@@ -145,9 +148,6 @@ function myAlert(arg) {
         ]
     });
 }
-
-
-
 
 // Function to Change the Default Date Format
 function dateFormat(dt) {
@@ -343,7 +343,7 @@ jQuery(document).ajaxStart(function () {
 // AJAX Indication Stops //
 
 function validateMobileNumber(countryCode, mobileNumber) {
-    
+
     mobileNumber = mobileNumber.replace(/[\s\-]/g, '');
 
     switch (countryCode.toUpperCase()) {
@@ -358,7 +358,7 @@ function validateMobileNumber(countryCode, mobileNumber) {
 
         case 'UK': // United Kingdom
             return /^\d{10}$/.test(mobileNumber); // 10-digit format
-            
+
         case 'GB':
             return /^7\d{9}$/.test(mobileNumber); // UK mobiles typically start with 7, 10 digits
 
@@ -376,15 +376,15 @@ function validateMobileNumber(countryCode, mobileNumber) {
 
 function inlineMessageAlert(FieldName, Type, Message, IsLoading = false, ShowCloseBtn = false) {
 
-    let HtmlData = '<div class="alert alert-'+Type+' alert-dismissible fade show" role="alert">';
-    if(IsLoading) {
+    let HtmlData = '<div class="alert alert-' + Type + ' alert-dismissible fade show" role="alert">';
+    if (IsLoading) {
         HtmlData += '<div class="spinner-border spinner-border-sm me-3" role="status" aria-hidden="true"></div>';
     }
-        HtmlData += '<strong>'+Message+'</strong>';
-    if(ShowCloseBtn) {
+    HtmlData += '<strong>' + Message + '</strong>';
+    if (ShowCloseBtn) {
         HtmlData += '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
     }
-        HtmlData += '</div>';
+    HtmlData += '</div>';
 
     $(FieldName).html(HtmlData);
 
@@ -398,31 +398,260 @@ function changeHandler(val) {
     }
 }
 
+function handleOnlyNumbers(input) {
+    // Remove any character that's not 0-9
+    input.value = input.value.replace(/[^0-9]/g, '');
+}
+
+function pasteOnlyNumbers(event) {
+    const pastedData = (event.clipboardData || window.clipboardData).getData('text');
+
+    // If the pasted data contains non-digit characters, block the paste
+    if (!/^\d+$/.test(pastedData)) {
+        event.preventDefault();
+    }
+}
+
+function dropOnlyNumbers(event) {
+    const data = event.dataTransfer.getData('text');
+    if (!/^\d+$/.test(data)) {
+        event.preventDefault();
+    }
+}
+
+function handleDotOnly(event) {
+    const key = event.key;
+    const value = event.target.value;
+
+    // Allow control/navigation keys
+    if (['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(key) || event.ctrlKey || event.metaKey) {
+        return true;
+    }
+
+    // Allow digits
+    if (/^[0-9]$/.test(key)) return true;
+
+    // Allow dot if not already present
+    if (key === '.' && !value.includes('.')) return true;
+
+    return false; // Block everything else
+}
+
+function handlePricePaste(event, maxLength, decimalPlaces) {
+    const data = (event.clipboardData || window.clipboardData).getData('text');
+    if (!/^\d*\.?\d*$/.test(data)) {
+        event.preventDefault();
+        return;
+    }
+
+    // Temporarily create an input to validate the pasted value
+    const temp = document.createElement('input');
+    temp.value = data;
+    validatePriceInput(temp, maxLength, decimalPlaces);
+
+    if (temp.value !== data) {
+        event.preventDefault();
+    }
+}
+
+function handlePriceDrop(event, maxLength, decimalPlaces) {
+    const data = event.dataTransfer.getData('text');
+    if (!/^\d*\.?\d*$/.test(data)) {
+        event.preventDefault();
+        return;
+    }
+
+    const temp = document.createElement('input');
+    temp.value = data;
+    validatePriceInput(temp, maxLength, decimalPlaces);
+
+    if (temp.value !== data) {
+        event.preventDefault();
+    }
+}
+
+function validatePriceInput(input, maxLength, decimalLength) {
+    let val = input.value;
+
+    // Remove all characters except digits and one dot
+    val = val.replace(/[^0-9.]/g, '');
+
+    // Remove multiple dots
+    const firstDot = val.indexOf('.');
+    if (firstDot !== -1 && val.lastIndexOf('.') !== firstDot) {
+        const beforeDot = val.slice(0, firstDot);
+        const afterDot = val.slice(firstDot + 1).replace(/\./g, '');
+        val = beforeDot + '.' + afterDot;
+    }
+
+    // Split into integer and decimal parts
+    const parts = val.split('.');
+    let integerPart = parts[0];
+    let decimalPart = parts[1] || '';
+
+    // Remove leading zeros unless it's just '0'
+    if (integerPart.length > 1) {
+        integerPart = integerPart.replace(/^0+/, '');
+        if (integerPart === '') integerPart = '0';
+    }
+
+    // Limit integer part to allowed length
+    const maxIntLen = maxLength - decimalLength - 1;
+    integerPart = integerPart.slice(0, maxIntLen);
+
+    // Limit decimal part
+    decimalPart = decimalPart.slice(0, decimalLength);
+
+    // Compose final value
+    if (val.endsWith('.') && decimalPart === '') {
+        input.value = integerPart + '.';
+    } else if (decimalPart) {
+        input.value = `${integerPart}.${decimalPart}`;
+    } else {
+        input.value = integerPart;
+    }
+
+}
+
+function validateDiscountInput(input, maxLength, decimalLength, forcedValue = null) {
+
+    let val = forcedValue !== null ? forcedValue : input.value;
+
+    // Remove all characters except digits and one dot
+    val = val.replace(/[^0-9.]/g, '');
+
+    // Remove multiple dots
+    const firstDot = val.indexOf('.');
+    if (firstDot !== -1 && val.lastIndexOf('.') !== firstDot) {
+        const beforeDot = val.slice(0, firstDot);
+        const afterDot = val.slice(firstDot + 1).replace(/\./g, '');
+        val = beforeDot + '.' + afterDot;
+    }
+
+    const type = $('#DiscountOption').find('option:selected').val();
+    if (type == 1) {
+        if (Number(val) > 100) {
+            let str = val;
+            let mark = str.slice(0, -1);
+            val = mark;
+        }
+    }
+
+    // Split into integer and decimal parts
+    const parts = val.split('.');
+    let integerPart = parts[0];
+    let decimalPart = parts[1] || '';
+
+    // Remove leading zeros unless it's just '0'
+    if (integerPart.length > 1) {
+        integerPart = integerPart.replace(/^0+/, '');
+        if (integerPart === '') integerPart = '0';
+    }
+
+    // Limit integer part to allowed length
+    const maxIntLen = maxLength - decimalLength - 1;
+    integerPart = integerPart.slice(0, maxIntLen);
+
+    // Limit decimal part
+    decimalPart = decimalPart.slice(0, decimalLength);
+
+    // Compose final value
+    if (val.endsWith('.') && decimalPart === '') {
+        input.value = integerPart + '.';
+    } else if (decimalPart) {
+        input.value = `${integerPart}.${decimalPart}`;
+    } else {
+        input.value = integerPart;
+    }
+
+}
+
+function handleDiscountPaste(event, maxLength, decimalLength) {
+    event.preventDefault();
+    const pastedData = (event.clipboardData || window.clipboardData).getData('text');
+    validateDiscountInput(event.target, maxLength, decimalLength, pastedData);
+}
+
+function handleDiscountDrop(event, maxLength, decimalLength) {
+    event.preventDefault();
+    const droppedData = event.dataTransfer.getData('text');
+    validateDiscountInput(event.target, maxLength, decimalLength, droppedData);
+}
+
+function generateTimestampRandomNumber(length) {
+
+    return Date.now().toString().slice(-length) + Math.floor(1000 + Math.random() * 9000);
+
+    // const timestamp = Date.now().toString(); // Always increasing
+    // const shortTime = timestamp.slice(-length);
+    // const random = Math.floor(1000 + Math.random() * 9000);
+    // return shortTime + random;
+
+}
+
+function QuillEditor(EditorName, PlaceHolder) {
+    quill = new Quill(EditorName, {
+        placeholder: PlaceHolder,
+        modules: {
+            toolbar: [
+                [{ 'size': ['small', false, 'large', 'huge'] }],  // font sizes
+                [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+
+                ['bold', 'italic', 'underline', 'strike'],        // toggled buttons
+                // ['blockquote', 'code-block'],
+
+                [{ 'header': 1 }, { 'header': 2 }],               // custom button values
+                [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                [{ 'script': 'sub' }, { 'script': 'super' }],      // superscript/subscript
+                [{ 'indent': '-1' }, { 'indent': '+1' }],          // outdent/indent
+                // [{ 'direction': 'rtl' }],                         // text direction
+
+                // [{ 'color': [] }, { 'background': [] }],          // text and background color
+                // [{ 'font': [] }],
+                // [{ 'align': [] }],
+
+                // ['clean'],                                        // remove formatting
+
+                // ['link', 'image', 'video'],                       // insert media
+                // ['formula']                                       // insert formula (KaTeX)
+            ],
+            // clipboard: true,
+            // keyboard: true,
+            // history: {
+            //     delay: 1000,
+            //     maxStack: 50,
+            //     userOnly: true
+            // }
+        },
+        theme: 'snow'
+    });
+}
+
 function resetUserPassword(formData) {
 
     $('#ResetPasswordSubBtn').prop('disabled', 'disabled');
 
     $.ajax({
-		url: '/login/resetPassword',
-		method: 'POST',
-		data: formData,
-		cache: false,
-		success: function(response) {
+        url: '/login/resetPassword',
+        method: 'POST',
+        data: formData,
+        cache: false,
+        success: function (response) {
 
             $('#ResetPasswordSubBtn').removeAttr('disabled');
-			if(response.Error) {
+            if (response.Error) {
                 $('#ChangePasswordAlert').removeClass('d-none');
-				inlineMessageAlert('#ChangePasswordAlert', 'danger', response.Message, false, false);
-			} else {
-                
+                inlineMessageAlert('#ChangePasswordAlert', 'danger', response.Message, false, false);
+            } else {
+
                 $('#ChangePasswordAlert').addClass('d-none');
                 $('#ChangePasswordModal').modal('hide');
                 window.location.replace('/login/logout');
-                
-			}
+
+            }
 
         }
-	});
+    });
 
 }
 

@@ -24,7 +24,7 @@
                                 <div class="d-flex flex-column flex-md-row justify-content-between align-items-center p-3">
                                     <ul class="nav nav-pills nav nav-pills flex-row" role="tablist">
                                         <li class="nav-item">
-                                            <a class="nav-link active" role="tab" ata-bs-toggle="tab" data-bs-toggle="tab" data-bs-target="#NavVendorPage" aria-controls="NavVendorPage" aria-selected="true" href="javascript: void(0);"><i class="bx bx-user me-1"></i> Vendor</a>
+                                            <a class="nav-link active" role="tab" data-bs-toggle="tab" data-bs-target="#NavVendorPage" aria-controls="NavVendorPage" aria-selected="true" href="javascript: void(0);"><i class="bx bx-id-card me-1"></i> Vendor</a>
                                         </li>
                                     </ul>
                                     <div class="d-flex mt-2 mt-md-0">
@@ -50,7 +50,10 @@
                                                         <th class="text-center">Actions</th>
                                                     </tr>
                                                 </thead>
-                                                <tbody class="table-border-bottom-0"></tbody>
+                                                <tbody class="table-border-bottom-0">
+                                                    <?php $PageData['VendorsList'] = [];
+                                                    echo $this->load->view('vendors/list', $PageData, TRUE); ?>
+                                                </tbody>
                                             </table>
                                         </div>
                                         <hr class="my-0" />
@@ -80,54 +83,54 @@
 <script src="/js/vendors.js"></script>
 
 <script>
-$(function() {
-    'use strict'
+    $(function() {
+        'use strict'
 
-    $('#VendorSearch').val('');
+        $('#VendorSearch').val('');
 
-    $('.VendorsPagination').on('click', 'a', function(e) {
-        e.preventDefault();
-        PageNo = $(this).attr('data-ci-pagination-page');
+        $('.VendorsPagination').on('click', 'a', function(e) {
+            e.preventDefault();
+            PageNo = $(this).attr('data-ci-pagination-page');
+            getVendorsDetails(PageNo, RowLimit, Filter);
+        });
+
+        $(document).on('click', '.PageRefresh', function(e) {
+            e.preventDefault();
+            getVendorsDetails(0, RowLimit, Filter);
+        });
+
+        $('.VendorSearch').keyup(inputDelay(function(e) {
+            PageNo = 0;
+            if ($('#VendorSearch').val()) {
+                Filter['Name'] = $('#VendorSearch').val();
+            }
+            getVendorsDetails(PageNo, RowLimit, Filter);
+        }, 500));
+
+        $(document).on('click', '.DeleteVendor', function(e) {
+            e.preventDefault();
+            var GetId = $(this).data('vendoruid');
+            if (GetId) {
+                Swal.fire({
+                    title: "Do you want to delete the vendor?",
+                    text: "You won't be able to revert this!",
+                    icon: "info",
+                    showCancelButton: true,
+                    confirmButtonColor: "#d33",
+                    confirmButtonText: "Yes, delete it!",
+                    cancelButtonColor: "#3085d6",
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        deleteVendor(GetId);
+                    }
+                });
+            }
+        });
+
+    });
+    $(window).on('load', function() {
+
         getVendorsDetails(PageNo, RowLimit, Filter);
+
     });
-
-    $(document).on('click', '.PageRefresh', function(e) {
-        e.preventDefault();
-        getVendorsDetails(0, RowLimit, Filter);
-    });
-
-    $('.VendorSearch').keyup(inputDelay(function (e) {
-        PageNo = 0;
-        if($('#VendorSearch').val()) {
-            Filter['Name'] = $('#VendorSearch').val();
-        }
-        getVendorsDetails(PageNo, RowLimit, Filter);
-    }, 500));
-
-    $(document).on('click', '.DeleteVendor', function(e) {
-        e.preventDefault();
-        var GetId = $(this).data('vendoruid');
-        if (GetId) {
-            Swal.fire({
-                title: "Do you want to delete the vendor?",
-                text: "You won't be able to revert this!",
-                icon: "info",
-                showCancelButton: true,
-                confirmButtonColor: "#d33",
-                confirmButtonText: "Yes, delete it!",
-                cancelButtonColor: "#3085d6",
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    deleteVendor(GetId);
-                }
-            });
-        }
-    });
-
-});
-$(window).on('load', function() {
-
-    getVendorsDetails(PageNo, RowLimit, Filter);
-
-});
 </script>

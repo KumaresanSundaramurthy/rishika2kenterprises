@@ -64,3 +64,4 @@ $route['vendors/(:num)/edit'] = 'vendors/edit/$1';
 
 // Products
 $route['products/(:num)/edit'] = 'products/edit/$1';
+$route['products/(:num)/clone'] = 'products/clone/$1';

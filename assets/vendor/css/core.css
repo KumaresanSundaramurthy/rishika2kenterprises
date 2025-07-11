@@ -28654,3 +28654,43 @@ body:not(.modal-open) .layout-content-navbar .layout-navbar {
 .modal-backdrop.show {
     opacity: 0.5;
 }
+
+.table-checkbox {
+    max-width: 50px !important;
+    width: 50px !important;
+}
+
+.table-chkbox {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+}
+
+.table-serialno {
+    max-width: 100px !important;
+    width: 100px !important;
+}
+
+/* 👇 Custom submenu support for Sneat/Bootstrap 5 */
+.dropdown-submenu {
+    position: relative;
+}
+
+.dropdown-submenu .dropdown-menu {
+    left: auto;
+    right: 100%;
+    top: 0;
+    margin-top: -6px;
+}
+
+/* Optional: Show caret icon on the right */
+.dropdown-submenu>a::after {
+    content: "▶";
+    float: right;
+    margin-top: 4px;
+    font-size: 0.65rem;
+}
+
+.dropdown-submenu:hover>.dropdown-menu {
+    display: block;
+}

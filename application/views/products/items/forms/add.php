@@ -40,6 +40,9 @@
                                 <button type="submit" class="btn btn-primary AddProductBtn">Save</button>
                             </div>
                         </div>
+
+                        <div class="d-none col-lg-12 pt-2 addFormAlert" role="alert"></div>
+
                     </div>
 
                     <div class="card mb-3">
@@ -233,7 +236,7 @@
                         </div>
                     </div>
 
-                    <div class="card mb-3">
+                    <div class="card mb-3" id="OpeningStockDiv">
                         <h5 class="card-header">Opening Stock (Optional)</h5>
                         <div class="card-body">
                             <div class="row">
@@ -301,7 +304,7 @@
                     <div class="card mb-3">
                         <div class="card-body p-0">
 
-                            <div id="addFormAlert" class="d-none col-lg-12 px-4 pt-4" role="alert"></div>
+                            <div class="d-none col-lg-12 px-4 pt-4 addFormAlert" role="alert"></div>
 
                             <div class="m-3">
                                 <button type="submit" class="btn btn-primary AddProductBtn me-2">Save</button>
@@ -335,21 +338,10 @@
     $(function() {
         'use strict'
 
-        $('#TaxPercentage').select2({
-            placeholder: '-- Select Tax Percentage --',
-            allowClear: true,
-        });
-
-        $('#PrimaryUnit').select2({
-            placeholder: '-- Select Primary Unit --',
-            allowClear: true,
-        });
-
-        $('#Category').select2({
-            placeholder: '-- Select Category --',
-            allowClear: true,
-        });
-
+        loadSelect2Field('#TaxPercentage', '-- Select Tax Percentage --');
+        loadSelect2Field('#PrimaryUnit', '-- Select Primary Unit --');
+        loadSelect2Field('#Category', '-- Select Category --');
+        
         QuillEditor('.ql-toolbar', 'Enter product description...');
 
         $('#AddItemForm').on('submit', function(e) {
@@ -364,6 +356,9 @@
             if ($.trim(Description) != '') {
                 formData.append('Description', $('#Description .ql-editor').html());
             }
+
+            AjaxLoading = 0;
+            $('.AddProductBtn').attr('disabled', 'disabled');
 
             addProductData(formData);
 

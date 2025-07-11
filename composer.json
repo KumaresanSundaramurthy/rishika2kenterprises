@@ -18,7 +18,9 @@
 		"predis/predis": "^2.2",
 		"firebase/php-jwt": "^6.8",
 		"ramsey/uuid": "^4.7",
-		"google/apiclient": "^2.15"
+		"google/apiclient": "^2.15",
+		"phpoffice/phpspreadsheet": "^1.29",
+		"dompdf/dompdf": "^3.1"
 	},
 	"suggest": {
 		"paragonie/random_compat": "Provides better randomness in PHP 5.x"

@@ -18,8 +18,8 @@
 
                 <div class="container-xxl flex-grow-1 container-p-y">
 
-                    <?php $FormAttribute = array('id' => 'EditItemForm', 'name' => 'EditItemForm', 'class' => '', 'autocomplete' => 'off');
-                    echo form_open('products/editItem', $FormAttribute); ?>
+                    <?php $FormAttribute = array('id' => 'AddItemForm', 'name' => 'AddItemForm', 'class' => '', 'autocomplete' => 'off');
+                    echo form_open('products/addItem', $FormAttribute); ?>
 
                     <div class="d-flex justify-content-between align-items-center flex-wrap">
                         <nav aria-label="breadcrumb">
@@ -37,11 +37,11 @@
                         <div class="d-flex gap-2">
                             <div class="mb-3">
                                 <a href="javascript: history.back();" class="btn btn-outline-secondary me-2">Cancel</a>
-                                <button type="submit" class="btn btn-primary EditProductBtn">Update</button>
+                                <button type="submit" class="btn btn-primary AddProductBtn">Save</button>
                             </div>
                         </div>
 
-                        <div class="d-none col-lg-12 pt-2 editFormAlert" role="alert"></div>
+                        <div class="d-none col-lg-12 pt-2 addFormAlert" role="alert"></div>
 
                     </div>
 
@@ -49,8 +49,6 @@
                         <h5 class="card-header">Basic Details</h5>
                         <div class="card-body">
                             <div class="row">
-
-                                <input type="hidden" name="ProductUID" id="ProductUID" value="<?php echo $EditData->ProductUID; ?>" />
 
                                 <div class="mb-3 col-md-12">
                                     <label for="ItemName" class="form-label">Product Name <span style="color:red">*</span></label>
@@ -185,7 +183,7 @@
                                     <div class="mb-3 col-md-12">
                                         <label for="PartNumber" class="form-label">Barcode / Part No. </label>
                                         <div class="input-group">
-                                            <input class="form-control w-75" type="text" id="PartNumber" name="PartNumber" placeholder="Enter Part Number" maxlength="25" value="<?php echo $EditData->PartNumber ? $EditData->PartNumber : ''; ?>" />
+                                            <input class="form-control w-75" type="text" id="PartNumber" name="PartNumber" placeholder="Enter Part Number" maxlength="25" value="" />
                                             <button class="btn btn-outline-secondary w-25" type="button" data-field="PartNumber" id="AutoGeneratePartNoBtn"><i class="icon-base bx bx-bxs-magic-wand me-1"></i> Auto Generate</button>
                                         </div>
                                     </div>
@@ -308,10 +306,10 @@
                     <div class="card mb-3">
                         <div class="card-body p-0">
 
-                            <div class="d-none col-lg-12 px-4 pt-4 editFormAlert" role="alert"></div>
+                            <div class="d-none col-lg-12 px-4 pt-4 addFormAlert" role="alert"></div>
 
                             <div class="m-3">
-                                <button type="submit" class="btn btn-primary EditProductBtn me-2">Update</button>
+                                <button type="submit" class="btn btn-primary AddProductBtn me-2">Save</button>
                                 <a href="javascript: history.back();" class="btn btn-outline-secondary">Cancel</a>
                             </div>
 
@@ -348,10 +346,10 @@
 
         QuillEditor('.ql-toolbar', 'Enter product description...');
 
-        $('#EditItemForm').on('submit', function(e) {
+        $('#AddItemForm').on('submit', function(e) {
             e.preventDefault();
 
-            var formData = new FormData($('#EditItemForm')[0]);
+            var formData = new FormData($('#AddItemForm')[0]);
             if (myOneDropzone.files.length > 0) {
                 formData.append('UploadImage', myOneDropzone.files[0]);
             }
@@ -361,7 +359,10 @@
                 formData.append('Description', $('#Description .ql-editor').html());
             }
 
-            editProductData(formData);
+            AjaxLoading = 0;
+            $('.AddProductBtn').attr('disabled', 'disabled');
+
+            addProductData(formData);
 
         });
 

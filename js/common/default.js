@@ -18,43 +18,6 @@ function inputDelay(callback, ms) {
     };
 }
 
-function showUIBlock() {
-
-    $.blockUI({
-        message: `
-            <div class="d-flex flex-column justify-content-center align-items-center" style="height: 100vh;">
-                <div class="spinner-border text-info" role="status" style="width: 4rem; height: 4rem;">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-                <h4 class="mt-3 text-white animate__animated animate__infinite">Processing... Please wait</h4>
-            </div>
-        `,
-        css: {
-            border: 'none',
-            padding: 0,
-            backgroundColor: 'transparent',
-            width: '100%',
-            top: '0',
-            left: '0',
-            position: 'fixed',
-            zIndex: 2000,
-            textAlign: 'center'
-        },
-        overlayCSS: {
-            backgroundColor: '#111',
-            opacity: 0.7,
-            backdropFilter: 'blur(4px)',  // Blurred effect
-            zIndex: 1999,
-            cursor: 'wait'
-        }
-    });
-
-}
-
-function hideUIBlock() {
-    $.unblockUI();
-}
-
 function alertPopup(msg, delay = 8000, colour = 'yellow') {
     if ($("#alert").length) {
         $("#alert").remove();
@@ -129,7 +92,25 @@ $(document).ready(function () {
         $('#' + $(this).data('field')).val(generateTimestampRandomNumber(8));
     });
 
+    $('#exportPagesModal').on('hidden.bs.modal', function () {
+        exportModule = '';
+        expActionType = '';
+    });
+
 });
+
+function exportURLDynamic(Url) {
+    console.log(Url)
+    if (Url.length > 7000) {
+        Swal.fire({
+            icon: "error",
+            title: "Oops...",
+            text: "Too many items selected. Please select fewer items.",
+        });
+    } else {
+        window.location.href = Url;
+    }
+}
 
 function myAlert(arg) {
     // alert("FFF");
@@ -168,9 +149,6 @@ function validateEmail(sEmail) {
 }
 /* END - Email Validation*/
 
-
-
-
 /*--------------- Date validation------------*/
 function testDate(dt) {
     // alert(document.getElementById(dt).value);
@@ -184,7 +162,6 @@ function testDate(dt) {
 
 //function isDate(txtDate) {
 function isDate(currVal) {
-    // alert(currVal);
 
     if (currVal == '') return false;
 
@@ -192,15 +169,13 @@ function isDate(currVal) {
     var rxDatePattern = /^(\d{1,2})(\/|-)([a-zA-Z]{3})(\/|-)(\d{4})$/;
 
     var dtArray = currVal.match(rxDatePattern); // is format OK?
-    // alert(dtArray);
+
     if (dtArray == null) return false;
 
     var dtDay = parseInt(dtArray[1]);
     var dtMonth = dtArray[3];
     var dtYear = parseInt(dtArray[4]);
 
-    // alert(dtDay + " " + dtMonth + "  " + dtYear);
-    // alert(dtDay);
     // need to change to lowerCase because switch is
     // case sensitive
     switch (dtMonth.toLowerCase()) {
@@ -274,73 +249,71 @@ function isDate(currVal) {
 }
 /*---------------END Date validation------------*/
 
+function showUIBlock() {
 
-
-
-
-// AJAX Indication Starts //
-function ajaxindicatorstart(text) {
-
-    if (jQuery('body').find('#resultLoading').attr('id') != 'resultLoading') {
-        jQuery('body').append('<div id="resultLoading" style="display:none"><div><img src="/bootstrap/images/ajax-loader.gif"><div>' + text + '</div></div><div class="bg"></div></div>');
-    }
-
-    jQuery('#resultLoading').css({
-        'width': '100%',
-        'height': '100%',
-        'position': 'fixed',
-        'z-index': '10000000',
-        'top': '0',
-        'left': '0',
-        'right': '0',
-        'bottom': '0',
-        'margin': 'auto'
+    $.blockUI({
+        message: `
+            <div class="d-flex flex-column justify-content-center align-items-center" style="height: 100vh;">
+                <div class="spinner-border text-info" role="status" style="width: 4rem; height: 4rem;">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <h4 class="mt-3 text-white animate__animated animate__infinite">Processing... Please wait</h4>
+            </div>
+        `,
+        css: {
+            border: 'none',
+            padding: 0,
+            backgroundColor: 'transparent',
+            width: '100%',
+            top: '0',
+            left: '0',
+            position: 'fixed',
+            zIndex: 2000,
+            textAlign: 'center'
+        },
+        overlayCSS: {
+            backgroundColor: '#111',
+            opacity: 0.7,
+            backdropFilter: 'blur(4px)',  // Blurred effect
+            zIndex: 1999,
+            cursor: 'wait'
+        }
     });
 
-    jQuery('#resultLoading .bg').css({
-        'background': '#000000',
-        'opacity': '0.7',
-        'width': '100%',
-        'height': '100%',
-        'position': 'absolute',
-        'top': '0'
-    });
-
-    jQuery('#resultLoading>div:first').css({
-        'width': '250px',
-        'height': '75px',
-        'text-align': 'center',
-        'position': 'fixed',
-        'top': '0',
-        'left': '0',
-        'right': '0',
-        'bottom': '0',
-        'margin': 'auto',
-        'font-size': '16px',
-        'z-index': '10',
-        'color': '#ffffff'
-
-    });
-
-    jQuery('#resultLoading .bg').height('100%');
-    jQuery('#resultLoading').fadeIn(300);
-    jQuery('body').css('cursor', 'wait');
 }
 
-function ajaxindicatorstop() {
-    jQuery('#resultLoading .bg').height('100%');
-    jQuery('#resultLoading').fadeOut(300);
-    jQuery('body').css('cursor', 'default');
+function hideUIBlock() {
+    $.unblockUI();
 }
 
 jQuery(document).ajaxStart(function () {
-    showUIBlock();
-    // ajaxindicatorstart('loading... please wait...');
+    if (AjaxLoading == 1) {
+        showUIBlock();
+    }
 }).ajaxStop(function () {
-    hideUIBlock()
-    // ajaxindicatorstop();
+    hideUIBlock();
 });
-// AJAX Indication Stops //
+
+function showOneDropzoneImgDetails(dropzoneInstance, imageUrl, fileName, fileSize) {
+
+    // Create a mock file
+    const mockFile = {
+        name: fileName,
+        size: fileSize,
+        type: 'image/jpeg',
+        accepted: true,
+        isStored: true
+    };
+
+    // Add the mock file to the dropzone preview area
+    dropzoneInstance.emit("addedfile", mockFile);
+    dropzoneInstance.emit("thumbnail", mockFile, imageUrl);
+    dropzoneInstance.emit("complete", mockFile);
+
+    // Add the mock file to Dropzone's internal files array
+    dropzoneInstance.files.push(mockFile);
+
+}
 
 function validateMobileNumber(countryCode, mobileNumber) {
 
@@ -579,14 +552,7 @@ function handleDiscountDrop(event, maxLength, decimalLength) {
 }
 
 function generateTimestampRandomNumber(length) {
-
     return Date.now().toString().slice(-length) + Math.floor(1000 + Math.random() * 9000);
-
-    // const timestamp = Date.now().toString(); // Always increasing
-    // const shortTime = timestamp.slice(-length);
-    // const random = Math.floor(1000 + Math.random() * 9000);
-    // return shortTime + random;
-
 }
 
 function QuillEditor(EditorName, PlaceHolder) {
@@ -674,4 +640,200 @@ function fileSelect(id) {
             $('#image-error').text('Upload Max of 1 MB');
         }
     }
+}
+
+function allTableHeadersCheckbox(thisField, PageItemIds, TableId, TableHeader, TableRow) {
+    const $headerCheckbox = thisField;
+    const isCurrentlyChecked = $headerCheckbox.prop('checked');
+    var ItemLeng = PageItemIds.length;
+    if (ItemLeng > 0) {
+        if (ItemLeng > RowLimit) {
+            if (!isCurrentlyChecked) {
+                $headerCheckbox.prop('checked', true);
+                $('#unSelectPagesModal').modal('show');
+            } else {
+                $headerCheckbox.prop('checked', false);
+                $('#selectPagesModal').modal('show');
+            }
+        } else {
+            if (!isCurrentlyChecked) {
+                $headerCheckbox.prop('checked', true);
+                unSelectTableRecords(TableId, TableRow);
+            } else {
+                $headerCheckbox.prop('checked', false);
+                selectTableRecords(TableId, TableRow);
+            }
+            headerCheckboxTrueFalse(PageItemIds, TableHeader);
+        }
+    }
+    MultipleDeleteOption();
+}
+
+function selectTableRecords(TableName, FieldName) {
+    $(TableName + ' tbody ' + FieldName).each(function () {
+        $(this).prop('checked', true);
+        var fieldVal = parseInt($(this).val());
+        if (!SelectedUIDs.includes(fieldVal)) {
+            SelectedUIDs.push(fieldVal);
+        }
+    });
+}
+
+function unSelectTableRecords(TableName, FieldName) {
+    $(TableName + ' tbody ' + FieldName).each(function () {
+        const val = parseInt($(this).val());
+        $(this).prop('checked', false);
+        SelectedUIDs = SelectedUIDs.filter(function (item) {
+            return item !== val;
+        });
+    });
+}
+
+function onClickOfCheckbox($this, ItemIds, HeaderField) {
+    const isChecked = $this.is(':checked');
+    const value = parseInt($this.val());
+    if (isChecked) {
+        if (!SelectedUIDs.includes(value)) {
+            SelectedUIDs.push(value);
+        }
+    } else {
+        SelectedUIDs = SelectedUIDs.filter(function (item) {
+            return item !== value;
+        });
+    }
+    headerCheckboxTrueFalse(ItemIds, HeaderField);
+}
+
+function headerCheckboxTrueFalse(ItemIds, HeaderField) {
+    if (ItemIds.length == SelectedUIDs.length) {
+        $(HeaderField).prop('checked', true);
+    } else {
+        $(HeaderField).prop('checked', false);
+    }
+}
+
+function tableCheckboxTrueFalse(SelectedId, TableName, FieldName) {
+    $(TableName + ' tbody ' + FieldName).each(function () {
+        let currentVal = parseInt($(this).val());
+        if (SelectedId.includes(currentVal)) {
+            $(this).prop('checked', true);
+        }
+    });
+}
+
+function MultipleDeleteOption() {
+    $('#DeleteOption').addClass('d-none');
+    if (SelectedUIDs.length > 0) {
+        $('#DeleteOption').removeClass('d-none');
+    }
+}
+
+function loadSelect2Field(FieldName, Placeholder) {
+    $(FieldName).select2({
+        placeholder: Placeholder,
+        allowClear: true,
+    });
+}
+
+function exportAllActions(ModuleId, ModuleName, ActionType, ItemIds, URLs, callbackFn) {
+    $('#exportSelectedItemsBtn,#exportThisPageBtn,#exportThisPageCnt,#exportSelectedItemsCnt').addClass('d-none');
+    if (ItemIds.length > 0) {
+        exportModule = ModuleId;
+        expActionType = ActionType;
+        if (SelectedUIDs.length > 0) {
+            $('#exportSelectedItemsBtn,#exportSelectedItemsCnt').removeClass('d-none');
+            if (ItemIds.length > RowLimit) {
+                $('#exportThisPageBtn,#exportThisPageCnt').removeClass('d-none');
+            }
+            $('#exportPagesModal').modal('show');
+        } else {
+            if (ItemIds.length > RowLimit) {
+                $('#exportThisPageBtn,#exportThisPageCnt').removeClass('d-none');
+                $('#exportPagesModal').modal('show');
+            } else {
+                if (ActionType == 'PrintPreview') {
+                    printPreviewRecords(URLs, () => {
+                        if (typeof callbackFn === 'function') {
+                            callbackFn();
+                        }
+                    });
+                } else if (ActionType == 'ExportCSV' || 'ExportPDF' || 'ExportExcel') {
+                    window.location.href = URLs;
+                    if (typeof callbackFn === 'function') {
+                        callbackFn();  // or pass arguments to it if needed
+                    }
+                }
+            }
+        }
+    }
+}
+
+function selectModalCloseFunc(TableName, HeaderCheckbox, RowCheckbox, ItemIds) {
+    SelectedUIDs = [];
+    unSelectTableRecords(TableName, RowCheckbox);
+    headerCheckboxTrueFalse(ItemIds, HeaderCheckbox);
+    $('#selectPagesModal').modal('hide');
+}
+
+function exportModalCloseFunc(TableName, HeaderCheckbox, RowCheckbox, ItemIds) {
+    SelectedUIDs = [];
+    unSelectTableRecords(TableName, RowCheckbox);
+    headerCheckboxTrueFalse(ItemIds, HeaderCheckbox);
+    $('#exportPagesModal').modal('hide');
+}
+
+async function printPreviewRecords(getFuncName, callbackFn) {
+
+    showUIBlock();
+
+    const response = await fetch(getFuncName);
+    const result = await response.json();
+
+    hideUIBlock();
+
+    if (result.Error === false) {
+
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(result.HtmlData);
+        printWindow.document.close();
+        printWindow.focus();
+        printWindow.print();
+
+        if (typeof callbackFn === 'function') {
+            callbackFn();  // or pass arguments to it if needed
+        }
+
+    } else {
+        Swal.fire(result.Message, "", "error");
+    }
+
+}
+
+function exportRecords(UrlData, Filter = {}) {
+    $.ajax({
+        url: UrlData,
+        method: 'POST',
+        data: {
+            Type: "CSV",
+            Filter: Filter,
+        },
+        cache: false,
+        success: function (response) {
+            if (response.Error) {
+                Swal.fire({
+                    icon: "error",
+                    title: "Oops...",
+                    text: response.Message,
+                });
+            }
+        }
+    });
+}
+
+function CopyAllDatatoSelectItems(PageItemIds) {
+    SelectedUIDs = [...PageItemIds];
+}
+
+function removeAllDatatoSelectItems() {
+    SelectedUIDs = [];
 }

@@ -5,12 +5,14 @@ class Global_model extends CI_Model
 
     private $EndReturnData;
     private $GlobalDb;
+    private $ModuleDb;
 
     function __construct()
     {
         parent::__construct();
 
         $this->GlobalDb = $this->load->database('Global', TRUE);
+        $this->ModuleDb = $this->load->database('Modules', TRUE);
     }
 
     public function getTimezoneDetails($FilterArray)
@@ -462,13 +464,63 @@ class Global_model extends CI_Model
             $this->GlobalDb->select($select_ary);
             $this->GlobalDb->from('Global.TaxDetailsTbl as TaxDetail');
             $this->GlobalDb->where($WhereCondition);
-            if(sizeof($WhereArrayCondition) > 0) {
+            if (sizeof($WhereArrayCondition) > 0) {
                 $this->GlobalDb->where($WhereArrayCondition);
             }
             $this->GlobalDb->group_by('TaxDetail.TaxDetailsUID');
             $this->GlobalDb->order_by('TaxDetail.Sorting', 'ASC');
             $query = $this->GlobalDb->get();
             $error = $this->GlobalDb->error();
+            if ($error['code']) {
+                throw new Exception($error['message']);
+            } else {
+                $this->EndReturnData->Data = $query->result();
+            }
+
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Message = 'Data Retrieved Successfully';
+        } catch (Exception $e) {
+            $this->EndReturnData->Error = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        return $this->EndReturnData;
+    }
+
+    public function getModuleViewColumnDetails($WhereArrayCondition, $Sorting = false, $SortingColumn = [])
+    {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $this->ModuleDb->db_debug = FALSE;
+
+            $WhereCondition = array(
+                'ViewColmn.IsDeleted' => 0,
+                'ViewColmn.IsActive' => 1,
+            );
+
+            $select_ary = array(
+                'ViewColmn.ViewDataUID AS ViewDataUID',
+                'ViewColmn.OrgUID AS OrgUID',
+                'ViewColmn.ModuleUID AS ModuleUID',
+                'ViewColmn.SubModuleUID AS SubModuleUID',
+                'ViewColmn.DisplayName AS DisplayName',
+                'ViewColmn.FieldName AS FieldName',
+                'ViewColmn.DbFieldName AS DbFieldName',
+            );
+            $this->ModuleDb->select($select_ary);
+            $this->ModuleDb->from('Modules.ViewDataTbl as ViewColmn');
+            $this->ModuleDb->where($WhereCondition);
+            if (sizeof($WhereArrayCondition) > 0) {
+                $this->ModuleDb->where($WhereArrayCondition);
+            }
+            $this->ModuleDb->group_by('ViewColmn.ViewDataUID');
+            if ($Sorting) {
+                $this->ModuleDb->order_by(key($SortingColumn), $SortingColumn[key($SortingColumn)]);
+            }
+            $query = $this->ModuleDb->get();
+            $error = $this->ModuleDb->error();
             if ($error['code']) {
                 throw new Exception($error['message']);
             } else {

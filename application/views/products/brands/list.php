@@ -1,12 +1,12 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
-<?php if (sizeof($CategoriesList) > 0) {
-    foreach ($CategoriesList as $list) {
+<?php if (sizeof($BrandsList) > 0) {
+    foreach ($BrandsList as $list) {
         $SerialNumber++; ?>
 
         <tr>
             <td>
-                <div class="form-check form-check-inline"><input class="form-check-input categoryCheck" type="checkbox" value="<?php echo $list->CategoryUID; ?>"></div>
+                <div class="form-check form-check-inline"><input class="form-check-input brandsCheck" type="checkbox" value="<?php echo $list->BrandUID; ?>"></div>
             </td>
             <td><?php echo $SerialNumber; ?></td>
             <td><?php echo $list->Name; ?></td>
@@ -14,8 +14,8 @@
             <td class="text-end"><?php echo $list->UpdatedOn ? changeTimeZomeDateFormat($list->UpdatedOn, 'Asia/Kolkata') : ''; ?></td>
             <td>
                 <div class="d-flex align-items-sm-center justify-content-sm-center">
-                    <a href="javascript: void(0);" data-uid="<?php echo $list->CategoryUID; ?>" class="btn btn-icon text-warning editCategory"><i class="bx bx-edit me-1"></i></a>
-                    <button class="btn btn-icon text-danger DeleteCategory" data-productuid="<?php echo $list->ProductUID; ?>" data-categoryuid="<?php echo $list->CategoryUID; ?>"><i class="bx bx-trash"></i></button>
+                    <a href="javascript: void(0);" data-uid="<?php echo $list->BrandUID; ?>" class="btn btn-icon text-warning editBrand"><i class="bx bx-edit me-1"></i></a>
+                    <button class="btn btn-icon text-danger DeleteBrand" data-branduid="<?php echo $list->BrandUID; ?>"><i class="bx bx-trash"></i></button>
                 </div>
             </td>
         </tr>
@@ -33,9 +33,9 @@
                     </div>
 
                     <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                        <span class="mb-2">Add a Category Now</span>
-                        <a href="javascript: void(0);" class="btn btn-primary px-3 addCategory">
-                            <i class="bx bx-plus"></i> New Category
+                        <span class="mb-2">Add a Brand Now</span>
+                        <a href="javascript: void(0);" class="btn btn-primary px-3 addBrands">
+                            <i class="bx bx-plus"></i> New Brand
                         </a>
                     </div>
 

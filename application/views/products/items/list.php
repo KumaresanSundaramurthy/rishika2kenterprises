@@ -1,17 +1,19 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php if (sizeof($ProductsList) > 0) {
-    foreach ($ProductsList as $list) { ?>
+    foreach ($ProductsList as $list) {
+        $SerialNumber++; ?>
 
         <tr>
             <td>
-                <div class="form-check form-check-inline"><input class="form-check-input productsCheck" type="checkbox" value="<?php echo $list->ProductUID; ?>"></div>
+                <div class="form-check form-check-inline"><input class="form-check-input table-chkbox productsCheck" type="checkbox" value="<?php echo $list->ProductUID; ?>"></div>
             </td>
+            <td><?php echo $SerialNumber; ?></td>
             <td><?php echo $list->ItemName; ?></td>
             <td><?php echo $list->CategoryName ? $list->CategoryName : '-'; ?></td>
             <td class="text-center">0</td>
-            <td class="text-end"><?php echo $list->SellingPrice ? smartDecimal($list->SellingPrice) : 0; ?></td>
-            <td class="text-end"><?php echo $list->PurchasePrice ? smartDecimal($list->PurchasePrice) : 0; ?></td>
+            <td class="text-end"><?php echo $list->SellingPrice ? $JwtData->GenSettings->CurrenySymbol.smartDecimal($list->SellingPrice) : 0; ?></td>
+            <td class="text-end"><?php echo $list->PurchasePrice ? $JwtData->GenSettings->CurrenySymbol.smartDecimal($list->PurchasePrice) : 0; ?></td>
             <td class="text-end"><?php echo $list->UpdatedOn ? changeTimeZomeDateFormat($list->UpdatedOn, 'Asia/Kolkata') : ''; ?></td>
             <td>
                 <div class="d-flex align-items-sm-center justify-content-sm-center">

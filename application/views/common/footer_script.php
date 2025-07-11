@@ -3,15 +3,20 @@ var JwtToken = '<?php echo $JwtToken; ?>';
 var JwtData = JSON.parse('<?php echo json_encode($JwtData); ?>');
 // var CsrfName = '<?php //echo $this->security->get_csrf_token_name(); ?>';
 // var CsrfToken = '<?php //echo $this->security->get_csrf_hash(); ?>';
-var RowLimit = 10;
+var RowLimit = <?php echo isset($JwtData->GenSettings->RowLimit) ? $JwtData->GenSettings->RowLimit : 10; ?>;
 var PageNo = 0;
 var Filter = {};
+var AjaxLoading = 1;
 var global_base_url = '<?php echo base_url(); ?>';
 var CDN_URL = '<?php echo getenv('CDN_URL') ?>';
 var defUserImg = '<?php echo '/website/images/logo/avathar_user.png'; ?>';
-let myOneDropzone;
-let myDropzone;
-let quill;
+var myOneDropzone;
+var myDropzone;
+var quill;
+var hasRemovedStoredImage = false;
+var SelectedUIDs = [];
+var exportModule;
+var expActionType;
 $(function() {
 	'use strict'
 
@@ -84,7 +89,11 @@ $(function() {
                         this.removeFile(this.files[1]); // Only allow one
                     }
                 });
-
+                this.on("removedfile", function(file) {
+                    if (file.isStored) {
+                        hasRemovedStoredImage = true; // 👈 update the flag
+                    }
+                });
                 this.on("maxfilesexceeded", function(file) {
                     this.removeFile(file);
                     Swal.fire({

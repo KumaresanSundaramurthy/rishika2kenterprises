@@ -316,7 +316,6 @@
             $('#CustomerDiv').addClass('d-none')
             $('#Customer').removeAttr('required');
             var selectedValue = $(this).val();
-            console.log(selectedValue);
             if (selectedValue == 'OldCustomer') {
                 $('#CustomerDiv').removeClass('d-none');
                 $('#Customer').prop('required', true);

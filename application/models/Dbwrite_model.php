@@ -93,7 +93,7 @@ class Dbwrite_model extends CI_Model {
 
     }
 
-    public function updateData($Database, $Table, $Data, $Condition, $whereInCondition = array()) {
+    public function updateData($Database, $Table, $Data, $Condition = [], $whereInCondition = array()) {
 
         $this->EndReturnData = new stdclass();
 
@@ -107,14 +107,20 @@ class Dbwrite_model extends CI_Model {
                     $this->WriteDB->where_in($wkey, $wval);
                 }
             }
-            $res = $this->WriteDB->update($Table, $Data, $Condition);
+            if (!empty($Condition)) {
+                $res = $this->WriteDB->update($Table, $Data, $Condition);
+            } else {
+                $res = $this->WriteDB->update($Table, $Data);
+            }
 
             if (!$res) {
 
                 $this->EndReturnData->Error = TRUE;
                 $this->EndReturnData->Table = $Table;
                 $this->EndReturnData->Data = $Data;
-                $this->EndReturnData->Condition = $Condition;
+                if (!empty($Condition)) {
+                    $this->EndReturnData->Condition = $Condition;
+                }
                 if (!empty($whereInCondition)) {
                     $this->EndReturnData->WhereInCondition = $whereInCondition;
                 }
@@ -125,7 +131,9 @@ class Dbwrite_model extends CI_Model {
                 $this->EndReturnData->Error = FALSE;
                 $this->EndReturnData->Table = $Table;
                 $this->EndReturnData->Data = $Data;
-                $this->EndReturnData->Condition = $Condition;
+                if (!empty($Condition)) {
+                    $this->EndReturnData->Condition = $Condition;
+                }
                 if (!empty($whereInCondition)) {
                     $this->EndReturnData->WhereInCondition = $whereInCondition;
                 }
@@ -138,7 +146,9 @@ class Dbwrite_model extends CI_Model {
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Table = $Table;
             $this->EndReturnData->Data = $Data;
-            $this->EndReturnData->Condition = $Condition;
+            if (!empty($Condition)) {
+                $this->EndReturnData->Condition = $Condition;
+            }
             if (!empty($whereInCondition)) {
                 $this->EndReturnData->WhereInCondition = $whereInCondition;
             }

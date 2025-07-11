@@ -24,17 +24,75 @@
                                 <div class="d-flex flex-column flex-md-row justify-content-between align-items-center p-3">
                                     <ul class="nav nav-pills nav nav-pills flex-row" role="tablist">
                                         <li class="nav-item">
-                                            <a class="nav-link active TabPane" data-id="Item" role="tab" data-bs-toggle="tab" data-bs-target="#NavItemPage" aria-controls="NavItemPage" aria-selected="true" href="javascript: void(0);"><i class="bx bx-package me-1"></i> Item</a>
+                                            <a class="nav-link active TabPane" data-id="Item" data-moduleid="<?php echo $ItemModuleId; ?>" role="tab" data-bs-toggle="tab" data-bs-target="#NavItemPage" aria-controls="NavItemPage" aria-selected="true" href="javascript: void(0);"><i class="bx bx-package me-1"></i> Item</a>
                                         </li>
                                         <li class="nav-item">
-                                            <a class="nav-link TabPane" data-id="Categories" role="tab" data-bs-toggle="tab" data-bs-target="#NavCategoriesPage" aria-controls="NavCategoriesPage" aria-selected="true" href="javascript: void(0);"><i class="bx bx-layer me-1"></i> Categories</a>
+                                            <a class="nav-link TabPane" data-id="Categories" data-moduleid="<?php echo $CategoryModuleId; ?>" role="tab" data-bs-toggle="tab" data-bs-target="#NavCategoriesPage" aria-controls="NavCategoriesPage" aria-selected="true" href="javascript: void(0);"><i class="bx bx-layer me-1"></i> Categories</a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link TabPane" data-id="Sizes" data-moduleid="<?php echo $SizeModuleId; ?>" role="tab" data-bs-toggle="tab" data-bs-target="#NavSizesPage" aria-controls="NavSizesPage" aria-selected="true" href="javascript: void(0);"><i class="bx bx-ruler me-1"></i> Sizes</a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link TabPane" data-id="Brands" data-moduleid="<?php echo $BrandModuleId; ?>" role="tab" data-bs-toggle="tab" data-bs-target="#NavBrandsPage" aria-controls="NavBrandsPage" aria-selected="true" href="javascript: void(0);"><i class="bx bx-badge-check me-1"></i> Brands</a>
                                         </li>
                                     </ul>
                                     <div class="d-flex mt-2 mt-md-0">
                                         <a href="javascript: void(0);" class="btn PageRefresh"><i class='bx bx-refresh' style="font-size: 22px;"></i> </a>
-                                        <div class="me-2"><input type="text" class="form-control SearchDetails" name="SearchDetails" id="SearchDetails" placeholder="Search details..." /></div>
+                                        <div class="position-relative me-2">
+                                            <input type="text" class="form-control SearchDetails" name="SearchDetails" id="SearchDetails" placeholder="Search details..." data-toggle="tooltip" title="Please type at least 3 characters to search" />
+                                            <i class="bx bx-x position-absolute top-50 end-0 translate-middle-y me-3 text-muted cursor-pointer" id="clearSearch"></i>
+                                        </div>
+                                        <div class="btn-group" id="ActionsDD-Div">
+                                            <button class="btn btn-label-secondary dropdown-toggle me-2" type="button" id="actionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                                <span class="d-flex align-items-center gap-2">
+                                                    <i class="icon-base bx bx-cog icon-xs"></i>
+                                                    <span class="d-none d-sm-inline-block">Actions</span>
+                                                </span>
+                                            </button>
+                                            <ul class="dropdown-menu" aria-labelledby="actionsDropdown">
+                                                <li class="d-none" id="CloneOption">
+                                                    <a class="dropdown-item" href="javascript: void(0);" id="btnClone">
+                                                        <i class="bx bx-duplicate me-1"></i> Clone
+                                                    </a>
+                                                </li>
+                                                <li class="d-none" id="DeleteOption">
+                                                    <a class="dropdown-item text-danger" href="javascript: void(0);" id="btnDelete">
+                                                        <i class="bx bx-trash me-1"></i> Delete
+                                                    </a>
+                                                </li>
+                                                <li class="dropdown-submenu">
+                                                    <a class="dropdown-item" href="javascript: void(0);">
+                                                        <i class="bx bx-export me-1"></i> Export
+                                                    </a>
+                                                    <ul class="dropdown-menu">
+                                                        <li>
+                                                            <a class="dropdown-item" href="javascript: void(0);" id="btnExportPrint">
+                                                                <i class="bx bx-printer me-1"></i> Print
+                                                            </a>
+                                                        </li>
+                                                        <li>
+                                                            <a class="dropdown-item" href="javascript: void(0);" id="btnExportCSV">
+                                                                <i class="bx bx-file me-1"></i> CSV
+                                                            </a>
+                                                        </li>
+                                                        <li>
+                                                            <a class="dropdown-item" href="javascript: void(0);" id="btnExportExcel">
+                                                                <i class="bx bxs-file-export me-1"></i> Excel
+                                                            </a>
+                                                        </li>
+                                                        <li>
+                                                            <a class="dropdown-item" href="javascript: void(0);" id="btnExportPDF">
+                                                                <i class="bx bxs-file-pdf me-1"></i> PDF
+                                                            </a>
+                                                        </li>
+                                                    </ul>
+                                                </li>
+                                            </ul>
+                                        </div>
                                         <a href="/products/add" class="btn btn-primary px-3" id="NewItem"><i class='bx bx-plus'></i> New Item</a>
                                         <a href="javascript: void(0);" class="btn btn-primary px-3 addCategory d-none" id="NewCategory"><i class='bx bx-plus'></i> New Category</a>
+                                        <a href="javascript: void(0);" class="btn btn-primary px-3 addSizes d-none" id="NewSizes"><i class='bx bx-plus'></i> New Size</a>
+                                        <a href="javascript: void(0);" class="btn btn-primary px-3 addBrands d-none" id="NewBrands"><i class='bx bx-plus'></i> New Brand</a>
                                     </div>
                                 </div>
                                 <div class="tab-content p-0">
@@ -45,7 +103,12 @@
                                             <table class="table table-sm table-striped table-hover" id="ProductsTable">
                                                 <thead>
                                                     <tr>
-                                                        <th></th>
+                                                        <th class="table-checkbox">
+                                                            <div class="form-check form-check-inline">
+                                                                <input class="form-check-input table-chkbox productsHeaderCheck" type="checkbox">
+                                                            </div>
+                                                        </th>
+                                                        <th class="table-serialno">S.No</th>
                                                         <th>Name</th>
                                                         <th>Category</th>
                                                         <th class="text-center">Qty</th>
@@ -55,11 +118,15 @@
                                                         <th class="text-center">Actions</th>
                                                     </tr>
                                                 </thead>
-                                                <tbody class="table-border-bottom-0"></tbody>
+                                                <tbody class="table-border-bottom-0">
+                                                    <?php echo $ItemList; ?>
+                                                </tbody>
                                             </table>
                                         </div>
                                         <hr class="my-0" />
-                                        <div class="row mx-3 justify-content-between ProductsPagination" id="ProductsPagination"></div>
+                                        <div class="row mx-3 justify-content-between ProductsPagination" id="ProductsPagination">
+                                            <?php echo $ItemPagination; ?>
+                                        </div>
 
                                     </div>
 
@@ -69,7 +136,12 @@
                                             <table class="table table-sm table-striped table-hover" id="CategoriesTable">
                                                 <thead>
                                                     <tr>
-                                                        <th></th>
+                                                        <th class="table-checkbox">
+                                                            <div class="form-check form-check-inline">
+                                                                <input class="form-check-input table-chkbox categoryHeaderCheck" type="checkbox">
+                                                            </div>
+                                                        </th>
+                                                        <th class="table-serialno">S.No</th>
                                                         <th>Name</th>
                                                         <th>Description</th>
                                                         <th class="text-end">Last Updated</th>
@@ -87,6 +159,64 @@
 
                                     </div>
 
+                                    <div class="tab-pane fade" id="NavSizesPage" role="tabpanel">
+
+                                        <div class="table-responsive text-nowrap h-100 tablecard">
+                                            <table class="table table-sm table-striped table-hover" id="SizesTable">
+                                                <thead>
+                                                    <tr>
+                                                        <th class="table-checkbox">
+                                                            <div class="form-check form-check-inline">
+                                                                <input class="form-check-input table-chkbox sizeHeaderCheck" type="checkbox">
+                                                            </div>
+                                                        </th>
+                                                        <th class="table-serialno">S.No</th>
+                                                        <th>Name</th>
+                                                        <th>Description</th>
+                                                        <th class="text-end">Last Updated</th>
+                                                        <th class="text-center">Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody class="table-border-bottom-0">
+                                                    <?php $PageData['SizesList'] = [];
+                                                    echo $this->load->view('products/sizes/list', $PageData, TRUE); ?>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <hr class="my-0" />
+                                        <div class="row mx-3 justify-content-between SizesPagination" id="SizesPagination"></div>
+
+                                    </div>
+
+                                    <div class="tab-pane fade" id="NavBrandsPage" role="tabpanel">
+
+                                        <div class="table-responsive text-nowrap h-100 tablecard">
+                                            <table class="table table-sm table-striped table-hover" id="BrandsTable">
+                                                <thead>
+                                                    <tr>
+                                                        <th class="table-checkbox">
+                                                            <div class="form-check form-check-inline">
+                                                                <input class="form-check-input table-chkbox brandHeaderCheck" type="checkbox">
+                                                            </div>
+                                                        </th>
+                                                        <th class="table-serialno">S.No</th>
+                                                        <th>Name</th>
+                                                        <th>Description</th>
+                                                        <th class="text-end">Last Updated</th>
+                                                        <th class="text-center">Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody class="table-border-bottom-0">
+                                                    <?php $PageData['BrandsList'] = [];
+                                                    echo $this->load->view('products/brands/list', $PageData, TRUE); ?>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <hr class="my-0" />
+                                        <div class="row mx-3 justify-content-between BrandsPagination" id="BrandsPagination"></div>
+
+                                    </div>
+
                                 </div>
                             </div>
                         </div>
@@ -96,51 +226,9 @@
             </div>
             <!-- Content wrapper -->
 
-            <!-- Product Category Form -->
-            <div class="modal fade" id="categoryModal" tabindex="-1" aria-labelledby="categoryModal" data-bs-backdrop="static" data-bs-keyboard="false" aria-hidden="true" aria-modal="true" role="dialog">
-                <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-sm-down modal-dialog-right modal-lg">
-                    <div class="modal-content h-100 d-flex flex-column">
-
-                        <?php $FormAttribute = array('id' => 'AddCategoryForm', 'name' => 'AddCategoryForm', 'class' => '', 'autocomplete' => 'off');
-                        echo form_open('products/addCategory', $FormAttribute); ?>
-
-                        <div class="modal-header">
-                            <h5 class="modal-title">Add Category</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-
-                        <div class="modal-body flex-grow-1 overflow-auto">
-                            <div class="mb-3">
-                                <label class="form-label" for="CategoryName">Name <span style="color:red">*</span></label>
-                                <input type="text" class="form-control" id="CategoryName" placeholder="Enter category name" name="CategoryName" maxlength="100" required />
-                            </div>
-                            <div class="mb-3">
-                                <label for="CategoryDescription" class="form-label">Description </label>
-                                <textarea class="form-control" rows="2" name="CategoryDescription" id="CategoryDescription" placeholder="Description"></textarea>
-                            </div>
-
-                            <div class="mb-3 dropzone needsclick p-3 dz-clickable" id="DropzoneOneBasic">
-                                <div class="dz-message needsclick">
-                                    <p class="h4 needsclick pt-4 mb-2">Drag and drop your image here</p>
-                                    <p class="h6 text-body-secondary d-block fw-normal mb-3">or</p>
-                                    <span class="needsclick btn btn-sm btn-label-primary" id="btnBrowse">Browse image</span>
-                                </div>
-                            </div>
-
-                        </div>
-
-                        <div id="addCatgFormAlert" class="d-none col-lg-12 px-4 pt-4" role="alert"></div>
-
-                        <div class="modal-footer border-top d-flex justify-content-end">
-                            <button type="button" class="btn btn-label-danger">Cancel</button>
-                            <button type="submit" class="btn btn-primary">Save changes</button>
-                        </div>
-
-                        <?php echo form_close(); ?>
-
-                    </div>
-                </div>
-            </div>
+            <?php $this->load->view('products/modals/category'); ?>
+            <?php $this->load->view('products/modals/sizes'); ?>
+            <?php $this->load->view('products/modals/brands'); ?>
 
             <?php $this->load->view('common/footer_desc'); ?>
 
@@ -154,31 +242,125 @@
 <script src="/js/products.js"></script>
 
 <script>
+    let ItemUIDs = <?php echo json_encode($ItemUIDs ?: []); ?>;
+    let ItemModuleId = <?php echo $ItemModuleId; ?>;
+    const ProdTable = '#ProductsTable';
+    const ProdPag = '.ProductsPagination';
+    const ProdHeader = '.productsHeaderCheck';
+    const ProdRow = '.productsCheck';
+    let CategoryUIDs;
+    let CategoryModuleId = <?php echo $CategoryModuleId; ?>;
+    const CatgTable = '#CategoriesTable';
+    const CatgPag = '.CategoriesPagination';
+    const CatgHeader = '.categoryHeaderCheck';
+    const CatgRow = '.categoryCheck';
+    let SizeUIDs;
+    let SizeModuleId = <?php echo $SizeModuleId; ?>;
+    const SizeTable = '#SizesTable';
+    const SizePag = '.SizesPagination';
+    const SizeHeader = '.sizeHeaderCheck';
+    const SizeRow = '.sizesCheck';
+    let BrandUIDs;
+    let BrandModuleId = <?php echo $BrandModuleId; ?>;
+    const BrandTable = '#BrandsTable';
+    const BrandPag = '.BrandsPagination';
+    const BrandHeader = '.brandHeaderCheck';
+    const BrandRow = '.brandsCheck';
+    let ActiveTabId = 'Item';
+    let ActiveTabModuleId = <?php echo $ItemModuleId; ?>;
+    let Modules = <?php echo json_encode($ModuleInfo ?: []); ?>;
     $(function() {
         'use strict'
 
         $('#SearchDetails').val('');
+        $(ProdHeader + ',' + ProdRow).prop('checked', false).trigger('change');
+        $('[data-toggle="tooltip"]').tooltip();
+        $('#clearSearch').addClass('d-none');
+
+        $(ProdHeader).click(function() {
+            allTableHeadersCheckbox($(this), ItemUIDs, ProdTable, ProdHeader, ProdRow);
+        });
+
+        $(document).on('click', ProdRow, function() {
+            onClickOfCheckbox($(this), ItemUIDs, ProdHeader);
+            $('#CloneOption').addClass('d-none');
+            if (SelectedUIDs.length == 1) {
+                $('#CloneOption').removeClass('d-none');
+            }
+            MultipleDeleteOption();
+        });
+
+        $('#btnClone').click(function(e) {
+            e.preventDefault();
+            if (SelectedUIDs.length == 1 && ActiveTabId == 'Item') {
+                window.location.href = '/products/' + SelectedUIDs[0] + '/clone';
+            }
+        });
+
+        $('#btnDelete').click(function(e) {
+            e.preventDefault();
+            if (SelectedUIDs.length > 0) {
+                let DeleteContent;
+                if (ActiveTabId == 'Item') {
+                    DeleteContent = 'Do you want to delete all the selected product?';
+                } else if (ActiveTabId == 'Categories') {
+                    DeleteContent = 'Do you want to delete all the selected category?';
+                } else if (ActiveTabId == 'Sizes') {
+                    DeleteContent = 'Do you want to delete all the selected size?';
+                } else if (ActiveTabId == 'Brands') {
+                    DeleteContent = 'Do you want to delete all the selected brand?';
+                }
+                Swal.fire({
+                    title: DeleteContent,
+                    text: "You won't be able to revert this!",
+                    icon: "info",
+                    showCancelButton: true,
+                    confirmButtonColor: "#d33",
+                    confirmButtonText: "Yes, delete it!",
+                    cancelButtonColor: "#3085d6",
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        if (ActiveTabId == 'Item') {
+                            deleteMultipleProduct(SelectedUIDs);
+                        } else if (ActiveTabId == 'Categories') {
+                            deleteMultipleCategory(SelectedUIDs);
+                        } else if (ActiveTabId == 'Sizes') {
+                            deleteMultipleSize(SelectedUIDs);
+                        } else if (ActiveTabId == 'Brands') {
+                            deleteMultipleBrand(SelectedUIDs);
+                        }
+                    }
+                });
+            }
+        });
 
         $('.TabPane').click(function(e) {
             e.preventDefault();
             var TabValue = $(this).data('id');
             if (TabValue) {
-                $('#NewItem').addClass('d-none');
-                $('#NewCategory').addClass('d-none');
+                ActiveTabId = TabValue;
+                ActiveTabModuleId = $(this).data('moduleid');
+                $('#NewItem,#NewCategory,#NewSizes,#NewBrands,#CloneOption').addClass('d-none');
                 $('#SearchDetails').val('');
                 PageNo = 0;
                 Filter = {};
-                if (TabValue == 'Item') {
+                if (ActiveTabId == 'Item') {
                     $('#NewItem').removeClass('d-none');
                     getProductDetails(PageNo, RowLimit, Filter);
-                } else if (TabValue == 'Categories') {
+                } else if (ActiveTabId == 'Categories') {
                     $('#NewCategory').removeClass('d-none');
                     getCategoriesDetails(PageNo, RowLimit, Filter);
+                } else if (ActiveTabId == 'Sizes') {
+                    $('#NewSizes').removeClass('d-none');
+                    getSizesDetails(PageNo, RowLimit, Filter);
+                } else if (ActiveTabId == 'Brands') {
+                    $('#NewBrands').removeClass('d-none');
+                    getBrandsDetails(PageNo, RowLimit, Filter);
                 }
             }
         });
 
-        $('.ProductsPagination').on('click', 'a', function(e) {
+        $(ProdPag).on('click', 'a', function(e) {
             e.preventDefault();
             PageNo = $(this).attr('data-ci-pagination-page');
             getProductDetails(PageNo, RowLimit, Filter);
@@ -186,26 +368,126 @@
 
         $(document).on('click', '.PageRefresh', function(e) {
             e.preventDefault();
-            let activeTab = $('.nav-pills .nav-link.active').attr('data-id');
-            if (activeTab == 'Item') {
+            if (ActiveTabId == 'Item') {
                 getProductDetails(PageNo, RowLimit, Filter);
-            } else if (activeTab == 'Categories') {
+            } else if (ActiveTabId == 'Categories') {
                 getCategoriesDetails(PageNo, RowLimit, Filter);
+            } else if (ActiveTabId == 'Sizes') {
+                getSizesDetails(PageNo, RowLimit, Filter);
+            } else if (ActiveTabId == 'Brands') {
+                getBrandsDetails(PageNo, RowLimit, Filter);
+            }
+        });
+
+        $('#clearSearch').click(function(e) {
+            e.preventDefault();
+            var searchText = $('#SearchDetails').val();
+            $('#SearchDetails').val('');
+            $('#clearSearch').addClass('d-none');
+            if ($.trim(searchText) != '') {
+                Filter = {};
+                if (ActiveTabId == 'Item') {
+                    getProductDetails(PageNo, RowLimit, Filter);
+                } else if (ActiveTabId == 'Categories') {
+                    getCategoriesDetails(PageNo, RowLimit, Filter);
+                } else if (ActiveTabId == 'Sizes') {
+                    getSizesDetails(PageNo, RowLimit, Filter);
+                } else if (ActiveTabId == 'Brands') {
+                    getBrandsDetails(PageNo, RowLimit, Filter);
+                }
             }
         });
 
         $('.SearchDetails').keyup(inputDelay(function(e) {
             PageNo = 0;
-            if ($('#SearchDetails').val()) {
-                Filter['Name'] = $('#SearchDetails').val();
-            }
-            let activeTab = $('.nav-pills .nav-link.active').attr('data-id');
-            if (activeTab == 'Item') {
-                getProductDetails(PageNo, RowLimit, Filter);
-            } else if (activeTab == 'Categories') {
-                getCategoriesDetails(PageNo, RowLimit, Filter);
+            let searchText = $('#SearchDetails').val();
+            if (searchText.length >= 3) {
+                $('#clearSearch').removeClass('d-none');
+                if (searchText) {
+                    Filter['Name'] = searchText;
+                }
+                if (ActiveTabId == 'Item') {
+                    getProductDetails(PageNo, RowLimit, Filter);
+                } else if (ActiveTabId == 'Categories') {
+                    getCategoriesDetails(PageNo, RowLimit, Filter);
+                } else if (ActiveTabId == 'Sizes') {
+                    getSizesDetails(PageNo, RowLimit, Filter);
+                } else if (ActiveTabId == 'Brands') {
+                    getBrandsDetails(PageNo, RowLimit, Filter);
+                }
             }
         }, 500));
+
+        $('#selectThisPageBtn').click(function(e) {
+            e.preventDefault();
+            commonSelectFunctionality('CurrentPage');
+        });
+
+        $('#selectAllPagesBtn').click(function(e) {
+            e.preventDefault();
+            commonSelectFunctionality('AllPage');
+        });
+
+        $('#unselectThisPageBtn').click(function(e) {
+            e.preventDefault();
+            commonUnSelectFunctionality('CurrentPage');
+        });
+
+        $('#unselectAllPagesBtn').click(function(e) {
+            e.preventDefault();
+            commonUnSelectFunctionality('AllPage');
+        });
+
+        $('#clearSelectAllClose').click(function(e) {
+            e.preventDefault();
+            if (ActiveTabId == 'Item') {
+                selectModalCloseFunc(ProdTable, ProdHeader, ProdRow, ItemUIDs);
+            } else if (ActiveTabId == 'Categories') {
+                selectModalCloseFunc(CatgTable, CatgHeader, CatgRow, CategoryUIDs);
+            } else if (ActiveTabId == 'Sizes') {
+                selectModalCloseFunc(SizeTable, SizeHeader, SizeRow, SizeUIDs);
+            } else if (ActiveTabId == 'Brands') {
+                selectModalCloseFunc(BrandTable, BrandHeader, BrandRow, BrandUIDs);
+            }
+        });
+
+        $('#btnExportPrint').click(function(e) {
+            e.preventDefault();
+            commonExportFunctionality(1, 'PrintPreview');
+        });
+
+        $('#btnExportCSV').click(function(e) {
+            e.preventDefault();
+            commonExportFunctionality(1, 'ExportCSV');
+        });
+
+        $('#btnExportPDF').click(function(e) {
+            e.preventDefault();
+            commonExportFunctionality(1, 'ExportPDF');
+        });
+
+        $('#btnExportExcel').click(function(e) {
+            e.preventDefault();
+            commonExportFunctionality(1, 'ExportExcel');
+        });
+
+        $('#exportSelectedItemsBtn').click(function(e) {
+            e.preventDefault();
+            commonExportFunctionality(2, expActionType);
+        });
+
+        $('#clearExportClose').click(function(e) {
+            e.preventDefault();
+            if (ActiveTabId == 'Item') {
+                exportModalCloseFunc(ProdTable, ProdHeader, ProdRow, ItemUIDs);
+            } else if (ActiveTabId == 'Categories') {
+                exportModalCloseFunc(CatgTable, CatgHeader, CatgRow, CategoryUIDs);
+            } else if (ActiveTabId == 'Sizes') {
+                exportModalCloseFunc(SizeTable, SizeHeader, SizeRow, SizeUIDs);
+            } else if (ActiveTabId == 'Brands') {
+                exportModalCloseFunc(BrandTable, BrandHeader, BrandRow, BrandUIDs);
+            }
+        });
 
         $(document).on('click', '.DeleteProduct', function(e) {
             e.preventDefault();
@@ -228,25 +510,229 @@
         });
 
         // Categories Page Coding Starts Here
+        $(CatgPag).on('click', 'a', function(e) {
+            e.preventDefault();
+            PageNo = $(this).attr('data-ci-pagination-page');
+            getCategoriesDetails(PageNo, RowLimit, Filter);
+        });
+
         $(document).on('click', '.addCategory', function(e) {
             e.preventDefault();
-            $('#AddCategoryForm').trigger('reset');
+            hasRemovedStoredImage = false;
+            $('#categoryForm').trigger('reset');
+            $('#CatgModalTitle').text('Add Category');
+            $('#CatgSaveButton').text('Save');
             $('#categoryModal').modal('show');
         });
 
-        $('#AddCategoryForm').submit(function(e) {
+        $('#categoryModal').on('shown.bs.modal', function() {
+            $('#CategoryName').trigger('focus');
+        });
+
+        $(document).on('click', '.editCategory', function(e) {
             e.preventDefault();
-            var formData = new FormData($('#AddCategoryForm')[0]);
-            if (myDropzone.files.length > 0) {
-                formData.append('UploadImage', myDropzone.files[0]);
+            var getVal = $(this).data('uid');
+            if (getVal) {
+                retrieveCategoryDetails(getVal);
             }
-            addCategoryDetails(formData);
+        });
+
+        $('#categoryForm').submit(function(e) {
+            e.preventDefault();
+            var formData = new FormData($('#categoryForm')[0]);
+            if (myOneDropzone.files.length > 0) {
+                const file = myOneDropzone.files[0];
+                if (!file.isStored) {
+                    formData.append('UploadImage', myOneDropzone.files[0]);
+                }
+            }
+            formData.append('PageNo', PageNo);
+            formData.append('RowLimit', RowLimit);
+            if (Object.keys(Filter).length > 0) {
+                formData.append('Filter', JSON.stringify(Filter));
+            }
+
+            var CategoryUID = $('#categoryForm').find('#CategoryUID').val();
+            if (CategoryUID == 0) {
+                addCategoryDetails(formData);
+            } else {
+                if (hasRemovedStoredImage === true) {
+                    formData.append('RemovedImage', true);
+                }
+                editCategoryDetails(formData);
+            }
+
+        });
+
+        $(document).on('click', '.DeleteCategory', function(e) {
+            e.preventDefault();
+            var GetId = $(this).data('categoryuid');
+            if (GetId) {
+                var ProductUID = $(this).data('productuid');
+                if (ProductUID && ProductUID !== undefined && ProductUID !== null && ProductUID !== '') {
+                    Swal.fire("Category is linked to Product.", "", "error");
+                    return false;
+                } else {
+                    Swal.fire({
+                        title: "Do you want to delete the category?",
+                        text: "You won't be able to revert this!",
+                        icon: "warning",
+                        showCancelButton: true,
+                        confirmButtonColor: "#d33",
+                        confirmButtonText: "Yes, delete it!",
+                        cancelButtonColor: "#3085d6",
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            deleteCategory(GetId);
+                        }
+                    });
+                }
+            }
+        });
+
+        // Sizes Page Coding Starts Here
+        $(SizePag).on('click', 'a', function(e) {
+            e.preventDefault();
+            PageNo = $(this).attr('data-ci-pagination-page');
+            getSizesDetails(PageNo, RowLimit, Filter);
+        });
+
+        $(document).on('click', '.addSizes', function(e) {
+            e.preventDefault();
+            $('#SizesForm').trigger('reset');
+            $('#SizeModalTitle').text('Add Size');
+            $('#sizeButtonName').text('Save');
+            $('#sizesModal').modal('show');
+        });
+
+        $('#sizesModal').on('shown.bs.modal', function() {
+            $('#SizesName').trigger('focus');
+        });
+
+        $(document).on('click', '.editSize', function(e) {
+            e.preventDefault();
+            var getVal = $(this).data('uid');
+            if (getVal) {
+                retrieveSizeDetails(getVal);
+            }
+        });
+
+        $('#SizesForm').submit(function(e) {
+            e.preventDefault();
+
+            var formData = new FormData($('#SizesForm')[0]);
+            formData.append('PageNo', PageNo);
+            formData.append('RowLimit', RowLimit);
+
+            if (Object.keys(Filter).length > 0) {
+                formData.append('Filter', JSON.stringify(Filter));
+            }
+
+            AjaxLoading = 0;
+            $('#sizeButtonName').attr('disabled', 'disabled');
+
+            var getMode = $('#SizesForm').find('#SizeUID').val();
+            if (getMode == 0) {
+                addSizeDetails(formData);
+            } else if (getMode > 0) {
+                editSizeDetails(formData);
+            }
+        });
+
+        $(document).on('click', '.DeleteSize', function(e) {
+            e.preventDefault();
+            var GetId = $(this).data('sizeuid');
+            if (GetId) {
+                Swal.fire({
+                    title: "Do you want to delete the size?",
+                    text: "You won't be able to revert this!",
+                    icon: "info",
+                    showCancelButton: true,
+                    confirmButtonColor: "#d33",
+                    confirmButtonText: "Yes, delete it!",
+                    cancelButtonColor: "#3085d6",
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        deleteSize(GetId);
+                    }
+                });
+            }
+        });
+
+        /** Brands Page Coding Starts Here */
+        $(BrandPag).on('click', 'a', function(e) {
+            e.preventDefault();
+            PageNo = $(this).attr('data-ci-pagination-page');
+            getBrandsDetails(PageNo, RowLimit, Filter);
+        });
+
+        $(document).on('click', '.addBrands', function(e) {
+            e.preventDefault();
+            $('#BrandsForm').trigger('reset');
+            $('#BrandsModalTitle').text('Add Brand');
+            $('#brandButtonName').text('Save');
+            $('#brandsModal').modal('show');
+        });
+
+        $('#brandsModal').on('shown.bs.modal', function() {
+            $('#BrandsName').trigger('focus');
+        });
+
+        $(document).on('click', '.editBrand', function(e) {
+            e.preventDefault();
+            var getVal = $(this).data('uid');
+            if (getVal) {
+                retrieveBrandDetails(getVal);
+            }
+        });
+
+        $('#BrandsForm').submit(function(e) {
+            e.preventDefault();
+
+            var formData = new FormData($('#BrandsForm')[0]);
+            formData.append('PageNo', PageNo);
+            formData.append('RowLimit', RowLimit);
+
+            if (Object.keys(Filter).length > 0) {
+                formData.append('Filter', JSON.stringify(Filter));
+            }
+
+            AjaxLoading = 0;
+            $('#brandButtonName').attr('disabled', 'disabled');
+
+            var getMode = $('#BrandsForm').find('#BrandUID').val();
+            if (getMode == 0) {
+                addBrandDetails(formData);
+            } else if (getMode > 0) {
+                editBrandDetails(formData);
+            }
+
+        });
+
+        $(document).on('click', '.DeleteBrand', function(e) {
+            e.preventDefault();
+            var GetId = $(this).data('branduid');
+            if (GetId) {
+                Swal.fire({
+                    title: "Do you want to delete the brand?",
+                    text: "You won't be able to revert this!",
+                    icon: "info",
+                    showCancelButton: true,
+                    confirmButtonColor: "#d33",
+                    confirmButtonText: "Yes, delete it!",
+                    cancelButtonColor: "#3085d6",
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        deleteBrand(GetId);
+                    }
+                });
+            }
         });
 
     });
     $(window).on('load', function() {
 
-        getProductDetails(PageNo, RowLimit, Filter);
+        // getProductDetails(PageNo, RowLimit, Filter);
 
     });
 </script>

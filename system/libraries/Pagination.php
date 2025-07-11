@@ -414,10 +414,10 @@ class CI_Pagination {
 		$num_pages = (int) ceil($this->total_rows / $this->per_page);
 
 		// Is there only one page? Hm... nothing more to do here then.
-		if ($num_pages === 1)
-		{
-			return '';
-		}
+		// if ($num_pages === 1)
+		// {
+		// 	return '';
+		// }
 
 		// Check the user defined number of links.
 		$this->num_links = (int) $this->num_links;
@@ -561,6 +561,19 @@ class CI_Pagination {
 		// which number to start and end the digit links with.
 		$start	= (($this->cur_page - $this->num_links) > 0) ? $this->cur_page - ($this->num_links - 1) : 1;
 		$end	= (($this->cur_page + $this->num_links) < $num_pages) ? $this->cur_page + $this->num_links : $num_pages;
+
+		if ($num_pages === 1)
+		{
+			
+			$start_num = ($this->use_page_numbers) ? (($this->cur_page - 1) * $this->per_page) + 1 : $this->cur_page + 1;
+
+			$end_num = ($this->use_page_numbers) ? min($start_num + $this->per_page - 1, $this->total_rows) : min($this->cur_page + $this->per_page, $this->total_rows);
+
+			return '<div class="d-md-flex justify-content-between align-items-center col-md-auto mt-0 p-3">
+						<div>Showing '.$start_num.' - '.$end_num.' of '.$this->total_rows.' Results</div>
+					</div>';
+
+		}
 
 		// And here we go...
 		$output = '<div class="dt-paging"><nav aria-label="pagination"><ul class="pagination">';

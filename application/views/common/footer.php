@@ -1,6 +1,6 @@
     
 
-    <?php $this->load->view('common/changepwd_form'); ?>
+    <?php $this->load->view('common/common_form'); ?>
 
     <!-- Core JS -->
     <!-- build:js assets/vendor/js/core.js -->

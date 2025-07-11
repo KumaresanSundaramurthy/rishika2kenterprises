@@ -10,12 +10,14 @@ class Login_model extends CI_Model {
     private $EndReturnData;
     private $UserRoleDb;
     private $OrgDb;
+    private $ModuleDb;
 
 	function __construct() {
         parent::__construct();
 
 		$this->UserRoleDb = $this->load->database('UserRole', TRUE);
 		$this->OrgDb = $this->load->database('Organisation', TRUE);
+        $this->ModuleDb = $this->load->database('Modules', TRUE);
 
     }
 
@@ -42,8 +44,9 @@ class Login_model extends CI_Model {
 
             // Organisation Settings
             $GeneralSettings = $this->getOrgGeneralSettings($UserData->UserOrgUID)->Data[0];
+            $ModuleInfo = $this->getModuleDetails($UserData->UserOrgUID)->Data;
 
-            $jwtPayload = array('User' => $JwtUserData, 'UserMainModule' => $MainModule, 'UserSubModule' => $SubModule, 'GenSettings' => $GeneralSettings);
+            $jwtPayload = array('User' => $JwtUserData, 'UserMainModule' => $MainModule, 'UserSubModule' => $SubModule, 'GenSettings' => $GeneralSettings, 'ModuleInfo' => $ModuleInfo);
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Message = 'Success';
@@ -102,7 +105,7 @@ class Login_model extends CI_Model {
 
             $this->UserRoleDb->select('UserMM.UserMainMenuUID as UserMainMenuUID, UserMM.MainMenuUID as MainMenuUID, MainMenu.Name as MainMenuName, MainMenu.Icons as MainMenuIcons');
             $this->UserRoleDb->from('UserRole.UserMainMenusTbl as UserMM');
-            $this->UserRoleDb->join('UserRole.MainMenusTbl as MainMenu', 'MainMenu.MainMenuUID = UserMM.MainMenuUID', 'left');
+            $this->UserRoleDb->join($this->ModuleDb->database.'.MainMenusTbl as MainMenu', 'MainMenu.MainMenuUID = UserMM.MainMenuUID', 'left');
             $this->UserRoleDb->where('UserMM.UserUID', $UserUID);
             $this->UserRoleDb->where('UserMM.IsActive', 1);
             $this->UserRoleDb->where('UserMM.IsDeleted', 0);
@@ -131,7 +134,7 @@ class Login_model extends CI_Model {
 
             $this->UserRoleDb->select('UserSM.UserSubMenuUID as UserSubMenuUID, SubMenu.MainMenuUID as MainMenuUID, UserSM.SubMenuUID as SubMenuUID, SubMenu.Name as SubMenuName, SubMenu.ControllerName as ControllerName');
             $this->UserRoleDb->from('UserRole.UserSubMenusTbl as UserSM');
-            $this->UserRoleDb->join('UserRole.SubMenusTbl as SubMenu', 'SubMenu.SubMenuUID = UserSM.SubMenuUID', 'left');
+            $this->UserRoleDb->join($this->ModuleDb->database.'.SubMenusTbl as SubMenu', 'SubMenu.SubMenuUID = UserSM.SubMenuUID', 'left');
             $this->UserRoleDb->where('UserSM.UserUID', $UserUID);
             $this->UserRoleDb->where('UserSM.IsActive', 1);
             $this->UserRoleDb->where('UserSM.IsDeleted', 0);
@@ -158,11 +161,39 @@ class Login_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->OrgDb->select('GeneralSettg.DecimalPoints as DecimalPoints, GeneralSettg.CurrenySymbol as CurrenySymbol, GeneralSettg.DiscountType as DiscountType, GeneralSettg.ProductType as ProductType, GeneralSettg.ProductTax as ProductTax, GeneralSettg.TaxDetail as TaxDetail, GeneralSettg.PriceMaxLength as PriceMaxLength');
+            $this->OrgDb->select('GeneralSettg.DecimalPoints as DecimalPoints, GeneralSettg.CurrenySymbol as CurrenySymbol, GeneralSettg.DiscountType as DiscountType, GeneralSettg.ProductType as ProductType, GeneralSettg.ProductTax as ProductTax, GeneralSettg.TaxDetail as TaxDetail, GeneralSettg.PriceMaxLength as PriceMaxLength, GeneralSettg.RowLimit as RowLimit');
             $this->OrgDb->from('Organisation.OrgSettingsTbl as GeneralSettg');
             $this->OrgDb->where('GeneralSettg.OrgUID', $OrgUID);
             $this->OrgDb->limit(1);
             $query = $this->OrgDb->get();
+
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Message = 'Success';
+            $this->EndReturnData->Data = $query->result();
+
+            return $this->EndReturnData;
+
+        } catch(Exception $e) {
+
+            $this->EndReturnData->Error = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+            throw new Exception($this->EndReturnData->Message);
+
+        }
+
+    }
+
+    public function getModuleDetails($OrgUID) {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $this->ModuleDb->select('Module.ModuleUID as ModuleUID, Module.Name as Name, Module.OrgUID as OrgUID, Module.MainMenuUID as MainMenuUID, Module.SubMenuUID as SubMenuUID, Module.ControllerName as ControllerName, Module.DatabaseName as DatabaseName, Module.MasterTableName as MasterTableName, Module.ParentModuleUID as ParentModuleUID, Module.IsMainModule as IsMainModule, Module.IsModuleEnabled as IsModuleEnabled');
+            $this->ModuleDb->from('Modules.ModuleTbl as Module');
+            $this->ModuleDb->where('Module.OrgUID', $OrgUID);
+            $this->ModuleDb->where('Module.IsDeleted', 0);
+            $this->ModuleDb->where('Module.IsActive', 1);
+            $query = $this->ModuleDb->get();
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Message = 'Success';

@@ -11,7 +11,7 @@
             <td><?php echo $SerialNumber; ?></td>
             <td><?php echo $list->Name; ?></td>
             <td><?php echo $list->Description ? $list->Description : '-'; ?></td>
-            <td class="text-end"><?php echo $list->UpdatedOn ? changeTimeZomeDateFormat($list->UpdatedOn, 'Asia/Kolkata') : ''; ?></td>
+            <td class="text-end"><?php echo $list->UpdatedOn ? changeTimeZomeDateFormat($list->UpdatedOn, $JwtData->User->Timezone) : ''; ?></td>
             <td>
                 <div class="d-flex align-items-sm-center justify-content-sm-center">
                     <a href="javascript: void(0);" data-uid="<?php echo $list->SizeUID; ?>" class="btn btn-icon text-warning editSize"><i class="bx bx-edit me-1"></i></a>

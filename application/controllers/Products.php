@@ -1,9 +1,5 @@
 <?php defined('BASEPATH') OR exit('No direct script access allowed');
 
-use PhpOffice\PhpSpreadsheet\Spreadsheet;
-use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
-use PhpOffice\PhpSpreadsheet\Writer\Pdf\Dompdf;
-
 class Products extends CI_Controller {
 
     public $pageData = array();
@@ -27,7 +23,13 @@ class Products extends CI_Controller {
         $limit = isset($this->pageData['JwtData']->GenSettings->RowLimit) ? $this->pageData['JwtData']->GenSettings->RowLimit : 10;
         $Filter = [];
 
-        $ReturnResponse = $this->ItemTablePagination($pageNo, $limit, $offset, $Filter);
+        // ModuleID information
+        $this->pageData['ItemModuleId'] = getModuleUIDByName($this->pageData['ModuleInfo'], 'Products');
+        $this->pageData['CategoryModuleId'] = getModuleUIDByName($this->pageData['ModuleInfo'], 'Category');
+        $this->pageData['SizeModuleId'] = getModuleUIDByName($this->pageData['ModuleInfo'], 'Sizes');
+        $this->pageData['BrandModuleId'] = getModuleUIDByName($this->pageData['ModuleInfo'], 'Brands');
+
+        $ReturnResponse = $this->ItemTablePagination($this->pageData['ItemModuleId'], $pageNo, $limit, $offset, $Filter);
         if($ReturnResponse->Error) {
             throw new Exception($ReturnResponse->Message);
         }
@@ -36,28 +38,22 @@ class Products extends CI_Controller {
         $this->pageData['ItemUIDs'] = $ReturnResponse->UIDs;
         $this->pageData['ItemPagination'] = $ReturnResponse->Pagination;
 
-        // ModuleID information
-        $this->pageData['ItemModuleId'] = $this->getModuleUIDByName($this->pageData['ModuleInfo'], 'Products');
-        $this->pageData['CategoryModuleId'] = $this->getModuleUIDByName($this->pageData['ModuleInfo'], 'Category');
-        $this->pageData['SizeModuleId'] = $this->getModuleUIDByName($this->pageData['ModuleInfo'], 'Sizes');
-        $this->pageData['BrandModuleId'] = $this->getModuleUIDByName($this->pageData['ModuleInfo'], 'Brands');
+        $this->load->model('global_model');
+        $this->pageData['ColumnDetails'] = $this->global_model->getModuleViewColumnDetails(['ViewColmn.ModuleUID' => $this->pageData['ItemModuleId']]);
+        
+        
+        $ItemColumns = array_filter($this->pageData['ColumnDetails'], function ($item) {
+            return isset($item->IsMainPageApplicable) && $item->IsMainPageApplicable == 1;
+        });
+        usort($ItemColumns, function ($a, $b) {
+            return $a->MainPageOrder <=> $b->MainPageOrder;
+        });
+        $this->pageData['ItemColumns'] = $ItemColumns;
+
+        $this->load->model('products_model');
+        $this->pageData['Categories'] = $this->products_model->getCategoriesDetails([]);
         
         $this->load->view('products/view', $this->pageData);
-
-    }
-
-    public function getModuleUIDByName($modules, $name) {
-
-        $filtered = array_filter($modules, function($module) use ($name) {
-            return $module->Name === $name;
-        });
-
-        // If found, return the first match's ModuleUID
-        if (!empty($filtered)) {
-            return array_values($filtered)[0]->ModuleUID;
-        }
-
-        return 0;
 
     }
 
@@ -66,11 +62,12 @@ class Products extends CI_Controller {
 		$this->EndReturnData = new stdClass();
 		try {
 
+			$ModuleId = $this->input->post('ModuleId');
 			$limit = $this->input->post('RowLimit');
             $offset = ($pageNo != 0) ? (($pageNo - 1) * $limit) : $pageNo;
             $Filter = $this->input->post('Filter');
 
-			$ReturnResponse = $this->ItemTablePagination($pageNo, $limit, $offset, $Filter);
+			$ReturnResponse = $this->ItemTablePagination($ModuleId, $pageNo, $limit, $offset, $Filter);
             if($ReturnResponse->Error) {
                 throw new Exception($ReturnResponse->Message);
             }
@@ -93,31 +90,55 @@ class Products extends CI_Controller {
 
 	}
 
-    public function ItemTablePagination($pageNo, $limit, $offset, $Filter) {
+    public function ItemTablePagination($ModuleId, $pageNo, $limit, $offset, $Filter) {
 
         $this->PagReturnData = new stdClass();
 		try {
 
-			$this->load->model('products_model');
-            $this->pageData['SerialNumber'] = $offset;
-            $this->pageData['ProductsList'] = $this->products_model->getProductsList($limit, $offset, $Filter, 0);
-            $ProductsUIds = $this->products_model->getProductsList($limit, $offset, $Filter, 1);
+            if($ModuleId > 0) {
 
-            $ProductsCount = sizeof($ProductsUIds);
+                $this->load->model('products_model');
+                $this->pageData['SerialNumber'] = $offset;
 
-			$config['base_url'] = '/products/getProductDetails/';
-            $config['use_page_numbers'] = TRUE;
-            $config['total_rows'] = $ProductsCount;
-            $config['per_page'] = $limit;
+                $this->load->model('global_model');
+                $DataInfo = $this->global_model->getModuleViewColumnDetails(['ViewColmn.ModuleUID' => $ModuleId, 'ViewColmn.IsMainPageApplicable' => 1], true, ['ViewColmn.MainPageOrder' => 'ASC']);
+                $ModuleInfo = $this->global_model->getModuleDetails(['Modules.ModuleUID' => $ModuleId]);
+                if(sizeof($DataInfo) > 0 && sizeof($ModuleInfo) > 0) {
 
-            $config['result_count'] = pageResultCount($pageNo, $limit, $ProductsCount);
-            $this->pagination->initialize($config);
+                    $ModuleInfoData = $ModuleInfo[0];
+                    
+                    $FilterFormat = $this->products_model->itemFilterFormation($ModuleInfoData, $Filter);
+                    
+                    $JoinData = $this->global_model->getModuleViewJoinColumnDetails(['JoinColmn.MainModuleUID' => $ModuleId], true, ['JoinColmn.SortOrder' => 'ASC']);
 
-            $this->PagReturnData->Error = FALSE;
-            $this->PagReturnData->List = $this->load->view('products/items/list', $this->pageData, TRUE);
-            $this->PagReturnData->UIDs = sizeof($ProductsUIds) > 0 ? array_map('intval', array_column($ProductsUIds, 'ProductUID')) : [];
-			$this->PagReturnData->Count = $ProductsCount;
-            $this->PagReturnData->Pagination = $this->pagination->create_links();
+                    $this->pageData['ProductsList'] = $this->global_model->getModuleReportDetails($ModuleInfoData, $DataInfo, $JoinData, $FilterFormat->SearchFilter, $FilterFormat->SearchDirectQuery, 'DESC', [], $limit, $offset, 0);
+                    $ProductsUIds = $this->global_model->getModuleReportDetails($ModuleInfoData, $DataInfo, $JoinData, $FilterFormat->SearchFilter, $FilterFormat->SearchDirectQuery, 'DESC', [], $limit, $offset, 1);
+                    $this->pageData['ModuleInfo'] = $ModuleInfoData;
+                    $this->pageData['ViewColumns'] = $DataInfo;
+
+                    $ProductsCount = sizeof($ProductsUIds);
+
+                    $config['base_url'] = '/products/getProductDetails/';
+                    $config['use_page_numbers'] = TRUE;
+                    $config['total_rows'] = $ProductsCount;
+                    $config['per_page'] = $limit;
+
+                    $config['result_count'] = pageResultCount($pageNo, $limit, $ProductsCount);
+                    $this->pagination->initialize($config);
+
+                    $this->PagReturnData->Error = FALSE;
+                    $this->PagReturnData->List = $this->load->view('products/items/list', $this->pageData, TRUE);
+                    $this->PagReturnData->UIDs = $ProductsCount > 0 ? array_map('intval', array_column($ProductsUIds, $ModuleInfoData->TablePrimaryUID)) : [];
+                    $this->PagReturnData->Count = $ProductsCount;
+                    $this->PagReturnData->Pagination = $this->pagination->create_links();
+
+                } else {
+                    throw new Exception('No Records Found.!');
+                }
+
+            } else {
+                throw new Exception('Oops! Something went wrong.');
+            }
 
         } catch (Exception $e) {
             $this->PagReturnData->Error = TRUE;
@@ -126,165 +147,6 @@ class Products extends CI_Controller {
 
 		return $this->PagReturnData;
         
-    }
-
-    public function getAllProductDetails() {
-
-        $this->EndReturnData = new stdClass();
-		try {
-
-            $ModuleId = isset($_GET['ModuleId']) ? $_GET['ModuleId'] : 0;
-            if($ModuleId > 0) {
-
-                $this->load->model('global_model');
-                $DataInfo = $this->global_model->getModuleViewColumnDetails(['ViewColmn.ModuleUID' => $ModuleId, 'ViewColmn.IsPrintPreviewApplicable' => 1], true, ['ViewColmn.IsPrintPreviewApplicable' => 'ASC']);
-
-                if($DataInfo->Error === FALSE && sizeof($DataInfo->Data) > 0) {
-
-                    $ModuleData = $DataInfo->Data;
-
-                    $this->load->model('products_model');
-
-                    $Filter = isset($_GET['Filter']) ? json_decode($_GET['Filter'], TRUE) : [];
-                    $ExportIds = isset($_GET['ExportIds']) ? explode(',', base64_decode($_GET['ExportIds'])) : [];
-
-                    $this->pageData['Columns'] = ['Unique_ID', 'Product Name'];
-                    $this->pageData['List'] = $this->products_model->getProductReportDetails($ModuleData, 'DESC', ['Products.ProductUID' => $ExportIds]);
-
-                    print_r($this->pageData['List']); die();
-
-                    $this->EndReturnData->Error = FALSE;
-                    $this->EndReturnData->HtmlData = $this->load->view('products/items/printpreview', $this->pageData, TRUE);
-
-                } else {
-                    throw new Exception('No Records Found.!');    
-                }
-
-            } else {
-                throw new Exception('Oops! Something went wrong.');
-            }
-
-		} catch (Exception $e) {
-            $this->EndReturnData->Error = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-        }
-
-		$this->output->set_status_header(200)
-            ->set_content_type('application/json', 'utf-8')
-            ->set_output(json_encode($this->EndReturnData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES))
-            ->_display();
-        exit;
-
-    }
-
-    public function exportProductDetails() {
-
-        $Type = isset($_GET['Type']) ? $_GET['Type'] : '';
-        $Filter = isset($_GET['Filter']) ? json_decode($_GET['Filter'], TRUE) : [];
-        $ExportIds = isset($_GET['ExportIds']) ? explode(',', base64_decode($_GET['ExportIds'])) : [];
-
-        $this->load->model('products_model');
-        $ProdData = $this->products_model->getProductsDetails($Filter, 'DESC', ['Products.ProductUID' => $ExportIds]);
-
-        $FileName = 'Product_Report';
-        $Headers = ['Unique_Id', 'Item Name'];
-
-        if($Type == 'CSV') {
-
-            if (ob_get_length()) ob_end_clean();
-
-            header('Content-Type: text/csv; charset=utf-8');
-            header("Content-Disposition: attachment; filename=\"$FileName.csv\"");
-            header("Pragma: no-cache");
-            header("Expires: 0");
-            
-            $file = fopen('php://output','w');
-
-            fputs($file, $bom = chr(0xEF) . chr(0xBB) . chr(0xBF));
-
-            fputcsv($file, $Headers);
-
-            foreach($ProdData as $List) {
-
-                $data = [
-                    $List->ProductUID,
-                    $List->ItemName
-                ];
-
-                fputcsv($file, $data);
-
-            }
-
-            fclose($file);
-            exit;
-
-        } else if($Type == 'Excel') {
-
-            if (ob_get_length()) ob_end_clean();
-
-            // Create spreadsheet
-            $spreadsheet = new Spreadsheet();
-            $sheet = $spreadsheet->getActiveSheet();
-
-            // Set sheet name
-            $sheet->setTitle('Product Details');
-
-            // Write headers
-            $sheet->fromArray($Headers, null, 'A1');
-
-            // Write data rows
-            $rowNum = 2;
-            foreach ($ProdData as $List) {
-                $sheet->setCellValue("A$rowNum", $List->ProductUID);
-                $sheet->setCellValue("B$rowNum", $List->ItemName);
-                $rowNum++;
-            }
-
-            // Output headers
-            header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-            header("Content-Disposition: attachment; filename=\"$FileName.xlsx\"");
-            header('Cache-Control: max-age=0');
-
-            // Write file to output
-            $writer = new Xlsx($spreadsheet);
-            $writer->save('php://output');
-            exit;
-
-        } else if($Type == 'Pdf') {
-
-            if (ob_get_length()) ob_end_clean();
-
-            // Create spreadsheet
-            $spreadsheet = new Spreadsheet();
-            $sheet = $spreadsheet->getActiveSheet();
-
-            // Set sheet name
-            $sheet->setTitle('Product Details');
-
-            // Write headers
-            $sheet->fromArray($Headers, null, 'A1');
-
-            // Write data rows
-            $rowNum = 2;
-            foreach ($ProdData as $List) {
-                $sheet->setCellValue("A$rowNum", $List->ProductUID);
-                $sheet->setCellValue("B$rowNum", $List->ItemName);
-                $rowNum++;
-            }
-
-            // Output headers
-            header('Content-Type: application/pdf');
-            header("Content-Disposition: attachment; filename=\"$FileName.pdf\"");
-            header('Cache-Control: max-age=0');
-
-            // Use Dompdf writer
-            \PhpOffice\PhpSpreadsheet\IOFactory::registerWriter('Pdf', Dompdf::class);
-            $writer = new Dompdf($spreadsheet);
-            $writer->save('php://output');
-            exit;
-
-        }
-
     }
 
     public function add() {
@@ -683,8 +545,9 @@ class Products extends CI_Controller {
                 $pageNo = $this->input->post('PageNo') ? $this->input->post('PageNo') : 0;
                 $offset = ($pageNo != 0) ? (($pageNo - 1) * $limit) : $pageNo;
                 $Filter = $this->input->post('Filter') ? $this->input->post('Filter') : [];
+                $ModuleId = $this->input->post('ModuleId');
 
-                $ReturnResponse = $this->ItemTablePagination($pageNo, $limit, $offset, $Filter);
+                $ReturnResponse = $this->ItemTablePagination($ModuleId, $pageNo, $limit, $offset, $Filter);
                 if($ReturnResponse->Error) {
                     throw new Exception($ReturnResponse->Message);
                 }
@@ -737,6 +600,7 @@ class Products extends CI_Controller {
                 $pageNo = $this->input->post('PageNo') ? $this->input->post('PageNo') : 0;
                 $offset = ($pageNo != 0) ? (($pageNo - 1) * $limit) : $pageNo;
                 $Filter = $this->input->post('Filter') ? $this->input->post('Filter') : [];
+                $ModuleId = $this->input->post('ModuleId');
 
                 $ReturnResponse = $this->ItemTablePagination($pageNo, $limit, $offset, $Filter);
                 if($ReturnResponse->Error) {

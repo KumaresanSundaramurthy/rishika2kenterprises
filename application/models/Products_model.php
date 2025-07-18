@@ -5,72 +5,43 @@ class Products_model extends CI_Model
 
     private $EndReturnData;
     private $ProductDb;
-    private $GlobalDb;
 
     function __construct()
     {
         parent::__construct();
 
         $this->ProductDb = $this->load->database('Products', TRUE);
-        $this->GlobalDb = $this->load->database('Global', TRUE);
     }
 
-    public function getProductsList($limit, $offset, $Filter, $Flag = 0)
-    {
+    public function itemFilterFormation($ModuleInfoData, $Filter) {
 
         $this->EndReturnData = new StdClass();
         try {
 
-            $this->ProductDb->db_debug = FALSE;
-            if ($Flag == 0) {
-                $select_ary = array(
-                    'Products.ProductUID AS ProductUID',
-                    'Products.OrgUID AS OrgUID',
-                    'Products.ItemName AS ItemName',
-                    'Category.Name as CategoryName',
-                    'Products.ProductType AS ProductType',
-                    'Products.SellingPrice AS SellingPrice',
-                    'Products.PurchasePrice AS PurchasePrice',
-                    'Products.CreatedOn as CreatedOn',
-                    'Products.UpdatedOn as UpdatedOn',
-                );
-            } else {
-                $select_ary = array(
-                    'Products.ProductUID AS ProductUID',
-                );
-            }
-            $WhereCondition = array(
-                'Products.IsDeleted' => 0,
-                'Products.IsActive' => 1,
-            );
-            $this->ProductDb->select($select_ary);
-            $this->ProductDb->from('Products.ProductTbl as Products');
-            $this->ProductDb->join('Products.CategoryTbl as Category', 'Category.CategoryUID = Products.CategoryUID', 'left');
-            $this->ProductDb->where($WhereCondition);
-            if (!empty($Filter)) {
-                if (array_key_exists('Name', $Filter)) {
-                    $this->ProductDb->like("Products.ItemName", $Filter['Name'], 'Both');
+            $SearchDirectQuery = '';
+            $SearchFilter = [];
+            if(!empty($Filter)) {
+                if (array_key_exists('SearchAllData', $Filter)) {
+                    $SearchDirectQuery .= '(('. $ModuleInfoData->TableAliasName.'.ItemName LIKE "%'.$Filter['SearchAllData'].'%" ) OR ('.$ModuleInfoData->TableAliasName.'.HSNSACCode LIKE "%'.$Filter['SearchAllData'].'%") OR ('.$ModuleInfoData->TableAliasName.'.PartNumber LIKE "%'.$Filter['SearchAllData'].'%") OR ('.$ModuleInfoData->TableAliasName.'.Description LIKE "%'.$Filter['SearchAllData'].'%"))';
+                }
+                if (array_key_exists('Category', $Filter)) {
+                    $SearchFilter[$ModuleInfoData->TableAliasName.'.CategoryUID'] = $Filter['Category'];
                 }
             }
-            $this->ProductDb->group_by('Products.ProductUID');
-            if ($Flag == 0) {
-                $this->ProductDb->order_by('Products.ProductUID', 'DESC');
-                $this->ProductDb->limit($limit, $offset);
-            }
 
-            $query = $this->ProductDb->get();
-            $error = $this->ProductDb->error();
-            if ($error['code']) {
-                throw new Exception($error['message']);
-            } else {
-                $this->EndReturnData->Data = $query->result();
-            }
-            return $this->EndReturnData->Data;
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->SearchDirectQuery = $SearchDirectQuery;
+            $this->EndReturnData->SearchFilter = $SearchFilter;
+
         } catch (Exception $e) {
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
-            throw new Exception($this->EndReturnData->Message);
+            $this->EndReturnData->SearchDirectQuery = '';
+            $this->EndReturnData->SearchFilter = [];
         }
+
+        return $this->EndReturnData;
+
     }
 
     public function getProductsDetails($FilterArray, $OrderBy = 'ASC', $whereInCondition = [])
@@ -117,54 +88,6 @@ class Products_model extends CI_Model
                 'Products.CreatedOn as CreatedOn',
                 'Products.UpdatedOn as UpdatedOn',
             );
-            $WhereCondition = array(
-                'Products.IsDeleted' => 0,
-                'Products.IsActive' => 1,
-            );
-            $this->ProductDb->select($select_ary);
-            $this->ProductDb->from('Products.ProductTbl as Products');
-            $this->ProductDb->join('Products.CategoryTbl as Category', 'Category.CategoryUID = Products.CategoryUID', 'left');
-            $this->ProductDb->where($WhereCondition);
-            if (!empty($FilterArray)) {
-                $this->ProductDb->where($FilterArray);
-            }
-            if (!empty($whereInCondition)) {
-                foreach ($whereInCondition as $wkey => $wval) {
-                    $this->ProductDb->where_in($wkey, $wval);
-                }
-            }
-            $this->ProductDb->group_by('Products.ProductUID');
-            $this->ProductDb->order_by('Products.ProductUID', $OrderBy);
-
-            $query = $this->ProductDb->get();
-            $error = $this->ProductDb->error();
-            if ($error['code']) {
-                throw new Exception($error['message']);
-            } else {
-                $this->EndReturnData->Data = $query->result();
-            }
-            return $this->EndReturnData->Data;
-        } catch (Exception $e) {
-            $this->EndReturnData->Error = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-            throw new Exception($this->EndReturnData->Message);
-        }
-    }
-
-    public function getProductReportDetails($TableData, $OrderBy = 'ASC', $whereInCondition = [])
-    {
-
-        $this->EndReturnData = new StdClass();
-        try {
-
-            $this->ProductDb->db_debug = FALSE;
-
-            $selectFields = [];
-            foreach ($TableData as $column) {
-                $selectFields[] = "{$column->DbFieldName} AS '{$column->DisplayName}'";
-            }
-
-            $select_ary = array(implode(",\n  ", $selectFields));
             $WhereCondition = array(
                 'Products.IsDeleted' => 0,
                 'Products.IsActive' => 1,

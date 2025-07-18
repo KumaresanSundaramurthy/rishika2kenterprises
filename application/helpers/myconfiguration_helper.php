@@ -67,3 +67,18 @@ function smartDecimal($number) {
     return rtrim(rtrim(number_format($number, 6, '.', ''), '0'), '.');
 	
 }
+
+function getModuleUIDByName($modules, $name) {
+
+	$filtered = array_filter($modules, function($module) use ($name) {
+		return $module->Name === $name;
+	});
+
+	// If found, return the first match's ModuleUID
+	if (!empty($filtered)) {
+		return array_values($filtered)[0]->ModuleUID;
+	}
+
+	return 0;
+
+}

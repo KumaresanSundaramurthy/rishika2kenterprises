@@ -97,6 +97,16 @@ $(document).ready(function () {
         expActionType = '';
     });
 
+    $('#UpdatePageSettingsForm').submit(function (e) {
+        e.preventDefault();
+        let checkResp = checkPageSettingsSortOrder();
+        if (checkResp) {
+            return false;
+        }
+        var formData = $('#UpdatePageSettingsForm').serializeArray();
+        updatePageSettings(formData);
+    });
+
 });
 
 function exportURLDynamic(Url) {
@@ -705,10 +715,12 @@ function onClickOfCheckbox($this, ItemIds, HeaderField) {
 }
 
 function headerCheckboxTrueFalse(ItemIds, HeaderField) {
-    if (ItemIds.length == SelectedUIDs.length) {
-        $(HeaderField).prop('checked', true);
-    } else {
-        $(HeaderField).prop('checked', false);
+    if (ItemIds.length > 0) {
+        if (ItemIds.length == SelectedUIDs.length) {
+            $(HeaderField).prop('checked', true);
+        } else {
+            $(HeaderField).prop('checked', false);
+        }
     }
 }
 
@@ -830,10 +842,98 @@ function exportRecords(UrlData, Filter = {}) {
     });
 }
 
+function updatePageSettings(formdata) {
+    $('#updatePageSettingsBtn').removeAttr('disabled');
+    $.ajax({
+        url: '/globally/updatePageSettings',
+        method: 'POST',
+        data: formdata,
+        cache: false,
+        success: function (response) {
+            $('#updatePageSettingsBtn').removeAttr('disabled');
+            if (response.Error) {
+                Swal.fire({
+                    icon: "error",
+                    title: "Oops...",
+                    text: response.Message,
+                });
+            } else {
+                Swal.fire(response.Message, "", "success");
+                $('#pageSettingsModal').modal('hide');
+                setTimeout(function () {
+                    window.location.reload();
+                }, 1000);
+            }
+        }
+    });
+
+}
+
 function CopyAllDatatoSelectItems(PageItemIds) {
     SelectedUIDs = [...PageItemIds];
 }
 
 function removeAllDatatoSelectItems() {
     SelectedUIDs = [];
+}
+
+function validatePageSettingsMinValue(input) {
+    const min = parseInt(input.min) || 1000;
+    const value = parseInt(input.value);
+    if ((isNaN(value) || value < min)) {
+        input.value = min;
+    }
+}
+
+function checkPageSettingsSortOrder() {
+    let hasDuplicates = false;
+    let message = '';
+
+    const sections = [
+        { checkboxName: 'MainPageFld', inputName: 'MainPageFldSort' },
+        { checkboxName: 'PrintPageFld', inputName: 'PrintPageFldSort' },
+        { checkboxName: 'ExpCsvFld', inputName: 'ExpCsvFldSort' },
+        { checkboxName: 'ExpXlFld', inputName: 'ExpXlFldSort' },
+        { checkboxName: 'ExpPdfFld', inputName: 'ExpPdfFldSort' }
+    ];
+
+    sections.forEach(function (section) {
+        const usedSortValues = new Set();
+        const duplicateValues = [];
+
+        // Select all checkboxes in this section
+        $(`input[name^="${section.checkboxName}"]`).each(function () {
+            const $checkbox = $(this);
+            const nameMatch = $checkbox.attr('name').match(/\[(\d+)\]/); // Extract UID
+
+            if ($checkbox.is(':checked') && nameMatch) {
+                const uid = nameMatch[1];
+                const $sortInput = $(`input[name="${section.inputName}[${uid}]"]`);
+
+                if ($sortInput.length) {
+                    const val = $sortInput.val().trim();
+
+                    if (usedSortValues.has(val)) {
+                        duplicateValues.push(val);
+                        hasDuplicates = true;
+                    } else {
+                        usedSortValues.add(val);
+                    }
+                }
+            }
+        });
+
+        if (duplicateValues.length > 0) {
+            message += `Duplicate sort values in ${section.checkboxName.replace(/Fld/, '')}: ${duplicateValues.join(', ')}\n`;
+        }
+    });
+
+    if (hasDuplicates) {
+        Swal.fire({
+            icon: "error",
+            title: "Oops...",
+            text: 'Form submission blocked due to duplicate sort values:\n\n' + message,
+        });
+    }
+    return hasDuplicates;
 }

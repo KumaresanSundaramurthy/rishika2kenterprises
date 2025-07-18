@@ -38,6 +38,7 @@ class Login_model extends CI_Model {
             $JwtUserData['OrgLogo'] = $UserData->UserOrgLogo;
             $JwtUserData['RoleUID'] = $UserData->UserRoleUID;
             $JwtUserData['RoleName'] = $UserData->UserRoleName;
+            $JwtUserData['Timezone'] = $UserData->Timezone;
 
             $MainModule = $this->getUserRightsMainModule($UserData->UserUID)->Data;
             $SubModule = $this->getUserRightsSubModule($UserData->UserUID)->Data;

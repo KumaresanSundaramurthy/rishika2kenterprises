@@ -6,19 +6,32 @@
 
         <tr>
             <td>
-                <div class="form-check form-check-inline"><input class="form-check-input table-chkbox productsCheck" type="checkbox" value="<?php echo $list->ProductUID; ?>"></div>
+                <div class="form-check form-check-inline"><input class="form-check-input table-chkbox productsCheck" type="checkbox" value="<?php echo $list->TablePrimaryUID; ?>"></div>
             </td>
             <td><?php echo $SerialNumber; ?></td>
-            <td><?php echo $list->ItemName; ?></td>
-            <td><?php echo $list->CategoryName ? $list->CategoryName : '-'; ?></td>
-            <td class="text-center">0</td>
-            <td class="text-end"><?php echo $list->SellingPrice ? $JwtData->GenSettings->CurrenySymbol.smartDecimal($list->SellingPrice) : 0; ?></td>
-            <td class="text-end"><?php echo $list->PurchasePrice ? $JwtData->GenSettings->CurrenySymbol.smartDecimal($list->PurchasePrice) : 0; ?></td>
-            <td class="text-end"><?php echo $list->UpdatedOn ? changeTimeZomeDateFormat($list->UpdatedOn, 'Asia/Kolkata') : ''; ?></td>
+
+            <?php foreach ($ViewColumns as $column) {
+
+                $fieldName = $column->DisplayName;
+                $value = $list->$fieldName ?? '';
+
+                // Formatting Amount
+                if ($column->IsAmountField) {
+                    $value = $JwtData->GenSettings->CurrenySymbol . smartDecimal($value);
+                }
+
+                // Formatting Date
+                if ($column->IsDateField && !empty($value)) {
+                    $value = changeTimeZomeDateFormat($value, $JwtData->User->Timezone);
+                } ?>
+
+                <td <?php echo $column->MainPageDataAddon; ?>><?php echo $value; ?></td>
+
+            <?php } ?>
             <td>
                 <div class="d-flex align-items-sm-center justify-content-sm-center">
-                    <a href="/products/<?php echo $list->ProductUID; ?>/edit" class="btn btn-icon text-warning"><i class="bx bx-edit me-1"></i></a>
-                    <button class="btn btn-icon text-danger DeleteProduct" data-productuid="<?php echo $list->ProductUID; ?>"><i class="bx bx-trash"></i></button>
+                    <a href="/products/<?php echo $list->TablePrimaryUID; ?>/edit" class="btn btn-icon text-warning"><i class="bx bx-edit me-1"></i></a>
+                    <button class="btn btn-icon text-danger DeleteProduct" data-productuid="<?php echo $list->TablePrimaryUID; ?>"><i class="bx bx-trash"></i></button>
                 </div>
             </td>
         </tr>

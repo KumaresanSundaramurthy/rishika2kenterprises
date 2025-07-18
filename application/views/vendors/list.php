@@ -11,7 +11,7 @@
             <td><?php echo $list->VillageName ? $list->VillageName : '-'; ?></td>
             <td class="text-center"><?php echo $list->MobileNumber ? $list->CountryCode.'-'.$list->MobileNumber : '-'; ?></td>
             <td class="text-end">0.00</td>
-            <td class="text-end"><?php echo $list->UpdatedOn ? changeTimeZomeDateFormat($list->UpdatedOn, 'Asia/Kolkata') : ''; ?></td>
+            <td class="text-end"><?php echo $list->UpdatedOn ? changeTimeZomeDateFormat($list->UpdatedOn, $JwtData->User->Timezone) : ''; ?></td>
             <td>
                 <div class="d-flex align-items-sm-center justify-content-sm-center">
                     <a href="/vendors/<?php echo $list->VendorUID; ?>/edit" class="btn btn-icon text-warning"><i class="bx bx-edit me-1"></i></a>

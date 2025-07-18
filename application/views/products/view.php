@@ -42,10 +42,20 @@
                                             <input type="text" class="form-control SearchDetails" name="SearchDetails" id="SearchDetails" placeholder="Search details..." data-toggle="tooltip" title="Please type at least 3 characters to search" />
                                             <i class="bx bx-x position-absolute top-50 end-0 translate-middle-y me-3 text-muted cursor-pointer" id="clearSearch"></i>
                                         </div>
+                                        <div class="me-2" id="ItemCategory-Div">
+                                            <select id="SearchCategory" name="SearchCategory" class="select2 form-select">
+                                                <option label="-- Select Category --"></option>
+                                                <?php if (sizeof($Categories) > 0) {
+                                                    foreach ($Categories as $CgVal) { ?>
+                                                        <option value="<?php echo $CgVal->CategoryUID; ?>"><?php echo $CgVal->Name; ?></option>
+                                                <?php }
+                                                } ?>
+                                            </select>
+                                        </div>
                                         <div class="btn-group" id="ActionsDD-Div">
                                             <button class="btn btn-label-secondary dropdown-toggle me-2" type="button" id="actionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                                                 <span class="d-flex align-items-center gap-2">
-                                                    <i class="icon-base bx bx-cog icon-xs"></i>
+                                                    <i class="icon-base bx bx-slider-alt icon-xs"></i>
                                                     <span class="d-none d-sm-inline-block">Actions</span>
                                                 </span>
                                             </button>
@@ -87,6 +97,11 @@
                                                         </li>
                                                     </ul>
                                                 </li>
+                                                <li>
+                                                    <a class="dropdown-item" href="javascript: void(0);" id="btnPageSettings">
+                                                        <i class="bx bx-cog me-1"></i> Settings
+                                                    </a>
+                                                </li>
                                             </ul>
                                         </div>
                                         <a href="/products/add" class="btn btn-primary px-3" id="NewItem"><i class='bx bx-plus'></i> New Item</a>
@@ -109,12 +124,9 @@
                                                             </div>
                                                         </th>
                                                         <th class="table-serialno">S.No</th>
-                                                        <th>Name</th>
-                                                        <th>Category</th>
-                                                        <th class="text-center">Qty</th>
-                                                        <th class="text-end">Selling Price</th>
-                                                        <th class="text-end">Purchase Price</th>
-                                                        <th class="text-end">Last Updated On</th>
+                                                        <?php foreach (array_column($ItemColumns, 'DisplayName') as $ItemKey => $ItemVal) { ?>
+                                                            <th <?php echo $ItemColumns[$ItemKey]->MainPageColumnAddon; ?>><?php echo $ItemVal; ?></th>
+                                                        <?php } ?>
                                                         <th class="text-center">Actions</th>
                                                     </tr>
                                                 </thead>
@@ -226,6 +238,8 @@
             </div>
             <!-- Content wrapper -->
 
+            <?php $this->load->view('common/settings_modal'); ?>
+
             <?php $this->load->view('products/modals/category'); ?>
             <?php $this->load->view('products/modals/sizes'); ?>
             <?php $this->load->view('products/modals/brands'); ?>
@@ -276,6 +290,7 @@
         $(ProdHeader + ',' + ProdRow).prop('checked', false).trigger('change');
         $('[data-toggle="tooltip"]').tooltip();
         $('#clearSearch').addClass('d-none');
+        $('#ItemCategory-Div').removeClass('d-none');
 
         $(ProdHeader).click(function() {
             allTableHeadersCheckbox($(this), ItemUIDs, ProdTable, ProdHeader, ProdRow);
@@ -290,11 +305,21 @@
             MultipleDeleteOption();
         });
 
+        $('#SearchCategory').select2({
+            placeholder: "-- Select Category --",
+            allowClear: true,
+        });
+
         $('#btnClone').click(function(e) {
             e.preventDefault();
             if (SelectedUIDs.length == 1 && ActiveTabId == 'Item') {
                 window.location.href = '/products/' + SelectedUIDs[0] + '/clone';
             }
+        });
+
+        $('#btnPageSettings').click(function(e) {
+            e.preventDefault();
+            $('#pageSettingsModal').modal('show');
         });
 
         $('#btnDelete').click(function(e) {
@@ -340,12 +365,12 @@
             if (TabValue) {
                 ActiveTabId = TabValue;
                 ActiveTabModuleId = $(this).data('moduleid');
-                $('#NewItem,#NewCategory,#NewSizes,#NewBrands,#CloneOption').addClass('d-none');
+                $('#NewItem,#NewCategory,#NewSizes,#NewBrands,#CloneOption,#ItemCategory-Div').addClass('d-none');
                 $('#SearchDetails').val('');
                 PageNo = 0;
                 Filter = {};
                 if (ActiveTabId == 'Item') {
-                    $('#NewItem').removeClass('d-none');
+                    $('#NewItem,#ItemCategory-Div').removeClass('d-none');
                     getProductDetails(PageNo, RowLimit, Filter);
                 } else if (ActiveTabId == 'Categories') {
                     $('#NewCategory').removeClass('d-none');
@@ -368,15 +393,7 @@
 
         $(document).on('click', '.PageRefresh', function(e) {
             e.preventDefault();
-            if (ActiveTabId == 'Item') {
-                getProductDetails(PageNo, RowLimit, Filter);
-            } else if (ActiveTabId == 'Categories') {
-                getCategoriesDetails(PageNo, RowLimit, Filter);
-            } else if (ActiveTabId == 'Sizes') {
-                getSizesDetails(PageNo, RowLimit, Filter);
-            } else if (ActiveTabId == 'Brands') {
-                getBrandsDetails(PageNo, RowLimit, Filter);
-            }
+            showProductPageDetails();
         });
 
         $('#clearSearch').click(function(e) {
@@ -386,15 +403,7 @@
             $('#clearSearch').addClass('d-none');
             if ($.trim(searchText) != '') {
                 Filter = {};
-                if (ActiveTabId == 'Item') {
-                    getProductDetails(PageNo, RowLimit, Filter);
-                } else if (ActiveTabId == 'Categories') {
-                    getCategoriesDetails(PageNo, RowLimit, Filter);
-                } else if (ActiveTabId == 'Sizes') {
-                    getSizesDetails(PageNo, RowLimit, Filter);
-                } else if (ActiveTabId == 'Brands') {
-                    getBrandsDetails(PageNo, RowLimit, Filter);
-                }
+                showProductPageDetails();
             }
         });
 
@@ -404,19 +413,21 @@
             if (searchText.length >= 3) {
                 $('#clearSearch').removeClass('d-none');
                 if (searchText) {
-                    Filter['Name'] = searchText;
+                    Filter['SearchAllData'] = searchText;
                 }
-                if (ActiveTabId == 'Item') {
-                    getProductDetails(PageNo, RowLimit, Filter);
-                } else if (ActiveTabId == 'Categories') {
-                    getCategoriesDetails(PageNo, RowLimit, Filter);
-                } else if (ActiveTabId == 'Sizes') {
-                    getSizesDetails(PageNo, RowLimit, Filter);
-                } else if (ActiveTabId == 'Brands') {
-                    getBrandsDetails(PageNo, RowLimit, Filter);
-                }
+                showProductPageDetails();
             }
         }, 500));
+
+        $('#SearchCategory').change(function(e) {
+            e.preventDefault();
+            delete Filter['SearchCategory'];
+            var SrchCatg = $(this).find('option:selected').val();
+            if(SrchCatg) {
+                Filter['Category'] = SrchCatg;
+            }
+            showProductPageDetails();
+        });
 
         $('#selectThisPageBtn').click(function(e) {
             e.preventDefault();

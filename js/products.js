@@ -9,17 +9,18 @@ function getProductDetails(PageNo, RowLimit, Filter) {
         method: "POST",
         cache: false,
         data: {
+            ModuleId: ItemModuleId,
             RowLimit: RowLimit,
             PageNo: PageNo,
             Filter: Filter,
         },
         success: function (response) {
             if (response.Error) {
-                $(ProdTable+' tbody').html('');
+                $(ProdTable + ' tbody').html('');
                 $(ProdPag).html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');
             } else {
                 $(ProdPag).html(response.Pagination);
-                $(ProdTable+' tbody').html(response.List);
+                $(ProdTable + ' tbody').html(response.List);
             }
             ItemUIDs = response.UIDs ? response.UIDs : [];
             headerCheckboxTrueFalse(ItemUIDs, ProdHeader);
@@ -118,7 +119,8 @@ function deleteProduct(ProductUID) {
             RowLimit: RowLimit,
             PageNo: PageNo,
             Filter: Filter,
-            ProductUID: ProductUID
+            ProductUID: ProductUID,
+            ModuleId: ItemModuleId
         },
         success: function (response) {
             if (response.Error) {
@@ -131,7 +133,7 @@ function deleteProduct(ProductUID) {
                 }
                 ItemUIDs = response.UIDs ? response.UIDs : [];
                 $(ProdPag).html(response.Pagination);
-                $(ProdTable+' tbody').html(response.List);
+                $(ProdTable + ' tbody').html(response.List);
                 Swal.fire(response.Message, "", "success");
                 headerCheckboxTrueFalse(ItemUIDs, ProdHeader);
                 tableCheckboxTrueFalse(SelectedUIDs, ProdTable, ProdRow);
@@ -150,7 +152,8 @@ function deleteMultipleProduct() {
             RowLimit: RowLimit,
             PageNo: PageNo,
             Filter: Filter,
-            ProductUIDs: SelectedUIDs
+            ProductUIDs: SelectedUIDs,
+            ModuleId: ItemModuleId
         },
         success: function (response) {
             if (response.Error) {
@@ -159,7 +162,7 @@ function deleteMultipleProduct() {
                 SelectedUIDs = [];
                 ItemUIDs = response.UIDs ? response.UIDs : [];
                 $(ProdPag).html(response.Pagination);
-                $(ProdTable+' tbody').html(response.List);
+                $(ProdTable + ' tbody').html(response.List);
                 Swal.fire(response.Message, "", "success");
                 headerCheckboxTrueFalse(ItemUIDs, ProdHeader);
                 tableCheckboxTrueFalse(SelectedUIDs, ProdTable, ProdRow);
@@ -186,11 +189,11 @@ function getCategoriesDetails(PageNo, RowLimit, Filter) {
         },
         success: function (response) {
             if (response.Error) {
-                $(CatgTable+' tbody').html('');
+                $(CatgTable + ' tbody').html('');
                 $(CatgPag).html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');
             } else {
                 $(CatgPag).html(response.Pagination);
-                $(CatgTable+' tbody').html(response.List);
+                $(CatgTable + ' tbody').html(response.List);
             }
         },
     });
@@ -235,7 +238,7 @@ function addCategoryDetails(formdata) {
                 $('#categoryModal').modal('hide');
 
                 $(CatgPag).html(response.Pagination);
-                $(CatgTable+' tbody').html(response.List);
+                $(CatgTable + ' tbody').html(response.List);
                 Swal.fire(response.Message, "", "success");
 
             }
@@ -343,7 +346,7 @@ function editCategoryDetails(formdata) {
                 $('#categoryModal').modal('hide');
 
                 $(CatgPag).html(response.Pagination);
-                $(CatgTable+' tbody').html(response.List);
+                $(CatgTable + ' tbody').html(response.List);
                 Swal.fire(response.Message, "", "success");
 
             }
@@ -369,7 +372,7 @@ function deleteCategory(CategoryUID) {
                 Swal.fire(response.Message, "", "error");
             } else {
                 $(CatgPag).html(response.Pagination);
-                $(CatgTable+' tbody').html(response.List);
+                $(CatgTable + ' tbody').html(response.List);
                 Swal.fire(response.Message, "", "success");
             }
         },
@@ -393,11 +396,11 @@ function getSizesDetails(PageNo, RowLimit, Filter) {
         },
         success: function (response) {
             if (response.Error) {
-                $(SizeTable+' tbody').html('');
+                $(SizeTable + ' tbody').html('');
                 $(SizePag).html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');
             } else {
                 $(SizePag).html(response.Pagination);
-                $(SizeTable+' tbody').html(response.List);
+                $(SizeTable + ' tbody').html(response.List);
             }
         },
     });
@@ -435,7 +438,7 @@ function addSizeDetails(formdata) {
                 $('#sizesModal').modal('hide');
 
                 $(SizePag).html(response.Pagination);
-                $(SizeTable+' tbody').html(response.List);
+                $(SizeTable + ' tbody').html(response.List);
                 Swal.fire(response.Message, "", "success");
 
             }
@@ -506,7 +509,7 @@ function editSizeDetails(formdata) {
                 $('#sizesModal').modal('hide');
 
                 $(SizePag).html(response.Pagination);
-                $(SizeTable+' tbody').html(response.List);
+                $(SizeTable + ' tbody').html(response.List);
                 Swal.fire(response.Message, "", "success");
 
             }
@@ -531,7 +534,7 @@ function deleteSize(SizeUID) {
                 Swal.fire(response.Message, "", "error");
             } else {
                 $(SizePag).html(response.Pagination);
-                $(SizeTable+' tbody').html(response.List);
+                $(SizeTable + ' tbody').html(response.List);
                 Swal.fire(response.Message, "", "success");
             }
         },
@@ -555,11 +558,11 @@ function getBrandsDetails(PageNo, RowLimit, Filter) {
         },
         success: function (response) {
             if (response.Error) {
-                $(BrandTable+' tbody').html('');
+                $(BrandTable + ' tbody').html('');
                 $(BrandPag).html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');
             } else {
                 $(BrandPag).html(response.Pagination);
-                $(BrandTable+' tbody').html(response.List);
+                $(BrandTable + ' tbody').html(response.List);
             }
         },
     });
@@ -595,7 +598,7 @@ function addBrandDetails(formdata) {
                 $('#brandsModal').modal('hide');
 
                 $(BrandPag).html(response.Pagination);
-                $(BrandTable+' tbody').html(response.List);
+                $(BrandTable + ' tbody').html(response.List);
                 Swal.fire(response.Message, "", "success");
 
             }
@@ -665,7 +668,7 @@ function editBrandDetails(formdata) {
                 $('#brandsModal').modal('hide');
 
                 $(BrandPag).html(response.Pagination);
-                $(BrandTable+' tbody').html(response.List);
+                $(BrandTable + ' tbody').html(response.List);
                 Swal.fire(response.Message, "", "success");
 
             }
@@ -690,7 +693,7 @@ function deleteBrand(BrandUID) {
                 Swal.fire(response.Message, "", "error");
             } else {
                 $(BrandPag).html(response.Pagination);
-                $(BrandTable+' tbody').html(response.List);
+                $(BrandTable + ' tbody').html(response.List);
                 Swal.fire(response.Message, "", "success");
             }
         },
@@ -699,25 +702,25 @@ function deleteBrand(BrandUID) {
 
 function commonSelectFunctionality(PageSelcType) {
     if (ActiveTabId == 'Item') {
-        if(PageSelcType == 'AllPage') {
+        if (PageSelcType == 'AllPage') {
             CopyAllDatatoSelectItems(ItemUIDs);
         }
         selectTableRecords(ProdTable, ProdRow);
         headerCheckboxTrueFalse(ItemUIDs, ProdHeader);
-    } else if(ActiveTabId == 'Categories') {
-        if(PageSelcType == 'AllPage') {
+    } else if (ActiveTabId == 'Categories') {
+        if (PageSelcType == 'AllPage') {
             CopyAllDatatoSelectItems(CategoryUIDs);
         }
         selectTableRecords(CatgTable, CatgRow);
         headerCheckboxTrueFalse(CategoryUIDs, CatgHeader);
-    } else if(ActiveTabId == 'Sizes') {
-        if(PageSelcType == 'AllPage') {
+    } else if (ActiveTabId == 'Sizes') {
+        if (PageSelcType == 'AllPage') {
             CopyAllDatatoSelectItems(SizeUIDs);
         }
         selectTableRecords(SizeTable, SizeRow);
         headerCheckboxTrueFalse(SizeUIDs, SizeHeader);
-    } else if(ActiveTabId == 'Brands') {
-        if(PageSelcType == 'AllPage') {
+    } else if (ActiveTabId == 'Brands') {
+        if (PageSelcType == 'AllPage') {
             CopyAllDatatoSelectItems(BrandUIDs);
         }
         selectTableRecords(BrandTable, BrandRow);
@@ -728,25 +731,25 @@ function commonSelectFunctionality(PageSelcType) {
 
 function commonUnSelectFunctionality(PageSelcType) {
     if (ActiveTabId == 'Item') {
-        if(PageSelcType == 'AllPage') {
+        if (PageSelcType == 'AllPage') {
             removeAllDatatoSelectItems(ItemUIDs);
         }
         unSelectTableRecords(ProdTable, ProdRow);
         headerCheckboxTrueFalse(ItemUIDs, ProdHeader);
-    } else if(ActiveTabId == 'Categories') {
-        if(PageSelcType == 'AllPage') {
+    } else if (ActiveTabId == 'Categories') {
+        if (PageSelcType == 'AllPage') {
             removeAllDatatoSelectItems(CategoryUIDs);
         }
         unSelectTableRecords(CatgTable, CatgRow);
         headerCheckboxTrueFalse(CategoryUIDs, CatgHeader);
-    } else if(ActiveTabId == 'Sizes') {
-        if(PageSelcType == 'AllPage') {
+    } else if (ActiveTabId == 'Sizes') {
+        if (PageSelcType == 'AllPage') {
             removeAllDatatoSelectItems(SizeUIDs);
         }
         unSelectTableRecords(SizeTable, SizeRow);
         headerCheckboxTrueFalse(SizeUIDs, SizeHeader);
-    } else if(ActiveTabId == 'Brands') {
-        if(PageSelcType == 'AllPage') {
+    } else if (ActiveTabId == 'Brands') {
+        if (PageSelcType == 'AllPage') {
             removeAllDatatoSelectItems(BrandUIDs);
         }
         unSelectTableRecords(BrandTable, BrandRow);
@@ -778,10 +781,22 @@ function commonExportFunctionality(Flag, Type) {
         TableRow = ProdRow;
         ItemIds = ItemUIDs;
         if (Type == 'PrintPreview') {
-            URLs = "/products/getAllProductDetails?ModuleId="+ActiveTabModuleId+"&Filter=" + encodeURIComponent(JSON.stringify(Filter)) + (ExportIds != '' ? "&ExportIds=" + ExportIds : '');
+            URLs = "/globally/getPrintPreviewDetails?ModuleId=" + ActiveTabModuleId;
+            if (!$.isEmptyObject(Filter)) {
+                URLs += "&Filter=" + encodeURIComponent(JSON.stringify(Filter));
+            }
+            if (ExportIds != '') {
+                URLs += "&ExportIds=" + ExportIds;
+            }
         } else if (Type == 'ExportCSV' || Type == 'ExportPDF' || Type == 'ExportExcel') {
             const TypeVal = (Type == 'ExportCSV') ? 'CSV' : ((Type == 'ExportPDF') ? 'Pdf' : ((Type == 'ExportExcel') ? 'Excel' : 'None'));
-            URLs = "/products/exportProductDetails?Type=" + TypeVal + "&Filter=" + encodeURIComponent(JSON.stringify(Filter)) + (ExportIds != '' ? "&ExportIds=" + ExportIds : '');
+            URLs = "/globally/exportModuleDataDetails?ModuleId=" + ActiveTabModuleId + "&Type=" + TypeVal+"&FileName=Product_Data"+"&SheetName=Products_Details";
+            if (!$.isEmptyObject(Filter)) {
+                URLs += "&Filter=" + encodeURIComponent(JSON.stringify(Filter));
+            }
+            if (ExportIds != '') {
+                URLs += "&ExportIds=" + ExportIds;
+            }
         }
     } else if (ActiveTabId == 'Categories') {
         URLs = '';
@@ -791,7 +806,7 @@ function commonExportFunctionality(Flag, Type) {
         URLs = '';
     }
     if (Flag == 1) {
-        exportAllActions(ActiveTabModuleId, ActiveTabId, Type, ItemIds, URLs, function () {            
+        exportAllActions(ActiveTabModuleId, ActiveTabId, Type, ItemIds, URLs, function () {
             exportModalCloseFunc(TableName, TableHeader, TableRow, ItemIds)
         });
     } else if (Flag == 2) {
@@ -803,6 +818,18 @@ function commonExportFunctionality(Flag, Type) {
             window.location.href = URLs;
             exportModalCloseFunc(TableName, TableHeader, TableRow, ItemIds);
         }
+    }
+}
+
+function showProductPageDetails() {
+    if (ActiveTabId == 'Item') {
+        getProductDetails(PageNo, RowLimit, Filter);
+    } else if (ActiveTabId == 'Categories') {
+        getCategoriesDetails(PageNo, RowLimit, Filter);
+    } else if (ActiveTabId == 'Sizes') {
+        getSizesDetails(PageNo, RowLimit, Filter);
+    } else if (ActiveTabId == 'Brands') {
+        getBrandsDetails(PageNo, RowLimit, Filter);
     }
 }
 

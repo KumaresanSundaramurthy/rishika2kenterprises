@@ -151,6 +151,33 @@ class Globally extends CI_Controller {
 
     }
 
+    public function getStorageTypeInfo() {
+
+        $this->EndReturnData = new stdClass();
+		try {
+
+            $this->load->model('global_model');
+            $GetStorageType = $this->global_model->getStorageTypeData();
+            if($GetStorageType->Error === FALSE) {
+                $this->EndReturnData->Data = $GetStorageType->Data;
+            }
+
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Message = 'Data Retrieved Successfully';
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->output->set_status_header(200)
+            ->set_content_type('application/json', 'utf-8')
+            ->set_output(json_encode($this->EndReturnData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES))
+            ->_display();
+        exit;
+
+    }
+
     public function updatePageSettings() {
 
         $this->EndReturnData = new stdClass();
@@ -212,37 +239,16 @@ class Globally extends CI_Controller {
             $ModuleId = isset($_GET['ModuleId']) ? $_GET['ModuleId'] : 0;
             if($ModuleId > 0) {
 
-                $this->load->model('global_model');
-                $DataInfo = $this->global_model->getModuleViewColumnDetails(['ViewColmn.ModuleUID' => $ModuleId, 'ViewColmn.IsPrintPreviewApplicable' => 1], true, ['ViewColmn.PrintPreviewOrder' => 'ASC']);
-                $ModuleInfo = $this->global_model->getModuleDetails(['Modules.ModuleUID' => $ModuleId]);
+                $Filter = isset($_GET['Filter']) ? json_decode($_GET['Filter'], TRUE) : [];
+                $WhereInData = isset($_GET['ExportIds']) ? ['ExportIds' => explode(',', base64_decode($_GET['ExportIds']))] : [];
 
-                if(sizeof($DataInfo) > 0 && sizeof($ModuleInfo) > 0) {
+                $DataResp = $this->globalservice->getModulePageColumnDetails($ModuleId, 'PrintPage', $Filter, $WhereInData, 0, 0, 0);
+                if($DataResp->Error === FALSE) {
 
-                    $ModuleInfoData = $ModuleInfo[0];
-
-                    $Filter = isset($_GET['Filter']) ? json_decode($_GET['Filter'], TRUE) : [];
-
-                    $ModelName = $ModuleInfoData->ModelName;
-                    $FltFuncName = $ModuleInfoData->FilterFunctionName;
-                    $this->load->model($ModuleInfoData->ModelName);
-                    $FilterFormat = $this->$ModelName->$FltFuncName($ModuleInfoData, $Filter);
-
-                    $ExportIds = isset($_GET['ExportIds']) ? explode(',', base64_decode($_GET['ExportIds'])) : [];
-                    
-                    $Aggregates = [];
-                    foreach ($DataInfo as $index => $column) {
-                        if (!empty($column->AggregationMethod)) {
-                            $Aggregates[$index][$column->AggregationMethod] = 0;
-                        }
-                    }
-
-                    $this->pageData['ViewColumns'] = $DataInfo;
-                    $this->pageData['Aggregates'] = $Aggregates;
-                    $this->pageData['ModuleInfo'] = $ModuleInfoData;
-
-                    $JoinData = $this->global_model->getModuleViewJoinColumnDetails(['JoinColmn.MainModuleUID' => $ModuleId], true, ['JoinColmn.SortOrder' => 'ASC']);
-                    
-                    $this->pageData['List'] = $this->global_model->getModuleReportDetails($ModuleInfoData, $DataInfo, $JoinData, $FilterFormat->SearchFilter, $FilterFormat->SearchDirectQuery, 'DESC', [$ModuleInfoData->TableAliasName.'.'.$ModuleInfoData->TablePrimaryUID => $ExportIds]);
+                    $this->pageData['ModuleInfo'] = $DataResp->ModuleInfo;
+                    $this->pageData['ViewColumns'] = $DataResp->ViewColumns;
+                    $this->pageData['Aggregates'] = $DataResp->Aggregates;
+                    $this->pageData['List'] = $DataResp->DataLists;
 
                     $this->EndReturnData->Error = FALSE;
                     $this->EndReturnData->HtmlData = $this->load->view('common/print/printpreview', $this->pageData, TRUE);
@@ -252,7 +258,7 @@ class Globally extends CI_Controller {
                 }
 
             } else {
-                throw new Exception('Oops! Something went wrong.');
+                throw new Exception('Oops! Missing Module Information.');
             }
 
 		} catch (Exception $e) {
@@ -280,65 +286,41 @@ class Globally extends CI_Controller {
                 if(!empty($Type)) {
 
                     if($Type == 'CSV') {
-                        $IsApplicable = 'ViewColmn.IsExportCsvApplicable';
-                        $OrderType = 'ViewColmn.ExportCsvOrder';
+                        $PageType = 'CsvPage';
                     } else if($Type == 'Excel') {
-                        $IsApplicable = 'ViewColmn.IsExportExcelApplicable';
-                        $OrderType = 'ViewColmn.ExportExcelOrder';
+                        $PageType = 'ExcelPage';
                     } else if($Type == 'Pdf') {
-                        $IsApplicable = 'ViewColmn.IsExportPdfApplicable';
-                        $OrderType = 'ViewColmn.ExportPdfOrder';
+                        $PageType = 'PdfPage';
                     }
 
-                    $this->load->model('global_model');
-                    $ModuleInfo = $this->global_model->getModuleDetails(['Modules.ModuleUID' => $ModuleId]);
-
-                    $DataInfo = $this->global_model->getModuleViewColumnDetails(['ViewColmn.ModuleUID' => $ModuleId, $IsApplicable => 1], true, [$OrderType => 'ASC']);
-                    if(sizeof($DataInfo) > 0 && sizeof($ModuleInfo) > 0) {
-
-                        $ModuleInfoData = $ModuleInfo[0];
-
-                        $Filter = isset($_GET['Filter']) ? json_decode($_GET['Filter'], TRUE) : [];
-
-                        $ModelName = $ModuleInfoData->ModelName;
-                        $FltFuncName = $ModuleInfoData->FilterFunctionName;
-                        $this->load->model($ModuleInfoData->ModelName);
-                        $FilterFormat = $this->$ModelName->$FltFuncName($ModuleInfoData, $Filter);
-
-                        $ExportIds = isset($_GET['ExportIds']) ? explode(',', base64_decode($_GET['ExportIds'])) : [];
-
-                        $Aggregates = [];
-                        foreach ($DataInfo as $index => $column) {
-                            if (!empty($column->AggregationMethod)) {
-                                $Aggregates[$index][$column->AggregationMethod] = 0;
-                            }
-                        }
-
-                        $JoinData = $this->global_model->getModuleViewJoinColumnDetails(['JoinColmn.MainModuleUID' => $ModuleId], true, ['JoinColmn.SortOrder' => 'ASC']);
-                        
-                        $List = $this->global_model->getModuleReportDetails($ModuleInfoData, $DataInfo, $JoinData, $FilterFormat->SearchFilter, $FilterFormat->SearchDirectQuery, 'DESC', [$ModuleInfoData->TableAliasName.'.'.$ModuleInfoData->TablePrimaryUID => $ExportIds]);
+                    $Filter = isset($_GET['Filter']) ? json_decode($_GET['Filter'], TRUE) : [];
+                    $WhereInData = isset($_GET['ExportIds']) ? ['ExportIds' => explode(',', base64_decode($_GET['ExportIds']))] : [];
+                    
+                    $DataResp = $this->globalservice->getModulePageColumnDetails($ModuleId, $PageType, $Filter, $WhereInData, 0, 0, 0);
+                    if($DataResp->Error === FALSE) {                        
 
                         $FileName = isset($_GET['FileName']) ? $_GET['FileName'] : 'NewFile';
                         $SheetName = isset($_GET['SheetName']) ? $_GET['SheetName'] : 'NewSheet';
+                        
                         if($Type == 'CSV') {
 
-                            $this->global_model->exportCSV($FileName, $DataInfo, $List, $Aggregates);
+                            $this->globalservice->exportCSV($FileName, $DataResp->ViewColumns, $DataResp->DataLists, $DataResp->Aggregates);
                             exit;
 
                         } else if($Type == 'Excel') {
 
-                            $this->global_model->exportExcel($FileName, $SheetName, $DataInfo, $List, $Aggregates);
+                            $this->globalservice->exportExcel($FileName, $SheetName, $DataResp->ViewColumns, $DataResp->DataLists, $DataResp->Aggregates);
                             exit;
 
                         } else if($Type == 'Pdf') {
 
-                            $this->global_model->exportPdf($FileName, $SheetName, $DataInfo, $List, $Aggregates);
+                            $this->globalservice->exportPdf($FileName, $SheetName, $DataResp->ViewColumns, $DataResp->DataLists, $DataResp->Aggregates);
                             exit;
 
                         }
 
                     } else {
-                        throw new Exception('No Records found.!');
+                        throw new Exception($DataResp->Message);
                     }
 
                 } else {
@@ -346,7 +328,7 @@ class Globally extends CI_Controller {
                 }
 
             } else {
-                throw new Exception('Oops! Something went wrong.');
+                throw new Exception('Oops! Missing Module Information.');
             }
 
         } catch (Exception $e) {

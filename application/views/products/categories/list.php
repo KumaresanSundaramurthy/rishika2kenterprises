@@ -1,21 +1,23 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
-<?php if (sizeof($CategoriesList) > 0) {
-    foreach ($CategoriesList as $list) {
+<?php if (sizeof($DataLists) > 0) {
+    foreach ($DataLists as $list) {
         $SerialNumber++; ?>
 
         <tr>
             <td>
-                <div class="form-check form-check-inline"><input class="form-check-input categoryCheck" type="checkbox" value="<?php echo $list->CategoryUID; ?>"></div>
+                <div class="form-check form-check-inline"><input class="form-check-input categoryCheck" type="checkbox" value="<?php echo $list->TablePrimaryUID; ?>"></div>
             </td>
             <td><?php echo $SerialNumber; ?></td>
-            <td><?php echo $list->Name; ?></td>
-            <td><?php echo $list->Description ? $list->Description : '-'; ?></td>
-            <td class="text-end"><?php echo $list->UpdatedOn ? changeTimeZomeDateFormat($list->UpdatedOn, $JwtData->User->Timezone) : ''; ?></td>
+            <?php
+                $DataPassing['ViewColumns'] = $ViewColumns;
+                $DataPassing['list'] = $list;
+                echo $this->load->view('common/form/list', $DataPassing, TRUE);
+            ?>
             <td>
                 <div class="d-flex align-items-sm-center justify-content-sm-center">
-                    <a href="javascript: void(0);" data-uid="<?php echo $list->CategoryUID; ?>" class="btn btn-icon text-warning editCategory"><i class="bx bx-edit me-1"></i></a>
-                    <button class="btn btn-icon text-danger DeleteCategory" data-productuid="<?php echo $list->ProductUID; ?>" data-categoryuid="<?php echo $list->CategoryUID; ?>"><i class="bx bx-trash"></i></button>
+                    <a href="javascript: void(0);" data-uid="<?php echo $list->TablePrimaryUID; ?>" class="btn btn-icon text-warning editCategory"><i class="bx bx-edit me-1"></i></a>
+                    <button class="btn btn-icon text-danger DeleteCategory" data-productuid="<?php echo $list->ProductUID; ?>" data-categoryuid="<?php echo $list->TablePrimaryUID; ?>"><i class="bx bx-trash"></i></button>
                 </div>
             </td>
         </tr>

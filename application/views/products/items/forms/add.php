@@ -36,7 +36,7 @@
 
                         <div class="d-flex gap-2">
                             <div class="mb-3">
-                                <a href="javascript: history.back();" class="btn btn-outline-secondary me-2">Cancel</a>
+                                <a href="javascript: history.back();" class="btn btn-outline-secondary me-2">Discard</a>
                                 <button type="submit" class="btn btn-primary AddProductBtn">Save</button>
                             </div>
                         </div>
@@ -308,7 +308,7 @@
 
                             <div class="m-3">
                                 <button type="submit" class="btn btn-primary AddProductBtn me-2">Save</button>
-                                <a href="javascript: history.back();" class="btn btn-outline-secondary">Cancel</a>
+                                <a href="javascript: history.back();" class="btn btn-outline-secondary">Discard</a>
                             </div>
 
                         </div>

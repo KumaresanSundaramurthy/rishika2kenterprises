@@ -4,7 +4,6 @@
  * @param {*} Filter
  */
 function getCustomersDetails(PageNo, RowLimit, Filter) {
-
     $.ajax({
         url: '/customers/getCustomersDetails/'+PageNo,
         method: "POST",
@@ -14,29 +13,27 @@ function getCustomersDetails(PageNo, RowLimit, Filter) {
             PageNo: PageNo,
             Filter: Filter,
         },
-        beforeSend: function() {
-            showUIBlock();
-        },
         success: function(response) {
-
-            hideUIBlock();
-
             if (response.Error) {
-                $('#CustomersTable tbody').html('');
-                $('.CustomersPagination').html('<div class="alert alert-danger" role="alert"><strong>'+response.Message+'</strong></div>');
+                $(ModuleTable + ' tbody').html('');
+                $(ModulePag).html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');
             } else {
-                $('.CustomersPagination').html(response.Pagination);
-                $('#CustomersTable tbody').html(response.List);
+                $(ModulePag).html(response.Pagination);
+                $(ModuleTable + ' tbody').html(response.List);
             }
+            executeCommonFunc(response, false);
         },
-        complete: function() {
-            hideUIBlock();
-        }
     });
-    
 }
 
 function addCustomerData(formdata) {
+
+    AjaxLoading = 0;
+
+    $('.addFormAlert').removeClass('d-none');
+    inlineMessageAlert('.addFormAlert', 'info', 'Processing... Please wait', false, false);
+
+    $('.AddCustomerBtn').attr('disabled', 'disabled');
 
     $.ajax({
         url: '/customers/addCustomerData',
@@ -47,35 +44,26 @@ function addCustomerData(formdata) {
         contentType: false,
         enctype: 'multipart/form-data',
         success: function (response) {
-            
-            $('#addFormAlert').removeClass('d-none');
+            AjaxLoading = 1;
+            $('.AddCustomerBtn').removeAttr('disabled');
             if (response.Error) {
-
-                inlineMessageAlert('#addFormAlert', 'danger', response.Message, false, false);
-
+                inlineMessageAlert('.addFormAlert', 'danger', response.Message, false, false);
             } else {
-
-                inlineMessageAlert('#addFormAlert', 'success', response.Message, false, true);
+                inlineMessageAlert('.addFormAlert', 'success', response.Message, false, true);
                 setTimeout(function () {
-                    $('#addFormAlert').fadeOut(500, function () {
+                    $('.addFormAlert').fadeOut(500, function () {
                         $(this).addClass('d-none').show();
-
                     });
                 }, 1000);
-
-                imageChange = 0;
                 $('#AddCustomerForm').trigger('reset');
                 window.history.back();
-
             }
-
         }
     });
 
 }
 
 function showAddressInfo(formData, BtnId, DivId) {
-
     $.ajax({
         url: '/customers/addAddressInfo',
         method: 'POST',
@@ -84,9 +72,7 @@ function showAddressInfo(formData, BtnId, DivId) {
         processData: false,
         contentType: false,
         success: function (response) {
-
             $('#' + DivId).removeClass('d-none');
-
             if (response.Error) {
                 inlineMessageAlert('#' + DivId, 'danger', response.Message, false, false);
             } else {
@@ -97,7 +83,6 @@ function showAddressInfo(formData, BtnId, DivId) {
                         placeholder: '-- Select State --',
                         allowClear: true,
                     });
-
                     $('#BillAddrCity').select2({
                         placeholder: '-- Select City --',
                         allowClear: true,
@@ -107,20 +92,24 @@ function showAddressInfo(formData, BtnId, DivId) {
                         placeholder: '-- Select State --',
                         allowClear: true,
                     });
-
                     $('#ShipAddrCity').select2({
                         placeholder: '-- Select City --',
                         allowClear: true,
                     });
                 }
             }
-
         }
     });
-
 }
 
 function editCustomerData(formdata) {
+
+    AjaxLoading = 0;
+
+    $('.editFormAlert').removeClass('d-none');
+    inlineMessageAlert('.editFormAlert', 'info', 'Processing... Please wait', false, false);
+
+    $('.EditCustomerBtn').attr('disabled', 'disabled');
 
     $.ajax({
         url: '/customers/updateCustomerData',
@@ -131,34 +120,25 @@ function editCustomerData(formdata) {
         contentType: false,
         enctype: 'multipart/form-data',
         success: function (response) {
-            
-            $('#editFormAlert').removeClass('d-none');
+            $('.editFormAlert').removeClass('d-none');
             if (response.Error) {
-
-                inlineMessageAlert('#editFormAlert', 'danger', response.Message, false, false);
-
+                inlineMessageAlert('.editFormAlert', 'danger', response.Message, false, false);
             } else {
-
-                inlineMessageAlert('#editFormAlert', 'success', response.Message, false, true);
+                inlineMessageAlert('.editFormAlert', 'success', response.Message, false, true);
                 setTimeout(function () {
-                    $('#editFormAlert').fadeOut(500, function () {
+                    $('.editFormAlert').fadeOut(500, function () {
                         $(this).addClass('d-none').show();
                     });
                 }, 1000);
-
-                imageChange = 0;
                 $('#EditCustomerForm').trigger('reset');
                 window.history.back();
-
             }
-
         }
     });
 
 }
 
 function deleteCustomer(DeleteId) {
-
     $.ajax({
         url: '/customers/deleteCustomerData',
         method: 'POST',
@@ -173,10 +153,45 @@ function deleteCustomer(DeleteId) {
                 getCustomersDetails(0, RowLimit, Filter);
                 Swal.fire(response.Message, "", "success");
             }
-
         }
     });
+}
 
+function enableBillingAddress() {
+    $('#BillAddrState').select2({
+        placeholder: '-- Select State --',
+        allowClear: true,
+    });
+    $('#BillAddrCity').select2({
+        placeholder: '-- Select City --',
+        allowClear: true,
+    });
+}
+
+function enableShippingAddress() {
+    $('#ShipAddrState').select2({
+        placeholder: '-- Select State --',
+        allowClear: true,
+    });
+    $('#ShipAddrCity').select2({
+        placeholder: '-- Select City --',
+        allowClear: true,
+    });
+}
+
+function select2CountryCode() {
+    $('#CountryCode').select2({
+        placeholder: '-- Select Country --',
+        allowClear: true,
+    });
+}
+
+function select2TagEmail() {
+    $("#Tags,#CCEmails").select2({
+        tags: "true",
+        placeholder: "Type and press enter...",
+        allowClear: true
+    });
 }
 
 $('#addBillingAddress').click(function(e) {

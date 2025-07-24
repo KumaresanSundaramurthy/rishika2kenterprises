@@ -1,11 +1,5 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed');
 
-use PhpOffice\PhpSpreadsheet\Spreadsheet;
-use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
-use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
-use PhpOffice\PhpSpreadsheet\Writer\Pdf\Dompdf;
-use PhpOffice\PhpSpreadsheet\Worksheet\PageSetup;
-
 class Global_model extends CI_Model
 {
 
@@ -493,6 +487,60 @@ class Global_model extends CI_Model
         return $this->EndReturnData;
     }
 
+    public function getStorageTypeData() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $StorageTypeRedisDataExists = $this->cacheservice->exists(getSiteConfiguration()->RedisName . '-storagetypeinfo');
+            if ($StorageTypeRedisDataExists->Error) {
+
+                $this->GlobalDb->db_debug = FALSE;
+
+                $WhereCondition = array(
+                    'StorageType.IsDeleted' => 0,
+                    'StorageType.IsActive' => 1,
+                );
+
+                $select_ary = array(
+                    'StorageType.StorageTypeUID AS StorageTypeUID',
+                    'StorageType.Name AS Name',
+                    'StorageType.UpdatedOn as UpdatedOn',
+                );
+                $this->GlobalDb->select($select_ary);
+                $this->GlobalDb->from('Global.StorageTypeTbl as StorageType');
+                $this->GlobalDb->where($WhereCondition);
+                $this->GlobalDb->group_by('StorageType.StorageTypeUID');
+                $this->GlobalDb->order_by('StorageType.Sorting', 'ASC');
+                $query = $this->GlobalDb->get();
+                $error = $this->GlobalDb->error();
+                if ($error['code']) {
+                    throw new Exception($error['message']);
+                } else {
+                    $this->EndReturnData->Data = $query->result();
+                }
+
+                $this->cacheservice->set(getSiteConfiguration()->RedisName . '-storagetypeinfo', json_encode($this->EndReturnData->Data), 43200 * 365);
+            } else {
+
+                $RedisStrgTypeInfo = $this->cacheservice->get(getSiteConfiguration()->RedisName . '-storagetypeinfo');
+                if ($RedisStrgTypeInfo->Error === FALSE) {
+                    $this->EndReturnData->Data = json_decode($RedisStrgTypeInfo->Value, TRUE);
+                } else {
+                    throw new Exception($RedisStrgTypeInfo->Message);
+                }
+            }
+
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Message = 'Data Retrieved Successfully';
+        } catch (Exception $e) {
+            $this->EndReturnData->Error = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        return $this->EndReturnData;
+    }
+
     public function getModuleDetails($WhereCond = [], $whereInCondition = [])
     {
 
@@ -573,10 +621,13 @@ class Global_model extends CI_Model
                 'ViewColmn.FieldName AS FieldName',
                 'ViewColmn.DbFieldName AS DbFieldName',
                 'ViewColmn.DbFieldNameAddOn AS DbFieldNameAddOn',
-                'ViewColmn.IsAmountField AS IsAmountField',
                 'ViewColmn.IsDateField AS IsDateField',
+                'ViewColmn.IsAmountField AS IsAmountField',
+                'ViewColmn.CurrencySymbol AS CurrencySymbol',
                 'ViewColmn.AggregationMethod AS AggregationMethod',
+                'ViewColmn.MainPageImageDisplay AS MainPageImageDisplay',
                 'ViewColmn.IsMainPageApplicable AS IsMainPageApplicable',
+                'ViewColmn.IsMainPageRequired AS IsMainPageRequired',
                 'ViewColmn.MainPageOrder AS MainPageOrder',
                 'ViewColmn.MainPageColumnAddon AS MainPageColumnAddon',
                 'ViewColmn.MainPageDataAddon AS MainPageDataAddon',
@@ -599,6 +650,9 @@ class Global_model extends CI_Model
             if ($Sorting) {
                 $this->ModuleDb->order_by(key($SortingColumn), $SortingColumn[key($SortingColumn)]);
             }
+
+            // print_r($this->ModuleDb->get_compiled_select()); die();
+
             $query = $this->ModuleDb->get();
             $error = $this->ModuleDb->error();
             if ($error['code']) {
@@ -633,12 +687,15 @@ class Global_model extends CI_Model
                 'JoinColmn.OrgUID AS OrgUID',
                 'JoinColmn.MainModuleUID AS MainModuleUID',
                 'JoinColmn.MainTblAliasName AS MainTblAliasName',
+                'JoinColmn.MainTblFieldName AS MainTblFieldName',
                 'JoinColmn.JoinModuleUID AS JoinModuleUID',
                 'JoinColmn.JoinTblAliasName AS JoinTblAliasName',
+                'JoinColmn.JoinTblFieldName AS JoinTblFieldName',
                 'JoinColmn.JoinLookupUID AS JoinLookupUID',
                 'JoinColmn.JoinLookupTblAliasName AS JoinLookupTblAliasName',
+                'JoinColmn.JoinLookupTblFieldName AS JoinLookupTblFieldName',
                 'JoinColmn.JoinType AS JoinType',
-                'JoinColmn.JoinColumns AS JoinColumns',
+                'JoinColmn.JoinBasicCheck AS JoinBasicCheck',
                 'JoinColmn.JoinColumnsAddon AS JoinColumnsAddon',
                 'JoinColmn.JoinQuery AS JoinQuery',
                 'JoinColmn.IsMandatory AS IsMandatory',
@@ -709,13 +766,18 @@ class Global_model extends CI_Model
             if (!empty($JoinDataArr)) {
                 foreach ($JoinDataArr as $join) {
                     $alias = $join->JoinLookupTblAliasName ?? $join->JoinTblAliasName;
-                    $valid = in_array($alias, $getUnqJoinTable);
+                    $valid = in_array($alias, $getUnqJoinTable) || $join->IsMandatory == 1;
 
                     if (!$valid) continue;
 
                     $joinTable = $join->JoinLookupTblAliasName ? $join->LkupDatabaseName . '.' . $join->LkupTableName : $join->JoinDatabaseName . '.' . $join->JoinTableName;
+                    $joinField = $join->JoinLookupTblFieldName ?? $join->JoinTblFieldName;
                     $joinAlias = $alias;
-                    $joinCondition = $join->JoinColumns . ' ' . $join->JoinColumnsAddon;
+                    $joinCondition = $joinAlias . '.' . $joinField.' = '.$join->MainTblAliasName.'.'.$join->MainTblFieldName;
+                    if($join->JoinBasicCheck) {
+                        $joinCondition .= " AND ($joinAlias.IsDeleted = 0 AND $joinAlias.IsActive = 1) ";
+                    }
+                    $joinCondition .= $join->JoinColumnsAddon;
                     $joinType = $join->JoinType;
 
                     if ($joinAlias && ($join->JoinLookupUID > 0 || $join->JoinModuleUID > 0)) {
@@ -762,366 +824,5 @@ class Global_model extends CI_Model
             throw new Exception($this->EndReturnData->Message);
         }
     }
-
-    public function exportCSV($FileName, $ViewColumns, $DataValue, $Aggregates)
-    {
-
-        $this->EndReturnData = new StdClass();
-        try {
-
-            if (ob_get_length()) ob_end_clean();
-
-            header('Content-Type: text/csv; charset=utf-8');
-            header("Content-Disposition: attachment; filename=\"$FileName.csv\"");
-            header("Pragma: no-cache");
-            header("Expires: 0");
-
-            $file = fopen('php://output', 'w');
-
-            fputs($file, $bom = chr(0xEF) . chr(0xBB) . chr(0xBF));
-
-            $Columns = array_column($ViewColumns, 'DisplayName');
-            $AmountField = array_column($ViewColumns, 'IsAmountField');
-            $DateField = array_column($ViewColumns, 'IsDateField');
-            $AggregationMethods = array_column($ViewColumns, 'AggregationMethod');
-            $FinalAggregates = $Aggregates;
-
-            fputcsv($file, $Columns);
-
-            if (sizeof($DataValue) > 0) {
-                foreach ($DataValue as $Ind => $row) {
-
-                    if (isset($row->TablePrimaryUID)) {
-                        unset($row->TablePrimaryUID);
-                    }
-
-                    $colIndex = 0;
-
-                    $colDataVal = [];
-                    foreach (get_object_vars($row) as $key => $value) {
-
-                        if (!empty($AggregationMethods[$colIndex])) {
-                            $method = strtoupper($AggregationMethods[$colIndex]);
-                            switch ($method) {
-                                case 'SUM':
-                                    $FinalAggregates[$colIndex]['SUM'] += $value;
-                                    break;
-                                case 'COUNT':
-                                    $FinalAggregates[$colIndex]['COUNT']++;
-                                    break;
-                                case 'AVG':
-                                    if (!isset($FinalAggregates[$colIndex]['_sum'])) {
-                                        $FinalAggregates[$colIndex]['_sum'] = 0;
-                                        $FinalAggregates[$colIndex]['_count'] = 0;
-                                    }
-                                    $FinalAggregates[$colIndex]['_sum'] += $value;
-                                    $FinalAggregates[$colIndex]['_count']++;
-                                    break;
-                            }
-                        }
-
-                        $value = $value ?? '';
-                        if($AmountField[$colIndex] == 1) {
-                            $value = 0;
-                            if($value) {
-                                $value = $this->pageData['JwtData']->GenSettings->CurrenySymbol . smartDecimal($value);
-                            }
-                        } else if($DateField[$colIndex] == 1) {
-                            $value = changeTimeZomeDateFormat($value, $this->pageData['JwtData']->User->Timezone);
-                        } else if($value) {
-                            $value = htmlspecialchars($value);
-                        }
-
-                        $colDataVal[] = $value;
-
-                        $colIndex++;
-                    }
-
-                    fputcsv($file, $colDataVal);
-                }
-
-                // Summary Section
-                $Summary = [];
-                foreach ($AggregationMethods as $colIndex => $method):
-                    $output = '';
-                    $method = $method ? strtoupper(trim($method)) : '';
-                    // Only output if we have aggregation for this column
-                    if ($method === 'SUM' && isset($FinalAggregates[$colIndex]['SUM'])) {
-                        $output = $AmountField[$colIndex] == 1 ? ($FinalAggregates[$colIndex]['SUM'] ?  smartDecimal($FinalAggregates[$colIndex]['SUM']) : 0) : $FinalAggregates[$colIndex]['SUM'];
-                    } elseif ($method === 'COUNT' && isset($FinalAggregates[$colIndex]['COUNT'])) {
-                        $output = $FinalAggregates[$colIndex]['COUNT'];
-                    } elseif ($method === 'AVG' && isset($FinalAggregates[$colIndex]['_sum'], $FinalAggregates[$colIndex]['_count']) && $FinalAggregates[$colIndex]['_count'] > 0) {
-                        $avg = $FinalAggregates[$colIndex]['_sum'] / $FinalAggregates[$colIndex]['_count'];
-                        $output = $AmountField[$colIndex] == 1 ? ($avg ?  smartDecimal($avg) : 0) : $avg;
-                    }
-                    $Summary[] = $output;
-                endforeach;
-
-                fputcsv($file, $Summary);
-            }
-
-            fclose($file);
-            exit;
-        } catch (Exception $e) {
-            $this->EndReturnData->Error = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-            throw new Exception($this->EndReturnData->Message);
-        }
-    }
-
-    public function exportExcel($FileName, $SheetName, $ViewColumns, $DataValue, $Aggregates)
-    {
-
-        $this->EndReturnData = new StdClass();
-        try {
-
-            if (ob_get_length()) ob_end_clean();
-
-            // Create spreadsheet
-            $spreadsheet = new Spreadsheet();
-            $sheet = $spreadsheet->getActiveSheet();
-
-            // Set sheet name
-            $sheet->setTitle($SheetName);
-
-            $Columns = array_column($ViewColumns, 'DisplayName');
-            $AmountField = array_column($ViewColumns, 'IsAmountField');
-            $DateField = array_column($ViewColumns, 'IsDateField');
-            $AggregationMethods = array_column($ViewColumns, 'AggregationMethod');
-            $FinalAggregates = $Aggregates;
-
-            // Write headers
-            $sheet->fromArray($Columns, null, 'A1');
-
-            // Write data rows
-            $rowNum = 2;
-
-            if (sizeof($DataValue) > 0) {
-                foreach ($DataValue as $Ind => $row) {
-
-                    if (isset($row->TablePrimaryUID)) {
-                        unset($row->TablePrimaryUID);
-                    }
-
-                    $colIndex = 0;
-
-                    $colDataVal = [];
-                    foreach (get_object_vars($row) as $key => $value) {
-
-                        if (!empty($AggregationMethods[$colIndex])) {
-                            $method = strtoupper($AggregationMethods[$colIndex]);
-                            switch ($method) {
-                                case 'SUM':
-                                    $FinalAggregates[$colIndex]['SUM'] += $value;
-                                    break;
-                                case 'COUNT':
-                                    $FinalAggregates[$colIndex]['COUNT']++;
-                                    break;
-                                case 'AVG':
-                                    if (!isset($FinalAggregates[$colIndex]['_sum'])) {
-                                        $FinalAggregates[$colIndex]['_sum'] = 0;
-                                        $FinalAggregates[$colIndex]['_count'] = 0;
-                                    }
-                                    $FinalAggregates[$colIndex]['_sum'] += $value;
-                                    $FinalAggregates[$colIndex]['_count']++;
-                                    break;
-                            }
-                        }
-
-                        $value = $value ?? '';
-                        if($AmountField[$colIndex] == 1) {
-                            $value = 0;
-                            if($value) {
-                                $value = $this->pageData['JwtData']->GenSettings->CurrenySymbol . smartDecimal($value);
-                            }
-                        } else if($DateField[$colIndex] == 1) {
-                            $value = changeTimeZomeDateFormat($value, $this->pageData['JwtData']->User->Timezone);
-                        } else if($value) {
-                            $value = htmlspecialchars($value);
-                        }
-
-                        $colDataVal[] = $value;
-
-                        $colIndex++;
-                    }
-
-                    $excelColIndex = 0;
-                    foreach ($colDataVal as $cellValue) {
-                        $columnLetter = Coordinate::stringFromColumnIndex($excelColIndex + 1);
-                        $sheet->setCellValue($columnLetter . $rowNum, $cellValue);
-                        $excelColIndex++;
-                    }
-
-                    $rowNum++;
-                }
-
-                // Summary Section
-                $Summary = [];
-                $summaryColIndex = 0;
-                foreach ($AggregationMethods as $colIndex => $method):
-                    $output = '';
-                    $method = $method ? strtoupper(trim($method)) : '';
-                    // Only output if we have aggregation for this column
-                    if ($method === 'SUM' && isset($FinalAggregates[$colIndex]['SUM'])) {
-                        $output = $AmountField[$colIndex] == 1 ? ($FinalAggregates[$colIndex]['SUM'] ?  smartDecimal($FinalAggregates[$colIndex]['SUM']) : 0) : $FinalAggregates[$colIndex]['SUM'];
-                    } elseif ($method === 'COUNT' && isset($FinalAggregates[$colIndex]['COUNT'])) {
-                        $output = $FinalAggregates[$colIndex]['COUNT'];
-                    } elseif ($method === 'AVG' && isset($FinalAggregates[$colIndex]['_sum'], $FinalAggregates[$colIndex]['_count']) && $FinalAggregates[$colIndex]['_count'] > 0) {
-                        $avg = $FinalAggregates[$colIndex]['_sum'] / $FinalAggregates[$colIndex]['_count'];
-                        $output = $AmountField[$colIndex] == 1 ? ($avg ?  smartDecimal($avg) : 0) : $avg;
-                    }
-                    if ($output !== '') {
-                        $columnLetter = Coordinate::stringFromColumnIndex($colIndex + 1);
-                        $sheet->setCellValue($columnLetter . $rowNum, $output);
-                    }
-                    $summaryColIndex++;
-                endforeach;
-            }
-
-            // Output headers
-            header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-            header("Content-Disposition: attachment; filename=\"$FileName.xlsx\"");
-            header('Cache-Control: max-age=0');
-
-            // Write file to output
-            $writer = new Xlsx($spreadsheet);
-            $writer->save('php://output');
-            exit;
-        } catch (Exception $e) {
-            $this->EndReturnData->Error = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-            throw new Exception($this->EndReturnData->Message);
-        }
-    }
-
-    public function exportPdf($FileName, $SheetName, $ViewColumns, $DataValue, $Aggregates)
-    {
-
-        $this->EndReturnData = new StdClass();
-        try {
-
-            if (ob_get_length()) ob_end_clean();
-
-            // Create spreadsheet
-            $spreadsheet = new Spreadsheet();
-            $sheet = $spreadsheet->getActiveSheet();
-
-            // Set sheet name
-            $sheet->setTitle($SheetName);
-
-            $Columns = array_column($ViewColumns, 'DisplayName');
-            $AmountField = array_column($ViewColumns, 'IsAmountField');
-            $DateField = array_column($ViewColumns, 'IsDateField');
-            $AggregationMethods = array_column($ViewColumns, 'AggregationMethod');
-            $FinalAggregates = $Aggregates;
-
-            // Write headers
-            $sheet->fromArray($Columns, null, 'A1');
-
-            // Write data rows
-            $rowNum = 2;
-
-            if (sizeof($DataValue) > 0) {
-                foreach ($DataValue as $Ind => $row) {
-
-                    if (isset($row->TablePrimaryUID)) {
-                        unset($row->TablePrimaryUID);
-                    }
-
-                    $colIndex = 0;
-
-                    $colDataVal = [];
-                    foreach (get_object_vars($row) as $key => $value) {
-
-                        if (!empty($AggregationMethods[$colIndex])) {
-                            $method = strtoupper($AggregationMethods[$colIndex]);
-                            switch ($method) {
-                                case 'SUM':
-                                    $FinalAggregates[$colIndex]['SUM'] += $value;
-                                    break;
-                                case 'COUNT':
-                                    $FinalAggregates[$colIndex]['COUNT']++;
-                                    break;
-                                case 'AVG':
-                                    if (!isset($FinalAggregates[$colIndex]['_sum'])) {
-                                        $FinalAggregates[$colIndex]['_sum'] = 0;
-                                        $FinalAggregates[$colIndex]['_count'] = 0;
-                                    }
-                                    $FinalAggregates[$colIndex]['_sum'] += $value;
-                                    $FinalAggregates[$colIndex]['_count']++;
-                                    break;
-                            }
-                        }
-
-                        $value = $value ?? '';
-                        if($AmountField[$colIndex] == 1) {
-                            $value = 0;
-                            if($value) {
-                                $value = $this->pageData['JwtData']->GenSettings->CurrenySymbol . smartDecimal($value);
-                            }
-                        } else if($DateField[$colIndex] == 1) {
-                            $value = changeTimeZomeDateFormat($value, $this->pageData['JwtData']->User->Timezone);
-                        } else if($value) {
-                            $value = htmlspecialchars($value);
-                        }
-
-                        $colDataVal[] = $value;
-
-                        $colIndex++;
-                    }
-
-                    $excelColIndex = 0;
-                    foreach ($colDataVal as $cellValue) {
-                        $columnLetter = Coordinate::stringFromColumnIndex($excelColIndex + 1);
-                        $sheet->setCellValue($columnLetter . $rowNum, $cellValue);
-                        $excelColIndex++;
-                    }
-
-                    $rowNum++;
-                }
-
-                // Summary Section
-                $Summary = [];
-                $summaryColIndex = 0;
-                foreach ($AggregationMethods as $colIndex => $method):
-                    $output = '';
-                    $method = $method ? strtoupper(trim($method)) : '';
-                    // Only output if we have aggregation for this column
-                    if ($method === 'SUM' && isset($FinalAggregates[$colIndex]['SUM'])) {
-                        $output = $AmountField[$colIndex] == 1 ? ($FinalAggregates[$colIndex]['SUM'] ?  smartDecimal($FinalAggregates[$colIndex]['SUM']) : 0) : $FinalAggregates[$colIndex]['SUM'];
-                    } elseif ($method === 'COUNT' && isset($FinalAggregates[$colIndex]['COUNT'])) {
-                        $output = $FinalAggregates[$colIndex]['COUNT'];
-                    } elseif ($method === 'AVG' && isset($FinalAggregates[$colIndex]['_sum'], $FinalAggregates[$colIndex]['_count']) && $FinalAggregates[$colIndex]['_count'] > 0) {
-                        $avg = $FinalAggregates[$colIndex]['_sum'] / $FinalAggregates[$colIndex]['_count'];
-                        $output = $AmountField[$colIndex] == 1 ? ($avg ?  smartDecimal($avg) : 0) : $avg;
-                    }
-                    if ($output !== '') {
-                        $columnLetter = Coordinate::stringFromColumnIndex($colIndex + 1);
-                        $sheet->setCellValue($columnLetter . $rowNum, $output);
-                    }
-                    $summaryColIndex++;
-                endforeach;
-            }
-
-            $sheet->getPageSetup()->setOrientation(\PhpOffice\PhpSpreadsheet\Worksheet\PageSetup::ORIENTATION_LANDSCAPE);
-            $sheet->getPageSetup()->setFitToWidth(1);
-            $sheet->getPageSetup()->setFitToHeight(0);
-
-
-            // Output headers
-            header('Content-Type: application/pdf');
-            header("Content-Disposition: attachment; filename=\"$FileName.pdf\"");
-            header('Cache-Control: max-age=0');
-
-            // Use Dompdf writer
-            \PhpOffice\PhpSpreadsheet\IOFactory::registerWriter('Pdf', Dompdf::class);
-            $writer = \PhpOffice\PhpSpreadsheet\IOFactory::createWriter($spreadsheet, 'Pdf');
-            $writer->save('php://output');
-            exit;
-        } catch (Exception $e) {
-            $this->EndReturnData->Error = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-            throw new Exception($this->EndReturnData->Message);
-        }
-    }
+    
 }

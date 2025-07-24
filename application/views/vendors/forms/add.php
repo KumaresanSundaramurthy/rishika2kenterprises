@@ -265,8 +265,8 @@
                             <div id="addFormAlert" class="d-none col-lg-12 px-4 pt-4" role="alert"></div>
 
                             <div class="m-3">
-                                <button type="submit" id="AddVendorBtn" class="btn btn-primary me-2">Save changes</button>
-                                <a href="javascript: history.back();" class="btn btn-outline-secondary">Cancel</a>
+                                <button type="submit" id="AddVendorBtn" class="btn btn-primary me-2">Save</button>
+                                <a href="javascript: history.back();" class="btn btn-outline-secondary">Discard</a>
                             </div>
 
                         </div>

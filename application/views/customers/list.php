@@ -1,21 +1,23 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
-<?php if (sizeof($CustomersList) > 0) {
-    foreach ($CustomersList as $list) { ?>
+<?php if (sizeof($DataLists) > 0) {
+    foreach ($DataLists as $list) {
+        $SerialNumber++; ?>
 
         <tr>
             <td>
-                <div class="form-check form-check-inline"><input class="form-check-input customersCheck" type="checkbox" value="<?php echo $list->CustomerUID; ?>"></div>
+                <div class="form-check form-check-inline"><input class="form-check-input customerCheck" type="checkbox" value="<?php echo $list->TablePrimaryUID; ?>"></div>
             </td>
-            <td><?php echo $list->Name; ?></td>
-            <td><?php echo $list->VillageName ? $list->VillageName : '-'; ?></td>
-            <td class="text-center"><?php echo $list->MobileNumber ? $list->CountryCode.'-'.$list->MobileNumber : '-'; ?></td>
-            <td class="text-end">0.00</td>
-            <td class="text-end"><?php echo $list->UpdatedOn ? changeTimeZomeDateFormat($list->UpdatedOn, $JwtData->User->Timezone) : ''; ?></td>
+            <td><?php echo $SerialNumber; ?></td>
+            <?php
+                $DataPassing['ViewColumns'] = $ViewColumns;
+                $DataPassing['list'] = $list;
+                echo $this->load->view('common/form/list', $DataPassing, TRUE);
+            ?>
             <td>
                 <div class="d-flex align-items-sm-center justify-content-sm-center">
-                    <a href="/customers/<?php echo $list->CustomerUID; ?>/edit" class="btn btn-icon text-warning"><i class="bx bx-edit me-1"></i></a>
-                    <button class="btn btn-icon text-danger DeleteCustomer" data-customeruid="<?php echo $list->CustomerUID; ?>"><i class="bx bx-trash"></i></button>
+                    <a href="/customers/<?php echo $list->TablePrimaryUID; ?>/edit" class="btn btn-icon text-warning"><i class="bx bx-edit me-1"></i></a>
+                    <button class="btn btn-icon text-danger DeleteCustomer" data-customeruid="<?php echo $list->TablePrimaryUID; ?>"><i class="bx bx-trash"></i></button>
                 </div>
             </td>
         </tr>

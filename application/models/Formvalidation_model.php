@@ -322,4 +322,35 @@ class Formvalidation_model extends CI_Model {
 
     }
 
+    public function storageValidateForm($data) {
+
+        $this->form_validation->set_data($data);
+
+        $dd['StorageUID'] = array('field' => 'StorageUID', 'label' => 'Category UID', 'rules' => 'required|xss_clean|trim|numeric');
+        $dd['Name'] = array('field' => 'Name', 'label' => 'Name', 'rules' => 'trim|required|xss_clean|min_length[3]|max_length[100]');
+        $dd['ShortName'] = array('field' => 'ShortName', 'label' => 'Short Name', 'rules' => 'trim|xss_clean|max_length[50]');
+        $dd['StorageTypeUID'] = array('field' => 'StorageTypeUID', 'label' => 'Storage Type', 'rules' => 'trim|required|xss_clean|numeric');
+        $dd['UploadImage'] = array('field' => 'UploadImage', 'label' => 'Upload Image', 'rules' => 'callback_checkImageType');
+
+        $config = array();
+
+        foreach($data as $key=>$value) {
+            if (array_key_exists($key, $dd)) {
+                array_push($config, $dd[$key]);
+            }
+        }
+
+        $this->form_validation->set_rules($config);
+
+        if ($this->form_validation->run() == FALSE) {
+
+            return validation_errors();
+            
+        } else {
+
+            return '';
+        }
+
+    }
+
 }

@@ -49,15 +49,7 @@ $ControllerName = get_class($CI); ?>
 
                         <ul class="menu-sub">
 
-                            <?php foreach ($SubMenuData as $SMKey => $SMVal) { ?>
-
-                                <li class="menu-item <?php echo strtolower($ControllerName) == strtolower($SMVal->ControllerName) ? 'active' : ''; ?>">
-                                    <a href="/<?php echo $SMVal->ControllerName; ?>" class="menu-link">
-                                        <div data-i18n="<?php echo $SMVal->SubMenuName; ?>"><?php echo $SMVal->SubMenuName; ?></div>
-                                    </a>
-                                </li>
-
-                            <?php } ?>
+                            <?php $this->globalservice->renderSubMenu($ControllerName, $SubMenuData, null); ?>
 
                         </ul>
 

@@ -18,14 +18,14 @@
 
                 <div class="container-xxl flex-grow-1 container-p-y">
 
-                    <nav aria-label="breadcrumb">
+                    <!-- <nav aria-label="breadcrumb">
                         <ol class="breadcrumb breadcrumb-style1">
                             <li class="breadcrumb-item">
                                 <a href="/dashboard">Dashboard</a>
                             </li>
                             <li class="breadcrumb-item active">Organisation</li>
                         </ol>
-                    </nav>
+                    </nav> -->
 
                     <!-- Org Details -->
                     <?php $FormAttribute = array('id' => 'OrganisationForm', 'name' => 'OrganisationForm', 'class' => '', 'autocomplete' => 'off');
@@ -250,8 +250,8 @@
                             <div id="updateFormAlert" class="d-none col-lg-12 px-4 pt-4" role="alert"></div>
 
                             <div class="m-3">
-                                <button type="submit" id="OrgSubBtn" class="btn btn-primary me-2">Save changes</button>
-                                <a href="/dashboard" class="btn btn-outline-secondary">Cancel</a>
+                                <button type="submit" id="OrgSubBtn" class="btn btn-primary me-2">Save</button>
+                                <a href="/dashboard" class="btn btn-outline-secondary">Discard</a>
                             </div>
 
                         </div>
@@ -287,15 +287,6 @@
         $('#CountryCode').select2({
             placeholder: '-- Select Country --',
             allowClear: true,
-            // templateSelection: function(data) {
-            //     if (!data.id) {
-            //         return data.text; // return placeholder
-            //     }
-
-            //     // Access custom label from data attribute
-            //     var label = $(data.element).val();
-            //     return label || data.text;
-            // }
         });
 
         $('#TimezoneUID').select2({

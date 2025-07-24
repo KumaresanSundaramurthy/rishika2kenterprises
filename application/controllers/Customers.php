@@ -11,7 +11,37 @@ class Customers extends CI_Controller {
     }
 
     public function index() {
+
+        $ControllerName = strtolower($this->router->fetch_class());
+
+        $this->pageData['ModuleInfo'] = array_values(array_filter($this->pageData['JwtData']->ModuleInfo, function($module) use ($ControllerName) {
+            return $module->ControllerName === $ControllerName;
+        }));
+
+        $this->pageData['ModuleId'] = $this->pageData['ModuleInfo'][0]->ModuleUID;
+
+        $limit = isset($this->pageData['JwtData']->GenSettings->RowLimit) ? $this->pageData['JwtData']->GenSettings->RowLimit : 10;
+
+        $ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($this->pageData['ModuleId'], '/customers/getCustomersDetails/', 'customers/list', 0, $limit, 0, [], []);
+        if($ReturnResponse->Error) {
+            throw new Exception($ReturnResponse->Message);
+        }
+
+        $this->pageData['ModDataList'] = $ReturnResponse->List;
+        $this->pageData['ModDataUIDs'] = $ReturnResponse->UIDs;
+        $this->pageData['ModDataPagination'] = $ReturnResponse->Pagination;
+        $this->pageData['ColumnDetails'] = $ReturnResponse->AllViewColumns;
+        
+        $ItemColumns = array_filter($this->pageData['ColumnDetails'], function ($item) {
+            return isset($item->IsMainPageApplicable) && $item->IsMainPageApplicable == 1;
+        });
+        usort($ItemColumns, function ($a, $b) {
+            return $a->MainPageOrder <=> $b->MainPageOrder;
+        });
+        $this->pageData['ModuleColumns'] = $ItemColumns;
+
         $this->load->view('customers/view', $this->pageData);
+
     }
 
     public function getCustomersDetails($pageNo = 0) {
@@ -157,28 +187,11 @@ class Customers extends CI_Controller {
                 }
 
                 // Image Upload
-                if($PostData['imageChange'] == 1) {
-
-                    $imagePath = NULL;
-
-                    if (isset($_FILES['UploadImage']['tmp_name']) && !empty($_FILES['UploadImage']['tmp_name'])) {
-
-                        $ext = pathinfo($_FILES['UploadImage']['name'], PATHINFO_EXTENSION);
-                        $fileName = substr(str_replace('.'.$ext, '', str_replace(' ', '_', $_FILES['UploadImage']['name'])), 0, 50).'_'.uniqid().'.'.$ext;
-                        $imagePath = $this->imageUpload($_FILES['UploadImage']['tmp_name'], $fileName);
-
+                if(isset($_FILES['UploadImage'])) {
+                    $UploadResp = $this->globalservice->fileUploadService($_FILES['UploadImage'], 'customers/images/', 'Image', ['Customers', 'CustomerTbl', array('CustomerUID' => $CustomerUID)]);
+                    if($UploadResp->Error === TRUE) {
+                        throw new Exception($UploadResp->Message);
                     }
-
-                    if($imagePath) {
-                        $updateCustImgData = [
-                            'Image' => $imagePath,
-                        ];
-                        $UpdateImgResp = $this->dbwrite_model->updateData('Customers', 'CustomerTbl', $updateCustImgData, array('CustomerUID' => $CustomerUID));
-                        if($UpdateImgResp->Error) {
-                            throw new Exception($UpdateImgResp->Message);
-                        }
-                    }
-
                 }
 
                 if(isset($PostData['BillAddrLine1']) && $PostData['BillAddrLine1'] != '') {

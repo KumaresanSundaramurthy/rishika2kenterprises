@@ -82,3 +82,10 @@ function getModuleUIDByName($modules, $name) {
 	return 0;
 
 }
+
+function filterViewDataColumns($originalArray, $WhereField) {
+    $filteredArray = array_filter($originalArray, function($item) use ($WhereField) {
+        return isset($item->$WhereField) && $item->$WhereField == 1;
+    });
+    return $filteredArray;
+}

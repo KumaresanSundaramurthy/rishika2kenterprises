@@ -104,12 +104,14 @@ class Login_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->UserRoleDb->select('UserMM.UserMainMenuUID as UserMainMenuUID, UserMM.MainMenuUID as MainMenuUID, MainMenu.Name as MainMenuName, MainMenu.Icons as MainMenuIcons');
+            $this->UserRoleDb->select('UserMM.UserMainMenuUID as UserMainMenuUID, UserMM.MainMenuUID as MainMenuUID, MainMenu.Name as MainMenuName, MainMenu.Icons as MainMenuIcons, UserMM.Sorting as Sorting');
             $this->UserRoleDb->from('UserRole.UserMainMenusTbl as UserMM');
             $this->UserRoleDb->join($this->ModuleDb->database.'.MainMenusTbl as MainMenu', 'MainMenu.MainMenuUID = UserMM.MainMenuUID', 'left');
             $this->UserRoleDb->where('UserMM.UserUID', $UserUID);
             $this->UserRoleDb->where('UserMM.IsActive', 1);
             $this->UserRoleDb->where('UserMM.IsDeleted', 0);
+            $this->UserRoleDb->group_by('UserMM.UserMainMenuUID');
+            $this->UserRoleDb->order_by('UserMM.Sorting', 'ASC');
             $query = $this->UserRoleDb->get();
 
             $this->EndReturnData->Error = FALSE;
@@ -133,12 +135,14 @@ class Login_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->UserRoleDb->select('UserSM.UserSubMenuUID as UserSubMenuUID, SubMenu.MainMenuUID as MainMenuUID, UserSM.SubMenuUID as SubMenuUID, SubMenu.Name as SubMenuName, SubMenu.ControllerName as ControllerName');
+            $this->UserRoleDb->select('UserSM.UserSubMenuUID as UserSubMenuUID, SubMenu.MainMenuUID as MainMenuUID, UserSM.SubMenuUID as SubMenuUID, SubMenu.Name as SubMenuName, SubMenu.ControllerName as ControllerName, SubMenu.ParentSubMenuUID as ParentSubMenuUID, UserSM.Sorting as Sorting');
             $this->UserRoleDb->from('UserRole.UserSubMenusTbl as UserSM');
             $this->UserRoleDb->join($this->ModuleDb->database.'.SubMenusTbl as SubMenu', 'SubMenu.SubMenuUID = UserSM.SubMenuUID', 'left');
             $this->UserRoleDb->where('UserSM.UserUID', $UserUID);
             $this->UserRoleDb->where('UserSM.IsActive', 1);
             $this->UserRoleDb->where('UserSM.IsDeleted', 0);
+            $this->UserRoleDb->group_by('UserSM.UserSubMenuUID');
+            $this->UserRoleDb->order_by('UserSM.Sorting', 'ASC');
             $query = $this->UserRoleDb->get();
 
             $this->EndReturnData->Error = FALSE;
@@ -162,7 +166,7 @@ class Login_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->OrgDb->select('GeneralSettg.DecimalPoints as DecimalPoints, GeneralSettg.CurrenySymbol as CurrenySymbol, GeneralSettg.DiscountType as DiscountType, GeneralSettg.ProductType as ProductType, GeneralSettg.ProductTax as ProductTax, GeneralSettg.TaxDetail as TaxDetail, GeneralSettg.PriceMaxLength as PriceMaxLength, GeneralSettg.RowLimit as RowLimit');
+            $this->OrgDb->select('GeneralSettg.DecimalPoints as DecimalPoints, GeneralSettg.CurrenySymbol as CurrenySymbol, GeneralSettg.DiscountType as DiscountType, GeneralSettg.ProductType as ProductType, GeneralSettg.ProductTax as ProductTax, GeneralSettg.TaxDetail as TaxDetail, GeneralSettg.PriceMaxLength as PriceMaxLength, GeneralSettg.RowLimit as RowLimit, GeneralSettg.EnableStorage as EnableStorage, GeneralSettg.MandatoryStorage as MandatoryStorage');
             $this->OrgDb->from('Organisation.OrgSettingsTbl as GeneralSettg');
             $this->OrgDb->where('GeneralSettg.OrgUID', $OrgUID);
             $this->OrgDb->limit(1);

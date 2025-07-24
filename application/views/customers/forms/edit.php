@@ -18,17 +18,26 @@
 
                 <div class="container-xxl flex-grow-1 container-p-y">
 
-                    <nav aria-label="breadcrumb">
-                        <ol class="breadcrumb breadcrumb-style1">
-                            <li class="breadcrumb-item">
-                                <a href="/dashboard">Dashboard</a>
-                            </li>
-                            <li class="breadcrumb-item">
-                                <a href="/customers">Customers</a>
-                            </li>
-                            <li class="breadcrumb-item active"><?php echo $EditData->Name; ?></li>
-                        </ol>
-                    </nav>
+                    <div class="d-flex justify-content-between align-items-center flex-wrap">
+                        <nav aria-label="breadcrumb">
+                            <ol class="breadcrumb breadcrumb-style1">
+                                <li class="breadcrumb-item">
+                                    <a href="/dashboard">Dashboard</a>
+                                </li>
+                                <li class="breadcrumb-item">
+                                    <a href="/customers">Customers</a>
+                                </li>
+                                <li class="breadcrumb-item active"><?php echo $EditData->Name; ?></li>
+                            </ol>
+                        </nav>
+                        <div class="d-flex gap-2">
+                            <div class="mb-3">
+                                <a href="javascript: history.back();" class="btn btn-outline-secondary me-2">Discard</a>
+                                <button type="submit" class="btn btn-primary EditCustomerBtn">Update</button>
+                            </div>
+                        </div>
+                        <div class="d-none col-lg-12 pt-2 editFormAlert" role="alert"></div>
+                    </div>
 
                     <?php $FormAttribute = array('id' => 'EditCustomerForm', 'name' => 'EditCustomerForm', 'class' => '', 'autocomplete' => 'off');
                     echo form_open('customers/editCustomer', $FormAttribute); ?>
@@ -157,8 +166,45 @@
                             </h2>
                             <div id="accordionOne" class="accordion-collapse collapse" data-bs-parent="#AccountMoreDetails">
                                 <div class="accordion-body">
-
+                                    
                                     <div class="row mt-3">
+                                        
+                                        <!-- Left Column - Centered Vertically -->
+                                        <div class="mb-3 col-md-6 d-flex justify-content-center align-items-center">
+                                            <div class="d-flex gap-3 align-items-center">
+
+                                                <!-- Dropzone Box -->
+                                                <div id="DropzoneOneBasic"
+                                                    class="dropzone needsclick p-2 dz-clickable d-flex flex-column justify-content-center align-items-center text-center"
+                                                    style="height: 250px; border: 2px dashed #ccc;">
+                                                    <div class="dz-message needsclick">
+                                                        <p class="h6 pt-4 mb-2">Drag and drop your image here</p>
+                                                        <p class="h6 text-body-secondary fw-normal mb-3">or</p>
+                                                        <span class="btn btn-sm btn-label-primary" id="btnBrowse">Browse image</span>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Controls next to Dropzone -->
+                                                <div class="d-flex flex-column align-items-start justify-content-center" style="min-height: 220px;">
+                                                    <button type="button" id="image_reset_btn" class="btn btn-outline-warning mb-2 w-100">
+                                                        <i class="bx bx-reset d-block d-sm-none"></i>
+                                                        <span class="d-none d-sm-block">Reset</span>
+                                                    </button>
+                                                    <p class="text-muted mb-1 small">Allowed JPG, GIF or PNG</p>
+                                                    <p class="text-muted mb-0 small">Max size of 1 MB</p>
+                                                    <p id="image-error" class="text-danger d-none mt-1 small">Select only Allowed Formats</p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Right Column -->
+                                        <div class="mb-3 col-md-6 d-flex flex-column justify-content-end">
+                                            <div class="mt-auto">
+                                                <label for="PANNumber" class="form-label">PAN Number</label>
+                                                <input class="form-control" type="text" id="PANNumber" name="PANNumber" maxlength="10" placeholder="PAN Number" value="<?php echo isset($EditData->PANNumber) ? $EditData->PANNumber : ''; ?>" />
+                                            </div>
+                                        </div>
+
                                         <div class="mb-3 col-md-6">
                                             <div class="d-flex align-items-start align-items-sm-center gap-4">
                                                 <img src="<?php echo (isset($EditData->Image) ? getenv('CDN_URL').$EditData->Image : '/images/logo/avathar_user.png'); ?>" alt="user-avatar" class="d-block rounded" height="100" width="100" id="uploadedAvatar" />
@@ -177,10 +223,7 @@
                                                 </div>
                                             </div>
                                         </div>
-                                        <div class="mb-3 col-md-6">
-                                            <label for="PANNumber" class="form-label">PAN Number </label>
-                                            <input class="form-control" type="text" id="PANNumber" name="PANNumber" maxlength="10" placeholder="PAN Number" value="<?php echo isset($EditData->PANNumber) ? $EditData->PANNumber : ''; ?>" />
-                                        </div>
+
                                         <div class="mb-3 col-md-6">
                                             <label for="DiscountPercent" class="form-label">Discount (%) </label>
                                             <input class="form-control" type="number" id="DiscountPercent" name="DiscountPercent" min="0" max="100" maxLength="3" placeholder="Discount (%)" onkeyup="changeHandler(this)" onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))" oninput="this.value=this.value.slice(0,this.maxLength)" pattern="[0-9]*" value="<?php echo isset($EditData->DiscountPercent) ? $EditData->DiscountPercent : '0'; ?>" />
@@ -226,12 +269,10 @@
 
                     <div class="card mb-3">
                         <div class="card-body p-0">
-
-                            <div id="editFormAlert" class="d-none col-lg-12 px-4 pt-4" role="alert"></div>
-
+                            <div class="d-none col-lg-12 pt-2 editFormAlert" role="alert"></div>
                             <div class="m-3">
-                                <button type="submit" id="EditCustomerBtn" class="btn btn-primary me-2">Save changes</button>
-                                <a href="javascript: history.back();" class="btn btn-outline-secondary">Cancel</a>
+                                <button type="submit" class="btn btn-primary me-2 EditCustomerBtn">Update</button>
+                                <a href="javascript: history.back();" class="btn btn-outline-secondary">Discard</a>
                             </div>
 
                         </div>
@@ -256,90 +297,61 @@
 <script src="/js/customers.js"></script>
 
 <script>
-    var defaultImg = '<?php echo isset($EditData->Image) ? $EditData->Image : '/website/images/logo/avathar_user.png'; ?>';
-    var imageChange = 0;
-    $(function() {
-        'use strict'
+var defaultImg = '<?php echo isset($EditData->Image) ? $EditData->Image : ''; ?>';
+$(function() {
+    'use strict'
 
-        <?php if (is_array($BillingAddr) && sizeof($BillingAddr) > 0) { ?>
+    <?php if (is_array($BillingAddr) && sizeof($BillingAddr) > 0) { ?>
+        enableBillingAddress();
+    <?php } ?>
 
-            $('#BillAddrState').select2({
-                placeholder: '-- Select State --',
-                allowClear: true,
-            });
+    <?php if (is_array($ShippingAddr) && sizeof($ShippingAddr) > 0) { ?>
+        enableShippingAddress();
+    <?php } ?>
 
-            $('#BillAddrCity').select2({
-                placeholder: '-- Select City --',
-                allowClear: true,
-            });
+    select2CountryCode();
+    select2TagEmail();
 
-        <?php } ?>
+    $('#image_reset_btn').click(function(e) {
+        e.preventDefault();
+        imageChange = 0;
+        $('#uploadedAvatar').attr("src", CDN_URL + defaultImg);
+    });
 
-        <?php if (is_array($ShippingAddr) && sizeof($ShippingAddr) > 0) { ?>
-            
-            $('#ShipAddrState').select2({
-                placeholder: '-- Select State --',
-                allowClear: true,
-            });
+    $('#EditCustomerForm').submit(function(e) {
+        e.preventDefault();
 
-            $('#ShipAddrCity').select2({
-                placeholder: '-- Select City --',
-                allowClear: true,
-            });
+        var formData = new FormData($('#EditCustomerForm')[0]);
+        formData.append('CountryISO2', $('#CountryCode').find('option:selected').data('ccode'));
+        formData.append('imageChange', imageChange);
 
-        <?php } ?>
-
-        $('#CountryCode').select2({
-            placeholder: '-- Select Country --',
-            allowClear: true,
-        });
-
-        $("#Tags,#CCEmails").select2({
-            tags: "true",
-            placeholder: "Type and press enter...",
-            allowClear: true
-        });
-
-        $('#image_reset_btn').click(function(e) {
-            e.preventDefault();
-            imageChange = 0;
-            $('#uploadedAvatar').attr("src", CDN_URL + defaultImg);
-        });
-
-        $('#EditCustomerForm').submit(function(e) {
-            e.preventDefault();
-
-            var formData = new FormData($('#EditCustomerForm')[0]);
-            formData.append('CountryISO2', $('#CountryCode').find('option:selected').data('ccode'));
-            formData.append('imageChange', imageChange);
-
-            var BillAddrLine1 = $('#BillAddrLine1').val();
-            if (BillAddrLine1 != null && BillAddrLine1 != '' && BillAddrLine1 !== undefined) {
-                var BillAddrCity = $('#BillAddrCity').find('option:selected').val();
-                if (BillAddrCity != null && BillAddrCity != '' && BillAddrCity !== undefined) {
-                    formData.append('BillAddrCityText', $('#BillAddrCity').find('option:selected').text());
-                }
-                var BillAddrState = $('#BillAddrState').find('option:selected').val();
-                if (BillAddrState != null && BillAddrState != '' && BillAddrState !== undefined) {
-                    formData.append('BillAddrStateText', $('#BillAddrState').find('option:selected').text());
-                }
+        var BillAddrLine1 = $('#BillAddrLine1').val();
+        if (BillAddrLine1 != null && BillAddrLine1 != '' && BillAddrLine1 !== undefined) {
+            var BillAddrCity = $('#BillAddrCity').find('option:selected').val();
+            if (BillAddrCity != null && BillAddrCity != '' && BillAddrCity !== undefined) {
+                formData.append('BillAddrCityText', $('#BillAddrCity').find('option:selected').text());
             }
-
-            var ShipAddrLine1 = $('#ShipAddrLine1').val();
-            if (ShipAddrLine1 != null && ShipAddrLine1 != '' && ShipAddrLine1 !== undefined) {
-                var ShipAddrCity = $('#ShipAddrCity').find('option:selected').val();
-                if (ShipAddrCity != null && ShipAddrCity != '' && ShipAddrCity !== undefined) {
-                    formData.append('ShipAddrCityText', $('#ShipAddrCity').find('option:selected').text());
-                }
-                var ShipAddrState = $('#ShipAddrState').find('option:selected').val();
-                if (ShipAddrState != null && ShipAddrState != '' && ShipAddrState !== undefined) {
-                    formData.append('ShipAddrStateText', $('#ShipAddrState').find('option:selected').text());
-                }
+            var BillAddrState = $('#BillAddrState').find('option:selected').val();
+            if (BillAddrState != null && BillAddrState != '' && BillAddrState !== undefined) {
+                formData.append('BillAddrStateText', $('#BillAddrState').find('option:selected').text());
             }
+        }
 
-            editCustomerData(formData);
+        var ShipAddrLine1 = $('#ShipAddrLine1').val();
+        if (ShipAddrLine1 != null && ShipAddrLine1 != '' && ShipAddrLine1 !== undefined) {
+            var ShipAddrCity = $('#ShipAddrCity').find('option:selected').val();
+            if (ShipAddrCity != null && ShipAddrCity != '' && ShipAddrCity !== undefined) {
+                formData.append('ShipAddrCityText', $('#ShipAddrCity').find('option:selected').text());
+            }
+            var ShipAddrState = $('#ShipAddrState').find('option:selected').val();
+            if (ShipAddrState != null && ShipAddrState != '' && ShipAddrState !== undefined) {
+                formData.append('ShipAddrStateText', $('#ShipAddrState').find('option:selected').text());
+            }
+        }
 
-        });
+        editCustomerData(formData);
 
     });
+
+});
 </script>

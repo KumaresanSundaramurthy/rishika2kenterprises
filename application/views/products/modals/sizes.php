@@ -29,7 +29,7 @@
             <div id="sizeFormAlert" class="d-none col-lg-12 px-4" role="alert"></div>
 
             <div class="modal-footer border-top d-flex justify-content-end">
-                <button type="button" class="btn btn-label-danger" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-label-danger" data-bs-dismiss="modal">Discard</button>
                 <button type="submit" id="sizeButtonName" class="btn btn-primary">Save</button>
             </div>
 

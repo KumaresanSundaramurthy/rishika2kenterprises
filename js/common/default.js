@@ -75,6 +75,8 @@ function blankControls() {
 
 $(document).ready(function () {
 
+    $('[data-toggle="tooltip"]').tooltip();
+
     $("input[type=number]").click(function () {
         $(this).select();
     });
@@ -95,6 +97,11 @@ $(document).ready(function () {
     $('#exportPagesModal').on('hidden.bs.modal', function () {
         exportModule = '';
         expActionType = '';
+    });
+
+    $('#btnPageSettings').click(function (e) {
+        e.preventDefault();
+        $('#pageSettingsModal').modal('show');
     });
 
     $('#UpdatePageSettingsForm').submit(function (e) {
@@ -603,6 +610,15 @@ function QuillEditor(EditorName, PlaceHolder) {
     });
 }
 
+function appendToQuill(content, isHtml = false) {
+    const index = quill.getLength() - 1;
+    if (isHtml) {
+        quill.clipboard.dangerouslyPasteHTML(index, content);
+    } else {
+        quill.insertText(index, content);
+    }
+}
+
 function resetUserPassword(formData) {
 
     $('#ResetPasswordSubBtn').prop('disabled', 'disabled');
@@ -716,11 +732,14 @@ function onClickOfCheckbox($this, ItemIds, HeaderField) {
 
 function headerCheckboxTrueFalse(ItemIds, HeaderField) {
     if (ItemIds.length > 0) {
+        $(HeaderField).removeAttr('disabled');
         if (ItemIds.length == SelectedUIDs.length) {
             $(HeaderField).prop('checked', true);
         } else {
             $(HeaderField).prop('checked', false);
         }
+    } else if (ItemIds.length == 0) {
+        $(HeaderField).prop('disabled', 'disabled');
     }
 }
 
@@ -747,7 +766,7 @@ function loadSelect2Field(FieldName, Placeholder) {
     });
 }
 
-function exportAllActions(ModuleId, ModuleName, ActionType, ItemIds, URLs, callbackFn) {
+function exportAllActions(ModuleId, ActionType, ItemIds, URLs, callbackFn) {
     $('#exportSelectedItemsBtn,#exportThisPageBtn,#exportThisPageCnt,#exportSelectedItemsCnt').addClass('d-none');
     if (ItemIds.length > 0) {
         exportModule = ModuleId;
@@ -792,6 +811,7 @@ function exportModalCloseFunc(TableName, HeaderCheckbox, RowCheckbox, ItemIds) {
     unSelectTableRecords(TableName, RowCheckbox);
     headerCheckboxTrueFalse(ItemIds, HeaderCheckbox);
     $('#exportPagesModal').modal('hide');
+    MultipleDeleteOption();
 }
 
 async function printPreviewRecords(getFuncName, callbackFn) {
@@ -936,4 +956,51 @@ function checkPageSettingsSortOrder() {
         });
     }
     return hasDuplicates;
+}
+
+function baseExportFunctionality(Flag, Type, FileName, SheetName) {
+    if (Flag == 2) {
+        if (SelectedUIDs.length == 0) {
+            Swal.fire({
+                icon: "error",
+                title: "Oops...",
+                text: "You have not selected any items. Kindly select items.!",
+            });
+            return false;
+        }
+    }
+    const ExportIds = SelectedUIDs.length > 0 ? btoa(SelectedUIDs.toString()) : '';
+    let URLs = '';
+    if (Type == 'PrintPreview') {
+        URLs = "/globally/getPrintPreviewDetails?ModuleId=" + ModuleId;
+        if (!$.isEmptyObject(Filter)) {
+            URLs += "&Filter=" + encodeURIComponent(JSON.stringify(Filter));
+        }
+        if (ExportIds != '') {
+            URLs += "&ExportIds=" + ExportIds;
+        }
+    } else if (Type == 'ExportCSV' || Type == 'ExportPDF' || Type == 'ExportExcel') {
+        const TypeVal = (Type == 'ExportCSV') ? 'CSV' : ((Type == 'ExportPDF') ? 'Pdf' : ((Type == 'ExportExcel') ? 'Excel' : 'None'));
+        URLs = "/globally/exportModuleDataDetails?ModuleId=" + ModuleId + "&Type=" + TypeVal + "&FileName=" + FileName + "&SheetName=" + SheetName;
+        if (!$.isEmptyObject(Filter)) {
+            URLs += "&Filter=" + encodeURIComponent(JSON.stringify(Filter));
+        }
+        if (ExportIds != '') {
+            URLs += "&ExportIds=" + ExportIds;
+        }
+    }
+    if (Flag == 1) {
+        exportAllActions(ModuleId, Type, ModuleUIDs, URLs, function () {
+            exportModalCloseFunc(ModuleTable, ModuleHeader, ModuleRow, ModuleUIDs);
+        });
+    } else if (Flag == 2) {
+        if (Type == 'PrintPreview') {
+            printPreviewRecords(URLs, function () {
+                exportModalCloseFunc(ModuleTable, ModuleHeader, ModuleRow, ModuleUIDs);
+            });
+        } else if (Type == 'ExportCSV' || 'ExportPDF' || 'ExportExcel') {
+            window.location.href = URLs;
+            exportModalCloseFunc(ModuleTable, ModuleHeader, ModuleRow, ModuleUIDs);
+        }
+    }
 }

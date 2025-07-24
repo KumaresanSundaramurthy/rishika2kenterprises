@@ -87,9 +87,8 @@
                                                             <?php 
                                                                 $value = $value ?? '';
                                                                 if($AmountField[$colIndex] == 1) {
-                                                                    $value = 0;
                                                                     if($value) {
-                                                                        $value = $JwtData->GenSettings->CurrenySymbol . smartDecimal($value);
+                                                                        $value = $this->pageData['JwtData']->GenSettings->CurrenySymbol . smartDecimal($value);
                                                                     }
                                                                 } else if($DateField[$colIndex] == 1) {
                                                                     $value = changeTimeZomeDateFormat($value, $this->pageData['JwtData']->User->Timezone);
@@ -116,12 +115,12 @@
 
                                                     // Only output if we have aggregation for this column
                                                     if ($method === 'SUM' && isset($FinalAggregates[$colIndex]['SUM'])) {
-                                                        $output = $AmountField[$colIndex] == 1 ? ($FinalAggregates[$colIndex]['SUM'] ?  $JwtData->GenSettings->CurrenySymbol . smartDecimal($FinalAggregates[$colIndex]['SUM']) : 0) : $FinalAggregates[$colIndex]['SUM'];
+                                                        $output = $AmountField[$colIndex] == 1 ? ($FinalAggregates[$colIndex]['SUM'] ?  $this->pageData['JwtData']->GenSettings->CurrenySymbol . smartDecimal($FinalAggregates[$colIndex]['SUM']) : 0) : $FinalAggregates[$colIndex]['SUM'];
                                                     } elseif ($method === 'COUNT' && isset($FinalAggregates[$colIndex]['COUNT'])) {
                                                         $output = $FinalAggregates[$colIndex]['COUNT'];
                                                     } elseif ($method === 'AVG' && isset($FinalAggregates[$colIndex]['_sum'], $FinalAggregates[$colIndex]['_count']) && $FinalAggregates[$colIndex]['_count'] > 0) {
                                                         $avg = $FinalAggregates[$colIndex]['_sum'] / $FinalAggregates[$colIndex]['_count'];
-                                                        $output = $AmountField[$colIndex] == 1 ? ($avg ?  $JwtData->GenSettings->CurrenySymbol . smartDecimal($avg) : 0) : $avg;
+                                                        $output = $AmountField[$colIndex] == 1 ? ($avg ?  $this->pageData['JwtData']->GenSettings->CurrenySymbol . smartDecimal($avg) : 0) : $avg;
                                                     }
 
                                                     echo $output;

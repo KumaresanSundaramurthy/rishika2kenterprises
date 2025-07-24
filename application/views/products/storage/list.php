@@ -6,7 +6,7 @@
 
         <tr>
             <td>
-                <div class="form-check form-check-inline"><input class="form-check-input sizesCheck" type="checkbox" value="<?php echo $list->TablePrimaryUID; ?>"></div>
+                <div class="form-check form-check-inline"><input class="form-check-input storageCheck" type="checkbox" value="<?php echo $list->TablePrimaryUID; ?>"></div>
             </td>
             <td><?php echo $SerialNumber; ?></td>
             <?php
@@ -16,20 +16,20 @@
             ?>
             <td>
                 <div class="d-flex align-items-sm-center justify-content-sm-center">
-                    <a href="javascript: void(0);" data-uid="<?php echo $list->TablePrimaryUID; ?>"
+                    <a href="javascript: void(0);" data-uid="<?php echo $list->TablePrimaryUID; ?>" 
                         <?php
-                        foreach ($ViewColumns as $column) {
+                            foreach ($ViewColumns as $column) {
 
-                            $attrName = strtolower($column->FieldName);
-                            $fieldName = $column->DisplayName;
-                            $value = $list->$fieldName ?? '';
+                                $attrName = strtolower($column->FieldName);
+                                $fieldName = $column->DisplayName;
+                                $value = $list->$fieldName ?? '';
 
-                            echo 'data-'.$attrName.'="'.($value ? base64_encode($value) : '').'"';
+                                echo 'data-'.$attrName.'="'.($value ? base64_encode($value) : '').'"';
 
-                        } ?>
-
-                        class="btn btn-icon text-warning editSize"><i class="bx bx-edit me-1"></i></a>
-                    <button class="btn btn-icon text-danger DeleteSize" data-sizeuid="<?php echo $list->TablePrimaryUID; ?>"><i class="bx bx-trash"></i></button>
+                            }
+                        ?>
+                        data-description="<?php echo $list->Description ? base64_encode($list->Description) : ''; ?>" data-image="<?php echo $list->Image ? base64_encode($list->Image) : ''; ?>" data-strtype="<?php echo $list->Storage_Type_UID ? $list->Storage_Type_UID : 0; ?>" class="btn btn-icon text-warning editStorage"><i class="bx bx-edit me-1"></i></a>
+                    <button class="btn btn-icon text-danger DeleteStorage" data-productuid="<?php echo $list->ProductUID; ?>" data-storageuid="<?php echo $list->TablePrimaryUID; ?>"><i class="bx bx-trash"></i></button>
                 </div>
             </td>
         </tr>
@@ -47,9 +47,9 @@
                     </div>
 
                     <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                        <span class="mb-2">Add a Size Now</span>
-                        <a href="javascript: void(0);" class="btn btn-primary px-3 addSizes">
-                            <i class="bx bx-plus"></i> New Size
+                        <span class="mb-2">Add a Storage Now</span>
+                        <a href="javascript: void(0);" class="btn btn-primary px-3 addStorage">
+                            <i class="bx bx-plus"></i> New Storage
                         </a>
                     </div>
 

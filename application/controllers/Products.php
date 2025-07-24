@@ -3,7 +3,6 @@
 class Products extends CI_Controller {
 
     public $pageData = array();
-    private $PagReturnData;
     private $EndReturnData;
 
     public function __construct() {
@@ -13,15 +12,15 @@ class Products extends CI_Controller {
 
     public function index() {
 
+        $activeTab = isset($_GET['tab']) ? $_GET['tab'] : 'item';
+
         $ControllerName = strtolower($this->router->fetch_class());
 
         $this->pageData['ModuleInfo'] = array_filter($this->pageData['JwtData']->ModuleInfo, function($module) use ($ControllerName) {
             return $module->ControllerName === $ControllerName;
         });
 
-        $pageNo = $offset = 0;
         $limit = isset($this->pageData['JwtData']->GenSettings->RowLimit) ? $this->pageData['JwtData']->GenSettings->RowLimit : 10;
-        $Filter = [];
 
         // ModuleID information
         $this->pageData['ItemModuleId'] = getModuleUIDByName($this->pageData['ModuleInfo'], 'Products');
@@ -29,7 +28,33 @@ class Products extends CI_Controller {
         $this->pageData['SizeModuleId'] = getModuleUIDByName($this->pageData['ModuleInfo'], 'Sizes');
         $this->pageData['BrandModuleId'] = getModuleUIDByName($this->pageData['ModuleInfo'], 'Brands');
 
-        $ReturnResponse = $this->ItemTablePagination($this->pageData['ItemModuleId'], $pageNo, $limit, $offset, $Filter);
+        $ModuleId = 0;
+        $TableDetails = '';
+        $ListPage = '';
+        $ActiveTabName = '';
+        if($activeTab == 'item') {
+            $ModuleId = $this->pageData['ItemModuleId'];
+            $TableDetails = '/products/getProductDetails/';
+            $ListPage = 'products/items/list';
+            $ActiveTabName = 'Item';
+        } else if($activeTab == 'category') {
+            $ModuleId = $this->pageData['CategoryModuleId'];
+            $TableDetails = '/products/getCategoriesDetails/';
+            $ListPage = 'products/categories/list';
+            $ActiveTabName = 'Categories';
+        } else if($activeTab == 'size') {
+            $ModuleId = $this->pageData['SizeModuleId'];
+            $TableDetails = '/products/getSizesDetails/';
+            $ListPage = 'products/sizes/list';
+            $ActiveTabName = 'Sizes';
+        } else if($activeTab == 'brand') {
+            $ModuleId = $this->pageData['BrandModuleId'];
+            $TableDetails = '/products/getBrandsDetails/';
+            $ListPage = 'products/brands/list';
+            $ActiveTabName = 'Brands';
+        }
+
+        $ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($ModuleId, $TableDetails, $ListPage, 0, $limit, 0, [], []);
         if($ReturnResponse->Error) {
             throw new Exception($ReturnResponse->Message);
         }
@@ -37,10 +62,7 @@ class Products extends CI_Controller {
         $this->pageData['ItemList'] = $ReturnResponse->List;
         $this->pageData['ItemUIDs'] = $ReturnResponse->UIDs;
         $this->pageData['ItemPagination'] = $ReturnResponse->Pagination;
-
-        $this->load->model('global_model');
-        $this->pageData['ColumnDetails'] = $this->global_model->getModuleViewColumnDetails(['ViewColmn.ModuleUID' => $this->pageData['ItemModuleId']]);
-        
+        $this->pageData['ColumnDetails'] = $ReturnResponse->AllViewColumns;
         
         $ItemColumns = array_filter($this->pageData['ColumnDetails'], function ($item) {
             return isset($item->IsMainPageApplicable) && $item->IsMainPageApplicable == 1;
@@ -52,7 +74,11 @@ class Products extends CI_Controller {
 
         $this->load->model('products_model');
         $this->pageData['Categories'] = $this->products_model->getCategoriesDetails([]);
-        
+
+        $this->pageData['ActiveTabData'] = $activeTab;
+        $this->pageData['ActiveTabName'] = $ActiveTabName;
+        $this->pageData['ActiveModuleId'] = $ModuleId;
+
         $this->load->view('products/view', $this->pageData);
 
     }
@@ -67,7 +93,7 @@ class Products extends CI_Controller {
             $offset = ($pageNo != 0) ? (($pageNo - 1) * $limit) : $pageNo;
             $Filter = $this->input->post('Filter');
 
-			$ReturnResponse = $this->ItemTablePagination($ModuleId, $pageNo, $limit, $offset, $Filter);
+			$ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($ModuleId, '/products/getProductDetails/', 'products/items/list', $pageNo, $limit, $offset, $Filter, []);
             if($ReturnResponse->Error) {
                 throw new Exception($ReturnResponse->Message);
             }
@@ -89,65 +115,6 @@ class Products extends CI_Controller {
         exit;
 
 	}
-
-    public function ItemTablePagination($ModuleId, $pageNo, $limit, $offset, $Filter) {
-
-        $this->PagReturnData = new stdClass();
-		try {
-
-            if($ModuleId > 0) {
-
-                $this->load->model('products_model');
-                $this->pageData['SerialNumber'] = $offset;
-
-                $this->load->model('global_model');
-                $DataInfo = $this->global_model->getModuleViewColumnDetails(['ViewColmn.ModuleUID' => $ModuleId, 'ViewColmn.IsMainPageApplicable' => 1], true, ['ViewColmn.MainPageOrder' => 'ASC']);
-                $ModuleInfo = $this->global_model->getModuleDetails(['Modules.ModuleUID' => $ModuleId]);
-                if(sizeof($DataInfo) > 0 && sizeof($ModuleInfo) > 0) {
-
-                    $ModuleInfoData = $ModuleInfo[0];
-                    
-                    $FilterFormat = $this->products_model->itemFilterFormation($ModuleInfoData, $Filter);
-                    
-                    $JoinData = $this->global_model->getModuleViewJoinColumnDetails(['JoinColmn.MainModuleUID' => $ModuleId], true, ['JoinColmn.SortOrder' => 'ASC']);
-
-                    $this->pageData['ProductsList'] = $this->global_model->getModuleReportDetails($ModuleInfoData, $DataInfo, $JoinData, $FilterFormat->SearchFilter, $FilterFormat->SearchDirectQuery, 'DESC', [], $limit, $offset, 0);
-                    $ProductsUIds = $this->global_model->getModuleReportDetails($ModuleInfoData, $DataInfo, $JoinData, $FilterFormat->SearchFilter, $FilterFormat->SearchDirectQuery, 'DESC', [], $limit, $offset, 1);
-                    $this->pageData['ModuleInfo'] = $ModuleInfoData;
-                    $this->pageData['ViewColumns'] = $DataInfo;
-
-                    $ProductsCount = sizeof($ProductsUIds);
-
-                    $config['base_url'] = '/products/getProductDetails/';
-                    $config['use_page_numbers'] = TRUE;
-                    $config['total_rows'] = $ProductsCount;
-                    $config['per_page'] = $limit;
-
-                    $config['result_count'] = pageResultCount($pageNo, $limit, $ProductsCount);
-                    $this->pagination->initialize($config);
-
-                    $this->PagReturnData->Error = FALSE;
-                    $this->PagReturnData->List = $this->load->view('products/items/list', $this->pageData, TRUE);
-                    $this->PagReturnData->UIDs = $ProductsCount > 0 ? array_map('intval', array_column($ProductsUIds, $ModuleInfoData->TablePrimaryUID)) : [];
-                    $this->PagReturnData->Count = $ProductsCount;
-                    $this->PagReturnData->Pagination = $this->pagination->create_links();
-
-                } else {
-                    throw new Exception('No Records Found.!');
-                }
-
-            } else {
-                throw new Exception('Oops! Something went wrong.');
-            }
-
-        } catch (Exception $e) {
-            $this->PagReturnData->Error = TRUE;
-            $this->PagReturnData->Message = $e->getMessage();
-        }
-
-		return $this->PagReturnData;
-        
-    }
 
     public function add() {
 
@@ -547,7 +514,7 @@ class Products extends CI_Controller {
                 $Filter = $this->input->post('Filter') ? $this->input->post('Filter') : [];
                 $ModuleId = $this->input->post('ModuleId');
 
-                $ReturnResponse = $this->ItemTablePagination($ModuleId, $pageNo, $limit, $offset, $Filter);
+                $ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($ModuleId, '/products/getProductDetails/', 'products/items/list', $pageNo, $limit, $offset, $Filter, []);
                 if($ReturnResponse->Error) {
                     throw new Exception($ReturnResponse->Message);
                 }
@@ -602,7 +569,7 @@ class Products extends CI_Controller {
                 $Filter = $this->input->post('Filter') ? $this->input->post('Filter') : [];
                 $ModuleId = $this->input->post('ModuleId');
 
-                $ReturnResponse = $this->ItemTablePagination($pageNo, $limit, $offset, $Filter);
+                $ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($ModuleId, '/products/getProductDetails/', 'products/items/list', $pageNo, $limit, $offset, $Filter, []);
                 if($ReturnResponse->Error) {
                     throw new Exception($ReturnResponse->Message);
                 }
@@ -639,16 +606,17 @@ class Products extends CI_Controller {
 			$limit = $this->input->post('RowLimit');
             $offset = ($pageNo != 0) ? (($pageNo - 1) * $limit) : $pageNo;
             $Filter = $this->input->post('Filter');
+            $ModuleId = $this->input->post('ModuleId');
 
-			$ReturnResponse = $this->CategoryTablePagination($pageNo, $limit, $offset, $Filter);
+			$ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($ModuleId, '/products/getCategoriesDetails/', 'products/categories/list', $pageNo, $limit, $offset, $Filter, []);
             if($ReturnResponse->Error) {
                 throw new Exception($ReturnResponse->Message);
             }
 
             $this->EndReturnData->Error = false;
             $this->EndReturnData->List = $ReturnResponse->List;
-			$this->EndReturnData->Count = $ReturnResponse->Count;
-            $this->EndReturnData->Pagination = $this->pagination->create_links();
+			$this->EndReturnData->UIDs = $ReturnResponse->UIDs;
+            $this->EndReturnData->Pagination = $ReturnResponse->Pagination;
 
 		} catch (Exception $e) {
             $this->EndReturnData->Error = TRUE;
@@ -662,38 +630,6 @@ class Products extends CI_Controller {
         exit;
 
 	}
-
-    public function CategoryTablePagination($pageNo, $limit, $offset, $Filter) {
-
-        $this->PagReturnData = new stdClass();
-		try {
-
-			$this->load->model('products_model');
-            $this->pageData['SerialNumber'] = $offset;
-            $this->pageData['CategoriesList'] = $this->products_model->getCategoriesList($limit, $offset, $Filter, 0);
-            $CategoriesCount = $this->products_model->getCategoriesList($limit, $offset, $Filter, 1);
-
-			$config['base_url'] = '/products/getCategoriesDetails/';
-            $config['use_page_numbers'] = TRUE;
-            $config['total_rows'] = $CategoriesCount;
-            $config['per_page'] = $limit;
-
-            $config['result_count'] = pageResultCount($pageNo, $limit, $CategoriesCount);
-            $this->pagination->initialize($config);
-
-            $this->PagReturnData->Error = FALSE;
-            $this->PagReturnData->List = $this->load->view('products/categories/list', $this->pageData, TRUE);
-			$this->PagReturnData->Count = $CategoriesCount;
-            $this->PagReturnData->Pagination = $this->pagination->create_links();
-
-        } catch (Exception $e) {
-            $this->PagReturnData->Error = TRUE;
-            $this->PagReturnData->Message = $e->getMessage();
-        }
-
-		return $this->PagReturnData;
-        
-    }
 
     public function addCategoryDetails() {
 
@@ -755,8 +691,9 @@ class Products extends CI_Controller {
                 $pageNo = $this->input->post('PageNo');
                 $offset = ($pageNo != 0) ? (($pageNo - 1) * $limit) : $pageNo;
                 $Filter = $this->input->post('Filter') ? $this->input->post('Filter') : [];
+                $ModuleId = $this->input->post('ModuleId');
 
-                $ReturnResponse = $this->CategoryTablePagination($pageNo, $limit, $offset, $Filter);
+                $ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($ModuleId, '/products/getCategoriesDetails/', 'products/categories/list', $pageNo, $limit, $offset, $Filter, []);
                 if($ReturnResponse->Error) {
                     throw new Exception($ReturnResponse->Message);
                 }
@@ -765,6 +702,7 @@ class Products extends CI_Controller {
                 $this->EndReturnData->Message = 'Created Successfully';
                 $this->EndReturnData->List = $ReturnResponse->List;
                 $this->EndReturnData->Pagination = $ReturnResponse->Pagination;
+                $this->EndReturnData->UIDs = $ReturnResponse->UIDs;
 
             } else {
                 throw new Exception($ErrorInForm);
@@ -915,8 +853,9 @@ class Products extends CI_Controller {
                 $pageNo = $this->input->post('PageNo');
                 $offset = ($pageNo != 0) ? (($pageNo - 1) * $limit) : $pageNo;
                 $Filter = $this->input->post('Filter') ? $this->input->post('Filter') : [];
+                $ModuleId = $this->input->post('ModuleId');
 
-                $ReturnResponse = $this->CategoryTablePagination($pageNo, $limit, $offset, $Filter);
+                $ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($ModuleId, '/products/getCategoriesDetails/', 'products/categories/list', $pageNo, $limit, $offset, $Filter, []);
                 if($ReturnResponse->Error) {
                     throw new Exception($ReturnResponse->Message);
                 }
@@ -925,6 +864,7 @@ class Products extends CI_Controller {
                 $this->EndReturnData->Message = 'Updated Successfully';
                 $this->EndReturnData->List = $ReturnResponse->List;
                 $this->EndReturnData->Pagination = $ReturnResponse->Pagination;
+                $this->EndReturnData->UIDs = $ReturnResponse->UIDs;
 
             } else {
                 throw new Exception($ErrorInForm);
@@ -975,8 +915,9 @@ class Products extends CI_Controller {
                 $pageNo = $this->input->post('PageNo') ? $this->input->post('PageNo') : 0;
                 $offset = ($pageNo != 0) ? (($pageNo - 1) * $limit) : $pageNo;
                 $Filter = $this->input->post('Filter') ? $this->input->post('Filter') : [];
+                $ModuleId = $this->input->post('ModuleId');
 
-                $ReturnResponse = $this->CategoryTablePagination($pageNo, $limit, $offset, $Filter);
+                $ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($ModuleId, '/products/getCategoriesDetails/', 'products/categories/list', $pageNo, $limit, $offset, $Filter, []);
                 if($ReturnResponse->Error) {
                     throw new Exception($ReturnResponse->Message);
                 }
@@ -985,6 +926,69 @@ class Products extends CI_Controller {
                 $this->EndReturnData->Message = 'Deleted Successfully';
                 $this->EndReturnData->List = $ReturnResponse->List;
                 $this->EndReturnData->Pagination = $ReturnResponse->Pagination;
+                $this->EndReturnData->UIDs = $ReturnResponse->UIDs;
+
+            } else {
+                throw new Exception('Category Information is Missing to Delete');
+            }
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+		$this->output->set_status_header(200)
+            ->set_content_type('application/json', 'utf-8')
+            ->set_output(json_encode($this->EndReturnData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES))
+            ->_display();
+        exit;
+
+    }
+
+    public function deleteBulkCategory() {
+
+        $this->EndReturnData = new stdClass();
+		try {
+
+            $CategoryUIDs = $this->input->post('CategoryUIDs');
+            if($CategoryUIDs) {
+
+                /** Cross Check with Products */
+                $this->load->model('products_model');
+                $ExistsInProducts = $this->products_model->getProductsDetails([], '', ['Products.CategoryUID' => $CategoryUIDs]);
+                if(!empty($ExistsInProducts) && sizeof($ExistsInProducts) > 0) {
+                    throw new Exception('Category is linked to Product.');
+                }
+
+                $updateCategData = [
+                    'IsDeleted' => 1,
+                    'UpdatedBy' => $this->pageData['JwtData']->User->UserUID,
+                    'UpdatedOn' => time(),
+                ];
+
+                $this->load->model('dbwrite_model');
+                
+                $UpdateResp = $this->dbwrite_model->updateData('Products', 'CategoryTbl', $updateCategData, [], array('CategoryUID' => $CategoryUIDs));
+                if($UpdateResp->Error) {
+                    throw new Exception($UpdateResp->Message);
+                }
+
+                $limit = $this->input->post('RowLimit');
+                $pageNo = $this->input->post('PageNo') ? $this->input->post('PageNo') : 0;
+                $offset = ($pageNo != 0) ? (($pageNo - 1) * $limit) : $pageNo;
+                $Filter = $this->input->post('Filter') ? $this->input->post('Filter') : [];
+                $ModuleId = $this->input->post('ModuleId');
+
+                $ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($ModuleId, '/products/getCategoriesDetails/', 'products/categories/list', $pageNo, $limit, $offset, $Filter, []);
+                if($ReturnResponse->Error) {
+                    throw new Exception($ReturnResponse->Message);
+                }
+
+                $this->EndReturnData->Error = FALSE;
+                $this->EndReturnData->Message = 'Deleted Successfully';
+                $this->EndReturnData->List = $ReturnResponse->List;
+                $this->EndReturnData->Pagination = $ReturnResponse->Pagination;
+                $this->EndReturnData->UIDs = $ReturnResponse->UIDs;
 
             } else {
                 throw new Exception('Category Information is Missing to Delete');
@@ -1012,15 +1016,16 @@ class Products extends CI_Controller {
             $limit = $this->input->post('RowLimit');
             $offset = ($pageNo != 0) ? (($pageNo - 1) * $limit) : $pageNo;
             $Filter = $this->input->post('Filter') ? $this->input->post('Filter') : [];
+            $ModuleId = $this->input->post('ModuleId');
 
-            $ReturnResponse = $this->SizeTablePagination($pageNo, $limit, $offset, $Filter);
+            $ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($ModuleId, '/products/getSizesDetails/', 'products/sizes/list', $pageNo, $limit, $offset, $Filter, []);
             if($ReturnResponse->Error) {
                 throw new Exception($ReturnResponse->Message);
             }
 
-            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Error = false;
             $this->EndReturnData->List = $ReturnResponse->List;
-            $this->EndReturnData->SizesCount = $ReturnResponse->SizesCount;
+			$this->EndReturnData->UIDs = $ReturnResponse->UIDs;
             $this->EndReturnData->Pagination = $ReturnResponse->Pagination;
 
 		} catch (Exception $e) {
@@ -1035,38 +1040,6 @@ class Products extends CI_Controller {
         exit;
 
 	}
-
-    public function SizeTablePagination($pageNo, $limit, $offset, $Filter) {
-
-        $this->PagReturnData = new stdClass();
-		try {
-
-			$this->load->model('products_model');
-            $this->pageData['SerialNumber'] = $offset;
-            $this->pageData['SizesList'] = $this->products_model->getSizesList($limit, $offset, $Filter, 0);
-            $SizesCount = $this->products_model->getSizesList($limit, $offset, $Filter, 1);
-
-			$config['base_url'] = '/products/getSizesDetails/';
-            $config['use_page_numbers'] = TRUE;
-            $config['total_rows'] = $SizesCount;
-            $config['per_page'] = $limit;
-
-            $config['result_count'] = pageResultCount($pageNo, $limit, $SizesCount);
-            $this->pagination->initialize($config);
-
-            $this->PagReturnData->Error = false;
-            $this->PagReturnData->List = $this->load->view('products/sizes/list', $this->pageData, TRUE);
-			$this->PagReturnData->SizesCount = $SizesCount;
-            $this->PagReturnData->Pagination = $this->pagination->create_links();
-
-        } catch (Exception $e) {
-            $this->PagReturnData->Error = TRUE;
-            $this->PagReturnData->Message = $e->getMessage();
-        }
-
-		return $this->PagReturnData;
-
-    }
 
     public function addSizeDetails() {
 
@@ -1100,8 +1073,9 @@ class Products extends CI_Controller {
                 $pageNo = $this->input->post('PageNo');
                 $offset = ($pageNo != 0) ? (($pageNo - 1) * $limit) : $pageNo;
                 $Filter = $this->input->post('Filter') ? $this->input->post('Filter') : [];
+                $ModuleId = $this->input->post('ModuleId');
 
-                $ReturnResponse = $this->SizeTablePagination($pageNo, $limit, $offset, $Filter);
+                $ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($ModuleId, '/products/getSizesDetails/', 'products/sizes/list', $pageNo, $limit, $offset, $Filter, []);
                 if($ReturnResponse->Error) {
                     throw new Exception($ReturnResponse->Message);
                 }
@@ -1109,6 +1083,7 @@ class Products extends CI_Controller {
                 $this->EndReturnData->Error = FALSE;
                 $this->EndReturnData->Message = 'Created Successfully';
                 $this->EndReturnData->List = $ReturnResponse->List;
+                $this->EndReturnData->UIDs = $ReturnResponse->UIDs;
                 $this->EndReturnData->Pagination = $ReturnResponse->Pagination;
 
             } else {
@@ -1195,8 +1170,9 @@ class Products extends CI_Controller {
                 $pageNo = $this->input->post('PageNo');
                 $offset = ($pageNo != 0) ? (($pageNo - 1) * $limit) : $pageNo;
                 $Filter = $this->input->post('Filter') ? $this->input->post('Filter') : [];
+                $ModuleId = $this->input->post('ModuleId');
 
-                $ReturnResponse = $this->SizeTablePagination($pageNo, $limit, $offset, $Filter);
+                $ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($ModuleId, '/products/getSizesDetails/', 'products/sizes/list', $pageNo, $limit, $offset, $Filter, []);
                 if($ReturnResponse->Error) {
                     throw new Exception($ReturnResponse->Message);
                 }
@@ -1204,6 +1180,7 @@ class Products extends CI_Controller {
                 $this->EndReturnData->Error = FALSE;
                 $this->EndReturnData->Message = 'Updated Successfully';
                 $this->EndReturnData->List = $ReturnResponse->List;
+                $this->EndReturnData->UIDs = $ReturnResponse->UIDs;
                 $this->EndReturnData->Pagination = $ReturnResponse->Pagination;
 
             } else {
@@ -1248,8 +1225,71 @@ class Products extends CI_Controller {
                 $pageNo = $this->input->post('PageNo');
                 $offset = ($pageNo != 0) ? (($pageNo - 1) * $limit) : $pageNo;
                 $Filter = $this->input->post('Filter') ? $this->input->post('Filter') : [];
+                $ModuleId = $this->input->post('ModuleId');
 
-                $ReturnResponse = $this->SizeTablePagination($pageNo, $limit, $offset, $Filter);
+                $ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($ModuleId, '/products/getSizesDetails/', 'products/sizes/list', $pageNo, $limit, $offset, $Filter, []);
+                if($ReturnResponse->Error) {
+                    throw new Exception($ReturnResponse->Message);
+                }
+
+                $this->EndReturnData->Error = FALSE;
+                $this->EndReturnData->Message = 'Deleted Successfully';
+                $this->EndReturnData->List = $ReturnResponse->List;
+                $this->EndReturnData->UIDs = $ReturnResponse->UIDs;
+                $this->EndReturnData->Pagination = $ReturnResponse->Pagination;
+
+            } else {
+                throw new Exception('Size Information is Missing to Delete');
+            }
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+		$this->output->set_status_header(200)
+            ->set_content_type('application/json', 'utf-8')
+            ->set_output(json_encode($this->EndReturnData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES))
+            ->_display();
+        exit;
+
+    }
+
+    public function deleteBulkSize() {
+
+        $this->EndReturnData = new stdClass();
+		try {
+
+            $SizeUIDs = $this->input->post('SizeUIDs');
+            if($SizeUIDs) {
+
+                /** Cross Check with Products */
+                $this->load->model('products_model');
+                $ExistsInProducts = $this->products_model->getProductsDetails([], '', ['Products.SizeUID' => $SizeUIDs]);
+                if(!empty($ExistsInProducts) && sizeof($ExistsInProducts) > 0) {
+                    throw new Exception('Size is linked to Product.');
+                }
+
+                $updateSizeData = [
+                    'IsDeleted' => 1,
+                    'UpdatedBy' => $this->pageData['JwtData']->User->UserUID,
+                    'UpdatedOn' => time(),
+                ];
+
+                $this->load->model('dbwrite_model');
+                
+                $UpdateResp = $this->dbwrite_model->updateData('Products', 'SizeTbl', $updateSizeData, [], array('SizeUID' => $SizeUIDs));
+                if($UpdateResp->Error) {
+                    throw new Exception($UpdateResp->Message);
+                }
+
+                $limit = $this->input->post('RowLimit');
+                $pageNo = $this->input->post('PageNo') ? $this->input->post('PageNo') : 0;
+                $offset = ($pageNo != 0) ? (($pageNo - 1) * $limit) : $pageNo;
+                $Filter = $this->input->post('Filter') ? $this->input->post('Filter') : [];
+                $ModuleId = $this->input->post('ModuleId');
+
+                $ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($ModuleId, '/products/getSizesDetails/', 'products/sizes/list', $pageNo, $limit, $offset, $Filter, []);
                 if($ReturnResponse->Error) {
                     throw new Exception($ReturnResponse->Message);
                 }
@@ -1258,6 +1298,7 @@ class Products extends CI_Controller {
                 $this->EndReturnData->Message = 'Deleted Successfully';
                 $this->EndReturnData->List = $ReturnResponse->List;
                 $this->EndReturnData->Pagination = $ReturnResponse->Pagination;
+                $this->EndReturnData->UIDs = $ReturnResponse->UIDs;
 
             } else {
                 throw new Exception('Size Information is Missing to Delete');
@@ -1285,15 +1326,16 @@ class Products extends CI_Controller {
             $limit = $this->input->post('RowLimit');
             $offset = ($pageNo != 0) ? (($pageNo - 1) * $limit) : $pageNo;
             $Filter = $this->input->post('Filter') ? $this->input->post('Filter') : [];
+            $ModuleId = $this->input->post('ModuleId');
 
-            $ReturnResponse = $this->BrandTablePagination($pageNo, $limit, $offset, $Filter);
+            $ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($ModuleId, '/products/getBrandsDetails/', 'products/brands/list', $pageNo, $limit, $offset, $Filter, []);
             if($ReturnResponse->Error) {
                 throw new Exception($ReturnResponse->Message);
             }
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->List = $ReturnResponse->List;
-            $this->EndReturnData->BrandsCount = $ReturnResponse->BrandsCount;
+            $this->EndReturnData->UIDs = $ReturnResponse->UIDs;
             $this->EndReturnData->Pagination = $ReturnResponse->Pagination;
 
 		} catch (Exception $e) {
@@ -1308,38 +1350,6 @@ class Products extends CI_Controller {
         exit;
 
 	}
-
-    public function BrandTablePagination($pageNo, $limit, $offset, $Filter) {
-
-        $this->PagReturnData = new stdClass();
-		try {
-
-			$this->load->model('products_model');
-            $this->pageData['SerialNumber'] = $offset;
-            $this->pageData['BrandsList'] = $this->products_model->getBrandsList($limit, $offset, $Filter, 0);
-            $BrandsCount = $this->products_model->getBrandsList($limit, $offset, $Filter, 1);
-
-			$config['base_url'] = '/products/getBrandsDetails/';
-            $config['use_page_numbers'] = TRUE;
-            $config['total_rows'] = $BrandsCount;
-            $config['per_page'] = $limit;
-
-            $config['result_count'] = pageResultCount($pageNo, $limit, $BrandsCount);
-            $this->pagination->initialize($config);
-
-            $this->PagReturnData->Error = FALSE;
-            $this->PagReturnData->List = $this->load->view('products/brands/list', $this->pageData, TRUE);
-			$this->PagReturnData->BrandsCount = $BrandsCount;
-            $this->PagReturnData->Pagination = $this->pagination->create_links();
-
-        } catch (Exception $e) {
-            $this->PagReturnData->Error = TRUE;
-            $this->PagReturnData->Message = $e->getMessage();
-        }
-
-		return $this->PagReturnData;
-
-    }
 
     public function addBrandDetails() {
 
@@ -1373,8 +1383,9 @@ class Products extends CI_Controller {
                 $pageNo = $this->input->post('PageNo');
                 $offset = ($pageNo != 0) ? (($pageNo - 1) * $limit) : $pageNo;
                 $Filter = $this->input->post('Filter') ? $this->input->post('Filter') : [];
+                $ModuleId = $this->input->post('ModuleId');
 
-                $ReturnResponse = $this->BrandTablePagination($pageNo, $limit, $offset, $Filter);
+                $ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($ModuleId, '/products/getBrandsDetails/', 'products/brands/list', $pageNo, $limit, $offset, $Filter, []);
                 if($ReturnResponse->Error) {
                     throw new Exception($ReturnResponse->Message);
                 }
@@ -1382,6 +1393,7 @@ class Products extends CI_Controller {
                 $this->EndReturnData->Error = FALSE;
                 $this->EndReturnData->Message = 'Created Successfully';
                 $this->EndReturnData->List = $ReturnResponse->List;
+                $this->EndReturnData->UIDs = $ReturnResponse->UIDs;
                 $this->EndReturnData->Pagination = $ReturnResponse->Pagination;
 
             } else {
@@ -1468,8 +1480,9 @@ class Products extends CI_Controller {
                 $pageNo = $this->input->post('PageNo');
                 $offset = ($pageNo != 0) ? (($pageNo - 1) * $limit) : $pageNo;
                 $Filter = $this->input->post('Filter') ? $this->input->post('Filter') : [];
+                $ModuleId = $this->input->post('ModuleId');
 
-                $ReturnResponse = $this->BrandTablePagination($pageNo, $limit, $offset, $Filter);
+                $ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($ModuleId, '/products/getBrandsDetails/', 'products/brands/list', $pageNo, $limit, $offset, $Filter, []);
                 if($ReturnResponse->Error) {
                     throw new Exception($ReturnResponse->Message);
                 }
@@ -1477,6 +1490,7 @@ class Products extends CI_Controller {
                 $this->EndReturnData->Error = FALSE;
                 $this->EndReturnData->Message = 'Updated Successfully';
                 $this->EndReturnData->List = $ReturnResponse->List;
+                $this->EndReturnData->UIDs = $ReturnResponse->UIDs;
                 $this->EndReturnData->Pagination = $ReturnResponse->Pagination;
 
             } else {
@@ -1521,8 +1535,9 @@ class Products extends CI_Controller {
                 $pageNo = $this->input->post('PageNo') ? $this->input->post('PageNo') : 0;
                 $offset = ($pageNo != 0) ? (($pageNo - 1) * $limit) : $pageNo;
                 $Filter = $this->input->post('Filter') ? $this->input->post('Filter') : [];
+                $ModuleId = $this->input->post('ModuleId');
 
-                $ReturnResponse = $this->BrandTablePagination($pageNo, $limit, $offset, $Filter);
+                $ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($ModuleId, '/products/getBrandsDetails/', 'products/brands/list', $pageNo, $limit, $offset, $Filter, []);
                 if($ReturnResponse->Error) {
                     throw new Exception($ReturnResponse->Message);
                 }
@@ -1530,10 +1545,73 @@ class Products extends CI_Controller {
                 $this->EndReturnData->Error = FALSE;
                 $this->EndReturnData->Message = 'Deleted Successfully';
                 $this->EndReturnData->List = $ReturnResponse->List;
+                $this->EndReturnData->UIDs = $ReturnResponse->UIDs;
                 $this->EndReturnData->Pagination = $ReturnResponse->Pagination;            
 
             } else {
                 throw new Exception('Size Information is Missing to Delete');
+            }
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+		$this->output->set_status_header(200)
+            ->set_content_type('application/json', 'utf-8')
+            ->set_output(json_encode($this->EndReturnData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES))
+            ->_display();
+        exit;
+
+    }
+
+    public function deleteBulkBrand() {
+
+        $this->EndReturnData = new stdClass();
+		try {
+
+            $BrandUIDs = $this->input->post('BrandUIDs');
+            if($BrandUIDs) {
+
+                /** Cross Check with Products */
+                $this->load->model('products_model');
+                $ExistsInProducts = $this->products_model->getProductsDetails([], '', ['Products.BrandUID' => $BrandUIDs]);
+                if(!empty($ExistsInProducts) && sizeof($ExistsInProducts) > 0) {
+                    throw new Exception('Brand is linked to Product.');
+                }
+
+                $updateBrandData = [
+                    'IsDeleted' => 1,
+                    'UpdatedBy' => $this->pageData['JwtData']->User->UserUID,
+                    'UpdatedOn' => time(),
+                ];
+
+                $this->load->model('dbwrite_model');
+                
+                $UpdateResp = $this->dbwrite_model->updateData('Products', 'BrandTbl', $updateBrandData, [], array('BrandUID' => $BrandUIDs));
+                if($UpdateResp->Error) {
+                    throw new Exception($UpdateResp->Message);
+                }
+
+                $limit = $this->input->post('RowLimit');
+                $pageNo = $this->input->post('PageNo') ? $this->input->post('PageNo') : 0;
+                $offset = ($pageNo != 0) ? (($pageNo - 1) * $limit) : $pageNo;
+                $Filter = $this->input->post('Filter') ? $this->input->post('Filter') : [];
+                $ModuleId = $this->input->post('ModuleId');
+
+                $ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($ModuleId, '/products/getBrandsDetails/', 'products/brands/list', $pageNo, $limit, $offset, $Filter, []);
+                if($ReturnResponse->Error) {
+                    throw new Exception($ReturnResponse->Message);
+                }
+
+                $this->EndReturnData->Error = FALSE;
+                $this->EndReturnData->Message = 'Deleted Successfully';
+                $this->EndReturnData->List = $ReturnResponse->List;
+                $this->EndReturnData->Pagination = $ReturnResponse->Pagination;
+                $this->EndReturnData->UIDs = $ReturnResponse->UIDs;
+
+            } else {
+                throw new Exception('Brand Information is Missing to Delete');
             }
 
         } catch (Exception $e) {

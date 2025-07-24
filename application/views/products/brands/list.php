@@ -1,21 +1,33 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
-<?php if (sizeof($BrandsList) > 0) {
-    foreach ($BrandsList as $list) {
+<?php if (sizeof($DataLists) > 0) {
+    foreach ($DataLists as $list) {
         $SerialNumber++; ?>
 
         <tr>
             <td>
-                <div class="form-check form-check-inline"><input class="form-check-input brandsCheck" type="checkbox" value="<?php echo $list->BrandUID; ?>"></div>
+                <div class="form-check form-check-inline"><input class="form-check-input brandsCheck" type="checkbox" value="<?php echo $list->TablePrimaryUID; ?>"></div>
             </td>
             <td><?php echo $SerialNumber; ?></td>
-            <td><?php echo $list->Name; ?></td>
-            <td><?php echo $list->Description ? $list->Description : '-'; ?></td>
-            <td class="text-end"><?php echo $list->UpdatedOn ? changeTimeZomeDateFormat($list->UpdatedOn, $JwtData->User->Timezone) : ''; ?></td>
+            <?php
+                $DataPassing['ViewColumns'] = $ViewColumns;
+                $DataPassing['list'] = $list;
+                echo $this->load->view('common/form/list', $DataPassing, TRUE);
+            ?>
             <td>
                 <div class="d-flex align-items-sm-center justify-content-sm-center">
-                    <a href="javascript: void(0);" data-uid="<?php echo $list->BrandUID; ?>" class="btn btn-icon text-warning editBrand"><i class="bx bx-edit me-1"></i></a>
-                    <button class="btn btn-icon text-danger DeleteBrand" data-branduid="<?php echo $list->BrandUID; ?>"><i class="bx bx-trash"></i></button>
+                    <a href="javascript: void(0);" data-uid="<?php echo $list->TablePrimaryUID; ?>"
+                        <?php
+                        foreach ($ViewColumns as $column) {
+
+                            $attrName = strtolower($column->FieldName);
+                            $fieldName = $column->DisplayName;
+                            $value = $list->$fieldName ?? '';
+
+                            echo 'data-' . $attrName . '="' . ($value ? base64_encode($value) : '') . '"';
+                        } ?>
+                        class="btn btn-icon text-warning editBrand"><i class="bx bx-edit me-1"></i></a>
+                    <button class="btn btn-icon text-danger DeleteBrand" data-branduid="<?php echo $list->TablePrimaryUID; ?>"><i class="bx bx-trash"></i></button>
                 </div>
             </td>
         </tr>

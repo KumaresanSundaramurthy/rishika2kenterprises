@@ -1,7 +1,7 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
-<?php if (sizeof($ProductsList) > 0) {
-    foreach ($ProductsList as $list) {
+<?php if (sizeof($DataLists) > 0) {
+    foreach ($DataLists as $list) {
         $SerialNumber++; ?>
 
         <tr>
@@ -9,25 +9,11 @@
                 <div class="form-check form-check-inline"><input class="form-check-input table-chkbox productsCheck" type="checkbox" value="<?php echo $list->TablePrimaryUID; ?>"></div>
             </td>
             <td><?php echo $SerialNumber; ?></td>
-
-            <?php foreach ($ViewColumns as $column) {
-
-                $fieldName = $column->DisplayName;
-                $value = $list->$fieldName ?? '';
-
-                // Formatting Amount
-                if ($column->IsAmountField) {
-                    $value = $JwtData->GenSettings->CurrenySymbol . smartDecimal($value);
-                }
-
-                // Formatting Date
-                if ($column->IsDateField && !empty($value)) {
-                    $value = changeTimeZomeDateFormat($value, $JwtData->User->Timezone);
-                } ?>
-
-                <td <?php echo $column->MainPageDataAddon; ?>><?php echo $value; ?></td>
-
-            <?php } ?>
+            <?php
+                $DataPassing['ViewColumns'] = $ViewColumns;
+                $DataPassing['list'] = $list;
+                echo $this->load->view('common/form/list', $DataPassing, TRUE);
+            ?>
             <td>
                 <div class="d-flex align-items-sm-center justify-content-sm-center">
                     <a href="/products/<?php echo $list->TablePrimaryUID; ?>/edit" class="btn btn-icon text-warning"><i class="bx bx-edit me-1"></i></a>

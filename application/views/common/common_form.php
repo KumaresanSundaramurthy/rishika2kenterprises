@@ -40,7 +40,7 @@
                 <div id="ChangePasswordAlert" class="d-none"></div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Discard</button>
                 <button type="submit" id="ResetPasswordSubBtn" class="btn btn-primary">Reset</button>
             </div>
 

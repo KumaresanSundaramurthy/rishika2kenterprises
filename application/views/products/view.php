@@ -24,25 +24,26 @@
                                 <div class="d-flex flex-column flex-md-row justify-content-between align-items-center p-3">
                                     <ul class="nav nav-pills nav nav-pills flex-row" role="tablist">
                                         <li class="nav-item">
-                                            <a class="nav-link active TabPane" data-id="Item" data-moduleid="<?php echo $ItemModuleId; ?>" role="tab" data-bs-toggle="tab" data-bs-target="#NavItemPage" aria-controls="NavItemPage" aria-selected="true" href="javascript: void(0);"><i class="bx bx-package me-1"></i> Item</a>
+                                            <a class="nav-link <?php echo $ActiveTabData == 'item' ? 'active' : ''; ?> TabPane" data-id="Item" data-moduleid="<?php echo $ItemModuleId; ?>" role="tab" data-bs-toggle="tab" data-bs-target="#NavItemPage" aria-controls="NavItemPage" aria-selected="true" href="javascript: void(0);"><i class="bx bx-package me-1"></i> Item</a>
                                         </li>
                                         <li class="nav-item">
-                                            <a class="nav-link TabPane" data-id="Categories" data-moduleid="<?php echo $CategoryModuleId; ?>" role="tab" data-bs-toggle="tab" data-bs-target="#NavCategoriesPage" aria-controls="NavCategoriesPage" aria-selected="true" href="javascript: void(0);"><i class="bx bx-layer me-1"></i> Categories</a>
+                                            <a class="nav-link <?php echo $ActiveTabData == 'category' ? 'active' : ''; ?> TabPane" data-id="Categories" data-moduleid="<?php echo $CategoryModuleId; ?>" role="tab" data-bs-toggle="tab" data-bs-target="#NavCategoriesPage" aria-controls="NavCategoriesPage" aria-selected="true" href="javascript: void(0);"><i class="bx bx-layer me-1"></i> Categories</a>
                                         </li>
                                         <li class="nav-item">
-                                            <a class="nav-link TabPane" data-id="Sizes" data-moduleid="<?php echo $SizeModuleId; ?>" role="tab" data-bs-toggle="tab" data-bs-target="#NavSizesPage" aria-controls="NavSizesPage" aria-selected="true" href="javascript: void(0);"><i class="bx bx-ruler me-1"></i> Sizes</a>
+                                            <a class="nav-link <?php echo $ActiveTabData == 'size' ? 'active' : ''; ?> TabPane" data-id="Sizes" data-moduleid="<?php echo $SizeModuleId; ?>" role="tab" data-bs-toggle="tab" data-bs-target="#NavSizesPage" aria-controls="NavSizesPage" aria-selected="true" href="javascript: void(0);"><i class="bx bx-ruler me-1"></i> Sizes</a>
                                         </li>
                                         <li class="nav-item">
-                                            <a class="nav-link TabPane" data-id="Brands" data-moduleid="<?php echo $BrandModuleId; ?>" role="tab" data-bs-toggle="tab" data-bs-target="#NavBrandsPage" aria-controls="NavBrandsPage" aria-selected="true" href="javascript: void(0);"><i class="bx bx-badge-check me-1"></i> Brands</a>
+                                            <a class="nav-link <?php echo $ActiveTabData == 'brand' ? 'active' : ''; ?> TabPane" data-id="Brands" data-moduleid="<?php echo $BrandModuleId; ?>" role="tab" data-bs-toggle="tab" data-bs-target="#NavBrandsPage" aria-controls="NavBrandsPage" aria-selected="true" href="javascript: void(0);"><i class="bx bx-badge-check me-1"></i> Brands</a>
                                         </li>
                                     </ul>
                                     <div class="d-flex mt-2 mt-md-0">
-                                        <a href="javascript: void(0);" class="btn PageRefresh"><i class='bx bx-refresh' style="font-size: 22px;"></i> </a>
+                                        <a href="javascript: void(0);" class="btn PageRefresh p-2 me-0"><i class="bx bx-refresh fs-4"></i></a>
+                                        <a href="javascript: void(0);" id="btnPageSettings" class="btn p-2"><i class="bx bx-cog fs-4"></i></a>
                                         <div class="position-relative me-2">
                                             <input type="text" class="form-control SearchDetails" name="SearchDetails" id="SearchDetails" placeholder="Search details..." data-toggle="tooltip" title="Please type at least 3 characters to search" />
-                                            <i class="bx bx-x position-absolute top-50 end-0 translate-middle-y me-3 text-muted cursor-pointer" id="clearSearch"></i>
+                                            <i class="bx bx-x position-absolute top-50 end-0 translate-middle-y me-3 text-muted cursor-pointer d-none" id="clearSearch"></i>
                                         </div>
-                                        <div class="me-2" id="ItemCategory-Div">
+                                        <div class="me-2 <?php echo $ActiveTabData == 'item' ? '' : 'd-none'; ?>" id="ItemCategory-Div">
                                             <select id="SearchCategory" name="SearchCategory" class="select2 form-select">
                                                 <option label="-- Select Category --"></option>
                                                 <?php if (sizeof($Categories) > 0) {
@@ -97,22 +98,17 @@
                                                         </li>
                                                     </ul>
                                                 </li>
-                                                <li>
-                                                    <a class="dropdown-item" href="javascript: void(0);" id="btnPageSettings">
-                                                        <i class="bx bx-cog me-1"></i> Settings
-                                                    </a>
-                                                </li>
                                             </ul>
                                         </div>
-                                        <a href="/products/add" class="btn btn-primary px-3" id="NewItem"><i class='bx bx-plus'></i> New Item</a>
-                                        <a href="javascript: void(0);" class="btn btn-primary px-3 addCategory d-none" id="NewCategory"><i class='bx bx-plus'></i> New Category</a>
-                                        <a href="javascript: void(0);" class="btn btn-primary px-3 addSizes d-none" id="NewSizes"><i class='bx bx-plus'></i> New Size</a>
-                                        <a href="javascript: void(0);" class="btn btn-primary px-3 addBrands d-none" id="NewBrands"><i class='bx bx-plus'></i> New Brand</a>
+                                        <a href="/products/add" class="btn btn-primary px-3 <?php echo $ActiveTabData == 'item' ? '' : 'd-none'; ?>" id="NewItem"><i class='bx bx-plus'></i> New Item</a>
+                                        <a href="javascript: void(0);" class="btn btn-primary px-3 addCategory <?php echo $ActiveTabData == 'category' ? '' : 'd-none'; ?>" id="NewCategory"><i class='bx bx-plus'></i> New Category</a>
+                                        <a href="javascript: void(0);" class="btn btn-primary px-3 addSizes <?php echo $ActiveTabData == 'size' ? '' : 'd-none'; ?>" id="NewSizes"><i class='bx bx-plus'></i> New Size</a>
+                                        <a href="javascript: void(0);" class="btn btn-primary px-3 addBrands <?php echo $ActiveTabData == 'brand' ? '' : 'd-none'; ?>" id="NewBrands"><i class='bx bx-plus'></i> New Brand</a>
                                     </div>
                                 </div>
                                 <div class="tab-content p-0">
 
-                                    <div class="tab-pane fade show active" id="NavItemPage" role="tabpanel">
+                                    <div class="tab-pane fade <?php echo $ActiveTabData == 'item' ? 'show active' : ''; ?>" id="NavItemPage" role="tabpanel">
 
                                         <div class="table-responsive text-nowrap h-100 tablecard">
                                             <table class="table table-sm table-striped table-hover" id="ProductsTable">
@@ -131,7 +127,12 @@
                                                     </tr>
                                                 </thead>
                                                 <tbody class="table-border-bottom-0">
-                                                    <?php echo $ItemList; ?>
+                                                    <?php if($ActiveTabData == 'item') {
+                                                        echo $ItemList;
+                                                    } else {
+                                                        $PageData['DataLists'] = [];
+                                                        echo $this->load->view('products/items/list', $PageData, TRUE);
+                                                    } ?>
                                                 </tbody>
                                             </table>
                                         </div>
@@ -142,7 +143,7 @@
 
                                     </div>
 
-                                    <div class="tab-pane fade" id="NavCategoriesPage" role="tabpanel">
+                                    <div class="tab-pane fade <?php echo $ActiveTabData == 'category' ? 'show active' : ''; ?>" id="NavCategoriesPage" role="tabpanel">
 
                                         <div class="table-responsive text-nowrap h-100 tablecard">
                                             <table class="table table-sm table-striped table-hover" id="CategoriesTable">
@@ -154,15 +155,19 @@
                                                             </div>
                                                         </th>
                                                         <th class="table-serialno">S.No</th>
-                                                        <th>Name</th>
-                                                        <th>Description</th>
-                                                        <th class="text-end">Last Updated</th>
+                                                        <?php foreach (array_column($ItemColumns, 'DisplayName') as $ItemKey => $ItemVal) { ?>
+                                                            <th <?php echo $ItemColumns[$ItemKey]->MainPageColumnAddon; ?>><?php echo $ItemVal; ?></th>
+                                                        <?php } ?>
                                                         <th class="text-center">Actions</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody class="table-border-bottom-0">
-                                                    <?php $PageData['CategoriesList'] = [];
-                                                    echo $this->load->view('products/categories/list', $PageData, TRUE); ?>
+                                                    <?php if($ActiveTabData == 'category') {
+                                                        echo $ItemList;
+                                                    } else {
+                                                        $PageData['DataLists'] = [];
+                                                        echo $this->load->view('products/categories/list', $PageData, TRUE);
+                                                    } ?>
                                                 </tbody>
                                             </table>
                                         </div>
@@ -171,7 +176,7 @@
 
                                     </div>
 
-                                    <div class="tab-pane fade" id="NavSizesPage" role="tabpanel">
+                                    <div class="tab-pane fade <?php echo $ActiveTabData == 'size' ? 'show active' : ''; ?>" id="NavSizesPage" role="tabpanel">
 
                                         <div class="table-responsive text-nowrap h-100 tablecard">
                                             <table class="table table-sm table-striped table-hover" id="SizesTable">
@@ -183,15 +188,19 @@
                                                             </div>
                                                         </th>
                                                         <th class="table-serialno">S.No</th>
-                                                        <th>Name</th>
-                                                        <th>Description</th>
-                                                        <th class="text-end">Last Updated</th>
+                                                        <?php foreach (array_column($ItemColumns, 'DisplayName') as $ItemKey => $ItemVal) { ?>
+                                                            <th <?php echo $ItemColumns[$ItemKey]->MainPageColumnAddon; ?>><?php echo $ItemVal; ?></th>
+                                                        <?php } ?>
                                                         <th class="text-center">Actions</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody class="table-border-bottom-0">
-                                                    <?php $PageData['SizesList'] = [];
-                                                    echo $this->load->view('products/sizes/list', $PageData, TRUE); ?>
+                                                    <?php if($ActiveTabData == 'size') {
+                                                        echo $ItemList;
+                                                    } else {
+                                                        $PageData['DataLists'] = [];
+                                                        echo $this->load->view('products/sizes/list', $PageData, TRUE);
+                                                    } ?>
                                                 </tbody>
                                             </table>
                                         </div>
@@ -200,7 +209,7 @@
 
                                     </div>
 
-                                    <div class="tab-pane fade" id="NavBrandsPage" role="tabpanel">
+                                    <div class="tab-pane fade <?php echo $ActiveTabData == 'brand' ? 'show active' : ''; ?>" id="NavBrandsPage" role="tabpanel">
 
                                         <div class="table-responsive text-nowrap h-100 tablecard">
                                             <table class="table table-sm table-striped table-hover" id="BrandsTable">
@@ -212,15 +221,19 @@
                                                             </div>
                                                         </th>
                                                         <th class="table-serialno">S.No</th>
-                                                        <th>Name</th>
-                                                        <th>Description</th>
-                                                        <th class="text-end">Last Updated</th>
+                                                        <?php foreach (array_column($ItemColumns, 'DisplayName') as $ItemKey => $ItemVal) { ?>
+                                                            <th <?php echo $ItemColumns[$ItemKey]->MainPageColumnAddon; ?>><?php echo $ItemVal; ?></th>
+                                                        <?php } ?>
                                                         <th class="text-center">Actions</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody class="table-border-bottom-0">
-                                                    <?php $PageData['BrandsList'] = [];
-                                                    echo $this->load->view('products/brands/list', $PageData, TRUE); ?>
+                                                    <?php if($ActiveTabData == 'brand') {
+                                                        echo $ItemList;
+                                                    } else {
+                                                        $PageData['DataLists'] = [];
+                                                        echo $this->load->view('products/brands/list', $PageData, TRUE);
+                                                    } ?>
                                                 </tbody>
                                             </table>
                                         </div>
@@ -280,46 +293,71 @@
     const BrandPag = '.BrandsPagination';
     const BrandHeader = '.brandHeaderCheck';
     const BrandRow = '.brandsCheck';
-    let ActiveTabId = 'Item';
-    let ActiveTabModuleId = <?php echo $ItemModuleId; ?>;
+    let ActiveTabId = '<?php echo $ActiveTabName; ?>;';
+    let ActiveTabModuleId = <?php echo $ActiveModuleId; ?>;
     let Modules = <?php echo json_encode($ModuleInfo ?: []); ?>;
     $(function() {
         'use strict'
 
         $('#SearchDetails').val('');
         $(ProdHeader + ',' + ProdRow).prop('checked', false).trigger('change');
-        $('[data-toggle="tooltip"]').tooltip();
-        $('#clearSearch').addClass('d-none');
-        $('#ItemCategory-Div').removeClass('d-none');
 
-        $(ProdHeader).click(function() {
-            allTableHeadersCheckbox($(this), ItemUIDs, ProdTable, ProdHeader, ProdRow);
-        });
-
-        $(document).on('click', ProdRow, function() {
-            onClickOfCheckbox($(this), ItemUIDs, ProdHeader);
-            $('#CloneOption').addClass('d-none');
-            if (SelectedUIDs.length == 1) {
-                $('#CloneOption').removeClass('d-none');
-            }
-            MultipleDeleteOption();
-        });
-
-        $('#SearchCategory').select2({
-            placeholder: "-- Select Category --",
-            allowClear: true,
-        });
-
-        $('#btnClone').click(function(e) {
+        $('.TabPane').click(function(e) {
             e.preventDefault();
-            if (SelectedUIDs.length == 1 && ActiveTabId == 'Item') {
-                window.location.href = '/products/' + SelectedUIDs[0] + '/clone';
+            var TabValue = $(this).data('id');
+            if (TabValue) {
+                SelectedUIDs = [];
+                ActiveTabId = TabValue;
+                ActiveTabModuleId = $(this).data('moduleid');
+                $('#NewItem,#NewCategory,#NewSizes,#NewBrands,#CloneOption,#ItemCategory-Div').addClass('d-none');
+                $('#SearchDetails').val('');
+                PageNo = 0;
+                Filter = {};
+                if (ActiveTabId == 'Item') {
+                    $('#NewItem,#ItemCategory-Div').removeClass('d-none');
+                    getProductDetails(PageNo, RowLimit, Filter);
+                } else if (ActiveTabId == 'Categories') {
+                    $('#NewCategory').removeClass('d-none');
+                    getCategoriesDetails(PageNo, RowLimit, Filter);
+                } else if (ActiveTabId == 'Sizes') {
+                    $('#NewSizes').removeClass('d-none');
+                    getSizesDetails(PageNo, RowLimit, Filter);
+                } else if (ActiveTabId == 'Brands') {
+                    $('#NewBrands').removeClass('d-none');
+                    getBrandsDetails(PageNo, RowLimit, Filter);
+                }
             }
         });
 
-        $('#btnPageSettings').click(function(e) {
+        $('.SearchDetails').keyup(inputDelay(function(e) {
+            PageNo = 0;
+            let searchText = $('#SearchDetails').val();
+            if (searchText.length >= 3) {
+                delete Filter['SearchAllData'];
+                $('#clearSearch').removeClass('d-none');
+                if (searchText) {
+                    Filter['SearchAllData'] = searchText;
+                }
+                $('#SearchDetails').blur();
+                showProductPageDetails();
+            }
+        }, 500));
+
+        $('#clearSearch').click(function(e) {
             e.preventDefault();
-            $('#pageSettingsModal').modal('show');
+            var searchText = $('#SearchDetails').val();
+            $('#SearchDetails').val('');
+            $('#clearSearch').addClass('d-none');
+            if ($.trim(searchText) != '') {
+                delete Filter['SearchAllData'];
+                $('#SearchDetails').blur();
+                showProductPageDetails();
+            }
+        });
+
+        $(document).on('click', '.PageRefresh', function(e) {
+            e.preventDefault();
+            showProductPageDetails();
         });
 
         $('#btnDelete').click(function(e) {
@@ -346,87 +384,17 @@
                 }).then((result) => {
                     if (result.isConfirmed) {
                         if (ActiveTabId == 'Item') {
-                            deleteMultipleProduct(SelectedUIDs);
+                            deleteMultipleProduct();
                         } else if (ActiveTabId == 'Categories') {
-                            deleteMultipleCategory(SelectedUIDs);
+                            deleteMultipleCategory();
                         } else if (ActiveTabId == 'Sizes') {
-                            deleteMultipleSize(SelectedUIDs);
+                            deleteMultipleSize();
                         } else if (ActiveTabId == 'Brands') {
-                            deleteMultipleBrand(SelectedUIDs);
+                            deleteMultipleBrand();
                         }
                     }
                 });
             }
-        });
-
-        $('.TabPane').click(function(e) {
-            e.preventDefault();
-            var TabValue = $(this).data('id');
-            if (TabValue) {
-                ActiveTabId = TabValue;
-                ActiveTabModuleId = $(this).data('moduleid');
-                $('#NewItem,#NewCategory,#NewSizes,#NewBrands,#CloneOption,#ItemCategory-Div').addClass('d-none');
-                $('#SearchDetails').val('');
-                PageNo = 0;
-                Filter = {};
-                if (ActiveTabId == 'Item') {
-                    $('#NewItem,#ItemCategory-Div').removeClass('d-none');
-                    getProductDetails(PageNo, RowLimit, Filter);
-                } else if (ActiveTabId == 'Categories') {
-                    $('#NewCategory').removeClass('d-none');
-                    getCategoriesDetails(PageNo, RowLimit, Filter);
-                } else if (ActiveTabId == 'Sizes') {
-                    $('#NewSizes').removeClass('d-none');
-                    getSizesDetails(PageNo, RowLimit, Filter);
-                } else if (ActiveTabId == 'Brands') {
-                    $('#NewBrands').removeClass('d-none');
-                    getBrandsDetails(PageNo, RowLimit, Filter);
-                }
-            }
-        });
-
-        $(ProdPag).on('click', 'a', function(e) {
-            e.preventDefault();
-            PageNo = $(this).attr('data-ci-pagination-page');
-            getProductDetails(PageNo, RowLimit, Filter);
-        });
-
-        $(document).on('click', '.PageRefresh', function(e) {
-            e.preventDefault();
-            showProductPageDetails();
-        });
-
-        $('#clearSearch').click(function(e) {
-            e.preventDefault();
-            var searchText = $('#SearchDetails').val();
-            $('#SearchDetails').val('');
-            $('#clearSearch').addClass('d-none');
-            if ($.trim(searchText) != '') {
-                Filter = {};
-                showProductPageDetails();
-            }
-        });
-
-        $('.SearchDetails').keyup(inputDelay(function(e) {
-            PageNo = 0;
-            let searchText = $('#SearchDetails').val();
-            if (searchText.length >= 3) {
-                $('#clearSearch').removeClass('d-none');
-                if (searchText) {
-                    Filter['SearchAllData'] = searchText;
-                }
-                showProductPageDetails();
-            }
-        }, 500));
-
-        $('#SearchCategory').change(function(e) {
-            e.preventDefault();
-            delete Filter['SearchCategory'];
-            var SrchCatg = $(this).find('option:selected').val();
-            if(SrchCatg) {
-                Filter['Category'] = SrchCatg;
-            }
-            showProductPageDetails();
         });
 
         $('#selectThisPageBtn').click(function(e) {
@@ -500,6 +468,31 @@
             }
         });
 
+        /** Product-Item Related Coding */
+        $(ProdHeader).click(function() {
+            allTableHeadersCheckbox($(this), ItemUIDs, ProdTable, ProdHeader, ProdRow);
+        });
+
+        $(document).on('click', ProdRow, function() {
+            onClickOfCheckbox($(this), ItemUIDs, ProdHeader);
+            $('#CloneOption').addClass('d-none');
+            if (SelectedUIDs.length == 1) {
+                $('#CloneOption').removeClass('d-none');
+            }
+            MultipleDeleteOption();
+        });
+
+        $('#SearchCategory').select2({
+            placeholder: "-- Select Category --",
+            allowClear: true,
+        });
+
+        $(ProdPag).on('click', 'a', function(e) {
+            e.preventDefault();
+            PageNo = $(this).attr('data-ci-pagination-page');
+            getProductDetails(PageNo, RowLimit, Filter);
+        });
+
         $(document).on('click', '.DeleteProduct', function(e) {
             e.preventDefault();
             var GetId = $(this).data('productuid');
@@ -520,11 +513,37 @@
             }
         });
 
+        $('#btnClone').click(function(e) {
+            e.preventDefault();
+            if (SelectedUIDs.length == 1 && ActiveTabId == 'Item') {
+                window.location.href = '/products/' + SelectedUIDs[0] + '/clone';
+            }
+        });
+
+        $('#SearchCategory').change(function(e) {
+            e.preventDefault();
+            delete Filter['SearchCategory'];
+            var SrchCatg = $(this).find('option:selected').val();
+            if(SrchCatg) {
+                Filter['Category'] = SrchCatg;
+            }
+            showProductPageDetails();
+        });
+
         // Categories Page Coding Starts Here
         $(CatgPag).on('click', 'a', function(e) {
             e.preventDefault();
             PageNo = $(this).attr('data-ci-pagination-page');
             getCategoriesDetails(PageNo, RowLimit, Filter);
+        });
+
+        $(CatgHeader).click(function() {
+            allTableHeadersCheckbox($(this), CategoryUIDs, CatgTable, CatgHeader, CatgRow);
+        });
+
+        $(document).on('click', CatgRow, function() {
+            onClickOfCheckbox($(this), CategoryUIDs, CatgHeader);
+            MultipleDeleteOption();
         });
 
         $(document).on('click', '.addCategory', function(e) {
@@ -534,6 +553,7 @@
             $('#CatgModalTitle').text('Add Category');
             $('#CatgSaveButton').text('Save');
             $('#categoryModal').modal('show');
+            $('#categoryForm').find('#CategoryUID').val(0);
         });
 
         $('#categoryModal').on('shown.bs.modal', function() {
@@ -559,6 +579,7 @@
             }
             formData.append('PageNo', PageNo);
             formData.append('RowLimit', RowLimit);
+            formData.append('ModuleId', CategoryModuleId);
             if (Object.keys(Filter).length > 0) {
                 formData.append('Filter', JSON.stringify(Filter));
             }
@@ -608,12 +629,22 @@
             getSizesDetails(PageNo, RowLimit, Filter);
         });
 
+        $(SizeHeader).click(function() {
+            allTableHeadersCheckbox($(this), SizeUIDs, SizeTable, SizeHeader, SizeRow);
+        });
+
+        $(document).on('click', SizeRow, function() {
+            onClickOfCheckbox($(this), SizeUIDs, SizeHeader);
+            MultipleDeleteOption();
+        });
+
         $(document).on('click', '.addSizes', function(e) {
             e.preventDefault();
             $('#SizesForm').trigger('reset');
             $('#SizeModalTitle').text('Add Size');
             $('#sizeButtonName').text('Save');
             $('#sizesModal').modal('show');
+            $('#sizesModal').find('#SizeUID').val(0);
         });
 
         $('#sizesModal').on('shown.bs.modal', function() {
@@ -624,7 +655,21 @@
             e.preventDefault();
             var getVal = $(this).data('uid');
             if (getVal) {
-                retrieveSizeDetails(getVal);
+
+                var getName = $(this).data('name');
+                var getDesc = $(this).data('description');
+
+                $('#SizesForm').trigger('reset');
+                $('#SizeModalTitle').text('Edit Size');
+                $('#sizeButtonName').text('Update');
+                $('#sizesModal').modal('show');
+
+                $('#SizeUID').val(getVal);
+                $('#SizesName').val(getName ? atob(getName) : '');
+                $('#SizesDescription').val(getDesc ? atob(getDesc) : '');
+
+                // retrieveSizeDetails(getVal);
+
             }
         });
 
@@ -634,7 +679,8 @@
             var formData = new FormData($('#SizesForm')[0]);
             formData.append('PageNo', PageNo);
             formData.append('RowLimit', RowLimit);
-
+            formData.append('ModuleId', SizeModuleId);
+            
             if (Object.keys(Filter).length > 0) {
                 formData.append('Filter', JSON.stringify(Filter));
             }
@@ -677,12 +723,22 @@
             getBrandsDetails(PageNo, RowLimit, Filter);
         });
 
+        $(BrandHeader).click(function() {
+            allTableHeadersCheckbox($(this), BrandUIDs, BrandTable, BrandHeader, BrandRow);
+        });
+
+        $(document).on('click', BrandRow, function() {
+            onClickOfCheckbox($(this), BrandUIDs, BrandHeader);
+            MultipleDeleteOption();
+        });
+
         $(document).on('click', '.addBrands', function(e) {
             e.preventDefault();
             $('#BrandsForm').trigger('reset');
             $('#BrandsModalTitle').text('Add Brand');
             $('#brandButtonName').text('Save');
             $('#brandsModal').modal('show');
+            $('#brandsModal').find('#BrandUID').val(0);
         });
 
         $('#brandsModal').on('shown.bs.modal', function() {
@@ -693,7 +749,21 @@
             e.preventDefault();
             var getVal = $(this).data('uid');
             if (getVal) {
-                retrieveBrandDetails(getVal);
+
+                var getName = $(this).data('name');
+                var getDesc = $(this).data('description');
+
+                $('#BrandsForm').trigger('reset');
+                $('#BrandsModalTitle').text('Edit Brand');
+                $('#brandButtonName').text('Update');
+                $('#brandsModal').modal('show');
+
+                $('#BrandUID').val(getVal);
+                $('#BrandsName').val(getName ? atob(getName) : '');
+                $('#BrandsDescription').val(getDesc ? atob(getDesc) : '');
+
+                // retrieveBrandDetails(getVal);
+                
             }
         });
 
@@ -703,6 +773,7 @@
             var formData = new FormData($('#BrandsForm')[0]);
             formData.append('PageNo', PageNo);
             formData.append('RowLimit', RowLimit);
+            formData.append('ModuleId', BrandModuleId);
 
             if (Object.keys(Filter).length > 0) {
                 formData.append('Filter', JSON.stringify(Filter));

@@ -161,11 +161,19 @@ const ModuleTable = '#CustomersTable';
 const ModulePag = '.CustomersPagination';
 const ModuleHeader = '.customerHeaderCheck';
 const ModuleRow = '.customerCheck';
+const ModuleFileName = 'Customer_Data';
+const ModuleSheetName = 'Customer';
 $(function() {
     'use strict'
 
     $('#SearchDetails').val('');
     $(ModuleHeader + ',' + ModuleRow).prop('checked', false).trigger('change');
+
+    if(ModuleUIDs.length == 0) {
+        $(ModuleHeader).attr('disabled', 'disabled');
+    }
+
+    baseExportFunctions();
 
     $(ModulePag).on('click', 'a', function(e) {
         e.preventDefault();
@@ -184,7 +192,18 @@ $(function() {
 
     $(document).on('click', ModuleRow, function() {
         onClickOfCheckbox($(this), ModuleUIDs, ModuleHeader);
+        $('#CloneOption').addClass('d-none');
+        if (SelectedUIDs.length == 1) {
+            $('#CloneOption').removeClass('d-none');
+        }
         MultipleDeleteOption();
+    });
+
+    $('#btnClone').click(function(e) {
+        e.preventDefault();
+        if (SelectedUIDs.length == 1) {
+            window.location.href = '/customers/' + SelectedUIDs[0] + '/clone';
+        }
     });
 
     $('.SearchDetails').keyup(inputDelay(function(e) {
@@ -213,36 +232,6 @@ $(function() {
         }
     });
 
-    $('#btnExportPrint').click(function(e) {
-        e.preventDefault();
-        baseExportFunctionality(1, 'PrintPreview', 'Customer_Data', 'Customer');
-    });
-
-    $('#btnExportCSV').click(function(e) {
-        e.preventDefault();
-        baseExportFunctionality(1, 'ExportCSV', 'Customer_Data', 'Customer');
-    });
-
-    $('#btnExportPDF').click(function(e) {
-        e.preventDefault();
-        baseExportFunctionality(1, 'ExportPDF', 'Customer_Data', 'Customer');
-    });
-
-    $('#btnExportExcel').click(function(e) {
-        e.preventDefault();
-        baseExportFunctionality(1, 'ExportExcel', 'Customer_Data', 'Customer');
-    });
-
-    $('#exportSelectedItemsBtn').click(function(e) {
-        e.preventDefault();
-        baseExportFunctionality(2, expActionType, 'Customer_Data', 'Customer');
-    });
-
-    $('#clearExportClose').click(function(e) {
-        e.preventDefault();
-        exportModalCloseFunc(ModuleTable, ModuleHeader, ModuleRow, ModuleUIDs);
-    });
-
     $(document).on('click', '.DeleteCustomer', function(e) {
         e.preventDefault();
         var GetId = $(this).data('customeruid');
@@ -258,6 +247,26 @@ $(function() {
             }).then((result) => {
                 if (result.isConfirmed) {
                     deleteCustomer(GetId);
+                }
+            });
+        }
+    });
+
+    $('#btnDelete').click(function(e) {
+        e.preventDefault();
+        if (SelectedUIDs.length > 0) {
+            let DeleteContent = 'Do you want to delete all the selected customers?';
+            Swal.fire({
+                title: DeleteContent,
+                text: "You won't be able to revert this!",
+                icon: "info",
+                showCancelButton: true,
+                confirmButtonColor: "#d33",
+                confirmButtonText: "Yes, delete it!",
+                cancelButtonColor: "#3085d6",
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    deleteMultipleCustomers();
                 }
             });
         }

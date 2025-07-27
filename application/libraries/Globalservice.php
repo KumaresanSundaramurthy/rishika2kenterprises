@@ -274,7 +274,7 @@ Class Globalservice {
                                 $value = $this->CI->pageData['JwtData']->GenSettings->CurrenySymbol . smartDecimal($value);
                             }
                         } else if($DateField[$colIndex] == 1) {
-                            $value = changeTimeZomeDateFormat($value, $this->CI->pageData['JwtData']->User->Timezone);
+                            $value = changeTimeZomeDateFormat($value, $this->CI->pageData['JwtData']->User->Timezone, 2);
                         } else if($value) {
                             $value = htmlspecialchars($value);
                         }
@@ -382,7 +382,7 @@ Class Globalservice {
                                 $value = $this->CI->pageData['JwtData']->GenSettings->CurrenySymbol . smartDecimal($value);
                             }
                         } else if($DateField[$colIndex] == 1) {
-                            $value = changeTimeZomeDateFormat($value, $this->CI->pageData['JwtData']->User->Timezone);
+                            $value = changeTimeZomeDateFormat($value, $this->CI->pageData['JwtData']->User->Timezone, 2);
                         } else if($value) {
                             $value = htmlspecialchars($value);
                         }
@@ -507,7 +507,7 @@ Class Globalservice {
                                 $value = $this->CI->pageData['JwtData']->GenSettings->CurrenySymbol . smartDecimal($value);
                             }
                         } else if($DateField[$colIndex] == 1) {
-                            $value = changeTimeZomeDateFormat($value, $this->CI->pageData['JwtData']->User->Timezone);
+                            $value = changeTimeZomeDateFormat($value, $this->CI->pageData['JwtData']->User->Timezone, 2);
                         } else if($value) {
                             $value = htmlspecialchars($value);
                         }

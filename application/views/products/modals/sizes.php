@@ -2,18 +2,22 @@
 
 <!-- Product Sizes Form -->
 <div class="modal fade" id="sizesModal" tabindex="-1" aria-labelledby="sizesModal" data-bs-backdrop="static" data-bs-keyboard="false" aria-hidden="true" aria-modal="true" role="dialog">
-    <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-sm-down modal-dialog-right modal-lg">
+    <div class="modal-dialog modal-xl">
         <div class="modal-content h-100 d-flex flex-column">
 
             <?php $FormAttribute = array('id' => 'SizesForm', 'name' => 'SizesForm', 'class' => '', 'autocomplete' => 'off');
             echo form_open('products/sizes', $FormAttribute); ?>
 
-            <div class="modal-header">
-                <h5 class="modal-title" id="SizeModalTitle">Add Size</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="modal-header modal-header-center-sticky d-flex justify-content-between align-items-center p-3">
+                <h5 class="modal-title" id="SizeModalTitle">Add Item</h5>
+                <div class="d-flex align-items-center gap-2">
+                    <button type="submit" class="btn btn-primary sizeButtonName">Save</button>
+                    <button type="button" class="btn btn-label-danger" data-bs-dismiss="modal" aria-label="Close">Discard</button>
+                </div>
             </div>
 
-            <input type="hidden" name="SizeUID" id="SizeUID" value="0" />
+            <input type="hidden" name="SizeUID" id="HSizeUID" value="0" />
+            <div class="d-none col-lg-12 px-5 mt-3 sizeFormAlert" role="alert"></div>
             
             <div class="modal-body flex-grow-1 overflow-auto">
                 <div class="mb-3">
@@ -26,11 +30,11 @@
                 </div>
             </div>
 
-            <div id="sizeFormAlert" class="d-none col-lg-12 px-4" role="alert"></div>
+            <div class="d-none col-lg-12 px-4 sizeFormAlert" role="alert"></div>
 
-            <div class="modal-footer border-top d-flex justify-content-end">
+            <div class="modal-footer modal-footer-center-sticky border-top d-flex justify-content-start p-3">
                 <button type="button" class="btn btn-label-danger" data-bs-dismiss="modal">Discard</button>
-                <button type="submit" id="sizeButtonName" class="btn btn-primary">Save</button>
+                <button type="submit" class="btn btn-primary sizeButtonName">Save</button>
             </div>
 
             <?php echo form_close(); ?>

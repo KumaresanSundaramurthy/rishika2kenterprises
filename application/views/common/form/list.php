@@ -15,7 +15,15 @@
 
     // Formatting Date
     if ($column->IsDateField && !empty($value)) {
-        $value = changeTimeZomeDateFormat($value, $JwtData->User->Timezone);
+        if($column->MPDateFormatType == 1) {
+            $value = changeTimeZomeDateFormat($value, $JwtData->User->Timezone, 1);
+        } else if($column->MPDateFormatType == 2) {
+            $LastUpdatedBy = 'Last Updated By';
+            $value = '<div>'.changeTimeZomeDateFormat($value, $JwtData->User->Timezone, 2).'</div>';
+            $value .= '<div class="text-muted" style="font-size: 0.75rem;">by '.$list->$LastUpdatedBy.'</div>';
+        } else {
+            $value = changeTimeZomeDateFormat($value, $JwtData->User->Timezone, 1);
+        }
     }
 
     if($Key == 1 && $column->MainPageImageDisplay == 1) { ?>
@@ -29,7 +37,6 @@
                 </div>
                 <div class="d-flex flex-column justify-content-center">
                     <span class="text-heading text-wrap fw-medium"><?php echo $value; ?></span>
-                    <!-- <span class="text-truncate mb-0 d-none d-sm-block"><small>Choose from wide range of travel accessories from popular brands</small></span> -->
                 </div>
             </div>
         <?php } else {

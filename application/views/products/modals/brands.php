@@ -2,18 +2,22 @@
 
 <!-- Product Brands Form -->
 <div class="modal fade" id="brandsModal" tabindex="-1" aria-labelledby="brandsModal" data-bs-backdrop="static" data-bs-keyboard="false" aria-hidden="true" aria-modal="true" role="dialog">
-    <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-sm-down modal-dialog-right modal-lg">
+    <div class="modal-dialog modal-xl">
         <div class="modal-content h-100 d-flex flex-column">
 
             <?php $FormAttribute = array('id' => 'BrandsForm', 'name' => 'BrandsForm', 'class' => '', 'autocomplete' => 'off');
             echo form_open('products/brands', $FormAttribute); ?>
 
-            <div class="modal-header">
+            <div class="modal-header modal-header-center-sticky d-flex justify-content-between align-items-center p-3">
                 <h5 class="modal-title" id="BrandsModalTitle">Add Brands</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <div class="d-flex align-items-center gap-2">
+                    <button type="submit" class="btn btn-primary brandButtonName">Save</button>
+                    <button type="button" class="btn btn-label-danger" data-bs-dismiss="modal" aria-label="Close">Discard</button>
+                </div>
             </div>
 
-            <input type="hidden" name="BrandUID" id="BrandUID" value="0" />
+            <input type="hidden" name="BrandUID" id="HBrandUID" value="0" />
+            <div class="d-none col-lg-12 px-5 mt-3 brandFormAlert" role="alert"></div>
             
             <div class="modal-body flex-grow-1 overflow-auto">
                 <div class="mb-3">
@@ -26,11 +30,11 @@
                 </div>
             </div>
 
-            <div id="brandFormAlert" class="d-none col-lg-12 px-6" role="alert"></div>
+            <div class="d-none col-lg-12 px-4 brandFormAlert" role="alert"></div>
 
-            <div class="modal-footer border-top d-flex justify-content-end">
+            <div class="modal-footer modal-footer-center-sticky border-top d-flex justify-content-start p-3">
                 <button type="button" class="btn btn-label-danger" data-bs-dismiss="modal">Discard</button>
-                <button type="submit" id="brandButtonName" class="btn btn-primary">Save</button>
+                <button type="submit" class="btn btn-primary brandButtonName">Save</button>
             </div>
 
             <?php echo form_close(); ?>

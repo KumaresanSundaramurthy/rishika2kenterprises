@@ -70,6 +70,7 @@ class Products_model extends CI_Model
                 'Products.HSNSACCode AS HSNSACCode',
                 'Products.PurchasePrice AS PurchasePrice',
                 'Products.PurchasePriceProductTaxUID AS PurchasePriceProductTaxUID',
+                'Products.StorageUID AS StorageUID',
                 'Products.PartNumber AS PartNumber',
                 'Products.Description AS Description',
                 'Products.Image AS Image',

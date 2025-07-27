@@ -57,7 +57,7 @@
                                             <button class="btn btn-label-secondary dropdown-toggle me-2" type="button" id="actionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                                                 <span class="d-flex align-items-center gap-2">
                                                     <i class="icon-base bx bx-slider-alt icon-xs"></i>
-                                                    <span class="d-none d-sm-inline-block">Actions</span>
+                                                    <span class="d-none d-sm-inline-block"></span>
                                                 </span>
                                             </button>
                                             <ul class="dropdown-menu" aria-labelledby="actionsDropdown">
@@ -100,7 +100,8 @@
                                                 </li>
                                             </ul>
                                         </div>
-                                        <a href="/products/add" class="btn btn-primary px-3 <?php echo $ActiveTabData == 'item' ? '' : 'd-none'; ?>" id="NewItem"><i class='bx bx-plus'></i> New Item</a>
+                                        <!-- <a href="/products/add" class="btn btn-primary px-3 <?php echo $ActiveTabData == 'item' ? '' : 'd-none'; ?>" id="NewItem"><i class='bx bx-plus'></i> New Item</a> -->
+                                        <a href="javascript: void(0);" class="btn btn-primary px-3 addItem <?php echo $ActiveTabData == 'item' ? '' : 'd-none'; ?>" id="NewItem"><i class='bx bx-plus'></i> New Item</a>
                                         <a href="javascript: void(0);" class="btn btn-primary px-3 addCategory <?php echo $ActiveTabData == 'category' ? '' : 'd-none'; ?>" id="NewCategory"><i class='bx bx-plus'></i> New Category</a>
                                         <a href="javascript: void(0);" class="btn btn-primary px-3 addSizes <?php echo $ActiveTabData == 'size' ? '' : 'd-none'; ?>" id="NewSizes"><i class='bx bx-plus'></i> New Size</a>
                                         <a href="javascript: void(0);" class="btn btn-primary px-3 addBrands <?php echo $ActiveTabData == 'brand' ? '' : 'd-none'; ?>" id="NewBrands"><i class='bx bx-plus'></i> New Brand</a>
@@ -128,7 +129,7 @@
                                                 </thead>
                                                 <tbody class="table-border-bottom-0">
                                                     <?php if($ActiveTabData == 'item') {
-                                                        echo $ItemList;
+                                                        echo $ModActiveList;
                                                     } else {
                                                         $PageData['DataLists'] = [];
                                                         echo $this->load->view('products/items/list', $PageData, TRUE);
@@ -138,7 +139,7 @@
                                         </div>
                                         <hr class="my-0" />
                                         <div class="row mx-3 justify-content-between ProductsPagination" id="ProductsPagination">
-                                            <?php echo $ItemPagination; ?>
+                                            <?php echo $ActiveTabData == 'item' ? $ModActivePagination : ''; ?>
                                         </div>
 
                                     </div>
@@ -155,15 +156,15 @@
                                                             </div>
                                                         </th>
                                                         <th class="table-serialno">S.No</th>
-                                                        <?php foreach (array_column($ItemColumns, 'DisplayName') as $ItemKey => $ItemVal) { ?>
-                                                            <th <?php echo $ItemColumns[$ItemKey]->MainPageColumnAddon; ?>><?php echo $ItemVal; ?></th>
+                                                        <?php foreach (array_column($CategoryColumns, 'DisplayName') as $CtgKey => $CtgVal) { ?>
+                                                            <th <?php echo $CategoryColumns[$CtgKey]->MainPageColumnAddon; ?>><?php echo $CtgVal; ?></th>
                                                         <?php } ?>
                                                         <th class="text-center">Actions</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody class="table-border-bottom-0">
                                                     <?php if($ActiveTabData == 'category') {
-                                                        echo $ItemList;
+                                                        echo $ModActiveList;
                                                     } else {
                                                         $PageData['DataLists'] = [];
                                                         echo $this->load->view('products/categories/list', $PageData, TRUE);
@@ -172,7 +173,9 @@
                                             </table>
                                         </div>
                                         <hr class="my-0" />
-                                        <div class="row mx-3 justify-content-between CategoriesPagination" id="CategoriesPagination"></div>
+                                        <div class="row mx-3 justify-content-between CategoriesPagination" id="CategoriesPagination">
+                                            <?php echo $ActiveTabData == 'category' ? $ModActivePagination : ''; ?>
+                                        </div>
 
                                     </div>
 
@@ -188,15 +191,15 @@
                                                             </div>
                                                         </th>
                                                         <th class="table-serialno">S.No</th>
-                                                        <?php foreach (array_column($ItemColumns, 'DisplayName') as $ItemKey => $ItemVal) { ?>
-                                                            <th <?php echo $ItemColumns[$ItemKey]->MainPageColumnAddon; ?>><?php echo $ItemVal; ?></th>
+                                                        <?php foreach (array_column($SizeColumns, 'DisplayName') as $SzKey => $SzVal) { ?>
+                                                            <th <?php echo $SizeColumns[$SzKey]->MainPageColumnAddon; ?>><?php echo $SzVal; ?></th>
                                                         <?php } ?>
                                                         <th class="text-center">Actions</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody class="table-border-bottom-0">
                                                     <?php if($ActiveTabData == 'size') {
-                                                        echo $ItemList;
+                                                        echo $ModActiveList;
                                                     } else {
                                                         $PageData['DataLists'] = [];
                                                         echo $this->load->view('products/sizes/list', $PageData, TRUE);
@@ -205,7 +208,9 @@
                                             </table>
                                         </div>
                                         <hr class="my-0" />
-                                        <div class="row mx-3 justify-content-between SizesPagination" id="SizesPagination"></div>
+                                        <div class="row mx-3 justify-content-between SizesPagination" id="SizesPagination">
+                                            <?php echo $ActiveTabData == 'size' ? $ModActivePagination : ''; ?>
+                                        </div>
 
                                     </div>
 
@@ -221,15 +226,15 @@
                                                             </div>
                                                         </th>
                                                         <th class="table-serialno">S.No</th>
-                                                        <?php foreach (array_column($ItemColumns, 'DisplayName') as $ItemKey => $ItemVal) { ?>
-                                                            <th <?php echo $ItemColumns[$ItemKey]->MainPageColumnAddon; ?>><?php echo $ItemVal; ?></th>
+                                                        <?php foreach (array_column($BrandColumns, 'DisplayName') as $BrdKey => $BrdVal) { ?>
+                                                            <th <?php echo $BrandColumns[$BrdKey]->MainPageColumnAddon; ?>><?php echo $BrdVal; ?></th>
                                                         <?php } ?>
                                                         <th class="text-center">Actions</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody class="table-border-bottom-0">
                                                     <?php if($ActiveTabData == 'brand') {
-                                                        echo $ItemList;
+                                                        echo $ModActiveList;
                                                     } else {
                                                         $PageData['DataLists'] = [];
                                                         echo $this->load->view('products/brands/list', $PageData, TRUE);
@@ -238,7 +243,9 @@
                                             </table>
                                         </div>
                                         <hr class="my-0" />
-                                        <div class="row mx-3 justify-content-between BrandsPagination" id="BrandsPagination"></div>
+                                        <div class="row mx-3 justify-content-between BrandsPagination" id="BrandsPagination">
+                                            <?php echo $ActiveTabData == 'brand' ? $ModActivePagination : ''; ?>
+                                        </div>
 
                                     </div>
 
@@ -252,7 +259,8 @@
             <!-- Content wrapper -->
 
             <?php $this->load->view('common/settings_modal'); ?>
-
+            
+            <?php $this->load->view('products/modals/items'); ?>
             <?php $this->load->view('products/modals/category'); ?>
             <?php $this->load->view('products/modals/sizes'); ?>
             <?php $this->load->view('products/modals/brands'); ?>
@@ -269,36 +277,38 @@
 <script src="/js/products.js"></script>
 
 <script>
-    let ItemUIDs = <?php echo json_encode($ItemUIDs ?: []); ?>;
+    let ItemUIDs = <?php echo json_encode($ActiveTabData == 'item' ? ($ModActiveUIDs ?? []) : []); ?>;    
     let ItemModuleId = <?php echo $ItemModuleId; ?>;
     const ProdTable = '#ProductsTable';
     const ProdPag = '.ProductsPagination';
     const ProdHeader = '.productsHeaderCheck';
     const ProdRow = '.productsCheck';
-    let CategoryUIDs;
+    let CategoryUIDs = <?php echo json_encode($ActiveTabData == 'category' ? ($ModActiveUIDs ?? []) : []); ?>;
     let CategoryModuleId = <?php echo $CategoryModuleId; ?>;
     const CatgTable = '#CategoriesTable';
     const CatgPag = '.CategoriesPagination';
     const CatgHeader = '.categoryHeaderCheck';
     const CatgRow = '.categoryCheck';
-    let SizeUIDs;
+    let SizeUIDs = <?php echo json_encode($ActiveTabData == 'size' ? ($ModActiveUIDs ?? []) : []); ?>;
     let SizeModuleId = <?php echo $SizeModuleId; ?>;
     const SizeTable = '#SizesTable';
     const SizePag = '.SizesPagination';
     const SizeHeader = '.sizeHeaderCheck';
     const SizeRow = '.sizesCheck';
-    let BrandUIDs;
+    let BrandUIDs = <?php echo json_encode($ActiveTabData == 'brand' ? ($ModActiveUIDs ?? []) : []); ?>;
     let BrandModuleId = <?php echo $BrandModuleId; ?>;
     const BrandTable = '#BrandsTable';
     const BrandPag = '.BrandsPagination';
     const BrandHeader = '.brandHeaderCheck';
     const BrandRow = '.brandsCheck';
-    let ActiveTabId = '<?php echo $ActiveTabName; ?>;';
+    let ActiveTabId = '<?php echo $ActiveTabName; ?>';
     let ActiveTabModuleId = <?php echo $ActiveModuleId; ?>;
     let Modules = <?php echo json_encode($ModuleInfo ?: []); ?>;
+    var EnableStorage = <?php echo $JwtData->GenSettings->EnableStorage; ?>;
     $(function() {
         'use strict'
 
+        /** Common Details */
         $('#SearchDetails').val('');
         $(ProdHeader + ',' + ProdRow).prop('checked', false).trigger('change');
 
@@ -397,78 +407,42 @@
             }
         });
 
-        $('#selectThisPageBtn').click(function(e) {
-            e.preventDefault();
-            commonSelectFunctionality('CurrentPage');
-        });
-
-        $('#selectAllPagesBtn').click(function(e) {
-            e.preventDefault();
-            commonSelectFunctionality('AllPage');
-        });
-
-        $('#unselectThisPageBtn').click(function(e) {
-            e.preventDefault();
-            commonUnSelectFunctionality('CurrentPage');
-        });
-
-        $('#unselectAllPagesBtn').click(function(e) {
-            e.preventDefault();
-            commonUnSelectFunctionality('AllPage');
-        });
-
-        $('#clearSelectAllClose').click(function(e) {
-            e.preventDefault();
-            if (ActiveTabId == 'Item') {
-                selectModalCloseFunc(ProdTable, ProdHeader, ProdRow, ItemUIDs);
-            } else if (ActiveTabId == 'Categories') {
-                selectModalCloseFunc(CatgTable, CatgHeader, CatgRow, CategoryUIDs);
-            } else if (ActiveTabId == 'Sizes') {
-                selectModalCloseFunc(SizeTable, SizeHeader, SizeRow, SizeUIDs);
-            } else if (ActiveTabId == 'Brands') {
-                selectModalCloseFunc(BrandTable, BrandHeader, BrandRow, BrandUIDs);
-            }
-        });
-
-        $('#btnExportPrint').click(function(e) {
-            e.preventDefault();
-            commonExportFunctionality(1, 'PrintPreview');
-        });
-
-        $('#btnExportCSV').click(function(e) {
-            e.preventDefault();
-            commonExportFunctionality(1, 'ExportCSV');
-        });
-
-        $('#btnExportPDF').click(function(e) {
-            e.preventDefault();
-            commonExportFunctionality(1, 'ExportPDF');
-        });
-
-        $('#btnExportExcel').click(function(e) {
-            e.preventDefault();
-            commonExportFunctionality(1, 'ExportExcel');
-        });
-
-        $('#exportSelectedItemsBtn').click(function(e) {
-            e.preventDefault();
-            commonExportFunctionality(2, expActionType);
-        });
-
-        $('#clearExportClose').click(function(e) {
-            e.preventDefault();
-            if (ActiveTabId == 'Item') {
-                exportModalCloseFunc(ProdTable, ProdHeader, ProdRow, ItemUIDs);
-            } else if (ActiveTabId == 'Categories') {
-                exportModalCloseFunc(CatgTable, CatgHeader, CatgRow, CategoryUIDs);
-            } else if (ActiveTabId == 'Sizes') {
-                exportModalCloseFunc(SizeTable, SizeHeader, SizeRow, SizeUIDs);
-            } else if (ActiveTabId == 'Brands') {
-                exportModalCloseFunc(BrandTable, BrandHeader, BrandRow, BrandUIDs);
-            }
-        });
+        commonExportFunctions();
 
         /** Product-Item Related Coding */
+        $(document).on('click', '.addItem', function(e) {
+            e.preventDefault();
+            $('#AddEditItemForm').trigger('reset');
+            $('#ItemModalTitle').text('Add Item');
+            $('.AddEditProductBtn').text('Save');
+            clearItemValues();
+            $('#itemsModal').modal('show');
+        });
+
+        $('#itemsModal').on('shown.bs.modal', function() {
+            $('#AddEditItemForm #ItemName').trigger('focus');
+            $('.addEditFormAlert').addClass('d-none');
+        });
+
+        $('#itemsModal').on('hide.bs.modal', function() {
+            $('#AddEditItemForm').trigger('reset');
+            $('#ItemModalTitle').text('Add Item');
+            $('.AddEditProductBtn').text('Save');
+            clearItemValues();
+        });
+        
+        if(EnableStorage == 1) {
+            loadSelect2Field('#StorageUID', '-- Select Storage --', '#itemsModal');
+        }
+        
+        loadSelect2Field('#TaxPercentage', '-- Select Tax Percentage --', '#itemsModal');
+        loadSelect2Field('#PrimaryUnit', '-- Select Primary Unit --', '#itemsModal');
+        loadSelect2Field('#Category', '-- Select Category --', '#itemsModal');
+
+        loadSelect2Field('#SearchCategory', '-- Select Category --');
+        
+        QuillEditor('.ql-toolbar', 'Enter product description...');
+
         $(ProdHeader).click(function() {
             allTableHeadersCheckbox($(this), ItemUIDs, ProdTable, ProdHeader, ProdRow);
         });
@@ -482,15 +456,65 @@
             MultipleDeleteOption();
         });
 
-        $('#SearchCategory').select2({
-            placeholder: "-- Select Category --",
-            allowClear: true,
-        });
-
         $(ProdPag).on('click', 'a', function(e) {
             e.preventDefault();
             PageNo = $(this).attr('data-ci-pagination-page');
             getProductDetails(PageNo, RowLimit, Filter);
+        });
+
+        $(document).on('click', '.EditProduct', function(e) {
+            e.preventDefault();
+            var getValue = $(this).data('uid');
+            if(getValue) {
+                retrieveProductDetails(getValue, false);
+            }
+        });
+
+        $('#AddEditItemForm').submit(function(e) {
+            e.preventDefault();
+
+            var formData = new FormData($('#AddEditItemForm')[0]);
+            if (myOneDropzone.files.length > 0) {
+                const file = myOneDropzone.files[0];
+                if (!file.isStored) {
+                    formData.append('UploadImage', myOneDropzone.files[0]);
+                }
+            }
+
+            const Description = quill.getText().trim(); // quill.root.innerHTML;
+            if ($.trim(Description) != '') {
+                formData.append('Description', $('#Description .ql-editor').html());
+            }
+            formData.append('PageNo', PageNo);
+            formData.append('RowLimit', RowLimit);
+            formData.append('ModuleId', ItemModuleId);
+            if (Object.keys(Filter).length > 0) {
+                formData.append('Filter', JSON.stringify(Filter));
+            }
+
+            formData.append('IsSizeApplicable', $('#IsSizeApplicable').is(':checked') ? 1 : 0);
+            formData.append('NotForSale', $('#NotForSale').is(':checked') ? 1 : 0);
+
+            var getHItemUID = $('#AddEditItemForm').find('#HProductUID').val();
+            if (getHItemUID == 0) {
+                addProductData(formData);
+            } else {
+                editProductData(formData);
+            }
+
+        });
+
+        $('#btnClone').click(function(e) {
+            e.preventDefault();
+            if (SelectedUIDs.length == 1 && ActiveTabId == 'Item') {
+                var getSelectedId = SelectedUIDs[0];
+                $(ProdTable + ' tbody ' + ProdRow).each(function () {
+                    const val = parseInt($(this).val());
+                    $(this).prop('checked', false);
+                });
+                SelectedUIDs = [];
+                retrieveProductDetails(getSelectedId, true);
+            }
         });
 
         $(document).on('click', '.DeleteProduct', function(e) {
@@ -513,13 +537,6 @@
             }
         });
 
-        $('#btnClone').click(function(e) {
-            e.preventDefault();
-            if (SelectedUIDs.length == 1 && ActiveTabId == 'Item') {
-                window.location.href = '/products/' + SelectedUIDs[0] + '/clone';
-            }
-        });
-
         $('#SearchCategory').change(function(e) {
             e.preventDefault();
             delete Filter['SearchCategory'];
@@ -531,10 +548,25 @@
         });
 
         // Categories Page Coding Starts Here
-        $(CatgPag).on('click', 'a', function(e) {
+        $(document).on('click', '.addCategory', function(e) {
             e.preventDefault();
-            PageNo = $(this).attr('data-ci-pagination-page');
-            getCategoriesDetails(PageNo, RowLimit, Filter);
+            $('#categoryForm').trigger('reset');
+            $('#CatgModalTitle').text('Add Category');
+            $('.CatgSaveButton').text('Save');
+            $('#categoryForm').find('#CategoryUID').val(0);
+            myOneDropzone.removeAllFiles(true);
+            $('#categoryModal').modal('show');
+        });
+
+        $('#categoryModal').on('shown.bs.modal', function() {
+            $('#CategoryName').trigger('focus');
+            $('.catgFormAlert').addClass('d-none');
+        });
+
+        $('#categoryModal').on('hide.bs.modal', function() {
+            $('#categoryForm').trigger('reset');
+            $('#CatgModalTitle').text('Add Category');
+            $('.CatgSaveButton').text('Save');
         });
 
         $(CatgHeader).click(function() {
@@ -546,18 +578,10 @@
             MultipleDeleteOption();
         });
 
-        $(document).on('click', '.addCategory', function(e) {
+        $(CatgPag).on('click', 'a', function(e) {
             e.preventDefault();
-            hasRemovedStoredImage = false;
-            $('#categoryForm').trigger('reset');
-            $('#CatgModalTitle').text('Add Category');
-            $('#CatgSaveButton').text('Save');
-            $('#categoryModal').modal('show');
-            $('#categoryForm').find('#CategoryUID').val(0);
-        });
-
-        $('#categoryModal').on('shown.bs.modal', function() {
-            $('#CategoryName').trigger('focus');
+            PageNo = $(this).attr('data-ci-pagination-page');
+            getCategoriesDetails(PageNo, RowLimit, Filter);
         });
 
         $(document).on('click', '.editCategory', function(e) {
@@ -570,6 +594,7 @@
 
         $('#categoryForm').submit(function(e) {
             e.preventDefault();
+
             var formData = new FormData($('#categoryForm')[0]);
             if (myOneDropzone.files.length > 0) {
                 const file = myOneDropzone.files[0];
@@ -588,9 +613,6 @@
             if (CategoryUID == 0) {
                 addCategoryDetails(formData);
             } else {
-                if (hasRemovedStoredImage === true) {
-                    formData.append('RemovedImage', true);
-                }
                 editCategoryDetails(formData);
             }
 
@@ -623,10 +645,24 @@
         });
 
         // Sizes Page Coding Starts Here
-        $(SizePag).on('click', 'a', function(e) {
+        $(document).on('click', '.addSizes', function(e) {
             e.preventDefault();
-            PageNo = $(this).attr('data-ci-pagination-page');
-            getSizesDetails(PageNo, RowLimit, Filter);
+            $('#SizesForm').trigger('reset');
+            $('#SizeModalTitle').text('Add Size');
+            $('.sizeButtonName').text('Save');
+            $('#sizesModal').find('#HSizeUID').val(0);
+            $('#sizesModal').modal('show');            
+        });
+
+        $('#sizesModal').on('shown.bs.modal', function() {
+            $('#SizesName').trigger('focus');
+            $('.sizeFormAlert').addClass('d-none');
+        });
+
+        $('#sizesModal').on('hide.bs.modal', function() {
+            $('#SizesForm').trigger('reset');
+            $('#SizeModalTitle').text('Add Size');
+            $('.sizeButtonName').text('Save');
         });
 
         $(SizeHeader).click(function() {
@@ -638,17 +674,30 @@
             MultipleDeleteOption();
         });
 
-        $(document).on('click', '.addSizes', function(e) {
+        $(SizePag).on('click', 'a', function(e) {
             e.preventDefault();
-            $('#SizesForm').trigger('reset');
-            $('#SizeModalTitle').text('Add Size');
-            $('#sizeButtonName').text('Save');
-            $('#sizesModal').modal('show');
-            $('#sizesModal').find('#SizeUID').val(0);
+            PageNo = $(this).attr('data-ci-pagination-page');
+            getSizesDetails(PageNo, RowLimit, Filter);
         });
 
-        $('#sizesModal').on('shown.bs.modal', function() {
-            $('#SizesName').trigger('focus');
+        $('#SizesForm').submit(function(e) {
+            e.preventDefault();
+
+            var formData = new FormData($('#SizesForm')[0]);
+            formData.append('PageNo', PageNo);
+            formData.append('RowLimit', RowLimit);
+            formData.append('ModuleId', SizeModuleId);
+            
+            if (Object.keys(Filter).length > 0) {
+                formData.append('Filter', JSON.stringify(Filter));
+            }
+
+            var getMode = $('#SizesForm').find('#HSizeUID').val();
+            if (getMode == 0) {
+                addSizeDetails(formData);
+            } else if (getMode > 0) {
+                editSizeDetails(formData);
+            }
         });
 
         $(document).on('click', '.editSize', function(e) {
@@ -664,7 +713,7 @@
                 $('#sizeButtonName').text('Update');
                 $('#sizesModal').modal('show');
 
-                $('#SizeUID').val(getVal);
+                $('#HSizeUID').val(getVal);
                 $('#SizesName').val(getName ? atob(getName) : '');
                 $('#SizesDescription').val(getDesc ? atob(getDesc) : '');
 
@@ -673,54 +722,51 @@
             }
         });
 
-        $('#SizesForm').submit(function(e) {
-            e.preventDefault();
-
-            var formData = new FormData($('#SizesForm')[0]);
-            formData.append('PageNo', PageNo);
-            formData.append('RowLimit', RowLimit);
-            formData.append('ModuleId', SizeModuleId);
-            
-            if (Object.keys(Filter).length > 0) {
-                formData.append('Filter', JSON.stringify(Filter));
-            }
-
-            AjaxLoading = 0;
-            $('#sizeButtonName').attr('disabled', 'disabled');
-
-            var getMode = $('#SizesForm').find('#SizeUID').val();
-            if (getMode == 0) {
-                addSizeDetails(formData);
-            } else if (getMode > 0) {
-                editSizeDetails(formData);
-            }
-        });
-
         $(document).on('click', '.DeleteSize', function(e) {
             e.preventDefault();
             var GetId = $(this).data('sizeuid');
             if (GetId) {
-                Swal.fire({
-                    title: "Do you want to delete the size?",
-                    text: "You won't be able to revert this!",
-                    icon: "info",
-                    showCancelButton: true,
-                    confirmButtonColor: "#d33",
-                    confirmButtonText: "Yes, delete it!",
-                    cancelButtonColor: "#3085d6",
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        deleteSize(GetId);
-                    }
-                });
+                var ProductUID = $(this).data('productuid');
+                if (ProductUID && ProductUID !== undefined && ProductUID !== null && ProductUID !== '') {
+                    Swal.fire("Size is linked to Product.", "", "error");
+                    return false;
+                } else {
+                    Swal.fire({
+                        title: "Do you want to delete the size?",
+                        text: "You won't be able to revert this!",
+                        icon: "info",
+                        showCancelButton: true,
+                        confirmButtonColor: "#d33",
+                        confirmButtonText: "Yes, delete it!",
+                        cancelButtonColor: "#3085d6",
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            deleteSize(GetId);
+                        }
+                    });
+                }
             }
         });
 
         /** Brands Page Coding Starts Here */
-        $(BrandPag).on('click', 'a', function(e) {
+        $(document).on('click', '.addBrands', function(e) {
             e.preventDefault();
-            PageNo = $(this).attr('data-ci-pagination-page');
-            getBrandsDetails(PageNo, RowLimit, Filter);
+            $('#BrandsForm').trigger('reset');
+            $('#BrandsModalTitle').text('Add Brand');
+            $('.brandButtonName').text('Save');
+            $('#brandsModal').find('#HBrandUID').val(0);
+            $('#brandsModal').modal('show');
+        });
+
+        $('#brandsModal').on('shown.bs.modal', function() {
+            $('#BrandsName').trigger('focus');
+            $('.brandFormAlert').addClass('d-none');
+        });
+
+        $('#brandsModal').on('hide.bs.modal', function() {
+            $('#BrandsForm').trigger('reset');
+            $('#BrandsModalTitle').text('Add Brand');
+            $('.brandButtonName').text('Save');
         });
 
         $(BrandHeader).click(function() {
@@ -732,17 +778,31 @@
             MultipleDeleteOption();
         });
 
-        $(document).on('click', '.addBrands', function(e) {
+        $(BrandPag).on('click', 'a', function(e) {
             e.preventDefault();
-            $('#BrandsForm').trigger('reset');
-            $('#BrandsModalTitle').text('Add Brand');
-            $('#brandButtonName').text('Save');
-            $('#brandsModal').modal('show');
-            $('#brandsModal').find('#BrandUID').val(0);
+            PageNo = $(this).attr('data-ci-pagination-page');
+            getBrandsDetails(PageNo, RowLimit, Filter);
         });
 
-        $('#brandsModal').on('shown.bs.modal', function() {
-            $('#BrandsName').trigger('focus');
+        $('#BrandsForm').submit(function(e) {
+            e.preventDefault();
+
+            var formData = new FormData($('#BrandsForm')[0]);
+            formData.append('PageNo', PageNo);
+            formData.append('RowLimit', RowLimit);
+            formData.append('ModuleId', BrandModuleId);
+
+            if (Object.keys(Filter).length > 0) {
+                formData.append('Filter', JSON.stringify(Filter));
+            }
+
+            var getMode = $('#BrandsForm').find('#HBrandUID').val();
+            if (getMode == 0) {
+                addBrandDetails(formData);
+            } else if (getMode > 0) {
+                editBrandDetails(formData);
+            }
+
         });
 
         $(document).on('click', '.editBrand', function(e) {
@@ -758,7 +818,7 @@
                 $('#brandButtonName').text('Update');
                 $('#brandsModal').modal('show');
 
-                $('#BrandUID').val(getVal);
+                $('#HBrandUID').val(getVal);
                 $('#BrandsName').val(getName ? atob(getName) : '');
                 $('#BrandsDescription').val(getDesc ? atob(getDesc) : '');
 
@@ -767,47 +827,29 @@
             }
         });
 
-        $('#BrandsForm').submit(function(e) {
-            e.preventDefault();
-
-            var formData = new FormData($('#BrandsForm')[0]);
-            formData.append('PageNo', PageNo);
-            formData.append('RowLimit', RowLimit);
-            formData.append('ModuleId', BrandModuleId);
-
-            if (Object.keys(Filter).length > 0) {
-                formData.append('Filter', JSON.stringify(Filter));
-            }
-
-            AjaxLoading = 0;
-            $('#brandButtonName').attr('disabled', 'disabled');
-
-            var getMode = $('#BrandsForm').find('#BrandUID').val();
-            if (getMode == 0) {
-                addBrandDetails(formData);
-            } else if (getMode > 0) {
-                editBrandDetails(formData);
-            }
-
-        });
-
         $(document).on('click', '.DeleteBrand', function(e) {
             e.preventDefault();
             var GetId = $(this).data('branduid');
             if (GetId) {
-                Swal.fire({
-                    title: "Do you want to delete the brand?",
-                    text: "You won't be able to revert this!",
-                    icon: "info",
-                    showCancelButton: true,
-                    confirmButtonColor: "#d33",
-                    confirmButtonText: "Yes, delete it!",
-                    cancelButtonColor: "#3085d6",
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        deleteBrand(GetId);
-                    }
-                });
+                var ProductUID = $(this).data('productuid');
+                if (ProductUID && ProductUID !== undefined && ProductUID !== null && ProductUID !== '') {
+                    Swal.fire("Brand is linked to Product.", "", "error");
+                    return false;
+                } else {
+                    Swal.fire({
+                        title: "Do you want to delete the brand?",
+                        text: "You won't be able to revert this!",
+                        icon: "info",
+                        showCancelButton: true,
+                        confirmButtonColor: "#d33",
+                        confirmButtonText: "Yes, delete it!",
+                        cancelButtonColor: "#3085d6",
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            deleteBrand(GetId);
+                        }
+                    });
+                }
             }
         });
 

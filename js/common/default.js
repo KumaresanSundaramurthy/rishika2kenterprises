@@ -739,6 +739,7 @@ function headerCheckboxTrueFalse(ItemIds, HeaderField) {
             $(HeaderField).prop('checked', false);
         }
     } else if (ItemIds.length == 0) {
+        $(HeaderField).prop('checked', false);
         $(HeaderField).prop('disabled', 'disabled');
     }
 }
@@ -759,11 +760,19 @@ function MultipleDeleteOption() {
     }
 }
 
-function loadSelect2Field(FieldName, Placeholder) {
-    $(FieldName).select2({
-        placeholder: Placeholder,
-        allowClear: true,
-    });
+function loadSelect2Field(FieldName, Placeholder, IsModal = '') {
+    if(IsModal) {
+        $(FieldName).select2({
+            placeholder: Placeholder,
+            allowClear: true,
+            dropdownParent: $(IsModal)
+        });
+    } else {
+        $(FieldName).select2({
+            placeholder: Placeholder,
+            allowClear: true,
+        });
+    }    
 }
 
 function exportAllActions(ModuleId, ActionType, ItemIds, URLs, callbackFn) {
@@ -958,7 +967,7 @@ function checkPageSettingsSortOrder() {
     return hasDuplicates;
 }
 
-function baseExportFunctionality(Flag, Type, FileName, SheetName) {
+function baseExportFunctionality(Flag, Type, PageType, FileName, SheetName) {
     if (Flag == 2) {
         if (SelectedUIDs.length == 0) {
             Swal.fire({
@@ -969,7 +978,19 @@ function baseExportFunctionality(Flag, Type, FileName, SheetName) {
             return false;
         }
     }
-    const ExportIds = SelectedUIDs.length > 0 ? btoa(SelectedUIDs.toString()) : '';
+    let ExportIds = '';
+    if(PageType == 'SelectedPage') {
+        ExportIds = SelectedUIDs.length > 0 ? btoa(SelectedUIDs.toString()) : '';
+    } else if(PageType == 'CurrentPage') {
+        let CurrentPageIds = [];
+        $(ModuleTable + ' tbody ' + ModuleRow).each(function () {
+            let currentVal = parseInt($(this).val());
+            if (!CurrentPageIds.includes(currentVal)) {
+                CurrentPageIds.push(currentVal);
+            }
+        });
+        ExportIds = CurrentPageIds.length > 0 ? btoa(CurrentPageIds.toString()) : '';
+    }
     let URLs = '';
     if (Type == 'PrintPreview') {
         URLs = "/globally/getPrintPreviewDetails?ModuleId=" + ModuleId;
@@ -1003,4 +1024,143 @@ function baseExportFunctionality(Flag, Type, FileName, SheetName) {
             exportModalCloseFunc(ModuleTable, ModuleHeader, ModuleRow, ModuleUIDs);
         }
     }
+}
+
+function commonSetDropzoneImageOne(ImageUrl) {
+    myOneDropzone.removeAllFiles(true);
+
+    fetch(ImageUrl)
+        .then(res => {
+            const contentLength = res.headers.get('Content-Length');
+            return res.blob().then(blob => {
+                const fileName = decodeURIComponent(ImageUrl.substring(ImageUrl.lastIndexOf('/') + 1));
+                const file = new File([blob], fileName, {
+                    type: blob.type,
+                    lastModified: new Date()
+                });
+
+                // Manually patch the size if Dropzone doesn’t read it right
+                file.size = contentLength ? parseInt(contentLength) : blob.size;
+                file.isStored = true;
+
+                // Add to Dropzone
+                myOneDropzone.emit("addedfile", file);
+                myOneDropzone.emit("thumbnail", file, ImageUrl);
+                myOneDropzone.emit("complete", file);
+                myOneDropzone.files.push(file);
+            });
+        });
+
+}
+
+function baseSelectFunctionality(PageSelcType) {
+    if (PageSelcType == 'AllPage') {
+        CopyAllDatatoSelectItems(ModuleUIDs);
+    }
+    selectTableRecords(ModuleTable, ModuleRow);
+    headerCheckboxTrueFalse(ModuleUIDs, ModuleHeader);
+    $('#selectPagesModal').modal('hide');
+}
+
+function baseUnSelectFunctionality(PageSelcType) {
+    if (PageSelcType == 'AllPage') {
+        removeAllDatatoSelectItems(ModuleUIDs);
+    }
+    unSelectTableRecords(ModuleTable, ModuleRow);
+    headerCheckboxTrueFalse(ModuleUIDs, ModuleHeader);
+    $('#unSelectPagesModal').modal('hide');
+}
+
+function baseExportFunctions() {
+    $('#btnExportPrint').click(function(e) {
+        e.preventDefault();
+        baseExportFunctionality(1, 'PrintPreview', 'ExportAll', ModuleFileName, ModuleSheetName);
+    });
+
+    $('#btnExportCSV').click(function(e) {
+        e.preventDefault();
+        baseExportFunctionality(1, 'ExportCSV', 'ExportAll', ModuleFileName, ModuleSheetName);
+    });
+
+    $('#btnExportPDF').click(function(e) {
+        e.preventDefault();
+        baseExportFunctionality(1, 'ExportPDF', 'ExportAll', ModuleFileName, ModuleSheetName);
+    });
+
+    $('#btnExportExcel').click(function(e) {
+        e.preventDefault();
+        baseExportFunctionality(1, 'ExportExcel', 'ExportAll', ModuleFileName, ModuleSheetName);
+    });
+
+    $('#exportSelectedItemsBtn').click(function(e) {
+        e.preventDefault();
+        baseExportFunctionality(2, expActionType, 'SelectedPage', ModuleFileName, ModuleSheetName);
+    });
+
+    $('#exportThisPageBtn').click(function(e) {
+        e.preventDefault();
+        baseExportFunctionality(2, expActionType, 'CurrentPage', ModuleFileName, ModuleSheetName);
+    });
+
+    $('#exportAllPagesBtn').click(function(e) {
+        e.preventDefault();
+        baseExportFunctionality(2, expActionType, 'AllPage', ModuleFileName, ModuleSheetName);
+    });
+
+    $('#clearExportClose').click(function(e) {
+        e.preventDefault();
+        exportModalCloseFunc(ModuleTable, ModuleHeader, ModuleRow, ModuleUIDs);
+    });
+
+    $('#selectThisPageBtn').click(function(e) {
+        e.preventDefault();
+        baseSelectFunctionality('CurrentPage');
+    });
+
+    $('#selectAllPagesBtn').click(function(e) {
+        e.preventDefault();
+        baseSelectFunctionality('AllPage');
+    });
+
+    $('#clearSelectAllClose').click(function(e) {
+        e.preventDefault();
+        selectModalCloseFunc(ModuleTable, ModuleHeader, ModuleRow, ModuleUIDs);
+    });
+
+    $('#unselectThisPageBtn').click(function(e) {
+        e.preventDefault();
+        baseUnSelectFunctionality('CurrentPage');
+    });
+
+    $('#unselectAllPagesBtn').click(function(e) {
+        e.preventDefault();
+        baseUnSelectFunctionality('AllPage');
+    });
+}
+
+function executeTablePagnCommonFunc(response, tableinfo = false) {
+
+    if(tableinfo) {
+        $(ModulePag).html(response.Pagination);
+        $(ModuleTable + ' tbody').html(response.List);
+        Swal.fire(response.Message, "", "success");
+    }
+
+    ModuleUIDs = response.UIDs ? response.UIDs : [];
+    headerCheckboxTrueFalse(ModuleUIDs, ModuleHeader);
+    tableCheckboxTrueFalse(SelectedUIDs, ModuleTable, ModuleRow);
+    MultipleDeleteOption();
+
+}
+
+function smartDecimal(number) {
+    number = parseFloat(number);
+
+    // Format to max 6 decimal places
+    let formatted = number.toFixed(6);
+
+    // Remove unnecessary trailing zeros and decimal point if not needed
+    formatted = formatted.replace(/\.?0+$/, '');
+
+    return formatted;
 }

@@ -91,7 +91,7 @@
                                                                         $value = $this->pageData['JwtData']->GenSettings->CurrenySymbol . smartDecimal($value);
                                                                     }
                                                                 } else if($DateField[$colIndex] == 1) {
-                                                                    $value = changeTimeZomeDateFormat($value, $this->pageData['JwtData']->User->Timezone);
+                                                                    $value = changeTimeZomeDateFormat($value, $this->pageData['JwtData']->User->Timezone, 2);
                                                                 } else if($value) {
                                                                     $value = htmlspecialchars($value);
                                                                 }

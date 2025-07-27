@@ -631,6 +631,7 @@ class Global_model extends CI_Model
                 'ViewColmn.MainPageOrder AS MainPageOrder',
                 'ViewColmn.MainPageColumnAddon AS MainPageColumnAddon',
                 'ViewColmn.MainPageDataAddon AS MainPageDataAddon',
+                'ViewColmn.MPDateFormatType AS MPDateFormatType',
                 'ViewColmn.IsPrintPreviewApplicable AS IsPrintPreviewApplicable',
                 'ViewColmn.PrintPreviewOrder AS PrintPreviewOrder',
                 'ViewColmn.IsExportCsvApplicable AS IsExportCsvApplicable',

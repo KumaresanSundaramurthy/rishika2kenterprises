@@ -18,6 +18,9 @@
 
                 <div class="container-xxl flex-grow-1 container-p-y">
 
+                <?php $FormAttribute = array('id' => 'AddCustomerForm', 'name' => 'AddCustomerForm', 'class' => '', 'autocomplete' => 'off');
+                    echo form_open('customers/addCustomer', $FormAttribute); ?>
+
                     <div class="d-flex justify-content-between align-items-center flex-wrap">
                         <nav aria-label="breadcrumb">
                             <ol class="breadcrumb breadcrumb-style1">
@@ -30,20 +33,14 @@
                                 <li class="breadcrumb-item active">Add Customer</li>
                             </ol>
                         </nav>
-
                         <div class="d-flex gap-2">
                             <div class="mb-3">
                                 <a href="javascript: history.back();" class="btn btn-outline-secondary me-2">Discard</a>
                                 <button type="submit" class="btn btn-primary AddCustomerBtn">Save</button>
                             </div>
                         </div>
-
                         <div class="d-none col-lg-12 pt-2 addFormAlert" role="alert"></div>
-
                     </div>
-
-                    <?php $FormAttribute = array('id' => 'AddCustomerForm', 'name' => 'AddCustomerForm', 'class' => '', 'autocomplete' => 'off');
-                    echo form_open('customers/addCustomer', $FormAttribute); ?>
 
                     <div class="card mb-3">
                         <h5 class="card-header">Basic Details</h5>
@@ -217,7 +214,7 @@
 
                     <div class="card mb-3">
                         <div class="card-body p-0">
-                            <div class="d-none col-lg-12 pt-2 addFormAlert" role="alert"></div>
+                            <div class="d-none col-lg-12 px-4 pt-4 addFormAlert" role="alert"></div>
                             <div class="m-3">
                                 <button type="submit" class="btn btn-primary AddCustomerBtn me-2">Save</button>
                                 <a href="javascript: history.back();" class="btn btn-outline-secondary">Discard</a>

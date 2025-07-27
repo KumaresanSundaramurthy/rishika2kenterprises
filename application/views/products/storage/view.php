@@ -138,246 +138,224 @@
 <script src="/js/storage.js"></script>
 
 <script>
-    let ModuleUIDs = <?php echo json_encode($ModDataUIDs ?: []); ?>;
-    let ModuleId = <?php echo $ModuleId; ?>;
-    const ModuleTable = '#StorageTable';
-    const ModulePag = '.StoragePagination';
-    const ModuleHeader = '.storageHeaderCheck';
-    const ModuleRow = '.storageCheck';
-    let editImageRemoved = 0;
-    $(function() {
-        'use strict'
+let ModuleUIDs = <?php echo json_encode($ModDataUIDs ?: []); ?>;
+let ModuleId = <?php echo $ModuleId; ?>;
+const ModuleTable = '#StorageTable';
+const ModulePag = '.StoragePagination';
+const ModuleHeader = '.storageHeaderCheck';
+const ModuleRow = '.storageCheck';
+const ModuleFileName = 'Storage_Data';
+const ModuleSheetName = 'Storage';
+let editImageRemoved = 0;
+$(function() {
+    'use strict'
 
+    $('#SearchDetails').val('');
+    $(ModuleHeader + ',' + ModuleRow).prop('checked', false).trigger('change');
+
+    if(ModuleUIDs.length == 0) {
+        $(ModuleHeader).attr('disabled', 'disabled');
+    }
+
+    baseExportFunctions();
+
+    QuillEditor('.ql-toolbar', 'Enter storage description...');
+
+    $(ModulePag).on('click', 'a', function(e) {
+        e.preventDefault();
+        PageNo = $(this).attr('data-ci-pagination-page');
+        getStorageDetails(PageNo, RowLimit, Filter);
+    });
+
+    $(document).on('click', '.PageRefresh', function(e) {
+        e.preventDefault();
+        getStorageDetails(PageNo, RowLimit, Filter);
+    });
+
+    $(ModuleHeader).click(function() {
+        allTableHeadersCheckbox($(this), ModuleUIDs, ModuleTable, ModuleHeader, ModuleRow);
+    });
+
+    $(document).on('click', ModuleRow, function() {
+        onClickOfCheckbox($(this), ModuleUIDs, ModuleHeader);
+        MultipleDeleteOption();
+    });
+
+    $('.SearchDetails').keyup(inputDelay(function(e) {
+        PageNo = 0;
+        let searchText = $('#SearchDetails').val();
+        if (searchText.length >= 3) {
+            delete Filter['SearchAllData'];
+            $('#clearSearch').removeClass('d-none');
+            if (searchText) {
+                Filter['SearchAllData'] = searchText;
+            }
+            $('#SearchDetails').blur();
+            getStorageDetails(PageNo, RowLimit, Filter);
+        }
+    }, 500));
+
+    $('#clearSearch').click(function(e) {
+        e.preventDefault();
+        var searchText = $('#SearchDetails').val();
         $('#SearchDetails').val('');
-        $(ModuleHeader + ',' + ModuleRow).prop('checked', false).trigger('change');
-
-        QuillEditor('.ql-toolbar', 'Enter storage description...');
-
-        $(ModulePag).on('click', 'a', function(e) {
-            e.preventDefault();
-            PageNo = $(this).attr('data-ci-pagination-page');
+        $('#clearSearch').addClass('d-none');
+        if ($.trim(searchText) != '') {
+            delete Filter['SearchAllData'];
+            $('#SearchDetails').blur();
             getStorageDetails(PageNo, RowLimit, Filter);
-        });
+        }
+    });
 
-        $(ModuleHeader).click(function() {
-            allTableHeadersCheckbox($(this), ModuleUIDs, ModuleTable, ModuleHeader, ModuleRow);
-        });
+    $(document).on('click', '.addStorage', function(e) {
+        e.preventDefault();
+        hasRemovedStoredImage = false;
+        $('#storageForm').trigger('reset');
+        $('#StorageModalTitle').text('Add Storage');
+        $('#StorageSaveButton').text('Save');
+        $('#storageModal').modal('show');
+        $('#storageForm').find('#StorageUID').val(0);
+        quill.setContents([]);
+    });
 
-        $(document).on('click', ModuleRow, function() {
-            onClickOfCheckbox($(this), ModuleUIDs, ModuleHeader);
-            MultipleDeleteOption();
-        });
+    $('#storageModal').on('shown.bs.modal', function() {
+        $('#Name').trigger('focus');
+    });
 
-        $('.SearchDetails').keyup(inputDelay(function(e) {
-            PageNo = 0;
-            let searchText = $('#SearchDetails').val();
-            if (searchText.length >= 3) {
-                delete Filter['SearchAllData'];
-                $('#clearSearch').removeClass('d-none');
-                if (searchText) {
-                    Filter['SearchAllData'] = searchText;
-                }
-                $('#SearchDetails').blur();
-                getStorageDetails(PageNo, RowLimit, Filter);
-            }
-        }, 500));
+    $('#storageForm').on('submit', function(e) {
+        e.preventDefault();
 
-        $('#clearSearch').click(function(e) {
-            e.preventDefault();
-            var searchText = $('#SearchDetails').val();
-            $('#SearchDetails').val('');
-            $('#clearSearch').addClass('d-none');
-            if ($.trim(searchText) != '') {
-                delete Filter['SearchAllData'];
-                $('#SearchDetails').blur();
-                getStorageDetails(PageNo, RowLimit, Filter);
-            }
-        });
+        var formData = new FormData($('#storageForm')[0]);
+        if (myOneDropzone.files.length > 0) {
+            formData.append('UploadImage', myOneDropzone.files[0]);
+        }
 
-        $(document).on('click', '.PageRefresh', function(e) {
-            e.preventDefault();
-            getStorageDetails(PageNo, RowLimit, Filter);
-        });
+        const Description = quill.getText().trim();
+        if ($.trim(Description) != '') {
+            formData.append('Description', $('#Description .ql-editor').html());
+        }
+        formData.append('PageNo', PageNo);
+        formData.append('RowLimit', RowLimit);
+        if (Object.keys(Filter).length > 0) {
+            formData.append('Filter', JSON.stringify(Filter));
+        }
+        formData.append('ModuleId', ModuleId);
 
-        $('#btnExportPrint').click(function(e) {
-            e.preventDefault();
-            baseExportFunctionality(1, 'PrintPreview', 'Storage_Data', 'Storage');
-        });
+        var StorageUID = $('#storageForm').find('#StorageUID').val();
+        if (StorageUID == 0) {
+            addStorageData(formData);
+        } else {
+            updateStorageData(formData);
+        }
 
-        $('#btnExportCSV').click(function(e) {
-            e.preventDefault();
-            baseExportFunctionality(1, 'ExportCSV', 'Storage_Data', 'Storage');
-        });
+    });
 
-        $('#btnExportPDF').click(function(e) {
-            e.preventDefault();
-            baseExportFunctionality(1, 'ExportPDF', 'Storage_Data', 'Storage');
-        });
+    $('#storageModal').on('hide.bs.modal', function() {
+        quill.setContents([]);
+        myOneDropzone.removeAllFiles(true);
+    });
 
-        $('#btnExportExcel').click(function(e) {
-            e.preventDefault();
-            baseExportFunctionality(1, 'ExportExcel', 'Storage_Data', 'Storage');
-        });
+    $(document).on('click', '.editStorage', function(e) {
+        e.preventDefault();
+        var getVal = $(this).data('uid');
+        if (getVal) {
 
-        $('#exportSelectedItemsBtn').click(function(e) {
-            e.preventDefault();
-            baseExportFunctionality(2, expActionType, 'Storage_Data', 'Storage');
-        });
+            var getName = $(this).data('name');
+            var getSName = $(this).data('shortname');
+            var getDesc = $(this).data('description');
+            var getImg = $(this).data('image');
 
-        $('#clearExportClose').click(function(e) {
-            e.preventDefault();
-            exportModalCloseFunc(ModuleTable, ModuleHeader, ModuleRow, ModuleUIDs);
-        });
-
-        $(document).on('click', '.addStorage', function(e) {
-            e.preventDefault();
-            hasRemovedStoredImage = false;
             $('#storageForm').trigger('reset');
-            $('#StorageModalTitle').text('Add Storage');
-            $('#StorageSaveButton').text('Save');
+            $('#StorageModalTitle').text('Edit Storage');
+            $('#StorageSaveButton').text('Update');
             $('#storageModal').modal('show');
-            $('#storageForm').find('#StorageUID').val(0);
-            quill.setContents([]);
-        });
 
-        $('#storageModal').on('shown.bs.modal', function() {
-            $('#Name').trigger('focus');
-        });
+            $('#StorageUID').val(getVal);
+            $('#Name').val(getName ? atob(getName) : '');
+            $('#ShortName').val(getSName ? atob(getSName) : '');
+            $('#StorageTypeUID').val($(this).data('strtype')).trigger('change');
 
-        $('#storageForm').on('submit', function(e) {
-            e.preventDefault();
-
-            var formData = new FormData($('#storageForm')[0]);
-            if (myOneDropzone.files.length > 0) {
-                formData.append('UploadImage', myOneDropzone.files[0]);
+            if (getDesc) {
+                appendToQuill(atob(getDesc), true);
             }
 
-            const Description = quill.getText().trim();
-            if ($.trim(Description) != '') {
-                formData.append('Description', $('#Description .ql-editor').html());
-            }
-            formData.append('PageNo', PageNo);
-            formData.append('RowLimit', RowLimit);
-            if (Object.keys(Filter).length > 0) {
-                formData.append('Filter', JSON.stringify(Filter));
-            }
-            formData.append('ModuleId', ModuleId);
+            getImg = getImg ? atob(getImg) : '';
 
-            var StorageUID = $('#storageForm').find('#StorageUID').val();
-            if (StorageUID == 0) {
-                addStorageData(formData);
+            if (getImg && getImg !== undefined && getImg !== null && getImg !== '') {
+                // var StorImgURL = CDN_URL + getImg;
+                var StorImgURL = getImg;
+
+                if (StorImgURL && getImg !== undefined && getImg !== null && getImg !== '') {
+
+                    myOneDropzone.removeAllFiles(true);
+
+                    fetch(getImg)
+                        .then(res => res.blob().then(blob => {
+                            const fileName = decodeURIComponent(getImg.substring(getImg.lastIndexOf('/') + 1));
+                            const file = new File([blob], fileName, {
+                                type: blob.type,
+                                lastModified: new Date()
+                            });
+
+                            file.isStored = true;
+
+                            myOneDropzone.emit("addedfile", file);
+                            myOneDropzone.emit("thumbnail", file, getImg);
+                            myOneDropzone.emit("complete", file);
+                            myOneDropzone.files.push(file);
+                        }));
+                        
+                }
+            }
+
+        }
+    });
+
+    $(document).on('click', '.DeleteStorage', function(e) {
+        e.preventDefault();
+        var GetId = $(this).data('storageuid');
+        if (GetId) {
+            var ProductUID = $(this).data('productuid');
+            if (ProductUID && ProductUID !== undefined && ProductUID !== null && ProductUID !== '') {
+                Swal.fire("Storage is linked to Product.", "", "error");
+                return false;
             } else {
-                updateStorageData(formData);
-            }
-
-        });
-
-        $('#storageModal').on('hide.bs.modal', function() {
-            quill.setContents([]);
-            myOneDropzone.removeAllFiles(true);
-        });
-
-        $(document).on('click', '.editStorage', function(e) {
-            e.preventDefault();
-            var getVal = $(this).data('uid');
-            if (getVal) {
-
-                var getName = $(this).data('name');
-                var getSName = $(this).data('shortname');
-                var getDesc = $(this).data('description');
-                var getImg = $(this).data('image');
-
-                $('#storageForm').trigger('reset');
-                $('#StorageModalTitle').text('Edit Storage');
-                $('#StorageSaveButton').text('Update');
-                $('#storageModal').modal('show');
-
-                $('#StorageUID').val(getVal);
-                $('#Name').val(getName ? atob(getName) : '');
-                $('#ShortName').val(getSName ? atob(getSName) : '');
-                $('#StorageTypeUID').val($(this).data('strtype')).trigger('change');
-
-                if (getDesc) {
-                    appendToQuill(atob(getDesc), true);
-                }
-
-                getImg = getImg ? atob(getImg) : '';
-
-                if (getImg && getImg !== undefined && getImg !== null && getImg !== '') {
-                    // var StorImgURL = CDN_URL + getImg;
-                    var StorImgURL = getImg;
-
-                    if (StorImgURL && getImg !== undefined && getImg !== null && getImg !== '') {
-
-                        myOneDropzone.removeAllFiles(true);
-
-                        fetch(getImg)
-                            .then(res => res.blob().then(blob => {
-                                const fileName = decodeURIComponent(getImg.substring(getImg.lastIndexOf('/') + 1));
-                                const file = new File([blob], fileName, {
-                                    type: blob.type,
-                                    lastModified: new Date()
-                                });
-
-                                file.isStored = true;
-
-                                myOneDropzone.emit("addedfile", file);
-                                myOneDropzone.emit("thumbnail", file, getImg);
-                                myOneDropzone.emit("complete", file);
-                                myOneDropzone.files.push(file);
-                            }));
-                            
-                    }
-                }
-
-            }
-        });
-
-        $(document).on('click', '.DeleteStorage', function(e) {
-            e.preventDefault();
-            var GetId = $(this).data('storageuid');
-            if (GetId) {
-                var ProductUID = $(this).data('productuid');
-                if (ProductUID && ProductUID !== undefined && ProductUID !== null && ProductUID !== '') {
-                    Swal.fire("Storage is linked to Product.", "", "error");
-                    return false;
-                } else {
-                    Swal.fire({
-                        title: "Do you want to delete the storage?",
-                        text: "You won't be able to revert this!",
-                        icon: "warning",
-                        showCancelButton: true,
-                        confirmButtonColor: "#d33",
-                        confirmButtonText: "Yes, delete it!",
-                        cancelButtonColor: "#3085d6",
-                    }).then((result) => {
-                        if (result.isConfirmed) {
-                            deleteStorage(GetId);
-                        }
-                    });
-                }
-            }
-        });
-
-        $('#btnDelete').click(function(e) {
-            e.preventDefault();
-            if (SelectedUIDs.length > 0) {
-                let DeleteContent = 'Do you want to delete all the selected storage?';
                 Swal.fire({
-                    title: DeleteContent,
+                    title: "Do you want to delete the storage?",
                     text: "You won't be able to revert this!",
-                    icon: "info",
+                    icon: "warning",
                     showCancelButton: true,
                     confirmButtonColor: "#d33",
                     confirmButtonText: "Yes, delete it!",
                     cancelButtonColor: "#3085d6",
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        deleteMultipleStorage();
+                        deleteStorage(GetId);
                     }
                 });
             }
-        });
-
+        }
     });
+
+    $('#btnDelete').click(function(e) {
+        e.preventDefault();
+        if (SelectedUIDs.length > 0) {
+            let DeleteContent = 'Do you want to delete all the selected storage?';
+            Swal.fire({
+                title: DeleteContent,
+                text: "You won't be able to revert this!",
+                icon: "info",
+                showCancelButton: true,
+                confirmButtonColor: "#d33",
+                confirmButtonText: "Yes, delete it!",
+                cancelButtonColor: "#3085d6",
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    deleteMultipleStorage();
+                }
+            });
+        }
+    });
+
+});
 </script>

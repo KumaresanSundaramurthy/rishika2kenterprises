@@ -22,19 +22,13 @@ function getProductDetails(PageNo, RowLimit, Filter) {
                 $(ProdPag).html(response.Pagination);
                 $(ProdTable + ' tbody').html(response.List);
             }
-            ItemUIDs = response.UIDs ? response.UIDs : [];
-            headerCheckboxTrueFalse(ItemUIDs, ProdHeader);
-            tableCheckboxTrueFalse(SelectedUIDs, ProdTable, ProdRow);
-            MultipleDeleteOption();
+            executeProdPagnFunc(response, false);
         },
     });
 }
 
 function addProductData(formdata) {
-
-    $('.addFormAlert').removeClass('d-none');
-    inlineMessageAlert('.addFormAlert', 'info', 'Processing... Please wait', false, false);
-
+    $('.AddEditProductBtn').attr('disabled', 'disabled');
     $.ajax({
         url: '/products/addProductData',
         method: 'POST',
@@ -44,37 +38,113 @@ function addProductData(formdata) {
         contentType: false,
         enctype: 'multipart/form-data',
         success: function (response) {
-
-            AjaxLoading = 1;
-            $('.AddProductBtn').removeAttr('disabled');
-
+            $('.AddEditProductBtn').removeAttr('disabled');
             if (response.Error) {
-                inlineMessageAlert('.addFormAlert', 'danger', response.Message, false, false);
+                $('.addEditFormAlert').removeClass('d-none');
+                inlineMessageAlert('.addEditFormAlert', 'danger', response.Message, false, false);
             } else {
 
-                inlineMessageAlert('.addFormAlert', 'success', response.Message, false, true);
-                setTimeout(function () {
-                    $('.addFormAlert').fadeOut(500, function () {
-                        $(this).addClass('d-none').show();
-                    });
-                }, 1000);
-
-                $('#AddItemForm').trigger('reset');
                 myOneDropzone.removeAllFiles(true);
-                window.history.back();
+                quill.setContents([]);
+                $('#AddEditItemForm').trigger('reset');
+                $('#itemsModal').modal('hide');
+                clearItemValues();
 
+                executeProdPagnFunc(response, true);
+                
             }
 
         }
     });
+}
 
+function retrieveProductDetails(ItemUID, CloneFlag = false) {
+    $.ajax({
+        url: '/products/retrieveProductDetails',
+        method: "POST",
+        cache: false,
+        data: {
+            ItemUID: ItemUID,
+        },
+        success: function (response) {
+            if (response.Error) {
+                Swal.fire({
+                    icon: "error",
+                    title: "Oops...",
+                    text: response.Message,
+                });
+            } else {
+
+                $('#AddEditItemForm').trigger('reset');
+                if(CloneFlag) {
+                    $('#ItemModalTitle').text('Add Item');
+                    $('.AddEditProductBtn').text('Save');
+                } else {
+                    $('#ItemModalTitle').text('Edit Item');
+                    $('.AddEditProductBtn').text('Update');
+                }
+                clearItemValues();
+                $('#itemsModal').modal('show');
+
+                if(CloneFlag) {
+                    $('#HProductUID').val(0);
+                } else {
+                    $('#HProductUID').val(response.Data.ProductUID);
+                }
+
+                $('#ItemName').val(response.Data.ItemName);
+                $('#ProductType').val(response.Data.ProductType);
+                $('#SellingPrice').val(smartDecimal(response.Data.SellingPrice));
+                $('#SellingTaxOption').val(response.Data.SellingProductTaxUID).trigger('change');
+                $('#TaxPercentage').val(response.Data.TaxDetailsUID).trigger('change');
+                $('#PrimaryUnit').val(response.Data.PrimaryUnitUID).trigger('change');
+                $('#Category').val(response.Data.CategoryUID).trigger('change');
+                $('#PurchasePrice').val(smartDecimal(response.Data.PurchasePrice));
+                $('#PurchaseTaxOption').val(response.Data.PurchasePriceProductTaxUID).trigger('change');
+                if(EnableStorage) {
+                    $('#StorageUID').val(response.Data.StorageUID).trigger('change');
+                }
+
+                $('#HSNCode').val(response.Data.HSNSACCode);
+                $('#Standard').val(response.Data.Standard);
+                $('#BrandUID').val(response.Data.BrandUID).trigger('change');
+                $('#Model').val(response.Data.Model);
+                $('#PartNumber').val(response.Data.PartNumber);
+                if(response.Data.IsSizeApplicable == 1) {
+                    $('#IsSizeApplicable').prop('checked', true).trigger('change');
+                    $('#SizeDiv').removeClass('d-none');
+                    $('#PSizeUID').val(response.Data.SizeUID).trigger('change').prop('required', true);
+                }
+                if (response.Data.Image && response.Data.Image !== undefined && response.Data.Image !== null && response.Data.Image !== '') {
+                    // var ImageUrl = CDN_URL + response.Data.Image;
+                    var ImageUrl = response.Data.Image;
+                    if (ImageUrl && ImageUrl !== undefined && ImageUrl !== null && ImageUrl !== '') {
+                        commonSetDropzoneImageOne(ImageUrl);
+                    }
+                }
+                if (response.Data.Description != null && response.Data.Description != undefined) {
+                    appendToQuill(response.Data.Description, true);
+                }
+
+                $('#OpeningQuantity').val(smartDecimal(response.Data.OpeningQuantity));
+                $('#OpeningPurchasePrice').val(smartDecimal(response.Data.OpeningPurchasePrice));
+                $('#OpeningStockValue').val(smartDecimal(response.Data.OpeningStockValue));
+
+                $('#Discount').val(smartDecimal(response.Data.Discount));
+                $('#DiscountOption').val(response.Data.DiscountTypeUID).trigger('change');
+                $('#LowStockAlert').val(smartDecimal(response.Data.LowStockAlertAt));
+                if(response.Data.NotForSale == 'Yes') {
+                    $('#NotForSale').prop('checked', true);
+                }
+
+            }
+        },
+    });
 }
 
 function editProductData(formdata) {
 
-    $('.editFormAlert').removeClass('d-none');
-    inlineMessageAlert('.editFormAlert', 'info', 'Processing... Please wait', false, false);
-
+    $('.AddEditProductBtn').attr('disabled', 'disabled');
     $.ajax({
         url: '/products/updateProductData',
         method: 'POST',
@@ -85,23 +155,19 @@ function editProductData(formdata) {
         enctype: 'multipart/form-data',
         success: function (response) {
 
-            AjaxLoading = 1;
-            $('.EditProductBtn').removeAttr('disabled');
-
+            $('.AddEditProductBtn').removeAttr('disabled');
             if (response.Error) {
-                inlineMessageAlert('.editFormAlert', 'danger', response.Message, false, false);
+                $('.addEditFormAlert').removeClass('d-none');
+                inlineMessageAlert('.addEditFormAlert', 'danger', response.Message, false, false);
             } else {
 
-                inlineMessageAlert('.editFormAlert', 'success', response.Message, false, true);
-                setTimeout(function () {
-                    $('.editFormAlert').fadeOut(500, function () {
-                        $(this).addClass('d-none').show();
-                    });
-                }, 1000);
-
-                $('#EditItemForm').trigger('reset');
                 myOneDropzone.removeAllFiles(true);
-                window.history.back();
+                quill.setContents([]);
+                $('#AddEditItemForm').trigger('reset');
+                $('#itemsModal').modal('hide');
+                clearItemValues();
+
+                executeProdPagnFunc(response, true);
 
             }
 
@@ -131,13 +197,7 @@ function deleteProduct(ProductUID) {
                         return item !== ProductUID;
                     });
                 }
-                ItemUIDs = response.UIDs ? response.UIDs : [];
-                $(ProdPag).html(response.Pagination);
-                $(ProdTable + ' tbody').html(response.List);
-                Swal.fire(response.Message, "", "success");
-                headerCheckboxTrueFalse(ItemUIDs, ProdHeader);
-                tableCheckboxTrueFalse(SelectedUIDs, ProdTable, ProdRow);
-                MultipleDeleteOption();
+                executeProdPagnFunc(response, true);
             }
         },
     });
@@ -160,16 +220,25 @@ function deleteMultipleProduct() {
                 Swal.fire(response.Message, "", "error");
             } else {
                 SelectedUIDs = [];
-                ItemUIDs = response.UIDs ? response.UIDs : [];
-                $(ProdPag).html(response.Pagination);
-                $(ProdTable + ' tbody').html(response.List);
-                Swal.fire(response.Message, "", "success");
-                headerCheckboxTrueFalse(ItemUIDs, ProdHeader);
-                tableCheckboxTrueFalse(SelectedUIDs, ProdTable, ProdRow);
-                MultipleDeleteOption();
+                executeProdPagnFunc(response, true);
             }
         },
     });
+}
+
+function executeProdPagnFunc(response, tableinfo = false) {
+
+    if(tableinfo) {
+        $(ProdPag).html(response.Pagination);
+        $(ProdTable + ' tbody').html(response.List);
+        Swal.fire(response.Message, "", "success");
+    }
+
+    ItemUIDs = response.UIDs ? response.UIDs : [];
+    headerCheckboxTrueFalse(ItemUIDs, ProdHeader);
+    tableCheckboxTrueFalse(SelectedUIDs, ProdTable, ProdRow);
+    MultipleDeleteOption();
+
 }
 
 /**
@@ -196,23 +265,13 @@ function getCategoriesDetails(PageNo, RowLimit, Filter) {
                 $(CatgPag).html(response.Pagination);
                 $(CatgTable + ' tbody').html(response.List);
             }
-            CategoryUIDs = response.UIDs ? response.UIDs : [];
-            headerCheckboxTrueFalse(CategoryUIDs, CatgHeader);
-            tableCheckboxTrueFalse(SelectedUIDs, CatgTable, CatgRow);
-            MultipleDeleteOption();
+            executeCatgPagnFunc(response, false);
         },
     });
 }
 
 function addCategoryDetails(formdata) {
-
-    AjaxLoading = 0;
-
-    $('#CatgSaveButton').attr('disabled', 'disabled');
-
-    $('#catgFormAlert').removeClass('d-none');
-    inlineMessageAlert('#catgFormAlert', 'info', 'Processing... Please wait', false, false);
-
+    $('.CatgSaveButton').attr('disabled', 'disabled');
     $.ajax({
         url: '/products/addCategoryDetails',
         method: 'POST',
@@ -222,33 +281,17 @@ function addCategoryDetails(formdata) {
         contentType: false,
         enctype: 'multipart/form-data',
         success: function (response) {
-
-            AjaxLoading = 1;
-            $('#CatgSaveButton').removeAttr('disabled');
-
+            $('.CatgSaveButton').removeAttr('disabled');
             if (response.Error) {
-                inlineMessageAlert('#catgFormAlert', 'danger', response.Message, false, false);
+                $('.catgFormAlert').removeClass('d-none');
+                inlineMessageAlert('.catgFormAlert', 'danger', response.Message, false, false);
             } else {
-
-                inlineMessageAlert('#catgFormAlert', 'success', response.Message, false, true);
-                setTimeout(function () {
-                    $('#catgFormAlert').fadeOut(500, function () {
-                        $(this).addClass('d-none').show();
-                    });
-                }, 1000);
 
                 myOneDropzone.removeAllFiles(true);
                 $('#categoryForm').trigger('reset');
                 $('#categoryModal').modal('hide');
 
-                $(CatgPag).html(response.Pagination);
-                $(CatgTable + ' tbody').html(response.List);
-                Swal.fire(response.Message, "", "success");
-
-                CategoryUIDs = response.UIDs ? response.UIDs : [];
-                headerCheckboxTrueFalse(CategoryUIDs, CatgHeader);
-                tableCheckboxTrueFalse(SelectedUIDs, CatgTable, CatgRow);
-                MultipleDeleteOption();
+                executeCatgPagnFunc(response, true);
 
             }
 
@@ -276,7 +319,8 @@ function retrieveCategoryDetails(CategoryUID) {
 
                 $('#categoryForm').trigger('reset');
                 $('#CatgModalTitle').text('Edit Category');
-                $('#CatgSaveButton').text('Update');
+                $('.CatgSaveButton').text('Update');
+                myOneDropzone.removeAllFiles(true);
                 $('#categoryModal').modal('show');
 
                 $('#CategoryUID').val(response.Data.CategoryUID);
@@ -285,33 +329,9 @@ function retrieveCategoryDetails(CategoryUID) {
 
                 if (response.Data.Image && response.Data.Image !== undefined && response.Data.Image !== null && response.Data.Image !== '') {
                     // var CatgImgURL = CDN_URL + response.Data.Image;
-                    var CatgImgURL = response.Data.Image;
-
-                    if (CatgImgURL && CatgImgURL !== undefined && CatgImgURL !== null && CatgImgURL !== '') {
-
-                        myOneDropzone.removeAllFiles(true);
-
-                        fetch(CatgImgURL)
-                            .then(res => {
-                                const contentLength = res.headers.get('Content-Length');
-                                return res.blob().then(blob => {
-                                    const fileName = decodeURIComponent(CatgImgURL.substring(CatgImgURL.lastIndexOf('/') + 1));
-                                    const file = new File([blob], fileName, {
-                                        type: blob.type,
-                                        lastModified: new Date()
-                                    });
-
-                                    // Manually patch the size if Dropzone doesn’t read it right
-                                    file.size = contentLength ? parseInt(contentLength) : blob.size;
-                                    file.isStored = true;
-
-                                    // Add to Dropzone
-                                    myOneDropzone.emit("addedfile", file);
-                                    myOneDropzone.emit("thumbnail", file, CatgImgURL);
-                                    myOneDropzone.emit("complete", file);
-                                    myOneDropzone.files.push(file);
-                                });
-                            });
+                    var ImageUrl = response.Data.Image;
+                    if (ImageUrl && ImageUrl !== undefined && ImageUrl !== null && ImageUrl !== '') {
+                        commonSetDropzoneImageOne(ImageUrl);
                     }
                 }
 
@@ -321,14 +341,7 @@ function retrieveCategoryDetails(CategoryUID) {
 }
 
 function editCategoryDetails(formdata) {
-
-    AjaxLoading = 0;
-
-    $('#CatgSaveButton').attr('disabled', 'disabled');
-
-    $('#catgFormAlert').removeClass('d-none');
-    inlineMessageAlert('#catgFormAlert', 'info', 'Processing... Please wait', false, false);
-
+    $('.CatgSaveButton').attr('disabled', 'disabled');
     $.ajax({
         url: '/products/updateCategoryDetails',
         method: 'POST',
@@ -338,33 +351,17 @@ function editCategoryDetails(formdata) {
         contentType: false,
         enctype: 'multipart/form-data',
         success: function (response) {
-
-            AjaxLoading = 1;
-            $('#CatgSaveButton').removeAttr('disabled');
-
+            $('.CatgSaveButton').removeAttr('disabled');
             if (response.Error) {
-                inlineMessageAlert('#catgFormAlert', 'danger', response.Message, false, false);
+                $('.catgFormAlert').removeClass('d-none');
+                inlineMessageAlert('.catgFormAlert', 'danger', response.Message, false, false);
             } else {
-
-                inlineMessageAlert('#catgFormAlert', 'success', response.Message, false, true);
-                setTimeout(function () {
-                    $('#catgFormAlert').fadeOut(500, function () {
-                        $(this).addClass('d-none').show();
-                    });
-                }, 1000);
 
                 myOneDropzone.removeAllFiles(true);
                 $('#categoryForm').trigger('reset');
                 $('#categoryModal').modal('hide');
 
-                $(CatgPag).html(response.Pagination);
-                $(CatgTable + ' tbody').html(response.List);
-                Swal.fire(response.Message, "", "success");
-
-                CategoryUIDs = response.UIDs ? response.UIDs : [];
-                headerCheckboxTrueFalse(CategoryUIDs, CatgHeader);
-                tableCheckboxTrueFalse(SelectedUIDs, CatgTable, CatgRow);
-                MultipleDeleteOption();
+                executeCatgPagnFunc(response, true);
 
             }
 
@@ -394,14 +391,7 @@ function deleteCategory(CategoryUID) {
                         return item !== CategoryUID;
                     });
                 }
-                CategoryUIDs = response.UIDs ? response.UIDs : [];
-                $(CatgPag).html(response.Pagination);
-                $(CatgTable + ' tbody').html(response.List);
-                Swal.fire(response.Message, "", "success");
-
-                headerCheckboxTrueFalse(CategoryUIDs, CatgHeader);
-                tableCheckboxTrueFalse(SelectedUIDs, CatgTable, CatgRow);
-                MultipleDeleteOption();
+                executeCatgPagnFunc(response, true);
             }
         },
     });
@@ -424,17 +414,25 @@ function deleteMultipleCategory() {
                 Swal.fire(response.Message, "", "error");
             } else {
                 SelectedUIDs = [];
-                CategoryUIDs = response.UIDs ? response.UIDs : [];
-                $(CatgPag).html(response.Pagination);
-                $(CatgTable + ' tbody').html(response.List);
-                Swal.fire(response.Message, "", "success");
-                
-                headerCheckboxTrueFalse(CategoryUIDs, CatgHeader);
-                tableCheckboxTrueFalse(SelectedUIDs, CatgTable, CatgRow);
-                MultipleDeleteOption();
+                executeCatgPagnFunc(response, true);
             }
         },
     });
+}
+
+function executeCatgPagnFunc(response, tableinfo = false) {
+
+    if(tableinfo) {
+        $(CatgPag).html(response.Pagination);
+        $(CatgTable + ' tbody').html(response.List);
+        Swal.fire(response.Message, "", "success");
+    }
+
+    CategoryUIDs = response.UIDs ? response.UIDs : [];
+    headerCheckboxTrueFalse(CategoryUIDs, CatgHeader);
+    tableCheckboxTrueFalse(SelectedUIDs, CatgTable, CatgRow);
+    MultipleDeleteOption();
+
 }
 
 /**
@@ -461,20 +459,14 @@ function getSizesDetails(PageNo, RowLimit, Filter) {
                 $(SizePag).html(response.Pagination);
                 $(SizeTable + ' tbody').html(response.List);
             }
-            SizeUIDs = response.UIDs ? response.UIDs : [];
-            headerCheckboxTrueFalse(SizeUIDs, SizeHeader);
-            tableCheckboxTrueFalse(SelectedUIDs, SizeTable, SizeRow);
-            MultipleDeleteOption();
+            executeSizePagnFunc(response, false);
         },
     });
 
 }
 
 function addSizeDetails(formdata) {
-
-    $('#sizeFormAlert').removeClass('d-none');
-    inlineMessageAlert('#sizeFormAlert', 'info', 'Processing... Please wait', false, false);
-
+    $('.sizeButtonName').attr('disabled', 'disabled');
     $.ajax({
         url: '/products/addSizeDetails',
         method: 'POST',
@@ -483,34 +475,17 @@ function addSizeDetails(formdata) {
         processData: false,
         contentType: false,
         success: function (response) {
-
-            AjaxLoading = 1;
-            $('#sizeButtonName').removeAttr('disabled');
-
+            $('.sizeButtonName').removeAttr('disabled');
             if (response.Error) {
-                inlineMessageAlert('#sizeFormAlert', 'danger', response.Message, false, false);
+                $('.sizeFormAlert').removeClass('d-none');
+                inlineMessageAlert('.sizeFormAlert', 'danger', response.Message, false, false);
             } else {
-                inlineMessageAlert('#sizeFormAlert', 'success', response.Message, false, true);
-                setTimeout(function () {
-                    $('#sizeFormAlert').fadeOut(500, function () {
-                        $(this).addClass('d-none').show();
-                    });
-                }, 1000);
 
                 $('#SizesForm').trigger('reset');
                 $('#sizesModal').modal('hide');
-
-                $(SizePag).html(response.Pagination);
-                $(SizeTable + ' tbody').html(response.List);
-                Swal.fire(response.Message, "", "success");
-
-                SizeUIDs = response.UIDs ? response.UIDs : [];
-                headerCheckboxTrueFalse(SizeUIDs, SizeHeader);
-                tableCheckboxTrueFalse(SelectedUIDs, SizeTable, SizeRow);
-                MultipleDeleteOption();
+                executeSizePagnFunc(response, true);
 
             }
-
         }
     });
 }
@@ -537,7 +512,7 @@ function retrieveSizeDetails(SizeUID) {
                 $('#sizeButtonName').text('Update');
                 $('#sizesModal').modal('show');
 
-                $('#SizeUID').val(response.Data.SizeUID);
+                $('#HSizeUID').val(response.Data.SizeUID);
                 $('#SizesName').val(response.Data.Name);
                 $('#SizesDescription').val(response.Data.Description);
 
@@ -547,10 +522,7 @@ function retrieveSizeDetails(SizeUID) {
 }
 
 function editSizeDetails(formdata) {
-
-    $('#sizeFormAlert').removeClass('d-none');
-    inlineMessageAlert('#sizeFormAlert', 'info', 'Processing... Please wait', false, false);
-
+    $('.sizeButtonName').attr('disabled', 'disabled');
     $.ajax({
         url: '/products/updateSizeDetails',
         method: 'POST',
@@ -559,32 +531,14 @@ function editSizeDetails(formdata) {
         processData: false,
         contentType: false,
         success: function (response) {
-
-            AjaxLoading = 1;
-            $('#sizeButtonName').removeAttr('disabled');
-
+            $('.sizeButtonName').removeAttr('disabled');
             if (response.Error) {
-                inlineMessageAlert('#sizeFormAlert', 'danger', response.Message, false, false);
+                $('.sizeFormAlert').removeClass('d-none');
+                inlineMessageAlert('.sizeFormAlert', 'danger', response.Message, false, false);
             } else {
-                inlineMessageAlert('#sizeFormAlert', 'success', response.Message, false, true);
-                setTimeout(function () {
-                    $('#sizeFormAlert').fadeOut(500, function () {
-                        $(this).addClass('d-none').show();
-                    });
-                }, 1000);
-
                 $('#SizesForm').trigger('reset');
                 $('#sizesModal').modal('hide');
-
-                $(SizePag).html(response.Pagination);
-                $(SizeTable + ' tbody').html(response.List);
-                Swal.fire(response.Message, "", "success");
-
-                SizeUIDs = response.UIDs ? response.UIDs : [];
-                headerCheckboxTrueFalse(SizeUIDs, SizeHeader);
-                tableCheckboxTrueFalse(SelectedUIDs, SizeTable, SizeRow);
-                MultipleDeleteOption();
-
+                executeSizePagnFunc(response, true);
             }
 
         }
@@ -612,15 +566,7 @@ function deleteSize(SizeUID) {
                         return item !== SizeUID;
                     });
                 }
-                SizeUIDs = response.UIDs ? response.UIDs : [];
-                $(SizePag).html(response.Pagination);
-                $(SizeTable + ' tbody').html(response.List);
-                Swal.fire(response.Message, "", "success");
-
-                headerCheckboxTrueFalse(SizeUIDs, SizeHeader);
-                tableCheckboxTrueFalse(SelectedUIDs, SizeTable, SizeRow);
-                MultipleDeleteOption();
-
+                executeSizePagnFunc(response, true);
             }
         },
     });
@@ -643,16 +589,25 @@ function deleteMultipleSize() {
                 Swal.fire(response.Message, "", "error");
             } else {
                 SelectedUIDs = [];
-                SizeUIDs = response.UIDs ? response.UIDs : [];
-                $(SizePag).html(response.Pagination);
-                $(SizeTable + ' tbody').html(response.List);
-                Swal.fire(response.Message, "", "success");
-                headerCheckboxTrueFalse(SizeUIDs, SizeHeader);
-                tableCheckboxTrueFalse(SelectedUIDs, SizeTable, SizeRow);
-                MultipleDeleteOption();
+                executeSizePagnFunc(response, true);
             }
         },
     });
+}
+
+function executeSizePagnFunc(response, tableinfo = false) {
+
+    if(tableinfo) {
+        $(SizePag).html(response.Pagination);
+        $(SizeTable + ' tbody').html(response.List);
+        Swal.fire(response.Message, "", "success");
+    }
+
+    SizeUIDs = response.UIDs ? response.UIDs : [];
+    headerCheckboxTrueFalse(SizeUIDs, SizeHeader);
+    tableCheckboxTrueFalse(SelectedUIDs, SizeTable, SizeRow);
+    MultipleDeleteOption();
+
 }
 
 /**
@@ -679,19 +634,13 @@ function getBrandsDetails(PageNo, RowLimit, Filter) {
                 $(BrandPag).html(response.Pagination);
                 $(BrandTable + ' tbody').html(response.List);
             }
-            BrandUIDs = response.UIDs ? response.UIDs : [];
-            headerCheckboxTrueFalse(BrandUIDs, BrandHeader);
-            tableCheckboxTrueFalse(SelectedUIDs, BrandTable, BrandRow);
-            MultipleDeleteOption();
+            executeBrandPagnFunc(response, false);
         },
     });
 }
 
 function addBrandDetails(formdata) {
-
-    $('#brandFormAlert').removeClass('d-none');
-    inlineMessageAlert('#brandFormAlert', 'info', 'Processing... Please wait', false, false);
-
+    $('.brandButtonName').attr('disabled', 'disabled');
     $.ajax({
         url: '/products/addBrandDetails',
         method: 'POST',
@@ -700,33 +649,15 @@ function addBrandDetails(formdata) {
         processData: false,
         contentType: false,
         success: function (response) {
-            AjaxLoading = 1;
-            $('#brandButtonName').removeAttr('disabled');
+            $('.brandButtonName').removeAttr('disabled');
             if (response.Error) {
-                inlineMessageAlert('#brandFormAlert', 'danger', response.Message, false, false);
+                $('.brandFormAlert').removeClass('d-none');
+                inlineMessageAlert('.brandFormAlert', 'danger', response.Message, false, false);
             } else {
-
-                inlineMessageAlert('#brandFormAlert', 'success', response.Message, false, true);
-                setTimeout(function () {
-                    $('#brandFormAlert').fadeOut(500, function () {
-                        $(this).addClass('d-none').show();
-                    });
-                }, 1000);
-
                 $('#BrandsForm').trigger('reset');
                 $('#brandsModal').modal('hide');
-
-                $(BrandPag).html(response.Pagination);
-                $(BrandTable + ' tbody').html(response.List);
-                Swal.fire(response.Message, "", "success");
-
-                BrandUIDs = response.UIDs ? response.UIDs : [];
-                headerCheckboxTrueFalse(BrandUIDs, BrandHeader);
-                tableCheckboxTrueFalse(SelectedUIDs, BrandTable, BrandRow);
-                MultipleDeleteOption();
-
+                executeBrandPagnFunc(response, true);
             }
-
         }
     });
 }
@@ -753,7 +684,7 @@ function retrieveBrandDetails(BrandUID) {
                 $('#brandButtonName').text('Update');
                 $('#brandsModal').modal('show');
 
-                $('#BrandUID').val(response.Data.BrandUID);
+                $('#HBrandUID').val(response.Data.BrandUID);
                 $('#BrandsName').val(response.Data.Name);
                 $('#BrandsDescription').val(response.Data.Description);
 
@@ -763,10 +694,7 @@ function retrieveBrandDetails(BrandUID) {
 }
 
 function editBrandDetails(formdata) {
-
-    $('#brandFormAlert').removeClass('d-none');
-    inlineMessageAlert('#brandFormAlert', 'info', 'Processing... Please wait', false, false);
-
+    $('.brandButtonName').attr('disabled', 'disabled');
     $.ajax({
         url: '/products/updateBrandDetails',
         method: 'POST',
@@ -775,33 +703,15 @@ function editBrandDetails(formdata) {
         processData: false,
         contentType: false,
         success: function (response) {
-            AjaxLoading = 1;
-            $('#brandButtonName').removeAttr('disabled');
+            $('.brandButtonName').removeAttr('disabled');
             if (response.Error) {
-                inlineMessageAlert('#brandFormAlert', 'danger', response.Message, false, false);
+                $('.brandFormAlert').removeClass('d-none');
+                inlineMessageAlert('.brandFormAlert', 'danger', response.Message, false, false);
             } else {
-
-                inlineMessageAlert('#brandFormAlert', 'success', response.Message, false, true);
-                setTimeout(function () {
-                    $('#brandFormAlert').fadeOut(500, function () {
-                        $(this).addClass('d-none').show();
-                    });
-                }, 1000);
-
                 $('#BrandsForm').trigger('reset');
                 $('#brandsModal').modal('hide');
-
-                $(BrandPag).html(response.Pagination);
-                $(BrandTable + ' tbody').html(response.List);
-                Swal.fire(response.Message, "", "success");
-
-                BrandUIDs = response.UIDs ? response.UIDs : [];
-                headerCheckboxTrueFalse(BrandUIDs, BrandHeader);
-                tableCheckboxTrueFalse(SelectedUIDs, BrandTable, BrandRow);
-                MultipleDeleteOption();
-
+                executeBrandPagnFunc(response, true);
             }
-
         }
     });
 }
@@ -827,15 +737,7 @@ function deleteBrand(BrandUID) {
                         return item !== BrandUID;
                     });
                 }
-                BrandUIDs = response.UIDs ? response.UIDs : [];
-                $(BrandPag).html(response.Pagination);
-                $(BrandTable + ' tbody').html(response.List);
-                Swal.fire(response.Message, "", "success");
-                
-                headerCheckboxTrueFalse(BrandUIDs, BrandHeader);
-                tableCheckboxTrueFalse(SelectedUIDs, BrandTable, BrandRow);
-                MultipleDeleteOption();
-                
+                executeBrandPagnFunc(response, true);
             }
         },
     });
@@ -858,18 +760,25 @@ function deleteMultipleBrand() {
                 Swal.fire(response.Message, "", "error");
             } else {
                 SelectedUIDs = [];
-
-                BrandUIDs = response.UIDs ? response.UIDs : [];
-                $(BrandPag).html(response.Pagination);
-                $(BrandTable + ' tbody').html(response.List);
-                Swal.fire(response.Message, "", "success");
-                
-                headerCheckboxTrueFalse(BrandUIDs, BrandHeader);
-                tableCheckboxTrueFalse(SelectedUIDs, BrandTable, BrandRow);
-                MultipleDeleteOption();
+                executeBrandPagnFunc(response, true);
             }
         },
     });
+}
+
+function executeBrandPagnFunc(response, tableinfo = false) {
+
+    if(tableinfo) {
+        $(BrandPag).html(response.Pagination);
+        $(BrandTable + ' tbody').html(response.List);
+        Swal.fire(response.Message, "", "success");
+    }
+
+    BrandUIDs = response.UIDs ? response.UIDs : [];
+    headerCheckboxTrueFalse(BrandUIDs, BrandHeader);
+    tableCheckboxTrueFalse(SelectedUIDs, BrandTable, BrandRow);
+    MultipleDeleteOption();
+
 }
 
 function commonSelectFunctionality(PageSelcType) {
@@ -930,7 +839,7 @@ function commonUnSelectFunctionality(PageSelcType) {
     $('#unSelectPagesModal').modal('hide');
 }
 
-function commonExportFunctionality(Flag, Type) {
+function commonExportFunctionality(Flag, Type, PageType) {
     if (Flag == 2) {
         if (SelectedUIDs.length == 0) {
             Swal.fire({
@@ -941,7 +850,8 @@ function commonExportFunctionality(Flag, Type) {
             return false;
         }
     }
-    const ExportIds = SelectedUIDs.length > 0 ? btoa(SelectedUIDs.toString()) : '';
+    // const ExportIds = SelectedUIDs.length > 0 ? btoa(SelectedUIDs.toString()) : '';
+    
     let URLs = '';
     let TableName;
     let TableHeader;
@@ -978,6 +888,21 @@ function commonExportFunctionality(Flag, Type) {
         FileName = 'Brand_Data';
         SheetName = 'Brand';
     }
+
+    let ExportIds = '';
+    if(PageType == 'SelectedPage') {
+        ExportIds = SelectedUIDs.length > 0 ? btoa(SelectedUIDs.toString()) : '';
+    } else if(PageType == 'CurrentPage') {
+        let CurrentPageIds = [];
+        $(TableName + ' tbody ' + TableRow).each(function () {
+            let currentVal = parseInt($(this).val());
+            if (!CurrentPageIds.includes(currentVal)) {
+                CurrentPageIds.push(currentVal);
+            }
+        });
+        ExportIds = CurrentPageIds.length > 0 ? btoa(CurrentPageIds.toString()) : '';
+    }
+
     if (Type == 'PrintPreview') {
         URLs = "/globally/getPrintPreviewDetails?ModuleId=" + ActiveTabModuleId;
         if (!$.isEmptyObject(Filter)) {
@@ -1024,6 +949,101 @@ function showProductPageDetails() {
     }
 }
 
+function clearItemValues() {
+    $('#HProductUID').val(0);
+    $('#ProductType').val('Product').trigger('change');
+    $('#SellingTaxOption,#PurchaseTaxOption,#DiscountOption').val(1).trigger('change');
+    $('#TaxPercentage,#PrimaryUnit,#Category,#StorageUID,#BrandUID,#PSizeUID').val(null).trigger('change');
+    $('#IsSizeApplicable,#NotForSale').prop('checked', false).trigger('change');
+    $('#SizeDiv').addClass('d-none');
+    myOneDropzone.removeAllFiles(true);
+    quill.setContents([]);
+}
+
+function commonExportFunctions() {
+    $('#btnExportPrint').click(function(e) {
+        e.preventDefault();
+        commonExportFunctionality(1, 'PrintPreview', 'ExportAll');
+    });
+
+    $('#btnExportCSV').click(function(e) {
+        e.preventDefault();
+        commonExportFunctionality(1, 'ExportCSV', 'ExportAll');
+    });
+
+    $('#btnExportPDF').click(function(e) {
+        e.preventDefault();
+        commonExportFunctionality(1, 'ExportPDF', 'ExportAll');
+    });
+
+    $('#btnExportExcel').click(function(e) {
+        e.preventDefault();
+        commonExportFunctionality(1, 'ExportExcel', 'ExportAll');
+    });
+
+    $('#exportSelectedItemsBtn').click(function(e) {
+        e.preventDefault();
+        commonExportFunctionality(2, expActionType, 'SelectedPage');
+    });
+
+    $('#exportThisPageBtn').click(function(e) {
+        e.preventDefault();
+        commonExportFunctionality(2, expActionType, 'CurrentPage');
+    });
+
+    $('#exportAllPagesBtn').click(function(e) {
+        e.preventDefault();
+        commonExportFunctionality(2, expActionType, 'AllPage');
+    });
+
+    $('#clearExportClose').click(function(e) {
+        e.preventDefault();
+        if (ActiveTabId == 'Item') {
+            exportModalCloseFunc(ProdTable, ProdHeader, ProdRow, ItemUIDs);
+        } else if (ActiveTabId == 'Categories') {
+            exportModalCloseFunc(CatgTable, CatgHeader, CatgRow, CategoryUIDs);
+        } else if (ActiveTabId == 'Sizes') {
+            exportModalCloseFunc(SizeTable, SizeHeader, SizeRow, SizeUIDs);
+        } else if (ActiveTabId == 'Brands') {
+            exportModalCloseFunc(BrandTable, BrandHeader, BrandRow, BrandUIDs);
+        }
+    });
+
+    $('#selectThisPageBtn').click(function(e) {
+        e.preventDefault();
+        commonSelectFunctionality('CurrentPage');
+    });
+
+    $('#selectAllPagesBtn').click(function(e) {
+        e.preventDefault();
+        commonSelectFunctionality('AllPage');
+    });
+
+    $('#clearSelectAllClose').click(function(e) {
+        e.preventDefault();
+        if (ActiveTabId == 'Item') {
+            selectModalCloseFunc(ProdTable, ProdHeader, ProdRow, ItemUIDs);
+        } else if (ActiveTabId == 'Categories') {
+            selectModalCloseFunc(CatgTable, CatgHeader, CatgRow, CategoryUIDs);
+        } else if (ActiveTabId == 'Sizes') {
+            selectModalCloseFunc(SizeTable, SizeHeader, SizeRow, SizeUIDs);
+        } else if (ActiveTabId == 'Brands') {
+            selectModalCloseFunc(BrandTable, BrandHeader, BrandRow, BrandUIDs);
+        }
+    });
+
+    $('#unselectThisPageBtn').click(function(e) {
+        e.preventDefault();
+        commonUnSelectFunctionality('CurrentPage');
+    });
+
+    $('#unselectAllPagesBtn').click(function(e) {
+        e.preventDefault();
+        commonUnSelectFunctionality('AllPage');
+    });
+    
+}
+
 $('#ProductType').on('change', function (e) {
     e.preventDefault();
     var getVal = $(this).val();
@@ -1036,10 +1056,11 @@ $('#ProductType').on('change', function (e) {
 
 $('#IsSizeApplicable').on('change', function () {
     $('#SizeDiv').addClass('d-none');
-    $('#SizeUID').removeAttr('required');
+    $('#PSizeUID').removeAttr('required').val('').trigger('change');
     if ($(this).is(':checked')) {
         $('#SizeDiv').removeClass('d-none');
         $('#SizeDiv').attr('required', true);
+        $('#PSizeUID').val('').trigger('change');
     }
 });
 

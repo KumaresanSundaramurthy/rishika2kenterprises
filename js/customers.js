@@ -12,6 +12,7 @@ function getCustomersDetails(PageNo, RowLimit, Filter) {
             RowLimit: RowLimit,
             PageNo: PageNo,
             Filter: Filter,
+            ModuleId: ModuleId
         },
         success: function(response) {
             if (response.Error) {
@@ -21,20 +22,12 @@ function getCustomersDetails(PageNo, RowLimit, Filter) {
                 $(ModulePag).html(response.Pagination);
                 $(ModuleTable + ' tbody').html(response.List);
             }
-            executeCommonFunc(response, false);
+            executeTablePagnCommonFunc(response, false);
         },
     });
 }
 
 function addCustomerData(formdata) {
-
-    AjaxLoading = 0;
-
-    $('.addFormAlert').removeClass('d-none');
-    inlineMessageAlert('.addFormAlert', 'info', 'Processing... Please wait', false, false);
-
-    $('.AddCustomerBtn').attr('disabled', 'disabled');
-
     $.ajax({
         url: '/customers/addCustomerData',
         method: 'POST',
@@ -44,23 +37,21 @@ function addCustomerData(formdata) {
         contentType: false,
         enctype: 'multipart/form-data',
         success: function (response) {
-            AjaxLoading = 1;
-            $('.AddCustomerBtn').removeAttr('disabled');
+            
             if (response.Error) {
+                $('.addFormAlert').removeClass('d-none');
                 inlineMessageAlert('.addFormAlert', 'danger', response.Message, false, false);
             } else {
-                inlineMessageAlert('.addFormAlert', 'success', response.Message, false, true);
-                setTimeout(function () {
-                    $('.addFormAlert').fadeOut(500, function () {
-                        $(this).addClass('d-none').show();
-                    });
-                }, 1000);
                 $('#AddCustomerForm').trigger('reset');
-                window.history.back();
+                Swal.fire(response.Message, "", "success");
+                setTimeout(function () {                    
+                    window.history.back();
+                }, 500);
+                
             }
+
         }
     });
-
 }
 
 function showAddressInfo(formData, BtnId, DivId) {
@@ -79,23 +70,9 @@ function showAddressInfo(formData, BtnId, DivId) {
                 $('#' + BtnId).addClass('d-none');
                 $('#' + DivId).html(response.HtmlData);
                 if (BtnId == 'addBillingAddress') {
-                    $('#BillAddrState').select2({
-                        placeholder: '-- Select State --',
-                        allowClear: true,
-                    });
-                    $('#BillAddrCity').select2({
-                        placeholder: '-- Select City --',
-                        allowClear: true,
-                    });
+                    enableBillingAddress();
                 } else if(BtnId == 'addShippingAddress') {
-                    $('#ShipAddrState').select2({
-                        placeholder: '-- Select State --',
-                        allowClear: true,
-                    });
-                    $('#ShipAddrCity').select2({
-                        placeholder: '-- Select City --',
-                        allowClear: true,
-                    });
+                    enableShippingAddress();
                 }
             }
         }
@@ -103,14 +80,6 @@ function showAddressInfo(formData, BtnId, DivId) {
 }
 
 function editCustomerData(formdata) {
-
-    AjaxLoading = 0;
-
-    $('.editFormAlert').removeClass('d-none');
-    inlineMessageAlert('.editFormAlert', 'info', 'Processing... Please wait', false, false);
-
-    $('.EditCustomerBtn').attr('disabled', 'disabled');
-
     $.ajax({
         url: '/customers/updateCustomerData',
         method: 'POST',
@@ -120,22 +89,20 @@ function editCustomerData(formdata) {
         contentType: false,
         enctype: 'multipart/form-data',
         success: function (response) {
-            $('.editFormAlert').removeClass('d-none');
+            
             if (response.Error) {
+                $('.editFormAlert').removeClass('d-none');
                 inlineMessageAlert('.editFormAlert', 'danger', response.Message, false, false);
             } else {
-                inlineMessageAlert('.editFormAlert', 'success', response.Message, false, true);
-                setTimeout(function () {
-                    $('.editFormAlert').fadeOut(500, function () {
-                        $(this).addClass('d-none').show();
-                    });
-                }, 1000);
                 $('#EditCustomerForm').trigger('reset');
-                window.history.back();
+                Swal.fire(response.Message, "", "success");
+                setTimeout(function () {                    
+                    window.history.back();
+                }, 500);
             }
+            
         }
     });
-
 }
 
 function deleteCustomer(DeleteId) {
@@ -143,17 +110,44 @@ function deleteCustomer(DeleteId) {
         url: '/customers/deleteCustomerData',
         method: 'POST',
         data: {
-            CustomerUID: DeleteId
+            RowLimit: RowLimit,
+            PageNo: PageNo,
+            Filter: Filter,
+            CustomerUID: DeleteId,
+            ModuleId: ModuleId
         },
         cache: false,
         success: function (response) {
             if (response.Error) {
                 Swal.fire(response.Message, "", "danger");
             } else {
-                getCustomersDetails(0, RowLimit, Filter);
                 Swal.fire(response.Message, "", "success");
+                executeTablePagnCommonFunc(response, true);
             }
         }
+    });
+}
+
+function deleteMultipleCustomers() {
+    $.ajax({
+        url: '/customers/deleteBulkCustomers',
+        method: "POST",
+        cache: false,
+        data: {
+            RowLimit: RowLimit,
+            PageNo: PageNo,
+            Filter: Filter,
+            CustomerUIDs: SelectedUIDs,
+            ModuleId: ModuleId
+        },
+        success: function (response) {
+            if (response.Error) {
+                Swal.fire(response.Message, "", "error");
+            } else {
+                SelectedUIDs = [];
+                executeTablePagnCommonFunc(response, true);
+            }
+        },
     });
 }
 

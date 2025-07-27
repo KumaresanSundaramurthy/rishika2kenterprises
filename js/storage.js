@@ -22,7 +22,7 @@ function getStorageDetails(PageNo, RowLimit, Filter) {
                 $(ModulePag).html(response.Pagination);
                 $(ModuleTable + ' tbody').html(response.List);
             }
-            executeCommonFunc(response, false);
+            executeTablePagnCommonFunc(response, false);
         },
     });
 }
@@ -60,7 +60,7 @@ function addStorageData(formdata) {
                 $('#storageForm').trigger('reset');
                 $('#storageModal').modal('hide');
 
-                executeCommonFunc(response, true);
+                executeTablePagnCommonFunc(response, true);
 
             }
         }
@@ -100,7 +100,7 @@ function updateStorageData(formdata) {
                 $('#storageForm').trigger('reset');
                 $('#storageModal').modal('hide');
 
-                executeCommonFunc(response, true);
+                executeTablePagnCommonFunc(response, true);
 
             }
         }
@@ -128,7 +128,7 @@ function deleteStorage(StorageUID) {
                         return item !== StorageUID;
                     });
                 }
-                executeCommonFunc(response, true);
+                executeTablePagnCommonFunc(response, true);
             }
         },
     });
@@ -151,23 +151,8 @@ function deleteMultipleStorage() {
                 Swal.fire(response.Message, "", "error");
             } else {
                 SelectedUIDs = [];
-                executeCommonFunc(response, true);
+                executeTablePagnCommonFunc(response, true);
             }
         },
     });
-}
-
-function executeCommonFunc(response, tableinfo = false) {
-
-    if(tableinfo) {
-        $(ModulePag).html(response.Pagination);
-        $(ModuleTable + ' tbody').html(response.List);
-        Swal.fire(response.Message, "", "success");
-    }
-
-    ModuleUIDs = response.UIDs ? response.UIDs : [];
-    headerCheckboxTrueFalse(ModuleUIDs, ModuleHeader);
-    tableCheckboxTrueFalse(SelectedUIDs, ModuleTable, ModuleRow);
-    MultipleDeleteOption();
-
 }

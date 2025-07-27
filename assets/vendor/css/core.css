@@ -8855,7 +8855,8 @@ img[data-app-light-img][data-app-dark-img] {
 
 .table th {
     color: var(--bs-heading-color);
-    font-size: .8125rem;
+    /* font-size: .8125rem; */
+    font-size: .75rem;
     letter-spacing: .2px;
     text-transform: uppercase
 }
@@ -28693,4 +28694,28 @@ body:not(.modal-open) .layout-content-navbar .layout-navbar {
 
 .dropdown-submenu:hover>.dropdown-menu {
     display: block;
+}
+
+.custom-modal-cardbg {
+    background-color: #E6FFF6 !important;
+}
+
+.modal-header-center-sticky, .modal-footer-center-sticky {
+    position: sticky;
+    background-color: #fff;
+    z-index: 10;
+}
+
+.modal-header-center-sticky {
+    top: 0;
+    border-bottom: 1px solid #dee2e6;
+    border-top-left-radius: 1rem;
+    border-top-right-radius: 1rem;
+}
+
+.modal-footer-center-sticky {
+    bottom: 0;
+    border-top: 1px solid #dee2e6;
+    border-bottom-left-radius: 1rem;
+    border-bottom-right-radius: 1rem;
 }

@@ -12,75 +12,140 @@ class Products extends CI_Controller {
 
     public function index() {
 
-        $activeTab = isset($_GET['tab']) ? $_GET['tab'] : 'item';
+        $activeTab = $_GET['tab'] ?? 'item';
 
         $ControllerName = strtolower($this->router->fetch_class());
+        $this->load->model(['global_model', 'products_model']);
 
-        $this->pageData['ModuleInfo'] = array_filter($this->pageData['JwtData']->ModuleInfo, function($module) use ($ControllerName) {
+        // Filter module info
+        $this->pageData['ModuleInfo'] = array_filter($this->pageData['JwtData']->ModuleInfo, function ($module) use ($ControllerName) {
             return $module->ControllerName === $ControllerName;
         });
 
-        $limit = isset($this->pageData['JwtData']->GenSettings->RowLimit) ? $this->pageData['JwtData']->GenSettings->RowLimit : 10;
+        $limit = $this->pageData['JwtData']->GenSettings->RowLimit ?? 10;
 
-        // ModuleID information
-        $this->pageData['ItemModuleId'] = getModuleUIDByName($this->pageData['ModuleInfo'], 'Products');
-        $this->pageData['CategoryModuleId'] = getModuleUIDByName($this->pageData['ModuleInfo'], 'Category');
-        $this->pageData['SizeModuleId'] = getModuleUIDByName($this->pageData['ModuleInfo'], 'Sizes');
-        $this->pageData['BrandModuleId'] = getModuleUIDByName($this->pageData['ModuleInfo'], 'Brands');
+        $tabConfigs = [
+            'item' => [
+                'moduleName' => 'Products',
+                'listPage' => 'products/items/list',
+                'tableDetails' => '/products/getProductDetails/',
+                'tabName' => 'Item'
+            ],
+            'category' => [
+                'moduleName' => 'Category',
+                'listPage' => 'products/categories/list',
+                'tableDetails' => '/products/getCategoriesDetails/',
+                'tabName' => 'Categories'
+            ],
+            'size' => [
+                'moduleName' => 'Sizes',
+                'listPage' => 'products/sizes/list',
+                'tableDetails' => '/products/getSizesDetails/',
+                'tabName' => 'Sizes'
+            ],
+            'brand' => [
+                'moduleName' => 'Brands',
+                'listPage' => 'products/brands/list',
+                'tableDetails' => '/products/getBrandsDetails/',
+                'tabName' => 'Brands'
+            ]
+        ];
 
-        $ModuleId = 0;
-        $TableDetails = '';
-        $ListPage = '';
-        $ActiveTabName = '';
-        if($activeTab == 'item') {
-            $ModuleId = $this->pageData['ItemModuleId'];
-            $TableDetails = '/products/getProductDetails/';
-            $ListPage = 'products/items/list';
-            $ActiveTabName = 'Item';
-        } else if($activeTab == 'category') {
-            $ModuleId = $this->pageData['CategoryModuleId'];
-            $TableDetails = '/products/getCategoriesDetails/';
-            $ListPage = 'products/categories/list';
-            $ActiveTabName = 'Categories';
-        } else if($activeTab == 'size') {
-            $ModuleId = $this->pageData['SizeModuleId'];
-            $TableDetails = '/products/getSizesDetails/';
-            $ListPage = 'products/sizes/list';
-            $ActiveTabName = 'Sizes';
-        } else if($activeTab == 'brand') {
-            $ModuleId = $this->pageData['BrandModuleId'];
-            $TableDetails = '/products/getBrandsDetails/';
-            $ListPage = 'products/brands/list';
-            $ActiveTabName = 'Brands';
+        $activeTabConfig = $tabConfigs[$activeTab] ?? $tabConfigs['item'];
+
+        $moduleName = $activeTabConfig['moduleName'];
+        $ListPage = $activeTabConfig['listPage'];
+        $TableDetails = $activeTabConfig['tableDetails'];
+        $ActiveTabName = $activeTabConfig['tabName'];
+        
+        $modules = [
+            'Item' => 'Products',
+            'Category' => 'Category',
+            'Size' => 'Sizes',
+            'Brand' => 'Brands'
+        ];
+
+        foreach ($modules as $key => $modName) {
+            $this->pageData[$key . 'ModuleId'] = getModuleUIDByName($this->pageData['ModuleInfo'], $modName);
         }
 
+        $ModuleId = $this->pageData[ucfirst($activeTab) . 'ModuleId'];
+
         $ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($ModuleId, $TableDetails, $ListPage, 0, $limit, 0, [], []);
-        if($ReturnResponse->Error) {
+        if ($ReturnResponse->Error) {
             throw new Exception($ReturnResponse->Message);
         }
 
-        $this->pageData['ItemList'] = $ReturnResponse->List;
-        $this->pageData['ItemUIDs'] = $ReturnResponse->UIDs;
-        $this->pageData['ItemPagination'] = $ReturnResponse->Pagination;
+        $this->pageData['ModActiveList'] = $ReturnResponse->List;
+        $this->pageData['ModActiveUIDs'] = $ReturnResponse->UIDs;
+        $this->pageData['ModActivePagination'] = $ReturnResponse->Pagination;
         $this->pageData['ColumnDetails'] = $ReturnResponse->AllViewColumns;
-        
-        $ItemColumns = array_filter($this->pageData['ColumnDetails'], function ($item) {
-            return isset($item->IsMainPageApplicable) && $item->IsMainPageApplicable == 1;
-        });
-        usort($ItemColumns, function ($a, $b) {
-            return $a->MainPageOrder <=> $b->MainPageOrder;
-        });
-        $this->pageData['ItemColumns'] = $ItemColumns;
 
-        $this->load->model('products_model');
-        $this->pageData['Categories'] = $this->products_model->getCategoriesDetails([]);
+        // Initialize all tab column arrays
+        foreach (array_keys($modules) as $key) {
+            $this->pageData[$key . 'Columns'] = [];
+        }
+
+        foreach ($modules as $key => $modName) {
+            $modId = $this->pageData[$key . 'ModuleId'];
+            $colData = $this->global_model->getModuleViewColumnDetails(['ViewColmn.ModuleUID' => $modId, 'IsMainPageApplicable' => 1], true, ['MainPageOrder' => 'ASC']);
+            if (strtolower($key) === $activeTab) {
+                $ModuleColumns = array_filter($this->pageData['ColumnDetails'], fn($col) => $col->IsMainPageApplicable == 1);
+                usort($ModuleColumns, fn($a, $b) => $a->MainPageOrder <=> $b->MainPageOrder);
+                $this->pageData[$key . 'Columns'] = $ModuleColumns;
+            } else {
+                $this->pageData[$key . 'Columns'] = $colData;
+            }
+        }
 
         $this->pageData['ActiveTabData'] = $activeTab;
         $this->pageData['ActiveTabName'] = $ActiveTabName;
         $this->pageData['ActiveModuleId'] = $ModuleId;
 
+        $this->pageData['PrimaryUnitInfo'] = [];
+        $GetPrimaryUnitInfo = $this->global_model->getPrimaryUnitInfo();
+        if (!$GetPrimaryUnitInfo->Error) {
+            $this->pageData['PrimaryUnitInfo'] = $GetPrimaryUnitInfo->Data;
+        }
+
+        $this->pageData['DiscTypeInfo'] = [];
+        $GetDiscTypeInfo = $this->global_model->getDiscountTypeInfo();
+        if (!$GetDiscTypeInfo->Error) {
+            $this->pageData['DiscTypeInfo'] = $GetDiscTypeInfo->Data;
+        }
+
+        $this->pageData['ProdTypeInfo'] = [];
+        $GetProdTypeInfo = $this->global_model->getProductTypeInfo();
+        if (!$GetProdTypeInfo->Error) {
+            $this->pageData['ProdTypeInfo'] = $GetProdTypeInfo->Data;
+        }
+
+        $this->pageData['ProdTaxInfo'] = [];
+        $GetProdTaxInfo = $this->global_model->getProductTaxInfo();
+        if (!$GetProdTaxInfo->Error) {
+            $this->pageData['ProdTaxInfo'] = $GetProdTaxInfo->Data;
+        }
+
+        $this->pageData['TaxDetInfo'] = [];
+        $GetTaxDetInfo = $this->global_model->getTaxDetailsInfo();
+        if (!$GetTaxDetInfo->Error) {
+            $this->pageData['TaxDetInfo'] = $GetTaxDetInfo->Data;
+        }
+
+        $this->pageData['Categories'] = $this->products_model->getCategoriesDetails([]);
+        $this->pageData['BrandInfo'] = $this->products_model->getBrandDetails([]);
+
+        if (!empty($this->pageData['JwtData']->GenSettings->EnableStorage)) {
+            $this->load->model('storage_model');
+            $this->pageData['Storage'] = $this->storage_model->getStorageDetails([]);
+        }
+
         $this->load->view('products/view', $this->pageData);
 
+    }
+
+    public function checkImageType($str = '') {
+        return $this->globalservice->checkImageType($str);
     }
 
     public function getProductDetails($pageNo = 0) {
@@ -88,20 +153,12 @@ class Products extends CI_Controller {
 		$this->EndReturnData = new stdClass();
 		try {
 
-			$ModuleId = $this->input->post('ModuleId');
-			$limit = $this->input->post('RowLimit');
-            $offset = ($pageNo != 0) ? (($pageNo - 1) * $limit) : $pageNo;
-            $Filter = $this->input->post('Filter');
-
-			$ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($ModuleId, '/products/getProductDetails/', 'products/items/list', $pageNo, $limit, $offset, $Filter, []);
-            if($ReturnResponse->Error) {
-                throw new Exception($ReturnResponse->Message);
-            }
+			$tablePagDataResp = $this->commonProductTablePagination($pageNo);
 
             $this->EndReturnData->Error = false;
-            $this->EndReturnData->List = $ReturnResponse->List;
-			$this->EndReturnData->UIDs = $ReturnResponse->UIDs;
-            $this->EndReturnData->Pagination = $ReturnResponse->Pagination;
+            $this->EndReturnData->List = $tablePagDataResp->List;
+			$this->EndReturnData->UIDs = $tablePagDataResp->UIDs;
+            $this->EndReturnData->Pagination = $tablePagDataResp->Pagination;
 
 		} catch (Exception $e) {
             $this->EndReturnData->Error = TRUE;
@@ -116,42 +173,19 @@ class Products extends CI_Controller {
 
 	}
 
-    public function add() {
+    public function commonProductTablePagination($pageNo = 0) {
 
-        $this->load->model('global_model');
+        $ModuleId = $this->input->post('ModuleId');
+        $limit = $this->input->post('RowLimit');
+        $offset = ($pageNo != 0) ? (($pageNo - 1) * $limit) : $pageNo;
+        $Filter = $this->input->post('Filter');
 
-        $this->pageData['PrimaryUnitInfo'] = [];
-        $this->pageData['DiscTypeInfo'] = [];
-        $this->pageData['ProdTypeInfo'] = [];
-        $this->pageData['ProdTaxInfo'] = [];
-        $this->pageData['TaxDetInfo'] = [];
-        
-        $GetPrimaryUnitInfo = $this->global_model->getPrimaryUnitInfo();
-        if($GetPrimaryUnitInfo->Error === FALSE) {
-            $this->pageData['PrimaryUnitInfo'] = $GetPrimaryUnitInfo->Data;
-        }
-        $GetDiscTypeInfo = $this->global_model->getDiscountTypeInfo();
-        if($GetDiscTypeInfo->Error === FALSE) {
-            $this->pageData['DiscTypeInfo'] = $GetDiscTypeInfo->Data;
-        }
-        $GetProdTypeInfo = $this->global_model->getProductTypeInfo();
-        if($GetProdTypeInfo->Error === FALSE) {
-            $this->pageData['ProdTypeInfo'] = $GetProdTypeInfo->Data;
-        }
-        $GetProdTaxInfo = $this->global_model->getProductTaxInfo();
-        if($GetProdTaxInfo->Error === FALSE) {
-            $this->pageData['ProdTaxInfo'] = $GetProdTaxInfo->Data;
-        }
-        $GetTaxDetInfo = $this->global_model->getTaxDetailsInfo();
-        if($GetTaxDetInfo->Error === FALSE) {
-            $this->pageData['TaxDetInfo'] = $GetTaxDetInfo->Data;
+        $ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($ModuleId, '/products/getProductDetails/', 'products/items/list', $pageNo, $limit, $offset, $Filter, []);
+        if($ReturnResponse->Error) {
+            throw new Exception($ReturnResponse->Message);
         }
 
-        $this->load->model('products_model');
-        $this->pageData['CategoriesInfo'] = $this->products_model->getCategoriesDetails([]);
-        $this->pageData['BrandInfo'] = $this->products_model->getBrandDetails([]);
-
-        $this->load->view('products/items/forms/add', $this->pageData);
+        return $ReturnResponse;
 
     }
 
@@ -196,17 +230,21 @@ class Products extends CI_Controller {
                     'Discount' => isset($PostData['Discount']) ? $PostData['Discount'] : 0,
                     'DiscountTypeUID' => isset($PostData['DiscountOption']) ? $PostData['DiscountOption'] : 0,
                     'LowStockAlertAt' => isset($PostData['LowStockAlert']) ? $PostData['LowStockAlert'] : 0,
-                    'NotForSale' => isset($PostData['NotForSale']) ? 'Yes' : 'No',
+                    'NotForSale' => isset($PostData['NotForSale']) && $PostData['NotForSale'] == 1 ? 'Yes' : 'No',
                     'BrandUID' => isset($PostData['BrandUID']) ? $PostData['BrandUID'] : NULL,
                     'Standard' => (isset($PostData['Standard']) && !empty($PostData['Standard'])) ? $PostData['Standard'] : NULL,
                     'Model' => (isset($PostData['Model']) && !empty($PostData['Model'])) ? $PostData['Model'] : NULL,
-                    'IsSizeApplicable' => (isset($PostData['IsSizeApplicable']) && !empty($PostData['IsSizeApplicable'])) ? 1 : 0,
-                    'SizeUID' => (isset($PostData['IsSizeApplicable']) && !empty($PostData['IsSizeApplicable'])) && isset($PostData['SizeUID']) ? $PostData['SizeUID'] : NULL,
+                    'IsSizeApplicable' => (isset($PostData['IsSizeApplicable']) && $PostData['IsSizeApplicable'] == 1) ? 1 : 0,
+                    'SizeUID' => (isset($PostData['IsSizeApplicable']) && $PostData['IsSizeApplicable'] == 1) && isset($PostData['SizeUID']) ? $PostData['SizeUID'] : NULL,
                     'CreatedBy' => $this->pageData['JwtData']->User->UserUID,
                     'UpdatedBy' => $this->pageData['JwtData']->User->UserUID,
                     'CreatedOn' => time(),
                     'UpdatedOn' => time(),
                 ];
+
+                if($this->pageData['JwtData']->GenSettings->EnableStorage == 1) {
+                    $ProductFormData['StorageUID'] = isset($PostData['StorageUID']) ? $PostData['StorageUID'] : NULL;
+                }
 
                 $InsertDataResp = $this->dbwrite_model->insertData('Products', 'ProductTbl', $ProductFormData);
                 if($InsertDataResp->Error) {
@@ -216,32 +254,21 @@ class Products extends CI_Controller {
                 $ProductUID = $InsertDataResp->ID;
 
                 // Image Upload
-                if(isset($_FILES['UploadImage']) && $_FILES['UploadImage']['error'] == 0) {
-
-                    $imagePath = NULL;
-
-                    if (isset($_FILES['UploadImage']['tmp_name']) && !empty($_FILES['UploadImage']['tmp_name'])) {
-
-                        $ext = pathinfo($_FILES['UploadImage']['name'], PATHINFO_EXTENSION);
-                        $fileName = substr(str_replace('.'.$ext, '', str_replace(' ', '_', $_FILES['UploadImage']['name'])), 0, 50).'_'.uniqid().'.'.$ext;
-                        $imagePath = $this->imageUpload($_FILES['UploadImage']['tmp_name'], $fileName);
-
+                if(isset($_FILES['UploadImage'])) {
+                    $UploadResp = $this->globalservice->fileUploadService($_FILES['UploadImage'], 'products/items/images/', 'Image', ['Products', 'ProductTbl', array('ProductUID' => $ProductUID)]);
+                    if($UploadResp->Error === TRUE) {
+                        throw new Exception($UploadResp->Message);
                     }
-
-                    if($imagePath) {
-                        $updateCatgImgData = [
-                            'Image' => $imagePath,
-                        ];
-                        $UpdateImgResp = $this->dbwrite_model->updateData('Products', 'ProductTbl', $updateCatgImgData, array('ProductUID' => $ProductUID));
-                        if($UpdateImgResp->Error) {
-                            throw new Exception($UpdateImgResp->Message);
-                        }
-                    }
-
                 }
 
+                $pageNo = $this->input->post('PageNo');
+                $tablePagDataResp = $this->commonProductTablePagination($pageNo);
+                
                 $this->EndReturnData->Error = FALSE;
                 $this->EndReturnData->Message = 'Created Successfully';
+                $this->EndReturnData->List = $tablePagDataResp->List;
+                $this->EndReturnData->Pagination = $tablePagDataResp->Pagination;
+                $this->EndReturnData->UIDs = $tablePagDataResp->UIDs;
 
             } else {
                 throw new Exception($ErrorInForm);
@@ -273,115 +300,40 @@ class Products extends CI_Controller {
 
     }
 
-    public function clone($ProductUID) {
+    public function retrieveProductDetails() {
 
-        $ProductUID = (int) $ProductUID;
-		if($ProductUID > 0) {
+        $this->EndReturnData = new stdClass();
+		try {
 
-            $this->load->model('products_model');
-            $GetProductData = $this->products_model->getProductsDetails(['Products.ProductUID' => $ProductUID]);
-            if((sizeof($GetProductData) > 0) && sizeof($GetProductData) == 1) {
-
-                $this->load->model('global_model');
-
-                $this->pageData['PrimaryUnitInfo'] = [];
-                $this->pageData['DiscTypeInfo'] = [];
-                $this->pageData['ProdTypeInfo'] = [];
-                $this->pageData['ProdTaxInfo'] = [];
-                $this->pageData['TaxDetInfo'] = [];
-                
-                $GetPrimaryUnitInfo = $this->global_model->getPrimaryUnitInfo();
-                if($GetPrimaryUnitInfo->Error === FALSE) {
-                    $this->pageData['PrimaryUnitInfo'] = $GetPrimaryUnitInfo->Data;
-                }
-                $GetDiscTypeInfo = $this->global_model->getDiscountTypeInfo();
-                if($GetDiscTypeInfo->Error === FALSE) {
-                    $this->pageData['DiscTypeInfo'] = $GetDiscTypeInfo->Data;
-                }
-                $GetProdTypeInfo = $this->global_model->getProductTypeInfo();
-                if($GetProdTypeInfo->Error === FALSE) {
-                    $this->pageData['ProdTypeInfo'] = $GetProdTypeInfo->Data;
-                }
-                $GetProdTaxInfo = $this->global_model->getProductTaxInfo();
-                if($GetProdTaxInfo->Error === FALSE) {
-                    $this->pageData['ProdTaxInfo'] = $GetProdTaxInfo->Data;
-                }
-                $GetTaxDetInfo = $this->global_model->getTaxDetailsInfo();
-                if($GetTaxDetInfo->Error === FALSE) {
-                    $this->pageData['TaxDetInfo'] = $GetTaxDetInfo->Data;
-                }
+            $ProductUID = $this->input->post('ItemUID');
+            if($ProductUID) {
 
                 $this->load->model('products_model');
-                $this->pageData['CategoriesInfo'] = $this->products_model->getCategoriesDetails([]);
-                $this->pageData['BrandInfo'] = $this->products_model->getBrandDetails([]);
+                $GetProductData = $this->products_model->getProductsDetails(['Products.ProductUID' => $ProductUID]);
+                if((sizeof($GetProductData) > 0) && sizeof($GetProductData) == 1) {
 
-                $this->pageData['EditData'] = $GetProductData[0];
+                    $this->EndReturnData->Error = FALSE;
+                    $this->EndReturnData->Message = 'Retrieved Successfully';
+                    $this->EndReturnData->Data = $GetProductData[0];
 
-                $this->load->view('products/items/forms/clone', $this->pageData);
+                } else {
+                    throw new Exception('Missing Product Information');
+                }
 
             } else {
-                redirect('products');
+                throw new Exception('Missing Product Information');
             }
 
-        } else {
-            redirect('products');
+        } catch (Exception $e) {
+            $this->EndReturnData->Error = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         }
 
-    }
-
-    public function edit($ProductUID) {
-
-        $ProductUID = (int) $ProductUID;
-		if($ProductUID > 0) {
-
-            $this->load->model('products_model');
-            $GetProductData = $this->products_model->getProductsDetails(['Products.ProductUID' => $ProductUID]);
-            if((sizeof($GetProductData) > 0) && sizeof($GetProductData) == 1) {
-
-                $this->load->model('global_model');
-
-                $this->pageData['PrimaryUnitInfo'] = [];
-                $this->pageData['DiscTypeInfo'] = [];
-                $this->pageData['ProdTypeInfo'] = [];
-                $this->pageData['ProdTaxInfo'] = [];
-                $this->pageData['TaxDetInfo'] = [];
-                
-                $GetPrimaryUnitInfo = $this->global_model->getPrimaryUnitInfo();
-                if($GetPrimaryUnitInfo->Error === FALSE) {
-                    $this->pageData['PrimaryUnitInfo'] = $GetPrimaryUnitInfo->Data;
-                }
-                $GetDiscTypeInfo = $this->global_model->getDiscountTypeInfo();
-                if($GetDiscTypeInfo->Error === FALSE) {
-                    $this->pageData['DiscTypeInfo'] = $GetDiscTypeInfo->Data;
-                }
-                $GetProdTypeInfo = $this->global_model->getProductTypeInfo();
-                if($GetProdTypeInfo->Error === FALSE) {
-                    $this->pageData['ProdTypeInfo'] = $GetProdTypeInfo->Data;
-                }
-                $GetProdTaxInfo = $this->global_model->getProductTaxInfo();
-                if($GetProdTaxInfo->Error === FALSE) {
-                    $this->pageData['ProdTaxInfo'] = $GetProdTaxInfo->Data;
-                }
-                $GetTaxDetInfo = $this->global_model->getTaxDetailsInfo();
-                if($GetTaxDetInfo->Error === FALSE) {
-                    $this->pageData['TaxDetInfo'] = $GetTaxDetInfo->Data;
-                }
-
-                $this->load->model('products_model');
-                $this->pageData['CategoriesInfo'] = $this->products_model->getCategoriesDetails([]);
-                $this->pageData['BrandInfo'] = $this->products_model->getBrandDetails([]);
-
-                $this->pageData['EditData'] = $GetProductData[0];
-
-                $this->load->view('products/items/forms/edit', $this->pageData);
-
-            } else {
-                redirect('products');
-            }
-
-        } else {
-            redirect('products');
-        }
+        $this->output->set_status_header(200)
+            ->set_content_type('application/json', 'utf-8')
+            ->set_output(json_encode($this->EndReturnData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES))
+            ->_display();
+        exit;
 
     }
 
@@ -403,9 +355,12 @@ class Products extends CI_Controller {
 
                 $ProductUID = (isset($PostData['ProductUID']) && !empty($PostData['ProductUID'])) ? $PostData['ProductUID'] : 0;
 
+                if($ProductUID == 0) {
+                    throw new Exception('Product edit information is missing.!');
+                }
+
                 $ProductFormData = [
                     'ItemName' => $PostData['ItemName'],
-                    'OrgUID' => $this->pageData['JwtData']->User->OrgUID,
                     'ProductType' => $PostData['ProductType'] ? $PostData['ProductType'] : 'Product',
                     'SellingPrice' => (isset($PostData['SellingPrice']) && !empty($PostData['SellingPrice'])) ? $PostData['SellingPrice'] : 0,
                     'SellingProductTaxUID' => (isset($PostData['SellingTaxOption']) && !empty($PostData['SellingTaxOption'])) ? $PostData['SellingTaxOption'] : NULL,
@@ -427,15 +382,18 @@ class Products extends CI_Controller {
                     'Discount' => isset($PostData['Discount']) ? $PostData['Discount'] : 0,
                     'DiscountTypeUID' => isset($PostData['DiscountOption']) ? $PostData['DiscountOption'] : 0,
                     'LowStockAlertAt' => isset($PostData['LowStockAlert']) ? $PostData['LowStockAlert'] : 0,
-                    'NotForSale' => isset($PostData['NotForSale']) ? 'Yes' : 'No',
+                    'NotForSale' => isset($PostData['NotForSale']) && $PostData['NotForSale'] == 1 ? 'Yes' : 'No',
                     'BrandUID' => isset($PostData['BrandUID']) ? $PostData['BrandUID'] : NULL,
                     'Standard' => (isset($PostData['Standard']) && !empty($PostData['Standard'])) ? $PostData['Standard'] : NULL,
                     'Model' => (isset($PostData['Model']) && !empty($PostData['Model'])) ? $PostData['Model'] : NULL,
-                    'IsSizeApplicable' => (isset($PostData['IsSizeApplicable']) && !empty($PostData['IsSizeApplicable'])) ? 1 : 0,
-                    'SizeUID' => (isset($PostData['IsSizeApplicable']) && !empty($PostData['IsSizeApplicable'])) && isset($PostData['SizeUID']) ? $PostData['SizeUID'] : NULL,
+                    'IsSizeApplicable' => (isset($PostData['IsSizeApplicable']) && $PostData['IsSizeApplicable'] == 1) ? 1 : 0,
+                    'SizeUID' => (isset($PostData['IsSizeApplicable']) && $PostData['IsSizeApplicable'] == 1) && isset($PostData['SizeUID']) ? $PostData['SizeUID'] : NULL,
                     'UpdatedBy' => $this->pageData['JwtData']->User->UserUID,
                     'UpdatedOn' => time(),
                 ];
+                if($this->pageData['JwtData']->GenSettings->EnableStorage == 1) {
+                    $ProductFormData['StorageUID'] = isset($PostData['StorageUID']) ? $PostData['StorageUID'] : NULL;
+                }
 
                 $UpdateDataResp = $this->dbwrite_model->updateData('Products', 'ProductTbl', $ProductFormData, array('ProductUID' => $ProductUID));
                 if($UpdateDataResp->Error) {
@@ -443,32 +401,21 @@ class Products extends CI_Controller {
                 }
 
                 // Image Upload
-                if(isset($_FILES['UploadImage']) && $_FILES['UploadImage']['error'] == 0) {
-
-                    $imagePath = NULL;
-
-                    if (isset($_FILES['UploadImage']['tmp_name']) && !empty($_FILES['UploadImage']['tmp_name'])) {
-
-                        $ext = pathinfo($_FILES['UploadImage']['name'], PATHINFO_EXTENSION);
-                        $fileName = substr(str_replace('.'.$ext, '', str_replace(' ', '_', $_FILES['UploadImage']['name'])), 0, 50).'_'.uniqid().'.'.$ext;
-                        $imagePath = $this->imageUpload($_FILES['UploadImage']['tmp_name'], $fileName);
-
+                if(isset($_FILES['UploadImage'])) {
+                    $UploadResp = $this->globalservice->fileUploadService($_FILES['UploadImage'], 'products/items/images/', 'Image', ['Products', 'ProductTbl', array('ProductUID' => $ProductUID)]);
+                    if($UploadResp->Error === TRUE) {
+                        throw new Exception($UploadResp->Message);
                     }
-
-                    if($imagePath) {
-                        $updateCatgImgData = [
-                            'Image' => $imagePath,
-                        ];
-                        $UpdateImgResp = $this->dbwrite_model->updateData('Products', 'ProductTbl', $updateCatgImgData, array('ProductUID' => $ProductUID));
-                        if($UpdateImgResp->Error) {
-                            throw new Exception($UpdateImgResp->Message);
-                        }
-                    }
-
                 }
 
+                $pageNo = $this->input->post('PageNo');
+                $tablePagDataResp = $this->commonProductTablePagination($pageNo);
+                
                 $this->EndReturnData->Error = FALSE;
                 $this->EndReturnData->Message = 'Updated Successfully';
+                $this->EndReturnData->List = $tablePagDataResp->List;
+                $this->EndReturnData->Pagination = $tablePagDataResp->Pagination;
+                $this->EndReturnData->UIDs = $tablePagDataResp->UIDs;
 
             } else {
                 throw new Exception($ErrorInForm);
@@ -732,24 +679,6 @@ class Products extends CI_Controller {
 			return '/'.$uploadDetail->Path;
         } else {
             throw new Exception('File upload failed');
-        }
-
-    }
-
-    public function checkImageType() {
-
-        $allowed = array('image/jpeg', 'image/jpg', 'image/png');
-        $type_not_match = false;
-        if (isset($_FILES['Thumbnail']['name']) && !empty($_FILES['Thumbnail']['name'])) {
-            if (!in_array($_FILES['Thumbnail']['type'], $allowed) || $_FILES['Thumbnail']['size'] > 1048576) {
-                $type_not_match = true;
-            }
-        }
-        if ($type_not_match) {
-            $this->form_validation->set_message('checkImageType', 'Invalid File. Please upload allowed format and size will be below 1MB');
-            return false;
-        } else {
-            return true;
         }
 
     }

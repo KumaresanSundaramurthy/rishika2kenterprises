@@ -16,7 +16,7 @@
             ?>
             <td>
                 <div class="d-flex align-items-sm-center justify-content-sm-center">
-                    <a href="/products/<?php echo $list->TablePrimaryUID; ?>/edit" class="btn btn-icon text-warning"><i class="bx bx-edit me-1"></i></a>
+                    <a href="javascript: void(0);" class="btn btn-icon text-warning EditProduct" data-uid="<?php echo $list->TablePrimaryUID; ?>"><i class="bx bx-edit me-1"></i></a>
                     <button class="btn btn-icon text-danger DeleteProduct" data-productuid="<?php echo $list->TablePrimaryUID; ?>"><i class="bx bx-trash"></i></button>
                 </div>
             </td>

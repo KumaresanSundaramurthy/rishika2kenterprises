@@ -338,10 +338,10 @@ class Vendors extends CI_Controller
 
                 $this->load->view('vendors/forms/edit', $this->pageData);
             } else {
-                redirect('vendors');
+                redirect('vendors', 'refresh');
             }
         } else {
-            redirect('vendors');
+            redirect('vendors', 'refresh');
         }
     }
 

@@ -213,6 +213,14 @@ class Formvalidation_model extends CI_Model {
         $dd['Standard'] = array('field' => 'Standard', 'label' => 'Standard', 'rules' => 'xss_clean|trim|max_length[100]');
         $dd['IsSizeApplicable'] = array('field' => 'IsSizeApplicable', 'label' => 'Is Size Applicable', 'rules' => 'xss_clean|trim|callback_CheckSizeRequired');
 
+        if($this->pageData['JwtData']->GenSettings->EnableStorage == 1) {
+            if($this->pageData['JwtData']->GenSettings->MandatoryStorage == 1) {
+                $dd['StorageUID'] = array('field' => 'StorageUID', 'label' => 'Storage UID', 'rules' => 'required|xss_clean|trim|numeric');
+            } else {
+                $dd['StorageUID'] = array('field' => 'StorageUID', 'label' => 'Storage UID', 'rules' => 'xss_clean|trim|numeric');
+            }
+        }
+
         $config = array();
 
         foreach($data as $key=>$value) {

@@ -52,7 +52,7 @@ class Services extends CI_Controller {
                                     <p><strong>Email:</strong> '.$SubsEmail.'</p>
                                     <p><strong>Mobile Number:</strong> '.$SubsCcode.' '.$SubsMobile.'</p>
                                     <p><strong>Comment:</strong> '.$SubsComment.'</p>
-                                    <p><strong>Date & Time:</strong> '.changeTimeZomeDateFormat(time(), $SubsTimezone).'</p>
+                                    <p><strong>Date & Time:</strong> '.changeTimeZomeDateFormat(time(), $SubsTimezone, 2).'</p>
                                 </div>
                             </body>
                         </html>';

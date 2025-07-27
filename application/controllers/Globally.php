@@ -332,7 +332,7 @@ class Globally extends CI_Controller {
             }
 
         } catch (Exception $e) {
-            redirect('dashboard');
+            redirect('dashboard', 'refresh');
         }
 
     }

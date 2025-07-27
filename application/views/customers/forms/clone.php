@@ -18,8 +18,8 @@
 
                 <div class="container-xxl flex-grow-1 container-p-y">
 
-                <?php $FormAttribute = array('id' => 'EditCustomerForm', 'name' => 'EditCustomerForm', 'class' => '', 'autocomplete' => 'off');
-                    echo form_open('customers/editCustomer', $FormAttribute); ?>
+                <?php $FormAttribute = array('id' => 'AddCustomerForm', 'name' => 'AddCustomerForm', 'class' => '', 'autocomplete' => 'off');
+                    echo form_open('customers/addCustomer', $FormAttribute); ?>
 
                     <div class="d-flex justify-content-between align-items-center flex-wrap">
                         <nav aria-label="breadcrumb">
@@ -36,13 +36,11 @@
                         <div class="d-flex gap-2">
                             <div class="mb-3">
                                 <a href="javascript: history.back();" class="btn btn-outline-secondary me-2">Discard</a>
-                                <button type="submit" class="btn btn-primary EditCustomerBtn">Update</button>
+                                <button type="submit" class="btn btn-primary AddCustomerBtn">Save</button>
                             </div>
                         </div>
-                        <div class="d-none col-lg-12 pt-2 editFormAlert" role="alert"></div>
+                        <div class="d-none col-lg-12 pt-2 addFormAlert" role="alert"></div>
                     </div>
-                    
-                    <input type="hidden" name="CustomerUID" id="CustomerUID" value="<?php echo isset($EditData->CustomerUID) ? $EditData->CustomerUID : ''; ?>" />
 
                     <div class="card mb-3">
                         <h5 class="card-header">Basic Details</h5>
@@ -133,7 +131,6 @@
                             <div class="row">
                                 <div class="mb-3 col-md-12">
                                     <label for="text" class="form-label">Opening Balance</label>
-                                    <!-- <div class="input-group input-group-merge"> -->
                                     <div class="col-md-12 mb-3">
                                         <div class="form-check form-check-inline">
                                             <input class="form-check-input" type="radio" name="DebitCreditCheck" id="DebitType" value="Debit" <?php echo isset($EditData->DebitCreditType) && $EditData->DebitCreditType == "Debit" ? 'checked' : ''; ?> />
@@ -150,7 +147,6 @@
                                             <input type="number" class="form-control" name="DebitCreditAmount" id="DebitCreditAmount" min="0" placeholder="Debit / Credit Amount" onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))" oninput="this.value=this.value.slice(0,this.maxLength)" maxLength="6" pattern="[0-9]*" value="<?php echo isset($EditData->DebitCreditAmount) ? $EditData->DebitCreditAmount : '0'; ?>" />
                                         </div>
                                     </div>
-                                    <!-- </div> -->
                                 </div>
                             </div>
                         </div>
@@ -222,9 +218,7 @@
                                             <select id="Tags" name="Tags[]" class="select2 form-select" multiple="multiple">
                                                 <?php if (isset($EditData->Tags) && !empty($EditData->Tags)) {
                                                     foreach (explode(',', $EditData->Tags) as $Tags) { ?>
-
                                                         <option value="<?php echo $Tags; ?>" selected><?php echo $Tags; ?></option>
-
                                                 <?php }
                                                 } ?>
                                             </select>
@@ -234,9 +228,7 @@
                                             <select id="CCEmails" name="CCEmails[]" class="select2 form-select" multiple="multiple">
                                                 <?php if (isset($EditData->CCEmails) && !empty($EditData->CCEmails)) {
                                                     foreach (explode(',', $EditData->CCEmails) as $CCEmails) { ?>
-
                                                         <option value="<?php echo $CCEmails; ?>" selected><?php echo $CCEmails; ?></option>
-
                                                 <?php }
                                                 } ?>
                                             </select>
@@ -250,9 +242,9 @@
 
                     <div class="card mb-3">
                         <div class="card-body p-0">
-                            <div class="d-none col-lg-12 px-4 pt-4 editFormAlert" role="alert"></div>
+                            <div class="d-none col-lg-12 px-4 pt-4 addFormAlert" role="alert"></div>
                             <div class="m-3">
-                                <button type="submit" class="btn btn-primary me-2 EditCustomerBtn">Update</button>
+                                <button type="submit" class="btn btn-primary me-2 AddCustomerBtn">Save</button>
                                 <a href="javascript: history.back();" class="btn btn-outline-secondary">Discard</a>
                             </div>
 
@@ -303,19 +295,13 @@ $(function() {
         myOneDropzone.removeAllFiles();
     });
 
-    $('#EditCustomerForm').submit(function(e) {
+    $('#AddCustomerForm').submit(function(e) {
         e.preventDefault();
 
-        var formData = new FormData($('#EditCustomerForm')[0]);
+        var formData = new FormData($('#AddCustomerForm')[0]);
         formData.append('CountryISO2', $('#CountryCode').find('option:selected').data('ccode'));
-        if(defaultImg && defaultImg !== undefined && defaultImg !== null && defaultImg !== '' && myOneDropzone.files.length == 0) {
-            formData.append('ImageRemoved', 1);
-        }
         if (myOneDropzone.files.length > 0) {
-            const file = myOneDropzone.files[0];
-            if (!file.isStored) {
-                formData.append('UploadImage', myOneDropzone.files[0]);
-            }
+            formData.append('UploadImage', myOneDropzone.files[0]);
         }
 
         var BillAddrLine1 = $('#BillAddrLine1').val();
@@ -342,7 +328,7 @@ $(function() {
             }
         }
 
-        editCustomerData(formData);
+        addCustomerData(formData);
 
     });
 

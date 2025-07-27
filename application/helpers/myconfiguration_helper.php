@@ -43,11 +43,17 @@ function getAWSConfigurationDetails() {
 
 }
 
-function changeTimeZomeDateFormat($TimeStamp, $TimeZone) {
+function changeTimeZomeDateFormat($TimeStamp, $TimeZone, $FormatType = 1) {
 	
 	$DateTime = new DateTime(date('Y-m-d H:i:s', $TimeStamp));
 	$DateTime->setTimezone(new DateTimeZone($TimeZone));
-	$DateTime = $DateTime->format('d M Y h:i A');
+	if($FormatType == 1) {
+		$DateTime = $DateTime->format('d M Y');
+	} else if($FormatType == 2) {
+		$DateTime = $DateTime->format('d M Y h:i A');
+	} else {
+		$DateTime = $DateTime->format('d M Y');
+	}	
 	
 	return $DateTime;
 

@@ -25,7 +25,16 @@ class Products_model extends CI_Model
                     $SearchDirectQuery .= '(('. $ModuleInfoData->TableAliasName.'.ItemName LIKE "%'.$Filter['SearchAllData'].'%" ) OR ('.$ModuleInfoData->TableAliasName.'.HSNSACCode LIKE "%'.$Filter['SearchAllData'].'%") OR ('.$ModuleInfoData->TableAliasName.'.PartNumber LIKE "%'.$Filter['SearchAllData'].'%") OR ('.$ModuleInfoData->TableAliasName.'.Description LIKE "%'.$Filter['SearchAllData'].'%"))';
                 }
                 if (array_key_exists('Category', $Filter)) {
-                    $SearchFilter[$ModuleInfoData->TableAliasName.'.CategoryUID'] = $Filter['Category'];
+                    if($SearchDirectQuery != '') {
+                        $SearchDirectQuery .= ' AND ';    
+                    }
+                    $SearchDirectQuery .= $ModuleInfoData->TableAliasName.'.CategoryUID IN ('.implode($Filter['Category']).')';
+                }
+                if (array_key_exists('Storage', $Filter)) {
+                    if($SearchDirectQuery != '') {
+                        $SearchDirectQuery .= ' AND ';    
+                    }
+                    $SearchDirectQuery .= $ModuleInfoData->TableAliasName.'.StorageUID IN ('.implode($Filter['Storage']).')';
                 }
             }
 

@@ -186,9 +186,9 @@
                                         <label for="SizeUID" class="form-label">Size <span style="color:red">*</span></label>
                                         <select class="form-select" id="PSizeUID" name="SizeUID">
                                             <option label="-- Select Size --"></option>
-                                            <?php if (sizeof($BrandInfo) > 0) {
-                                                foreach ($BrandInfo as $Brand) { ?>
-                                                    <option value="<?php echo $Brand->BrandUID; ?>"><?php echo $Brand->Name; ?></option>
+                                            <?php if (sizeof($SizeInfo) > 0) {
+                                                foreach ($SizeInfo as $size) { ?>
+                                                    <option value="<?php echo $size->SizeUID; ?>"><?php echo $size->Name; ?></option>
                                             <?php }
                                             } ?>
                                         </select>

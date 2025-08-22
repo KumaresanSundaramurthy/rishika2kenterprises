@@ -18,15 +18,19 @@
 
             <input type="hidden" name="BrandUID" id="HBrandUID" value="0" />
             <div class="d-none col-lg-12 px-5 mt-3 brandFormAlert" role="alert"></div>
-            
+
             <div class="modal-body flex-grow-1 overflow-auto">
-                <div class="mb-3">
-                    <label class="form-label" for="BrandsName">Name <span style="color:red">*</span></label>
-                    <input type="text" class="form-control" id="BrandsName" placeholder="Enter brand name" name="BrandsName" maxlength="100" required />
-                </div>
-                <div class="mb-3">
-                    <label for="BrandsDescription" class="form-label">Description </label>
-                    <textarea class="form-control" rows="3" name="BrandsDescription" id="BrandsDescription" placeholder="Description"></textarea>
+                <div class="card custom-modal-cardbg mb-3">
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label" for="BrandsName">Name <span style="color:red">*</span></label>
+                            <input type="text" class="form-control" id="BrandsName" placeholder="Enter brand name" name="BrandsName" maxlength="100" required />
+                        </div>
+                        <div class="mb-3">
+                            <label for="BrandsDescription" class="form-label">Description </label>
+                            <textarea class="form-control" rows="3" name="BrandsDescription" id="BrandsDescription" placeholder="Description"></textarea>
+                        </div>
+                    </div>
                 </div>
             </div>
 

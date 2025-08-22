@@ -2,6 +2,13 @@
 
 <?php $this->load->view('common/header'); ?>
 
+<style>
+    th.sortable i {
+        margin-left: 5px;
+        vertical-align: middle;
+    }
+</style>
+
 <!-- Layout wrapper -->
 <div class="layout-wrapper layout-content-navbar">
     <div class="layout-container">
@@ -42,16 +49,6 @@
                                         <div class="position-relative me-2">
                                             <input type="text" class="form-control SearchDetails" name="SearchDetails" id="SearchDetails" placeholder="Search details..." data-toggle="tooltip" title="Please type at least 3 characters to search" />
                                             <i class="bx bx-x position-absolute top-50 end-0 translate-middle-y me-3 text-muted cursor-pointer d-none" id="clearSearch"></i>
-                                        </div>
-                                        <div class="me-2 <?php echo $ActiveTabData == 'item' ? '' : 'd-none'; ?>" id="ItemCategory-Div">
-                                            <select id="SearchCategory" name="SearchCategory" class="select2 form-select">
-                                                <option label="-- Select Category --"></option>
-                                                <?php if (sizeof($Categories) > 0) {
-                                                    foreach ($Categories as $CgVal) { ?>
-                                                        <option value="<?php echo $CgVal->CategoryUID; ?>"><?php echo $CgVal->Name; ?></option>
-                                                <?php }
-                                                } ?>
-                                            </select>
                                         </div>
                                         <div class="btn-group" id="ActionsDD-Div">
                                             <button class="btn btn-label-secondary dropdown-toggle me-2" type="button" id="actionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
@@ -100,7 +97,6 @@
                                                 </li>
                                             </ul>
                                         </div>
-                                        <!-- <a href="/products/add" class="btn btn-primary px-3 <?php echo $ActiveTabData == 'item' ? '' : 'd-none'; ?>" id="NewItem"><i class='bx bx-plus'></i> New Item</a> -->
                                         <a href="javascript: void(0);" class="btn btn-primary px-3 addItem <?php echo $ActiveTabData == 'item' ? '' : 'd-none'; ?>" id="NewItem"><i class='bx bx-plus'></i> New Item</a>
                                         <a href="javascript: void(0);" class="btn btn-primary px-3 addCategory <?php echo $ActiveTabData == 'category' ? '' : 'd-none'; ?>" id="NewCategory"><i class='bx bx-plus'></i> New Category</a>
                                         <a href="javascript: void(0);" class="btn btn-primary px-3 addSizes <?php echo $ActiveTabData == 'size' ? '' : 'd-none'; ?>" id="NewSizes"><i class='bx bx-plus'></i> New Size</a>
@@ -121,14 +117,107 @@
                                                             </div>
                                                         </th>
                                                         <th class="table-serialno">S.No</th>
-                                                        <?php foreach (array_column($ItemColumns, 'DisplayName') as $ItemKey => $ItemVal) { ?>
-                                                            <th <?php echo $ItemColumns[$ItemKey]->MainPageColumnAddon; ?>><?php echo $ItemVal; ?></th>
+                                                        <?php foreach (array_column($ItemColumns, 'DisplayName') as $ItemKey => $ItemVal) {
+                                                            if ($ItemVal === 'Storage' && ($JwtData->GenSettings->EnableStorage ?? 0) != 1) {
+                                                                continue;
+                                                            } ?>
+                                                            <th <?php echo updateAttributeString($ItemColumns[$ItemKey]->MainPageColumnAddon, $ItemColumns[$ItemKey]->MPSortApplicable); ?>>
+
+                                                                <?php echo $ItemVal; ?>
+
+                                                                <?php if ($ItemColumns[$ItemKey]->MPSortApplicable == 1) {
+                                                                    echo '<i class="bx bx-sort ms-1 cursor-pointer"></i>';
+                                                                } ?>
+
+                                                                <?php if ($ItemVal == 'Category' && $ItemColumns[$ItemKey]->MPFilterApplicable == 1) { ?>
+
+                                                                    <a href="javascript:void(0);" class="text-body ms-1" onclick="toggleCategoryFilter()">
+                                                                        <i class="bx bx-filter-alt fs-5 align-middle"></i>
+                                                                    </a>
+
+                                                                    <div id="categoryFilterBox" class="card shadow position-absolute p-3" style="min-width: 270px; max-height: 350px; top: 100%; z-index: 1055; display: none;">
+
+                                                                        <!-- Search Box -->
+                                                                        <input type="text" id="categorySearch" class="form-control form-control-sm mb-4" placeholder="Search category...">
+
+                                                                        <div class="form-check mb-2">
+                                                                            <label class="form-check-label w-100 d-flex align-items-center">
+                                                                                <input type="checkbox" class="form-check-input me-2 my-1" id="selectAllCategories" onchange="toggleAllCategories(this)">
+                                                                                <label class="form-check-label" for="selectAllCategories" id="selectAllLabel">Select All</label>
+                                                                            </label>
+                                                                        </div>
+
+                                                                        <!-- Category List -->
+                                                                        <div id="categoryList" style="max-height: 180px; overflow-y: auto;">
+                                                                            <?php if (sizeof($Categories) > 0) {
+                                                                                foreach ($Categories as $catg) { ?>
+                                                                                    <div class="form-check mb-2 my-1 list-hover-bg">
+                                                                                        <label class="form-check-label w-100 d-flex align-items-center">
+                                                                                            <input class="form-check-input me-2 category-checkbox" type="checkbox" value="<?php echo $catg->CategoryUID; ?>">
+                                                                                            <span><?php echo $catg->Name; ?></span>
+                                                                                        </label>
+                                                                                    </div>
+                                                                            <?php }
+                                                                            } ?>
+                                                                        </div>
+
+                                                                        <div class="border-top pt-2 mt-2 d-flex justify-content-between gap-2">
+                                                                            <button type="button" class="btn btn-sm btn-outline-secondary w-100" onclick="resetCategoryFilter()">Reset</button>
+                                                                            <button type="button" class="btn btn-sm btn-primary w-100" onclick="applyCategoryFilter()">Search</button>
+                                                                            <button type="button" class="btn btn-sm btn-outline-dark w-100" onclick="closeCategoryFilter();">Close</button>
+                                                                        </div>
+                                                                    </div>
+
+                                                                <?php } ?>
+
+                                                                <?php if ($ItemVal == 'Storage' && $JwtData->GenSettings->EnableStorage == 1 && $ItemColumns[$ItemKey]->MPFilterApplicable == 1) { ?>
+
+                                                                    <a href="javascript:void(0);" class="text-body ms-1" onclick="toggleStorageFilter()">
+                                                                        <i class="bx bx-filter-alt fs-5 align-middle"></i>
+                                                                    </a>
+
+                                                                    <div id="storageFilterBox" class="card shadow position-absolute p-3" style="min-width: 270px; max-height: 350px; top: 100%; z-index: 1055; display: none;">
+
+                                                                        <!-- Search Box -->
+                                                                        <input type="text" id="storageSearch" class="form-control form-control-sm mb-4" placeholder="Search storage...">
+
+                                                                        <div class="form-check mb-2">
+                                                                            <label class="form-check-label w-100 d-flex align-items-center">
+                                                                                <input type="checkbox" class="form-check-input me-2 my-1" id="selectAllStorage" onchange="toggleAllStorage(this)">
+                                                                                <label class="form-check-label" for="selectAllStorage" id="str_selectAllLabel">Select All</label>
+                                                                            </label>
+                                                                        </div>
+
+                                                                        <!-- Storage List -->
+                                                                        <div id="storageList" style="max-height: 180px; overflow-y: auto;">
+                                                                            <?php if (sizeof($Storage) > 0) {
+                                                                                foreach ($Storage as $strg) { ?>
+                                                                                    <div class="form-check mb-2 my-1 list-hover-bg">
+                                                                                        <label class="form-check-label w-100 d-flex align-items-center">
+                                                                                            <input class="form-check-input me-2 storage-checkbox" type="checkbox" value="<?php echo $strg->StorageUID; ?>">
+                                                                                            <span><?php echo $strg->Name; ?></span>
+                                                                                        </label>
+                                                                                    </div>
+                                                                            <?php }
+                                                                            } ?>
+                                                                        </div>
+
+                                                                        <div class="border-top pt-2 mt-2 d-flex justify-content-between gap-2">
+                                                                            <button type="button" class="btn btn-sm btn-outline-secondary w-100" onclick="resetStorageFilter()">Reset</button>
+                                                                            <button type="button" class="btn btn-sm btn-primary w-100" onclick="applyStorageFilter()">Search</button>
+                                                                            <button type="button" class="btn btn-sm btn-outline-dark w-100" onclick="closeStorageFilter();">Close</button>
+                                                                        </div>
+                                                                    </div>
+
+                                                                <?php } ?>
+
+                                                            </th>
                                                         <?php } ?>
                                                         <th class="text-center">Actions</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody class="table-border-bottom-0">
-                                                    <?php if($ActiveTabData == 'item') {
+                                                    <?php if ($ActiveTabData == 'item') {
                                                         echo $ModActiveList;
                                                     } else {
                                                         $PageData['DataLists'] = [];
@@ -163,7 +252,7 @@
                                                     </tr>
                                                 </thead>
                                                 <tbody class="table-border-bottom-0">
-                                                    <?php if($ActiveTabData == 'category') {
+                                                    <?php if ($ActiveTabData == 'category') {
                                                         echo $ModActiveList;
                                                     } else {
                                                         $PageData['DataLists'] = [];
@@ -198,7 +287,7 @@
                                                     </tr>
                                                 </thead>
                                                 <tbody class="table-border-bottom-0">
-                                                    <?php if($ActiveTabData == 'size') {
+                                                    <?php if ($ActiveTabData == 'size') {
                                                         echo $ModActiveList;
                                                     } else {
                                                         $PageData['DataLists'] = [];
@@ -233,7 +322,7 @@
                                                     </tr>
                                                 </thead>
                                                 <tbody class="table-border-bottom-0">
-                                                    <?php if($ActiveTabData == 'brand') {
+                                                    <?php if ($ActiveTabData == 'brand') {
                                                         echo $ModActiveList;
                                                     } else {
                                                         $PageData['DataLists'] = [];
@@ -259,7 +348,7 @@
             <!-- Content wrapper -->
 
             <?php $this->load->view('common/settings_modal'); ?>
-            
+
             <?php $this->load->view('products/modals/items'); ?>
             <?php $this->load->view('products/modals/category'); ?>
             <?php $this->load->view('products/modals/sizes'); ?>
@@ -277,7 +366,7 @@
 <script src="/js/products.js"></script>
 
 <script>
-    let ItemUIDs = <?php echo json_encode($ActiveTabData == 'item' ? ($ModActiveUIDs ?? []) : []); ?>;    
+    let ItemUIDs = <?php echo json_encode($ActiveTabData == 'item' ? ($ModActiveUIDs ?? []) : []); ?>;
     let ItemModuleId = <?php echo $ItemModuleId; ?>;
     const ProdTable = '#ProductsTable';
     const ProdPag = '.ProductsPagination';
@@ -312,6 +401,8 @@
         $('#SearchDetails').val('');
         $(ProdHeader + ',' + ProdRow).prop('checked', false).trigger('change');
 
+        $(".sortable").css("cursor", "pointer").append(' <i class="bx bx-sort-alt-2"></i>');
+
         $('.TabPane').click(function(e) {
             e.preventDefault();
             var TabValue = $(this).data('id');
@@ -325,16 +416,28 @@
                 Filter = {};
                 if (ActiveTabId == 'Item') {
                     $('#NewItem,#ItemCategory-Div').removeClass('d-none');
-                    getProductDetails(PageNo, RowLimit, Filter);
+                    var itemLen = $(ProdTable + ' ' + ProdRow).length;
+                    if (itemLen == 0) {
+                        getProductDetails(PageNo, RowLimit, Filter);
+                    }
                 } else if (ActiveTabId == 'Categories') {
                     $('#NewCategory').removeClass('d-none');
-                    getCategoriesDetails(PageNo, RowLimit, Filter);
+                    var catgLen = $(CatgTable + ' ' + CatgRow).length;
+                    if (catgLen == 0) {
+                        getCategoriesDetails(PageNo, RowLimit, Filter);
+                    }
                 } else if (ActiveTabId == 'Sizes') {
                     $('#NewSizes').removeClass('d-none');
-                    getSizesDetails(PageNo, RowLimit, Filter);
+                    var sizLen = $(SizeTable + ' ' + SizeRow).length;
+                    if (sizLen == 0) {
+                        getSizesDetails(PageNo, RowLimit, Filter);
+                    }
                 } else if (ActiveTabId == 'Brands') {
                     $('#NewBrands').removeClass('d-none');
-                    getBrandsDetails(PageNo, RowLimit, Filter);
+                    var brndLen = $(BrandTable + ' ' + BrandRow).length;
+                    if (brndLen == 0) {
+                        getBrandsDetails(PageNo, RowLimit, Filter);
+                    }
                 }
             }
         });
@@ -359,6 +462,7 @@
             $('#SearchDetails').val('');
             $('#clearSearch').addClass('d-none');
             if ($.trim(searchText) != '') {
+                PageNo = 0;
                 delete Filter['SearchAllData'];
                 $('#SearchDetails').blur();
                 showProductPageDetails();
@@ -409,6 +513,55 @@
 
         commonExportFunctions();
 
+        $('#selectAllCategories').on('change', function() {
+            const isChecked = $(this).is(':checked');
+            $('.category-checkbox').prop('checked', isChecked);
+        });
+
+        $('#categorySearch').on('input', function() {
+            const searchTerm = $(this).val().toLowerCase();
+            $('#categoryList .form-check').each(function() {
+                const labelText = $(this).text().toLowerCase();
+                $(this).toggle(labelText.includes(searchTerm));
+            });
+        });
+
+        $('.category-checkbox').on('change', function() {
+            const total = $('.category-checkbox').length;
+            const checked = $('.category-checkbox:checked').length;
+            $('#selectAllCategories').prop('checked', total === checked);
+            $('#selectAllLabel').text(total === checked ? 'Clear All' : 'Select All');
+        });
+
+        $(document).on('click', function(e) {
+            const $filterBox = $('#categoryFilterBox, #storageFilterBox');
+            const $toggleIcon = $('.bx-filter-alt');
+
+            if (!$filterBox.is(e.target) && $filterBox.has(e.target).length === 0 && !$toggleIcon.is(e.target) && $toggleIcon.has(e.target).length === 0) {
+                $filterBox.hide();
+            }
+        });
+
+        $('#selectAllStorage').on('change', function() {
+            const isChecked = $(this).is(':checked');
+            $('.storage-checkbox').prop('checked', isChecked);
+        });
+
+        $('#storageSearch').on('input', function() {
+            const searchTerm = $(this).val().toLowerCase();
+            $('#storageList .form-check').each(function() {
+                const labelText = $(this).text().toLowerCase();
+                $(this).toggle(labelText.includes(searchTerm));
+            });
+        });
+
+        $('.storage-checkbox').on('change', function() {
+            const total = $('.storage-checkbox').length;
+            const checked = $('.storage-checkbox:checked').length;
+            $('#selectAllStorage').prop('checked', total === checked);
+            $('#str_selectAllLabel').text(total === checked ? 'Clear All' : 'Select All');
+        });
+
         /** Product-Item Related Coding */
         $(document).on('click', '.addItem', function(e) {
             e.preventDefault();
@@ -430,17 +583,15 @@
             $('.AddEditProductBtn').text('Save');
             clearItemValues();
         });
-        
-        if(EnableStorage == 1) {
+
+        if (EnableStorage == 1) {
             loadSelect2Field('#StorageUID', '-- Select Storage --', '#itemsModal');
         }
-        
+
         loadSelect2Field('#TaxPercentage', '-- Select Tax Percentage --', '#itemsModal');
         loadSelect2Field('#PrimaryUnit', '-- Select Primary Unit --', '#itemsModal');
         loadSelect2Field('#Category', '-- Select Category --', '#itemsModal');
 
-        loadSelect2Field('#SearchCategory', '-- Select Category --');
-        
         QuillEditor('.ql-toolbar', 'Enter product description...');
 
         $(ProdHeader).click(function() {
@@ -465,7 +616,7 @@
         $(document).on('click', '.EditProduct', function(e) {
             e.preventDefault();
             var getValue = $(this).data('uid');
-            if(getValue) {
+            if (getValue) {
                 retrieveProductDetails(getValue, false);
             }
         });
@@ -508,7 +659,7 @@
             e.preventDefault();
             if (SelectedUIDs.length == 1 && ActiveTabId == 'Item') {
                 var getSelectedId = SelectedUIDs[0];
-                $(ProdTable + ' tbody ' + ProdRow).each(function () {
+                $(ProdTable + ' tbody ' + ProdRow).each(function() {
                     const val = parseInt($(this).val());
                     $(this).prop('checked', false);
                 });
@@ -535,16 +686,6 @@
                     }
                 });
             }
-        });
-
-        $('#SearchCategory').change(function(e) {
-            e.preventDefault();
-            delete Filter['SearchCategory'];
-            var SrchCatg = $(this).find('option:selected').val();
-            if(SrchCatg) {
-                Filter['Category'] = SrchCatg;
-            }
-            showProductPageDetails();
         });
 
         // Categories Page Coding Starts Here
@@ -651,7 +792,7 @@
             $('#SizeModalTitle').text('Add Size');
             $('.sizeButtonName').text('Save');
             $('#sizesModal').find('#HSizeUID').val(0);
-            $('#sizesModal').modal('show');            
+            $('#sizesModal').modal('show');
         });
 
         $('#sizesModal').on('shown.bs.modal', function() {
@@ -687,7 +828,7 @@
             formData.append('PageNo', PageNo);
             formData.append('RowLimit', RowLimit);
             formData.append('ModuleId', SizeModuleId);
-            
+
             if (Object.keys(Filter).length > 0) {
                 formData.append('Filter', JSON.stringify(Filter));
             }
@@ -823,7 +964,7 @@
                 $('#BrandsDescription').val(getDesc ? atob(getDesc) : '');
 
                 // retrieveBrandDetails(getVal);
-                
+
             }
         });
 

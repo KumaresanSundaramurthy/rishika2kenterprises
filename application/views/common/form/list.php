@@ -9,7 +9,7 @@
     if ($column->IsAmountField) {
         $value = smartDecimal($value);
         if($column->CurrencySymbol == 1) {
-            $value = $JwtData->GenSettings->CurrenySymbol . $value;
+            $value = $JwtData->GenSettings->CurrenySymbol .' '. $value;
         }
     }
 

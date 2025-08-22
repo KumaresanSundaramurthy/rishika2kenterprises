@@ -1,22 +1,23 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed');
 
-class Global_model extends CI_Model
-{
+class Global_model extends CI_Model {
 
     private $EndReturnData;
     private $GlobalDb;
     private $ModuleDb;
+    private $oneYearTTL;
 
-    function __construct()
-    {
+    function __construct() {
         parent::__construct();
 
         $this->GlobalDb = $this->load->database('Global', TRUE);
         $this->ModuleDb = $this->load->database('Modules', TRUE);
+
+        $this->oneYearTTL = 60 * 60 * 24 * 365; // 60 (seconds) * 60 (minutes) * 24 (hours) * 365 (days) = 31,536,000 seconds
+
     }
 
-    public function getTimezoneDetails($FilterArray)
-    {
+    public function getTimezoneDetails($FilterArray) {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -31,17 +32,17 @@ class Global_model extends CI_Model
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Message = 'Success';
             $this->EndReturnData->Data = $query->result();
-        } catch (Exception $e) {
 
+        } catch (Exception $e) {
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
 
         return $this->EndReturnData;
+
     }
 
-    public function getCountryInfo()
-    {
+    public function getCountryInfo() {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -60,6 +61,7 @@ class Global_model extends CI_Model
 
                 $this->EndReturnData->Data = $Countries;
                 $this->cacheservice->set(getSiteConfiguration()->RedisName . '-countryinfo', json_encode($Countries), 43200 * 365);
+
             } else {
 
                 $RedisCountryInfo = $this->cacheservice->get(getSiteConfiguration()->RedisName . '-countryinfo');
@@ -68,20 +70,22 @@ class Global_model extends CI_Model
                 } else {
                     throw new Exception($RedisCountryInfo->Message);
                 }
+
             }
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Message = 'Data Retrieved Successfully';
+
         } catch (Exception $e) {
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
 
         return $this->EndReturnData;
+
     }
 
-    public function getStateofCountry($CountryCode)
-    {
+    public function getStateofCountry($CountryCode) {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -98,6 +102,7 @@ class Global_model extends CI_Model
                 } else {
                     throw new Exception($StateResp->Message);
                 }
+
             } else {
 
                 $RedisStateInfo = $this->cacheservice->get(getSiteConfiguration()->RedisName . '-stateinfo-' . $CountryCode);
@@ -106,20 +111,22 @@ class Global_model extends CI_Model
                 } else {
                     throw new Exception($RedisStateInfo->Message);
                 }
+
             }
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Message = 'Data Retrieved Successfully';
+
         } catch (Exception $e) {
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
 
         return $this->EndReturnData;
+
     }
 
-    public function getCityofCountry($CountryCode)
-    {
+    public function getCityofCountry($CountryCode) {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -135,6 +142,7 @@ class Global_model extends CI_Model
                 } else {
                     throw new Exception($CityResp->Message);
                 }
+
             } else {
 
                 $RedisCityInfo = $this->cacheservice->get(getSiteConfiguration()->RedisName . '-cityinfo-' . $CountryCode);
@@ -143,20 +151,22 @@ class Global_model extends CI_Model
                 } else {
                     throw new Exception($RedisCityInfo->Message);
                 }
+
             }
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Message = 'Data Retrieved Successfully';
+
         } catch (Exception $e) {
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
 
         return $this->EndReturnData;
+
     }
 
-    public function getPrimaryUnitInfo()
-    {
+    public function getPrimaryUnitInfo() {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -192,8 +202,8 @@ class Global_model extends CI_Model
                     $this->EndReturnData->Data = $query->result();
                 }
 
-
                 $this->cacheservice->set(getSiteConfiguration()->RedisName . '-primaryunitinfo', json_encode($this->EndReturnData->Data), 43200 * 365);
+
             } else {
 
                 $RedisPrimaryUnitInfo = $this->cacheservice->get(getSiteConfiguration()->RedisName . '-primaryunitinfo');
@@ -202,20 +212,22 @@ class Global_model extends CI_Model
                 } else {
                     throw new Exception($RedisPrimaryUnitInfo->Message);
                 }
+
             }
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Message = 'Data Retrieved Successfully';
+
         } catch (Exception $e) {
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
 
         return $this->EndReturnData;
+
     }
 
-    public function getDiscountTypeInfo()
-    {
+    public function getDiscountTypeInfo() {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -250,6 +262,7 @@ class Global_model extends CI_Model
                 }
 
                 $this->cacheservice->set(getSiteConfiguration()->RedisName . '-disctypeinfo', json_encode($this->EndReturnData->Data), 43200 * 365);
+
             } else {
 
                 $RedisDiscTypeInfo = $this->cacheservice->get(getSiteConfiguration()->RedisName . '-disctypeinfo');
@@ -258,20 +271,22 @@ class Global_model extends CI_Model
                 } else {
                     throw new Exception($RedisDiscTypeInfo->Message);
                 }
+
             }
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Message = 'Data Retrieved Successfully';
+
         } catch (Exception $e) {
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
 
         return $this->EndReturnData;
+
     }
 
-    public function getProductTypeInfo()
-    {
+    public function getProductTypeInfo() {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -305,6 +320,7 @@ class Global_model extends CI_Model
                 }
 
                 $this->cacheservice->set(getSiteConfiguration()->RedisName . '-prodtypeinfo', json_encode($this->EndReturnData->Data), 43200 * 365);
+
             } else {
 
                 $RedisProdTypeInfo = $this->cacheservice->get(getSiteConfiguration()->RedisName . '-prodtypeinfo');
@@ -313,20 +329,22 @@ class Global_model extends CI_Model
                 } else {
                     throw new Exception($RedisProdTypeInfo->Message);
                 }
+
             }
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Message = 'Data Retrieved Successfully';
+
         } catch (Exception $e) {
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
 
         return $this->EndReturnData;
+
     }
 
-    public function getProductTaxInfo()
-    {
+    public function getProductTaxInfo() {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -360,6 +378,7 @@ class Global_model extends CI_Model
                 }
 
                 $this->cacheservice->set(getSiteConfiguration()->RedisName . '-prodtaxinfo', json_encode($this->EndReturnData->Data), 43200 * 365);
+
             } else {
 
                 $RedisProdTaxInfo = $this->cacheservice->get(getSiteConfiguration()->RedisName . '-prodtaxinfo');
@@ -368,20 +387,22 @@ class Global_model extends CI_Model
                 } else {
                     throw new Exception($RedisProdTaxInfo->Message);
                 }
+
             }
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Message = 'Data Retrieved Successfully';
+
         } catch (Exception $e) {
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
 
         return $this->EndReturnData;
+
     }
 
-    public function getTaxDetailsInfo()
-    {
+    public function getTaxDetailsInfo() {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -419,6 +440,7 @@ class Global_model extends CI_Model
                 }
 
                 $this->cacheservice->set(getSiteConfiguration()->RedisName . '-taxdetailsinfo', json_encode($this->EndReturnData->Data), 43200 * 365);
+
             } else {
 
                 $RedisTaxDetailInfo = $this->cacheservice->get(getSiteConfiguration()->RedisName . '-taxdetailsinfo');
@@ -427,20 +449,22 @@ class Global_model extends CI_Model
                 } else {
                     throw new Exception($RedisTaxDetailInfo->Message);
                 }
+
             }
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Message = 'Data Retrieved Successfully';
+
         } catch (Exception $e) {
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
 
         return $this->EndReturnData;
+
     }
 
-    public function getTaxPercentageDetailsInfo($WhereArrayCondition)
-    {
+    public function getTaxPercentageDetailsInfo($WhereArrayCondition) {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -479,12 +503,14 @@ class Global_model extends CI_Model
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Message = 'Data Retrieved Successfully';
+
         } catch (Exception $e) {
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
 
         return $this->EndReturnData;
+
     }
 
     public function getStorageTypeData() {
@@ -539,135 +565,179 @@ class Global_model extends CI_Model
         }
 
         return $this->EndReturnData;
+
     }
 
-    public function getModuleDetails($WhereCond = [], $whereInCondition = [])
-    {
+    public function getModuleDetails($WhereCond = [], $whereInCondition = []) {
 
         $this->EndReturnData = new StdClass();
         try {
 
-            $this->GlobalDb->db_debug = FALSE;
+            $RedisName = getSiteConfiguration()->RedisName.'-'.base64_encode(json_encode(['WC' => $WhereCond, 'WIC' => $whereInCondition])).'-getModuleDetails';
+            $ModDataRedis = $this->cacheservice->exists($RedisName);
+            if ($ModDataRedis->Error) {
 
-            $select_ary = array(
-                'Modules.ModuleUID AS ModuleUID',
-                'Modules.Name AS Name',
-                'Modules.OrgUID AS OrgUID',
-                'Modules.MainMenuUID AS MainMenuUID',
-                'Modules.SubMenuUID AS SubMenuUID',
-                'Modules.ControllerName AS ControllerName',
-                'Modules.ModelName AS ModelName',
-                'Modules.FilterFunctionName AS FilterFunctionName',
-                'Modules.DatabaseName as DatabaseName',
-                'Modules.MasterTableName as MasterTableName',
-                'Modules.TableAliasName as TableAliasName',
-                'Modules.TablePrimaryUID as TablePrimaryUID',
-                'Modules.ParentModuleUID as ParentModuleUID',
-                'Modules.IsMainModule as IsMainModule',
-                'Modules.IsModuleEnabled as IsModuleEnabled',
-            );
-            $WhereCondition = array(
-                'Modules.IsDeleted' => 0,
-                'Modules.IsActive' => 1,
-            );
-            $this->GlobalDb->select($select_ary);
-            $this->GlobalDb->from('Modules.ModuleTbl as Modules');
-            $this->GlobalDb->where($WhereCondition);
-            if (!empty($WhereCond)) {
-                $this->GlobalDb->where($WhereCond);
-            }
-            if (!empty($whereInCondition)) {
-                foreach ($whereInCondition as $wkey => $wval) {
-                    $this->GlobalDb->where_in($wkey, $wval);
+                $this->GlobalDb->db_debug = FALSE;
+
+                $select_ary = array(
+                    'Modules.ModuleUID AS ModuleUID',
+                    'Modules.Name AS Name',
+                    'Modules.OrgUID AS OrgUID',
+                    'Modules.MainMenuUID AS MainMenuUID',
+                    'Modules.SubMenuUID AS SubMenuUID',
+                    'Modules.ControllerName AS ControllerName',
+                    'Modules.ModelName AS ModelName',
+                    'Modules.FilterFunctionName AS FilterFunctionName',
+                    'Modules.DatabaseName as DatabaseName',
+                    'Modules.MasterTableName as MasterTableName',
+                    'Modules.TableAliasName as TableAliasName',
+                    'Modules.TablePrimaryUID as TablePrimaryUID',
+                    'Modules.ParentModuleUID as ParentModuleUID',
+                    'Modules.IsMainModule as IsMainModule',
+                    'Modules.IsModuleEnabled as IsModuleEnabled',
+                );
+                $WhereCondition = array(
+                    'Modules.IsDeleted' => 0,
+                    'Modules.IsActive' => 1,
+                );
+                $this->GlobalDb->select($select_ary);
+                $this->GlobalDb->from('Modules.ModuleTbl as Modules');
+                $this->GlobalDb->where($WhereCondition);
+                if (!empty($WhereCond)) {
+                    $this->GlobalDb->where($WhereCond);
                 }
-            }
-            $this->GlobalDb->group_by('Modules.ModuleUID');
+                if (!empty($whereInCondition)) {
+                    foreach ($whereInCondition as $wkey => $wval) {
+                        $this->GlobalDb->where_in($wkey, $wval);
+                    }
+                }
+                $this->GlobalDb->group_by('Modules.ModuleUID');
 
-            $query = $this->GlobalDb->get();
-            $error = $this->GlobalDb->error();
-            if ($error['code']) {
-                throw new Exception($error['message']);
+                $query = $this->GlobalDb->get();
+                $error = $this->GlobalDb->error();
+                if ($error['code']) {
+                    throw new Exception($error['message']);
+                } else {
+                    $this->EndReturnData->Data = $query->result();
+                }
+
+                $this->cacheservice->set($RedisName, json_encode($this->EndReturnData->Data), $this->oneYearTTL);
+
+                return $this->EndReturnData->Data;
+
             } else {
-                $this->EndReturnData->Data = $query->result();
+
+                $RedisDataInfo = $this->cacheservice->get($RedisName);
+                if ($RedisDataInfo->Error === FALSE) {
+                    $this->EndReturnData->Data = json_decode($RedisDataInfo->Value);
+                } else {
+                    throw new Exception($RedisDataInfo->Message);
+                }
+
+                return $this->EndReturnData->Data;
+
             }
 
-            return $this->EndReturnData->Data;
         } catch (Exception $e) {
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
         }
+
     }
 
-    public function getModuleViewColumnDetails($WhereArrayCondition, $Sorting = false, $SortingColumn = [])
-    {
+    public function getModuleViewColumnDetails($WhereArrayCondition, $Sorting = false, $SortingColumn = []) {
 
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->ModuleDb->db_debug = FALSE;
+            $RedisName = getSiteConfiguration()->RedisName.'-'.base64_encode(json_encode(['WC' => $WhereArrayCondition, 'Sort' => $Sorting, 'SortCol' => $SortingColumn])).'-getModuleViewColumnDetails';
+            // $this->cacheservice->delete($RedisName);
+            $ModViewColRedis = $this->cacheservice->exists($RedisName);
+            if ($ModViewColRedis->Error) {
 
-            $WhereCondition = array(
-                'ViewColmn.IsDeleted' => 0,
-                'ViewColmn.IsActive' => 1,
-            );
+                $this->ModuleDb->db_debug = FALSE;
 
-            $select_ary = array(
-                'ViewColmn.ViewDataUID AS ViewDataUID',
-                'ViewColmn.OrgUID AS OrgUID',
-                'ViewColmn.ModuleUID AS ModuleUID',
-                'ViewColmn.SubModuleUID AS SubModuleUID',
-                'ViewColmn.DisplayName AS DisplayName',
-                'ViewColmn.FieldName AS FieldName',
-                'ViewColmn.DbFieldName AS DbFieldName',
-                'ViewColmn.DbFieldNameAddOn AS DbFieldNameAddOn',
-                'ViewColmn.IsDateField AS IsDateField',
-                'ViewColmn.IsAmountField AS IsAmountField',
-                'ViewColmn.CurrencySymbol AS CurrencySymbol',
-                'ViewColmn.AggregationMethod AS AggregationMethod',
-                'ViewColmn.MainPageImageDisplay AS MainPageImageDisplay',
-                'ViewColmn.IsMainPageApplicable AS IsMainPageApplicable',
-                'ViewColmn.IsMainPageRequired AS IsMainPageRequired',
-                'ViewColmn.MainPageOrder AS MainPageOrder',
-                'ViewColmn.MainPageColumnAddon AS MainPageColumnAddon',
-                'ViewColmn.MainPageDataAddon AS MainPageDataAddon',
-                'ViewColmn.MPDateFormatType AS MPDateFormatType',
-                'ViewColmn.IsPrintPreviewApplicable AS IsPrintPreviewApplicable',
-                'ViewColmn.PrintPreviewOrder AS PrintPreviewOrder',
-                'ViewColmn.IsExportCsvApplicable AS IsExportCsvApplicable',
-                'ViewColmn.ExportCsvOrder AS ExportCsvOrder',
-                'ViewColmn.IsExportPdfApplicable AS IsExportPdfApplicable',
-                'ViewColmn.ExportPdfOrder AS ExportPdfOrder',
-                'ViewColmn.IsExportExcelApplicable AS IsExportExcelApplicable',
-                'ViewColmn.ExportExcelOrder AS ExportExcelOrder',
-            );
-            $this->ModuleDb->select($select_ary);
-            $this->ModuleDb->from('Modules.ViewDataTbl as ViewColmn');
-            $this->ModuleDb->where($WhereCondition);
-            if (sizeof($WhereArrayCondition) > 0) {
-                $this->ModuleDb->where($WhereArrayCondition);
-            }
-            $this->ModuleDb->group_by('ViewColmn.ViewDataUID');
-            if ($Sorting) {
-                $this->ModuleDb->order_by(key($SortingColumn), $SortingColumn[key($SortingColumn)]);
-            }
+                $WhereCondition = array(
+                    'ViewColmn.IsDeleted' => 0,
+                    'ViewColmn.IsActive' => 1,
+                );
 
-            // print_r($this->ModuleDb->get_compiled_select()); die();
+                $select_ary = array(
+                    'ViewColmn.ViewDataUID AS ViewDataUID',
+                    'ViewColmn.OrgUID AS OrgUID',
+                    'ViewColmn.ModuleUID AS ModuleUID',
+                    'ViewColmn.SubModuleUID AS SubModuleUID',
+                    'ViewColmn.DisplayName AS DisplayName',
+                    'ViewColmn.FieldName AS FieldName',
+                    'ViewColmn.DbFieldName AS DbFieldName',
+                    'ViewColmn.DbFieldNameAddOn AS DbFieldNameAddOn',
+                    'ViewColmn.IsDateField AS IsDateField',
+                    'ViewColmn.IsAmountField AS IsAmountField',
+                    'ViewColmn.CurrencySymbol AS CurrencySymbol',
+                    'ViewColmn.AggregationMethod AS AggregationMethod',
+                    'ViewColmn.MainPageImageDisplay AS MainPageImageDisplay',
+                    'ViewColmn.IsMainPageApplicable AS IsMainPageApplicable',
+                    'ViewColmn.IsMainPageRequired AS IsMainPageRequired',
+                    'ViewColmn.MainPageOrder AS MainPageOrder',
+                    'ViewColmn.MainPageColumnAddon AS MainPageColumnAddon',
+                    'ViewColmn.MainPageDataAddon AS MainPageDataAddon',
+                    'ViewColmn.MPFilterApplicable AS MPFilterApplicable',
+                    'ViewColmn.MPSortApplicable AS MPSortApplicable',
+                    'ViewColmn.MPDateFormatType AS MPDateFormatType',
+                    'ViewColmn.IsPrintPreviewApplicable AS IsPrintPreviewApplicable',
+                    'ViewColmn.PrintPreviewOrder AS PrintPreviewOrder',
+                    'ViewColmn.IsExportCsvApplicable AS IsExportCsvApplicable',
+                    'ViewColmn.ExportCsvOrder AS ExportCsvOrder',
+                    'ViewColmn.IsExportPdfApplicable AS IsExportPdfApplicable',
+                    'ViewColmn.ExportPdfOrder AS ExportPdfOrder',
+                    'ViewColmn.IsExportExcelApplicable AS IsExportExcelApplicable',
+                    'ViewColmn.ExportExcelOrder AS ExportExcelOrder',
+                );
+                $this->ModuleDb->select($select_ary);
+                $this->ModuleDb->from('Modules.ViewDataTbl as ViewColmn');
+                $this->ModuleDb->where($WhereCondition);
+                if (sizeof($WhereArrayCondition) > 0) {
+                    $this->ModuleDb->where($WhereArrayCondition);
+                }
+                $this->ModuleDb->group_by('ViewColmn.ViewDataUID');
+                if ($Sorting) {
+                    $this->ModuleDb->order_by(key($SortingColumn), $SortingColumn[key($SortingColumn)]);
+                }
 
-            $query = $this->ModuleDb->get();
-            $error = $this->ModuleDb->error();
-            if ($error['code']) {
-                throw new Exception($error['message']);
+                // print_r($this->ModuleDb->get_compiled_select()); die();
+
+                $query = $this->ModuleDb->get();
+                $error = $this->ModuleDb->error();
+                if ($error['code']) {
+                    throw new Exception($error['message']);
+                } else {
+                    $this->EndReturnData->Data = $query->result();
+                }
+
+                $this->cacheservice->set($RedisName, json_encode($this->EndReturnData->Data), $this->oneYearTTL);
+
+                return $this->EndReturnData->Data;
+
             } else {
-                $this->EndReturnData->Data = $query->result();
+
+                $RedisDataInfo = $this->cacheservice->get($RedisName);
+                if ($RedisDataInfo->Error === FALSE) {
+                    $this->EndReturnData->Data = json_decode($RedisDataInfo->Value);
+                } else {
+                    throw new Exception($RedisDataInfo->Message);
+                }
+
+                return $this->EndReturnData->Data;
+
             }
 
-            return $this->EndReturnData->Data;
         } catch (Exception $e) {
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
         }
+
     }
 
     public function getModuleViewJoinColumnDetails($WhereArrayCondition, $Sorting = false, $SortingColumn = [])
@@ -676,58 +746,78 @@ class Global_model extends CI_Model
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->ModuleDb->db_debug = FALSE;
+            $RedisName = getSiteConfiguration()->RedisName.'-'.base64_encode(json_encode(['WC' => $WhereArrayCondition, 'Sort' => $Sorting, 'SortCol' => $SortingColumn])).'-getModuleViewJoinColumnDetails';
+            $ModViewJoinColRedis = $this->cacheservice->exists($RedisName);
+            if ($ModViewJoinColRedis->Error) {
 
-            $WhereCondition = array(
-                'JoinColmn.IsDeleted' => 0,
-                'JoinColmn.IsActive' => 1,
-            );
+                $this->ModuleDb->db_debug = FALSE;
 
-            $select_ary = array(
-                'JoinColmn.ViewDataJoinUID AS ViewDataJoinUID',
-                'JoinColmn.OrgUID AS OrgUID',
-                'JoinColmn.MainModuleUID AS MainModuleUID',
-                'JoinColmn.MainTblAliasName AS MainTblAliasName',
-                'JoinColmn.MainTblFieldName AS MainTblFieldName',
-                'JoinColmn.JoinModuleUID AS JoinModuleUID',
-                'JoinColmn.JoinTblAliasName AS JoinTblAliasName',
-                'JoinColmn.JoinTblFieldName AS JoinTblFieldName',
-                'JoinColmn.JoinLookupUID AS JoinLookupUID',
-                'JoinColmn.JoinLookupTblAliasName AS JoinLookupTblAliasName',
-                'JoinColmn.JoinLookupTblFieldName AS JoinLookupTblFieldName',
-                'JoinColmn.JoinType AS JoinType',
-                'JoinColmn.JoinBasicCheck AS JoinBasicCheck',
-                'JoinColmn.JoinColumnsAddon AS JoinColumnsAddon',
-                'JoinColmn.JoinQuery AS JoinQuery',
-                'JoinColmn.IsMandatory AS IsMandatory',
-                'Module.DatabaseName AS DatabaseName',
-                'JoinModule.DatabaseName AS JoinDatabaseName',
-                'JoinModule.MasterTableName AS JoinTableName',
-                'Lookup.DatabaseName AS LkupDatabaseName',
-                'Lookup.TableName AS LkupTableName',
-            );
-            $this->ModuleDb->select($select_ary);
-            $this->ModuleDb->from('Modules.ViewDataJoinTbl as JoinColmn');
-            $this->ModuleDb->join('Modules.ModuleTbl as Module', 'Module.ModuleUID = JoinColmn.MainModuleUID AND Module.IsDeleted = 0 AND Module.IsActive = 1', 'LEFT');
-            $this->ModuleDb->join('Modules.ModuleTbl as JoinModule', 'JoinModule.ModuleUID = JoinColmn.JoinModuleUID AND JoinModule.IsDeleted = 0 AND JoinModule.IsActive = 1', 'LEFT');
-            $this->ModuleDb->join('Modules.LookupTbl as Lookup', 'Lookup.LookupUID = JoinColmn.JoinLookupUID AND Lookup.IsDeleted = 0 AND Lookup.IsActive = 1', 'LEFT');
-            $this->ModuleDb->where($WhereCondition);
-            if (sizeof($WhereArrayCondition) > 0) {
-                $this->ModuleDb->where($WhereArrayCondition);
-            }
-            $this->ModuleDb->group_by('JoinColmn.ViewDataJoinUID');
-            if ($Sorting) {
-                $this->ModuleDb->order_by(key($SortingColumn), $SortingColumn[key($SortingColumn)]);
-            }
-            $query = $this->ModuleDb->get();
-            $error = $this->ModuleDb->error();
-            if ($error['code']) {
-                throw new Exception($error['message']);
+                $WhereCondition = array(
+                    'JoinColmn.IsDeleted' => 0,
+                    'JoinColmn.IsActive' => 1,
+                );
+
+                $select_ary = array(
+                    'JoinColmn.ViewDataJoinUID AS ViewDataJoinUID',
+                    'JoinColmn.OrgUID AS OrgUID',
+                    'JoinColmn.MainModuleUID AS MainModuleUID',
+                    'JoinColmn.MainTblAliasName AS MainTblAliasName',
+                    'JoinColmn.MainTblFieldName AS MainTblFieldName',
+                    'JoinColmn.JoinModuleUID AS JoinModuleUID',
+                    'JoinColmn.JoinTblAliasName AS JoinTblAliasName',
+                    'JoinColmn.JoinTblFieldName AS JoinTblFieldName',
+                    'JoinColmn.JoinLookupUID AS JoinLookupUID',
+                    'JoinColmn.JoinLookupTblAliasName AS JoinLookupTblAliasName',
+                    'JoinColmn.JoinLookupTblFieldName AS JoinLookupTblFieldName',
+                    'JoinColmn.JoinType AS JoinType',
+                    'JoinColmn.JoinBasicCheck AS JoinBasicCheck',
+                    'JoinColmn.JoinColumnsAddon AS JoinColumnsAddon',
+                    'JoinColmn.JoinQuery AS JoinQuery',
+                    'JoinColmn.IsMandatory AS IsMandatory',
+                    'Module.DatabaseName AS DatabaseName',
+                    'JoinModule.DatabaseName AS JoinDatabaseName',
+                    'JoinModule.MasterTableName AS JoinTableName',
+                    'Lookup.DatabaseName AS LkupDatabaseName',
+                    'Lookup.TableName AS LkupTableName',
+                );
+                $this->ModuleDb->select($select_ary);
+                $this->ModuleDb->from('Modules.ViewDataJoinTbl as JoinColmn');
+                $this->ModuleDb->join('Modules.ModuleTbl as Module', 'Module.ModuleUID = JoinColmn.MainModuleUID AND Module.IsDeleted = 0 AND Module.IsActive = 1', 'LEFT');
+                $this->ModuleDb->join('Modules.ModuleTbl as JoinModule', 'JoinModule.ModuleUID = JoinColmn.JoinModuleUID AND JoinModule.IsDeleted = 0 AND JoinModule.IsActive = 1', 'LEFT');
+                $this->ModuleDb->join('Modules.LookupTbl as Lookup', 'Lookup.LookupUID = JoinColmn.JoinLookupUID AND Lookup.IsDeleted = 0 AND Lookup.IsActive = 1', 'LEFT');
+                $this->ModuleDb->where($WhereCondition);
+                if (sizeof($WhereArrayCondition) > 0) {
+                    $this->ModuleDb->where($WhereArrayCondition);
+                }
+                $this->ModuleDb->group_by('JoinColmn.ViewDataJoinUID');
+                if ($Sorting) {
+                    $this->ModuleDb->order_by(key($SortingColumn), $SortingColumn[key($SortingColumn)]);
+                }
+                $query = $this->ModuleDb->get();
+                $error = $this->ModuleDb->error();
+                if ($error['code']) {
+                    throw new Exception($error['message']);
+                } else {
+                    $this->EndReturnData->Data = $query->result();
+                }
+
+                $this->cacheservice->set($RedisName, json_encode($this->EndReturnData->Data), $this->oneYearTTL);
+
+                return $this->EndReturnData->Data;
+
             } else {
-                $this->EndReturnData->Data = $query->result();
+
+                $RedisDataInfo = $this->cacheservice->get($RedisName);
+                if ($RedisDataInfo->Error === FALSE) {
+                    $this->EndReturnData->Data = json_decode($RedisDataInfo->Value);
+                } else {
+                    throw new Exception($RedisDataInfo->Message);
+                }
+
+                return $this->EndReturnData->Data;
+
             }
 
-            return $this->EndReturnData->Data;
         } catch (Exception $e) {
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();

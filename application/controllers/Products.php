@@ -12,6 +12,10 @@ class Products extends CI_Controller {
 
     public function index() {
 
+        // $this->output->enable_profiler(TRUE);
+
+        // $this->benchmark->mark('model_start');
+
         $activeTab = $_GET['tab'] ?? 'item';
 
         $ControllerName = strtolower($this->router->fetch_class());
@@ -133,6 +137,7 @@ class Products extends CI_Controller {
         }
 
         $this->pageData['Categories'] = $this->products_model->getCategoriesDetails([]);
+        $this->pageData['SizeInfo'] = $this->products_model->getSizeDetails([]);
         $this->pageData['BrandInfo'] = $this->products_model->getBrandDetails([]);
 
         if (!empty($this->pageData['JwtData']->GenSettings->EnableStorage)) {
@@ -140,7 +145,14 @@ class Products extends CI_Controller {
             $this->pageData['Storage'] = $this->storage_model->getStorageDetails([]);
         }
 
+        // $this->benchmark->mark('model_end');
+        
+        // $this->benchmark->mark('view_start');
         $this->load->view('products/view', $this->pageData);
+        // $this->benchmark->mark('view_end');
+
+        // echo 'Model time: ' . $this->benchmark->elapsed_time('model_start', 'model_end');
+        // echo 'View time: ' . $this->benchmark->elapsed_time('view_start', 'view_end');
 
     }
 
@@ -231,11 +243,11 @@ class Products extends CI_Controller {
                     'DiscountTypeUID' => isset($PostData['DiscountOption']) ? $PostData['DiscountOption'] : 0,
                     'LowStockAlertAt' => isset($PostData['LowStockAlert']) ? $PostData['LowStockAlert'] : 0,
                     'NotForSale' => isset($PostData['NotForSale']) && $PostData['NotForSale'] == 1 ? 'Yes' : 'No',
-                    'BrandUID' => isset($PostData['BrandUID']) ? $PostData['BrandUID'] : NULL,
+                    'BrandUID' => isset($PostData['BrandUID']) & !empty($PostData['BrandUID']) ? $PostData['BrandUID'] : NULL,
                     'Standard' => (isset($PostData['Standard']) && !empty($PostData['Standard'])) ? $PostData['Standard'] : NULL,
                     'Model' => (isset($PostData['Model']) && !empty($PostData['Model'])) ? $PostData['Model'] : NULL,
                     'IsSizeApplicable' => (isset($PostData['IsSizeApplicable']) && $PostData['IsSizeApplicable'] == 1) ? 1 : 0,
-                    'SizeUID' => (isset($PostData['IsSizeApplicable']) && $PostData['IsSizeApplicable'] == 1) && isset($PostData['SizeUID']) ? $PostData['SizeUID'] : NULL,
+                    'SizeUID' => (isset($PostData['IsSizeApplicable']) && $PostData['IsSizeApplicable'] == 1) && isset($PostData['SizeUID']) & !empty($PostData['SizeUID']) ? $PostData['SizeUID'] : NULL,
                     'CreatedBy' => $this->pageData['JwtData']->User->UserUID,
                     'UpdatedBy' => $this->pageData['JwtData']->User->UserUID,
                     'CreatedOn' => time(),
@@ -383,11 +395,11 @@ class Products extends CI_Controller {
                     'DiscountTypeUID' => isset($PostData['DiscountOption']) ? $PostData['DiscountOption'] : 0,
                     'LowStockAlertAt' => isset($PostData['LowStockAlert']) ? $PostData['LowStockAlert'] : 0,
                     'NotForSale' => isset($PostData['NotForSale']) && $PostData['NotForSale'] == 1 ? 'Yes' : 'No',
-                    'BrandUID' => isset($PostData['BrandUID']) ? $PostData['BrandUID'] : NULL,
+                    'BrandUID' => isset($PostData['BrandUID']) & !empty($PostData['BrandUID']) ? $PostData['BrandUID'] : NULL,
                     'Standard' => (isset($PostData['Standard']) && !empty($PostData['Standard'])) ? $PostData['Standard'] : NULL,
                     'Model' => (isset($PostData['Model']) && !empty($PostData['Model'])) ? $PostData['Model'] : NULL,
                     'IsSizeApplicable' => (isset($PostData['IsSizeApplicable']) && $PostData['IsSizeApplicable'] == 1) ? 1 : 0,
-                    'SizeUID' => (isset($PostData['IsSizeApplicable']) && $PostData['IsSizeApplicable'] == 1) && isset($PostData['SizeUID']) ? $PostData['SizeUID'] : NULL,
+                    'SizeUID' => (isset($PostData['IsSizeApplicable']) && $PostData['IsSizeApplicable'] == 1) && isset($PostData['SizeUID']) & !empty($PostData['SizeUID']) ? $PostData['SizeUID'] : NULL,
                     'UpdatedBy' => $this->pageData['JwtData']->User->UserUID,
                     'UpdatedOn' => time(),
                 ];
@@ -610,28 +622,11 @@ class Products extends CI_Controller {
                 }
 
                 // Image Upload
-                if(isset($_FILES['UploadImage']) && $_FILES['UploadImage']['error'] == 0) {
-
-                    $imagePath = NULL;
-
-                    if (isset($_FILES['UploadImage']['tmp_name']) && !empty($_FILES['UploadImage']['tmp_name'])) {
-
-                        $ext = pathinfo($_FILES['UploadImage']['name'], PATHINFO_EXTENSION);
-                        $fileName = substr(str_replace('.'.$ext, '', str_replace(' ', '_', $_FILES['UploadImage']['name'])), 0, 50).'_'.uniqid().'.'.$ext;
-                        $imagePath = $this->imageUpload($_FILES['UploadImage']['tmp_name'], $fileName);
-
+                if(isset($_FILES['UploadImage'])) {
+                    $UploadResp = $this->globalservice->fileUploadService($_FILES['UploadImage'], 'products/category/images/', 'Image', ['Products', 'CategoryTbl', array('CategoryUID' => $CategoryUID)]);
+                    if($UploadResp->Error === TRUE) {
+                        throw new Exception($UploadResp->Message);
                     }
-
-                    if($imagePath) {
-                        $updateCatgImgData = [
-                            'Image' => $imagePath,
-                        ];
-                        $UpdateImgResp = $this->dbwrite_model->updateData('Products', 'CategoryTbl', $updateCatgImgData, array('CategoryUID' => $CategoryUID));
-                        if($UpdateImgResp->Error) {
-                            throw new Exception($UpdateImgResp->Message);
-                        }
-                    }
-
                 }
 
                 $limit = $this->input->post('RowLimit');
@@ -651,6 +646,9 @@ class Products extends CI_Controller {
                 $this->EndReturnData->Pagination = $ReturnResponse->Pagination;
                 $this->EndReturnData->UIDs = $ReturnResponse->UIDs;
 
+                $this->load->model('products_model');
+                $this->EndReturnData->CatgList = $this->products_model->getCategoriesDetails([]);
+
             } else {
                 throw new Exception($ErrorInForm);
             }
@@ -665,21 +663,6 @@ class Products extends CI_Controller {
             ->set_output(json_encode($this->EndReturnData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES))
             ->_display();
         exit;
-
-    }
-
-    private function imageUpload($tempName, $fullPath) {
-
-        $uploadPath = 'products/images/' . $fullPath;
-
-        $this->load->library('fileupload');
-        $uploadDetail = $this->fileupload->fileUpload('file', $uploadPath, $tempName);
-
-        if ($uploadDetail->Error === false) {
-			return '/'.$uploadDetail->Path;
-        } else {
-            throw new Exception('File upload failed');
-        }
 
     }
 
@@ -754,28 +737,11 @@ class Products extends CI_Controller {
                 }
 
                 // Image Upload
-                if(isset($_FILES['UploadImage']) && $_FILES['UploadImage']['error'] == 0) {
-
-                    $imagePath = NULL;
-
-                    if (isset($_FILES['UploadImage']['tmp_name']) && !empty($_FILES['UploadImage']['tmp_name'])) {
-
-                        $ext = pathinfo($_FILES['UploadImage']['name'], PATHINFO_EXTENSION);
-                        $fileName = substr(str_replace('.'.$ext, '', str_replace(' ', '_', $_FILES['UploadImage']['name'])), 0, 50).'_'.uniqid().'.'.$ext;
-                        $imagePath = $this->imageUpload($_FILES['UploadImage']['tmp_name'], $fileName);
-
+                if(isset($_FILES['UploadImage'])) {
+                    $UploadResp = $this->globalservice->fileUploadService($_FILES['UploadImage'], 'products/category/images/', 'Image', ['Products', 'CategoryTbl', array('CategoryUID' => $CategoryUID)]);
+                    if($UploadResp->Error === TRUE) {
+                        throw new Exception($UploadResp->Message);
                     }
-
-                    if($imagePath) {
-                        $updateCatgImgData = [
-                            'Image' => $imagePath,
-                        ];
-                        $UpdateImgResp = $this->dbwrite_model->updateData('Products', 'CategoryTbl', $updateCatgImgData, array('CategoryUID' => $CategoryUID));
-                        if($UpdateImgResp->Error) {
-                            throw new Exception($UpdateImgResp->Message);
-                        }
-                    }
-
                 }
 
                 $limit = $this->input->post('RowLimit');
@@ -794,6 +760,9 @@ class Products extends CI_Controller {
                 $this->EndReturnData->List = $ReturnResponse->List;
                 $this->EndReturnData->Pagination = $ReturnResponse->Pagination;
                 $this->EndReturnData->UIDs = $ReturnResponse->UIDs;
+
+                $this->load->model('products_model');
+                $this->EndReturnData->CatgList = $this->products_model->getCategoriesDetails([]);
 
             } else {
                 throw new Exception($ErrorInForm);
@@ -857,6 +826,9 @@ class Products extends CI_Controller {
                 $this->EndReturnData->Pagination = $ReturnResponse->Pagination;
                 $this->EndReturnData->UIDs = $ReturnResponse->UIDs;
 
+                $this->load->model('products_model');
+                $this->EndReturnData->CatgList = $this->products_model->getCategoriesDetails([]);
+
             } else {
                 throw new Exception('Category Information is Missing to Delete');
             }
@@ -918,6 +890,9 @@ class Products extends CI_Controller {
                 $this->EndReturnData->List = $ReturnResponse->List;
                 $this->EndReturnData->Pagination = $ReturnResponse->Pagination;
                 $this->EndReturnData->UIDs = $ReturnResponse->UIDs;
+
+                $this->load->model('products_model');
+                $this->EndReturnData->CatgList = $this->products_model->getCategoriesDetails([]);
 
             } else {
                 throw new Exception('Category Information is Missing to Delete');
@@ -1014,6 +989,9 @@ class Products extends CI_Controller {
                 $this->EndReturnData->List = $ReturnResponse->List;
                 $this->EndReturnData->UIDs = $ReturnResponse->UIDs;
                 $this->EndReturnData->Pagination = $ReturnResponse->Pagination;
+
+                $this->load->model('products_model');
+                $this->EndReturnData->SizeList = $this->products_model->getSizeDetails([]);
 
             } else {
                 throw new Exception($ErrorInForm);
@@ -1112,6 +1090,9 @@ class Products extends CI_Controller {
                 $this->EndReturnData->UIDs = $ReturnResponse->UIDs;
                 $this->EndReturnData->Pagination = $ReturnResponse->Pagination;
 
+                $this->load->model('products_model');
+                $this->EndReturnData->SizeList = $this->products_model->getSizeDetails([]);
+
             } else {
                 throw new Exception($ErrorInForm);
             }
@@ -1166,6 +1147,9 @@ class Products extends CI_Controller {
                 $this->EndReturnData->List = $ReturnResponse->List;
                 $this->EndReturnData->UIDs = $ReturnResponse->UIDs;
                 $this->EndReturnData->Pagination = $ReturnResponse->Pagination;
+
+                $this->load->model('products_model');
+                $this->EndReturnData->SizeList = $this->products_model->getSizeDetails([]);
 
             } else {
                 throw new Exception('Size Information is Missing to Delete');
@@ -1228,6 +1212,9 @@ class Products extends CI_Controller {
                 $this->EndReturnData->List = $ReturnResponse->List;
                 $this->EndReturnData->Pagination = $ReturnResponse->Pagination;
                 $this->EndReturnData->UIDs = $ReturnResponse->UIDs;
+
+                $this->load->model('products_model');
+                $this->EndReturnData->SizeList = $this->products_model->getSizeDetails([]);
 
             } else {
                 throw new Exception('Size Information is Missing to Delete');
@@ -1324,6 +1311,9 @@ class Products extends CI_Controller {
                 $this->EndReturnData->List = $ReturnResponse->List;
                 $this->EndReturnData->UIDs = $ReturnResponse->UIDs;
                 $this->EndReturnData->Pagination = $ReturnResponse->Pagination;
+
+                $this->load->model('products_model');
+                $this->EndReturnData->BrandList = $this->products_model->getBrandDetails([]);
 
             } else {
                 throw new Exception($ErrorInForm);
@@ -1422,6 +1412,9 @@ class Products extends CI_Controller {
                 $this->EndReturnData->UIDs = $ReturnResponse->UIDs;
                 $this->EndReturnData->Pagination = $ReturnResponse->Pagination;
 
+                $this->load->model('products_model');
+                $this->EndReturnData->BrandList = $this->products_model->getBrandDetails([]);
+
             } else {
                 throw new Exception($ErrorInForm);
             }
@@ -1475,7 +1468,10 @@ class Products extends CI_Controller {
                 $this->EndReturnData->Message = 'Deleted Successfully';
                 $this->EndReturnData->List = $ReturnResponse->List;
                 $this->EndReturnData->UIDs = $ReturnResponse->UIDs;
-                $this->EndReturnData->Pagination = $ReturnResponse->Pagination;            
+                $this->EndReturnData->Pagination = $ReturnResponse->Pagination;
+
+                $this->load->model('products_model');
+                $this->EndReturnData->BrandList = $this->products_model->getBrandDetails([]);
 
             } else {
                 throw new Exception('Size Information is Missing to Delete');
@@ -1538,6 +1534,9 @@ class Products extends CI_Controller {
                 $this->EndReturnData->List = $ReturnResponse->List;
                 $this->EndReturnData->Pagination = $ReturnResponse->Pagination;
                 $this->EndReturnData->UIDs = $ReturnResponse->UIDs;
+
+                $this->load->model('products_model');
+                $this->EndReturnData->BrandList = $this->products_model->getBrandDetails([]);
 
             } else {
                 throw new Exception('Brand Information is Missing to Delete');

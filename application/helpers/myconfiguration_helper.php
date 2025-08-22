@@ -95,3 +95,46 @@ function filterViewDataColumns($originalArray, $WhereField) {
     });
     return $filteredArray;
 }
+
+function updateAttributeString($attributeString, $MPFilterApplicable) {
+
+    // Start with an empty array
+    $attributes = [];
+
+    // Extract attributes using regex
+    if (!empty($attributeString)) {
+        preg_match_all('/(\w+)\s*=\s*"([^"]*)"/', $attributeString, $matches, PREG_SET_ORDER);
+        foreach ($matches as $match) {
+            $attributes[$match[1]] = $match[2];
+        }
+    }
+
+    // Handle class attribute
+    $classList = [];
+
+    if (isset($attributes['class'])) {
+        $classList = preg_split('/\s+/', trim($attributes['class']));
+    }
+
+    // Add 'text-end' if not present
+    if (in_array('text-end', $classList)) {
+        $classList[] = 'text-end';
+    }
+
+    // Add additional class if MPFilterApplicable is 1
+    if ($MPFilterApplicable == 1) {
+        $classList[] = 'filter-applicable';
+    }
+
+    // Remove duplicates and rebuild class string
+    $attributes['class'] = implode(' ', array_unique($classList));
+
+    // Rebuild the full attribute string
+    $newAttributeString = '';
+    foreach ($attributes as $key => $value) {
+        $newAttributeString .= $key . '="' . htmlspecialchars($value) . '" ';
+    }
+
+    return trim($newAttributeString);
+
+}

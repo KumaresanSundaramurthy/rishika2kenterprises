@@ -14,7 +14,7 @@ class Login extends CI_Controller {
     }
 
     public function index() {
-        redirect('portal/login', 'refresh');
+        redirect('portal', 'refresh');
     }
 
     public function login() {

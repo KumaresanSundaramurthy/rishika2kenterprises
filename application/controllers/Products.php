@@ -75,6 +75,7 @@ class Products extends CI_Controller {
 
         $ModuleId = $this->pageData[ucfirst($activeTab) . 'ModuleId'];
 
+        $this->globalservice->setJwtData($this->pageData);
         $ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($ModuleId, $TableDetails, $ListPage, 0, $limit, 0, [], []);
         if ($ReturnResponse->Error) {
             throw new Exception($ReturnResponse->Message);
@@ -192,6 +193,7 @@ class Products extends CI_Controller {
         $offset = ($pageNo != 0) ? (($pageNo - 1) * $limit) : $pageNo;
         $Filter = $this->input->post('Filter');
 
+        $this->globalservice->setJwtData($this->pageData);
         $ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($ModuleId, '/products/getProductDetails/', 'products/items/list', $pageNo, $limit, $offset, $Filter, []);
         if($ReturnResponse->Error) {
             throw new Exception($ReturnResponse->Message);
@@ -473,6 +475,7 @@ class Products extends CI_Controller {
                 $Filter = $this->input->post('Filter') ? $this->input->post('Filter') : [];
                 $ModuleId = $this->input->post('ModuleId');
 
+                $this->globalservice->setJwtData($this->pageData);
                 $ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($ModuleId, '/products/getProductDetails/', 'products/items/list', $pageNo, $limit, $offset, $Filter, []);
                 if($ReturnResponse->Error) {
                     throw new Exception($ReturnResponse->Message);
@@ -528,6 +531,7 @@ class Products extends CI_Controller {
                 $Filter = $this->input->post('Filter') ? $this->input->post('Filter') : [];
                 $ModuleId = $this->input->post('ModuleId');
 
+                $this->globalservice->setJwtData($this->pageData);
                 $ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($ModuleId, '/products/getProductDetails/', 'products/items/list', $pageNo, $limit, $offset, $Filter, []);
                 if($ReturnResponse->Error) {
                     throw new Exception($ReturnResponse->Message);
@@ -567,6 +571,7 @@ class Products extends CI_Controller {
             $Filter = $this->input->post('Filter');
             $ModuleId = $this->input->post('ModuleId');
 
+            $this->globalservice->setJwtData($this->pageData);
 			$ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($ModuleId, '/products/getCategoriesDetails/', 'products/categories/list', $pageNo, $limit, $offset, $Filter, []);
             if($ReturnResponse->Error) {
                 throw new Exception($ReturnResponse->Message);
@@ -635,6 +640,7 @@ class Products extends CI_Controller {
                 $Filter = $this->input->post('Filter') ? $this->input->post('Filter') : [];
                 $ModuleId = $this->input->post('ModuleId');
 
+                $this->globalservice->setJwtData($this->pageData);
                 $ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($ModuleId, '/products/getCategoriesDetails/', 'products/categories/list', $pageNo, $limit, $offset, $Filter, []);
                 if($ReturnResponse->Error) {
                     throw new Exception($ReturnResponse->Message);
@@ -750,6 +756,7 @@ class Products extends CI_Controller {
                 $Filter = $this->input->post('Filter') ? $this->input->post('Filter') : [];
                 $ModuleId = $this->input->post('ModuleId');
 
+                $this->globalservice->setJwtData($this->pageData);
                 $ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($ModuleId, '/products/getCategoriesDetails/', 'products/categories/list', $pageNo, $limit, $offset, $Filter, []);
                 if($ReturnResponse->Error) {
                     throw new Exception($ReturnResponse->Message);
@@ -814,7 +821,8 @@ class Products extends CI_Controller {
                 $offset = ($pageNo != 0) ? (($pageNo - 1) * $limit) : $pageNo;
                 $Filter = $this->input->post('Filter') ? $this->input->post('Filter') : [];
                 $ModuleId = $this->input->post('ModuleId');
-
+                
+                $this->globalservice->setJwtData($this->pageData);
                 $ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($ModuleId, '/products/getCategoriesDetails/', 'products/categories/list', $pageNo, $limit, $offset, $Filter, []);
                 if($ReturnResponse->Error) {
                     throw new Exception($ReturnResponse->Message);
@@ -880,6 +888,7 @@ class Products extends CI_Controller {
                 $Filter = $this->input->post('Filter') ? $this->input->post('Filter') : [];
                 $ModuleId = $this->input->post('ModuleId');
 
+                $this->globalservice->setJwtData($this->pageData);
                 $ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($ModuleId, '/products/getCategoriesDetails/', 'products/categories/list', $pageNo, $limit, $offset, $Filter, []);
                 if($ReturnResponse->Error) {
                     throw new Exception($ReturnResponse->Message);
@@ -922,6 +931,7 @@ class Products extends CI_Controller {
             $Filter = $this->input->post('Filter') ? $this->input->post('Filter') : [];
             $ModuleId = $this->input->post('ModuleId');
 
+            $this->globalservice->setJwtData($this->pageData);
             $ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($ModuleId, '/products/getSizesDetails/', 'products/sizes/list', $pageNo, $limit, $offset, $Filter, []);
             if($ReturnResponse->Error) {
                 throw new Exception($ReturnResponse->Message);
@@ -979,6 +989,7 @@ class Products extends CI_Controller {
                 $Filter = $this->input->post('Filter') ? $this->input->post('Filter') : [];
                 $ModuleId = $this->input->post('ModuleId');
 
+                $this->globalservice->setJwtData($this->pageData);
                 $ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($ModuleId, '/products/getSizesDetails/', 'products/sizes/list', $pageNo, $limit, $offset, $Filter, []);
                 if($ReturnResponse->Error) {
                     throw new Exception($ReturnResponse->Message);
@@ -1079,6 +1090,7 @@ class Products extends CI_Controller {
                 $Filter = $this->input->post('Filter') ? $this->input->post('Filter') : [];
                 $ModuleId = $this->input->post('ModuleId');
 
+                $this->globalservice->setJwtData($this->pageData);
                 $ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($ModuleId, '/products/getSizesDetails/', 'products/sizes/list', $pageNo, $limit, $offset, $Filter, []);
                 if($ReturnResponse->Error) {
                     throw new Exception($ReturnResponse->Message);
@@ -1137,6 +1149,7 @@ class Products extends CI_Controller {
                 $Filter = $this->input->post('Filter') ? $this->input->post('Filter') : [];
                 $ModuleId = $this->input->post('ModuleId');
 
+                $this->globalservice->setJwtData($this->pageData);
                 $ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($ModuleId, '/products/getSizesDetails/', 'products/sizes/list', $pageNo, $limit, $offset, $Filter, []);
                 if($ReturnResponse->Error) {
                     throw new Exception($ReturnResponse->Message);
@@ -1202,6 +1215,7 @@ class Products extends CI_Controller {
                 $Filter = $this->input->post('Filter') ? $this->input->post('Filter') : [];
                 $ModuleId = $this->input->post('ModuleId');
 
+                $this->globalservice->setJwtData($this->pageData);
                 $ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($ModuleId, '/products/getSizesDetails/', 'products/sizes/list', $pageNo, $limit, $offset, $Filter, []);
                 if($ReturnResponse->Error) {
                     throw new Exception($ReturnResponse->Message);
@@ -1244,6 +1258,7 @@ class Products extends CI_Controller {
             $Filter = $this->input->post('Filter') ? $this->input->post('Filter') : [];
             $ModuleId = $this->input->post('ModuleId');
 
+            $this->globalservice->setJwtData($this->pageData);
             $ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($ModuleId, '/products/getBrandsDetails/', 'products/brands/list', $pageNo, $limit, $offset, $Filter, []);
             if($ReturnResponse->Error) {
                 throw new Exception($ReturnResponse->Message);
@@ -1301,6 +1316,7 @@ class Products extends CI_Controller {
                 $Filter = $this->input->post('Filter') ? $this->input->post('Filter') : [];
                 $ModuleId = $this->input->post('ModuleId');
 
+                $this->globalservice->setJwtData($this->pageData);
                 $ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($ModuleId, '/products/getBrandsDetails/', 'products/brands/list', $pageNo, $limit, $offset, $Filter, []);
                 if($ReturnResponse->Error) {
                     throw new Exception($ReturnResponse->Message);
@@ -1401,6 +1417,7 @@ class Products extends CI_Controller {
                 $Filter = $this->input->post('Filter') ? $this->input->post('Filter') : [];
                 $ModuleId = $this->input->post('ModuleId');
 
+                $this->globalservice->setJwtData($this->pageData);
                 $ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($ModuleId, '/products/getBrandsDetails/', 'products/brands/list', $pageNo, $limit, $offset, $Filter, []);
                 if($ReturnResponse->Error) {
                     throw new Exception($ReturnResponse->Message);
@@ -1459,6 +1476,7 @@ class Products extends CI_Controller {
                 $Filter = $this->input->post('Filter') ? $this->input->post('Filter') : [];
                 $ModuleId = $this->input->post('ModuleId');
 
+                $this->globalservice->setJwtData($this->pageData);
                 $ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($ModuleId, '/products/getBrandsDetails/', 'products/brands/list', $pageNo, $limit, $offset, $Filter, []);
                 if($ReturnResponse->Error) {
                     throw new Exception($ReturnResponse->Message);
@@ -1524,6 +1542,7 @@ class Products extends CI_Controller {
                 $Filter = $this->input->post('Filter') ? $this->input->post('Filter') : [];
                 $ModuleId = $this->input->post('ModuleId');
 
+                $this->globalservice->setJwtData($this->pageData);
                 $ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($ModuleId, '/products/getBrandsDetails/', 'products/brands/list', $pageNo, $limit, $offset, $Filter, []);
                 if($ReturnResponse->Error) {
                     throw new Exception($ReturnResponse->Message);

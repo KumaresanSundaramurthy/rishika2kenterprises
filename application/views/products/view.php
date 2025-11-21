@@ -111,12 +111,12 @@
                                             <table class="table table-sm table-striped table-hover" id="ProductsTable">
                                                 <thead>
                                                     <tr>
-                                                        <th class="table-checkbox">
-                                                            <div class="form-check form-check-inline">
+                                                        <th class="table-checkbox text-center align-middle">
+                                                            <div class="form-check d-flex justify-content-center align-items-center mb-0">
                                                                 <input class="form-check-input table-chkbox productsHeaderCheck" type="checkbox">
                                                             </div>
                                                         </th>
-                                                        <th class="table-serialno">S.No</th>
+                                                        <th class="table-serialno <?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>">S.No</th>
                                                         <?php foreach (array_column($ItemColumns, 'DisplayName') as $ItemKey => $ItemVal) {
                                                             if ($ItemVal === 'Storage' && ($JwtData->GenSettings->EnableStorage ?? 0) != 1) {
                                                                 continue;
@@ -221,6 +221,8 @@
                                                         echo $ModActiveList;
                                                     } else {
                                                         $PageData['DataLists'] = [];
+                                                        $PageData['GenSettings'] = $JwtData->GenSettings;
+                                                        print_r($PageData['GenSettings']); die();
                                                         echo $this->load->view('products/items/list', $PageData, TRUE);
                                                     } ?>
                                                 </tbody>

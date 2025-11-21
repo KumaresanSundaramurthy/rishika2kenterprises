@@ -9,12 +9,17 @@ use PhpOffice\PhpSpreadsheet\Worksheet\PageSetup;
 Class Globalservice {
 
     protected $CI;
+    private $confData;
     private $EndReturnData;
 
     public function __construct() {
 
         $this->CI =& get_instance();
 
+    }
+
+    public function setJwtData($confData) {
+        $this->confData = $confData;
     }
 
     public function renderSubMenu($ControllerName, $allSubMenus, $parentUID = null) {
@@ -71,6 +76,7 @@ Class Globalservice {
                     $this->CI->pageData['ViewColumns'] = filterViewDataColumns($DataResp->ViewColumns, 'IsMainPageApplicable');
                     
                     $this->CI->pageData['DataLists'] = $DataResp->DataLists;
+                    $this->CI->pageData['GenSettings'] = $this->confData['JwtData']->GenSettings;
                     $DataCount = sizeof($DataResp->DataPrimaryUIDs);
 
                     $this->CI->pageData['SerialNumber'] = $offset;

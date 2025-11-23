@@ -8,152 +8,86 @@ class Products extends CI_Controller {
     public function __construct() {
         parent::__construct();
 
+        $this->load->model(['global_model', 'products_model']);
+
     }
 
     public function index() {
 
-        // $this->output->enable_profiler(TRUE);
-
-        // $this->benchmark->mark('model_start');
-
-        $activeTab = $_GET['tab'] ?? 'item';
+        $activeTab = strtolower($this->input->get('tab', TRUE) ?: 'item');
+        $allowedTabs = ['item', 'category', 'size', 'brand'];
+        if (!in_array($activeTab, $allowedTabs, true)) {
+            $activeTab = 'item';
+        }
 
         $ControllerName = strtolower($this->router->fetch_class());
-        $this->load->model(['global_model', 'products_model']);
 
         // Filter module info
-        $this->pageData['ModuleInfo'] = array_filter($this->pageData['JwtData']->ModuleInfo, function ($module) use ($ControllerName) {
-            return $module->ControllerName === $ControllerName;
-        });
+        $this->pageData['ModuleInfo'] = array_values(array_filter(
+            $this->pageData['JwtData']->ModuleInfo,
+            fn($module) => strtolower($module->ControllerName) === $ControllerName
+        ));
 
-        $limit = $this->pageData['JwtData']->GenSettings->RowLimit ?? 10;
+        $limit = (int)($this->pageData['JwtData']->GenSettings->RowLimit ?? 10);
+        $page = (int)($this->input->get('page', TRUE) ?: 1);
+        $offset = max(0, ($page-1)*$limit);
 
-        $tabConfigs = [
-            'item' => [
-                'moduleName' => 'Products',
-                'listPage' => 'products/items/list',
-                'tableDetails' => '/products/getProductDetails/',
-                'tabName' => 'Item'
-            ],
-            'category' => [
-                'moduleName' => 'Category',
-                'listPage' => 'products/categories/list',
-                'tableDetails' => '/products/getCategoriesDetails/',
-                'tabName' => 'Categories'
-            ],
-            'size' => [
-                'moduleName' => 'Sizes',
-                'listPage' => 'products/sizes/list',
-                'tableDetails' => '/products/getSizesDetails/',
-                'tabName' => 'Sizes'
-            ],
-            'brand' => [
-                'moduleName' => 'Brands',
-                'listPage' => 'products/brands/list',
-                'tableDetails' => '/products/getBrandsDetails/',
-                'tabName' => 'Brands'
-            ]
+        $tabModules = [
+            'item'     => 'Products',
+            'category' => 'Category',
+            'size'     => 'Sizes',
+            'brand'    => 'Brands'
         ];
-
-        $activeTabConfig = $tabConfigs[$activeTab] ?? $tabConfigs['item'];
-
-        $moduleName = $activeTabConfig['moduleName'];
-        $ListPage = $activeTabConfig['listPage'];
-        $TableDetails = $activeTabConfig['tableDetails'];
-        $ActiveTabName = $activeTabConfig['tabName'];
         
-        $modules = [
-            'Item' => 'Products',
-            'Category' => 'Category',
-            'Size' => 'Sizes',
-            'Brand' => 'Brands'
-        ];
-
-        foreach ($modules as $key => $modName) {
-            $this->pageData[$key . 'ModuleId'] = getModuleUIDByName($this->pageData['ModuleInfo'], $modName);
+        foreach ($tabModules as $key=>$modName) {
+            $this->pageData[ucfirst($key).'ModuleId'] = getModuleUIDByName($this->pageData['ModuleInfo'], $modName);
         }
 
-        $ModuleId = $this->pageData[ucfirst($activeTab) . 'ModuleId'];
+        $ModuleId = $this->pageData[ucfirst($activeTab).'ModuleId'] ?? null;
+        if (!$ModuleId) {
+            show_error('Module not configured for tab: '.$activeTab, 500);
+            return;
+        }
 
         $this->globalservice->setJwtData($this->pageData);
-        $ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($ModuleId, $TableDetails, $ListPage, 0, $limit, 0, [], []);
+        $ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($ModuleId, "/products/get{$tabModules[$activeTab]}Details/", $page, $limit, $offset, [], []);
         if ($ReturnResponse->Error) {
-            throw new Exception($ReturnResponse->Message);
+            show_error($ReturnResponse->Message, 500);
+            return;
         }
 
-        $this->pageData['ModActiveList'] = $ReturnResponse->List;
-        $this->pageData['ModActiveUIDs'] = $ReturnResponse->UIDs;
+        $this->pageData['ModActiveList']       = $ReturnResponse->Data;
+        $this->pageData['ModActiveUIDs']       = $ReturnResponse->UIDs;
         $this->pageData['ModActivePagination'] = $ReturnResponse->Pagination;
-        $this->pageData['ColumnDetails'] = $ReturnResponse->AllViewColumns;
+        $this->pageData['ColumnDetails']       = $ReturnResponse->AllViewColumns;
 
-        // Initialize all tab column arrays
-        foreach (array_keys($modules) as $key) {
-            $this->pageData[$key . 'Columns'] = [];
-        }
+        $ModuleColumns = array_filter($ReturnResponse->AllViewColumns, fn($col) => $col->IsMainPageApplicable == 1);
+        usort($ModuleColumns, fn($a,$b)=>$a->MainPageOrder <=> $b->MainPageOrder);
+        $this->pageData['ItemColumns']     = ($activeTab === 'item') ? $ModuleColumns : [];
+        $this->pageData['CategoryColumns'] = ($activeTab === 'category') ? $ModuleColumns : [];
+        $this->pageData['SizeColumns']     = ($activeTab === 'size') ? $ModuleColumns : [];
+        $this->pageData['BrandColumns']    = ($activeTab === 'brand') ? $ModuleColumns : [];
+        
+        $this->pageData['PrimaryUnitInfo'] = $this->global_model->getPrimaryUnitInfo()->Data ?? [];
+        $this->pageData['DiscTypeInfo']    = $this->global_model->getDiscountTypeInfo()->Data ?? [];
+        $this->pageData['ProdTypeInfo']    = $this->global_model->getProductTypeInfo()->Data ?? [];
+        $this->pageData['ProdTaxInfo']     = $this->global_model->getProductTaxInfo()->Data ?? [];
+        $this->pageData['TaxDetInfo']      = $this->global_model->getTaxDetailsInfo()->Data ?? [];
 
-        foreach ($modules as $key => $modName) {
-            $modId = $this->pageData[$key . 'ModuleId'];
-            $colData = $this->global_model->getModuleViewColumnDetails(['ViewColmn.ModuleUID' => $modId, 'IsMainPageApplicable' => 1], true, ['MainPageOrder' => 'ASC']);
-            if (strtolower($key) === $activeTab) {
-                $ModuleColumns = array_filter($this->pageData['ColumnDetails'], fn($col) => $col->IsMainPageApplicable == 1);
-                usort($ModuleColumns, fn($a, $b) => $a->MainPageOrder <=> $b->MainPageOrder);
-                $this->pageData[$key . 'Columns'] = $ModuleColumns;
-            } else {
-                $this->pageData[$key . 'Columns'] = $colData;
-            }
-        }
-
-        $this->pageData['ActiveTabData'] = $activeTab;
-        $this->pageData['ActiveTabName'] = $ActiveTabName;
-        $this->pageData['ActiveModuleId'] = $ModuleId;
-
-        $this->pageData['PrimaryUnitInfo'] = [];
-        $GetPrimaryUnitInfo = $this->global_model->getPrimaryUnitInfo();
-        if (!$GetPrimaryUnitInfo->Error) {
-            $this->pageData['PrimaryUnitInfo'] = $GetPrimaryUnitInfo->Data;
-        }
-
-        $this->pageData['DiscTypeInfo'] = [];
-        $GetDiscTypeInfo = $this->global_model->getDiscountTypeInfo();
-        if (!$GetDiscTypeInfo->Error) {
-            $this->pageData['DiscTypeInfo'] = $GetDiscTypeInfo->Data;
-        }
-
-        $this->pageData['ProdTypeInfo'] = [];
-        $GetProdTypeInfo = $this->global_model->getProductTypeInfo();
-        if (!$GetProdTypeInfo->Error) {
-            $this->pageData['ProdTypeInfo'] = $GetProdTypeInfo->Data;
-        }
-
-        $this->pageData['ProdTaxInfo'] = [];
-        $GetProdTaxInfo = $this->global_model->getProductTaxInfo();
-        if (!$GetProdTaxInfo->Error) {
-            $this->pageData['ProdTaxInfo'] = $GetProdTaxInfo->Data;
-        }
-
-        $this->pageData['TaxDetInfo'] = [];
-        $GetTaxDetInfo = $this->global_model->getTaxDetailsInfo();
-        if (!$GetTaxDetInfo->Error) {
-            $this->pageData['TaxDetInfo'] = $GetTaxDetInfo->Data;
-        }
-
-        $this->pageData['Categories'] = $this->products_model->getCategoriesDetails([]);
-        $this->pageData['SizeInfo'] = $this->products_model->getSizeDetails([]);
-        $this->pageData['BrandInfo'] = $this->products_model->getBrandDetails([]);
+        $this->pageData['Categories'] = ($activeTab === 'category') ? $this->products_model->getCategoriesDetails([], $limit, $offset)->Data : [];
+        $this->pageData['SizeInfo']   = ($activeTab === 'size') ? $this->products_model->getSizeDetails([], $limit, $offset)->Data : [];
+        $this->pageData['BrandInfo']  = ($activeTab === 'brand') ? $this->products_model->getBrandDetails([], $limit, $offset)->Data : [];
 
         if (!empty($this->pageData['JwtData']->GenSettings->EnableStorage)) {
             $this->load->model('storage_model');
-            $this->pageData['Storage'] = $this->storage_model->getStorageDetails([]);
+            $this->pageData['Storage'] = $this->storage_model->getStorageDetails([])->Data ?? [];
         }
 
-        // $this->benchmark->mark('model_end');
+        $this->pageData['ActiveTabData']  = $activeTab;
+        $this->pageData['ActiveTabName']  = ucfirst($activeTab);
+        $this->pageData['ActiveModuleId'] = $ModuleId;
         
-        // $this->benchmark->mark('view_start');
         $this->load->view('products/view', $this->pageData);
-        // $this->benchmark->mark('view_end');
-
-        // echo 'Model time: ' . $this->benchmark->elapsed_time('model_start', 'model_end');
-        // echo 'View time: ' . $this->benchmark->elapsed_time('view_start', 'view_end');
 
     }
 
@@ -594,6 +528,31 @@ class Products extends CI_Controller {
         exit;
 
 	}
+
+    public function getAllCategories() {
+
+        $this->EndReturnData = new stdClass();
+		try {
+
+            $this->load->model('products_model');
+            $getAllCatgs['Categories'] = $this->products_model->getCategoriesDetails([]);
+            $this->EndReturnData->HtmlData = $this->load->view('products/items/catgfilter', $getAllCatgs, TRUE);
+            
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Message = 'Retrieved Successfully';
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+		$this->output->set_status_header(200)
+            ->set_content_type('application/json', 'utf-8')
+            ->set_output(json_encode($this->EndReturnData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES))
+            ->_display();
+        exit;
+
+    }
 
     public function addCategoryDetails() {
 

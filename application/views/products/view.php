@@ -137,35 +137,11 @@
 
                                                                     <div id="categoryFilterBox" class="card shadow position-absolute p-3" style="min-width: 270px; max-height: 350px; top: 100%; z-index: 1055; display: none;">
 
-                                                                        <!-- Search Box -->
-                                                                        <input type="text" id="categorySearch" class="form-control form-control-sm mb-4" placeholder="Search category...">
+                                                                    <?php if (sizeof($Categories) > 0) {
+                                                                        $CatgFilterData['Categories'] = $Categories;
+                                                                        echo $this->load->view('products/items/catgfilter', $CatgFilterData, TRUE);
+                                                                    } ?>
 
-                                                                        <div class="form-check mb-2">
-                                                                            <label class="form-check-label w-100 d-flex align-items-center">
-                                                                                <input type="checkbox" class="form-check-input me-2 my-1" id="selectAllCategories" onchange="toggleAllCategories(this)">
-                                                                                <label class="form-check-label" for="selectAllCategories" id="selectAllLabel">Select All</label>
-                                                                            </label>
-                                                                        </div>
-
-                                                                        <!-- Category List -->
-                                                                        <div id="categoryList" style="max-height: 180px; overflow-y: auto;">
-                                                                            <?php if (sizeof($Categories) > 0) {
-                                                                                foreach ($Categories as $catg) { ?>
-                                                                                    <div class="form-check mb-2 my-1 list-hover-bg">
-                                                                                        <label class="form-check-label w-100 d-flex align-items-center">
-                                                                                            <input class="form-check-input me-2 category-checkbox" type="checkbox" value="<?php echo $catg->CategoryUID; ?>">
-                                                                                            <span><?php echo $catg->Name; ?></span>
-                                                                                        </label>
-                                                                                    </div>
-                                                                            <?php }
-                                                                            } ?>
-                                                                        </div>
-
-                                                                        <div class="border-top pt-2 mt-2 d-flex justify-content-between gap-2">
-                                                                            <button type="button" class="btn btn-sm btn-outline-secondary w-100" onclick="resetCategoryFilter()">Reset</button>
-                                                                            <button type="button" class="btn btn-sm btn-primary w-100" onclick="applyCategoryFilter()">Search</button>
-                                                                            <button type="button" class="btn btn-sm btn-outline-dark w-100" onclick="closeCategoryFilter();">Close</button>
-                                                                        </div>
                                                                     </div>
 
                                                                 <?php } ?>
@@ -178,35 +154,11 @@
 
                                                                     <div id="storageFilterBox" class="card shadow position-absolute p-3" style="min-width: 270px; max-height: 350px; top: 100%; z-index: 1055; display: none;">
 
-                                                                        <!-- Search Box -->
-                                                                        <input type="text" id="storageSearch" class="form-control form-control-sm mb-4" placeholder="Search storage...">
+                                                                    <?php if (sizeof($Storage) > 0) {
+                                                                        $StorageFilterData['Storage'] = $Storage;
+                                                                        echo $this->load->view('products/storage/storagefilter', $StorageFilterData, TRUE);
+                                                                    } ?>
 
-                                                                        <div class="form-check mb-2">
-                                                                            <label class="form-check-label w-100 d-flex align-items-center">
-                                                                                <input type="checkbox" class="form-check-input me-2 my-1" id="selectAllStorage" onchange="toggleAllStorage(this)">
-                                                                                <label class="form-check-label" for="selectAllStorage" id="str_selectAllLabel">Select All</label>
-                                                                            </label>
-                                                                        </div>
-
-                                                                        <!-- Storage List -->
-                                                                        <div id="storageList" style="max-height: 180px; overflow-y: auto;">
-                                                                            <?php if (sizeof($Storage) > 0) {
-                                                                                foreach ($Storage as $strg) { ?>
-                                                                                    <div class="form-check mb-2 my-1 list-hover-bg">
-                                                                                        <label class="form-check-label w-100 d-flex align-items-center">
-                                                                                            <input class="form-check-input me-2 storage-checkbox" type="checkbox" value="<?php echo $strg->StorageUID; ?>">
-                                                                                            <span><?php echo $strg->Name; ?></span>
-                                                                                        </label>
-                                                                                    </div>
-                                                                            <?php }
-                                                                            } ?>
-                                                                        </div>
-
-                                                                        <div class="border-top pt-2 mt-2 d-flex justify-content-between gap-2">
-                                                                            <button type="button" class="btn btn-sm btn-outline-secondary w-100" onclick="resetStorageFilter()">Reset</button>
-                                                                            <button type="button" class="btn btn-sm btn-primary w-100" onclick="applyStorageFilter()">Search</button>
-                                                                            <button type="button" class="btn btn-sm btn-outline-dark w-100" onclick="closeStorageFilter();">Close</button>
-                                                                        </div>
                                                                     </div>
 
                                                                 <?php } ?>
@@ -218,11 +170,10 @@
                                                 </thead>
                                                 <tbody class="table-border-bottom-0">
                                                     <?php if ($ActiveTabData == 'item') {
-                                                        echo $ModActiveList;
-                                                    } else {
-                                                        $PageData['DataLists'] = [];
-                                                        $PageData['GenSettings'] = $JwtData->GenSettings;
-                                                        print_r($PageData['GenSettings']); die();
+                                                        $PageData['DataLists'] = $ModActiveList;
+                                                        $PageData['ViewColumns'] = $ItemColumns;
+                                                        $PageData['SerialNumber'] = 0;
+                                                        $PageData['SerialNoDisplay'] = $JwtData->GenSettings->SerialNoDisplay;
                                                         echo $this->load->view('products/items/list', $PageData, TRUE);
                                                     } ?>
                                                 </tbody>

@@ -62,47 +62,38 @@ Class Globalservice {
         
     }
 
-    public function getBaseMainPageTablePagination($ModuleId, $CallingUrl, $ViewPath, $pageNo, $limit, $offset, $Filter, $WhereInCondition = []) {
+    public function getBaseMainPageTablePagination($ModuleId, $CallingUrl, $pageNo, $limit, $offset, $Filter, $WhereInCondition = []) {
 
         $this->EndReturnData = new stdClass();
 		try {
 
-            if($ModuleId > 0) {
-                
-                $DataResp = $this->getModulePageColumnDetails($ModuleId, 'MainPage', $Filter, $WhereInCondition, $limit, $offset, 1);
-                if($DataResp->Error === FALSE) {
-
-                    $this->CI->pageData['ModuleInfo'] = $DataResp->ModuleInfo;
-                    $this->CI->pageData['ViewColumns'] = filterViewDataColumns($DataResp->ViewColumns, 'IsMainPageApplicable');
-                    
-                    $this->CI->pageData['DataLists'] = $DataResp->DataLists;
-                    $this->CI->pageData['GenSettings'] = $this->confData['JwtData']->GenSettings;
-                    $DataCount = sizeof($DataResp->DataPrimaryUIDs);
-
-                    $this->CI->pageData['SerialNumber'] = $offset;
-
-                    $config['base_url'] = $CallingUrl;
-                    $config['use_page_numbers'] = TRUE;
-                    $config['total_rows'] = $DataCount;
-                    $config['per_page'] = $limit;
-
-                    $config['result_count'] = pageResultCount($pageNo, $limit, $DataCount);
-                    $this->CI->load->library('pagination');
-                    $this->CI->pagination->initialize($config);
-
-                    $this->EndReturnData->Error = FALSE;
-                    $this->EndReturnData->List = $this->CI->load->view($ViewPath, $this->CI->pageData, TRUE);
-                    $this->EndReturnData->UIDs = $DataCount > 0 ? array_map('intval', array_column($DataResp->DataPrimaryUIDs, $DataResp->ModuleInfo->TablePrimaryUID)) : [];
-                    $this->EndReturnData->Count = $DataCount;
-                    $this->EndReturnData->Pagination = $this->CI->pagination->create_links();
-
-                } else {
-                    throw new Exception($DataResp->Message);
-                }
-
-            } else {
+            if ($ModuleId <= 0) {
                 throw new Exception('Module Information is Missing');
             }
+                
+            $DataResp = $this->getModulePageColumnDetails($ModuleId, 'MainPage', $Filter, $WhereInCondition, $limit, $offset, 1);
+            if ($DataResp->Error) {
+                throw new Exception($DataResp->Message);
+            }
+
+            $DataCount = sizeof($DataResp->DataPrimaryUIDs);
+            $config['base_url']        = $CallingUrl;
+            $config['use_page_numbers'] = TRUE;
+            $config['total_rows']      = $DataCount;
+            $config['per_page']        = $limit;
+            $config['result_count']    = pageResultCount($pageNo, $limit, $DataCount);
+
+            $this->CI->load->library('pagination');
+            $this->CI->pagination->initialize($config);
+
+            $this->EndReturnData->Error       = FALSE;
+            $this->EndReturnData->Data        = $DataResp->DataLists;
+            $this->EndReturnData->UIDs        = $DataCount > 0 ? array_map('intval', array_column($DataResp->DataPrimaryUIDs, $DataResp->ModuleInfo->TablePrimaryUID)) : [];
+            $this->EndReturnData->Count       = $DataCount;
+            $this->EndReturnData->Pagination  = $this->CI->pagination->create_links();
+            $this->EndReturnData->ModuleInfo  = $DataResp->ModuleInfo;
+            $this->EndReturnData->ViewColumns = $DataResp->ViewColumns;
+            $this->EndReturnData->AllViewColumns = $DataResp->AllViewColumns;
 
         } catch (Exception $e) {
             $this->EndReturnData->Error = TRUE;

@@ -100,6 +100,7 @@ $db['default'] = array(
 	'swap_pre' => '',
 	'encrypt' => FALSE,
 	'compress' => FALSE,
+	'init_command' => "SET SESSION sql_mode='STRICT_TRANS_TABLES,NO_ZERO_DATE,NO_ZERO_IN_DATE'",
 	'stricton' => FALSE,
 	'failover' => array(),
 	'save_queries' => TRUE
@@ -123,6 +124,7 @@ $db['Users'] = array(
 	'swap_pre' => '',
 	'encrypt' => FALSE,
 	'compress' => FALSE,
+	'init_command' => "SET SESSION sql_mode='STRICT_TRANS_TABLES,NO_ZERO_DATE,NO_ZERO_IN_DATE'",
 	'stricton' => FALSE,
 	'failover' => array(),
 	'save_queries' => TRUE
@@ -146,6 +148,7 @@ $db['UserRole'] = array(
 	'swap_pre' => '',
 	'encrypt' => FALSE,
 	'compress' => FALSE,
+	'init_command' => "SET SESSION sql_mode='STRICT_TRANS_TABLES,NO_ZERO_DATE,NO_ZERO_IN_DATE'",
 	'stricton' => FALSE,
 	'failover' => array(),
 	'save_queries' => TRUE
@@ -169,6 +172,7 @@ $db['Organisation'] = array(
 	'swap_pre' => '',
 	'encrypt' => FALSE,
 	'compress' => FALSE,
+	'init_command' => "SET SESSION sql_mode='STRICT_TRANS_TABLES,NO_ZERO_DATE,NO_ZERO_IN_DATE'",
 	'stricton' => FALSE,
 	'failover' => array(),
 	'save_queries' => TRUE
@@ -192,6 +196,7 @@ $db['Global'] = array(
 	'swap_pre' => '',
 	'encrypt' => FALSE,
 	'compress' => FALSE,
+	'init_command' => "SET SESSION sql_mode='STRICT_TRANS_TABLES,NO_ZERO_DATE,NO_ZERO_IN_DATE'",
 	'stricton' => FALSE,
 	'failover' => array(),
 	'save_queries' => TRUE
@@ -215,6 +220,7 @@ $db['Customers'] = array(
 	'swap_pre' => '',
 	'encrypt' => FALSE,
 	'compress' => FALSE,
+	'init_command' => "SET SESSION sql_mode='STRICT_TRANS_TABLES,NO_ZERO_DATE,NO_ZERO_IN_DATE'",
 	'stricton' => FALSE,
 	'failover' => array(),
 	'save_queries' => TRUE
@@ -238,6 +244,7 @@ $db['Vendors'] = array(
 	'swap_pre' => '',
 	'encrypt' => FALSE,
 	'compress' => FALSE,
+	'init_command' => "SET SESSION sql_mode='STRICT_TRANS_TABLES,NO_ZERO_DATE,NO_ZERO_IN_DATE'",
 	'stricton' => FALSE,
 	'failover' => array(),
 	'save_queries' => TRUE
@@ -261,6 +268,7 @@ $db['Products'] = array(
 	'swap_pre' => '',
 	'encrypt' => FALSE,
 	'compress' => FALSE,
+	'init_command' => "SET SESSION sql_mode='STRICT_TRANS_TABLES,NO_ZERO_DATE,NO_ZERO_IN_DATE'",
 	'stricton' => FALSE,
 	'failover' => array(),
 	'save_queries' => TRUE
@@ -284,6 +292,7 @@ $db['Modules'] = array(
 	'swap_pre' => '',
 	'encrypt' => FALSE,
 	'compress' => FALSE,
+	'init_command' => "SET SESSION sql_mode='STRICT_TRANS_TABLES,NO_ZERO_DATE,NO_ZERO_IN_DATE'",
 	'stricton' => FALSE,
 	'failover' => array(),
 	'save_queries' => TRUE

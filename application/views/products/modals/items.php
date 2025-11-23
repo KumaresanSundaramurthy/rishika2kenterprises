@@ -27,6 +27,7 @@
                             <div class="mb-3 col-md-12">
                                 <label for="ItemName" class="form-label">Product Name <span style="color:red">*</span></label>
                                 <input class="form-control" type="text" id="ItemName" name="ItemName" placeholder="Enter Item Name" maxlength="100" required />
+                                <?php form_error('ItemName', '<div class="text-danger small">', '</div>'); ?>
                             </div>
                             <div class="mb-3 col-md-6">
                                 <label for="ProductType" class="form-label">Product Type <span style="color:red">*</span></label>

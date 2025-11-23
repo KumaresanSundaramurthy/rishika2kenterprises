@@ -705,8 +705,6 @@ class Global_model extends CI_Model {
                     $this->ModuleDb->order_by(key($SortingColumn), $SortingColumn[key($SortingColumn)]);
                 }
 
-                // print_r($this->ModuleDb->get_compiled_select()); die();
-
                 $query = $this->ModuleDb->get();
                 $error = $this->ModuleDb->error();
                 if ($error['code']) {
@@ -898,8 +896,6 @@ class Global_model extends CI_Model {
             if ($Flag == 0 && $Limit > 0) {
                 $this->ModuleDb->limit($Limit, $Offset);
             }
-
-            // print_r($this->ModuleDb->get_compiled_select()); die();
 
             $query = $this->ModuleDb->get();
             $error = $this->ModuleDb->error();

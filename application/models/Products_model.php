@@ -53,7 +53,7 @@ class Products_model extends CI_Model
 
     }
 
-    public function getProductsDetails($FilterArray, $OrderBy = 'ASC', $whereInCondition = [])
+    public function getProductsDetails($FilterArray = [], $OrderBy = 'ASC', $whereInCondition = [])
     {
 
         $this->EndReturnData = new StdClass();

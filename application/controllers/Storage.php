@@ -97,6 +97,31 @@ class Storage extends CI_Controller {
 
     }
 
+    public function getAllStorage() {
+
+        $this->EndReturnData = new stdClass();
+		try {
+
+            $this->load->model('storage_model');
+            $getAllStorage['Storage'] = $this->storage_model->getStorageDetails([]);
+            $this->EndReturnData->HtmlData = $this->load->view('products/storage/storagefilter', $getAllStorage, TRUE);
+            
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Message = 'Retrieved Successfully';
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+		$this->output->set_status_header(200)
+            ->set_content_type('application/json', 'utf-8')
+            ->set_output(json_encode($this->EndReturnData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES))
+            ->_display();
+        exit;
+
+    }
+
     public function addStorageData() {
 
         $this->EndReturnData = new stdClass();

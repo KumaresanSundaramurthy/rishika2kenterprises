@@ -1053,6 +1053,27 @@ function commonExportFunctions() {
 
 function toggleCategoryFilter() {
     $('#categoryFilterBox').toggle();
+    if ($('#categoryFilterBox .category-checkbox').length == 0) {
+        
+        AjaxLoading = 0;
+
+        $('#categoryFilterBox').html('<div class="d-flex justify-content-center align-items-center p-3"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>');
+        $.ajax({
+            url: '/products/getAllCategories/',
+            method: "POST",
+            cache: false,
+            success: function (response) {
+                AjaxLoading = 1;
+                if (response.Error) {
+                    $('#categoryFilterBox').html('');
+                    $('#categoryFilterBox').html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');
+                } else {
+                    $('#categoryFilterBox').html(response.HtmlData);
+                }
+            },
+        });
+        
+    }
 }
 
 function closeCategoryFilter() {
@@ -1118,6 +1139,27 @@ function setBrandOption(BrandList) {
 
 function toggleStorageFilter() {
     $('#storageFilterBox').toggle();
+    if ($('#storageFilterBox .storage-checkbox').length == 0) {
+        
+        AjaxLoading = 0;
+
+        $('#storageFilterBox').html('<div class="d-flex justify-content-center align-items-center p-3"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>');
+        $.ajax({
+            url: '/storage/getAllStorage/',
+            method: "POST",
+            cache: false,
+            success: function (response) {
+                AjaxLoading = 1;
+                if (response.Error) {
+                    $('#storageFilterBox').html('');
+                    $('#storageFilterBox').html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');
+                } else {
+                    $('#storageFilterBox').html(response.HtmlData);
+                }
+            },
+        });
+        
+    }
 }
 
 function closeStorageFilter() {

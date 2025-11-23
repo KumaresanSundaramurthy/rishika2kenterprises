@@ -15,17 +15,20 @@
 
     // Formatting Date
     if ($column->IsDateField && !empty($value)) {
-        if($column->MPDateFormatType == 1) {
-            $value = changeTimeZomeDateFormat($value, $JwtData->User->Timezone, 1);
-        } else if($column->MPDateFormatType == 2) {
-            $LastUpdatedBy = 'Last Updated By';
-            $value = '<div>'.changeTimeZomeDateFormat($value, $JwtData->User->Timezone, 2).'</div>';
-            $value .= '<div class="text-muted" style="font-size: 0.75rem;">by '.$list->$LastUpdatedBy.'</div>';
-        } else {
-            $value = changeTimeZomeDateFormat($value, $JwtData->User->Timezone, 1);
+        switch ($column->MPDateFormatType) {
+            case 1:
+                $value = changeTimeZomeDateFormat($value, $JwtData->User->Timezone, 1);
+                break;
+            case 2:
+                $lastUpdatedBy = $list->{'Last Updated By'} ?? '';
+                $value  = '<div>'.changeTimeZomeDateFormat($value, $JwtData->User->Timezone, 2).'</div>';
+                $value .= '<div class="text-muted" style="font-size: 0.75rem;">by '.$lastUpdatedBy.'</div>';
+                break;
+            default:
+                $value = changeTimeZomeDateFormat($value, $JwtData->User->Timezone, 1);
         }
     }
-
+    
     if($Key == 1 && $column->MainPageImageDisplay == 1) { ?>
 
         <td <?php echo $column->MainPageDataAddon; ?>>

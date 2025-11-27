@@ -171,8 +171,9 @@ class Global_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $PriUnitRedisDataExists = $this->cacheservice->exists(getSiteConfiguration()->RedisName . '-primaryunitinfo');
-            if ($PriUnitRedisDataExists->Error) {
+            $PUIKey = getSiteConfiguration()->RedisName . '-primaryunitinfo';
+            $PUIGet_Data = $this->cacheservice->get($PUIKey);
+            if ($PUIGet_Data->Error) {
 
                 $this->GlobalDb->db_debug = FALSE;
 
@@ -183,7 +184,6 @@ class Global_model extends CI_Model {
 
                 $select_ary = array(
                     'PrimaryUnit.PrimaryUnitUID AS PrimaryUnitUID',
-                    'PrimaryUnit.OrgUID AS OrgUID',
                     'PrimaryUnit.Name AS Name',
                     'PrimaryUnit.ShortName AS ShortName',
                     'PrimaryUnit.Description AS Description',
@@ -192,7 +192,6 @@ class Global_model extends CI_Model {
                 $this->GlobalDb->select($select_ary);
                 $this->GlobalDb->from('Global.PrimaryUnitTbl as PrimaryUnit');
                 $this->GlobalDb->where($WhereCondition);
-                $this->GlobalDb->group_by('PrimaryUnit.PrimaryUnitUID');
                 $this->GlobalDb->order_by('PrimaryUnit.Sorting', 'ASC');
                 $query = $this->GlobalDb->get();
                 $error = $this->GlobalDb->error();
@@ -202,17 +201,10 @@ class Global_model extends CI_Model {
                     $this->EndReturnData->Data = $query->result();
                 }
 
-                $this->cacheservice->set(getSiteConfiguration()->RedisName . '-primaryunitinfo', json_encode($this->EndReturnData->Data), 43200 * 365);
+                $this->cacheservice->set($PUIKey, json_encode($this->EndReturnData->Data), 43200 * 365);
 
             } else {
-
-                $RedisPrimaryUnitInfo = $this->cacheservice->get(getSiteConfiguration()->RedisName . '-primaryunitinfo');
-                if ($RedisPrimaryUnitInfo->Error === FALSE) {
-                    $this->EndReturnData->Data = json_decode($RedisPrimaryUnitInfo->Value, TRUE);
-                } else {
-                    throw new Exception($RedisPrimaryUnitInfo->Message);
-                }
-
+                $this->EndReturnData->Data = json_decode($PUIGet_Data->Value, TRUE);
             }
 
             $this->EndReturnData->Error = FALSE;
@@ -232,8 +224,9 @@ class Global_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $DisTypeRedisDataExists = $this->cacheservice->exists(getSiteConfiguration()->RedisName . '-disctypeinfo');
-            if ($DisTypeRedisDataExists->Error) {
+            $DTIKey = getSiteConfiguration()->RedisName . '-disctypeinfo';
+            $DTIGet_Data = $this->cacheservice->get($DTIKey);
+            if ($DTIGet_Data->Error) {
 
                 $this->GlobalDb->db_debug = FALSE;
 
@@ -251,7 +244,6 @@ class Global_model extends CI_Model {
                 $this->GlobalDb->select($select_ary);
                 $this->GlobalDb->from('Global.DiscountTypeTbl as DiscType');
                 $this->GlobalDb->where($WhereCondition);
-                $this->GlobalDb->group_by('DiscType.DiscountTypeUID');
                 $this->GlobalDb->order_by('DiscType.Sorting', 'ASC');
                 $query = $this->GlobalDb->get();
                 $error = $this->GlobalDb->error();
@@ -261,17 +253,10 @@ class Global_model extends CI_Model {
                     $this->EndReturnData->Data = $query->result();
                 }
 
-                $this->cacheservice->set(getSiteConfiguration()->RedisName . '-disctypeinfo', json_encode($this->EndReturnData->Data), 43200 * 365);
+                $this->cacheservice->set($DTIKey, json_encode($this->EndReturnData->Data), 43200 * 365);
 
             } else {
-
-                $RedisDiscTypeInfo = $this->cacheservice->get(getSiteConfiguration()->RedisName . '-disctypeinfo');
-                if ($RedisDiscTypeInfo->Error === FALSE) {
-                    $this->EndReturnData->Data = json_decode($RedisDiscTypeInfo->Value, TRUE);
-                } else {
-                    throw new Exception($RedisDiscTypeInfo->Message);
-                }
-
+                $this->EndReturnData->Data = json_decode($DTIGet_Data->Value, TRUE);
             }
 
             $this->EndReturnData->Error = FALSE;
@@ -291,8 +276,9 @@ class Global_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $ProdTypeRedisDataExists = $this->cacheservice->exists(getSiteConfiguration()->RedisName . '-prodtypeinfo');
-            if ($ProdTypeRedisDataExists->Error) {
+            $PTIKey = getSiteConfiguration()->RedisName . '-prodtypeinfo';
+            $PTIGet_Data = $this->cacheservice->get($PTIKey);
+            if ($PTIGet_Data->Error) {
 
                 $this->GlobalDb->db_debug = FALSE;
 
@@ -309,7 +295,6 @@ class Global_model extends CI_Model {
                 $this->GlobalDb->select($select_ary);
                 $this->GlobalDb->from('Global.ProductTypeTbl as ProdType');
                 $this->GlobalDb->where($WhereCondition);
-                $this->GlobalDb->group_by('ProdType.ProductTypeUID');
                 $this->GlobalDb->order_by('ProdType.Sorting', 'ASC');
                 $query = $this->GlobalDb->get();
                 $error = $this->GlobalDb->error();
@@ -319,17 +304,10 @@ class Global_model extends CI_Model {
                     $this->EndReturnData->Data = $query->result();
                 }
 
-                $this->cacheservice->set(getSiteConfiguration()->RedisName . '-prodtypeinfo', json_encode($this->EndReturnData->Data), 43200 * 365);
+                $this->cacheservice->set($PTIKey, json_encode($this->EndReturnData->Data), 43200 * 365);
 
             } else {
-
-                $RedisProdTypeInfo = $this->cacheservice->get(getSiteConfiguration()->RedisName . '-prodtypeinfo');
-                if ($RedisProdTypeInfo->Error === FALSE) {
-                    $this->EndReturnData->Data = json_decode($RedisProdTypeInfo->Value, TRUE);
-                } else {
-                    throw new Exception($RedisProdTypeInfo->Message);
-                }
-
+                $this->EndReturnData->Data = json_decode($PTIGet_Data->Value, TRUE);
             }
 
             $this->EndReturnData->Error = FALSE;
@@ -349,8 +327,9 @@ class Global_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $ProdTaxRedisDataExists = $this->cacheservice->exists(getSiteConfiguration()->RedisName . '-prodtaxinfo');
-            if ($ProdTaxRedisDataExists->Error) {
+            $PTIKey = getSiteConfiguration()->RedisName . '-prodtaxinfo';
+            $PTIGet_Data = $this->cacheservice->get($PTIKey);
+            if ($PTIGet_Data->Error) {
 
                 $this->GlobalDb->db_debug = FALSE;
 
@@ -367,7 +346,6 @@ class Global_model extends CI_Model {
                 $this->GlobalDb->select($select_ary);
                 $this->GlobalDb->from('Global.ProductTaxTbl as ProdTax');
                 $this->GlobalDb->where($WhereCondition);
-                $this->GlobalDb->group_by('ProdTax.ProductTaxUID');
                 $this->GlobalDb->order_by('ProdTax.Sorting', 'ASC');
                 $query = $this->GlobalDb->get();
                 $error = $this->GlobalDb->error();
@@ -377,17 +355,10 @@ class Global_model extends CI_Model {
                     $this->EndReturnData->Data = $query->result();
                 }
 
-                $this->cacheservice->set(getSiteConfiguration()->RedisName . '-prodtaxinfo', json_encode($this->EndReturnData->Data), 43200 * 365);
+                $this->cacheservice->set($PTIKey, json_encode($this->EndReturnData->Data), 43200 * 365);
 
             } else {
-
-                $RedisProdTaxInfo = $this->cacheservice->get(getSiteConfiguration()->RedisName . '-prodtaxinfo');
-                if ($RedisProdTaxInfo->Error === FALSE) {
-                    $this->EndReturnData->Data = json_decode($RedisProdTaxInfo->Value, TRUE);
-                } else {
-                    throw new Exception($RedisProdTaxInfo->Message);
-                }
-
+                $this->EndReturnData->Data = json_decode($PTIGet_Data->Value, TRUE);
             }
 
             $this->EndReturnData->Error = FALSE;
@@ -407,8 +378,9 @@ class Global_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $TaxDetailRedisDataExists = $this->cacheservice->exists(getSiteConfiguration()->RedisName . '-taxdetailsinfo');
-            if ($TaxDetailRedisDataExists->Error) {
+            $TDIKey = getSiteConfiguration()->RedisName . '-taxdetailsinfo';
+            $TDIGet_Data = $this->cacheservice->get($TDIKey);
+            if ($TDIGet_Data->Error) {
 
                 $this->GlobalDb->db_debug = FALSE;
 
@@ -429,7 +401,6 @@ class Global_model extends CI_Model {
                 $this->GlobalDb->select($select_ary);
                 $this->GlobalDb->from('Global.TaxDetailsTbl as TaxDetail');
                 $this->GlobalDb->where($WhereCondition);
-                $this->GlobalDb->group_by('TaxDetail.TaxDetailsUID');
                 $this->GlobalDb->order_by('TaxDetail.Sorting', 'ASC');
                 $query = $this->GlobalDb->get();
                 $error = $this->GlobalDb->error();
@@ -439,17 +410,10 @@ class Global_model extends CI_Model {
                     $this->EndReturnData->Data = $query->result();
                 }
 
-                $this->cacheservice->set(getSiteConfiguration()->RedisName . '-taxdetailsinfo', json_encode($this->EndReturnData->Data), 43200 * 365);
+                $this->cacheservice->set($TDIKey, json_encode($this->EndReturnData->Data), 43200 * 365);
 
             } else {
-
-                $RedisTaxDetailInfo = $this->cacheservice->get(getSiteConfiguration()->RedisName . '-taxdetailsinfo');
-                if ($RedisTaxDetailInfo->Error === FALSE) {
-                    $this->EndReturnData->Data = json_decode($RedisTaxDetailInfo->Value, TRUE);
-                } else {
-                    throw new Exception($RedisTaxDetailInfo->Message);
-                }
-
+                $this->EndReturnData->Data = json_decode($TDIGet_Data->Value, TRUE);
             }
 
             $this->EndReturnData->Error = FALSE;
@@ -823,7 +787,7 @@ class Global_model extends CI_Model {
         }
     }
 
-    public function getModuleReportDetails($ModuleInfo, $SelectColumns, $JoinDataArr = [], $FilterArray = [], $DirectQuery = '', $OrderBy = 'ASC', $whereInCondition = [], $Limit = 0, $Offset = 0, $Flag = 0)
+    public function getModuleReportDetails_bkp($ModuleInfo, $SelectColumns, $JoinDataArr = [], $FilterArray = [], $DirectQuery = '', $OrderBy = 'ASC', $whereInCondition = [], $Limit = 0, $Offset = 0, $Flag = 0)
     {
 
         $this->EndReturnData = new StdClass();
@@ -910,6 +874,134 @@ class Global_model extends CI_Model {
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
         }
+    }
+
+    public function getModuleReportDetails($ModuleInfo, $SelectColumns, $JoinDataArr = [], $FilterArray = [], $DirectQuery = '', $OrderBy = 'ASC', $whereInCondition = [], $Limit = 0, $Offset = 0, $Flag = 0) {
+
+        $this->EndReturnData = new StdClass();
+        try {
+
+            $this->ModuleDb->db_debug = FALSE;
+            
+            $rawFields = array_column($SelectColumns, 'DbFieldName');
+            
+            $aliases = [];
+            foreach ($rawFields as $field) {
+                $explode = explode('.', $field);
+                if (isset($explode[0]) && $explode[0] !== $ModuleInfo->TableAliasName) {
+                    $aliases[] = $explode[0];
+                }
+            }
+
+            $getUnqJoinTable = array_unique($aliases);
+            
+            if ($Flag == 0) {
+
+                $selectFields = [];
+
+                // Select primary UID
+                $selectFields[] = "{$ModuleInfo->TableAliasName}.{$ModuleInfo->TablePrimaryUID} AS TablePrimaryUID";
+
+                // Select module columns
+                foreach ($SelectColumns as $col) {
+
+                    // Clean name — faster than regex
+                    $DisplayName = preg_replace('/[^A-Za-z0-9_ ]/', '', $col->DisplayName);
+
+                    // Use addon field if exists
+                    $fieldName = $col->DbFieldNameAddOn ?: $col->DbFieldName;
+
+                    $selectFields[] = "{$fieldName} AS `{$DisplayName}`";
+                }
+
+                $this->ModuleDb->select(implode(", ", $selectFields));
+            } else {
+                $this->ModuleDb->select("{$ModuleInfo->TableAliasName}.{$ModuleInfo->TablePrimaryUID}");
+            }
+            
+            $this->ModuleDb->from("{$ModuleInfo->DatabaseName}.{$ModuleInfo->MasterTableName} AS {$ModuleInfo->TableAliasName}");
+            
+            if (!empty($JoinDataArr)) {
+                foreach ($JoinDataArr as $join) {
+
+                    // Determine alias
+                    $alias = $join->JoinLookupTblAliasName ?? $join->JoinTblAliasName;
+
+                    // Validate if join is needed
+                    $isNeeded = ($join->IsMandatory == 1) || in_array($alias, $getUnqJoinTable);
+                    if (!$isNeeded) continue;
+
+                    // Resolve table name
+                    $joinTable = $join->JoinLookupTblAliasName
+                        ? "{$join->LkupDatabaseName}.{$join->LkupTableName}"
+                        : "{$join->JoinDatabaseName}.{$join->JoinTableName}";
+
+                    // Resolve field name
+                    $joinField = $join->JoinLookupTblFieldName ?? $join->JoinTblFieldName;
+
+                    // Build join condition
+                    $joinCond = "{$alias}.{$joinField} = {$join->MainTblAliasName}.{$join->MainTblFieldName}";
+
+                    // Add IsDeleted / IsActive if required
+                    if ($join->JoinBasicCheck) {
+                        $joinCond .= " AND {$alias}.IsDeleted = 0 AND {$alias}.IsActive = 1";
+                    }
+
+                    // Add additional join conditions
+                    if (!empty($join->JoinColumnsAddon)) {
+                        $joinCond .= " {$join->JoinColumnsAddon}";
+                    }
+
+                    // Perform join
+                    $this->ModuleDb->join("{$joinTable} AS {$alias}", $joinCond, $join->JoinType);
+
+                }
+            }
+            
+            $this->ModuleDb->where([
+                "{$ModuleInfo->TableAliasName}.IsDeleted" => 0,
+                "{$ModuleInfo->TableAliasName}.IsActive"  => 1
+            ]);
+            
+            if (!empty($FilterArray)) {
+                $this->ModuleDb->where($FilterArray);
+            }
+            
+            if (!empty($DirectQuery)) {
+                $this->ModuleDb->where($DirectQuery);
+            }
+            
+            if (!empty($whereInCondition)) {
+                foreach ($whereInCondition as $key => $value) {
+                    if (!empty($value)) {
+                        $this->ModuleDb->where_in($key, $value);
+                    }
+                }
+            }
+            
+            $this->ModuleDb->group_by("{$ModuleInfo->TableAliasName}.{$ModuleInfo->TablePrimaryUID}");
+            $this->ModuleDb->order_by("{$ModuleInfo->TableAliasName}.{$ModuleInfo->TablePrimaryUID}", $OrderBy);
+            if ($Flag == 0 && $Limit > 0) {
+                $this->ModuleDb->limit($Limit, $Offset);
+            }
+            $query = $this->ModuleDb->get();
+            $error = $this->ModuleDb->error();
+
+            if ($error['code']) {
+                throw new Exception($error['message']);
+            }
+
+            $this->EndReturnData->Data = $query->result();
+            return $this->EndReturnData->Data;            
+
+        } catch (Exception $e) {
+
+            $this->EndReturnData->Error = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+            throw new Exception($e->getMessage());
+
+        }
+
     }
     
 }

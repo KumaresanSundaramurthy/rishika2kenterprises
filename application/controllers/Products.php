@@ -14,6 +14,8 @@ class Products extends CI_Controller {
 
     public function index() {
 
+        // $this->output->enable_profiler(TRUE);
+
         $activeTab = strtolower($this->input->get('tab', TRUE) ?: 'item');
         $allowedTabs = ['item', 'category', 'size', 'brand'];
         if (!in_array($activeTab, $allowedTabs, true)) {
@@ -21,15 +23,14 @@ class Products extends CI_Controller {
         }
 
         $ControllerName = strtolower($this->router->fetch_class());
-
-        // Filter module info
+        
         $this->pageData['ModuleInfo'] = array_values(array_filter(
             $this->pageData['JwtData']->ModuleInfo,
             fn($module) => strtolower($module->ControllerName) === $ControllerName
         ));
 
-        $limit = (int)($this->pageData['JwtData']->GenSettings->RowLimit ?? 10);
-        $page = (int)($this->input->get('page', TRUE) ?: 1);
+        $limit = (int) ($this->pageData['JwtData']->GenSettings->RowLimit ?? 10);
+        $page = (int) ($this->input->get('page', TRUE) ?: 1);
         $offset = max(0, ($page-1)*$limit);
 
         $tabModules = [
@@ -49,12 +50,16 @@ class Products extends CI_Controller {
             return;
         }
 
+        // $this->benchmark->mark('funcA_start');
+
         $this->globalservice->setJwtData($this->pageData);
         $ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($ModuleId, "/products/get{$tabModules[$activeTab]}Details/", $page, $limit, $offset, [], []);
         if ($ReturnResponse->Error) {
             show_error($ReturnResponse->Message, 500);
             return;
         }
+
+        // $this->benchmark->mark('funcA_end');
 
         $this->pageData['ModActiveList']       = $ReturnResponse->Data;
         $this->pageData['ModActiveUIDs']       = $ReturnResponse->UIDs;
@@ -73,7 +78,7 @@ class Products extends CI_Controller {
         $this->pageData['ProdTypeInfo']    = $this->global_model->getProductTypeInfo()->Data ?? [];
         $this->pageData['ProdTaxInfo']     = $this->global_model->getProductTaxInfo()->Data ?? [];
         $this->pageData['TaxDetInfo']      = $this->global_model->getTaxDetailsInfo()->Data ?? [];
-
+        
         $this->pageData['Categories'] = ($activeTab === 'category') ? $this->products_model->getCategoriesDetails([], $limit, $offset)->Data : [];
         $this->pageData['SizeInfo']   = ($activeTab === 'size') ? $this->products_model->getSizeDetails([], $limit, $offset)->Data : [];
         $this->pageData['BrandInfo']  = ($activeTab === 'brand') ? $this->products_model->getBrandDetails([], $limit, $offset)->Data : [];
@@ -82,12 +87,19 @@ class Products extends CI_Controller {
             $this->load->model('storage_model');
             $this->pageData['Storage'] = $this->storage_model->getStorageDetails([])->Data ?? [];
         }
-
+        
         $this->pageData['ActiveTabData']  = $activeTab;
         $this->pageData['ActiveTabName']  = ucfirst($activeTab);
         $this->pageData['ActiveModuleId'] = $ModuleId;
+
+        // echo $this->benchmark->elapsed_time('funcA_start', 'funcA_end');
+        // echo '</br>';
         
+        // $this->benchmark->mark('funcB_start');
         $this->load->view('products/view', $this->pageData);
+        // $this->benchmark->mark('funcB_end');
+
+        // echo $this->benchmark->elapsed_time('funcB_start', 'funcB_end');
 
     }
 

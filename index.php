@@ -312,4 +312,10 @@ switch (ENVIRONMENT)
  *
  * And away we go...
  */
+
+$composerAutoload = __DIR__ . '/vendor/autoload.php';
+if (file_exists($composerAutoload)) {
+    require_once $composerAutoload;
+}
+
 require_once BASEPATH.'core/CodeIgniter.php';

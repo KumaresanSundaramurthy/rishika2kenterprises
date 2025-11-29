@@ -82,6 +82,7 @@ class Login_model extends CI_Model {
             $jwtData['exp'] = time() + $Expiry; 
 
             $jwtEncoded = JWT::encode($jwtData, getenv('JWT_KEY'), 'HS256');
+            print_r($jwtEncoded); print_r('</br>');
 
             set_cookie(getenv('JWT_COOKIE_NAME'), $jwtEncoded, $Expiry);
 

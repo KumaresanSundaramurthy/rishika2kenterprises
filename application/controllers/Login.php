@@ -46,6 +46,7 @@ class Login extends CI_Controller {
 
                         $JwtReturnData = $this->login_model->setJwtToken($UserData->Data[0], $jwtPayload);
                         if(!$JwtReturnData->Error) {
+                            print_r($JwtReturnData->JWTData); die();
                             redirect('dashboard', 'refresh');
                         } else {
                             $this->session->set_flashdata('danger', 'Oops! '.$jwtPayload->Message);  

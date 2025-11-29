@@ -10,7 +10,6 @@ class Dashboard extends CI_Controller {
     }
 
     public function index() {
-        print_r($this->pageData);
         $this->load->view('dashboard/view', $this->pageData);
     }
 

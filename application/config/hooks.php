@@ -16,5 +16,5 @@ $hook['post_controller_constructor'] = array(
     'class'    => 'Middleware',
     'function' => 'validateJWT',
     'filename' => 'Middleware.php',
-    'filepath' => 'hooks/middleware'
+    'filepath' => 'hooks/Middleware'
 );

@@ -65,7 +65,7 @@ class Login extends CI_Controller {
 			$this->session->set_flashdata('danger', $ErrorInForm);
 		}
 
-        redirect('portal/login', 'refresh');
+        redirect('portal', 'refresh');
 
     }
 
@@ -134,7 +134,7 @@ class Login extends CI_Controller {
 
 		}
 
-		redirect('portal/login', 'refresh');
+		redirect('portal', 'refresh');
 
     }
 

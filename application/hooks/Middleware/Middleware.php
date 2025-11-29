@@ -18,6 +18,9 @@ class Middleware {
 			return;
 		}
 
+		$cookieName = getenv('JWT_COOKIE_NAME');
+        $JwtEncoded = get_cookie($cookieName);
+
 		//check JWT
 		if (empty($JwtEncoded)) {
 

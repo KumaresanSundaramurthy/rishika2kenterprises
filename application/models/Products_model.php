@@ -1,13 +1,11 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed');
 
-class Products_model extends CI_Model
-{
+class Products_model extends CI_Model {
 
     private $EndReturnData;
     private $ProductDb;
 
-    function __construct()
-    {
+    function __construct() {
         parent::__construct();
 
         $this->ProductDb = $this->load->database('Products', TRUE);

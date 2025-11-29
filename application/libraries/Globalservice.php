@@ -131,8 +131,6 @@ Class Globalservice {
                     $ViewColumnWhere = 'IsExportPdfApplicable';
                     $ViewColumnSort = 'ExportPdfOrder';
                 }
-
-                // $DataInfo = $this->CI->global_model->getModuleViewColumnDetails(['ViewColmn.ModuleUID' => $ModuleId, $ViewColumnWhere => 1], true, [$ViewColumnSort => 'ASC']);
                 
                 $AllDataInfo = $this->CI->global_model->getModuleViewColumnDetails(['ViewColmn.ModuleUID' => $ModuleId]);
                 $DataInfo = array_filter($AllDataInfo, function($item) use ($ViewColumnWhere) {

@@ -47,8 +47,9 @@ class Global_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $CountryRedisDataExists = $this->cacheservice->exists(getSiteConfiguration()->RedisName . '-countryinfo');
-            if ($CountryRedisDataExists->Error) {
+            $CRDKey = getSiteConfiguration()->RedisName . '-countryinfo';
+            $CRDGet_Data = $this->cacheservice->get($CRDKey);
+            if ($CRDGet_Data->Error) {
 
                 $this->load->library('curlservice');
 
@@ -60,17 +61,10 @@ class Global_model extends CI_Model {
                 });
 
                 $this->EndReturnData->Data = $Countries;
-                $this->cacheservice->set(getSiteConfiguration()->RedisName . '-countryinfo', json_encode($Countries), 43200 * 365);
+                $this->cacheservice->set($CRDKey, json_encode($Countries), 43200 * 365);
 
             } else {
-
-                $RedisCountryInfo = $this->cacheservice->get(getSiteConfiguration()->RedisName . '-countryinfo');
-                if ($RedisCountryInfo->Error === FALSE) {
-                    $this->EndReturnData->Data = json_decode($RedisCountryInfo->Value, TRUE);
-                } else {
-                    throw new Exception($RedisCountryInfo->Message);
-                }
-
+                $this->EndReturnData->Data = json_decode($CRDGet_Data->Value, TRUE);
             }
 
             $this->EndReturnData->Error = FALSE;
@@ -90,28 +84,22 @@ class Global_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $StateRedisDataExists = $this->cacheservice->exists(getSiteConfiguration()->RedisName . '-stateinfo-' . $CountryCode);
-            if ($StateRedisDataExists->Error) {
+            $SRDEKey = getSiteConfiguration()->RedisName . '-stateinfo-' . $CountryCode;
+            $SRDEGet_Data = $this->cacheservice->get($SRDEKey);
+            if ($SRDEGet_Data->Error) {
 
                 $this->load->library('curlservice');
 
                 $StateResp = $this->curlservice->retrieve(getenv('COUNTRY_API_URL') . '/countries/' . $CountryCode . '/states', 'GET', [], array('X-CSCAPI-KEY: ' . getenv('COUNTRY_API_KEY')));
                 if ($StateResp->Error === false && sizeof($StateResp->Data) > 0) {
                     $this->EndReturnData->Data = $StateResp->Data;
-                    $this->cacheservice->set(getSiteConfiguration()->RedisName . '-stateinfo-' . $CountryCode, json_encode($StateResp->Data), 43200 * 365);
+                    $this->cacheservice->set($SRDEKey, json_encode($StateResp->Data), 43200 * 365);
                 } else {
                     throw new Exception($StateResp->Message);
                 }
 
             } else {
-
-                $RedisStateInfo = $this->cacheservice->get(getSiteConfiguration()->RedisName . '-stateinfo-' . $CountryCode);
-                if ($RedisStateInfo->Error === FALSE) {
-                    $this->EndReturnData->Data = json_decode($RedisStateInfo->Value, TRUE);
-                } else {
-                    throw new Exception($RedisStateInfo->Message);
-                }
-
+                $this->EndReturnData->Data = json_decode($SRDEGet_Data->Value, TRUE);
             }
 
             $this->EndReturnData->Error = FALSE;
@@ -131,27 +119,20 @@ class Global_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            // Redis City Details
-            $CityRedisDataExists = $this->cacheservice->exists(getSiteConfiguration()->RedisName . '-cityinfo-' . $CountryCode);
-            if ($CityRedisDataExists->Error) {
+            $CRDEKey = getSiteConfiguration()->RedisName . '-cityinfo-' . $CountryCode;
+            $CRDEGet_Data = $this->cacheservice->get($CRDEKey);
+            if ($CRDEGet_Data->Error) {
 
                 $CityResp = $this->curlservice->retrieve(getenv('COUNTRY_API_URL') . '/countries/' . $CountryCode . '/cities', 'GET', [], array('X-CSCAPI-KEY: ' . getenv('COUNTRY_API_KEY')));
                 if ($CityResp->Error === false && sizeof($CityResp->Data) > 0) {
                     $this->EndReturnData->Data = $CityResp->Data;
-                    $this->cacheservice->set(getSiteConfiguration()->RedisName . '-cityinfo-' . $CountryCode, json_encode($CityResp->Data), 43200 * 365);
+                    $this->cacheservice->set($CRDEKey, json_encode($CityResp->Data), 43200 * 365);
                 } else {
                     throw new Exception($CityResp->Message);
                 }
 
             } else {
-
-                $RedisCityInfo = $this->cacheservice->get(getSiteConfiguration()->RedisName . '-cityinfo-' . $CountryCode);
-                if ($RedisCityInfo->Error === FALSE) {
-                    $this->EndReturnData->Data = json_decode($RedisCityInfo->Value, TRUE);
-                } else {
-                    throw new Exception($RedisCityInfo->Message);
-                }
-
+                $this->EndReturnData->Data = json_decode($CRDEGet_Data->Value, TRUE);
             }
 
             $this->EndReturnData->Error = FALSE;
@@ -482,8 +463,9 @@ class Global_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $StorageTypeRedisDataExists = $this->cacheservice->exists(getSiteConfiguration()->RedisName . '-storagetypeinfo');
-            if ($StorageTypeRedisDataExists->Error) {
+            $STRDEKey = getSiteConfiguration()->RedisName . '-storagetypeinfo';
+            $STRDEGet_Data = $this->cacheservice->get($STRDEKey);
+            if ($STRDEGet_Data->Error) {
 
                 $this->GlobalDb->db_debug = FALSE;
 
@@ -510,15 +492,9 @@ class Global_model extends CI_Model {
                     $this->EndReturnData->Data = $query->result();
                 }
 
-                $this->cacheservice->set(getSiteConfiguration()->RedisName . '-storagetypeinfo', json_encode($this->EndReturnData->Data), 43200 * 365);
+                $this->cacheservice->set($STRDEKey, json_encode($this->EndReturnData->Data), 43200 * 365);
             } else {
-
-                $RedisStrgTypeInfo = $this->cacheservice->get(getSiteConfiguration()->RedisName . '-storagetypeinfo');
-                if ($RedisStrgTypeInfo->Error === FALSE) {
-                    $this->EndReturnData->Data = json_decode($RedisStrgTypeInfo->Value, TRUE);
-                } else {
-                    throw new Exception($RedisStrgTypeInfo->Message);
-                }
+                $this->EndReturnData->Data = json_decode($STRDEGet_Data->Value, TRUE);
             }
 
             $this->EndReturnData->Error = FALSE;
@@ -538,7 +514,7 @@ class Global_model extends CI_Model {
         try {
 
             $RedisName = getSiteConfiguration()->RedisName.'-'.base64_encode(json_encode(['WC' => $WhereCond, 'WIC' => $whereInCondition])).'-getModuleDetails';
-            $ModDataRedis = $this->cacheservice->exists($RedisName);
+            $ModDataRedis = $this->cacheservice->get($RedisName);
             if ($ModDataRedis->Error) {
 
                 $this->GlobalDb->db_debug = FALSE;
@@ -591,13 +567,7 @@ class Global_model extends CI_Model {
 
             } else {
 
-                $RedisDataInfo = $this->cacheservice->get($RedisName);
-                if ($RedisDataInfo->Error === FALSE) {
-                    $this->EndReturnData->Data = json_decode($RedisDataInfo->Value);
-                } else {
-                    throw new Exception($RedisDataInfo->Message);
-                }
-
+                $this->EndReturnData->Data = json_decode($ModDataRedis->Value);
                 return $this->EndReturnData->Data;
 
             }
@@ -616,8 +586,7 @@ class Global_model extends CI_Model {
         try {
 
             $RedisName = getSiteConfiguration()->RedisName.'-'.base64_encode(json_encode(['WC' => $WhereArrayCondition, 'Sort' => $Sorting, 'SortCol' => $SortingColumn])).'-getModuleViewColumnDetails';
-            // $this->cacheservice->delete($RedisName);
-            $ModViewColRedis = $this->cacheservice->exists($RedisName);
+            $ModViewColRedis = $this->cacheservice->get($RedisName);
             if ($ModViewColRedis->Error) {
 
                 $this->ModuleDb->db_debug = FALSE;
@@ -682,14 +651,8 @@ class Global_model extends CI_Model {
                 return $this->EndReturnData->Data;
 
             } else {
-
-                $RedisDataInfo = $this->cacheservice->get($RedisName);
-                if ($RedisDataInfo->Error === FALSE) {
-                    $this->EndReturnData->Data = json_decode($RedisDataInfo->Value);
-                } else {
-                    throw new Exception($RedisDataInfo->Message);
-                }
-
+                
+                $this->EndReturnData->Data = json_decode($ModViewColRedis->Value);
                 return $this->EndReturnData->Data;
 
             }
@@ -709,7 +672,7 @@ class Global_model extends CI_Model {
         try {
 
             $RedisName = getSiteConfiguration()->RedisName.'-'.base64_encode(json_encode(['WC' => $WhereArrayCondition, 'Sort' => $Sorting, 'SortCol' => $SortingColumn])).'-getModuleViewJoinColumnDetails';
-            $ModViewJoinColRedis = $this->cacheservice->exists($RedisName);
+            $ModViewJoinColRedis = $this->cacheservice->get($RedisName);
             if ($ModViewJoinColRedis->Error) {
 
                 $this->ModuleDb->db_debug = FALSE;
@@ -768,14 +731,8 @@ class Global_model extends CI_Model {
                 return $this->EndReturnData->Data;
 
             } else {
-
-                $RedisDataInfo = $this->cacheservice->get($RedisName);
-                if ($RedisDataInfo->Error === FALSE) {
-                    $this->EndReturnData->Data = json_decode($RedisDataInfo->Value);
-                } else {
-                    throw new Exception($RedisDataInfo->Message);
-                }
-
+                
+                $this->EndReturnData->Data = json_decode($ModViewJoinColRedis->Value);
                 return $this->EndReturnData->Data;
 
             }

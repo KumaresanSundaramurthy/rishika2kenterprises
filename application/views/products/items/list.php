@@ -8,7 +8,7 @@
             <td>
                 <div class="form-check form-check-inline"><input class="form-check-input table-chkbox productsCheck" type="checkbox" value="<?php echo htmlspecialchars($list->TablePrimaryUID); ?>"></div>
             </td>
-            <td class="<?php echo $SerialNoDisplay == 1 ? '' : 'd-none'; ?>"><?php echo $SerialNumber; ?></td>
+            <td class="<?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>"><?php echo $SerialNumber; ?></td>
             <?php
                 $DataPassing['ViewColumns'] = $ViewColumns;
                 $DataPassing['list'] = $list;

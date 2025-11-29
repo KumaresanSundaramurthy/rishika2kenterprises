@@ -173,7 +173,6 @@
                                                         $PageData['DataLists'] = $ModActiveList;
                                                         $PageData['ViewColumns'] = $ItemColumns;
                                                         $PageData['SerialNumber'] = 0;
-                                                        $PageData['SerialNoDisplay'] = $JwtData->GenSettings->SerialNoDisplay;
                                                         echo $this->load->view('products/items/list', $PageData, TRUE);
                                                     } ?>
                                                 </tbody>

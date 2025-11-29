@@ -15,66 +15,82 @@ class Middleware {
 		$ExcludeController = array("website", "login");
 	    
 		if(in_array($Controller, $ExcludeController)) {
+			return;
+		}
 
-			//No auth check
+		//check JWT
+		if (empty($JwtEncoded)) {
 
-		} else {
+			// $CI->session->set_flashdata('danger', 'Oops! Action not allowed. please try login.');
+			// redirect('portal/login', 'refresh');
+            echo "DEBUG: Cookie '$cookieName' not found or empty<br>";
+            exit;
 
-			//check JWT
+        }
 
-			$JwtEncoded = get_cookie(getenv('JWT_COOKIE_NAME'));
-			print_r($JwtEncoded); print_r('</br>');
-			if(isset($JwtEncoded)) {
+		try {
 
-				try{
+			$JwtData = JWT::decode($JwtEncoded, new Key(getenv('JWT_KEY'), 'HS256'));
+			echo "DEBUG: Decoded JWT<br>";
+            print_r($JwtData);
+            echo "<br>";
 
-					$JwtData = JWT::decode($JwtEncoded, new Key(getenv('JWT_KEY'), 'HS256'));
-					print_r($JwtData); print_r('</br>');
-					if(!empty($JwtData->key)) {
+			if(!empty($JwtData->key)) {
 
-						$RedisData = $CI->cacheservice->get($JwtData->key);
-						print_r($RedisData); print_r('</br>');
+				$RedisData = $CI->cacheservice->get($JwtData->key);
+				echo "DEBUG: RedisData<br>";
+                print_r($RedisData);
+                echo "<br>";
 
-						if($RedisData->Error){
+				if($RedisData->Error) {
 
-							$CI->session->set_flashdata('danger', 'Oops! Session expired. please try login.');
+					echo "DEBUG: Redis returned error<br>";
+                    exit;
 
-							redirect('portal/login', 'refresh');
+					// $CI->session->set_flashdata('danger', 'Oops! Session expired. please try login.');
+					// redirect('portal/login', 'refresh');
 
-						}else{
+				}else{
 
-							print_r(json_decode($RedisData->Value)); die();
+					echo "DEBUG: JwtData set in pageData<br>";
+                    print_r($CI->pageData['JwtData']);
+                    echo "<br>";
 
-							$CI->pageData['JwtData'] = json_decode($RedisData->Value);
-							$CI->pageData['JwtToken'] = $JwtEncoded;
-							$CI->pageData['JwtUserKey'] = $JwtData->key;
-						}
-
-					} else {
-
-						$CI->session->set_flashdata('danger', 'Oops! Session expired. please try login.');
-						redirect('portal/login', 'refresh');
-
-					}
-
-				} catch(\Firebase\JWT\ExpiredException $e) {
-
-					$CI->session->set_flashdata('danger', 'Oops! Session expired. please try login.');
-					redirect('portal/login', 'refresh');
-					
-				} catch (\Firebase\JWT\SignatureInvalidException $e) {
-
-					$CI->session->set_flashdata('danger', 'Oops! Security exception. please try login.');
-					redirect('portal/login', 'refresh');
+					$CI->pageData['JwtData'] = json_decode($RedisData->Value);
+					$CI->pageData['JwtToken'] = $JwtEncoded;
+					$CI->pageData['JwtUserKey'] = $JwtData->key;
 				}
 
 			} else {
 
-				$CI->session->set_flashdata('danger', 'Oops! Action not allowed. please try login.');
-				redirect('portal/login', 'refresh');
+				echo "DEBUG: JWT key missing<br>";
+                exit;
+
+				// $CI->session->set_flashdata('danger', 'Oops! Session expired. please try login.');
+				// redirect('portal/login', 'refresh');
 
 			}
-		}
+
+		} catch(\Firebase\JWT\ExpiredException $e) {
+
+			echo "DEBUG: JWT expired - " . $e->getMessage() . "<br>";
+            exit;
+
+			// $CI->session->set_flashdata('danger', 'Oops! Session expired. please try login.');
+			// redirect('portal/login', 'refresh');
+			
+		} catch (\Firebase\JWT\SignatureInvalidException $e) {
+
+			echo "DEBUG: JWT signature invalid - " . $e->getMessage() . "<br>";
+            exit;
+
+			// $CI->session->set_flashdata('danger', 'Oops! Security exception. please try login.');
+			// redirect('portal/login', 'refresh');
+		} catch (Exception $e) {
+            echo "DEBUG: General JWT error - " . $e->getMessage() . "<br>";
+            exit;
+        }
+
 	}
 	
 }

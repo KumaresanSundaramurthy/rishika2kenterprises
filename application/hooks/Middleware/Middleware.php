@@ -23,14 +23,17 @@ class Middleware {
 			//check JWT
 
 			$JwtEncoded = get_cookie(getenv('JWT_COOKIE_NAME'));
+			print_r($JwtEncoded); print_r('</br>');
 			if(isset($JwtEncoded)) {
 
 				try{
 
 					$JwtData = JWT::decode($JwtEncoded, new Key(getenv('JWT_KEY'), 'HS256'));
+					print_r($JwtData); print_r('</br>');
 					if(!empty($JwtData->key)) {
 
 						$RedisData = $CI->cacheservice->get($JwtData->key);
+						print_r($RedisData); print_r('</br>');
 
 						if($RedisData->Error){
 
@@ -39,6 +42,8 @@ class Middleware {
 							redirect('portal/login', 'refresh');
 
 						}else{
+
+							print_r(json_decode($RedisData->Value)); die();
 
 							$CI->pageData['JwtData'] = json_decode($RedisData->Value);
 							$CI->pageData['JwtToken'] = $JwtEncoded;

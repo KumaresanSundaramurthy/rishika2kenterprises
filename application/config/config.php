@@ -24,7 +24,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 |
 */
 // $config['base_url'] = 'http://localhost/rishika2kenterprises';
-$config['base_url'] = 'http://'.getenv('HTTP_HOST');
+$config['base_url'] = 'https://r2k-web-service.onrender.com/';
 
 /*
 |--------------------------------------------------------------------------

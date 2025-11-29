@@ -22,6 +22,8 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 COPY . /var/www/html
 WORKDIR /var/www/html
 
+RUN composer install --no-dev --optimize-autoloader
+
 # Copy nginx config
 COPY nginx/default.conf /etc/nginx/conf.d/default.conf
 

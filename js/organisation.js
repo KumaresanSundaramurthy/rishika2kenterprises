@@ -1,7 +1,5 @@
 function updateOrgForm(formdata) {
-
-    $('#OrgSubBtn').prop('disabled', 'disabled');
-
+    $('.OrgSubBtn').attr('disabled', 'disabled');
     $.ajax({
         url: '/organisation/updateOrgForm',
         method: 'POST',
@@ -11,22 +9,12 @@ function updateOrgForm(formdata) {
         contentType: false,
         enctype: 'multipart/form-data',
         success: function (response) {
-
-            $('#OrgSubBtn').removeAttr('disabled');
-            $('#updateFormAlert').removeClass('d-none');
+            $('.OrgSubBtn').removeAttr('disabled');
             if (response.Error) {
-
-                inlineMessageAlert('#updateFormAlert', 'danger', response.Message, false, false);
-
+                Swal.fire(response.Message, "", "danger");
             } else {
 
-                inlineMessageAlert('#updateFormAlert', 'success', response.Message, false, true);
-                setTimeout(function () {
-                    $('#updateFormAlert').fadeOut(500, function () {
-                        $(this).addClass('d-none').show();
-                        window.location.reload();
-                    });
-                }, 1000);
+                Swal.fire(response.Message, "", "success");
                 
                 imageChange = 0;
                 countryChange = 0;
@@ -41,7 +29,6 @@ function updateOrgForm(formdata) {
 
         }
     });
-
 }
 
 function getStateCityOfCountry(CountryCode) {

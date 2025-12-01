@@ -12,69 +12,53 @@ class Organisation extends CI_Controller {
 
     public function index() {
         
-        $this->load->library('curlservice');
-
-        $Countries = [];
         $this->load->model('global_model');
         $GetCountryInfo = $this->global_model->getCountryInfo();
-        if($GetCountryInfo->Error === FALSE) {
-            $Countries = $GetCountryInfo->Data;
-        }
-
+        $this->pageData['CountryInfo'] = $GetCountryInfo->Error === FALSE ? $GetCountryInfo->Data : [];
+        
         $this->load->model('organisation_model');
-        $this->pageData['OrgBussType'] = [];
         $OrgBussTypeData = $this->organisation_model->getOrgBusinessTypeDetails();
-        if($OrgBussTypeData->Error === FALSE) {
-            $this->pageData['OrgBussType'] = $OrgBussTypeData->Data;
-        }
+        $this->pageData['OrgBussType'] = $OrgBussTypeData->Error === FALSE ? $OrgBussTypeData->Data : [];
 
-        $this->pageData['EditOrgData'] = [];
-        $this->pageData['BillOrgAddrData'] = [];
-        $this->pageData['ShipOrgAddrData'] = [];
+        $OrgIndusTypeData = $this->organisation_model->getOrgIndustryTypeDetails();
+        $this->pageData['OrgIndusType'] = $OrgIndusTypeData->Error === FALSE ? $OrgIndusTypeData->Data : [];
+        
+        $OrgBusRegData = $this->organisation_model->getOrgBusRegTypeDetails();
+        $this->pageData['OrgBusRegType'] = $OrgBusRegData->Error === FALSE ? $OrgBusRegData->Data : [];
+        
+        $this->pageData['EditOrgData'] = null;
+        $this->pageData['BillOrgAddrData'] = null;
+        $this->pageData['ShipOrgAddrData'] = null;
 
         $this->pageData['StateData'] = [];
         $this->pageData['CityData'] = [];
 
-        $OrganisationData = $this->organisation_model->getOrganisationDetails(['Org.OrgUID' => $this->pageData['JwtData']->User->OrgUID]);
-        if($OrganisationData->Error === FALSE) {
+        $OrganisationData = $this->organisation_model->getAllOrganisationAddressDetails(['Org.OrgUID' => $this->pageData['JwtData']->User->OrgUID]);
+        if ($OrganisationData->Error === FALSE && !empty($OrganisationData->Data)) {
 
-            $this->pageData['EditOrgData'] = $OrganisationData->Data[0];
+            $orgRow = $OrganisationData->Data[0];
 
-            $OrgBillAddrData = $this->organisation_model->getOrgAddressDetails(['Addr.OrgUID' => $this->pageData['JwtData']->User->OrgUID, 'Addr.AddressType' => 'Billing']);
-            if($OrgBillAddrData->Error === FALSE && (sizeof($OrgBillAddrData->Data) > 0)) {
-                $this->pageData['BillOrgAddrData'] = $OrgBillAddrData->Data[0];
-            }
+            $this->pageData['EditOrgData'] = $orgRow;
+            $this->pageData['BillOrgAddrData'] = mapOrganisationAddress($orgRow, 'B', 'Billing') ?? null;
+            $this->pageData['ShipOrgAddrData'] = mapOrganisationAddress($orgRow, 'S', 'Shipping') ?? null;
 
-            $OrgShipAddrData = $this->organisation_model->getOrgAddressDetails(['Addr.OrgUID' => $this->pageData['JwtData']->User->OrgUID, 'Addr.AddressType' => 'Shipping']);
-            if($OrgBillAddrData->Error === FALSE && (sizeof($OrgShipAddrData->Data) > 0)) {
-                $this->pageData['ShipOrgAddrData'] = $OrgShipAddrData->Data[0];
-            }
-
-            if(!empty($OrganisationData->Data[0]->CountryISO2)) {
-
-                $StateInfo = $this->global_model->getStateofCountry($OrganisationData->Data[0]->CountryISO2);
+            if(!empty($orgRow->CountryISO2)) {
+                $StateInfo = $this->global_model->getStateofCountry($orgRow->CountryISO2);
                 if($StateInfo->Error === FALSE) {
                     $this->pageData['StateData'] = $StateInfo->Data;
                 }
-
-                $CityInfo = $this->global_model->getCityofCountry($OrganisationData->Data[0]->CountryISO2);
+                $CityInfo = $this->global_model->getCityofCountry($orgRow->CountryISO2);
                 if($CityInfo->Error === FALSE) {
                     $this->pageData['CityData'] = $CityInfo->Data;
                 }
-
             }
 
         }
 
-        $this->pageData['CountryInfo'] = $Countries;
-
-        $this->load->model('global_model');
-        $this->pageData['TimezoneInfo'] = [];
         $TimezoneInfo = $this->global_model->getTimezoneDetails([]);
-        if($TimezoneInfo->Error === FALSE) {
-            $this->pageData['TimezoneInfo'] = $TimezoneInfo->Data;
-        }
+        $this->pageData['TimezoneInfo'] = $TimezoneInfo->Error === FALSE ? $TimezoneInfo->Data : [];
         
+        $this->pageData['JwtData']->GenSettings = $this->session->userdata('CachedUserGenSettings');
         $this->load->view('organisation/view', $this->pageData);
 
     }
@@ -101,6 +85,8 @@ class Organisation extends CI_Controller {
                     'MobileNumber' => $PostData['MobileNumber'] ? $PostData['MobileNumber'] : null,
                     'GSTIN' => $PostData['GSTIN'] ? $PostData['GSTIN'] : null,
                     'OrgBussTypeUID' => $PostData['OrgBussTypeUID'],
+                    'OrgIndTypeUID' => $PostData['OrgIndusTypeUID'] ? $PostData['OrgIndusTypeUID'] : NULL,
+                    'OrgBusRegTypeUID' => $PostData['OrgBusRegTypeUID'] ? $PostData['OrgBusRegTypeUID'] : NULL,
                     'AlternateNumber' => $PostData['AlternateNumber'] ? $PostData['AlternateNumber'] : null,
                     'Website' => $PostData['Website'] ? $PostData['Website'] : null,
                     'PANNumber' => $PostData['PANNumber'] ? $PostData['PANNumber'] : null,
@@ -113,28 +99,12 @@ class Organisation extends CI_Controller {
 
                 if($UpdateDataResp->Error === FALSE) {
 
-                    if($PostData['imageChange'] == 1) {
-
-                        $imagePath = NULL;
-
-                        if (isset($_FILES['UploadImage']['tmp_name']) && !empty($_FILES['UploadImage']['tmp_name'])) {
-
-                            $ext = pathinfo($_FILES['UploadImage']['name'], PATHINFO_EXTENSION);
-                            $fileName = substr(str_replace('.'.$ext, '', str_replace(' ', '_', $_FILES['UploadImage']['name'])), 0, 50).'_'.uniqid().'.'.$ext;
-                            $imagePath = $this->imageUpload($_FILES['UploadImage']['tmp_name'], $fileName);
-
+                    // Image Upload
+                    if(isset($_FILES['UploadImage'])) {
+                        $UploadResp = $this->globalservice->fileUploadService($_FILES['UploadImage'], 'org/images/', 'Logo', ['Organisation', 'OrganisationTbl', array('OrgUID' => $PostData['OrgUID'])]);
+                        if($UploadResp->Error === TRUE) {
+                            throw new Exception($UploadResp->Message);
                         }
-
-                        if($imagePath) {
-                            $updateOrgImgData = [
-                                'Logo' => $imagePath,
-                            ];
-                            $UpdateImgResp = $this->dbwrite_model->updateData('Organisation', 'OrganisationTbl', $updateOrgImgData, array('OrgUID' => $PostData['OrgUID']));
-                            if($UpdateImgResp->Error) {
-                                throw new Exception($UpdateImgResp->Message);
-                            }
-                        }                        
-
                     }
                     
                     $BillAddrInstUpdt = 0;
@@ -265,37 +235,8 @@ class Organisation extends CI_Controller {
 
     }
 
-    private function imageUpload($tempName, $fullPath) {
-
-        $uploadPath = 'org/images/' . $fullPath;
-
-        $this->load->library('fileupload');
-        $uploadDetail = $this->fileupload->fileUpload('file', $uploadPath, $tempName);
-
-        if ($uploadDetail->Error === false) {
-			return '/'.$uploadDetail->Path;
-        } else {
-            throw new Exception('File upload failed');
-        }
-
-    }
-
-    public function checkImageType() {
-
-        $allowed = array('image/jpeg', 'image/jpg', 'image/png');
-        $type_not_match = false;
-        if (isset($_FILES['Thumbnail']['name']) && !empty($_FILES['Thumbnail']['name'])) {
-            if (!in_array($_FILES['Thumbnail']['type'], $allowed) || $_FILES['Thumbnail']['size'] > 1048576) {
-                $type_not_match = true;
-            }
-        }
-        if ($type_not_match) {
-            $this->form_validation->set_message('checkImageType', 'Invalid File. Please upload allowed format and size will be below 1MB');
-            return false;
-        } else {
-            return true;
-        }
-
+    public function checkImageType($str = '') {
+        return $this->globalservice->checkImageType($str);
     }
 
 }

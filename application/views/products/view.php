@@ -346,6 +346,7 @@
     let ActiveTabModuleId = <?php echo $ActiveModuleId; ?>;
     let Modules = <?php echo json_encode($ModuleInfo ?: []); ?>;
     var EnableStorage = <?php echo $JwtData->GenSettings->EnableStorage; ?>;
+    var CommonRowColumnDisp = 1;
     $(function() {
         'use strict'
 
@@ -561,6 +562,7 @@
 
         $(ProdPag).on('click', 'a', function(e) {
             e.preventDefault();
+            CommonRowColumnDisp = 0;
             PageNo = $(this).attr('data-ci-pagination-page');
             getProductDetails(PageNo, RowLimit, Filter);
         });
@@ -945,11 +947,6 @@
                 }
             }
         });
-
-    });
-    $(window).on('load', function() {
-
-        // getProductDetails(PageNo, RowLimit, Filter);
 
     });
 </script>

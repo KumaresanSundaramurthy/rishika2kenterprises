@@ -13,6 +13,7 @@ function getProductDetails(PageNo, RowLimit, Filter) {
             RowLimit: RowLimit,
             PageNo: PageNo,
             Filter: Filter,
+            RowColumnDisp: CommonRowColumnDisp,
         },
         success: function (response) {
             if (response.Error) {
@@ -23,6 +24,7 @@ function getProductDetails(PageNo, RowLimit, Filter) {
                 $(ProdTable + ' tbody').html(response.List);
             }
             executeProdPagnFunc(response, false);
+            CommonRowColumnDisp = 1;
         },
     });
 }
@@ -234,7 +236,9 @@ function executeProdPagnFunc(response, tableinfo = false) {
         Swal.fire(response.Message, "", "success");
     }
 
-    ItemUIDs = response.UIDs ? response.UIDs : [];
+    if(CommonRowColumnDisp == 1) {
+        ItemUIDs = response.UIDs ? response.UIDs : [];
+    }
     headerCheckboxTrueFalse(ItemUIDs, ProdHeader);
     tableCheckboxTrueFalse(SelectedUIDs, ProdTable, ProdRow);
     MultipleDeleteOption();

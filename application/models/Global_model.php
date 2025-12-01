@@ -28,10 +28,15 @@ class Global_model extends CI_Model {
                 $this->GlobalDb->where($FilterArray);
             }
             $query = $this->GlobalDb->get();
+            $error = $this->GlobalDb->error();
+            if ($error['code']) {
+                throw new Exception($error['message']);
+            } else {
+                $this->EndReturnData->Data = $query->result();
+            }
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Message = 'Success';
-            $this->EndReturnData->Data = $query->result();
 
         } catch (Exception $e) {
             $this->EndReturnData->Error = TRUE;
@@ -47,13 +52,13 @@ class Global_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $CRDKey = getSiteConfiguration()->RedisName . '-countryinfo';
-            $CRDGet_Data = $this->cacheservice->get($CRDKey);
-            if ($CRDGet_Data->Error) {
+            // $CRDKey = getSiteConfiguration()->RedisName . '-countryinfo';
+            // $CRDGet_Data = $this->cacheservice->get($CRDKey);
+            // if ($CRDGet_Data->Error) {
 
                 $this->load->library('curlservice');
 
-                $CountryResp = $this->curlservice->retrieve(getenv('CDN_URL') . '/global/countrydetails.json', 'GET', []);
+                $CountryResp = $this->curlservice->retrieve(getenv('CFLARE_R2_CDN') . '/Global/countrydetails.json', 'GET', []);
 
                 $Countries = $CountryResp->Data;
                 usort($Countries, function ($a, $b) {
@@ -61,11 +66,11 @@ class Global_model extends CI_Model {
                 });
 
                 $this->EndReturnData->Data = $Countries;
-                $this->cacheservice->set($CRDKey, json_encode($Countries), 43200 * 365);
+            //     $this->cacheservice->set($CRDKey, json_encode($Countries), 43200 * 365);
 
-            } else {
-                $this->EndReturnData->Data = json_decode($CRDGet_Data->Value, TRUE);
-            }
+            // } else {
+            //     $this->EndReturnData->Data = json_decode($CRDGet_Data->Value, TRUE);
+            // }
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Message = 'Data Retrieved Successfully';
@@ -84,22 +89,13 @@ class Global_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $SRDEKey = getSiteConfiguration()->RedisName . '-stateinfo-' . $CountryCode;
-            $SRDEGet_Data = $this->cacheservice->get($SRDEKey);
-            if ($SRDEGet_Data->Error) {
+            $this->load->library('curlservice');
 
-                $this->load->library('curlservice');
-
-                $StateResp = $this->curlservice->retrieve(getenv('COUNTRY_API_URL') . '/countries/' . $CountryCode . '/states', 'GET', [], array('X-CSCAPI-KEY: ' . getenv('COUNTRY_API_KEY')));
-                if ($StateResp->Error === false && sizeof($StateResp->Data) > 0) {
-                    $this->EndReturnData->Data = $StateResp->Data;
-                    $this->cacheservice->set($SRDEKey, json_encode($StateResp->Data), 43200 * 365);
-                } else {
-                    throw new Exception($StateResp->Message);
-                }
-
+            $StateResp = $this->curlservice->retrieve(getenv('COUNTRY_API_URL') . '/countries/' . $CountryCode . '/states', 'GET', [], array('X-CSCAPI-KEY: ' . getenv('COUNTRY_API_KEY')));
+            if ($StateResp->Error === false && sizeof($StateResp->Data) > 0) {
+                $this->EndReturnData->Data = $StateResp->Data;
             } else {
-                $this->EndReturnData->Data = json_decode($SRDEGet_Data->Value, TRUE);
+                throw new Exception($StateResp->Message);
             }
 
             $this->EndReturnData->Error = FALSE;
@@ -119,20 +115,11 @@ class Global_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $CRDEKey = getSiteConfiguration()->RedisName . '-cityinfo-' . $CountryCode;
-            $CRDEGet_Data = $this->cacheservice->get($CRDEKey);
-            if ($CRDEGet_Data->Error) {
-
-                $CityResp = $this->curlservice->retrieve(getenv('COUNTRY_API_URL') . '/countries/' . $CountryCode . '/cities', 'GET', [], array('X-CSCAPI-KEY: ' . getenv('COUNTRY_API_KEY')));
-                if ($CityResp->Error === false && sizeof($CityResp->Data) > 0) {
-                    $this->EndReturnData->Data = $CityResp->Data;
-                    $this->cacheservice->set($CRDEKey, json_encode($CityResp->Data), 43200 * 365);
-                } else {
-                    throw new Exception($CityResp->Message);
-                }
-
+            $CityResp = $this->curlservice->retrieve(getenv('COUNTRY_API_URL') . '/countries/' . $CountryCode . '/cities', 'GET', [], array('X-CSCAPI-KEY: ' . getenv('COUNTRY_API_KEY')));
+            if ($CityResp->Error === false && sizeof($CityResp->Data) > 0) {
+                $this->EndReturnData->Data = $CityResp->Data;
             } else {
-                $this->EndReturnData->Data = json_decode($CRDEGet_Data->Value, TRUE);
+                throw new Exception($CityResp->Message);
             }
 
             $this->EndReturnData->Error = FALSE;
@@ -744,95 +731,6 @@ class Global_model extends CI_Model {
         }
     }
 
-    public function getModuleReportDetails_bkp($ModuleInfo, $SelectColumns, $JoinDataArr = [], $FilterArray = [], $DirectQuery = '', $OrderBy = 'ASC', $whereInCondition = [], $Limit = 0, $Offset = 0, $Flag = 0)
-    {
-
-        $this->EndReturnData = new StdClass();
-        try {
-
-            $this->ModuleDb->db_debug = FALSE;
-
-            $getUnqJoinTable = array_values(array_unique(array_filter(
-                array_map(fn($f) => explode('.', $f)[0] ?? null, array_column($SelectColumns, 'DbFieldName')),
-                fn($p) => $p && $p !== $ModuleInfo->TableAliasName
-            )));
-
-            if ($Flag == 0) {
-
-                $selectFields = [];
-                $selectFields[] = "{$ModuleInfo->TableAliasName}.{$ModuleInfo->TablePrimaryUID} AS TablePrimaryUID";
-                foreach ($SelectColumns as $index => $column) {
-                    $DisplayName = preg_replace('/[^a-zA-Z0-9_ ]/', '', $column->DisplayName);
-                    $fieldName = !empty($column->DbFieldNameAddOn) ? $column->DbFieldNameAddOn : $column->DbFieldName;
-                    $selectFields[] = "{$fieldName} AS '{$DisplayName}'";
-                }
-                $this->ModuleDb->select(implode(", ", $selectFields));
-            } else if ($Flag == 1) {
-
-                $this->ModuleDb->select($ModuleInfo->TableAliasName . '.' . $ModuleInfo->TablePrimaryUID);
-            }
-
-            $this->ModuleDb->from("{$ModuleInfo->DatabaseName}.{$ModuleInfo->MasterTableName} as {$ModuleInfo->TableAliasName}");
-            if (!empty($JoinDataArr)) {
-                foreach ($JoinDataArr as $join) {
-                    $alias = $join->JoinLookupTblAliasName ?? $join->JoinTblAliasName;
-                    $valid = in_array($alias, $getUnqJoinTable) || $join->IsMandatory == 1;
-
-                    if (!$valid) continue;
-
-                    $joinTable = $join->JoinLookupTblAliasName ? $join->LkupDatabaseName . '.' . $join->LkupTableName : $join->JoinDatabaseName . '.' . $join->JoinTableName;
-                    $joinField = $join->JoinLookupTblFieldName ?? $join->JoinTblFieldName;
-                    $joinAlias = $alias;
-                    $joinCondition = $joinAlias . '.' . $joinField.' = '.$join->MainTblAliasName.'.'.$join->MainTblFieldName;
-                    if($join->JoinBasicCheck) {
-                        $joinCondition .= " AND ($joinAlias.IsDeleted = 0 AND $joinAlias.IsActive = 1) ";
-                    }
-                    $joinCondition .= $join->JoinColumnsAddon;
-                    $joinType = $join->JoinType;
-
-                    if ($joinAlias && ($join->JoinLookupUID > 0 || $join->JoinModuleUID > 0)) {
-                        $this->ModuleDb->join("$joinTable as $joinAlias", $joinCondition, $joinType);
-                    }
-                }
-            }
-            $this->ModuleDb->where([
-                "{$ModuleInfo->TableAliasName}.IsDeleted" => 0,
-                "{$ModuleInfo->TableAliasName}.IsActive" => 1
-            ]);
-            if (!empty($FilterArray)) {
-                $this->ModuleDb->where($FilterArray);
-            }
-            if (!empty($DirectQuery)) {
-                $this->ModuleDb->where($DirectQuery);
-            }
-            if (!empty($whereInCondition)) {
-                foreach ($whereInCondition as $wkey => $wval) {
-                    if (!empty($wval)) {
-                        $this->ModuleDb->where_in($wkey, $wval);
-                    }
-                }
-            }
-            $this->ModuleDb->group_by($ModuleInfo->TableAliasName . '.' . $ModuleInfo->TablePrimaryUID);
-            $this->ModuleDb->order_by($ModuleInfo->TableAliasName . '.' . $ModuleInfo->TablePrimaryUID, $OrderBy);
-            if ($Flag == 0 && $Limit > 0) {
-                $this->ModuleDb->limit($Limit, $Offset);
-            }
-
-            $query = $this->ModuleDb->get();
-            $error = $this->ModuleDb->error();
-            if ($error['code']) {
-                throw new Exception($error['message']);
-            }
-
-            $this->EndReturnData->Data = $query->result();
-            return $this->EndReturnData->Data;
-        } catch (Exception $e) {
-            $this->EndReturnData->Error = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-            throw new Exception($this->EndReturnData->Message);
-        }
-    }
-
     public function getModuleReportDetails($ModuleInfo, $SelectColumns, $JoinDataArr = [], $FilterArray = [], $DirectQuery = '', $OrderBy = 'ASC', $whereInCondition = [], $Limit = 0, $Offset = 0, $Flag = 0) {
 
         $this->EndReturnData = new StdClass();
@@ -947,6 +845,50 @@ class Global_model extends CI_Model {
             if ($error['code']) {
                 throw new Exception($error['message']);
             }
+
+            $this->EndReturnData->Data = $query->result();
+            return $this->EndReturnData->Data;            
+
+        } catch (Exception $e) {
+
+            $this->EndReturnData->Error = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+            throw new Exception($e->getMessage());
+
+        }
+
+    }
+
+    public function getModulePaginatedUIDs($ModuleInfo, $SelectColumns, $JoinDataArr = [], $FilterArray = [], $DirectQuery = '', $OrderBy = 'ASC', $whereInCondition = [], $Limit = 0, $Offset = 0, $Flag = 0) {
+
+        $this->EndReturnData = new StdClass();
+        try {
+
+            $this->ModuleDb->db_debug = FALSE;
+
+            $this->ModuleDb->select("{$ModuleInfo->TableAliasName}.{$ModuleInfo->TablePrimaryUID}");
+            $this->ModuleDb->from("{$ModuleInfo->DatabaseName}.{$ModuleInfo->MasterTableName} AS {$ModuleInfo->TableAliasName}");
+            $this->ModuleDb->where([
+                "{$ModuleInfo->TableAliasName}.IsDeleted" => 0,
+                "{$ModuleInfo->TableAliasName}.IsActive"  => 1
+            ]);
+
+            if (!empty($FilterArray)) {
+                $this->ModuleDb->where($FilterArray);
+            }
+            
+            if (!empty($DirectQuery)) {
+                $this->ModuleDb->where($DirectQuery);
+            }
+            
+            if (!empty($whereInCondition)) {
+                foreach ($whereInCondition as $key => $value) {
+                    if (!empty($value)) {
+                        $this->ModuleDb->where_in($key, $value);
+                    }
+                }
+            }
+
 
             $this->EndReturnData->Data = $query->result();
             return $this->EndReturnData->Data;            

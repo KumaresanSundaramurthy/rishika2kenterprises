@@ -138,3 +138,23 @@ function updateAttributeString($attributeString, $MPFilterApplicable) {
     return trim($newAttributeString);
 
 }
+
+function mapOrganisationAddress($orgData, $prefix, $type) {
+    // If no UID field exists or is empty, return null
+    if (empty($orgData->{$prefix.'AddressUID'})) {
+        return null;
+    }
+
+    return (object) [
+        'OrgAddressUID' => $orgData->{$prefix.'AddressUID'},
+        'OrgUID'        => $orgData->OrgUID,
+        'AddressType'   => $type,
+        'Line1'         => $orgData->{$prefix.'Line1'},
+        'Line2'         => $orgData->{$prefix.'Line2'},
+        'Pincode'       => $orgData->{$prefix.'Pincode'},
+        'City'          => $orgData->{$prefix.'City'},
+        'CityText'      => $orgData->{$prefix.'CityText'},
+        'State'         => $orgData->{$prefix.'State'},
+        'StateText'     => $orgData->{$prefix.'StateText'},
+    ];
+}

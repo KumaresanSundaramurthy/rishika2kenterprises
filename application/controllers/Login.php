@@ -41,14 +41,26 @@ class Login extends CI_Controller {
                     $jwtPayload = $this->login_model->formatJWTPayload($UserData->Data[0]);
 
                     if($jwtPayload->Error) {
-                        $this->session->set_flashdata('danger', 'Oops! '.$jwtPayload->Message);    
+                        $this->session->set_flashdata('danger', 'Oops! '.$jwtPayload->Message);
                     } else {
+
+                        $newPayload = clone $jwtPayload;
 
                         $JwtReturnData = $this->login_model->setJwtToken($UserData->Data[0], $jwtPayload);
                         if(!$JwtReturnData->Error) {
+
+                            $this->session->set_userdata('CachedUserMenuData', [
+                                'MainModules' => $newPayload->JWTData['UserMainModule'] ?? [],
+                                'SubModules'  => $newPayload->JWTData['UserSubModule'] ?? [],
+                            ]);
+                            $this->session->set_userdata('CachedUserModuleData', $newPayload->JWTData['ModuleInfo'] ?? []);
+                            $this->session->set_userdata('CachedUserGenSettings', $newPayload->JWTData['GenSettings'] ?? []);
+                            $this->session->set_userdata('CachedUserInfo', $UserData->Data[0]);
+                            
                             redirect('dashboard', 'refresh');
+
                         } else {
-                            $this->session->set_flashdata('danger', 'Oops! '.$jwtPayload->Message);  
+                            $this->session->set_flashdata('danger', 'Oops! '.$JwtReturnData->Message);  
                         }
                         
                     }
@@ -129,6 +141,12 @@ class Login extends CI_Controller {
 			if(isset($JwtData->key) && !empty($JwtData->key)) {
 				$this->cacheservice->delete($JwtData->key);
 			}
+
+            // Deleted Unwanted Information Stored
+            $this->session->unset_userdata('CachedUserMenuData');
+            $this->session->unset_userdata('CachedUserModuleData');
+            $this->session->unset_userdata('CachedUserGenSettings');
+            $this->session->unset_userdata('CachedUserInfo');
 
 			delete_cookie(getenv('JWT_COOKIE_NAME'));
 

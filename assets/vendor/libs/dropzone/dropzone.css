@@ -242,3 +242,11 @@
 [data-bs-theme=dark] .dropzone {
     --bs-dz-icon-bg: #373b50
 }
+
+.dropzone-main-form {
+    min-height: 180px !important;   /* reduce height */
+    height: 180px !important;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}

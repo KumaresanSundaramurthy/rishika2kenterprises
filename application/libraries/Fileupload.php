@@ -19,15 +19,32 @@ class Fileupload {
 
         $bucket = getenv('AWS_BUCKET_NAME');
 
-        // AWS Credentials
-        $s3 = new S3Client([
-            'version'     => 'latest',
-            'region'      => 'ap-south-1',
-            'credentials' => [
-                'key'    => getenv('AWS_KEY'),
-                'secret' => getenv('AWS_SECRET'),
-            ]
-        ]);
+        if(getenv('FILE_UPLOAD') == 'amazonaws') {
+
+            // AWS Credentials
+            $s3 = new S3Client([
+                'version'     => 'latest',
+                'region'      => 'ap-south-1',
+                'credentials' => [
+                    'key'    => getenv('AWS_KEY'),
+                    'secret' => getenv('AWS_SECRET'),
+                ]
+            ]);
+
+        } else if(getenv('FILE_UPLOAD') == 'cloudflare') {
+
+            // Cloudflare R2 Storage
+            $s3 = new S3Client([
+                'version'     => 'latest',
+                'region'      => 'auto',
+                'endpoint'      => getenv('CFLARE_ENDPOINT'),
+                'credentials' => [
+                    'key'    => getenv('CFLARE_ACC_KEY'),
+                    'secret' => getenv('CFLARE_SECRET'),
+                ]
+            ]);
+
+        }
 
         $mime_type = mime_content_type($FileOrContent);
 
@@ -41,7 +58,7 @@ class Fileupload {
                     'Key'         => $DefPath,
                     'SourceFile'  => $FileOrContent,
                     'ContentType' => $mime_type,
-                    // 'ACL'         => 'public-read',
+                    'ACL'         => 'public-read',
                 ]);
             } else if($Type == 'data') {
                 $result = $s3->putObject([
@@ -49,7 +66,7 @@ class Fileupload {
                     'Key'         => $DefPath,
                     'Body'        => $FileOrContent,
                     'ContentType' => $mime_type,
-                    // 'ACL'         => 'public-read',
+                    'ACL'         => 'public-read',
                 ]);
             }
 

@@ -1,7 +1,14 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
-<?php $CI =& get_instance();
-$ControllerName = get_class($CI); ?>
+<?php 
+
+$CI = &get_instance();
+$ControllerName = get_class($CI); 
+
+$UserMainModule = $this->session->userdata('CachedUserMenuData')['MainModules'];
+$UserSubModule = $this->session->userdata('CachedUserMenuData')['SubModules'];
+
+?>
 
 <!-- Menu -->
 <aside id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme" data-bs-theme="dark">
@@ -20,7 +27,7 @@ $ControllerName = get_class($CI); ?>
 
     <div class="menu-inner-shadow"></div>
 
-    <ul class="menu-inner py-1">
+    <ul id="ModulesMenuBar" class="menu-inner py-1">
 
         <!-- Dashboard -->
         <li class="menu-item <?php echo $ControllerName == "Dashboard" ? 'active' : ''; ?>">
@@ -30,11 +37,11 @@ $ControllerName = get_class($CI); ?>
             </a>
         </li>
 
-        <?php if (sizeof($JwtData->UserMainModule) > 0) {
-            foreach ($JwtData->UserMainModule as $MMKey => $MMVal) {
+        <?php if (sizeof($UserMainModule) > 0) {
+            foreach ($UserMainModule as $MMKey => $MMVal) {
                 $SubMenuData = [];
-                if (sizeof($JwtData->UserSubModule) > 0) {
-                    $SubMenuData = filterByMainMenuUID($JwtData->UserSubModule, $MMVal->MainMenuUID);
+                if (sizeof($UserSubModule) > 0) {
+                    $SubMenuData = filterByMainMenuUID($UserSubModule, $MMVal->MainMenuUID);
                 } ?>
 
                 <!-- All Pages -->
@@ -60,6 +67,32 @@ $ControllerName = get_class($CI); ?>
         <?php }
         } ?>
 
+        <li class="menu-item menu-item-static mt-auto">
+            <a href="javascript: void(0);" id="SettingsMenuBarBtn" class="menu-link">
+                <i class="menu-icon tf-icons bx bx-cog"></i>
+                <div data-i18n="Settings">Settings</div>
+            </a>
+        </li>
+
     </ul>
+
+    <ul id="SettingsMenuBar" class="menu-inner py-1 d-none">
+
+        <li class="menu-item">
+            <a href="javascript: void(0);" id="SettingsBackMenuBarBtn" class="menu-link backtodashboard-btn d-flex align-items-center justify-content-center">
+                <i class="menu-icon tf-icons bx bx-arrow-back"></i>
+                <div data-i18n="Main Menu">Back to Menu</div>
+            </a>
+        </li>
+
+        <li class="menu-item">
+            <a href="/dashboard" class="menu-link">
+                <i class="menu-icon tf-icons bx bx-home-smile"></i>
+                <div data-i18n="Main Menu">Account</div>
+            </a>
+        </li>
+
+    </ul>
+
 </aside>
 <!-- / Menu -->

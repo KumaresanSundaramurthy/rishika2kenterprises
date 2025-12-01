@@ -73,6 +73,14 @@ class Login_model extends CI_Model {
 
             $RedisKey = Uuid::uuid4() . '-' . $UserData->UserUID;
 
+            // Unset all the unwanted information
+            unset($jwtPayload->JWTData['UserMainModule']);
+            unset($jwtPayload->JWTData['UserSubModule']);
+
+            unset($jwtPayload->JWTData['ModuleInfo']);
+            
+            unset($jwtPayload->JWTData['GenSettings']);
+
             $this->cacheservice->set($RedisKey, json_encode($jwtPayload->JWTData), $Expiry);
 
             $jwtData['key'] = $RedisKey;

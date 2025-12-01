@@ -114,6 +114,18 @@ $(document).ready(function () {
         updatePageSettings(formData);
     });
 
+    $('#SettingsMenuBarBtn').on('click', function(e) {
+        e.preventDefault();
+        $('#ModulesMenuBar').addClass('d-none');
+        $('#SettingsMenuBar').removeClass('d-none');
+    });
+
+    $('#SettingsBackMenuBarBtn').on('click', function(e) {
+        e.preventDefault();
+        $('#SettingsMenuBar').addClass('d-none');
+        $('#ModulesMenuBar').removeClass('d-none');
+    });
+
 });
 
 function exportURLDynamic(Url) {

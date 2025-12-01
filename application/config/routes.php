@@ -56,6 +56,9 @@ $route['translate_uri_dashes'] = FALSE;
 // Login
 $route['portal'] = 'login/login';
 
+// Settings
+$route['settings/company'] = 'organisation';
+
 // Customers
 $route['customers/(:num)/edit'] = 'customers/edit/$1';
 $route['customers/(:num)/clone'] = 'customers/clone/$1';

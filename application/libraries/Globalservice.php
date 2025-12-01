@@ -62,7 +62,7 @@ Class Globalservice {
         
     }
 
-    public function getBaseMainPageTablePagination($ModuleId, $CallingUrl, $pageNo, $limit, $offset, $Filter, $WhereInCondition = []) {
+    public function getBaseMainPageTablePagination($ModuleId, $CallingUrl, $pageNo, $limit, $offset, $Filter, $WhereInCondition = [], $RowColumnDisp = 1) {
 
         $this->EndReturnData = new stdClass();
 		try {
@@ -71,12 +71,12 @@ Class Globalservice {
                 throw new Exception('Module Information is Missing');
             }
                 
-            $DataResp = $this->getModulePageColumnDetails($ModuleId, 'MainPage', $Filter, $WhereInCondition, $limit, $offset, 1);
+            $DataResp = $this->getModulePageColumnDetails($ModuleId, 'MainPage', $Filter, $WhereInCondition, $limit, $offset, $RowColumnDisp ?? 1);
             if ($DataResp->Error) {
                 throw new Exception($DataResp->Message);
             }
 
-            $DataCount = sizeof($DataResp->DataPrimaryUIDs);
+            $DataCount = count($DataResp->DataPrimaryUIDs);
             $config['base_url']        = $CallingUrl;
             $config['use_page_numbers'] = TRUE;
             $config['total_rows']      = $DataCount;
@@ -186,9 +186,7 @@ Class Globalservice {
                     $this->EndReturnData->ViewColumns = $DataInfo;
                     $this->EndReturnData->DataLists = $DataLists;
                     $this->EndReturnData->Aggregates = $Aggregates;
-                    if($UniqueFlag == 1) {
-                        $this->EndReturnData->DataPrimaryUIDs = $DataPrimaryUIDs;
-                    }
+                    $this->EndReturnData->DataPrimaryUIDs = $UniqueFlag == 1 ? $DataPrimaryUIDs : [];
 
                 } else {
                     throw new Exception('Column Information is Missing.!');

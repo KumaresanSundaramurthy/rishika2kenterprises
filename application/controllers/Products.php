@@ -53,7 +53,7 @@ class Products extends CI_Controller {
         // $this->benchmark->mark('funcA_start');
 
         $this->globalservice->setJwtData($this->pageData);
-        $ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($ModuleId, "/products/get{$tabModules[$activeTab]}Details/", $page, $limit, $offset, [], []);
+        $ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($ModuleId, "/products/get{$tabModules[$activeTab]}Details/", $page, $limit, $offset, [], [], 1);
         if ($ReturnResponse->Error) {
             show_error($ReturnResponse->Message, 500);
             return;
@@ -134,40 +134,41 @@ class Products extends CI_Controller {
 
     public function commonProductTablePagination($pageNo = 0) {
 
-        // $this->output->enable_profiler(TRUE);
+        $this->output->enable_profiler(TRUE);
 
         $ModuleId = $this->input->post('ModuleId');
         $limit = $this->input->post('RowLimit');
         $offset = ($pageNo != 0) ? (($pageNo - 1) * $limit) : $pageNo;
         $Filter = $this->input->post('Filter') ?? [];
+        $RowColumnDisp = $this->input->post('RowColumnDisp') ?? 1;
 
-        // $this->benchmark->mark('funcC_start');
+        $this->benchmark->mark('funcC_start');
         $this->globalservice->setJwtData($this->pageData);
-        $ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($ModuleId, '/products/getProductDetails/', $pageNo, $limit, $offset, $Filter, []);
+        $ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($ModuleId, '/products/getProductDetails/', $pageNo, $limit, $offset, $Filter, [], $RowColumnDisp);
         if($ReturnResponse->Error) {
             throw new Exception($ReturnResponse->Message);
         }
-        // $this->benchmark->mark('funcC_end');
+        $this->benchmark->mark('funcC_end');
 
         $this->pageData['DataLists'] = $ReturnResponse->Data;
         $this->pageData['SerialNumber']  = $offset;
 
-        // $this->benchmark->mark('funcA_start');
+        $this->benchmark->mark('funcA_start');
         $ModuleColumns = array_filter($ReturnResponse->AllViewColumns, fn($col) => $col->IsMainPageApplicable == 1);
         usort($ModuleColumns, fn($a,$b)=>$a->MainPageOrder <=> $b->MainPageOrder);
-        // $this->benchmark->mark('funcA_end');
+        $this->benchmark->mark('funcA_end');
 
-        // $this->benchmark->mark('funcB_start');
+        $this->benchmark->mark('funcB_start');
         $this->pageData['ViewColumns']  = $ModuleColumns;
-        $ReturnResponse->List = $this->load->view('products/items/list', $this->pageData, TRUE);
-        // $this->benchmark->mark('funcB_end');
+        $ReturnResponse->List = []; // $this->load->view('products/items/list', $this->pageData, TRUE);
+        $this->benchmark->mark('funcB_end');
 
-        // echo $this->benchmark->elapsed_time('funcA_start', 'funcA_end');
-        // echo '</br>';
-        // echo $this->benchmark->elapsed_time('funcB_start', 'funcB_end');
-        // echo '</br>';
-        // echo $this->benchmark->elapsed_time('funcC_start', 'funcC_end');
-        // echo '</br>';
+        echo $this->benchmark->elapsed_time('funcA_start', 'funcA_end');
+        echo '</br>';
+        echo $this->benchmark->elapsed_time('funcB_start', 'funcB_end');
+        echo '</br>';
+        echo $this->benchmark->elapsed_time('funcC_start', 'funcC_end');
+        echo '</br>';
 
         return $ReturnResponse;
 

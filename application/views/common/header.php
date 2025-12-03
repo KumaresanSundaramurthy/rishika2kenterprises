@@ -29,6 +29,7 @@
 
     <!-- Vendors CSS -->
     <link rel="stylesheet" href="/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css" />
+    <link rel="stylesheet" href="/assets/vendor/libs/flatpickr/flatpickr.css" />
     <link rel="stylesheet" href="/assets/vendor/libs/sweetalert2/sweetalert2.css">
 
     <link rel="stylesheet" href="/assets/vendor/libs/quill/typography.css">

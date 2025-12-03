@@ -25,7 +25,7 @@
                     <input type="hidden" name="OrgUID" id="OrgUID" value="<?php echo isset($EditOrgData->OrgUID) ? $EditOrgData->OrgUID : ''; ?>" />
 
                     <div class="card mb-3">
-                        <div class="modal-header modal-header-center-sticky d-flex justify-content-between align-items-center p-3">
+                        <div class="card-header modal-header-center-sticky d-flex justify-content-between align-items-center mb-3">
                             <h5 class="modal-title">Organisation Details</h5>
                             <div class="d-flex align-items-center gap-2" id="mainActionBar">
                                 <button type="button" class="btn btn-label-danger" data-bs-dismiss="modal" aria-label="Close">Discard</button>
@@ -35,16 +35,17 @@
                         <div class="card-body">
 
                             <div class="row">
-                                <div class="col-md-4 d-flex justify-content-center align-items-center">
-                                    <div class="dropzone needsclick p-3 dz-clickable w-100" id="DropzoneOneBasic">
+                                
+                                <div class="col-md-3 d-flex justify-content-center align-items-center">
+                                    <div class="dropzone dropzone-main-form needsclick p-3 dz-clickable w-100" id="DropzoneOneBasic">
                                         <div class="dz-message needsclick text-center">
                                             <i class="upload-icon mb-3"></i>
-                                            <p class="h4 needsclick mb-2">Upload Logo</p>
-                                            <p class="h6 text-body-secondary fw-normal mb-0">PNG / JPG, Max of 5 MB</p>
+                                            <p class="h4 needsclick mb-2">Drag and drop your logo here</p>
+                                            <p class="h6 text-body-secondary fw-normal mb-0">Allowed JPG, GIF or PNG of 1 MB</p>
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col-md-8 d-flex flex-column justify-content-center">
+                                <div class="col-md-9 d-flex flex-column justify-content-center">
                                     <div class="mb-3 col-md-12">
                                         <label for="Name" class="form-label">Company Name <span style="color:red">*</span></label>
                                         <input class="form-control" type="text" id="Name" name="Name" placeholder="Company Name" value="<?php echo isset($EditOrgData->Name) ? $EditOrgData->Name : ''; ?>" maxlength="100" required />
@@ -159,7 +160,7 @@
                         <div class="col-md-6">
                             
                             <div class="card mb-3">
-                                <div class="card-header d-flex justify-content-between align-items-center">
+                                <div class="card-header modal-header-center-sticky d-flex justify-content-between align-items-center mb-3">
                                     <h5 class="mb-0">Billing Details</h5>
                                     <button type="button" id="CopyToShipping" class="btn btn-sm btn-outline-info">Copy to Shipping</button>
                                 </div>
@@ -213,7 +214,9 @@
                         <div class="col-md-6">
 
                             <div class="card mb-3">
-                                <h5 class="card-header">Shipping Details</h5>
+                                <div class="card-header modal-header-center-sticky mb-3">
+                                    <h5 class="mb-0">Shipping Details</h5>
+                                </div>
                                 <div class="card-body">
                                     <div class="row">
 
@@ -309,6 +312,11 @@ var defaultImg = '<?php echo isset($EditOrgData->Logo) ? $EditOrgData->Logo : ''
 $(function() {
     'use strict'
 
+    if (defaultImg && defaultImg !== undefined && defaultImg !== null && defaultImg !== '') {
+        var ImageUrl = CDN_URL + defaultImg;
+        commonSetDropzoneImageOne(ImageUrl);
+    }
+
     $('#CountryCode').select2({
         placeholder: '-- Select Country --',
         allowClear: true,
@@ -328,11 +336,6 @@ $(function() {
         placeholder: '-- Select City --',
         allowClear: true,
     });
-    
-    if (defaultImg && defaultImg !== undefined && defaultImg !== null && defaultImg !== '') {
-        var ImageUrl = CDN_URL + defaultImg;
-        commonSetDropzoneImageOne(ImageUrl);
-    }
 
     $('#image_reset_btn').click(function(e) {
         e.preventDefault();

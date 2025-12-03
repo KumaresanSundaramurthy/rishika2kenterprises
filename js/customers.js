@@ -191,37 +191,21 @@ function select2TagEmail() {
 $('#addBillingAddress').click(function(e) {
     e.preventDefault();
 
+    $('#addBillingAddress').addClass('d-none');
     var DivId = $(this).data('divid');
-    $('#'+DivId).addClass('d-none').html('');
-    
-    var formData = new FormData();
-    formData.append('AddressType', 1);
-    formData.append('CountryCode', $('#CountryCode').find('option:selected').data('ccode'));
-    showAddressInfo(formData, 'addBillingAddress', DivId);
+    $('#'+DivId).removeClass('d-none').html('');
+    $('#'+DivId).html(baseAddressCreation(1, StateInfo, CityInfo, $('#CountryCode').find('option:selected').data('ccode')));
+    $('#addShippingAddress').removeClass('d-none');
 
 });
 
 $('#addShippingAddress').click(function(e) {
     e.preventDefault();
 
+    $('#addShippingAddress').addClass('d-none');
+    $('#addrCopyToShipping').removeClass('d-none');
     var DivId = $(this).data('divid');
-    $('#'+DivId).addClass('d-none').html('');
-    
-    var formData = new FormData();
-    formData.append('AddressType', 2);
-    formData.append('CountryCode', $('#CountryCode').find('option:selected').data('ccode'));
-    showAddressInfo(formData, 'addShippingAddress', DivId);
+    $('#'+DivId).removeClass('d-none').html('');
+    $('#'+DivId).html(baseAddressCreation(2, StateInfo, CityInfo, $('#CountryCode').find('option:selected').data('ccode')));
 
-});
-
-$(document).on('click', '#deleteBillingAddress', function(e) {
-    e.preventDefault();
-    $('#appendBillingAddress').addClass('d-none').html(' ');
-    $('#addBillingAddress').removeClass('d-none');
-});
-
-$(document).on('click', '#deleteShippingAddress', function(e) {
-    e.preventDefault();
-    $('#appendShippingAddress').addClass('d-none').html(' ');
-    $('#addShippingAddress').removeClass('d-none');
 });

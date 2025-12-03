@@ -95,7 +95,7 @@ class Formvalidation_model extends CI_Model {
 
         $dd['CustomerUID'] = array('field' => 'CustomerUID', 'label' => 'Customer UID', 'rules' => 'required|xss_clean|trim|numeric');
         $dd['Name'] = array('field' => 'Name', 'label' => 'Name', 'rules' => 'trim|required|xss_clean|min_length[3]|max_length[100]');
-        $dd['VillageName'] = array('field' => 'VillageName', 'label' => 'Village Name', 'rules' => 'trim|xss_clean|min_length[3]|max_length[100]');
+        $dd['Area'] = array('field' => 'Area', 'label' => 'Village Name', 'rules' => 'trim|xss_clean|min_length[3]|max_length[100]');
         $dd['CountryCode'] = array('field' => 'CountryCode', 'label' => 'Country', 'rules' => 'trim|required|xss_clean');
         $dd['CountryISO2'] = array('field' => 'CountryISO2', 'label' => 'Country ISO2', 'rules' => 'trim|xss_clean');
         $dd['MobileNumber'] = array('field' => 'MobileNumber', 'label' => 'Mobile Number', 'rules' => 'trim|xss_clean');
@@ -140,7 +140,7 @@ class Formvalidation_model extends CI_Model {
 
         $dd['VendorUID'] = array('field' => 'VendorUID', 'label' => 'Vendor UID', 'rules' => 'required|xss_clean|trim|numeric');
         $dd['Name'] = array('field' => 'Name', 'label' => 'Name', 'rules' => 'trim|required|xss_clean|min_length[3]|max_length[100]');
-        $dd['VillageName'] = array('field' => 'VillageName', 'label' => 'Village Name', 'rules' => 'trim|xss_clean|min_length[3]|max_length[100]');
+        $dd['Area'] = array('field' => 'Area', 'label' => 'Village Name', 'rules' => 'trim|xss_clean|min_length[3]|max_length[100]');
         $dd['CountryCode'] = array('field' => 'CountryCode', 'label' => 'Country', 'rules' => 'trim|required|xss_clean');
         $dd['CountryISO2'] = array('field' => 'CountryISO2', 'label' => 'Country ISO2', 'rules' => 'trim|xss_clean');
         $dd['MobileNumber'] = array('field' => 'MobileNumber', 'label' => 'Mobile Number', 'rules' => 'trim|xss_clean');

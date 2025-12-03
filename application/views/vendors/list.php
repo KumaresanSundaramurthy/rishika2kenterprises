@@ -8,7 +8,7 @@
                 <div class="form-check form-check-inline"><input class="form-check-input vendorsCheck" type="checkbox" value="<?php echo $list->VendorUID; ?>"></div>
             </td>
             <td><?php echo $list->Name; ?></td>
-            <td><?php echo $list->VillageName ? $list->VillageName : '-'; ?></td>
+            <td><?php echo $list->Area ? $list->Area : '-'; ?></td>
             <td class="text-center"><?php echo $list->MobileNumber ? $list->CountryCode.'-'.$list->MobileNumber : '-'; ?></td>
             <td class="text-end">0.00</td>
             <td class="text-end"><?php echo $list->UpdatedOn ? changeTimeZomeDateFormat($list->UpdatedOn, $JwtData->User->Timezone, 2) : ''; ?></td>

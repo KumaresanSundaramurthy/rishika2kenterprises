@@ -62,7 +62,7 @@ Class Globalservice {
         
     }
 
-    public function getBaseMainPageTablePagination($ModuleId, $CallingUrl, $pageNo, $limit, $offset, $Filter, $WhereInCondition = [], $RowColumnDisp = 1) {
+    public function getBaseMainPageTablePagination($ModuleId, $CallingUrl, $pageNo, $limit, $offset, $Filter, $WhereInCondition = [], $ReqTotalRow = 1) {
 
         $this->EndReturnData = new stdClass();
 		try {
@@ -71,12 +71,12 @@ Class Globalservice {
                 throw new Exception('Module Information is Missing');
             }
                 
-            $DataResp = $this->getModulePageColumnDetails($ModuleId, 'MainPage', $Filter, $WhereInCondition, $limit, $offset, $RowColumnDisp ?? 1);
+            $DataResp = $this->getModulePageColumnDetails($ModuleId, 'MainPage', $Filter, $WhereInCondition, $limit, $offset, $ReqTotalRow ?? 1);
             if ($DataResp->Error) {
                 throw new Exception($DataResp->Message);
             }
 
-            $DataCount = count($DataResp->DataPrimaryUIDs);
+            $DataCount = $DataResp->TotalRowCount;
             $config['base_url']        = $CallingUrl;
             $config['use_page_numbers'] = TRUE;
             $config['total_rows']      = $DataCount;
@@ -88,7 +88,6 @@ Class Globalservice {
 
             $this->EndReturnData->Error       = FALSE;
             $this->EndReturnData->Data        = $DataResp->DataLists;
-            $this->EndReturnData->UIDs        = $DataCount > 0 ? array_map('intval', array_column($DataResp->DataPrimaryUIDs, $DataResp->ModuleInfo->TablePrimaryUID)) : [];
             $this->EndReturnData->Count       = $DataCount;
             $this->EndReturnData->Pagination  = $this->CI->pagination->create_links();
             $this->EndReturnData->ModuleInfo  = $DataResp->ModuleInfo;
@@ -104,7 +103,7 @@ Class Globalservice {
 
     }
 
-    public function getModulePageColumnDetails($ModuleId, $PageType, $Filter, $WhereInCondition, $Limit, $Offset, $UniqueFlag = 0) {
+    public function getModulePageColumnDetails($ModuleId, $PageType, $Filter, $WhereInCondition, $Limit, $Offset, $ReqTotalRow = 0) {
 
         $this->EndReturnData = new stdClass();
 		try {
@@ -132,7 +131,12 @@ Class Globalservice {
                     $ViewColumnSort = 'ExportPdfOrder';
                 }
                 
-                $AllDataInfo = $this->CI->global_model->getModuleViewColumnDetails(['ViewColmn.ModuleUID' => $ModuleId]);
+                $ViewColumnsSession = $ModuleId . '-viewcolumns';
+                $AllDataInfo = $this->CI->session->userdata($ViewColumnsSession);
+                if (empty($AllDataInfo)) {
+                    $AllDataInfo = $this->CI->global_model->getModuleViewColumnDetails(['ViewColmn.ModuleUID' => $ModuleId]);
+                    $this->CI->session->set_userdata($ModuleId.'-viewcolumns', $AllDataInfo);
+                }
                 $DataInfo = array_filter($AllDataInfo, function($item) use ($ViewColumnWhere) {
                     return isset($item->$ViewColumnWhere) && $item->$ViewColumnWhere == 1;
                 });
@@ -141,7 +145,12 @@ Class Globalservice {
                     return $a->$ViewColumnSort <=> $b->$ViewColumnSort;
                 });
 
-                $ModuleInfo = $this->CI->global_model->getModuleDetails(['Modules.ModuleUID' => $ModuleId]);
+                $ModuleInfoSession = $ModuleId . '-moduleinfo';
+                $ModuleInfo = $this->CI->session->userdata($ModuleInfoSession);
+                if (empty($ModuleInfo)) {
+                    $ModuleInfo = $this->CI->global_model->getModuleDetails(['Modules.ModuleUID' => $ModuleId]);
+                    $this->CI->session->set_userdata($ModuleId.'-moduleinfo', $ModuleInfo);
+                }
                 if(sizeof($DataInfo) > 0 && sizeof($ModuleInfo) > 0) {
 
                     $ModuleInfoData = $ModuleInfo[0];
@@ -173,11 +182,16 @@ Class Globalservice {
                         }
                     }
 
-                    $JoinData = $this->CI->global_model->getModuleViewJoinColumnDetails(['JoinColmn.MainModuleUID' => $ModuleId], true, ['JoinColmn.SortOrder' => 'ASC']);
+                    $ViewJoinsSession = $ModuleId . '-viewjoins';
+                    $JoinData = $this->CI->session->userdata($ViewJoinsSession);
+                    if (empty($JoinData)) {
+                        $JoinData = $this->CI->global_model->getModuleViewJoinColumnDetails(['JoinColmn.MainModuleUID' => $ModuleId], true, ['JoinColmn.SortOrder' => 'ASC']);
+                        $this->CI->session->set_userdata($ModuleId.'-viewjoins', $JoinData);
+                    }
 
-                    $DataLists = $this->CI->global_model->getModuleReportDetails($ModuleInfoData, $DataInfo, $JoinData, $FilterFormat->SearchFilter, $FilterFormat->SearchDirectQuery, 'DESC', $WhereInArrayData, $Limit, $Offset, 0);
-                    if($UniqueFlag == 1) {
-                        $DataPrimaryUIDs = $this->CI->global_model->getModuleReportDetails($ModuleInfoData, $DataInfo, $JoinData, $FilterFormat->SearchFilter, $FilterFormat->SearchDirectQuery, 'DESC', $WhereInArrayData, $Limit, $Offset, 1);
+                    $DataLists = $this->CI->global_model->getModuleReportDetails($ModuleInfoData, $DataInfo, $JoinData, $FilterFormat->SearchFilter, $FilterFormat->SearchDirectQuery, 'DESC', $WhereInArrayData, $Limit, $Offset);
+                    if($ReqTotalRow == 1) {
+                        $TotalRowCount = $this->CI->global_model->getModuleTotalDataRowCount($ModuleInfoData, $DataInfo, $JoinData, $FilterFormat->SearchFilter, $FilterFormat->SearchDirectQuery, $WhereInArrayData);
                     }
 
                     $this->EndReturnData->Error = FALSE;
@@ -186,7 +200,7 @@ Class Globalservice {
                     $this->EndReturnData->ViewColumns = $DataInfo;
                     $this->EndReturnData->DataLists = $DataLists;
                     $this->EndReturnData->Aggregates = $Aggregates;
-                    $this->EndReturnData->DataPrimaryUIDs = $UniqueFlag == 1 ? $DataPrimaryUIDs : [];
+                    $this->EndReturnData->TotalRowCount = $ReqTotalRow == 1 ? $TotalRowCount : 0;
 
                 } else {
                     throw new Exception('Column Information is Missing.!');

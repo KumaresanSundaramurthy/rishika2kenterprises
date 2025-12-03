@@ -1,5 +1,9 @@
 FROM php:8.1-fpm
 
+RUN pecl install -o -f redis \
+    &&  rm -rf /tmp/pear \
+    &&  docker-php-ext-enable redis
+
 # Install PHP extensions and Nginx
 RUN apt-get update && apt-get install -y \
     nginx \
@@ -13,7 +17,8 @@ RUN apt-get update && apt-get install -y \
     libfreetype6-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install gd zip mysqli fileinfo \
-    && pecl install redis && docker-php-ext-enable redis
+    && pecl install -f redis || true \
+    && docker-php-ext-enable redis
 
 # Copy Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer

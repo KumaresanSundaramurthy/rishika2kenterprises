@@ -49,13 +49,12 @@ class Login extends CI_Controller {
                         $JwtReturnData = $this->login_model->setJwtToken($UserData->Data[0], $jwtPayload);
                         if(!$JwtReturnData->Error) {
 
-                            $this->session->set_userdata('CachedUserMenuData', [
-                                'MainModules' => $newPayload->JWTData['UserMainModule'] ?? [],
-                                'SubModules'  => $newPayload->JWTData['UserSubModule'] ?? [],
-                            ]);
-                            $this->session->set_userdata('CachedUserModuleData', $newPayload->JWTData['ModuleInfo'] ?? []);
-                            $this->session->set_userdata('CachedUserGenSettings', $newPayload->JWTData['GenSettings'] ?? []);
-                            $this->session->set_userdata('CachedUserInfo', $UserData->Data[0]);
+                            $this->redis_cache->set('Redis_UserMainModule', $newPayload->JWTData['UserMainModule'] ?? [], 43200);
+                            $this->redis_cache->set('Redis_UserSubModule', $newPayload->JWTData['UserSubModule'] ?? [], 43200);
+                            $this->redis_cache->set('Redis_UserModuleInfo', $newPayload->JWTData['ModuleInfo'] ?? [], 43200);
+
+                            $this->redis_cache->set('Redis_UserGenSettings', $newPayload->JWTData['GenSettings'] ?? [], 43200);
+                            $this->redis_cache->set('Redis_UserInfo', $UserData->Data[0], 43200);
                             
                             redirect('dashboard', 'refresh');
 

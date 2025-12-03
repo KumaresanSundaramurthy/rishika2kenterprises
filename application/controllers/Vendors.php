@@ -98,7 +98,7 @@ class Vendors extends CI_Controller
                 $VendorUID = 0;
                 $vendorFormData = [
                     'Name' => $PostData['Name'],
-                    'VillageName' => $PostData['VillageName'] ? $PostData['VillageName'] : '',
+                    'Area' => $PostData['Area'] ? $PostData['Area'] : '',
                     'OrgUID' => $this->pageData['JwtData']->User->OrgUID,
                     'CountryCode' => $PostData['CountryCode'],
                     'CountryISO2' => isset($PostData['CountryISO2']) ? $PostData['CountryISO2'] : 'IN',
@@ -175,7 +175,7 @@ class Vendors extends CI_Controller
 
                     $customerFormData = [
                         'Name' => $PostData['Name'],
-                        'VillageName' => $PostData['VillageName'] ? $PostData['VillageName'] : '',
+                        'Area' => $PostData['Area'] ? $PostData['Area'] : '',
                         'OrgUID' => $this->pageData['JwtData']->User->OrgUID,
                         'CountryCode' => $PostData['CountryCode'],
                         'CountryISO2' => isset($PostData['CountryISO2']) ? $PostData['CountryISO2'] : 'IN',
@@ -363,7 +363,7 @@ class Vendors extends CI_Controller
 
                 $vendorFormData = [
                     'Name' => $PostData['Name'],
-                    'VillageName' => $PostData['VillageName'] ? $PostData['VillageName'] : '',
+                    'Area' => $PostData['Area'] ? $PostData['Area'] : '',
                     'CountryCode' => $PostData['CountryCode'],
                     'CountryISO2' => isset($PostData['CountryISO2']) ? $PostData['CountryISO2'] : 'IN',
                     'MobileNumber' => (isset($PostData['MobileNumber']) && !empty($PostData['MobileNumber'])) ? $PostData['MobileNumber'] : NULL,

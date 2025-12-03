@@ -10,8 +10,8 @@ class Dashboard extends CI_Controller {
     }
 
     public function index() {
-        
-        $this->pageData['JwtData']->GenSettings = $this->session->userdata('CachedUserGenSettings');
+
+        $this->pageData['JwtData']->GenSettings = $this->redis_cache->get('Redis_UserGenSettings') ?? NULL;
         $this->load->view('dashboard/view', $this->pageData);
 
     }

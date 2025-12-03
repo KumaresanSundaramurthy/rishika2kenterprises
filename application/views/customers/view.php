@@ -84,7 +84,7 @@
                                                 </li>
                                             </ul>
                                         </div>
-                                        <a href="/customers/add" class="btn btn-primary px-3"><i class='bx bx-plus'></i> New Customer</a>
+                                        <a href="javascript: void(0);" id="CreateCustomer" class="btn btn-primary px-3"><i class='bx bx-plus'></i> Create Customer</a>
                                     </div>
                                 </div>
                                 <div class="tab-content p-0">
@@ -95,26 +95,22 @@
                                             <table class="table table-sm table-striped table-hover" id="CustomersTable">
                                                 <thead>
                                                     <tr>
-                                                        <th class="table-checkbox">
-                                                            <div class="form-check form-check-inline">
-                                                                <input class="form-check-input table-chkbox customerHeaderCheck" type="checkbox">
-                                                            </div>
-                                                        </th>
+                                                        <th class="table-checkbox"></th>
                                                         <th class="table-serialno">S.No</th>
-                                                        <?php foreach (array_column($ModuleColumns, 'DisplayName') as $ItemKey => $ItemVal) { ?>
-                                                            <th <?php echo $ModuleColumns[$ItemKey]->MainPageColumnAddon; ?>><?php echo $ItemVal; ?></th>
+                                                        <?php foreach (array_column($ViewColumns, 'DisplayName') as $ItemKey => $ItemVal) { ?>
+                                                            <th <?php echo $ViewColumns[$ItemKey]->MainPageColumnAddon; ?>><?php echo $ItemVal; ?></th>
                                                         <?php } ?>
                                                         <th class="text-center">Actions</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody class="table-border-bottom-0">
-                                                    <?php echo $ModDataList; ?>
+                                                    <?php echo $this->load->view('customers/list', [], TRUE); ?>
                                                 </tbody>
                                             </table>
                                         </div>
                                         <hr class="my-0" />
                                         <div class="row mx-3 justify-content-between CustomersPagination" id="CustomersPagination">
-                                            <?php echo $ModDataPagination; ?>
+                                            <?php echo $DataPagination; ?>
                                         </div>
 
                                     </div>
@@ -142,7 +138,7 @@
             <!-- Content wrapper -->
 
             <?php $this->load->view('common/settings_modal'); ?>
-
+            <?php $this->load->view('customers/forms/add_modal'); ?>
             <?php $this->load->view('common/footer_desc'); ?>
 
         </div>
@@ -155,7 +151,6 @@
 <script src="/js/customers.js"></script>
 
 <script>
-let ModuleUIDs = <?php echo json_encode($ModDataUIDs ?: []); ?>;
 let ModuleId = <?php echo $ModuleId; ?>;
 const ModuleTable = '#CustomersTable';
 const ModulePag = '.CustomersPagination';
@@ -163,15 +158,13 @@ const ModuleHeader = '.customerHeaderCheck';
 const ModuleRow = '.customerCheck';
 const ModuleFileName = 'Customer_Data';
 const ModuleSheetName = 'Customer';
+const StateInfo = <?php echo json_encode($StateData); ?>;
+const CityInfo = <?php echo json_encode($CityData); ?>;
 $(function() {
     'use strict'
 
     $('#SearchDetails').val('');
-    $(ModuleHeader + ',' + ModuleRow).prop('checked', false).trigger('change');
-
-    if(ModuleUIDs.length == 0) {
-        $(ModuleHeader).attr('disabled', 'disabled');
-    }
+    $(ModuleRow).prop('checked', false).trigger('change');
 
     baseExportFunctions();
 
@@ -186,12 +179,7 @@ $(function() {
         getCustomersDetails(0, RowLimit, Filter);
     });
 
-    $(ModuleHeader).click(function() {
-        allTableHeadersCheckbox($(this), ModuleUIDs, ModuleTable, ModuleHeader, ModuleRow);
-    });
-
     $(document).on('click', ModuleRow, function() {
-        onClickOfCheckbox($(this), ModuleUIDs, ModuleHeader);
         $('#CloneOption').addClass('d-none');
         if (SelectedUIDs.length == 1) {
             $('#CloneOption').removeClass('d-none');
@@ -199,12 +187,12 @@ $(function() {
         MultipleDeleteOption();
     });
 
-    $('#btnClone').click(function(e) {
-        e.preventDefault();
-        if (SelectedUIDs.length == 1) {
-            window.location.href = '/customers/' + SelectedUIDs[0] + '/clone';
-        }
-    });
+    // $('#btnClone').click(function(e) {
+    //     e.preventDefault();
+    //     if (SelectedUIDs.length == 1) {
+    //         window.location.href = '/customers/' + SelectedUIDs[0] + '/clone';
+    //     }
+    // });
 
     $('.SearchDetails').keyup(inputDelay(function(e) {
         PageNo = 0;
@@ -271,6 +259,19 @@ $(function() {
             });
         }
     });
+    
+    initializeFlatPickr('#CPDateOfBirth', '#addEditCustomerModal');
+    initializeSelect2Tags('#Tags', 'Type and press enter...', '#addEditCustomerModal');
+    initializeSelect2Tags('#CCEmails', 'Type and press enter...', '#addEditCustomerModal');
+
+    // Add Functionality Starts Here
+    $('#CreateCustomer').click(function(e) {
+        e.preventDefault();
+        $('#AddCustomerForm').trigger('reset');
+        $('#CustomerModalTitle').text('Add Customer');
+        $('.AddEditCustomerBtn').text('Save');
+        $('#addEditCustomerModal').modal('show');
+    })
 
 });
 </script>

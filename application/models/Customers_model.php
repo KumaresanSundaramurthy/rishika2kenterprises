@@ -23,7 +23,7 @@ class Customers_model extends CI_Model {
                     'Customers.CustomerUID AS CustomerUID',
                     'Customers.OrgUID AS OrgUID',
                     'Customers.Name AS Name',
-                    'Customers.VillageName AS VillageName',
+                    'Customers.Area AS Area',
                     'Customers.CountryISO2 as CountryISO2',
                     'Customers.CountryCode as CountryCode',
                     'Customers.MobileNumber as MobileNumber',
@@ -97,7 +97,7 @@ class Customers_model extends CI_Model {
                 'Customers.CustomerUID AS CustomerUID',
                 'Customers.OrgUID AS OrgUID',
                 'Customers.Name AS Name',
-                'Customers.VillageName AS VillageName',
+                'Customers.Area AS Area',
                 'Customers.CountryISO2 as CountryISO2',
                 'Customers.CountryCode as CountryCode',
                 'Customers.MobileNumber as MobileNumber',
@@ -205,7 +205,7 @@ class Customers_model extends CI_Model {
             $select_ary = array(
                 'Customers.CustomerUID AS CustomerUID',
                 'Customers.Name AS Name',
-                'Customers.VillageName AS VillageName',
+                'Customers.Area AS Area',
             );
             $where_ary = array(
                 'Customers.IsDeleted' => 0,
@@ -215,7 +215,7 @@ class Customers_model extends CI_Model {
             $this->CustomerDb->from('Customers.CustomerTbl as Customers');
             $this->CustomerDb->group_start();
             $this->CustomerDb->or_like('Customers.Name', $Term, 'both');
-            $this->CustomerDb->or_like('Customers.VillageName', $Term, 'both');
+            $this->CustomerDb->or_like('Customers.Area', $Term, 'both');
             $this->CustomerDb->group_end();
             $this->CustomerDb->where($where_ary);
             if(sizeof($WhereCondition) > 0) {

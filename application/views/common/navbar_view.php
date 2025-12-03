@@ -51,7 +51,7 @@
             <li class="nav-item navbar-dropdown dropdown-user dropdown">
                 <a class="nav-link dropdown-toggle hide-arrow" href="javascript:void(0);" data-bs-toggle="dropdown">
                     <div class="avatar avatar-online">
-                        <img src="<?php echo $JwtData->User->OrgLogo ? getenv('CDN_URL').$JwtData->User->OrgLogo : '/images/logo/avathar_user.png' ?>" alt class="w-px-40 h-auto rounded-circle" />
+                        <img src="<?php echo $JwtData->User->OrgLogo ? getenv('CFLARE_R2_CDN').$JwtData->User->OrgLogo : '/images/logo/avathar_user.png' ?>" alt class="w-px-40 h-auto rounded-circle" />
                     </div>
                 </a>
                 <ul class="dropdown-menu dropdown-menu-end">
@@ -60,7 +60,7 @@
                             <div class="d-flex">
                                 <div class="flex-shrink-0 me-3">
                                     <div class="avatar avatar-online">
-                                        <img src="<?php echo $JwtData->User->OrgLogo ? getenv('CDN_URL').$JwtData->User->OrgLogo : '/images/logo/avathar_user.png' ?>" alt class="w-px-40 h-auto rounded-circle" />
+                                        <img src="<?php echo $JwtData->User->OrgLogo ? getenv('CFLARE_R2_CDN').$JwtData->User->OrgLogo : '/images/logo/avathar_user.png' ?>" alt class="w-px-40 h-auto rounded-circle" />
                                     </div>
                                 </div>
                                 <div class="flex-grow-1">
@@ -97,7 +97,7 @@
                         <div class="dropdown-divider"></div>
                     </li>
                     <li>
-                        <a class="dropdown-item" href="/login/logout">
+                        <a class="dropdown-item" href="/logout">
                             <i class="bx bx-power-off me-2"></i>
                             <span class="align-middle">Log Out</span>
                         </a>

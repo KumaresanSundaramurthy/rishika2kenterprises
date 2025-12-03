@@ -23,9 +23,11 @@
 
 .dropzone .dz-message {
     color: var(--bs-heading-color);
-    font-size: 1.5rem;
+    font-size: 1.25rem;
     font-weight: 500;
-    margin-block:8rem 3rem;margin-inline:0;text-align: center
+    margin-block:8rem 3rem;
+    margin-inline:0;
+    text-align: center;
 }
 
 .dropzone .dz-message .note {
@@ -244,8 +246,10 @@
 }
 
 .dropzone-main-form {
-    min-height: 180px !important;   /* reduce height */
-    height: 180px !important;
+    min-height: 250px !important;   /* reduce height */
+    height: 250px !important;
+    min-width: 250px !important;
+    width: 250px !important;
     display: flex;
     justify-content: center;
     align-items: center;

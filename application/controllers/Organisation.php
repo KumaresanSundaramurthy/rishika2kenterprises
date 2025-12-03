@@ -19,7 +19,7 @@ class Organisation extends CI_Controller {
         $this->load->model('organisation_model');
         $OrgBussTypeData = $this->organisation_model->getOrgBusinessTypeDetails();
         $this->pageData['OrgBussType'] = $OrgBussTypeData->Error === FALSE ? $OrgBussTypeData->Data : [];
-
+        
         $OrgIndusTypeData = $this->organisation_model->getOrgIndustryTypeDetails();
         $this->pageData['OrgIndusType'] = $OrgIndusTypeData->Error === FALSE ? $OrgIndusTypeData->Data : [];
         

@@ -78,8 +78,8 @@ class Organisation_model extends CI_Model {
         try {
 
             $OrgBusTypeKey = getSiteConfiguration()->RedisName . '-orgbustypeinfo';
-            $OBTGet_Data = $this->cacheservice->get($OrgBusTypeKey);
-            if ($OBTGet_Data->Error) {
+            $OBTGet_Data = $this->session->userdata($OrgBusTypeKey);
+            if (empty($OBTGet_Data)) {
 
                 $this->OrgDb->select('BusinessType.OrgBussTypeUID as OrgBussTypeUID, BusinessType.Name as Name');
                 $this->OrgDb->from('Organisation.OrgBusinessTypeTbl as BusinessType');
@@ -93,10 +93,10 @@ class Organisation_model extends CI_Model {
                     $this->EndReturnData->Data = $query->result();
                 }
 
-                $this->cacheservice->set($OrgBusTypeKey, json_encode($this->EndReturnData->Data), 43200 * 365);
-
+                $this->session->set_userdata($OrgBusTypeKey, $this->EndReturnData->Data);
+                
             } else {
-                $this->EndReturnData->Data = json_decode($OBTGet_Data->Value);
+                $this->EndReturnData->Data = $OBTGet_Data;
             }
 
             $this->EndReturnData->Error = FALSE;
@@ -120,8 +120,8 @@ class Organisation_model extends CI_Model {
         try {
 
             $OrgIndusTypeKey = getSiteConfiguration()->RedisName . '-orgindustypeinfo';
-            $OITGet_Data = $this->cacheservice->get($OrgIndusTypeKey);
-            if ($OITGet_Data->Error) {
+            $OITGet_Data = $this->session->userdata($OrgIndusTypeKey);
+            if (empty($OITGet_Data)) {
 
                 $this->OrgDb->select('IndustryType.OrgIndTypeUID as OrgIndTypeUID, IndustryType.Name as Name');
                 $this->OrgDb->from('Organisation.OrgIndustryTypeTbl as IndustryType');
@@ -135,10 +135,10 @@ class Organisation_model extends CI_Model {
                     $this->EndReturnData->Data = $query->result();
                 }
 
-                $this->cacheservice->set($OrgIndusTypeKey, json_encode($this->EndReturnData->Data), 43200 * 365);
+                $this->session->set_userdata($OrgIndusTypeKey, $this->EndReturnData->Data);
 
             } else {
-                $this->EndReturnData->Data = json_decode($OITGet_Data->Value);
+                $this->EndReturnData->Data = $OITGet_Data;
             }
 
             $this->EndReturnData->Error = FALSE;
@@ -162,8 +162,8 @@ class Organisation_model extends CI_Model {
         try {
 
             $OrgBusRegTypeKey = getSiteConfiguration()->RedisName . '-orgbusregtypeinfo';
-            $OBRTGet_Data = $this->cacheservice->get($OrgBusRegTypeKey);
-            if ($OBRTGet_Data->Error) {
+            $OBRTGet_Data = $this->session->userdata($OrgBusRegTypeKey);
+            if (empty($OBRTGet_Data)) {
 
                 $this->OrgDb->select('BusRegType.OrgBusRegTypeUID as OrgBusRegTypeUID, BusRegType.Name as Name');
                 $this->OrgDb->from('Organisation.OrgBusinessRegTypeTbl as BusRegType');
@@ -177,10 +177,10 @@ class Organisation_model extends CI_Model {
                     $this->EndReturnData->Data = $query->result();
                 }
 
-                $this->cacheservice->set($OrgBusRegTypeKey, json_encode($this->EndReturnData->Data), 43200 * 365);
+                $this->session->set_userdata($OrgBusRegTypeKey, $this->EndReturnData->Data);
 
             } else {
-                $this->EndReturnData->Data = json_decode($OBRTGet_Data->Value);
+                $this->EndReturnData->Data = $OBRTGet_Data;
             }
 
             $this->EndReturnData->Error = FALSE;

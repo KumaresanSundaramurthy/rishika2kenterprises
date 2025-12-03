@@ -14,22 +14,23 @@ class Customers extends CI_Controller {
 
         $ControllerName = strtolower($this->router->fetch_class());
 
-        $this->pageData['ModuleInfo'] = array_values(array_filter($this->pageData['JwtData']->ModuleInfo, function($module) use ($ControllerName) {
+        $ModuleInfo = $this->session->userdata('CachedUserModuleData');
+        $this->pageData['ModuleInfo'] = array_values(array_filter($ModuleInfo, function($module) use ($ControllerName) {
             return $module->ControllerName === $ControllerName;
         }));
-
         $this->pageData['ModuleId'] = $this->pageData['ModuleInfo'][0]->ModuleUID;
 
-        $limit = isset($this->pageData['JwtData']->GenSettings->RowLimit) ? $this->pageData['JwtData']->GenSettings->RowLimit : 10;
+        $GeneralSettings = $this->session->userdata('CachedUserGenSettings');
+        $limit = $GeneralSettings->RowLimit ?? 10;
 
-        $ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($this->pageData['ModuleId'], '/customers/getCustomersDetails/', 'customers/list', 0, $limit, 0, [], []);
+        $ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($this->pageData['ModuleId'], '/customers/getCustomersDetails/', 0, $limit, 0, [], [], 1);
         if($ReturnResponse->Error) {
             throw new Exception($ReturnResponse->Message);
         }
 
-        $this->pageData['ModDataList'] = $ReturnResponse->List;
-        $this->pageData['ModDataUIDs'] = $ReturnResponse->UIDs;
-        $this->pageData['ModDataPagination'] = $ReturnResponse->Pagination;
+        $this->pageData['DataLists'] = $ReturnResponse->DataLists;
+        $this->pageData['SerialNumber'] = 0;
+        $this->pageData['DataPagination'] = $ReturnResponse->Pagination;
         $this->pageData['ColumnDetails'] = $ReturnResponse->AllViewColumns;
         
         $ItemColumns = array_filter($this->pageData['ColumnDetails'], function ($item) {
@@ -38,8 +39,27 @@ class Customers extends CI_Controller {
         usort($ItemColumns, function ($a, $b) {
             return $a->MainPageOrder <=> $b->MainPageOrder;
         });
-        $this->pageData['ModuleColumns'] = $ItemColumns;
+        $this->pageData['ViewColumns'] = $ItemColumns;
 
+        $this->load->model('global_model');
+        $GetCountryInfo = $this->global_model->getCountryInfo();
+        $this->pageData['CountryInfo'] = $GetCountryInfo->Error === FALSE ? $GetCountryInfo->Data : [];
+
+        $OrgCountryISO2 = $this->pageData['JwtData']->User->OrgCISO2;
+        $this->pageData['StateData'] = [];
+        $this->pageData['CityData'] = [];
+        if(!empty($OrgCountryISO2)) {
+            $StateInfo = $this->global_model->getStateofCountry($OrgCountryISO2);
+            if($StateInfo->Error === FALSE) {
+                $this->pageData['StateData'] = $StateInfo->Data;
+            }
+            $CityInfo = $this->global_model->getCityofCountry($OrgCountryISO2);
+            if($CityInfo->Error === FALSE) {
+                $this->pageData['CityData'] = $CityInfo->Data;
+            }
+        }
+
+        $this->pageData['JwtData']->GenSettings = $this->session->userdata('CachedUserGenSettings');
         $this->load->view('customers/view', $this->pageData);
 
     }
@@ -101,7 +121,7 @@ class Customers extends CI_Controller {
                     foreach ($CustomersData as $key => $value) {
                         $CustomersDetails[] = array(
                             'id' => $value->CustomerUID,
-                            'text' => $value->VillageName ? $value->Name.' ('.$value->VillageName.')' : $value->Name,
+                            'text' => $value->Area ? $value->Name.' ('.$value->Area.')' : $value->Name,
                         );
                     }
                 }
@@ -199,7 +219,7 @@ class Customers extends CI_Controller {
                 $CustomerUID = 0;
                 $customerFormData = [
                     'Name' => $PostData['Name'],
-                    'VillageName' => $PostData['VillageName'] ? $PostData['VillageName'] : '',
+                    'Area' => $PostData['Area'] ? $PostData['Area'] : '',
                     'OrgUID' => $this->pageData['JwtData']->User->OrgUID,
                     'CountryCode' => $PostData['CountryCode'],
                     'CountryISO2' => isset($PostData['CountryISO2']) ? $PostData['CountryISO2'] : 'IN',
@@ -412,7 +432,7 @@ class Customers extends CI_Controller {
                 $CustomerUID = $PostData['CustomerUID'];
                 $customerFormData = [
                     'Name' => $PostData['Name'],
-                    'VillageName' => $PostData['VillageName'] ? $PostData['VillageName'] : '',
+                    'Area' => $PostData['Area'] ? $PostData['Area'] : '',
                     'CountryCode' => $PostData['CountryCode'],
                     'CountryISO2' => isset($PostData['CountryISO2']) ? $PostData['CountryISO2'] : 'IN',
                     'MobileNumber' => (isset($PostData['MobileNumber']) && !empty($PostData['MobileNumber'])) ? $PostData['MobileNumber'] : NULL,

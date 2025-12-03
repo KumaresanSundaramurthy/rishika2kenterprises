@@ -5,8 +5,8 @@
 $CI = &get_instance();
 $ControllerName = get_class($CI); 
 
-$UserMainModule = $this->session->userdata('CachedUserMenuData')['MainModules'];
-$UserSubModule = $this->session->userdata('CachedUserMenuData')['SubModules'];
+$UserMainModule = $this->redis_cache->get('Redis_UserMainModule') ?? [];
+$UserSubModule = $this->redis_cache->get('Redis_UserSubModule') ?? [];
 
 ?>
 
@@ -86,9 +86,30 @@ $UserSubModule = $this->session->userdata('CachedUserMenuData')['SubModules'];
         </li>
 
         <li class="menu-item">
-            <a href="/dashboard" class="menu-link">
+            <a href="/settings/account" class="menu-link">
                 <i class="menu-icon tf-icons bx bx-home-smile"></i>
-                <div data-i18n="Main Menu">Account</div>
+                <div data-i18n="Account">Account</div>
+            </a>
+        </li>
+
+        <li class="menu-item">
+            <a href="/settings/general-settings" class="menu-link">
+                <i class="menu-icon tf-icons bx bx-home-smile"></i>
+                <div data-i18n="General Settings">General Settings</div>
+            </a>
+        </li>
+
+        <li class="menu-item">
+            <a href="/settings/manage-users" class="menu-link">
+                <i class="menu-icon tf-icons bx bx-home-smile"></i>
+                <div data-i18n="Manage Users">Manage Users</div>
+            </a>
+        </li>
+
+        <li class="menu-item">
+            <a href="/settings/reminders" class="menu-link">
+                <i class="menu-icon tf-icons bx bx-home-smile"></i>
+                <div data-i18n="Reminders">Reminders</div>
             </a>
         </li>
 

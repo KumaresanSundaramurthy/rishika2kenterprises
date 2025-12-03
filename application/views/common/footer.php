@@ -26,6 +26,8 @@
     <!-- Main JS -->
     <script type="text/javascript" src="/assets/js/main.js"></script>
 
+    <script type="text/javascript" src="/assets/vendor/libs/flatpickr/flatpickr.js"></script>
+
     <!-- Vendors JS -->
     
     <script src="/assets/vendor/libs/sweetalert2/sweetalert2.js"></script>

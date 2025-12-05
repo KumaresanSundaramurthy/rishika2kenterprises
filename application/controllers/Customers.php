@@ -14,13 +14,13 @@ class Customers extends CI_Controller {
 
         $ControllerName = strtolower($this->router->fetch_class());
 
-        $ModuleInfo = $this->session->userdata('CachedUserModuleData');
+        $ModuleInfo = $this->redis_cache->get('Redis_UserModuleInfo') ?? NULL;
         $this->pageData['ModuleInfo'] = array_values(array_filter($ModuleInfo, function($module) use ($ControllerName) {
             return $module->ControllerName === $ControllerName;
         }));
         $this->pageData['ModuleId'] = $this->pageData['ModuleInfo'][0]->ModuleUID;
 
-        $GeneralSettings = $this->session->userdata('CachedUserGenSettings');
+        $GeneralSettings = $this->redis_cache->get('Redis_UserGenSettings') ?? NULL;
         $limit = $GeneralSettings->RowLimit ?? 10;
 
         $ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($this->pageData['ModuleId'], '/customers/getCustomersDetails/', 0, $limit, 0, [], [], 1);
@@ -41,25 +41,7 @@ class Customers extends CI_Controller {
         });
         $this->pageData['ViewColumns'] = $ItemColumns;
 
-        $this->load->model('global_model');
-        $GetCountryInfo = $this->global_model->getCountryInfo();
-        $this->pageData['CountryInfo'] = $GetCountryInfo->Error === FALSE ? $GetCountryInfo->Data : [];
-
-        $OrgCountryISO2 = $this->pageData['JwtData']->User->OrgCISO2;
-        $this->pageData['StateData'] = [];
-        $this->pageData['CityData'] = [];
-        if(!empty($OrgCountryISO2)) {
-            $StateInfo = $this->global_model->getStateofCountry($OrgCountryISO2);
-            if($StateInfo->Error === FALSE) {
-                $this->pageData['StateData'] = $StateInfo->Data;
-            }
-            $CityInfo = $this->global_model->getCityofCountry($OrgCountryISO2);
-            if($CityInfo->Error === FALSE) {
-                $this->pageData['CityData'] = $CityInfo->Data;
-            }
-        }
-
-        $this->pageData['JwtData']->GenSettings = $this->session->userdata('CachedUserGenSettings');
+        $this->pageData['JwtData']->GenSettings = $GeneralSettings;
         $this->load->view('customers/view', $this->pageData);
 
     }
@@ -73,7 +55,6 @@ class Customers extends CI_Controller {
 
 			$this->EndReturnData->Error = false;
             $this->EndReturnData->List = $tablePagDataResp->List;
-			$this->EndReturnData->UIDs = $tablePagDataResp->UIDs;
             $this->EndReturnData->Pagination = $tablePagDataResp->Pagination;
 
 		} catch (Exception $e) {
@@ -145,62 +126,51 @@ class Customers extends CI_Controller {
         
     }
 
-    public function add() {
+    public function create() {
 
         $this->load->model('global_model');
         $GetCountryInfo = $this->global_model->getCountryInfo();
-        if($GetCountryInfo->Error === FALSE) {
-            $this->pageData['CountryInfo'] = $GetCountryInfo->Data;
+        $this->pageData['CountryInfo'] = $GetCountryInfo->Error === FALSE ? $GetCountryInfo->Data : [];
+
+        $OrgCountryISO2 = $this->pageData['JwtData']->User->OrgCISO2;
+        $this->pageData['StateData'] = [];
+        $this->pageData['CityData'] = [];
+        if(!empty($OrgCountryISO2)) {
+            $StateInfo = $this->global_model->getStateofCountry($OrgCountryISO2);
+            if($StateInfo->Error === FALSE) {
+                $this->pageData['StateData'] = $StateInfo->Data;
+            }
+            $CityInfo = $this->global_model->getCityofCountry($OrgCountryISO2);
+            if($CityInfo->Error === FALSE) {
+                $this->pageData['CityData'] = $CityInfo->Data;
+            }
         }
 
         $this->load->view('customers/forms/add', $this->pageData);
 
     }
 
-    public function addAddressInfo() {
+    public function checkImageType($str = '') {
+        return $this->globalservice->checkImageType($str);
+    }
 
-        $this->EndReturnData = new stdClass();
-		try {
-
-            $PostData = $this->input->post();
-            if($PostData['AddressType'] && $PostData['CountryCode']) {
-
-                $this->pageData['StateData'] = [];
-                $this->pageData['CityData'] = [];
-
-                $this->load->model('global_model');
-
-                $StateInfo = $this->global_model->getStateofCountry($PostData['CountryCode']);
-                if($StateInfo->Error === FALSE) {
-                    $this->pageData['StateData'] = $StateInfo->Data;
-                }
-
-                $CityInfo = $this->global_model->getCityofCountry($PostData['CountryCode']);
-                if($CityInfo->Error === FALSE) {
-                    $this->pageData['CityData'] = $CityInfo->Data;
-                }
-
-                $this->pageData['AddressType'] = $PostData['AddressType'];
-
-                $this->EndReturnData->Error = FALSE;
-                $this->EndReturnData->Message = 'Retrieved Successfully';
-                $this->EndReturnData->HtmlData = $this->load->view('customers/forms/addressform', $this->pageData, TRUE);
-
-            } else {
-                throw new Exception('Address Type is not defined.');
-            }
-
-        } catch (Exception $e) {
-            $this->EndReturnData->Error = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
+    public function validateDateFormat($date) {
+        // Allow empty (optional field)
+        if ($date === null || $date === '') {
+            return TRUE;
         }
 
-		$this->output->set_status_header(200)
-            ->set_content_type('application/json', 'utf-8')
-            ->set_output(json_encode($this->EndReturnData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES))
-            ->_display();
-        exit;
-
+        // Validate format only if not empty
+        $d = DateTime::createFromFormat('Y-m-d', $date);
+        if ($d && $d->format('Y-m-d') === $date) {
+            return TRUE;
+        } else {
+            $this->form_validation->set_message(
+                'validateDateFormat',
+                'The {field} must be a valid date in YYYY-MM-DD format.'
+            );
+            return FALSE;
+        }
     }
 
     public function addCustomerData() {
@@ -214,24 +184,25 @@ class Customers extends CI_Controller {
             $ErrorInForm = $this->formvalidation_model->custValidateForm($PostData);
             if(empty($ErrorInForm)) {
 
-                $this->load->model('dbwrite_model');
-
                 $CustomerUID = 0;
                 $customerFormData = [
                     'Name' => $PostData['Name'],
-                    'Area' => $PostData['Area'] ? $PostData['Area'] : '',
+                    'Area' => !empty($PostData['Area']) ? $PostData['Area'] : NULL,
                     'OrgUID' => $this->pageData['JwtData']->User->OrgUID,
+                    'EmailAddress' => !empty($PostData['EmailAddress']) ? $PostData['EmailAddress'] : NULL,
                     'CountryCode' => $PostData['CountryCode'],
-                    'CountryISO2' => isset($PostData['CountryISO2']) ? $PostData['CountryISO2'] : 'IN',
-                    'MobileNumber' => (isset($PostData['MobileNumber']) && !empty($PostData['MobileNumber'])) ? $PostData['MobileNumber'] : NULL,
-                    'EmailAddress' => (isset($PostData['EmailAddress']) && !empty($PostData['EmailAddress'])) ? $PostData['EmailAddress'] : NULL,
-                    'GSTIN' => (isset($PostData['GSTIN']) && !empty($PostData['GSTIN'])) ? $PostData['GSTIN'] : NULL,
-                    'CompanyName' => (isset($PostData['CompanyName']) && !empty($PostData['CompanyName'])) ? $PostData['CompanyName'] : NULL,
-                    'DebitCreditType' => isset($PostData['DebitCreditCheck']) ? $PostData['DebitCreditCheck'] : 'Debit',
-                    'DebitCreditAmount' => isset($PostData['DebitCreditAmount']) ? $PostData['DebitCreditAmount'] : 0,
-                    'PANNumber' => (isset($PostData['PANNumber']) && !empty($PostData['PANNumber'])) ? $PostData['PANNumber'] : NULL,
-                    'DiscountPercent' => isset($PostData['DiscountPercent']) ? $PostData['DiscountPercent'] : 0,
-                    'CreditLimit' => isset($PostData['CreditLimit']) ? $PostData['CreditLimit'] : 0,
+                    'CountryISO2' => !empty($PostData['CountryISO2']) ? $PostData['CountryISO2'] : 'IN',
+                    'MobileNumber' => !empty($PostData['MobileNumber']) ? $PostData['MobileNumber'] : NULL,
+                    'DebitCreditType' => !empty($PostData['DebitCreditCheck']) ? $PostData['DebitCreditCheck'] : 'Debit',
+                    'DebitCreditAmount' => isset($PostData['DebitCreditAmount']) && !empty($PostData['DebitCreditAmount']) ? $PostData['DebitCreditAmount'] : 0,
+                    'PANNumber' => !empty($PostData['PANNumber']) ? $PostData['PANNumber'] : NULL,
+                    'ContactPerson' => !empty($PostData['ContactPerson']) ? $PostData['ContactPerson'] : NULL,
+                    'DateOfBirth' => !empty($PostData['CPDateOfBirth']) ? $PostData['CPDateOfBirth'] : NULL,
+                    'GSTIN' => !empty($PostData['GSTIN']) ? $PostData['GSTIN'] : NULL,
+                    'CompanyName' => !empty($PostData['CompanyName']) ? $PostData['CompanyName'] : NULL,
+                    'DiscountPercent' => isset($PostData['DiscountPercent']) && !empty($PostData['DiscountPercent']) ? $PostData['DiscountPercent'] : 0,
+                    'CreditPeriod' => isset($PostData['CreditPeriod']) && !empty($PostData['CreditPeriod']) ? $PostData['CreditPeriod'] : 30,
+                    'CreditLimit' => isset($PostData['CreditLimit']) && !empty($PostData['CreditLimit']) ? $PostData['CreditLimit'] : 0,
                     'Notes' => (isset($PostData['Notes']) && !empty($PostData['Notes'])) ? $PostData['Notes'] : NULL,
                     'Tags' => (isset($PostData['Tags']) && !empty($PostData['Tags'])) ? implode(',', $PostData['Tags']) : NULL,
                     'CCEmails' => (isset($PostData['CCEmails']) && !empty($PostData['CCEmails'])) ? implode(',', $PostData['CCEmails']) : NULL,
@@ -241,14 +212,15 @@ class Customers extends CI_Controller {
                     'UpdatedOn' => time(),
                 ];
 
+                $this->load->model('dbwrite_model');
                 $InsertDataResp = $this->dbwrite_model->insertData('Customers', 'CustomerTbl', $customerFormData);
                 if($InsertDataResp->Error) {
                     throw new Exception($InsertDataResp->Message);
-                } else {
-                    $CustomerUID = $InsertDataResp->ID;
                 }
+                
+                $CustomerUID = $InsertDataResp->ID;
 
-                // Image Upload
+                /** Image Upload **/
                 if(isset($_FILES['UploadImage'])) {
                     $UploadResp = $this->globalservice->fileUploadService($_FILES['UploadImage'], 'customers/images/', 'Image', ['Customers', 'CustomerTbl', array('CustomerUID' => $CustomerUID)]);
                     if($UploadResp->Error === TRUE) {
@@ -256,6 +228,41 @@ class Customers extends CI_Controller {
                     }
                 }
 
+                /** Bank Details Update */
+                $bankDetailsJson = $this->input->post('BankDetailsJSON');
+                if ($bankDetailsJson) {
+                    $bankDetails = json_decode($bankDetailsJson, true);
+                    if (is_array($bankDetails)) {
+                        
+                        $batchBankDataArr = [];
+                        foreach ($bankDetails as $record) {
+                            $bankDataArray = array(
+                                'CustomerUID'       => $CustomerUID,
+                                'UpdatedOn'       => $record['type'],
+                                'BankAccountNumber'     => $record['accNumber'],
+                                'BankIFSC_Code'     => $record['ifsc'],
+                                'BankBranchName'    => $record['branch'],
+                                'BankAccountHolderName' => $record['holder'],
+                                'UPI_Id' => $record['upiId'],
+                                'CreatedBy' => $this->pageData['JwtData']->User->UserUID,
+                                'UpdatedBy' => $this->pageData['JwtData']->User->UserUID,
+                                'CreatedOn' => time(),
+                                'UpdatedOn' => time(),
+                            );
+                            $batchBankDataArr[] = $bankDataArray;
+                        }
+
+                        if(count($batchBankDataArr) > 0) {
+                            $batchDataResp = $this->dbwrite_model->insertBatchData('Customers', 'CustBankDetailsTbl', $batchBankDataArr);
+                            if($batchDataResp->Error) {
+                                throw new Exception($batchDataResp->Message);
+                            }
+                        }
+                        
+                    }
+                }
+
+                /** Adding Billing Address */
                 if(isset($PostData['BillAddrLine1']) && $PostData['BillAddrLine1'] != '') {
                     $BillingAddressData = [
                         'CustomerUID' => $CustomerUID,
@@ -280,6 +287,7 @@ class Customers extends CI_Controller {
                     }
                 }
 
+                /** Adding Shipping Address */
                 if(isset($PostData['ShipAddrLine1']) && $PostData['ShipAddrLine1'] != '') {
                     $ShippingAddressData = [
                         'CustomerUID' => $CustomerUID,
@@ -324,10 +332,6 @@ class Customers extends CI_Controller {
 
     }
 
-    public function checkImageType($str = '') {
-        return $this->globalservice->checkImageType($str);
-    }
-
     public function edit($CustomerUID) {
 
         $CustomerUID = (int) $CustomerUID;
@@ -337,27 +341,39 @@ class Customers extends CI_Controller {
             $GetCustomerData = $this->customers_model->getCustomers(['Customers.CustomerUID' => $CustomerUID]);
             if((sizeof($GetCustomerData) > 0) && sizeof($GetCustomerData) == 1) {
 
+                $this->pageData['EditData'] = $GetCustomerData[0];
+
                 $this->load->model('global_model');
                 $GetCountryInfo = $this->global_model->getCountryInfo();
-                if($GetCountryInfo->Error === FALSE) {
-                    $this->pageData['CountryInfo'] = $GetCountryInfo->Data;
-                }
-                
-                $this->pageData['EditData'] = $GetCustomerData[0];
-                $this->pageData['BillingAddr'] = $this->customers_model->getCustomerAddress(['CustAddress.CustomerUID' => $GetCustomerData[0]->CustomerUID, 'CustAddress.AddressType' => 'Billing']);
-                $this->pageData['ShippingAddr'] = $this->customers_model->getCustomerAddress(['CustAddress.CustomerUID' => $GetCustomerData[0]->CustomerUID, 'CustAddress.AddressType' => 'Shipping']);
+                $this->pageData['CountryInfo'] = $GetCountryInfo->Error === FALSE ? $GetCountryInfo->Data : [];
 
+                $OrgCountryISO2 = $this->pageData['JwtData']->User->OrgCISO2;
                 $this->pageData['StateData'] = [];
                 $this->pageData['CityData'] = [];
-
-                $StateInfo = $this->global_model->getStateofCountry($GetCustomerData[0]->CountryISO2);
-                if($StateInfo->Error === FALSE) {
-                    $this->pageData['StateData'] = $StateInfo->Data;
+                if(!empty($OrgCountryISO2)) {
+                    $StateInfo = $this->global_model->getStateofCountry($OrgCountryISO2);
+                    if($StateInfo->Error === FALSE) {
+                        $this->pageData['StateData'] = $StateInfo->Data;
+                    }
+                    $CityInfo = $this->global_model->getCityofCountry($OrgCountryISO2);
+                    if($CityInfo->Error === FALSE) {
+                        $this->pageData['CityData'] = $CityInfo->Data;
+                    }
                 }
+                
+                $this->pageData['BankDetails'] = $this->customers_model->getCustomerBankInfo(['CustBankDetails.CustomerUID' => $GetCustomerData[0]->CustomerUID]);
 
-                $CityInfo = $this->global_model->getCityofCountry($GetCustomerData[0]->CountryISO2);
-                if($CityInfo->Error === FALSE) {
-                    $this->pageData['CityData'] = $CityInfo->Data;
+                $AddressInfo = $this->customers_model->getCustomerAddress(['CustAddress.CustomerUID' => $GetCustomerData[0]->CustomerUID]);
+                $this->pageData['BillingAddr']  = null;
+                $this->pageData['ShippingAddr'] = null;
+                if (!empty($AddressInfo)) {
+                    foreach ($AddressInfo as $addr) {
+                        if ($addr->AddressType === 'Billing') {
+                            $this->pageData['BillingAddr'] = $addr;
+                        } elseif ($addr->AddressType === 'Shipping') {
+                            $this->pageData['ShippingAddr'] = $addr;
+                        }
+                    }
                 }
 
                 $this->load->view('customers/forms/edit', $this->pageData);

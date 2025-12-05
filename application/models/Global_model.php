@@ -90,13 +90,23 @@ class Global_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->load->library('curlservice');
+            $GlbStateKey = "Glb_StateInfo-".$CountryCode;
+            $StateInfo = $this->session->userdata($GlbStateKey);
+            if (empty($StateInfo)) {
 
-            $StateResp = $this->curlservice->retrieve(getenv('COUNTRY_API_URL') . '/countries/' . $CountryCode . '/states', 'GET', [], array('X-CSCAPI-KEY: ' . getenv('COUNTRY_API_KEY')));
-            if ($StateResp->Error === false && sizeof($StateResp->Data) > 0) {
-                $this->EndReturnData->Data = $StateResp->Data;
+                $this->load->library('curlservice');
+
+                $StateResp = $this->curlservice->retrieve(getenv('COUNTRY_API_URL') . '/countries/' . $CountryCode . '/states', 'GET', [], array('X-CSCAPI-KEY: ' . getenv('COUNTRY_API_KEY')));
+                if ($StateResp->Error === false && sizeof($StateResp->Data) > 0) {
+                    $this->EndReturnData->Data = $StateResp->Data;
+                } else {
+                    throw new Exception($StateResp->Message);
+                }
+
+                $this->session->set_userdata($GlbStateKey, $StateResp->Data);
+
             } else {
-                throw new Exception($StateResp->Message);
+                $this->EndReturnData->Data = $StateInfo;
             }
 
             $this->EndReturnData->Error = FALSE;
@@ -116,11 +126,21 @@ class Global_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $CityResp = $this->curlservice->retrieve(getenv('COUNTRY_API_URL') . '/countries/' . $CountryCode . '/cities', 'GET', [], array('X-CSCAPI-KEY: ' . getenv('COUNTRY_API_KEY')));
-            if ($CityResp->Error === false && sizeof($CityResp->Data) > 0) {
-                $this->EndReturnData->Data = $CityResp->Data;
+            $GlbCityKey = "Glb_CityInfo-".$CountryCode;
+            $CityInfo = $this->session->userdata($GlbCityKey);
+            if (empty($CityInfo)) {
+
+                $CityResp = $this->curlservice->retrieve(getenv('COUNTRY_API_URL') . '/countries/' . $CountryCode . '/cities', 'GET', [], array('X-CSCAPI-KEY: ' . getenv('COUNTRY_API_KEY')));
+                if ($CityResp->Error === false && sizeof($CityResp->Data) > 0) {
+                    $this->EndReturnData->Data = $CityResp->Data;
+                } else {
+                    throw new Exception($CityResp->Message);
+                }
+
+                $this->session->set_userdata($GlbCityKey, $CityResp->Data);
+
             } else {
-                throw new Exception($CityResp->Message);
+                $this->EndReturnData->Data = $CityInfo;
             }
 
             $this->EndReturnData->Error = FALSE;

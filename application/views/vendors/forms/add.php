@@ -46,7 +46,7 @@
                                         </div>
                                         <div class="mb-3 col-md-6">
                                             <label for="Area" class="form-label">Area </label>
-                                            <input class="form-control" type="text" id="Area" name="Area" placeholder="Village" maxlength="100" />
+                                            <input class="form-control" type="text" id="Area" name="Area" placeholder="Area" maxlength="100" />
                                         </div>
                                         <div class="mb-3 col-md-6">
                                             <label class="form-label" for="MobileNumber">Mobile Number </label>

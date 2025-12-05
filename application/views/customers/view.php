@@ -26,13 +26,10 @@
                                         <li class="nav-item">
                                             <a class="nav-link active" role="tab" data-bs-toggle="tab" data-bs-target="#NavAccountPage" aria-controls="NavAccountPage" aria-selected="true" href="javascript: void(0);"><i class="bx bx-user me-1"></i> Account</a>
                                         </li>
-                                        <li class="nav-item d-none">
-                                            <a class="nav-link" role="tab" data-bs-toggle="tab" data-bs-target="#NavGroupPage" aria-controls="NavGroupPage" aria-selected="true" href="javascript: void(0);"><i class="bx bx-group me-1"></i> Groups</a>
-                                        </li>
                                     </ul>
                                     <div class="d-flex mt-2 mt-md-0">
-                                        <a href="javascript: void(0);" class="btn PageRefresh p-2 me-0"><i class="bx bx-refresh fs-4"></i></a>
-                                        <a href="javascript: void(0);" id="btnPageSettings" class="btn p-2"><i class="bx bx-cog fs-4"></i></a>
+                                        <a href="javascript: void(0);" class="btn PageRefresh p-2 me-0" data-toggle="tooltip" data-bs-placement="top" title="Refresh Page"><i class="bx bx-refresh fs-4"></i></a>
+                                        <a href="javascript: void(0);" id="btnPageSettings" class="btn p-2" data-toggle="tooltip" data-bs-placement="top" title="Page Column Settings"><i class="bx bx-cog fs-4"></i></a>
                                         <div class="position-relative me-2">
                                             <input type="text" class="form-control SearchDetails" name="SearchDetails" id="SearchDetails" placeholder="Search details..." data-toggle="tooltip" title="Please type at least 3 characters to search" />
                                             <i class="bx bx-x position-absolute top-50 end-0 translate-middle-y me-3 text-muted cursor-pointer d-none" id="clearSearch"></i>
@@ -41,7 +38,7 @@
                                             <button class="btn btn-label-secondary dropdown-toggle me-2" type="button" id="actionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                                                 <span class="d-flex align-items-center gap-2">
                                                     <i class="icon-base bx bx-slider-alt icon-xs"></i>
-                                                    <span class="d-none d-sm-inline-block">Actions</span>
+                                                    <span class="d-none d-sm-inline-block"></span>
                                                 </span>
                                             </button>
                                             <ul class="dropdown-menu" aria-labelledby="actionsDropdown">
@@ -84,7 +81,7 @@
                                                 </li>
                                             </ul>
                                         </div>
-                                        <a href="javascript: void(0);" id="CreateCustomer" class="btn btn-primary px-3"><i class='bx bx-plus'></i> Create Customer</a>
+                                        <a href="/customers/create" class="btn btn-primary px-3">Create Customer</a>
                                     </div>
                                 </div>
                                 <div class="tab-content p-0">
@@ -96,7 +93,7 @@
                                                 <thead>
                                                     <tr>
                                                         <th class="table-checkbox"></th>
-                                                        <th class="table-serialno">S.No</th>
+                                                        <th class="table-serialno <?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>">S.No</th>
                                                         <?php foreach (array_column($ViewColumns, 'DisplayName') as $ItemKey => $ItemVal) { ?>
                                                             <th <?php echo $ViewColumns[$ItemKey]->MainPageColumnAddon; ?>><?php echo $ItemVal; ?></th>
                                                         <?php } ?>
@@ -115,18 +112,6 @@
 
                                     </div>
 
-                                    <div class="tab-pane fade" id="NavGroupPage" role="tabpanel">
-                                        <p>
-                                            Donut dragée jelly pie halvah. Danish gingerbread bonbon cookie wafer candy oat cake ice
-                                            cream. Gummies halvah tootsie roll muffin biscuit icing dessert gingerbread. Pastry ice cream
-                                            cheesecake fruitcake.
-                                        </p>
-                                        <p class="mb-0">
-                                            Jelly-o jelly beans icing pastry cake cake lemon drops. Muffin muffin pie tiramisu halvah
-                                            cotton candy liquorice caramels.
-                                        </p>
-                                    </div>
-
                                 </div>
                             </div>
                         </div>
@@ -138,7 +123,6 @@
             <!-- Content wrapper -->
 
             <?php $this->load->view('common/settings_modal'); ?>
-            <?php $this->load->view('customers/forms/add_modal'); ?>
             <?php $this->load->view('common/footer_desc'); ?>
 
         </div>
@@ -158,8 +142,6 @@ const ModuleHeader = '.customerHeaderCheck';
 const ModuleRow = '.customerCheck';
 const ModuleFileName = 'Customer_Data';
 const ModuleSheetName = 'Customer';
-const StateInfo = <?php echo json_encode($StateData); ?>;
-const CityInfo = <?php echo json_encode($CityData); ?>;
 $(function() {
     'use strict'
 
@@ -187,12 +169,12 @@ $(function() {
         MultipleDeleteOption();
     });
 
-    // $('#btnClone').click(function(e) {
-    //     e.preventDefault();
-    //     if (SelectedUIDs.length == 1) {
-    //         window.location.href = '/customers/' + SelectedUIDs[0] + '/clone';
-    //     }
-    // });
+    $('#btnClone').click(function(e) {
+        e.preventDefault();
+        if (SelectedUIDs.length == 1) {
+            window.location.href = '/customers/' + SelectedUIDs[0] + '/clone';
+        }
+    });
 
     $('.SearchDetails').keyup(inputDelay(function(e) {
         PageNo = 0;
@@ -259,19 +241,6 @@ $(function() {
             });
         }
     });
-    
-    initializeFlatPickr('#CPDateOfBirth', '#addEditCustomerModal');
-    initializeSelect2Tags('#Tags', 'Type and press enter...', '#addEditCustomerModal');
-    initializeSelect2Tags('#CCEmails', 'Type and press enter...', '#addEditCustomerModal');
-
-    // Add Functionality Starts Here
-    $('#CreateCustomer').click(function(e) {
-        e.preventDefault();
-        $('#AddCustomerForm').trigger('reset');
-        $('#CustomerModalTitle').text('Add Customer');
-        $('.AddEditCustomerBtn').text('Save');
-        $('#addEditCustomerModal').modal('show');
-    })
 
 });
 </script>

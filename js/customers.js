@@ -37,19 +37,16 @@ function addCustomerData(formdata) {
         contentType: false,
         enctype: 'multipart/form-data',
         success: function (response) {
-            
             if (response.Error) {
-                $('.addFormAlert').removeClass('d-none');
-                inlineMessageAlert('.addFormAlert', 'danger', response.Message, false, false);
+                $('.addEditFormAlert').removeClass('d-none');
+                $('.addEditFormAlert').find('.alert-message').text(response.Message);
             } else {
                 $('#AddCustomerForm').trigger('reset');
                 Swal.fire(response.Message, "", "success");
                 setTimeout(function () {                    
                     window.history.back();
                 }, 500);
-                
             }
-
         }
     });
 }
@@ -188,24 +185,37 @@ function select2TagEmail() {
     });
 }
 
-$('#addBillingAddress').click(function(e) {
-    e.preventDefault();
-
+function creationBilngAddrActions() {
     $('#addBillingAddress').addClass('d-none');
-    var DivId = $(this).data('divid');
+    var DivId = $('#addBillingAddress').data('divid');
     $('#'+DivId).removeClass('d-none').html('');
     $('#'+DivId).html(baseAddressCreation(1, StateInfo, CityInfo, $('#CountryCode').find('option:selected').data('ccode')));
-    $('#addShippingAddress').removeClass('d-none');
+    $('#addShippingAddress,#AddressDivider').removeClass('d-none');
+}
 
+function creationShipAddrActions() {
+    $('#addShippingAddress').addClass('d-none');
+    $('#addrCopyToShipping').removeClass('d-none');
+    var DivId = $('#addShippingAddress').data('divid');
+    $('#'+DivId).removeClass('d-none').html('');
+    $('#'+DivId).html(baseAddressCreation(2, StateInfo, CityInfo, $('#CountryCode').find('option:selected').data('ccode')));
+}
+
+$('#addBillingAddress').click(function(e) {
+    e.preventDefault();
+    creationBilngAddrActions();
 });
 
 $('#addShippingAddress').click(function(e) {
     e.preventDefault();
+    creationShipAddrActions();
+});
 
-    $('#addShippingAddress').addClass('d-none');
-    $('#addrCopyToShipping').removeClass('d-none');
-    var DivId = $(this).data('divid');
-    $('#'+DivId).removeClass('d-none').html('');
-    $('#'+DivId).html(baseAddressCreation(2, StateInfo, CityInfo, $('#CountryCode').find('option:selected').data('ccode')));
-
+$('#addrCopyToShipping').click(function(e) {
+    e.preventDefault();
+    $('#ShipAddrLine1').val($('#BillAddrLine1').val());
+    $('#ShipAddrLine2').val($('#BillAddrLine2').val());
+    $('#ShipAddrPincode').val($('#BillAddrPincode').val());
+    $('#ShipAddrState').val($('#BillAddrState').find('option:selected').val()).trigger('change');
+    $('#ShipAddrCity').val($('#BillAddrCity').find('option:selected').val()).trigger('change');
 });

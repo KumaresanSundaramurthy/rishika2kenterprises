@@ -23,13 +23,14 @@ class Products extends CI_Controller {
         }
 
         $ControllerName = strtolower($this->router->fetch_class());
-        
+        $ModuleInfo = $this->redis_cache->get('Redis_UserModuleInfo') ?? NULL;
         $this->pageData['ModuleInfo'] = array_values(array_filter(
-            $this->pageData['JwtData']->ModuleInfo,
+            $ModuleInfo,
             fn($module) => strtolower($module->ControllerName) === $ControllerName
         ));
 
-        $limit = (int) ($this->pageData['JwtData']->GenSettings->RowLimit ?? 10);
+        $GeneralSettings = $this->redis_cache->get('Redis_UserGenSettings') ?? NULL;
+        $limit = (int) ($GeneralSettings->RowLimit ?? 10);
         $page = (int) ($this->input->get('page', TRUE) ?: 1);
         $offset = max(0, ($page-1)*$limit);
 

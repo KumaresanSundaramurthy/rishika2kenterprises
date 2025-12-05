@@ -43,7 +43,7 @@
                                                     <tr>
                                                         <th></th>
                                                         <th>Name</th>
-                                                        <th>Village</th>
+                                                        <th>Area</th>
                                                         <th class="text-center">Contact Info</th>
                                                         <th class="text-end">Closing Balance</th>
                                                         <th class="text-end">Last Updated</th>

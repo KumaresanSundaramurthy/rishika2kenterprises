@@ -49,12 +49,12 @@ class Login extends CI_Controller {
                         $JwtReturnData = $this->login_model->setJwtToken($UserData->Data[0], $jwtPayload);
                         if(!$JwtReturnData->Error) {
 
-                            $this->redis_cache->set('Redis_UserMainModule', $newPayload->JWTData['UserMainModule'] ?? [], 43200);
-                            $this->redis_cache->set('Redis_UserSubModule', $newPayload->JWTData['UserSubModule'] ?? [], 43200);
-                            $this->redis_cache->set('Redis_UserModuleInfo', $newPayload->JWTData['ModuleInfo'] ?? [], 43200);
+                            $this->redis_cache->set('Redis_UserMainModule', $newPayload->JWTData['UserMainModule'] ?? [], getenv('LOGIN_EXPIRE_SECS'));
+                            $this->redis_cache->set('Redis_UserSubModule', $newPayload->JWTData['UserSubModule'] ?? [], getenv('LOGIN_EXPIRE_SECS'));
+                            $this->redis_cache->set('Redis_UserModuleInfo', $newPayload->JWTData['ModuleInfo'] ?? [], getenv('LOGIN_EXPIRE_SECS'));
 
-                            $this->redis_cache->set('Redis_UserGenSettings', $newPayload->JWTData['GenSettings'] ?? [], 43200);
-                            $this->redis_cache->set('Redis_UserInfo', $UserData->Data[0], 43200);
+                            $this->redis_cache->set('Redis_UserGenSettings', $newPayload->JWTData['GenSettings'] ?? [], getenv('LOGIN_EXPIRE_SECS'));
+                            $this->redis_cache->set('Redis_UserInfo', $UserData->Data[0], getenv('LOGIN_EXPIRE_SECS'));
                             
                             redirect('dashboard', 'refresh');
 
@@ -140,12 +140,6 @@ class Login extends CI_Controller {
 			if(isset($JwtData->key) && !empty($JwtData->key)) {
 				$this->cacheservice->delete($JwtData->key);
 			}
-
-            // Deleted Unwanted Information Stored
-            $this->session->unset_userdata('CachedUserMenuData');
-            $this->session->unset_userdata('CachedUserModuleData');
-            $this->session->unset_userdata('CachedUserGenSettings');
-            $this->session->unset_userdata('CachedUserInfo');
 
 			delete_cookie(getenv('JWT_COOKIE_NAME'));
 

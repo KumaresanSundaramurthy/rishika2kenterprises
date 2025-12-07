@@ -95,7 +95,9 @@
                                                         <th class="table-checkbox"></th>
                                                         <th class="table-serialno <?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>">S.No</th>
                                                         <?php foreach (array_column($ModColumnData, 'DisplayName') as $ItemKey => $ItemVal) { ?>
-                                                            <th <?php echo $ModColumnData[$ItemKey]->MainPageColumnAddon; ?>><?php echo $ItemVal; ?></th>
+                                                            <th <?php echo $ModColumnData[$ItemKey]->MainPageColumnAddon; ?>><?php echo $ItemVal; ?> <?php if ($ModColumnData[$ItemKey]->MPSortApplicable == 1) {
+                                                                    echo '<i class="bx bx-sort-alt-2 ms-1 cursor-pointer"></i>';
+                                                                } ?></th>
                                                         <?php } ?>
                                                         <th class="text-center">Actions</th>
                                                     </tr>
@@ -142,6 +144,7 @@ const ModuleHeader = '.customerHeaderCheck';
 const ModuleRow = '.customerCheck';
 const ModuleFileName = 'Customer_Data';
 const ModuleSheetName = 'Customer';
+let sortState = 0;
 $(function() {
     'use strict'
 
@@ -240,6 +243,31 @@ $(function() {
                 }
             });
         }
+    });
+
+    /** sorting opeartions */
+    $(document).on('click', '.name-sortable', function(e) {
+        e.preventDefault();
+        sortState = (sortState + 1) % 3;
+        const icon = $(this).find('i');
+        icon.removeClass('bx-sort-alt-2 bx-up-arrow-alt bx-down-arrow-alt text-primary');
+        $('#sortName').removeClass('text-primary');
+        if (sortState == 1) {
+            icon.addClass('bx-up-arrow-alt text-primary');
+            $('#sortName').addClass('text-primary');
+            $(this).attr('title', 'Click sorting descending');
+            Filter['NameSorting'] = 1;
+        } else if (sortState === 2) {
+            icon.addClass('bx-down-arrow-alt text-primary');
+            $('#sortName').addClass('text-primary');
+            $(this).attr('title', 'Remove sorting');
+            Filter['NameSorting'] = 2;
+        } else {
+            icon.addClass('bx-sort-alt-2');
+            $(this).attr('title', 'Click sorting ascending');
+            delete Filter['NameSorting'];
+        }
+        getCustomersDetails(PageNo, RowLimit, Filter);
     });
 
 });

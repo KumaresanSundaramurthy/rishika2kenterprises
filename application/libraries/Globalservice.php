@@ -62,6 +62,19 @@ Class Globalservice {
         
     }
 
+    private function getPageTypeConfig($PageType) {
+        $map = [
+            'MainPage'   => ['where' => 'IsMainPageRequired', 'sort' => 'MainPageOrder', 'disp' => 'IsMainPageApplicable', 'settings' => 'IsMainPageSettingsApplicable'],
+            'PageShift'  => ['where' => 'IsMainPageRequired', 'sort' => 'MainPageOrder', 'disp' => 'IsMainPageApplicable',],
+            'PrintPage'  => ['where' => 'IsPrintPreviewApplicable', 'sort' => 'PrintPreviewOrder'],
+            'CsvPage'    => ['where' => 'IsExportCsvApplicable', 'sort' => 'ExportCsvOrder'],
+            'ExcelPage'  => ['where' => 'IsExportExcelApplicable', 'sort' => 'ExportExcelOrder'],
+            'PdfPage'    => ['where' => 'IsExportPdfApplicable', 'sort' => 'ExportPdfOrder'],
+        ];
+
+        return $map[$PageType] ?? null;
+    }
+
     public function getPaginationInfo($CallingUrl, $pageNo, $limit, $DataCount) {
 
         $config['base_url']        = $CallingUrl;
@@ -136,34 +149,15 @@ Class Globalservice {
 
             $this->CI->load->model('global_model');
 
-            $VC_WhereCond = '';
-            $VC_SortField = '';
-
-            /** Only used for Main Page */
-            $VC_MPDispAppl = '';
-            $VC_MPSettings = '';
-
-            if($PageType == 'MainPage') {
-                $VC_WhereCond = 'IsMainPageRequired';
-                $VC_SortField = 'MainPageOrder';
-                $VC_MPDispAppl = 'IsMainPageApplicable';
-                $VC_MPSettings = 'IsMainPageSettingsApplicable';
-            } else if($PageType == 'PageShift') {
-                $VC_WhereCond = 'IsMainPageApplicable';
-                $VC_SortField = 'MainPageOrder';
-            } else if($PageType == 'PrintPage') {
-                $VC_WhereCond = 'IsPrintPreviewApplicable';
-                $VC_SortField = 'PrintPreviewOrder';
-            } else if($PageType == 'CsvPage') {
-                $VC_WhereCond = 'IsExportCsvApplicable';
-                $VC_SortField = 'ExportCsvOrder';
-            } else if($PageType == 'ExcelPage') {
-                $VC_WhereCond = 'IsExportExcelApplicable';
-                $VC_SortField = 'ExportExcelOrder';
-            } else if($PageType == 'PdfPage') {
-                $VC_WhereCond = 'IsExportPdfApplicable';
-                $VC_SortField = 'ExportPdfOrder';
+            $config = $this->getPageTypeConfig($PageType);
+            if (!$config) {
+                throw new Exception("Invalid PageType: $PageType");
             }
+
+            $VC_WhereCond = $config['where'];
+            $VC_SortField = $config['sort'];
+            $VC_MPDispAppl = $config['disp'] ?? '';
+            $VC_MPSettings = $config['settings'] ?? '';
             
             // $ViewColumnsSession = $ModuleId . '-viewcolumns';
             // $this->session->unset_userdata($ViewColumnsSession);
@@ -173,19 +167,10 @@ Class Globalservice {
 
             //     $this->CI->session->set_userdata($ModuleId.'-viewcolumns', $ViewAllColumns);
             // }
-            
-            if($PageType == 'MainPage') {
-                $DispViewColumns = array_values(array_filter(
-                    $ViewAllColumns,
-                    fn($item) => !empty($item->$VC_MPDispAppl) && $item->$VC_MPDispAppl == 1
-                ));
-                $DispSettingsViewColumns = array_values(array_filter(
-                    $ViewAllColumns,
-                    fn($item) => !empty($item->$VC_MPSettings) && $item->$VC_MPSettings == 1
-                ));
-            } else {
-                $DispViewColumns = array_map(fn($item) => clone $item, $ViewAllColumns);
-            }
+
+            $columns = $this->getDispColumns($ViewAllColumns, $PageType, $VC_MPDispAppl, $VC_MPSettings);
+            $DispViewColumns = $columns['disp'];
+            $DispSettingsViewColumns = $columns['settings'] ?? [];
 
             // $ModuleInfoSession = $ModuleId . '-moduleinfo';
             // $ModuleInfo = $this->CI->session->userdata($ModuleInfoSession);
@@ -193,22 +178,11 @@ Class Globalservice {
                 $ModuleInfo = $this->CI->global_model->getModuleDetails(['Modules.ModuleUID' => $ModuleId]);
             //     $this->CI->session->set_userdata($ModuleId.'-moduleinfo', $ModuleInfo);
             // }
-            if(sizeof($DispViewColumns) > 0 && sizeof($ModuleInfo) > 0) {
+            if(count($DispViewColumns) > 0 && count($ModuleInfo) > 0) {
 
                 $ModuleInfoData = $ModuleInfo[0];
 
-                $FilterFormat = new stdClass();
-                $FilterFormat->SearchFilter = [];
-                $FilterFormat->SearchDirectQuery = '';
-
-                $ModelName = $ModuleInfoData->ModelName;
-                $FltFuncName = $ModuleInfoData->FilterFunctionName;
-                if(!empty($ModelName) && !empty($FltFuncName)) {
-                    $this->CI->load->model($ModuleInfoData->ModelName);
-                    $FilterResp = $this->CI->$ModelName->$FltFuncName($ModuleInfoData, $Filter);
-                    $FilterFormat->SearchFilter = $FilterResp->SearchFilter;
-                    $FilterFormat->SearchDirectQuery = $FilterResp->SearchDirectQuery;
-                }
+                $FilterFormat = $this->buildFilterFormat($ModuleInfoData, $Filter);
 
                 $Aggregates = [];
                 foreach ($DispViewColumns as $index => $column) {
@@ -231,13 +205,13 @@ Class Globalservice {
                 //     $this->CI->session->set_userdata($ModuleId.'-viewjoins', $JoinData);
                 // }
 
-                $DataLists = $this->CI->global_model->getModuleReportDetails($ModuleInfoData, $DispViewColumns, $JoinData, $FilterFormat->SearchFilter, $FilterFormat->SearchDirectQuery, 'DESC', $WhereInArrayData, $Limit, $Offset);
-                $TotalRowCount = $this->CI->global_model->getModuleTotalDataRowCount($ModuleInfoData, $DispViewColumns, $JoinData, $FilterFormat->SearchFilter, $FilterFormat->SearchDirectQuery, $WhereInArrayData);
+                $DataLists = $this->CI->global_model->getModuleReportDetails($ModuleInfoData, $ViewAllColumns, $JoinData, $FilterFormat->SearchFilter, $FilterFormat->SearchDirectQuery, 'DESC', $WhereInArrayData, $Limit, $Offset, $FilterFormat->sortOperation);
+                $TotalRowCount = $this->CI->global_model->getModuleTotalDataRowCount($ModuleInfoData, $ViewAllColumns, $JoinData, $FilterFormat->SearchFilter, $FilterFormat->SearchDirectQuery, $WhereInArrayData);
 
                 $this->EndReturnData->Error = FALSE;
                 $this->EndReturnData->RecordHtmlData = $this->CI->load->view($ListUrl, [
                                                                                     'DataLists' => $DataLists,
-                                                                                    'SerialNumber' => $Offset == 0 ? 0 : $Limit * $Offset,
+                                                                                    'SerialNumber' => $Offset * $Limit,
                                                                                     'DispViewColumns' => $DispViewColumns,
                                                                                     'GenSettings' => $this->CI->redis_cache->get('Redis_UserGenSettings') ?? new stdClass(),
                                                                                     'JwtData' => $this->CI->pageData['JwtData'],
@@ -264,6 +238,28 @@ Class Globalservice {
 
 		return $this->EndReturnData;
 
+    }
+
+    private function buildFilterFormat($ModuleInfoData, $Filter) {
+        $format = (object)['SearchFilter' => [], 'SearchDirectQuery' => '', 'sortOperation' => []];
+        if (!empty($ModuleInfoData->ModelName) && !empty($ModuleInfoData->FilterFunctionName)) {
+            $this->CI->load->model($ModuleInfoData->ModelName);
+            $resp = $this->CI->{$ModuleInfoData->ModelName}->{$ModuleInfoData->FilterFunctionName}($ModuleInfoData, $Filter);
+            $format->SearchFilter = $resp->SearchFilter;
+            $format->SearchDirectQuery = $resp->SearchDirectQuery;
+            $format->sortOperation = $resp->sortOperation;
+        }
+        return $format;
+    }
+
+    private function getDispColumns($ViewAllColumns, $PageType, $VC_MPDispAppl, $VC_MPSettings) {
+        if ($PageType === 'MainPage') {
+            return [
+                'disp' => array_values(array_filter($ViewAllColumns, fn($item) => !empty($item->$VC_MPDispAppl))),
+                'settings' => array_values(array_filter($ViewAllColumns, fn($item) => !empty($item->$VC_MPSettings))),
+            ];
+        }
+        return ['disp' => array_values(array_filter($ViewAllColumns, fn($item) => !empty($item->$VC_MPDispAppl)))];
     }
 
     public function exportCSV($FileName, $ViewColumns, $DataValue, $Aggregates) {

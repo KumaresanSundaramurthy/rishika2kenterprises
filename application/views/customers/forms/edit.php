@@ -124,10 +124,8 @@
                             <!-- Bank Details -->
                             <div class="card-header modal-header-center-sticky p-1 mb-3">
                                 <h5 class="modal-title mb-0">
-                                    Bank Details
-                                    <button type="button" class="btn btn-warning ms-1" id="addBankDetails" data-divid="appendBankDetails">
-                                        <i class="bx bx-plus-circle me-1"></i>
-                                    </button>
+                                    <i class="bx bx-building-house me-1"></i> Bank Details
+                                    <a href="javascript: void(0)" id="addBankDetails" data-divid="appendBankDetails"> Add Bank Accounts</a>
                                 </h5>
                             </div>
                             <div class="table-responsive <?php echo count($BankDetails) > 0 ? '' : 'd-none'; ?>" id="appendBankDetails">
@@ -357,6 +355,11 @@ $(function() {
         }
         formData.append('BankDetailsJSON', JSON.stringify(bankRecords));
         formData.append('BankDetailsCount', String(bankRecords.length));
+        formData.append('delBankDataFlag', delBankDataFlag);
+        delBankData.forEach(did => {
+            formData.append('delBankData[]', did);
+        });
+        formData.append('actionBankData', actionBankData);
 
         var BillAddrLine1 = $('#BillAddrLine1').val();
         if (hasValue(BillAddrLine1)) {

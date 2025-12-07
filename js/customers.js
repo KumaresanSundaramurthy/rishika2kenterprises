@@ -40,6 +40,7 @@ function addCustomerData(formdata) {
                 $('.addEditFormAlert').removeClass('d-none');
                 $('.addEditFormAlert').find('.alert-message').text(response.Message);
             } else {
+                actionBankData = 0;
                 $('#AddCustomerForm').trigger('reset');
                 Swal.fire(response.Message, "", "success");
                 setTimeout(function () {                    
@@ -64,6 +65,7 @@ function editCustomerData(formdata) {
                 $('.addEditFormAlert').removeClass('d-none');
                 $('.addEditFormAlert').find('.alert-message').text(response.Message);
             } else {
+                actionBankData = 0;
                 $('#EditCustomerForm').trigger('reset');
                 Swal.fire(response.Message, "", "success");
                 setTimeout(function () {                    

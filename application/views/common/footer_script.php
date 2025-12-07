@@ -17,6 +17,9 @@ var hasRemovedStoredImage = false;
 var SelectedUIDs = [];
 var exportModule;
 var expActionType;
+var delBankDataFlag = 0;
+var delBankData = [];
+var actionBankData = 0;
 $(function() {
 	'use strict'
 

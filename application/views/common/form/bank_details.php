@@ -24,7 +24,7 @@
                     <div class="bank-section">
                         <div class="mb-3">
                             <label for="BankAccNumber" class="form-label">Bank Account Number <span style="color:red">*</span></label>
-                            <input class="form-control" type="password" id="BankAccNumber" name="BankAccNumber" placeholder="Bank Account Number" onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))" oninput="this.value=this.value.slice(0,this.maxLength)" maxLength="50" pattern="[0-9]*" />
+                            <input class="form-control" type="password" id="BankAccNumber" name="BankAccNumber" placeholder="Bank Account Number" onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))" oninput="this.value=this.value.slice(0,this.maxLength)" maxLength="50" pattern="[0-9]*" onpaste="return false;" ondrop="return false;" />
                         </div>
                         <div class="mb-3">
                             <label for="ReEntBankAccNumber" class="form-label">Re-Enter Bank Account Number <span style="color:red">*</span></label>

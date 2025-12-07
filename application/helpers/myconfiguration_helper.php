@@ -138,8 +138,14 @@ function updateAttributeString($attributeString, $MPFilterApplicable) {
 
 }
 
-function getPostValue($post, $key, $default = NULL, $allowEmpty = false) {
+function getPostValue($post, $key, $Type = 'Array', $default = NULL, $allowEmpty = false) {
     if (!array_key_exists($key, $post)) return $default;
-    if (!$allowEmpty && ($post[$key] === '' || $post[$key] === NULL)) return $default;
-    return $post[$key];
+    $value = $post[$key];
+    if (!$allowEmpty && ($value === '' || $value === NULL)) return $default;
+    if (is_array($value)) {
+        if($Type == 'Comma') {
+            return !empty($value) ? implode(',', $value) : $default;
+        }
+    }
+    return $value;
 }

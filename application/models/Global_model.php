@@ -522,6 +522,7 @@ class Global_model extends CI_Model {
         try {
 
             $RedisName = getSiteConfiguration()->RedisName.'-'.base64_encode(json_encode(['WC' => $WhereCond, 'WIC' => $whereInCondition])).'-getModuleDetails';
+            $this->cacheservice->delete($RedisName);
             $ModDataRedis = $this->cacheservice->get($RedisName);
             if ($ModDataRedis->Error) {
 
@@ -569,7 +570,7 @@ class Global_model extends CI_Model {
                     $this->EndReturnData->Data = $query->result();
                 }
 
-                $this->cacheservice->set($RedisName, json_encode($this->EndReturnData->Data), $this->oneYearTTL);
+                $this->cacheservice->set($RedisName, json_encode($this->EndReturnData->Data), 60);
 
                 return $this->EndReturnData->Data;
 
@@ -740,7 +741,7 @@ class Global_model extends CI_Model {
         }
     }
 
-    public function getModuleReportDetails($ModuleInfo, $SelectColumns, $JoinDataArr = [], $FilterArray = [], $DirectQuery = '', $OrderBy = 'ASC', $whereInCondition = [], $Limit = 0, $Offset = 0) {
+    public function getModuleReportDetails($ModuleInfo, $SelectColumns, $JoinDataArr = [], $FilterArray = [], $DirectQuery = '', $OrderBy = 'ASC', $whereInCondition = [], $Limit = 0, $Offset = 0, $sortOperation = []) {
 
         $this->EndReturnData = new StdClass();
         try {
@@ -839,10 +840,17 @@ class Global_model extends CI_Model {
             }
             
             $this->ModuleDb->group_by("{$ModuleInfo->TableAliasName}.{$ModuleInfo->TablePrimaryUID}");
-            $this->ModuleDb->order_by("{$ModuleInfo->TableAliasName}.{$ModuleInfo->TablePrimaryUID}", $OrderBy);
+            if(!empty($sortOperation)) {
+                foreach($sortOperation as $sortKey => $sortVal) {
+                    $this->ModuleDb->order_by($sortKey, $sortVal);
+                }
+            } else {
+                $this->ModuleDb->order_by("{$ModuleInfo->TableAliasName}.{$ModuleInfo->TablePrimaryUID}", $OrderBy);
+            }
             if ($Limit > 0) {
                 $this->ModuleDb->limit($Limit, $Offset);
             }
+            // print_r($this->ModuleDb->get_compiled_select()); die();
             $query = $this->ModuleDb->get();
             $error = $this->ModuleDb->error();
 

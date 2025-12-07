@@ -175,13 +175,29 @@ $(document).ready(function () {
 
             const accNumber = $('#BankAccNumber').val().trim();
             const reAccNumber = $('#ReEntBankAccNumber').val().trim();
+            const ifsc        = $('#BankIFSC_Code').val().trim();
+            const upi         = $('#UPITransfer_Id').val().trim();
 
             if (accNumber !== reAccNumber) {
                 showBankDetailsError('Bank Account Number and Re-Enter Account Number must match.');
-                return;
+                return false;
             }
 
-            // ✅ fix: use existing HBankId if present
+            if (!/^\d{9,18}$/.test(accNumber)) {
+                showBankDetailsError('Account Number must be 9–18 digits.');
+                return false;
+            }
+
+            if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(ifsc)) {
+                showBankDetailsError('Invalid IFSC Code format.');
+                return false;
+            }
+
+            if (!/^[a-zA-Z0-9.\-_]{2,}@[a-zA-Z]{3,}$/.test(upi)) {
+                showBankDetailsError('Invalid UPI ID format. Example: name@bank');
+                return false;
+            }
+
             let recordId = $('#HBankId').val().trim();
             if (recordId === '') {
                 // recordId = Date.now().toString();
@@ -225,6 +241,7 @@ $(document).ready(function () {
             $('#appendBankDetails').removeClass('d-none');
             $('#bankDivider').removeClass('d-none');
             hideBankDetailsError();
+            actionBankData = 1;
             $('#addEditBankDataModal').modal('hide');
         } else {
             showBankDetailsError('Fill either all Bank fields OR UPI ID OR both. Partial Bank info not allowed.');
@@ -262,15 +279,29 @@ $(document).ready(function () {
 
     $(document).on('click', '.deleteBankDataBtn', function(e) {
         e.preventDefault();
-
         const row = $(this).closest('tr');
-            row.remove();
-
-        if ($('#bankDetailsBody').children().length === 0) {
-            $('#appendBankDetails').addClass('d-none');
-            $('#bankDivider').addClass('d-none');
-        }
-
+        const recordId = row.data('id');
+        Swal.fire({
+            title: "Do you want to delete the bank details?",
+            text: "You won't be able to revert this!",
+            showCancelButton: true,
+            confirmButtonColor: "#d33",
+            confirmButtonText: "Yes, delete it!",
+            cancelButtonColor: "#3085d6",
+        }).then((result) => {
+            if (result.isConfirmed) {
+                actionBankData = 1;
+                if (recordId > 0) {
+                    delBankData.push(recordId);
+                    delBankDataFlag = 1;
+                }
+                row.remove();
+                if ($('#bankDetailsBody').children().length === 0) {
+                    $('#appendBankDetails').addClass('d-none');
+                    $('#bankDivider').addClass('d-none');
+                }
+            }
+        });
     });
 
 });

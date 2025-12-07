@@ -22,7 +22,6 @@ function getCustomersDetails(PageNo, RowLimit, Filter) {
                 $(ModulePag).html(response.Pagination);
                 $(ModuleTable + ' tbody').html(response.List);
             }
-            executeTablePagnCommonFunc(response, false);
         },
     });
 }
@@ -51,31 +50,6 @@ function addCustomerData(formdata) {
     });
 }
 
-function showAddressInfo(formData, BtnId, DivId) {
-    $.ajax({
-        url: '/customers/addAddressInfo',
-        method: 'POST',
-        data: formData,
-        cache: false,
-        processData: false,
-        contentType: false,
-        success: function (response) {
-            $('#' + DivId).removeClass('d-none');
-            if (response.Error) {
-                inlineMessageAlert('#' + DivId, 'danger', response.Message, false, false);
-            } else {
-                $('#' + BtnId).addClass('d-none');
-                $('#' + DivId).html(response.HtmlData);
-                if (BtnId == 'addBillingAddress') {
-                    enableBillingAddress();
-                } else if(BtnId == 'addShippingAddress') {
-                    enableShippingAddress();
-                }
-            }
-        }
-    });
-}
-
 function editCustomerData(formdata) {
     $.ajax({
         url: '/customers/updateCustomerData',
@@ -86,10 +60,9 @@ function editCustomerData(formdata) {
         contentType: false,
         enctype: 'multipart/form-data',
         success: function (response) {
-            
             if (response.Error) {
-                $('.editFormAlert').removeClass('d-none');
-                inlineMessageAlert('.editFormAlert', 'danger', response.Message, false, false);
+                $('.addEditFormAlert').removeClass('d-none');
+                $('.addEditFormAlert').find('.alert-message').text(response.Message);
             } else {
                 $('#EditCustomerForm').trigger('reset');
                 Swal.fire(response.Message, "", "success");
@@ -97,7 +70,6 @@ function editCustomerData(formdata) {
                     window.history.back();
                 }, 500);
             }
-            
         }
     });
 }

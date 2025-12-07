@@ -1,6 +1,6 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
-<?php foreach ($ViewColumns as $Key => $column) {
+<?php foreach ($DispViewColumns as $Key => $column) {
 
     $fieldName = $column->DisplayName;
     $value = $list->$fieldName ?? '';
@@ -9,7 +9,7 @@
     if ($column->IsAmountField) {
         $value = smartDecimal($value);
         if($column->CurrencySymbol == 1) {
-            $value = $JwtData->GenSettings->CurrenySymbol .' '. $value;
+            $value = $GenSettings->CurrenySymbol .' '. $value;
         }
     }
 

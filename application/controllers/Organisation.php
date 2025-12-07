@@ -39,8 +39,8 @@ class Organisation extends CI_Controller {
             $orgRow = $OrganisationData->Data[0];
 
             $this->pageData['EditOrgData'] = $orgRow;
-            $this->pageData['BillOrgAddrData'] = mapOrganisationAddress($orgRow, 'B', 'Billing') ?? null;
-            $this->pageData['ShipOrgAddrData'] = mapOrganisationAddress($orgRow, 'S', 'Shipping') ?? null;
+            $this->pageData['BillOrgAddrData'] = $this->mapOrganisationAddress($orgRow, 'B', 'Billing') ?? null;
+            $this->pageData['ShipOrgAddrData'] = $this->mapOrganisationAddress($orgRow, 'S', 'Shipping') ?? null;
 
             if(!empty($orgRow->CountryISO2)) {
                 $StateInfo = $this->global_model->getStateofCountry($orgRow->CountryISO2);
@@ -61,6 +61,26 @@ class Organisation extends CI_Controller {
         $this->pageData['JwtData']->GenSettings = $this->session->userdata('CachedUserGenSettings');
         $this->load->view('organisation/view', $this->pageData);
 
+    }
+
+    private function mapOrganisationAddress($orgData, $prefix, $type) {
+        // If no UID field exists or is empty, return null
+        if (empty($orgData->{$prefix.'AddressUID'})) {
+            return null;
+        }
+
+        return (object) [
+            'OrgAddressUID' => $orgData->{$prefix.'AddressUID'},
+            'OrgUID'        => $orgData->OrgUID,
+            'AddressType'   => $type,
+            'Line1'         => $orgData->{$prefix.'Line1'},
+            'Line2'         => $orgData->{$prefix.'Line2'},
+            'Pincode'       => $orgData->{$prefix.'Pincode'},
+            'City'          => $orgData->{$prefix.'City'},
+            'CityText'      => $orgData->{$prefix.'CityText'},
+            'State'         => $orgData->{$prefix.'State'},
+            'StateText'     => $orgData->{$prefix.'StateText'},
+        ];
     }
 
     public function updateOrgForm() {

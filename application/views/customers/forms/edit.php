@@ -80,7 +80,7 @@
                                     <label for="DebitCreditAmount" class="form-label">Opening Balance</label>
                                     <div class="input-group input-group-merge">
                                         <span class="input-group-text">₹</span>
-                                        <input type="number" class="form-control" name="DebitCreditAmount" id="DebitCreditAmount" min="0" placeholder="Debit / Credit Amount" onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))" oninput="this.value=this.value.slice(0,this.maxLength)" maxLength="6" pattern="[0-9]*" value="<?php echo isset($EditData->DebitCreditAmount) ? $EditData->DebitCreditAmount : '0'; ?>" />
+                                        <input type="number" class="form-control" name="DebitCreditAmount" id="DebitCreditAmount" min="0" placeholder="Debit / Credit Amount" onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))" oninput="this.value=this.value.slice(0,this.maxLength)" maxLength="6" pattern="[0-9]*" value="<?php echo isset($EditData->DebitCreditAmount) ? smartDecimal($EditData->DebitCreditAmount) : '0'; ?>" />
                                         <select id="DebitCreditCheck" name="DebitCreditCheck" class="select2 form-select border-start ps-2">
                                             <option value="Debit" <?php echo $EditData->DebitCreditType == "Debit" ? 'selected' : ''; ?>>To Collect</option>
                                             <option value="Credit" <?php echo $EditData->DebitCreditType == "Credit" ? 'selected' : ''; ?>>To Pay</option>
@@ -145,7 +145,15 @@
                                     <tbody id="bankDetailsBody">
                                     <?php if(count($BankDetails) > 0) {
                                         foreach($BankDetails as $BDet) { ?>
-                                        <tr data-id="<?php echo $BDet->CustBankDetUID; ?>" data-type="<?php echo $BDet->Type; ?>" data-record="<?php echo json_encode($BDet); ?>">
+                                        <tr data-id="<?php echo $BDet->CustBankDetUID; ?>" data-type="<?php echo $BDet->Type; ?>" data-record='<?php echo json_encode([
+                                                "id"       => (int) $BDet->CustBankDetUID,
+                                                "type"     => $BDet->Type,
+                                                "accNumber"=> $BDet->BankAccountNumber ?? "",
+                                                "ifsc"     => $BDet->BankIFSC_Code ?? "",
+                                                "branch"   => $BDet->BankBranchName ?? "",
+                                                "holder"   => $BDet->BankAccountHolderName ?? "",
+                                                "upiId"    => $BDet->UPI_Id ?? ""
+                                            ]); ?>'>
                                             <td><?php echo $BDet->Type; ?></td>
                                             <td><?php echo $BDet->Type == 'Bank' ? $BDet->BankAccountNumber : $BDet->UPI_Id; ?></td>
                                             <td><?php echo $BDet->BankIFSC_Code; ?></td>
@@ -222,7 +230,7 @@
                                                     <div class="row">
                                                         <div class="mb-3 col-md-4">
                                                             <label for="DiscountPercent" class="form-label">Discount (%)</label>
-                                                            <input class="form-control" type="number" id="DiscountPercent" name="DiscountPercent" min="0" max="100" maxLength="3" placeholder="Discount (%)" onkeyup="changeHandler(this)" onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))" oninput="this.value=this.value.slice(0,this.maxLength)" pattern="[0-9]*" value="<?php echo isset($EditData->DiscountPercent) ? $EditData->DiscountPercent : '0'; ?>" />
+                                                            <input class="form-control" type="number" id="DiscountPercent" name="DiscountPercent" min="0" max="100" maxLength="3" placeholder="Discount (%)" onkeyup="changeHandler(this)" onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))" oninput="this.value=this.value.slice(0,this.maxLength)" pattern="[0-9]*" value="<?php echo isset($EditData->DiscountPercent) ? smartDecimal($EditData->DiscountPercent) : '0'; ?>" />
                                                         </div>
                                                         <div class="mb-3 col-md-4">
                                                             <label for="CreditPeriod" class="form-label">Credit Period</label>
@@ -230,7 +238,7 @@
                                                         </div>
                                                         <div class="mb-3 col-md-4">
                                                             <label for="CreditLimit" class="form-label">Credit Limit</label>
-                                                            <input type="number" class="form-control" name="CreditLimit" id="CreditLimit" min="0" placeholder="Credit Limit" onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))" oninput="this.value=this.value.slice(0,this.maxLength)" maxLength="6" pattern="[0-9]*" value="<?php echo isset($EditData->CreditLimit) ? $EditData->CreditLimit : '0'; ?>" />
+                                                            <input type="number" class="form-control" name="CreditLimit" id="CreditLimit" min="0" placeholder="Credit Limit" onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))" oninput="this.value=this.value.slice(0,this.maxLength)" maxLength="6" pattern="[0-9]*" value="<?php echo isset($EditData->CreditLimit) ? smartDecimal($EditData->CreditLimit) : '0'; ?>" />
                                                         </div>
                                                         <div class="mb-3 col-md-12">
                                                             <label for="Notes" class="form-label">Notes</label>
@@ -288,7 +296,7 @@
 <script>
 const StateInfo = <?php echo json_encode($StateData); ?>;
 const CityInfo = <?php echo json_encode($CityData); ?>;
-var defaultImg = '<?php echo isset($EditData->Image) ? $EditData->Image : ''; ?>';
+var imgData = '<?php echo isset($EditData->Image) ? $EditData->Image : ''; ?>';
 $(function() {
     'use strict'
 
@@ -319,21 +327,18 @@ $(function() {
     initializeSelect2Tags('#Tags', 'Type and press enter...');
     initializeSelect2Tags('#CCEmails', 'Type and press enter...');
 
-    if (defaultImg && defaultImg !== undefined && defaultImg !== null && defaultImg !== '') {
-        // commonSetDropzoneImageOne(defaultImg);
+    if (hasValue(imgData)) {
+        commonSetDropzoneImageOne(CDN_URL + imgData);
     }
-
-    $('#image_reset_btn').click(function(e) {
-        e.preventDefault();
-        myOneDropzone.removeAllFiles();
-    });
 
     $('#EditCustomerForm').submit(function(e) {
         e.preventDefault();
 
+        $('.addEditFormAlert').addClass('d-none');
+
         var formData = new FormData($('#EditCustomerForm')[0]);
         formData.append('CountryISO2', $('#CountryCode').find('option:selected').data('ccode'));
-        if(defaultImg && defaultImg !== undefined && defaultImg !== null && defaultImg !== '' && myOneDropzone.files.length == 0) {
+        if(hasValue(imgData) && myOneDropzone.files.length == 0) {
             formData.append('ImageRemoved', 1);
         }
         if (myOneDropzone.files.length > 0) {
@@ -342,6 +347,16 @@ $(function() {
                 formData.append('UploadImage', myOneDropzone.files[0]);
             }
         }
+
+        const bankRecords = getBankRecordsFromTable();
+        const validation = validateBankRecords(bankRecords);
+        if (!validation.ok) {
+            $('.addEditFormAlert').removeClass('d-none');
+            $('.addEditFormAlert').find('.alert-message').text(validation.msg);
+            return;
+        }
+        formData.append('BankDetailsJSON', JSON.stringify(bankRecords));
+        formData.append('BankDetailsCount', String(bankRecords.length));
 
         var BillAddrLine1 = $('#BillAddrLine1').val();
         if (hasValue(BillAddrLine1)) {

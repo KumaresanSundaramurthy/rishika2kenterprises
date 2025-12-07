@@ -1219,7 +1219,6 @@ function baseExportFunctionality(Flag, Type, PageType, FileName, SheetName) {
 
 function commonSetDropzoneImageOne(ImageUrl) {
     myOneDropzone.removeAllFiles(true);
-
     fetch(ImageUrl)
         .then(res => {
             const contentLength = res.headers.get('Content-Length');
@@ -1375,7 +1374,7 @@ function baseAddressCreation(AddressType, StateInfo, CityInfo) {
                         finalReturnData += '<label for="BillAddrPincode" class="form-label">Pincode <span style="color:red">*</span></label>';
                         finalReturnData += '<input class="form-control" type="text" id="BillAddrPincode" name="BillAddrPincode" maxlength="10" placeholder="Pincode" required />';
                     finalReturnData += '</div>';
-                    finalReturnData += '<div class="mb-3 col-md-6">';
+                    finalReturnData += '<div class="mb-0 col-md-6">';
                         finalReturnData += '<label for="BillAddrState" class="form-label">State</label>';
                         finalReturnData += '<select class="select2 form-select" id="BillAddrState" name="BillAddrState">';
                             finalReturnData += '<option label="-- Select State --"></option>';
@@ -1386,7 +1385,7 @@ function baseAddressCreation(AddressType, StateInfo, CityInfo) {
                             }
                             finalReturnData += '</select>';
                     finalReturnData += '</div>';
-                    finalReturnData += '<div class="mb-3 col-md-6">';
+                    finalReturnData += '<div class="mb-0 col-md-6">';
                         finalReturnData += '<label for="BillAddrCity" class="form-label">City</label>';
                         finalReturnData += '<select class="select2 form-select" id="BillAddrCity" name="BillAddrCity">';
                         finalReturnData += '<option label="-- Select City --">Select City</option>';

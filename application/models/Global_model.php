@@ -615,6 +615,7 @@ class Global_model extends CI_Model {
                 'ViewColmn.AggregationMethod AS AggregationMethod',
                 'ViewColmn.MainPageImageDisplay AS MainPageImageDisplay',
                 'ViewColmn.IsMainPageApplicable AS IsMainPageApplicable',
+                'ViewColmn.IsMainPageSettingsApplicable AS IsMainPageSettingsApplicable',
                 'ViewColmn.IsMainPageRequired AS IsMainPageRequired',
                 'ViewColmn.MainPageOrder AS MainPageOrder',
                 'ViewColmn.MainPageColumnAddon AS MainPageColumnAddon',
@@ -637,7 +638,6 @@ class Global_model extends CI_Model {
             if (sizeof($WhereArrayCondition) > 0) {
                 $this->ModuleDb->where($WhereArrayCondition);
             }
-            $this->ModuleDb->group_by('ViewColmn.ViewDataUID');
             if ($Sorting) {
                 $this->ModuleDb->order_by(key($SortingColumn), $SortingColumn[key($SortingColumn)]);
             }
@@ -667,6 +667,7 @@ class Global_model extends CI_Model {
         try {
 
             $RedisName = getSiteConfiguration()->RedisName.'-'.base64_encode(json_encode(['WC' => $WhereArrayCondition, 'Sort' => $Sorting, 'SortCol' => $SortingColumn])).'-getModuleViewJoinColumnDetails';
+            $this->cacheservice->delete($RedisName);
             $ModViewJoinColRedis = $this->cacheservice->get($RedisName);
             if ($ModViewJoinColRedis->Error) {
 

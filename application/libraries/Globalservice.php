@@ -62,7 +62,22 @@ Class Globalservice {
         
     }
 
-    public function getBaseMainPageTablePagination($ModuleId, $CallingUrl, $pageNo, $limit, $offset, $Filter, $WhereInCondition = [], $ReqTotalRow = 1) {
+    public function getPaginationInfo($CallingUrl, $pageNo, $limit, $DataCount) {
+
+        $config['base_url']        = $CallingUrl;
+        $config['use_page_numbers'] = TRUE;
+        $config['total_rows']      = $DataCount;
+        $config['per_page']        = $limit;
+        $config['result_count']    = pageResultCount($pageNo, $limit, $DataCount);
+
+        $this->CI->load->library('pagination');
+        $this->CI->pagination->initialize($config);
+
+        return $this->CI->pagination->create_links();
+
+    }
+
+    public function getBaseMainPageTablePagination($ModuleId, $CallingUrl, $ListUrl, $pageNo, $limit, $offset, $Filter, $WhereInCondition = [], $Type = '') {
 
         $this->EndReturnData = new stdClass();
 		try {
@@ -70,29 +85,36 @@ Class Globalservice {
             if ($ModuleId <= 0) {
                 throw new Exception('Module Information is Missing');
             }
-                
-            $DataResp = $this->getModulePageColumnDetails($ModuleId, 'MainPage', $Filter, $WhereInCondition, $limit, $offset, $ReqTotalRow ?? 1);
+            
+            $DataType = '';
+            if($Type == 'Index') {
+                $DataType = 'MainPage';
+            } else if($Type == 'Pagination') {
+                $DataType = 'PageShift';
+            }
+
+            $DataResp = $this->getModulePageColumnDetails($ModuleId, $DataType, $ListUrl, $Filter, $WhereInCondition, $limit, $offset);
             if ($DataResp->Error) {
                 throw new Exception($DataResp->Message);
             }
 
-            $DataCount = $DataResp->TotalRowCount;
-            $config['base_url']        = $CallingUrl;
-            $config['use_page_numbers'] = TRUE;
-            $config['total_rows']      = $DataCount;
-            $config['per_page']        = $limit;
-            $config['result_count']    = pageResultCount($pageNo, $limit, $DataCount);
+            $this->EndReturnData->TotalRowCount = $DataResp->TotalRowCount;
+            $this->EndReturnData->Pagination = $this->getPaginationInfo($CallingUrl, $pageNo, $limit, $DataResp->TotalRowCount);
 
-            $this->CI->load->library('pagination');
-            $this->CI->pagination->initialize($config);
+            if($Type == 'Index') {
 
-            $this->EndReturnData->Error       = FALSE;
-            $this->EndReturnData->Data        = $DataResp->DataLists;
-            $this->EndReturnData->Count       = $DataCount;
-            $this->EndReturnData->Pagination  = $this->CI->pagination->create_links();
-            $this->EndReturnData->ModuleInfo  = $DataResp->ModuleInfo;
-            $this->EndReturnData->ViewColumns = $DataResp->ViewColumns;
-            $this->EndReturnData->AllViewColumns = $DataResp->AllViewColumns;
+                $this->EndReturnData->ViewAllColumns = $DataResp->ViewAllColumns;
+                $this->EndReturnData->DispViewColumns = $DataResp->DispViewColumns;
+                if($DataType == 'MainPage') {
+                    $this->EndReturnData->DispSettingsViewColumns = $DataResp->DispSettingsViewColumns;
+                    $this->EndReturnData->RecordHtmlData = $DataResp->RecordHtmlData;
+                }
+
+            } else if($Type == 'Pagination') {
+                $this->EndReturnData->RecordHtmlData = $DataResp->RecordHtmlData;
+            }
+
+            $this->EndReturnData->Error = FALSE;
 
         } catch (Exception $e) {
             $this->EndReturnData->Error = TRUE;
@@ -103,111 +125,136 @@ Class Globalservice {
 
     }
 
-    public function getModulePageColumnDetails($ModuleId, $PageType, $Filter, $WhereInCondition, $Limit, $Offset, $ReqTotalRow = 0) {
+    public function getModulePageColumnDetails($ModuleId, $PageType, $ListUrl, $Filter, $WhereInCondition, $Limit, $Offset) {
 
         $this->EndReturnData = new stdClass();
 		try {
 
-            if($ModuleId > 0) {
+            if ($ModuleId <= 0) {
+                throw new Exception('Module Information is Missing');
+            }
 
-                $this->CI->load->model('global_model');
+            $this->CI->load->model('global_model');
 
-                $ViewColumnWhere = '';
-                $ViewColumnSort = '';
-                if($PageType == 'MainPage') {
-                    $ViewColumnWhere = 'IsMainPageRequired';
-                    $ViewColumnSort = 'MainPageOrder';
-                } else if($PageType == 'PrintPage') {
-                    $ViewColumnWhere = 'IsPrintPreviewApplicable';
-                    $ViewColumnSort = 'PrintPreviewOrder';
-                } else if($PageType == 'CsvPage') {
-                    $ViewColumnWhere = 'IsExportCsvApplicable';
-                    $ViewColumnSort = 'ExportCsvOrder';
-                } else if($PageType == 'ExcelPage') {
-                    $ViewColumnWhere = 'IsExportExcelApplicable';
-                    $ViewColumnSort = 'ExportExcelOrder';
-                } else if($PageType == 'PdfPage') {
-                    $ViewColumnWhere = 'IsExportPdfApplicable';
-                    $ViewColumnSort = 'ExportPdfOrder';
+            $VC_WhereCond = '';
+            $VC_SortField = '';
+
+            /** Only used for Main Page */
+            $VC_MPDispAppl = '';
+            $VC_MPSettings = '';
+
+            if($PageType == 'MainPage') {
+                $VC_WhereCond = 'IsMainPageRequired';
+                $VC_SortField = 'MainPageOrder';
+                $VC_MPDispAppl = 'IsMainPageApplicable';
+                $VC_MPSettings = 'IsMainPageSettingsApplicable';
+            } else if($PageType == 'PageShift') {
+                $VC_WhereCond = 'IsMainPageApplicable';
+                $VC_SortField = 'MainPageOrder';
+            } else if($PageType == 'PrintPage') {
+                $VC_WhereCond = 'IsPrintPreviewApplicable';
+                $VC_SortField = 'PrintPreviewOrder';
+            } else if($PageType == 'CsvPage') {
+                $VC_WhereCond = 'IsExportCsvApplicable';
+                $VC_SortField = 'ExportCsvOrder';
+            } else if($PageType == 'ExcelPage') {
+                $VC_WhereCond = 'IsExportExcelApplicable';
+                $VC_SortField = 'ExportExcelOrder';
+            } else if($PageType == 'PdfPage') {
+                $VC_WhereCond = 'IsExportPdfApplicable';
+                $VC_SortField = 'ExportPdfOrder';
+            }
+            
+            // $ViewColumnsSession = $ModuleId . '-viewcolumns';
+            // $this->session->unset_userdata($ViewColumnsSession);
+            // $ViewAllColumns = $this->CI->session->userdata($ViewColumnsSession);
+            // if (empty($ViewAllColumns)) {
+                $ViewAllColumns = $this->CI->global_model->getModuleViewColumnDetails(['ViewColmn.ModuleUID' => $ModuleId, 'ViewColmn.'.$VC_WhereCond => 1], true, ['ViewColmn.'.$VC_SortField => 'ASC']);
+
+            //     $this->CI->session->set_userdata($ModuleId.'-viewcolumns', $ViewAllColumns);
+            // }
+            
+            if($PageType == 'MainPage') {
+                $DispViewColumns = array_values(array_filter(
+                    $ViewAllColumns,
+                    fn($item) => !empty($item->$VC_MPDispAppl) && $item->$VC_MPDispAppl == 1
+                ));
+                $DispSettingsViewColumns = array_values(array_filter(
+                    $ViewAllColumns,
+                    fn($item) => !empty($item->$VC_MPSettings) && $item->$VC_MPSettings == 1
+                ));
+            } else {
+                $DispViewColumns = array_map(fn($item) => clone $item, $ViewAllColumns);
+            }
+
+            // $ModuleInfoSession = $ModuleId . '-moduleinfo';
+            // $ModuleInfo = $this->CI->session->userdata($ModuleInfoSession);
+            // if (empty($ModuleInfo)) {
+                $ModuleInfo = $this->CI->global_model->getModuleDetails(['Modules.ModuleUID' => $ModuleId]);
+            //     $this->CI->session->set_userdata($ModuleId.'-moduleinfo', $ModuleInfo);
+            // }
+            if(sizeof($DispViewColumns) > 0 && sizeof($ModuleInfo) > 0) {
+
+                $ModuleInfoData = $ModuleInfo[0];
+
+                $FilterFormat = new stdClass();
+                $FilterFormat->SearchFilter = [];
+                $FilterFormat->SearchDirectQuery = '';
+
+                $ModelName = $ModuleInfoData->ModelName;
+                $FltFuncName = $ModuleInfoData->FilterFunctionName;
+                if(!empty($ModelName) && !empty($FltFuncName)) {
+                    $this->CI->load->model($ModuleInfoData->ModelName);
+                    $FilterResp = $this->CI->$ModelName->$FltFuncName($ModuleInfoData, $Filter);
+                    $FilterFormat->SearchFilter = $FilterResp->SearchFilter;
+                    $FilterFormat->SearchDirectQuery = $FilterResp->SearchDirectQuery;
                 }
+
+                $Aggregates = [];
+                foreach ($DispViewColumns as $index => $column) {
+                    if (!empty($column->AggregationMethod)) {
+                        $Aggregates[$index][$column->AggregationMethod] = 0;
+                    }
+                }
+
+                $WhereInArrayData = [];
+                if(!empty($WhereInCondition)) {
+                    if (array_key_exists('ExportIds', $WhereInCondition)) {
+                        $WhereInArrayData[$ModuleInfoData->TableAliasName.'.'.$ModuleInfoData->TablePrimaryUID] = $WhereInCondition['ExportIds'];
+                    }
+                }
+
+                // $ViewJoinsSession = $ModuleId . '-viewjoins';
+                // $JoinData = $this->CI->session->userdata($ViewJoinsSession);
+                // if (empty($JoinData)) {
+                    $JoinData = $this->CI->global_model->getModuleViewJoinColumnDetails(['JoinColmn.MainModuleUID' => $ModuleId], true, ['JoinColmn.SortOrder' => 'ASC']);
+                //     $this->CI->session->set_userdata($ModuleId.'-viewjoins', $JoinData);
+                // }
+
+                $DataLists = $this->CI->global_model->getModuleReportDetails($ModuleInfoData, $DispViewColumns, $JoinData, $FilterFormat->SearchFilter, $FilterFormat->SearchDirectQuery, 'DESC', $WhereInArrayData, $Limit, $Offset);
+                $TotalRowCount = $this->CI->global_model->getModuleTotalDataRowCount($ModuleInfoData, $DispViewColumns, $JoinData, $FilterFormat->SearchFilter, $FilterFormat->SearchDirectQuery, $WhereInArrayData);
+
+                $this->EndReturnData->Error = FALSE;
+                $this->EndReturnData->RecordHtmlData = $this->CI->load->view($ListUrl, [
+                                                                                    'DataLists' => $DataLists,
+                                                                                    'SerialNumber' => $Offset == 0 ? 0 : $Limit * $Offset,
+                                                                                    'DispViewColumns' => $DispViewColumns,
+                                                                                    'GenSettings' => $this->CI->redis_cache->get('Redis_UserGenSettings') ?? new stdClass(),
+                                                                                    'JwtData' => $this->CI->pageData['JwtData'],
+                                                                                ], TRUE);
                 
-                $ViewColumnsSession = $ModuleId . '-viewcolumns';
-                $AllDataInfo = $this->CI->session->userdata($ViewColumnsSession);
-                if (empty($AllDataInfo)) {
-                    $AllDataInfo = $this->CI->global_model->getModuleViewColumnDetails(['ViewColmn.ModuleUID' => $ModuleId]);
-                    $this->CI->session->set_userdata($ModuleId.'-viewcolumns', $AllDataInfo);
+                if($PageType == 'MainPage') {
+                    $this->EndReturnData->ViewAllColumns = $ViewAllColumns;
+                    $this->EndReturnData->DispViewColumns = $DispViewColumns;
+                    $this->EndReturnData->DispSettingsViewColumns = $DispSettingsViewColumns;
                 }
-                $DataInfo = array_filter($AllDataInfo, function($item) use ($ViewColumnWhere) {
-                    return isset($item->$ViewColumnWhere) && $item->$ViewColumnWhere == 1;
-                });
-
-                usort($DataInfo, function($a, $b) use ($ViewColumnSort) {
-                    return $a->$ViewColumnSort <=> $b->$ViewColumnSort;
-                });
-
-                $ModuleInfoSession = $ModuleId . '-moduleinfo';
-                $ModuleInfo = $this->CI->session->userdata($ModuleInfoSession);
-                if (empty($ModuleInfo)) {
-                    $ModuleInfo = $this->CI->global_model->getModuleDetails(['Modules.ModuleUID' => $ModuleId]);
-                    $this->CI->session->set_userdata($ModuleId.'-moduleinfo', $ModuleInfo);
-                }
-                if(sizeof($DataInfo) > 0 && sizeof($ModuleInfo) > 0) {
-
-                    $ModuleInfoData = $ModuleInfo[0];
-
-                    $FilterFormat = new stdClass();
-                    $FilterFormat->SearchFilter = [];
-                    $FilterFormat->SearchDirectQuery = '';
-
-                    $ModelName = $ModuleInfoData->ModelName;
-                    $FltFuncName = $ModuleInfoData->FilterFunctionName;
-                    if(!empty($ModelName) && !empty($FltFuncName)) {
-                        $this->CI->load->model($ModuleInfoData->ModelName);
-                        $FilterResp = $this->CI->$ModelName->$FltFuncName($ModuleInfoData, $Filter);
-                        $FilterFormat->SearchFilter = $FilterResp->SearchFilter;
-                        $FilterFormat->SearchDirectQuery = $FilterResp->SearchDirectQuery;
-                    }
-
-                    $Aggregates = [];
-                    foreach ($DataInfo as $index => $column) {
-                        if (!empty($column->AggregationMethod)) {
-                            $Aggregates[$index][$column->AggregationMethod] = 0;
-                        }
-                    }
-
-                    $WhereInArrayData = [];
-                    if(!empty($WhereInCondition)) {
-                        if (array_key_exists('ExportIds', $WhereInCondition)) {
-                            $WhereInArrayData[$ModuleInfoData->TableAliasName.'.'.$ModuleInfoData->TablePrimaryUID] = $WhereInCondition['ExportIds'];
-                        }
-                    }
-
-                    $ViewJoinsSession = $ModuleId . '-viewjoins';
-                    $JoinData = $this->CI->session->userdata($ViewJoinsSession);
-                    if (empty($JoinData)) {
-                        $JoinData = $this->CI->global_model->getModuleViewJoinColumnDetails(['JoinColmn.MainModuleUID' => $ModuleId], true, ['JoinColmn.SortOrder' => 'ASC']);
-                        $this->CI->session->set_userdata($ModuleId.'-viewjoins', $JoinData);
-                    }
-
-                    $DataLists = $this->CI->global_model->getModuleReportDetails($ModuleInfoData, $DataInfo, $JoinData, $FilterFormat->SearchFilter, $FilterFormat->SearchDirectQuery, 'DESC', $WhereInArrayData, $Limit, $Offset);
-                    if($ReqTotalRow == 1) {
-                        $TotalRowCount = $this->CI->global_model->getModuleTotalDataRowCount($ModuleInfoData, $DataInfo, $JoinData, $FilterFormat->SearchFilter, $FilterFormat->SearchDirectQuery, $WhereInArrayData);
-                    }
-
-                    $this->EndReturnData->Error = FALSE;
-                    $this->EndReturnData->AllViewColumns = $AllDataInfo;
-                    $this->EndReturnData->ModuleInfo = $ModuleInfoData;
-                    $this->EndReturnData->ViewColumns = $DataInfo;
-                    $this->EndReturnData->DataLists = $DataLists;
-                    $this->EndReturnData->Aggregates = $Aggregates;
-                    $this->EndReturnData->TotalRowCount = $ReqTotalRow == 1 ? $TotalRowCount : 0;
-
-                } else {
-                    throw new Exception('Column Information is Missing.!');
-                }
+                // $this->EndReturnData->ModuleInfoData = $ModuleInfoData;
+                // $this->EndReturnData->DataLists = $DataLists;
+                // $this->EndReturnData->Aggregates = $Aggregates;
+                $this->EndReturnData->TotalRowCount = $TotalRowCount;
 
             } else {
-                throw new Exception('Oops! Missing Module Information.');
+                throw new Exception('Column Information is Missing.!');
             }
 
         } catch (Exception $e) {

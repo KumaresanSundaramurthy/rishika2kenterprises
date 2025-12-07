@@ -79,8 +79,7 @@ function getModuleUIDByName($modules, $name) {
 	$filtered = array_filter($modules, function($module) use ($name) {
 		return $module->Name === $name;
 	});
-
-	// If found, return the first match's ModuleUID
+    
 	if (!empty($filtered)) {
 		return array_values($filtered)[0]->ModuleUID;
 	}
@@ -139,22 +138,8 @@ function updateAttributeString($attributeString, $MPFilterApplicable) {
 
 }
 
-function mapOrganisationAddress($orgData, $prefix, $type) {
-    // If no UID field exists or is empty, return null
-    if (empty($orgData->{$prefix.'AddressUID'})) {
-        return null;
-    }
-
-    return (object) [
-        'OrgAddressUID' => $orgData->{$prefix.'AddressUID'},
-        'OrgUID'        => $orgData->OrgUID,
-        'AddressType'   => $type,
-        'Line1'         => $orgData->{$prefix.'Line1'},
-        'Line2'         => $orgData->{$prefix.'Line2'},
-        'Pincode'       => $orgData->{$prefix.'Pincode'},
-        'City'          => $orgData->{$prefix.'City'},
-        'CityText'      => $orgData->{$prefix.'CityText'},
-        'State'         => $orgData->{$prefix.'State'},
-        'StateText'     => $orgData->{$prefix.'StateText'},
-    ];
+function getPostValue($post, $key, $default = NULL, $allowEmpty = false) {
+    if (!array_key_exists($key, $post)) return $default;
+    if (!$allowEmpty && ($post[$key] === '' || $post[$key] === NULL)) return $default;
+    return $post[$key];
 }

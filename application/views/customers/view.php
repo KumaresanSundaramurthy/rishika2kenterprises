@@ -94,20 +94,20 @@
                                                     <tr>
                                                         <th class="table-checkbox"></th>
                                                         <th class="table-serialno <?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>">S.No</th>
-                                                        <?php foreach (array_column($ViewColumns, 'DisplayName') as $ItemKey => $ItemVal) { ?>
-                                                            <th <?php echo $ViewColumns[$ItemKey]->MainPageColumnAddon; ?>><?php echo $ItemVal; ?></th>
+                                                        <?php foreach (array_column($ModColumnData, 'DisplayName') as $ItemKey => $ItemVal) { ?>
+                                                            <th <?php echo $ModColumnData[$ItemKey]->MainPageColumnAddon; ?>><?php echo $ItemVal; ?></th>
                                                         <?php } ?>
                                                         <th class="text-center">Actions</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody class="table-border-bottom-0">
-                                                    <?php echo $this->load->view('customers/list', [], TRUE); ?>
+                                                    <?php echo $ModRowData; ?>
                                                 </tbody>
                                             </table>
                                         </div>
                                         <hr class="my-0" />
                                         <div class="row mx-3 justify-content-between CustomersPagination" id="CustomersPagination">
-                                            <?php echo $DataPagination; ?>
+                                            <?php echo $ModPagination; ?>
                                         </div>
 
                                     </div>

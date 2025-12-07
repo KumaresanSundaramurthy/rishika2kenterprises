@@ -7,11 +7,13 @@
                 <h5 class="modal-title" id="settingsModalLabel">Customize Column Visibility</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <?php $FormAttribute = array('id' => 'UpdatePageSettingsForm', 'name' => 'UpdatePageSettingsForm', 'class' => '', 'autocomplete' => 'off');
+
+        <?php $FormAttribute = array('id' => 'UpdatePageSettingsForm', 'name' => 'UpdatePageSettingsForm', 'class' => '', 'autocomplete' => 'off');
             echo form_open('products/updatePageSettings', $FormAttribute); ?>
+
             <div class="modal-body">
                 <div class="table-responsive">
-                    <input type="hidden" name="InPageAllColumns" id="InPageAllColumns" value="<?php echo implode(',', array_column($ColumnDetails, 'ViewDataUID')); ?>" />
+                    <input type="hidden" name="InPageAllColumns" id="InPageAllColumns" value="<?php echo implode(',', array_column($DispSettColumnDetails, 'ViewDataUID')); ?>" />
                     <table class="table table-bordered align-middle text-center">
                         <thead>
                             <tr>
@@ -27,7 +29,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach ($ColumnDetails as $CmKey => $CmVal) { ?>
+                            <?php foreach ($DispSettColumnDetails as $CmKey => $CmVal) { ?>
                                 <tr>
                                     <td><?php echo $CmVal->DisplayName; ?></td>
                                     <td>
@@ -70,7 +72,9 @@
                 <button type="button" class="btn btn-label-secondary" data-bs-dismiss="modal">Close</button>
                 <button type="submit" class="btn btn-primary" id="updatePageSettingsBtn">Update Settings</button>
             </div>
-            <?php echo form_close(); ?>
+
+        <?php echo form_close(); ?>
+        
         </div>
     </div>
 </div>

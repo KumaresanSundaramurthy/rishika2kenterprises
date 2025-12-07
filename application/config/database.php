@@ -70,10 +70,11 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 | The $query_builder variables lets you determine whether or not to load
 | the query builder class.
 */
-$active_group = 'default';
+$active_group = 'ReadDB';
 $query_builder = TRUE;
 
-$HostName = getenv('DB_HOSTNAME');
+$ReadHostName = getenv('READ_DB_HOSTNAME');
+$WriteHostName = getenv('WRITE_DB_HOSTNAME');
 $UserName = getenv('DB_USERNAME');
 $Password = getenv('DB_PASSWORD');
 $Port = getenv('DB_PORT');
@@ -82,9 +83,55 @@ $Port = getenv('DB_PORT');
 // $UserName = "kumaresan";
 // $Password = "Kumaresan@123";
 
+$db['ReadDB'] = array(
+	'dsn'	=> '',
+	'hostname' => $ReadHostName,
+	'username' => $UserName,
+	'password' => $Password,
+	'port' => $Port,
+	'database' => '',
+	'dbdriver' => 'mysqli',
+	'dbprefix' => '',
+	'pconnect' => FALSE,
+	'db_debug' => (ENVIRONMENT !== 'production'),
+	'cache_on' => FALSE,
+	'cachedir' => '',
+	'char_set' => 'utf8',
+	'dbcollat' => 'utf8_general_ci',
+	'swap_pre' => '',
+	'encrypt' => FALSE,
+	'compress' => FALSE,
+	// 'stricton' => FALSE,
+	'failover' => array(),
+	'save_queries' => TRUE
+);
+
+$db['WriteDB'] = array(
+	'dsn'	=> '',
+	'hostname' => $WriteHostName,
+	'username' => $UserName,
+	'password' => $Password,
+	'port' => $Port,
+	'database' => '',
+	'dbdriver' => 'mysqli',
+	'dbprefix' => '',
+	'pconnect' => FALSE,
+	'db_debug' => (ENVIRONMENT !== 'production'),
+	'cache_on' => FALSE,
+	'cachedir' => '',
+	'char_set' => 'utf8',
+	'dbcollat' => 'utf8_general_ci',
+	'swap_pre' => '',
+	'encrypt' => FALSE,
+	'compress' => FALSE,
+	// 'stricton' => FALSE,
+	'failover' => array(),
+	'save_queries' => TRUE
+);
+
 $db['default'] = array(
 	'dsn'	=> '',
-	'hostname' => $HostName,
+	'hostname' => $WriteHostName,
 	'username' => $UserName,
 	'password' => $Password,
 	'database' => 'organisation',
@@ -108,7 +155,7 @@ $db['default'] = array(
 
 $db['Users'] = array(
     'dsn'   => '',
-    'hostname' => $HostName,
+    'hostname' => $WriteHostName,
 	'username' => $UserName,
 	'password' => $Password,
     'database' => 'Users',
@@ -132,7 +179,7 @@ $db['Users'] = array(
 
 $db['UserRole'] = array(
     'dsn'   => '',
-    'hostname' => $HostName,
+    'hostname' => $WriteHostName,
 	'username' => $UserName,
 	'password' => $Password,
     'database' => 'UserRole',
@@ -156,7 +203,7 @@ $db['UserRole'] = array(
 
 $db['Organisation'] = array(
     'dsn'   => '',
-    'hostname' => $HostName,
+    'hostname' => $WriteHostName,
 	'username' => $UserName,
 	'password' => $Password,
     'database' => 'Organisation',
@@ -180,7 +227,7 @@ $db['Organisation'] = array(
 
 $db['Global'] = array(
     'dsn'   => '',
-    'hostname' => $HostName,
+    'hostname' => $WriteHostName,
 	'username' => $UserName,
 	'password' => $Password,
     'database' => 'Global',
@@ -204,7 +251,7 @@ $db['Global'] = array(
 
 $db['Customers'] = array(
     'dsn'   => '',
-    'hostname' => $HostName,
+    'hostname' => $WriteHostName,
 	'username' => $UserName,
 	'password' => $Password,
     'database' => 'Customers',
@@ -228,7 +275,7 @@ $db['Customers'] = array(
 
 $db['Vendors'] = array(
     'dsn'   => '',
-    'hostname' => $HostName,
+    'hostname' => $WriteHostName,
 	'username' => $UserName,
 	'password' => $Password,
     'database' => 'Vendors',
@@ -252,7 +299,7 @@ $db['Vendors'] = array(
 
 $db['Products'] = array(
     'dsn'   => '',
-    'hostname' => $HostName,
+    'hostname' => $WriteHostName,
 	'username' => $UserName,
 	'password' => $Password,
     'database' => 'Products',
@@ -276,7 +323,7 @@ $db['Products'] = array(
 
 $db['Modules'] = array(
     'dsn'   => '',
-    'hostname' => $HostName,
+    'hostname' => $WriteHostName,
 	'username' => $UserName,
 	'password' => $Password,
     'database' => 'Modules',

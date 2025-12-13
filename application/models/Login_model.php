@@ -143,7 +143,7 @@ class Login_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->UserRoleDb->select('UserSM.UserSubMenuUID as UserSubMenuUID, SubMenu.MainMenuUID as MainMenuUID, UserSM.SubMenuUID as SubMenuUID, SubMenu.Name as SubMenuName, SubMenu.ControllerName as ControllerName, SubMenu.ParentSubMenuUID as ParentSubMenuUID, UserSM.Sorting as Sorting');
+            $this->UserRoleDb->select('UserSM.UserSubMenuUID as UserSubMenuUID, SubMenu.MainMenuUID as MainMenuUID, UserSM.SubMenuUID as SubMenuUID, SubMenu.Name as SubMenuName, SubMenu.ControllerName as ControllerName, SubMenu.ParentSubMenuUID as ParentSubMenuUID, SubMenu.Icons as Icons, UserSM.Sorting as Sorting');
             $this->UserRoleDb->from('UserRole.UserSubMenusTbl as UserSM');
             $this->UserRoleDb->join($this->ModuleDb->database.'.SubMenusTbl as SubMenu', 'SubMenu.SubMenuUID = UserSM.SubMenuUID', 'left');
             $this->UserRoleDb->where('UserSM.UserUID', $UserUID);

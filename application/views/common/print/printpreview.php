@@ -1,5 +1,4 @@
 <html>
-
 <head>
     <title><?php echo getSiteConfiguration()->ShortName; ?></title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -24,7 +23,6 @@
 
     $Columns = array_column($ViewColumns, 'DisplayName');
     $AmountField = array_column($ViewColumns, 'IsAmountField');
-    $DateField = array_column($ViewColumns, 'IsDateField');
     $AggregationMethods = array_column($ViewColumns, 'AggregationMethod');
     $FinalAggregates = $Aggregates;
 
@@ -38,95 +36,90 @@
                 <div class="content-wrapper">
                     <div class="container-xxl flex-grow-1 container-p-y">
                         <div class="card">
-                            <h5 class="card-header">Product Details</h5>
+                            <h5 class="card-header"><?php echo $previewName; ?></h5>
                             <div class="table-responsive text-nowrap">
                                 <table class="table table-striped table-hover">
                                     <thead>
                                         <tr>
-                                            <?php
-                                            if (sizeof($Columns) > 0) {
-                                                foreach ($Columns as $Col) { ?>
-                                                    <th><?php echo $Col; ?></th>
-                                            <?php }
-                                            } ?>
+                                            <?php foreach ($Columns as $colName): ?>
+                                            <th><?php echo $colName; ?></th>
+                                            <?php endforeach; ?>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <?php if (sizeof($List) > 0) {
-                                            foreach ($List as $Ind => $row) {
-                                                if (isset($row->TablePrimaryUID)) {
-                                                    unset($row->TablePrimaryUID);
-                                                } ?>
-                                                <tr>
-                                                    <?php
-                                                    $colIndex = 0;
-                                                    foreach (get_object_vars($row) as $key => $value) {
+                                    <?php if (!empty($List)) {
+                                        foreach ($List as $row) { ?>
+                                        <tr>
+                                        <?php
+                                            foreach ($ViewColumns as $column) {
+                                                $dbField = $column->DbFieldName;
+                                                $method  = !empty($column->AggregationMethod) ? strtoupper($column->AggregationMethod) : '';
+                                                $value   = $row->{$column->DisplayName} ?? null;
 
-                                                        if (!empty($AggregationMethods[$colIndex])) {
-                                                            $method = strtoupper($AggregationMethods[$colIndex]);
-                                                            switch ($method) {
-                                                                case 'SUM':
-                                                                    $FinalAggregates[$colIndex]['SUM'] += is_numeric($value) ? (float)$value : 0;
-                                                                    break;
-                                                                case 'COUNT':
-                                                                    $FinalAggregates[$colIndex]['COUNT']++;
-                                                                    break;
-                                                                case 'AVG':
-                                                                    if (!isset($FinalAggregates[$colIndex]['_sum'])) {
-                                                                        $FinalAggregates[$colIndex]['_sum'] = 0;
-                                                                        $FinalAggregates[$colIndex]['_count'] = 0;
-                                                                    }
-                                                                    $FinalAggregates[$colIndex]['_sum'] += (float)$value;
-                                                                    $FinalAggregates[$colIndex]['_count']++;
-                                                                    break;
+                                                if ($method) {
+                                                    $numericValue = is_numeric($value) ? (float)$value : 0;
+                                                    switch ($method) {
+                                                        case 'SUM':
+                                                            if (!isset($FinalAggregates[$dbField]['SUM'])) {
+                                                            $FinalAggregates[$dbField]['SUM'] = 0;
                                                             }
-                                                        }
-
-                                                    ?>
-                                                        <td>
-                                                            <?php 
-                                                                $value = $value ?? '';
-                                                                if($AmountField[$colIndex] == 1) {
-                                                                    if($value) {
-                                                                        $value = $this->pageData['JwtData']->GenSettings->CurrenySymbol . smartDecimal($value);
-                                                                    }
-                                                                } else if($DateField[$colIndex] == 1) {
-                                                                    $value = changeTimeZomeDateFormat($value, $this->pageData['JwtData']->User->Timezone, 2);
-                                                                } else if($value) {
-                                                                    $value = htmlspecialchars($value);
-                                                                }
-                                                            ?>
-                                                            <?php echo $value; ?>
-                                                        </td>
-                                                    <?php $colIndex++;
-                                                    } ?>
-                                                </tr>
-                                        <?php }
-                                        } ?>
+                                                            $FinalAggregates[$dbField]['SUM'] += $numericValue;
+                                                            break;
+                                                        case 'COUNT':
+                                                            if (!isset($FinalAggregates[$dbField]['COUNT'])) {
+                                                            $FinalAggregates[$dbField]['COUNT'] = 0;
+                                                            }
+                                                            $FinalAggregates[$dbField]['COUNT']++;
+                                                            break;
+                                                        case 'AVG':
+                                                            if (!isset($FinalAggregates[$dbField]['_sum'])) {
+                                                            $FinalAggregates[$dbField]['_sum']   = 0;
+                                                            $FinalAggregates[$dbField]['_count'] = 0;
+                                                            }
+                                                            $FinalAggregates[$dbField]['_sum']   += $numericValue;
+                                                            $FinalAggregates[$dbField]['_count']++;
+                                                            break;
+                                                    }
+                                                }
+                                            }
+                                            
+                                            $getData = format_disp_allcolumns('preview', $ViewColumns, $row, $this->pageData['JwtData'], $this->pageData['JwtData']->GenSettings);
+                                            if (!empty($getData) && is_array($getData)) {
+                                                echo implode('', $getData);
+                                            } ?>
+                                        </tr>
+                                    <?php } } ?>
                                     </tbody>
                                     <tfoot class="table-border-bottom-0">
                                         <tr>
+                                            <?php foreach ($ViewColumns as $column) { ?>
+                                            <td>
                                             <?php
-                                            foreach ($AggregationMethods as $colIndex => $method): ?>
-                                                <td>
-                                                    <?php
-                                                    $output = '';
-                                                    $method = $method ? strtoupper(trim($method)) : '';
+                                                $dbField = $column->DbFieldName;
+                                                $method  = !empty($column->AggregationMethod) ? strtoupper(trim($column->AggregationMethod)) : '';
+                                                $output  = '';
 
-                                                    // Only output if we have aggregation for this column
-                                                    if ($method === 'SUM' && isset($FinalAggregates[$colIndex]['SUM'])) {
-                                                        $output = $AmountField[$colIndex] == 1 ? ($FinalAggregates[$colIndex]['SUM'] ?  $this->pageData['JwtData']->GenSettings->CurrenySymbol . smartDecimal($FinalAggregates[$colIndex]['SUM']) : 0) : $FinalAggregates[$colIndex]['SUM'];
-                                                    } elseif ($method === 'COUNT' && isset($FinalAggregates[$colIndex]['COUNT'])) {
-                                                        $output = $FinalAggregates[$colIndex]['COUNT'];
-                                                    } elseif ($method === 'AVG' && isset($FinalAggregates[$colIndex]['_sum'], $FinalAggregates[$colIndex]['_count']) && $FinalAggregates[$colIndex]['_count'] > 0) {
-                                                        $avg = $FinalAggregates[$colIndex]['_sum'] / $FinalAggregates[$colIndex]['_count'];
-                                                        $output = $AmountField[$colIndex] == 1 ? ($avg ?  $this->pageData['JwtData']->GenSettings->CurrenySymbol . smartDecimal($avg) : 0) : $avg;
-                                                    }
+                                                if ($method === 'SUM' && isset($FinalAggregates[$dbField]['SUM'])) {
+                                                    $output = $column->IsAmountField == 1
+                                                        ? ($FinalAggregates[$dbField]['SUM']
+                                                        ? $this->pageData['JwtData']->GenSettings->CurrenySymbol . smartDecimal($FinalAggregates[$dbField]['SUM'])
+                                                        : 0)
+                                                        : $FinalAggregates[$dbField]['SUM'];
 
-                                                    echo $output;
-                                                    ?>
-                                                </td>
-                                            <?php endforeach; ?>
+                                                } elseif ($method === 'COUNT' && isset($FinalAggregates[$dbField]['COUNT'])) {
+                                                    $output = $FinalAggregates[$dbField]['COUNT'];
+
+                                                } elseif ($method === 'AVG' && isset($FinalAggregates[$dbField]['_sum'], $FinalAggregates[$dbField]['_count']) && $FinalAggregates[$dbField]['_count'] > 0) {
+                                                    $avg = $FinalAggregates[$dbField]['_sum'] / $FinalAggregates[$dbField]['_count'];
+                                                    $output = $column->IsAmountField == 1
+                                                        ? ($avg ? $this->pageData['JwtData']->GenSettings->CurrenySymbol . smartDecimal($avg) : 0)
+                                                        : $avg;
+                                                }
+
+                                                echo $output;
+                                            ?>
+                                            </td>
+                                            <?php } ?>
                                         </tr>
                                     </tfoot>
                                 </table>

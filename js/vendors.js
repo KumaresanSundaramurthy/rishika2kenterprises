@@ -1,43 +1,28 @@
-/**
- * @param {*} PageNo
- * @param {*} RowLimit
- * @param {*} Filter
- */
 function getVendorsDetails(PageNo, RowLimit, Filter) {
-
     $.ajax({
-        url: '/vendors/getVendorsDetails/' + PageNo,
+        url: '/globally/getModPageDataDetails/' + PageNo,
         method: "POST",
         cache: false,
         data: {
             RowLimit: RowLimit,
             PageNo: PageNo,
             Filter: Filter,
+            ModuleId: ModuleId
         },
-        beforeSend: function () {
-            showUIBlock();
-        },
-        success: function (response) {
-
-            hideUIBlock();
-
+        success: function(response) {
             if (response.Error) {
-                $('#VendorsTable tbody').html('');
-                $('.VendorsPagination').html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');
+                $(ModuleTable + ' tbody').html('');
+                $(ModulePag).html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');
             } else {
-                $('.VendorsPagination').html(response.Pagination);
-                $('#VendorsTable tbody').html(response.List);
+                $(ModulePag).html(response.Pagination);
+                $(ModuleTable + ' tbody').html(response.List);
             }
+            executeTablePagnCommonFunc(response, false);
         },
-        complete: function () {
-            hideUIBlock();
-        }
     });
-
 }
 
 function addVendorData(formdata) {
-
     $.ajax({
         url: '/vendors/addVendorData',
         method: 'POST',
@@ -47,31 +32,18 @@ function addVendorData(formdata) {
         contentType: false,
         enctype: 'multipart/form-data',
         success: function (response) {
-            
-            $('#addFormAlert').removeClass('d-none');
             if (response.Error) {
-
-                inlineMessageAlert('#addFormAlert', 'danger', response.Message, false, false);
-
+                $('.addEditFormAlert').removeClass('d-none');
+                $('.addEditFormAlert').find('.alert-message').text(response.Message);
             } else {
-
-                inlineMessageAlert('#addFormAlert', 'success', response.Message, false, true);
-                setTimeout(function () {
-                    $('#addFormAlert').fadeOut(500, function () {
-                        $(this).addClass('d-none').show();
-
-                    });
-                }, 1000);
-
-                imageChange = 0;
                 $('#AddVendorForm').trigger('reset');
-                window.history.back();
-
+                Swal.fire(response.Message, "", "success");
+                setTimeout(function () {                    
+                    window.history.back();
+                }, 250);
             }
-
         }
     });
-
 }
 
 function searchCustomers(key) {
@@ -79,32 +51,27 @@ function searchCustomers(key) {
         placeholder: "-- Search Customers --",
         minimumInputLength: 3,
         allowClear: true,
-        "escapeMarkup": function (markup) {
-            return markup;
-        }, // let our custom formatter work
+        escapeMarkup: function (markup) { return markup; },
         ajax: {
             url: '/customers/searchCustomers',
             dataType: 'json',
             delay: 250,
             data: function (params) {
-                var query = {
-                    term: params.term,
-                    type: 'public'
-                };
-                return query;
+                AjaxLoading = 0;
+                return { term: params.term, type: 'public' };
             },
             processResults: function (data) {
-                return {
-                    results: data.Lists
-                };
+                AjaxLoading = 1;
+                return { results: data.Lists };
             },
             cache: true
         }
+    }).on('select2:close', function() {
+        AjaxLoading = 1;
     });
 }
 
 function editVendorData(formdata) {
-
     $.ajax({
         url: '/vendors/updateVendorData',
         method: 'POST',
@@ -114,38 +81,34 @@ function editVendorData(formdata) {
         contentType: false,
         enctype: 'multipart/form-data',
         success: function (response) {
-            
-            $('#editFormAlert').removeClass('d-none');
             if (response.Error) {
-
-                inlineMessageAlert('#editFormAlert', 'danger', response.Message, false, false);
-
+                $('.addEditFormAlert').removeClass('d-none');
+                $('.addEditFormAlert').find('.alert-message').text(response.Message);
             } else {
-
-                inlineMessageAlert('#editFormAlert', 'success', response.Message, false, true);
-                setTimeout(function () {
-                    $('#editFormAlert').fadeOut(500, function () {
-                        $(this).addClass('d-none').show();
-                    });
-                }, 1000);
-
-                imageChange = 0;
                 $('#EditVendorForm').trigger('reset');
-                window.history.back();
-
+                Swal.fire(response.Message, "", "success");
+                setTimeout(function () {                    
+                    window.history.back();
+                }, 250);
             }
-
         }
     });
-
 }
 
-$('#BillAddrState').select2({
-    placeholder: '-- Select State --',
-    allowClear: true,
+$(document).on('click', '#ResetCustomerLinking', function () {
+    $(this).addClass('d-none');
+    $('input[name="CustomerLinkingCheck"]').prop('checked', false);
+    $('#CustomerDiv').addClass('d-none');
+    $('#Customer').removeAttr('required');
 });
 
-$('#BillAddrCity').select2({
-    placeholder: '-- Select City --',
-    allowClear: true,
+$('input[name="CustomerLinkingCheck"]').change(function() {
+    $('#CustomerDiv').addClass('d-none')
+    $('#Customer').removeAttr('required');
+    var selectedValue = $(this).val();
+    if (selectedValue == 'OldCustomer') {
+        $('#CustomerDiv').removeClass('d-none');
+        $('#Customer').prop('required', true);
+    }
+    $('#ResetCustomerLinking').removeClass('d-none');
 });

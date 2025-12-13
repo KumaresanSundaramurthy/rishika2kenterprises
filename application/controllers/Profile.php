@@ -1,8 +1,9 @@
 <?php defined('BASEPATH') OR exit('No direct script access allowed');
 
-class Dashboard extends CI_Controller {
+class Profile extends CI_Controller {
 
     public $pageData = array();
+    private $EndReturnData;
 
     public function __construct() {
         parent::__construct();
@@ -10,8 +11,7 @@ class Dashboard extends CI_Controller {
     }
 
     public function index() {
-        $this->pageData['JwtData']->GenSettings = $this->redis_cache->get('Redis_UserGenSettings')->value ?? NULL;
-        $this->load->view('dashboard/view', $this->pageData);
+        
     }
 
 }

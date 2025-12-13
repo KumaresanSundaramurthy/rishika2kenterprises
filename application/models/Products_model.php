@@ -51,8 +51,7 @@ class Products_model extends CI_Model {
 
     }
 
-    public function getProductsDetails($FilterArray = [], $OrderBy = 'ASC', $whereInCondition = [])
-    {
+    public function getProductsDetails($FilterArray = [], $OrderBy = 'ASC', $whereInCondition = []) {
 
         $this->EndReturnData = new StdClass();
         try {
@@ -158,8 +157,7 @@ class Products_model extends CI_Model {
 
     }
 
-    public function getCategoriesDetails($FilterArray)
-    {
+    public function getCategoriesDetails($FilterArray) {
 
         $this->EndReturnData = new StdClass();
         try {
@@ -184,9 +182,8 @@ class Products_model extends CI_Model {
             if (!empty($FilterArray)) {
                 $this->ProductDb->where($FilterArray);
             }
-            $this->ProductDb->group_by('Category.CategoryUID');
             $this->ProductDb->order_by('Category.CategoryUID', 'ASC');
-
+            
             $query = $this->ProductDb->get();
             $error = $this->ProductDb->error();
             if ($error['code']) {
@@ -200,6 +197,7 @@ class Products_model extends CI_Model {
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
         }
+        
     }
 
     public function sizeFilterFormation($ModuleInfoData, $Filter) {
@@ -230,8 +228,7 @@ class Products_model extends CI_Model {
 
     }
 
-    public function getSizeDetails($Filter)
-    {
+    public function getSizeDetails($Filter) {
 
         $this->EndReturnData = new StdClass();
         try {
@@ -271,6 +268,7 @@ class Products_model extends CI_Model {
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
         }
+
     }
 
     public function brandFilterFormation($ModuleInfoData, $Filter) {
@@ -301,8 +299,7 @@ class Products_model extends CI_Model {
 
     }
 
-    public function getBrandDetails($FilterArray)
-    {
+    public function getBrandDetails($FilterArray) {
 
         $this->EndReturnData = new StdClass();
         try {
@@ -341,5 +338,7 @@ class Products_model extends CI_Model {
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
         }
+
     }
+
 }

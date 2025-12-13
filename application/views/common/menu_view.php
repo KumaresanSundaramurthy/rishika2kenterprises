@@ -5,8 +5,8 @@
 $CI = &get_instance();
 $ControllerName = get_class($CI); 
 
-$UserMainModule = $this->redis_cache->get('Redis_UserMainModule') ?? [];
-$UserSubModule = $this->redis_cache->get('Redis_UserSubModule') ?? [];
+$UserMainModule = $this->redis_cache->get('Redis_UserMainModule')->Value ?? [];
+$UserSubModule = $this->redis_cache->get('Redis_UserSubModule')->Value ?? [];
 
 ?>
 
@@ -37,10 +37,14 @@ $UserSubModule = $this->redis_cache->get('Redis_UserSubModule') ?? [];
             </a>
         </li>
 
-        <?php if (sizeof($UserMainModule) > 0) {
+        <?php if (count($UserMainModule) > 0) {
+            $lastSettings = count($UserMainModule) - 1;
             foreach ($UserMainModule as $MMKey => $MMVal) {
+
+                if ($MMKey === $lastSettings) continue;
+
                 $SubMenuData = [];
-                if (sizeof($UserSubModule) > 0) {
+                if (count($UserSubModule) > 0) {
                     $SubMenuData = filterByMainMenuUID($UserSubModule, $MMVal->MainMenuUID);
                 } ?>
 
@@ -52,7 +56,7 @@ $UserSubModule = $this->redis_cache->get('Redis_UserSubModule') ?? [];
                     </a>
 
 
-                    <?php if (sizeof($SubMenuData) > 0) { ?>
+                    <?php if (count($SubMenuData) > 0) { ?>
 
                         <ul class="menu-sub">
 
@@ -85,33 +89,21 @@ $UserSubModule = $this->redis_cache->get('Redis_UserSubModule') ?? [];
             </a>
         </li>
 
-        <li class="menu-item">
-            <a href="/settings/account" class="menu-link">
-                <i class="menu-icon tf-icons bx bx-home-smile"></i>
-                <div data-i18n="Account">Account</div>
+    <?php $SubMenuData = [];
+        if (count($UserSubModule) > 0) {
+            $SubMenuData = filterByMainMenuUID($UserSubModule, $UserMainModule[count($UserMainModule) -1]->MainMenuUID);
+        }
+
+        foreach($SubMenuData as $SubKey => $SubVal) { ?>
+
+        <li class="menu-item <?php echo $SubVal->ControllerName == $ControllerName ? 'active' : ''; ?>">
+            <a href="/settings/<?php echo $SubVal->ControllerName; ?>" class="menu-link">
+                <i class="menu-icon tf-icons <?php echo $SubVal->Icons; ?>"></i>
+                <div><?php echo $SubVal->SubMenuName; ?></div>
             </a>
         </li>
 
-        <li class="menu-item">
-            <a href="/settings/general-settings" class="menu-link">
-                <i class="menu-icon tf-icons bx bx-home-smile"></i>
-                <div data-i18n="General Settings">General Settings</div>
-            </a>
-        </li>
-
-        <li class="menu-item">
-            <a href="/settings/manage-users" class="menu-link">
-                <i class="menu-icon tf-icons bx bx-home-smile"></i>
-                <div data-i18n="Manage Users">Manage Users</div>
-            </a>
-        </li>
-
-        <li class="menu-item">
-            <a href="/settings/reminders" class="menu-link">
-                <i class="menu-icon tf-icons bx bx-home-smile"></i>
-                <div data-i18n="Reminders">Reminders</div>
-            </a>
-        </li>
+    <?php } ?>
 
     </ul>
 

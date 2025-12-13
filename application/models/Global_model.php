@@ -5,6 +5,14 @@ class Global_model extends CI_Model {
     private $EndReturnData;
     private $GlobalDb;
     private $ModuleDb;
+    private $GlbCountryKey;
+    private $PrimUnitKey;
+    private $DiscTypeKey;
+    private $ProdTypeKey;
+    private $ProdTaxKey;
+    private $ProdDetKey;
+    private $TaxPerDetKey;
+    private $StrgTypeKey;
     private $oneYearTTL;
 
     function __construct() {
@@ -14,7 +22,14 @@ class Global_model extends CI_Model {
         $this->ModuleDb = $this->load->database('Modules', TRUE);
 
         $this->oneYearTTL = 60 * 60 * 24 * 365; // 60 (seconds) * 60 (minutes) * 24 (hours) * 365 (days) = 31,536,000 seconds
-
+        $this->GlbCountryKey = 'Glb_CountryInfo';
+        $this->PrimUnitKey = getSiteConfiguration()->RedisName . '-primaryunitinfo';
+        $this->DiscTypeKey = getSiteConfiguration()->RedisName . '-disctypeinfo';
+        $this->ProdTypeKey = getSiteConfiguration()->RedisName . '-prodtypeinfo';
+        $this->ProdTaxKey = getSiteConfiguration()->RedisName . '-prodtaxinfo';
+        $this->ProdDetKey = getSiteConfiguration()->RedisName . '-taxdetailsinfo';
+        $this->TaxPerDetKey = getSiteConfiguration()->RedisName . '-taxperdetinfo';
+        $this->StrgTypeKey = getSiteConfiguration()->RedisName . '-storagetypeinfo';
     }
 
     public function getTimezoneDetails($FilterArray) {
@@ -52,9 +67,9 @@ class Global_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
             
-            $GlbCountryKey = "Glb_CountryInfo";
-            $CountryInfo = $this->session->userdata($GlbCountryKey);
-            if (empty($CountryInfo)) {
+            $GCKey = $this->GlbCountryKey;
+            $GCGet_Data = $this->redis_cache->get($GCKey);
+            if ($GCGet_Data->Error) {
 
                 $this->load->library('curlservice');
 
@@ -65,12 +80,12 @@ class Global_model extends CI_Model {
                     return strcmp($a['name'], $b['name']);
                 });
 
-                $this->session->set_userdata($GlbCountryKey, $Countries);
-
                 $this->EndReturnData->Data = $Countries;
 
+                $this->redis_cache->set($GCKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
+
             } else {
-                $this->EndReturnData->Data = $CountryInfo;
+                $this->EndReturnData->Data = $GCGet_Data->Value;
             }
 
             $this->EndReturnData->Error = FALSE;
@@ -91,8 +106,8 @@ class Global_model extends CI_Model {
         try {
 
             $GlbStateKey = "Glb_StateInfo-".$CountryCode;
-            $StateInfo = $this->session->userdata($GlbStateKey);
-            if (empty($StateInfo)) {
+            $StateInfo = $this->redis_cache->get($GlbStateKey);
+            if ($StateInfo->Error) {
 
                 $this->load->library('curlservice');
 
@@ -103,10 +118,10 @@ class Global_model extends CI_Model {
                     throw new Exception($StateResp->Message);
                 }
 
-                $this->session->set_userdata($GlbStateKey, $StateResp->Data);
+                $this->redis_cache->set($GlbStateKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
 
             } else {
-                $this->EndReturnData->Data = $StateInfo;
+                $this->EndReturnData->Data = $StateInfo->Value;
             }
 
             $this->EndReturnData->Error = FALSE;
@@ -127,8 +142,8 @@ class Global_model extends CI_Model {
         try {
 
             $GlbCityKey = "Glb_CityInfo-".$CountryCode;
-            $CityInfo = $this->session->userdata($GlbCityKey);
-            if (empty($CityInfo)) {
+            $CityInfo = $this->redis_cache->get($GlbCityKey);
+            if ($CityInfo->Error) {
 
                 $CityResp = $this->curlservice->retrieve(getenv('COUNTRY_API_URL') . '/countries/' . $CountryCode . '/cities', 'GET', [], array('X-CSCAPI-KEY: ' . getenv('COUNTRY_API_KEY')));
                 if ($CityResp->Error === false && sizeof($CityResp->Data) > 0) {
@@ -137,10 +152,10 @@ class Global_model extends CI_Model {
                     throw new Exception($CityResp->Message);
                 }
 
-                $this->session->set_userdata($GlbCityKey, $CityResp->Data);
+                $this->redis_cache->set($GlbCityKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
 
             } else {
-                $this->EndReturnData->Data = $CityInfo;
+                $this->EndReturnData->Data = $CityInfo->Value;
             }
 
             $this->EndReturnData->Error = FALSE;
@@ -159,9 +174,9 @@ class Global_model extends CI_Model {
 
         $this->EndReturnData = new stdClass();
         try {
-
-            $PUIKey = getSiteConfiguration()->RedisName . '-primaryunitinfo';
-            $PUIGet_Data = $this->cacheservice->get($PUIKey);
+            
+            $PUIKey = $this->PrimUnitKey;
+            $PUIGet_Data = $this->redis_cache->get($PUIKey);
             if ($PUIGet_Data->Error) {
 
                 $this->GlobalDb->db_debug = FALSE;
@@ -190,10 +205,10 @@ class Global_model extends CI_Model {
                     $this->EndReturnData->Data = $query->result();
                 }
 
-                $this->cacheservice->set($PUIKey, json_encode($this->EndReturnData->Data), 43200 * 365);
+                $this->redis_cache->set($PUIKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
 
             } else {
-                $this->EndReturnData->Data = json_decode($PUIGet_Data->Value, TRUE);
+                $this->EndReturnData->Data = $PUIGet_Data->Value;
             }
 
             $this->EndReturnData->Error = FALSE;
@@ -213,8 +228,8 @@ class Global_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $DTIKey = getSiteConfiguration()->RedisName . '-disctypeinfo';
-            $DTIGet_Data = $this->cacheservice->get($DTIKey);
+            $DTIKey = $this->DiscTypeKey;
+            $DTIGet_Data = $this->redis_cache->get($DTIKey);
             if ($DTIGet_Data->Error) {
 
                 $this->GlobalDb->db_debug = FALSE;
@@ -242,10 +257,10 @@ class Global_model extends CI_Model {
                     $this->EndReturnData->Data = $query->result();
                 }
 
-                $this->cacheservice->set($DTIKey, json_encode($this->EndReturnData->Data), 43200 * 365);
+                $this->redis_cache->set($DTIKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
 
             } else {
-                $this->EndReturnData->Data = json_decode($DTIGet_Data->Value, TRUE);
+                $this->EndReturnData->Data = $DTIGet_Data->Value;
             }
 
             $this->EndReturnData->Error = FALSE;
@@ -264,9 +279,9 @@ class Global_model extends CI_Model {
 
         $this->EndReturnData = new stdClass();
         try {
-
-            $PTIKey = getSiteConfiguration()->RedisName . '-prodtypeinfo';
-            $PTIGet_Data = $this->cacheservice->get($PTIKey);
+            
+            $PTIKey = $this->ProdTypeKey;
+            $PTIGet_Data = $this->redis_cache->get($PTIKey);
             if ($PTIGet_Data->Error) {
 
                 $this->GlobalDb->db_debug = FALSE;
@@ -293,10 +308,10 @@ class Global_model extends CI_Model {
                     $this->EndReturnData->Data = $query->result();
                 }
 
-                $this->cacheservice->set($PTIKey, json_encode($this->EndReturnData->Data), 43200 * 365);
+                $this->redis_cache->set($PTIKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
 
             } else {
-                $this->EndReturnData->Data = json_decode($PTIGet_Data->Value, TRUE);
+                $this->EndReturnData->Data = $PTIGet_Data->Value;
             }
 
             $this->EndReturnData->Error = FALSE;
@@ -316,8 +331,8 @@ class Global_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $PTIKey = getSiteConfiguration()->RedisName . '-prodtaxinfo';
-            $PTIGet_Data = $this->cacheservice->get($PTIKey);
+            $PTIKey = $this->ProdTaxKey;
+            $PTIGet_Data = $this->redis_cache->get($PTIKey);
             if ($PTIGet_Data->Error) {
 
                 $this->GlobalDb->db_debug = FALSE;
@@ -344,10 +359,10 @@ class Global_model extends CI_Model {
                     $this->EndReturnData->Data = $query->result();
                 }
 
-                $this->cacheservice->set($PTIKey, json_encode($this->EndReturnData->Data), 43200 * 365);
+                $this->redis_cache->set($PTIKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
 
             } else {
-                $this->EndReturnData->Data = json_decode($PTIGet_Data->Value, TRUE);
+                $this->EndReturnData->Data = $PTIGet_Data->Value;
             }
 
             $this->EndReturnData->Error = FALSE;
@@ -366,9 +381,9 @@ class Global_model extends CI_Model {
 
         $this->EndReturnData = new stdClass();
         try {
-
-            $TDIKey = getSiteConfiguration()->RedisName . '-taxdetailsinfo';
-            $TDIGet_Data = $this->cacheservice->get($TDIKey);
+            
+            $TDIKey = $this->ProdDetKey;
+            $TDIGet_Data = $this->redis_cache->get($TDIKey);
             if ($TDIGet_Data->Error) {
 
                 $this->GlobalDb->db_debug = FALSE;
@@ -399,10 +414,10 @@ class Global_model extends CI_Model {
                     $this->EndReturnData->Data = $query->result();
                 }
 
-                $this->cacheservice->set($TDIKey, json_encode($this->EndReturnData->Data), 43200 * 365);
+                $this->redis_cache->set($TDIKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
 
             } else {
-                $this->EndReturnData->Data = json_decode($TDIGet_Data->Value, TRUE);
+                $this->EndReturnData->Data = $TDIGet_Data->Value;
             }
 
             $this->EndReturnData->Error = FALSE;
@@ -421,37 +436,47 @@ class Global_model extends CI_Model {
 
         $this->EndReturnData = new stdClass();
         try {
+            
+            $TPDIKey = $this->TaxPerDetKey;
+            $TPDIGet_Data = $this->redis_cache->get($TPDIKey);
+            if ($TPDIGet_Data->Error) {
 
-            $this->GlobalDb->db_debug = FALSE;
+                $this->GlobalDb->db_debug = FALSE;
 
-            $WhereCondition = array(
-                'TaxDetail.IsDeleted' => 0,
-                'TaxDetail.IsActive' => 1,
-            );
+                $WhereCondition = array(
+                    'TaxDetail.IsDeleted' => 0,
+                    'TaxDetail.IsActive' => 1,
+                );
 
-            $select_ary = array(
-                'TaxDetail.TaxDetailsUID AS TaxDetailsUID',
-                'TaxDetail.TaxName AS TaxName',
-                'TaxDetail.Percentage AS Percentage',
-                'TaxDetail.CGST AS CGST',
-                'TaxDetail.SGST AS SGST',
-                'TaxDetail.IGST AS IGST',
-                'TaxDetail.UpdatedOn as UpdatedOn',
-            );
-            $this->GlobalDb->select($select_ary);
-            $this->GlobalDb->from('Global.TaxDetailsTbl as TaxDetail');
-            $this->GlobalDb->where($WhereCondition);
-            if (sizeof($WhereArrayCondition) > 0) {
-                $this->GlobalDb->where($WhereArrayCondition);
-            }
-            $this->GlobalDb->group_by('TaxDetail.TaxDetailsUID');
-            $this->GlobalDb->order_by('TaxDetail.Sorting', 'ASC');
-            $query = $this->GlobalDb->get();
-            $error = $this->GlobalDb->error();
-            if ($error['code']) {
-                throw new Exception($error['message']);
+                $select_ary = array(
+                    'TaxDetail.TaxDetailsUID AS TaxDetailsUID',
+                    'TaxDetail.TaxName AS TaxName',
+                    'TaxDetail.Percentage AS Percentage',
+                    'TaxDetail.CGST AS CGST',
+                    'TaxDetail.SGST AS SGST',
+                    'TaxDetail.IGST AS IGST',
+                    'TaxDetail.UpdatedOn as UpdatedOn',
+                );
+                $this->GlobalDb->select($select_ary);
+                $this->GlobalDb->from('Global.TaxDetailsTbl as TaxDetail');
+                $this->GlobalDb->where($WhereCondition);
+                if (sizeof($WhereArrayCondition) > 0) {
+                    $this->GlobalDb->where($WhereArrayCondition);
+                }
+                $this->GlobalDb->group_by('TaxDetail.TaxDetailsUID');
+                $this->GlobalDb->order_by('TaxDetail.Sorting', 'ASC');
+                $query = $this->GlobalDb->get();
+                $error = $this->GlobalDb->error();
+                if ($error['code']) {
+                    throw new Exception($error['message']);
+                } else {
+                    $this->EndReturnData->Data = $query->result();
+                }
+
+                $this->redis_cache->set($TPDIKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
+
             } else {
-                $this->EndReturnData->Data = $query->result();
+                $this->EndReturnData->Data = $TPDIGet_Data->Value;
             }
 
             $this->EndReturnData->Error = FALSE;
@@ -470,9 +495,9 @@ class Global_model extends CI_Model {
 
         $this->EndReturnData = new stdClass();
         try {
-
-            $STRDEKey = getSiteConfiguration()->RedisName . '-storagetypeinfo';
-            $STRDEGet_Data = $this->cacheservice->get($STRDEKey);
+            
+            $STRDEKey = $this->StrgTypeKey;
+            $STRDEGet_Data = $this->redis_cache->get($STRDEKey);
             if ($STRDEGet_Data->Error) {
 
                 $this->GlobalDb->db_debug = FALSE;
@@ -500,9 +525,10 @@ class Global_model extends CI_Model {
                     $this->EndReturnData->Data = $query->result();
                 }
 
-                $this->cacheservice->set($STRDEKey, json_encode($this->EndReturnData->Data), 43200 * 365);
+                $this->redis_cache->set($STRDEKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
+
             } else {
-                $this->EndReturnData->Data = json_decode($STRDEGet_Data->Value, TRUE);
+                $this->EndReturnData->Data = $STRDEGet_Data->Value;
             }
 
             $this->EndReturnData->Error = FALSE;
@@ -537,6 +563,7 @@ class Global_model extends CI_Model {
                     'Modules.ControllerName AS ControllerName',
                     'Modules.ModelName AS ModelName',
                     'Modules.FilterFunctionName AS FilterFunctionName',
+                    'Modules.ListUrl AS ListUrl',
                     'Modules.DatabaseName as DatabaseName',
                     'Modules.MasterTableName as MasterTableName',
                     'Modules.TableAliasName as TableAliasName',
@@ -624,8 +651,10 @@ class Global_model extends CI_Model {
                 'ViewColmn.MPFilterApplicable AS MPFilterApplicable',
                 'ViewColmn.MPSortApplicable AS MPSortApplicable',
                 'ViewColmn.MPDateFormatType AS MPDateFormatType',
+                'ViewColmn.IsPrintPreviewRequired AS IsPrintPreviewRequired',
                 'ViewColmn.IsPrintPreviewApplicable AS IsPrintPreviewApplicable',
                 'ViewColmn.PrintPreviewOrder AS PrintPreviewOrder',
+                'ViewColmn.IsExportRequired AS IsExportRequired',
                 'ViewColmn.IsExportCsvApplicable AS IsExportCsvApplicable',
                 'ViewColmn.ExportCsvOrder AS ExportCsvOrder',
                 'ViewColmn.IsExportPdfApplicable AS IsExportPdfApplicable',
@@ -642,7 +671,6 @@ class Global_model extends CI_Model {
             if ($Sorting) {
                 $this->ModuleDb->order_by(key($SortingColumn), $SortingColumn[key($SortingColumn)]);
             }
-
             $query = $this->ModuleDb->get();
             $error = $this->ModuleDb->error();
             if ($error['code']) {
@@ -661,8 +689,7 @@ class Global_model extends CI_Model {
 
     }
 
-    public function getModuleViewJoinColumnDetails($WhereArrayCondition, $Sorting = false, $SortingColumn = [])
-    {
+    public function getModuleViewJoinColumnDetails($WhereArrayCondition, $Sorting = false, $SortingColumn = []) {
 
         $this->EndReturnData = new stdClass();
         try {

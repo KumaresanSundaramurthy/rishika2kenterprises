@@ -8,11 +8,12 @@
             <td>
                 <div class="form-check form-check-inline"><input class="form-check-input storageCheck" type="checkbox" value="<?php echo $list->TablePrimaryUID; ?>"></div>
             </td>
-            <td><?php echo $SerialNumber; ?></td>
+            <td class="<?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>"><?php echo $SerialNumber; ?></td>
             <?php
-                $DataPassing['ViewColumns'] = $ViewColumns;
-                $DataPassing['list'] = $list;
-                echo $this->load->view('common/form/list', $DataPassing, TRUE);
+                $getData = format_disp_allcolumns('html', $DispViewColumns, $list, $JwtData, $JwtData->GenSettings);
+                if(!empty($getData) && is_array($getData)) {
+                    echo implode('', $getData);
+                }
             ?>
             <td>
                 <div class="d-flex align-items-sm-center justify-content-sm-center">
@@ -49,7 +50,7 @@
                     <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                         <span class="mb-2">Add a Storage Now</span>
                         <a href="javascript: void(0);" class="btn btn-primary px-3 addStorage">
-                            <i class="bx bx-plus"></i> New Storage
+                            <i class="bx bx-plus"></i> Create Storage
                         </a>
                     </div>
 

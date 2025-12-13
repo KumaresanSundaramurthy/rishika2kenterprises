@@ -5,7 +5,7 @@
  */
 function getCustomersDetails(PageNo, RowLimit, Filter) {
     $.ajax({
-        url: '/customers/getCustomersDetails/'+PageNo,
+        url: '/globally/getModPageDataDetails/' + PageNo,
         method: "POST",
         cache: false,
         data: {
@@ -22,6 +22,7 @@ function getCustomersDetails(PageNo, RowLimit, Filter) {
                 $(ModulePag).html(response.Pagination);
                 $(ModuleTable + ' tbody').html(response.List);
             }
+            executeTablePagnCommonFunc(response, false);
         },
     });
 }
@@ -40,12 +41,11 @@ function addCustomerData(formdata) {
                 $('.addEditFormAlert').removeClass('d-none');
                 $('.addEditFormAlert').find('.alert-message').text(response.Message);
             } else {
-                actionBankData = 0;
                 $('#AddCustomerForm').trigger('reset');
                 Swal.fire(response.Message, "", "success");
                 setTimeout(function () {                    
                     window.history.back();
-                }, 500);
+                }, 250);
             }
         }
     });
@@ -65,12 +65,11 @@ function editCustomerData(formdata) {
                 $('.addEditFormAlert').removeClass('d-none');
                 $('.addEditFormAlert').find('.alert-message').text(response.Message);
             } else {
-                actionBankData = 0;
                 $('#EditCustomerForm').trigger('reset');
                 Swal.fire(response.Message, "", "success");
                 setTimeout(function () {                    
                     window.history.back();
-                }, 500);
+                }, 250);
             }
         }
     });
@@ -91,10 +90,14 @@ function deleteCustomer(DeleteId) {
         success: function (response) {
             if (response.Error) {
                 Swal.fire(response.Message, "", "danger");
+                $(ModuleTable + ' tbody').html('');
+                $(ModulePag).html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');
             } else {
                 Swal.fire(response.Message, "", "success");
-                executeTablePagnCommonFunc(response, true);
+                $(ModulePag).html(response.Pagination);
+                $(ModuleTable + ' tbody').html(response.List);
             }
+            executeTablePagnCommonFunc(response, true);
         }
     });
 }
@@ -113,83 +116,16 @@ function deleteMultipleCustomers() {
         },
         success: function (response) {
             if (response.Error) {
-                Swal.fire(response.Message, "", "error");
+                Swal.fire(response.Message, "", "danger");
+                $(ModuleTable + ' tbody').html('');
+                $(ModulePag).html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');
             } else {
+                Swal.fire(response.Message, "", "success");
+                $(ModulePag).html(response.Pagination);
+                $(ModuleTable + ' tbody').html(response.List);
                 SelectedUIDs = [];
                 executeTablePagnCommonFunc(response, true);
             }
         },
     });
 }
-
-function enableBillingAddress() {
-    $('#BillAddrState').select2({
-        placeholder: '-- Select State --',
-        allowClear: true,
-    });
-    $('#BillAddrCity').select2({
-        placeholder: '-- Select City --',
-        allowClear: true,
-    });
-}
-
-function enableShippingAddress() {
-    $('#ShipAddrState').select2({
-        placeholder: '-- Select State --',
-        allowClear: true,
-    });
-    $('#ShipAddrCity').select2({
-        placeholder: '-- Select City --',
-        allowClear: true,
-    });
-}
-
-function select2CountryCode() {
-    $('#CountryCode').select2({
-        placeholder: '-- Select Country --',
-        allowClear: true,
-    });
-}
-
-function select2TagEmail() {
-    $("#Tags,#CCEmails").select2({
-        tags: "true",
-        placeholder: "Type and press enter...",
-        allowClear: true
-    });
-}
-
-function creationBilngAddrActions() {
-    $('#addBillingAddress').addClass('d-none');
-    var DivId = $('#addBillingAddress').data('divid');
-    $('#'+DivId).removeClass('d-none').html('');
-    $('#'+DivId).html(baseAddressCreation(1, StateInfo, CityInfo, $('#CountryCode').find('option:selected').data('ccode')));
-    $('#addShippingAddress,#AddressDivider').removeClass('d-none');
-}
-
-function creationShipAddrActions() {
-    $('#addShippingAddress').addClass('d-none');
-    $('#addrCopyToShipping').removeClass('d-none');
-    var DivId = $('#addShippingAddress').data('divid');
-    $('#'+DivId).removeClass('d-none').html('');
-    $('#'+DivId).html(baseAddressCreation(2, StateInfo, CityInfo, $('#CountryCode').find('option:selected').data('ccode')));
-}
-
-$('#addBillingAddress').click(function(e) {
-    e.preventDefault();
-    creationBilngAddrActions();
-});
-
-$('#addShippingAddress').click(function(e) {
-    e.preventDefault();
-    creationShipAddrActions();
-});
-
-$('#addrCopyToShipping').click(function(e) {
-    e.preventDefault();
-    $('#ShipAddrLine1').val($('#BillAddrLine1').val());
-    $('#ShipAddrLine2').val($('#BillAddrLine2').val());
-    $('#ShipAddrPincode').val($('#BillAddrPincode').val());
-    $('#ShipAddrState').val($('#BillAddrState').find('option:selected').val()).trigger('change');
-    $('#ShipAddrCity').val($('#BillAddrCity').find('option:selected').val()).trigger('change');
-});

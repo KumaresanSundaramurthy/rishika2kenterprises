@@ -26,7 +26,7 @@
                             <h5 class="modal-title mb-0" id="CustomerModalTitle">Update Customer</h5>
                             <div class="d-flex align-items-center gap-2">
                                 <button type="submit" class="btn btn-primary AddEditCustomerBtn">Update</button>
-                                <a href="javascript: history.back();" class="btn btn-label-danger">Cancel</a>
+                                <a href="javascript: history.back();" class="btn btn-label-danger">Close</a>
                             </div>
                         </div>
 
@@ -64,11 +64,11 @@
                                             <?php if (sizeof($CountryInfo) > 0) {
                                                 foreach ($CountryInfo as $Country) { ?>
                                                     <option
-                                                        value="<?php echo $Country['phone'][0]; ?>"
-                                                        data-region="<?php echo $Country['region']; ?>"
-                                                        data-ccode="<?php echo $Country['iso']['alpha-2']; ?>"
-                                                        <?php echo (isset($EditData->CountryCode) && $EditData->CountryCode == $Country['phone'][0]) ? 'selected' : ($Country['iso']['alpha-2'] == $JwtData->User->OrgCISO2 ? 'selected' : ''); ?>>
-                                                        <?php echo '(' . $Country['phone'][0] . ') ' . $Country['name']; ?>
+                                                        value="<?php echo $Country->phone[0]; ?>"
+                                                        data-region="<?php echo $Country->region; ?>"
+                                                        data-ccode="<?php echo $Country->iso->{'alpha-2'}; ?>"
+                                                        <?php echo (isset($EditData->CountryCode) && $EditData->CountryCode == $Country->phone[0]) ? 'selected' : ($Country->iso->{'alpha-2'} == $JwtData->User->OrgCISO2 ? 'selected' : ''); ?>>
+                                                        <?php echo '(' . $Country->phone[0] . ') ' . $Country->name; ?>
                                                     </option>
                                             <?php }
                                             } ?>
@@ -124,8 +124,8 @@
                             <!-- Bank Details -->
                             <div class="card-header modal-header-center-sticky p-1 mb-3">
                                 <h5 class="modal-title mb-0">
-                                    <i class="bx bx-building-house me-1"></i> Bank Details
-                                    <a href="javascript: void(0)" id="addBankDetails" data-divid="appendBankDetails"> Add Bank Accounts</a>
+                                    Bank Details
+                                    <a href="javascript: void(0)" class="btn btn-sm btn-outline-warning ms-1" id="addBankDetails" data-divid="appendBankDetails"><i class="bx bx-plus-circle me-1"></i> Bank Accounts</a>
                                 </h5>
                             </div>
                             <div class="table-responsive <?php echo count($BankDetails) > 0 ? '' : 'd-none'; ?>" id="appendBankDetails">
@@ -174,29 +174,25 @@
                             </div>
                             <div class="row">
                                 <div class="mb-3 col-md-6">
-                                    <div class="card-header modal-header-center-sticky d-flex align-items-center p-0 mb-2">
+                                    <div class="card-header modal-header-center-sticky d-flex justify-content-between align-items-center p-0 mb-2">
                                         <h5 class="mb-2">
                                             Billing Address
-                                            <button type="button" class="btn btn-warning ms-1" id="addBillingAddress" data-divid="appendBillingAddress">
-                                                <i class="bx bx-plus-circle me-1"></i>
-                                            </button>
+                                            <a href="javascript: void(0)" class="btn btn-sm btn-outline-warning ms-1" id="addBillingAddress" data-divid="appendBillingAddress"><i class="bx bx-plus-circle me-1"></i> Billing Address</a>
                                         </h5>
                                         <div class="ms-auto d-flex align-items-center">
-                                            <button type="button" class="btn btn-primary btn-sm d-none" id="addrCopyToShipping">
-                                                <i class="bx bx-copy-alt me-1"></i> Copy to Shipping
-                                            </button>
+                                            <a href="javascript: void(0)" class="btn btn-sm btn-outline-primary ms-1 d-none" id="addrCopyToShipping"><i class="bx bx-copy-alt me-1"></i> Copy to Shipping</a>
+                                            <button type="button" id="deleteBillingAddress" class="btn btn-outline-danger btn-sm ms-2 d-none"><i class="bx bx-trash"></i> </button>
                                         </div>
                                     </div>
                                     <div id="appendBillingAddress" class="d-none"></div>
                                 </div>
                                 <div class="mb-3 col-md-6">
-                                    <div class="card-header modal-header-center-sticky p-0 mb-2">
+                                    <div class="card-header modal-header-center-sticky d-flex justify-content-between align-items-center p-0 mb-2">
                                         <h5 class="mb-2">
                                             Shipping Address
-                                            <button type="button" class="btn btn-warning ms-1 d-none" id="addShippingAddress" data-divid="appendShippingAddress">
-                                                <i class="bx bx-plus-circle me-1"></i>
-                                            </button>
+                                            <a href="javascript: void(0)" class="btn btn-sm btn-outline-warning ms-1" id="addShippingAddress" data-divid="appendShippingAddress"><i class="bx bx-plus-circle me-1"></i> Shipping Address</a>
                                         </h5>
+                                        <button type="button" id="deleteShippingAddress" class="btn btn-outline-danger btn-sm d-none"><i class="bx bx-trash"></i> </button>
                                     </div>
                                     <div id="appendShippingAddress" class="d-none"></div>
                                 </div>
@@ -275,7 +271,6 @@
                 <?php echo form_close(); ?>
 
                 </div>
-
             </div>
             <!-- Content wrapper -->
             
@@ -290,11 +285,15 @@
 <?php $this->load->view('common/footer'); ?>
 
 <script src="/js/customers.js"></script>
+<script src="/js/common/bankdetails.js"></script>
+<script src="/js/common/address.js"></script>
 
 <script>
 const StateInfo = <?php echo json_encode($StateData); ?>;
 const CityInfo = <?php echo json_encode($CityData); ?>;
 var imgData = '<?php echo isset($EditData->Image) ? $EditData->Image : ''; ?>';
+var delAddrDetailFlag = 0;
+var delAddrData = [];
 $(function() {
     'use strict'
 
@@ -332,6 +331,7 @@ $(function() {
     $('#EditCustomerForm').submit(function(e) {
         e.preventDefault();
 
+        getScrollableOnSubmitForm(this);
         $('.addEditFormAlert').addClass('d-none');
 
         var formData = new FormData($('#EditCustomerForm')[0]);
@@ -359,29 +359,26 @@ $(function() {
         delBankData.forEach(did => {
             formData.append('delBankData[]', did);
         });
-        formData.append('actionBankData', actionBankData);
 
         var BillAddrLine1 = $('#BillAddrLine1').val();
         if (hasValue(BillAddrLine1)) {
-            
             var city = $('#BillAddrCity').find('option:selected').val();
             if (hasValue(city)) formData.append('BillAddrCityText', $('#BillAddrCity').find('option:selected').text());
-
             var state = $('#BillAddrState').find('option:selected').val();
             if (hasValue(state)) formData.append('BillAddrStateText', $('#BillAddrState').find('option:selected').text());
-
         }
 
         var ShipAddrLine1 = $('#ShipAddrLine1').val();
         if (hasValue(ShipAddrLine1)) {
-
             var city = $('#ShipAddrCity').find('option:selected').val();
             if (hasValue(city)) formData.append('ShipAddrCityText', $('#ShipAddrCity').find('option:selected').text());
-            
             var state = $('#ShipAddrState').find('option:selected').val();
             if (hasValue(state)) formData.append('ShipAddrStateText', $('#ShipAddrState').find('option:selected').text());
-
         }
+        formData.append('delAddrDetailFlag', delAddrDetailFlag);
+        delAddrData.forEach(did => {
+            formData.append('delAddrData[]', did);
+        });
 
         editCustomerData(formData);
 

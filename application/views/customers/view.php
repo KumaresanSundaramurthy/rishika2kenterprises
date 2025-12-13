@@ -92,7 +92,11 @@
                                             <table class="table table-sm table-striped table-hover" id="CustomersTable">
                                                 <thead>
                                                     <tr>
-                                                        <th class="table-checkbox"></th>
+                                                        <th class="table-checkbox">
+                                                            <div class="form-check">
+                                                                <input class="form-check-input table-chkbox customerHeaderCheck" type="checkbox">
+                                                            </div>
+                                                        </th>
                                                         <th class="table-serialno <?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>">S.No</th>
                                                         <?php foreach (array_column($ModColumnData, 'DisplayName') as $ItemKey => $ItemVal) { ?>
                                                             <th <?php echo $ModColumnData[$ItemKey]->MainPageColumnAddon; ?>><?php echo $ItemVal; ?> <?php if ($ModColumnData[$ItemKey]->MPSortApplicable == 1) {
@@ -135,8 +139,10 @@
 <?php $this->load->view('common/footer'); ?>
 
 <script src="/js/customers.js"></script>
+<script src="/js/common/pagecheckbox.js"></script>
 
 <script>
+let ModuleUIDs = [];
 let ModuleId = <?php echo $ModuleId; ?>;
 const ModuleTable = '#CustomersTable';
 const ModulePag = '.CustomersPagination';
@@ -144,6 +150,7 @@ const ModuleHeader = '.customerHeaderCheck';
 const ModuleRow = '.customerCheck';
 const ModuleFileName = 'Customer_Data';
 const ModuleSheetName = 'Customer';
+const previewName = 'Customer Details';
 let sortState = 0;
 $(function() {
     'use strict'
@@ -152,19 +159,12 @@ $(function() {
     $(ModuleRow).prop('checked', false).trigger('change');
 
     baseExportFunctions();
-
-    $(ModulePag).on('click', 'a', function(e) {
-        e.preventDefault();
-        PageNo = $(this).attr('data-ci-pagination-page');
-        getCustomersDetails(PageNo, RowLimit, Filter);
-    });
-
-    $(document).on('click', '.PageRefresh', function(e) {
-        e.preventDefault();
-        getCustomersDetails(0, RowLimit, Filter);
-    });
-
+    basePaginationFunc(ModulePag, getCustomersDetails);
+    baseRefreshPageFunc('.PageRefresh', getCustomersDetails);
+    basePageHeaderFunc(ModuleHeader, ModuleTable, ModuleRow);
+    
     $(document).on('click', ModuleRow, function() {
+        onClickOfCheckbox($(this), ModuleUIDs, ModuleHeader);
         $('#CloneOption').addClass('d-none');
         if (SelectedUIDs.length == 1) {
             $('#CloneOption').removeClass('d-none');
@@ -194,7 +194,7 @@ $(function() {
     }, 500));
 
     $('#clearSearch').click(function(e) {
-            e.preventDefault();
+        e.preventDefault();
         var searchText = $('#SearchDetails').val();
         $('#SearchDetails').val('');
         $('#clearSearch').addClass('d-none');
@@ -267,6 +267,7 @@ $(function() {
             $(this).attr('title', 'Click sorting ascending');
             delete Filter['NameSorting'];
         }
+        $(this).tooltip('dispose').tooltip();
         getCustomersDetails(PageNo, RowLimit, Filter);
     });
 

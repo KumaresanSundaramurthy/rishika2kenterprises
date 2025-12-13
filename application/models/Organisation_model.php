@@ -4,10 +4,16 @@ class Organisation_model extends CI_Model {
     
     private $EndReturnData;
     private $OrgDb;
+    private $OrgBusTypeKey;
+    private $OrgIndTypeKey;
+    private $OrgBusRegTypeKey;
 
 	function __construct() {
         parent::__construct();
         
+        $this->OrgBusTypeKey = getSiteConfiguration()->RedisName . '-orgbustypeinfo';
+        $this->OrgIndTypeKey = getSiteConfiguration()->RedisName . '-orgindustypeinfo';
+        $this->OrgBusRegTypeKey = getSiteConfiguration()->RedisName . '-orgbusregtypeinfo';
         $this->OrgDb = $this->load->database('Organisation', TRUE);
 
     }
@@ -77,9 +83,9 @@ class Organisation_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $OrgBusTypeKey = getSiteConfiguration()->RedisName . '-orgbustypeinfo';
-            $OBTGet_Data = $this->session->userdata($OrgBusTypeKey);
-            if (empty($OBTGet_Data)) {
+            $OBTKey = $this->OrgBusTypeKey;
+            $OBTGet_Data = $this->redis_cache->get($OBTKey);
+            if ($OBTGet_Data->Error) {
 
                 $this->OrgDb->select('BusinessType.OrgBussTypeUID as OrgBussTypeUID, BusinessType.Name as Name');
                 $this->OrgDb->from('Organisation.OrgBusinessTypeTbl as BusinessType');
@@ -92,11 +98,11 @@ class Organisation_model extends CI_Model {
                 } else {
                     $this->EndReturnData->Data = $query->result();
                 }
-
-                $this->session->set_userdata($OrgBusTypeKey, $this->EndReturnData->Data);
+                
+                $this->redis_cache->set($OBTKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
                 
             } else {
-                $this->EndReturnData->Data = $OBTGet_Data;
+                $this->EndReturnData->Data = $OBTGet_Data->Value;
             }
 
             $this->EndReturnData->Error = FALSE;
@@ -119,9 +125,9 @@ class Organisation_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $OrgIndusTypeKey = getSiteConfiguration()->RedisName . '-orgindustypeinfo';
-            $OITGet_Data = $this->session->userdata($OrgIndusTypeKey);
-            if (empty($OITGet_Data)) {
+            $OITKey = $this->OrgIndTypeKey;
+            $OITGet_Data = $this->redis_cache->get($OITKey);
+            if ($OITGet_Data->Error) {
 
                 $this->OrgDb->select('IndustryType.OrgIndTypeUID as OrgIndTypeUID, IndustryType.Name as Name');
                 $this->OrgDb->from('Organisation.OrgIndustryTypeTbl as IndustryType');
@@ -135,10 +141,10 @@ class Organisation_model extends CI_Model {
                     $this->EndReturnData->Data = $query->result();
                 }
 
-                $this->session->set_userdata($OrgIndusTypeKey, $this->EndReturnData->Data);
+                $this->redis_cache->set($OITKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
 
             } else {
-                $this->EndReturnData->Data = $OITGet_Data;
+                $this->EndReturnData->Data = $OITGet_Data->Value;
             }
 
             $this->EndReturnData->Error = FALSE;
@@ -160,10 +166,10 @@ class Organisation_model extends CI_Model {
 
         $this->EndReturnData = new stdClass();
         try {
-
-            $OrgBusRegTypeKey = getSiteConfiguration()->RedisName . '-orgbusregtypeinfo';
-            $OBRTGet_Data = $this->session->userdata($OrgBusRegTypeKey);
-            if (empty($OBRTGet_Data)) {
+            
+            $OBRTKey = $this->OrgBusRegTypeKey;
+            $OBRTGet_Data = $this->redis_cache->get($OBRTKey);
+            if ($OBRTGet_Data->Error) {
 
                 $this->OrgDb->select('BusRegType.OrgBusRegTypeUID as OrgBusRegTypeUID, BusRegType.Name as Name');
                 $this->OrgDb->from('Organisation.OrgBusinessRegTypeTbl as BusRegType');
@@ -177,10 +183,10 @@ class Organisation_model extends CI_Model {
                     $this->EndReturnData->Data = $query->result();
                 }
 
-                $this->session->set_userdata($OrgBusRegTypeKey, $this->EndReturnData->Data);
+                $this->redis_cache->set($OBRTKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
 
             } else {
-                $this->EndReturnData->Data = $OBRTGet_Data;
+                $this->EndReturnData->Data = $OBRTGet_Data->Value;
             }
 
             $this->EndReturnData->Error = FALSE;

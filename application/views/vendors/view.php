@@ -24,13 +24,64 @@
                                 <div class="d-flex flex-column flex-md-row justify-content-between align-items-center p-3">
                                     <ul class="nav nav-pills nav nav-pills flex-row" role="tablist">
                                         <li class="nav-item">
-                                            <a class="nav-link active" role="tab" data-bs-toggle="tab" data-bs-target="#NavVendorPage" aria-controls="NavVendorPage" aria-selected="true" href="javascript: void(0);"><i class="bx bx-id-card me-1"></i> Vendor</a>
+                                            <a class="nav-link active" role="tab" data-bs-toggle="tab" data-bs-target="#NavVendorPage" aria-controls="NavVendorPage" aria-selected="true" href="javascript: void(0);"><i class="bx bx-user me-1"></i> Vendor</a>
                                         </li>
                                     </ul>
                                     <div class="d-flex mt-2 mt-md-0">
-                                        <a href="javascript: void(0);" class="btn PageRefresh"><i class='bx bx-refresh' style="font-size: 22px;"></i> </a>
-                                        <div class="me-2"><input type="text" class="form-control VendorSearch" name="VendorSearch" id="VendorSearch" placeholder="Search vendor details..." /></div>
-                                        <a href="/vendors/add" class="btn btn-primary px-3"><i class='bx bx-plus'></i> New Vendor</a>
+                                        <a href="javascript: void(0);" class="btn PageRefresh p-2 me-0" data-toggle="tooltip" data-bs-placement="top" title="Refresh Page"><i class="bx bx-refresh fs-4"></i></a>
+                                        <a href="javascript: void(0);" id="btnPageSettings" class="btn p-2" data-toggle="tooltip" data-bs-placement="top" title="Page Column Settings"><i class="bx bx-cog fs-4"></i></a>
+                                        <div class="position-relative me-2">
+                                            <input type="text" class="form-control SearchDetails" name="SearchDetails" id="SearchDetails" placeholder="Search details..." data-toggle="tooltip" title="Please type at least 3 characters to search" />
+                                            <i class="bx bx-x position-absolute top-50 end-0 translate-middle-y me-3 text-muted cursor-pointer d-none" id="clearSearch"></i>
+                                        </div>
+                                        <div class="btn-group" id="ActionsDD-Div">
+                                            <button class="btn btn-label-secondary dropdown-toggle me-2" type="button" id="actionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                                <span class="d-flex align-items-center gap-2">
+                                                    <i class="icon-base bx bx-slider-alt icon-xs"></i>
+                                                    <span class="d-none d-sm-inline-block"></span>
+                                                </span>
+                                            </button>
+                                            <ul class="dropdown-menu" aria-labelledby="actionsDropdown">
+                                                <li class="d-none" id="CloneOption">
+                                                    <a class="dropdown-item" href="javascript: void(0);" id="btnClone">
+                                                        <i class="bx bx-duplicate me-1"></i> Clone
+                                                    </a>
+                                                </li>
+                                                <li class="d-none" id="DeleteOption">
+                                                    <a class="dropdown-item text-danger" href="javascript: void(0);" id="btnDelete">
+                                                        <i class="bx bx-trash me-1"></i> Delete
+                                                    </a>
+                                                </li>
+                                                <li class="dropdown-submenu">
+                                                    <a class="dropdown-item" href="javascript: void(0);">
+                                                        <i class="bx bx-export me-1"></i> Export
+                                                    </a>
+                                                    <ul class="dropdown-menu">
+                                                        <li>
+                                                            <a class="dropdown-item" href="javascript: void(0);" id="btnExportPrint">
+                                                                <i class="bx bx-printer me-1"></i> Print
+                                                            </a>
+                                                        </li>
+                                                        <li>
+                                                            <a class="dropdown-item" href="javascript: void(0);" id="btnExportCSV">
+                                                                <i class="bx bx-file me-1"></i> CSV
+                                                            </a>
+                                                        </li>
+                                                        <li>
+                                                            <a class="dropdown-item" href="javascript: void(0);" id="btnExportExcel">
+                                                                <i class="bx bxs-file-export me-1"></i> Excel
+                                                            </a>
+                                                        </li>
+                                                        <li>
+                                                            <a class="dropdown-item" href="javascript: void(0);" id="btnExportPDF">
+                                                                <i class="bx bxs-file-pdf me-1"></i> PDF
+                                                            </a>
+                                                        </li>
+                                                    </ul>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                        <a href="/vendors/create" class="btn btn-primary px-3">Create Vendor</a>
                                     </div>
                                 </div>
                                 <div class="tab-content p-0">
@@ -41,23 +92,29 @@
                                             <table class="table table-sm table-striped table-hover" id="VendorsTable">
                                                 <thead>
                                                     <tr>
-                                                        <th></th>
-                                                        <th>Name</th>
-                                                        <th>Area</th>
-                                                        <th class="text-center">Contact Info</th>
-                                                        <th class="text-end">Closing Balance</th>
-                                                        <th class="text-end">Last Updated</th>
+                                                        <th class="table-checkbox">
+                                                            <div class="form-check">
+                                                                <input class="form-check-input table-chkbox vendorHeaderCheck" type="checkbox">
+                                                            </div>
+                                                        </th>
+                                                        <th class="table-serialno <?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>">S.No</th>
+                                                        <?php foreach (array_column($ModColumnData, 'DisplayName') as $ItemKey => $ItemVal) { ?>
+                                                            <th <?php echo $ModColumnData[$ItemKey]->MainPageColumnAddon; ?>><?php echo $ItemVal; ?> <?php if ($ModColumnData[$ItemKey]->MPSortApplicable == 1) {
+                                                                    echo '<i class="bx bx-sort-alt-2 ms-1 cursor-pointer"></i>';
+                                                                } ?></th>
+                                                        <?php } ?>
                                                         <th class="text-center">Actions</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody class="table-border-bottom-0">
-                                                    <?php $PageData['VendorsList'] = [];
-                                                    echo $this->load->view('vendors/list', $PageData, TRUE); ?>
+                                                    <?php echo $ModRowData; ?>
                                                 </tbody>
                                             </table>
                                         </div>
                                         <hr class="my-0" />
-                                        <div class="row mx-3 justify-content-between VendorsPagination" id="VendorsPagination"></div>
+                                        <div class="row mx-3 justify-content-between VendorsPagination" id="VendorsPagination">
+                                            <?php echo $ModPagination; ?>
+                                        </div>
 
                                     </div>
 
@@ -70,7 +127,8 @@
 
             </div>
             <!-- Content wrapper -->
-
+            
+            <?php $this->load->view('common/settings_modal'); ?>
             <?php $this->load->view('common/footer_desc'); ?>
 
         </div>
@@ -81,56 +139,136 @@
 <?php $this->load->view('common/footer'); ?>
 
 <script src="/js/vendors.js"></script>
+<script src="/js/common/pagecheckbox.js"></script>
 
 <script>
-    $(function() {
-        'use strict'
+let ModuleId = <?php echo $ModuleId; ?>;
+const ModuleTable = '#VendorsTable';
+const ModulePag = '.VendorsPagination';
+const ModuleHeader = '.vendorHeaderCheck';
+const ModuleRow = '.vendorsCheck';
+const ModuleFileName = 'Vendor_Data';
+const ModuleSheetName = 'Vendor';
+const previewName = 'Vendor Details';
+let sortState = 0;
+$(function() {
+    'use strict'
 
-        $('#VendorSearch').val('');
+    $('#SearchDetails').val('');
+    $(ModuleRow).prop('checked', false).trigger('change');
 
-        $('.VendorsPagination').on('click', 'a', function(e) {
-            e.preventDefault();
-            PageNo = $(this).attr('data-ci-pagination-page');
-            getVendorsDetails(PageNo, RowLimit, Filter);
-        });
+    baseExportFunctions();
+    basePaginationFunc(ModulePag, getVendorsDetails);
+    baseRefreshPageFunc('.PageRefresh', getVendorsDetails);
+    basePageHeaderFunc(ModuleHeader, ModuleTable, ModuleRow);
 
-        $(document).on('click', '.PageRefresh', function(e) {
-            e.preventDefault();
-            getVendorsDetails(0, RowLimit, Filter);
-        });
-
-        $('.VendorSearch').keyup(inputDelay(function(e) {
-            PageNo = 0;
-            if ($('#VendorSearch').val()) {
-                Filter['Name'] = $('#VendorSearch').val();
-            }
-            getVendorsDetails(PageNo, RowLimit, Filter);
-        }, 500));
-
-        $(document).on('click', '.DeleteVendor', function(e) {
-            e.preventDefault();
-            var GetId = $(this).data('vendoruid');
-            if (GetId) {
-                Swal.fire({
-                    title: "Do you want to delete the vendor?",
-                    text: "You won't be able to revert this!",
-                    icon: "info",
-                    showCancelButton: true,
-                    confirmButtonColor: "#d33",
-                    confirmButtonText: "Yes, delete it!",
-                    cancelButtonColor: "#3085d6",
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        deleteVendor(GetId);
-                    }
-                });
-            }
-        });
-
+    $(document).on('click', ModuleRow, function() {
+        onClickOfCheckbox($(this), ModuleTable, ModuleHeader, ModuleRow);
+        $('#CloneOption').addClass('d-none');
+        if (SelectedUIDs.length == 1) {
+            $('#CloneOption').removeClass('d-none');
+        }
+        MultipleDeleteOption();
     });
-    $(window).on('load', function() {
 
+    $('#btnClone').click(function(e) {
+        e.preventDefault();
+        if (SelectedUIDs.length == 1) {
+            window.location.href = '/vendors/' + SelectedUIDs[0] + '/clone';
+        }
+    });
+
+    $('.SearchDetails').keyup(inputDelay(function(e) {
+        PageNo = 0;
+        let searchText = $('#SearchDetails').val();
+        if (searchText.length >= 3) {
+            delete Filter['SearchAllData'];
+            $('#clearSearch').removeClass('d-none');
+            if (searchText) {
+                Filter['SearchAllData'] = searchText;
+            }
+            $('#SearchDetails').blur();
+            getVendorsDetails(PageNo, RowLimit, Filter);
+        }
+    }, 500));
+
+    $('#clearSearch').click(function(e) {
+        e.preventDefault();
+        var searchText = $('#SearchDetails').val();
+        $('#SearchDetails').val('');
+        $('#clearSearch').addClass('d-none');
+        if ($.trim(searchText) != '') {
+            delete Filter['SearchAllData'];
+            $('#SearchDetails').blur();
+            getVendorsDetails(PageNo, RowLimit, Filter);
+        }
+    });
+
+    $(document).on('click', '.DeleteVendor', function(e) {
+        e.preventDefault();
+        var GetId = $(this).data('vendoruid');
+        if (GetId) {
+            Swal.fire({
+                title: "Do you want to delete the vendor?",
+                text: "You won't be able to revert this!",
+                icon: "info",
+                showCancelButton: true,
+                confirmButtonColor: "#d33",
+                confirmButtonText: "Yes, delete it!",
+                cancelButtonColor: "#3085d6",
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    deleteVendor(GetId);
+                }
+            });
+        }
+    });
+
+    $('#btnDelete').click(function(e) {
+        e.preventDefault();
+        if (SelectedUIDs.length > 0) {
+            let DeleteContent = 'Do you want to delete all the selected vendors?';
+            Swal.fire({
+                title: DeleteContent,
+                text: "You won't be able to revert this!",
+                icon: "info",
+                showCancelButton: true,
+                confirmButtonColor: "#d33",
+                confirmButtonText: "Yes, delete it!",
+                cancelButtonColor: "#3085d6",
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    deleteMultipleVendors();
+                }
+            });
+        }
+    });
+
+    /** sorting opeartions */
+    $(document).on('click', '.name-sortable', function(e) {
+        e.preventDefault();
+        sortState = (sortState + 1) % 3;
+        const icon = $(this).find('i');
+        icon.removeClass('bx-sort-alt-2 bx-up-arrow-alt bx-down-arrow-alt text-primary');
+        $('#sortName').removeClass('text-primary');
+        if (sortState == 1) {
+            icon.addClass('bx-up-arrow-alt text-primary');
+            $('#sortName').addClass('text-primary');
+            $(this).attr('title', 'Click sorting descending');
+            Filter['NameSorting'] = 1;
+        } else if (sortState === 2) {
+            icon.addClass('bx-down-arrow-alt text-primary');
+            $('#sortName').addClass('text-primary');
+            $(this).attr('title', 'Remove sorting');
+            Filter['NameSorting'] = 2;
+        } else {
+            icon.addClass('bx-sort-alt-2');
+            $(this).attr('title', 'Click sorting ascending');
+            delete Filter['NameSorting'];
+        }
+        $(this).tooltip('dispose').tooltip();
         getVendorsDetails(PageNo, RowLimit, Filter);
-
     });
+
+});
 </script>

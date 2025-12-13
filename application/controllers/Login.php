@@ -141,6 +141,12 @@ class Login extends CI_Controller {
 				$this->cacheservice->delete($JwtData->key);
 			}
 
+            $this->redis_cache->delete('Redis_UserMainModule');
+            $this->redis_cache->delete('Redis_UserSubModule');
+            $this->redis_cache->delete('Redis_UserModuleInfo');
+            $this->redis_cache->delete('Redis_UserGenSettings');
+            $this->redis_cache->delete('Redis_UserInfo');
+
 			delete_cookie(getenv('JWT_COOKIE_NAME'));
 
 		}

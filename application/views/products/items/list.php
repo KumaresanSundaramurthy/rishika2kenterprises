@@ -10,9 +10,10 @@
             </td>
             <td class="<?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>"><?php echo $SerialNumber; ?></td>
             <?php
-                $DataPassing['ViewColumns'] = $ViewColumns;
-                $DataPassing['list'] = $list;
-                echo $this->load->view('common/form/list', $DataPassing, TRUE);
+                $getData = format_disp_allcolumns('html', $DispViewColumns, $list, $JwtData, $JwtData->GenSettings);
+                if(!empty($getData) && is_array($getData)) {
+                    echo implode('', $getData);
+                }
             ?>
             <td>
                 <div class="d-flex align-items-sm-center justify-content-sm-center">
@@ -35,7 +36,7 @@
                     <div class="flex-grow-1 d-flex flex-column align-items-center justify-content-center">
                         <span class="mb-2">Add a Product Now</span>
                         <a href="/products/add" class="btn btn-primary px-3">
-                            <i class="bx bx-plus"></i> New Product
+                            <i class="bx bx-plus"></i> Create Product
                         </a>
                     </div>
                 </div>

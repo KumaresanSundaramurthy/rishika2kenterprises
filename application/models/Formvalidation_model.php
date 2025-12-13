@@ -112,7 +112,7 @@ class Formvalidation_model extends CI_Model {
         );
         
         $dd['GSTIN'] = array('field' => 'GSTIN', 'label' => 'GSTIN', 'rules' => 'trim|xss_clean|max_length[50]');
-        $dd['CompanyName'] = array('field' => 'CompanyName', 'label' => 'Company Name', 'rules' => 'trim|xss_clean|min_length[6]|max_length[100]');        
+        $dd['CompanyName'] = array('field' => 'CompanyName', 'label' => 'Company Name', 'rules' => 'trim|xss_clean|min_length[6]|max_length[100]');
         
         $dd['UploadImage'] = array('field' => 'UploadImage', 'label' => 'Upload Image', 'rules' => 'callback_checkImageType');
 
@@ -147,6 +147,7 @@ class Formvalidation_model extends CI_Model {
         $this->form_validation->set_data($data);
 
         $dd['VendorUID'] = array('field' => 'VendorUID', 'label' => 'Vendor UID', 'rules' => 'required|xss_clean|trim|numeric');
+
         $dd['Name'] = array('field' => 'Name', 'label' => 'Name', 'rules' => 'trim|required|xss_clean|min_length[3]|max_length[100]');
         $dd['Area'] = array('field' => 'Area', 'label' => 'Area', 'rules' => 'trim|xss_clean|min_length[3]|max_length[100]');
         $dd['CountryCode'] = array('field' => 'CountryCode', 'label' => 'Country', 'rules' => 'trim|required|xss_clean');
@@ -159,16 +160,16 @@ class Formvalidation_model extends CI_Model {
 
         $dd['PANNumber'] = array('field' => 'PANNumber', 'label' => 'PAN Number', 'rules' => 'trim|xss_clean|max_length[20]');
         $dd['ContactPerson'] = array('field' => 'ContactPerson', 'label' => 'Contact Person', 'rules' => 'trim|xss_clean|min_length[3]|max_length[100]');
+        $dd['CPDateOfBirth'] = array('field' => 'CPDateOfBirth', 'label' => 'Date of Birth',
+            'rules' => 'trim|xss_clean|regex_match[/^\d{4}-\d{2}-\d{2}$/]|callback_validateDateFormat'
+        );
 
         $dd['GSTIN'] = array('field' => 'GSTIN', 'label' => 'GSTIN', 'rules' => 'trim|xss_clean|max_length[50]');
         $dd['CompanyName'] = array('field' => 'CompanyName', 'label' => 'Company Name', 'rules' => 'trim|xss_clean|min_length[6]|max_length[100]');
 
         $dd['UploadImage'] = array('field' => 'UploadImage', 'label' => 'Upload Image', 'rules' => 'callback_checkImageType');
-        $dd['DiscountPercent'] = array('field' => 'DiscountPercent', 'label' => 'Discount Percent', 'rules' => 'trim|xss_clean|numeric|greater_than_equal_to[0]|less_than_equal_to[100]');
         
         $dd['Notes'] = array('field' => 'Notes', 'label' => 'Notes', 'rules' => 'trim|xss_clean|max_length[250]');
-        $dd['Tags'] = array('field' => 'Tags', 'label' => 'Tags', 'rules' => 'trim|xss_clean');
-        $dd['CCEmails'] = array('field' => 'CCEmails', 'label' => 'CCEmails', 'rules' => 'trim|xss_clean');
 
         $config = array();
 
@@ -179,13 +180,9 @@ class Formvalidation_model extends CI_Model {
         }
 
         $this->form_validation->set_rules($config);
-
         if ($this->form_validation->run() == FALSE) {
-
             return validation_errors();
-            
         } else {
-
             return '';
         }
 
@@ -221,7 +218,7 @@ class Formvalidation_model extends CI_Model {
 
         $dd['BrandUID'] = array('field' => 'BrandUID', 'label' => 'Brand UID', 'rules' => 'xss_clean|trim|numeric');
         $dd['Standard'] = array('field' => 'Standard', 'label' => 'Standard', 'rules' => 'xss_clean|trim|max_length[100]');
-        $dd['IsSizeApplicable'] = array('field' => 'IsSizeApplicable', 'label' => 'Is Size Applicable', 'rules' => 'xss_clean|trim|callback_CheckSizeRequired');
+        $dd['IsSizeApplicable'] = array('field' => 'IsSizeApplicable', 'label' => 'Is Size Applicable', 'rules' => 'xss_clean|trim|callback_checkSizeRequired');
 
         if($this->pageData['JwtData']->GenSettings->EnableStorage == 1) {
             if($this->pageData['JwtData']->GenSettings->MandatoryStorage == 1) {
@@ -242,11 +239,8 @@ class Formvalidation_model extends CI_Model {
         $this->form_validation->set_rules($config);
 
         if ($this->form_validation->run() == FALSE) {
-
             return validation_errors();
-            
         } else {
-
             return '';
         }
 
@@ -272,11 +266,8 @@ class Formvalidation_model extends CI_Model {
         $this->form_validation->set_rules($config);
 
         if ($this->form_validation->run() == FALSE) {
-
             return validation_errors();
-            
         } else {
-
             return '';
         }
 

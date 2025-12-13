@@ -110,10 +110,9 @@ class Vendors_model extends CI_Model {
                 'Vendors.DebitCreditAmount as DebitCreditAmount',
                 'Vendors.Image as Image',
                 'Vendors.PANNumber as PANNumber',
-                'Vendors.DebitLimit as DebitLimit',
+                'Vendors.ContactPerson as ContactPerson',
+                'Vendors.DateOfBirth as DateOfBirth',
                 'Vendors.Notes as Notes',
-                'Vendors.Tags as Tags',
-                'Vendors.CCEmails as CCEmails',
                 'Customers.Name as CustomerName',
                 'Vendors.CreatedOn as CreatedOn',
                 'Vendors.UpdatedOn as UpdatedOn',
@@ -149,6 +148,52 @@ class Vendors_model extends CI_Model {
 
     }
 
+    public function getVendorBankInfo($FilterArray) {
+
+        $this->EndReturnData = new StdClass();
+        try {
+
+            $this->VendorDb->db_debug = FALSE;
+
+            $select_ary = array(
+                'VendBankDetails.VendBankDetUID AS VendBankDetUID',
+                'VendBankDetails.VendorUID AS VendorUID',
+                'VendBankDetails.Type as Type',
+                'VendBankDetails.BankAccountNumber as BankAccountNumber',
+                'VendBankDetails.BankIFSC_Code as BankIFSC_Code',
+                'VendBankDetails.BankBranchName as BankBranchName',
+                'VendBankDetails.BankAccountHolderName as BankAccountHolderName',
+                'VendBankDetails.UPI_Id as UPI_Id',
+            );
+            $WhereCondition = array(
+                'VendBankDetails.IsDeleted' => 0,
+                'VendBankDetails.IsActive' => 1,
+            );
+
+            $this->VendorDb->select($select_ary);
+            $this->VendorDb->from('Vendors.VendBankDetailsTbl as VendBankDetails');
+            $this->VendorDb->where($WhereCondition);
+            if(sizeof($FilterArray) > 0) {
+                $this->VendorDb->where($FilterArray);
+            }
+            $query = $this->VendorDb->get();
+            $error = $this->VendorDb->error();
+            if ($error['code']) {
+                throw new Exception($error['message']);
+            } else {
+                $this->EndReturnData->Data = $query->result();
+            }
+            
+            return $this->EndReturnData->Data;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+            throw new Exception($this->EndReturnData->Message);
+        }
+
+    }
+
     public function getVendorAddress($FilterArray) {
 
         $this->EndReturnData = new StdClass();
@@ -160,6 +205,7 @@ class Vendors_model extends CI_Model {
                 'VendAddress.VendAddressUID AS VendAddressUID',
                 'VendAddress.OrgUID AS OrgUID',
                 'VendAddress.VendorUID AS VendorUID',
+                'VendAddress.AddressType AS AddressType',
                 'VendAddress.Line1 as Line1',
                 'VendAddress.Line2 as Line2',
                 'VendAddress.Pincode as Pincode',

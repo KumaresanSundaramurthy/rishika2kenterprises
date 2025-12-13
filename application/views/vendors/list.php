@@ -1,21 +1,24 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
-<?php if (sizeof($VendorsList) > 0) {
-    foreach ($VendorsList as $list) { ?>
+<?php if (sizeof($DataLists) > 0) {
+    foreach ($DataLists as $list) {
+        $SerialNumber++; ?>
 
         <tr>
             <td>
-                <div class="form-check form-check-inline"><input class="form-check-input vendorsCheck" type="checkbox" value="<?php echo $list->VendorUID; ?>"></div>
+                <div class="form-check form-check-inline"><input class="form-check-input vendorsCheck" type="checkbox" value="<?php echo $list->TablePrimaryUID; ?>"></div>
             </td>
-            <td><?php echo $list->Name; ?></td>
-            <td><?php echo $list->Area ? $list->Area : '-'; ?></td>
-            <td class="text-center"><?php echo $list->MobileNumber ? $list->CountryCode.'-'.$list->MobileNumber : '-'; ?></td>
-            <td class="text-end">0.00</td>
-            <td class="text-end"><?php echo $list->UpdatedOn ? changeTimeZomeDateFormat($list->UpdatedOn, $JwtData->User->Timezone, 2) : ''; ?></td>
+            <td class="<?php echo $GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>"><?php echo $SerialNumber; ?></td>
+            <?php
+                $getData = format_disp_allcolumns('html', $DispViewColumns, $list, $JwtData, $JwtData->GenSettings);
+                if(!empty($getData) && is_array($getData)) {
+                    echo implode('', $getData);
+                }
+            ?>
             <td>
                 <div class="d-flex align-items-sm-center justify-content-sm-center">
-                    <a href="/vendors/<?php echo $list->VendorUID; ?>/edit" class="btn btn-icon text-warning"><i class="bx bx-edit me-1"></i></a>
-                    <button class="btn btn-icon text-danger DeleteVendor" data-vendoruid="<?php echo $list->VendorUID; ?>"><i class="bx bx-trash"></i></button>
+                    <a href="/vendors/<?php echo $list->TablePrimaryUID; ?>/edit" class="btn btn-icon text-warning"><i class="bx bx-edit me-1"></i></a>
+                    <button class="btn btn-icon text-danger DeleteVendor" data-vendoruid="<?php echo $list->TablePrimaryUID; ?>"><i class="bx bx-trash"></i></button>
                 </div>
             </td>
         </tr>
@@ -34,8 +37,8 @@
 
                     <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                         <span class="mb-2">Add a Vendor Now</span>
-                        <a href="/vendors/add" class="btn btn-primary px-3">
-                            <i class="bx bx-plus"></i> New Vendor
+                        <a href="/vendors/create" class="btn btn-primary px-3">
+                            <i class="bx bx-plus"></i> Create Vendor
                         </a>
                     </div>
 

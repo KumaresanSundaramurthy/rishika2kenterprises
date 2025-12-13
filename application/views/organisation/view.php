@@ -28,7 +28,7 @@
                         <div class="card-header modal-header-center-sticky d-flex justify-content-between align-items-center mb-3">
                             <h5 class="modal-title">Organisation Details</h5>
                             <div class="d-flex align-items-center gap-2" id="mainActionBar">
-                                <button type="button" class="btn btn-label-danger" data-bs-dismiss="modal" aria-label="Close">Discard</button>
+                                <button type="button" class="btn btn-label-danger" data-bs-dismiss="modal" aria-label="Close">Close</button>
                                 <button type="submit" class="btn btn-primary OrgSubBtn me-2">Update</button>
                             </div>
                         </div>
@@ -68,10 +68,9 @@
                                                 <option label="-- Select Country Code --"></option>
                                                 <?php if (sizeof($CountryInfo) > 0) {
                                                     foreach ($CountryInfo as $Country) { ?>
-                                                        <option value="<?php echo $Country['phone'][0]; ?>" data-region="<?php echo $Country['region']; ?>" data-ccode="<?php echo $Country['iso']['alpha-2']; ?>" <?php echo isset($EditOrgData->CountryCode) && ($EditOrgData->CountryCode == $Country['phone'][0]) ? 'selected' : ''; ?>><?php echo '(' . $Country['phone'][0] . ') ' . $Country['name']; ?></option>
+                                                        <option value="<?php echo $Country->phone[0]; ?>" data-region="<?php echo $Country->region; ?>" data-ccode="<?php echo $Country->iso->{'alpha-2'}; ?>" <?php echo isset($EditOrgData->CountryCode) && ($EditOrgData->CountryCode == $Country->phone[0]) ? 'selected' : ''; ?>><?php echo '(' . $Country->phone[0] . ') ' . $Country->name; ?></option>
                                                 <?php }
                                                 } ?>
-
                                             </select>
                                         </div>
                                         <div class="col-md-8">
@@ -187,7 +186,7 @@
                                                 <?php if (sizeof($StateData) > 0) {
                                                     foreach ($StateData as $StData) { ?>
 
-                                                        <option value="<?php echo $StData['id']; ?>" data-iso2="<?php echo $StData['iso2']; ?>" <?php echo isset($BillOrgAddrData->State) && ($BillOrgAddrData->State == $StData['id']) ? 'selected' : ''; ?>><?php echo $StData['name']; ?></option>
+                                                        <option value="<?php echo $StData->id; ?>" data-iso2="<?php echo $StData->iso2; ?>" <?php echo isset($BillOrgAddrData->State) && ($BillOrgAddrData->State == $StData->id) ? 'selected' : ''; ?>><?php echo $StData->name; ?></option>
 
                                                 <?php }
                                                 } ?>
@@ -200,7 +199,7 @@
                                                 <?php if (sizeof($CityData) > 0) {
                                                     foreach ($CityData as $CtyData) { ?>
 
-                                                        <option value="<?php echo $CtyData['id']; ?>" <?php echo isset($BillOrgAddrData->City) && ($BillOrgAddrData->City == $CtyData['id']) ? 'selected' : ''; ?>><?php echo $CtyData['name']; ?></option>
+                                                        <option value="<?php echo $CtyData->id; ?>" <?php echo isset($BillOrgAddrData->City) && ($BillOrgAddrData->City == $CtyData->id) ? 'selected' : ''; ?>><?php echo $CtyData->name; ?></option>
 
                                                 <?php }
                                                 } ?>
@@ -239,9 +238,7 @@
                                                 <option label="-- Select State --"></option>
                                                 <?php if (sizeof($StateData) > 0) {
                                                     foreach ($StateData as $StData) { ?>
-
-                                                        <option value="<?php echo $StData['id']; ?>" data-iso2="<?php echo $StData['iso2']; ?>" <?php echo isset($ShipOrgAddrData->State) && ($ShipOrgAddrData->State == $StData['id']) ? 'selected' : ''; ?>><?php echo $StData['name']; ?></option>
-
+                                                        <option value="<?php echo $StData->id; ?>" data-iso2="<?php echo $StData->iso2; ?>" <?php echo isset($ShipOrgAddrData->State) && ($ShipOrgAddrData->State == $StData->id) ? 'selected' : ''; ?>><?php echo $StData->name; ?></option>
                                                 <?php }
                                                 } ?>
                                             </select>
@@ -252,9 +249,7 @@
                                                 <option label="-- Select City --"></option>
                                                 <?php if (sizeof($CityData) > 0) {
                                                     foreach ($CityData as $CtyData) { ?>
-
-                                                        <option value="<?php echo $CtyData['id']; ?>" <?php echo isset($ShipOrgAddrData->City) && ($ShipOrgAddrData->City == $CtyData['id']) ? 'selected' : ''; ?>><?php echo $CtyData['name']; ?></option>
-
+                                                        <option value="<?php echo $CtyData->id; ?>" <?php echo isset($ShipOrgAddrData->City) && ($ShipOrgAddrData->City == $CtyData->id) ? 'selected' : ''; ?>><?php echo $CtyData->name; ?></option>
                                                 <?php }
                                                 } ?>
                                             </select>
@@ -271,7 +266,7 @@
                         <div class="card-body p-0">
                             <div class="m-3">
                                 <button type="submit" class="btn btn-primary OrgSubBtn me-2 ">Update</button>
-                                <a href="/dashboard" class="btn btn-label-danger">Discard</a>
+                                <a href="/dashboard" class="btn btn-label-danger">Close</a>
                             </div>
                         </div>
                     </div>
@@ -281,7 +276,7 @@
                         <div class="card-body p-0">
                             <div class="m-3 text-end">
                             <button type="submit" class="btn btn-primary OrgSubBtn me-2">Update</button>
-                            <a href="/dashboard" class="btn btn-label-danger">Discard</a>
+                            <a href="/dashboard" class="btn btn-label-danger">Close</a>
                             </div>
                         </div>
                     </div>
@@ -312,36 +307,17 @@ var defaultImg = '<?php echo isset($EditOrgData->Logo) ? $EditOrgData->Logo : ''
 $(function() {
     'use strict'
 
-    if (defaultImg && defaultImg !== undefined && defaultImg !== null && defaultImg !== '') {
+    if (hasValue(defaultImg)) {
         var ImageUrl = CDN_URL + defaultImg;
         commonSetDropzoneImageOne(ImageUrl);
     }
-
-    $('#CountryCode').select2({
-        placeholder: '-- Select Country --',
-        allowClear: true,
-    });
-
-    $('#TimezoneUID').select2({
-        placeholder: '-- Select Timezone --',
-        allowClear: true,
-    });
-
-    $('#BillAddrState,#ShipAddrState').select2({
-        placeholder: '-- Select State --',
-        allowClear: true,
-    });
-
-    $('#BillAddrCity,#ShipAddrCity').select2({
-        placeholder: '-- Select City --',
-        allowClear: true,
-    });
-
-    $('#image_reset_btn').click(function(e) {
-        e.preventDefault();
-        imageChange = 0;
-        $('#uploadedAvatar').attr("src", CDN_URL + defaultImg);
-    });
+    
+    loadSelect2Field('#CountryCode', '-- Select Country --');
+    loadSelect2Field('#TimezoneUID', '-- Select Timezone --');
+    loadSelect2Field('#BillAddrState', '-- Select State --');
+    loadSelect2Field('#ShipAddrState', '-- Select State --');
+    loadSelect2Field('#BillAddrCity', '-- Select City --');
+    loadSelect2Field('#ShipAddrCity', '-- Select City --');
 
     $('#CountryCode').change(function(e) {
         e.preventDefault();

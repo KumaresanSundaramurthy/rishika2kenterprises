@@ -242,13 +242,15 @@ class Globally extends CI_Controller {
                 $Filter = isset($_GET['Filter']) ? json_decode($_GET['Filter'], TRUE) : [];
                 $WhereInData = isset($_GET['ExportIds']) ? ['ExportIds' => explode(',', base64_decode($_GET['ExportIds']))] : [];
 
-                $DataResp = $this->globalservice->getModulePageColumnDetails($ModuleId, 'PrintPage', $Filter, $WhereInData, 0, 0, 0);
+                $DataResp = $this->globalservice->getModulePageColumnDetails($ModuleId, 'PrintPage', '', $Filter, $WhereInData, 0, 0);
                 if($DataResp->Error === FALSE) {
-
-                    $this->pageData['ModuleInfo'] = $DataResp->ModuleInfo;
-                    $this->pageData['ViewColumns'] = $DataResp->ViewColumns;
+                    
+                    $this->pageData['ViewColumns'] = $DataResp->DispViewColumns;
                     $this->pageData['Aggregates'] = $DataResp->Aggregates;
                     $this->pageData['List'] = $DataResp->DataLists;
+                    $this->pageData['previewName'] = isset($_GET['previewName']) ? $_GET['previewName'] : 'Details';
+
+                    $this->pageData['JwtData']->GenSettings = ($this->redis_cache->get('Redis_UserGenSettings')->Value) ?? new stdClass();
 
                     $this->EndReturnData->Error = FALSE;
                     $this->EndReturnData->HtmlData = $this->load->view('common/print/printpreview', $this->pageData, TRUE);
@@ -296,27 +298,24 @@ class Globally extends CI_Controller {
                     $Filter = isset($_GET['Filter']) ? json_decode($_GET['Filter'], TRUE) : [];
                     $WhereInData = isset($_GET['ExportIds']) ? ['ExportIds' => explode(',', base64_decode($_GET['ExportIds']))] : [];
                     
-                    $DataResp = $this->globalservice->getModulePageColumnDetails($ModuleId, $PageType, $Filter, $WhereInData, 0, 0, 0);
+                    $DataResp = $this->globalservice->getModulePageColumnDetails($ModuleId, $PageType, '', $Filter, $WhereInData, 0, 0);
                     if($DataResp->Error === FALSE) {                        
 
                         $FileName = isset($_GET['FileName']) ? $_GET['FileName'] : 'NewFile';
                         $SheetName = isset($_GET['SheetName']) ? $_GET['SheetName'] : 'NewSheet';
+
+                        $GeneralSettings = ($this->redis_cache->get('Redis_UserGenSettings')->Value) ?? new stdClass();
+                        $this->pageData['JwtData']->GenSettings = $GeneralSettings;
                         
                         if($Type == 'CSV') {
-
-                            $this->globalservice->exportCSV($FileName, $DataResp->ViewColumns, $DataResp->DataLists, $DataResp->Aggregates);
+                            $this->globalservice->exportCSV($FileName, $DataResp->DispViewColumns, $DataResp->DataLists, $DataResp->Aggregates);
                             exit;
-
                         } else if($Type == 'Excel') {
-
-                            $this->globalservice->exportExcel($FileName, $SheetName, $DataResp->ViewColumns, $DataResp->DataLists, $DataResp->Aggregates);
+                            $this->globalservice->exportExcel($FileName, $SheetName, $DataResp->DispViewColumns, $DataResp->DataLists, $DataResp->Aggregates);
                             exit;
-
                         } else if($Type == 'Pdf') {
-
-                            $this->globalservice->exportPdf($FileName, $SheetName, $DataResp->ViewColumns, $DataResp->DataLists, $DataResp->Aggregates);
+                            $this->globalservice->exportPdf($FileName, $SheetName, $DataResp->DispViewColumns, $DataResp->DataLists, $DataResp->Aggregates);
                             exit;
-
                         }
 
                     } else {
@@ -336,5 +335,24 @@ class Globally extends CI_Controller {
         }
 
     }
+
+    public function getModPageDataDetails($pageNo = 0) {
+
+		$this->EndReturnData = new stdClass();
+		try {
+
+			$getResp = $this->globalservice->baseTableDataPaginationDetails($pageNo);
+            $this->EndReturnData->List = $getResp->RecordHtmlData;
+            $this->EndReturnData->Pagination = $getResp->Pagination;
+            $this->EndReturnData->Error = false;
+
+		} catch (Exception $e) {
+            $this->EndReturnData->Error = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+		$this->globalservice->sendJsonResponse($this->EndReturnData);
+
+	}
 
 }

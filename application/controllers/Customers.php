@@ -4,20 +4,10 @@ class Customers extends CI_Controller {
 
     public $pageData = array();
     private $EndReturnData;
-    private $custPageCallUrl = '/customers/getCustomersDetails/';
-    private $custDataList = 'customers/list';
 
     public function __construct() {
         parent::__construct();
 
-    }
-
-    private function sendJsonResponse($data) {
-        $this->output->set_status_header(200)
-            ->set_content_type('application/json', 'utf-8')
-            ->set_output(json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES))
-            ->_display();
-        exit;
     }
 
     public function index() {
@@ -26,7 +16,7 @@ class Customers extends CI_Controller {
 
             $controllerName = strtolower($this->router->fetch_class());
 
-            $getModuleInfo = $this->redis_cache->get('Redis_UserModuleInfo') ?? [];
+            $getModuleInfo = $this->redis_cache->get('Redis_UserModuleInfo')->Value ?? [];
             $ModuleInfo = array_values(array_filter($getModuleInfo, fn($m) => $m->ControllerName === $controllerName));
             if (empty($ModuleInfo)) {
                 throw new Exception("Module information not found for controller: {$controllerName}");
@@ -34,59 +24,23 @@ class Customers extends CI_Controller {
 
             $this->pageData['ModuleId'] = $ModuleInfo[0]->ModuleUID;
 
-            $GeneralSettings = $this->redis_cache->get('Redis_UserGenSettings') ?? new stdClass();
+            $GeneralSettings = ($this->redis_cache->get('Redis_UserGenSettings')->Value) ?? new stdClass();
             $limit = $GeneralSettings->RowLimit ?? 10;
+            $this->pageData['JwtData']->GenSettings = $GeneralSettings;
 
-            $ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($this->pageData['ModuleId'], $this->custPageCallUrl, $this->custDataList, 0, $limit, 0, [], [], 'Index');
+            $ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($this->pageData['ModuleId'], 0, $limit, 0, [], [], 'Index');
             if ($ReturnResponse->Error) throw new Exception($ReturnResponse->Message);
 
             $this->pageData['ModColumnData'] = $ReturnResponse->DispViewColumns;
             $this->pageData['ModRowData'] = $ReturnResponse->RecordHtmlData;
             $this->pageData['ModPagination'] = $ReturnResponse->Pagination;
             $this->pageData['DispSettColumnDetails'] = $ReturnResponse->DispSettingsViewColumns;
-
-            $this->pageData['JwtData']->GenSettings = $GeneralSettings;
+            
             $this->load->view('customers/view', $this->pageData);
 
         } catch (Exception $e) {
             redirect('dashboard', 'refresh');
         }
-
-    }
-
-    public function getCustomersDetails($pageNo = 0) {
-
-		$this->EndReturnData = new stdClass();
-		try {
-            
-            $getResp = $this->commonCustomerTablePagination($pageNo);
-
-            $this->EndReturnData->List = $getResp->RecordHtmlData;
-            $this->EndReturnData->Pagination = $getResp->Pagination;
-            $this->EndReturnData->Error = false;
-
-		} catch (Exception $e) {
-            $this->EndReturnData->Error = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-        }
-
-		$this->sendJsonResponse($this->EndReturnData);
-
-	}
-
-    public function commonCustomerTablePagination($pageNo = 0) {
-
-        $limit = (int) $this->input->post('RowLimit');
-        $offset = $pageNo ? ($pageNo - 1) * $limit : 0;
-        $Filter = $this->input->post('Filter');
-        $ModuleId = $this->input->post('ModuleId');
-
-        $ReturnResponse = $this->globalservice->getBaseMainPageTablePagination($ModuleId, $this->custPageCallUrl, $this->custDataList, $pageNo, $limit, $offset, $Filter, [], 'Pagination');
-        if($ReturnResponse->Error) {
-            throw new Exception($ReturnResponse->Message);
-        }
-
-        return $ReturnResponse;
 
     }
 
@@ -122,7 +76,7 @@ class Customers extends CI_Controller {
             $this->EndReturnData->Message = $e->getMessage();
         }
 
-        $this->sendJsonResponse($this->EndReturnData);
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
         
     }
 
@@ -202,6 +156,8 @@ class Customers extends CI_Controller {
 
                 $customerFormData = $this->buildCustomerFormData($PostData, true);
 
+                $this->db->trans_begin();
+                
                 $this->load->model('dbwrite_model');
                 $InsertDataResp = $this->dbwrite_model->insertData('Customers', 'CustomerTbl', $customerFormData);
                 if ($InsertDataResp->Error) throw new Exception($InsertDataResp->Message);
@@ -213,10 +169,10 @@ class Customers extends CI_Controller {
                     if ($UploadResp->Error) throw new Exception($UploadResp->Message);
                 }
 
-                $this->saveBankDetails($CustomerUID, $this->input->post('BankDetailsJSON'));
+                $this->globalservice->saveBankDetails($CustomerUID, $this->input->post('BankDetailsJSON'), 'Customers', 'CustBankDetailsTbl');
 
                 foreach ([['Bill','Billing'], ['Ship','Shipping']] as [$prefix,$type]) {
-                    $this->saveAddressInfo($PostData, $CustomerUID, $prefix, $type);
+                    $this->globalservice->saveAddressInfo($PostData, $CustomerUID, $prefix, $type, 'Customers', 'CustAddressTbl', 'CustAddressUID', 'CustomerUID');
                 }
 
                 $this->EndReturnData->Error = FALSE;
@@ -231,7 +187,7 @@ class Customers extends CI_Controller {
             $this->EndReturnData->Message = $e->getMessage();
         }
 
-		$this->sendJsonResponse($this->EndReturnData);
+		$this->globalservice->sendJsonResponse($this->EndReturnData);
 
     }
 
@@ -273,13 +229,9 @@ class Customers extends CI_Controller {
                 }
             }
             
-            $this->pageData['BankDetails'] = $this->customers_model->getCustomerBankInfo([
-                'CustBankDetails.CustomerUID' => $getCustData[0]->CustomerUID
-            ]);
+            $this->pageData['BankDetails'] = $this->customers_model->getCustomerBankInfo(['CustBankDetails.CustomerUID' => $getCustData[0]->CustomerUID]);
 
-            $AddressInfo = $this->customers_model->getCustomerAddress([
-                'CustAddress.CustomerUID' => $getCustData[0]->CustomerUID
-            ]);
+            $AddressInfo = $this->customers_model->getCustomerAddress(['CustAddress.CustomerUID' => $getCustData[0]->CustomerUID]);
 
             $this->pageData['BillingAddr']  = null;
             $this->pageData['ShippingAddr'] = null;
@@ -300,7 +252,7 @@ class Customers extends CI_Controller {
 
     }
 
-    public function clone($CustomerUID) {
+    public function cloneCustomer($CustomerUID) {
 
         try {
 
@@ -311,13 +263,13 @@ class Customers extends CI_Controller {
             }
 
             $this->load->model('customers_model');
-            $GetCustomerData = $this->customers_model->getCustomers(['Customers.CustomerUID' => $CustomerUID]);
+            $customerData = $this->customers_model->getCustomers(['Customers.CustomerUID' => $CustomerUID]);
             if (empty($customerData) || sizeof($customerData) !== 1) {
                 redirect('customers', 'refresh');
                 return;
             }
 
-            $this->pageData['EditData'] = $GetCustomerData[0];
+            $this->pageData['EditData'] = $customerData[0];
 
             $this->load->model('global_model');
             $GetCountryInfo = $this->global_model->getCountryInfo();
@@ -338,13 +290,9 @@ class Customers extends CI_Controller {
                 }
             }
             
-            $this->pageData['BankDetails'] = $this->customers_model->getCustomerBankInfo([
-                'CustBankDetails.CustomerUID' => $GetCustomerData[0]->CustomerUID
-            ]);
+            $this->pageData['BankDetails'] = $this->customers_model->getCustomerBankInfo(['CustBankDetails.CustomerUID' => $customerData[0]->CustomerUID]);
 
-            $AddressInfo = $this->customers_model->getCustomerAddress([
-                'CustAddress.CustomerUID' => $GetCustomerData[0]->CustomerUID
-            ]);
+            $AddressInfo = $this->customers_model->getCustomerAddress(['CustAddress.CustomerUID' => $customerData[0]->CustomerUID]);
 
             $this->pageData['BillingAddr']  = null;
             $this->pageData['ShippingAddr'] = null;
@@ -376,7 +324,7 @@ class Customers extends CI_Controller {
             $ErrorInForm = $this->formvalidation_model->custValidateForm($PostData);
             if(empty($ErrorInForm)) {
 
-                $CustomerUID = getPostValue($PostData, 'CustomerUID', 0);
+                $CustomerUID = getPostValue($PostData, 'CustomerUID');
 
                 $customerFormData = $this->buildCustomerFormData($PostData, false);
                 if (!empty($PostData['ImageRemoved'])) $customerFormData['Image'] = NULL;
@@ -390,34 +338,20 @@ class Customers extends CI_Controller {
                     if ($UploadResp->Error) throw new Exception($UploadResp->Message);
                 }
 
-                $actionBankData = getPostValue($PostData, 'actionBankData');
-                if($actionBankData) {
-                    $delBnkFlag = getPostValue($PostData, 'delBankDataFlag');
-                    if($delBnkFlag == 1) {
-                        $delBankRecIds = getPostValue($PostData, 'delBankData');
-                        if(count($delBankRecIds) == 1) {
-                            $updDataResp = $this->dbwrite_model->updateData('Customers', 'CustBankDetailsTbl', ['IsDeleted' => 1, 'UpdatedBy' => $this->pageData['JwtData']->User->UserUID, 'UpdatedOn' => time()], ['CustBankDetUID' => $delBankRecIds[0]]);
-                        } else {
-                            $updBankArray = [];
-                            foreach($delBankRecIds as $rid) {
-                                $updBankWhere = [
-                                    'CustBankDetUID' => $rid,
-                                    'IsDeleted' => 1,
-                                    'UpdatedBy' => $this->pageData['JwtData']->User->UserUID,
-                                    'UpdatedOn' => time(),
-                                ];
-                                $updBankArray[] = $updBankWhere;
-                            }
-                            $updDataResp = $this->dbwrite_model->updateBatchData('Customers', 'CustBankDetailsTbl', $updBankArray, 'CustBankDetUID');
-                        }
-                        if ($updDataResp->Error) throw new Exception($updDataResp->Message);
-                    }
-
-                    $this->saveBankDetails($PostData['CustomerUID'], $this->input->post('BankDetailsJSON'));
+                $delBnkFlag = getPostValue($PostData, 'delBankDataFlag');
+                if($delBnkFlag == 1) {
+                    $delBankRecIds = getPostValue($PostData, 'delBankData');
+                    $this->globalservice->softDeleteBankRecords($delBankRecIds, 'Customers', 'CustBankDetailsTbl', 'CustBankDetUID');
                 }
+                $this->globalservice->saveBankDetails($CustomerUID, $this->input->post('BankDetailsJSON'), 'Customers', 'CustBankDetailsTbl');
 
+                $delAddrFlag = getPostValue($PostData, 'delAddrDetailFlag');
+                if ($delAddrFlag == 1) {
+                    $delAddrRecIds = getPostValue($PostData, 'delAddrData');
+                    $this->globalservice->softDeleteAddressRecords($delAddrRecIds, 'Customers', 'CustAddressTbl', 'CustAddressUID');
+                }
                 foreach ([['Bill','Billing'], ['Ship','Shipping']] as [$prefix,$type]) {
-                    $this->saveAddressInfo($PostData, $CustomerUID, $prefix, $type);
+                    $this->globalservice->saveAddressInfo($PostData, $CustomerUID, $prefix, $type, 'Customers', 'CustAddressTbl', 'CustAddressUID', 'CustomerUID');
                 }
 
                 $this->EndReturnData->Error = FALSE;
@@ -432,7 +366,7 @@ class Customers extends CI_Controller {
             $this->EndReturnData->Message = $e->getMessage();
         }
 
-		$this->sendJsonResponse($this->EndReturnData);
+		$this->globalservice->sendJsonResponse($this->EndReturnData);
 
     }
 
@@ -441,100 +375,16 @@ class Customers extends CI_Controller {
     }
 
     public function validateDateFormat($date) {
-        // Allow empty (optional field)
         if ($date === null || $date === '') {
             return TRUE;
         }
-
-        // Validate format only if not empty
         $d = DateTime::createFromFormat('Y-m-d', $date);
         if ($d && $d->format('Y-m-d') === $date) {
             return TRUE;
         } else {
-            $this->form_validation->set_message(
-                'validateDateFormat',
-                'The {field} must be a valid date in YYYY-MM-DD format.'
-            );
+            $this->form_validation->set_message('validateDateFormat', 'The {field} must be a valid date in YYYY-MM-DD format.');
             return FALSE;
         }
-    }
-
-    private function saveBankDetails($customerUID, $bankDetailsJson) {
-
-        if (!$bankDetailsJson) return;
-
-        $bankDetails = json_decode($bankDetailsJson, true);
-        if (!is_array($bankDetails)) return;
-
-        $batchInsert = [];
-        foreach ($bankDetails as $record) {
-            $bankDataArray = [
-                'CustomerUID'            => $customerUID,
-                'Type'                   => $record['type'],
-                'BankAccountNumber'      => getPostValue($record, 'accNumber') ?? NULL,
-                'BankIFSC_Code'          => getPostValue($record, 'ifsc') ?? NULL,
-                'BankBranchName'         => getPostValue($record, 'branch') ?? NULL,
-                'BankAccountHolderName'  => getPostValue($record, 'holder') ?? NULL,
-                'UPI_Id'                 => getPostValue($record, 'upiId') ?? NULL,
-                'UpdatedBy'              => $this->pageData['JwtData']->User->UserUID,
-                'UpdatedOn'              => time(),
-            ];
-
-            if (empty($record['id']) || $record['id'] == 0) {
-                $bankDataArray['CreatedBy'] = $this->pageData['JwtData']->User->UserUID;
-                $bankDataArray['CreatedOn'] = time();
-                $batchInsert[] = $bankDataArray;
-            } else {
-                $resp = $this->dbwrite_model->updateData(
-                    'Customers',
-                    'CustBankDetailsTbl',
-                    $bankDataArray,
-                    ['CustBankDetUID' => $record['id']]
-                );
-                if ($resp->Error) throw new Exception($resp->Message);
-            }
-        }
-        
-        if (count($batchInsert) > 0) {
-            $resp = $this->dbwrite_model->insertBatchData('Customers', 'CustBankDetailsTbl', $batchInsert);
-            if ($resp->Error) throw new Exception($resp->Message);
-        }
-
-    }
-
-    private function saveAddressInfo($postData, $customerUID, $typePrefix, $addressType) {
-
-        if (!isset($postData[$typePrefix.'AddrLine1']) || $postData[$typePrefix.'AddrLine1'] === '') {
-            return; // nothing to save
-        }
-
-        $addressData = [
-            'CustomerUID' => $customerUID,
-            'OrgUID'      => $this->pageData['JwtData']->User->OrgUID,
-            'AddressType' => $addressType,
-            'Line1'       => $postData[$typePrefix.'AddrLine1'],
-            'Line2'       => getPostValue($postData, $typePrefix.'AddrLine2') ?? NULL,
-            'Pincode'     => $postData[$typePrefix.'AddrPincode'],
-            'City'        => getPostValue($postData, $typePrefix.'AddrCity') ?? NULL,
-            'CityText'    => getPostValue($postData, $typePrefix.'AddrCityText') ?? NULL,
-            'State'       => getPostValue($postData, $typePrefix.'AddrState') ?? NULL,
-            'StateText'   => getPostValue($postData, $typePrefix.'AddrStateText') ?? NULL,
-            'UpdatedBy'   => $this->pageData['JwtData']->User->UserUID,
-            'UpdatedOn'   => time(),
-        ];
-
-        $uidField = $typePrefix.'AddressUID';
-        if (isset($postData[$uidField]) && $postData[$uidField] == 0) {
-            $addressData['CreatedBy'] = $this->pageData['JwtData']->User->UserUID;
-            $addressData['CreatedOn'] = time();
-
-            $resp = $this->dbwrite_model->insertData('Customers', 'CustAddressTbl', $addressData);
-            if ($resp->Error) throw new Exception($resp->Message);
-        } elseif (isset($postData[$uidField]) && $postData[$uidField] > 0) {
-            $resp = $this->dbwrite_model->updateData('Customers', 'CustAddressTbl', $addressData, ['CustAddressUID' => $postData[$uidField]]);
-            if ($resp->Error) throw new Exception($resp->Message);
-        }
-
     }
 
     public function deleteCustomerData() {
@@ -543,7 +393,7 @@ class Customers extends CI_Controller {
 		try {
 
             $CustomerUID = $this->input->post('CustomerUID');
-            if (empty($customerUID)) {
+            if (!$CustomerUID) {
                 throw new Exception('Customer Information is Missing to Delete');
             }
 
@@ -560,20 +410,19 @@ class Customers extends CI_Controller {
             }
 
             $pageNo = $this->input->post('PageNo');
-            $tablePagDataResp = $this->commonCustomerTablePagination($pageNo);
+            $getResp = $this->globalservice->baseTableDataPaginationDetails($pageNo);
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Message = 'Deleted Successfully';
-            $this->EndReturnData->List = $tablePagDataResp->List;
-            $this->EndReturnData->Pagination = $tablePagDataResp->Pagination;
-            $this->EndReturnData->UIDs = $tablePagDataResp->UIDs;
+            $this->EndReturnData->List = $getResp->RecordHtmlData;
+            $this->EndReturnData->Pagination = $getResp->Pagination;
 
         } catch (Exception $e) {
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
 
-		$this->sendJsonResponse($this->EndReturnData);
+		$this->globalservice->sendJsonResponse($this->EndReturnData);
 
     }
 
@@ -582,8 +431,8 @@ class Customers extends CI_Controller {
         $this->EndReturnData = new stdClass();
 		try {
 
-            $CustomerUIDs = $this->input->post('CustomerUIDs');
-            if (empty($customerUIDs)) {
+            $CustomerUIDs = $this->input->post('CustomerUIDs[]');
+            if (empty($CustomerUIDs)) {
                 throw new Exception('Customer Information is Missing to Delete');
             }
 
@@ -600,20 +449,19 @@ class Customers extends CI_Controller {
             }
 
             $pageNo = $this->input->post('PageNo');
-            $tablePagDataResp = $this->commonCustomerTablePagination($pageNo);
+            $getResp = $this->globalservice->baseTableDataPaginationDetails($pageNo);
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Message = 'Deleted Successfully';
-            $this->EndReturnData->List = $tablePagDataResp->List;
-            $this->EndReturnData->Pagination = $tablePagDataResp->Pagination;
-            $this->EndReturnData->UIDs = $tablePagDataResp->UIDs;
+            $this->EndReturnData->List = $getResp->RecordHtmlData;
+            $this->EndReturnData->Pagination = $getResp->Pagination;
 
         } catch (Exception $e) {
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
 
-		$this->sendJsonResponse($this->EndReturnData);
+		$this->globalservice->sendJsonResponse($this->EndReturnData);
 
     }
 

@@ -150,160 +150,6 @@ $(document).ready(function () {
         }
     });
 
-    /** Bank Details */
-    $('#addBankDetails').on('click', function(e) {
-        e.preventDefault();
-        $('#AddEditBankDataForm')[0].reset();
-        $('#HBankId').val('');
-        hideBankDetailsError();
-        $('#addEditBankDataModal .AddEditBankDataBtn').text('Save');
-        $('#addEditBankDataModal').modal('show');
-    });
-
-    $('#AddEditBankDataForm').on('submit', function(e) {
-        e.preventDefault();
-
-        const bankFields = [
-            '#BankAccNumber','#ReEntBankAccNumber','#BankIFSC_Code','#BankBranchName','#BankAccHolderName'
-        ];
-        const upi = $('#UPITransfer_Id').val().trim();
-
-        const bankFilled = bankFields.every(id => $(id).val().trim() !== '');
-        const upiFilled  = upi !== '';
-
-        if ((bankFilled && !upiFilled) || (!bankFilled && upiFilled) || (bankFilled && upiFilled)) {
-
-            const accNumber = $('#BankAccNumber').val().trim();
-            const reAccNumber = $('#ReEntBankAccNumber').val().trim();
-            const ifsc        = $('#BankIFSC_Code').val().trim();
-            const upi         = $('#UPITransfer_Id').val().trim();
-
-            if (accNumber !== reAccNumber) {
-                showBankDetailsError('Bank Account Number and Re-Enter Account Number must match.');
-                return false;
-            }
-
-            if (!/^\d{9,18}$/.test(accNumber)) {
-                showBankDetailsError('Account Number must be 9–18 digits.');
-                return false;
-            }
-
-            if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(ifsc)) {
-                showBankDetailsError('Invalid IFSC Code format.');
-                return false;
-            }
-
-            if (!/^[a-zA-Z0-9.\-_]{2,}@[a-zA-Z]{3,}$/.test(upi)) {
-                showBankDetailsError('Invalid UPI ID format. Example: name@bank');
-                return false;
-            }
-
-            let recordId = $('#HBankId').val().trim();
-            if (recordId === '') {
-                // recordId = Date.now().toString();
-                recordId = 0;
-            }
-
-            const record = {
-                id: recordId,
-                type: bankFilled ? 'Bank' : 'UPI',
-                accNumber: accNumber,
-                ifsc: $('#BankIFSC_Code').val().trim(),
-                branch: $('#BankBranchName').val().trim(),
-                holder: $('#BankAccHolderName').val().trim(),
-                upiId: upi
-            };
-
-            const existingRow = $('#bankDetailsBody').find(`tr[data-id="${record.id}"]`);
-            if (existingRow.length) {
-                existingRow.data('record', record);
-                existingRow.find('td:eq(0)').text(record.type);
-                existingRow.find('td:eq(1)').text(record.type === 'Bank' ? record.accNumber : record.upiId);
-                existingRow.find('td:eq(2)').text(record.type === 'Bank' ? record.ifsc : '-');
-                existingRow.find('td:eq(3)').text(record.type === 'Bank' ? record.branch : '-');
-                existingRow.find('td:eq(4)').text(record.type === 'Bank' ? record.holder : '-');
-            } else {
-                const rowHtml = `
-                    <tr data-id="${record.id}" data-type="${record.type}" data-record='${JSON.stringify(record)}'>
-                    <td>${record.type}</td>
-                    <td>${record.type === 'Bank' ? record.accNumber : record.upiId}</td>
-                    <td>${record.type === 'Bank' ? record.ifsc : '-'}</td>
-                    <td>${record.type === 'Bank' ? record.branch : '-'}</td>
-                    <td>${record.type === 'Bank' ? record.holder : '-'}</td>
-                    <td class="text-center">
-                        <button class="btn btn-sm btn-primary me-1 editBankDataBtn"><i class="bx bx-edit-alt"></i></button>
-                        <button class="btn btn-sm btn-danger deleteBankDataBtn"><i class="bx bx-trash"></i></button>
-                    </td>
-                    </tr>`;
-                $('#bankDetailsBody').append(rowHtml);
-            }
-
-            $('#appendBankDetails').removeClass('d-none');
-            $('#bankDivider').removeClass('d-none');
-            hideBankDetailsError();
-            actionBankData = 1;
-            $('#addEditBankDataModal').modal('hide');
-        } else {
-            showBankDetailsError('Fill either all Bank fields OR UPI ID OR both. Partial Bank info not allowed.');
-        }
-    });
-
-    $(document).on('click', '.addEditBankDataAlert .btn-close', function(e) {
-        e.preventDefault();
-        hideBankDetailsError();
-    });
-
-    $(document).on('click', '.editBankDataBtn', function(e) {
-        e.preventDefault();
-
-        const row = $(this).closest('tr');
-        const record = row.data('record');
-
-        if (record.type === 'Bank') {
-            $('#AddEditBankDataForm #BankAccNumber').val(record.accNumber || '');
-            $('#AddEditBankDataForm #ReEntBankAccNumber').val(record.accNumber || '');
-            $('#AddEditBankDataForm #BankIFSC_Code').val(record.ifsc || '');
-            $('#AddEditBankDataForm #BankBranchName').val(record.branch || '');
-            $('#AddEditBankDataForm #BankAccHolderName').val(record.holder || '');
-            $('#AddEditBankDataForm #UPITransfer_Id').val('');
-        } else {
-            $('#AddEditBankDataForm #UPITransfer_Id').val(record.upiId || '');
-            $('#AddEditBankDataForm #BankAccNumber,#AddEditBankDataForm #ReEntBankAccNumber,#AddEditBankDataForm #BankIFSC_Code,#AddEditBankDataForm #BankBranchName,#AddEditBankDataForm #BankAccHolderName').val('');
-        }
-
-        $('#AddEditBankDataForm #HBankId').val(record.id || '');
-        $('#addEditBankDataModal .AddEditBankDataBtn').text('Update');
-        $('#addEditBankDataModal').modal('show');
-
-    });
-
-    $(document).on('click', '.deleteBankDataBtn', function(e) {
-        e.preventDefault();
-        const row = $(this).closest('tr');
-        const recordId = row.data('id');
-        Swal.fire({
-            title: "Do you want to delete the bank details?",
-            text: "You won't be able to revert this!",
-            showCancelButton: true,
-            confirmButtonColor: "#d33",
-            confirmButtonText: "Yes, delete it!",
-            cancelButtonColor: "#3085d6",
-        }).then((result) => {
-            if (result.isConfirmed) {
-                actionBankData = 1;
-                if (recordId > 0) {
-                    delBankData.push(recordId);
-                    delBankDataFlag = 1;
-                }
-                row.remove();
-                if ($('#bankDetailsBody').children().length === 0) {
-                    $('#appendBankDetails').addClass('d-none');
-                    $('#bankDivider').addClass('d-none');
-                }
-            }
-        });
-    });
-
 });
 
 function exportURLDynamic(Url) {
@@ -858,98 +704,6 @@ function fileSelect(id) {
     }
 }
 
-function allTableHeadersCheckbox(thisField, PageItemIds, TableId, TableHeader, TableRow) {
-    const $headerCheckbox = thisField;
-    const isCurrentlyChecked = $headerCheckbox.prop('checked');
-    var ItemLeng = PageItemIds.length;
-    if (ItemLeng > 0) {
-        if (ItemLeng > RowLimit) {
-            if (!isCurrentlyChecked) {
-                $headerCheckbox.prop('checked', true);
-                $('#unSelectPagesModal').modal('show');
-            } else {
-                $headerCheckbox.prop('checked', false);
-                $('#selectPagesModal').modal('show');
-            }
-        } else {
-            if (!isCurrentlyChecked) {
-                $headerCheckbox.prop('checked', true);
-                unSelectTableRecords(TableId, TableRow);
-            } else {
-                $headerCheckbox.prop('checked', false);
-                selectTableRecords(TableId, TableRow);
-            }
-            headerCheckboxTrueFalse(PageItemIds, TableHeader);
-        }
-    }
-    MultipleDeleteOption();
-}
-
-function selectTableRecords(TableName, FieldName) {
-    $(TableName + ' tbody ' + FieldName).each(function () {
-        $(this).prop('checked', true);
-        var fieldVal = parseInt($(this).val());
-        if (!SelectedUIDs.includes(fieldVal)) {
-            SelectedUIDs.push(fieldVal);
-        }
-    });
-}
-
-function unSelectTableRecords(TableName, FieldName) {
-    $(TableName + ' tbody ' + FieldName).each(function () {
-        const val = parseInt($(this).val());
-        $(this).prop('checked', false);
-        SelectedUIDs = SelectedUIDs.filter(function (item) {
-            return item !== val;
-        });
-    });
-}
-
-function onClickOfCheckbox($this, ItemIds, HeaderField) {
-    const isChecked = $this.is(':checked');
-    const value = parseInt($this.val());
-    if (isChecked) {
-        if (!SelectedUIDs.includes(value)) {
-            SelectedUIDs.push(value);
-        }
-    } else {
-        SelectedUIDs = SelectedUIDs.filter(function (item) {
-            return item !== value;
-        });
-    }
-    headerCheckboxTrueFalse(ItemIds, HeaderField);
-}
-
-function headerCheckboxTrueFalse(ItemIds, HeaderField) {
-    if (ItemIds.length > 0) {
-        $(HeaderField).removeAttr('disabled');
-        if (ItemIds.length == SelectedUIDs.length) {
-            $(HeaderField).prop('checked', true);
-        } else {
-            $(HeaderField).prop('checked', false);
-        }
-    } else if (ItemIds.length == 0) {
-        $(HeaderField).prop('checked', false);
-        $(HeaderField).prop('disabled', 'disabled');
-    }
-}
-
-function tableCheckboxTrueFalse(SelectedId, TableName, FieldName) {
-    $(TableName + ' tbody ' + FieldName).each(function () {
-        let currentVal = parseInt($(this).val());
-        if (SelectedId.includes(currentVal)) {
-            $(this).prop('checked', true);
-        }
-    });
-}
-
-function MultipleDeleteOption() {
-    $('#DeleteOption').addClass('d-none');
-    if (SelectedUIDs.length > 0) {
-        $('#DeleteOption').removeClass('d-none');
-    }
-}
-
 function loadSelect2Field(FieldName, Placeholder, IsModal = '') {
     if(IsModal) {
         $(FieldName).select2({
@@ -995,102 +749,6 @@ function initializeFlatPickr(FieldName, IsModal = '') {
             clickOpens: true,                
         });
     }
-}
-
-function exportAllActions(ModuleId, ActionType, ItemIds, URLs, callbackFn) {
-    $('#exportSelectedItemsBtn,#exportThisPageBtn,#exportThisPageCnt,#exportSelectedItemsCnt').addClass('d-none');
-    if (ItemIds.length > 0) {
-        exportModule = ModuleId;
-        expActionType = ActionType;
-        if (SelectedUIDs.length > 0) {
-            $('#exportSelectedItemsBtn,#exportSelectedItemsCnt').removeClass('d-none');
-            if (ItemIds.length > RowLimit) {
-                $('#exportThisPageBtn,#exportThisPageCnt').removeClass('d-none');
-            }
-            $('#exportPagesModal').modal('show');
-        } else {
-            if (ItemIds.length > RowLimit) {
-                $('#exportThisPageBtn,#exportThisPageCnt').removeClass('d-none');
-                $('#exportPagesModal').modal('show');
-            } else {
-                if (ActionType == 'PrintPreview') {
-                    printPreviewRecords(URLs, () => {
-                        if (typeof callbackFn === 'function') {
-                            callbackFn();
-                        }
-                    });
-                } else if (ActionType == 'ExportCSV' || 'ExportPDF' || 'ExportExcel') {
-                    window.location.href = URLs;
-                    if (typeof callbackFn === 'function') {
-                        callbackFn();  // or pass arguments to it if needed
-                    }
-                }
-            }
-        }
-    }
-}
-
-function selectModalCloseFunc(TableName, HeaderCheckbox, RowCheckbox, ItemIds) {
-    SelectedUIDs = [];
-    unSelectTableRecords(TableName, RowCheckbox);
-    headerCheckboxTrueFalse(ItemIds, HeaderCheckbox);
-    $('#selectPagesModal').modal('hide');
-}
-
-function exportModalCloseFunc(TableName, HeaderCheckbox, RowCheckbox, ItemIds) {
-    SelectedUIDs = [];
-    unSelectTableRecords(TableName, RowCheckbox);
-    headerCheckboxTrueFalse(ItemIds, HeaderCheckbox);
-    $('#exportPagesModal').modal('hide');
-    MultipleDeleteOption();
-}
-
-async function printPreviewRecords(getFuncName, callbackFn) {
-
-    showUIBlock();
-
-    const response = await fetch(getFuncName);
-    const result = await response.json();
-
-    hideUIBlock();
-
-    if (result.Error === false) {
-
-        const printWindow = window.open('', '_blank');
-        printWindow.document.write(result.HtmlData);
-        printWindow.document.close();
-        printWindow.focus();
-        printWindow.print();
-
-        if (typeof callbackFn === 'function') {
-            callbackFn();  // or pass arguments to it if needed
-        }
-
-    } else {
-        Swal.fire(result.Message, "", "error");
-    }
-
-}
-
-function exportRecords(UrlData, Filter = {}) {
-    $.ajax({
-        url: UrlData,
-        method: 'POST',
-        data: {
-            Type: "CSV",
-            Filter: Filter,
-        },
-        cache: false,
-        success: function (response) {
-            if (response.Error) {
-                Swal.fire({
-                    icon: "error",
-                    title: "Oops...",
-                    text: response.Message,
-                });
-            }
-        }
-    });
 }
 
 function updatePageSettings(formdata) {
@@ -1189,65 +847,6 @@ function checkPageSettingsSortOrder() {
     return hasDuplicates;
 }
 
-function baseExportFunctionality(Flag, Type, PageType, FileName, SheetName) {
-    if (Flag == 2) {
-        if (SelectedUIDs.length == 0) {
-            Swal.fire({
-                icon: "error",
-                title: "Oops...",
-                text: "You have not selected any items. Kindly select items.!",
-            });
-            return false;
-        }
-    }
-    let ExportIds = '';
-    if(PageType == 'SelectedPage') {
-        ExportIds = SelectedUIDs.length > 0 ? btoa(SelectedUIDs.toString()) : '';
-    } else if(PageType == 'CurrentPage') {
-        let CurrentPageIds = [];
-        $(ModuleTable + ' tbody ' + ModuleRow).each(function () {
-            let currentVal = parseInt($(this).val());
-            if (!CurrentPageIds.includes(currentVal)) {
-                CurrentPageIds.push(currentVal);
-            }
-        });
-        ExportIds = CurrentPageIds.length > 0 ? btoa(CurrentPageIds.toString()) : '';
-    }
-    let URLs = '';
-    if (Type == 'PrintPreview') {
-        URLs = "/globally/getPrintPreviewDetails?ModuleId=" + ModuleId;
-        if (!$.isEmptyObject(Filter)) {
-            URLs += "&Filter=" + encodeURIComponent(JSON.stringify(Filter));
-        }
-        if (ExportIds != '') {
-            URLs += "&ExportIds=" + ExportIds;
-        }
-    } else if (Type == 'ExportCSV' || Type == 'ExportPDF' || Type == 'ExportExcel') {
-        const TypeVal = (Type == 'ExportCSV') ? 'CSV' : ((Type == 'ExportPDF') ? 'Pdf' : ((Type == 'ExportExcel') ? 'Excel' : 'None'));
-        URLs = "/globally/exportModuleDataDetails?ModuleId=" + ModuleId + "&Type=" + TypeVal + "&FileName=" + FileName + "&SheetName=" + SheetName;
-        if (!$.isEmptyObject(Filter)) {
-            URLs += "&Filter=" + encodeURIComponent(JSON.stringify(Filter));
-        }
-        if (ExportIds != '') {
-            URLs += "&ExportIds=" + ExportIds;
-        }
-    }
-    if (Flag == 1) {
-        exportAllActions(ModuleId, Type, ModuleUIDs, URLs, function () {
-            exportModalCloseFunc(ModuleTable, ModuleHeader, ModuleRow, ModuleUIDs);
-        });
-    } else if (Flag == 2) {
-        if (Type == 'PrintPreview') {
-            printPreviewRecords(URLs, function () {
-                exportModalCloseFunc(ModuleTable, ModuleHeader, ModuleRow, ModuleUIDs);
-            });
-        } else if (Type == 'ExportCSV' || 'ExportPDF' || 'ExportExcel') {
-            window.location.href = URLs;
-            exportModalCloseFunc(ModuleTable, ModuleHeader, ModuleRow, ModuleUIDs);
-        }
-    }
-}
-
 function commonSetDropzoneImageOne(ImageUrl) {
     myOneDropzone.removeAllFiles(true);
     fetch(ImageUrl)
@@ -1274,6 +873,32 @@ function commonSetDropzoneImageOne(ImageUrl) {
 
 }
 
+function commonSetDropzoneImageTwo(ImageUrl) {
+    myTwoDropzone.removeAllFiles(true);
+    fetch(ImageUrl)
+        .then(res => {
+            const contentLength = res.headers.get('Content-Length');
+            return res.blob().then(blob => {
+                const fileName = decodeURIComponent(ImageUrl.substring(ImageUrl.lastIndexOf('/') + 1));
+                const file = new File([blob], fileName, {
+                    type: blob.type,
+                    lastModified: new Date()
+                });
+
+                // Manually patch the size if Dropzone doesn’t read it right
+                file.size = contentLength ? parseInt(contentLength) : blob.size;
+                file.isStored = true;
+
+                // Add to Dropzone
+                myTwoDropzone.emit("addedfile", file);
+                myTwoDropzone.emit("thumbnail", file, ImageUrl);
+                myTwoDropzone.emit("complete", file);
+                myTwoDropzone.files.push(file);
+            });
+        });
+
+}
+
 function baseSelectFunctionality(PageSelcType) {
     if (PageSelcType == 'AllPage') {
         CopyAllDatatoSelectItems(ModuleUIDs);
@@ -1292,88 +917,6 @@ function baseUnSelectFunctionality(PageSelcType) {
     $('#unSelectPagesModal').modal('hide');
 }
 
-function baseExportFunctions() {
-    $('#btnExportPrint').click(function(e) {
-        e.preventDefault();
-        baseExportFunctionality(1, 'PrintPreview', 'ExportAll', ModuleFileName, ModuleSheetName);
-    });
-
-    $('#btnExportCSV').click(function(e) {
-        e.preventDefault();
-        baseExportFunctionality(1, 'ExportCSV', 'ExportAll', ModuleFileName, ModuleSheetName);
-    });
-
-    $('#btnExportPDF').click(function(e) {
-        e.preventDefault();
-        baseExportFunctionality(1, 'ExportPDF', 'ExportAll', ModuleFileName, ModuleSheetName);
-    });
-
-    $('#btnExportExcel').click(function(e) {
-        e.preventDefault();
-        baseExportFunctionality(1, 'ExportExcel', 'ExportAll', ModuleFileName, ModuleSheetName);
-    });
-
-    $('#exportSelectedItemsBtn').click(function(e) {
-        e.preventDefault();
-        baseExportFunctionality(2, expActionType, 'SelectedPage', ModuleFileName, ModuleSheetName);
-    });
-
-    $('#exportThisPageBtn').click(function(e) {
-        e.preventDefault();
-        baseExportFunctionality(2, expActionType, 'CurrentPage', ModuleFileName, ModuleSheetName);
-    });
-
-    $('#exportAllPagesBtn').click(function(e) {
-        e.preventDefault();
-        baseExportFunctionality(2, expActionType, 'AllPage', ModuleFileName, ModuleSheetName);
-    });
-
-    $('#clearExportClose').click(function(e) {
-        e.preventDefault();
-        exportModalCloseFunc(ModuleTable, ModuleHeader, ModuleRow, ModuleUIDs);
-    });
-
-    $('#selectThisPageBtn').click(function(e) {
-        e.preventDefault();
-        baseSelectFunctionality('CurrentPage');
-    });
-
-    $('#selectAllPagesBtn').click(function(e) {
-        e.preventDefault();
-        baseSelectFunctionality('AllPage');
-    });
-
-    $('#clearSelectAllClose').click(function(e) {
-        e.preventDefault();
-        selectModalCloseFunc(ModuleTable, ModuleHeader, ModuleRow, ModuleUIDs);
-    });
-
-    $('#unselectThisPageBtn').click(function(e) {
-        e.preventDefault();
-        baseUnSelectFunctionality('CurrentPage');
-    });
-
-    $('#unselectAllPagesBtn').click(function(e) {
-        e.preventDefault();
-        baseUnSelectFunctionality('AllPage');
-    });
-}
-
-function executeTablePagnCommonFunc(response, tableinfo = false) {
-
-    if(tableinfo) {
-        $(ModulePag).html(response.Pagination);
-        $(ModuleTable + ' tbody').html(response.List);
-        Swal.fire(response.Message, "", "success");
-    }
-
-    ModuleUIDs = response.UIDs ? response.UIDs : [];
-    headerCheckboxTrueFalse(ModuleUIDs, ModuleHeader);
-    tableCheckboxTrueFalse(SelectedUIDs, ModuleTable, ModuleRow);
-    MultipleDeleteOption();
-
-}
-
 function smartDecimal(number) {
     number = parseFloat(number);
 
@@ -1386,164 +929,67 @@ function smartDecimal(number) {
     return formatted;
 }
 
-function baseAddressCreation(AddressType, StateInfo, CityInfo) {
-
-    if(AddressType == 1) {
-
-        var finalReturnData = '<div class="mt-3">';
-                finalReturnData += '<div class="row">';
-                    finalReturnData += '<input type="hidden" name="BillAddressUID" id="BillAddressUID" value="0" />';
-                    finalReturnData += '<div class="mb-3 col-md-12">';
-                        finalReturnData += '<label for="BillAddrLine1" class="form-label">Address Line 1 <span style="color:red">*</span></label>';
-                        finalReturnData += '<input class="form-control" type="text" id="BillAddrLine1" name="BillAddrLine1" maxlength="100" placeholder="Address Line 1" required />';
-                    finalReturnData += '</div>';
-                    finalReturnData += '<div class="mb-3 col-md-12">';
-                        finalReturnData += '<label for="BillAddrLine2" class="form-label">Address Line 2 </label>';
-                        finalReturnData += '<input class="form-control" type="text" id="BillAddrLine2" name="BillAddrLine2" maxlength="100" placeholder="Address Line 2" />';
-                    finalReturnData += '</div>';
-                    finalReturnData += '<div class="mb-3 col-md-12">';
-                        finalReturnData += '<label for="BillAddrPincode" class="form-label">Pincode <span style="color:red">*</span></label>';
-                        finalReturnData += '<input class="form-control" type="text" id="BillAddrPincode" name="BillAddrPincode" maxlength="10" placeholder="Pincode" required />';
-                    finalReturnData += '</div>';
-                    finalReturnData += '<div class="mb-0 col-md-6">';
-                        finalReturnData += '<label for="BillAddrState" class="form-label">State</label>';
-                        finalReturnData += '<select class="select2 form-select" id="BillAddrState" name="BillAddrState">';
-                            finalReturnData += '<option label="-- Select State --"></option>';
-                            if (StateInfo.length > 0) {
-                                StateInfo.forEach(StData => {
-                                    finalReturnData += `<option value="${StData.id}" data-iso2="${StData.iso2}">${StData.name}</option>`;
-                                });
-                            }
-                            finalReturnData += '</select>';
-                    finalReturnData += '</div>';
-                    finalReturnData += '<div class="mb-0 col-md-6">';
-                        finalReturnData += '<label for="BillAddrCity" class="form-label">City</label>';
-                        finalReturnData += '<select class="select2 form-select" id="BillAddrCity" name="BillAddrCity">';
-                        finalReturnData += '<option label="-- Select City --">Select City</option>';
-                        if (CityInfo.length > 0) {
-                            CityInfo.forEach(CtyData => {
-                                finalReturnData += `<option value="${CtyData.id}">${CtyData.name}</option>`;
-                            });
-                        }
-                        finalReturnData += '</select>';
-                    finalReturnData += '</div>';
-                finalReturnData += '</div>';
-            finalReturnData += '</div>';
-
-        return finalReturnData;
-
-    } else if(AddressType == 2) {
-        
-        var finalReturnData = '<div class="mt-3">';
-                finalReturnData += '<div class="row">';
-                    finalReturnData += '<input type="hidden" name="ShipAddressUID" id="ShipAddressUID" value="0" />';
-                    finalReturnData += '<div class="mb-3 col-md-12">';
-                        finalReturnData += '<label for="ShipAddrLine1" class="form-label">Address Line 1 <span style="color:red">*</span></label>';
-                        finalReturnData += '<input class="form-control" type="text" id="ShipAddrLine1" name="ShipAddrLine1" maxlength="100" placeholder="Address Line 1" required />';
-                    finalReturnData += '</div>';
-                    finalReturnData += '<div class="mb-3 col-md-12">';
-                        finalReturnData += '<label for="ShipAddrLine2" class="form-label">Address Line 2 </label>';
-                        finalReturnData += '<input class="form-control" type="text" id="ShipAddrLine2" name="ShipAddrLine2" maxlength="100" placeholder="Address Line 2" />';
-                    finalReturnData += '</div>';
-                    finalReturnData += '<div class="mb-3 col-md-12">';
-                        finalReturnData += '<label for="ShipAddrPincode" class="form-label">Pincode <span style="color:red">*</span></label>';
-                        finalReturnData += '<input class="form-control" type="text" id="ShipAddrPincode" name="ShipAddrPincode" maxlength="10" placeholder="Pincode" required />';
-                    finalReturnData += '</div>';
-                    finalReturnData += '<div class="mb-3 col-md-6">';
-                        finalReturnData += '<label for="ShipAddrState" class="form-label">State</label>';
-                        finalReturnData += '<select class="select2 form-select" id="ShipAddrState" name="ShipAddrState">';
-                            finalReturnData += '<option label="-- Select State --"></option>';
-                            if (StateInfo.length > 0) {
-                                StateInfo.forEach(StData => {
-                                    finalReturnData += `<option value="${StData.id}" data-iso2="${StData.iso2}">${StData.name}</option>`;
-                                });
-                            }
-                            finalReturnData += '</select>';
-                    finalReturnData += '</div>';
-                    finalReturnData += '<div class="mb-3 col-md-6">';
-                        finalReturnData += '<label for="ShipAddrCity" class="form-label">City</label>';
-                        finalReturnData += '<select class="select2 form-select" id="ShipAddrCity" name="ShipAddrCity">';
-                        finalReturnData += '<option label="-- Select City --">Select City</option>';
-                        if (CityInfo.length > 0) {
-                            CityInfo.forEach(CtyData => {
-                                finalReturnData += `<option value="${CtyData.id}">${CtyData.name}</option>`;
-                            });
-                        }
-                        finalReturnData += '</select>';
-                    finalReturnData += '</div>';
-                finalReturnData += '</div>';
-            finalReturnData += '</div>';
-            
-        return finalReturnData;
-        
-    }
-
-}
-
-function showBankDetailsError(message) {
-    $('.addEditBankDataAlert')
-        .removeClass('d-none')
-        .addClass('alert alert-danger alert-dismissible fade show')
-        .find('.alert-message').text(message);
-}
-
-function hideBankDetailsError() {
-    $('.addEditBankDataAlert')
-        .addClass('d-none')
-        .removeClass('alert alert-danger alert-dismissible fade show')
-        .find('.alert-message').text('');
-}
-
 function hasValue(val) {
     return val !== null && val !== '' && val !== undefined;
 }
 
-function getBankRecordsFromTable() {
-    const records = [];
-    $('#bankDetailsBody tr').each(function () {
-        const $tr = $(this);
-        // Prefer data-record if present, else reconstruct from cells
-        const raw = $tr.attr('data-record');
-        if (raw) {
-            try {
-                const rec = JSON.parse(raw);
-                records.push(rec);
-                return;
-            } catch (e) { /* fall through */ }
-        }
-        const type = ($tr.attr('data-type') || $tr.find('td:eq(0)').text()).trim();
-        const col1 = $tr.find('td:eq(1)').text().trim();
-        const ifsc = $tr.find('td:eq(2)').text().trim();
-        const branch = $tr.find('td:eq(3)').text().trim();
-        const holder = $tr.find('td:eq(4)').text().trim();
-        records.push({
-            id: $tr.data('id') ? String($tr.data('id')) : String(Date.now()),
-            type: type,
-            accNumber: type === 'Bank' ? col1 : '',
-            ifsc: type === 'Bank' ? ifsc : '',
-            branch: type === 'Bank' ? branch : '',
-            holder: type === 'Bank' ? holder : '',
-            upiId: type === 'UPI' ? col1 : ''
-        });
-    });
-    return records;
-}
+function getScrollableOnSubmitForm($this) {
+    
+    var form = $this;
 
-function validateBankRecords(records) {
-    if (!records.length) return { ok: true };
+    // If form is invalid, reveal hidden containers, scroll to first invalid field and show native message
+    if (typeof form.checkValidity === 'function' && !form.checkValidity()) {
 
-    for (const r of records) {
-        const bankFilled = r.type === 'Bank' && r.accNumber && r.ifsc && r.branch && r.holder;
-        const upiFilled = r.type === 'UPI' && r.upiId;
+        // find first invalid element (fallback to required-empty if :invalid not present)
+        var $firstInvalid = $(form).find(':invalid').first();
+        if (!$firstInvalid.length) {
+            $firstInvalid = $(form).find('[required]').filter(function(){
+                var val = $(this).val();
+                if ($(this).is(':checkbox') || $(this).is(':radio')) {
+                    return !$(form).find('[name="'+$(this).attr('name')+'"]:checked').length;
+                }
+                return (val === null || val === undefined || (typeof val === 'string' && val.trim() === ''));
+            }).first();
+        }
 
-        // Enforce strict type content
-        if (r.type === 'Bank' && !bankFilled) {
-        return { ok: false, msg: 'Incomplete Bank record in table. Please complete all Bank fields or remove the row.' };
+        if ($firstInvalid.length) {
+            // open Bootstrap collapses and tabs that may hide the field
+            $firstInvalid.parents().each(function(){
+                var $p = $(this);
+
+                if ($p.hasClass('collapse') && !$p.hasClass('show')) {
+                    try { $p.collapse('show'); } catch(e) { $p.addClass('show'); }
+                }
+
+                if ($p.hasClass('tab-pane')) {
+                    var id = $p.attr('id');
+                    if (id) {
+                        var $tabTrigger = $('a[data-toggle="tab"][href="#'+id+'"], a[data-bs-toggle="tab"][href="#'+id+'"]');
+                        if ($tabTrigger.length) {
+                            try { $tabTrigger.first().tab('show'); } catch (e) { $tabTrigger.first().trigger('click'); }
+                        }
+                    }
+                }
+            });
+
+            // allow UI to open, then scroll & focus & show native validity message
+            setTimeout(function(){
+                var el = $firstInvalid[0];
+                try {
+                    el.scrollIntoView({behavior: 'smooth', block: 'center', inline: 'nearest'});
+                } catch(_) {
+                    $('html,body').animate({scrollTop: $firstInvalid.offset().top - 100}, 300);
+                }
+                el.focus();
+                if (typeof el.reportValidity === 'function') {
+                    el.reportValidity(); // shows "Please fill out this field"
+                } else if (typeof form.reportValidity === 'function') {
+                    form.reportValidity();
+                }
+            }, 250);
         }
-        if (r.type === 'UPI' && !upiFilled) {
-        return { ok: false, msg: 'Incomplete UPI record in table. Please provide a valid UPI ID or remove the row.' };
-        }
+
+        return false;
     }
 
-    return { ok: true };
 }

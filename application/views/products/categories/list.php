@@ -8,15 +8,24 @@
             <td>
                 <div class="form-check form-check-inline"><input class="form-check-input categoryCheck" type="checkbox" value="<?php echo $list->TablePrimaryUID; ?>"></div>
             </td>
-            <td><?php echo $SerialNumber; ?></td>
+            <td class="<?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>"><?php echo $SerialNumber; ?></td>
             <?php
-                $DataPassing['ViewColumns'] = $ViewColumns;
-                $DataPassing['list'] = $list;
-                echo $this->load->view('common/form/list', $DataPassing, TRUE);
+                $getData = format_disp_allcolumns('html', $DispViewColumns, $list, $JwtData, $JwtData->GenSettings);
+                if(!empty($getData) && is_array($getData)) {
+                    echo implode('', $getData);
+                }
             ?>
             <td>
                 <div class="d-flex align-items-sm-center justify-content-sm-center">
-                    <a href="javascript: void(0);" data-uid="<?php echo $list->TablePrimaryUID; ?>" class="btn btn-icon text-warning editCategory"><i class="bx bx-edit me-1"></i></a>
+                    <a href="javascript: void(0);" data-uid="<?php echo $list->TablePrimaryUID; ?>"
+                        <?php if(isset($ViewAllColumns)) {
+                            foreach ($ViewAllColumns as $column) {
+                            $attrName = strtolower($column->FieldName);
+                            $fieldName = $column->DisplayName;
+                            $value = $list->$fieldName ?? '';
+                            echo 'data-'.$attrName.'="'.($value ? base64_encode($value) : '').'"';
+                        } } ?>
+                        class="btn btn-icon text-warning editCategory"><i class="bx bx-edit me-1"></i></a>
                     <button class="btn btn-icon text-danger DeleteCategory" data-productuid="<?php echo $list->ProductUID; ?>" data-categoryuid="<?php echo $list->TablePrimaryUID; ?>"><i class="bx bx-trash"></i></button>
                 </div>
             </td>
@@ -37,7 +46,7 @@
                     <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                         <span class="mb-2">Add a Category Now</span>
                         <a href="javascript: void(0);" class="btn btn-primary px-3 addCategory">
-                            <i class="bx bx-plus"></i> New Category
+                            <i class="bx bx-plus"></i> Create Category
                         </a>
                     </div>
 

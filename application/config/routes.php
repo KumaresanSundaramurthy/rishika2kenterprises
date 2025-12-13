@@ -58,15 +58,17 @@ $route['portal'] = 'login/login';
 $route['logout'] = 'login/logout';
 
 // Settings
-$route['settings/company'] = 'organisation';
+$route['settings/profile'] = 'profile';
+$route['settings/organisation'] = 'organisation';
 $route['settings/account'] = 'account';
 
 // Customers
 $route['customers/(:num)/edit'] = 'customers/edit/$1';
-$route['customers/(:num)/clone'] = 'customers/clone/$1';
+$route['customers/(:num)/clone'] = 'customers/clonecustomer/$1';
 
 // Vendors
 $route['vendors/(:num)/edit'] = 'vendors/edit/$1';
+$route['vendors/(:num)/clone'] = 'vendors/clonevendor/$1';
 
 // Products
 $route['products/(:num)/edit'] = 'products/edit/$1';

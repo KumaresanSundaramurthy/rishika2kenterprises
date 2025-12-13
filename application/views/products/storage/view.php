@@ -171,10 +171,8 @@ $(function() {
         e.preventDefault();
         getStorageDetails(PageNo, RowLimit, Filter);
     });
-
-    $(ModuleHeader).click(function() {
-        allTableHeadersCheckbox($(this), ModuleUIDs, ModuleTable, ModuleHeader, ModuleRow);
-    });
+    
+    basePageHeaderFunc(ModuleHeader, ModuleTable, ModuleRow);
 
     $(document).on('click', ModuleRow, function() {
         onClickOfCheckbox($(this), ModuleUIDs, ModuleHeader);

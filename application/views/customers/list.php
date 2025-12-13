@@ -9,7 +9,12 @@
                 <div class="form-check form-check-inline"><input class="form-check-input customerCheck" type="checkbox" value="<?php echo $list->TablePrimaryUID; ?>"></div>
             </td>
             <td class="<?php echo $GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>"><?php echo $SerialNumber; ?></td>
-            <?php echo $this->load->view('common/form/list', ['DispViewColumns' => $DispViewColumns, 'list' => $list], TRUE); ?>
+            <?php
+                $getData = format_disp_allcolumns('html', $DispViewColumns, $list, $JwtData, $JwtData->GenSettings);
+                if(!empty($getData) && is_array($getData)) {
+                    echo implode('', $getData);
+                }
+            ?>
             <td>
                 <div class="d-flex align-items-sm-center justify-content-sm-center">
                     <a href="/customers/<?php echo $list->TablePrimaryUID; ?>/edit" class="btn btn-icon text-warning"><i class="bx bx-edit me-1"></i></a>
@@ -32,8 +37,8 @@
 
                     <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                         <span class="mb-2">Add a Customer Now</span>
-                        <a href="/customers/add" class="btn btn-primary px-3">
-                            <i class="bx bx-plus"></i> New Customer
+                        <a href="/customers/create" class="btn btn-primary px-3">
+                            <i class="bx bx-plus"></i> Create Customer
                         </a>
                     </div>
 

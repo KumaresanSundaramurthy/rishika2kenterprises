@@ -23,10 +23,8 @@ class Middleware {
 
 		//check JWT
 		if (empty($JwtEncoded)) {
-
 			$CI->session->set_flashdata('danger', 'Oops! Action not allowed. please try login.');
 			redirect('portal', 'refresh');
-
         }
 
 		try {
@@ -35,7 +33,6 @@ class Middleware {
 			if(!empty($JwtData->key)) {
 
 				$RedisData = $CI->cacheservice->get($JwtData->key);
-
 				if($RedisData->Error) {
 
 					$CI->session->set_flashdata('danger', 'Oops! Session expired. please try login.');
@@ -46,13 +43,17 @@ class Middleware {
 					$CI->pageData['JwtData'] = json_decode($RedisData->Value);
 					$CI->pageData['JwtToken'] = $JwtEncoded;
 					$CI->pageData['JwtUserKey'] = $JwtData->key;
+
+					$uriString = $CI->uri->uri_string;
+					if ($uriString === '' || $uriString === '/') {
+						redirect('dashboard', 'refresh');
+					}
+					
 				}
 
 			} else {
-
 				$CI->session->set_flashdata('danger', 'Oops! Session expired. please try login.');
 				redirect('portal', 'refresh');
-
 			}
 
 		} catch(\Firebase\JWT\ExpiredException $e) {

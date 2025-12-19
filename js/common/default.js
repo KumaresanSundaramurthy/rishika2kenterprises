@@ -118,14 +118,22 @@ $(document).ready(function () {
 
     $('#SettingsMenuBarBtn').on('click', function(e) {
         e.preventDefault();
-        $('#ModulesMenuBar').addClass('d-none');
-        $('#SettingsMenuBar').removeClass('d-none');
+        // $('#ModulesMenuBar').addClass('d-none');
+        // $('#SettingsMenuBar').removeClass('d-none');
+        let currentUrl = window.location.href;
+        if(currentUrl.indexOf("/settings") === -1) {
+            localStorage.setItem("previousUrl", currentUrl);
+        }
+        window.location.href = '/settings/profile';
     });
 
     $('#SettingsBackMenuBarBtn').on('click', function(e) {
         e.preventDefault();
-        $('#SettingsMenuBar').addClass('d-none');
-        $('#ModulesMenuBar').removeClass('d-none');
+        let previousUrl = localStorage.getItem("previousUrl");
+        console.log(previousUrl)
+        window.location.href = previousUrl ? previousUrl : '/dashboard';
+        // $('#SettingsMenuBar').addClass('d-none');
+        // $('#ModulesMenuBar').removeClass('d-none');
     });
 
     document.addEventListener('show.bs.modal', function (event) {
@@ -147,6 +155,34 @@ $(document).ready(function () {
         if (stillOpen.length > 1) {
             const secondTop = stillOpen[stillOpen.length - 2];
             secondTop.querySelector('.modal-content')?.classList.add('modal-blur');
+        }
+    });
+
+    $(document).on('click', function(e) {
+        var $filterBoxes = $('.mp-filterbox');
+        var $toggleIcons  = $('.filter-toggle, .bx-filter-alt');
+        if (!$filterBoxes.is(e.target) && $filterBoxes.has(e.target).length === 0 &&
+            !$toggleIcons.is(e.target) && $toggleIcons.has(e.target).length === 0) {
+            $filterBoxes.hide();
+        }
+    });
+
+    $(document).on('click', '.filter-toggle', function(e) {
+        e.stopPropagation();
+        var target = $(this).data('target');
+        if (!target) return;
+        var $target = $(target);
+        $('.mp-filterbox').not($target).hide();
+        $target.toggle();
+    });
+
+    $(document).on('click', '.mp-filterbox', function(e) {
+        e.stopPropagation();
+    });
+
+    $(document).on('keydown', function(e) {
+        if (e.key === "Escape") {
+            $('.mp-filterbox').hide();
         }
     });
 

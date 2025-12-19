@@ -62,11 +62,7 @@ function retrieveProductDetails(ItemUID, CloneFlag = false) {
         },
         success: function (response) {
             if (response.Error) {
-                Swal.fire({
-                    icon: "error",
-                    title: "Oops...",
-                    text: response.Message,
-                });
+                Swal.fire({icon: "error", title: "Oops...", text: response.Message});
             } else {
 
                 $('#AddEditItemForm').trigger('reset');
@@ -923,7 +919,7 @@ function formOpenCloseDefActions() {
         $('#ItemModalTitle').text('Create Item');
         $('.AddEditProductBtn').text('Save');
         $('#AddEditItemForm').find('#HProductUID').val(0);
-        myOneDropzone.removeAllFiles(true);
+        clearItemValues();
     } else if (ActiveTabId == 'Categories') {
         $('#categoryForm').trigger('reset');
         $('#CatgModalTitle').text('Add Category');
@@ -941,7 +937,6 @@ function formOpenCloseDefActions() {
         $('.brandButtonName').text('Save');
         $('#brandsModal').find('#HBrandUID').val(0);
     }
-    clearItemValues();
 }
 
 function showProductPageDetails() {
@@ -1051,26 +1046,58 @@ function commonExportFunctions() {
 
 }
 
-function toggleCategoryFilter() {
-    $('#categoryFilterBox').toggle();
-    if ($('#categoryFilterBox .category-checkbox').length == 0) {
-        AjaxLoading = 0;
-        $('#categoryFilterBox').html('<div class="d-flex justify-content-center align-items-center p-3"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>');
-        $.ajax({
-            url: '/products/getAllCategories/',
-            method: "POST",
-            cache: false,
-            success: function (response) {
-                AjaxLoading = 1;
-                if (response.Error) {
-                    $('#categoryFilterBox').html('');
-                    $('#categoryFilterBox').html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');
-                } else {
-                    $('#categoryFilterBox').html(response.HtmlData);
-                }
-            },
-        });   
+function resetProdTypeFilter() {
+    $('.prodtype-checkbox').prop('checked', false);
+    if (Filter.ProductType) {
+        applyProdTypeFilter();
     }
+}
+
+function applyProdTypeFilter() {
+    PageNo = 0;
+    delete Filter['ProductType'];
+    let prodTypeIds = $('.prodtype-checkbox:checked').map(function () {
+        return $(this).val();
+    }).get();
+    $('#prodTypeFilter').removeClass('text-primary');
+    if (prodTypeIds.length > 0) {
+        Filter['ProductType'] = prodTypeIds;
+        $('#prodTypeFilter').addClass('text-primary');
+    }
+    $('#prodTypeFilterBox').hide();
+    showProductPageDetails();
+}
+
+function closeProdTypeFilter() {
+    $('#prodTypeFilterBox').hide();
+}
+
+function refreshSearchCateg() {
+    $('#categoryFilterBox').hide();
+    // ($('#categoryFilterBox .category-checkbox').length == 0)
+    AjaxLoading = 0;
+    $('#categoryFilterBox').html('<div class="d-flex justify-content-center align-items-center p-3"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>');
+    $.ajax({
+        url: '/products/getAllCategories/',
+        method: "POST",
+        cache: false,
+        success: function (response) {
+            AjaxLoading = 1;
+            if (response.Error) {
+                $('#categoryFilterBox').html('');
+                $('#categoryFilterBox').html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');
+            } else {
+                $('#categoryFilterBox').html(response.HtmlData);
+            }
+        },
+    });
+}
+
+function toggleCategoryFilter() {
+    // $('#categoryFilterBox').toggle();
+    const $target = $('#categoryFilterBox');
+    $('.mp-filterbox').not($target).hide();
+    $target.toggle();
 }
 
 function closeCategoryFilter() {
@@ -1080,15 +1107,21 @@ function closeCategoryFilter() {
 function resetCategoryFilter() {
     $('.category-checkbox').prop('checked', false);
     $('#selectAllCategories').prop('checked', false);
+    if (Filter.Category) {
+        applyCategoryFilter();
+    }
 }
 
 function applyCategoryFilter() {
+    PageNo = 0;
     delete Filter['Category'];
     let selectedCategoryIds = $('.category-checkbox:checked').map(function () {
         return $(this).val();
     }).get();
+    $('#categoryFilter').removeClass('text-primary');
     if (selectedCategoryIds.length > 0) {
         Filter['Category'] = selectedCategoryIds;
+        $('#categoryFilter').addClass('text-primary');
     }
     $('#categoryFilterBox').hide();
     showProductPageDetails();
@@ -1126,23 +1159,6 @@ function updateCategoryOptions(fields, type) {
                 .remove();
         });
     }
-}
-
-function setFilterCategoryOption(CatgList) {
-    $('#categoryList').empty();
-    $('#AddEditItemForm #Category').empty();
-    $('#AddEditItemForm #Category').append('<option label="-- Select Category --"></option>');
-    CatgList.forEach(cat => {
-        $('#AddEditItemForm #Category').append(`<option value="${cat.CategoryUID}">${cat.Name}</option>`);
-        const categoryHtml = `
-            <div class="form-check mb-2 my-1 list-hover-bg">
-            <label class="form-check-label w-100 d-flex align-items-center">
-                <input class="form-check-input me-2 category-checkbox" type="checkbox" value="${cat.CategoryUID}">
-                <span>${cat.Name}</span>
-            </label>
-            </div>`;
-        $('#categoryList').append(categoryHtml);
-    });
 }
 
 function updateSizeOptions(fields, type) {
@@ -1187,29 +1203,32 @@ function setBrandOption(BrandList) {
     });
 }
 
-function toggleStorageFilter() {
-    $('#storageFilterBox').toggle();
-    if ($('#storageFilterBox .storage-checkbox').length == 0) {
-        
-        AjaxLoading = 0;
+function refreshSearchStorage($this) {
+    $('#storageFilterBox').show();
+    AjaxLoading = 0;
+    $('#storageFilterBox').html('<div class="d-flex justify-content-center align-items-center p-3"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>');
+    $.ajax({
+        url: '/storage/getAllStorage/',
+        method: "POST",
+        cache: false,
+        success: function (response) {
+            AjaxLoading = 1;
+            if (response.Error) {
+                $('#storageFilterBox').html('');
+                $('#storageFilterBox').html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');
+            } else {
+                $('#storageFilterBox').html(response.HtmlData);
+            }
+        },
+    });
+}
 
-        $('#storageFilterBox').html('<div class="d-flex justify-content-center align-items-center p-3"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>');
-        $.ajax({
-            url: '/storage/getAllStorage/',
-            method: "POST",
-            cache: false,
-            success: function (response) {
-                AjaxLoading = 1;
-                if (response.Error) {
-                    $('#storageFilterBox').html('');
-                    $('#storageFilterBox').html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');
-                } else {
-                    $('#storageFilterBox').html(response.HtmlData);
-                }
-            },
-        });
-        
-    }
+function toggleStorageFilter() {
+    const $target = $('#storageFilterBox');
+    $('.mp-filterbox').not($target).hide();
+    $target.toggle();
+    // $('#storageFilterBox').toggle();
+    // ($('#storageFilterBox .storage-checkbox').length == 0)
 }
 
 function closeStorageFilter() {
@@ -1219,15 +1238,21 @@ function closeStorageFilter() {
 function resetStorageFilter() {
     $('.storage-checkbox').prop('checked', false);
     $('#selectAllStorage').prop('checked', false);
+    if (Filter.Storage) {
+        applyStorageFilter();
+    }
 }
 
 function applyStorageFilter() {
+    PageNo = 0;
     delete Filter['Storage'];
     let selectedStorageIds = $('.storage-checkbox:checked').map(function () {
         return $(this).val();
     }).get();
+    $('#storageFilter').removeClass('text-primary');
     if (selectedStorageIds.length > 0) {
         Filter['Storage'] = selectedStorageIds;
+        $('#storageFilter').addClass('text-primary');
     }
     $('#storageFilterBox').hide();
     showProductPageDetails();

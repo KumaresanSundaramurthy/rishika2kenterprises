@@ -14,6 +14,40 @@ class Vendors_model extends CI_Model {
 
     }
 
+    public function vendFilterFormation($ModuleInfoData, $Filter) {
+
+        $this->EndReturnData = new StdClass();
+        try {
+
+            $SearchDirectQuery = '';
+            $SearchFilter = [];
+            $sortOperation = [];
+            if(!empty($Filter)) {
+                if (array_key_exists('SearchAllData', $Filter)) {
+                    $SearchDirectQuery .= "((". $ModuleInfoData->TableAliasName.".Name LIKE '%".$Filter['SearchAllData']."%' ) OR (".$ModuleInfoData->TableAliasName.".Area LIKE '%".$Filter['SearchAllData']."%') OR (".$ModuleInfoData->TableAliasName.".MobileNumber LIKE '%".$Filter['SearchAllData']."%') OR (".$ModuleInfoData->TableAliasName.".ContactPerson LIKE '%".$Filter['SearchAllData']."%'))";
+                }
+                if (array_key_exists('NameSorting', $Filter)) {
+                    $sortOperation[$ModuleInfoData->TableAliasName . '.Name'] = $Filter['NameSorting'] == 1 ? 'ASC' : 'DESC';
+                }
+            }
+
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->SearchDirectQuery = $SearchDirectQuery;
+            $this->EndReturnData->SearchFilter = $SearchFilter;
+            $this->EndReturnData->sortOperation = $sortOperation;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+            $this->EndReturnData->SearchDirectQuery = '';
+            $this->EndReturnData->SearchFilter = [];
+            $this->EndReturnData->sortOperation = [];
+        }
+
+        return $this->EndReturnData;
+
+    }
+
     public function getVendorsList($limit, $offset, $Filter, $Flag = 0) {
 
         $this->EndReturnData = new StdClass();

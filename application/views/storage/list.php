@@ -18,18 +18,14 @@
             <td>
                 <div class="d-flex align-items-sm-center justify-content-sm-center">
                     <a href="javascript: void(0);" data-uid="<?php echo $list->TablePrimaryUID; ?>" 
-                        <?php
-                            foreach ($ViewColumns as $column) {
-
-                                $attrName = strtolower($column->FieldName);
-                                $fieldName = $column->DisplayName;
-                                $value = $list->$fieldName ?? '';
-
-                                echo 'data-'.$attrName.'="'.($value ? base64_encode($value) : '').'"';
-
-                            }
-                        ?>
-                        data-description="<?php echo $list->Description ? base64_encode($list->Description) : ''; ?>" data-image="<?php echo $list->Image ? base64_encode($list->Image) : ''; ?>" data-strtype="<?php echo $list->Storage_Type_UID ? $list->Storage_Type_UID : 0; ?>" class="btn btn-icon text-warning editStorage"><i class="bx bx-edit me-1"></i></a>
+                        <?php if(isset($ViewAllColumns)) {
+                            foreach ($ViewAllColumns as $column) {
+                            $attrName = strtolower($column->FieldName);
+                            $fieldName = $column->DisplayName;
+                            $value = $list->$fieldName ?? '';
+                            echo 'data-'.$attrName.'="'.($value ? base64_encode($value) : '').'"';
+                        } } ?>
+                        class="btn btn-icon text-warning editStorage"><i class="bx bx-edit me-1"></i></a>
                     <button class="btn btn-icon text-danger DeleteStorage" data-productuid="<?php echo $list->ProductUID; ?>" data-storageuid="<?php echo $list->TablePrimaryUID; ?>"><i class="bx bx-trash"></i></button>
                 </div>
             </td>

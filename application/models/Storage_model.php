@@ -14,6 +14,46 @@ class Storage_model extends CI_Model {
 
     }
 
+    public function storageFilterFormation($ModuleInfoData, $Filter) {
+
+        $this->EndReturnData = new StdClass();
+        try {
+
+            $SearchDirectQuery = '';
+            $SearchFilter = [];
+            $sortOperation = [];
+            if(!empty($Filter)) {
+                if (array_key_exists('SearchAllData', $Filter)) {
+                    $SearchDirectQuery .= "((". $ModuleInfoData->TableAliasName.".Name LIKE '%".$Filter['SearchAllData']."%' ) OR (".$ModuleInfoData->TableAliasName.".ShortName LIKE '%".$Filter['SearchAllData']."%') OR (".$ModuleInfoData->TableAliasName.".Description LIKE '%".$Filter['SearchAllData']."%'))";
+                }
+                if (array_key_exists('NameSorting', $Filter)) {
+                    $sortOperation[$ModuleInfoData->TableAliasName . '.Name'] = $Filter['NameSorting'] == 1 ? 'ASC' : 'DESC';
+                }
+                if (array_key_exists('StorageType', $Filter)) {
+                    if($SearchDirectQuery != '') {
+                        $SearchDirectQuery .= ' AND ';    
+                    }
+                    $SearchDirectQuery .= $ModuleInfoData->TableAliasName.'.StorageTypeUID IN ('.implode(',', $Filter['StorageType']).')';
+                }
+            }
+            
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->SearchDirectQuery = $SearchDirectQuery;
+            $this->EndReturnData->SearchFilter = $SearchFilter;
+            $this->EndReturnData->sortOperation = $sortOperation;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+            $this->EndReturnData->SearchDirectQuery = '';
+            $this->EndReturnData->SearchFilter = [];
+            $this->EndReturnData->sortOperation = [];
+        }
+
+        return $this->EndReturnData;
+
+    }
+
     public function getStorageDetails($FilterArray) {
 
         $this->EndReturnData = new StdClass();
@@ -61,34 +101,6 @@ class Storage_model extends CI_Model {
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
         }
-
-    }
-
-    public function storageFilterFormation($ModuleInfoData, $Filter) {
-
-        $this->EndReturnData = new StdClass();
-        try {
-
-            $SearchDirectQuery = '';
-            $SearchFilter = [];
-            if(!empty($Filter)) {
-                if (array_key_exists('SearchAllData', $Filter)) {
-                    $SearchDirectQuery .= '(('. $ModuleInfoData->TableAliasName.'.Name LIKE "%'.$Filter['SearchAllData'].'%" ) OR ('.$ModuleInfoData->TableAliasName.'.ShortName LIKE "%'.$Filter['SearchAllData'].'%") OR ('.$ModuleInfoData->TableAliasName.'.Description LIKE "%'.$Filter['SearchAllData'].'%"))';
-                }
-            }
-
-            $this->EndReturnData->Error = FALSE;
-            $this->EndReturnData->SearchDirectQuery = $SearchDirectQuery;
-            $this->EndReturnData->SearchFilter = $SearchFilter;
-
-        } catch (Exception $e) {
-            $this->EndReturnData->Error = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-            $this->EndReturnData->SearchDirectQuery = '';
-            $this->EndReturnData->SearchFilter = [];
-        }
-
-        return $this->EndReturnData;
 
     }
 

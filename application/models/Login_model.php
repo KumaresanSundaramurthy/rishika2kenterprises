@@ -32,6 +32,7 @@ class Login_model extends CI_Model {
             $JwtUserData['LastName'] = $UserData->UserLastName;
             $JwtUserData['UserName'] = $UserData->UserName;
             $JwtUserData['EmailAddress'] = $UserData->UserEmailAddress;
+            $JwtUserData['UserImage'] = $UserData->UserImage;
             $JwtUserData['OrgUID'] = $UserData->UserOrgUID;
             $JwtUserData['OrgCCode'] = $UserData->UserOrgCCode;
             $JwtUserData['OrgCISO2'] = $UserData->UserOrgCISO2;
@@ -201,7 +202,7 @@ class Login_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->ModuleDb->select('Module.ModuleUID as ModuleUID, Module.Name as Name, Module.OrgUID as OrgUID, Module.MainMenuUID as MainMenuUID, Module.SubMenuUID as SubMenuUID, Module.ControllerName as ControllerName, Module.DatabaseName as DatabaseName, Module.MasterTableName as MasterTableName, Module.ParentModuleUID as ParentModuleUID, Module.IsMainModule as IsMainModule, Module.IsModuleEnabled as IsModuleEnabled');
+            $this->ModuleDb->select('Module.ModuleUID as ModuleUID, Module.Name as Name, Module.OrgUID as OrgUID, Module.MainMenuUID as MainMenuUID, Module.SubMenuUID as SubMenuUID, Module.ControllerName as ControllerName, Module.DatabaseName as DatabaseName, Module.MasterTableName as MasterTableName, Module.ParentModuleUID as ParentModuleUID, Module.IsMainModule as IsMainModule, Module.IsModuleEnabled as IsModuleEnabled, Module.EditOnPage as EditOnPage');
             $this->ModuleDb->from('Modules.ModuleTbl as Module');
             $this->ModuleDb->where('Module.OrgUID', $OrgUID);
             $this->ModuleDb->where('Module.IsDeleted', 0);

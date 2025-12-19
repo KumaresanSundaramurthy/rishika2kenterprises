@@ -25452,7 +25452,7 @@ li:not(:first-child) .dropdown-item,.dropdown-menu .dropdown-item:not(:first-chi
 
 @media(min-width: 992px) {
     .container,.container-fluid,.container-sm,.container-md,.container-lg,.container-xl,.container-xxl {
-        
+        /* padding-inline: 1.625rem !important; */
     }
 }
 
@@ -28926,4 +28926,16 @@ body:not(.modal-open) .layout-content-navbar .layout-navbar {
 
 .modal-header-border-bottom {
     border-bottom: 1px solid #dee2e6;
+}
+
+.r2k-theme-light-grey {
+    background-color: #f9f9f9;
+}
+
+.mp-filterbox {
+    min-width: 270px;
+    max-height: 350px;
+    top: 100%;
+    z-index: 1055;
+    display: none;
 }

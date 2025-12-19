@@ -24,22 +24,22 @@
                                 <div class="d-flex flex-column flex-md-row justify-content-between align-items-center p-3">
                                     <ul class="nav nav-pills nav nav-pills flex-row" role="tablist">
                                         <li class="nav-item">
-                                            <a class="nav-link active" role="tab" data-bs-toggle="tab" data-bs-target="#NavVendorPage" aria-controls="NavVendorPage" aria-selected="true" href="javascript: void(0);"><i class="bx bx-user me-1"></i> Vendor</a>
+                                            <a class="nav-link active" role="tab" data-bs-toggle="tab" data-bs-target="#NavAccountPage" aria-controls="NavAccountPage" aria-selected="true" href="javascript: void(0);"><i class="bx bx-user me-1"></i> Users</a>
                                         </li>
                                     </ul>
-                                <?php echo $this->load->view('common/view/action_details', ['redirectUrl' => '/vendors/create', 'addActionName' => 'Create Vendor'], TRUE); ?>
+                                <?php echo $this->load->view('common/view/action_details', ['redirectUrl' => 'javascript: void(0);', 'addActionName' => 'Create Users'], TRUE); ?>
                                 </div>
                                 <div class="tab-content p-0">
 
-                                    <div class="tab-pane fade show active" id="NavVendorPage" role="tabpanel">
+                                    <div class="tab-pane fade show active" id="NavAccountPage" role="tabpanel">
 
                                         <div class="table-responsive text-nowrap h-100 tablecard">
-                                            <table class="table table-sm table-striped table-hover" id="VendorsTable">
+                                            <table class="table table-sm table-striped table-hover" id="CustomersTable">
                                                 <thead>
                                                     <tr>
                                                         <th class="table-checkbox">
                                                             <div class="form-check">
-                                                                <input class="form-check-input table-chkbox vendorHeaderCheck" type="checkbox">
+                                                                <input class="form-check-input table-chkbox customerHeaderCheck" type="checkbox">
                                                             </div>
                                                         </th>
                                                         <th class="table-serialno <?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>">S.No</th>
@@ -57,7 +57,7 @@
                                             </table>
                                         </div>
                                         <hr class="my-0" />
-                                        <div class="row mx-3 justify-content-between VendorsPagination" id="VendorsPagination">
+                                        <div class="row mx-3 justify-content-between CustomersPagination" id="CustomersPagination">
                                             <?php echo $ModPagination; ?>
                                         </div>
 
@@ -72,7 +72,7 @@
 
             </div>
             <!-- Content wrapper -->
-            
+
             <?php $this->load->view('common/settings_modal'); ?>
             <?php $this->load->view('common/footer_desc'); ?>
 
@@ -83,18 +83,18 @@
 
 <?php $this->load->view('common/footer'); ?>
 
-<script src="/js/vendors.js"></script>
+<script src="/js/customers.js"></script>
 <script src="/js/common/pagecheckbox.js"></script>
 
 <script>
 let ModuleId = <?php echo $ModuleId; ?>;
-const ModuleTable = '#VendorsTable';
-const ModulePag = '.VendorsPagination';
-const ModuleHeader = '.vendorHeaderCheck';
-const ModuleRow = '.vendorsCheck';
-const ModuleFileName = 'Vendor_Data';
-const ModuleSheetName = 'Vendor';
-const previewName = 'Vendor Details';
+const ModuleTable = '#CustomersTable';
+const ModulePag = '.CustomersPagination';
+const ModuleHeader = '.customerHeaderCheck';
+const ModuleRow = '.customerCheck';
+const ModuleFileName = 'Customer_Data';
+const ModuleSheetName = 'Customer';
+const previewName = 'Customer Details';
 let sortState = 0;
 $(function() {
     'use strict'
@@ -103,10 +103,10 @@ $(function() {
     $(ModuleRow).prop('checked', false).trigger('change');
 
     baseExportFunctions();
-    basePaginationFunc(ModulePag, getVendorsDetails);
-    baseRefreshPageFunc('.PageRefresh', getVendorsDetails);
+    basePaginationFunc(ModulePag, getCustomersDetails);
+    baseRefreshPageFunc('.PageRefresh', getCustomersDetails);
     basePageHeaderFunc(ModuleHeader, ModuleTable, ModuleRow);
-
+    
     $(document).on('click', ModuleRow, function() {
         onClickOfCheckbox($(this), ModuleTable, ModuleHeader, ModuleRow);
         $('#CloneOption').addClass('d-none');
@@ -119,7 +119,7 @@ $(function() {
     $('#btnClone').click(function(e) {
         e.preventDefault();
         if (SelectedUIDs.length == 1) {
-            window.location.href = '/vendors/' + SelectedUIDs[0] + '/clone';
+            window.location.href = '/customers/' + SelectedUIDs[0] + '/clone';
         }
     });
 
@@ -134,7 +134,7 @@ $(function() {
                 Filter['SearchAllData'] = searchText;
             }
             $('#SearchDetails').blur();
-            getVendorsDetails(PageNo, RowLimit, Filter);
+            getCustomersDetails(PageNo, RowLimit, Filter);
         }
     }, 500));
 
@@ -148,16 +148,16 @@ $(function() {
             SelectedUIDs = [];
             delete Filter['SearchAllData'];
             $('#SearchDetails').blur();
-            getVendorsDetails(PageNo, RowLimit, Filter);
+            getCustomersDetails(PageNo, RowLimit, Filter);
         }
     });
 
-    $(document).on('click', '.DeleteVendor', function(e) {
+    $(document).on('click', '.DeleteCustomer', function(e) {
         e.preventDefault();
-        var GetId = $(this).data('vendoruid');
+        var GetId = $(this).data('customeruid');
         if (GetId) {
             Swal.fire({
-                title: "Do you want to delete the vendor?",
+                title: "Do you want to delete the customer?",
                 text: "You won't be able to revert this!",
                 icon: "info",
                 showCancelButton: true,
@@ -166,7 +166,7 @@ $(function() {
                 cancelButtonColor: "#3085d6",
             }).then((result) => {
                 if (result.isConfirmed) {
-                    deleteVendor(GetId);
+                    deleteCustomer(GetId);
                 }
             });
         }
@@ -175,7 +175,7 @@ $(function() {
     $('#btnDelete').click(function(e) {
         e.preventDefault();
         if (SelectedUIDs.length > 0) {
-            let DeleteContent = 'Do you want to delete all the selected vendors?';
+            let DeleteContent = 'Do you want to delete all the selected customers?';
             Swal.fire({
                 title: DeleteContent,
                 text: "You won't be able to revert this!",
@@ -186,7 +186,7 @@ $(function() {
                 cancelButtonColor: "#3085d6",
             }).then((result) => {
                 if (result.isConfirmed) {
-                    deleteMultipleVendors();
+                    deleteMultipleCustomers();
                 }
             });
         }
@@ -215,7 +215,7 @@ $(function() {
             delete Filter['NameSorting'];
         }
         $(this).tooltip('dispose').tooltip();
-        getVendorsDetails(PageNo, RowLimit, Filter);
+        getCustomersDetails(PageNo, RowLimit, Filter);
     });
 
 });

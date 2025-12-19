@@ -3,7 +3,12 @@
 <?php if(sizeof($Categories) > 0) { ?>
 
     <!-- Search Box -->
-    <input type="text" id="categorySearch" class="form-control form-control-sm mb-4" placeholder="Search category...">
+    <div class="d-flex align-items-center mb-2">
+        <input type="text" id="categorySearch" class="form-control form-control-sm me-2" style="width:95%;" placeholder="Search category...">
+        <button type="button" class="btn btn-outline-success" data-toggle="tooltip" title="Load All Data" onclick="refreshSearchCateg(this)">
+            <i class="bx bx-refresh"></i>
+        </button>
+    </div>
 
     <div class="form-check mb-2">
         <label class="form-check-label w-100 d-flex align-items-center">

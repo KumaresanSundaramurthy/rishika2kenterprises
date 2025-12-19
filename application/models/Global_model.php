@@ -3,6 +3,7 @@
 class Global_model extends CI_Model {
 
     private $EndReturnData;
+    private $ReadDb;
     private $GlobalDb;
     private $ModuleDb;
     private $GlbCountryKey;
@@ -20,6 +21,7 @@ class Global_model extends CI_Model {
 
         $this->GlobalDb = $this->load->database('Global', TRUE);
         $this->ModuleDb = $this->load->database('Modules', TRUE);
+        $this->ReadDb = $this->load->database('ReadDB', TRUE);
 
         $this->oneYearTTL = 60 * 60 * 24 * 365; // 60 (seconds) * 60 (minutes) * 24 (hours) * 365 (days) = 31,536,000 seconds
         $this->GlbCountryKey = 'Glb_CountryInfo';
@@ -547,10 +549,10 @@ class Global_model extends CI_Model {
         $this->EndReturnData = new StdClass();
         try {
 
-            $RedisName = getSiteConfiguration()->RedisName.'-'.base64_encode(json_encode(['WC' => $WhereCond, 'WIC' => $whereInCondition])).'-getModuleDetails';
-            $this->cacheservice->delete($RedisName);
-            $ModDataRedis = $this->cacheservice->get($RedisName);
-            if ($ModDataRedis->Error) {
+            // $RedisName = getSiteConfiguration()->RedisName.'-'.base64_encode(json_encode(['WC' => $WhereCond, 'WIC' => $whereInCondition])).'-getModuleDetails';
+            // $this->cacheservice->delete($RedisName);
+            // $ModDataRedis = $this->cacheservice->get($RedisName);
+            // if ($ModDataRedis->Error) {
 
                 $this->GlobalDb->db_debug = FALSE;
 
@@ -571,6 +573,7 @@ class Global_model extends CI_Model {
                     'Modules.ParentModuleUID as ParentModuleUID',
                     'Modules.IsMainModule as IsMainModule',
                     'Modules.IsModuleEnabled as IsModuleEnabled',
+                    'Modules.EditOnPage as EditOnPage',
                 );
                 $WhereCondition = array(
                     'Modules.IsDeleted' => 0,
@@ -597,16 +600,16 @@ class Global_model extends CI_Model {
                     $this->EndReturnData->Data = $query->result();
                 }
 
-                $this->cacheservice->set($RedisName, json_encode($this->EndReturnData->Data), 60);
+                // $this->cacheservice->set($RedisName, json_encode($this->EndReturnData->Data), 60);
 
                 return $this->EndReturnData->Data;
 
-            } else {
+            // } else {
 
-                $this->EndReturnData->Data = json_decode($ModDataRedis->Value);
-                return $this->EndReturnData->Data;
+            //     $this->EndReturnData->Data = json_decode($ModDataRedis->Value);
+            //     return $this->EndReturnData->Data;
 
-            }
+            // }
 
         } catch (Exception $e) {
             $this->EndReturnData->Error = TRUE;
@@ -998,6 +1001,18 @@ class Global_model extends CI_Model {
 
         }
 
+    }
+
+    public function getSingleRow($dbName = '', $table = '', $where = [], $select = '*') {
+        $query = $this->ReadDb->select($select)
+                          ->from($dbName.'.'.$table)
+                          ->where($where)
+                          ->limit(1)
+                          ->get();
+        if ($query->num_rows() > 0) {
+            return $query->row();
+        }
+        return null;
     }
     
 }

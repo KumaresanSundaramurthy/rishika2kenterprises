@@ -24,11 +24,16 @@
 
                     <input type="hidden" name="OrgUID" id="OrgUID" value="<?php echo isset($EditOrgData->OrgUID) ? $EditOrgData->OrgUID : ''; ?>" />
 
+                    <div class="d-none updateFormAlert alert alert-danger alert-dismissible fade show p-3 m-3 mb-0" role="alert">
+                        <span class="alert-message"></span>
+                        <button type="button" class="btn-close" aria-label="Close"></button>
+                    </div>
+
                     <div class="card mb-3">
                         <div class="card-header modal-header-center-sticky d-flex justify-content-between align-items-center mb-3">
                             <h5 class="modal-title">Organisation Details</h5>
                             <div class="d-flex align-items-center gap-2" id="mainActionBar">
-                                <button type="button" class="btn btn-label-danger" data-bs-dismiss="modal" aria-label="Close">Close</button>
+                                <!-- <button type="button" class="btn btn-label-danger" data-bs-dismiss="modal" aria-label="Close">Close</button> -->
                                 <button type="submit" class="btn btn-primary OrgSubBtn me-2">Update</button>
                             </div>
                         </div>
@@ -62,23 +67,25 @@
                                 
                                 <div class="mb-3 col-md-6 mt-2">
                                     <label class="form-label" for="MobileNumber">Mobile Number <span style="color:red">*</span></label>
-                                    <div class="input-group input-group-merge">
-                                        <div class="col-md-4">
-                                            <select id="CountryCode" name="CountryCode" class="select2 form-select" required>
-                                                <option label="-- Select Country Code --"></option>
-                                                <?php if (sizeof($CountryInfo) > 0) {
-                                                    foreach ($CountryInfo as $Country) { ?>
-                                                        <option value="<?php echo $Country->phone[0]; ?>" data-region="<?php echo $Country->region; ?>" data-ccode="<?php echo $Country->iso->{'alpha-2'}; ?>" <?php echo isset($EditOrgData->CountryCode) && ($EditOrgData->CountryCode == $Country->phone[0]) ? 'selected' : ''; ?>><?php echo '(' . $Country->phone[0] . ') ' . $Country->name; ?></option>
-                                                <?php }
-                                                } ?>
-                                            </select>
-                                        </div>
-                                        <div class="col-md-8">
-                                            <input type="number" id="MobileNumber" name="MobileNumber" class="form-control" placeholder="9790 000 0000" value="<?php echo isset($EditOrgData->MobileNumber) ? $EditOrgData->MobileNumber : ''; ?>" maxLength="20" required onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))" oninput="this.value=this.value.slice(0,this.maxLength)" pattern="[0-9]*" />
-                                        </div>
+                                    <div class="d-flex gap-2">
+                                        <select id="CountryCode" name="CountryCode" class="select2 form-select">
+                                            <option label="-- Select Country Code --"></option>
+                                            <?php if (sizeof($CountryInfo) > 0) {
+                                                foreach ($CountryInfo as $Country) { ?>
+                                                    <option
+                                                        value="<?php echo $Country->phone[0]; ?>"
+                                                        data-region="<?php echo $Country->region; ?>"
+                                                        data-ccode="<?php echo $Country->iso->{'alpha-2'}; ?>"
+                                                        <?php echo ($EditOrgData->CountryCode == $Country->phone[0]) ? 'selected' : ''; ?>>
+                                                        <?php echo '(' . $Country->phone[0] . ') ' . $Country->name; ?>
+                                                    </option>
+                                            <?php }
+                                            } ?>
+                                        </select>
+                                        <input type="number" id="MobileNumber" name="MobileNumber" class="form-control" placeholder="9790 000 0000" value="<?php echo isset($EditOrgData->MobileNumber) ? $EditOrgData->MobileNumber : ''; ?>" maxLength="20" onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))" oninput="this.value=this.value.slice(0,this.maxLength)" pattern="[0-9]*" />
                                     </div>
                                 </div>
-                                <div class="mb-3 col-md-6">
+                                <div class="mb-3 col-md-6 mt-2">
                                     <label for="email" class="form-label">Company Email <span style="color:red">*</span></label>
                                     <input class="form-control" type="email" id="EmailAddress" name="EmailAddress" required disabled maxlength="100" placeholder="Email Address" value="<?php echo isset($EditOrgData->EmailAddress) ? $EditOrgData->EmailAddress : ''; ?>" />
                                 </div>
@@ -266,7 +273,7 @@
                         <div class="card-body p-0">
                             <div class="m-3">
                                 <button type="submit" class="btn btn-primary OrgSubBtn me-2 ">Update</button>
-                                <a href="/dashboard" class="btn btn-label-danger">Close</a>
+                                <!-- <a href="/dashboard" class="btn btn-label-danger">Close</a> -->
                             </div>
                         </div>
                     </div>
@@ -276,13 +283,12 @@
                         <div class="card-body p-0">
                             <div class="m-3 text-end">
                             <button type="submit" class="btn btn-primary OrgSubBtn me-2">Update</button>
-                            <a href="/dashboard" class="btn btn-label-danger">Close</a>
+                            <!-- <a href="/dashboard" class="btn btn-label-danger">Close</a> -->
                             </div>
                         </div>
                     </div>
 
-                    <?php echo form_close(); ?>
-
+                <?php echo form_close(); ?>
                     <!-- / Org Details -->
 
                 </div>
@@ -330,29 +336,19 @@ $(function() {
         e.preventDefault();
 
         var BillLine1 = $('#BillAddrLine1').val();
-        if (BillLine1 && BillLine1.trim() !== "") {
-            $('#ShipAddrLine1').val(BillLine1);
-        }
+        if (hasValue(BillLine1)) $('#ShipAddrLine1').val(BillLine1);
 
         var BillLine2 = $('#BillAddrLine2').val();
-        if (BillLine2 && BillLine2.trim() !== "") {
-            $('#ShipAddrLine2').val(BillLine2);
-        }
+        if (hasValue(BillLine2)) $('#ShipAddrLine2').val(BillLine2);
 
         var BillPincode = $('#BillAddrPincode').val();
-        if (BillPincode && BillPincode.trim() !== "") {
-            $('#ShipAddrPincode').val(BillPincode);
-        }
+        if (hasValue(BillPincode)) $('#ShipAddrPincode').val(BillPincode);
 
         var BillState = $('#BillAddrState').find('option:selected').val();
-        if (BillState && BillState.trim() !== "" && BillState !== undefined) {
-            $('#ShipAddrState').val(BillState).trigger('change');
-        }
+        if (hasValue(BillState)) $('#ShipAddrState').val(BillState).trigger('change');
 
         var BillCity = $('#BillAddrCity').find('option:selected').val();
-        if (BillCity && BillCity.trim() !== "" && BillCity !== undefined) {
-            $('#ShipAddrCity').val(BillCity).trigger('change');
-        }
+        if (hasValue(BillCity)) $('#ShipAddrCity').val(BillCity).trigger('change');
 
     });
 
@@ -363,11 +359,11 @@ $(function() {
         var MobNum = $('#MobileNumber').val();
         var Status = validateMobileNumber(Ccode, MobNum);
         if (Status === false) {
-            $('#updateFormAlert').removeClass('d-none');
-            inlineMessageAlert('#updateFormAlert', 'danger', 'Enter valid Phone Number', false, false);
+            $('.updateFormAlert').removeClass('d-none');
+            inlineMessageAlert('.updateFormAlert', 'danger', 'Enter valid Phone Number', false, false);
             return false;
         }
-        $('#updateFormAlert').addClass('d-none');
+        $('.updateFormAlert').addClass('d-none');
         var formData = new FormData($('#OrganisationForm')[0]);
         formData.append('CountryISO2', $('#CountryCode').find('option:selected').data('ccode'));
         formData.append('imageChange', imageChange);

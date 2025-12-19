@@ -3,7 +3,12 @@
 <?php if(sizeof($Storage) > 0) { ?>
 
     <!-- Search Box -->
-    <input type="text" id="storageSearch" class="form-control form-control-sm mb-4" placeholder="Search storage...">
+    <div class="d-flex align-items-center mb-2">
+        <input type="text" id="storageSearch" class="form-control form-control-sm me-2" style="width:95%;" placeholder="Search storage...">
+        <button type="button" class="btn btn-outline-success" data-toggle="tooltip" title="Load All Data" onclick="refreshSearchStorage(this)">
+            <i class="bx bx-refresh"></i>
+        </button>
+    </div>
 
     <div class="form-check mb-2">
         <label class="form-check-label w-100 d-flex align-items-center">
@@ -14,7 +19,6 @@
 
     <!-- Storage List -->
     <div id="storageList" style="max-height: 180px; overflow-y: auto;">
-        
         <?php foreach ($Storage as $strg) { ?>
                 <div class="form-check mb-2 my-1 list-hover-bg">
                     <label class="form-check-label w-100 d-flex align-items-center">
@@ -23,7 +27,6 @@
                     </label>
                 </div>
         <?php } ?>
-        
     </div>
 
     <div class="border-top pt-2 mt-2 d-flex justify-content-between gap-2">

@@ -60,7 +60,7 @@ $route['logout'] = 'login/logout';
 // Settings
 $route['settings/profile'] = 'profile';
 $route['settings/organisation'] = 'organisation';
-$route['settings/account'] = 'account';
+$route['settings/users'] = 'users';
 
 // Customers
 $route['customers/(:num)/edit'] = 'customers/edit/$1';

@@ -34,13 +34,9 @@ class Formvalidation_model extends CI_Model {
         }
 
         $this->form_validation->set_rules($config);
-
         if ($this->form_validation->run() == FALSE) {
-
             return validation_errors();
-            
         } else {
-
             return '';
         }
 
@@ -77,13 +73,9 @@ class Formvalidation_model extends CI_Model {
         }
 
         $this->form_validation->set_rules($config);
-
         if ($this->form_validation->run() == FALSE) {
-
             return validation_errors();
-            
         } else {
-
             return '';
         }
 
@@ -133,7 +125,6 @@ class Formvalidation_model extends CI_Model {
         }
 
         $this->form_validation->set_rules($config);
-
         if ($this->form_validation->run() == FALSE) {
             return validation_errors();
         } else {
@@ -237,7 +228,6 @@ class Formvalidation_model extends CI_Model {
         }
 
         $this->form_validation->set_rules($config);
-
         if ($this->form_validation->run() == FALSE) {
             return validation_errors();
         } else {
@@ -264,7 +254,6 @@ class Formvalidation_model extends CI_Model {
         }
 
         $this->form_validation->set_rules($config);
-
         if ($this->form_validation->run() == FALSE) {
             return validation_errors();
         } else {
@@ -290,13 +279,9 @@ class Formvalidation_model extends CI_Model {
         }
 
         $this->form_validation->set_rules($config);
-
         if ($this->form_validation->run() == FALSE) {
-
             return validation_errors();
-            
         } else {
-
             return '';
         }
 
@@ -319,13 +304,9 @@ class Formvalidation_model extends CI_Model {
         }
 
         $this->form_validation->set_rules($config);
-
         if ($this->form_validation->run() == FALSE) {
-
             return validation_errors();
-            
         } else {
-
             return '';
         }
 
@@ -350,13 +331,50 @@ class Formvalidation_model extends CI_Model {
         }
 
         $this->form_validation->set_rules($config);
-
         if ($this->form_validation->run() == FALSE) {
-
             return validation_errors();
-            
         } else {
+            return '';
+        }
 
+    }
+
+    public function profValidateForm($data) {
+
+        $this->form_validation->set_data($data);
+
+        $dd['userUid'] = array('field' => 'userUid', 'label' => 'User UID', 'rules' => 'required|xss_clean|trim|numeric');
+        $dd['fistName'] = array('field' => 'fistName', 'label' => 'First Name', 'rules' => 'trim|required|xss_clean|min_length[3]|max_length[100]');
+        $dd['CountryCode'] = array('field' => 'CountryCode', 'label' => 'Country', 'rules' => 'trim|required|xss_clean');
+        $dd['CountryISO2'] = array('field' => 'CountryISO2', 'label' => 'Country ISO2', 'rules' => 'trim|required|xss_clean');
+        $dd['MobileNumber'] = array('field' => 'MobileNumber', 'label' => 'Mobile Number', 'rules' => 'trim|required|xss_clean');
+        $dd['UploadImage'] = array('field' => 'UploadImage', 'label' => 'Upload Image', 'rules' => 'callback_checkImageType');
+
+        $dd['oldPassword']     = array('field' => 'oldPassword', 'label' => 'Old Password', 'rules' => 'trim|xss_clean|min_length[6]|max_length[20]');
+        $dd['newPassword']     = array('field' => 'newPassword', 'label' => 'New Password', 'rules' => 'trim|xss_clean|min_length[6]|max_length[20]|callback_check_new_password');
+        $dd['confirmPassword'] = array('field' => 'confirmPassword', 'label' => 'Confirm Password', 'rules' => 'trim|xss_clean|matches[newPassword]');
+
+        $config = array();
+        
+        foreach($data as $key) {
+            if (array_key_exists($key, $dd)) {
+                array_push($config, $dd[$key]);
+            }
+        }
+
+        if (!empty($data['oldPassword']) || !empty($data['newPassword']) || !empty($data['confirmPassword'])) {
+            $dd['oldPassword']['rules']     .= '|required';
+            $dd['newPassword']['rules']     .= '|required';
+            $dd['confirmPassword']['rules'] .= '|required';
+            $config[] = $dd['oldPassword'];
+            $config[] = $dd['newPassword'];
+            $config[] = $dd['confirmPassword'];
+        }
+
+        $this->form_validation->set_rules($config);
+        if ($this->form_validation->run() == FALSE) {
+            return validation_errors();
+        } else {
             return '';
         }
 

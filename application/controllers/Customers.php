@@ -396,15 +396,9 @@ class Customers extends CI_Controller {
             if (!$CustomerUID) {
                 throw new Exception('Customer Information is Missing to Delete');
             }
-
-            $updateCustData = [
-                'IsDeleted' => 1,
-                'UpdatedBy' => $this->pageData['JwtData']->User->UserUID,
-                'UpdatedOn' => time(),
-            ];
-
+            
             $this->load->model('dbwrite_model');
-            $UpdateResp = $this->dbwrite_model->updateData('Customers', 'CustomerTbl', $updateCustData, ['CustomerUID' => $CustomerUID]);
+            $UpdateResp = $this->dbwrite_model->updateData('Customers', 'CustomerTbl', $this->globalservice->baseDeleteArrayDetails(), ['CustomerUID' => $CustomerUID]);
             if($UpdateResp->Error) {
                 throw new Exception($UpdateResp->Message);
             }
@@ -435,15 +429,9 @@ class Customers extends CI_Controller {
             if (empty($CustomerUIDs)) {
                 throw new Exception('Customer Information is Missing to Delete');
             }
-
-            $updateDelData = [
-                'IsDeleted' => 1,
-                'UpdatedBy' => $this->pageData['JwtData']->User->UserUID,
-                'UpdatedOn' => time(),
-            ];
-
+            
             $this->load->model('dbwrite_model');
-            $UpdateResp = $this->dbwrite_model->updateData('Customers', 'CustomerTbl', $updateDelData, [], array('CustomerUID' => $CustomerUIDs));
+            $UpdateResp = $this->dbwrite_model->updateData('Customers', 'CustomerTbl', $this->globalservice->baseDeleteArrayDetails(), [], array('CustomerUID' => $CustomerUIDs));
             if($UpdateResp->Error) {
                 throw new Exception($UpdateResp->Message);
             }

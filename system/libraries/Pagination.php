@@ -204,14 +204,14 @@ class CI_Pagination {
 	 *
 	 * @var	string
 	 */
-	protected $cur_tag_open = '<li class="dt-paging-button page-item active"><span class="page-link">';
+	protected $cur_tag_open = '<li class="dt-paging-button page-item active"><a class="page-link" href="javascript: void(0);">';
 
 	/**
 	 * Current tag close
 	 *
 	 * @var	string
 	 */
-	protected $cur_tag_close = '</span></li>';
+	protected $cur_tag_close = '</a></li>';
 
 	/**
 	 * Next tag open
@@ -576,7 +576,7 @@ class CI_Pagination {
 		}
 
 		// And here we go...
-		$output = '<div class="dt-paging"><nav aria-label="pagination"><ul class="pagination">';
+		$output = '<div class="dt-paging"><nav aria-label="pagination"><ul class="pagination pagination-rounded">';
 
 		// Render the "First" link.
 		if ($this->first_link !== FALSE && $this->cur_page > ($this->num_links + 1 + ! $this->num_links))

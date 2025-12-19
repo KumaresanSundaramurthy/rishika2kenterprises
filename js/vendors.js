@@ -1,4 +1,9 @@
-function getVendorsDetails(PageNo, RowLimit, Filter) {
+/**
+ * @param {*} PageNo
+ * @param {*} RowLimit
+ * @param {*} Filter
+ */
+function getCustomersDetails(PageNo, RowLimit, Filter) {
     $.ajax({
         url: '/globally/getModPageDataDetails/' + PageNo,
         method: "POST",
@@ -92,6 +97,61 @@ function editVendorData(formdata) {
                 }, 250);
             }
         }
+    });
+}
+
+function deleteVendor(DeleteId) {
+    $.ajax({
+        url: '/customers/deleteVendorData',
+        method: 'POST',
+        data: {
+            RowLimit: RowLimit,
+            PageNo: PageNo,
+            Filter: Filter,
+            VendorUID: DeleteId,
+            ModuleId: ModuleId
+        },
+        cache: false,
+        success: function (response) {
+            if (response.Error) {
+                Swal.fire(response.Message, "", "danger");
+                $(ModuleTable + ' tbody').html('');
+                $(ModulePag).html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');
+            } else {
+                Swal.fire(response.Message, "", "success");
+                $(ModulePag).html(response.Pagination);
+                $(ModuleTable + ' tbody').html(response.List);
+            }
+            executeTablePagnCommonFunc(response, true);
+        }
+    });
+}
+
+function deleteMultipleVendors() {
+    $.ajax({
+        url: '/vendors/deleteBulkVendors',
+        method: "POST",
+        cache: false,
+        data: {
+            RowLimit: RowLimit,
+            PageNo: PageNo,
+            Filter: Filter,
+            VendorUIDs: SelectedUIDs,
+            ModuleId: ModuleId
+        },
+        success: function (response) {
+            if (response.Error) {
+                Swal.fire(response.Message, "", "danger");
+                $(ModuleTable + ' tbody').html('');
+                $(ModulePag).html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');
+            } else {
+                Swal.fire(response.Message, "", "success");
+                $(ModulePag).html(response.Pagination);
+                $(ModuleTable + ' tbody').html(response.List);
+                SelectedUIDs = [];
+                executeTablePagnCommonFunc(response, true);
+            }
+        },
     });
 }
 

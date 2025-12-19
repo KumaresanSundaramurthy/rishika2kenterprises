@@ -242,7 +242,7 @@ class Globally extends CI_Controller {
                 $Filter = isset($_GET['Filter']) ? json_decode($_GET['Filter'], TRUE) : [];
                 $WhereInData = isset($_GET['ExportIds']) ? ['ExportIds' => explode(',', base64_decode($_GET['ExportIds']))] : [];
 
-                $DataResp = $this->globalservice->getModulePageColumnDetails($ModuleId, 'PrintPage', '', $Filter, $WhereInData, 0, 0);
+                $DataResp = $this->globalservice->getModulePageColumnDetails($ModuleId, 'PrintPage', $Filter, $WhereInData, 0, 0);
                 if($DataResp->Error === FALSE) {
                     
                     $this->pageData['ViewColumns'] = $DataResp->DispViewColumns;
@@ -298,7 +298,7 @@ class Globally extends CI_Controller {
                     $Filter = isset($_GET['Filter']) ? json_decode($_GET['Filter'], TRUE) : [];
                     $WhereInData = isset($_GET['ExportIds']) ? ['ExportIds' => explode(',', base64_decode($_GET['ExportIds']))] : [];
                     
-                    $DataResp = $this->globalservice->getModulePageColumnDetails($ModuleId, $PageType, '', $Filter, $WhereInData, 0, 0);
+                    $DataResp = $this->globalservice->getModulePageColumnDetails($ModuleId, $PageType, $Filter, $WhereInData, 0, 0);
                     if($DataResp->Error === FALSE) {                        
 
                         $FileName = isset($_GET['FileName']) ? $_GET['FileName'] : 'NewFile';

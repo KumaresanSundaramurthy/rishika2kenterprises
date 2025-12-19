@@ -18,33 +18,45 @@ class Products_model extends CI_Model {
 
             $SearchDirectQuery = '';
             $SearchFilter = [];
+            $sortOperation = [];
             if(!empty($Filter)) {
                 if (array_key_exists('SearchAllData', $Filter)) {
-                    $SearchDirectQuery .= '(('. $ModuleInfoData->TableAliasName.'.ItemName LIKE "%'.$Filter['SearchAllData'].'%" ) OR ('.$ModuleInfoData->TableAliasName.'.HSNSACCode LIKE "%'.$Filter['SearchAllData'].'%") OR ('.$ModuleInfoData->TableAliasName.'.PartNumber LIKE "%'.$Filter['SearchAllData'].'%") OR ('.$ModuleInfoData->TableAliasName.'.Description LIKE "%'.$Filter['SearchAllData'].'%"))';
+                    $SearchDirectQuery .= "((". $ModuleInfoData->TableAliasName.".ItemName LIKE '%".$Filter['SearchAllData']."%' ) OR (".$ModuleInfoData->TableAliasName.".HSNSACCode LIKE '%".$Filter['SearchAllData']."%') OR (".$ModuleInfoData->TableAliasName.".PartNumber LIKE '%".$Filter['SearchAllData']."%') OR (".$ModuleInfoData->TableAliasName.".Description LIKE '%".$Filter['SearchAllData']."%'))";
+                }
+                if (array_key_exists('ProductType', $Filter)) {
+                    if($SearchDirectQuery != '') {
+                        $SearchDirectQuery .= ' AND ';
+                    }
+                    $SearchDirectQuery .= $ModuleInfoData->TableAliasName.'.ProductType IN ('.implode(',', $Filter['ProductType']).')';
                 }
                 if (array_key_exists('Category', $Filter)) {
                     if($SearchDirectQuery != '') {
                         $SearchDirectQuery .= ' AND ';    
                     }
-                    $SearchDirectQuery .= $ModuleInfoData->TableAliasName.'.CategoryUID IN ('.implode($Filter['Category']).')';
+                    $SearchDirectQuery .= $ModuleInfoData->TableAliasName.'.CategoryUID IN ('.implode(',', $Filter['Category']).')';
                 }
                 if (array_key_exists('Storage', $Filter)) {
                     if($SearchDirectQuery != '') {
                         $SearchDirectQuery .= ' AND ';    
                     }
-                    $SearchDirectQuery .= $ModuleInfoData->TableAliasName.'.StorageUID IN ('.implode($Filter['Storage']).')';
+                    $SearchDirectQuery .= $ModuleInfoData->TableAliasName.'.StorageUID IN ('.implode(',', $Filter['Storage']).')';
+                }
+                if (array_key_exists('NameSorting', $Filter)) {
+                    $sortOperation[$ModuleInfoData->TableAliasName . '.ItemName'] = $Filter['NameSorting'] == 1 ? 'ASC' : 'DESC';
                 }
             }
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->SearchDirectQuery = $SearchDirectQuery;
             $this->EndReturnData->SearchFilter = $SearchFilter;
+            $this->EndReturnData->sortOperation = $sortOperation;
 
         } catch (Exception $e) {
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             $this->EndReturnData->SearchDirectQuery = '';
             $this->EndReturnData->SearchFilter = [];
+            $this->EndReturnData->sortOperation = [];
         }
 
         return $this->EndReturnData;
@@ -136,21 +148,27 @@ class Products_model extends CI_Model {
 
             $SearchDirectQuery = '';
             $SearchFilter = [];
+            $sortOperation = [];
             if(!empty($Filter)) {
                 if (array_key_exists('SearchAllData', $Filter)) {
-                    $SearchDirectQuery .= '(('. $ModuleInfoData->TableAliasName.'.Name LIKE "%'.$Filter['SearchAllData'].'%" ) OR ('.$ModuleInfoData->TableAliasName.'.Description LIKE "%'.$Filter['SearchAllData'].'%"))';
+                    $SearchDirectQuery .= "((". $ModuleInfoData->TableAliasName.".Name LIKE '%".$Filter['SearchAllData']."%' ) OR (".$ModuleInfoData->TableAliasName.".Description LIKE '%".$Filter['SearchAllData']."%'))";
+                }
+                if (array_key_exists('NameSorting', $Filter)) {
+                    $sortOperation[$ModuleInfoData->TableAliasName . '.Name'] = $Filter['NameSorting'] == 1 ? 'ASC' : 'DESC';
                 }
             }
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->SearchDirectQuery = $SearchDirectQuery;
             $this->EndReturnData->SearchFilter = $SearchFilter;
+            $this->EndReturnData->sortOperation = $sortOperation;
 
         } catch (Exception $e) {
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             $this->EndReturnData->SearchDirectQuery = '';
             $this->EndReturnData->SearchFilter = [];
+            $this->EndReturnData->sortOperation = [];
         }
 
         return $this->EndReturnData;
@@ -207,21 +225,27 @@ class Products_model extends CI_Model {
 
             $SearchDirectQuery = '';
             $SearchFilter = [];
+            $sortOperation = [];
             if(!empty($Filter)) {
                 if (array_key_exists('SearchAllData', $Filter)) {
-                    $SearchDirectQuery .= '(('. $ModuleInfoData->TableAliasName.'.Name LIKE "%'.$Filter['SearchAllData'].'%" ) OR ('.$ModuleInfoData->TableAliasName.'.Description LIKE "%'.$Filter['SearchAllData'].'%"))';
+                    $SearchDirectQuery .= "((". $ModuleInfoData->TableAliasName.".Name LIKE '%".$Filter['SearchAllData']."%' ) OR (".$ModuleInfoData->TableAliasName.".Description LIKE '%".$Filter['SearchAllData']."%'))";
+                }
+                if (array_key_exists('NameSorting', $Filter)) {
+                    $sortOperation[$ModuleInfoData->TableAliasName . '.Name'] = $Filter['NameSorting'] == 1 ? 'ASC' : 'DESC';
                 }
             }
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->SearchDirectQuery = $SearchDirectQuery;
             $this->EndReturnData->SearchFilter = $SearchFilter;
+            $this->EndReturnData->sortOperation = $sortOperation;
 
         } catch (Exception $e) {
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             $this->EndReturnData->SearchDirectQuery = '';
             $this->EndReturnData->SearchFilter = [];
+            $this->EndReturnData->sortOperation = [];
         }
 
         return $this->EndReturnData;
@@ -278,21 +302,27 @@ class Products_model extends CI_Model {
 
             $SearchDirectQuery = '';
             $SearchFilter = [];
+            $sortOperation = [];
             if(!empty($Filter)) {
                 if (array_key_exists('SearchAllData', $Filter)) {
-                    $SearchDirectQuery .= '(('. $ModuleInfoData->TableAliasName.'.Name LIKE "%'.$Filter['SearchAllData'].'%" ) OR ('.$ModuleInfoData->TableAliasName.'.Description LIKE "%'.$Filter['SearchAllData'].'%"))';
+                    $SearchDirectQuery .= "((". $ModuleInfoData->TableAliasName.".Name LIKE '%".$Filter['SearchAllData']."%' ) OR (".$ModuleInfoData->TableAliasName.".Description LIKE '%".$Filter['SearchAllData']."%'))";
+                }
+                if (array_key_exists('NameSorting', $Filter)) {
+                    $sortOperation[$ModuleInfoData->TableAliasName . '.Name'] = $Filter['NameSorting'] == 1 ? 'ASC' : 'DESC';
                 }
             }
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->SearchDirectQuery = $SearchDirectQuery;
             $this->EndReturnData->SearchFilter = $SearchFilter;
+            $this->EndReturnData->sortOperation = $sortOperation;
 
         } catch (Exception $e) {
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             $this->EndReturnData->SearchDirectQuery = '';
             $this->EndReturnData->SearchFilter = [];
+            $this->EndReturnData->sortOperation = [];
         }
 
         return $this->EndReturnData;

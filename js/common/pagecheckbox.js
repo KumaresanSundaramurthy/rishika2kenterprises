@@ -1,6 +1,7 @@
 function basePaginationFunc(ModulePag, callbackFn) {
     $(ModulePag).on('click', 'a', function(e) {
         e.preventDefault();
+        SelectedUIDs = [];
         PageNo = $(this).attr('data-ci-pagination-page');
         callbackFn(PageNo, RowLimit, Filter);
     });
@@ -9,6 +10,7 @@ function basePaginationFunc(ModulePag, callbackFn) {
 function baseRefreshPageFunc(RefreshBtn, callbackFn) {
     $(RefreshBtn).click(function(e) {
         e.preventDefault();
+        SelectedUIDs = [];
         callbackFn(PageNo, RowLimit, Filter);
     });
 }
@@ -83,7 +85,7 @@ function headerCheckboxTrueFalse(TableId, HeaderField, TableRow) {
     let tabRowCount = $(TableId+' '+TableRow).map(function() {
         return parseInt($(this).val(), 10);
     }).get().length;
-    if(SelectedUIDs.length === tabRowCount) {
+    if(SelectedUIDs.length > 0 && SelectedUIDs.length === tabRowCount) {
         $(HeaderField).prop('checked', true);
     } else {
         $(HeaderField).prop('checked', false);
@@ -91,16 +93,13 @@ function headerCheckboxTrueFalse(TableId, HeaderField, TableRow) {
 }
 
 function executeTablePagnCommonFunc(response, tableinfo = false) {
-
     if(tableinfo) {
         $(ModulePag).html(response.Pagination);
         $(ModuleTable + ' tbody').html(response.List);
         Swal.fire(response.Message, "", "success");
     }
-
     headerCheckboxTrueFalse(ModuleTable, ModuleHeader, ModuleRow);
     MultipleDeleteOption();
-
 }
 
 function tableCheckboxTrueFalse(SelectedId, TableName, FieldName) {
@@ -150,7 +149,7 @@ function baseExportFunctions() {
 
     $('#clearExportClose').click(function(e) {
         e.preventDefault();
-        exportModalCloseFunc(ModuleTable, ModuleHeader, ModuleRow, ModuleUIDs);
+        exportModalCloseFunc(ModuleTable, ModuleHeader, ModuleRow);
     });
 
     $('#selectThisPageBtn').click(function(e) {
@@ -165,7 +164,7 @@ function baseExportFunctions() {
 
     $('#clearSelectAllClose').click(function(e) {
         e.preventDefault();
-        selectModalCloseFunc(ModuleTable, ModuleHeader, ModuleRow, ModuleUIDs);
+        selectModalCloseFunc(ModuleTable, ModuleHeader, ModuleRow);
     });
 
     $('#unselectThisPageBtn').click(function(e) {
@@ -224,7 +223,7 @@ function baseExportFunctionality(Flag, Type, PageType, FileName, SheetName) {
     }
     if (Flag == 1) {
         exportAllActions(ModuleId, Type, URLs, function () {
-            exportModalCloseFunc(ModuleTable, ModuleHeader, ModuleRow, ModuleUIDs);
+            exportModalCloseFunc(ModuleTable, ModuleHeader, ModuleRow);
         });
     } else if (Flag == 2) {
         if (Type == 'PrintPreview') {
@@ -233,7 +232,7 @@ function baseExportFunctionality(Flag, Type, PageType, FileName, SheetName) {
             });
         } else if (Type == 'ExportCSV' || 'ExportPDF' || 'ExportExcel') {
             window.location.href = URLs;
-            exportModalCloseFunc(ModuleTable, ModuleHeader, ModuleRow, ModuleUIDs);
+            exportModalCloseFunc(ModuleTable, ModuleHeader, ModuleRow);
         }
     }
 }
@@ -264,10 +263,10 @@ function exportAllActions(ModuleId, ActionType, URLs, callbackFn) {
     }
 }
 
-function selectModalCloseFunc(TableName, HeaderCheckbox, RowCheckbox, ItemIds) {
+function selectModalCloseFunc(TableName, HeaderCheckbox, RowCheckbox) {
     SelectedUIDs = [];
     unSelectTableRecords(TableName, RowCheckbox);
-    headerCheckboxTrueFalse(ItemIds, HeaderCheckbox);
+    headerCheckboxTrueFalse(TableName, HeaderCheckbox, RowCheckbox);
 }
 
 function exportModalCloseFunc(TableName, HeaderCheckbox, RowCheckbox) {

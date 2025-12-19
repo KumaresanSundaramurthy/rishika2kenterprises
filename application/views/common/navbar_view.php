@@ -51,7 +51,7 @@
             <li class="nav-item navbar-dropdown dropdown-user dropdown">
                 <a class="nav-link dropdown-toggle hide-arrow" href="javascript:void(0);" data-bs-toggle="dropdown">
                     <div class="avatar avatar-online">
-                        <img src="<?php echo $JwtData->User->OrgLogo ? getenv('CFLARE_R2_CDN').$JwtData->User->OrgLogo : '/images/logo/avathar_user.png' ?>" alt class="w-px-40 h-auto rounded-circle" />
+                        <img src="<?php echo $JwtData->User->UserImage ? getenv('CFLARE_R2_CDN').$JwtData->User->UserImage : '/images/logo/avathar_user.png' ?>" alt="<?php echo strtoupper($JwtData->User->FirstName); ?>" class="w-px-40 h-px-40 rounded-circle" />
                     </div>
                 </a>
                 <ul class="dropdown-menu dropdown-menu-end">
@@ -60,12 +60,12 @@
                             <div class="d-flex">
                                 <div class="flex-shrink-0 me-3">
                                     <div class="avatar avatar-online">
-                                        <img src="<?php echo $JwtData->User->OrgLogo ? getenv('CFLARE_R2_CDN').$JwtData->User->OrgLogo : '/images/logo/avathar_user.png' ?>" alt class="w-px-40 h-auto rounded-circle" />
+                                        <img src="<?php echo $JwtData->User->UserImage ? getenv('CFLARE_R2_CDN').$JwtData->User->UserImage : '/images/logo/avathar_user.png' ?>" alt="<?php echo strtoupper($JwtData->User->FirstName); ?>" class="w-px-40 h-px-40 rounded-circle" />
                                     </div>
                                 </div>
                                 <div class="flex-grow-1">
                                     <span class="fw-semibold d-block"><?php echo strtoupper($JwtData->User->FirstName); ?></span>
-                                    <small class="text-muted">Admin</small>
+                                    <small class="text-muted"><?php echo strtoupper($JwtData->User->RoleName); ?></small>
                                 </div>
                             </div>
                         </a>
@@ -74,7 +74,7 @@
                         <div class="dropdown-divider"></div>
                     </li>
                     <li>
-                        <a class="dropdown-item" href="javascript: void(0);">
+                        <a class="dropdown-item" href="/settings/profile">
                             <i class="bx bx-user me-2"></i>
                             <span class="align-middle">My Profile</span>
                         </a>

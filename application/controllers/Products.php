@@ -99,7 +99,6 @@ class Products extends CI_Controller {
             $this->pageData['ProdTaxInfo']     = $this->global_model->getProductTaxInfo()->Data ?? [];
             $this->pageData['TaxDetInfo']      = $this->global_model->getTaxDetailsInfo()->Data ?? [];
             
-            $this->pageData['Categories'] = ($activeTab === 'category') ? $this->products_model->getCategoriesDetails([], $limit, $offset)->Data : [];
             $this->pageData['SizeInfo']   = $this->products_model->getSizeDetails([]) ?? [];
             $this->pageData['BrandInfo']  = $this->products_model->getBrandDetails([]) ?? [];
             
@@ -317,14 +316,8 @@ class Products extends CI_Controller {
                 throw new Exception('Product Information is Missing to Delete');
             }
 
-            $updateProdData = [
-                'IsDeleted' => 1,
-                'UpdatedBy' => $this->pageData['JwtData']->User->UserUID,
-                'UpdatedOn' => time(),
-            ];
-
             $this->load->model('dbwrite_model');
-            $UpdateResp = $this->dbwrite_model->updateData('Products', 'ProductTbl', $updateProdData, array('ProductUID' => $ProductUID));
+            $UpdateResp = $this->dbwrite_model->updateData('Products', 'ProductTbl', $this->globalservice->baseDeleteArrayDetails(), array('ProductUID' => $ProductUID));
             if($UpdateResp->Error) {
                 throw new Exception($UpdateResp->Message);
             }
@@ -355,15 +348,9 @@ class Products extends CI_Controller {
             if(empty($ProductUIDs)) {
                 throw new Exception('Product Information is Missing to Delete');
             }
-
-            $updateProdData = [
-                'IsDeleted' => 1,
-                'UpdatedBy' => $this->pageData['JwtData']->User->UserUID,
-                'UpdatedOn' => time(),
-            ];
-
+            
             $this->load->model('dbwrite_model');
-            $UpdateResp = $this->dbwrite_model->updateData('Products', 'ProductTbl', $updateProdData, [], array('ProductUID' => $ProductUIDs));
+            $UpdateResp = $this->dbwrite_model->updateData('Products', 'ProductTbl', $this->globalservice->baseDeleteArrayDetails(), [], array('ProductUID' => $ProductUIDs));
             if($UpdateResp->Error) {
                 throw new Exception($UpdateResp->Message);
             }
@@ -564,15 +551,9 @@ class Products extends CI_Controller {
             if(!empty($ExistsInProducts) && count($ExistsInProducts) > 0) {
                 throw new Exception('Category is linked to Product.');
             }
-
-            $updateCategoryData = [
-                'IsDeleted' => 1,
-                'UpdatedBy' => $this->pageData['JwtData']->User->UserUID,
-                'UpdatedOn' => time(),
-            ];
-
+            
             $this->load->model('dbwrite_model');
-            $UpdateResp = $this->dbwrite_model->updateData('Products', 'CategoryTbl', $updateCategoryData, array('CategoryUID' => $CategoryUID));
+            $UpdateResp = $this->dbwrite_model->updateData('Products', 'CategoryTbl', $this->globalservice->baseDeleteArrayDetails(), array('CategoryUID' => $CategoryUID));
             if($UpdateResp->Error) {
                 throw new Exception($UpdateResp->Message);
             }
@@ -611,14 +592,8 @@ class Products extends CI_Controller {
                 throw new Exception('Category is linked to Product.');
             }
 
-            $updateCategData = [
-                'IsDeleted' => 1,
-                'UpdatedBy' => $this->pageData['JwtData']->User->UserUID,
-                'UpdatedOn' => time(),
-            ];
-
             $this->load->model('dbwrite_model');
-            $UpdateResp = $this->dbwrite_model->updateData('Products', 'CategoryTbl', $updateCategData, [], array('CategoryUID' => $CategoryUIDs));
+            $UpdateResp = $this->dbwrite_model->updateData('Products', 'CategoryTbl', $this->globalservice->baseDeleteArrayDetails(), [], array('CategoryUID' => $CategoryUIDs));
             if($UpdateResp->Error) {
                 throw new Exception($UpdateResp->Message);
             }
@@ -771,14 +746,8 @@ class Products extends CI_Controller {
                 throw new Exception('Size Information is Missing to Delete');
             }
 
-            $updateSizeData = [
-                'IsDeleted' => 1,
-                'UpdatedBy' => $this->pageData['JwtData']->User->UserUID,
-                'UpdatedOn' => time(),
-            ];
-
             $this->load->model('dbwrite_model');
-            $UpdateResp = $this->dbwrite_model->updateData('Products', 'SizeTbl', $updateSizeData, array('SizeUID' => $SizeUID));
+            $UpdateResp = $this->dbwrite_model->updateData('Products', 'SizeTbl', $this->globalservice->baseDeleteArrayDetails(), array('SizeUID' => $SizeUID));
             if($UpdateResp->Error) {
                 throw new Exception($UpdateResp->Message);
             }
@@ -820,14 +789,8 @@ class Products extends CI_Controller {
                 throw new Exception('Size is linked to Product.');
             }
 
-            $updateSizeData = [
-                'IsDeleted' => 1,
-                'UpdatedBy' => $this->pageData['JwtData']->User->UserUID,
-                'UpdatedOn' => time(),
-            ];
-
             $this->load->model('dbwrite_model');
-            $UpdateResp = $this->dbwrite_model->updateData('Products', 'SizeTbl', $updateSizeData, [], ['SizeUID' => $SizeUIDs]);
+            $UpdateResp = $this->dbwrite_model->updateData('Products', 'SizeTbl', $this->globalservice->baseDeleteArrayDetails(), [], ['SizeUID' => $SizeUIDs]);
             if($UpdateResp->Error) {
                 throw new Exception($UpdateResp->Message);
             }
@@ -985,14 +948,8 @@ class Products extends CI_Controller {
                 throw new Exception('Size Information is Missing to Delete');
             }
 
-            $updateBrandData = [
-                'IsDeleted' => 1,
-                'UpdatedBy' => $this->pageData['JwtData']->User->UserUID,
-                'UpdatedOn' => time(),
-            ];
-
             $this->load->model('dbwrite_model');
-            $UpdateResp = $this->dbwrite_model->updateData('Products', 'BrandTbl', $updateBrandData, array('BrandUID' => $BrandUID));
+            $UpdateResp = $this->dbwrite_model->updateData('Products', 'BrandTbl', $this->globalservice->baseDeleteArrayDetails(), array('BrandUID' => $BrandUID));
             if($UpdateResp->Error) {
                 throw new Exception($UpdateResp->Message);
             }
@@ -1034,14 +991,8 @@ class Products extends CI_Controller {
                 throw new Exception('Brand is linked to Product.');
             }
 
-            $updateBrandData = [
-                'IsDeleted' => 1,
-                'UpdatedBy' => $this->pageData['JwtData']->User->UserUID,
-                'UpdatedOn' => time(),
-            ];
-
             $this->load->model('dbwrite_model');
-            $UpdateResp = $this->dbwrite_model->updateData('Products', 'BrandTbl', $updateBrandData, [], array('BrandUID' => $BrandUIDs));
+            $UpdateResp = $this->dbwrite_model->updateData('Products', 'BrandTbl', $this->globalservice->baseDeleteArrayDetails(), [], array('BrandUID' => $BrandUIDs));
             if($UpdateResp->Error) {
                 throw new Exception($UpdateResp->Message);
             }

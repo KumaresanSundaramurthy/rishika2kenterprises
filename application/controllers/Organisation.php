@@ -12,55 +12,61 @@ class Organisation extends CI_Controller {
 
     public function index() {
         
-        $this->load->model('global_model');
-        $GetCountryInfo = $this->global_model->getCountryInfo();
-        $this->pageData['CountryInfo'] = $GetCountryInfo->Error === FALSE ? $GetCountryInfo->Data : [];
-        
-        $this->load->model('organisation_model');
-        $OrgBussTypeData = $this->organisation_model->getOrgBusinessTypeDetails();
-        $this->pageData['OrgBussType'] = $OrgBussTypeData->Error === FALSE ? $OrgBussTypeData->Data : [];
-        
-        $OrgIndusTypeData = $this->organisation_model->getOrgIndustryTypeDetails();
-        $this->pageData['OrgIndusType'] = $OrgIndusTypeData->Error === FALSE ? $OrgIndusTypeData->Data : [];
-        
-        $OrgBusRegData = $this->organisation_model->getOrgBusRegTypeDetails();
-        $this->pageData['OrgBusRegType'] = $OrgBusRegData->Error === FALSE ? $OrgBusRegData->Data : [];
-        
-        $this->pageData['EditOrgData'] = null;
-        $this->pageData['BillOrgAddrData'] = null;
-        $this->pageData['ShipOrgAddrData'] = null;
+        try {
 
-        $this->pageData['StateData'] = [];
-        $this->pageData['CityData'] = [];
+            $this->load->model('global_model');
+            $GetCountryInfo = $this->global_model->getCountryInfo();
+            $this->pageData['CountryInfo'] = $GetCountryInfo->Error === FALSE ? $GetCountryInfo->Data : [];
+            
+            $this->load->model('organisation_model');
+            $OrgBussTypeData = $this->organisation_model->getOrgBusinessTypeDetails();
+            $this->pageData['OrgBussType'] = $OrgBussTypeData->Error === FALSE ? $OrgBussTypeData->Data : [];
+            
+            $OrgIndusTypeData = $this->organisation_model->getOrgIndustryTypeDetails();
+            $this->pageData['OrgIndusType'] = $OrgIndusTypeData->Error === FALSE ? $OrgIndusTypeData->Data : [];
+            
+            $OrgBusRegData = $this->organisation_model->getOrgBusRegTypeDetails();
+            $this->pageData['OrgBusRegType'] = $OrgBusRegData->Error === FALSE ? $OrgBusRegData->Data : [];
+            
+            $this->pageData['EditOrgData'] = null;
+            $this->pageData['BillOrgAddrData'] = null;
+            $this->pageData['ShipOrgAddrData'] = null;
 
-        $OrganisationData = $this->organisation_model->getAllOrganisationAddressDetails(['Org.OrgUID' => $this->pageData['JwtData']->User->OrgUID]);
-        if ($OrganisationData->Error === FALSE && !empty($OrganisationData->Data)) {
+            $this->pageData['StateData'] = [];
+            $this->pageData['CityData'] = [];
 
-            $orgRow = $OrganisationData->Data[0];
+            $OrganisationData = $this->organisation_model->getAllOrganisationAddressDetails(['Org.OrgUID' => $this->pageData['JwtData']->User->OrgUID]);
+            if ($OrganisationData->Error === FALSE && !empty($OrganisationData->Data)) {
 
-            $this->pageData['EditOrgData'] = $orgRow;
-            $this->pageData['BillOrgAddrData'] = $this->mapOrganisationAddress($orgRow, 'B', 'Billing') ?? null;
-            $this->pageData['ShipOrgAddrData'] = $this->mapOrganisationAddress($orgRow, 'S', 'Shipping') ?? null;
+                $orgRow = $OrganisationData->Data[0];
 
-            if(!empty($orgRow->CountryISO2)) {
-                $StateInfo = $this->global_model->getStateofCountry($orgRow->CountryISO2);
-                if($StateInfo->Error === FALSE) {
-                    $this->pageData['StateData'] = $StateInfo->Data;
+                $this->pageData['EditOrgData'] = $orgRow;
+                $this->pageData['BillOrgAddrData'] = $this->mapOrganisationAddress($orgRow, 'B', 'Billing') ?? null;
+                $this->pageData['ShipOrgAddrData'] = $this->mapOrganisationAddress($orgRow, 'S', 'Shipping') ?? null;
+
+                if(!empty($orgRow->CountryISO2)) {
+                    $StateInfo = $this->global_model->getStateofCountry($orgRow->CountryISO2);
+                    if($StateInfo->Error === FALSE) {
+                        $this->pageData['StateData'] = $StateInfo->Data;
+                    }
+                    $CityInfo = $this->global_model->getCityofCountry($orgRow->CountryISO2);
+                    if($CityInfo->Error === FALSE) {
+                        $this->pageData['CityData'] = $CityInfo->Data;
+                    }
                 }
-                $CityInfo = $this->global_model->getCityofCountry($orgRow->CountryISO2);
-                if($CityInfo->Error === FALSE) {
-                    $this->pageData['CityData'] = $CityInfo->Data;
-                }
+
             }
 
-        }
+            $TimezoneInfo = $this->global_model->getTimezoneDetails([]);
+            $this->pageData['TimezoneInfo'] = $TimezoneInfo->Error === FALSE ? $TimezoneInfo->Data : [];
+            
+            $GeneralSettings = $this->redis_cache->get('Redis_UserGenSettings')->Value ?? new stdClass();
+            $this->pageData['JwtData']->GenSettings = $GeneralSettings;
+            $this->load->view('organisation/view', $this->pageData);
 
-        $TimezoneInfo = $this->global_model->getTimezoneDetails([]);
-        $this->pageData['TimezoneInfo'] = $TimezoneInfo->Error === FALSE ? $TimezoneInfo->Data : [];
-        
-        $GeneralSettings = $this->redis_cache->get('Redis_UserGenSettings')->Value ?? new stdClass();
-        $this->pageData['JwtData']->GenSettings = $GeneralSettings;
-        $this->load->view('organisation/view', $this->pageData);
+        } catch (Exception $e) {
+            redirect('dashboard', 'refresh');
+        }
 
     }
 
@@ -136,7 +142,7 @@ class Organisation extends CI_Controller {
             $PostData['ShipOrgAddressUID'] = $this->handleAddress($PostData, 'Shipping', $userUID, $now);
 
             if (!empty($PostData['imageChange']) || !empty($PostData['countryChange'])) {
-                $this->refreshUserCache($userUID);
+                $this->globalservice->refreshUserCache();
             }
             
             $this->EndReturnData->Error = FALSE;
@@ -189,23 +195,6 @@ class Organisation extends CI_Controller {
             return $PostData[$addrUIDField];
         }
 
-    }
-
-    private function refreshUserCache($userUID) {
-        $GetRedisDetails = $this->cacheservice->get($this->pageData['JwtUserKey']);
-        if ($GetRedisDetails->Error === FALSE) {
-            $this->load->model('user_model');
-            $UserData = $this->user_model->getUserByUserInfo(['User.UserUID' => $userUID]);
-
-            if ($UserData->Error === FALSE && count($UserData->Data) === 1) {
-                $this->load->model('login_model');
-                $jwtPayload = $this->login_model->formatJWTPayload($UserData->Data[0]);
-
-                if ($jwtPayload->Error === FALSE) {
-                    $this->cacheservice->set($GetRedisDetails->Key, json_encode($jwtPayload->JWTData), $GetRedisDetails->TTL);
-                }
-            }
-        }
     }
 
     public function checkImageType($str = '') {

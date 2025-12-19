@@ -90,10 +90,10 @@
                                                 </li>
                                             </ul>
                                         </div>
-                                        <a href="javascript: void(0);" class="btn btn-primary px-3 addItem <?php echo $ActiveTabData == 'item' ? '' : 'd-none'; ?>" id="NewItem"><i class='bx bx-plus'></i> New Item</a>
-                                        <a href="javascript: void(0);" class="btn btn-primary px-3 addCategory <?php echo $ActiveTabData == 'category' ? '' : 'd-none'; ?>" id="NewCategory"><i class='bx bx-plus'></i> New Category</a>
-                                        <a href="javascript: void(0);" class="btn btn-primary px-3 addSizes <?php echo $ActiveTabData == 'size' ? '' : 'd-none'; ?>" id="NewSizes"><i class='bx bx-plus'></i> New Size</a>
-                                        <a href="javascript: void(0);" class="btn btn-primary px-3 addBrands <?php echo $ActiveTabData == 'brand' ? '' : 'd-none'; ?>" id="NewBrands"><i class='bx bx-plus'></i> New Brand</a>
+                                        <a href="javascript: void(0);" class="btn btn-primary px-3 addItem <?php echo $ActiveTabData == 'item' ? '' : 'd-none'; ?>" id="NewItem"><i class='bx bx-plus'></i> Create Item</a>
+                                        <a href="javascript: void(0);" class="btn btn-primary px-3 addCategory <?php echo $ActiveTabData == 'category' ? '' : 'd-none'; ?>" id="NewCategory"><i class='bx bx-plus'></i> Create Category</a>
+                                        <a href="javascript: void(0);" class="btn btn-primary px-3 addSizes <?php echo $ActiveTabData == 'size' ? '' : 'd-none'; ?>" id="NewSizes"><i class='bx bx-plus'></i> Create Size</a>
+                                        <a href="javascript: void(0);" class="btn btn-primary px-3 addBrands <?php echo $ActiveTabData == 'brand' ? '' : 'd-none'; ?>" id="NewBrands"><i class='bx bx-plus'></i> Create Brand</a>
                                     </div>
                                 </div>
                                 <div class="tab-content p-0">
@@ -114,7 +114,7 @@
                                                             if ($ItemVal === 'Storage' && ($JwtData->GenSettings->EnableStorage ?? 0) != 1) {
                                                                 continue;
                                                             } ?>
-                                                            <th <?php echo updateAttributeString($ItemColumns[$ItemKey]->MainPageColumnAddon, $ItemColumns[$ItemKey]->MPSortApplicable); ?>>
+                                                            <th <?php echo $ItemColumns[$ItemKey]->MainPageColumnAddon; ?>>
 
                                                                 <?php echo $ItemVal; ?>
 
@@ -122,13 +122,29 @@
                                                                     echo '<i class="bx bx-sort ms-1 cursor-pointer"></i>';
                                                                 } ?>
 
-                                                                <?php if ($ItemVal == 'Category' && $ItemColumns[$ItemKey]->MPFilterApplicable == 1) { ?>
+                                                                <?php if ($ItemVal == 'Product Type' && $ItemColumns[$ItemKey]->MPFilterApplicable == 1) { ?>
 
-                                                                    <a href="javascript:void(0);" class="text-body ms-1" onclick="toggleCategoryFilter()">
+                                                                    <a href="javascript:void(0);" class="text-body ms-1 filter-toggle" data-target="#prodTypeFilterBox">
                                                                         <i class="bx bx-filter-alt fs-5 align-middle"></i>
                                                                     </a>
 
-                                                                    <div id="categoryFilterBox" class="card shadow position-absolute p-3" style="min-width: 270px; max-height: 350px; top: 100%; z-index: 1055; display: none;">
+                                                                    <div id="prodTypeFilterBox" class="card shadow mp-filterbox position-absolute p-3">
+
+                                                                    <?php if (sizeof($fltCategoryData) > 0) {
+                                                                        echo $this->load->view('products/items/prodtypefilter', ['ProdTypeInfo' => $ProdTypeInfo], TRUE);
+                                                                    } ?>
+
+                                                                    </div>
+
+                                                                <?php } ?>
+
+                                                                <?php if ($ItemVal == 'Category' && $ItemColumns[$ItemKey]->MPFilterApplicable == 1) { ?>
+
+                                                                    <a href="javascript:void(0);" class="text-body ms-1 filter-toggle" data-target="#categoryFilterBox">
+                                                                        <i class="bx bx-filter-alt fs-5 align-middle"></i>
+                                                                    </a>
+
+                                                                    <div id="categoryFilterBox" class="card shadow mp-filterbox position-absolute p-3">
 
                                                                     <?php if (sizeof($fltCategoryData) > 0) {
                                                                         echo $this->load->view('products/items/catgfilter', ['Categories' => $fltCategoryData], TRUE);
@@ -140,14 +156,14 @@
 
                                                                 <?php if ($ItemVal == 'Storage' && $JwtData->GenSettings->EnableStorage == 1 && $ItemColumns[$ItemKey]->MPFilterApplicable == 1) { ?>
 
-                                                                    <a href="javascript:void(0);" class="text-body ms-1" onclick="toggleStorageFilter()">
+                                                                    <a href="javascript:void(0);" class="text-body ms-1 filter-toggle" data-target="#storageFilterBox">
                                                                         <i class="bx bx-filter-alt fs-5 align-middle"></i>
                                                                     </a>
 
-                                                                    <div id="storageFilterBox" class="card shadow position-absolute p-3" style="min-width: 270px; max-height: 350px; top: 100%; z-index: 1055; display: none;">
+                                                                    <div id="storageFilterBox" class="card shadow mp-filterbox position-absolute p-3">
 
                                                                     <?php if (sizeof($fltStorageData) > 0) {
-                                                                        echo $this->load->view('products/storage/storagefilter', ['Storage' => $fltStorageData], TRUE);
+                                                                        echo $this->load->view('products/items/storagefilter', ['Storage' => $fltStorageData], TRUE);
                                                                     } ?>
 
                                                                     </div>
@@ -162,6 +178,9 @@
                                                 <tbody class="table-border-bottom-0">
                                                     <?php if ($ActiveTabData == 'item') {
                                                         echo $ModRowData;
+                                                    } else {
+                                                        $PageData['DataLists'] = [];
+                                                        echo $this->load->view('products/items/list', $PageData, TRUE);
                                                     } ?>
                                                 </tbody>
                                             </table>
@@ -186,7 +205,14 @@
                                                         </th>
                                                         <th class="table-serialno <?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>">S.No</th>
                                                         <?php foreach (array_column($CategoryColumns, 'DisplayName') as $CtgKey => $CtgVal) { ?>
-                                                            <th <?php echo $CategoryColumns[$CtgKey]->MainPageColumnAddon; ?>><?php echo $CtgVal; ?></th>
+                                                            <th <?php echo $CategoryColumns[$CtgKey]->MainPageColumnAddon; ?>>
+                                                                
+                                                                <?php echo $CtgVal; ?>
+                                                                <?php if ($CategoryColumns[$CtgKey]->MPSortApplicable == 1) {
+                                                                    echo '<i class="bx bx-sort ms-1 cursor-pointer"></i>';
+                                                                } ?>
+
+                                                            </th>
                                                         <?php } ?>
                                                         <th class="text-center">Actions</th>
                                                     </tr>
@@ -221,7 +247,12 @@
                                                         </th>
                                                         <th class="table-serialno <?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>">S.No</th>
                                                         <?php foreach (array_column($SizeColumns, 'DisplayName') as $SzKey => $SzVal) { ?>
-                                                            <th <?php echo $SizeColumns[$SzKey]->MainPageColumnAddon; ?>><?php echo $SzVal; ?></th>
+                                                            <th <?php echo $SizeColumns[$SzKey]->MainPageColumnAddon; ?>>
+                                                                <?php echo $SzVal; ?>
+                                                                <?php if ($SizeColumns[$SzKey]->MPSortApplicable == 1) {
+                                                                    echo '<i class="bx bx-sort ms-1 cursor-pointer"></i>';
+                                                                } ?>
+                                                            </th>
                                                         <?php } ?>
                                                         <th class="text-center">Actions</th>
                                                     </tr>
@@ -256,7 +287,12 @@
                                                         </th>
                                                         <th class="table-serialno <?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>">S.No</th>
                                                         <?php foreach (array_column($BrandColumns, 'DisplayName') as $BrdKey => $BrdVal) { ?>
-                                                            <th <?php echo $BrandColumns[$BrdKey]->MainPageColumnAddon; ?>><?php echo $BrdVal; ?></th>
+                                                            <th <?php echo $BrandColumns[$BrdKey]->MainPageColumnAddon; ?>>
+                                                                <?php echo $BrdVal; ?>
+                                                                <?php if ($BrandColumns[$BrdKey]->MPSortApplicable == 1) {
+                                                                    echo '<i class="bx bx-sort ms-1 cursor-pointer"></i>';
+                                                                } ?>
+                                                            </th>
                                                         <?php } ?>
                                                         <th class="text-center">Actions</th>
                                                     </tr>
@@ -332,13 +368,15 @@ let ActiveTabModuleId = <?php echo $ActiveModuleId; ?>;
 var EnableStorage = <?php echo $JwtData->GenSettings->EnableStorage; ?>;
 var CommonRowColumnDisp = 1;
 let imgData;
+let sortState = 0;
+let catgSortState = 0;
+let sizeSortState = 0;
+let brandSortState = 0;
 $(function() {
     'use strict'
 
     $('#SearchDetails').val('');
     $(ProdHeader + ',' + ProdRow).prop('checked', false).trigger('change');
-
-    $(".sortable").css("cursor", "pointer").append(' <i class="bx bx-sort-alt-2"></i>');
 
     $('.TabPane').click(function(e) {
         e.preventDefault();
@@ -395,6 +433,7 @@ $(function() {
         PageNo = 0;
         let searchText = $('#SearchDetails').val();
         if (searchText.length >= 3) {
+            SelectedUIDs = [];
             delete Filter['SearchAllData'];
             $('#clearSearch').removeClass('d-none');
             if (searchText) {
@@ -412,6 +451,7 @@ $(function() {
         $('#clearSearch').addClass('d-none');
         if ($.trim(searchText) != '') {
             PageNo = 0;
+            SelectedUIDs = [];
             delete Filter['SearchAllData'];
             $('#SearchDetails').blur();
             showProductPageDetails();
@@ -477,14 +517,6 @@ $(function() {
         $('#selectAllLabel').text(total === checked ? 'Clear All' : 'Select All');
     });
 
-    $(document).on('click', function(e) {
-        const $filterBox = $('#categoryFilterBox, #storageFilterBox');
-        const $toggleIcon = $('.bx-filter-alt');
-        if (!$filterBox.is(e.target) && $filterBox.has(e.target).length === 0 && !$toggleIcon.is(e.target) && $toggleIcon.has(e.target).length === 0) {
-            $filterBox.hide();
-        }
-    });
-
     $('#selectAllStorage').on('change', function() {
         const isChecked = $(this).is(':checked');
         $('.storage-checkbox').prop('checked', isChecked);
@@ -503,6 +535,50 @@ $(function() {
         const checked = $('.storage-checkbox:checked').length;
         $('#selectAllStorage').prop('checked', total === checked);
         $('#str_selectAllLabel').text(total === checked ? 'Clear All' : 'Select All');
+    });
+
+    /** sorting opeartions */
+    $(document).on('click', '.name-sortable', function(e) {
+        e.preventDefault();
+        let defSortState = 0;
+        let defFieldName;
+        if (ActiveTabId == 'Item') {
+            sortState = (sortState + 1) % 3;
+            defSortState = sortState;
+            defFieldName = '#sortName';
+        } else if (ActiveTabId == 'Categories') {
+            catgSortState = (catgSortState + 1) % 3;
+            defSortState = catgSortState;
+            defFieldName = '#sortCatgName';
+        } else if (ActiveTabId == 'Sizes') {
+            sizeSortState = (sizeSortState + 1) % 3;
+            defSortState = sizeSortState;
+            defFieldName = '#sortSizeName';
+        } else if (ActiveTabId == 'Brands') {
+            brandSortState = (brandSortState + 1) % 3;
+            defSortState = brandSortState;
+            defFieldName = '#sortBrandName';
+        }
+        const icon = $(this).find('i');
+        icon.removeClass('bx-sort-alt-2 bx-up-arrow-alt bx-down-arrow-alt text-primary');
+        $(defFieldName).removeClass('text-primary');
+        if (defSortState == 1) {
+            icon.addClass('bx-up-arrow-alt text-primary');
+            $(defFieldName).addClass('text-primary');
+            $(this).attr('title', 'Click sorting descending');
+            Filter['NameSorting'] = 1;
+        } else if (defSortState === 2) {
+            icon.addClass('bx-down-arrow-alt text-primary');
+            $(defFieldName).addClass('text-primary');
+            $(this).attr('title', 'Remove sorting');
+            Filter['NameSorting'] = 2;
+        } else {
+            icon.addClass('bx-sort-alt-2');
+            $(this).attr('title', 'Click sorting ascending');
+            delete Filter['NameSorting'];
+        }
+        $(this).tooltip('dispose').tooltip();
+        showProductPageDetails();
     });
 
     /** Product-Item Related Coding */

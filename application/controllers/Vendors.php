@@ -356,6 +356,72 @@ class Vendors extends CI_Controller {
 
     }
 
+    public function deleteVendorData() {
+
+        $this->EndReturnData = new stdClass();
+		try {
+
+            $VendorUID = $this->input->post('VendorUID');
+            if (!$VendorUID) {
+                throw new Exception('Vendor Information is Missing to Delete');
+            }
+            
+            $this->load->model('dbwrite_model');
+            $UpdateResp = $this->dbwrite_model->updateData('Vendors', 'VendorTbl', $this->globalservice->baseDeleteArrayDetails(), ['VendorUID' => $VendorUID]);
+            if($UpdateResp->Error) {
+                throw new Exception($UpdateResp->Message);
+            }
+
+            $pageNo = $this->input->post('PageNo');
+            $getResp = $this->globalservice->baseTableDataPaginationDetails($pageNo);
+
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Message = 'Deleted Successfully';
+            $this->EndReturnData->List = $getResp->RecordHtmlData;
+            $this->EndReturnData->Pagination = $getResp->Pagination;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+		$this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    public function deleteMultipleVendors() {
+
+        $this->EndReturnData = new stdClass();
+		try {
+
+            $VendorUIDs = $this->input->post('VendorUIDs[]');
+            if (empty($VendorUIDs)) {
+                throw new Exception('Vendor Information is Missing to Delete');
+            }
+
+            $this->load->model('dbwrite_model');
+            $UpdateResp = $this->dbwrite_model->updateData('Vendors', 'VendorTbl', $this->globalservice->baseDeleteArrayDetails(), [], array('VendorUID' => $VendorUIDs));
+            if($UpdateResp->Error) {
+                throw new Exception($UpdateResp->Message);
+            }
+
+            $pageNo = $this->input->post('PageNo');
+            $getResp = $this->globalservice->baseTableDataPaginationDetails($pageNo);
+
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Message = 'Deleted Successfully';
+            $this->EndReturnData->List = $getResp->RecordHtmlData;
+            $this->EndReturnData->Pagination = $getResp->Pagination;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+		$this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
     public function checkImageType($str = '') {
         return $this->globalservice->checkImageType($str);
     }

@@ -5,7 +5,7 @@
  */
 function getStorageDetails(PageNo, RowLimit, Filter) {
     $.ajax({
-        url: '/storage/getStorageDetails/' + PageNo,
+        url: '/globally/getModPageDataDetails/' + PageNo,
         method: "POST",
         cache: false,
         data: {
@@ -27,14 +27,17 @@ function getStorageDetails(PageNo, RowLimit, Filter) {
     });
 }
 
+function formOpenCloseDefActions() {
+    $('#storageForm').trigger('reset');
+    $('#StorageModalTitle').text('Add Storage');
+    $('.storageButtonName').text('Save');
+    $('#storageForm').find('#StorageUID').val(0);
+    myOneDropzone.removeAllFiles(true);
+    quill.setContents([]);
+    imgData = '';
+}
+
 function addStorageData(formdata) {
-    AjaxLoading = 0;
-    
-    $('#storageFormAlert').removeClass('d-none');
-    inlineMessageAlert('#storageFormAlert', 'info', 'Processing... Please wait', false, false);
-
-    $('#StorageSaveButton').attr('disabled', 'disabled');
-
     $.ajax({
         url: '/storage/addStorageData',
         method: 'POST',
@@ -44,37 +47,19 @@ function addStorageData(formdata) {
         contentType: false,
         enctype: 'multipart/form-data',
         success: function (response) {
-            AjaxLoading = 1;
-            $('#StorageSaveButton').removeAttr('disabled');
             if (response.Error) {
-                inlineMessageAlert('#storageFormAlert', 'danger', response.Message, false, false);
+                $('.storageFormAlert').removeClass('d-none');
+                inlineMessageAlert('.storageFormAlert', 'danger', response.Message, false, false);
             } else {
-                inlineMessageAlert('#storageFormAlert', 'success', response.Message, false, true);
-                setTimeout(function () {
-                    $('#storageFormAlert').fadeOut(500, function () {
-                        $(this).addClass('d-none').show();
-                    });
-                }, 1000);
-                myOneDropzone.removeAllFiles(true);
-
-                $('#storageForm').trigger('reset');
+                formOpenCloseDefActions();
                 $('#storageModal').modal('hide');
-
                 executeTablePagnCommonFunc(response, true);
-
             }
         }
     });
 }
 
 function updateStorageData(formdata) {
-    AjaxLoading = 0;
-    
-    $('#storageFormAlert').removeClass('d-none');
-    inlineMessageAlert('#storageFormAlert', 'info', 'Processing... Please wait', false, false);
-
-    $('#StorageSaveButton').attr('disabled', 'disabled');
-
     $.ajax({
         url: '/storage/updateStorageData',
         method: 'POST',
@@ -84,24 +69,13 @@ function updateStorageData(formdata) {
         contentType: false,
         enctype: 'multipart/form-data',
         success: function (response) {
-            AjaxLoading = 1;
-            $('#StorageSaveButton').removeAttr('disabled');
             if (response.Error) {
-                inlineMessageAlert('#storageFormAlert', 'danger', response.Message, false, false);
+                $('.storageFormAlert').removeClass('d-none');
+                inlineMessageAlert('.storageFormAlert', 'danger', response.Message, false, false);
             } else {
-                inlineMessageAlert('#storageFormAlert', 'success', response.Message, false, true);
-                setTimeout(function () {
-                    $('#storageFormAlert').fadeOut(500, function () {
-                        $(this).addClass('d-none').show();
-                    });
-                }, 1000);
-                myOneDropzone.removeAllFiles(true);
-
-                $('#storageForm').trigger('reset');
+                formOpenCloseDefActions();
                 $('#storageModal').modal('hide');
-
                 executeTablePagnCommonFunc(response, true);
-
             }
         }
     });
@@ -155,4 +129,30 @@ function deleteMultipleStorage() {
             }
         },
     });
+}
+
+function resetStorageTypeFilter() {
+    $('.storagetype-checkbox').prop('checked', false);
+    if (Filter.StorageType) {
+        applyStorageTypeFilter();
+    }
+}
+
+function applyStorageTypeFilter() {
+    PageNo = 0;
+    delete Filter['StorageType'];
+    let selStrgTypeIds = $('.storagetype-checkbox:checked').map(function () {
+        return $(this).val();
+    }).get();
+    $('#storageTypeFilter').removeClass('text-primary');
+    if (selStrgTypeIds.length > 0) {
+        Filter['StorageType'] = selStrgTypeIds;
+        $('#storageTypeFilter').addClass('text-primary');
+    }
+    $('#storageTypeFilterBox').hide();
+    getStorageDetails(PageNo, RowLimit, Filter);
+}
+
+function closeStorageTypeFilter() {
+    $('#storageTypeFilterBox').hide();
 }

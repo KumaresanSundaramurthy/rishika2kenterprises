@@ -22,6 +22,23 @@ Class Globalservice {
         $this->confData = $confData;
     }
 
+    public function refreshUserCache() {
+        $GetRedisDetails = $this->CI->cacheservice->get($this->CI->pageData['JwtUserKey']);
+        if ($GetRedisDetails->Error === FALSE) {
+            $this->CI->load->model('user_model');
+            $UserData = $this->CI->user_model->getUserByUserInfo(['User.UserUID' => $this->CI->pageData['JwtData']->User->UserUID]);
+
+            if ($UserData->Error === FALSE && count($UserData->Data) === 1) {
+                $this->CI->load->model('login_model');
+                $jwtPayload = $this->CI->login_model->formatJWTPayload($UserData->Data[0]);
+
+                if ($jwtPayload->Error === FALSE) {
+                    $this->CI->cacheservice->set($GetRedisDetails->Key, json_encode($jwtPayload->JWTData), $GetRedisDetails->TTL);
+                }
+            }
+        }
+    }
+
     public function renderSubMenu($ControllerName, $allSubMenus, $parentUID = null) {
 
         // Filter only menus under current parent
@@ -51,9 +68,12 @@ Class Globalservice {
                 echo '</ul>';
                 echo '</li>';
             } else {
-                $activeClass = (strtolower($ControllerName) == strtolower($subMenu->ControllerName)) ? 'active' : '';
+                // $activeClass = (strtolower($ControllerName) == strtolower($subMenu->ControllerName)) ? 'active' : '';
+                $isActive = (strtolower($ControllerName) == strtolower($subMenu->ControllerName));
+                $activeClass = $isActive ? 'active' : '';
+                $href = $isActive ? 'javascript: void(0);' : '/' . htmlspecialchars($subMenu->ControllerName);
                 echo '<li class="menu-item ' . $activeClass . '">';
-                echo '<a href="/' . htmlspecialchars($subMenu->ControllerName) . '" class="menu-link">';
+                echo '<a href="' . $href . '" class="menu-link">';
                 echo '<div data-i18n="' . htmlspecialchars($subMenu->SubMenuName) . '">' . htmlspecialchars($subMenu->SubMenuName) . '</div>';
                 echo '</a>';
                 echo '</li>';
@@ -221,7 +241,7 @@ Class Globalservice {
                         'GenSettings' => $this->CI->redis_cache->get('Redis_UserGenSettings')->Value ?? new stdClass(),
                         'JwtData' => $this->CI->pageData['JwtData'],
                     ];
-                    if(in_array($ModuleInfoData->Name, ['Category', 'Sizes', 'Brands'])) {
+                    if($ModuleInfoData->EditOnPage == 1) {
                         $listDataReq['ViewAllColumns'] = $ViewAllColumns;
                     }
                     $this->EndReturnData->RecordHtmlData = $this->CI->load->view($ModuleInfoData->ListUrl, $listDataReq, TRUE);
@@ -876,6 +896,17 @@ Class Globalservice {
             );
             if ($resp->Error) throw new Exception($resp->Message);
         }
+
+    }
+
+    public function baseDeleteArrayDetails() {
+
+        $deleteData = [
+                'IsDeleted' => 1,
+                'UpdatedBy' => $this->CI->pageData['JwtData']->User->UserUID,
+                'UpdatedOn' => time(),
+            ];
+        return $deleteData;
 
     }
 

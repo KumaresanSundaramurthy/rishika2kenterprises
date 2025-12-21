@@ -202,7 +202,7 @@
                                         <div class="mb-3 col-md-6">
                                             <label for="BillAddrCity" class="form-label">City</label>
                                             <select class="select2 form-select" id="BillAddrCity" name="BillAddrCity">
-                                                <option label="-- Select City --">Select City</option>
+                                                <option label="-- Select City --"></option>
                                                 <?php if (sizeof($CityData) > 0) {
                                                     foreach ($CityData as $CtyData) { ?>
 

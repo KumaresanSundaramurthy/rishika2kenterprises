@@ -119,30 +119,6 @@
                             </div>
                             <hr>
 
-                            <!-- Bank Details -->
-                            <div class="card-header modal-header-center-sticky p-1 mb-3">
-                                <h5 class="modal-title mb-0">
-                                    Bank Details
-                                    <a href="javascript: void(0)" class="btn btn-sm btn-outline-warning ms-1" id="addBankDetails" data-divid="appendBankDetails"><i class="bx bx-plus-circle me-1"></i> Bank Accounts</a>
-                                </h5>
-                            </div>
-                            <div class="table-responsive d-none" id="appendBankDetails">
-                                <table class="table table-bordered table-sm align-middle mb-0">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th>Type</th>
-                                            <th>Account / UPI</th>
-                                            <th>IFSC</th>
-                                            <th>Branch</th>
-                                            <th>Holder</th>
-                                            <th class="text-center">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="bankDetailsBody"></tbody>
-                                </table>
-                            </div>
-                            <hr id="bankDivider" class="d-none">
-
                             <!-- Address Details -->
                             <div class="card-header modal-header-center-sticky p-1 mb-3">
                                 <h5 class="modal-title mb-0">Address Details</h5>
@@ -295,17 +271,17 @@ $(function() {
         var BillAddrLine1 = $('#BillAddrLine1').val();
         if (hasValue(BillAddrLine1)) {
             var city = $('#BillAddrCity').find('option:selected').val();
-            if (hasValue(city)) formData.append('BillAddrCityText', $('#BillAddrCity').find('option:selected').text());
+            if (hasValue(city) && $.isNumeric(city)) formData.append('BillAddrCityText', $('#BillAddrCity').find('option:selected').text());
             var state = $('#BillAddrState').find('option:selected').val();
-            if (hasValue(state)) formData.append('BillAddrStateText', $('#BillAddrState').find('option:selected').text());
+            if (hasValue(state) && $.isNumeric(state)) formData.append('BillAddrStateText', $('#BillAddrState').find('option:selected').text());
         }
 
         var ShipAddrLine1 = $('#ShipAddrLine1').val();
         if (hasValue(ShipAddrLine1)) {
             var city = $('#ShipAddrCity').find('option:selected').val();
-            if (hasValue(city)) formData.append('ShipAddrCityText', $('#ShipAddrCity').find('option:selected').text());
+            if (hasValue(city) && $.isNumeric(city)) formData.append('ShipAddrCityText', $('#ShipAddrCity').find('option:selected').text());
             var state = $('#ShipAddrState').find('option:selected').val();
-            if (hasValue(state)) formData.append('ShipAddrStateText', $('#ShipAddrState').find('option:selected').text());
+            if (hasValue(state) && $.isNumeric(state)) formData.append('ShipAddrStateText', $('#ShipAddrState').find('option:selected').text());
         }
 
         addCustomerData(formData);

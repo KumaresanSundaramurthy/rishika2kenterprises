@@ -380,4 +380,28 @@ class Formvalidation_model extends CI_Model {
 
     }
 
+    public function transPrefixValidateForm($data) {
+
+        $this->form_validation->set_data($data);
+
+        $dd['preModuleUID'] = array('field' => 'preModuleUID', 'label' => 'Module_UID', 'rules' => 'required|xss_clean|trim|numeric|greater_than[0]');
+        $dd['transPrefixName'] = array('field' => 'transPrefixName', 'label' => 'Prefix Name', 'rules' => 'trim|required|xss_clean|min_length[3]|max_length[7]');
+
+        $config = array();
+
+        foreach($data as $key=>$value) {
+            if (array_key_exists($key, $dd)) {
+                array_push($config, $dd[$key]);
+            }
+        }
+
+        $this->form_validation->set_rules($config);
+        if ($this->form_validation->run() == FALSE) {
+            return validation_errors();
+        } else {
+            return '';
+        }
+
+    }
+
 }

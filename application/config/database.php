@@ -344,3 +344,27 @@ $db['Modules'] = array(
 	'failover' => array(),
 	'save_queries' => TRUE
 );
+
+$db['Transaction'] = array(
+    'dsn'   => '',
+    'hostname' => $WriteHostName,
+	'username' => $UserName,
+	'password' => $Password,
+    'database' => 'Transaction',
+	'port' => $Port,
+    'dbdriver' => 'mysqli',
+    'dbprefix' => '',
+    'pconnect' => FALSE,
+    'db_debug' => (ENVIRONMENT !== 'production'),
+    'cache_on' => FALSE,
+	'cachedir' => '',
+    'char_set' => 'utf8',
+    'dbcollat' => 'utf8_general_ci',
+	'swap_pre' => '',
+	'encrypt' => FALSE,
+	'compress' => FALSE,
+	'init_command' => "SET sql_mode=''",
+	// 'stricton' => FALSE,
+	'failover' => array(),
+	'save_queries' => TRUE
+);

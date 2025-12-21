@@ -54,5 +54,5 @@
             </li>
         </ul>
     </div>
-    <a href="<?php echo $redirectUrl; ?>" class="btn btn-primary px-3"><?php echo $addActionName; ?></a>
+    <a href="<?php echo $redirectUrl; ?>" class="btn btn-primary px-3 <?php echo (isset($clsInfo)) ? $clsInfo : ''; ?>"><?php echo $addActionName; ?></a>
 </div>

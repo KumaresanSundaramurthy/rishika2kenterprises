@@ -1,0 +1,98 @@
+.trans-header-static {
+    position: sticky;
+    top: 5px;
+    z-index: 1020;
+}
+
+.prod-header-static {
+    position: sticky;
+    top: 60px !important;
+    z-index: 1010;
+}
+
+.transAutoGenNumber {
+    width: 10ch !important;
+}
+
+.stop-incre-indicator::-webkit-inner-spin-button,
+.stop-incre-indicator::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.stop-incre-indicator {
+    -moz-appearance: textfield;
+}
+
+.container-p-y:not([class^=pt-]):not([class*=" pt-"]) {
+    padding-top: 0.5rem !important;
+}
+
+#transHeaderInfo h5 {
+    font-size: 1.25rem;
+}
+
+.trans-right-border {
+    border-right: 1px solid #e9eaec;
+    padding-right: 1rem;
+}
+
+.trans-border-dotted {
+    border: 1px dotted #e9eaec;
+}
+
+#customerAddressBox div {
+    font-size: 0.875rem;
+    font-weight: 500;
+    background: linear-gradient(#FF7262);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.input-group.input-group-merge .select2-container .select2-selection {
+  border-left: 0 !important;
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+}
+
+.input-group .select2-container {
+    flex: 1 1 auto;
+    width: 1% !important;
+    min-width: 0;
+}
+
+.trans-theme {
+    background-color: #e6f2ff !important;
+    padding: 0.25rem;
+    border-radius: 0.375rem;
+}
+
+.trans-theme .form-control,
+.trans-theme .input-group-text,
+.trans-theme .form-select,
+.trans-theme .select2-selection {
+    background-color: #fff !important;
+}
+
+.trans-table-light {
+    border-color: #007fff !important;
+    --bs-table-bg: #c0e6ff;
+}
+
+.trans-table thead tr th {
+    padding-block: 1rem;
+}
+
+.dropdown-menu {
+    font-size: 14px;
+}
+
+.dropdown-item.active,
+.dropdown-item:active {
+    background-color: #f1f1f1;
+    color: #000;
+}
+
+.dropdown-item:hover {
+    background-color: #f5f5f5;
+}

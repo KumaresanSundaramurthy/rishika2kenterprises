@@ -888,12 +888,7 @@ Class Globalservice {
             if ($resp->Error) throw new Exception($resp->Message);
 
         } elseif (isset($postData[$addressUIDField]) && $postData[$addressUIDField] > 0) {
-            $resp = $this->CI->dbwrite_model->updateData(
-                $moduleName,
-                $tableName,
-                $addressData,
-                [$uidField => $postData[$addressUIDField]]
-            );
+            $resp = $this->CI->dbwrite_model->updateData($moduleName, $tableName, $addressData, [$uidField => $postData[$addressUIDField]]);
             if ($resp->Error) throw new Exception($resp->Message);
         }
 

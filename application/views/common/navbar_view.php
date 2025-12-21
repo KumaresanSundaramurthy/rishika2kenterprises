@@ -22,7 +22,7 @@
         <ul class="navbar-nav flex-row align-items-center ms-auto">
 
             <!-- Style Switcher -->
-            <!-- <li class="nav-item dropdown me-2 me-xl-0">
+            <li class="nav-item dropdown me-2 me-xl-0">
                 <a class="nav-link dropdown-toggle hide-arrow" id="nav-theme" href="javascript:void(0);" data-bs-toggle="dropdown" aria-label="Toggle theme (light)" aria-expanded="false">
                     <i class="bx-sun icon-base bx icon-md theme-icon-active"></i>
                     <span class="d-none ms-2" id="nav-theme-text">Toggle theme</span>
@@ -44,7 +44,7 @@
                         </button>
                     </li>
                 </ul>
-            </li> -->
+            </li>
             <!-- Style Switcher -->
 
             <!-- User -->

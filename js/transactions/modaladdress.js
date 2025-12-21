@@ -1,4 +1,10 @@
 $(document).ready(function () {
+    
+    $('#addTransCustomer').click(function(e) {
+        e.preventDefault();
+        setTransAddrDefaultActions();
+        $('#transCustomerModal').modal('show');
+    });
 
     $('#addBillingAddress').click(function(e) {
         e.preventDefault();
@@ -45,7 +51,51 @@ $(document).ready(function () {
         $('#addrCopyToShipping').addClass('d-none');
     });
 
+    $('#addEditCustomerForm').submit(function(e) {
+        e.preventDefault();
+
+        var formData = new FormData($('#addEditCustomerForm')[0]);
+        formData.append('CountryCode', defaultCCode);
+        formData.append('CountryISO2', defaultIso2);
+
+        formData.append('BankDetailsJSON', JSON.stringify([]));
+        formData.append('BankDetailsCount', 0);
+
+        var custUID = $('#addEditCustomerForm').find('#CustomerUID').val();
+        
+        var BillAddrLine1 = $('#addEditCustomerForm #BillAddrLine1').val();
+        if (hasValue(BillAddrLine1)) {
+            var city = $('#addEditCustomerForm #BillAddrCity').find('option:selected').val();
+            if (hasValue(city) && $.isNumeric(city)) formData.append('BillAddrCityText', $('#addEditCustomerForm #BillAddrCity').find('option:selected').text());
+            var state = $('#addEditCustomerForm #BillAddrState').find('option:selected').val();
+            if (hasValue(state) && $.isNumeric(state)) formData.append('BillAddrStateText', $('#addEditCustomerForm #BillAddrState').find('option:selected').text());
+        }
+
+        var ShipAddrLine1 = $('#addEditCustomerForm #ShipAddrLine1').val();
+        if (hasValue(ShipAddrLine1)) {
+            var city = $('#addEditCustomerForm #ShipAddrCity').find('option:selected').val();
+            if (hasValue(city) && $.isNumeric(city)) formData.append('ShipAddrCityText', $('#addEditCustomerForm #ShipAddrCity').find('option:selected').text());
+            var state = $('#addEditCustomerForm #ShipAddrState').find('option:selected').val();
+            if (hasValue(state) && $.isNumeric(state)) formData.append('ShipAddrStateText', $('#addEditCustomerForm #ShipAddrState').find('option:selected').text());
+        }
+
+        if(custUID == 0) {
+            addCustomerData(formData);
+        } else if(custUID > 0) {
+            editCustomerData(formData);
+        }
+
+    });
+
 });
+
+function setTransAddrDefaultActions() {
+    $('#addEditCustomerForm').trigger('reset');
+    $('#addEditCustomerForm').find('#appendBillingAddress').html('').addClass('d-none');
+    $('#addEditCustomerForm').find('#appendShippingAddress').html('').addClass('d-none');
+    $('#addEditCustomerForm').find('#deleteBillingAddress,#deleteShippingAddress,#addrCopyToShipping').addClass('d-none');
+    $('#addEditCustomerForm').find('#addBillingAddress,#addShippingAddress').removeClass('d-none');
+}
 
 function baseAddressCreation(AddressType, StateInfo, CityInfo) {
 
@@ -145,7 +195,7 @@ function creationBilngAddrActions() {
     $('#addBillingAddress').addClass('d-none');
     var DivId = $('#addBillingAddress').data('divid');
     $('#'+DivId).removeClass('d-none').html('');
-    $('#'+DivId).html(baseAddressCreation(1, StateInfo, CityInfo, $('#CountryCode').find('option:selected').data('ccode')));
+    $('#'+DivId).html(baseAddressCreation(1, StateInfo, CityInfo, defaultIso2));
     $('#AddressDivider').removeClass('d-none');
     if($("#ShipAddressUID").length) {
         $('#addrCopyToShipping').removeClass('d-none');
@@ -157,10 +207,65 @@ function creationShipAddrActions() {
     $('#addShippingAddress').addClass('d-none');
     var DivId = $('#addShippingAddress').data('divid');
     $('#'+DivId).removeClass('d-none').html('');
-    $('#'+DivId).html(baseAddressCreation(2, StateInfo, CityInfo, $('#CountryCode').find('option:selected').data('ccode')));
+    $('#'+DivId).html(baseAddressCreation(2, StateInfo, CityInfo, defaultIso2));
     if($("#BillAddressUID").length) {
         $('#addrCopyToShipping').removeClass('d-none');
     }
     $('#deleteShippingAddress').removeClass('d-none');
     $('#AddressDivider').removeClass('d-none');
+}
+
+function addCustomerData(formdata) {
+    $.ajax({
+        url: '/transactions/addCustomerData',
+        method: 'POST',
+        data: formdata,
+        cache: false,
+        processData: false,
+        contentType: false,
+        success: function (response) {
+            if (response.Error) {
+                Swal.fire({icon: "error", title: "OOPS!", text: response.Message});
+            } else {
+                $('#transCustomerModal').modal('hide');
+                $('#customerSearch').append(`<option value="${response.Customer.id}">${response.Customer.text}</option>`);
+                $('#customerSearch').val(response.Customer.id).trigger('change');
+                if(hasValue(response.Customer.address)) {
+                    var addrHtml = `
+                        <div><strong>Shipping Address:</strong></div>
+                        <div>${response.Customer.address.Line1 || ''}</div>
+                        <div>${response.Customer.address.Line2 || ''}</div>
+                        <div>${response.Customer.address.City || ''}, ${response.Customer.address.State || ''} - ${response.Customer.address.Pincode || ''}</div>
+                    `;
+                    $("#customerAddressBox").html(addrHtml).removeClass('d-none');
+                } else {
+                    $("#customerAddressBox").addClass('d-none').empty();
+                }
+                setTransAddrDefaultActions();
+            }
+        }
+    });
+}
+
+function editCustomerData(formdata) {
+    $.ajax({
+        url: '/transactions/updateCustomerData',
+        method: 'POST',
+        data: formdata,
+        cache: false,
+        processData: false,
+        contentType: false,
+        enctype: 'multipart/form-data',
+        success: function (response) {
+            if (response.Error) {
+                Swal.fire({icon: "error", title: "OOPS!", text: response.Message});
+            } else {
+                $('#EditCustomerForm').trigger('reset');
+                Swal.fire(response.Message, "", "success");
+                setTimeout(function () {                    
+                    window.history.back();
+                }, 250);
+            }
+        }
+    });
 }

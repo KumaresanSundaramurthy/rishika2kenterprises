@@ -155,8 +155,6 @@ class Customers extends CI_Controller {
             if(empty($ErrorInForm)) {
 
                 $customerFormData = $this->buildCustomerFormData($PostData, true);
-
-                $this->db->trans_begin();
                 
                 $this->load->model('dbwrite_model');
                 $InsertDataResp = $this->dbwrite_model->insertData('Customers', 'CustomerTbl', $customerFormData);

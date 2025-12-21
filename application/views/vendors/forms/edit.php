@@ -308,17 +308,17 @@ $(function() {
         var BillAddrLine1 = $('#BillAddrLine1').val();
         if (hasValue(BillAddrLine1)) {
             var city = $('#BillAddrCity').find('option:selected').val();
-            if (hasValue(city)) formData.append('BillAddrCityText', $('#BillAddrCity').find('option:selected').text());
+            if (hasValue(city) && $.isNumeric(city)) formData.append('BillAddrCityText', $('#BillAddrCity').find('option:selected').text());
             var state = $('#BillAddrState').find('option:selected').val();
-            if (hasValue(state)) formData.append('BillAddrStateText', $('#BillAddrState').find('option:selected').text());
+            if (hasValue(state) && $.isNumeric(state)) formData.append('BillAddrStateText', $('#BillAddrState').find('option:selected').text());
         }
 
         var ShipAddrLine1 = $('#ShipAddrLine1').val();
         if (hasValue(ShipAddrLine1)) {
             var city = $('#ShipAddrCity').find('option:selected').val();
-            if (hasValue(city)) formData.append('ShipAddrCityText', $('#ShipAddrCity').find('option:selected').text());
+            if (hasValue(city) && $.isNumeric(city)) formData.append('ShipAddrCityText', $('#ShipAddrCity').find('option:selected').text());
             var state = $('#ShipAddrState').find('option:selected').val();
-            if (hasValue(state)) formData.append('ShipAddrStateText', $('#ShipAddrState').find('option:selected').text());
+            if (hasValue(state) && $.isNumeric(state)) formData.append('ShipAddrStateText', $('#ShipAddrState').find('option:selected').text());
         }
         formData.append('delAddrDetailFlag', delAddrDetailFlag);
         delAddrData.forEach(did => {

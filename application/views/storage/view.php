@@ -25,7 +25,7 @@
                                             <a class="nav-link active TabPane" data-id="Item" data-moduleid="<?php echo $ModuleId; ?>" role="tab" data-bs-toggle="tab" data-bs-target="#NavItemPage" aria-controls="NavItemPage" aria-selected="true" href="javascript: void(0);"><i class="bx bx-server me-1"></i> Storage</a>
                                         </li>
                                     </ul>
-                                <?php echo $this->load->view('common/view/action_details', ['redirectUrl' => 'javascript: void(0);', 'addActionName' => 'Create Storage'], TRUE); ?>
+                                <?php echo $this->load->view('common/view/action_details', ['redirectUrl' => 'javascript: void(0);', 'clsInfo' => 'addStorage', 'addActionName' => 'Create Storage'], TRUE); ?>
                                 </div>
                                 <div class="tab-content p-0">
                                     <div class="tab-pane fade show active" id="NavItemPage" role="tabpanel">

@@ -15675,6 +15675,10 @@ li:not(:first-child) .dropdown-item,.dropdown-menu .dropdown-item:not(:first-chi
     width: auto !important
 }
 
+.w-15 {
+    width: 15% !important
+}
+
 .w-20 {
     width: 20% !important
 }
@@ -15689,6 +15693,10 @@ li:not(:first-child) .dropdown-item,.dropdown-menu .dropdown-item:not(:first-chi
 
 .w-60 {
     width: 60% !important
+}
+
+.w-70 {
+    width: 70% !important
 }
 
 .w-75 {
@@ -28882,9 +28890,9 @@ body:not(.modal-open) .layout-content-navbar .layout-navbar {
 }
 
 .card-header-form-static {
-    position: sticky;   /* keeps it pinned relative to its parent */
-    top: 75px;          /* adjust this to the height of your search bar/navbar */
-    z-index: 1000;      /* keep above form fields */
+    position: sticky;
+    top: 75px;
+    z-index: 1000;
     background-color: #fff;
     border-bottom: 1px solid #dee2e6;
 }

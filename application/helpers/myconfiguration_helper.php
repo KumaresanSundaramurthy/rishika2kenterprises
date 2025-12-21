@@ -37,8 +37,7 @@ function pageResultCount($pageno, $per_page, $total_rows) {
 function getAWSConfigurationDetails() {
 
 	// r2kenterprises-kumaresan (base64-encode) value
-	$ConfigurationData = new stdClass();	
-
+	$ConfigurationData = new stdClass();
 	return $ConfigurationData;
 
 }

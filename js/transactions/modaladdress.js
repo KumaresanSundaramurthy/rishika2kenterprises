@@ -79,6 +79,8 @@ $(document).ready(function () {
             if (hasValue(state) && $.isNumeric(state)) formData.append('ShipAddrStateText', $('#addEditCustomerForm #ShipAddrState').find('option:selected').text());
         }
 
+        formData.append('transCustomer', 1);
+
         if(custUID == 0) {
             addCustomerData(formData);
         } else if(custUID > 0) {
@@ -217,7 +219,7 @@ function creationShipAddrActions() {
 
 function addCustomerData(formdata) {
     $.ajax({
-        url: '/transactions/addCustomerData',
+        url: '/customer/addCustomerData',
         method: 'POST',
         data: formdata,
         cache: false,

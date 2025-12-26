@@ -195,13 +195,20 @@ class Products extends CI_Controller {
                 }
             }
 
-            $pageNo = $this->input->post('PageNo');
-            $getResp = $this->globalservice->baseTableDataPaginationDetails($pageNo);
-            
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Message = 'Created Successfully';
-            $this->EndReturnData->List = $getResp->RecordHtmlData;
-            $this->EndReturnData->Pagination = $getResp->Pagination;
+
+            if(getPostValue($PostData, 'getTableDetails') == 1) {
+
+                $pageNo = $this->input->post('PageNo');
+                $getResp = $this->globalservice->baseTableDataPaginationDetails($pageNo);
+
+                $this->EndReturnData->List = $getResp->RecordHtmlData;
+                $this->EndReturnData->Pagination = $getResp->Pagination;
+
+            } else if(getPostValue($PostData, 'getTableDetails') == 0) {
+                $this->EndReturnData->Info = $ProductUID;
+            }
 
         } catch (Exception $e) {
             $this->EndReturnData->Error = TRUE;

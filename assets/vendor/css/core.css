@@ -15687,6 +15687,10 @@ li:not(:first-child) .dropdown-item,.dropdown-menu .dropdown-item:not(:first-chi
     width: 25% !important
 }
 
+.w-30 {
+    width: 30% !important
+}
+
 .w-50 {
     width: 50% !important
 }

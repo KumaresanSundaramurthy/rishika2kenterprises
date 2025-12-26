@@ -953,15 +953,19 @@ function baseUnSelectFunctionality(PageSelcType) {
     $('#unSelectPagesModal').modal('hide');
 }
 
-function smartDecimal(number) {
+function smartDecimal(number, maxDecimals = 6, digReq = false) {
     number = parseFloat(number);
 
     // Format to max 6 decimal places
-    let formatted = number.toFixed(6);
+    let formatted = number.toFixed(maxDecimals);
+
+    if (digReq) {
+        // Force showing all decimals (e.g. 250.00)
+        return formatted;
+    }
 
     // Remove unnecessary trailing zeros and decimal point if not needed
     formatted = formatted.replace(/\.?0+$/, '');
-
     return formatted;
 }
 

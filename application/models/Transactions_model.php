@@ -44,6 +44,35 @@ class Transactions_model extends CI_Model {
 
     }
 
+    public function getTransPageSettings($whereCondition = []) {
+
+        $this->EndReturnData = new StdClass();
+        try {
+
+            $this->ReadDb->select('pageSettings.TransPageSetgUID as TransPageSetgUID, pageSettings.ModuleUID as ModuleUID, pageSettings.DefaultPrefix as DefaultPrefix, pageSettings.ShowFiscalYear as ShowFiscalYear, pageSettings.FiscalYearType as FiscalYearType, pageSettings.InvoiceSepText as InvoiceSepText, pageSettings.ValidityDays as ValidityDays');
+            $this->ReadDb->from('Transaction.TransPageSettingsTbl as pageSettings');
+            if (sizeof($whereCondition) > 0) {
+                $this->ReadDb->where($whereCondition);
+            }
+            $this->ReadDb->limit(1);
+            $query = $this->ReadDb->get();
+            $error = $this->ReadDb->error();
+            if ($error['code']) {
+                throw new Exception($error['message']);
+            } else {
+                $this->EndReturnData->Data = $query->result()[0];
+            }
+
+            return $this->EndReturnData->Data;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+            throw new Exception($this->EndReturnData->Message);
+        }
+        
+    } 
+
     public function getCustomersDetails(string $Term = '', $WhereCondition = []) {
         
         $this->EndReturnData = new StdClass();
@@ -86,6 +115,68 @@ class Transactions_model extends CI_Model {
             }
             $this->ReadDb->group_by('Customers.CustomerUID');
             $this->ReadDb->limit(10);
+
+            $query = $this->ReadDb->get();
+            $error = $this->ReadDb->error();
+            if ($error['code']) {
+                throw new Exception($error['message']);
+            } else {
+                $this->EndReturnData->Data = $query->result();
+            }
+            return $this->EndReturnData->Data;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+            throw new Exception($this->EndReturnData->Message);
+        }
+
+    }
+
+    public function getTransProductsDetails(string $Term = '', $WhereCondition = []) {
+
+        $this->EndReturnData = new StdClass();
+        try {
+
+            $this->ReadDb->db_debug = FALSE;
+            $select_ary = array(
+                'product.ProductUID AS ProductUID',
+                'product.ItemName AS ItemName',
+                'product.ProductType AS ProductType',
+                'product.UnitPrice AS UnitPrice',
+                'product.SellingPrice AS SellingPrice',
+                'product.PurchasePrice AS PurchasePrice',
+                'product.TaxPercentage AS TaxPercentage',
+                'product.CGST AS CGST',
+                'product.SGST AS SGST',
+                'product.IGST AS IGST',
+                'product.CategoryUID AS CategoryUID',
+                'category.Name AS CatgName',
+                'product.HSNSACCode AS HSNSACCode',
+                'product.PrimaryUnitShortName AS PrimaryUnitShortName',
+                'product.AvailableQuantity AS AvailableQuantity',
+                'product.Discount AS Discount',
+                'product.DiscountTypeName AS DiscountTypeName',
+            );
+            $where_ary = array(
+                'product.IsDeleted' => 0,
+                'product.IsActive' => 1,
+            );
+            $this->ReadDb->select($select_ary);
+            $this->ReadDb->from('Products.ProductTbl as product');
+            $this->ReadDb->join('Products.CategoryTbl as category', 'category.CategoryUID = product.CategoryUID AND category.IsDeleted = 0 AND category.IsActive = 1', 'LEFT');
+            if(!empty($Term)) {
+                $this->ReadDb->group_start();
+                $this->ReadDb->or_like('product.ItemName', $Term, 'both');
+                $this->ReadDb->or_like('product.PartNumber', $Term, 'both');
+                $this->ReadDb->group_end();
+            }
+            if(sizeof($WhereCondition) > 0) {
+                $this->ReadDb->where($WhereCondition);
+            }
+            $this->ReadDb->where($where_ary);
+            $this->ReadDb->group_by('product.ProductUID');
+            $this->ReadDb->limit(30);
 
             $query = $this->ReadDb->get();
             $error = $this->ReadDb->error();

@@ -8,7 +8,7 @@
             <?php $FormAttribute = array('id' => 'AddEditItemForm', 'name' => 'AddEditItemForm', 'class' => '', 'autocomplete' => 'off');
                 echo form_open('products/addEditItem', $FormAttribute); ?>
 
-            <div class="modal-header modal-header-center-sticky d-flex justify-content-between align-items-center p-3">
+            <div class="modal-header modal-header-center-sticky trans-theme d-flex justify-content-between align-items-center p-3">
                 <h5 class="modal-title" id="ItemModalTitle">Create Item</h5>
                 <div class="d-flex align-items-center gap-2">
                     <button type="submit" class="btn btn-primary AddEditProductBtn">Save</button>
@@ -46,7 +46,7 @@
                         <div class="mb-3 col-md-6">
                             <label for="SellingPrice" class="form-label">Selling Price <span style="color:red" class="me-1">*</span>(<span id="SellingPriceTaxHelp" class="form-text text-danger">Inclusive of Taxes</span><span id="SellingPriceWTaxHelp" class="form-text text-danger d-none">Exclusive of Taxes</span>)</label>
                             <div class="input-group input-group-merge">
-                                <span class="input-group-text"><?php echo $GenSettings->CurrenySymbol; ?></span>
+                                <span class="input-group-text"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span>
                                 <input type="text" class="form-control" name="SellingPrice" id="SellingPrice" min="0" placeholder="Enter Selling Price" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" maxLength="<?php echo $JwtData->GenSettings->PriceMaxLength; ?>" pattern="^\d{1,<?php echo $JwtData->GenSettings->PriceMaxLength; ?>}(\.\d{0,<?php echo $JwtData->GenSettings->DecimalPoints; ?>})?$" onpaste="handlePricePaste(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" ondrop="handlePriceDrop(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" required />
                                 <select class="form-select" style="flex: 0 0 35%;" id="SellingTaxOption" name="SellingTaxOption">
                                     <?php if (sizeof($ProdTaxInfo) > 0) {
@@ -60,7 +60,7 @@
                         <div class="mb-3 col-md-6">
                             <label for="PurchasePrice" class="form-label">Purchase Price </label>
                             <div class="input-group input-group-merge">
-                                <span class="input-group-text"><?php echo $GenSettings->CurrenySymbol; ?></span>
+                                <span class="input-group-text"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span>
                                 <input type="text" class="form-control" name="PurchasePrice" id="PurchasePrice" min="0" placeholder="Enter Purchase Price" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" maxLength="<?php echo $JwtData->GenSettings->PriceMaxLength; ?>" pattern="^\d{1,<?php echo $JwtData->GenSettings->PriceMaxLength; ?>}(\.\d{0,<?php echo $JwtData->GenSettings->DecimalPoints; ?>})?$" onpaste="handlePricePaste(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" ondrop="handlePriceDrop(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" />
                                 <select class="form-select" style="flex: 0 0 35%;" id="PurchaseTaxOption" name="PurchaseTaxOption">
                                     <?php if (sizeof($ProdTaxInfo) > 0) {
@@ -210,21 +210,21 @@
                         <h5 class="modal-title mb-0">Other Information</h5>
                     </div>
                     <div class="row">
-                        <div class="mb-3 col-md-4">
+                        <div class="mb-3 col-md-4 OpeningStockDiv">
                             <label for="OpeningQuantity" class="form-label">Opening Quantity</label>
                             <input type="text" class="form-control" name="OpeningQuantity" id="OpeningQuantity" min="0" placeholder="Enter Opening Quantity" onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))" oninput="this.value=this.value.slice(0,this.maxLength); handleOnlyNumbers(this)" maxLength="<?php echo $JwtData->GenSettings->PriceMaxLength; ?>" pattern="[0-9]*" value="0" onpaste="pasteOnlyNumbers(event)" ondrop="dropOnlyNumbers(event)" />
                             <div id="OpeningQuantityHelp" class="form-text text-secondary">* Quantity available in your existing inventory</div>
                         </div>
-                        <div class="mb-3 col-md-4">
+                        <div class="mb-3 col-md-4 OpeningStockDiv">
                             <label for="OpeningPurchasePrice" class="form-label">Opening Purchase Price (with Tax)</label>
                             <input type="text" class="form-control" name="OpeningPurchasePrice" id="OpeningPurchasePrice" min="0" placeholder="Enter Opening Purchase Price" onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))" oninput="this.value=this.value.slice(0,this.maxLength); handleOnlyNumbers(this)" maxLength="<?php echo $JwtData->GenSettings->PriceMaxLength; ?>" pattern="[0-9]*" value="0" onpaste="pasteOnlyNumbers(event)" ondrop="dropOnlyNumbers(event)" />
                         </div>
-                        <div class="mb-3 col-md-4">
+                        <div class="mb-3 col-md-4 OpeningStockDiv">
                             <label for="OpeningStockValue" class="form-label">Opening Stock Value (with Tax)</label>
                             <input type="text" class="form-control" name="OpeningStockValue" id="OpeningStockValue" min="0" placeholder="Enter Opening Stock Value" onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))" oninput="this.value=this.value.slice(0,this.maxLength); handleOnlyNumbers(this)" maxLength="<?php echo $JwtData->GenSettings->PriceMaxLength; ?>" pattern="[0-9]*" value="0" onpaste="pasteOnlyNumbers(event)" ondrop="dropOnlyNumbers(event)" />
                         </div>
                         <div class="mb-3 col-md-4">
-                            <label for="Discount" class="form-label">Discount </label>
+                            <label for="Discount" class="form-label">Discount (<span id="discTextPercentHelp" class="form-text text-danger">Percentage (%) of products</span><span id="discTextAmountHelp" class="form-text text-danger d-none">Flat Amount (<?php echo $JwtData->GenSettings->CurrenySymbol; ?>) of products</span>)</label></label>
                             <div class="input-group input-group-merge">
                                 <input class="form-control" type="text" id="Discount" name="Discount" min="0" placeholder="Enter Discount Percentage" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validateDiscountInput(this, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" maxLength="<?php echo $JwtData->GenSettings->PriceMaxLength; ?>" pattern="^\d{1,<?php echo $JwtData->GenSettings->PriceMaxLength; ?>}(\.\d{0,<?php echo $JwtData->GenSettings->DecimalPoints; ?>})?$" onpaste="handleDiscountPaste(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" ondrop="handleDiscountDrop(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" value="0" />
                                 <select class="form-select w-30" id="DiscountOption" name="DiscountOption">

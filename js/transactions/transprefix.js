@@ -1,6 +1,14 @@
 $(document).ready(function () {
     'use strict'
 
+    $('#transPrefixSelect').change(function(e) {
+        e.preventDefault();
+        var getVal = $(this).val();
+        if(hasValue(getVal)) {
+            $('#appendPrefixVal').text(getVal);
+        }
+    });
+
     $('#transPrefixName').on('input', function () {
 
         // Allow only A-Z, a-z, 0-9, /, \, |, -, _
@@ -41,11 +49,11 @@ $(document).ready(function () {
                     Swal.fire({icon: "error", title: '', text: response.Message});
                 } else {
                     
-                    $('#prefix-select').append(`<option value="${getPreName}">${getPreName}</option>`);
+                    $('#transPrefixSelect').append(`<option value="${getPreName}">${getPreName}</option>`);
                     $('#transPrefixModal').modal('hide');
                     $('#transPrefixModal').find('#addTransPrefixForm').trigger('reset');
 
-                    $('#prefix-select').val(getPreName).trigger('change');
+                    $('#transPrefixSelect').val(getPreName).trigger('change');
                     
                 }
             },

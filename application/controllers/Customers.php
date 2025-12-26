@@ -173,6 +173,30 @@ class Customers extends CI_Controller {
                     $this->globalservice->saveAddressInfo($PostData, $CustomerUID, $prefix, $type, 'Customers', 'CustAddressTbl', 'CustAddressUID', 'CustomerUID');
                 }
 
+                if(getPostValue($PostData, 'transCustomer') == 1) {
+                    $this->load->model('transactions_model');
+                    $customersData = $this->transactions_model->getCustomersDetails('', ['Customers.CustomerUID' => $CustomerUID]);
+                    $cust_Data = [];
+                    foreach ($customersData as $value) {
+                        $cust_Data = [
+                            'id'   => $value->CustomerUID,
+                            'text' => $value->Area 
+                                ? $value->Name . ' (' . $value->Area . ')' 
+                                : $value->Name,
+                        ];
+                        if($value->AddrUID) {
+                            $cust_Data['address'] = [
+                                'Line1' => $value->Line1,
+                                'Line2' => $value->Line2,
+                                'Pincode' => $value->Pincode,
+                                'City' => $value->CityText,
+                                'State' => $value->StateText,
+                            ];
+                        }
+                    }
+                    $this->EndReturnData->Customer = $cust_Data;
+                }
+
                 $this->EndReturnData->Error = FALSE;
                 $this->EndReturnData->Message = 'Created Successfully';
 

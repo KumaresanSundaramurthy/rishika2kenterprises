@@ -654,6 +654,7 @@ $(function() {
         }
         formData.append('IsSizeApplicable', $('#IsSizeApplicable').is(':checked') ? 1 : 0);
         formData.append('NotForSale', $('#NotForSale').is(':checked') ? 1 : 0);
+        formData.append('getTableDetails', 1);
         
         if (getProdHiddenId == 0) {
             addProductData(formData);

@@ -23,8 +23,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 | a PHP script and you can easily do that on your own.
 |
 */
-// $config['base_url'] = 'http://localhost/rishika2kenterprises';
-$config['base_url'] = 'https://r2k-web-service.onrender.com/';
+$config['base_url'] = getenv('HTTP_HOST_URL');
 
 /*
 |--------------------------------------------------------------------------

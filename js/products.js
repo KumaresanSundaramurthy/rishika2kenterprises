@@ -1267,10 +1267,11 @@ function toggleAllStorage(main) {
 $('#ProductType').on('change', function (e) {
     e.preventDefault();
     var getVal = $(this).val();
+    $('#AddEditItemForm').find('#OpeningQuantity,#OpeningPurchasePrice,#OpeningStockValue').val(0);
     if (getVal == 'Product') {
-        $('#OpeningStockDiv').removeClass('d-none');
+        $('.OpeningStockDiv').removeClass('d-none');
     } else if (getVal == 'Service') {
-        $('#OpeningStockDiv').addClass('d-none');
+        $('.OpeningStockDiv').addClass('d-none');
     }
 });
 

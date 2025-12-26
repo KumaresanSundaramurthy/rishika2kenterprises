@@ -34,6 +34,9 @@ class Quotations extends CI_Controller {
 
         try {
 
+            $GeneralSettings = $this->redis_cache->get('Redis_UserGenSettings')->Value ?? NULL;
+            $this->pageData['JwtData']->GenSettings = $GeneralSettings;
+
             $this->load->model('global_model');
             $GetCountryInfo = $this->global_model->getCountryInfo();
             $this->pageData['CountryInfo'] = $GetCountryInfo->Error === FALSE ? $GetCountryInfo->Data : [];
@@ -57,9 +60,26 @@ class Quotations extends CI_Controller {
 
             $this->load->model('transactions_model');
             $this->pageData['PrefixData'] = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.ModuleUID' => $this->pageModuleUID])->Data;
+            $this->pageData['TransPageSettings'] = $this->transactions_model->getTransPageSettings(['pageSettings.ModuleUID' => $this->pageModuleUID]);
 
+            /** Product Details */
+            $this->pageData['PrimaryUnitInfo'] = $this->global_model->getPrimaryUnitInfo()->Data ?? [];
+            $this->pageData['DiscTypeInfo']    = $this->global_model->getDiscountTypeInfo()->Data ?? [];
+            $this->pageData['ProdTypeInfo']    = $this->global_model->getProductTypeInfo()->Data ?? [];
+            $this->pageData['ProdTaxInfo']     = $this->global_model->getProductTaxInfo()->Data ?? [];
+            $this->pageData['TaxDetInfo']      = $this->global_model->getTaxDetailsInfo()->Data ?? [];
             
+            $this->load->model('products_model');
+            $this->pageData['SizeInfo']   = $this->products_model->getSizeDetails([]) ?? [];
+            $this->pageData['BrandInfo']  = $this->products_model->getBrandDetails([]) ?? [];
+            $this->pageData['fltCategoryData'] = $this->products_model->getCategoriesDetails([]) ?? [];
 
+            $this->pageData['fltStorageData'] = [];
+            if (!empty($this->pageData['JwtData']->GenSettings->EnableStorage)) {
+                $this->load->model('storage_model');
+                $this->pageData['fltStorageData'] = $this->storage_model->getStorageDetails([]) ?? [];
+            }
+            
             $this->load->view('transactions/quotations/forms/add', $this->pageData);
 
         } catch (Exception $e) {

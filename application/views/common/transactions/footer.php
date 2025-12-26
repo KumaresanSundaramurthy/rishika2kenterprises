@@ -37,7 +37,7 @@
 
     <script type="text/javascript" src="/js/common/default.js"></script>
 
-    <?php $this->load->view('common/footer_script'); ?>
+    <?php $this->load->view('common/transactions/trans_footer_script'); ?>
 
 </body>
 

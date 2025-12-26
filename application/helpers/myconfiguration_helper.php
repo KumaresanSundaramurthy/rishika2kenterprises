@@ -64,13 +64,16 @@ function filterByMainMenuUID($data, $mainMenuUID) {
     }));
 }
 
-function smartDecimal($number) {
+function smartDecimal($number, $maxDecimals = 6, $digReq = false) {
     // Convert to float first to remove unnecessary zeros
     $number = (float) $number;
-
-    // Remove trailing zeros while keeping necessary decimal precision
-    return rtrim(rtrim(number_format($number, 6, '.', ''), '0'), '.');
-	
+    // Format with max decimals
+    $formatted = number_format($number, $maxDecimals, '.', '');
+    if ($digReq) {
+        return $formatted;
+    }
+    // Otherwise trim unnecessary zeros and decimal point
+    return rtrim(rtrim($formatted, '0'), '.');
 }
 
 function getModuleUIDByName($modules, $name) {

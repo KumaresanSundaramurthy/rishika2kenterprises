@@ -95,97 +95,65 @@ class Transactions extends CI_Controller {
         
     }
 
-    private function buildCustomerFormData($postData, $isCreate = false) {
-        $data = [
-            'Name'             => getPostValue($postData, 'Name'),
-            'Area'             => getPostValue($postData, 'Area'),
-            'OrgUID'           => $this->pageData['JwtData']->User->OrgUID,
-            'EmailAddress'     => getPostValue($postData, 'EmailAddress'),
-            'CountryCode'      => getPostValue($postData, 'CountryCode'),
-            'CountryISO2'      => getPostValue($postData, 'CountryISO2', '', 'IN'),
-            'MobileNumber'     => getPostValue($postData, 'MobileNumber'),
-            'DebitCreditType'  => getPostValue($postData, 'DebitCreditCheck', '', 'Debit'),
-            'DebitCreditAmount'=> getPostValue($postData, 'DebitCreditAmount', '', 0),
-            'PANNumber'        => getPostValue($postData, 'PANNumber'),
-            'ContactPerson'    => getPostValue($postData, 'ContactPerson'),
-            'DateOfBirth'      => getPostValue($postData, 'CPDateOfBirth'),
-            'GSTIN'            => getPostValue($postData, 'GSTIN'),
-            'CompanyName'      => getPostValue($postData, 'CompanyName'),
-            'DiscountPercent'  => getPostValue($postData, 'DiscountPercent', '', 0),
-            'CreditPeriod'     => getPostValue($postData, 'CreditPeriod', '', 30),
-            'CreditLimit'      => getPostValue($postData, 'CreditLimit', '', 0),
-            'Notes'            => getPostValue($postData, 'Notes'),
-            'Tags'             => getPostValue($postData, 'Tags', 'Comma'),
-            'CCEmails'         => getPostValue($postData, 'CCEmails', 'Comma'),
-            'UpdatedBy'        => $this->pageData['JwtData']->User->UserUID,
-            'UpdatedOn'        => time(),
-        ];
-        if ($isCreate) {
-            $data['CreatedBy'] = $this->pageData['JwtData']->User->UserUID;
-            $data['CreatedOn'] = time();
-        }
-        return $data;
-    }
-
-    public function addCustomerData() {
+    public function searchTransProducts() {
 
         $this->EndReturnData = new stdClass();
 		try {
 
-            $PostData = $this->input->post();
-
-            $this->load->model('formvalidation_model');
-            $ErrorInForm = $this->formvalidation_model->custValidateForm($PostData);
-            if(empty($ErrorInForm)) {
-
-                $customerFormData = $this->buildCustomerFormData($PostData, true);
-                
-                $this->load->model('dbwrite_model');
-                $InsertDataResp = $this->dbwrite_model->insertData('Customers', 'CustomerTbl', $customerFormData);
-                if ($InsertDataResp->Error) throw new Exception($InsertDataResp->Message);
-                
-                $CustomerUID = $InsertDataResp->ID;
-
-                foreach ([['Bill','Billing'], ['Ship','Shipping']] as [$prefix,$type]) {
-                    $this->globalservice->saveAddressInfo($PostData, $CustomerUID, $prefix, $type, 'Customers', 'CustAddressTbl', 'CustAddressUID', 'CustomerUID');
-                }
-
-                $this->load->model('transactions_model');
-                $customersData = $this->transactions_model->getCustomersDetails('', ['Customers.CustomerUID' => $CustomerUID]);
-                $cust_Data = [];
-                foreach ($customersData as $value) {
-                    $cust_Data = [
-                        'id'   => $value->CustomerUID,
-                        'text' => $value->Area 
-                            ? $value->Name . ' (' . $value->Area . ')' 
-                            : $value->Name,
-                    ];
-                    if($value->AddrUID) {
-                        $cust_Data['address'] = [
-                            'Line1' => $value->Line1,
-                            'Line2' => $value->Line2,
-                            'Pincode' => $value->Pincode,
-                            'City' => $value->CityText,
-                            'State' => $value->StateText,
-                        ];
-                    }
-                }
-
-                $this->EndReturnData->Error = FALSE;
-                $this->EndReturnData->Message = 'Created Successfully';
-                $this->EndReturnData->Customer = $cust_Data;
-
-            } else {
-                throw new Exception($ErrorInForm);
+            $term = $this->input->get('term') ? trim($this->input->get('term')) : '';
+            $catgUid = $this->input->get('categuid') ? (int) $this->input->get('categuid') : 0;
+            $whereArr = [];
+            if($catgUid) {
+                $whereArr['product.CategoryUID'] = $catgUid;
             }
+
+            $this->load->model('transactions_model');
+            $productData = $this->transactions_model->getTransProductsDetails($term, $whereArr);
+
+            $GeneralSettings = $this->redis_cache->get('Redis_UserGenSettings')->Value ?? NULL;
+
+            $retProdDetails = [];
+            foreach ($productData as $value) {
+
+                $sellingPrice = (float) $value->SellingPrice;
+                $taxPercent = (float) $value->TaxPercentage;
+
+                $unitPrice = smartDecimal($sellingPrice / (1 + ($taxPercent / 100)), 8);
+                $taxAmount = smartDecimal($sellingPrice - $unitPrice, $GeneralSettings->DecimalPoints, true);
+
+                $formData = [
+                    'id'   => (int) $value->ProductUID,
+                    'text' => $value->ItemName,
+                    'itemName' => $value->ItemName,
+                    'unitPrice' => (float) $unitPrice,
+                    'taxAmount' => (float) $taxAmount,
+                    'sellingPrice' => (float) smartDecimal($sellingPrice, $GeneralSettings->DecimalPoints, true),
+                    'purchasePrice' => (float) smartDecimal($value->PurchasePrice, $GeneralSettings->DecimalPoints, true),
+                    "availableQuantity" => (int) $value->AvailableQuantity,
+                    "hsnCode" => $value->HSNSACCode,
+                    "primaryUnit" => $value->PrimaryUnitShortName,
+                    "category" => $value->CatgName,
+                    "taxPercent" => (float) $taxPercent,
+                    "cgstPercent" => (float) $value->CGST,
+                    "sgstPercent" => (float) $value->SGST,
+                    "igstPercent" => (float) $value->IGST,
+                    "discount" => (float) smartDecimal($value->Discount),
+                    "discountType" => $value->DiscountTypeName,
+                ];
+
+                $retProdDetails[] = $formData;
+
+            }
+            $this->EndReturnData->Lists = $retProdDetails;
+            $this->EndReturnData->Error = false;
 
         } catch (Exception $e) {
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
 
-		$this->globalservice->sendJsonResponse($this->EndReturnData);
-
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+        
     }
 
 }

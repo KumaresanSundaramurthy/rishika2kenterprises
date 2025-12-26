@@ -284,6 +284,8 @@ $(function() {
             if (hasValue(state) && $.isNumeric(state)) formData.append('ShipAddrStateText', $('#ShipAddrState').find('option:selected').text());
         }
 
+        formData.append('transCustomer', 0);
+
         addCustomerData(formData);
 
     });

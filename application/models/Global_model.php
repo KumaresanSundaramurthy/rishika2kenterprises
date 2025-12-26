@@ -245,6 +245,7 @@ class Global_model extends CI_Model {
                     'DiscType.DiscountTypeUID AS DiscountTypeUID',
                     'DiscType.Name AS Name',
                     'DiscType.DisplayName AS DisplayName',
+                    'DiscType.Symbol AS Symbol',
                     'DiscType.UpdatedOn as UpdatedOn',
                 );
                 $this->GlobalDb->select($select_ary);

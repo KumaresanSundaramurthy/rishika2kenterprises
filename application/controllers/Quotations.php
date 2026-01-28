@@ -9,7 +9,7 @@ class Quotations extends CI_Controller {
     public function __construct() {
         parent::__construct();
 
-        $this->pageModuleUID = 10;
+        $this->pageModuleUID = 101;
         $this->load->helper('transaction');
 
     }
@@ -18,16 +18,71 @@ class Quotations extends CI_Controller {
 
         try {
 
+            $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
+
             $GeneralSettings = ($this->redis_cache->get('Redis_UserGenSettings')->Value) ?? new stdClass();
             $limit = $GeneralSettings->RowLimit ?? 10;
             $this->pageData['JwtData']->GenSettings = $GeneralSettings;
-
+            $this->pageData['DiscTypeInfo'] = [];
+            
             $this->load->view('transactions/quotations/view', $this->pageData);
 
         } catch (Exception $e) {
             redirect('dashboard', 'refresh');
         }
         
+    }
+
+    public function getQuotationsPageDetails($pageNo = 0) {
+
+        $this->EndReturnData = new stdClass();
+		try {
+
+			$limit = (int) $this->input->post('RowLimit') ?: 10;
+            $offset = max(0, ($pageNo - 1)) * $limit;
+            $filter = $this->input->post('Filter') ?: [];
+            $moduleId = $this->input->post('ModuleId');
+
+            if ($limit <= 0 || $limit > 100) $limit = 10;
+
+			$this->load->model('transactions_model');
+            $allData = $this->transactions_model->getTransactionPageList($limit, $offset, $filter, 0);
+            $allDataCount = $this->transactions_model->getTransactionCount($filter);
+
+			// $config['base_url'] = '/quotations/getQuotationsPageDetails/';
+            // $config['use_page_numbers'] = TRUE;
+            // $config['total_rows'] = $allDataCount;
+            // $config['per_page'] = $limit;
+            $config = [
+                'base_url' => base_url('quotations/getQuotationsPageDetails/'),
+                'use_page_numbers' => TRUE,
+                'total_rows' => $allDataCount,
+                'per_page' => $limit,
+                'reuse_query_string' => TRUE, // Preserve filter parameters
+                'first_link' => 'First',
+                'last_link' => 'Last',
+                'next_link' => 'Next',
+                'prev_link' => 'Previous',
+                'full_tag_open' => '<ul class="pagination justify-content-center">',
+                'full_tag_close' => '</ul>',
+                'attributes' => ['class' => 'page-link'],
+                'cur_tag_open' => '<li class="page-item active"><span class="page-link">',
+                'cur_tag_close' => '</span></li>',
+            ];
+
+            $this->EndReturnData->pagination = $this->pagination->create_links();
+            $this->EndReturnData->ResultCount = $allDataCount;
+            $this->EndReturnData->ShowingCount = count($allData);
+            $this->EndReturnData->PageNo = $pageNo;
+            $this->EndReturnData->dataList = $this->load->view('transactions/quotations/mainpagelist', ['dataLists' => $allData], true);
+
+		} catch (Exception $e) {
+            $this->EndReturnData->Error = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
     }
 
     public function create() {

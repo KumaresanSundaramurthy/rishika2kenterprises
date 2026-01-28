@@ -42,6 +42,36 @@ function getAWSConfigurationDetails() {
 
 }
 
+function changeTimeZonefromDateTime($DateTimeVal, $TimeZone, $FormatType = 1) {
+    $DateTime = new DateTime($DateTimeVal);
+	$DateTime->setTimezone(new DateTimeZone($TimeZone));
+	switch($FormatType) {
+        case 1: // Date only: '15 Jan 2024'
+            return $DateTime->format('d M Y');
+            
+        case 2: // Date + Time: '15 Jan 2024 02:30 PM'
+            return $DateTime->format('d M Y h:i A');
+            
+        case 3: // Full datetime: '15 Jan 2024 14:30:45'
+            return $DateTime->format('d M Y H:i:s');
+            
+        case 4: // Time only: '02:30 PM'
+            return $DateTime->format('h:i A');
+            
+        case 5: // Database format: '2024-01-15 14:30:45'
+            return $DateTime->format('Y-m-d H:i:s');
+            
+        case 6: // ISO 8601: '2024-01-15T14:30:45+05:30'
+            return $DateTime->format(DateTime::ISO8601);
+            
+        case 7: // Month Year: 'January 2024'
+            return $DateTime->format('F Y');
+            
+        default: // Same as case 1
+            return $DateTime->format('d M Y');
+    }
+}
+
 function changeTimeZomeDateFormat($TimeStamp, $TimeZone, $FormatType = 1) {
 	
 	$DateTime = new DateTime(date('Y-m-d H:i:s', $TimeStamp));

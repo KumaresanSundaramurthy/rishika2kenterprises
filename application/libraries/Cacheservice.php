@@ -23,15 +23,14 @@ Class Cacheservice {
 
         $this->EndReturnData = new stdClass();
 
-        try{
+        try {
 
-            $this->Client->set($Key, $Value);
+            $this->Client->set($Key, json_encode($Value));
             $this->Client->expire($Key, $TTL);
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Message = 'Success';
             $this->EndReturnData->Key = $Key;
-            $this->EndReturnData->Value = $Value;
             $this->EndReturnData->TTL = $TTL;
 
         } catch (Exception $e) {
@@ -85,7 +84,7 @@ Class Cacheservice {
                 $this->EndReturnData->Error = FALSE;
                 $this->EndReturnData->Message = 'Success';
                 $this->EndReturnData->Key = $Key;
-                $this->EndReturnData->Value = $this->Client->get($Key);
+                $this->EndReturnData->Value = json_decode($this->Client->get($Key));
                 $this->EndReturnData->TTL = $this->Client->ttl($Key);
 
             }else{

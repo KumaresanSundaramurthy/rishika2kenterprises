@@ -17,29 +17,44 @@ if (!function_exists('format_disp_column_value')) {
         $value     = $list->$fieldName ?? '';
 
         if ($column->IsAmountField) {
+            $balanceType = $list->{'Closing Balance Type'} ?? '';
+            $numericValue = (float) $value;
             $value = smartDecimal($value);
             if ($column->CurrencySymbol == 1 && $type !== 'excel') {
                 $value = $GenSettings->CurrenySymbol . ' ' . $value;
+                if ($numericValue > 0) {
+                    if ($balanceType === 'Debit') {
+                        $value .= ' Dr';
+                    } elseif ($balanceType === 'Credit') {
+                        $value .= ' Cr';
+                    }
+                }
             }
         }
 
         if ($column->IsDateField && !empty($value)) {
             switch ($column->MPDateFormatType) {
                 case 1:
-                    $value = changeTimeZomeDateFormat($value, $JwtData->User->Timezone, 1);
+                    $value = changeTimeZonefromDateTime($value, $JwtData->User->Timezone, 1);
                     break;
                 case 2:
                     if ($type === 'html' || $type === 'preview') {
                         $lastUpdatedBy = $list->{'Last Updated By'} ?? '';
-                        $value  = '<div>'.changeTimeZomeDateFormat($value, $JwtData->User->Timezone, 2).'</div>';
+                        $value  = '<div>'.changeTimeZonefromDateTime($value, $JwtData->User->Timezone, 2).'</div>';
                         $value .= '<div class="text-muted" style="font-size: 0.75rem;">by '.$lastUpdatedBy.'</div>';
                     } else {
-                        $value = changeTimeZomeDateFormat($value, $JwtData->User->Timezone, 2);
+                        $value = changeTimeZonefromDateTime($value, $JwtData->User->Timezone, 2);
                     }
                     break;
                 default:
-                    $value = changeTimeZomeDateFormat($value, $JwtData->User->Timezone, 1);
+                    $value = changeTimeZonefromDateTime($value, $JwtData->User->Timezone, 1);
             }
+        }
+
+        // Whatsapp Deviation
+        if ($column->IsMobileNumber && !empty($value)) {
+            $cleanNumber = preg_replace('/[^0-9]/', '', $value);
+            $value = $value . ' <a href="https://wa.me/91'.$cleanNumber.'?text=Hi" target="_blank" class="text-success ms-1 fs-5 align-middle" title="Click to WhatsApp"><i class="bx bxl-whatsapp"></i></a>';
         }
 
         if ($type === 'value' || $type === 'excel') {

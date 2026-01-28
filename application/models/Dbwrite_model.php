@@ -4,49 +4,88 @@ class Dbwrite_model extends CI_Model {
 
     private $EndReturnData;
     private $WriteDB;
+    private $transaction_id;
 
     function __construct() {
-
         parent::__construct();
+
         $this->EndReturnData = new stdclass();
+        $this->WriteDB = $this->load->database('WriteDB', TRUE);
         
+    }
+
+    public function startTransaction() {
+        $this->WriteDB->trans_start();
+        $this->transaction_id = uniqid('TXN_', true);
+        return $this->transaction_id;
+    }
+
+    public function commitTransaction() {
+        try {
+            $this->WriteDB->trans_complete();
+            
+            if (!$this->WriteDB->trans_status()) {
+                $error = $this->WriteDB->error();
+                
+                // Build detailed error message
+                $errorMsg = 'Transaction commit failed. ';
+                
+                if (!empty($error['message'])) {
+                    $errorMsg .= 'Database Error: ' . $error['message'];
+                }
+                
+                if (!empty($error['code'])) {
+                    $errorMsg .= ' (Code: ' . $error['code'] . ')';
+                }
+
+                if (method_exists($this->WriteDB, 'last_query')) {
+                    $lastQuery = $this->WriteDB->last_query();
+                    $errorMsg .= ' Last Query: ' . substr($lastQuery, 0, 200) . '...';
+                }
+                throw new Exception($errorMsg);
+
+            }
+            
+            return true;
+            
+        } catch (Exception $e) {
+            throw new Exception('Transaction failed: ' . $e->getMessage());
+        }
+    }
+
+    public function rollbackTransaction() {
+        $this->WriteDB->trans_rollback();
     }
 
     public function insertData($Database, $Table, $Data) {
 
         $this->EndReturnData = new stdclass();
-
+        $this->EndReturnData->Error = FALSE;
+        $this->EndReturnData->Message = 'Success';
         try {
 
-            $this->WriteDB = $this->load->database($Database, TRUE);
             $this->WriteDB->db_debug = FALSE;
+            $res = $this->WriteDB->insert($Database.'.'.$Table, $Data);
+            if ($res === false) {
 
-            $res = $this->WriteDB->insert($Table, $Data);
-
-            if (!$res) {
+                $dbError = $this->WriteDB->error();
 
                 $this->EndReturnData->Error = TRUE;
                 $this->EndReturnData->Table = $Table;
                 $this->EndReturnData->Data = $Data;
-                $this->EndReturnData->Message = $this->WriteDB->error()['message'];
+                $this->EndReturnData->Message = $dbError['message'] ?? 'Database error';
 
-            } else {
-
-                $this->EndReturnData->Error = FALSE;
+            } else {                
                 $this->EndReturnData->ID = $this->WriteDB->insert_id();
                 $this->EndReturnData->Table = $Table;
                 $this->EndReturnData->Data = $Data;
-                $this->EndReturnData->Message = 'Success';
-
             }
 
         } catch (Exception $e) {
-
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Table = $Table;
             $this->EndReturnData->Data = $Data;
             $this->EndReturnData->Message = $e->getMessage();
-
         }
 
         return $this->EndReturnData;
@@ -96,10 +135,10 @@ class Dbwrite_model extends CI_Model {
     public function updateData($Database, $Table, $Data, $Condition = [], $whereInCondition = array()) {
 
         $this->EndReturnData = new stdclass();
-
+        $this->EndReturnData->Error = FALSE;
+        $this->EndReturnData->Message = 'Success';
         try {
 
-            $this->WriteDB = $this->load->database($Database, TRUE);
             $this->WriteDB->db_debug = FALSE;
 
             if (!empty($whereInCondition)) {
@@ -108,9 +147,9 @@ class Dbwrite_model extends CI_Model {
                 }
             }
             if (!empty($Condition)) {
-                $res = $this->WriteDB->update($Table, $Data, $Condition);
+                $res = $this->WriteDB->update($Database.'.'.$Table, $Data, $Condition);
             } else {
-                $res = $this->WriteDB->update($Table, $Data);
+                $res = $this->WriteDB->update($Database.'.'.$Table, $Data);
             }
 
             if (!$res) {
@@ -128,7 +167,6 @@ class Dbwrite_model extends CI_Model {
 
             } else {
 
-                $this->EndReturnData->Error = FALSE;
                 $this->EndReturnData->Table = $Table;
                 $this->EndReturnData->Data = $Data;
                 if (!empty($Condition)) {
@@ -137,7 +175,6 @@ class Dbwrite_model extends CI_Model {
                 if (!empty($whereInCondition)) {
                     $this->EndReturnData->WhereInCondition = $whereInCondition;
                 }
-                $this->EndReturnData->Message = 'Success';
                 
             }
 

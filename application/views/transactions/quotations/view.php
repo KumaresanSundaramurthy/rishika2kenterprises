@@ -35,23 +35,54 @@
                                         </li>
                                         <div id="detailedSearchDiv" class="input-group input-group-merge">
                                             <span class="input-group-text cursor-pointer" id="transSearchIcon"><i class="bx bx-search"></i></span>
-                                            <input type="text" class="form-control searchTransaction" name="searchTransactionData" id="searchTransactionData" placeholder="Search quotation details..." data-toggle="tooltip" title="Search by Quotation Number OR Customer Name OR Mobile Number" />
+                                            <input type="text" class="form-control form-control-sm searchTransaction" name="searchTransactionData" id="searchTransactionData" placeholder="Search quotation details..." data-toggle="tooltip" title="Search by Quotation Number OR Customer Name OR Mobile Number" />
                                         </div>
                                         <div class="dropdown">
-                                            <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" id="dateFilterBtn" data-bs-toggle="dropdown" aria-expanded="false">Today</button>
-                                            <ul class="dropdown-menu shadow" aria-labelledby="dateFilterBtn" style="width: 240px;">
-                                                <li><a class="dropdown-item date-option active" data-range="today">Today</a></li>
-                                                <li><a class="dropdown-item date-option" data-range="yesterday">Yesterday</a></li>
-                                                <li><a class="dropdown-item date-option" data-range="this_week">This Week</a></li>
-                                                <li><a class="dropdown-item date-option" data-range="last_week">Last Week</a></li>
-                                                <li><a class="dropdown-item date-option" data-range="last_7_days">Last 7 Days</a></li>
-                                                <li><a class="dropdown-item date-option" data-range="this_month">This Month</a></li>
-                                                <li><a class="dropdown-item date-option" data-range="previous_month">Previous Month</a></li>
-                                                <li><a class="dropdown-item date-option" data-range="last_30_dasy">Last 30 Days</a></li>
-                                                <li><a class="dropdown-item date-option" data-range="this_year">This Year</a></li>
-                                                <li><a class="dropdown-item date-option" data-range="last_year">Last Year</a></li>
-                                                <li><a class="dropdown-item date-option" data-range="last_quarter">Last Quarter</a></li>
-                                                <li><a class="dropdown-item date-option" data-range="fy_25_26">FY 25-26</a></li>
+                                            <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" 
+                                                    id="dateFilterBtn" data-bs-toggle="dropdown" aria-expanded="false">
+                                                <i class="bi bi-calendar me-1"></i> Today
+                                            </button>
+                                            <ul class="dropdown-menu shadow" aria-labelledby="dateFilterBtn" style="width: 240px; max-height: 300px; overflow-y: auto;">
+                                                <li><a class="dropdown-item date-option active" data-range="today">
+                                                    <i class="bi bi-circle-fill text-primary me-2"></i>Today
+                                                </a></li>
+                                                <li><a class="dropdown-item date-option" data-range="yesterday">
+                                                    <i class="bi bi-circle me-2"></i>Yesterday
+                                                </a></li>
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li><a class="dropdown-item date-option" data-range="this_week">
+                                                    <i class="bi bi-circle me-2"></i>This Week
+                                                </a></li>
+                                                <li><a class="dropdown-item date-option" data-range="last_week">
+                                                    <i class="bi bi-circle me-2"></i>Last Week
+                                                </a></li>
+                                                <li><a class="dropdown-item date-option" data-range="last_7_days">
+                                                    <i class="bi bi-circle me-2"></i>Last 7 Days
+                                                </a></li>
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li><a class="dropdown-item date-option" data-range="this_month">
+                                                    <i class="bi bi-circle me-2"></i>This Month
+                                                </a></li>
+                                                <li><a class="dropdown-item date-option" data-range="previous_month">
+                                                    <i class="bi bi-circle me-2"></i>Previous Month
+                                                </a></li>
+                                                <li><a class="dropdown-item date-option" data-range="last_30_days">
+                                                    <i class="bi bi-circle me-2"></i>Last 30 Days
+                                                </a></li>
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li><a class="dropdown-item date-option" data-range="this_year">
+                                                    <i class="bi bi-circle me-2"></i>This Year
+                                                </a></li>
+                                                <li><a class="dropdown-item date-option" data-range="last_year">
+                                                    <i class="bi bi-circle me-2"></i>Last Year
+                                                </a></li>
+                                                <li><a class="dropdown-item date-option" data-range="last_quarter">
+                                                    <i class="bi bi-circle me-2"></i>Last Quarter
+                                                </a></li>
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li><a class="dropdown-item date-option fw-bold" data-range="fy_25_26">
+                                                    <i class="bi bi-star-fill text-warning me-2"></i>FY 25-26
+                                                </a></li>
                                             </ul>
                                         </div>
                                     </ul>
@@ -59,14 +90,14 @@
                                         <!-- <a href="javascript: void(0);" class="btn PageRefresh p-2 me-0" data-toggle="tooltip" data-bs-placement="top" title="Refresh Page"><i class="bx bx-refresh fs-4"></i></a> -->
                                         <!-- <a href="javascript: void(0);" id="btnPageSettings" class="btn p-2" data-toggle="tooltip" data-bs-placement="top" title="Page Column Settings"><i class="bx bx-cog fs-4"></i></a> -->
                                     <?php // $this->load->view('common/transactions/actions_bar'); ?>
-                                        <a href="/quotations/create" class="btn btn-primary px-3">Create Quotation</a>
+                                        <a href="/quotations/create" class="btn btn-primary btn-sm px-3">Create Quotation</a>
                                     </div>
                                 </div>
                                 <div class="tab-content p-0">
                                     <div class="tab-pane fade show active" id="NavAllQuotePage" role="tabpanel">
                                         <div class="table-responsive text-nowrap h-100 tablecard">
-                                            <table class="table table-sm table-striped table-hover" id="quotTable">
-                                                <thead>
+                                            <table class="table table-hover" id="quotTable">
+                                                <thead class="bg-body-tertiary">
                                                     <tr>
                                                         <th class="table-checkbox">
                                                             <div class="form-check">
@@ -77,7 +108,20 @@
                                                         <th class="dateSortable" id="sortDate" data-toggle="tooltip" data-bs-placement="top" title="" data-bs-original-title="Click sorting ascending">Date <i class="bx bx-sort-alt-2 ms-1 cursor-pointer"></i></th>
                                                         <th># Quotation </th>
                                                         <th class="custname_sortable" id="sortCustName" data-toggle="tooltip" data-bs-placement="top" title="" data-bs-original-title="Click sorting ascending">Customer <i class="bx bx-sort-alt-2 ms-1 cursor-pointer"></i></th>
-                                                        <th>Status </th>
+                                                        <th>Status 
+                                                            <div class="dropdown d-inline">
+                                                                <button class="btn btn-xs btn-outline-secondary dropdown-toggle p-1 ms-1" type="button" data-bs-toggle="dropdown">
+                                                                    <i class="bx bx-filter"></i>
+                                                                </button>
+                                                                <ul class="dropdown-menu status-filter">
+                                                                    <li><a class="dropdown-item status-option active" data-status="all">All</a></li>
+                                                                    <li><a class="dropdown-item status-option" data-status="draft">Draft</a></li>
+                                                                    <li><a class="dropdown-item status-option" data-status="sent">Sent</a></li>
+                                                                    <li><a class="dropdown-item status-option" data-status="accepted">Accepted</a></li>
+                                                                    <li><a class="dropdown-item status-option" data-status="converted">Converted</a></li>
+                                                                </ul>
+                                                            </div>
+                                                        </th>
                                                         <th>Amount </th>
                                                         <th></th>
                                                     </tr>
@@ -121,7 +165,7 @@
 <script src="/js/transactions/quotations.js"></script>
 
 <script>
-let ModuleId = ;
+let ModuleId = 101;
 const ModuleTable = '#quotTable';
 const ModulePag = '.quotPagination';
 const ModuleHeader = '.quotHeaderCheck';
@@ -132,6 +176,20 @@ const previewName = 'Quotation Details';
 let sortState = 0;
 $(function() {
     'use strict'
+
+    getQuotationsDetails(PageNo, RowLimit, Filter);
+
+    $('.date-option').click(function() {
+        getQuotationsDetails();
+    });
+
+    $('#searchTransactionData').on('keyup', function() {
+        getQuotationsDetails();
+    });
+
+    $('.PageRefresh').click(function() {
+        getQuotationsDetails();
+    });
 
     $(document).on('click', '.date-option', function () {
 

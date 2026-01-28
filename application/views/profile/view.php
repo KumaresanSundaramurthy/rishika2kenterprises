@@ -133,7 +133,7 @@ $(function() {
         commonSetDropzoneImageOne(ImageUrl);
     }
     
-    loadSelect2Field('#CountryCode', '-- Select Country --');
+    loadCountrySelect2Field('#CountryCode', 'Select Country');
 
     $('#profileForm').submit(function(e) {
         e.preventDefault();

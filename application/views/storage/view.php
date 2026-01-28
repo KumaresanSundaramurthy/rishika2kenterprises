@@ -31,8 +31,8 @@
                                     <div class="tab-pane fade show active" id="NavItemPage" role="tabpanel">
 
                                         <div class="table-responsive text-nowrap h-100 tablecard">
-                                            <table class="table table-sm table-striped table-hover" id="StorageTable">
-                                                <thead>
+                                            <table class="table table-hover" id="StorageTable">
+                                                <thead class="bg-body-tertiary">
                                                     <tr>
                                                         <th class="table-checkbox">
                                                             <div class="form-check form-check-inline">

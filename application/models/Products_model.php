@@ -3,12 +3,13 @@
 class Products_model extends CI_Model {
 
     private $EndReturnData;
-    private $ProductDb;
+    private $ReadDb;
 
     function __construct() {
         parent::__construct();
 
-        $this->ProductDb = $this->load->database('Products', TRUE);
+        $this->ReadDb = $this->load->database('ReadDB', TRUE);
+
     }
 
     public function itemFilterFormation($ModuleInfoData, $Filter) {
@@ -68,7 +69,7 @@ class Products_model extends CI_Model {
         $this->EndReturnData = new StdClass();
         try {
 
-            $this->ProductDb->db_debug = FALSE;
+            $this->ReadDb->db_debug = FALSE;
 
             $select_ary = array(
                 'Products.ProductUID AS ProductUID',
@@ -111,23 +112,23 @@ class Products_model extends CI_Model {
                 'Products.IsDeleted' => 0,
                 'Products.IsActive' => 1,
             );
-            $this->ProductDb->select($select_ary);
-            $this->ProductDb->from('Products.ProductTbl as Products');
-            $this->ProductDb->join('Products.CategoryTbl as Category', 'Category.CategoryUID = Products.CategoryUID', 'left');
-            $this->ProductDb->where($WhereCondition);
+            $this->ReadDb->select($select_ary);
+            $this->ReadDb->from('Products.ProductTbl as Products');
+            $this->ReadDb->join('Products.CategoryTbl as Category', 'Category.CategoryUID = Products.CategoryUID', 'left');
+            $this->ReadDb->where($WhereCondition);
             if (!empty($FilterArray)) {
-                $this->ProductDb->where($FilterArray);
+                $this->ReadDb->where($FilterArray);
             }
             if (!empty($whereInCondition)) {
                 foreach ($whereInCondition as $wkey => $wval) {
-                    $this->ProductDb->where_in($wkey, $wval);
+                    $this->ReadDb->where_in($wkey, $wval);
                 }
             }
-            $this->ProductDb->group_by('Products.ProductUID');
-            $this->ProductDb->order_by('Products.ProductUID', $OrderBy);
+            $this->ReadDb->group_by('Products.ProductUID');
+            $this->ReadDb->order_by('Products.ProductUID', $OrderBy);
 
-            $query = $this->ProductDb->get();
-            $error = $this->ProductDb->error();
+            $query = $this->ReadDb->get();
+            $error = $this->ReadDb->error();
             if ($error['code']) {
                 throw new Exception($error['message']);
             } else {
@@ -180,7 +181,7 @@ class Products_model extends CI_Model {
         $this->EndReturnData = new StdClass();
         try {
 
-            $this->ProductDb->db_debug = FALSE;
+            $this->ReadDb->db_debug = FALSE;
             $select_ary = array(
                 'Category.CategoryUID AS CategoryUID',
                 'Category.OrgUID AS OrgUID',
@@ -194,16 +195,16 @@ class Products_model extends CI_Model {
                 'Category.IsDeleted' => 0,
                 'Category.IsActive' => 1,
             );
-            $this->ProductDb->select($select_ary);
-            $this->ProductDb->from('Products.CategoryTbl as Category');
-            $this->ProductDb->where($WhereCondition);
+            $this->ReadDb->select($select_ary);
+            $this->ReadDb->from('Products.CategoryTbl as Category');
+            $this->ReadDb->where($WhereCondition);
             if (!empty($FilterArray)) {
-                $this->ProductDb->where($FilterArray);
+                $this->ReadDb->where($FilterArray);
             }
-            $this->ProductDb->order_by('Category.CategoryUID', 'ASC');
+            $this->ReadDb->order_by('Category.CategoryUID', 'ASC');
             
-            $query = $this->ProductDb->get();
-            $error = $this->ProductDb->error();
+            $query = $this->ReadDb->get();
+            $error = $this->ReadDb->error();
             if ($error['code']) {
                 throw new Exception($error['message']);
             } else {
@@ -257,7 +258,7 @@ class Products_model extends CI_Model {
         $this->EndReturnData = new StdClass();
         try {
 
-            $this->ProductDb->db_debug = FALSE;
+            $this->ReadDb->db_debug = FALSE;
 
             $select_ary = array(
                 'Size.SizeUID AS SizeUID',
@@ -271,16 +272,16 @@ class Products_model extends CI_Model {
                 'Size.IsDeleted' => 0,
                 'Size.IsActive' => 1,
             );
-            $this->ProductDb->select($select_ary);
-            $this->ProductDb->from('Products.SizeTbl as Size');
-            $this->ProductDb->where($WhereCondition);
+            $this->ReadDb->select($select_ary);
+            $this->ReadDb->from('Products.SizeTbl as Size');
+            $this->ReadDb->where($WhereCondition);
             if (!empty($Filter)) {
-                $this->ProductDb->where($Filter);
+                $this->ReadDb->where($Filter);
             }
-            $this->ProductDb->group_by('Size.SizeUID');
+            $this->ReadDb->group_by('Size.SizeUID');
 
-            $query = $this->ProductDb->get();
-            $error = $this->ProductDb->error();
+            $query = $this->ReadDb->get();
+            $error = $this->ReadDb->error();
             if ($error['code']) {
                 throw new Exception($error['message']);
             } else {
@@ -334,7 +335,7 @@ class Products_model extends CI_Model {
         $this->EndReturnData = new StdClass();
         try {
 
-            $this->ProductDb->db_debug = FALSE;
+            $this->ReadDb->db_debug = FALSE;
             $select_ary = array(
                 'Brand.BrandUID AS BrandUID',
                 'Brand.OrgUID AS OrgUID',
@@ -347,16 +348,16 @@ class Products_model extends CI_Model {
                 'Brand.IsDeleted' => 0,
                 'Brand.IsActive' => 1,
             );
-            $this->ProductDb->select($select_ary);
-            $this->ProductDb->from('Products.BrandTbl as Brand');
-            $this->ProductDb->where($WhereCondition);
+            $this->ReadDb->select($select_ary);
+            $this->ReadDb->from('Products.BrandTbl as Brand');
+            $this->ReadDb->where($WhereCondition);
             if (!empty($FilterArray)) {
-                $this->ProductDb->where($FilterArray);
+                $this->ReadDb->where($FilterArray);
             }
-            $this->ProductDb->group_by('Brand.BrandUID');
+            $this->ReadDb->group_by('Brand.BrandUID');
 
-            $query = $this->ProductDb->get();
-            $error = $this->ProductDb->error();
+            $query = $this->ReadDb->get();
+            $error = $this->ReadDb->error();
             if ($error['code']) {
                 throw new Exception($error['message']);
             } else {

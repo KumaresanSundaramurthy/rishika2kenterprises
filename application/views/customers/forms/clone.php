@@ -10,29 +10,21 @@
 
         <!-- Layout container -->
         <div class="layout-page">
-
-            <?php $this->load->view('common/navbar_view'); ?>
-
             <!-- Content wrapper -->
             <div class="content-wrapper">
-                <div class="container-xxl flex-grow-1 container-p-y">
+                <div class="container-xxl flex-grow-1 container-p-y pt-2">
 
                 <?php $FormAttribute = array('id' => 'AddCustomerForm', 'name' => 'AddCustomerForm', 'class' => '', 'autocomplete' => 'off');
                     echo form_open('customers/addCustomer', $FormAttribute); ?>
 
                     <div class="card mb-3">
                         
-                        <div class="card-header bg-body-tertiary card-header-form-static modal-header-center-sticky d-flex justify-content-between align-items-center pb-3">
+                        <div class="card-header bg-body-tertiary trans-header-static trans-theme modal-header-center-sticky d-flex justify-content-between align-items-center pb-3">
                             <h5 class="modal-title mb-0" id="CustomerModalTitle">Create Customer</h5>
                             <div class="d-flex align-items-center gap-2">
                                 <button type="submit" class="btn btn-primary AddEditCustomerBtn">Save</button>
                                 <a href="javascript: history.back();" class="btn btn-label-danger">Close</a>
                             </div>
-                        </div>
-
-                        <div class="d-none addEditFormAlert alert alert-danger alert-dismissible fade show p-3 m-3 mb-0" role="alert">
-                            <span class="alert-message"></span>
-                            <button type="button" class="btn-close" aria-label="Close"></button>
                         </div>
 
                         <div class="card-body card-body-form-static p-4">
@@ -51,10 +43,6 @@
                                     <input class="form-control" type="text" id="Area" name="Area" placeholder="Area" maxlength="100" value="<?php echo isset($EditData->Area) ? $EditData->Area : ''; ?>" />
                                 </div>
                                 <div class="mb-3 col-md-4">
-                                    <label for="EmailAddress" class="form-label">Email</label>
-                                    <input class="form-control" type="email" id="EmailAddress" name="EmailAddress" maxlength="100" placeholder="Email Address" value="<?php echo isset($EditData->EmailAddress) ? $EditData->EmailAddress : ''; ?>" />
-                                </div>
-                                <div class="mb-3 col-md-6">
                                     <label class="form-label" for="MobileNumber">Mobile Number <span style="color:red">*</span></label>
                                     <div class="d-flex gap-2">
                                         <select id="CountryCode" name="CountryCode" class="select2 form-select">
@@ -74,7 +62,11 @@
                                         <input type="number" id="MobileNumber" name="MobileNumber" class="form-control" placeholder="9790 000 0000" maxLength="20" onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))" oninput="this.value=this.value.slice(0,this.maxLength)" pattern="[0-9]*" value="<?php echo isset($EditData->MobileNumber) ? $EditData->MobileNumber : ''; ?>" />
                                     </div>
                                 </div>
-                                <div class="mb-3 col-md-6">
+                                <div class="mb-3 col-md-4">
+                                    <label for="EmailAddress" class="form-label">Email</label>
+                                    <input class="form-control" type="email" id="EmailAddress" name="EmailAddress" maxlength="100" placeholder="Email Address" value="<?php echo isset($EditData->EmailAddress) ? $EditData->EmailAddress : ''; ?>" />
+                                </div>
+                                <div class="mb-3 col-md-4">
                                     <label for="DebitCreditAmount" class="form-label">Opening Balance</label>
                                     <div class="input-group input-group-merge">
                                         <span class="input-group-text">₹</span>
@@ -198,65 +190,54 @@
                             <hr id="AddressDivider" class="d-none">
 
                             <!-- More Details -->
-                            <div class="accordion mt-3 mb-3 accordion-without-arrow" id="AccountMoreDetails">
-                                <div class="card accordion-item">
-                                    <h2 class="accordion-header" id="headingOne">
-                                        <button type="button" class="accordion-button bg-warning text-white d-flex flex-column align-items-start text-start" data-bs-toggle="collapse" data-bs-target="#accordionOne" aria-expanded="true" aria-controls="accordionOne">
-                                            <span><i class="icon-base bx bx-caret-right me-1"></i> More Details ?</span>
-                                            <span>Add Notes, Tags, Discount, CC Mails, Credit Limit</span>
-                                        </button>
-                                    </h2>
-                                    <div id="accordionOne" class="accordion-collapse collapse" data-bs-parent="#AccountMoreDetails">
-                                        <div class="accordion-body">
-                                            <div class="row mt-3">
-                                                <div class="col-md-3 d-flex justify-content-center align-items-center">
-                                                    <div class="dropzone dropzone-main-form needsclick p-3 dz-clickable w-100" id="DropzoneOneBasic">
-                                                        <div class="dz-message needsclick text-center">
-                                                            <i class="upload-icon mb-3"></i>
-                                                            <p class="h5 needsclick mb-2">Drag and drop your logo here</p>
-                                                            <p class="h4 text-body-secondary fw-normal mb-0">JPG, GIF or PNG of 1 MB</p>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-9">
-                                                    <div class="row">
-                                                        <div class="mb-3 col-md-4">
-                                                            <label for="DiscountPercent" class="form-label">Discount (%)</label>
-                                                            <input class="form-control" type="number" id="DiscountPercent" name="DiscountPercent" min="0" max="100" maxLength="3" placeholder="Discount (%)" onkeyup="changeHandler(this)" onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))" oninput="this.value=this.value.slice(0,this.maxLength)" pattern="[0-9]*" value="<?php echo isset($EditData->DiscountPercent) ? smartDecimal($EditData->DiscountPercent) : '0'; ?>" />
-                                                        </div>
-                                                        <div class="mb-3 col-md-4">
-                                                            <label for="CreditPeriod" class="form-label">Credit Period</label>
-                                                            <input type="number" class="form-control" name="CreditPeriod" id="CreditPeriod" min="0" placeholder="Credit Period" onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))" oninput="this.value=this.value.slice(0,this.maxLength)" maxLength="6" pattern="[0-9]*" value="<?php echo isset($EditData->CreditPeriod) ? $EditData->CreditPeriod : 30; ?>" />
-                                                        </div>
-                                                        <div class="mb-3 col-md-4">
-                                                            <label for="CreditLimit" class="form-label">Credit Limit</label>
-                                                            <input type="number" class="form-control" name="CreditLimit" id="CreditLimit" min="0" placeholder="Credit Limit" onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))" oninput="this.value=this.value.slice(0,this.maxLength)" maxLength="6" pattern="[0-9]*" value="<?php echo isset($EditData->CreditLimit) ? smartDecimal($EditData->CreditLimit) : '0'; ?>" />
-                                                        </div>
-                                                        <div class="mb-3 col-md-12">
-                                                            <label for="Notes" class="form-label">Notes</label>
-                                                            <textarea class="form-control" rows="2" name="Notes" id="Notes" placeholder="Notes"><?php echo isset($EditData->Notes) ? $EditData->Notes : ''; ?></textarea>
-                                                        </div>
-                                                        <div class="mb-3 col-md-12">
-                                                            <label class="form-label" for="Tags">Tags</label>
-                                                            <select id="Tags" name="Tags[]" class="select2 form-select" multiple="multiple">
-                                                                <?php if (isset($EditData->Tags) && !empty($EditData->Tags)) {
-                                                                    foreach (explode(',', $EditData->Tags) as $Tags) { ?>
-                                                                        <option value="<?php echo $Tags; ?>" selected><?php echo $Tags; ?></option>
-                                                                <?php } } ?>
-                                                            </select>
-                                                        </div>
-                                                        <div class="mb-3 col-md-12">
-                                                            <label class="form-label" for="CCEmails">CC Emails</label>
-                                                            <select id="CCEmails" name="CCEmails[]" class="select2 form-select" multiple="multiple">
-                                                                <?php if (isset($EditData->CCEmails) && !empty($EditData->CCEmails)) {
-                                                                    foreach (explode(',', $EditData->CCEmails) as $CCEmails) { ?>
-                                                                        <option value="<?php echo $CCEmails; ?>" selected><?php echo $CCEmails; ?></option>
-                                                                <?php } } ?>
-                                                            </select>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
+                            <div class="card-header modal-header-center-sticky p-1 mb-3">
+                                <h5 class="modal-title mb-0">Other Details</h5>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-md-3 d-flex justify-content-center align-items-center">
+                                    <div class="dropzone dropzone-main-form needsclick p-3 dz-clickable w-100" id="DropzoneOneBasic">
+                                        <div class="dz-message needsclick text-center">
+                                            <i class="upload-icon mb-3"></i>
+                                            <p class="h5 needsclick mb-2">Drag and drop your logo here</p>
+                                            <p class="h4 text-body-secondary fw-normal mb-0">JPG, GIF or PNG of 1 MB</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-9">
+                                    <div class="row">
+                                        <div class="mb-3 col-md-4">
+                                            <label for="DiscountPercent" class="form-label">Discount (%)</label>
+                                            <input class="form-control" type="number" id="DiscountPercent" name="DiscountPercent" min="0" max="100" maxLength="3" placeholder="Discount (%)" onkeyup="changeHandler(this)" onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))" oninput="this.value=this.value.slice(0,this.maxLength)" pattern="[0-9]*" value="<?php echo isset($EditData->DiscountPercent) ? smartDecimal($EditData->DiscountPercent) : '0'; ?>" />
+                                        </div>
+                                        <div class="mb-3 col-md-4">
+                                            <label for="CreditPeriod" class="form-label">Credit Period</label>
+                                            <input type="number" class="form-control" name="CreditPeriod" id="CreditPeriod" min="0" placeholder="Credit Period" onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))" oninput="this.value=this.value.slice(0,this.maxLength)" maxLength="6" pattern="[0-9]*" value="<?php echo isset($EditData->CreditPeriod) ? $EditData->CreditPeriod : 30; ?>" />
+                                        </div>
+                                        <div class="mb-3 col-md-4">
+                                            <label for="CreditLimit" class="form-label">Credit Limit</label>
+                                            <input type="number" class="form-control" name="CreditLimit" id="CreditLimit" min="0" placeholder="Credit Limit" onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))" oninput="this.value=this.value.slice(0,this.maxLength)" maxLength="6" pattern="[0-9]*" value="<?php echo isset($EditData->CreditLimit) ? smartDecimal($EditData->CreditLimit) : '0'; ?>" />
+                                        </div>
+                                        <div class="mb-3 col-md-12">
+                                            <label for="Notes" class="form-label">Notes</label>
+                                            <textarea class="form-control" rows="2" name="Notes" id="Notes" placeholder="Notes"><?php echo isset($EditData->Notes) ? $EditData->Notes : ''; ?></textarea>
+                                        </div>
+                                        <div class="mb-3 col-md-12">
+                                            <label class="form-label" for="Tags">Tags</label>
+                                            <select id="Tags" name="Tags[]" class="select2 form-select" multiple="multiple">
+                                                <?php if (isset($EditData->Tags) && !empty($EditData->Tags)) {
+                                                    foreach (explode(',', $EditData->Tags) as $Tags) { ?>
+                                                        <option value="<?php echo $Tags; ?>" selected><?php echo $Tags; ?></option>
+                                                <?php } } ?>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3 col-md-12">
+                                            <label class="form-label" for="CCEmails">CC Emails</label>
+                                            <select id="CCEmails" name="CCEmails[]" class="select2 form-select" multiple="multiple">
+                                                <?php if (isset($EditData->CCEmails) && !empty($EditData->CCEmails)) {
+                                                    foreach (explode(',', $EditData->CCEmails) as $CCEmails) { ?>
+                                                        <option value="<?php echo $CCEmails; ?>" selected><?php echo $CCEmails; ?></option>
+                                                <?php } } ?>
+                                            </select>
                                         </div>
                                     </div>
                                 </div>
@@ -314,7 +295,7 @@ $(function() {
 
     initializeFlatPickr('#CPDateOfBirth');
 
-    loadSelect2Field('#CountryCode', '-- Select Country --');
+    loadCountrySelect2Field('#CountryCode', 'Select Country');
 
     initializeSelect2Tags('#Tags', 'Type and press enter...');
     initializeSelect2Tags('#CCEmails', 'Type and press enter...');
@@ -323,7 +304,39 @@ $(function() {
         e.preventDefault();
 
         getScrollableOnSubmitForm(this);
-        $('.addEditFormAlert').addClass('d-none');
+        
+        // Disable enter key specifically on inputs
+        $(this).find('input, select').on('keydown', function(e) {
+            if (e.keyCode === 13) {
+                e.preventDefault();
+                return false;
+            }
+        });
+
+        // Validate mobile number
+        const mobileValue = $('#MobileNumber').val();
+        const countryCode = ($('#CountryCode').val() || '91').replace('+', '');
+        const mobileValidation = validateMobileNumber(mobileValue, countryCode);
+        if (!mobileValidation.isValid) {
+            showAlertMessageSwal('error', '', mobileValidation.message);
+            return false;
+        }
+
+        // Validate PAN number
+        const panValue = $('#PANNumber').val();
+        const panValidation = validatePANNumber(panValue);
+        if (!panValidation.isValid) {
+            showAlertMessageSwal('error', '', panValidation.message);
+            return false;
+        }
+        
+        // Validate GSTIN
+        const gstinValue = $('#GSTIN').val();
+        const gstinValidation = validateGSTIN(gstinValue);
+        if (!gstinValidation.isValid) {
+            showAlertMessageSwal('error', '', gstinValidation.message);
+            return false;
+        }
 
         var formData = new FormData($('#AddCustomerForm')[0]);
         formData.append('CountryISO2', $('#CountryCode').find('option:selected').data('ccode'));
@@ -337,8 +350,7 @@ $(function() {
         const bankRecords = getBankRecordsFromTable();
         const validation = validateBankRecords(bankRecords);
         if (!validation.ok) {
-            $('.addEditFormAlert').removeClass('d-none');
-            $('.addEditFormAlert').find('.alert-message').text(validation.msg);
+            showAlertMessageSwal('error', '', validation.msg);
             return;
         }
         formData.append('BankDetailsJSON', JSON.stringify(bankRecords));

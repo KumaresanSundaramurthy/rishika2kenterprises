@@ -219,17 +219,6 @@ class Products extends CI_Controller {
 
     }
 
-    public function checkSizeRequired($IsSizeApplicable) {
-
-        $SizeUID = $this->input->post('SizeUID', true) ?? NULL;
-        if ($IsSizeApplicable && empty($SizeUID)) {
-            $this->form_validation->set_message('checkSizeRequired', 'The Size field is required when Size Applicable is checked.');
-            return false;
-        }
-        return true;
-
-    }
-
     public function retrieveProductDetails() {
 
         $this->EndReturnData = new stdClass();
@@ -1022,10 +1011,6 @@ class Products extends CI_Controller {
         
         $this->globalservice->sendJsonResponse($this->EndReturnData);
 
-    }
-
-    public function checkImageType($str = '') {
-        return $this->globalservice->checkImageType($str);
     }
 
 }

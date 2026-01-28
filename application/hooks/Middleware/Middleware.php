@@ -40,7 +40,7 @@ class Middleware {
 
 				} else {
 
-					$CI->pageData['JwtData'] = json_decode($RedisData->Value);
+					$CI->pageData['JwtData'] = $RedisData->Value;
 					$CI->pageData['JwtToken'] = $JwtEncoded;
 					$CI->pageData['JwtUserKey'] = $JwtData->key;
 

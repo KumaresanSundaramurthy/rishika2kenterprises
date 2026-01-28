@@ -101,8 +101,8 @@
                                     <div class="tab-pane fade <?php echo $ActiveTabData == 'item' ? 'show active' : ''; ?>" id="NavItemPage" role="tabpanel">
 
                                         <div class="table-responsive text-nowrap h-100 tablecard">
-                                            <table class="table table-sm table-striped table-hover" id="ProductsTable">
-                                                <thead>
+                                            <table class="table table-hover" id="ProductsTable">
+                                                <thead class="bg-body-tertiary">
                                                     <tr>
                                                         <th class="table-checkbox text-center align-middle">
                                                             <div class="form-check d-flex justify-content-center align-items-center mb-0">
@@ -195,8 +195,8 @@
                                     <div class="tab-pane fade <?php echo $ActiveTabData == 'category' ? 'show active' : ''; ?>" id="NavCategoriesPage" role="tabpanel">
 
                                         <div class="table-responsive text-nowrap h-100 tablecard">
-                                            <table class="table table-sm table-striped table-hover" id="CategoriesTable">
-                                                <thead>
+                                            <table class="table table-hover" id="CategoriesTable">
+                                                <thead class="bg-body-tertiary">
                                                     <tr>
                                                         <th class="table-checkbox">
                                                             <div class="form-check form-check-inline">
@@ -237,8 +237,8 @@
                                     <div class="tab-pane fade <?php echo $ActiveTabData == 'size' ? 'show active' : ''; ?>" id="NavSizesPage" role="tabpanel">
 
                                         <div class="table-responsive text-nowrap h-100 tablecard">
-                                            <table class="table table-sm table-striped table-hover" id="SizesTable">
-                                                <thead>
+                                            <table class="table table-hover" id="SizesTable">
+                                                <thead class="bg-body-tertiary">
                                                     <tr>
                                                         <th class="table-checkbox">
                                                             <div class="form-check form-check-inline">
@@ -277,8 +277,8 @@
                                     <div class="tab-pane fade <?php echo $ActiveTabData == 'brand' ? 'show active' : ''; ?>" id="NavBrandsPage" role="tabpanel">
 
                                         <div class="table-responsive text-nowrap h-100 tablecard">
-                                            <table class="table table-sm table-striped table-hover" id="BrandsTable">
-                                                <thead>
+                                            <table class="table table-hover" id="BrandsTable">
+                                                <thead class="bg-body-tertiary">
                                                     <tr>
                                                         <th class="table-checkbox">
                                                             <div class="form-check form-check-inline">

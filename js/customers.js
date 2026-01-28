@@ -38,12 +38,11 @@ function addCustomerData(formdata) {
         enctype: 'multipart/form-data',
         success: function (response) {
             if (response.Error) {
-                $('.addEditFormAlert').removeClass('d-none');
-                $('.addEditFormAlert').find('.alert-message').text(response.Message);
+                showAlertMessageSwal('error', '', response.Message);
             } else {
                 $('#AddCustomerForm').trigger('reset');
-                Swal.fire(response.Message, "", "success");
-                setTimeout(function () {                    
+                showAlertMessageSwal('success', '', response.Message);
+                setTimeout(function () {
                     window.history.back();
                 }, 250);
             }
@@ -62,12 +61,11 @@ function editCustomerData(formdata) {
         enctype: 'multipart/form-data',
         success: function (response) {
             if (response.Error) {
-                $('.addEditFormAlert').removeClass('d-none');
-                $('.addEditFormAlert').find('.alert-message').text(response.Message);
+                showAlertMessageSwal('error', '', response.Message);
             } else {
                 $('#EditCustomerForm').trigger('reset');
-                Swal.fire(response.Message, "", "success");
-                setTimeout(function () {                    
+                showAlertMessageSwal('success', '', response.Message);
+                setTimeout(function () {
                     window.history.back();
                 }, 250);
             }
@@ -89,11 +87,11 @@ function deleteCustomer(DeleteId) {
         cache: false,
         success: function (response) {
             if (response.Error) {
-                Swal.fire(response.Message, "", "danger");
+                showAlertMessageSwal('error', '', response.Message);
                 $(ModuleTable + ' tbody').html('');
                 $(ModulePag).html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');
             } else {
-                Swal.fire(response.Message, "", "success");
+                showAlertMessageSwal('success', '', response.Message);
                 $(ModulePag).html(response.Pagination);
                 $(ModuleTable + ' tbody').html(response.List);
             }
@@ -116,11 +114,11 @@ function deleteMultipleCustomers() {
         },
         success: function (response) {
             if (response.Error) {
-                Swal.fire(response.Message, "", "danger");
+                showAlertMessageSwal('error', '', response.Message);
                 $(ModuleTable + ' tbody').html('');
                 $(ModulePag).html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');
             } else {
-                Swal.fire(response.Message, "", "success");
+                showAlertMessageSwal('success', '', response.Message);
                 $(ModulePag).html(response.Pagination);
                 $(ModuleTable + ' tbody').html(response.List);
                 SelectedUIDs = [];

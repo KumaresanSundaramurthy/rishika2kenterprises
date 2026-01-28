@@ -13,7 +13,7 @@
             <div class="content-wrapper">
                 <div class="container-xxl flex-grow-1 container-p-y">
 
-                <?php $FormAttribute = ['id' => 'addQuotationForm', 'name' => 'addQuotationForm', 'autocomplete' => 'off', 'data-csrf' => $this->security->get_csrf_token_name(), 'data-csrf-value' => $this->security->get_csrf_hash()];
+            <?php $FormAttribute = ['id' => 'addQuotationForm', 'name' => 'addQuotationForm', 'autocomplete' => 'off', 'data-csrf' =>  $this->security->get_csrf_token_name(), 'data-csrf-value' => $this->security->get_csrf_hash()];
                     echo form_open('quotations/addQuotation', $FormAttribute); ?>
 
                     <div class="card mb-3">
@@ -38,9 +38,7 @@
                                         <button type="button" class="btn btn-outline-success" id="addTransPrefixBtn" data-toggle="tooltip" title="Add Prefix">➕</button>
                                     </div>
                                     <div class="input-group input-group-sm w-auto">
-
                                         <span class="input-group-text cursor-pointer"><span id="appendPrefixVal"><?php echo $TransPageSettings->DefaultPrefix; ?></span><?php echo $TransPageSettings->InvoiceSepText; ?><?php echo ($TransPageSettings->ShowFiscalYear == 1) ? $TransPageSettings->FiscalYearType.$TransPageSettings->InvoiceSepText : ''; ?></span>
-                                        
                                         <input type="number" id="transNumber" name="transNumber" class="form-control transAutoGenNumber stop-incre-indicator" maxLength="20" onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))" oninput="this.value=this.value.slice(0,this.maxLength)" pattern="[0-9]*" value="1" required />
                                     </div>
                                 </div>
@@ -193,7 +191,7 @@
                                                     <th style="width:30%;">Product Name</th>
                                                     <th style="width:10%;">Quantity</th>
                                                     <th style="width:15%;">Unit Price</th>
-                                                    <th style="width:15%;">Price with Tax</th>
+                                                    <th style="width:15%;">Price with Tax <i class="bx bx-info-circle ms-1 fs-6 text-primary"  style="cursor: pointer;" data-bs-toggle="tooltip" title="Click to view tax breakdown" onclick="showTaxDetails()"></i></th>
                                                     <th style="width:15%;">
                                                         <div class="d-flex align-items-center gap-1 justify-content-center">
                                                             <span class="fw-semibold text-nowrap">
@@ -236,13 +234,13 @@
                                         </table>
                                         <div class="row mt-1 m-1 p-2">
                                             <div class="d-flex align-items-center justify-content-between px-1">
-                                                <div class="col-md-3">
+                                                <div class="col-md-4">
                                                     <label for="globalDiscount" class="form-label fw-semibold mb-0">Apply Discount (%) to all items in the cart</label>
                                                     <div class="input-group input-group-merge input-group-sm mt-1 w-50">
                                                         <input type="text" class="form-control form-control-sm" name="globalDiscount" id="globalDiscount" min="0" step="0.01" max="50" placeholder="Discount (%)" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" maxLength="<?php echo $JwtData->GenSettings->PriceMaxLength; ?>" pattern="^\d{1,<?php echo $JwtData->GenSettings->PriceMaxLength; ?>}(\.\d{0,<?php echo $JwtData->GenSettings->DecimalPoints; ?>})?$" onpaste="handlePricePaste(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" ondrop="handlePriceDrop(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" value="0" />
                                                         <button class="btn btn-sm btn-outline-danger" type="button" id="clearGlobalDiscount"><i class="bx bx-x"></i></button>
                                                     </div>
-                                                    <div class="form-text transtext-small text-danger small mt-1">This discount will be applied to all items. </br>Individual discounts will be overridden.</div>
+                                                    <div class="form-text transtext-small text-danger small mt-1">This discount will be applied to all items. Individual discounts will be overridden.</div>
                                                 </div>
                                                 <div class="row">
                                                     <div class="d-flex align-items-center justify-content-end">
@@ -269,7 +267,7 @@
                                                                             <td>
                                                                                 <select class="form-select form-select-sm additional-charge-tax" id="shippingCharges" name="shippingCharges" data-type="shipping" data-field="tax">
                                                                                 <?php foreach ($TaxDetInfo as $TaxInfo) { ?>
-                                                                                    <option value="<?php echo $TaxInfo->TaxDetailsUID; ?>"><?php echo smartDecimal($TaxInfo->Percentage); ?></option>
+                                                                                    <option value="<?php echo $TaxInfo->TaxDetailsUID; ?>" data-percent="<?php echo smartDecimal($TaxInfo->Percentage); ?>" <?php echo smartDecimal($TaxInfo->Percentage) == 0 ? 'selected' : ''; ?>><?php echo smartDecimal($TaxInfo->Percentage); ?></option>
                                                                                 <?php } ?>
                                                                                 </select>
                                                                             </td>
@@ -277,10 +275,10 @@
                                                                                 <input type="text" class="form-control form-control-sm additional-charge-percent" data-type="shipping" data-field="percent" name="shippingPercent" id="shippingPercent" min="0" placeholder="Enter Percentage" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" maxLength="6" pattern="^\d{1,<?php echo $JwtData->GenSettings->PriceMaxLength; ?>}(\.\d{0,<?php echo $JwtData->GenSettings->DecimalPoints; ?>})?$" onpaste="handlePricePaste(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" ondrop="handlePriceDrop(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" value="0" />
                                                                             </td>
                                                                             <td>
-                                                                                <input type="text" class="form-control form-control-sm additional-charge-withouttax" data-type="shipping" data-field="withoutTax" name="shipDeliveryChargeWOutTax" id="shipDeliveryChargeWOutTax" min="0" placeholder="Enter Without Tax Amount" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" maxLength="<?php echo $JwtData->GenSettings->PriceMaxLength; ?>" pattern="^\d{1,<?php echo $JwtData->GenSettings->PriceMaxLength; ?>}(\.\d{0,<?php echo $JwtData->GenSettings->DecimalPoints; ?>})?$" onpaste="handlePricePaste(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" ondrop="handlePriceDrop(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" value="0" />
+                                                                                <input type="text" class="form-control form-control-sm additional-charge-withouttax" data-type="shipping" data-field="withoutTax" name="shippingChargeWOutTax" id="shippingChargeWOutTax" min="0" placeholder="Enter Without Tax Amount" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" maxLength="<?php echo $JwtData->GenSettings->PriceMaxLength; ?>" pattern="^\d{1,<?php echo $JwtData->GenSettings->PriceMaxLength; ?>}(\.\d{0,<?php echo $JwtData->GenSettings->DecimalPoints; ?>})?$" onpaste="handlePricePaste(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" ondrop="handlePriceDrop(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" value="0" />
                                                                             </td>
                                                                             <td>
-                                                                                <input type="text" class="form-control form-control-sm additional-charge-withtax" data-type="shipping" data-field="withTax" name="shipDeliveryChargeWithTax" id="shipDeliveryChargeWithTax" min="0" placeholder="Enter Without Tax Amount" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" maxLength="<?php echo $JwtData->GenSettings->PriceMaxLength; ?>" pattern="^\d{1,<?php echo $JwtData->GenSettings->PriceMaxLength; ?>}(\.\d{0,<?php echo $JwtData->GenSettings->DecimalPoints; ?>})?$" onpaste="handlePricePaste(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" ondrop="handlePriceDrop(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" value="0" />
+                                                                                <input type="text" class="form-control form-control-sm additional-charge-withtax" data-type="shipping" data-field="withTax" name="shippingChargeWithTax" id="shippingChargeWithTax" min="0" placeholder="Enter Without Tax Amount" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" maxLength="<?php echo $JwtData->GenSettings->PriceMaxLength; ?>" pattern="^\d{1,<?php echo $JwtData->GenSettings->PriceMaxLength; ?>}(\.\d{0,<?php echo $JwtData->GenSettings->DecimalPoints; ?>})?$" onpaste="handlePricePaste(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" ondrop="handlePriceDrop(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" value="0" />
                                                                             </td>
                                                                         </tr>
                                                                         <tr>
@@ -288,7 +286,7 @@
                                                                             <td>
                                                                                 <select class="form-select form-select-sm additional-charge-tax" id="packingCharges" name="packingCharges" data-type="packing" data-field="tax">
                                                                                 <?php foreach ($TaxDetInfo as $TaxInfo) { ?>
-                                                                                    <option value="<?php echo $TaxInfo->TaxDetailsUID; ?>"><?php echo smartDecimal($TaxInfo->Percentage); ?></option>
+                                                                                    <option value="<?php echo $TaxInfo->TaxDetailsUID; ?>" data-percent="<?php echo smartDecimal($TaxInfo->Percentage); ?>" <?php echo smartDecimal($TaxInfo->Percentage) == 0 ? 'selected' : ''; ?>><?php echo smartDecimal($TaxInfo->Percentage); ?></option>
                                                                                 <?php } ?>
                                                                                 </select>
                                                                             </td>
@@ -313,196 +311,23 @@
                                     </div>
                                 </div>
                                     
+                                <!-- Notes & Terms Condition Details -->
                                 <div class="col-md-6">
-
                                     <div class="mb-2">
                                         <label for="transNotes" class="form-label small fw-semibold">Notes </label>
                                         <textarea class="form-control" name="transNotes" id="transNotes" rows="2" placeholder="Enter your notes, say thanks, or anything else"></textarea>
                                     </div>
-
                                     <div class="mb-2">
                                         <label for="transTermsCond" class="form-label small fw-semibold">Terms & Conditions </label>
                                         <textarea class="form-control" name="transTermsCond" id="transTermsCond" rows="2" placeholder="Enter your business terms & Condition"><?php echo "1. Goods once sold will not be taken back or exchanged\n2. All disputes are subject to Gingee jurisdiction only"; ?></textarea>
                                     </div>
-
-                                </div>
-
-                                <!-- Summary and Bank/Signature -->
-                                <div class="col-md-6 trans-theme">
-                                    <div class="row g-2">
-
-                                        <div class="d-flex align-items-center justify-content-end">
-                                            <div class="d-flex justify-content-end w-70 me-2">
-                                                <label class="form-label small fw-semibold">Extra Discount (%)</label>
-                                            </div>
-                                            <div class="input-group input-group-merge w-30">
-                                                <select class="form-select form-select-sm" id="extDiscountType" name="extDiscountType">
-                                                <?php foreach ($DiscTypeInfo as $DiscType) { ?>
-                                                    <option value="<?php echo $DiscType->Name; ?>"><?php echo $DiscType->Symbol; ?></option>
-                                                <?php } ?>
-                                                </select>
-                                                <input class="form-control form-control-sm ps-1" type="text" id="extraDiscount" name="extraDiscount" min="0" step="0.01" placeholder="Extra Discount" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" maxlength="<?php echo $JwtData->GenSettings->PriceMaxLength; ?>" pattern="^d{1,<?php echo $JwtData->GenSettings->PriceMaxLength; ?>}(.d{0,<?php echo $JwtData->GenSettings->DecimalPoints; ?>})?$" onpaste="handleDiscountPaste(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" ondrop="handleDiscountDrop(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" value="0">
-                                            </div>
-                                        </div>
-
-                                        <div class="d-flex align-items-center justify-content-end mt-2 d-none" id="shippingRow">
-                                            <div class="d-flex justify-content-end w-75">
-                                                <label class="form-label small fw-semibold">Delivery / Shipping Charges</label>
-                                            </div>
-                                            <div class="d-flex justify-content-end w-25 me-1">
-                                                <span class="me-1"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span>
-                                                <span id="shippingChargeAmt"><?php echo smartDecimal(0, $JwtData->GenSettings->DecimalPoints,true); ?></span>
-                                            </div>
-                                        </div>
-
-                                        <div class="d-flex align-items-center justify-content-end mt-2 d-none" id="packingRow">
-                                            <div class="d-flex justify-content-end w-75">
-                                                <label class="form-label small fw-semibold">Packaging Charges</label>
-                                            </div>
-                                            <div class="d-flex justify-content-end w-25 me-1">
-                                                <span class="me-1"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span>
-                                                <span id="packingChargeAmt"><?php echo smartDecimal(0, $JwtData->GenSettings->DecimalPoints,true); ?></span>
-                                            </div>
-                                        </div>
-
-                                        <div class="d-flex align-items-center justify-content-end mt-2">
-                                            <div class="d-flex justify-content-end w-75">
-                                                <label class="form-label small fw-semibold">Taxable Amount</label>
-                                            </div>
-                                            <div class="d-flex justify-content-end w-25 me-1">
-                                                <span class="me-1"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span>
-                                                <span class="bill_taxable_amt"><?php echo smartDecimal(0, $JwtData->GenSettings->DecimalPoints,true); ?></span>
-                                            </div>
-                                        </div>
-
-                                        <div class="d-flex align-items-center justify-content-end mt-2">
-                                            <div class="d-flex justify-content-end w-75">
-                                                <label class="form-label small fw-semibold">Total Tax</label>
-                                            </div>
-                                            <div class="d-flex justify-content-end w-25 me-1">
-                                                <span class="me-1"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span>
-                                                <span class="bill_tot_tax_amt"><?php echo smartDecimal(0, $JwtData->GenSettings->DecimalPoints,true); ?></span>
-                                            </div>
-                                        </div>
-
-                                        <div class="d-flex align-items-center justify-content-end mt-2">
-                                            <div class="d-flex justify-content-end w-75">
-                                                <div class="form-check form-switch mb-0">
-                                                    <label class="form-check-label small fw-semibold" for="roundOffToggle">Round Off</label>
-                                                    <input class="form-check-input" type="checkbox" name="roundOffToggle" id="roundOffToggle" checked />
-                                                </div>
-                                            </div>
-                                            <div class="d-flex justify-content-end w-25 me-1">
-                                                <span class="me-1"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span>
-                                                <span class="bill_rndoff_amt"><?php echo smartDecimal(0, $JwtData->GenSettings->DecimalPoints,true); ?></span>
-                                            </div>
-                                        </div>
-
-                                        <div class="d-flex align-items-center justify-content-end mt-2">
-                                            <div class="d-flex justify-content-end w-75">
-                                                <label class="form-label fw-semibold fs-4 text-primary">Total Amount</label>
-                                            </div>
-                                            <div class="d-flex justify-content-end w-25 me-1">
-                                                <span class="me-1 fs-4 text-primary"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span>
-                                                <span class="bill_tot_amt fw-semibold fs-4 text-primary"><?php echo smartDecimal(0, $JwtData->GenSettings->DecimalPoints,true); ?></span>
-                                            </div>
-                                        </div>
-
-                                        <div class="d-flex align-items-center justify-content-end mt-2">
-                                            <div class="d-flex justify-content-end w-75">
-                                                <label class="form-label small fw-semibold">Total Discount</label>
-                                            </div>
-                                            <div class="d-flex justify-content-end w-25 me-1">
-                                                <span class="me-1"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span>
-                                                <span class="bill_tot_disc_amt"><?php echo smartDecimal(0, $JwtData->GenSettings->DecimalPoints,true); ?></span>
-                                            </div>
-                                        </div>
-
-                                        <!-- Tax Summary Section -->
-                                        <div class="col-md-12 mt-3">
-                                            <div class="card">
-                                                <div class="card-header">
-                                                    <h6 class="mb-0"><i class="bx bx-bar-chart-alt-2 me-2"></i> Tax Summary by Rate</h6>
-                                                </div>
-                                                <div class="card-body p-0">
-                                                    <div class="table-responsive">
-                                                        <table id="taxSummaryTable" class="table table-sm table-bordered mb-0">
-                                                            <thead class="table-light">
-                                                                <tr>
-                                                                    <th>Tax Rate</th>
-                                                                    <th>Taxable Amount</th>
-                                                                    <th>CGST</th>
-                                                                    <th>SGST</th>
-                                                                    <th>IGST</th>
-                                                                    <th>Total Tax</th>
-                                                                    <th>Items</th>
-                                                                </tr>
-                                                            </thead>
-                                                            <tbody>
-                                                                <tr class="text-center text-muted">
-                                                                    <td colspan="7">No tax data available</td>
-                                                                </tr>
-                                                            </tbody>
-                                                            <tfoot class="table-light">
-                                                                <tr>
-                                                                    <th>Total</th>
-                                                                    <th id="totalTaxableAmount"><?php echo smartDecimal(0, $JwtData->GenSettings->DecimalPoints, true); ?></th>
-                                                                    <th id="cgstTotal"><?php echo smartDecimal(0, $JwtData->GenSettings->DecimalPoints, true); ?></th>
-                                                                    <th id="sgstTotal"><?php echo smartDecimal(0, $JwtData->GenSettings->DecimalPoints, true); ?></th>
-                                                                    <th id="igstTotal"><?php echo smartDecimal(0, $JwtData->GenSettings->DecimalPoints, true); ?></th>
-                                                                    <th id="totalTaxAmount"><?php echo smartDecimal(0, $JwtData->GenSettings->DecimalPoints, true); ?></th>
-                                                                    <th id="totalItemsCount">0</th>
-                                                                </tr>
-                                                            </tfoot>
-                                                        </table>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <!-- Update your totals section to include tax breakup -->
-                                        <div class="d-flex align-items-center justify-content-end mt-2">
-                                            <div class="d-flex justify-content-end w-75">
-                                                <label class="form-label small fw-semibold">CGST Total</label>
-                                            </div>
-                                            <div class="d-flex justify-content-end w-25 me-1">
-                                                <span class="me-1"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span>
-                                                <span id="cgstTotalDisplay"><?php echo smartDecimal(0, $JwtData->GenSettings->DecimalPoints, true); ?></span>
-                                            </div>
-                                        </div>
-
-                                        <div class="d-flex align-items-center justify-content-end mt-2">
-                                            <div class="d-flex justify-content-end w-75">
-                                                <label class="form-label small fw-semibold">SGST Total</label>
-                                            </div>
-                                            <div class="d-flex justify-content-end w-25 me-1">
-                                                <span class="me-1"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span>
-                                                <span id="sgstTotalDisplay"><?php echo smartDecimal(0, $JwtData->GenSettings->DecimalPoints, true); ?></span>
-                                            </div>
-                                        </div>
-
-                                        <div class="d-flex align-items-center justify-content-end mt-2">
-                                            <div class="d-flex justify-content-end w-75">
-                                                <label class="form-label small fw-semibold">IGST Total</label>
-                                            </div>
-                                            <div class="d-flex justify-content-end w-25 me-1">
-                                                <span class="me-1"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span>
-                                                <span id="igstTotalDisplay"><?php echo smartDecimal(0, $JwtData->GenSettings->DecimalPoints, true); ?></span>
-                                            </div>
-                                        </div>
-                                        
-                                    </div>
-                                </div>
-
-                                <!-- Upload Files / Images -->
-                                <div class="col-md-6">
                                     <div class="accordion transAccordion" id="dropZoneAccordion">
                                         <div class="accordion-item">
                                             <h2 class="accordion-header text-body d-flex justify-content-between">
-                                                <button type="button" class="accordion-button" data-bs-toggle="collapse" data-bs-target="#accordionUploadFiles" aria-controls="accordionPopoutIcon-1" aria-expanded="true">
-                                                <i class="icon-base bx bx-bar-chart-alt-2 me-2"></i> Attach Files <span class="text-muted">(Max: 5)</span></button>
+                                                <button type="button" class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#accordionUploadFiles" aria-controls="accordionUploadFiles" aria-expanded="false">
+                                                <i class="icon-base bx bx-paperclip me-2"></i> Attach Files <span class="ms-2 text-muted">(Max: 5)</span></button>
                                             </h2>
-                                            <div id="accordionUploadFiles" class="accordion-collapse collapse hide" data-bs-parent="#dropZoneAccordion">
+                                            <div id="accordionUploadFiles" class="accordion-collapse collapse" data-bs-parent="#dropZoneAccordion">
                                                 <div class="accordion-body">
                                                     <div class="dropzone needsclick p-3 dz-clickable w-100" id="multipleDropzone">
                                                         <div class="dz-message needsclick text-center">
@@ -514,6 +339,207 @@
                                                 </div>
                                             </div>
                                         </div>
+                                    </div>
+                                </div>
+
+                                <!-- Summary and Bank/Signature -->
+                                <div class="col-md-6 p-2 trans-theme" style="align-self: flex-start;">
+                                    <div class="row">
+                                        
+                                        <!-- Tax Detailed View -->
+                                        <div class="col-md-6 tax-summary-section">
+                                            <div id="taxBreakupPanel" style="display: none;" class="tax-details-view p-2 bg-light rounded border">
+                                                <h6 class="tax-details-title mb-2">Tax Breakdown</h6>
+                                                
+                                                <!-- Items Tax Table -->
+                                                <div class="mb-3">
+                                                    <p class="small fw-semibold mb-2 text-secondary">Items Tax</p>
+                                                    <div class="table-responsive">
+                                                        <table class="table table-sm mb-0">
+                                                            <thead class="small bg-light">
+                                                                <tr>
+                                                                    <th class="fw-semibold border-bottom"># Items</th>
+                                                                    <th class="fw-semibold border-bottom taxBreakUpItemsCgst">CGST</th>
+                                                                    <th class="fw-semibold border-bottom taxBreakUpItemsSgst">SGST</th>
+                                                                    <th class="fw-semibold border-bottom taxBreakUpItemsIgst d-none">IGST</th>
+                                                                    <th class="fw-semibold border-bottom text-end">Total Amount</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                <tr>
+                                                                    <td class="py-1"><span class="taxBreakUpItemsCnt">0</span></td>
+                                                                    <td class="py-1 taxBreakUpItemsCgst"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span class="taxBreakUpItemsCgstVal">0</span></td>
+                                                                    <td class="py-1 taxBreakUpItemsSgst"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span class="taxBreakUpItemsSgstVal">0</span></td>
+                                                                    <td class="py-1 taxBreakUpItemsIgst d-none"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span class="taxBreakUpItemsIgstVal">0</span></td>
+                                                                    <td class="py-1 text-end fw-semibold"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span class="taxBreakUpItemsTotAmt">0</span></td>
+                                                                </tr>
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Charges Tax Table -->
+                                                <div class="mb-3 d-none" id="chargeBreakUpTaxDetails">
+                                                    <p class="small fw-semibold mb-2 text-secondary">All Charges Tax</p>
+                                                    <div class="table-responsive">
+                                                        <table class="table table-sm mb-0">
+                                                            <thead class="small bg-light">
+                                                                <tr>
+                                                                    <th class="fw-semibold border-bottom">Charges</th>
+                                                                    <th class="fw-semibold border-bottom taxBreakUpChargesCgst">CGST</th>
+                                                                    <th class="fw-semibold border-bottom taxBreakUpChargesSgst">SGST</th>
+                                                                    <th class="fw-semibold border-bottom taxBreakUpChargesIgst d-none">IGST</th>
+                                                                    <th class="fw-semibold border-bottom text-end">Total Amount</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                <tr class="cgst-sgst-row">
+                                                                    <td class="py-1">Shipping</td>
+                                                                    <td class="py-1 taxBreakUpChargesCgst"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span class="taxBreakUpChargesCgstVal">0</span></td>
+                                                                    <td class="py-1 taxBreakUpChargesSgst"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span class="taxBreakUpChargesSgstVal">0</span></td>
+                                                                    <td class="py-1 taxBreakUpChargesIgst d-none"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span class="taxBreakUpChargesIgstVal">0</span></td>
+                                                                    <td class="py-1 text-end fw-semibold"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span class="taxBreakUpChargesTotAmt">0</span></td>
+                                                                </tr>
+                                                            </tbody>
+                                                            <tfoot>
+                                                                <tr class="border-top">
+                                                                    <td colspan="3" class="pt-2 fw-semibold">Total Charges Tax</td>
+                                                                    <td class="pt-2 text-end fw-semibold"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span id="chargeTaxTotal">0</span></td>
+                                                                </tr>
+                                                            </tfoot>
+                                                        </table>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Final Tax Total -->
+                                                <div class="border-top pt-2">
+                                                    <div class="table-responsive">
+                                                        <table class="table table-sm mb-0">
+                                                            <tbody>
+                                                                <tr>
+                                                                    <td class="fw-bold">Grand Tax Total</td>
+                                                                    <td class="text-end fw-bold"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span id="grandChargesTaxTotal">0</span></td>
+                                                                </tr>
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-md-6 p-2 pe-5">
+                                            <div class="row g-2">
+
+                                                <div class="d-flex align-items-center justify-content-end">
+                                                    <div class="d-flex justify-content-end w-60 me-2">
+                                                        <label class="form-label small fw-semibold">Extra Discount (%)</label>
+                                                    </div>
+                                                    <div class="input-group input-group-merge w-70">
+                                                        <select class="form-select form-select-sm" id="extDiscountType" name="extDiscountType">
+                                                        <?php foreach ($DiscTypeInfo as $DiscType) { ?>
+                                                            <option value="<?php echo $DiscType->Name; ?>"><?php echo $DiscType->Symbol; ?></option>
+                                                        <?php } ?>
+                                                        </select>
+                                                        <input class="form-control form-control-sm ps-1 w-30" type="text" id="extraDiscount" name="extraDiscount" min="0" step="0.01" placeholder="Extra Discount" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" maxlength="<?php echo $JwtData->GenSettings->PriceMaxLength; ?>" pattern="^d{1,<?php echo $JwtData->GenSettings->PriceMaxLength; ?>}(.d{0,<?php echo $JwtData->GenSettings->DecimalPoints; ?>})?$" onpaste="handleDiscountPaste(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" ondrop="handleDiscountDrop(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" value="0">
+                                                    </div>
+                                                </div>
+
+                                                <div class="d-flex align-items-center justify-content-end mt-2 d-none" id="shippingRow">
+                                                    <div class="d-flex justify-content-end w-70">
+                                                        <label class="form-label small fw-semibold" id="shippingChargeLabel">Shipping Charges</label>
+                                                    </div>
+                                                    <div class="d-flex justify-content-end w-70 me-1">
+                                                        <span class="me-1"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span>
+                                                        <span id="shippingChargeAmt"><?php echo smartDecimal(0, $JwtData->GenSettings->DecimalPoints,true); ?></span>
+                                                    </div>
+                                                </div>
+
+                                                <div class="d-flex align-items-center justify-content-end mt-2 d-none" id="packingRow">
+                                                    <div class="d-flex justify-content-end w-70">
+                                                        <label class="form-label small fw-semibold" id="packingChargeLabel">Packaging Charges </label>
+                                                    </div>
+                                                    <div class="d-flex justify-content-end w-70 me-1">
+                                                        <span class="me-1"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span>
+                                                        <span id="packingChargeAmt"><?php echo smartDecimal(0, $JwtData->GenSettings->DecimalPoints,true); ?></span>
+                                                    </div>
+                                                </div>
+
+                                                <div class="d-flex align-items-center justify-content-end mt-2 d-none" id="handlingRow">
+                                                    <div class="d-flex justify-content-end w-70">
+                                                        <label class="form-label small fw-semibold" id="handlingChargeLabel">Handling Charges</label>
+                                                    </div>
+                                                    <div class="d-flex justify-content-end w-70 me-1">
+                                                        <span class="me-1"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span>
+                                                        <span id="handlingChargeAmt"><?php echo smartDecimal(0, $JwtData->GenSettings->DecimalPoints,true); ?></span>
+                                                    </div>
+                                                </div>
+
+                                                <div class="d-flex align-items-center justify-content-end mt-2 d-none" id="othersRow">
+                                                    <div class="d-flex justify-content-end w-70">
+                                                        <label class="form-label small fw-semibold" id="othersChargeLabel">Other Charges </label>
+                                                    </div>
+                                                    <div class="d-flex justify-content-end w-70 me-1">
+                                                        <span class="me-1"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span>
+                                                        <span id="othersChargeAmt"><?php echo smartDecimal(0, $JwtData->GenSettings->DecimalPoints,true); ?></span>
+                                                    </div>
+                                                </div>
+
+                                                <div class="d-flex align-items-center justify-content-end mt-2">
+                                                    <div class="d-flex justify-content-end w-70">
+                                                        <label class="form-label small fw-semibold">Taxable Amount</label>
+                                                    </div>
+                                                    <div class="d-flex justify-content-end w-70 me-1">
+                                                        <span class="me-1"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span>
+                                                        <span class="bill_taxable_amt"><?php echo smartDecimal(0, $JwtData->GenSettings->DecimalPoints,true); ?></span>
+                                                    </div>
+                                                </div>
+
+                                                <div class="d-flex align-items-center justify-content-end mt-2">
+                                                    <div class="d-flex justify-content-end w-70">
+                                                        <label class="form-label small fw-semibold">Total Tax <button type="button" class="btn btn-sm btn-link p-0 border-0" id="taxBreakupToggle"><i id="showHideTaxBreakUp" class="bx bxs-show tax-toggle-icon ms-1 fs-6 d-none"></i></i></button></label>
+                                                    </div>
+                                                    <div class="d-flex justify-content-end w-70 me-1">
+                                                        <span class="me-1"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span>
+                                                        <span class="bill_tot_tax_amt"><?php echo smartDecimal(0, $JwtData->GenSettings->DecimalPoints,true); ?></span>
+                                                    </div>
+                                                </div>
+
+                                                <div class="d-flex align-items-center justify-content-end mt-2">
+                                                    <div class="d-flex justify-content-end w-70">
+                                                        <div class="form-check form-switch mb-0">
+                                                            <label class="form-check-label small fw-semibold" for="roundOffToggle">Round Off</label>
+                                                            <input class="form-check-input" type="checkbox" name="roundOffToggle" id="roundOffToggle" checked />
+                                                        </div>
+                                                    </div>
+                                                    <div class="d-flex justify-content-end w-70 me-1">
+                                                        <span class="me-1"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span>
+                                                        <span class="bill_rndoff_amt"><?php echo smartDecimal(0, $JwtData->GenSettings->DecimalPoints,true); ?></span>
+                                                    </div>
+                                                </div>
+
+                                                <div class="d-flex align-items-center justify-content-end mt-2">
+                                                    <div class="d-flex justify-content-end w-70">
+                                                        <label class="form-label fw-semibold fs-4 text-primary">Total Amount</label>
+                                                    </div>
+                                                    <div class="d-flex justify-content-end w-70 me-1">
+                                                        <span class="me-1 fs-4 text-primary"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span>
+                                                        <span class="bill_tot_amt fw-semibold fs-4 text-primary"><?php echo smartDecimal(0, $JwtData->GenSettings->DecimalPoints,true); ?></span>
+                                                    </div>
+                                                </div>
+
+                                                <div class="d-flex align-items-center justify-content-end mt-2">
+                                                    <div class="d-flex justify-content-end w-70">
+                                                        <label class="form-label small fw-semibold">Total Discount</label>
+                                                    </div>
+                                                    <div class="d-flex justify-content-end w-70 me-1">
+                                                        <span class="me-1"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span>
+                                                        <span class="bill_tot_disc_amt"><?php echo smartDecimal(0, $JwtData->GenSettings->DecimalPoints,true); ?></span>
+                                                    </div>
+                                                </div>
+
+                                            </div>
+                                        </div>
+                                        
                                     </div>
                                 </div>
 
@@ -530,6 +556,7 @@
              
             <?php $this->load->view('common/transactions/transprefix'); ?>
             <?php $this->load->view('transactions/modals/customer'); ?>
+            <?php $this->load->view('transactions/modals/taxdetails'); ?>
             <?php $this->load->view('products/modals/items'); ?>
             <?php $this->load->view('common/footer_desc'); ?>
 

@@ -139,10 +139,6 @@ class Storage extends CI_Controller {
 
     }
 
-    public function checkImageType($str = '') {
-        return $this->globalservice->checkImageType($str);
-    }
-
     public function updateStorageData() {
 
         $this->EndReturnData = new stdClass();

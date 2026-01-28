@@ -50,18 +50,27 @@ class Formvalidation_model extends CI_Model {
         $dd['Name'] = array('field' => 'Name', 'label' => 'Company Name', 'rules' => 'trim|required|xss_clean|min_length[6]|max_length[100]');
         $dd['BrandName'] = array('field' => 'BrandName', 'label' => 'Brand Name', 'rules' => 'trim|required|xss_clean|min_length[6]|max_length[100]');
         $dd['Description'] = array('field' => 'Description', 'label' => 'Description', 'rules' => 'trim|xss_clean|max_length[100]');
+
         $dd['CountryCode'] = array('field' => 'CountryCode', 'label' => 'Country', 'rules' => 'trim|required|xss_clean');
         $dd['CountryISO2'] = array('field' => 'CountryISO2', 'label' => 'Country ISO2', 'rules' => 'trim|required|xss_clean');
-        $dd['MobileNumber'] = array('field' => 'MobileNumber', 'label' => 'Mobile Number', 'rules' => 'trim|required|xss_clean');
-        $dd['EmailAddress'] = array('field' => 'EmailAddress', 'label' => 'Email Address', 'rules' => 'trim|required|xss_clean|min_length[6]|max_length[100]');
-        $dd['GSTIN'] = array('field' => 'GSTIN', 'label' => 'GSTIN', 'rules' => 'trim|xss_clean|max_length[50]');
+        // Mobile validation
+        $dd['MobileNumber'] = array('field' => 'MobileNumber', 'label' => 'Mobile Number', 'rules' => ['trim', 'xss_clean', ['validate_mobile_number', [$this, 'validate_mobile_number']]]);
 
-        $dd['UploadImage'] = array('field' => 'UploadImage', 'label' => 'Upload Image', 'rules' => 'callback_checkImageType');
+        $dd['EmailAddress'] = array('field' => 'EmailAddress', 'label' => 'Email Address', 'rules' => 'trim|required|xss_clean|min_length[6]|max_length[100]');
+        
+        // GSTIN validation
+        $dd['GSTIN'] = array('field' => 'GSTIN', 'label' => 'GSTIN', 'rules' => ['trim', 'xss_clean', 'max_length[15]', ['validate_gstin_number', [$this, 'validate_gstin_number']]]);
+        
+        // Upload Image
+        $dd['UploadImage'] = array('field' => 'UploadImage', 'label' => 'Upload Image', 'rules' => [['checkImageType', [$this, 'checkImageType']]]);
 
         $dd['OrgBussTypeUID'] = array('field' => 'OrgBussTypeUID', 'label' => 'Business Type', 'rules' => 'required|xss_clean|trim|numeric');
         $dd['AlternateNumber'] = array('field' => 'AlternateNumber', 'label' => 'Alternate Number', 'rules' => 'xss_clean|trim');
         $dd['TimezoneUID'] = array('field' => 'TimezoneUID', 'label' => 'Timezone', 'rules' => 'xss_clean|trim|numeric');
-        $dd['PANNumber'] = array('field' => 'PANNumber', 'label' => 'PAN Number', 'rules' => 'trim|xss_clean|max_length[100]');
+
+        // PAN validation
+        $dd['PANNumber'] = array('field' => 'PANNumber', 'label' => 'PAN Number', 'rules' => ['trim', 'xss_clean', ['validate_pan_number', [$this, 'validate_pan_number']]]);
+        
         $dd['Website'] = array('field' => 'Website', 'label' => 'Website', 'rules' => 'trim|xss_clean|max_length[255]');
 
         $config = array();
@@ -85,28 +94,32 @@ class Formvalidation_model extends CI_Model {
 
         $this->form_validation->set_data($data);
 
-        $dd['CustomerUID'] = array('field' => 'CustomerUID', 'label' => 'Customer UID', 'rules' => 'required|xss_clean|trim|numeric');
+        $dd['CustomerUID'] = ['field' => 'CustomerUID', 'label' => 'Customer UID', 'rules' => 'required|xss_clean|trim|numeric'];
 
         $dd['Name'] = array('field' => 'Name', 'label' => 'Name', 'rules' => 'trim|required|xss_clean|min_length[3]|max_length[100]');
         $dd['Area'] = array('field' => 'Area', 'label' => 'Area', 'rules' => 'trim|xss_clean|min_length[3]|max_length[100]');
         $dd['CountryCode'] = array('field' => 'CountryCode', 'label' => 'Country', 'rules' => 'trim|required|xss_clean');
         $dd['CountryISO2'] = array('field' => 'CountryISO2', 'label' => 'Country ISO2', 'rules' => 'trim|xss_clean');
-        $dd['MobileNumber'] = array('field' => 'MobileNumber', 'label' => 'Mobile Number', 'rules' => 'trim|xss_clean');
-        $dd['EmailAddress'] = array('field' => 'EmailAddress', 'label' => 'Email Address', 'rules' => 'trim|xss_clean|min_length[6]|max_length[100]');
+        
+        // Mobile validation
+        $dd['MobileNumber'] = array('field' => 'MobileNumber', 'label' => 'Mobile Number', 'rules' => ['trim', 'xss_clean', ['validate_mobile_number', [$this, 'validate_mobile_number']]]);
 
+        $dd['EmailAddress'] = array('field' => 'EmailAddress', 'label' => 'Email Address', 'rules' => 'trim|xss_clean|min_length[6]|max_length[100]');
         $dd['DebitCreditAmount'] = array('field' => 'DebitCreditAmount', 'label' => 'Debit Credit Amount', 'rules' => 'trim|xss_clean|numeric');
         $dd['DebitCreditCheck'] = array('field' => 'DebitCreditCheck', 'label' => 'Debit Credit Check', 'rules' => 'trim|required|xss_clean|in_list[Debit,Credit]');
 
-        $dd['PANNumber'] = array('field' => 'PANNumber', 'label' => 'PAN Number', 'rules' => 'trim|xss_clean|max_length[20]');
+        // PAN validation
+        $dd['PANNumber'] = array('field' => 'PANNumber', 'label' => 'PAN Number', 'rules' => ['trim', 'xss_clean', ['validate_pan_number', [$this, 'validate_pan_number']]]);
+
         $dd['ContactPerson'] = array('field' => 'ContactPerson', 'label' => 'Contact Person', 'rules' => 'trim|xss_clean|min_length[3]|max_length[100]');
-        $dd['CPDateOfBirth'] = array('field' => 'CPDateOfBirth', 'label' => 'Date of Birth',
-            'rules' => 'trim|xss_clean|regex_match[/^\d{4}-\d{2}-\d{2}$/]|callback_validateDateFormat'
-        );
+        // Validate Date Format
+        $dd['CPDateOfBirth'] = array('field' => 'CPDateOfBirth', 'label' => 'Date of Birth', 'rules' => ['trim', 'xss_clean', 'regex_match[/^\d{4}-\d{2}-\d{2}$/]', ['validateDateofBirthFormat', [$this, 'validateDateofBirthFormat']]]);
         
-        $dd['GSTIN'] = array('field' => 'GSTIN', 'label' => 'GSTIN', 'rules' => 'trim|xss_clean|max_length[50]');
+        // GSTIN validation
+        $dd['GSTIN'] = array('field' => 'GSTIN', 'label' => 'GSTIN', 'rules' => ['trim', 'xss_clean', 'max_length[15]', ['validate_gstin_number', [$this, 'validate_gstin_number']]]);
         $dd['CompanyName'] = array('field' => 'CompanyName', 'label' => 'Company Name', 'rules' => 'trim|xss_clean|min_length[6]|max_length[100]');
-        
-        $dd['UploadImage'] = array('field' => 'UploadImage', 'label' => 'Upload Image', 'rules' => 'callback_checkImageType');
+        // Upload Image
+        $dd['UploadImage'] = array('field' => 'UploadImage', 'label' => 'Upload Image', 'rules' => [['checkImageType', [$this, 'checkImageType']]]);
 
         $dd['DiscountPercent'] = array('field' => 'DiscountPercent', 'label' => 'Discount Percent', 'rules' => 'trim|xss_clean|numeric|greater_than_equal_to[0]|less_than_equal_to[100]');
         $dd['CreditPeriod'] = array('field' => 'CreditPeriod', 'label' => 'Credit Period', 'rules' => 'trim|xss_clean|numeric');
@@ -141,24 +154,30 @@ class Formvalidation_model extends CI_Model {
 
         $dd['Name'] = array('field' => 'Name', 'label' => 'Name', 'rules' => 'trim|required|xss_clean|min_length[3]|max_length[100]');
         $dd['Area'] = array('field' => 'Area', 'label' => 'Area', 'rules' => 'trim|xss_clean|min_length[3]|max_length[100]');
+
         $dd['CountryCode'] = array('field' => 'CountryCode', 'label' => 'Country', 'rules' => 'trim|required|xss_clean');
         $dd['CountryISO2'] = array('field' => 'CountryISO2', 'label' => 'Country ISO2', 'rules' => 'trim|xss_clean');
-        $dd['MobileNumber'] = array('field' => 'MobileNumber', 'label' => 'Mobile Number', 'rules' => 'trim|xss_clean');
+        // Mobile validation
+        $dd['MobileNumber'] = array('field' => 'MobileNumber', 'label' => 'Mobile Number', 'rules' => ['trim', 'xss_clean', ['validate_mobile_number', [$this, 'validate_mobile_number']]]);
+
         $dd['EmailAddress'] = array('field' => 'EmailAddress', 'label' => 'Email Address', 'rules' => 'trim|xss_clean|min_length[6]|max_length[100]');
 
         $dd['DebitCreditAmount'] = array('field' => 'DebitCreditAmount', 'label' => 'Debit Credit Amount', 'rules' => 'trim|xss_clean|numeric');
         $dd['DebitCreditCheck'] = array('field' => 'DebitCreditCheck', 'label' => 'Debit Credit Check', 'rules' => 'trim|required|xss_clean|in_list[Debit,Credit]');
 
-        $dd['PANNumber'] = array('field' => 'PANNumber', 'label' => 'PAN Number', 'rules' => 'trim|xss_clean|max_length[20]');
-        $dd['ContactPerson'] = array('field' => 'ContactPerson', 'label' => 'Contact Person', 'rules' => 'trim|xss_clean|min_length[3]|max_length[100]');
-        $dd['CPDateOfBirth'] = array('field' => 'CPDateOfBirth', 'label' => 'Date of Birth',
-            'rules' => 'trim|xss_clean|regex_match[/^\d{4}-\d{2}-\d{2}$/]|callback_validateDateFormat'
-        );
+        // PAN validation
+        $dd['PANNumber'] = array('field' => 'PANNumber', 'label' => 'PAN Number', 'rules' => ['trim', 'xss_clean', ['validate_pan_number', [$this, 'validate_pan_number']]]);
 
-        $dd['GSTIN'] = array('field' => 'GSTIN', 'label' => 'GSTIN', 'rules' => 'trim|xss_clean|max_length[50]');
+        $dd['ContactPerson'] = array('field' => 'ContactPerson', 'label' => 'Contact Person', 'rules' => 'trim|xss_clean|min_length[3]|max_length[100]');
+        // Validate Date Format
+        $dd['CPDateOfBirth'] = array('field' => 'CPDateOfBirth', 'label' => 'Date of Birth', 'rules' => ['trim', 'xss_clean', 'regex_match[/^\d{4}-\d{2}-\d{2}$/]', ['validateDateofBirthFormat', [$this, 'validateDateofBirthFormat']]]);
+
+        // GSTIN validation
+        $dd['GSTIN'] = array('field' => 'GSTIN', 'label' => 'GSTIN', 'rules' => ['trim', 'xss_clean', 'max_length[15]', ['validate_gstin_number', [$this, 'validate_gstin_number']]]);
         $dd['CompanyName'] = array('field' => 'CompanyName', 'label' => 'Company Name', 'rules' => 'trim|xss_clean|min_length[6]|max_length[100]');
 
-        $dd['UploadImage'] = array('field' => 'UploadImage', 'label' => 'Upload Image', 'rules' => 'callback_checkImageType');
+        // Upload Image
+        $dd['UploadImage'] = array('field' => 'UploadImage', 'label' => 'Upload Image', 'rules' => [['checkImageType', [$this, 'checkImageType']]]);
         
         $dd['Notes'] = array('field' => 'Notes', 'label' => 'Notes', 'rules' => 'trim|xss_clean|max_length[250]');
 
@@ -201,7 +220,8 @@ class Formvalidation_model extends CI_Model {
         $dd['OpeningPurchasePrice'] = array('field' => 'OpeningPurchasePrice', 'label' => 'Opening Purchase Price', 'rules' => 'trim|xss_clean|numeric');
         $dd['OpeningStockValue'] = array('field' => 'OpeningStockValue', 'label' => 'Opening Stock Value', 'rules' => 'trim|xss_clean|numeric');
         
-        $dd['UploadImage'] = array('field' => 'UploadImage', 'label' => 'Upload Image', 'rules' => 'callback_checkImageType');
+        // Upload Image
+        $dd['UploadImage'] = array('field' => 'UploadImage', 'label' => 'Upload Image', 'rules' => [['checkImageType', [$this, 'checkImageType']]]);
         
         $dd['Discount'] = array('field' => 'Discount', 'label' => 'Discount', 'rules' => 'trim|xss_clean|numeric');
         $dd['DiscountOption'] = array('field' => 'DiscountOption', 'label' => 'Discount Option', 'rules' => 'trim|required|xss_clean|numeric');
@@ -209,7 +229,7 @@ class Formvalidation_model extends CI_Model {
 
         $dd['BrandUID'] = array('field' => 'BrandUID', 'label' => 'Brand UID', 'rules' => 'xss_clean|trim|numeric');
         $dd['Standard'] = array('field' => 'Standard', 'label' => 'Standard', 'rules' => 'xss_clean|trim|max_length[100]');
-        $dd['IsSizeApplicable'] = array('field' => 'IsSizeApplicable', 'label' => 'Is Size Applicable', 'rules' => 'xss_clean|trim|callback_checkSizeRequired');
+        $dd['IsSizeApplicable'] = array('field' => 'IsSizeApplicable', 'label' => 'Is Size Applicable', 'rules' => ['trim', 'xss_clean', ['checkSizeRequired', [$this, 'checkSizeRequired']]]);
 
         if($this->pageData['JwtData']->GenSettings->EnableStorage == 1) {
             if($this->pageData['JwtData']->GenSettings->MandatoryStorage == 1) {
@@ -243,7 +263,8 @@ class Formvalidation_model extends CI_Model {
         $dd['CategoryUID'] = array('field' => 'CategoryUID', 'label' => 'Category UID', 'rules' => 'required|xss_clean|trim|numeric');
         $dd['Name'] = array('field' => 'Name', 'label' => 'Name', 'rules' => 'trim|required|xss_clean|min_length[3]|max_length[100]');
         $dd['Description'] = array('field' => 'Description', 'label' => 'Description', 'rules' => 'trim|xss_clean|max_length[250]');
-        $dd['UploadImage'] = array('field' => 'UploadImage', 'label' => 'Upload Image', 'rules' => 'callback_checkImageType');
+        // Upload Image
+        $dd['UploadImage'] = array('field' => 'UploadImage', 'label' => 'Upload Image', 'rules' => [['checkImageType', [$this, 'checkImageType']]]);
 
         $config = array();
 
@@ -320,7 +341,8 @@ class Formvalidation_model extends CI_Model {
         $dd['Name'] = array('field' => 'Name', 'label' => 'Name', 'rules' => 'trim|required|xss_clean|min_length[3]|max_length[100]');
         $dd['ShortName'] = array('field' => 'ShortName', 'label' => 'Short Name', 'rules' => 'trim|xss_clean|max_length[50]');
         $dd['StorageTypeUID'] = array('field' => 'StorageTypeUID', 'label' => 'Storage Type', 'rules' => 'trim|required|xss_clean|numeric');
-        $dd['UploadImage'] = array('field' => 'UploadImage', 'label' => 'Upload Image', 'rules' => 'callback_checkImageType');
+        // Upload Image
+        $dd['UploadImage'] = array('field' => 'UploadImage', 'label' => 'Upload Image', 'rules' => [['checkImageType', [$this, 'checkImageType']]]);
 
         $config = array();
 
@@ -348,10 +370,11 @@ class Formvalidation_model extends CI_Model {
         $dd['CountryCode'] = array('field' => 'CountryCode', 'label' => 'Country', 'rules' => 'trim|required|xss_clean');
         $dd['CountryISO2'] = array('field' => 'CountryISO2', 'label' => 'Country ISO2', 'rules' => 'trim|required|xss_clean');
         $dd['MobileNumber'] = array('field' => 'MobileNumber', 'label' => 'Mobile Number', 'rules' => 'trim|required|xss_clean');
-        $dd['UploadImage'] = array('field' => 'UploadImage', 'label' => 'Upload Image', 'rules' => 'callback_checkImageType');
+        // Upload Image
+        $dd['UploadImage'] = array('field' => 'UploadImage', 'label' => 'Upload Image', 'rules' => [['checkImageType', [$this, 'checkImageType']]]);
 
         $dd['oldPassword']     = array('field' => 'oldPassword', 'label' => 'Old Password', 'rules' => 'trim|xss_clean|min_length[6]|max_length[20]');
-        $dd['newPassword']     = array('field' => 'newPassword', 'label' => 'New Password', 'rules' => 'trim|xss_clean|min_length[6]|max_length[20]|callback_check_new_password');
+        $dd['newPassword'] = array('field' => 'newPassword', 'label' => 'New Password', 'rules' => ['trim', 'xss_clean', 'min_length[6]', 'max_length[20]', ['check_new_password', [$this, 'check_new_password']]]);
         $dd['confirmPassword'] = array('field' => 'confirmPassword', 'label' => 'Confirm Password', 'rules' => 'trim|xss_clean|matches[newPassword]');
 
         $config = array();
@@ -401,6 +424,107 @@ class Formvalidation_model extends CI_Model {
         } else {
             return '';
         }
+
+    }
+
+    /* ================= MOBILE ================= */
+    public function validate_mobile_number($mobile) {
+
+        if (empty($mobile)) return true;
+
+        $post = $this->input->post();
+        $countryCode = isset($post['CountryCode']) ? str_replace('+', '', $post['CountryCode']) : '91';
+
+        $mobile = preg_replace('/[^0-9]/', '', $mobile);
+        $mobile = ltrim($mobile, '0');
+
+        $valid = false;
+        switch ($countryCode) {
+            case '91':  $valid = preg_match('/^[6-9]\d{9}$/', $mobile); break;
+            case '1':   $valid = preg_match('/^\d{10}$/', $mobile); break;
+            case '44':  $valid = preg_match('/^\d{10,11}$/', $mobile); break;
+            case '61':  $valid = preg_match('/^\d{9}$/', $mobile); break;
+            case '971': $valid = preg_match('/^\d{9}$/', $mobile); break;
+            default:    $valid = preg_match('/^\d{5,15}$/', $mobile); break;
+        }
+
+        if (!$valid) {
+            $messages = [
+                '91'  => 'Invalid Indian mobile number. Must be 10 digits starting with 6–9.',
+                '1'   => 'Invalid US/Canada mobile number.',
+                '44'  => 'Invalid UK mobile number.',
+                '61'  => 'Invalid Australian mobile number.',
+                '971' => 'Invalid UAE mobile number.'
+            ];
+            $this->form_validation->set_message('validate_mobile_number', $messages[$countryCode] ?? 'Invalid mobile number.');
+            return false;
+        }
+        return true;
+    }
+
+    /* ================= PAN ================= */
+    public function validate_pan_number($pan) {
+        if (empty($pan)) return true;
+
+        $pan = strtoupper(trim($pan));
+        if (!preg_match('/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/', $pan)) {
+            $this->form_validation->set_message('validate_pan_number', 'Invalid PAN format (ABCDE1234F).');
+            return false;
+        }
+        return true;
+    }
+
+    /* ================= GSTIN ================= */
+    public function validate_gstin_number($gstin) {
+        if (empty($gstin)) return true;
+
+        $gstin = strtoupper(trim($gstin));
+        if (strlen($gstin) !== 15 ||
+            !preg_match('/^\d{2}[A-Z]{5}\d{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/', $gstin)) {
+            $this->form_validation->set_message('validate_gstin_number', 'Invalid GSTIN format (15 characters).');
+            return false;
+        }
+        return true;
+    }
+
+    /* ================= DATE ================= */
+    public function validateDateofBirthFormat($date) {
+        if (empty($date)) return true;
+
+        $d = DateTime::createFromFormat('Y-m-d', $date);
+        if ($d && $d->format('Y-m-d') === $date) return true;
+
+        $this->form_validation->set_message('validateDateofBirthFormat', 'The {field} must be in YYYY-MM-DD format.');
+        return false;
+    }
+
+    /* ================= IMAGE ================= */
+    public function checkImageType($str = '') {
+        return $this->globalservice->checkImageType($str);
+    }
+
+    /* ================= PASSWORD ================= */
+    public function check_new_password($password) {
+        $oldPassword = $this->input->post('oldPassword');
+        if ($oldPassword === $password) {
+            $this->form_validation->set_message('check_new_password', 'Old Password and New Password cannot be the same');
+            return false;
+        }
+        if (strlen($password) < 6) {
+            $this->form_validation->set_message('check_new_password', 'Password must be at least 6 characters.');
+            return false;
+        }
+        return true;
+    }
+
+    /* ================= CHECK SIZE ================= */
+    public function checkSizeRequired($IsSizeApplicable) {
+        $SizeUID = $this->input->post('SizeUID', true) ?? NULL;
+        if ($IsSizeApplicable && empty($SizeUID)) {
+            $this->form_validation->set_message('checkSizeRequired', 'The Size field is required when Size Applicable is checked.');
+            return false;
+        }
+        return true;
 
     }
 

@@ -5,6 +5,7 @@ class BillManager {
         this.map = {};
         this.globalDiscountPercent = 0;
         this.roundOffEnabled = true;
+        this.chargeTypes = ['shipping', 'handling', 'packing', 'other'];
         
         // THREE-TIER SUMMARY STRUCTURE
         this.summary = {
@@ -31,11 +32,62 @@ class BillManager {
             
             // TIER 4: ADDITIONAL CHARGES
             additionalCharges: {
-                shipping: 0,
-                handling: 0,
-                packing: 0,
-                other: 0,
-                total: 0
+                shipping: { 
+                    netAmount: 0, 
+                    taxPercent: 0, 
+                    cgstPercent: 0,
+                    sgstPercent: 0,
+                    igstPercent: 0,
+                    cgstAmount: 0,
+                    sgstAmount: 0,
+                    igstAmount: 0,
+                    taxAmount: 0, 
+                    grossAmount: 0 
+                },
+                handling: { 
+                    netAmount: 0, 
+                    taxPercent: 0, 
+                    cgstPercent: 0,
+                    sgstPercent: 0,
+                    igstPercent: 0,
+                    cgstAmount: 0,
+                    sgstAmount: 0,
+                    igstAmount: 0,
+                    taxAmount: 0, 
+                    grossAmount: 0 
+                },
+                packing: { 
+                    netAmount: 0, 
+                    taxPercent: 0, 
+                    cgstPercent: 0,
+                    sgstPercent: 0,
+                    igstPercent: 0,
+                    cgstAmount: 0,
+                    sgstAmount: 0,
+                    igstAmount: 0,
+                    taxAmount: 0, 
+                    grossAmount: 0 
+                },
+                other: { 
+                    netAmount: 0, 
+                    taxPercent: 0, 
+                    cgstPercent: 0,
+                    sgstPercent: 0,
+                    igstPercent: 0,
+                    cgstAmount: 0,
+                    sgstAmount: 0,
+                    igstAmount: 0,
+                    taxAmount: 0, 
+                    grossAmount: 0 
+                },
+                total: { 
+                    netAmount: 0, 
+                    cgstAmount: 0,
+                    sgstAmount: 0,
+                    igstAmount: 0,
+                    taxAmount: 0, 
+                    grossAmount: 0 
+                }
             },
             
             // TIER 5: EXTRA DISCOUNT & FINAL
@@ -147,27 +199,26 @@ class BillManager {
         return this.summary;
     }
 
-    // Enhanced updateExtraDiscount method
+    // Helper: Update extra discount
     updateExtraDiscount() {
-        const extraDiscount = this.summary.extraDiscount;
-        const taxableAmount = this.summary.taxableAmount || 0;
-        const additionalCharge = this.summary.additionalCharge || 0;
+        const extra = this.summary.extra;
+        const subtotal = this.summary.totals.subtotal; // Total after items + charges
         
-        const baseAmount = taxableAmount + additionalCharge;
-        
-        // Validate and calculate
-        if (extraDiscount.type === 'percentage') {
-            // Ensure percentage is valid
-            const percentage = Math.min(Math.max(extraDiscount.value || 0, 0), 100);
-            extraDiscount.calculatedAmount = baseAmount * (percentage / 100);
+        if (extra.discountType === 'percentage') {
+            // Validate percentage (max 50% for extra discount)
+            const percentage = Math.min(Math.max(extra.discountValue || 0, 0), 50);
+            extra.discountAmount = subtotal * (percentage / 100);
         } else {
-            // For amount, ensure it doesn't exceed base amount
-            const maxAmount = baseAmount;
-            extraDiscount.calculatedAmount = Math.min(extraDiscount.value || 0, maxAmount);
+            // For amount, ensure it doesn't exceed subtotal
+            const maxAmount = subtotal;
+            extra.discountAmount = Math.min(extra.discountValue || 0, maxAmount);
         }
         
-        // Update validation message if needed
-        this.validateExtraDiscount();
+        // Round the discount amount
+        extra.discountAmount = this.roundValue(extra.discountAmount);
+        
+        // Update the amount after extra discount
+        this.summary.totals.totalAfterExtra = subtotal - extra.discountAmount;
         
         return this.summary;
     }
@@ -222,6 +273,7 @@ class BillManager {
     // ITEM OPERATIONS
     // =============================================
     addItem(productData, qty = 1) {
+
         const id = parseInt(productData.id, 10);
         if (this.map[id]) {
             Swal.fire({icon: "error", title: "Oops...", text: "Item already moved to cart."});
@@ -280,7 +332,9 @@ class BillManager {
         this.map[id] = newItem;
         
         this.updateSummary();
+        updateItemTaxBreakdown();
         return true;
+
     }
 
     updateItem(id, field, value) {
@@ -311,7 +365,8 @@ class BillManager {
         this.updateItemInStorage(id, aftCalcItem);
         updateTableRow(aftCalcItem);
         this.updateSummary();
-        
+        updateItemTaxBreakdown();
+
         return this.summary;
     }
 
@@ -410,8 +465,12 @@ class BillManager {
         if (this.items.length !== initialLength) {
             if(this.items.length === 0) {
                 $('#billTableBody').html(emptyTableTrInfo);
+                $('#showHideTaxBreakUp').addClass('d-none');
+                $('#taxBreakupPanel').slideUp(300);
+                this.resetAdditionalChargesOnEmptyItems();
             }
             this.updateSummary();
+            updateItemTaxBreakdown();
             return true;
         }
         return false;
@@ -862,13 +921,51 @@ class BillManager {
 
     }
 
-    getTotals() {
-        let totalQty = 0, totalAmount = 0, totalTax = 0, netTotal = 0, totalDisc = 0;
+    // Add this method inside BillManager class:
+    resetAdditionalChargesOnEmptyItems() {
         
-        this.items.forEach((item, index) => {            
+        this.chargeTypes.forEach(type => {
+            // Reset the charge in summary
+            this.summary.additionalCharges[type] = {
+                netAmount: 0,
+                taxPercent: 0,
+                cgstPercent: 0,
+                sgstPercent: 0,
+                igstPercent: 0,
+                cgstAmount: 0,
+                sgstAmount: 0,
+                igstAmount: 0,
+                taxAmount: 0,
+                grossAmount: 0
+            };
+            
+            // Reset the input fields in UI
+            $(`#${type}Percent`).val('0');
+            $(`#${type}ChargeWOutTax`).val('0');
+            $(`#${type}ChargeWithTax`).val('0');
+            $(`#${type}Charges`).prop('selectedIndex', 0); // Reset tax dropdown
+        });
+        
+        // Also update the totals
+        this.updateAdditionalChargesTotal();
+        
+        // Update UI visibility
+        this.updateAdditionalChargesUI();
+    }
+
+    /** show item summary info */
+    getItemsTotals() {
+
+        let totalItems = 0, totalQty = 0, totalAmount = 0, totalTax = 0, totalCgst = 0, totalSgst = 0, totalIgst = 0, netTotal = 0, totalDisc = 0;
+        
+        this.items.forEach((item, index) => {
+            totalItems += parseFloat(item.id) || 0;
             totalQty += parseFloat(item.quantity) || 0;
             totalAmount += parseFloat(item.line_total) || 0;
             totalTax += parseFloat(item.taxAmount) || 0;
+            totalCgst += parseFloat(item.cgstAmount) || 0;
+            totalSgst += parseFloat(item.sgstAmount) || 0;
+            totalIgst += parseFloat(item.igstAmount) || 0;
             netTotal += parseFloat(item.net_total) || 0;
             totalDisc += parseFloat(item.discount_amount) || 0;
         });
@@ -876,11 +973,24 @@ class BillManager {
         return {
             totalItems: this.items.length,
             totalQty,
-            totalAmount,  // This is line_total sum (before tax)
-            totalTax,     // This is taxAmount sum from items
-            netTotal,     // This is net_total sum from items
-            totalDisc     // This is discount_amount sum from items
+            totalAmount,
+            totalTax,
+            totalCgst,
+            totalSgst,
+            totalIgst,
+            netTotal,
+            totalDisc,
         };
+
+    }
+
+    // Add this method to BillManager class:
+    calculateRoundOff(amount) {
+        if (!this.roundOffEnabled) return 0;
+        
+        // Round to nearest whole number (1)
+        const roundedTotal = Math.round(amount);
+        return parseFloat((roundedTotal - amount).toFixed(genSettings.DecimalPoints));
     }
 
     // =============================================
@@ -912,7 +1022,9 @@ class BillManager {
         this.updateTaxTotals();
         
         // Calculate subtotal
-        this.summary.totals.subtotal = this.summary.items.netAmount + this.summary.additionalCharges.total;
+        const itemsNetAmount = this.summary.items.netAmount || 0;
+        const additionalChargesTotal = this.summary.additionalCharges.total?.grossAmount || 0;
+        this.summary.totals.subtotal = itemsNetAmount + additionalChargesTotal;
         
         // Calculate extra discount
         this.updateExtraDiscount();
@@ -922,6 +1034,9 @@ class BillManager {
         
         // Update UI
         this.updateSummaryUI();
+
+        setTimeout(updateTaxTooltip, 0);
+        $('#showHideTaxBreakUp').removeClass('d-none');
         
         return this.summary;
     }
@@ -1027,27 +1142,27 @@ class BillManager {
 
     // Helper: Calculate final totals
     calculateFinalTotals() {
+
         const totalAfterExtra = this.summary.totals.totalAfterExtra;
-        
-        // Calculate round off to nearest 0.5 with correct decimal precision
-        const roundedTotal = Math.round(totalAfterExtra * 2) / 2;
-        this.summary.extra.roundOff = parseFloat((roundedTotal - totalAfterExtra).toFixed(genSettings.DecimalPoints));
+
+        let roundOffAmount = 0;
+        if (this.roundOffEnabled) {
+            const roundedTotal = Math.round(totalAfterExtra);
+            roundOffAmount = parseFloat((roundedTotal - totalAfterExtra).toFixed(genSettings.DecimalPoints));
+        }
+        this.summary.extra.roundOff = roundOffAmount;
         this.summary.extra.amountBeforeRoundOff = totalAfterExtra;
         
-        // Calculate final amount
-        if (this.roundOffEnabled) {
-            this.summary.totals.grandTotal = parseFloat((totalAfterExtra + this.summary.extra.roundOff).toFixed(genSettings.DecimalPoints));
-        } else {
-            this.summary.totals.grandTotal = parseFloat(totalAfterExtra.toFixed(genSettings.DecimalPoints));
-        }
-        
+        this.summary.totals.grandTotal = parseFloat((totalAfterExtra + roundOffAmount).toFixed(genSettings.DecimalPoints));
         this.summary.extra.finalAmount = this.summary.totals.grandTotal;
+
     }
 
     // =============================================
     // UI UPDATE METHODS
     // =============================================
     updateSummaryUI() {
+
         // Update basic counts
         $('.sumItemCount').text(smartDecimal(this.summary.items.count || 0));
         $('.sumTotalQty').text(smartDecimal(this.summary.items.totalQuantity || 0));
@@ -1059,6 +1174,7 @@ class BillManager {
         
         // Update total amount
         $('.bill_tot_amt').text(smartDecimal(this.summary.totals.grandTotal || 0, genSettings.DecimalPoints, true));
+        $('#grandChargesTaxTotal').text(smartDecimal((this.summary.taxTotals.totalTax + this.summary.additionalCharges.total.taxAmount) || 0, genSettings.DecimalPoints, true));
         
         // Update total discount
         const totalDiscount = (this.summary.items.discountTotal || 0) + (this.summary.extra.discountAmount || 0);
@@ -1066,7 +1182,12 @@ class BillManager {
         
         // Update round off
         const roundOffAmount = this.roundOffEnabled ? (this.summary.extra.roundOff || 0) : 0;
-        $('.bill_rndoff_amt').text(smartDecimal(roundOffAmount, genSettings.DecimalPoints, true));
+        let displayRoundOff = smartDecimal(Math.abs(roundOffAmount), genSettings.DecimalPoints, true);
+        if (roundOffAmount < 0) {
+            displayRoundOff = '-' + displayRoundOff;
+        }
+        $('.bill_rndoff_amt').text(displayRoundOff);
+        
     }
 
     updateTaxBreakupUI() {
@@ -1085,24 +1206,72 @@ class BillManager {
         this.updateTaxSummaryTable();
     }
 
+    // New helper method to format charge display text
+    getChargeDisplayText(baseLabel, charge) {
+        if (!charge || typeof charge !== 'object') return baseLabel;
+        
+        const taxPercent = parseFloat(charge.taxPercent) || 0;
+        
+        if (taxPercent > 0) {
+            // Show with tax percentage
+            return `${baseLabel} (${taxPercent}%)`;
+        } else {
+            // Show without tax percentage
+            return baseLabel;
+        }
+    }
+
     updateAdditionalChargesUI() {
-        // Shipping charges
-        const shipping = this.summary.additionalCharges.shipping;
-        if (shipping && shipping.grossAmount > 0) {
-            $('#shippingChargeAmt').text(smartDecimal(shipping.grossAmount, genSettings.DecimalPoints, true));
+
+        const charges = this.summary.additionalCharges;
+        
+        // Update shipping charges display
+        if (charges.shipping && charges.shipping.grossAmount > 0) {
+            const shippingCharge = charges.shipping;
+            const displayText = this.getChargeDisplayText('Shipping Charges', shippingCharge);
+            $('#shippingChargeAmt').text(smartDecimal(shippingCharge.grossAmount, genSettings.DecimalPoints, true));
+            $('#shippingChargeLabel').html(displayText);
             $('#shippingRow').removeClass('d-none');
         } else {
             $('#shippingRow').addClass('d-none');
         }
         
-        // Packing charges
-        const packing = this.summary.additionalCharges.packing;
-        if (packing && packing.grossAmount > 0) {
-            $('#packingChargeAmt').text(smartDecimal(packing.grossAmount, genSettings.DecimalPoints, true));
+        // Update packing charges display
+        if (charges.packing && charges.packing.grossAmount > 0) {
+            const packingCharge = charges.packing;
+            const displayText = this.getChargeDisplayText('Packing Charges', packingCharge);
+            $('#packingChargeAmt').text(smartDecimal(packingCharge.grossAmount, genSettings.DecimalPoints, true));
+            $('#packingChargeLabel').html(displayText);
             $('#packingRow').removeClass('d-none');
         } else {
             $('#packingRow').addClass('d-none');
         }
+
+        // Update handling charges if you have it
+        if (charges.handling && charges.handling.grossAmount > 0) {
+            const handlingCharge = charges.handling;
+            const displayText = this.getChargeDisplayText('Handling Charges', handlingCharge);
+            $('#handlingChargeAmt').text(smartDecimal(handlingCharge.grossAmount, genSettings.DecimalPoints, true));
+            $('#handlingChargeLabel').html(displayText);
+            $('#handlingRow').removeClass('d-none');
+        } else {
+            $('#handlingRow').addClass('d-none');
+        }
+        
+        // Update other charges if you have it
+        if (charges.other && charges.other.grossAmount > 0) {
+            const otherCharge = charges.other;
+            const displayText = this.getChargeDisplayText('Other Charges', otherCharge);
+            $('#otherChargeAmt').text(smartDecimal(otherCharge.grossAmount, genSettings.DecimalPoints, true));
+            $('#otherChargeLabel').html(displayText);
+            $('#otherRow').removeClass('d-none');
+        } else {
+            $('#otherRow').addClass('d-none');
+        }
+        
+        // Update totals in bill manager
+        billManager.updateSummary();
+
     }
 
     updateTaxSummaryTable() {
@@ -1130,13 +1299,12 @@ class BillManager {
     // =============================================
     // EXTRA DISCOUNT METHODS
     // =============================================
-
     setExtraDiscountValue(value) {
         let parsedValue = parseFloat(value) || 0;
         
         // Validate based on type
         if (this.summary.extra.discountType === 'percentage') {
-            parsedValue = Math.max(0, Math.min(parsedValue, 50));
+            parsedValue = Math.max(0, Math.min(parsedValue, 50)); // Max 50%
         } else {
             parsedValue = Math.max(parsedValue, 0);
         }
@@ -1149,7 +1317,7 @@ class BillManager {
         const oldType = this.summary.extra.discountType;
         
         if (oldType !== type) {
-            // Convert value if needed
+            // Convert value if needed (like global discount)
             if (this.summary.extra.discountValue > 0) {
                 const subtotal = this.summary.totals.subtotal || 0;
                 
@@ -1163,6 +1331,9 @@ class BillManager {
             }
             
             this.summary.extra.discountType = type;
+            
+            // Recalculate with new type
+            this.updateExtraDiscount();
         }
         
         return this;
@@ -1175,7 +1346,10 @@ class BillManager {
             this.roundOffEnabled = !this.roundOffEnabled;
         }
         
-        // Update final total
+        // Update checkbox state in UI
+        $('#roundOffToggle').prop('checked', this.roundOffEnabled);
+        
+        // Recalculate with new roundoff setting
         this.calculateFinalTotals();
         this.updateSummaryUI();
         
@@ -1187,7 +1361,13 @@ class BillManager {
     // =============================================
     setAdditionalCharge(type, amount) {
         if (this.summary.additionalCharges.hasOwnProperty(type)) {
-            this.summary.additionalCharges[type] = parseFloat(amount) || 0;
+            // Convert to object structure
+            this.summary.additionalCharges[type] = {
+                netAmount: parseFloat(amount) || 0,
+                taxPercent: 0,
+                taxAmount: 0,
+                grossAmount: parseFloat(amount) || 0
+            };
             this.updateAdditionalChargesTotal();
             this.updateSummary();
         }
@@ -1195,8 +1375,41 @@ class BillManager {
     }
 
     updateAdditionalChargesTotal() {
-        const charges = this.summary.additionalCharges;
-        charges.total = charges.shipping + charges.handling + charges.packing + charges.other;
+        
+        let netTotal = 0;
+        let taxTotal = 0;
+        let grossTotal = 0;
+        
+        this.chargeTypes.forEach(type => {
+            const charge = this.summary.additionalCharges[type];
+            
+            // Make sure charge is an object
+            if (!charge || typeof charge !== 'object') {
+                this.summary.additionalCharges[type] = {
+                    netAmount: 0,
+                    taxPercent: 0,
+                    taxAmount: 0,
+                    grossAmount: 0
+                };
+                return; // Skip to next
+            }
+            
+            // Add to totals
+            const net = parseFloat(charge.netAmount) || 0;
+            const tax = parseFloat(charge.taxAmount) || 0;
+            const gross = parseFloat(charge.grossAmount) || 0;
+            
+            netTotal += net;
+            taxTotal += tax;
+            grossTotal += gross;
+            
+        });
+        
+        this.summary.additionalCharges.total = {
+            netAmount: netTotal,
+            taxAmount: taxTotal,
+            grossAmount: grossTotal
+        };
     }
 
     // =============================================
@@ -1273,10 +1486,7 @@ class BillManager {
             const itemId = parseInt(item.id, 10);
             const updatedItem = {...item};
             
-            // Recalculate tax components based on inter-state flag
-            const isInterState = window.isInterState || false;
-            
-            if (isInterState) {
+            if (customerInterState) {
                 updatedItem.igstPercent = updatedItem.taxPercent;
                 updatedItem.cgstPercent = 0;
                 updatedItem.sgstPercent = 0;
@@ -1296,15 +1506,37 @@ class BillManager {
 
     // Add tax to additional charges
     setAdditionalChargeWithTax(type, netAmount, taxPercent = 0) {
+        
         const chargeAmount = parseFloat(netAmount) || 0;
         const taxRate = parseFloat(taxPercent) || 0;
+
+        // Calculate tax amounts based on customerInterState
+        let cgstPercent = 0, sgstPercent = 0, igstPercent = 0;
+        let cgstAmount = 0, sgstAmount = 0, igstAmount = 0;
+
+        cgstPercent = taxRate / 2;
+        sgstPercent = taxRate / 2;
+        igstPercent = taxRate;
+        cgstAmount = this.roundValue((chargeAmount * cgstPercent / 100));
+        sgstAmount = this.roundValue((chargeAmount * sgstPercent / 100));
+        igstAmount = this.roundValue((chargeAmount * igstPercent / 100));
         
-        // Store both net and gross
+        // Calculate tax and gross
+        const taxAmount = this.roundValue((chargeAmount * taxRate / 100));
+        const grossAmount = this.roundValue((chargeAmount * (1 + taxRate / 100)));
+        
+        // Always create object structure
         this.summary.additionalCharges[type] = {
             netAmount: chargeAmount,
             taxPercent: taxRate,
-            taxAmount: smartDecimal((chargeAmount * taxRate / 100), genSettings.DecimalPoints, true),
-            grossAmount: smartDecimal((chargeAmount * (1 + taxRate / 100)), genSettings.DecimalPoints, true)
+            cgstPercent: cgstPercent,
+            sgstPercent: sgstPercent,
+            igstPercent: igstPercent,
+            cgstAmount: cgstAmount,
+            sgstAmount: sgstAmount,
+            igstAmount: igstAmount,
+            taxAmount: taxAmount,
+            grossAmount: grossAmount
         };
         
         this.updateAdditionalChargesTotal();
@@ -1314,23 +1546,37 @@ class BillManager {
 
     // Update totals calculation
     updateAdditionalChargesTotal() {
+
         let netTotal = 0;
+        let cgstTotal = 0;
+        let sgstTotal = 0;
+        let igstTotal = 0;
         let taxTotal = 0;
         let grossTotal = 0;
-        
-        Object.values(this.summary.additionalCharges).forEach(charge => {
-            if (typeof charge === 'object') {
-                netTotal += charge.netAmount || 0;
+
+        const charges = this.summary.additionalCharges;
+
+        Object.entries(charges).forEach(([key, charge]) => {
+            if (key === 'total') return;
+            if (charge && typeof charge === 'object') {
+                netTotal += parseFloat(charge.netAmount) || 0;
+                cgstTotal += parseFloat(charge.cgstAmount || 0);
+                sgstTotal += parseFloat(charge.sgstAmount || 0);
+                igstTotal += parseFloat(charge.igstAmount || 0);
                 taxTotal += parseFloat(charge.taxAmount || 0);
                 grossTotal += parseFloat(charge.grossAmount || 0);
             }
         });
         
-        this.summary.additionalCharges.total = {
+        charges.total = {
             netAmount: netTotal,
+            cgstAmount: cgstTotal,
+            sgstAmount: sgstTotal,
+            igstAmount: igstTotal,
             taxAmount: taxTotal,
             grossAmount: grossTotal
         };
+
     }
 
     roundValue(value) {
@@ -1657,38 +1903,76 @@ $(document).ready(function () {
         const extraDiscountInput = $('#extraDiscount');
         
         if (billManager) {
+            // Get current value
+            const currentValue = parseFloat(extraDiscountInput.val()) || 0;
+            
+            // Store current value before conversion
+            billManager.summary.extra.discountValue = currentValue;
+            
+            // Change type (this handles conversion internally)
             billManager.setExtraDiscountType(type.toLowerCase());
             
-            // Update input value with converted amount
+            // Update input with converted value
             const convertedValue = billManager.summary.extra.discountValue || 0;
-            extraDiscountInput.val(parseFloat(convertedValue).toFixed(2));
             
+            // Format based on type
+            if (type === 'Percentage') {
+                extraDiscountInput.val(smartDecimal(convertedValue, 2));
+            } else {
+                extraDiscountInput.val(smartDecimal(convertedValue, genSettings.DecimalPoints));
+            }
+            
+            // Update summary
             billManager.updateSummary();
         }
     });
     
+    // Handle extra discount with proper validation
     $('#extraDiscount').on('input', function() {
+        let value = $(this).val().trim();
         const type = $('#extDiscountType').find('option:selected').val();
         
+        // Clean input
+        if (value === '' || value === '.' || value === null) {
+            value = '0';
+            $(this).val('0');
+        }
+        
+        // Validate based on type (same as global discount logic)
+        if (type === 'Percentage') {
+            // Use same validation as global discount
+            value = validatePercentageInput(this, 50);
+        } else {
+            // For amount, just validate as number
+            value = value.replace(/[^0-9.]/g, '');
+            const parts = value.split('.');
+            if (parts.length > 2) {
+                value = parts[0] + '.' + parts.slice(1).join('');
+            }
+            
+            // Limit to 2 decimal places
+            if (parts.length === 2) {
+                parts[1] = parts[1].slice(0, genSettings.DecimalPoints);
+                value = parts[0] + '.' + parts[1];
+            }
+            
+            $(this).val(value);
+        }
+        
         if (billManager) {
+            const parsedValue = parseFloat(value) || 0;
+            
+            // Set value and type
+            billManager.setExtraDiscountValue(parsedValue);
+            
+            // Make sure type is set (in case it wasn't already)
             if (type === 'Percentage') {
-                // Use helper function with 50% max
-                const value = validatePercentageInput(this, 50);
-                billManager.setExtraDiscountValue(value);
                 billManager.setExtraDiscountType('percentage');
-            } else if (type === 'Amount') {
-                // For amount, just validate as number
-                let value = $(this).val().trim();
-                if (value === '' || value === '.' || value === null) {
-                    value = '0';
-                    $(this).val('0');
-                }
-                const parsedValue = parseFloat(value) || 0;
-                billManager.setExtraDiscountValue(Math.max(parsedValue, 0));
+            } else {
                 billManager.setExtraDiscountType('amount');
             }
             
-            // This will update the summary and UI
+            // Update summary with new discount
             billManager.updateSummary();
         }
     });
@@ -1696,10 +1980,19 @@ $(document).ready(function () {
     // Handle round off toggle
     $('#roundOffToggle').on('change', function() {
         const isEnabled = $(this).is(':checked');
-        
         if (billManager) {
             billManager.toggleRoundOff(isEnabled);
+            
+            // Update UI immediately
+            const roundOffAmount = isEnabled ? (billManager.summary.extra.roundOff || 0) : 0;
+            $('.bill_rndoff_amt').text(smartDecimal(roundOffAmount, genSettings.DecimalPoints, true));
+            
         }
+    });
+
+    $('.additional-charge-percent,.additional-charge-withouttax,.additional-charge-withtax').on('focus', function() {
+        const input = this;
+        setTimeout(() => input.select(), 0);
     });
 
     // Handle percentage field changes
@@ -1708,12 +2001,22 @@ $(document).ready(function () {
         const value = $(this).val();
         updateAdditionalChargeFields(chargeType, 'percent', value);
     });
+
+    $('.additional-charge-withtax').on('blur', function () {
+        const val = parseFloat(this.value) || 0;
+        this.value = smartDecimal(val, 8);
+    });
     
     // Handle without-tax field changes
     $('.additional-charge-withouttax').on('input', function() {
         const chargeType = $(this).data('type');
         const value = $(this).val();
         updateAdditionalChargeFields(chargeType, 'withoutTax', value);
+    });
+
+    $('.additional-charge-withouttax').on('blur', function () {
+        const val = parseFloat(this.value) || 0;
+        this.value = smartDecimal(val, genSettings.DecimalPoints);
     });
     
     // Handle with-tax field changes
@@ -1722,18 +2025,39 @@ $(document).ready(function () {
         const value = $(this).val();
         updateAdditionalChargeFields(chargeType, 'withTax', value);
     });
+
+    $('.additional-charge-withtax').on('blur', function () {
+        const val = parseFloat(this.value) || 0;
+        this.value = smartDecimal(val, genSettings.DecimalPoints);
+    });
     
     // Handle tax dropdown changes
     $('.additional-charge-tax').on('change', function() {
         const chargeType = $(this).data('type');
-        const taxValue = $(this).val();
+        const $selected = $(this).find('option:selected');
+        const taxValue = $selected.data('percent') || '0';
+        if (!billManager || !billManager.items || billManager.items.length === 0) {
+            if (taxValue !== '0') {
+                Swal.fire({icon: 'error', title: 'No Items', text: 'Please add items to bill before setting tax on additional charges'});
+                $(this).prop('selectedIndex', 0);
+                return;
+            }
+        }        
+        // Call update with tax change
         updateAdditionalChargeFields(chargeType, 'tax', taxValue);
     });
-    
-    // Initialize with 0 tax
-    $('#shippingCharges, #packingCharges').val('0');
 
-    // updateTaxBreakupDisplay();
+    $('#taxBreakupToggle').on('click', function() {
+        var $panel = $('#taxBreakupPanel');
+        var $icon = $('.tax-toggle-icon');
+        if ($panel.is(':hidden')) {
+            $panel.slideDown(300);
+            $icon.removeClass('bx bxs-show').addClass('bx bxs-hide');
+        } else {
+            $panel.slideUp(300);
+            $icon.removeClass('bx bxs-hide').addClass('bx bxs-show');
+        }
+    });
 
 });
 
@@ -2237,25 +2561,6 @@ function validatePercentageInput(input, maxPercentage = 50) {
     return parsedValue;
 }
 
-function updateTaxBreakupDisplay() {
-    if (!billManager) return;
-    
-    const taxTotals = billManager.summary.taxTotals;
-    
-    // Update individual tax displays
-    $('#cgstTotalDisplay').text(smartDecimal(taxTotals.cgstTotal, genSettings.DecimalPoints, true));
-    $('#sgstTotalDisplay').text(smartDecimal(taxTotals.sgstTotal, genSettings.DecimalPoints, true));
-    $('#igstTotalDisplay').text(smartDecimal(taxTotals.igstTotal, genSettings.DecimalPoints, true));
-    
-    // Update tax summary table footer
-    $('#totalTaxableAmount').text(smartDecimal(billManager.summary.items.taxableAmount, genSettings.DecimalPoints, true));
-    $('#cgstTotal').text(smartDecimal(taxTotals.cgstTotal, genSettings.DecimalPoints, true));
-    $('#sgstTotal').text(smartDecimal(taxTotals.sgstTotal, genSettings.DecimalPoints, true));
-    $('#igstTotal').text(smartDecimal(taxTotals.igstTotal, genSettings.DecimalPoints, true));
-    $('#totalTaxAmount').text(smartDecimal(taxTotals.totalTax, genSettings.DecimalPoints, true));
-    $('#totalItemsCount').text(billManager.summary.items.count);
-}
-
 // Helper: Round to DecimalPoints consistently
 function roundToDecimal(value) {
     return parseFloat(value.toFixed(genSettings.DecimalPoints));
@@ -2376,27 +2681,79 @@ function getTotalUnitPrice() {
     return total > 0 ? total : 1; // Return 1 if no items to avoid division by zero
 }
 
+// Helper function to get field suffix
+function getFieldSuffix(fieldType) {
+    switch(fieldType) {
+        case 'tax': return 'Charges';
+        case 'percent': return 'Percent';
+        case 'withoutTax': return 'ChargeWOutTax';
+        case 'withTax': return 'ChargeWithTax';
+        default: return '';
+    }
+}
+
 // Update all related fields when any field changes
 function updateAdditionalChargeFields(chargeType, changedField, changedValue) {
+
     // Only process if billManager exists AND has items
     if (!billManager || !billManager.items || billManager.items.length === 0) {
-        console.log("Skipping additional charge update: No items in bill");
+
+        // Reset this charge to 0
+        $(`#${chargeType}Percent`).val('0');
+        $(`#${chargeType}ChargeWOutTax`).val('0');
+        $(`#${chargeType}ChargeWithTax`).val('0');
+        $(`#${chargeType}Charges`).prop('selectedIndex', 0);
+
+        // Also reset in billManager
+        if (billManager) {
+            billManager.summary.additionalCharges[chargeType] = {
+                netAmount: 0,
+                taxPercent: 0,
+                cgstPercent: 0,
+                sgstPercent: 0,
+                igstPercent: 0,
+                cgstAmount: 0,
+                sgstAmount: 0,
+                igstAmount: 0,
+                taxAmount: 0,
+                grossAmount: 0
+            };
+            billManager.updateAdditionalChargesTotal();
+            billManager.updateAdditionalChargesUI();
+        }
+
+        Swal.fire({icon: 'info', title: 'No Items', text: 'Please add items to bill before setting additional charges', timer: 1000});
+        $(`#${chargeType}${getFieldSuffix(changedField)}`).val('0');
         return;
+        
     }
     
-    const totalUnitPrice = getTotalUnitPrice();
-    const taxPercent = parseFloat($(`#${chargeType}Charges`).val()) || 0;
+    // Get the tax percent from dropdown
+    const taxSelect = $(`#${chargeType}Charges`);
+    const selectedOption = taxSelect.find('option:selected');
+    const taxPercent = parseFloat(selectedOption.data('percent')) || 0;
     
-    // Get current values
+    // Get current values from ALL fields
     let percent = parseFloat($(`#${chargeType}Percent`).val()) || 0;
     let withoutTax = parseFloat($(`#${chargeType}ChargeWOutTax`).val()) || 0;
     let withTax = parseFloat($(`#${chargeType}ChargeWithTax`).val()) || 0;
     
-    // Based on which field changed, recalculate others
+    // Get total taxable amount (sum of line_total from all items)
+    const totalUnitPrice = billManager?.summary?.items?.taxableAmount || 0;
+    
+    // Based on which field changed, recalculate ALL THREE fields
     switch(changedField) {
         case 'tax':
-            // Tax changed - update withTax only
-            withTax = withoutTax * (1 + taxPercent / 100);
+            // Tax changed - recalculate withTax based on withoutTax and new tax %
+            if (withoutTax > 0) {
+                withTax = withoutTax * (1 + taxPercent / 100);
+                // Percent stays same (based on withoutTax)
+                percent = totalUnitPrice > 0 ? (withoutTax / totalUnitPrice) * 100 : 0;
+            } else if (withTax > 0) {
+                // If withTax has value, recalculate withoutTax
+                withoutTax = withTax / (1 + taxPercent / 100);
+                percent = totalUnitPrice > 0 ? (withoutTax / totalUnitPrice) * 100 : 0;
+            }
             break;
             
         case 'percent':
@@ -2407,86 +2764,103 @@ function updateAdditionalChargeFields(chargeType, changedField, changedValue) {
             break;
             
         case 'withoutTax':
-            // Without tax changed - calculate percent, then withTax
+            // Without tax changed - calculate percent and withTax
             withoutTax = parseFloat(changedValue) || 0;
             percent = totalUnitPrice > 0 ? (withoutTax / totalUnitPrice) * 100 : 0;
             withTax = withoutTax * (1 + taxPercent / 100);
             break;
             
         case 'withTax':
-            // With tax changed - calculate withoutTax, then percent
+            // With tax changed - calculate withoutTax and percent
             withTax = parseFloat(changedValue) || 0;
-            withoutTax = withTax / (1 + taxPercent / 100);
+            if (taxPercent > 0) {
+                withoutTax = withTax / (1 + taxPercent / 100);
+            } else {
+                withoutTax = withTax;
+            }
             percent = totalUnitPrice > 0 ? (withoutTax / totalUnitPrice) * 100 : 0;
             break;
     }
     
-    // Update all fields (avoid infinite loop)
-    updateFieldWithoutTrigger(`${chargeType}Percent`, percent.toFixed(2));
-    updateFieldWithoutTrigger(`${chargeType}ChargeWOutTax`, withoutTax.toFixed(genSettings.DecimalPoints));
-    updateFieldWithoutTrigger(`${chargeType}ChargeWithTax`, withTax.toFixed(genSettings.DecimalPoints));
+    // Update ALL THREE fields
+    if (changedField !== 'percent') {
+        updateFieldWithoutTrigger(`${chargeType}Percent`, smartDecimal(percent, 2));
+    }
+    if (changedField !== 'withoutTax') {
+        updateFieldWithoutTrigger(`${chargeType}ChargeWOutTax`, smartDecimal(withoutTax, genSettings.DecimalPoints));
+    }
+    if (changedField !== 'withTax') {
+        updateFieldWithoutTrigger(`${chargeType}ChargeWithTax`, smartDecimal(withTax, genSettings.DecimalPoints));
+    }
     
     // Update bill manager
     updateBillManagerAdditionalCharge(chargeType, withoutTax, withTax, taxPercent);
+    
+    // Update UI visibility
+    billManager.updateAdditionalChargesUI();
+
 }
 
 // Helper: Update field without triggering change event
 function updateFieldWithoutTrigger(fieldId, value) {
+
     const $field = $(`#${fieldId}`);
+    if (!$field.length) return;
     
-    // Remove and re-add event listeners based on field type
+    // Convert both to strings for comparison (to handle decimal precision)
+    const currentValue = $field.val().trim();
+    const newValue = value.toString().trim();
+    
+    // Always update, even if values appear equal (they might have different decimal places)
+    $field.off('input change').val(newValue);
+    
+    // Reattach the appropriate event handler
     if ($field.hasClass('additional-charge-percent')) {
-        $field.off('input').val(value).on('input', function() {
+        $field.on('input', function() {
             const chargeType = $(this).data('type');
             updateAdditionalChargeFields(chargeType, 'percent', $(this).val());
         });
     } 
     else if ($field.hasClass('additional-charge-withouttax')) {
-        $field.off('input').val(value).on('input', function() {
+        $field.on('input', function() {
             const chargeType = $(this).data('type');
             updateAdditionalChargeFields(chargeType, 'withoutTax', $(this).val());
         });
     }
     else if ($field.hasClass('additional-charge-withtax')) {
-        $field.off('input').val(value).on('input', function() {
+        $field.on('input', function() {
             const chargeType = $(this).data('type');
             updateAdditionalChargeFields(chargeType, 'withTax', $(this).val());
         });
     }
     else if ($field.hasClass('additional-charge-tax')) {
-        $field.off('change').val(value).on('change', function() {
+        $field.on('change', function() {
             const chargeType = $(this).data('type');
-            updateAdditionalChargeFields(chargeType, 'tax', $(this).val());
+            const $selected = $(this).find('option:selected');
+            const taxValue = $selected.data('percent') || '0';
+            updateAdditionalChargeFields(chargeType, 'tax', taxValue);
         });
     }
+
 }
 
 // Update BillManager with charge data
 function updateBillManagerAdditionalCharge(chargeType, withoutTax, withTax, taxPercent) {
+
     if (!billManager) return;
     
     const netAmount = parseFloat(withoutTax) || 0;
     const grossAmount = parseFloat(withTax) || 0;
+    const taxRate = parseFloat(taxPercent) || 0;
     
-    // Only update if there's actually a charge
-    if (grossAmount > 0) {
-        billManager.setAdditionalChargeWithTax(chargeType, netAmount, taxPercent);
-        
-        // Show/hide in summary based on amount
-        $(`#${chargeType}SummaryRow`).toggleClass('d-none', grossAmount <= 0);
+    // Update in bill manager
+    if (billManager.setAdditionalChargeWithTax) {
+        billManager.setAdditionalChargeWithTax(chargeType, netAmount, taxRate);
     }
-}
 
-// Handle input events for all additional charge fields
-function handleAdditionalChargeInput() {
-    const $this = $(this);
-    const chargeType = $this.data('type'); // 'shipping' or 'packing'
-    const fieldType = $this.data('field'); // 'tax', 'percent', 'withoutTax', 'withTax'
-    const value = $this.val();
+    // Update the charges tax breakdown display
+    updateChargeTaxBreakdown();
     
-    if (chargeType && fieldType) {
-        updateAdditionalChargeFields(chargeType, fieldType, value);
-    }
 }
 
 // Helper function for discount input validation on type change
@@ -2576,4 +2950,164 @@ function handleDiscountFieldInput($input, $row, getId) {
 
     billManager.updateItem(getId, 'discount', parsedValue);
     
+}
+
+// Function to show tax details modal
+function showTaxDetails() {
+    
+    if (!billManager || billManager.items.length === 0) {
+        Swal.fire({icon: 'info', title: 'No Items', text: 'Add items to view tax details'});
+        return;
+    }
+    
+    // Get tax summary from billManager
+    const taxSummary = billManager.summary.taxSummary;
+    const taxRates = billManager.summary.taxRates;
+    
+    // Populate tax details table
+    const $taxTableBody = $('#taxDetailsTableBody');
+    $taxTableBody.empty();
+    
+    let totalTaxable = 0;
+    let totalCGST = 0;
+    let totalSGST = 0;
+    let totalIGST = 0;
+    let totalTax = 0;
+    let totalItems = 0;
+    
+    // Sort tax rates from highest to lowest
+    const sortedRates = Object.keys(taxSummary).sort((a, b) => parseFloat(b) - parseFloat(a));
+    
+    sortedRates.forEach(taxRate => {
+        const summary = taxSummary[taxRate];
+        let row = `
+            <tr>
+                <td>${summary.taxPercent}%</td>
+                <td>${smartDecimal(summary.taxableAmount, genSettings.DecimalPoints, true)}</td>`;
+        if(customerInterState) {
+            row += `<td>${summary.igstPercent > 0 ? smartDecimal(summary.igstAmount, genSettings.DecimalPoints, true) : '0.00'}</td>`;
+        } else {
+            row += `<td>${summary.cgstPercent > 0 ? smartDecimal(summary.cgstAmount, genSettings.DecimalPoints, true) : '0.00'}</td>
+                <td>${summary.sgstPercent > 0 ? smartDecimal(summary.sgstAmount, genSettings.DecimalPoints, true) : '0.00'}</td>`;
+        }
+        row += `<td>${smartDecimal(summary.totalTax, genSettings.DecimalPoints, true)}</td>
+                <td>${summary.itemCount}</td>
+            </tr>
+        `;
+        $taxTableBody.append(row);
+        
+        // Update totals
+        totalTaxable += summary.taxableAmount;
+        totalCGST += summary.cgstAmount;
+        totalSGST += summary.sgstAmount;
+        totalIGST += summary.igstAmount;
+        totalTax += summary.totalTax;
+        totalItems += summary.itemCount;
+    });
+    
+    // Update footer totals
+    $('#totalTaxableAmount').text(smartDecimal(totalTaxable, genSettings.DecimalPoints, true));
+    if(customerInterState) {
+        $('.taxbrkupIgst').removeClass('d-none');
+        $('.taxbrkupCgst,.taxbrkupSgst').addClass('d-none');
+        $('#totalIGST').text(smartDecimal(totalIGST, genSettings.DecimalPoints, true));
+    } else {
+        $('.taxbrkupCgst,.taxbrkupSgst').removeClass('d-none');
+        $('.taxbrkupIgst').addClass('d-none');
+        $('#totalCGST').text(smartDecimal(totalCGST, genSettings.DecimalPoints, true));
+        $('#totalSGST').text(smartDecimal(totalSGST, genSettings.DecimalPoints, true));    
+    }
+    $('#totalTaxAmount').text(smartDecimal(totalTax, genSettings.DecimalPoints, true));
+    $('#totalItemsCount').text(totalItems);
+
+    $('#taxDetailsModal').modal('show');
+    
+}
+
+// Function to update tax tooltip dynamically
+function updateTaxTooltip() {
+    if (!billManager) return;
+    
+    const taxTotals = billManager.summary.taxTotals;
+    const taxRates = billManager.summary.taxRates;
+    
+    let tooltipContent = '<div class="text-start small">';
+    tooltipContent += `<div><strong>Tax Breakdown:</strong></div>`;
+    
+    if (taxRates.length > 0) {
+        taxRates.forEach(rate => {
+            const summary = billManager.summary.taxSummary[rate];
+            if (summary) {
+                tooltipContent += `
+                    <div class="mt-1">
+                        ${rate}%: ${smartDecimal(summary.totalTax, genSettings.DecimalPoints, true)}
+                    </div>
+                `;
+            }
+        });
+    } else {
+        tooltipContent += `<div class="text-muted">No tax applied</div>`;
+    }
+    
+    tooltipContent += `<div class="mt-2"><strong>Total Tax:</strong> ${smartDecimal(taxTotals.totalTax || 0, genSettings.DecimalPoints, true)}</div>`;
+    tooltipContent += '</div>';
+    
+}
+
+function updateItemTaxBreakdown() {
+
+    const getTot = billManager.getItemsTotals();
+
+    if(customerInterState) {
+        $('.taxBreakUpItemsCgst,.taxBreakUpItemsSgst').addClass('d-none');
+        $('.taxBreakUpItemsIgst').removeClass('d-none');
+    } else {
+        $('.taxBreakUpItemsCgst,.taxBreakUpItemsSgst').removeClass('d-none');
+        $('.taxBreakUpItemsIgst').addClass('d-none');
+    }
+    
+    // Update UI
+    $('.taxBreakUpItemsCnt').text(parseInt(getTot.totalItems));
+    $('.taxBreakUpItemsCgstVal').text(parseFloat(getTot.totalCgst).toFixed(2));
+    $('.taxBreakUpItemsSgstVal').text(parseFloat(getTot.totalSgst).toFixed(2));
+    $('.taxBreakUpItemsIgstVal').text(parseFloat(getTot.totalIgst).toFixed(2));
+    $('.taxBreakUpItemsTotAmt').text(parseFloat(getTot.totalTax).toFixed(2));    
+
+}
+
+function updateChargeTaxBreakdown() {
+
+    const charges = billManager.summary.additionalCharges;
+    $('#chargeBreakUpTaxDetails').removeClass('d-none');
+    if(charges.total.taxAmount == 0) {
+        $('#chargeBreakUpTaxDetails').addClass('d-none');
+        return false;
+    }
+
+    const $tbody = $('#chargeBreakUpTaxDetails tbody');
+    
+    if (!$tbody.length) return;
+    
+    $tbody.empty();
+    
+    Object.entries(charges).forEach(([key, charge]) => {
+        if (key === 'total') return;
+        if (charge && charge.grossAmount > 0) {
+            const chargeName = key.charAt(0).toUpperCase() + key.slice(1);
+            const row = `
+                <tr>
+                    <td class="py-1">${chargeName}</td>
+                    <td class="py-1 taxBreakUpChargesCgst ${customerInterState ? 'd-none' : ''}">${genSettings.CurrenySymbol} <span class="taxBreakUpChargesCgstVal">${smartDecimal(charge.cgstAmount, genSettings.DecimalPoints)}</span></td>
+                    <td class="py-1 taxBreakUpChargesSgst ${customerInterState ? 'd-none' : ''}">${genSettings.CurrenySymbol} <span class="taxBreakUpChargesSgstVal">${smartDecimal(charge.sgstAmount, genSettings.DecimalPoints)}</span></td>
+                    <td class="py-1 taxBreakUpChargesIgst ${!customerInterState ? 'd-none' : ''}">${genSettings.CurrenySymbol} <span class="taxBreakUpChargesIgstVal">${smartDecimal(charge.igstAmount, genSettings.DecimalPoints)}</span></td>
+                    <td class="py-1 text-end fw-semibold">${genSettings.CurrenySymbol} <span class="taxBreakUpChargesTotAmt">${smartDecimal(charge.taxAmount, genSettings.DecimalPoints)}</span></td>
+                </tr>
+            `;
+            $tbody.append(row);
+        }
+    });
+    
+    // Update total charges tax
+    $('#chargeTaxTotal').text(smartDecimal(charges.total.taxAmount, genSettings.DecimalPoints, true));
+
 }

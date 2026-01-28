@@ -25,8 +25,8 @@ const INTEGER_ONLY_UOMS = ['PCS', 'NOS', 'UNT', 'BOX', 'PAC', 'EACH', 'SET', 'BT
 let billItems = [];
 let billMap = {};
 const genSettings = <?php echo json_encode($JwtData->GenSettings); ?>;
-const discTypeInfo = <?php echo json_encode($DiscTypeInfo); ?>;
-let globalDiscountPercent = 0;
+const discTypeInfo = <?php echo isset($DiscTypeInfo) ? json_encode($DiscTypeInfo) : []; ?>;
+let customerInterState = false;
 const emptyTableTrInfo = `<tr class="text-center text-muted">
                                 <td colspan="6">
                                     <div class="py-4">

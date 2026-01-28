@@ -3,14 +3,12 @@
 class Storage_model extends CI_Model {
 
     private $EndReturnData;
-    private $ProductDb;
-    private $GlobalDb;
+    private $ReadDb;
 
     function __construct() {
         parent::__construct();
 
-        $this->ProductDb = $this->load->database('Products', TRUE);
-        $this->GlobalDb = $this->load->database('Global', TRUE);
+        $this->ReadDb = $this->load->database('ReadDB', TRUE);
 
     }
 
@@ -59,7 +57,7 @@ class Storage_model extends CI_Model {
         $this->EndReturnData = new StdClass();
         try {
 
-            $this->ProductDb->db_debug = FALSE;
+            $this->ReadDb->db_debug = FALSE;
             $select_ary = array(
                 'Storage.StorageUID AS StorageUID',
                 'Storage.OrgUID AS OrgUID',
@@ -76,18 +74,18 @@ class Storage_model extends CI_Model {
                 'Storage.IsDeleted' => 0,
                 'Storage.IsActive' => 1,
             );
-            $this->ProductDb->select($select_ary);
-            $this->ProductDb->from('Products.StorageTbl as Storage');
-            $this->ProductDb->join($this->GlobalDb->database.'.StorageTypeTbl as StorageType', 'StorageType.StorageTypeUID = Storage.StorageTypeUID', 'left');
-            $this->ProductDb->where($WhereCondition);
+            $this->ReadDb->select($select_ary);
+            $this->ReadDb->from('Products.StorageTbl as Storage');
+            $this->ReadDb->join('Global.StorageTypeTbl as StorageType', 'StorageType.StorageTypeUID = Storage.StorageTypeUID', 'left');
+            $this->ReadDb->where($WhereCondition);
             if (!empty($FilterArray)) {
-                $this->ProductDb->where($FilterArray);
+                $this->ReadDb->where($FilterArray);
             }
-            $this->ProductDb->group_by('Storage.StorageUID');
-            $this->ProductDb->order_by('Storage.StorageUID', 'ASC');
+            $this->ReadDb->group_by('Storage.StorageUID');
+            $this->ReadDb->order_by('Storage.StorageUID', 'ASC');
 
-            $query = $this->ProductDb->get();
-            $error = $this->ProductDb->error();
+            $query = $this->ReadDb->get();
+            $error = $this->ReadDb->error();
             if ($error['code']) {
                 throw new Exception($error['message']);
             } else {

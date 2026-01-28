@@ -12,6 +12,88 @@ class Transactions_model extends CI_Model {
 
     }
 
+    public function getTransactionPageList($limit, $offset, $filter, $isCount = false) {
+
+        try {
+
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select([
+                'Ts.TransUID AS TransUID',
+                'Ts.UniqueNumber AS UniqueNumber',
+                'Ts.TransNumber AS TransNumber',
+                'Ts.TransDate AS TransDate',
+                'Ts.NetAmount as NetAmount',
+                'Ts.IsFullyPaid as IsFullyPaid',
+                'Ts.PaidAmount as PaidAmount',
+                'Ts.BalanceAmount as BalanceAmount',
+                'Ts.CreatedAt as CreatedAt',
+                'Ts.UpdatedAt as UpdatedAt',
+            ]);
+            $this->ReadDb->from('Transaction.TransactionsTbl as Ts');
+            $this->ReadDb->where(['Ts.IsDeleted' => 0, 'Ts.IsActive' => 1]);
+            $this->applyFilters($filter);
+            if ($isCount) {
+                return $this->ReadDb->count_all_results();
+            }
+            $this->ReadDb->order_by('Ts.TransUID', 'DESC');
+            if ($limit > 0) {
+                $this->ReadDb->limit($limit, $offset);
+            }
+            $query = $this->ReadDb->get();
+            if (!$query) {
+                $error = $this->ReadDb->error();
+                throw new Exception($error['message']);
+            }
+
+            return $query->result();
+
+        } catch (Exception $e) {
+            return [];
+        }
+
+    }
+
+    public function getTransactionCount($filter = []) {
+        return $this->getTransactionPageList(0, 0, $filter, true);
+    }
+
+    private function applyFilters($filter) {
+        if (empty($filter)) return;
+        
+        if (!empty($filter['Name'])) {
+            $this->ReadDb->group_start()
+                        ->like('Ts.Name', $filter['Name'], 'both')
+                        ->or_like('Ts.TransNumber', $filter['Name'], 'both')
+                        ->or_like('Ts.UniqueNumber', $filter['Name'], 'both')
+                        ->group_end();
+        }
+        
+        if (!empty($filter['DateFrom']) && !empty($filter['DateTo'])) {
+            $this->ReadDb->where('DATE(Ts.TransDate) >=', $filter['DateFrom']);
+            $this->ReadDb->where('DATE(Ts.TransDate) <=', $filter['DateTo']);
+        }
+        
+        if (!empty($filter['Status'])) {
+            if ($filter['Status'] == 'paid') {
+                $this->ReadDb->where('Ts.IsFullyPaid', 1);
+            } elseif ($filter['Status'] == 'unpaid') {
+                $this->ReadDb->where('Ts.IsFullyPaid', 0);
+                $this->ReadDb->where('Ts.BalanceAmount >', 0);
+            } elseif ($filter['Status'] == 'partial') {
+                $this->ReadDb->where('Ts.PaidAmount >', 0);
+                $this->ReadDb->where('Ts.BalanceAmount >', 0);
+            }
+        }
+        
+        if (!empty($filter['MinAmount'])) {
+            $this->ReadDb->where('Ts.NetAmount >=', $filter['MinAmount']);
+        }
+        
+        if (!empty($filter['MaxAmount'])) {
+            $this->ReadDb->where('Ts.NetAmount <=', $filter['MaxAmount']);
+        }
+    }
+
     public function getTransactionsPrefixDetails($FilterArray) {
 
         $this->EndReturnData = new stdClass();
@@ -191,6 +273,65 @@ class Transactions_model extends CI_Model {
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
+        }
+
+    }
+
+    public function getEntityInvoices($entityId, $entityType) {
+
+        try {
+
+            $this->ReadDb->select('TransUID, UniqueNumber, ModuleUID, TransType, PartyType');
+            $this->ReadDb->from('Transaction.TransactionsTbl');
+            $this->ReadDb->where(['PartyUID' => $entityId, 'IsDeleted' => 0, 'IsActive' => 1]);
+            if($entityType == 'Customer') {
+                $this->ReadDb->where('PartyType', 'C');
+            } else if($entityType == 'Vendor') {
+                $this->ReadDb->where('PartyType', 'S');
+            }
+            $this->ReadDb->limit(10);
+            $query = $this->ReadDb->get();
+            
+            return $query->result();
+            
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+
+    }
+
+    public function getCustomerPayments($customerId) {
+
+        try {
+
+            $this->ReadDb->select('PaymentUID, PaymentNo, Amount, PaymentDate');
+            $this->ReadDb->from('Accounting.PaymentsTbl');
+            $this->ReadDb->where(['CustomerUID' => $customerId, 'IsDeleted' => 0, 'IsActive' => 1]);
+            $this->ReadDb->limit(10);
+            $query = $this->ReadDb->get();
+            
+            return $query->result();
+            
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+
+    }
+
+    public function getCustomerOrders($customerId) {
+
+        try {
+
+            $this->ReadDb->select('OrderUID, OrderNo, TotalAmount, OrderDate');
+            $this->ReadDb->from('Orders.OrderTbl');
+            $this->ReadDb->where(['CustomerUID' => $customerId, 'IsDeleted' => 0, 'IsActive' => 1]);
+            $this->ReadDb->limit(10);
+            $query = $this->ReadDb->get();
+            
+            return $query->result();
+            
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
         }
 
     }

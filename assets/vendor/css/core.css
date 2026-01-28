@@ -329,6 +329,10 @@ small,.small {
     font-size: 0.8125rem
 }
 
+tinysmall,.tinysmall {
+    font-size: 0.7125rem
+}
+
 mark,.mark {
     padding: .1875em;
     color: var(--bs-highlight-color);
@@ -28913,6 +28917,10 @@ body:not(.modal-open) .layout-content-navbar .layout-navbar {
     text-transform: uppercase;
 }
 
+#PANNumber::placeholder, #GSTNumber::placeholder {
+    text-transform: none;
+}
+
 .modal.show .modal-dialog.modal-dialog-full-height {
     margin: 0 auto;
     height: 100vh !important;
@@ -28950,4 +28958,16 @@ body:not(.modal-open) .layout-content-navbar .layout-navbar {
     top: 100%;
     z-index: 1055;
     display: none;
+}
+
+.trans-header-static {
+    position: sticky;
+    top: 5px;
+    z-index: 1020;
+}
+
+.trans-theme {
+    background-color: #e6f2ff !important;
+    padding: 0.25rem;
+    border-radius: 0.375rem;
 }

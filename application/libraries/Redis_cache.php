@@ -15,7 +15,6 @@ class Redis_cache {
         $this->client = new Redis();
         $connected = $this->client->connect($this->cfg['host'], $this->cfg['port'], $this->cfg['timeout']);
         if (!$connected) {
-            log_message('error', 'Redis connect failed');
             $this->client = NULL;
             return;
         }

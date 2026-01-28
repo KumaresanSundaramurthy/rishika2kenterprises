@@ -2,58 +2,51 @@
 
 class Customers_model extends CI_Model {
     
-    private $EndReturnData;
-    private $CustomerDb;
+    private $ReadDb;
 
 	function __construct() {
         parent::__construct();
         
-        $this->CustomerDb = $this->load->database('Customers', TRUE);
+        $this->ReadDb = $this->load->database('ReadDB', TRUE);
 
     }
 
-    public function custFilterFormation($ModuleInfoData, $Filter) {
+    public function custFilterFormation($moduleInfo, array $filter = []) {
 
-        $this->EndReturnData = new StdClass();
-        try {
+        $result = new stdClass();
+        $result->SearchDirectQuery = [];
+        $result->SearchFilter = [];
+        $result->sortOperation = [];
 
-            $SearchDirectQuery = '';
-            $SearchFilter = [];
-            $sortOperation = [];
-            if(!empty($Filter)) {
-                if (array_key_exists('SearchAllData', $Filter)) {
-                    $SearchDirectQuery .= "((". $ModuleInfoData->TableAliasName.".Name LIKE '%".$Filter['SearchAllData']."%' ) OR (".$ModuleInfoData->TableAliasName.".Area LIKE '%".$Filter['SearchAllData']."%') OR (".$ModuleInfoData->TableAliasName.".MobileNumber LIKE '%".$Filter['SearchAllData']."%') OR (".$ModuleInfoData->TableAliasName.".ContactPerson LIKE '%".$Filter['SearchAllData']."%'))";
-                }
-                if (array_key_exists('NameSorting', $Filter)) {
-                    $sortOperation[$ModuleInfoData->TableAliasName . '.Name'] = $Filter['NameSorting'] == 1 ? 'ASC' : 'DESC';
-                }
-            }
+        $alias = $moduleInfo->TableAliasName;
+        
+        if (!empty($filter['SearchAllData'])) {
 
-            $this->EndReturnData->Error = FALSE;
-            $this->EndReturnData->SearchDirectQuery = $SearchDirectQuery;
-            $this->EndReturnData->SearchFilter = $SearchFilter;
-            $this->EndReturnData->sortOperation = $sortOperation;
+            $searchValue = $filter['SearchAllData'];
 
-        } catch (Exception $e) {
-            $this->EndReturnData->Error = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-            $this->EndReturnData->SearchDirectQuery = '';
-            $this->EndReturnData->SearchFilter = [];
-            $this->EndReturnData->sortOperation = [];
+            $result->SearchDirectQuery = [
+                "{$alias}.Name LIKE"          => "%{$searchValue}%",
+                "{$alias}.Area LIKE"          => "%{$searchValue}%",
+                "{$alias}.MobileNumber LIKE"  => "%{$searchValue}%",
+                "{$alias}.ContactPerson LIKE" => "%{$searchValue}%"
+            ];
+        }
+        
+        if (isset($filter['NameSorting'])) {
+            $result->sortOperation["{$alias}.Name"] = ((int)$filter['NameSorting'] === 1) ? 'ASC' : 'DESC';
         }
 
-        return $this->EndReturnData;
+        return $result;
 
     }
+
 
     public function getCustomers($FilterArray) {
 
-        $this->EndReturnData = new StdClass();
         try {
 
-            $this->CustomerDb->db_debug = FALSE;
-
-            $select_ary = array(
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select([
                 'Customers.CustomerUID AS CustomerUID',
                 'Customers.OrgUID AS OrgUID',
                 'Customers.Name AS Name',
@@ -78,44 +71,32 @@ class Customers_model extends CI_Model {
                 'Customers.CCEmails as CCEmails',
                 'Customers.CreatedOn as CreatedOn',
                 'Customers.UpdatedOn as UpdatedOn',
-            );
-            $WhereCondition = array(
-                'Customers.IsDeleted' => 0,
-                'Customers.IsActive' => 1,
-            );
-
-            $this->CustomerDb->select($select_ary);
-            $this->CustomerDb->from('Customers.CustomerTbl as Customers');
-            $this->CustomerDb->where($WhereCondition);
+            ]);
+            $this->ReadDb->from('Customers.CustomerTbl as Customers');
+            $this->ReadDb->where(['Customers.IsDeleted' => 0, 'Customers.IsActive' => 1]);
             if(sizeof($FilterArray) > 0) {
-                $this->CustomerDb->where($FilterArray);
+                $this->ReadDb->where($FilterArray);
             }
-            $query = $this->CustomerDb->get();
-            $error = $this->CustomerDb->error();
-            if ($error['code']) {
-                throw new Exception($error['message']);
-            } else {
-                $this->EndReturnData->Data = $query->result();
+            $query = $this->ReadDb->get();
+            if (!$query) {
+                $error = $this->ReadDb->error();
+                throw new Exception($error['message'] ?? 'Database error occurred');
             }
-            
-            return $this->EndReturnData->Data;
+
+            return $query->result();
 
         } catch (Exception $e) {
-            $this->EndReturnData->Error = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-            throw new Exception($this->EndReturnData->Message);
+            throw new Exception($e->getMessage());
         }
 
     }
 
     public function getCustomerAddress($FilterArray) {
 
-        $this->EndReturnData = new StdClass();
         try {
 
-            $this->CustomerDb->db_debug = FALSE;
-
-            $select_ary = array(
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select([
                 'CustAddress.CustAddressUID AS CustAddressUID',
                 'CustAddress.OrgUID AS OrgUID',
                 'CustAddress.CustomerUID AS CustomerUID',
@@ -127,44 +108,32 @@ class Customers_model extends CI_Model {
                 'CustAddress.CityText as CityText',
                 'CustAddress.State as State',
                 'CustAddress.StateText as StateText',
-            );
-            $WhereCondition = array(
-                'CustAddress.IsDeleted' => 0,
-                'CustAddress.IsActive' => 1,
-            );
-
-            $this->CustomerDb->select($select_ary);
-            $this->CustomerDb->from('Customers.CustAddressTbl as CustAddress');
-            $this->CustomerDb->where($WhereCondition);
+            ]);
+            $this->ReadDb->from('Customers.CustAddressTbl as CustAddress');
+            $this->ReadDb->where(['CustAddress.IsDeleted' => 0, 'CustAddress.IsActive' => 1]);
             if(sizeof($FilterArray) > 0) {
-                $this->CustomerDb->where($FilterArray);
+                $this->ReadDb->where($FilterArray);
             }
-            $query = $this->CustomerDb->get();
-            $error = $this->CustomerDb->error();
-            if ($error['code']) {
-                throw new Exception($error['message']);
-            } else {
-                $this->EndReturnData->Data = $query->result();
+            $query = $this->ReadDb->get();
+            if (!$query) {
+                $error = $this->ReadDb->error();
+                throw new Exception($error['message'] ?? 'Database error occurred');
             }
             
-            return $this->EndReturnData->Data;
+            return $query->result();
 
         } catch (Exception $e) {
-            $this->EndReturnData->Error = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-            throw new Exception($this->EndReturnData->Message);
+            throw new Exception($e->getMessage());
         }
 
     }
 
     public function getCustomerBankInfo($FilterArray) {
 
-        $this->EndReturnData = new StdClass();
         try {
 
-            $this->CustomerDb->db_debug = FALSE;
-
-            $select_ary = array(
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select([
                 'CustBankDetails.CustBankDetUID AS CustBankDetUID',
                 'CustBankDetails.CustomerUID AS CustomerUID',
                 'CustBankDetails.Type as Type',
@@ -173,76 +142,59 @@ class Customers_model extends CI_Model {
                 'CustBankDetails.BankBranchName as BankBranchName',
                 'CustBankDetails.BankAccountHolderName as BankAccountHolderName',
                 'CustBankDetails.UPI_Id as UPI_Id',
-            );
-            $WhereCondition = array(
-                'CustBankDetails.IsDeleted' => 0,
-                'CustBankDetails.IsActive' => 1,
-            );
-
-            $this->CustomerDb->select($select_ary);
-            $this->CustomerDb->from('Customers.CustBankDetailsTbl as CustBankDetails');
-            $this->CustomerDb->where($WhereCondition);
+            ]);
+            $this->ReadDb->from('Customers.CustBankDetailsTbl as CustBankDetails');
+            $this->ReadDb->where(['CustBankDetails.IsDeleted' => 0, 'CustBankDetails.IsActive' => 1]);
             if(sizeof($FilterArray) > 0) {
-                $this->CustomerDb->where($FilterArray);
+                $this->ReadDb->where($FilterArray);
             }
-            $query = $this->CustomerDb->get();
-            $error = $this->CustomerDb->error();
-            if ($error['code']) {
-                throw new Exception($error['message']);
-            } else {
-                $this->EndReturnData->Data = $query->result();
+            $query = $this->ReadDb->get();
+            if (!$query) {
+                $error = $this->ReadDb->error();
+                throw new Exception($error['message'] ?? 'Database error occurred');
             }
             
-            return $this->EndReturnData->Data;
+            return $query->result();
 
         } catch (Exception $e) {
-            $this->EndReturnData->Error = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-            throw new Exception($this->EndReturnData->Message);
+            throw new Exception($e->getMessage());
         }
 
     }
 
     public function getCustomersDetails(string $Term, $WhereCondition = []) {
         
-        $this->EndReturnData = new StdClass();
         try {
 
-            $this->CustomerDb->db_debug = FALSE;
-            $select_ary = array(
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select([
                 'Customers.CustomerUID AS CustomerUID',
                 'Customers.Name AS Name',
                 'Customers.Area AS Area',
-            );
-            $where_ary = array(
-                'Customers.IsDeleted' => 0,
-                'Customers.IsActive' => 1,
-            );
-            $this->CustomerDb->select($select_ary);
-            $this->CustomerDb->from('Customers.CustomerTbl as Customers');
-            $this->CustomerDb->group_start();
-            $this->CustomerDb->or_like('Customers.Name', $Term, 'both');
-            $this->CustomerDb->or_like('Customers.Area', $Term, 'both');
-            $this->CustomerDb->group_end();
-            $this->CustomerDb->where($where_ary);
+            ]);
+            $this->ReadDb->from('Customers.CustomerTbl as Customers');
+            if($Term) {
+                $this->ReadDb->group_start();
+                $this->ReadDb->or_like('Customers.Name', $Term, 'both');
+                $this->ReadDb->or_like('Customers.Area', $Term, 'both');
+                $this->ReadDb->or_like('Customers.MobileNumber', $Term, 'both');
+                $this->ReadDb->group_end();
+            }
+            $this->ReadDb->where(['Customers.IsDeleted' => 0, 'Customers.IsActive' => 1]);
             if(sizeof($WhereCondition) > 0) {
-                $this->CustomerDb->where($WhereCondition);
+                $this->ReadDb->where($WhereCondition);
             }
-            $this->CustomerDb->limit(10);
+            $this->ReadDb->limit(10);
 
-            $query = $this->CustomerDb->get();
-            $error = $this->CustomerDb->error();
-            if ($error['code']) {
-                throw new Exception($error['message']);
-            } else {
-                $this->EndReturnData->Data = $query->result();
+            $query = $this->ReadDb->get();
+            if (!$query) {
+                $error = $this->ReadDb->error();
+                throw new Exception($error['message'] ?? 'Database error occurred');
             }
-            return $this->EndReturnData->Data;
+            return $query->result();
 
         } catch (Exception $e) {
-            $this->EndReturnData->Error = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-            throw new Exception($this->EndReturnData->Message);
+            throw new Exception($e->getMessage());
         }
 
     }

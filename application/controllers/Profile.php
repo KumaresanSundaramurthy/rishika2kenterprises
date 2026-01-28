@@ -103,13 +103,4 @@ class Profile extends CI_Controller {
 
     }
 
-    public function check_new_password($newPassword) {
-        $oldPassword = $this->input->post('oldPassword');
-        if ($oldPassword === $newPassword) {
-            $this->form_validation->set_message('check_new_password', 'Old Password and New Password cannot be the same');
-            return FALSE;
-        }
-        return TRUE;
-    }
-
 }

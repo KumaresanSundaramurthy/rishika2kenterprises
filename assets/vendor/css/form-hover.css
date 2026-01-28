@@ -1,0 +1,112 @@
+/* Form Field Hover Effects - Sneat Bootstrap 5 */
+
+/* Base hover effect for all form controls */
+.form-control:hover,
+.form-select:hover,
+textarea.form-control:hover,
+input[type="text"]:hover,
+input[type="number"]:hover,
+input[type="email"]:hover,
+input[type="tel"]:hover,
+input[type="date"]:hover,
+input[type="password"]:hover,
+input[type="search"]:hover,
+input[type="url"]:hover {
+    border-color: var(--bs-primary);
+    background-color: rgba(var(--bs-primary-rgb), 0.02);
+    box-shadow: 0 2px 4px rgba(105, 108, 255, 0.1);
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Enhanced focus state */
+.form-control:focus,
+.form-select:focus,
+textarea.form-control:focus {
+    border-color: var(--bs-primary);
+    box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.25);
+    background-color: #fff;
+}
+
+/* Select dropdown arrow color on hover */
+.form-select:hover {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23696cff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+}
+
+/* Textarea specific */
+textarea.form-control:hover {
+    min-height: calc(1.5em + 1.25rem + 4px);
+}
+
+/* Input groups */
+.input-group .form-control:hover,
+.input-group .form-select:hover {
+    z-index: 3;
+}
+
+.input-group-text:hover {
+    border-color: var(--bs-primary);
+    background-color: rgba(var(--bs-primary-rgb), 0.05);
+}
+
+/* Form floating labels */
+.form-floating > .form-control:hover,
+.form-floating > .form-select:hover {
+    padding-top: 1.625rem;
+    padding-bottom: 0.625rem;
+}
+
+.form-floating > .form-control:hover ~ label,
+.form-floating > .form-select:hover ~ label {
+    color: var(--bs-primary);
+    transform: scale(0.85) translateY(-0.5rem) translateX(0.15rem);
+}
+
+/* Readonly and disabled states */
+.form-control[readonly]:hover,
+.form-control[disabled]:hover,
+.form-select[disabled]:hover {
+    border-color: #d9dee3;
+    background-color: #eceef1;
+    box-shadow: none;
+    cursor: not-allowed;
+}
+
+/* Validation states */
+.form-control.is-valid:hover {
+    border-color: var(--bs-success);
+    box-shadow: 0 0 0 0.25rem rgba(var(--bs-success-rgb), 0.15);
+}
+
+.form-control.is-invalid:hover {
+    border-color: var(--bs-danger);
+    box-shadow: 0 0 0 0.25rem rgba(var(--bs-danger-rgb), 0.15);
+}
+
+/* Range slider */
+.form-range:hover::-webkit-slider-thumb {
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+}
+
+.form-range:hover::-moz-range-thumb {
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+}
+
+/* Checkboxes and radios */
+.form-check-input:hover {
+    border-color: var(--bs-primary);
+}
+
+.form-check-input:checked:hover {
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+}
+
+/* File input */
+.form-control[type="file"]:hover::file-selector-button {
+    background-color: rgba(var(--bs-primary-rgb), 0.1);
+    color: var(--bs-primary);
+    border-color: var(--bs-primary);
+}

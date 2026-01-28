@@ -10,29 +10,21 @@
 
         <!-- Layout container -->
         <div class="layout-page">
-
-            <?php $this->load->view('common/navbar_view'); ?>
-
             <!-- Content wrapper -->
             <div class="content-wrapper">
-                <div class="container-xxl flex-grow-1 container-p-y">
+                <div class="container-xxl flex-grow-1 container-p-y pt-2">
                     
                 <?php $FormAttribute = ['id' => 'AddVendorForm', 'name' => 'AddVendorForm', 'autocomplete' => 'off'];
                     echo form_open('vendors/addVendor', $FormAttribute); ?>
 
                     <div class="card mb-3">
                         
-                        <div class="card-header bg-body-tertiary card-header-form-static modal-header-center-sticky d-flex justify-content-between align-items-center pb-3">
+                        <div class="card-header bg-body-tertiary trans-header-static trans-theme modal-header-center-sticky d-flex justify-content-between align-items-center pb-3">
                             <h5 class="modal-title mb-0" id="VendorModalTitle">Create Vendor</h5>
                             <div class="d-flex align-items-center gap-2">
                                 <button type="submit" class="btn btn-primary AddEditVendorBtn">Create</button>
                                 <a href="javascript: history.back();" class="btn btn-label-danger">Close</a>
                             </div>
-                        </div>
-
-                        <div class="d-none addEditFormAlert alert alert-danger alert-dismissible fade show p-3 m-3 mb-0" role="alert">
-                            <span class="alert-message"></span>
-                            <button type="button" class="btn-close" aria-label="Close"></button>
                         </div>
 
                         <div class="card-body card-body-form-static p-4">
@@ -259,7 +251,7 @@ $(function() {
 
     initializeFlatPickr('#CPDateOfBirth');
 
-    loadSelect2Field('#CountryCode', '-- Select Country --');
+    loadCountrySelect2Field('#CountryCode', 'Select Country');
 
     initializeSelect2Tags('#Tags', 'Type and press enter...');
     initializeSelect2Tags('#CCEmails', 'Type and press enter...');
@@ -268,7 +260,39 @@ $(function() {
         e.preventDefault();
 
         getScrollableOnSubmitForm(this);
-        $('.addEditFormAlert').addClass('d-none');
+
+        // Disable enter key specifically on inputs
+        $(this).find('input, select').on('keydown', function(e) {
+            if (e.keyCode === 13) {
+                e.preventDefault();
+                return false;
+            }
+        });
+
+        // Validate mobile number
+        const mobileValue = $('#MobileNumber').val();
+        const countryCode = ($('#CountryCode').val() || '91').replace('+', '');
+        const mobileValidation = validateMobileNumber(mobileValue, countryCode);
+        if (!mobileValidation.isValid) {
+            showAlertMessageSwal('error', '', mobileValidation.message);
+            return false;
+        }
+
+        // Validate PAN number
+        const panValue = $('#PANNumber').val();
+        const panValidation = validatePANNumber(panValue);
+        if (!panValidation.isValid) {
+            showAlertMessageSwal('error', '', panValidation.message);
+            return false;
+        }
+        
+        // Validate GSTIN
+        const gstinValue = $('#GSTIN').val();
+        const gstinValidation = validateGSTIN(gstinValue);
+        if (!gstinValidation.isValid) {
+            showAlertMessageSwal('error', '', gstinValidation.message);
+            return false;
+        }
 
         var formData = new FormData($('#AddVendorForm')[0]);
         formData.append('CountryISO2', $('#CountryCode').find('option:selected').data('ccode'));
@@ -282,8 +306,7 @@ $(function() {
         const bankRecords = getBankRecordsFromTable();
         const validation = validateBankRecords(bankRecords);
         if (!validation.ok) {
-            $('.addEditFormAlert').removeClass('d-none');
-            $('.addEditFormAlert').find('.alert-message').text(validation.msg);
+            showAlertMessageSwal('error', '', validation.msg);
             return;
         }
         formData.append('BankDetailsJSON', JSON.stringify(bankRecords));

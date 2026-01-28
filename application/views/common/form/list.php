@@ -28,6 +28,12 @@
                 $value = changeTimeZomeDateFormat($value, $JwtData->User->Timezone, 1);
         }
     }
+
+    // Whatsapp Deviation
+    if ($column->IsMobileNumber && !empty($value)) {
+        $cleanNumber = preg_replace('/[^0-9]/', '', $value);
+        $value = $value . ' <a href="https://wa.me/91'.$cleanNumber.'?text=Hi" target="_blank" class="text-success ms-1" title="Click to WhatsApp"><i class="bx bxl-whatsapp"></i></a>';
+    }
     
     if($Key == 1 && $column->MainPageImageDisplay == 1) { ?>
 

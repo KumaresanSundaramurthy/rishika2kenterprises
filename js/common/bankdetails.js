@@ -4,7 +4,6 @@ $(document).ready(function () {
         e.preventDefault();
         $('#AddEditBankDataForm')[0].reset();
         $('#HBankId').val('');
-        hideBankDetailsError();
         $('#addEditBankDataModal .AddEditBankDataBtn').text('Save');
         $('#addEditBankDataModal').modal('show');
     });
@@ -89,16 +88,10 @@ $(document).ready(function () {
 
             $('#appendBankDetails').removeClass('d-none');
             $('#bankDivider').removeClass('d-none');
-            hideBankDetailsError();
             $('#addEditBankDataModal').modal('hide');
         } else {
             showBankDetailsError('Fill either all Bank fields OR UPI ID OR both. Partial Bank info not allowed.');
         }
-    });
-
-    $(document).on('click', '.addEditBankDataAlert .btn-close', function(e) {
-        e.preventDefault();
-        hideBankDetailsError();
     });
 
     $(document).on('click', '.editBankDataBtn', function(e) {
@@ -204,15 +197,5 @@ function validateBankRecords(records) {
 }
 
 function showBankDetailsError(message) {
-    $('.addEditBankDataAlert')
-        .removeClass('d-none')
-        .addClass('alert alert-danger alert-dismissible fade show')
-        .find('.alert-message').text(message);
-}
-
-function hideBankDetailsError() {
-    $('.addEditBankDataAlert')
-        .addClass('d-none')
-        .removeClass('alert alert-danger alert-dismissible fade show')
-        .find('.alert-message').text('');
+    showAlertMessageSwal('error', '', message, true, 2000);
 }

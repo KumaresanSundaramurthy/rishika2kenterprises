@@ -39,7 +39,6 @@ function gumHoJa() {
     $("#alert").remove();
 }
 
-
 jQuery.fn.center = function () {
     this.css("position", "absolute");
     this.css("top", Math.max(0, (($(window).height() - $(this).outerHeight()) / 2) +
@@ -48,7 +47,6 @@ jQuery.fn.center = function () {
         $(window).scrollLeft()) + "px");
     return this;
 }
-
 
 function blankControls() {
     // to clear all text boxes
@@ -740,36 +738,72 @@ function fileSelect(id) {
     }
 }
 
-function loadSelect2Field(FieldName, Placeholder, IsModal = '') {
-    if(IsModal) {
-        $(FieldName).select2({
-            placeholder: Placeholder,
-            allowClear: true,
-            dropdownParent: $(IsModal)
-        });
-    } else {
-        $(FieldName).select2({
-            placeholder: Placeholder,
-            allowClear: true,
-        });
-    }  
+function loadSelect2Field(fieldSelector, placeholder, modalSelector = null) {
+
+    const $el = $(fieldSelector);
+    if (!$el.length) return;
+
+    const options = {
+        placeholder: placeholder,
+        allowClear: true,
+        width: '100%'
+    };
+    // If used inside modal
+    if (modalSelector) {
+        options.dropdownParent = $(modalSelector);
+    }
+    // Destroy if already initialized
+    if ($el.hasClass('select2-hidden-accessible')) {
+        $el.select2('destroy');
+    }
+
+    $el.select2(options);
+
 }
 
-function initializeSelect2Tags(FieldName, Placeholder, IsModal = '') {
-    if(IsModal) {
-        $(FieldName).select2({
-            tags: "true",
-            placeholder: Placeholder,
-            allowClear: true,
-            dropdownParent: $(IsModal)
-        });
-    } else {
-        $(FieldName).select2({
-            tags: "true",
-            placeholder: Placeholder,
-            allowClear: true,
-        });
+function loadCountrySelect2Field(fieldSelector, placeholder, modalSelector = null) {
+
+    const $el = $(fieldSelector);
+    if (!$el.length) return;
+
+    const options = {
+        placeholder: placeholder,
+        width: '100%'
+    };
+    // If used inside modal
+    if (modalSelector) {
+        options.dropdownParent = $(modalSelector);
     }
+    // Destroy if already initialized
+    if ($el.hasClass('select2-hidden-accessible')) {
+        $el.select2('destroy');
+    }
+
+    $el.select2(options);
+
+}
+
+function initializeSelect2Tags(fieldSelector, placeholder, modalSelector = null) {
+
+    const $el = $(fieldSelector);
+    if (!$el.length) return;
+
+    const options = {
+        tags: "true",
+        placeholder: placeholder,
+        width: '100%'
+    };
+    // If used inside modal
+    if (modalSelector) {
+        options.dropdownParent = $(modalSelector);
+    }
+    // Destroy if already initialized
+    if ($el.hasClass('select2-hidden-accessible')) {
+        $el.select2('destroy');
+    }
+
+    $el.select2(options);
+
 }
 
 function initializeFlatPickr(FieldName, IsModal = '') {
@@ -1032,4 +1066,138 @@ function getScrollableOnSubmitForm($this) {
         return false;
     }
 
+}
+
+function showAlertMessageSwal(icon, title, textMsg, okButton = true, timer = 0) {
+    const swalOptions = {
+        icon: icon,
+        title: title,
+        text: textMsg,
+    };
+    if (timer) {
+        swalOptions.timer = typeof timer === 'number' ? timer : 1500;
+    }
+    if(okButton) {
+        swalOptions.showConfirmButton = true;
+    }
+    Swal.fire(swalOptions);
+}
+
+// Add this function in your customers.js or common validation file
+function validateMobileNumber(mobileValue, countryCode = '91') {
+    if (!mobileValue || mobileValue.trim() === '') {
+        return { isValid: true, message: '' };
+    }
+    
+    // Remove all non-digit characters
+    const cleanMobile = mobileValue.replace(/\D/g, '');
+    
+    // Remove leading zeros
+    const normalizedMobile = cleanMobile.replace(/^0+/, '');
+    
+    // Country specific validation rules
+    const countryRules = {
+        '91': { // India
+            regex: /^[6-9]\d{9}$/,
+            message: 'Invalid Indian mobile number. Must be 10 digits starting with 6-9.'
+        },
+        '1': { // USA/Canada
+            regex: /^\d{10}$/,
+            message: 'Invalid US/Canada mobile number. Must be 10 digits.'
+        },
+        '44': { // UK
+            regex: /^\d{10,11}$/,
+            message: 'Invalid UK mobile number. Must be 10-11 digits.'
+        },
+        '61': { // Australia
+            regex: /^\d{9}$/,
+            message: 'Invalid Australian mobile number. Must be 9 digits.'
+        },
+        '971': { // UAE
+            regex: /^\d{9}$/,
+            message: 'Invalid UAE mobile number. Must be 9 digits.'
+        }
+    };
+    
+    // Get rule for country or use default
+    const rule = countryRules[countryCode] || { 
+        regex: /^\d{5,15}$/,
+        message: 'Invalid mobile number for selected country. Must be 5-15 digits.'
+    };
+    
+    const isValid = rule.regex.test(normalizedMobile);
+    
+    return {
+        isValid: isValid,
+        message: isValid ? '' : rule.message
+    };
+}
+
+function validatePANNumber(panValue) {
+    if (!panValue || panValue.trim() === '') {
+        return { isValid: true, message: '' };
+    }
+    
+    const cleanPAN = panValue.trim().toUpperCase();
+    
+    // PAN format: ABCDE1234F (5 letters, 4 digits, 1 letter)
+    const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+    const isValid = panRegex.test(cleanPAN);
+    
+    return {
+        isValid: isValid,
+        message: isValid ? '' : 'Invalid PAN number. Format must be: ABCDE1234F (5 letters, 4 digits, 1 letter).'
+    };
+}
+
+function validateGSTIN(gstinValue) {
+    if (!gstinValue || gstinValue.trim() === '') {
+        return { isValid: true, message: '' };
+    }
+    
+    const cleanGSTIN = gstinValue.trim().toUpperCase();
+    
+    // Check length
+    if (cleanGSTIN.length !== 15) {
+        return {
+            isValid: false,
+            message: 'GSTIN must be exactly 15 characters long.'
+        };
+    }
+    
+    // GSTIN format: 22AAAAA0000A1Z5
+    const gstinRegex = /^\d{2}[A-Z]{5}\d{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+    const isValid = gstinRegex.test(cleanGSTIN);
+    
+    if (!isValid) {
+        return {
+            isValid: false,
+            message: 'Invalid GSTIN format. Must be: 22AAAAA0000A1Z5 (15 characters with valid state code and PAN).'
+        };
+    }
+    
+    // Validate state code (01-37)
+    const stateCode = cleanGSTIN.substring(0, 2);
+    const stateCodeInt = parseInt(stateCode, 10);
+    if (stateCodeInt < 1 || stateCodeInt > 37) {
+        return {
+            isValid: false,
+            message: 'Invalid state code in GSTIN. State code must be between 01 and 37.'
+        };
+    }
+    
+    // Validate PAN part (first 10 chars after state code)
+    const panPart = cleanGSTIN.substring(2, 12);
+    const panValidation = validatePANNumber(panPart);
+    if (!panValidation.isValid) {
+        return {
+            isValid: false,
+            message: 'Invalid PAN number in GSTIN. ' + panValidation.message
+        };
+    }
+    
+    return {
+        isValid: true,
+        message: ''
+    };
 }

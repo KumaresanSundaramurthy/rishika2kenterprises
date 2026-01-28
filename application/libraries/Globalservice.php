@@ -895,14 +895,11 @@ Class Globalservice {
     }
 
     public function baseDeleteArrayDetails() {
-
         $deleteData = [
                 'IsDeleted' => 1,
                 'UpdatedBy' => $this->CI->pageData['JwtData']->User->UserUID,
-                'UpdatedOn' => time(),
             ];
         return $deleteData;
-
     }
 
     public function baseTableDataPaginationDetails($pageNo = 0) {

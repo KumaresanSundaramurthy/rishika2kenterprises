@@ -34,8 +34,8 @@
                                     <div class="tab-pane fade show active" id="NavAccountPage" role="tabpanel">
 
                                         <div class="table-responsive text-nowrap h-100 tablecard">
-                                            <table class="table table-sm table-striped table-hover" id="CustomersTable">
-                                                <thead>
+                                            <table class="table table-hover" id="CustomersTable">
+                                                <thead class="bg-body-tertiary">
                                                     <tr>
                                                         <th class="table-checkbox">
                                                             <div class="form-check">

@@ -3,7 +3,7 @@
  * @param {*} RowLimit
  * @param {*} Filter
  */
-function getCustomersDetails(PageNo, RowLimit, Filter) {
+function getVendorsDetails(PageNo, RowLimit, Filter) {
     $.ajax({
         url: '/globally/getModPageDataDetails/' + PageNo,
         method: "POST",

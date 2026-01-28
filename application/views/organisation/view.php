@@ -318,7 +318,7 @@ $(function() {
         commonSetDropzoneImageOne(ImageUrl);
     }
     
-    loadSelect2Field('#CountryCode', '-- Select Country --');
+    loadCountrySelect2Field('#CountryCode', 'Select Country');
     loadSelect2Field('#TimezoneUID', '-- Select Timezone --');
     loadSelect2Field('#BillAddrState', '-- Select State --');
     loadSelect2Field('#ShipAddrState', '-- Select State --');

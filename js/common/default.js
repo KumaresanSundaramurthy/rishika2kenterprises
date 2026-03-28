@@ -184,6 +184,18 @@ $(document).ready(function () {
         }
     });
 
+    $(document).on('click', '.preview-image', function() {
+        var imageSrc = $(this).data('src');
+        if (imageSrc) {
+            $('#imagePreviewTarget').attr('src', imageSrc);
+            $('#imagePreviewModal').modal('show');
+        }
+    });
+
+    $('#imagePreviewModal').on('hidden.bs.modal', function () {
+        $('#imagePreviewTarget').attr('src', '');
+    });
+
 });
 
 function exportURLDynamic(Url) {

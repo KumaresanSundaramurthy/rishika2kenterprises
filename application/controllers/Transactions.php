@@ -131,7 +131,6 @@ class Transactions extends CI_Controller {
                     'purchasePrice' => (float) smartDecimal($value->PurchasePrice, $GeneralSettings->DecimalPoints, true),
                     "availableQuantity" => (int) $value->AvailableQuantity,
                     "hsnCode" => $value->HSNSACCode,
-                    "primaryUnit" => $value->PrimaryUnitShortName,
                     "category" => $value->CatgName,
                     "taxPercent" => (float) $taxPercent,
                     "cgstPercent" => (float) $value->CGST,

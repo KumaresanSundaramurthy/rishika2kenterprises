@@ -235,7 +235,6 @@ class Transactions_model extends CI_Model {
                 'product.CategoryUID AS CategoryUID',
                 'category.Name AS CatgName',
                 'product.HSNSACCode AS HSNSACCode',
-                'product.PrimaryUnitShortName AS PrimaryUnitShortName',
                 'product.AvailableQuantity AS AvailableQuantity',
                 'product.Discount AS Discount',
                 'product.DiscountTypeName AS DiscountTypeName',

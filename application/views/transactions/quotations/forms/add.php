@@ -571,7 +571,10 @@
 <script src="/js/transactions/transactions.js"></script>
 <script src="/js/transactions/transprefix.js"></script>
 <script src="/js/transactions/modaladdress.js"></script>
+
+<!-- Product Module JS -->
 <script src="/js/transactions/products.js"></script>
+<script src="/js/combinemodules/products.js"></script>
 
 <script>
 const StateInfo = <?php echo json_encode($StateData); ?>;

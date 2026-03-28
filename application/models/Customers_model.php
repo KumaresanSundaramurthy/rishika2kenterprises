@@ -199,4 +199,30 @@ class Customers_model extends CI_Model {
 
     }
 
+    public function getCustomerTypeList($OrgUID) {
+
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select([
+                'CT.CustomerTypeUID AS CustomerTypeUID',
+                'CT.TypeName AS TypeName',
+                'CT.IsDefault AS IsDefault',
+            ]);
+            $this->ReadDb->from('Customers.CustomerTypeTbl as CT');
+            $this->ReadDb->where([
+                'CT.OrgUID'     => (int) $OrgUID,
+                'CT.IsDeleted'  => 0,
+                'CT.IsActive'   => 1,
+            ]);
+            $this->ReadDb->order_by('CT.CustomerTypeUID', 'ASC');
+            $query = $this->ReadDb->get();
+            $error = $this->ReadDb->error();
+            if ($error['code']) throw new Exception($error['message']);
+            return $query->result();
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+
+    }
+
 }

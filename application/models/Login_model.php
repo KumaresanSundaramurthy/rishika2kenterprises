@@ -246,7 +246,7 @@ class Login_model extends CI_Model {
 
     }
 
-    public function getUserAuditInfo($auditId) {
+    public function getUserAuditInfo($whereCond) {
 
         try {
 
@@ -256,7 +256,7 @@ class Login_model extends CI_Model {
                 'ula.LoginTime',
             ]);
             $this->ReadDb->from('Security.UserLoginAudit as ula');
-            $this->ReadDb->where('ula.AuditID', $auditId);
+            $this->ReadDb->where($whereCond);
             $this->ReadDb->limit(1);
             $query = $this->ReadDb->get();
             if (!$query) {

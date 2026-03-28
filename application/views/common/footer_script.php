@@ -1,8 +1,8 @@
 <script>
 var JwtToken = '<?php echo $JwtToken; ?>';
 var JwtData = JSON.parse('<?php echo json_encode($JwtData); ?>');
-// var CsrfName = '<?php //echo $this->security->get_csrf_token_name(); ?>';
-// var CsrfToken = '<?php //echo $this->security->get_csrf_hash(); ?>';
+var CsrfName = '<?php echo $this->security->get_csrf_token_name(); ?>';
+var CsrfToken = '<?php echo $this->security->get_csrf_hash(); ?>';
 const defaultIso2 = '<?php echo $JwtData->User->OrgCISO2 ?? 'IN'; ?>';
 const defaultCCode = '+91';
 var RowLimit = <?php echo isset($JwtData->GenSettings->RowLimit) ? $JwtData->GenSettings->RowLimit : 10; ?>;

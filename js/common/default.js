@@ -76,6 +76,10 @@ $(document).ready(function () {
     const BLUR_ID = 'modal-blur-layer';
 
     $('[data-toggle="tooltip"]').tooltip();
+    // Bootstrap 5 tooltips
+    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function(el) {
+        new bootstrap.Tooltip(el);
+    });
 
     $("input[type=number]").click(function () {
         $(this).select();

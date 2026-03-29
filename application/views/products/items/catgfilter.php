@@ -1,45 +1,53 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
-<?php if(sizeof($Categories) > 0) { ?>
+<!-- Header -->
+<div class="catg-filter-header">
+    <span class="catg-filter-title"><i class="bx bx-layer me-1"></i> Category Filter</span>
+    <div class="d-flex align-items-center gap-2">
+        <?php if(sizeof($Categories) > 0): ?>
+            <span class="badge"><?php echo count($Categories); ?></span>
+        <?php endif; ?>
+        <button type="button" class="catg-filter-close-btn" onclick="closeCategoryFilter()" title="Close">&times;</button>
+    </div>
+</div>
 
-    <!-- Search Box -->
-    <div class="d-flex align-items-center mb-2">
-        <input type="text" id="categorySearch" class="form-control form-control-sm me-2" style="width:95%;" placeholder="Search category...">
-        <button type="button" class="btn btn-outline-success" data-toggle="tooltip" title="Load All Data" onclick="refreshSearchCateg(this)">
-            <i class="bx bx-refresh"></i>
-        </button>
+<?php if(sizeof($Categories) > 0): ?>
+
+    <!-- Search -->
+    <div class="catg-filter-search-wrap">
+        <div class="input-group input-group-sm">
+            <span class="input-group-text"><i class="bx bx-search"></i></span>
+            <input type="text" id="categorySearch" class="form-control" placeholder="Search categories...">
+        </div>
     </div>
 
-    <div class="form-check mb-2">
-        <label class="form-check-label w-100 d-flex align-items-center">
-            <input type="checkbox" class="form-check-input me-2 my-1" id="selectAllCategories" onchange="toggleAllCategories(this)">
-            <label class="form-check-label" for="selectAllCategories" id="selectAllLabel">Select All</label>
-        </label>
+    <!-- Select All -->
+    <div class="catg-select-all-wrap">
+        <input type="checkbox" class="form-check-input" id="selectAllCategories" onchange="toggleAllCategories(this)">
+        <label class="small fw-semibold mb-0" for="selectAllCategories" id="selectAllLabel">Select All</label>
     </div>
 
-    <!-- Category List -->
-    <div id="categoryList" style="max-height: 180px; overflow-y: auto;">
-        <?php foreach ($Categories as $catg) { ?>
-                <div class="form-check mb-2 my-1 list-hover-bg">
-                    <label class="form-check-label w-100 d-flex align-items-center">
-                        <input class="form-check-input me-2 category-checkbox" type="checkbox" value="<?php echo $catg->CategoryUID; ?>">
-                        <span><?php echo $catg->Name; ?></span>
-                    </label>
-                </div>
-        <?php } ?>
+    <!-- List -->
+    <div id="categoryList" class="catg-list" style="max-height:180px;">
+        <?php foreach ($Categories as $catg): ?>
+            <label class="catg-list-item">
+                <input class="form-check-input category-checkbox" type="checkbox" value="<?php echo $catg->CategoryUID; ?>">
+                <span><?php echo htmlspecialchars($catg->Name); ?></span>
+            </label>
+        <?php endforeach; ?>
     </div>
 
-    <div class="border-top pt-2 mt-2 d-flex justify-content-between gap-2">
-        <button type="button" class="btn btn-sm btn-outline-secondary w-100" onclick="resetCategoryFilter()">Reset</button>
-        <button type="button" class="btn btn-sm btn-primary w-100" onclick="applyCategoryFilter()">Search</button>
-        <button type="button" class="btn btn-sm btn-outline-dark w-100" onclick="closeCategoryFilter();">Close</button>
+    <!-- Footer -->
+    <div class="catg-filter-footer">
+        <button type="button" class="btn btn-primary" onclick="applyCategoryFilter()"><i class="bx bx-check me-1"></i>Apply</button>
+        <button type="button" class="btn btn-outline-secondary" onclick="resetCategoryFilter()"><i class="bx bx-reset me-1"></i>Reset</button>
     </div>
 
-<?php } else { ?>
-    
-    <div class="d-flex flex-column justify-content-center align-items-center text-muted" style="height:100%;">
+<?php else: ?>
+
+    <div class="d-flex flex-column align-items-center justify-content-center py-4 text-muted">
         <i class="bx bx-info-circle fs-2 mb-2"></i>
-        <span>No record found</span>
+        <span style="font-size:0.8rem;">No categories found</span>
     </div>
 
-<?php } ?>
+<?php endif; ?>

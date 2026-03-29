@@ -21,6 +21,9 @@ function getProductDetails(PageNo, RowLimit, Filter) {
             } else {
                 $(ProdPag).html(response.Pagination);
                 $(ProdTable + ' tbody').html(response.List);
+                if (typeof response.TotalCount !== 'undefined') {
+                    updateProductCount(response.TotalCount);
+                }
             }
             executeProdPagnFunc(response, false);
         },
@@ -226,8 +229,23 @@ function executeProdPagnFunc(response, tableinfo = false) {
         $(ProdTable + ' tbody').html(response.List);
         Swal.fire(response.Message, "", "success");
     }
+    if (typeof response.TotalCount !== 'undefined') {
+        updateProductCount(response.TotalCount);
+    } else if (tableinfo) {
+        // After add/edit/delete, re-read count from pagination result count element if available
+        var $countEl = $(ProdPag).find('.pagination-result-count, [data-total-count]');
+        if ($countEl.length) updateProductCount(parseInt($countEl.data('total-count') || $countEl.text()) || 0);
+    }
     headerCheckboxTrueFalse(ProdTable, ProdHeader, ProdRow);
     MultipleDeleteOption();
+}
+
+function updateProductCount(count) {
+    var $badge = $('#productTotalCount');
+    if ($badge.length) {
+        $badge.text(count);
+        $badge.closest('.prod-count-wrap').toggleClass('d-none', false);
+    }
 }
 
 /**

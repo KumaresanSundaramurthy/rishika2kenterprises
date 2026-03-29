@@ -48,6 +48,9 @@ class Products_model extends CI_Model {
                 if (array_key_exists('NameSorting', $Filter)) {
                     $sortOperation[$ModuleInfoData->TableAliasName . '.ItemName'] = $Filter['NameSorting'] == 1 ? 'ASC' : 'DESC';
                 }
+                if (array_key_exists('CategorySorting', $Filter)) {
+                    $sortOperation['Category.Name'] = $Filter['CategorySorting'] == 1 ? 'ASC' : 'DESC';
+                }
                 if (array_key_exists('QtySorting', $Filter)) {
                     $sortOperation['Products.AvailableQuantity'] = $Filter['QtySorting'] == 1 ? 'ASC' : 'DESC';
                 }
@@ -589,9 +592,11 @@ class Products_model extends CI_Model {
                 'Category.Name AS Name',
                 'Category.Description AS Description',
                 'Category.Image AS Image',
-                'Category.CreatedOn AS CreatedOn',
+                'Category.UpdatedOn AS UpdatedOn',
+                "CONCAT(User.FirstName, ' ', User.LastName) AS UpdatedBy",
             ]);
             $this->ReadDb->from('Products.CategoryTbl as Category');
+            $this->ReadDb->join('Users.UserTbl as User', 'User.UserUID = Category.UpdatedBy', 'left');
             $this->ReadDb->where($baseWhere);
             if (!empty($searchQuery)) { $this->ReadDb->where($searchQuery, null, false); }
             if (!empty($sortArr)) {

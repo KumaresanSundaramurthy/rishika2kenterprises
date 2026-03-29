@@ -130,6 +130,7 @@ class Products extends CI_Controller {
         $resp                 = new stdClass();
         $resp->RecordHtmlData = $rowHtml;
         $resp->Pagination     = $this->buildPagePaginationHtml('getProductList', $result->totalCount, $pageNo, $limit);
+        $resp->TotalCount     = $result->totalCount;
         return $resp;
 
     }
@@ -149,7 +150,7 @@ class Products extends CI_Controller {
         $offset = ($pageNo - 1) * $limit;
 
         $result  = $this->products_model->getCategoryListPaginated($OrgUID, $limit, $offset);
-        $rowHtml = $this->load->view('products/categories/category_rows', [
+        $rowHtml = $this->load->view('products/categories/list', [
             'DataLists' => $result->rows,
             'StartFrom' => $offset,
             'JwtData'   => $this->pageData['JwtData'],
@@ -184,12 +185,12 @@ class Products extends CI_Controller {
                 $this->pageData['ModPagination'] = $this->buildPagePaginationHtml('getProductList', $tableData->totalCount, 1, $limit);
             } elseif ($activeTab === 'category') {
                 $tableData = $this->products_model->getCategoryListPaginated($OrgUID, $limit, 0);
-                $this->pageData['ModRowData'] = $this->load->view('products/categories/category_rows', [
+                $this->pageData['ModRowData'] = $this->load->view('products/categories/list', [
                     'DataLists' => $tableData->rows,
                     'StartFrom' => 0,
                     'JwtData'   => $this->pageData['JwtData'],
                 ], TRUE);
-                $this->pageData['ModPagination'] = $this->buildPagePaginationHtml('getProductList', $tableData->totalCount, 1, $limit);
+                $this->pageData['ModPagination'] = $this->buildPagePaginationHtml('getCategoryList', $tableData->totalCount, 1, $limit);
             } else {
                 $this->pageData['ModRowData']    = '';
                 $this->pageData['ModPagination'] = '';
@@ -390,10 +391,11 @@ class Products extends CI_Controller {
                 'JwtData'   => $this->pageData['JwtData'],
             ], TRUE);
 
-            $this->EndReturnData->Error      = false;
-            $this->EndReturnData->List       = $rowHtml;
-            $this->EndReturnData->Pagination = $this->buildPagePaginationHtml('getProductList', $result->totalCount, $pageNo, $limit);
-            $this->EndReturnData->UIDs       = array_column($result->rows, 'ProductUID');
+            $this->EndReturnData->Error       = false;
+            $this->EndReturnData->List        = $rowHtml;
+            $this->EndReturnData->Pagination  = $this->buildPagePaginationHtml('getProductList', $result->totalCount, $pageNo, $limit);
+            $this->EndReturnData->UIDs        = array_column($result->rows, 'ProductUID');
+            $this->EndReturnData->TotalCount  = $result->totalCount;
 
         } catch (Exception $e) {
             $this->EndReturnData->Error   = true;
@@ -968,17 +970,14 @@ class Products extends CI_Controller {
             $offset = ($pageNo - 1) * $limit;
             $filter = $this->input->post('Filter') ?: [];
 
-            $filterResult = $this->products_model->catgFilterFormation(
-                (object)['TableAliasName' => 'Category'], $filter
-            );
+            $filterResult = $this->products_model->catgFilterFormation((object)['TableAliasName' => 'Category'], $filter);
 
-            $result  = $this->products_model->getCategoryListPaginated(
-                $OrgUID, $limit, $offset,
-                $filterResult->SearchDirectQuery,
-                $filterResult->sortOperation
-            );
+            $result  = $this->products_model->getCategoryListPaginated($OrgUID, $limit, $offset, $filterResult->SearchDirectQuery, $filterResult->sortOperation);
 
-            $rowHtml = $this->load->view('products/categories/category_rows', [
+            $GeneralSettings = $this->redis_cache->get('Redis_UserGenSettings')->Value ?? NULL;
+            $this->pageData['JwtData']->GenSettings = $GeneralSettings;
+
+            $rowHtml = $this->load->view('products/categories/list', [
                 'DataLists' => $result->rows,
                 'StartFrom' => $offset,
                 'JwtData'   => $this->pageData['JwtData'],

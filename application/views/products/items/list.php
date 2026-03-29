@@ -31,7 +31,7 @@ if (!empty($DataLists)) {
         }
 ?>
 
-        <tr>
+        <tr id="product-row-<?php echo $row->ProductUID; ?>" <?php if ($row->IsComposite): ?>class="combo-parent-row"<?php endif; ?>>
             <td>
                 <div class="form-check form-check-inline">
                     <input class="form-check-input table-chkbox productsCheck" type="checkbox" value="<?php echo htmlspecialchars($row->ProductUID); ?>">
@@ -40,11 +40,16 @@ if (!empty($DataLists)) {
             <td class="<?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>"><?php echo $sno; ?></td>
             <td>
                 <div class="d-flex align-items-center gap-2">
+                    <?php if ($row->IsComposite): ?>
+                    <button type="button" class="btn btn-icon btn-sm text-warning ComboExpandBtn p-0 me-1" data-uid="<?php echo $row->ProductUID; ?>" data-loaded="0" title="View Components"><i class="bx bx-chevron-right fs-5"></i></button>
+                    <?php else: ?>
+                        <span style="display:inline-block;"></span>
+                    <?php endif; ?>
                     <div class="avatar avatar-sm me-2">
                     <?php if ($imgSrc) { ?>
                         <img src="<?php echo htmlspecialchars($imgSrc); ?>" alt="<?php echo htmlspecialchars($row->ItemName); ?>" class="rounded cursor-pointer preview-image" data-src="<?php echo htmlspecialchars($imgSrc); ?>" style="width: 40px; height: 40px; object-fit: cover;" />
                     <?php } else { ?>
-                        <span class="avatar-initial rounded bg-label-secondary"><?php echo strtoupper(substr($row->ItemName, 0, 1)); ?></span>
+                        <span class="avatar-initial rounded <?php echo $row->IsComposite ? 'bg-label-warning' : 'bg-label-secondary'; ?>"><?php echo strtoupper(substr($row->ItemName, 0, 1)); ?></span>
                     <?php } ?>
                     </div>
                     <div>
@@ -54,7 +59,6 @@ if (!empty($DataLists)) {
                             <?php if (!empty($row->HSNSACCode)): ?>
                                 <span class="text-muted"><?php echo htmlspecialchars($row->HSNSACCode); ?></span>
                             <?php endif; ?>
-                            
                             <?php if (!empty($row->PartNumber)): ?>
                                 <span class="text-secondary" title="Part Number: <?php echo $row->PartNumber; ?>">
                                     <i class="bx bx-barcode" style="font-size: 1.5rem; vertical-align: middle;"></i>
@@ -65,14 +69,31 @@ if (!empty($DataLists)) {
                 </div>
             </td>
             <td><?php echo htmlspecialchars($row->CategoryName ?? '—'); ?></td>
-            <td></td>
             <td>
-                <div class="text-dark fw-semibold"><?php echo $JwtData->GenSettings->CurrenySymbol . ' ' . number_format((float) $row->SellingPrice, 2); ?></div>
+                <?php if ($row->IsComposite): ?>
+                    <span class="text-muted">—</span>
+                <?php else: ?>
+                    <?php echo $row->AvailableQuantity > 0 ? smartDecimal($row->AvailableQuantity) : '<span class="text-muted">0</span>'; ?>
+                <?php endif; ?>
+            </td>
+            <td>
+                <?php if (!empty($row->MRP) && $row->MRP > 0): ?>
+                    <div class="text-muted" style="font-size:0.8rem;"><?php echo $JwtData->GenSettings->CurrenySymbol . ' ' . smartDecimal($row->MRP); ?></div>
+                <?php else: ?>
+                    <span class="text-muted">—</span>
+                <?php endif; ?>
+            </td>
+            <td>
+                <div class="text-dark fw-semibold"><?php echo $JwtData->GenSettings->CurrenySymbol . ' ' . smartDecimal($row->SellingPrice); ?></div>
                 <?php echo $sellingTaxStr; ?>
             </td>
             <td>
-                <div class="text-dark fw-semibold"><?php echo $JwtData->GenSettings->CurrenySymbol . ' ' . number_format((float) $row->PurchasePrice, 2); ?></div>
-                <?php echo $purchaseTaxStr; ?>
+                <?php if ($row->IsComposite): ?>
+                    <span class="text-muted">—</span>
+                <?php else: ?>
+                    <div class="text-dark fw-semibold"><?php echo $JwtData->GenSettings->CurrenySymbol . ' ' . smartDecimal($row->PurchasePrice); ?></div>
+                    <?php echo $purchaseTaxStr; ?>
+                <?php endif; ?>
             </td>
             <td>
                 <div><?php echo changeTimeZonefromDateTime($row->UpdatedOn, $JwtData->User->Timezone, 2); ?></div>
@@ -80,11 +101,20 @@ if (!empty($DataLists)) {
             </td>
             <td>
                 <div class="d-flex align-items-sm-center justify-content-sm-center">
-                    <a href="javascript: void(0);" class="btn btn-icon text-warning EditProduct" data-uid="<?php echo htmlspecialchars($row->ProductUID); ?>"><i class="bx bx-edit me-1"></i></a>
+                    <a href="javascript: void(0);" class="btn btn-icon text-warning EditProduct" data-uid="<?php echo htmlspecialchars($row->ProductUID); ?>" data-iscomposite="<?php echo (int) $row->IsComposite; ?>"><i class="bx bx-edit me-1"></i></a>
                     <button class="btn btn-icon text-danger DeleteProduct" data-productuid="<?php echo htmlspecialchars($row->ProductUID); ?>"><i class="bx bx-trash"></i></button>
                 </div>
             </td>
         </tr>
+        <?php if ($row->IsComposite): ?>
+        <tr id="combo-bom-row-<?php echo $row->ProductUID; ?>" class="d-none combo-bom-row">
+            <td colspan="10" class="p-0">
+                <div class="combo-bom-content px-3 py-0" style="border-left: 4px solid #fd7e14; background: linear-gradient(to right, rgba(253,126,20,0.06), transparent 60%);">
+                    <div class="combo-bom-loading text-muted small py-2 ps-1"><i class="bx bx-loader-alt bx-spin me-1"></i> Loading components...</div>
+                </div>
+            </td>
+        </tr>
+        <?php endif; ?>
 
 <?php }
 } else { ?>

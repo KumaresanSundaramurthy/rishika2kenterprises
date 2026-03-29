@@ -5,7 +5,7 @@
     <div class="modal-dialog modal-dialog-full-height modal-xl">
         <div class="modal-content modal-content-hidden h-100 d-flex flex-column">
 
-            <?php $FormAttribute = array('id' => 'AddEditItemForm', 'name' => 'AddEditItemForm', 'class' => '', 'autocomplete' => 'off');
+        <?php $FormAttribute = array('id' => 'AddEditItemForm', 'name' => 'AddEditItemForm', 'class' => '', 'autocomplete' => 'off');
                 echo form_open('products/addEditItem', $FormAttribute); ?>
 
             <div class="modal-header modal-header-center-sticky trans-theme d-flex justify-content-between align-items-center p-3">
@@ -17,6 +17,7 @@
             </div>
 
             <input type="hidden" name="ProductUID" id="HProductUID" value="0" />
+            <input type="hidden" name="<?= $this->security->get_csrf_token_name() ?>" value="<?= $this->security->get_csrf_hash() ?>">
 
             <div class="d-none col-lg-12 px-5 mt-3 addEditFormAlert" role="alert"></div>
             
@@ -58,6 +59,13 @@
                             </div>
                         </div>
                         <div class="mb-3 col-md-6">
+                            <label for="MRP" class="form-label">MRP (Maximum Retail Price)</label>
+                            <div class="input-group input-group-merge">
+                                <span class="input-group-text"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span>
+                                <input type="text" class="form-control" name="MRP" id="MRP" min="0" placeholder="Enter MRP" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" maxLength="<?php echo $JwtData->GenSettings->PriceMaxLength; ?>" pattern="^\d{1,<?php echo $JwtData->GenSettings->PriceMaxLength; ?>}(\.\d{0,<?php echo $JwtData->GenSettings->DecimalPoints; ?>})?$" onpaste="handlePricePaste(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" ondrop="handlePriceDrop(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" value="0" />
+                            </div>
+                        </div>
+                        <div class="mb-3 col-md-6">
                             <label for="PurchasePrice" class="form-label">Purchase Price </label>
                             <div class="input-group input-group-merge">
                                 <span class="input-group-text"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span>
@@ -93,7 +101,7 @@
                                 } ?>
                             </select>
                         </div>
-                        <div class="mb-3 <?php echo ($JwtData->GenSettings->EnableStorage == 1) ? 'col-md-6' : 'col-md-12'; ?>">
+                        <div class="mb-3 col-md-6">
                             <label for="Category" class="form-label">Category <span style="color:red">*</span></label>
                             <select id="Category" name="Category" class="select2 form-select" required>
                                 <option label="-- Select Category --"></option>
@@ -142,25 +150,10 @@
                                     <input type="text" class="form-control" placeholder="Enter HSN/ SAC" name="HSNCode" id="HSNCode" maxlength="100" />
                                 </div>
                                 <div class="mb-3 col-md-6">
-                                    <label for="Standard" class="form-label">Standard</label>
-                                    <input type="text" class="form-control" placeholder="Enter Standard" name="Standard" id="Standard" maxlength="100" />
+                                    <label for="SKU" class="form-label">SKU <i class="bx bx-help-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="right" title="Stock keeping unit of the item"></i></label>
+                                    <input type="text" class="form-control" placeholder="Enter SKU" name="SKU" id="SKU" maxlength="50" />
                                 </div>
-                                <div class="mb-3 col-md-6">
-                                    <label for="BrandUID" class="form-label">Brand </label>
-                                    <select class="form-select" id="BrandUID" name="BrandUID">
-                                        <option label="-- Select Brand --"></option>
-                                        <?php if (sizeof($BrandInfo) > 0) {
-                                            foreach ($BrandInfo as $Brand) { ?>
-                                                <option value="<?php echo $Brand->BrandUID; ?>"><?php echo $Brand->Name; ?></option>
-                                        <?php }
-                                        } ?>
-                                    </select>
-                                </div>
-                                <div class="mb-3 col-md-6">
-                                    <label for="Model" class="form-label">Model</label>
-                                    <input type="text" class="form-control" placeholder="Enter Model" name="Model" id="Model" maxlength="100" />
-                                </div>
-                                <div class="mb-3 col-md-8">
+                                <div class="mb-3 col-md-12">
                                     <label for="PartNumber" class="form-label">Barcode / Part No. </label>
                                     <div class="input-group">
                                         <input class="form-control w-75" type="text" id="PartNumber" name="PartNumber" placeholder="Enter Part Number" maxlength="25" />
@@ -172,27 +165,30 @@
                                     <label class="switch switch-primary switch-lg">
                                         <input type="checkbox" id="IsSizeApplicable" name="IsSizeApplicable" class="switch-input">
                                         <span class="switch-toggle-slider">
-                                            <span class="switch-on">
-                                                <i class="icon-base bx bx-check"></i>
-                                            </span>
-                                            <span class="switch-off">
-                                                <i class="icon-base bx bx-x"></i>
-                                            </span>
+                                            <span class="switch-on"><i class="icon-base bx bx-check"></i></span>
+                                            <span class="switch-off"><i class="icon-base bx bx-x"></i></span>
                                         </span>
                                     </label>
                                 </div>
-                            </div>
-                            <div class="row">
-                                <div class="mb-3 col-md-6 d-none" id="SizeDiv">
-                                    <label for="SizeUID" class="form-label">Size <span style="color:red">*</span></label>
-                                    <select class="form-select" id="PSizeUID" name="SizeUID">
-                                        <option label="-- Select Size --"></option>
-                                        <?php if (sizeof($SizeInfo) > 0) {
-                                            foreach ($SizeInfo as $size) { ?>
-                                                <option value="<?php echo $size->SizeUID; ?>"><?php echo $size->Name; ?></option>
-                                        <?php }
-                                        } ?>
-                                    </select>
+                                <div class="mb-3 col-md-4">
+                                    <label for="IsBrandApplicable" class="form-label d-block">Brand Applicable </label>
+                                    <label class="switch switch-primary switch-lg">
+                                        <input type="checkbox" id="IsBrandApplicable" name="IsBrandApplicable" class="switch-input">
+                                        <span class="switch-toggle-slider">
+                                            <span class="switch-on"><i class="icon-base bx bx-check"></i></span>
+                                            <span class="switch-off"><i class="icon-base bx bx-x"></i></span>
+                                        </span>
+                                    </label>
+                                </div>
+                                <div class="mb-3 col-md-4">
+                                    <label for="IsSerialTracked" class="form-label d-block">Serial Tracked </label>
+                                    <label class="switch switch-primary switch-lg">
+                                        <input type="checkbox" id="IsSerialTracked" name="IsSerialTracked" class="switch-input">
+                                        <span class="switch-toggle-slider">
+                                            <span class="switch-on"><i class="icon-base bx bx-check"></i></span>
+                                            <span class="switch-off"><i class="icon-base bx bx-x"></i></span>
+                                        </span>
+                                    </label>
                                 </div>
                             </div>
                         </div>
@@ -245,21 +241,66 @@
                             <label class="switch switch-primary switch-lg">
                                 <input type="checkbox" id="NotForSale" name="NotForSale" class="switch-input">
                                 <span class="switch-toggle-slider">
-                                    <span class="switch-on">
-                                        <i class="icon-base bx bx-check"></i>
-                                    </span>
-                                    <span class="switch-off">
-                                        <i class="icon-base bx bx-x"></i>
-                                    </span>
+                                    <span class="switch-on"><i class="icon-base bx bx-check"></i></span>
+                                    <span class="switch-off"><i class="icon-base bx bx-x"></i></span>
                                 </span>
                             </label>
                         </div>
                     </div>
+                    <hr>
+
+                    <!-- Customer Type Pricing -->
+                    <div class="card-header modal-header-border-bottom p-1 mb-3">
+                        <h5 class="modal-title mb-0">Customer Type Pricing <span class="text-muted small">(Optional — set different price per customer type)</span></h5>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-7">
+                            <label class="form-label">Customer Type</label>
+                            <select id="CustomerTypeSelect" class="select2 form-select">
+                                <option value="">-- Select Customer Type --</option>
+                                <?php if (!empty($CustomerTypeInfo)) {
+                                    foreach ($CustomerTypeInfo as $ct) { ?>
+                                        <option value="<?php echo $ct->CustomerTypeUID; ?>"><?php echo $ct->TypeName; ?></option>
+                                <?php }
+                                } ?>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Selling Price</label>
+                            <div class="input-group input-group-merge">
+                                <span class="input-group-text"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span>
+                                <input type="text" class="form-control" name="CustomerTypePrice" id="CustomerTypePrice" min="0" placeholder="Enter Price" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" maxLength="<?php echo $JwtData->GenSettings->PriceMaxLength; ?>" pattern="^\d{1,<?php echo $JwtData->GenSettings->PriceMaxLength; ?>}(\.\d{0,<?php echo $JwtData->GenSettings->DecimalPoints; ?>})?$" onpaste="handlePricePaste(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" ondrop="handlePriceDrop(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" />
+                            </div>
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="button" class="btn btn-success w-100" id="AddCustomerPriceBtn">
+                                <i class="bx bx-plus"></i> Add
+                            </button>
+                        </div>
+                    </div>
+                    <div class="table-responsive mb-3">
+                        <table class="table table-bordered table-sm" id="CustomerPricingTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Customer Type</th>
+                                    <th>Selling Price</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="CustomerPricingBody">
+                                <tr id="CustomerPricingEmptyRow">
+                                    <td colspan="4" class="text-center text-muted">No rates added. Default selling price applies to all customers.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <input type="hidden" name="CustomerPricingData" id="CustomerPricingData" value="[]" />
 
                 </div>
             </div>
 
-            <?php echo form_close(); ?>
+        <?php echo form_close(); ?>
 
         </div>
     </div>

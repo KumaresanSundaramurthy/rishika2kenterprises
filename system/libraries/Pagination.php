@@ -576,7 +576,8 @@ class CI_Pagination {
 		}
 
 		// And here we go...
-		$output = '<div class="dt-paging"><nav aria-label="pagination"><ul class="pagination pagination-rounded">';
+		// $output = '<div class="dt-paging"><nav aria-label="pagination"><ul class="pagination pagination-rounded">';
+		$output = '<div class="dt-paging"><nav aria-label="pagination"><ul class="pagination">';
 
 		// Render the "First" link.
 		if ($this->first_link !== FALSE && $this->cur_page > ($this->num_links + 1 + ! $this->num_links))

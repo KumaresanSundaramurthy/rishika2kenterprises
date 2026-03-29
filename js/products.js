@@ -5,14 +5,14 @@
  */
 function getProductDetails(PageNo, RowLimit, Filter) {
     $.ajax({
-        url: '/globally/getModPageDataDetails/' + PageNo,
+        url: '/products/getProductList',
         method: "POST",
         cache: false,
         data: {
-            ModuleId: ItemModuleId,
             RowLimit: RowLimit,
             PageNo: PageNo,
             Filter: Filter,
+            [CsrfName]: CsrfToken,
         },
         success: function (response) {
             if (response.Error) {
@@ -39,7 +39,7 @@ function addProductData(formdata) {
         success: function (response) {
             if (response.Error) {
                 $('.addEditFormAlert').removeClass('d-none');
-                inlineMessageAlert('.addEditFormAlert', 'danger', response.Message, false, false);
+                Swal.fire({icon: "error", title: "Oops...", text: response.Message});
             } else {
                 myOneDropzone.removeAllFiles(true);
                 quill.setContents([]);
@@ -59,6 +59,7 @@ function retrieveProductDetails(ItemUID, CloneFlag = false) {
         cache: false,
         data: {
             ItemUID: ItemUID,
+            [CsrfName]: CsrfToken,
         },
         success: function (response) {
             if (response.Error) {
@@ -85,6 +86,7 @@ function retrieveProductDetails(ItemUID, CloneFlag = false) {
                 $('#ItemName').val(response.Data.ItemName);
                 $('#ProductType').val(response.Data.ProductType);
                 $('#SellingPrice').val(smartDecimal(response.Data.SellingPrice));
+                $('#MRP').val(smartDecimal(response.Data.MRP));
                 $('#SellingTaxOption').val(response.Data.SellingProductTaxUID).trigger('change');
                 $('#TaxPercentage').val(response.Data.TaxDetailsUID).trigger('change');
                 $('#PrimaryUnit').val(response.Data.PrimaryUnitUID).trigger('change');
@@ -104,6 +106,16 @@ function retrieveProductDetails(ItemUID, CloneFlag = false) {
                     $('#IsSizeApplicable').prop('checked', true).trigger('change');
                     $('#SizeDiv').removeClass('d-none');
                     $('#PSizeUID').val(response.Data.SizeUID).trigger('change').prop('required', true);
+                }
+                if (response.Data.IsBrandApplicable == 1) {
+                    $('#IsBrandApplicable').prop('checked', true);
+                }
+                if (response.Data.IsSerialTracked == 1) {
+                    $('#IsSerialTracked').prop('checked', true);
+                }
+                // Load customer type pricing
+                if (typeof loadCustomerPricingRows === 'function') {
+                    loadCustomerPricingRows(response.CustomerPricing || []);
                 }
                 
                 if (hasValue(response.Data.Image)) {
@@ -166,7 +178,8 @@ function deleteProduct(ProductUID) {
             PageNo: PageNo,
             Filter: Filter,
             ProductUID: ProductUID,
-            ModuleId: ItemModuleId
+            ModuleId: ItemModuleId,
+            [CsrfName]: CsrfToken,
         },
         success: function (response) {
             if (response.Error) {
@@ -193,7 +206,8 @@ function deleteMultipleProduct() {
             PageNo: PageNo,
             Filter: Filter,
             ProductUIDs: SelectedUIDs,
-            ModuleId: ItemModuleId
+            ModuleId: ItemModuleId,
+            [CsrfName]: CsrfToken,
         },
         success: function (response) {
             if (response.Error) {
@@ -223,14 +237,14 @@ function executeProdPagnFunc(response, tableinfo = false) {
  */
 function getCategoriesDetails(PageNo, RowLimit, Filter) {
     $.ajax({
-        url: '/globally/getModPageDataDetails/' + PageNo,
+        url: '/products/getCategoryList',
         method: "POST",
         cache: false,
         data: {
             RowLimit: RowLimit,
             PageNo: PageNo,
             Filter: Filter,
-            ModuleId: CategoryModuleId
+            [CsrfName]: CsrfToken,
         },
         success: function (response) {
             if (response.Error) {
@@ -409,14 +423,13 @@ function executeCatgPagnFunc(response, tableinfo = false) {
  */
 function getSizesDetails(PageNo, RowLimit, Filter) {
     $.ajax({
-        url: '/globally/getModPageDataDetails/' + PageNo,
+        url: '/products/getSizeList',
         method: "POST",
         cache: false,
         data: {
             RowLimit: RowLimit,
             PageNo: PageNo,
             Filter: Filter,
-            ModuleId: SizeModuleId
         },
         success: function (response) {
             if (response.Error) {
@@ -586,14 +599,13 @@ function executeSizePagnFunc(response, tableinfo = false) {
  */
 function getBrandsDetails(PageNo, RowLimit, Filter) {
     $.ajax({
-        url: '/globally/getModPageDataDetails/' + PageNo,
+        url: '/products/getBrandList',
         method: "POST",
         cache: false,
         data: {
             RowLimit: RowLimit,
             PageNo: PageNo,
             Filter: Filter,
-            ModuleId: BrandModuleId
         },
         success: function (response) {
             if (response.Error) {
@@ -940,6 +952,7 @@ function formOpenCloseDefActions() {
 }
 
 function showProductPageDetails() {
+    if (typeof updateColumnHighlights === 'function') updateColumnHighlights();
     if (ActiveTabId == 'Item') {
         getProductDetails(PageNo, RowLimit, Filter);
     } else if (ActiveTabId == 'Categories') {
@@ -956,10 +969,15 @@ function clearItemValues() {
     $('#ProductType').val('Product').trigger('change');
     $('#SellingTaxOption,#PurchaseTaxOption,#DiscountOption').val(1).trigger('change');
     $('#TaxPercentage,#PrimaryUnit,#Category,#StorageUID,#BrandUID,#PSizeUID').val(null).trigger('change');
-    $('#IsSizeApplicable,#NotForSale').prop('checked', false).trigger('change');
+    $('#IsSizeApplicable,#IsBrandApplicable,#IsSerialTracked,#NotForSale').prop('checked', false).trigger('change');
     $('#SizeDiv').addClass('d-none');
     myOneDropzone.removeAllFiles(true);
     quill.setContents([]);
+    // Reset customer pricing
+    if (typeof loadCustomerPricingRows === 'function') loadCustomerPricingRows([]);
+    $('#CustomerTypeSelect').val('').trigger('change');
+    $('#CustomerTypePrice').val('');
+    $('#CustomerPricingData').val('[]');
 }
 
 function commonExportFunctions() {
@@ -1073,19 +1091,17 @@ function closeProdTypeFilter() {
 }
 
 function refreshSearchCateg() {
-    $('#categoryFilterBox').hide();
-    // ($('#categoryFilterBox .category-checkbox').length == 0)
     AjaxLoading = 0;
-    $('#categoryFilterBox').html('<div class="d-flex justify-content-center align-items-center p-3"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>');
+    $('#categoryFilterBox').html('<div class="d-flex justify-content-center align-items-center p-3"><div class="spinner-border spinner-border-sm text-primary" role="status"></div></div>');
     $.ajax({
         url: '/products/getAllCategories/',
         method: "POST",
         cache: false,
+        data: { [CsrfName]: CsrfToken },
         success: function (response) {
             AjaxLoading = 1;
             if (response.Error) {
-                $('#categoryFilterBox').html('');
-                $('#categoryFilterBox').html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');
+                $('#categoryFilterBox').html('<div class="alert alert-danger mb-0 py-2 small">' + response.Message + '</div>');
             } else {
                 $('#categoryFilterBox').html(response.HtmlData);
             }
@@ -1094,10 +1110,13 @@ function refreshSearchCateg() {
 }
 
 function toggleCategoryFilter() {
-    // $('#categoryFilterBox').toggle();
     const $target = $('#categoryFilterBox');
     $('.mp-filterbox').not($target).hide();
+    var opening = !$target.is(':visible');
     $target.toggle();
+    if (opening && $target.find('.category-checkbox').length === 0) {
+        refreshSearchCateg();
+    }
 }
 
 function closeCategoryFilter() {
@@ -1107,9 +1126,14 @@ function closeCategoryFilter() {
 function resetCategoryFilter() {
     $('.category-checkbox').prop('checked', false);
     $('#selectAllCategories').prop('checked', false);
+    $('#selectAllLabel').text('Select All');
     if (Filter.Category) {
-        applyCategoryFilter();
+        delete Filter['Category'];
+        $('#categoryFilter').removeClass('text-primary');
+        PageNo = 0;
+        showProductPageDetails();
     }
+    $('#categoryFilterBox').hide();
 }
 
 function applyCategoryFilter() {
@@ -1263,54 +1287,6 @@ function toggleAllStorage(main) {
     $('.storage-checkbox').prop('checked', isChecked);
     $('#str_selectAllLabel').text(isChecked ? 'Clear All' : 'Select All');
 }
-
-$('#ProductType').on('change', function (e) {
-    e.preventDefault();
-    var getVal = $(this).val();
-    $('#AddEditItemForm').find('#OpeningQuantity,#OpeningPurchasePrice,#OpeningStockValue').val(0);
-    if (getVal == 'Product') {
-        $('.OpeningStockDiv').removeClass('d-none');
-    } else if (getVal == 'Service') {
-        $('.OpeningStockDiv').addClass('d-none');
-    }
-});
-
-$('#IsSizeApplicable').on('change', function () {
-    $('#SizeDiv').addClass('d-none');
-    $('#PSizeUID').removeAttr('required').val('').trigger('change');
-    if ($(this).is(':checked')) {
-        $('#SizeDiv').removeClass('d-none');
-        $('#SizeDiv').attr('required', true);
-        $('#PSizeUID').val('').trigger('change');
-    }
-});
-
-$('#DiscountOption').change(function (e) {
-    e.preventDefault();
-    var value = $(this).val();
-    if (value == 1) {
-        $('#Discount').attr('placeholder', 'Enter Discount Percentage');
-        var Discount = $('#Discount').val();
-        if (Discount > 0 && Discount > 100) {
-            $('#Discount').val(0);
-        }
-    } else if (value == 2) {
-        $('#Discount').attr('placeholder', 'Enter Discount Amount');
-    }
-});
-
-$('#SellingTaxOption').change(function (e) {
-    e.preventDefault();
-    var getVal = $(this).find('option:selected').val();
-    if (getVal) {
-        $('#SellingPriceTaxHelp,#SellingPriceWTaxHelp').addClass('d-none');
-        if (getVal == '1') {
-            $('#SellingPriceTaxHelp').removeClass('d-none');
-        } else if (getVal == '2') {
-            $('#SellingPriceWTaxHelp').removeClass('d-none');
-        }
-    }
-});
 
 function loadTaxDetailOptions() {
     $('#TaxPercentage').select2({

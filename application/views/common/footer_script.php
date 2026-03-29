@@ -22,6 +22,7 @@ var exportModule;
 var expActionType;
 var delBankDataFlag = 0;
 var delBankData = [];
+const currencySymbol = '<?php echo $JwtData->GenSettings->CurrenySymbol ?? '₹'; ?>';
 $(function() {
 	'use strict'
 

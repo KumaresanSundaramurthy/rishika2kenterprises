@@ -24,16 +24,16 @@
                                 <div class="d-flex flex-column flex-md-row justify-content-between align-items-center p-3">
                                     <ul class="nav nav-pills nav nav-pills flex-row" role="tablist">
                                         <li class="nav-item">
-                                            <a class="nav-link <?php echo $ActiveTabData == 'item' ? 'active' : ''; ?> TabPane disabled" data-id="Item" data-moduleid="<?php echo $ItemModuleId; ?>" role="tab" data-bs-toggle="tab" data-bs-target="#NavItemPage" aria-controls="NavItemPage" aria-selected="true" href="javascript: void(0);"><i class="bx bx-package me-1"></i> Item</a>
+                                            <a class="nav-link <?php echo $ActiveTabData == 'item' ? 'active' : ''; ?> TabPane disabled" data-id="Item" role="tab" data-bs-toggle="tab" data-bs-target="#NavItemPage" aria-controls="NavItemPage" aria-selected="true" href="javascript: void(0);"><i class="bx bx-package me-1"></i> Item</a>
                                         </li>
                                         <li class="nav-item">
-                                            <a class="nav-link <?php echo $ActiveTabData == 'category' ? 'active' : ''; ?> TabPane disabled" data-id="Categories" data-moduleid="<?php echo $CategoryModuleId; ?>" role="tab" data-bs-toggle="tab" data-bs-target="#NavCategoriesPage" aria-controls="NavCategoriesPage" aria-selected="true" href="javascript: void(0);"><i class="bx bx-layer me-1"></i> Categories</a>
+                                            <a class="nav-link <?php echo $ActiveTabData == 'category' ? 'active' : ''; ?> TabPane disabled" data-id="Categories" role="tab" data-bs-toggle="tab" data-bs-target="#NavCategoriesPage" aria-controls="NavCategoriesPage" aria-selected="true" href="javascript: void(0);"><i class="bx bx-layer me-1"></i> Categories</a>
                                         </li>
                                         <li class="nav-item">
-                                            <a class="nav-link <?php echo $ActiveTabData == 'size' ? 'active' : ''; ?> TabPane disabled" data-id="Sizes" data-moduleid="<?php echo $SizeModuleId; ?>" role="tab" data-bs-toggle="tab" data-bs-target="#NavSizesPage" aria-controls="NavSizesPage" aria-selected="true" href="javascript: void(0);"><i class="bx bx-ruler me-1"></i> Sizes</a>
+                                            <a class="nav-link <?php echo $ActiveTabData == 'size' ? 'active' : ''; ?> TabPane disabled" data-id="Sizes" role="tab" data-bs-toggle="tab" data-bs-target="#NavSizesPage" aria-controls="NavSizesPage" aria-selected="true" href="javascript: void(0);"><i class="bx bx-ruler me-1"></i> Sizes</a>
                                         </li>
                                         <li class="nav-item">
-                                            <a class="nav-link <?php echo $ActiveTabData == 'brand' ? 'active' : ''; ?> TabPane disabled" data-id="Brands" data-moduleid="<?php echo $BrandModuleId; ?>" role="tab" data-bs-toggle="tab" data-bs-target="#NavBrandsPage" aria-controls="NavBrandsPage" aria-selected="true" href="javascript: void(0);"><i class="bx bx-badge-check me-1"></i> Brands</a>
+                                            <a class="nav-link <?php echo $ActiveTabData == 'brand' ? 'active' : ''; ?> TabPane disabled" data-id="Brands" role="tab" data-bs-toggle="tab" data-bs-target="#NavBrandsPage" aria-controls="NavBrandsPage" aria-selected="true" href="javascript: void(0);"><i class="bx bx-badge-check me-1"></i> Brands</a>
                                         </li>
                                     </ul>
                                     <div class="d-flex mt-2 mt-md-0">
@@ -91,6 +91,7 @@
                                             </ul>
                                         </div>
                                         <a href="javascript: void(0);" class="btn btn-primary px-3 addItem <?php echo $ActiveTabData == 'item' ? '' : 'd-none'; ?>" id="NewItem"> Create Item</a>
+                                        <a href="javascript: void(0);" class="btn btn-outline-primary px-3 ms-2 <?php echo $ActiveTabData == 'item' ? '' : 'd-none'; ?>" id="NewComboItem"><i class="bx bx-git-merge me-1"></i> Add Combo Item</a>
                                         <a href="javascript: void(0);" class="btn btn-primary px-3 addCategory <?php echo $ActiveTabData == 'category' ? '' : 'd-none'; ?>" id="NewCategory"> Create Category</a>
                                         <a href="javascript: void(0);" class="btn btn-primary px-3 addSizes <?php echo $ActiveTabData == 'size' ? '' : 'd-none'; ?>" id="NewSizes"> Create Size</a>
                                         <a href="javascript: void(0);" class="btn btn-primary px-3 addBrands <?php echo $ActiveTabData == 'brand' ? '' : 'd-none'; ?>" id="NewBrands"> Create Brand</a>
@@ -110,68 +111,25 @@
                                                             </div>
                                                         </th>
                                                         <th class="table-serialno <?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>">S.No</th>
-                                                        <?php foreach (array_column($ItemColumns, 'DisplayName') as $ItemKey => $ItemVal) {
-                                                            if ($ItemVal === 'Storage' && ($JwtData->GenSettings->EnableStorage ?? 0) != 1) {
-                                                                continue;
-                                                            } ?>
-                                                            <th <?php echo $ItemColumns[$ItemKey]->MainPageColumnAddon; ?>>
-
-                                                                <?php echo $ItemVal; ?>
-
-                                                                <?php if ($ItemColumns[$ItemKey]->MPSortApplicable == 1) {
-                                                                    echo '<i class="bx bx-sort ms-1 cursor-pointer"></i>';
-                                                                } ?>
-
-                                                                <?php if ($ItemVal == 'Product Type' && $ItemColumns[$ItemKey]->MPFilterApplicable == 1) { ?>
-
-                                                                    <a href="javascript:void(0);" class="text-body ms-1 filter-toggle" data-target="#prodTypeFilterBox">
-                                                                        <i class="bx bx-filter-alt fs-5 align-middle"></i>
-                                                                    </a>
-
-                                                                    <div id="prodTypeFilterBox" class="card shadow mp-filterbox position-absolute p-3">
-
-                                                                    <?php if (sizeof($fltCategoryData) > 0) {
-                                                                        echo $this->load->view('products/items/prodtypefilter', ['ProdTypeInfo' => $ProdTypeInfo], TRUE);
-                                                                    } ?>
-
-                                                                    </div>
-
-                                                                <?php } ?>
-
-                                                                <?php if ($ItemVal == 'Category' && $ItemColumns[$ItemKey]->MPFilterApplicable == 1) { ?>
-
-                                                                    <a href="javascript:void(0);" class="text-body ms-1 filter-toggle" data-target="#categoryFilterBox">
-                                                                        <i class="bx bx-filter-alt fs-5 align-middle"></i>
-                                                                    </a>
-
-                                                                    <div id="categoryFilterBox" class="card shadow mp-filterbox position-absolute p-3">
-
-                                                                    <?php if (sizeof($fltCategoryData) > 0) {
-                                                                        echo $this->load->view('products/items/catgfilter', ['Categories' => $fltCategoryData], TRUE);
-                                                                    } ?>
-
-                                                                    </div>
-
-                                                                <?php } ?>
-
-                                                                <?php if ($ItemVal == 'Storage' && $JwtData->GenSettings->EnableStorage == 1 && $ItemColumns[$ItemKey]->MPFilterApplicable == 1) { ?>
-
-                                                                    <a href="javascript:void(0);" class="text-body ms-1 filter-toggle" data-target="#storageFilterBox">
-                                                                        <i class="bx bx-filter-alt fs-5 align-middle"></i>
-                                                                    </a>
-
-                                                                    <div id="storageFilterBox" class="card shadow mp-filterbox position-absolute p-3">
-
-                                                                    <?php if (sizeof($fltStorageData) > 0) {
-                                                                        echo $this->load->view('products/items/storagefilter', ['Storage' => $fltStorageData], TRUE);
-                                                                    } ?>
-
-                                                                    </div>
-
-                                                                <?php } ?>
-
-                                                            </th>
-                                                        <?php } ?>
+                                                        <th class="name-sortable position-relative" id="sortName" title="Sort by Name">
+                                                            <span class="cursor-pointer">Item <i class="bx bx-sort ms-1"></i></span>
+                                                            <a href="javascript:void(0);" id="productTypeFilter" class="text-body ms-1" onclick="toggleProductTypeFilter(); event.stopPropagation();" title="Filter by Product Type"><i class="bx bx-filter-alt fs-6 align-middle"></i></a>
+                                                            <div id="productTypeFilterBox" class="card mp-filterbox position-absolute" style="min-width:200px; z-index:1056; display:none; top:100%; left:0;"><?php $this->load->view('products/items/ptypefilter'); ?></div>
+                                                        </th>
+                                                        <th class="position-relative">
+                                                            Category
+                                                            <span id="ItemCategory-Div" class="<?php echo $ActiveTabData == 'item' ? '' : 'd-none'; ?>">
+                                                                <a href="javascript:void(0);" id="categoryFilter" class="text-body ms-1" onclick="toggleCategoryFilter()" title="Filter by Category">
+                                                                    <i class="bx bx-filter-alt fs-6 align-middle"></i>
+                                                                </a>
+                                                                <div id="categoryFilterBox" class="card shadow mp-filterbox position-absolute" style="min-width:260px; z-index:1055; display:none;"></div>
+                                                            </span>
+                                                        </th>
+                                                        <th class="col-sortable cursor-pointer" data-filterkey="QtySorting" data-sortcol="Products.AvailableQuantity" title="Sort by Quantity">Qty <i class="bx bx-sort ms-1"></i></th>
+                                                        <th class="col-sortable cursor-pointer" data-filterkey="MRPSorting" data-sortcol="Products.MRP" title="Sort by MRP">MRP <i class="bx bx-sort ms-1"></i></th>
+                                                        <th class="col-sortable cursor-pointer" data-filterkey="SellingPriceSorting" data-sortcol="Products.SellingPrice" title="Sort by Selling Price">Selling Price <i class="bx bx-sort ms-1"></i></th>
+                                                        <th class="col-sortable cursor-pointer" data-filterkey="PurchasePriceSorting" data-sortcol="Products.PurchasePrice" title="Sort by Purchase Price">Purchase Price <i class="bx bx-sort ms-1"></i></th>
+                                                        <th>Last Updated</th>
                                                         <th class="text-center">Actions</th>
                                                     </tr>
                                                 </thead>
@@ -204,16 +162,6 @@
                                                             </div>
                                                         </th>
                                                         <th class="table-serialno <?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>">S.No</th>
-                                                        <?php foreach (array_column($CategoryColumns, 'DisplayName') as $CtgKey => $CtgVal) { ?>
-                                                            <th <?php echo $CategoryColumns[$CtgKey]->MainPageColumnAddon; ?>>
-                                                                
-                                                                <?php echo $CtgVal; ?>
-                                                                <?php if ($CategoryColumns[$CtgKey]->MPSortApplicable == 1) {
-                                                                    echo '<i class="bx bx-sort ms-1 cursor-pointer"></i>';
-                                                                } ?>
-
-                                                            </th>
-                                                        <?php } ?>
                                                         <th class="text-center">Actions</th>
                                                     </tr>
                                                 </thead>
@@ -246,14 +194,6 @@
                                                             </div>
                                                         </th>
                                                         <th class="table-serialno <?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>">S.No</th>
-                                                        <?php foreach (array_column($SizeColumns, 'DisplayName') as $SzKey => $SzVal) { ?>
-                                                            <th <?php echo $SizeColumns[$SzKey]->MainPageColumnAddon; ?>>
-                                                                <?php echo $SzVal; ?>
-                                                                <?php if ($SizeColumns[$SzKey]->MPSortApplicable == 1) {
-                                                                    echo '<i class="bx bx-sort ms-1 cursor-pointer"></i>';
-                                                                } ?>
-                                                            </th>
-                                                        <?php } ?>
                                                         <th class="text-center">Actions</th>
                                                     </tr>
                                                 </thead>
@@ -286,14 +226,6 @@
                                                             </div>
                                                         </th>
                                                         <th class="table-serialno <?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>">S.No</th>
-                                                        <?php foreach (array_column($BrandColumns, 'DisplayName') as $BrdKey => $BrdVal) { ?>
-                                                            <th <?php echo $BrandColumns[$BrdKey]->MainPageColumnAddon; ?>>
-                                                                <?php echo $BrdVal; ?>
-                                                                <?php if ($BrandColumns[$BrdKey]->MPSortApplicable == 1) {
-                                                                    echo '<i class="bx bx-sort ms-1 cursor-pointer"></i>';
-                                                                } ?>
-                                                            </th>
-                                                        <?php } ?>
                                                         <th class="text-center">Actions</th>
                                                     </tr>
                                                 </thead>
@@ -323,9 +255,10 @@
             </div>
             <!-- Content wrapper -->
 
-            <?php $this->load->view('common/settings_modal'); ?>
+            <?php $this->load->view('common/imagepreview_modal'); ?>
 
             <?php $this->load->view('products/modals/items'); ?>
+            <?php $this->load->view('products/modals/combo'); ?>
             <?php $this->load->view('products/modals/category'); ?>
             <?php $this->load->view('products/modals/sizes'); ?>
             <?php $this->load->view('products/modals/brands'); ?>
@@ -339,32 +272,241 @@
 
 <?php $this->load->view('common/footer'); ?>
 
+<style>
+    /* ── Products Table Header ── */
+    #ProductsTable thead.bg-body-tertiary {
+        background: linear-gradient(90deg, #eff0ff 0%, #f7f5ff 100%) !important;
+    }
+    #ProductsTable thead.bg-body-tertiary tr th {
+        padding: 10px 12px;
+        font-size: 0.71rem;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: #3e3fa8;
+        background: transparent !important;
+        border-top: none;
+        border-bottom: 3px solid #696cff !important;
+        white-space: nowrap;
+    }
+    #ProductsTable thead.bg-body-tertiary tr th.col-sortable:hover,
+    #ProductsTable thead.bg-body-tertiary tr th.name-sortable:hover {
+        color: #696cff;
+        background: rgba(105,108,255,0.06) !important;
+    }
+    /* Active/filtered column highlight */
+    #ProductsTable thead.bg-body-tertiary tr th.col-active {
+        background: linear-gradient(180deg, rgba(105,108,255,0.10) 0%, rgba(105,108,255,0.04) 100%) !important;
+        color: #4547c0 !important;
+        border-bottom: 3px solid #9155fd !important;
+        position: relative;
+    }
+    #ProductsTable thead.bg-body-tertiary tr th.col-active::after {
+        content: '';
+        position: absolute;
+        bottom: -3px;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #696cff, #9155fd);
+        border-radius: 2px;
+    }
+    #ProductsTable thead.bg-body-tertiary tr th.col-active i {
+        color: #696cff;
+    }
+
+    /* ── Common Filter Box (shared by all filter dropdowns) ── */
+    .mp-filterbox {
+        padding: 0 !important;
+        border-radius: 12px !important;
+        border: 1px solid #c4c6f8 !important;
+        box-shadow: 0 8px 24px rgba(105,108,255,0.18), 0 2px 8px rgba(0,0,0,0.08) !important;
+        overflow: hidden;
+        transform-origin: top left;
+        animation: filterBoxIn 0.2s cubic-bezier(0.34, 1.4, 0.64, 1) both;
+    }
+    @keyframes filterBoxIn {
+        from { opacity: 0; transform: translateY(-8px) scale(0.96); }
+        to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .catg-filter-header {
+        background: linear-gradient(135deg, #696cff 0%, #9155fd 100%);
+        color: #fff;
+        padding: 10px 14px 9px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-shrink: 0;
+    }
+    .catg-filter-title {
+        font-size: 0.71rem;
+        font-weight: 700;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+    }
+    .catg-filter-header .badge {
+        font-size: 0.65rem;
+        padding: 2px 6px;
+        background: rgba(255,255,255,0.25) !important;
+        color: #fff !important;
+        border-radius: 10px;
+    }
+    .catg-filter-close-btn {
+        background: rgba(255,255,255,0.18);
+        border: none;
+        color: #fff;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        font-weight: 300;
+        cursor: pointer;
+        line-height: 1;
+        transition: background 0.15s;
+        flex-shrink: 0;
+    }
+    .catg-filter-close-btn:hover {
+        background: rgba(255,255,255,0.35);
+    }
+    .catg-filter-search-wrap {
+        padding: 8px 10px;
+        background: #f5f5ff;
+        border-bottom: 1px solid #e4e5ff;
+        flex-shrink: 0;
+    }
+    .catg-filter-search-wrap .input-group-text {
+        background: #fff;
+        border-color: #d4d6ff;
+        border-right: none;
+        color: #9899c8;
+        padding: 4px 8px;
+    }
+    .catg-filter-search-wrap .form-control {
+        border-color: #d4d6ff;
+        border-left: none;
+        font-size: 0.8rem;
+        padding: 4px 8px;
+        background: #fff;
+    }
+    .catg-filter-search-wrap .form-control:focus {
+        border-color: #696cff;
+        box-shadow: none;
+    }
+    .catg-filter-search-wrap .form-control:focus + .input-group-text,
+    .catg-filter-search-wrap .input-group:focus-within .input-group-text {
+        border-color: #696cff;
+    }
+    .catg-select-all-wrap {
+        padding: 6px 12px;
+        background: #f0f1ff;
+        border-bottom: 1px dashed #d8daff;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        transition: background 0.12s;
+        flex-shrink: 0;
+    }
+    .catg-select-all-wrap:hover { background: #e6e8ff; }
+    .catg-select-all-wrap label { cursor: pointer; }
+    .catg-list {
+        overflow-y: auto;
+        padding: 6px 8px;
+        background: #fff;
+        flex: 1;
+        min-height: 0;
+    }
+    .catg-list-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 5px 8px;
+        border-radius: 7px;
+        margin-bottom: 1px;
+        cursor: pointer;
+        font-size: 0.82rem;
+        color: #555;
+        transition: background 0.12s, color 0.12s;
+        user-select: none;
+    }
+    .catg-list-item:hover {
+        background: rgba(105,108,255,0.08);
+        color: #4547c0;
+    }
+    .catg-list-item input[type="checkbox"] { flex-shrink: 0; }
+    .catg-list-item input[type="checkbox"]:checked { background-color: #696cff; border-color: #696cff; }
+    .catg-list-item:has(input:checked) {
+        background: rgba(105,108,255,0.06);
+        color: #696cff;
+        font-weight: 600;
+    }
+    .catg-filter-footer {
+        padding: 8px 10px;
+        background: #f5f5ff;
+        border-top: 1px solid #e4e5ff;
+        display: flex;
+        gap: 6px;
+        flex-shrink: 0;
+    }
+    .catg-filter-footer .btn {
+        flex: 1;
+        font-size: 0.75rem;
+        padding: 5px 0;
+        border-radius: 7px;
+        font-weight: 600;
+    }
+
+    /* ── Combo Row Styles ── */
+    .combo-parent-row {
+        background-color: rgba(253, 126, 20, 0.04) !important;
+        border-left: 3px solid #fd7e14;
+    }
+    .combo-parent-row:hover {
+        background-color: rgba(253, 126, 20, 0.08) !important;
+    }
+    .combo-bom-row td {
+        padding: 0 !important;
+    }
+    .combo-bom-row .combo-bom-content table thead th {
+        border-bottom: 1px solid rgba(253, 126, 20, 0.2);
+        padding-bottom: 4px;
+    }
+    .combo-bom-row .combo-bom-content table tbody tr:last-child {
+        border-bottom: none !important;
+    }
+</style>
+
 <script src="/js/products.js"></script>
+<script src="/js/combinemodules/products.js"></script>
+<script src="/js/combinemodules/combo.js"></script>
 <script src="/js/common/pagecheckbox.js"></script>
 
 <script>
-let ItemModuleId = <?php echo $ItemModuleId; ?>;
+let ItemModuleId = 4;
 const ProdTable = '#ProductsTable';
 const ProdPag = '.ProductsPagination';
 const ProdHeader = '.productsHeaderCheck';
 const ProdRow = '.productsCheck';
-let CategoryModuleId = <?php echo $CategoryModuleId; ?>;
+let CategoryModuleId = 5;
 const CatgTable = '#CategoriesTable';
 const CatgPag = '.CategoriesPagination';
 const CatgHeader = '.categoryHeaderCheck';
 const CatgRow = '.categoryCheck';
-let SizeModuleId = <?php echo $SizeModuleId; ?>;
+let SizeModuleId = 6;
 const SizeTable = '#SizesTable';
 const SizePag = '.SizesPagination';
 const SizeHeader = '.sizeHeaderCheck';
 const SizeRow = '.sizesCheck';
-let BrandModuleId = <?php echo $BrandModuleId; ?>;
+let BrandModuleId = 7;
 const BrandTable = '#BrandsTable';
 const BrandPag = '.BrandsPagination';
 const BrandHeader = '.brandHeaderCheck';
 const BrandRow = '.brandsCheck';
 let ActiveTabId = '<?php echo $ActiveTabName; ?>';
-let ActiveTabModuleId = <?php echo $ActiveModuleId; ?>;
+let ActiveTabModuleId = 4
 var EnableStorage = <?php echo $JwtData->GenSettings->EnableStorage; ?>;
 var CommonRowColumnDisp = 1;
 let imgData;
@@ -372,6 +514,7 @@ let sortState = 0;
 let catgSortState = 0;
 let sizeSortState = 0;
 let brandSortState = 0;
+let colSortStates = {};
 $(function() {
     'use strict'
 
@@ -385,12 +528,12 @@ $(function() {
             SelectedUIDs = [];
             ActiveTabId = TabValue;
             ActiveTabModuleId = $(this).data('moduleid');
-            $('#NewItem,#NewCategory,#NewSizes,#NewBrands,#CloneOption,#ItemCategory-Div').addClass('d-none');
+            $('#NewItem,#NewComboItem,#NewCategory,#NewSizes,#NewBrands,#CloneOption,#ItemCategory-Div').addClass('d-none');
             $('#SearchDetails').val('');
             PageNo = 0;
             Filter = {};
             if (ActiveTabId == 'Item') {
-                $('#NewItem,#ItemCategory-Div').removeClass('d-none');
+                $('#NewItem,#NewComboItem,#ItemCategory-Div').removeClass('d-none');
                 var itemLen = $(ProdTable + ' ' + ProdRow).length;
                 if (itemLen == 0) {
                     getProductDetails(PageNo, RowLimit, Filter);
@@ -497,24 +640,26 @@ $(function() {
 
     commonExportFunctions();
 
-    $('#selectAllCategories').on('change', function() {
+    $(document).on('change', '#selectAllCategories', function() {
         const isChecked = $(this).is(':checked');
         $('.category-checkbox').prop('checked', isChecked);
+        $('#selectAllLabel').text(isChecked ? 'Deselect All' : 'Select All');
     });
 
-    $('#categorySearch').on('input', function() {
+    $(document).on('input', '#categorySearch', function() {
         const searchTerm = $(this).val().toLowerCase();
-        $('#categoryList .form-check').each(function() {
+        $('#categoryList .catg-list-item').each(function() {
             const labelText = $(this).text().toLowerCase();
             $(this).toggle(labelText.includes(searchTerm));
         });
     });
 
-    $('.category-checkbox').on('change', function() {
+    $(document).on('change', '.category-checkbox', function() {
         const total = $('.category-checkbox').length;
         const checked = $('.category-checkbox:checked').length;
-        $('#selectAllCategories').prop('checked', total === checked);
-        $('#selectAllLabel').text(total === checked ? 'Clear All' : 'Select All');
+        const allChecked = total === checked && total > 0;
+        $('#selectAllCategories').prop('checked', allChecked);
+        $('#selectAllLabel').text(allChecked ? 'Deselect All' : 'Select All');
     });
 
     $('#selectAllStorage').on('change', function() {
@@ -537,7 +682,7 @@ $(function() {
         $('#str_selectAllLabel').text(total === checked ? 'Clear All' : 'Select All');
     });
 
-    /** sorting opeartions */
+    /** sorting operations */
     $(document).on('click', '.name-sortable', function(e) {
         e.preventDefault();
         let defSortState = 0;
@@ -565,20 +710,111 @@ $(function() {
         if (defSortState == 1) {
             icon.addClass('bx-up-arrow-alt text-primary');
             $(defFieldName).addClass('text-primary');
-            $(this).attr('title', 'Click sorting descending');
+            $(this).attr('title', 'Click for descending order');
             Filter['NameSorting'] = 1;
         } else if (defSortState === 2) {
             icon.addClass('bx-down-arrow-alt text-primary');
             $(defFieldName).addClass('text-primary');
-            $(this).attr('title', 'Remove sorting');
+            $(this).attr('title', 'Click to remove sorting');
             Filter['NameSorting'] = 2;
         } else {
             icon.addClass('bx-sort-alt-2');
-            $(this).attr('title', 'Click sorting ascending');
+            $(this).attr('title', 'Click for ascending order');
             delete Filter['NameSorting'];
         }
         $(this).tooltip('dispose').tooltip();
         showProductPageDetails();
+    });
+
+    /** Column Asc/Desc Sorting — multi-column allowed */
+    $(document).on('click', '.col-sortable', function(e) {
+        e.preventDefault();
+        if (ActiveTabId !== 'Item') return;
+        const filterKey = $(this).data('filterkey');
+        // Cycle this column independently (multi-sort)
+        colSortStates[filterKey] = ((colSortStates[filterKey] || 0) + 1) % 3;
+        const state = colSortStates[filterKey];
+        const icon = $(this).find('i');
+        icon.removeClass('bx-sort bx-up-arrow-alt bx-down-arrow-alt text-primary');
+        if (state === 1) {
+            icon.addClass('bx-up-arrow-alt text-primary');
+            $(this).attr('title', 'Click for descending order');
+            Filter[filterKey] = 1;
+        } else if (state === 2) {
+            icon.addClass('bx-down-arrow-alt text-primary');
+            $(this).attr('title', 'Click to remove sorting');
+            Filter[filterKey] = 2;
+        } else {
+            icon.addClass('bx-sort');
+            $(this).attr('title', 'Click for ascending order');
+            delete Filter[filterKey];
+        }
+        showProductPageDetails();
+    });
+
+    /** Column active highlight updater */
+    window.updateColumnHighlights = function() {
+        // Name sort
+        const nameSortActive = sortState > 0;
+        // ProductType filter
+        const ptypeActive = Filter.ProductType && Filter.ProductType.length > 0;
+        if (nameSortActive || ptypeActive) {
+            $('#sortName').addClass('col-active');
+        } else {
+            $('#sortName').removeClass('col-active');
+        }
+        $('#productTypeFilter').toggleClass('text-primary', !!ptypeActive);
+
+        // Category filter
+        const catgActive = Filter.Category && Filter.Category.length > 0;
+        $('#ItemCategory-Div').closest('th').toggleClass('col-active', catgActive);
+        $('#categoryFilter').toggleClass('text-primary', catgActive);
+
+        // Each col-sortable
+        $('.col-sortable').each(function() {
+            const k = $(this).data('filterkey');
+            $(this).toggleClass('col-active', (colSortStates[k] || 0) > 0);
+        });
+    };
+
+    /** ProductType filter functions */
+    window.toggleProductTypeFilter = function() {
+        const $target = $('#productTypeFilterBox');
+        $('.mp-filterbox').not($target).hide();
+        $target.toggle();
+    };
+    window.closeProductTypeFilter = function() {
+        $('#productTypeFilterBox').hide();
+    };
+    window.applyProductTypeFilter = function() {
+        delete Filter['ProductType'];
+        let selected = $('.ptype-checkbox:checked').map(function() { return $(this).val(); }).get();
+        if (selected.length > 0) {
+            Filter['ProductType'] = selected;
+        }
+        $('#productTypeFilterBox').hide();
+        PageNo = 0;
+        showProductPageDetails();
+    };
+    window.resetProductTypeFilter = function() {
+        $('.ptype-checkbox').prop('checked', false);
+        if (Filter.ProductType) {
+            delete Filter['ProductType'];
+            PageNo = 0;
+            showProductPageDetails();
+        } else {
+            $('#productTypeFilterBox').hide();
+        }
+    };
+
+    // Close filter boxes on outside click
+    $(document).on('click', function(e) {
+        if (!$(e.target).closest('#categoryFilterBox, #categoryFilter').length) {
+            $('#categoryFilterBox').hide();
+        }
+        if (!$(e.target).closest('#productTypeFilterBox, #productTypeFilter').length) {
+            $('#productTypeFilterBox').hide();
+        }
     });
 
     /** Product-Item Related Coding */
@@ -596,16 +832,6 @@ $(function() {
     $('#itemsModal').on('hide.bs.modal', function() {
         formOpenCloseDefActions();
     });
-
-    if (EnableStorage == 1) {
-        loadSelect2Field('#StorageUID', '-- Select Storage --', '#itemsModal');
-    }
-
-    loadTaxDetailOptions();
-    loadSelect2Field('#PrimaryUnit', '-- Select Primary Unit --', '#itemsModal');
-    loadSelect2Field('#Category', '-- Select Category --', '#itemsModal');
-
-    QuillEditor('.ql-toolbar', 'Enter product description...');
     
     basePaginationFunc(ProdPag, getProductDetails);
     baseRefreshPageFunc('.PageRefresh', showProductPageDetails);
@@ -622,46 +848,15 @@ $(function() {
 
     $(document).on('click', '.EditProduct', function(e) {
         e.preventDefault();
-        var getValue = $(this).data('uid');
+        var getValue      = $(this).data('uid');
+        var isComposite   = parseInt($(this).data('iscomposite')) || 0;
         if (getValue) {
-            retrieveProductDetails(getValue, false);
-        }
-    });
-
-    $('#AddEditItemForm').submit(function(e) {
-        e.preventDefault();
-
-        var formData = new FormData($('#AddEditItemForm')[0]);
-        if (myOneDropzone.files.length > 0) {
-            const file = myOneDropzone.files[0];
-            if (!file.isStored) {
-                formData.append('UploadImage', myOneDropzone.files[0]);
+            if (isComposite === 1) {
+                loadComboForEdit(getValue);
+            } else {
+                retrieveProductDetails(getValue, false);
             }
         }
-        var getProdHiddenId = $('#AddEditItemForm').find('#HProductUID').val();
-        if(getProdHiddenId && hasValue(imgData) && myOneDropzone.files.length == 0) {
-            formData.append('ImageRemoved', 1);
-        }
-        const Description = quill.getText().trim(); // quill.root.innerHTML;
-        if ($.trim(Description) != '') {
-            formData.append('Description', $('#Description .ql-editor').html());
-        }
-        formData.append('PageNo', PageNo);
-        formData.append('RowLimit', RowLimit);
-        formData.append('ModuleId', ItemModuleId);
-        if (Object.keys(Filter).length > 0) {
-            formData.append('Filter', JSON.stringify(Filter));
-        }
-        formData.append('IsSizeApplicable', $('#IsSizeApplicable').is(':checked') ? 1 : 0);
-        formData.append('NotForSale', $('#NotForSale').is(':checked') ? 1 : 0);
-        formData.append('getTableDetails', 1);
-        
-        if (getProdHiddenId == 0) {
-            addProductData(formData);
-        } else {
-            editProductData(formData);
-        }
-
     });
 
     $('#btnClone').click(function(e) {

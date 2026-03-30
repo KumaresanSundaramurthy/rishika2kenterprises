@@ -13,7 +13,7 @@ RUN apt-get update --fix-missing && apt-get install -y \
     zip \
     git \
     libpng-dev \
-    libjpeg-dev \
+	libjpeg62-turbo-dev \
     libfreetype6-dev \
 	libonig-dev \
     libxml2-dev \
@@ -28,11 +28,9 @@ RUN apt-get update --fix-missing && apt-get install -y \
         xml \
         fileinfo \
         ctype \
-        tokenizer
-
-# Install Redis (only once)
-RUN pecl install redis \
-    && docker-php-ext-enable redis
+        tokenizer \
+	&& apt-get clean \
+ 	&& rm -rf /var/lib/apt/lists/*
 
 # Copy Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
@@ -41,7 +39,8 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 COPY . /var/www/html
 WORKDIR /var/www/html
 
-RUN composer install --no-dev --optimize-autoloader
+# Install PHP dependencies
+RUN COMPOSER_MEMORY_LIMIT=-1 composer install --no-dev --optimize-autoloader
 
 # Copy nginx config
 COPY nginx/default.conf /etc/nginx/conf.d/default.conf

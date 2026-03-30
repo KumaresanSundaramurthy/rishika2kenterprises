@@ -5,7 +5,7 @@ RUN pecl install -o -f redis \
     &&  docker-php-ext-enable redis
 
 # Install PHP extensions and Nginx
-RUN apt-get update && apt-get install -y \
+RUN apt-get update --fix-missing && apt-get install -y \
     nginx \
     supervisor \
     libzip-dev \
@@ -15,6 +15,8 @@ RUN apt-get update && apt-get install -y \
     libpng-dev \
     libjpeg-dev \
     libfreetype6-dev \
+	libonig-dev \
+    libxml2-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install \
         gd \

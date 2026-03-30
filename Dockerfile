@@ -15,9 +15,23 @@ RUN apt-get update && apt-get install -y \
     libpng-dev \
     libjpeg-dev \
     libfreetype6-dev \
+	libonig-dev \
+    libxml2-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install gd zip mysqli fileinfo \
-    && pecl install -f redis || true \
+    && docker-php-ext-install \
+        gd \
+        zip \
+        mysqli \
+        pdo \
+        pdo_mysql \
+        mbstring \
+        xml \
+        fileinfo \
+        ctype \
+        tokenizer
+
+# Install Redis (only once)
+RUN pecl install redis \
     && docker-php-ext-enable redis
 
 # Copy Composer

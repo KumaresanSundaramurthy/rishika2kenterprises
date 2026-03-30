@@ -13,7 +13,7 @@ RUN apt-get update --fix-missing && apt-get install -y \
     zip \
     git \
     libpng-dev \
-    libjpeg62-turbo-dev \
+    libjpeg-dev \
     libfreetype6-dev \
     libonig-dev \
     libxml2-dev \
@@ -30,7 +30,7 @@ RUN apt-get update --fix-missing && apt-get install -y \
         ctype \
         tokenizer \
     && apt-get clean \
-     && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer

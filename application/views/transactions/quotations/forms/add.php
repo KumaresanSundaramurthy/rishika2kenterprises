@@ -23,23 +23,69 @@
                                 <h5 class="modal-title mb-0 ms-2">Create Quotation</h5>
                                 <div class="d-flex align-items-center gap-1">
                                     <div class="input-group w-auto">
+                                        <?php
+                                        // Compute the initial prefix display from the default prefix config
+                                        $defaultPrefixConfig = null;
+                                        if (!empty($PrefixData)) {
+                                            foreach ($PrefixData as $_pd) {
+                                                if ($TransPageSettings->DefaultPrefix == $_pd->Name) {
+                                                    $defaultPrefixConfig = $_pd;
+                                                    break;
+                                                }
+                                            }
+                                            if (!$defaultPrefixConfig) $defaultPrefixConfig = $PrefixData[0];
+                                        }
+                                        function buildInitialPrefixSegment($cfg) {
+                                            if (!$cfg) return '';
+                                            $sep    = $cfg->Separator ?? '-';
+                                            $parts  = [$cfg->Name];
+                                            if (!empty($cfg->IncludeShortName) && !empty($cfg->ShortName)) {
+                                                $parts[] = strtoupper($cfg->ShortName);
+                                            }
+                                            if (!empty($cfg->IncludeFiscalYear)) {
+                                                $m  = (int)date('m');
+                                                $yr = (int)date('Y');
+                                                $fy = $m >= 4 ? $yr : $yr - 1;
+                                                $parts[] = ($cfg->FiscalYearFormat ?? 'SHORT') === 'LONG'
+                                                    ? $fy . '-' . ($fy + 1)
+                                                    : str_pad($fy % 100, 2, '0', STR_PAD_LEFT) . '-' . str_pad(($fy + 1) % 100, 2, '0', STR_PAD_LEFT);
+                                            }
+                                            return implode($sep, $parts) . $sep;
+                                        }
+                                        $initialPrefixSeg = buildInitialPrefixSegment($defaultPrefixConfig);
+                                        ?>
                                         <select id="transPrefixSelect" name="transPrefixSelect" class="select2 form-select form-select-sm" required>
                                     <?php try {
-                                            if (empty($PrefixData)) {
-                                                throw new Exception('Prefix data not loaded');
-                                            }
-                                            foreach($PrefixData as $preData) { ?>
-                                            <option value="<?php echo $preData->Name; ?>" <?php echo $TransPageSettings->DefaultPrefix == $preData->Name ? 'selected' : ''; ?>><?php echo $preData->Name; ?></option>
+                                            if (empty($PrefixData)) throw new Exception('Prefix data not loaded');
+                                            foreach ($PrefixData as $preData) {
+                                                $isSelected = $TransPageSettings->DefaultPrefix == $preData->Name ? 'selected' : '';
+                                            ?>
+                                            <option value="<?php echo (int)$preData->PrefixUID; ?>"
+                                                data-sep="<?php echo htmlspecialchars($preData->Separator ?? '-'); ?>"
+                                                data-fiscal="<?php echo !empty($preData->IncludeFiscalYear) ? '1' : '0'; ?>"
+                                                data-fiscal-format="<?php echo htmlspecialchars($preData->FiscalYearFormat ?? 'SHORT'); ?>"
+                                                data-inc-short="<?php echo !empty($preData->IncludeShortName) ? '1' : '0'; ?>"
+                                                data-short-name="<?php echo htmlspecialchars($preData->ShortName ?? ''); ?>"
+                                                data-padding="<?php echo (int)($preData->NumberPadding ?? 3); ?>"
+                                                data-next-number="<?php echo (int)($NextNumberMap[(int)$preData->PrefixUID] ?? 1); ?>"
+                                                <?php echo $isSelected; ?>
+                                            ><?php echo htmlspecialchars($preData->Name); ?></option>
                                         <?php }
                                         } catch (Exception $e) { ?>
                                             <option value="">Error loading prefixes</option>
                                         <?php } ?>
                                         </select>
-                                        <button type="button" class="btn btn-outline-success" id="addTransPrefixBtn" data-toggle="tooltip" title="Add Prefix">➕</button>
+                                        <button type="button" class="btn btn-outline-secondary" id="addTransPrefixBtn" data-toggle="tooltip" title="Configure Prefix"><i class="bx bx-cog"></i></button>
                                     </div>
                                     <div class="input-group input-group-sm w-auto">
-                                        <span class="input-group-text cursor-pointer"><span id="appendPrefixVal"><?php echo $TransPageSettings->DefaultPrefix; ?></span><?php echo $TransPageSettings->InvoiceSepText; ?><?php echo ($TransPageSettings->ShowFiscalYear == 1) ? $TransPageSettings->FiscalYearType.$TransPageSettings->InvoiceSepText : ''; ?></span>
-                                        <input type="number" id="transNumber" name="transNumber" class="form-control transAutoGenNumber stop-incre-indicator" maxLength="20" onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))" oninput="this.value=this.value.slice(0,this.maxLength)" pattern="[0-9]*" value="1" required />
+                                        <span class="input-group-text cursor-pointer fw-semibold text-primary" id="appendPrefixVal"><?php echo htmlspecialchars($initialPrefixSeg); ?></span>
+                                        <?php
+                                        $initialNextNumber = 1;
+                                        if ($defaultPrefixConfig && isset($NextNumberMap[(int)$defaultPrefixConfig->PrefixUID])) {
+                                            $initialNextNumber = (int)$NextNumberMap[(int)$defaultPrefixConfig->PrefixUID];
+                                        }
+                                        ?>
+                                        <input type="number" id="transNumber" name="transNumber" class="form-control transAutoGenNumber stop-incre-indicator" maxLength="20" onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))" oninput="this.value=this.value.slice(0,this.maxLength)" pattern="[0-9]*" value="<?php echo $initialNextNumber; ?>" required />
                                     </div>
                                 </div>
                             </div>
@@ -65,12 +111,20 @@
                                         </select>
                                     </div>
                                     <div>
-                                        <label for="dispatchFrom" class="form-label small fw-semibold">Dispatch From</label>
-                                        <select id="dispatchFrom" name="dispatchFrom" class="form-select form-select-sm">
-                                            <option value="" disabled selected>Select address</option>
-                                            <option value="Warehouse A">Warehouse A</option>
-                                            <option value="Warehouse B">Warehouse B</option>
-                                            <option value="Factory">Factory</option>
+                                        <label for="dispatchFrom" class="form-label small fw-semibold">Dispatch From <span style="color:red">*</span></label>
+                                        <select id="dispatchFrom" name="dispatchFrom" class="form-select form-select-sm" required>
+                                            <option value="" disabled selected>Select location</option>
+                                            <?php if (!empty($LocationData)): foreach ($LocationData as $_loc): ?>
+                                            <option value="<?php echo (int)$_loc->LocationUID; ?>"
+                                                <?php echo !empty($_loc->IsDefault) ? 'selected' : ''; ?>>
+                                                <?php
+                                                $locLabel = htmlspecialchars($_loc->LocationName);
+                                                if (!empty($_loc->BranchName)) $locLabel = htmlspecialchars($_loc->BranchName) . ' — ' . $locLabel;
+                                                if (!empty($_loc->LocationCode)) $locLabel .= ' (' . htmlspecialchars($_loc->LocationCode) . ')';
+                                                echo $locLabel;
+                                                ?>
+                                            </option>
+                                            <?php endforeach; endif; ?>
                                         </select>
                                     </div>
                                 </div>
@@ -141,7 +195,7 @@
                                                 <span class="input-group-text p-2"><i class="icon-base bx bx-search"></i></span>
                                                 <select id="searchProductInfo" name="searchProductInfo" class="form-select form-select-sm">
                                                     <option label="-- Select Product --"></option>
-                                                    <option
+                                                    <!-- <option
                                                         value="1"
                                                         data-select2-id="44"
                                                         data-allfields='{
@@ -166,7 +220,7 @@
                                                         data-primaryunit="PCS"
                                                         >
                                                         Bearing 5206 2RS
-                                                        </option>
+                                                        </option> -->
                                                 </select>
                                                 <div class="transerror-tooltip" id="errSearchProd"><span class="icon">!</span>Please select an item in the list.</div>
                                             </div>
@@ -440,7 +494,7 @@
                                                             <option value="<?php echo $DiscType->Name; ?>"><?php echo $DiscType->Symbol; ?></option>
                                                         <?php } ?>
                                                         </select>
-                                                        <input class="form-control form-control-sm ps-1 w-30" type="text" id="extraDiscount" name="extraDiscount" min="0" step="0.01" placeholder="Extra Discount" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" maxlength="<?php echo $JwtData->GenSettings->PriceMaxLength; ?>" pattern="^d{1,<?php echo $JwtData->GenSettings->PriceMaxLength; ?>}(.d{0,<?php echo $JwtData->GenSettings->DecimalPoints; ?>})?$" onpaste="handleDiscountPaste(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" ondrop="handleDiscountDrop(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" value="0">
+                                                        <input class="form-control form-control-sm ps-1 w-30" type="text" id="extraDiscount" name="extraDiscount" min="0" step="0.01" placeholder="Extra Discount" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" maxlength="<?php echo $JwtData->GenSettings->PriceMaxLength; ?>" pattern="^\d{1,<?php echo $JwtData->GenSettings->PriceMaxLength; ?>}(\.\d{0,<?php echo $JwtData->GenSettings->DecimalPoints; ?>})?$" onpaste="handleDiscountPaste(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" ondrop="handleDiscountDrop(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" value="0">
                                                     </div>
                                                 </div>
 

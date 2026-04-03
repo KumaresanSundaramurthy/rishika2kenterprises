@@ -12,7 +12,7 @@ class Transactions_model extends CI_Model {
 
     }
 
-    public function getTransactionPageList($limit, $offset, $filter, $isCount = false) {
+    public function getTransactionPageList($limit, $offset, $ModuleUID, $filter, $isCount = false) {
 
         try {
 
@@ -22,15 +22,20 @@ class Transactions_model extends CI_Model {
                 'Ts.UniqueNumber AS UniqueNumber',
                 'Ts.TransNumber AS TransNumber',
                 'Ts.TransDate AS TransDate',
-                'Ts.NetAmount as NetAmount',
-                'Ts.IsFullyPaid as IsFullyPaid',
-                'Ts.PaidAmount as PaidAmount',
-                'Ts.BalanceAmount as BalanceAmount',
-                'Ts.CreatedAt as CreatedAt',
-                'Ts.UpdatedAt as UpdatedAt',
+                'Ts.Status AS Status',
+                'Ts.NetAmount AS NetAmount',
+                'Ts.IsFullyPaid AS IsFullyPaid',
+                'Ts.PaidAmount AS PaidAmount',
+                'Ts.BalanceAmount AS BalanceAmount',
+                'Ts.CreatedOn AS CreatedOn',
+                'Ts.UpdatedOn AS UpdatedOn',
+                'Cust.Name AS PartyName',
+                'Td.ValidityDate AS ValidityDate',
             ]);
             $this->ReadDb->from('Transaction.TransactionsTbl as Ts');
-            $this->ReadDb->where(['Ts.IsDeleted' => 0, 'Ts.IsActive' => 1]);
+            $this->ReadDb->join('Customers.CustomerTbl as Cust', 'Cust.CustomerUID = Ts.PartyUID AND Ts.PartyType = \'C\'', 'LEFT');
+            $this->ReadDb->join('Transaction.TransDetailTbl as Td', 'Td.TransUID = Ts.TransUID AND Td.FinancialYear = YEAR(Ts.TransDate)', 'LEFT');
+            $this->ReadDb->where(['Ts.IsDeleted' => 0, 'Ts.IsActive' => 1, 'Ts.ModuleUID' => $ModuleUID]);
             $this->applyFilters($filter);
             if ($isCount) {
                 return $this->ReadDb->count_all_results();
@@ -53,35 +58,31 @@ class Transactions_model extends CI_Model {
 
     }
 
-    public function getTransactionCount($filter = []) {
-        return $this->getTransactionPageList(0, 0, $filter, true);
+    public function getTransactionCount($ModuleUID, $filter = []) {
+        return $this->getTransactionPageList(0, 0, $ModuleUID, $filter, true);
     }
 
     private function applyFilters($filter) {
         if (empty($filter)) return;
-        
+
         if (!empty($filter['Name'])) {
             $this->ReadDb->group_start()
-                        ->like('Ts.Name', $filter['Name'], 'both')
+                        ->like('Cust.Name', $filter['Name'], 'both')
                         ->or_like('Ts.TransNumber', $filter['Name'], 'both')
                         ->or_like('Ts.UniqueNumber', $filter['Name'], 'both')
                         ->group_end();
         }
-        
+
         if (!empty($filter['DateFrom']) && !empty($filter['DateTo'])) {
-            $this->ReadDb->where('DATE(Ts.TransDate) >=', $filter['DateFrom']);
-            $this->ReadDb->where('DATE(Ts.TransDate) <=', $filter['DateTo']);
+            $this->ReadDb->where('Ts.TransDate >=', $filter['DateFrom']);
+            $this->ReadDb->where('Ts.TransDate <=', $filter['DateTo']);
         }
-        
+
         if (!empty($filter['Status'])) {
-            if ($filter['Status'] == 'paid') {
-                $this->ReadDb->where('Ts.IsFullyPaid', 1);
-            } elseif ($filter['Status'] == 'unpaid') {
-                $this->ReadDb->where('Ts.IsFullyPaid', 0);
-                $this->ReadDb->where('Ts.BalanceAmount >', 0);
-            } elseif ($filter['Status'] == 'partial') {
-                $this->ReadDb->where('Ts.PaidAmount >', 0);
-                $this->ReadDb->where('Ts.BalanceAmount >', 0);
+            $validStatuses = ['Draft', 'Pending', 'Accepted', 'Rejected', 'Converted'];
+            $status = ucfirst(strtolower($filter['Status']));
+            if (in_array($status, $validStatuses)) {
+                $this->ReadDb->where('Ts.Status', $status);
             }
         }
         
@@ -94,35 +95,156 @@ class Transactions_model extends CI_Model {
         }
     }
 
+    /**
+     * Fetch prefix rows.
+     * $FilterArray may include OrgUID (required for org-scoped queries).
+     * ModuleUID is NO LONGER used as a filter — prefixes are org-level and
+     * shared across all transaction types.  The caller should pass at minimum:
+     *   ['Prefix.OrgUID' => $orgUID]
+     * For a specific prefix by PK, pass:
+     *   ['Prefix.PrefixUID' => $prefixUID]
+     */
     public function getTransactionsPrefixDetails($FilterArray) {
 
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->ReadDb->select('Prefix.PrefixUID as PrefixUID, Prefix.ModuleUID as ModuleUID, Prefix.Name as Name');
+            $this->ReadDb->select([
+                'Prefix.PrefixUID          as PrefixUID',
+                'Prefix.OrgUID             as OrgUID',
+                'Prefix.Name               as Name',
+                'Prefix.IncludeFiscalYear  as IncludeFiscalYear',
+                'Prefix.FiscalYearFormat   as FiscalYearFormat',
+                'Prefix.IncludeShortName   as IncludeShortName',
+                'Prefix.ShortName          as ShortName',
+                'Prefix.Separator          as Separator',
+                'Prefix.NumberPadding      as NumberPadding',
+                'Prefix.IsDefault          as IsDefault',
+            ]);
             $this->ReadDb->from('Transaction.TransactionPrefixTbl as Prefix');
-            if (sizeof($FilterArray) > 0) {
-                $this->ReadDb->where($FilterArray);
+
+            // Strip any ModuleUID filter passed by legacy callers — prefixes are now org-level
+            $cleanFilter = array_filter($FilterArray, function ($key) {
+                return stripos($key, 'ModuleUID') === FALSE;
+            }, ARRAY_FILTER_USE_KEY);
+
+            if (!empty($cleanFilter)) {
+                $this->ReadDb->where($cleanFilter);
             }
             $this->ReadDb->where(['Prefix.IsDeleted' => 0, 'Prefix.IsActive' => 1]);
+            $this->ReadDb->order_by('Prefix.IsDefault', 'DESC');
+            $this->ReadDb->order_by('Prefix.PrefixUID', 'ASC');
+
             $query = $this->ReadDb->get();
             $error = $this->ReadDb->error();
             if ($error['code']) {
                 throw new Exception($error['message']);
-            } else {
-                $this->EndReturnData->Data = $query->result();
             }
 
-            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Data    = $query->result();
+            $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Success';
-            
 
         } catch (Exception $e) {
-            $this->EndReturnData->Error = TRUE;
+            $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
 
         return $this->EndReturnData;
+
+    }
+
+    /**
+     * Returns active locations for an org, default first.
+     */
+    public function getOrgLocations($orgUID) {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $this->ReadDb->select([
+                'LocationUID',
+                'BranchName',
+                'LocationCode',
+                'LocationName',
+                'IsDefault',
+            ]);
+            $this->ReadDb->from('Global.OrgLocationsTbl');
+            $this->ReadDb->where(['OrgUID' => (int)$orgUID, 'IsDeleted' => 0, 'IsActive' => 1]);
+            $this->ReadDb->order_by('IsDefault', 'DESC');
+            $this->ReadDb->order_by('LocationName', 'ASC');
+
+            $query = $this->ReadDb->get();
+            $error = $this->ReadDb->error();
+            if ($error['code']) {
+                throw new Exception($error['message']);
+            }
+
+            $this->EndReturnData->Data    = $query->result();
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Success';
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        return $this->EndReturnData;
+
+    }
+
+    /**
+     * Returns the next sequential TransNumber for a given prefix + org + module.
+     * Result = MAX(TransNumber) + 1, or 1 if no records exist yet.
+     */
+    public function getNextTransactionNumber($prefixUID, $orgUID, $moduleUID) {
+
+        try {
+
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select_max('TransNumber', 'MaxNumber');
+            $this->ReadDb->from('Transaction.TransactionsTbl');
+            $this->ReadDb->where([
+                'PrefixUID' => (int) $prefixUID,
+                'OrgUID'    => (int) $orgUID,
+                'ModuleUID' => (int) $moduleUID,
+                'IsDeleted' => 0,
+            ]);
+            $query  = $this->ReadDb->get();
+            $result = $query->row();
+            return $result ? ((int)($result->MaxNumber ?? 0) + 1) : 1;
+
+        } catch (Exception $e) {
+            return 1;
+        }
+
+    }
+
+    /**
+     * Checks whether a TransNumber already exists for a given prefix within
+     * the same org+module.  Returns the matching row or NULL.
+     */
+    public function getTransactionByPrefixAndNumber($prefixUID, $transNumber, $orgUID, $moduleUID) {
+
+        try {
+
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('TransUID');
+            $this->ReadDb->from('Transaction.TransactionsTbl');
+            $this->ReadDb->where([
+                'PrefixUID'   => (int) $prefixUID,
+                'TransNumber' => (int) $transNumber,
+                'OrgUID'      => (int) $orgUID,
+                'ModuleUID'   => (int) $moduleUID,
+                'IsDeleted'   => 0,
+            ]);
+            $this->ReadDb->limit(1);
+            $query = $this->ReadDb->get();
+            return $query->row();
+
+        } catch (Exception $e) {
+            return NULL;
+        }
 
     }
 
@@ -225,7 +347,7 @@ class Transactions_model extends CI_Model {
                 'product.ProductUID AS ProductUID',
                 'product.ItemName AS ItemName',
                 'product.ProductType AS ProductType',
-                'product.UnitPrice AS UnitPrice',
+                'product.SellingPrice AS UnitPrice',
                 'product.SellingPrice AS SellingPrice',
                 'product.PurchasePrice AS PurchasePrice',
                 'product.TaxPercentage AS TaxPercentage',
@@ -237,7 +359,9 @@ class Transactions_model extends CI_Model {
                 'product.HSNSACCode AS HSNSACCode',
                 'product.AvailableQuantity AS AvailableQuantity',
                 'product.Discount AS Discount',
-                'product.DiscountTypeName AS DiscountTypeName',
+                'product.DiscountTypeUID AS DiscountTypeUID',
+                'discountType.Name AS DiscountTypeName',
+                'primaryUnit.ShortName AS priUnitShortName',
             );
             $where_ary = array(
                 'product.IsDeleted' => 0,
@@ -246,6 +370,8 @@ class Transactions_model extends CI_Model {
             $this->ReadDb->select($select_ary);
             $this->ReadDb->from('Products.ProductTbl as product');
             $this->ReadDb->join('Products.CategoryTbl as category', 'category.CategoryUID = product.CategoryUID AND category.IsDeleted = 0 AND category.IsActive = 1', 'LEFT');
+            $this->ReadDb->join('Global.DiscountTypeTbl as discountType', 'discountType.DiscountTypeUID = product.DiscountTypeUID AND discountType.IsDeleted = 0 AND discountType.IsActive = 1', 'LEFT');
+            $this->ReadDb->join('Global.PrimaryUnitTbl as primaryUnit', 'primaryUnit.PrimaryUnitUID = product.PrimaryUnitUID', 'LEFT');
             if(!empty($Term)) {
                 $this->ReadDb->group_start();
                 $this->ReadDb->or_like('product.ItemName', $Term, 'both');

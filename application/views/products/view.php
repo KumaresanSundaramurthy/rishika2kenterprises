@@ -24,7 +24,7 @@
                                 <div class="d-flex flex-column flex-md-row justify-content-between align-items-center p-3">
                                     <ul class="nav nav-pills nav nav-pills flex-row" role="tablist">
                                         <li class="nav-item">
-                                            <a class="nav-link <?php echo $ActiveTabData == 'item' ? 'active' : ''; ?> TabPane disabled" data-id="Item" role="tab" data-bs-toggle="tab" data-bs-target="#NavItemPage" aria-controls="NavItemPage" aria-selected="true" href="javascript: void(0);"><i class="bx bx-package me-1"></i> Item</a>
+                                            <a class="nav-link <?php echo $ActiveTabData == 'item' ? 'active' : ''; ?> TabPane disabled" data-id="Item" role="tab" data-bs-toggle="tab" data-bs-target="#NavItemPage" aria-controls="NavItemPage" aria-selected="true" href="javascript: void(0);"><i class="bx bx-package me-1"></i> Item <span class="badge bg-label-warning ms-1" id="productTotalCount"><?php echo $ProductTotalCount; ?></span></a>
                                         </li>
                                         <li class="nav-item">
                                             <a class="nav-link <?php echo $ActiveTabData == 'category' ? 'active' : ''; ?> TabPane disabled" data-id="Categories" role="tab" data-bs-toggle="tab" data-bs-target="#NavCategoriesPage" aria-controls="NavCategoriesPage" aria-selected="true" href="javascript: void(0);"><i class="bx bx-layer me-1"></i> Categories</a>
@@ -90,10 +90,6 @@
                                                 </li>
                                             </ul>
                                         </div>
-                                        <span class="prod-count-wrap <?php echo $ActiveTabData == 'item' ? '' : 'd-none'; ?> me-2 d-flex align-items-center gap-1 text-muted small" id="ProductCountWrap" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-title="Total items">
-                                            <i class="bx bx-package"></i>
-                                            <span id="productTotalCount"><?php echo isset($tableData) && $ActiveTabData == 'item' ? $tableData->totalCount : 0; ?></span>
-                                        </span>
                                         <a href="javascript: void(0);" class="btn btn-primary px-3 addItem <?php echo $ActiveTabData == 'item' ? '' : 'd-none'; ?>" id="NewItem"> Create Item</a>
                                         <a href="javascript: void(0);" class="btn btn-outline-primary px-3 ms-2 <?php echo $ActiveTabData == 'item' ? '' : 'd-none'; ?>" id="NewComboItem"><i class="bx bx-git-merge me-1"></i> Add Combo Item</a>
                                         <a href="javascript: void(0);" class="btn btn-primary px-3 addCategory <?php echo $ActiveTabData == 'category' ? '' : 'd-none'; ?>" id="NewCategory"> Create Category</a>
@@ -119,6 +115,9 @@
                                                             <span class="sort-label cursor-pointer">Item <i class="bx bx-sort sort-icon ms-1"></i></span>
                                                             <a href="javascript:void(0);" id="productTypeFilter" class="text-body ms-1" onclick="toggleProductTypeFilter(); event.stopPropagation();" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by Product Type"><i class="bx bx-filter-alt fs-6 align-middle"></i></a>
                                                             <div id="productTypeFilterBox" class="card mp-filterbox position-absolute" style="min-width:200px; z-index:1056; display:none; top:100%; left:0;"><?php $this->load->view('products/items/ptypefilter'); ?></div>
+                                                        </th>
+                                                        <th class="col-sortable cursor-pointer position-relative" data-filterkey="StatusSorting" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">
+                                                            Status <i class="bx bx-sort sort-icon ms-1"></i>
                                                         </th>
                                                         <th class="col-sortable cursor-pointer position-relative" data-filterkey="CategorySorting" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">
                                                             Category <i class="bx bx-sort sort-icon ms-1"></i>
@@ -340,7 +339,6 @@ $(function() {
             $('.mp-filterbox').hide();
             $('#categoryFilter, #productTypeFilter').removeClass('text-primary');
             $('#ProductCountWrap').addClass('d-none');
-            $('#productTotalCount').text('0');
             if (ActiveTabId == 'Item') {
                 $('#NewItem,#NewComboItem,#ItemCategory-Div,#ProductCountWrap').removeClass('d-none');
                 var itemLen = $(ProdTable + ' ' + ProdRow).length;
@@ -632,6 +630,56 @@ $(function() {
     });
 
     /** Product-Item Related Coding */
+    document.addEventListener('DOMContentLoaded', function () {
+        // Initialize all tooltips
+        const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+        tooltipTriggerList.forEach(el => {
+            new bootstrap.Tooltip(el, { html: true, placement: 'top' });
+        });
+
+        // Handle "Yes" button click (dynamic)
+        document.body.addEventListener('click', function (e) {
+            const yesBtn = e.target.closest('.confirm-change');
+            if (!yesBtn) return;
+
+            const uid = yesBtn.dataset.uid;
+            const badge = document.querySelector(`.change-status[data-uid="${uid}"]`);
+            if (!badge) return;
+
+            const currentStatus = badge.innerText.trim(); // "Active" or "InActive"
+            const newStatus = (currentStatus === 'Active') ? 0 : 1; // 1 = Active, 0 = InActive
+
+            // AJAX to update
+            fetch('/update-status.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ uid: uid, active: newStatus })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update badge text and style
+                    if (newStatus === 1) {
+                        badge.className = 'badge bg-label-primary change-status';
+                        badge.innerText = 'Active';
+                    } else {
+                        badge.className = 'badge bg-label-danger change-status';
+                        badge.innerText = 'InActive';
+                    }
+                    // Update tooltip content (optional)
+                    const tooltip = bootstrap.Tooltip.getInstance(badge);
+                    if (tooltip) tooltip.hide();
+                } else {
+                    alert('Error: ' + (data.message || 'Failed to update'));
+                }
+            })
+            .catch(error => {
+                console.error(error);
+                alert('An error occurred.');
+            });
+        });
+    });
+
     $(document).on('click', '.addItem', function(e) {
         e.preventDefault();
         formOpenCloseDefActions();

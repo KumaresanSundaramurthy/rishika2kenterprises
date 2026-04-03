@@ -175,6 +175,7 @@ class Products extends CI_Controller {
 
             // Use dedicated paginated functions for active-tab row data
             $OrgUID = (int) $this->pageData['JwtData']->User->OrgUID;
+            $this->pageData['ProductTotalCount'] = 0;
             if ($activeTab === 'item') {
                 $tableData = $this->products_model->getProductListPaginated($OrgUID, $limit, 0);
                 $this->pageData['ModRowData'] = $this->load->view('products/items/list', [
@@ -183,6 +184,7 @@ class Products extends CI_Controller {
                     'JwtData'   => $this->pageData['JwtData'],
                 ], TRUE);
                 $this->pageData['ModPagination'] = $this->buildPagePaginationHtml('getProductList', $tableData->totalCount, 1, $limit);
+                $this->pageData['ProductTotalCount'] = $tableData->totalCount;
             } elseif ($activeTab === 'category') {
                 $tableData = $this->products_model->getCategoryListPaginated($OrgUID, $limit, 0);
                 $this->pageData['ModRowData'] = $this->load->view('products/categories/list', [

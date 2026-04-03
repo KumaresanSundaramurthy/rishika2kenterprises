@@ -1594,7 +1594,7 @@ $(document).ready(function () {
     $('#billTableBody').html(emptyTableTrInfo);
     
     loadSelect2Field('#prodCategory', 'Select Category');
-    // searchProductInfo();
+    searchProductInfo();
 
     $('#toggleChargesBtn').on('click', function (e) {
         e.preventDefault();
@@ -1659,7 +1659,7 @@ $(document).ready(function () {
         $('#searchProductInfo').val(null).trigger('change');
         $('#prodQuantity').val('').trigger('change');
         
-        // $('#searchProductInfo').focus().select2('open');
+        $('#searchProductInfo').focus().select2('open');
         
     });
 
@@ -2446,7 +2446,7 @@ function formationTableBillItems(productRow) {
     if (INTEGER_ONLY_UOMS.includes(getPrimUnit)) {
         qtyHtml = `<input type="text" class="form-control form-control-sm updateAllBillAmounts" name="bm_${productRow.id}_qty" id="bm_${productRow.id}_qty" min="0" placeholder="Quantity" onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))" oninput="this.value=this.value.slice(0,this.maxLength); handleOnlyNumbers(this)" maxLength="${genSettings.QtyMaxLength}" pattern="[0-9]*" value="${productRow.quantity}" onpaste="pasteOnlyNumbers(event)" ondrop="dropOnlyNumbers(event)" />`;
     } else {
-        qtyHtml = `<input type="text" class="form-control form-control-sm updateAllBillAmounts" name="bm_${productRow.id}_qty" id="bm_${productRow.id}_qty" min="0" placeholder="Quantity" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, ${genSettings.QtyMaxLength}, ${genSettings.DecimalPoints})" maxLength="${genSettings.QtyMaxLength}" pattern="^\d{1,${genSettings.QtyMaxLength}}(\.\d{0,${genSettings.DecimalPoints}})?$" onpaste="handlePricePaste(event, ${genSettings.QtyMaxLength}, ${genSettings.DecimalPoints})" ondrop="handlePriceDrop(event, ${genSettings.QtyMaxLength}, ${genSettings.DecimalPoints})" value="${productRow.quantity}" />`;
+        qtyHtml = `<input type="text" class="form-control form-control-sm updateAllBillAmounts" name="bm_${productRow.id}_qty" id="bm_${productRow.id}_qty" min="0" placeholder="Quantity" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, ${genSettings.QtyMaxLength}, ${genSettings.DecimalPoints})" maxLength="${genSettings.QtyMaxLength}" pattern="^\\d{1,${genSettings.QtyMaxLength}}(\\.\\d{0,${genSettings.DecimalPoints}})?$" onpaste="handlePricePaste(event, ${genSettings.QtyMaxLength}, ${genSettings.DecimalPoints})" ondrop="handlePriceDrop(event, ${genSettings.QtyMaxLength}, ${genSettings.DecimalPoints})" value="${productRow.quantity}" />`;
     }
 
     let discBfrPrice = parseInt(productRow.discount, 10) ? '' : 'd-none';
@@ -2467,21 +2467,21 @@ function formationTableBillItems(productRow) {
             <td>
                 <div class="input-group input-group-merge">
                     <span class="input-group-text">${genSettings.CurrenySymbol}</span>
-                    <input type="text" class="form-control form-control-sm updateAllBillAmounts" name="bm_${productRow.id}_unitPrice" id="bm_${productRow.id}_unitPrice" min="0" placeholder="Unit Price" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, ${genSettings.PriceMaxLength}, 8)" maxLength="${genSettings.PriceMaxLength + 9}" pattern="^\d{1,${genSettings.PriceMaxLength}}(\.\d{0,8})?$" onpaste="handlePricePaste(event, ${genSettings.PriceMaxLength}, 8)" ondrop="handlePriceDrop(event, ${genSettings.PriceMaxLength}, 8)" value="${smartDecimal(productRow.orgunitprice, 8)}" />
+                    <input type="text" class="form-control form-control-sm updateAllBillAmounts" name="bm_${productRow.id}_unitPrice" id="bm_${productRow.id}_unitPrice" min="0" placeholder="Unit Price" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, ${genSettings.PriceMaxLength}, 8)" maxLength="${genSettings.PriceMaxLength + 9}" pattern="^\\d{1,${genSettings.PriceMaxLength}}(\\.\\d{0,8})?$" onpaste="handlePricePaste(event, ${genSettings.PriceMaxLength}, 8)" ondrop="handlePriceDrop(event, ${genSettings.PriceMaxLength}, 8)" value="${smartDecimal(productRow.orgunitprice, 8)}" />
                 </div>
                 <div class="transtext-small text-muted text-warning bm_efft_${productRow.id}_price ${discBfrPrice}">aft disc: <span id="bm_${productRow.id}_aftdisc_unitPrice">${smartDecimal(productRow.unitPrice, 8)}</span></div>
             </td>
             <td>
                 <div class="input-group input-group-merge">
                     <span class="input-group-text">${genSettings.CurrenySymbol}</span>
-                    <input type="text" class="form-control form-control-sm updateAllBillAmounts" name="bm_${productRow.id}_sellingPrice" id="bm_${productRow.id}_sellingPrice" min="0" placeholder="Tax Price" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, ${genSettings.PriceMaxLength}, ${genSettings.DecimalPoints})" maxLength="${genSettings.PriceMaxLength}" pattern="^\d{1,${genSettings.PriceMaxLength}}(\.\d{0,${genSettings.DecimalPoints}})?$" onpaste="handlePricePaste(event, ${genSettings.PriceMaxLength}, ${genSettings.DecimalPoints})" ondrop="handlePriceDrop(event, ${genSettings.PriceMaxLength}, ${genSettings.DecimalPoints})" value="${smartDecimal(productRow.orgselngprice, genSettings.DecimalPoints)}" />
+                    <input type="text" class="form-control form-control-sm updateAllBillAmounts" name="bm_${productRow.id}_sellingPrice" id="bm_${productRow.id}_sellingPrice" min="0" placeholder="Tax Price" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, ${genSettings.PriceMaxLength}, ${genSettings.DecimalPoints})" maxLength="${genSettings.PriceMaxLength}" pattern="^\\d{1,${genSettings.PriceMaxLength}}(\\.\\d{0,${genSettings.DecimalPoints}})?$" onpaste="handlePricePaste(event, ${genSettings.PriceMaxLength}, ${genSettings.DecimalPoints})" ondrop="handlePriceDrop(event, ${genSettings.PriceMaxLength}, ${genSettings.DecimalPoints})" value="${smartDecimal(productRow.orgselngprice, genSettings.DecimalPoints)}" />
                 </div>
                 <div class="transtext-small text-muted text-warning bm_efft_${productRow.id}_price ${discBfrPrice}">aft disc: <span id="bm_${productRow.id}_aftdisc_sellingPrice">${smartDecimal(productRow.sellingPrice, genSettings.DecimalPoints)}</span></div>
             </td>
-            <input type="text" class="form-control" name="SellingPrice" id="SellingPrice" min="0" placeholder="Enter Selling Price" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, 12, 2)" maxlength="12" pattern="^\d{1,12}(\.\d{0,2})?$" onpaste="handlePricePaste(event, 12, 2)" ondrop="handlePriceDrop(event, 12, 2)" required="">
+            <input type="text" class="form-control" name="SellingPrice" id="SellingPrice" min="0" placeholder="Enter Selling Price" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, 12, 2)" maxlength="12" pattern="^\\d{1,12}(\\.\\d{0,2})?$" onpaste="handlePricePaste(event, 12, 2)" ondrop="handlePriceDrop(event, 12, 2)" required="">
             <td>
                 <div class="input-group input-group-merge w-75">
-                    <input class="form-control form-control-sm updateAllBillAmounts" type="text" id="bm_${productRow.id}_discount" name="bm_${productRow.id}_discount" min="0" step="0.01" placeholder="Discount" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, ${genSettings.PriceMaxLength}, ${genSettings.DecimalPoints})" maxLength="${genSettings.PriceMaxLength}" pattern="^\d{1,${genSettings.PriceMaxLength}}(\.\d{0,${genSettings.DecimalPoints}})?$" onpaste="handlePricePaste(event, ${genSettings.PriceMaxLength}, ${genSettings.DecimalPoints})" ondrop="handlePriceDrop(event, ${genSettings.PriceMaxLength}, ${genSettings.DecimalPoints})" value="${productRow.discount || 0}" title="${productRow.discount_is_global ? 'Global discount applied' : ''}" />
+                    <input class="form-control form-control-sm updateAllBillAmounts" type="text" id="bm_${productRow.id}_discount" name="bm_${productRow.id}_discount" min="0" step="0.01" placeholder="Discount" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, ${genSettings.PriceMaxLength}, ${genSettings.DecimalPoints})" maxLength="${genSettings.PriceMaxLength}" pattern="^\\d{1,${genSettings.PriceMaxLength}}(\\.\\d{0,${genSettings.DecimalPoints}})?$" onpaste="handlePricePaste(event, ${genSettings.PriceMaxLength}, ${genSettings.DecimalPoints})" ondrop="handlePriceDrop(event, ${genSettings.PriceMaxLength}, ${genSettings.DecimalPoints})" value="${productRow.discount || 0}" title="${productRow.discount_is_global ? 'Global discount applied' : ''}" />
                     <select class="form-select form-select-sm px-2 w-auto discTypeActionBillAmounts" id="bm_${productRow.id}_discountType" name="bm_${productRow.id}_discountType">${discTypeHtml}</select>
                 </div>
             </td>

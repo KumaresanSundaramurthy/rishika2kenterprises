@@ -28986,8 +28986,8 @@ body:not(.modal-open) .layout-content-navbar .layout-navbar {
 
 /* ── Main View Table Header ── */
 .MainviewTable thead.bg-body-tertiary {
-    /* background: linear-gradient(90deg, #eff0ff 0%, #f7f5ff 100%) !important; */
-    background: linear-gradient(27deg, #fce1a8 0%, #d9d5ea 100%) !important;
+    background: linear-gradient(90deg, #eff0ff 0%, #f7f5ff 100%) !important;
+    /* background: linear-gradient(27deg, #fce1a8 0%, #d9d5ea 100%) !important; */
 }
 .MainviewTable thead.bg-body-tertiary tr th {
     /* padding: 10px 12px;

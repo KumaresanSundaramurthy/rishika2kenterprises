@@ -403,27 +403,164 @@ class Formvalidation_model extends CI_Model {
 
     }
 
-    public function transPrefixValidateForm($data) {
+    public function quotationValidateForm($data) {
 
         $this->form_validation->set_data($data);
 
-        $dd['preModuleUID'] = array('field' => 'preModuleUID', 'label' => 'Module_UID', 'rules' => 'required|xss_clean|trim|numeric|greater_than[0]');
-        $dd['transPrefixName'] = array('field' => 'transPrefixName', 'label' => 'Prefix Name', 'rules' => 'trim|required|xss_clean|min_length[3]|max_length[7]');
+        $dd['customerSearch']    = ['field' => 'customerSearch',    'label' => 'Customer',          'rules' => 'required|xss_clean|trim|numeric|greater_than[0]'];
+        $dd['transPrefixSelect'] = ['field' => 'transPrefixSelect', 'label' => 'Prefix',            'rules' => 'required|xss_clean|trim|numeric|greater_than[0]'];
+        $dd['transNumber']       = ['field' => 'transNumber',       'label' => 'Transaction Number', 'rules' => 'required|xss_clean|trim|numeric|greater_than[0]'];
+        $dd['transDate']         = ['field' => 'transDate',         'label' => 'Transaction Date',   'rules' => ['trim', 'required', 'xss_clean', 'regex_match[/^\d{4}-\d{2}-\d{2}$/]']];
+        $dd['validityDate']      = ['field' => 'validityDate',      'label' => 'Validity Date',      'rules' => ['trim', 'xss_clean', 'regex_match[/^\d{4}-\d{2}-\d{2}$/]']];
+        $dd['globalDiscount']    = ['field' => 'globalDiscount',    'label' => 'Global Discount',    'rules' => ['trim', 'xss_clean', 'numeric', 'greater_than_equal_to[0]', ['validateGlobalDiscount', [$this, 'validateGlobalDiscount']]]];
+        $dd['extraDiscount']     = ['field' => 'extraDiscount',     'label' => 'Extra Discount',     'rules' => 'trim|xss_clean|numeric|greater_than_equal_to[0]'];
+        $dd['extDiscountType']   = ['field' => 'extDiscountType',   'label' => 'Extra Discount Type','rules' => 'trim|xss_clean'];
+        $dd['NetAmount']         = ['field' => 'NetAmount',         'label' => 'Net Amount',         'rules' => 'trim|xss_clean|numeric|greater_than_equal_to[0]'];
+        $dd['transNotes']        = ['field' => 'transNotes',        'label' => 'Notes',              'rules' => 'trim|xss_clean|max_length[500]'];
+        $dd['transTermsCond']    = ['field' => 'transTermsCond',    'label' => 'Terms & Conditions', 'rules' => 'trim|xss_clean|max_length[1000]'];
+        $dd['referenceDetails']  = ['field' => 'referenceDetails',  'label' => 'Reference',          'rules' => 'trim|xss_clean|max_length[100]'];
+        $dd['action']            = ['field' => 'action',            'label' => 'Action',             'rules' => 'trim|xss_clean|in_list[save,draft]'];
 
-        $config = array();
-
-        foreach($data as $key=>$value) {
+        $config = [];
+        foreach ($data as $key => $value) {
             if (array_key_exists($key, $dd)) {
-                array_push($config, $dd[$key]);
+                $config[] = $dd[$key];
             }
         }
 
         $this->form_validation->set_rules($config);
         if ($this->form_validation->run() == FALSE) {
             return validation_errors();
-        } else {
-            return '';
         }
+        return '';
+
+    }
+
+    public function validateQuotationItems($itemsJson) {
+
+        if (empty($itemsJson)) return 'Items are required.';
+
+        $items = json_decode($itemsJson, true);
+        if (!is_array($items) || count($items) === 0) return 'At least one line item is required.';
+
+        $validTaxPercents = [0, 5, 12, 18, 28]; // GST slabs — extend if needed
+
+        foreach ($items as $index => $item) {
+            $row = $index + 1;
+
+            // Product UID
+            $productUID = isset($item['id']) ? (int) $item['id'] : 0;
+            if ($productUID <= 0) return "Row {$row}: Invalid product.";
+
+            // Item name
+            if (empty(trim($item['itemName'] ?? ''))) return "Row {$row}: Item name is required.";
+
+            // Quantity — must be positive integer
+            $qty = $item['quantity'] ?? '';
+            if (!ctype_digit((string) $qty) || (int) $qty <= 0) {
+                return "Row {$row}: Quantity must be a positive whole number.";
+            }
+
+            // Unit price (SellingPrice) — must be >= 0
+            $unitPrice = isset($item['unitPrice']) ? $item['unitPrice'] : null;
+            if ($unitPrice === null || !is_numeric($unitPrice) || (float) $unitPrice < 0) {
+                return "Row {$row}: Selling price must be zero or greater.";
+            }
+
+            // Tax percent — must be numeric, >= 0, <= 100
+            $taxPercent = isset($item['taxPercent']) ? $item['taxPercent'] : null;
+            if ($taxPercent === null || !is_numeric($taxPercent)) {
+                return "Row {$row}: Tax percentage is invalid.";
+            }
+            $taxPct = (float) $taxPercent;
+            if ($taxPct < 0 || $taxPct > 100) {
+                return "Row {$row}: Tax percentage must be between 0 and 100.";
+            }
+            if (!in_array($taxPercent, $validTaxPercents, true)) {
+                return "Row {$row}: Tax percentage {$taxPct}% is not a valid GST slab.";
+            }
+
+            // CGST + SGST must sum to tax percent (for intra-state); skip if IGST > 0
+            $cgst = (float) ($item['cgstPercent'] ?? 0);
+            $sgst = (float) ($item['sgstPercent'] ?? 0);
+            $igst = (float) ($item['igstPercent'] ?? 0);
+            if ($igst == 0 && round($cgst + $sgst, 4) != round($taxPct, 4)) {
+                return "Row {$row}: CGST + SGST must equal total tax percentage.";
+            }
+
+            // Per-item discount — must be >= 0
+            $discountAmt = isset($item['discountAmount']) ? (float) $item['discountAmount'] : 0;
+            if ($discountAmt < 0) {
+                return "Row {$row}: Discount amount cannot be negative.";
+            }
+
+            // Discount cannot exceed line subtotal
+            $lineSubtotal = (float) $qty * (float) $unitPrice;
+            if ($discountAmt > $lineSubtotal) {
+                return "Row {$row}: Discount cannot exceed line total ({$lineSubtotal}).";
+            }
+
+            // Line total — must be >= 0
+            $lineTotal = isset($item['line_total']) ? (float) $item['line_total'] : 0;
+            if ($lineTotal < 0) {
+                return "Row {$row}: Line total cannot be negative.";
+            }
+        }
+
+        return '';
+
+    }
+
+    /* ===== QUOTATION CUSTOM RULES ===== */
+    public function validateGlobalDiscount($value) {
+        if (empty($value) || (float) $value == 0) return true;
+
+        $discount = (float) $value;
+        if ($discount > 100) {
+            $this->form_validation->set_message('validateGlobalDiscount', 'Global discount cannot exceed 100%.');
+            return false;
+        }
+        return true;
+    }
+
+    public function transPrefixValidateForm($data) {
+
+        $this->form_validation->set_data($data);
+
+        $validSeparators = ['-', '/', '|', '_', '.'];
+        $validPaddings   = ['1', '3', '5'];
+
+        $dd['preModuleUID']      = ['field' => 'preModuleUID',      'label' => 'Module UID',   'rules' => 'required|xss_clean|trim|numeric|greater_than[0]'];
+        $dd['transPrefixName']   = ['field' => 'transPrefixName',   'label' => 'Prefix Name',  'rules' => 'trim|required|xss_clean|min_length[2]|max_length[7]'];
+        $dd['fiscalYearFormat']  = ['field' => 'fiscalYearFormat',  'label' => 'Year Format',  'rules' => 'trim|xss_clean|in_list[SHORT,LONG]'];
+        $dd['prefixSeparator']   = ['field' => 'prefixSeparator',   'label' => 'Separator',    'rules' => 'trim|xss_clean|max_length[5]'];
+        $dd['numberPadding']     = ['field' => 'numberPadding',     'label' => 'Number Pad',   'rules' => 'trim|xss_clean|numeric'];
+
+        // companyShortName only required when includeShortName is checked
+        if (!empty($data['includeShortName'])) {
+            $dd['companyShortName'] = ['field' => 'companyShortName', 'label' => 'Short Name', 'rules' => 'trim|required|xss_clean|min_length[1]|max_length[10]'];
+        }
+
+        $config = [];
+        foreach ($data as $key => $value) {
+            if (array_key_exists($key, $dd)) {
+                $config[] = $dd[$key];
+            }
+        }
+
+        // Manual checks not easily expressed in CI rules
+        if (!empty($data['prefixSeparator']) && !in_array($data['prefixSeparator'], $validSeparators)) {
+            return 'Invalid separator selected.';
+        }
+        if (!empty($data['numberPadding']) && !in_array((string)$data['numberPadding'], $validPaddings)) {
+            return 'Invalid number padding selected.';
+        }
+
+        $this->form_validation->set_rules($config);
+        if ($this->form_validation->run() == FALSE) {
+            return validation_errors();
+        }
+        return '';
 
     }
 

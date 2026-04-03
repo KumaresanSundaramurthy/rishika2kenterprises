@@ -21,9 +21,6 @@ function getProductDetails(PageNo, RowLimit, Filter) {
             } else {
                 $(ProdPag).html(response.Pagination);
                 $(ProdTable + ' tbody').html(response.List);
-                if (typeof response.TotalCount !== 'undefined') {
-                    updateProductCount(response.TotalCount);
-                }
             }
             executeProdPagnFunc(response, false);
         },
@@ -244,7 +241,6 @@ function updateProductCount(count) {
     var $badge = $('#productTotalCount');
     if ($badge.length) {
         $badge.text(count);
-        $badge.closest('.prod-count-wrap').toggleClass('d-none', false);
     }
 }
 

@@ -68,6 +68,25 @@ if (!empty($DataLists)) {
                     </div>
                 </div>
             </td>
+            <td>
+                <?php if ($row->IsActive == 1): ?>
+                <span class="badge bg-label-primary change-status"
+                    data-uid="<?= htmlspecialchars($row->ProductUID) ?>"
+                    data-bs-toggle="tooltip"
+                    data-bs-html="true"
+                    data-bs-title="Change status to InActive?<br><button class='btn btn-sm btn-danger confirm-change' data-uid='<?= htmlspecialchars($row->ProductUID) ?>'>Yes</button>">
+                    Active
+                </span>
+            <?php else: ?>
+                <span class="badge bg-label-danger change-status"
+                    data-uid="<?= htmlspecialchars($row->ProductUID) ?>"
+                    data-bs-toggle="tooltip"
+                    data-bs-html="true"
+                    data-bs-title="Change status to Active?<br><button class='btn btn-sm btn-success confirm-change' data-uid='<?= htmlspecialchars($row->ProductUID) ?>'>Yes</button>">
+                    InActive
+                </span>
+            <?php endif; ?>
+            </td>
             <td><?php echo htmlspecialchars($row->CategoryName ?? '—'); ?></td>
             <td>
                 <?php if ($row->IsComposite): ?>

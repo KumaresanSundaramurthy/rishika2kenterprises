@@ -278,9 +278,9 @@ class Login extends CI_Controller {
 
                         $this->load->model('login_model');
                         $UserData = $this->login_model->getUserAuditInfo(array('ula.AuditID' => $auditId));
-                        if(!empty($UserData->Data)) {
+                        if(isset($UserData) && count($UserData) > 0) {
 
-                            $userData = $UserData->Data[0];
+                            $userData = $UserData[0];
                             $this->load->model('dbwrite_model');
                             $this->dbwrite_model->updateData('Security', 'UserLoginAudit', ['LogoutTime' => date('Y-m-d H:i:s'), 'SessionDuration' => time() - strtotime($userData->LoginTime)], ['AuditID' => $auditId]);
 

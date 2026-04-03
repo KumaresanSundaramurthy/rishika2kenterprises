@@ -533,6 +533,7 @@ class Products_model extends CI_Model {
                 'Products.IsComposite AS IsComposite',
                 'Products.AvailableQuantity AS AvailableQuantity',
                 'Products.UpdatedOn AS UpdatedOn',
+                'Products.IsActive AS IsActive',
                 "CONCAT(User.FirstName, ' ', User.LastName) AS UpdatedBy",
                 'Products.TaxPercentage AS TaxPercentage',
                 'SelTaxType.Name AS SellingTaxType',

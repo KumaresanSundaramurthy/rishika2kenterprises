@@ -1,38 +1,18 @@
 FROM php:8.1-fpm
 
-RUN pecl install -o -f redis \
-    &&  rm -rf /tmp/pear \
-    &&  docker-php-ext-enable redis
+# Install system dependencies first
+RUN apt-get update --fix-missing && \
+    apt-get install -y nginx supervisor libzip-dev unzip zip git libpng-dev \
+    libjpeg-dev libfreetype6-dev libonig-dev libxml2-dev build-essential pkg-config && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+    
+# Install PHP extensions (configure gd first)
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg && \
+    docker-php-ext-install gd zip mysqli pdo pdo_mysql mbstring xml fileinfo ctype
 
-# Install PHP extensions and Nginx
-RUN apt-get update --fix-missing && apt-get install -y \
-    nginx \
-    supervisor \
-    libzip-dev \
-    unzip \
-    zip \
-    git \
-    libpng-dev \
-    libjpeg-dev \
-    libfreetype6-dev \
-    libonig-dev \
-    libxml2-dev \
-    build-essential \
-    pkg-config \
-    && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install \
-        gd \
-        zip \
-        mysqli \
-        pdo \
-        pdo_mysql \
-        mbstring \
-        xml \
-        fileinfo \
-        ctype \
-        tokenizer \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+# Install Redis via PECL
+RUN pecl install -o -f redis && \
+    docker-php-ext-enable redis
 
 # Copy Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer

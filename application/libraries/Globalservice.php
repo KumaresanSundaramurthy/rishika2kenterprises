@@ -82,6 +82,55 @@ Class Globalservice {
         
     }
 
+    public function buildPagePaginationHtml($pageUrl, $totalCount, $pageNo, $limit) {
+
+        $config['base_url']        = $pageUrl;
+        $config['use_page_numbers'] = TRUE;
+        $config['total_rows']      = $totalCount;
+        $config['per_page']        = $limit;
+        $config['cur_page']        = (int) $pageNo;
+        $config['result_count']    = pageResultCount($pageNo, $limit, $totalCount);
+
+        $this->CI->load->library('pagination');
+        $this->CI->pagination->initialize($config);
+
+        return $this->CI->pagination->create_links();
+
+        // if ($totalCount <= 0 || $limit <= 0) return '';
+        // $totalPages = (int) ceil($totalCount / $limit);
+        // $from = (($pageNo - 1) * $limit) + 1;
+        // $to   = min($pageNo * $limit, $totalCount);
+
+        // $html = '<div class="col-12 col-sm-6 d-flex align-items-center text-muted small">'
+        //       . 'Showing <strong class="mx-1">' . $from . '</strong> - <strong class="mx-1">' . $to . '</strong>'
+        //       . ' of <strong class="mx-1">' . $totalCount . '</strong></div>'
+        //       . '<div class="col-12 col-sm-6 d-flex justify-content-sm-end mt-2 mt-sm-0">';
+
+        // if ($totalPages > 1) {
+        //     $html .= '<nav><ul class="pagination pagination-sm mb-0">';
+        //     $html .= '<li class="page-item' . ($pageNo <= 1 ? ' disabled' : '') . '">'
+        //            .   '<a class="page-link PaginationBtn" href="javascript:void(0);" data-page="' . max(1, $pageNo - 1) . '">&#8249;</a>'
+        //            . '</li>';
+
+        //     $start = max(1, $pageNo - 2);
+        //     $end   = min($totalPages, $start + 4);
+        //     $start = max(1, $end - 4);
+        //     for ($p = $start; $p <= $end; $p++) {
+        //         $html .= '<li class="page-item' . ($p === $pageNo ? ' active' : '') . '">'
+        //                .   '<a class="page-link PaginationBtn" href="javascript:void(0);" data-page="' . $p . '">' . $p . '</a>'
+        //                . '</li>';
+        //     }
+
+        //     $html .= '<li class="page-item' . ($pageNo >= $totalPages ? ' disabled' : '') . '">'
+        //            .   '<a class="page-link PaginationBtn" href="javascript:void(0);" data-page="' . min($totalPages, $pageNo + 1) . '">&#8250;</a>'
+        //            . '</li>';
+        //     $html .= '</ul></nav>';
+        // }
+        // $html .= '</div>';
+        // return $html;
+
+    }
+
     private function getPageTypeConfig($PageType) {
         $map = [
             'MainPage'   => ['where' => 'IsMainPageRequired', 'sort' => 'MainPageOrder', 'disp' => 'IsMainPageApplicable', 'settings' => 'IsMainPageSettingsApplicable'],

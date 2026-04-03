@@ -234,4 +234,51 @@ class Organisation_model extends CI_Model {
 
     }
 
+    /**
+     * Returns the best dispatch address for an org.
+     * Priority: Shipping → Billing → NULL (if neither exists).
+     * Reusable from any controller that needs the org's dispatch address.
+     *
+     * @param  int        $orgUID
+     * @return object|null  Single row with OrgAddressUID, AddressType, Line1, Line2,
+     *                      Pincode, CityText, StateText — or NULL if no address found.
+     */
+    public function getOrgDispatchAddress($orgUID) {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            foreach (['Shipping', 'Billing'] as $type) {
+                $this->ReadDb->select('Addr.OrgAddressUID, Addr.OrgUID, Addr.AddressType, Addr.Line1, Addr.Line2, Addr.Pincode, Addr.CityText, Addr.StateText');
+                $this->ReadDb->from('Organisation.OrgAddressTbl as Addr');
+                $this->ReadDb->where('Addr.OrgUID',      $orgUID);
+                $this->ReadDb->where('Addr.AddressType', $type);
+                $this->ReadDb->where('Addr.IsActive',    1);
+                $this->ReadDb->where('Addr.IsDeleted',   0);
+                $this->ReadDb->limit(1);
+                $row = $this->ReadDb->get()->row();
+                if ($row) {
+                    $this->EndReturnData->Error   = FALSE;
+                    $this->EndReturnData->Message = 'Success';
+                    $this->EndReturnData->Data    = $row;
+                    return $this->EndReturnData;
+                }
+            }
+
+            // Neither Shipping nor Billing address found
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'No address found';
+            $this->EndReturnData->Data    = NULL;
+            return $this->EndReturnData;
+
+        } catch (Exception $e) {
+
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+            throw new Exception($this->EndReturnData->Message);
+
+        }
+
+    }
+
 }

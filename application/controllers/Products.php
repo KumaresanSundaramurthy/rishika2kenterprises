@@ -33,12 +33,6 @@ class Products extends CI_Controller {
 
     }
 
-    private function loadModuleIds($ModuleInfo, $tabModules) {
-        foreach ($tabModules as $key => $modName) {
-            $this->pageData[ucfirst($key) . 'ModuleId'] = getModuleUIDByName($ModuleInfo, $modName);
-        }
-    }
-
     private function getModuleListData($moduleName) {
 
         $ModuleInfo = $this->getModuleInfo(strtolower($this->router->fetch_class()));
@@ -54,55 +48,6 @@ class Products extends CI_Controller {
         $filter = $this->input->post('Filter') ?: [];
 
         return $this->globalservice->getBaseMainPageTablePagination($ModuleId, $pageNo, $limit, $offset, $filter, [], 'Ajax');
-
-    }
-
-    private function buildPagePaginationHtml($pageUrl, $totalCount, $pageNo, $limit) {
-
-        $config['base_url']        = '/products/' . $pageUrl;
-        $config['use_page_numbers'] = TRUE;
-        $config['total_rows']      = $totalCount;
-        $config['per_page']        = $limit;
-        $config['cur_page']        = (int) $pageNo;
-        $config['result_count']    = pageResultCount($pageNo, $limit, $totalCount);
-
-        $this->load->library('pagination');
-        $this->pagination->initialize($config);
-
-        return $this->pagination->create_links();
-
-        // if ($totalCount <= 0 || $limit <= 0) return '';
-        // $totalPages = (int) ceil($totalCount / $limit);
-        // $from = (($pageNo - 1) * $limit) + 1;
-        // $to   = min($pageNo * $limit, $totalCount);
-
-        // $html = '<div class="col-12 col-sm-6 d-flex align-items-center text-muted small">'
-        //       . 'Showing <strong class="mx-1">' . $from . '</strong> - <strong class="mx-1">' . $to . '</strong>'
-        //       . ' of <strong class="mx-1">' . $totalCount . '</strong></div>'
-        //       . '<div class="col-12 col-sm-6 d-flex justify-content-sm-end mt-2 mt-sm-0">';
-
-        // if ($totalPages > 1) {
-        //     $html .= '<nav><ul class="pagination pagination-sm mb-0">';
-        //     $html .= '<li class="page-item' . ($pageNo <= 1 ? ' disabled' : '') . '">'
-        //            .   '<a class="page-link PaginationBtn" href="javascript:void(0);" data-page="' . max(1, $pageNo - 1) . '">&#8249;</a>'
-        //            . '</li>';
-
-        //     $start = max(1, $pageNo - 2);
-        //     $end   = min($totalPages, $start + 4);
-        //     $start = max(1, $end - 4);
-        //     for ($p = $start; $p <= $end; $p++) {
-        //         $html .= '<li class="page-item' . ($p === $pageNo ? ' active' : '') . '">'
-        //                .   '<a class="page-link PaginationBtn" href="javascript:void(0);" data-page="' . $p . '">' . $p . '</a>'
-        //                . '</li>';
-        //     }
-
-        //     $html .= '<li class="page-item' . ($pageNo >= $totalPages ? ' disabled' : '') . '">'
-        //            .   '<a class="page-link PaginationBtn" href="javascript:void(0);" data-page="' . min($totalPages, $pageNo + 1) . '">&#8250;</a>'
-        //            . '</li>';
-        //     $html .= '</ul></nav>';
-        // }
-        // $html .= '</div>';
-        // return $html;
 
     }
 
@@ -129,7 +74,7 @@ class Products extends CI_Controller {
 
         $resp                 = new stdClass();
         $resp->RecordHtmlData = $rowHtml;
-        $resp->Pagination     = $this->buildPagePaginationHtml('getProductList', $result->totalCount, $pageNo, $limit);
+        $resp->Pagination     = $this->globalservice->buildPagePaginationHtml('/products/getProductList', $result->totalCount, $pageNo, $limit);
         $resp->TotalCount     = $result->totalCount;
         return $resp;
 
@@ -158,7 +103,7 @@ class Products extends CI_Controller {
 
         $resp                 = new stdClass();
         $resp->RecordHtmlData = $rowHtml;
-        $resp->Pagination     = $this->buildPagePaginationHtml('getCategoryList', $result->totalCount, $pageNo, $limit);
+        $resp->Pagination     = $this->globalservice->buildPagePaginationHtml('/products/getCategoryList', $result->totalCount, $pageNo, $limit);
         return $resp;
 
     }
@@ -183,7 +128,7 @@ class Products extends CI_Controller {
                     'StartFrom' => 0,
                     'JwtData'   => $this->pageData['JwtData'],
                 ], TRUE);
-                $this->pageData['ModPagination'] = $this->buildPagePaginationHtml('getProductList', $tableData->totalCount, 1, $limit);
+                $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/products/getProductList', $tableData->totalCount, 1, $limit);
                 $this->pageData['ProductTotalCount'] = $tableData->totalCount;
             } elseif ($activeTab === 'category') {
                 $tableData = $this->products_model->getCategoryListPaginated($OrgUID, $limit, 0);
@@ -192,7 +137,7 @@ class Products extends CI_Controller {
                     'StartFrom' => 0,
                     'JwtData'   => $this->pageData['JwtData'],
                 ], TRUE);
-                $this->pageData['ModPagination'] = $this->buildPagePaginationHtml('getCategoryList', $tableData->totalCount, 1, $limit);
+                $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/products/getCategoryList', $tableData->totalCount, 1, $limit);
             } else {
                 $this->pageData['ModRowData']    = '';
                 $this->pageData['ModPagination'] = '';
@@ -395,7 +340,7 @@ class Products extends CI_Controller {
 
             $this->EndReturnData->Error       = false;
             $this->EndReturnData->List        = $rowHtml;
-            $this->EndReturnData->Pagination  = $this->buildPagePaginationHtml('getProductList', $result->totalCount, $pageNo, $limit);
+            $this->EndReturnData->Pagination  = $this->globalservice->buildPagePaginationHtml('/products/getProductList', $result->totalCount, $pageNo, $limit);
             $this->EndReturnData->UIDs        = array_column($result->rows, 'ProductUID');
             $this->EndReturnData->TotalCount  = $result->totalCount;
 
@@ -987,7 +932,7 @@ class Products extends CI_Controller {
 
             $this->EndReturnData->Error      = false;
             $this->EndReturnData->List       = $rowHtml;
-            $this->EndReturnData->Pagination = $this->buildPagePaginationHtml('getCategoryList', $result->totalCount, $pageNo, $limit);
+            $this->EndReturnData->Pagination = $this->globalservice->buildPagePaginationHtml('/products/getCategoryList', $result->totalCount, $pageNo, $limit);
             $this->EndReturnData->UIDs       = array_column($result->rows, 'CategoryUID');
 
         } catch (Exception $e) {

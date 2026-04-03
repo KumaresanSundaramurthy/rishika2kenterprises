@@ -110,23 +110,28 @@
                                             <option value="Without_GST">Without GST</option>
                                         </select>
                                     </div>
+                                    <?php if (!empty($DispatchAddress)): ?>
                                     <div>
-                                        <label for="dispatchFrom" class="form-label small fw-semibold">Dispatch From <span style="color:red">*</span></label>
-                                        <select id="dispatchFrom" name="dispatchFrom" class="form-select form-select-sm" required>
-                                            <option value="" disabled selected>Select location</option>
-                                            <?php if (!empty($LocationData)): foreach ($LocationData as $_loc): ?>
-                                            <option value="<?php echo (int)$_loc->LocationUID; ?>"
-                                                <?php echo !empty($_loc->IsDefault) ? 'selected' : ''; ?>>
-                                                <?php
-                                                $locLabel = htmlspecialchars($_loc->LocationName);
-                                                if (!empty($_loc->BranchName)) $locLabel = htmlspecialchars($_loc->BranchName) . ' — ' . $locLabel;
-                                                if (!empty($_loc->LocationCode)) $locLabel .= ' (' . htmlspecialchars($_loc->LocationCode) . ')';
-                                                echo $locLabel;
-                                                ?>
-                                            </option>
-                                            <?php endforeach; endif; ?>
-                                        </select>
+                                        <label class="form-label small fw-semibold">Dispatch From <span style="color:red">*</span></label>
+                                        <input type="hidden" id="dispatchFrom" name="dispatchFrom" value="<?php echo (int)$DispatchAddress->OrgAddressUID; ?>" />
+                                        <div class="border rounded p-2 bg-body-secondary small lh-sm">
+                                            <?php
+                                            $addrLines = array_filter([
+                                                htmlspecialchars($DispatchAddress->Line1  ?? ''),
+                                                htmlspecialchars($DispatchAddress->Line2  ?? ''),
+                                            ]);
+                                            $cityPin = trim(implode(' - ', array_filter([
+                                                htmlspecialchars($DispatchAddress->CityText ?? ''),
+                                                htmlspecialchars($DispatchAddress->Pincode  ?? ''),
+                                            ])));
+                                            if ($cityPin) $addrLines[] = $cityPin;
+                                            if (!empty($DispatchAddress->StateText)) $addrLines[] = htmlspecialchars($DispatchAddress->StateText);
+                                            echo implode(', ', $addrLines);
+                                            ?>
+                                            <span class="badge bg-label-info ms-1"><?php echo htmlspecialchars($DispatchAddress->AddressType); ?></span>
+                                        </div>
                                     </div>
+                                    <?php endif; ?>
                                 </div>
                                 <div class="col-md-6 border-end pe-3">
                                     <div class="d-flex flex-wrap align-items-center gap-2">

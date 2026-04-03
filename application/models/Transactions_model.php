@@ -22,25 +22,25 @@ class Transactions_model extends CI_Model {
                 'Ts.UniqueNumber AS UniqueNumber',
                 'Ts.TransNumber AS TransNumber',
                 'Ts.TransDate AS TransDate',
-                'Ts.Status AS Status',
+                'Ts.DocStatus AS Status',
                 'Ts.NetAmount AS NetAmount',
-                'Ts.IsFullyPaid AS IsFullyPaid',
-                'Ts.PaidAmount AS PaidAmount',
-                'Ts.BalanceAmount AS BalanceAmount',
-                'Ts.CreatedOn AS CreatedOn',
                 'Ts.UpdatedOn AS UpdatedOn',
                 'Cust.Name AS PartyName',
+                'Cust.MobileNumber AS MobileNumber',
                 'Td.ValidityDate AS ValidityDate',
             ]);
             $this->ReadDb->from('Transaction.TransactionsTbl as Ts');
-            $this->ReadDb->join('Customers.CustomerTbl as Cust', 'Cust.CustomerUID = Ts.PartyUID AND Ts.PartyType = \'C\'', 'LEFT');
+            $this->ReadDb->join('Customers.CustomerTbl as Cust', 'Cust.CustomerUID = Ts.PartyUID', 'LEFT');
             $this->ReadDb->join('Transaction.TransDetailTbl as Td', 'Td.TransUID = Ts.TransUID AND Td.FinancialYear = YEAR(Ts.TransDate)', 'LEFT');
             $this->ReadDb->where(['Ts.IsDeleted' => 0, 'Ts.IsActive' => 1, 'Ts.ModuleUID' => $ModuleUID]);
             $this->applyFilters($filter);
             if ($isCount) {
                 return $this->ReadDb->count_all_results();
             }
-            $this->ReadDb->order_by('Ts.TransUID', 'DESC');
+            $sortMap = ['Date' => 'Ts.TransDate', 'Amount' => 'Ts.NetAmount', 'Number' => 'Ts.TransNumber'];
+            $sortCol = $sortMap[$filter['SortBy'] ?? ''] ?? 'Ts.TransUID';
+            $sortDir = strtoupper($filter['SortDir'] ?? 'DESC') === 'ASC' ? 'ASC' : 'DESC';
+            $this->ReadDb->order_by($sortCol, $sortDir);
             if ($limit > 0) {
                 $this->ReadDb->limit($limit, $offset);
             }
@@ -62,12 +62,22 @@ class Transactions_model extends CI_Model {
         return $this->getTransactionPageList(0, 0, $ModuleUID, $filter, true);
     }
 
+    /**
+     * Tab label → DB DocStatus mapping.
+     * 'All' (or empty) excludes Draft.
+     * Any other tab filters to a specific DocStatus.
+     */
     private function applyFilters($filter) {
-        if (empty($filter)) return;
+        if (empty($filter)) {
+            // Default: exclude Drafts
+            $this->ReadDb->where('Ts.DocStatus !=', 'Draft');
+            return;
+        }
 
         if (!empty($filter['Name'])) {
             $this->ReadDb->group_start()
                         ->like('Cust.Name', $filter['Name'], 'both')
+                        ->or_like('Cust.MobileNumber', $filter['Name'], 'both')
                         ->or_like('Ts.TransNumber', $filter['Name'], 'both')
                         ->or_like('Ts.UniqueNumber', $filter['Name'], 'both')
                         ->group_end();
@@ -78,21 +88,61 @@ class Transactions_model extends CI_Model {
             $this->ReadDb->where('Ts.TransDate <=', $filter['DateTo']);
         }
 
-        if (!empty($filter['Status'])) {
-            $validStatuses = ['Draft', 'Pending', 'Accepted', 'Rejected', 'Converted'];
-            $status = ucfirst(strtolower($filter['Status']));
-            if (in_array($status, $validStatuses)) {
-                $this->ReadDb->where('Ts.Status', $status);
-            }
+        // Tab → DB value map. 'All' or empty excludes Draft; 'Draft' shows only Draft.
+        $tabToDb = [
+            'Open'      => 'Pending',
+            'Closed'    => 'Accepted',
+            'Partial'   => 'Partial',
+            'Cancelled' => 'Rejected',
+            'Converted' => 'Converted',
+            'Draft'     => 'Draft',
+        ];
+        $tab = $filter['Status'] ?? '';
+        if ($tab === 'Draft') {
+            $this->ReadDb->where('Ts.DocStatus', 'Draft');
+        } elseif (isset($tabToDb[$tab])) {
+            $this->ReadDb->where('Ts.DocStatus', $tabToDb[$tab]);
+        } else {
+            // 'All' or unrecognised: exclude Drafts
+            $this->ReadDb->where('Ts.DocStatus !=', 'Draft');
         }
-        
+
         if (!empty($filter['MinAmount'])) {
             $this->ReadDb->where('Ts.NetAmount >=', $filter['MinAmount']);
         }
-        
         if (!empty($filter['MaxAmount'])) {
             $this->ReadDb->where('Ts.NetAmount <=', $filter['MaxAmount']);
         }
+    }
+
+    /** Full transaction header row by TransUID + OrgUID. */
+    public function getTransactionById($transUID, $orgUID, $moduleUID) {
+        $this->ReadDb->select([
+            'Ts.*',
+            'Cust.Name AS PartyName',
+            'Td.ValidityDays', 'Td.ValidityDate', 'Td.Reference',
+            'Td.Notes', 'Td.TermsConditions', 'Td.AdditionalCharges AS AdditionalChargesJson',
+        ]);
+        $this->ReadDb->from('Transaction.TransactionsTbl AS Ts');
+        $this->ReadDb->join('Customers.CustomerTbl AS Cust', 'Cust.CustomerUID = Ts.PartyUID AND Ts.PartyType = \'C\'', 'LEFT');
+        $this->ReadDb->join('Transaction.TransDetailTbl AS Td', 'Td.TransUID = Ts.TransUID AND Td.FinancialYear = YEAR(Ts.TransDate)', 'LEFT');
+        $this->ReadDb->where(['Ts.TransUID' => $transUID, 'Ts.OrgUID' => $orgUID, 'Ts.ModuleUID' => $moduleUID, 'Ts.IsDeleted' => 0]);
+        return $this->ReadDb->get()->row();
+    }
+
+    /** All active line items for a transaction. */
+    public function getTransactionItems($transUID, $orgUID) {
+        $this->ReadDb->from('Transaction.TransProductsTbl');
+        $this->ReadDb->where(['TransUID' => $transUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
+        $this->ReadDb->order_by('ItemSequence', 'ASC');
+        return $this->ReadDb->get()->result();
+    }
+
+    /** All tax rows for a transaction's items. */
+    public function getTransactionItemTaxes($transUID) {
+        $this->ReadDb->from('Transaction.TransProdTaxesTbl');
+        $this->ReadDb->where(['TransUID' => $transUID, 'IsDeleted' => 0]);
+        return $this->ReadDb->get()->result();
     }
 
     /**

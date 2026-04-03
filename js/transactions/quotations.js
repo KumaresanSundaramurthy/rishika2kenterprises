@@ -2,7 +2,7 @@ function getQuotationsDetails(pageNo, rowLimit, filter) {
     pageNo   = pageNo   || PageNo;
     rowLimit = rowLimit || RowLimit;
     filter   = filter   || Filter;
-
+    $('.quot-tab-count').text('').addClass('d-none');
     $.ajax({
         url: '/quotations/getQuotationsPageDetails/' + pageNo,
         method: 'POST',
@@ -19,10 +19,11 @@ function getQuotationsDetails(pageNo, rowLimit, filter) {
                 $(ModuleTable + ' tbody').html('');
                 $(ModulePag).html('<div class="alert alert-danger m-2"><strong>' + response.Message + '</strong></div>');
             } else {
-                $(ModulePag).html(response.pagination);
-                $(ModuleTable + ' tbody').html(response.dataList);
-                var count = response.ResultCount || 0;
-                $('#quotTotalBadge').text(count > 0 ? count : '');
+                $(ModulePag).html(response.Pagination);
+                $(ModuleTable + ' tbody').html(response.RecordHtmlData);
+                var count   = response.TotalCount || 0;
+                var $active = $('.quot-status-tab.active');
+                $active.find('.quot-tab-count').text(count > 0 ? count : '').removeClass('d-none');
                 initTooltips();
             }
         },
@@ -116,11 +117,14 @@ function showFormError(message) {
     Swal.fire({ icon: 'error', title: 'Validation Error', text: message });
 }
 
-function setFormLoading(isLoading) {
+function setFormLoading(isLoading, action) {
     var $btns = $('#addQuotationForm button[type="submit"]');
     if (isLoading) {
         $btns.prop('disabled', true);
-        $btns.filter('[value="save"]').html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
+        var $activeBtn = action === 'draft'
+            ? $btns.filter('[value="draft"]')
+            : $btns.filter('[value="save"]');
+        $activeBtn.html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
     } else {
         $btns.prop('disabled', false);
         $btns.filter('[value="save"]').text('Save');

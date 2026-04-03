@@ -24,14 +24,16 @@ class Transactions_model extends CI_Model {
                 'Ts.TransDate AS TransDate',
                 'Ts.DocStatus AS Status',
                 'Ts.NetAmount AS NetAmount',
-                'Ts.UpdatedOn AS UpdatedOn',
                 'Cust.Name AS PartyName',
                 'Cust.MobileNumber AS MobileNumber',
                 'Td.ValidityDate AS ValidityDate',
+                'Ts.UpdatedOn AS UpdatedOn',
+                "CONCAT(User.FirstName, ' ', User.LastName) AS UpdatedBy",
             ]);
             $this->ReadDb->from('Transaction.TransactionsTbl as Ts');
             $this->ReadDb->join('Customers.CustomerTbl as Cust', 'Cust.CustomerUID = Ts.PartyUID', 'LEFT');
             $this->ReadDb->join('Transaction.TransDetailTbl as Td', 'Td.TransUID = Ts.TransUID AND Td.FinancialYear = YEAR(Ts.TransDate)', 'LEFT');
+            $this->ReadDb->join('Users.UserTbl as User', 'User.UserUID = Ts.UpdatedBy', 'left');
             $this->ReadDb->where(['Ts.IsDeleted' => 0, 'Ts.IsActive' => 1, 'Ts.ModuleUID' => $ModuleUID]);
             $this->applyFilters($filter);
             if ($isCount) {
@@ -44,6 +46,7 @@ class Transactions_model extends CI_Model {
             if ($limit > 0) {
                 $this->ReadDb->limit($limit, $offset);
             }
+            // print_r($this->ReadDb->get_compiled_select()); die;
             $query = $this->ReadDb->get();
             if (!$query) {
                 $error = $this->ReadDb->error();
@@ -68,6 +71,7 @@ class Transactions_model extends CI_Model {
      * Any other tab filters to a specific DocStatus.
      */
     private function applyFilters($filter) {
+
         if (empty($filter)) {
             // Default: exclude Drafts
             $this->ReadDb->where('Ts.DocStatus !=', 'Draft');
@@ -76,11 +80,11 @@ class Transactions_model extends CI_Model {
 
         if (!empty($filter['Name'])) {
             $this->ReadDb->group_start()
-                        ->like('Cust.Name', $filter['Name'], 'both')
-                        ->or_like('Cust.MobileNumber', $filter['Name'], 'both')
-                        ->or_like('Ts.TransNumber', $filter['Name'], 'both')
-                        ->or_like('Ts.UniqueNumber', $filter['Name'], 'both')
-                        ->group_end();
+                ->like('Cust.Name', $filter['Name'], 'both')
+                ->or_like('Cust.MobileNumber', $filter['Name'], 'both')
+                ->or_like('Ts.TransNumber', $filter['Name'], 'both')
+                ->or_like('Ts.UniqueNumber', $filter['Name'], 'both')
+                ->group_end();
         }
 
         if (!empty($filter['DateFrom']) && !empty($filter['DateTo'])) {
@@ -113,13 +117,17 @@ class Transactions_model extends CI_Model {
         if (!empty($filter['MaxAmount'])) {
             $this->ReadDb->where('Ts.NetAmount <=', $filter['MaxAmount']);
         }
+
     }
 
     /** Full transaction header row by TransUID + OrgUID. */
     public function getTransactionById($transUID, $orgUID, $moduleUID) {
+
         $this->ReadDb->select([
             'Ts.*',
             'Cust.Name AS PartyName',
+            'Cust.CountryCode AS PartyCountryCode',
+            'Cust.MobileNumber AS PartyMobile',
             'Td.ValidityDays', 'Td.ValidityDate', 'Td.Reference',
             'Td.Notes', 'Td.TermsConditions', 'Td.AdditionalCharges AS AdditionalChargesJson',
         ]);
@@ -128,21 +136,31 @@ class Transactions_model extends CI_Model {
         $this->ReadDb->join('Transaction.TransDetailTbl AS Td', 'Td.TransUID = Ts.TransUID AND Td.FinancialYear = YEAR(Ts.TransDate)', 'LEFT');
         $this->ReadDb->where(['Ts.TransUID' => $transUID, 'Ts.OrgUID' => $orgUID, 'Ts.ModuleUID' => $moduleUID, 'Ts.IsDeleted' => 0]);
         return $this->ReadDb->get()->row();
+
     }
 
     /** All active line items for a transaction. */
     public function getTransactionItems($transUID, $orgUID) {
-        $this->ReadDb->from('Transaction.TransProductsTbl');
-        $this->ReadDb->where(['TransUID' => $transUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
-        $this->ReadDb->order_by('ItemSequence', 'ASC');
+
+        $this->ReadDb->select([
+            'Tprod.*',
+            'Product.HSNSACCode AS HSNCode',
+        ]);
+        $this->ReadDb->from('Transaction.TransProductsTbl as Tprod');
+        $this->ReadDb->join('Products.ProductTbl AS Product', 'Product.ProductUID = Tprod.ProductUID', 'LEFT');
+        $this->ReadDb->where(['Tprod.TransUID' => $transUID, 'Tprod.OrgUID' => $orgUID, 'Tprod.IsDeleted' => 0]);
+        $this->ReadDb->order_by('Tprod.ItemSequence', 'ASC');
         return $this->ReadDb->get()->result();
+
     }
 
     /** All tax rows for a transaction's items. */
     public function getTransactionItemTaxes($transUID) {
+
         $this->ReadDb->from('Transaction.TransProdTaxesTbl');
         $this->ReadDb->where(['TransUID' => $transUID, 'IsDeleted' => 0]);
         return $this->ReadDb->get()->result();
+        
     }
 
     /**

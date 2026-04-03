@@ -4,7 +4,6 @@ $(document).ready(function () {
     /* ----------------------------------------------------------------
        Helpers
     ---------------------------------------------------------------- */
-
     /** Returns current fiscal year string based on format.
      *  Indian FY starts April 1. */
     function getFiscalYear(format) {

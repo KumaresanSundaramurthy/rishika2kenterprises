@@ -17,34 +17,40 @@
                     <div class="card">
 
                         <!-- ── Toolbar ─────────────────────────────── -->
-                        <div class="card-header bg-body-tertiary d-flex flex-wrap justify-content-between align-items-center gap-2 py-2 border-bottom-0">
+                        <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2 py-2 border-bottom-0">
 
                             <!-- Status tabs -->
                             <ul class="nav nav-pills gap-1" id="quotStatusTabs" role="tablist">
                                 <li class="nav-item">
-                                    <a class="nav-link py-1 px-3 active quot-status-tab" data-status="All" href="#">
-                                        All <span class="badge bg-secondary ms-1" id="quotTotalBadge"></span>
+                                    <a class="nav-link py-1 px-3 active quot-status-tab" data-status="All" href="javascript:void(0);">
+                                        All <span class="badge bg-info ms-1 quot-tab-count"><?php echo $ModAllCount; ?></span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link py-1 px-3 quot-status-tab" data-status="Open" href="#">Open</a>
+                                    <a class="nav-link py-1 px-3 quot-status-tab" data-status="Open" href="javascript:void(0);">
+                                        Open <span class="badge bg-info ms-1 quot-tab-count d-none"></span></a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link py-1 px-3 quot-status-tab" data-status="Closed" href="#">Closed</a>
+                                    <a class="nav-link py-1 px-3 quot-status-tab" data-status="Closed" href="javascript:void(0);">
+                                        Closed <span class="badge bg-info ms-1 quot-tab-count d-none"></span></a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link py-1 px-3 quot-status-tab" data-status="Partial" href="#">Partial</a>
+                                    <a class="nav-link py-1 px-3 quot-status-tab" data-status="Partial" href="javascript:void(0);">
+                                        Partial <span class="badge bg-info ms-1 quot-tab-count d-none"></span></a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link py-1 px-3 quot-status-tab" data-status="Cancelled" href="#">Cancelled</a>
+                                    <a class="nav-link py-1 px-3 quot-status-tab" data-status="Cancelled" href="javascript:void(0);">
+                                        Cancelled <span class="badge bg-info ms-1 quot-tab-count d-none"></span></a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link py-1 px-3 quot-status-tab" data-status="Draft" href="#">Drafts</a>
+                                    <a class="nav-link py-1 px-3 quot-status-tab" data-status="Draft" href="javascript:void(0);">
+                                        Drafts <span class="badge bg-info ms-1 quot-tab-count d-none"></span></a>
                                 </li>
                             </ul>
 
                             <!-- Search + Date filter + Create -->
                             <div class="d-flex align-items-center gap-2">
+                                <a href="javascript: void(0);" class="btn pageRefresh p-2 me-0"><i class="bx bx-refresh fs-4"></i></a>
                                 <div class="input-group input-group-sm" style="width:220px">
                                     <span class="input-group-text" id="transSearchIcon"><i class="bx bx-search"></i></span>
                                     <input type="text" class="form-control" id="searchTransactionData" placeholder="Search..." title="Quotation Number or Customer Name">
@@ -81,15 +87,13 @@
                                     </ul>
                                 </div>
 
-                                <a href="/quotations/create" class="btn btn-primary btn-sm px-3">
-                                    <i class="bx bx-plus me-1"></i>Create
-                                </a>
+                                <a href="/quotations/create" class="btn btn-primary btn-sm px-3">Create </a>
                             </div>
                         </div>
 
                         <!-- ── Table ───────────────────────────────── -->
                         <div class="table-responsive text-nowrap">
-                            <table class="table table-hover mb-0" id="quotTable">
+                            <table class="table table-hover MainviewTable mb-0" id="quotTable">
                                 <thead class="bg-body-tertiary">
                                     <tr>
                                         <th class="table-checkbox" style="width:40px">
@@ -98,20 +102,20 @@
                                             </div>
                                         </th>
                                         <th class="<?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?> table-serialno" style="width:50px">S.No</th>
-                                        <th class="col-sortable cursor-pointer user-select-none" data-sort="Number" style="width:140px">
+                                        <th class="col-sortable cursor-pointer user-select-none" data-sort="Number">
                                             # Quotation <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Number"></i>
                                         </th>
-                                        <th class="col-sortable cursor-pointer user-select-none text-end" data-sort="Amount" style="width:120px">
+                                        <th class="col-sortable cursor-pointer user-select-none" data-sort="Amount">
                                             Amount <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Amount"></i>
                                         </th>
-                                        <th style="width:100px">Status</th>
+                                        <th>Status</th>
                                         <th>Customer</th>
-                                        <th class="col-sortable cursor-pointer user-select-none" data-sort="Date" style="width:100px">
+                                        <th class="col-sortable cursor-pointer user-select-none" data-sort="Date">
                                             Date <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Date"></i>
                                         </th>
-                                        <th style="width:100px">Valid Until</th>
-                                        <th style="width:130px">Last Updated</th>
-                                        <th style="width:50px"></th>
+                                        <th>Valid Until</th>
+                                        <th>Last Updated</th>
+                                        <th style="width:50px">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody class="table-border-bottom-0">
@@ -126,6 +130,29 @@
                             <?php echo $ModPagination ? $ModPagination : ''; ?>
                         </div>
 
+                    </div>
+
+                    <!-- ── View Quotation Modal ──────────────────── -->
+                    <div class="modal fade" id="viewQuotationModal" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                            <div class="modal-content">
+                                <div class="modal-header bg-body-secondary p-3 d-flex justify-content-between align-items-center">
+                                    <h6 class="modal-title fw-semibold fs-6 text-primary mb-0" id="viewQuotModalTitle">Quotation Details</h6>
+                                    <div class="gap-2">
+                                        <a href="javascript:void(0);" id="viewQuotEditBtn" class="btn btn-warning btn-sm me-2">
+                                            <i class="bx bx-edit me-1"></i>Edit
+                                        </a>
+                                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                                    </div>
+                                </div>
+                                <div class="modal-body p-0" id="viewQuotModalBody">
+                                    <div class="d-flex justify-content-center align-items-center py-5">
+                                        <div class="spinner-border text-primary" role="status"></div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer py-2"></div>
+                            </div>
+                        </div>
                     </div>
 
                 </div>
@@ -152,12 +179,19 @@ $(function () {
 
     Filter['Status'] = 'All';
 
-    // Status tabs
+    // ── Status tabs (with count badge) ──────────────────
     $(document).on('click', '.quot-status-tab', function (e) {
         e.preventDefault();
         $('.quot-status-tab').removeClass('active');
         $(this).addClass('active');
-        Filter.Status = $(this).data('status') || '';
+        Filter.Status = $(this).data('status') || 'All';
+        PageNo = 1;
+        getQuotationsDetails();
+    });
+
+    $(document).on('click', '.pageRefresh', function (e) {
+        e.preventDefault();
+        Filter.Status = $(this).data('status') || 'All';
         PageNo = 1;
         getQuotationsDetails();
     });
@@ -276,6 +310,144 @@ $(function () {
         });
     });
 
+    // ── Inline status update ──────────────────────────────
+    $(document).on('click', '.quot-status-update', function () {
+        var uid       = $(this).data('uid');
+        var newStatus = $(this).data('status');
+        $.ajax({
+            url    : '/quotations/updateQuotationStatus',
+            method : 'POST',
+            data   : { TransUID: uid, Status: newStatus, [CsrfName]: CsrfToken },
+            success: function (resp) {
+                if (resp.Error) {
+                    Swal.fire({ icon: 'error', text: resp.Message });
+                } else {
+                    getQuotationsDetails();
+                }
+            }
+        });
+    });
+
+    // ── View quotation modal ──────────────────────────────
+    var _quotStatusLabel = { Pending: 'Open', Accepted: 'Closed', Rejected: 'Cancelled' };
+    var _quotStatusBadge = {
+        Pending: 'bg-label-warning', Accepted: 'bg-label-success',
+        Partial: 'bg-label-info',    Rejected: 'bg-label-danger',
+        Converted: 'bg-label-primary', Draft: 'bg-label-secondary'
+    };
+
+    $(document).on('click', '.viewQuotation', function () {
+        $('#viewQuotEditBtn').addClass('d-none');
+        var uid = $(this).data('uid');
+        $('#viewQuotModalBody').html('<div class="d-flex justify-content-center py-5"><div class="spinner-border text-primary"></div></div>');
+        $('#viewQuotEditBtn').attr('href', '/quotations/edit/' + uid);
+        $('#viewQuotModalTitle').text('Quotation Details');
+        var modal = new bootstrap.Modal(document.getElementById('viewQuotationModal'));
+        modal.show();
+        AjaxLoading = 0;
+        $.ajax({
+            url    : '/quotations/getQuotationDetail',
+            method : 'GET',
+            data   : { TransUID: uid },
+            success: function (resp) {
+                AjaxLoading = 1;
+                $('#viewQuotEditBtn').removeClass('d-none');
+                if (resp.Error) {
+                    $('#viewQuotModalBody').html('<div class="alert alert-danger m-3">' + resp.Message + '</div>');
+                    return;
+                }
+                var h   = resp.Header;
+                var sym = '<?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? ''); ?>';
+                var statusLabel = _quotStatusLabel[h.DocStatus] || h.DocStatus;
+                var statusBadge = _quotStatusBadge[h.DocStatus] || 'bg-label-secondary';
+
+                if (h.UniqueNumber) $('#viewQuotModalTitle').text('Quotation — ' + h.UniqueNumber);
+
+                // ── Header info ──────────────────────────
+                var html = '<div class="p-3 border-bottom">'
+                    + '<div class="row g-2">'
+                    + '<div class="col-sm-4">'
+                    + '  <div class="small text-muted fw-bold">Customer</div>'
+                    + '  <div class="text-primary fw-bold">' + _esc(h.PartyName) + '</div>'
+                    + (h.PartyMobile ? '<div class="small text-muted">' + _esc(h.PartyCountryCode) + ' ' + _esc(h.PartyMobile) + '</div>' : '')
+                    + '</div>'
+                    + '<div class="col-sm-2">'
+                    + '  <div class="small text-muted fw-bold">Date</div>'
+                    + '  <div>' + _esc(h.TransDate) + '</div>'
+                    + '</div>'
+                    + '<div class="col-sm-2">'
+                    + '  <div class="small text-muted fw-bold">Valid Until</div>'
+                    + '  <div>' + (h.ValidityDate || '—') + '</div>'
+                    + '</div>'
+                    + '<div class="col-sm-2">'
+                    + '  <div class="small text-muted fw-bold">Status</div>'
+                    + '  <span class="badge ' + statusBadge + '">' + statusLabel + '</span>'
+                    + '</div>'
+                    + '<div class="col-sm-2 text-end">'
+                    + '  <div class="small text-muted fw-bold">Net Amount</div>'
+                    + '  <div class="fw-bold fs-6">' + sym + ' ' + _esc(h.NetAmount) + '</div>'
+                    + '</div>'
+                    + '</div>'
+                    + (h.Reference ? '<div class="small text-muted mt-2">Ref: <span class="text-body">' + _esc(h.Reference) + '</span></div>' : '')
+                    + '</div>';
+
+                // ── Items table ──────────────────────────
+                html += '<div class="table-responsive"><table class="table table-sm table-hover MainviewTable mb-0">'
+                    + '<thead class="bg-body-tertiary"><tr>'
+                    + '<th>#</th><th>Product</th><th class="text-end">Qty</th>'
+                    + '<th class="text-end">Unit Price</th><th class="text-end">Tax %</th>'
+                    + '<th class="text-end">Tax Amt</th><th class="text-end">Net Amt</th>'
+                    + '</tr></thead><tbody>';
+
+                if (resp.Items && resp.Items.length) {
+                    $.each(resp.Items, function (i, item) {
+                        html += '<tr>'
+                            + '<td>' + (i + 1) + '</td>'
+                            + '<td><div class="fw-semibold">' + _esc(item.ProductName) + '</div>'
+                            + (item.PartNumber ? '<div class="small text-muted">' + _esc(item.PartNumber) + '</div>' : '')
+                            + '</td>'
+                            + '<td class="text-end">' + _esc(smartDecimal(item.Quantity)) + ' ' + _esc(item.PrimaryUnitName || '') + '</td>'
+                            + '<td class="text-end">' + sym + ' ' + _esc(item.UnitPrice) + '</td>'
+                            + '<td class="text-end">' + _esc(item.TaxPercentage) + '%</td>'
+                            + '<td class="text-end">' + sym + ' ' + _esc(item.TaxAmount) + '</td>'
+                            + '<td class="text-end fw-semibold">' + sym + ' ' + _esc(item.NetAmount) + '</td>'
+                            + '</tr>';
+                    });
+                } else {
+                    html += '<tr><td colspan="7" class="text-center text-muted py-3">No items</td></tr>';
+                }
+
+                html += '</tbody></table></div>';
+
+                // ── Totals ───────────────────────────────
+                html += '<div class="d-flex justify-content-end p-3 border-top">'
+                    + '<table class="table table-sm w-auto mb-0">'
+                    + '<tr><td class="text-muted pe-4">Sub Total</td><td class="text-end fw-semibold">' + sym + ' ' + _esc(h.SubTotal) + '</td></tr>'
+                    + (parseFloat(h.DiscountAmount) > 0 ? '<tr><td class="text-muted pe-4">Discount</td><td class="text-end text-danger">- ' + sym + ' ' + _esc(h.DiscountAmount) + '</td></tr>' : '')
+                    + (parseFloat(h.TaxAmount) > 0 ? '<tr><td class="text-muted pe-4">Tax</td><td class="text-end">' + sym + ' ' + _esc(h.TaxAmount) + '</td></tr>' : '')
+                    + (parseFloat(h.AdditionalCharges) > 0 ? '<tr><td class="text-muted pe-4">Charges</td><td class="text-end">' + sym + ' ' + _esc(h.AdditionalCharges) + '</td></tr>' : '')
+                    + '<tr class="border-top"><td class="fw-bold pe-4">Net Amount</td><td class="text-end fw-bold">' + sym + ' ' + _esc(h.NetAmount) + '</td></tr>'
+                    + '</table></div>';
+
+                if (h.Notes) {
+                    html += '<div class="px-3 pb-3"><div class="small text-muted mb-1">Notes</div><div class="small border rounded p-2 bg-body-secondary">' + _esc(h.Notes) + '</div></div>';
+                }
+
+                $('#viewQuotModalBody').html(html);
+            },
+            error: function () {
+                AjaxLoading = 1;
+                $('#viewQuotEditBtn').removeClass('d-none');
+                $('#viewQuotModalBody').html('<div class="alert alert-danger m-3">Failed to load quotation.</div>');
+            }
+        });
+    });
+
+    function _esc(v) {
+        if (v === null || v === undefined) return '—';
+        return $('<span>').text(String(v)).html();
+    }
+
     // Convert to Sales Order / Invoice
     $(document).on('click', '.convertToQuot', function () {
         var uid    = $(this).data('uid');
@@ -300,170 +472,12 @@ $(function () {
                         Swal.fire({ icon: 'error', text: resp.Message });
                     } else {
                         getQuotationsDetails();
-                        Swal.fire({ icon: 'success', text: resp.Message, timer: 1800, showConfirmButton: false });
+                        Swal.fire({ icon: 'success', text: resp.Message, timer: 500, showConfirmButton: false });
                     }
                 }
             });
         });
     });
-
-    // ── Add Quotation form submit ─────────────────────────
-    var $form = $('#addQuotationForm');
-    if ($form.length) {
-
-        $form.on('submit', function (e) {
-            e.preventDefault();
-
-            var $btn     = $('button[type="submit"][name="action"]:focus, button[type="submit"][name="action"].active-submit', $form);
-            var action   = $btn.val() || 'save';
-            var csrfName = $form.data('csrf');
-            var csrfVal  = $form.data('csrf-value');
-
-            // ── Client-side validation ──────────────────
-            var customerUID = parseInt($('#customerSearch').val(), 10);
-            if (!customerUID || customerUID <= 0) {
-                return showFormError('Please select a customer.');
-            }
-
-            var prefixUID = parseInt($('#transPrefixSelect').val(), 10);
-            if (!prefixUID || prefixUID <= 0) {
-                return showFormError('Please select a quotation prefix.');
-            }
-
-            var transNumber = $.trim($('#transNumber').val());
-            if (!transNumber || parseInt(transNumber, 10) <= 0) {
-                return showFormError('Transaction number must be greater than 0.');
-            }
-
-            var transDate = $.trim($('#transDate').val());
-            if (!transDate || !/^\d{4}-\d{2}-\d{2}$/.test(transDate)) {
-                return showFormError('Please enter a valid transaction date.');
-            }
-
-            var validityDate = $.trim($('#validityDate').val());
-            if (validityDate && !/^\d{4}-\d{2}-\d{2}$/.test(validityDate)) {
-                return showFormError('Validity date format is invalid.');
-            }
-
-            var items = typeof billManager !== 'undefined' ? billManager.getAllItems() : [];
-            if (!items || items.length === 0) {
-                return showFormError('Please add at least one product.');
-            }
-
-            // Validate each item row
-            for (var i = 0; i < items.length; i++) {
-                var item = items[i];
-                var qty  = parseFloat(item.quantity);
-                if (!qty || qty <= 0 || !Number.isInteger(qty)) {
-                    return showFormError('Row ' + (i + 1) + ': Quantity must be a positive whole number.');
-                }
-                if (parseFloat(item.unitPrice) < 0) {
-                    return showFormError('Row ' + (i + 1) + ': Selling price cannot be negative.');
-                }
-                var tax = parseFloat(item.taxPercent || 0);
-                if (tax < 0 || tax > 100) {
-                    return showFormError('Row ' + (i + 1) + ': Tax percentage must be between 0 and 100.');
-                }
-            }
-
-            var extraDiscount = parseFloat($('#extraDiscount').val()) || 0;
-            if (extraDiscount < 0) {
-                return showFormError('Extra discount cannot be negative.');
-            }
-
-            // ── Build summary from BillManager ─────────
-            var bm       = typeof billManager !== 'undefined' ? billManager : null;
-            var summary  = bm ? bm.summary : {};
-            var netAmount = summary.totals ? (summary.totals.grandTotal || 0) : 0;
-
-            var subTotal          = summary.items       ? (summary.items.taxableAmount    || 0) : 0;
-            var discountAmtTotal  = summary.items       ? (summary.items.discountTotal    || 0) : 0;
-            var taxAmtTotal       = summary.taxTotals   ? (summary.taxTotals.totalTax     || 0) : 0;
-            var cgstAmtTotal      = summary.taxTotals   ? (summary.taxTotals.cgstTotal    || 0) : 0;
-            var sgstAmtTotal      = summary.taxTotals   ? (summary.taxTotals.sgstTotal    || 0) : 0;
-            var igstAmtTotal      = summary.taxTotals   ? (summary.taxTotals.igstTotal    || 0) : 0;
-            var addChargesTotal   = (summary.additionalCharges && summary.additionalCharges.total)
-                                        ? (summary.additionalCharges.total.grossAmount || 0) : 0;
-            var globalDiscPct     = bm ? (bm.globalDiscountPercent || 0) : 0;
-            var roundOff          = summary.extra       ? (summary.extra.roundOff          || 0) : 0;
-
-            // ── Build POST data ─────────────────────────
-            var charges = {};
-            if (summary.additionalCharges) {
-                ['shipping', 'handling', 'packing', 'other'].forEach(function (t) {
-                    var c = summary.additionalCharges[t];
-                    if (c && c.grossAmount > 0) {
-                        charges[t + 'Amount'] = c.grossAmount;
-                        charges[t + 'Tax']    = c.taxPercent || 0;
-                    }
-                });
-            }
-
-            var postData = $.extend({
-                transPrefixSelect      : prefixUID,
-                transNumber            : transNumber,
-                transDate              : transDate,
-                validityDate           : validityDate,
-                validityDays           : parseInt($('#validityDays').val(), 10) || 0,
-                customerSearch         : customerUID,
-                quotationType          : $('#quotationType').val() || '',
-                dispatchFrom           : $('#dispatchFrom').val() || '',
-                referenceDetails       : $.trim($('#referenceDetails').val()),
-                transNotes             : $.trim($('#transNotes').val()),
-                transTermsCond         : $.trim($('#transTermsCond').val()),
-                extraDiscount          : extraDiscount,
-                extDiscountType        : $('#extDiscountType').val() || '',
-                SubTotal               : subTotal,
-                DiscountAmount         : discountAmtTotal,
-                TaxAmount              : taxAmtTotal,
-                CgstAmount             : cgstAmtTotal,
-                SgstAmount             : sgstAmtTotal,
-                IgstAmount             : igstAmtTotal,
-                AdditionalChargesTotal : addChargesTotal,
-                GlobalDiscPercent      : globalDiscPct,
-                RoundOff               : roundOff,
-                NetAmount              : netAmount,
-                Items                  : JSON.stringify(items),
-                action                 : action,
-                [csrfName]             : csrfVal,
-            }, charges);
-
-            setFormLoading(true);
-
-            $.ajax({
-                url     : '/quotations/addQuotation',
-                method  : 'POST',
-                data    : postData,
-                cache   : false,
-                success : function (response) {
-                    setFormLoading(false);
-                    if (response.Error) {
-                        showFormError(response.Message);
-                    } else {
-                        Swal.fire({
-                            icon             : 'success',
-                            title            : 'Quotation Saved',
-                            text             : response.Message || 'Quotation created successfully.',
-                            confirmButtonText: 'OK',
-                        }).then(function () {
-                            window.location.href = '/quotations';
-                        });
-                    }
-                },
-                error: function () {
-                    setFormLoading(false);
-                    showFormError('Server error. Please try again.');
-                }
-            });
-        });
-
-        // Track which submit button was clicked
-        $form.on('click', 'button[type="submit"][name="action"]', function () {
-            $form.find('button[type="submit"][name="action"]').removeClass('active-submit');
-            $(this).addClass('active-submit');
-        });
-
-    }
 
 });
 </script>

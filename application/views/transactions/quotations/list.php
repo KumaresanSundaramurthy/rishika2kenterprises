@@ -14,6 +14,28 @@ $statusLabel = [
     'Accepted' => 'Closed',
     'Rejected' => 'Cancelled',
 ];
+// Valid next-state transitions per current DocStatus
+$statusTransitions = [
+    'Pending'   => [
+        ['db' => 'Accepted', 'label' => 'Mark as Closed'],
+        ['db' => 'Partial',  'label' => 'Mark as Partial'],
+        ['db' => 'Rejected', 'label' => 'Cancel'],
+    ],
+    'Accepted'  => [
+        ['db' => 'Pending', 'label' => 'Reopen'],
+        ['db' => 'Partial', 'label' => 'Mark as Partial'],
+    ],
+    'Partial'   => [
+        ['db' => 'Accepted', 'label' => 'Mark as Closed'],
+        ['db' => 'Pending',  'label' => 'Mark as Open'],
+    ],
+    'Draft'     => [
+        ['db' => 'Pending', 'label' => 'Finalize (Mark Open)'],
+    ],
+    'Rejected'  => [],
+    'Converted' => [],
+];
+
 $currency   = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '');
 $decimals   = $JwtData->GenSettings->DecimalPoints ?? 2;
 $showSerial = $JwtData->GenSettings->SerialNoDisplay == 1;
@@ -21,9 +43,10 @@ $showSerial = $JwtData->GenSettings->SerialNoDisplay == 1;
 if (!empty($DataLists)) {
     foreach ($DataLists as $list) {
         $SerialNumber++;
-        $isDraft = ($list->Status === 'Draft');
-        $badge   = $statusBadge[$list->Status] ?? 'bg-label-secondary';
-        $label   = $statusLabel[$list->Status] ?? $list->Status;
+        $isDraft     = ($list->Status === 'Draft');
+        $badge       = $statusBadge[$list->Status]  ?? 'bg-label-secondary';
+        $label       = $statusLabel[$list->Status]   ?? $list->Status;
+        $transitions = $statusTransitions[$list->Status] ?? [];
 
         $validityClass = '';
         if (!$isDraft && !empty($list->ValidityDate) && strtotime($list->ValidityDate) < time()) {
@@ -39,7 +62,7 @@ if (!empty($DataLists)) {
             <td class="<?php echo $showSerial ? '' : 'd-none'; ?> table-serialno" style="width:50px"><?php echo $SerialNumber; ?></td>
 
             <!-- # Quotation -->
-            <td style="width:140px">
+            <td>
                 <?php if ($isDraft || empty($list->UniqueNumber)): ?>
                     <span class="text-muted fst-italic small">—</span>
                 <?php else: ?>
@@ -48,34 +71,63 @@ if (!empty($DataLists)) {
             </td>
 
             <!-- Amount -->
-            <td class="text-end fw-bold" style="width:120px">
+            <td>
                 <?php if ($isDraft && $list->NetAmount == 0): ?>
                     <span class="text-muted">—</span>
                 <?php else: ?>
-                    <?php echo $currency; ?><?php echo smartDecimal($list->NetAmount, $decimals, true); ?>
+                    <div class="text-dark fw-semibold"><?php echo $currency . ' ' . smartDecimal($list->NetAmount, $decimals, true); ?></div>
                 <?php endif; ?>
             </td>
 
-            <!-- Status -->
-            <td style="width:100px">
-                <span class="badge <?php echo $badge; ?>"><?php echo htmlspecialchars($label); ?></span>
+            <!-- Status — clickable badge with transition dropdown -->
+            <td>
+                <?php if (!empty($transitions)): ?>
+                <div class="dropdown">
+                    <span class="badge <?php echo $badge; ?> cursor-pointer"
+                          data-bs-toggle="dropdown"
+                          data-uid="<?php echo (int) $list->TransUID; ?>"
+                          data-current="<?php echo htmlspecialchars($list->Status); ?>"
+                          title="Click to change status">
+                        <?php echo htmlspecialchars($label); ?> <i class="bx bx-chevron-down" style="font-size:.7rem;vertical-align:middle"></i>
+                    </span>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                        <?php foreach ($transitions as $t): ?>
+                        <li>
+                            <button class="dropdown-item quot-status-update"
+                                    data-uid="<?php echo (int) $list->TransUID; ?>"
+                                    data-status="<?php echo htmlspecialchars($t['db']); ?>">
+                                <?php echo htmlspecialchars($t['label']); ?>
+                            </button>
+                        </li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
+                <?php else: ?>
+                    <span class="badge <?php echo $badge; ?>"><?php echo htmlspecialchars($label); ?></span>
+                <?php endif; ?>
             </td>
 
             <!-- Customer + Mobile -->
             <td>
-                <div class="fw-semibold lh-sm"><?php echo htmlspecialchars($list->PartyName ?? '—'); ?></div>
+                <div class="fw-semibold lh-sm mb-1"><?php echo htmlspecialchars($list->PartyName ?? '—'); ?></div>
                 <?php if (!empty($list->MobileNumber)): ?>
-                    <div class="small text-muted"><?php echo htmlspecialchars($list->MobileNumber); ?></div>
+                    <div class="small text-muted">
+                        <?php echo htmlspecialchars($list->MobileNumber); ?>
+                        <a href="https://wa.me/<?php echo htmlspecialchars($list->MobileNumber); ?>?text=Hi"
+                           target="_blank" class="text-success ms-1" title="WhatsApp">
+                            <i class="bx bxl-whatsapp fs-6 align-middle"></i>
+                        </a>
+                    </div>
                 <?php endif; ?>
             </td>
 
             <!-- Date -->
-            <td class="small" style="width:100px">
+            <td>
                 <?php echo htmlspecialchars(format_datedisplay($list->TransDate, 'd M Y')); ?>
             </td>
 
             <!-- Valid Until -->
-            <td class="small <?php echo $validityClass; ?>" style="width:100px">
+            <td class="<?php echo $validityClass; ?>">
                 <?php if (!$isDraft && !empty($list->ValidityDate)): ?>
                     <?php echo format_datedisplay($list->ValidityDate, 'd M Y'); ?>
                 <?php else: ?>
@@ -84,61 +136,63 @@ if (!empty($DataLists)) {
             </td>
 
             <!-- Last Updated -->
-            <td class="small text-muted" style="width:130px">
-                <?php echo !empty($list->UpdatedOn) ? htmlspecialchars(format_datedisplay($list->UpdatedOn, 'd M Y')) : '—'; ?>
+            <td class="small text-muted">
+                <div><?php echo changeTimeZonefromDateTime($list->UpdatedOn, $JwtData->User->Timezone, 2); ?></div>
+                <div style="font-size:.75rem">by <?php echo htmlspecialchars($list->UpdatedBy ?? '—'); ?></div>
             </td>
 
-            <!-- Actions (⋮ menu) -->
-            <td class="text-center" style="width:50px">
-                <div class="dropdown">
-                    <button class="btn btn-icon btn-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="bx bx-dots-vertical-rounded fs-5 text-muted"></i>
+            <!-- Actions -->
+            <td style="width:50px">
+                <div class="d-flex align-items-center justify-content-center gap-1">
+                    <button class="btn btn-icon btn-sm text-info viewQuotation"
+                            data-uid="<?php echo (int) $list->TransUID; ?>"
+                            title="View">
+                        <i class="bx bx-show fs-6"></i>
                     </button>
-                    <ul class="dropdown-menu dropdown-menu-end shadow-sm">
-                        <li>
-                            <a class="dropdown-item" href="/quotations/view/<?php echo (int) $list->TransUID; ?>">
-                                <i class="bx bx-show me-2 text-info"></i>View
-                            </a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item" href="/quotations/edit/<?php echo (int) $list->TransUID; ?>">
-                                <i class="bx bx-edit-alt me-2 text-warning"></i>Edit
-                            </a>
-                        </li>
-                        <?php if (!$isDraft && $list->Status !== 'Converted'): ?>
-                        <li><hr class="dropdown-divider my-1"></li>
-                        <li>
-                            <button class="dropdown-item convertToQuot"
-                                    data-uid="<?php echo (int) $list->TransUID; ?>"
-                                    data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
-                                    data-target="SalesOrder">
-                                <i class="bx bx-cart me-2 text-primary"></i>Convert to Sales Order
-                            </button>
-                        </li>
-                        <li>
-                            <button class="dropdown-item convertToQuot"
-                                    data-uid="<?php echo (int) $list->TransUID; ?>"
-                                    data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
-                                    data-target="Invoice">
-                                <i class="bx bx-receipt me-2 text-success"></i>Convert to Invoice
-                            </button>
-                        </li>
-                        <?php endif; ?>
-                        <li><hr class="dropdown-divider my-1"></li>
-                        <li>
-                            <button class="dropdown-item duplicateQuotation"
-                                    data-uid="<?php echo (int) $list->TransUID; ?>">
-                                <i class="bx bx-copy me-2 text-secondary"></i>Duplicate
-                            </button>
-                        </li>
-                        <li>
-                            <button class="dropdown-item text-danger deleteQuotation"
-                                    data-uid="<?php echo (int) $list->TransUID; ?>"
-                                    data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? 'Draft'); ?>">
-                                <i class="bx bx-trash me-2"></i>Delete
-                            </button>
-                        </li>
-                    </ul>
+                    <a class="btn btn-icon btn-sm text-warning"
+                       href="/quotations/edit/<?php echo (int) $list->TransUID; ?>"
+                       title="Edit">
+                        <i class="bx bx-edit fs-6"></i>
+                    </a>
+                    <div class="dropdown">
+                        <button class="btn btn-icon btn-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bx bx-dots-vertical-rounded fs-5 text-muted"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                            <?php if (!$isDraft && $list->Status !== 'Converted'): ?>
+                            <li>
+                                <button class="dropdown-item convertToQuot"
+                                        data-uid="<?php echo (int) $list->TransUID; ?>"
+                                        data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
+                                        data-target="SalesOrder">
+                                    <i class="bx bx-cart me-2 text-primary"></i>Convert to Sales Order
+                                </button>
+                            </li>
+                            <li>
+                                <button class="dropdown-item convertToQuot"
+                                        data-uid="<?php echo (int) $list->TransUID; ?>"
+                                        data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
+                                        data-target="Invoice">
+                                    <i class="bx bx-receipt me-2 text-success"></i>Convert to Invoice
+                                </button>
+                            </li>
+                            <li><hr class="dropdown-divider my-1"></li>
+                            <?php endif; ?>
+                            <li>
+                                <button class="dropdown-item duplicateQuotation"
+                                        data-uid="<?php echo (int) $list->TransUID; ?>">
+                                    <i class="bx bx-copy me-2 text-secondary"></i>Duplicate
+                                </button>
+                            </li>
+                            <li>
+                                <button class="dropdown-item text-danger deleteQuotation"
+                                        data-uid="<?php echo (int) $list->TransUID; ?>"
+                                        data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? 'Draft'); ?>">
+                                    <i class="bx bx-trash me-2"></i>Delete
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
             </td>
         </tr>

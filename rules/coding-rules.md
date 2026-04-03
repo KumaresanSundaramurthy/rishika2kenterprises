@@ -1,0 +1,4 @@
+- No unnecessary explanation
+- Keep answers under 50 lines
+- Prefer simple solutions
+- Avoid repeating code

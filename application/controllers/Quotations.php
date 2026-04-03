@@ -46,43 +46,31 @@ class Quotations extends CI_Controller {
         $this->EndReturnData = new stdClass();
 		try {
 
-			$limit = (int) $this->input->post('RowLimit') ?: 10;
-            $offset = max(0, ($pageNo - 1)) * $limit;
-            $filter = $this->input->post('Filter') ?: [];
+            $pageNo = (int) $pageNo;
+            if ($pageNo < 1) {
+                $pageNo = 1;
+            }
 
-            if ($limit <= 0 || $limit > 100) $limit = 10;
+			$limit = (int) $this->input->post('RowLimit') ?: 10;
+            $offset = ($pageNo - 1) * $limit;
+            $filter = $this->input->post('Filter') ?: [];
 
 			$this->load->model('transactions_model');
             $allData = $this->transactions_model->getTransactionPageList($limit, $offset, $this->pageModuleUID, $filter, 0);
             $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, $filter);
-            
-            $config = [
-                'base_url' => base_url('quotations/getQuotationsPageDetails/'),
-                'use_page_numbers' => TRUE,
-                'total_rows' => $allDataCount,
-                'per_page' => $limit,
-                'reuse_query_string' => TRUE, // Preserve filter parameters
-                'first_link' => 'First',
-                'last_link' => 'Last',
-                'next_link' => 'Next',
-                'prev_link' => 'Previous',
-                'full_tag_open' => '<ul class="pagination justify-content-center">',
-                'full_tag_close' => '</ul>',
-                'attributes' => ['class' => 'page-link'],
-                'cur_tag_open' => '<li class="page-item active"><span class="page-link">',
-                'cur_tag_close' => '</span></li>',
-            ];
 
-            $this->pagination->initialize($config);
-            $this->EndReturnData->pagination = $this->pagination->create_links();
-            $this->EndReturnData->ResultCount = $allDataCount;
-            $this->EndReturnData->ShowingCount = count($allData);
-            $this->EndReturnData->PageNo = $pageNo;
-            $this->EndReturnData->dataList = $this->load->view('transactions/quotations/list', [
+            $this->pageData['JwtData']->GenSettings = ($this->redis_cache->get('Redis_UserGenSettings')->Value) ?? new stdClass();
+            
+            $rowHtml = $this->load->view('transactions/quotations/list', [
                 'DataLists'    => $allData,
-                'SerialNumber' => max(0, ($pageNo - 1)) * $limit,
+                'SerialNumber' => ($pageNo - 1) * $limit,
                 'JwtData'      => $this->pageData['JwtData'],
             ], true);
+            
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->RecordHtmlData = $rowHtml;
+            $this->EndReturnData->Pagination = $this->globalservice->buildPagePaginationHtml('/quotations/getQuotationsPageDetails', $allDataCount, $pageNo, $limit);
+            $this->EndReturnData->TotalCount = $allDataCount;
 
 		} catch (Exception $e) {
             $this->EndReturnData->Error = TRUE;
@@ -289,6 +277,8 @@ class Quotations extends CI_Controller {
             if (!empty($itemsError)) throw new Exception($itemsError);
 
             $customerUID            = (int)   getPostValue($PostData, 'customerSearch');
+            $prefixUID              = (int)   getPostValue($PostData, 'transPrefixSelect');
+            $transNumber            = (int)   getPostValue($PostData, 'transNumber');
             $transDate              =         getPostValue($PostData, 'transDate');
             $validityDate           =         getPostValue($PostData, 'validityDate');
             $validityDays           = (int)   getPostValue($PostData, 'validityDays', 'Array', 0);
@@ -304,7 +294,8 @@ class Quotations extends CI_Controller {
             $roundOff               = (float) getPostValue($PostData, 'RoundOff',               'Array', 0);
             $globalDiscPercent      = (float) getPostValue($PostData, 'GlobalDiscPercent',      'Array', 0);
             $extraDiscount          = (float) getPostValue($PostData, 'extraDiscount',          'Array', 0);
-            $status                 =         getPostValue($PostData, 'action') === 'draft' ? 'Draft' : 'Pending';
+            $isDraft                = getPostValue($PostData, 'action') === 'draft';
+            $status                 = $isDraft ? 'Draft' : 'Pending';
 
             if (empty($validityDate) && $validityDays > 0) {
                 $validityDate = date('Y-m-d', strtotime($transDate . " +{$validityDays} days"));
@@ -312,8 +303,52 @@ class Quotations extends CI_Controller {
 
             $financialYear = (int) date('Y', strtotime($transDate));
 
+            // Load existing row to check current DocStatus (needed for draft→pending promotion)
+            $this->load->model('transactions_model');
+            $existing = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
+            if (!$existing) throw new Exception('Quotation not found.');
+
+            // --- Draft → Pending: assign prefix + unique number ---
+            $numberUpdateFields = [];
+            if ($existing->DocStatus === 'Draft' && !$isDraft) {
+                if ($prefixUID <= 0) throw new Exception('Please select a prefix to finalize this quotation.');
+                if ($transNumber <= 0) throw new Exception('Transaction number must be greater than 0.');
+
+                $prefixData = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.PrefixUID' => $prefixUID, 'Prefix.OrgUID' => $orgUID]);
+                if (empty($prefixData->Data)) throw new Exception('Invalid prefix selected.');
+                $prefix = $prefixData->Data[0];
+
+                $dupCheck = $this->transactions_model->getTransactionByPrefixAndNumber($prefixUID, $transNumber, $orgUID, $this->pageModuleUID);
+                if ($dupCheck) {
+                    $nextSuggested = $this->transactions_model->getNextTransactionNumber($prefixUID, $orgUID, $this->pageModuleUID);
+                    throw new Exception("Transaction number {$transNumber} already exists. Next available: {$nextSuggested}.");
+                }
+
+                $sep   = $prefix->Separator ?? '-';
+                $parts = [strtoupper($prefix->Name)];
+                if (!empty($prefix->IncludeShortName) && !empty($prefix->ShortName)) {
+                    $parts[] = strtoupper($prefix->ShortName);
+                }
+                if (!empty($prefix->IncludeFiscalYear)) {
+                    $txMonth = (int) date('m', strtotime($transDate));
+                    $txYear  = (int) date('Y', strtotime($transDate));
+                    $fyStart = $txMonth >= 4 ? $txYear : $txYear - 1;
+                    $parts[] = ($prefix->FiscalYearFormat ?? 'SHORT') === 'LONG'
+                        ? $fyStart . '-' . ($fyStart + 1)
+                        : str_pad($fyStart % 100, 2, '0', STR_PAD_LEFT) . '-' . str_pad(($fyStart + 1) % 100, 2, '0', STR_PAD_LEFT);
+                }
+                $padding = (int)($prefix->NumberPadding ?? 1);
+                $parts[] = $padding > 1 ? str_pad($transNumber, $padding, '0', STR_PAD_LEFT) : (string)$transNumber;
+
+                $numberUpdateFields = [
+                    'PrefixUID'    => $prefixUID,
+                    'TransNumber'  => $transNumber,
+                    'UniqueNumber' => implode($sep, $parts),
+                ];
+            }
+
             // --- Update header ---
-            $headerData = [
+            $headerData = array_merge([
                 'PartyUID'              => $customerUID,
                 'TransDate'             => $transDate,
                 'QuotationType'         => getPostValue($PostData, 'quotationType') ?: NULL,
@@ -334,7 +369,7 @@ class Quotations extends CI_Controller {
                 'NetAmount'             => $netAmount,
                 'DocStatus'             => $status,
                 'UpdatedBy'             => $userUID,
-            ];
+            ], $numberUpdateFields);
 
             $updateResp = $this->dbwrite_model->updateData(
                 'Transaction', 'TransactionsTbl', $headerData,
@@ -629,6 +664,90 @@ class Quotations extends CI_Controller {
 
     }
 
+    public function updateQuotationStatus() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $this->load->model('dbwrite_model');
+            $PostData  = $this->input->post();
+            $transUID  = (int) getPostValue($PostData, 'TransUID');
+            $newStatus = trim(getPostValue($PostData, 'Status'));
+            $userUID   = $this->pageData['JwtData']->User->UserUID;
+            $orgUID    = $this->pageData['JwtData']->User->OrgUID;
+
+            if ($transUID <= 0) throw new Exception('Invalid quotation.');
+
+            $validTransitions = [
+                'Pending'   => ['Accepted', 'Partial', 'Rejected'],
+                'Accepted'  => ['Pending',  'Partial'],
+                'Partial'   => ['Accepted', 'Pending'],
+                'Draft'     => ['Pending'],
+                'Rejected'  => [],
+                'Converted' => [],
+            ];
+
+            $this->load->model('transactions_model');
+            $existing = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
+            if (!$existing) throw new Exception('Quotation not found.');
+
+            $current = $existing->DocStatus;
+            if (!in_array($newStatus, $validTransitions[$current] ?? [])) {
+                throw new Exception("Cannot change status from {$current} to {$newStatus}.");
+            }
+
+            $this->dbwrite_model->startTransaction();
+            $resp = $this->dbwrite_model->updateData(
+                'Transaction', 'TransactionsTbl',
+                ['DocStatus' => $newStatus, 'UpdatedBy' => $userUID, 'UpdatedOn' => date('Y-m-d H:i:s')],
+                ['TransUID' => $transUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
+            );
+            if ($resp->Error) throw new Exception($resp->Message);
+            $this->dbwrite_model->commitTransaction();
+
+            $this->EndReturnData->Error     = FALSE;
+            $this->EndReturnData->Message   = 'Status updated.';
+            $this->EndReturnData->NewStatus = $newStatus;
+
+        } catch (Exception $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    public function getQuotationDetail() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $transUID = (int) $this->input->get_post('TransUID');
+            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+
+            if ($transUID <= 0) throw new Exception('Invalid quotation.');
+
+            $this->load->model('transactions_model');
+            $header = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
+            if (!$header) throw new Exception('Quotation not found.');
+
+            $items = $this->transactions_model->getTransactionItems($transUID, $orgUID);
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Header  = $header;
+            $this->EndReturnData->Items   = $items;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
     /**
      * Insert line items into TransProductsTbl.
      *
@@ -796,6 +915,96 @@ class Quotations extends CI_Controller {
 
         } catch (Exception $e) {
             redirect('dashboard', 'refresh');
+        }
+
+    }
+
+    public function edit($transUID = 0) {
+
+        try {
+
+            $transUID = (int) $transUID;
+            if ($transUID <= 0) redirect('quotations', 'refresh');
+
+            $GeneralSettings = $this->redis_cache->get('Redis_UserGenSettings')->Value ?? NULL;
+            $this->pageData['JwtData']->GenSettings = $GeneralSettings;
+
+            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+            $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
+
+            $this->load->model('transactions_model');
+
+            // Load the quotation header + detail fields
+            $quotData = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
+            if (!$quotData) redirect('quotations', 'refresh');
+
+            // Load the line items
+            $quotItems = $this->transactions_model->getTransactionItems($transUID, $orgUID);
+
+            // Load the party address information
+            $this->load->model('customers_model');
+            $custAddr = $this->customers_model->getCustomerAddress(['CustAddress.CustomerUID' => $quotData->PartyUID, 'CustAddress.OrgUID' => $orgUID]);
+            $shipping = current(array_filter($custAddr, fn($a) => $a->AddressType === 'Shipping'));
+            $billing  = current(array_filter($custAddr, fn($a) => $a->AddressType === 'Billing'));
+            $this->pageData['CustAddr'] = $shipping ?: ($billing ?: ($custAddr[0] ?? null));
+
+            $this->pageData['QuotData']  = $quotData;
+            $this->pageData['QuotItems'] = $quotItems;
+
+            // Prefix data
+            $prefixResult                        = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.OrgUID' => $orgUID]);
+            $this->pageData['PrefixData']        = $prefixResult->Data ?? [];
+            $this->pageData['TransPageSettings'] = $this->transactions_model->getTransPageSettings(['pageSettings.ModuleUID' => $this->pageModuleUID]);
+
+            $nextNumberMap = [];
+            foreach ($this->pageData['PrefixData'] as $pd) {
+                $nextNumberMap[(int)$pd->PrefixUID] = $this->transactions_model->getNextTransactionNumber(
+                    $pd->PrefixUID, $orgUID, $this->pageModuleUID
+                );
+            }
+            $this->pageData['NextNumberMap'] = $nextNumberMap;
+
+            // Dispatch address
+            $this->load->model('organisation_model');
+            $dispatchAddrResult                = $this->organisation_model->getOrgDispatchAddress($orgUID);
+            $this->pageData['DispatchAddress'] = $dispatchAddrResult->Data ?? NULL;
+
+            $this->load->model('global_model');
+            $GetCountryInfo = $this->global_model->getCountryInfo();
+            $this->pageData['CountryInfo'] = $GetCountryInfo->Error === FALSE ? $GetCountryInfo->Data : [];
+
+            $this->pageData['StateData'] = [];
+            $this->pageData['CityData']  = [];
+
+            $OrgCountryISO2 = $this->pageData['JwtData']->User->OrgCISO2;
+            if (!empty($OrgCountryISO2)) {
+                $StateInfo = $this->global_model->getStateofCountry($OrgCountryISO2);
+                if ($StateInfo->Error === FALSE) $this->pageData['StateData'] = $StateInfo->Data;
+                $CityInfo = $this->global_model->getCityofCountry($OrgCountryISO2);
+                if ($CityInfo->Error === FALSE) $this->pageData['CityData'] = $CityInfo->Data;
+            }
+
+            $this->pageData['PrimaryUnitInfo'] = $this->global_model->getPrimaryUnitInfo()->Data ?? [];
+            $this->pageData['DiscTypeInfo']    = $this->global_model->getDiscountTypeInfo()->Data ?? [];
+            $this->pageData['ProdTypeInfo']    = $this->global_model->getProductTypeInfo()->Data ?? [];
+            $this->pageData['ProdTaxInfo']     = $this->global_model->getProductTaxInfo()->Data ?? [];
+            $this->pageData['TaxDetInfo']      = $this->global_model->getTaxDetailsInfo()->Data ?? [];
+
+            $this->load->model('products_model');
+            $this->pageData['SizeInfo']        = $this->products_model->getSizeDetails([]) ?? [];
+            $this->pageData['BrandInfo']       = $this->products_model->getBrandDetails([]) ?? [];
+            $this->pageData['fltCategoryData'] = $this->products_model->getCategoriesDetails([]) ?? [];
+
+            $this->pageData['fltStorageData'] = [];
+            if (!empty($this->pageData['JwtData']->GenSettings->EnableStorage)) {
+                $this->load->model('storage_model');
+                $this->pageData['fltStorageData'] = $this->storage_model->getStorageDetails([]) ?? [];
+            }
+
+            $this->load->view('transactions/quotations/forms/edit', $this->pageData);
+
+        } catch (Exception $e) {
+            redirect('quotations', 'refresh');
         }
 
     }

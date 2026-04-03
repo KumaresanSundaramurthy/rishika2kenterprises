@@ -5,7 +5,7 @@ RUN apt-get update --fix-missing && \
     apt-get install -y nginx supervisor libzip-dev unzip zip git libpng-dev \
     libjpeg-dev libfreetype6-dev libonig-dev libxml2-dev build-essential pkg-config && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
-    
+
 # Install PHP extensions (configure gd first)
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg && \
     docker-php-ext-install gd zip mysqli pdo pdo_mysql mbstring xml fileinfo ctype
@@ -22,7 +22,7 @@ COPY . /var/www/html
 WORKDIR /var/www/html
 
 # Install PHP dependencies
-RUN COMPOSER_MEMORY_LIMIT=-1 composer install --no-dev --optimize-autoloader
+RUN COMPOSER_MEMORY_LIMIT=-1 composer install --no-dev --optimize-autoloader --no-interaction --verbose
 
 # Copy nginx config
 COPY nginx/default.conf /etc/nginx/conf.d/default.conf

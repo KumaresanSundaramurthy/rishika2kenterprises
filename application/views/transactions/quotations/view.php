@@ -132,40 +132,43 @@
 
                     </div>
 
-                    <!-- ── A4 / A5 Print Modal ──────────────────────── -->
+                    <!-- ── Invoice Preview Modal (Swipe-style) ──────── -->
                     <div class="modal fade" id="a4PrintModal" tabindex="-1" aria-hidden="true">
-                        <div class="modal-dialog modal-xl modal-dialog-scrollable">
-                            <div class="modal-content">
-                                <div class="modal-header modal-header-border-bottom p-3">
-                                    <h6 class="modal-title fw-bold text-primary fs-6 mb-0"><i class="bx bx-file me-1"></i>Print Quotation</h6>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                </div>
-                                <div class="modal-body p-0">
-                                    <!-- Paper size selector -->
-                                    <div class="d-flex align-items-center gap-3 px-3 py-2 border-bottom bg-body-secondary">
-                                        <span class="small fw-semibold text-muted">Paper Size:</span>
-                                        <div class="form-check form-check-inline mb-0">
+                        <div class="modal-dialog modal-xl modal-dialog-centered">
+                            <div class="modal-content border-0 shadow-lg" style="border-radius:12px;overflow:hidden;">
+
+                                <!-- Top bar: title + action buttons + close -->
+                                <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom" style="background:#fff;">
+                                    <div class="fw-semibold text-dark" style="font-size:.92rem;"><i class="bx bx-file-blank text-primary me-1"></i>Invoice Preview</div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="form-check form-check-inline mb-0 me-1">
                                             <input class="form-check-input" type="radio" name="a4PaperSize" id="psA4" value="A4" checked>
-                                            <label class="form-check-label small" for="psA4">A4 (210 × 297 mm)</label>
+                                            <label class="form-check-label small fw-semibold" for="psA4">A4</label>
                                         </div>
-                                        <div class="form-check form-check-inline mb-0">
+                                        <div class="form-check form-check-inline mb-0 me-2">
                                             <input class="form-check-input" type="radio" name="a4PaperSize" id="psA5" value="A5">
-                                            <label class="form-check-label small" for="psA5">A5 (148 × 210 mm)</label>
+                                            <label class="form-check-label small fw-semibold" for="psA5">A5</label>
                                         </div>
-                                    </div>
-                                    <!-- Preview area -->
-                                    <div id="a4PrintPreview" class="p-3" style="background:#e8e8e8; min-height:300px;">
-                                        <div class="d-flex justify-content-center py-5">
-                                            <div class="spinner-border text-primary" role="status"></div>
-                                        </div>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary px-2 py-1" id="a4DownloadBtn" title="Download PDF">
+                                            <i class="bx bx-download"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-success px-3 py-1" id="a4PrintBtn">
+                                            <i class="bx bx-printer me-1"></i>Print
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-danger px-3 py-1" data-bs-dismiss="modal">Close</button>
                                     </div>
                                 </div>
-                                <div class="modal-footer py-2">
-                                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
-                                    <button type="button" class="btn btn-primary btn-sm" id="a4PrintBtn">
-                                        <i class="bx bx-printer me-1"></i>Print
-                                    </button>
+
+                                <!-- Preview canvas — single scrollable area, no modal-body scroll -->
+                                <div id="a4PrintPreview"
+                                     style="background:#404040;overflow-y:auto;overflow-x:auto;
+                                            height:82vh;display:flex;align-items:flex-start;
+                                            justify-content:center;padding:24px 16px;">
+                                    <div class="d-flex justify-content-center align-items-center w-100 h-100">
+                                        <div class="spinner-border text-light" role="status"></div>
+                                    </div>
                                 </div>
+
                             </div>
                         </div>
                     </div>
@@ -743,13 +746,45 @@ $(function () {
     function _renderA4Preview() {
         if (!_a4Data) return;
         var size       = $('input[name="a4PaperSize"]:checked').val() || 'A4';
+        var thm        = _a4Data.PrintTheme || {};
+
+        // ── DB template: write into an iframe — template's own CSS fully preserved ──
+        if (thm.TemplateHtmlContent && thm.TemplateHtmlContent.trim().length > 0) {
+            var tokenHtml = _buildA4Html(_a4Data, size);
+            // iframe natural width matches template's .invoice { width:900px }
+            // For A5 we scale the iframe down visually
+            var iframeW = 900;
+            var scale   = size === 'A5' ? (620 / iframeW) : 1;   // A5 display width ~620px
+            var wrapW   = Math.round(iframeW * scale);
+
+            $('#a4PrintPreview').html(
+                '<div style="transform:scale(' + scale + ');transform-origin:top center;' +
+                     'width:' + iframeW + 'px;margin:0 auto;">' +
+                  '<iframe id="tplRenderFrame" scrolling="no" frameborder="0" ' +
+                    'style="width:' + iframeW + 'px;height:600px;border:none;display:block;' +
+                           'box-shadow:0 4px 24px rgba(0,0,0,.35);"></iframe>' +
+                '</div>'
+            );
+
+            var fr = document.getElementById('tplRenderFrame');
+            fr.contentDocument.open();
+            fr.contentDocument.write(tokenHtml);
+            fr.contentDocument.close();
+            fr.onload = function () {
+                var h = this.contentDocument.body.scrollHeight + 30;
+                this.style.height = h + 'px';
+                // Shrink the outer #a4PrintPreview flex container to match scaled height
+                var scaledH = Math.round(h * scale);
+                $(this).closest('#a4PrintPreview').css('height', Math.max(scaledH + 48, 300) + 'px');
+            };
+            return;
+        }
+
+        // ── Built-in JS renderer ──────────────────────────────────────────
         var pageW      = size === 'A5' ? '148mm' : '210mm';
         var pageH      = size === 'A5' ? '210mm' : '297mm';
-        var scale      = size === 'A5' ? 0.72 : 1;
-        var thm        = _a4Data.PrintTheme || {};
         var fontFamily = thm.FontFamily || 'Arial';
-        var fontSizePt = ((parseInt(thm.FontSizePx) || 11) * scale * 0.75).toFixed(1) + 'pt';
-        // Inject Google Font link into preview page if needed
+        var fontSizePt = ((parseInt(thm.FontSizePx) || 11) * 0.75).toFixed(1) + 'pt';
         var systemFonts = ['Arial','Helvetica','Verdana','Tahoma','Trebuchet MS','Times New Roman','Georgia','Palatino Linotype','Calibri'];
         if ($.inArray(fontFamily, systemFonts) === -1) {
             var linkId = 'gfont-' + fontFamily.replace(/\s+/g, '-');
@@ -759,10 +794,12 @@ $(function () {
                 }).appendTo('head');
             }
         }
-        var html = '<div style="background:#fff; width:' + pageW + '; min-height:' + pageH + '; margin:0 auto; padding:14mm 12mm; box-shadow:0 2px 12px rgba(0,0,0,.18); font-size:' + fontSizePt + '; font-family:"' + fontFamily + '",Arial,Helvetica,sans-serif; box-sizing:border-box;">'
+        var html = '<div style="background:#fff;width:' + pageW + ';min-height:' + pageH + ';margin:0 auto;' +
+                        'padding:14mm 12mm;box-shadow:0 4px 24px rgba(0,0,0,.35);' +
+                        'font-size:' + fontSizePt + ';font-family:\'' + fontFamily + '\',Arial,Helvetica,sans-serif;box-sizing:border-box;">'
                  + _buildA4Html(_a4Data, size)
                  + '</div>';
-        $('#a4PrintPreview').html(html);
+        $('#a4PrintPreview').css('height', '82vh').html(html);
     }
 
     $(document).on('click', '.a4PrintQuotation', function () {
@@ -792,6 +829,19 @@ $(function () {
         });
     });
 
+    // Download = open print dialog in new window (user saves as PDF)
+    $('#a4DownloadBtn').on('click', function () {
+        $('#a4PrintBtn').trigger('click');
+    });
+
+    // Reset preview area height when modal closes
+    $('#a4PrintModal').on('hidden.bs.modal', function () {
+        $('#a4PrintPreview').css('height', '82vh').html(
+            '<div class="d-flex justify-content-center align-items-center w-100 h-100">' +
+            '<div class="spinner-border text-light" role="status"></div></div>'
+        );
+    });
+
     // Re-render preview when paper size changes
     $(document).on('change', 'input[name="a4PaperSize"]', function () {
         _renderA4Preview();
@@ -799,8 +849,25 @@ $(function () {
 
     $('#a4PrintBtn').on('click', function () {
         if (!_a4Data) return;
-        var size       = $('input[name="a4PaperSize"]:checked').val() || 'A4';
-        var thm        = _a4Data.PrintTheme || {};
+        var size = $('input[name="a4PaperSize"]:checked').val() || 'A4';
+        var thm  = _a4Data.PrintTheme || {};
+
+        // ── DB template: template already has its own CSS — print it directly ──
+        if (thm.TemplateHtmlContent && thm.TemplateHtmlContent.trim().length > 0) {
+            var tokenHtml = _buildA4Html(_a4Data, size);
+            var win = window.open('', '_blank', 'width=960,height=700');
+            win.document.write(tokenHtml);
+            win.document.close();
+            win.focus();
+            // Inject print @page rule after doc is written
+            var style = win.document.createElement('style');
+            style.textContent = '@media print { @page { size:' + size + ' portrait; margin:10mm; } body { background:#fff !important; } .invoice { border:2px solid #000; } }';
+            win.document.head.appendChild(style);
+            setTimeout(function () { win.print(); }, 400);
+            return;
+        }
+
+        // ── Built-in JS renderer: build HTML with own styles ──────────────
         var fontFamily = thm.FontFamily || 'Arial';
         var fontSizePt = ((parseInt(thm.FontSizePx) || 11) * 0.75).toFixed(1) + 'pt';
         var body       = _buildA4Html(_a4Data, size);
@@ -1523,69 +1590,244 @@ $(function () {
         return html;
     }
 
+    // ── Number-to-words (Indian system) ──────────────────────────────────────
+    function _numberToWords(n) {
+        n = Math.abs(Math.round(n));
+        if (n === 0) return 'Zero';
+        var ones = ['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven',
+                    'Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
+        var tens = ['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
+        function below100(x)  { return x < 20 ? ones[x] : tens[Math.floor(x/10)] + (x%10 ? ' '+ones[x%10] : ''); }
+        function below1000(x) { return x < 100 ? below100(x) : ones[Math.floor(x/100)] + ' Hundred' + (x%100 ? ' '+below100(x%100) : ''); }
+        var out = '';
+        if (n >= 10000000) { out += below1000(Math.floor(n/10000000)) + ' Crore '; n %= 10000000; }
+        if (n >= 100000)   { out += below1000(Math.floor(n/100000))   + ' Lakh ';  n %= 100000;   }
+        if (n >= 1000)     { out += below1000(Math.floor(n/1000))     + ' Thousand '; n %= 1000;   }
+        if (n > 0)         { out += below1000(n); }
+        return out.trim();
+    }
+
     // ── Token-template renderer (DB-driven HTML with {{PLACEHOLDER}} tokens) ─
     function _renderTokenTemplate(html, resp, sym, fmt, thm) {
-        var h    = resp.Header  || {};
-        var org  = resp.OrgInfo || {};
-        var items = resp.Items  || [];
+        var h     = resp.Header  || {};
+        var org   = resp.OrgInfo || {};
+        var items = resp.Items   || [];
 
-        // Build items table rows
-        var itemRows = '';
-        $.each(items, function (i, it) {
-            itemRows += '<tr>'
-                + '<td style="padding:4px 6px;">' + (i + 1) + '</td>'
-                + '<td style="padding:4px 6px;">' + (it.ItemName || '') + (it.HSNSACCode ? '<br><small style="color:#888;">HSN: ' + it.HSNSACCode + '</small>' : '') + '</td>'
-                + '<td style="padding:4px 6px;text-align:center;">' + fmt(it.Quantity) + ' ' + (it.UnitName || '') + '</td>'
-                + '<td style="padding:4px 6px;text-align:right;">' + sym + ' ' + fmt(it.UnitPrice) + '</td>'
-                + '<td style="padding:4px 6px;text-align:right;">' + fmt(it.TaxPercentage || 0) + '%</td>'
-                + '<td style="padding:4px 6px;text-align:right;">' + sym + ' ' + fmt(it.TotalAmount) + '</td>'
-                + '</tr>';
-        });
-        var itemsTable = '<table style="width:100%;border-collapse:collapse;font-size:inherit;">'
-            + '<thead><tr style="background:' + (thm.PrimaryColor || '#1a3c6e') + ';color:#fff;">'
-            + '<th style="padding:5px 6px;text-align:left;">#</th>'
-            + '<th style="padding:5px 6px;text-align:left;">Item</th>'
-            + '<th style="padding:5px 6px;text-align:center;">Qty</th>'
-            + '<th style="padding:5px 6px;text-align:right;">Rate</th>'
-            + '<th style="padding:5px 6px;text-align:right;">Tax</th>'
-            + '<th style="padding:5px 6px;text-align:right;">Amount</th>'
-            + '</tr></thead><tbody>' + itemRows + '</tbody></table>';
-
-        // Format org address lines
-        var addrParts = [org.Address1, org.Address2, org.City, org.State, org.PinCode].filter(Boolean);
-        var orgAddress = addrParts.join(', ');
-        var custAddrParts = [h.BillingAddress1, h.BillingAddress2, h.BillingCity, h.BillingState, h.BillingPinCode].filter(Boolean);
-        var custAddress = custAddrParts.join(', ');
-
-        // Org logo HTML
-        var orgLogoHtml = (org.LogoUrl && thm.ShowLogo == 1)
-            ? '<img src="' + org.LogoUrl + '" style="max-height:60px;max-width:160px;" alt="Logo">'
+        // ── ORG LOGO ──────────────────────────────────────────────────────
+        var orgLogo = (org.LogoUrl && thm.ShowLogo == 1)
+            ? '<img src="' + org.LogoUrl + '" class="sf-invoice__logo" style="width:80px;max-width:100%;" alt="Logo">'
             : '';
 
-        var subTotal   = fmt(h.SubTotal   || 0);
-        var taxTotal   = fmt(h.TaxTotal   || 0);
-        var grandTotal = fmt(h.GrandTotal || 0);
+        // ── ORG INFO LINES (br-separated to fit inside <td>) ─────────────
+        var orgInfoParts = [];
+        if (thm.ShowGSTIN == 1 && org.GSTIN) orgInfoParts.push('GSTIN ' + org.GSTIN);
+        var a1 = [org.Address1, org.Address2].filter(Boolean).join(', ');
+        var a23 = [org.City, org.State, org.PinCode].filter(Boolean).join(', ');
+        if (a1)  orgInfoParts.push(a1);
+        if (a23) orgInfoParts.push(a23);
+        if (org.Phone) orgInfoParts.push('Mobile ' + org.Phone);
+        if (org.Email) orgInfoParts.push('Email '  + org.Email);
+        var orgInfoLines = orgInfoParts.join('<br>');
 
+        // ── DOC TYPE ──────────────────────────────────────────────────────
+        var docTypeMap = { quotation:'QUOTATION', invoice:'TAX INVOICE', tax_invoice:'TAX INVOICE',
+                           purchase_order:'PURCHASE ORDER', delivery_note:'DELIVERY NOTE',
+                           credit_note:'CREDIT NOTE', debit_note:'DEBIT NOTE', proforma:'PROFORMA INVOICE' };
+        var docType = docTypeMap[(h.TransactionType || '').toLowerCase()] || 'TAX INVOICE';
+
+        // ── ADDRESS LINES ─────────────────────────────────────────────────
+        var billParts = [h.BillingAddress1, h.BillingAddress2, h.BillingCity, h.BillingState, h.BillingPinCode].filter(Boolean);
+        var shipParts = [h.ShippingAddress1, h.ShippingAddress2, h.ShippingCity, h.ShippingState, h.ShippingPinCode].filter(Boolean);
+        var billingLines  = billParts.join('<br>');
+        var shippingLines = shipParts.length ? shipParts.join('<br>') : billingLines;
+        var custPhoneLine = h.CustomerPhone ? 'Ph: ' + h.CustomerPhone : '';
+
+        // ── ITEMS TABLE ROWS ──────────────────────────────────────────────
+        // Item rows — classes match the template's own CSS (.right, .center, .bold)
+        var itemRows = '';
+        $.each(items, function (idx, it) {
+            var taxPct = parseFloat(it.TaxPercentage || 0);
+            var taxAmt = parseFloat(it.TaxAmount || 0);
+            var taxStr = fmt(taxAmt) + (taxPct > 0 ? '<br>(' + taxPct + '%)' : '');
+            var subItemsHtml = '';
+            if (it.SubItems && it.SubItems.length) {
+                $.each(it.SubItems, function(si, sub){
+                    subItemsHtml += '<br>' + (si+1) + '. Item - ' + (sub.ItemName || sub.Name || '');
+                });
+            }
+            itemRows += '<tr>'
+                + '<td class="center">' + (idx + 1) + '</td>'
+                + '<td><b>' + (it.ItemName || '') + '</b>' + subItemsHtml + '</td>'
+                + '<td>' + (it.HSNSACCode || '') + '</td>'
+                + '<td class="right">' + fmt(it.UnitPrice || it.Rate || 0) + '</td>'
+                + '<td class="center">' + fmt(it.Quantity || 0) + '</td>'
+                + '<td class="right">' + fmt(it.TaxableValue || it.SubTotal || 0) + '</td>'
+                + '<td class="right">' + taxStr + '</td>'
+                + '<td class="right">' + fmt(it.TotalAmount || it.Amount || 0) + '</td>'
+                + '</tr>';
+        });
+
+        // ── TOTALS BLOCK ──────────────────────────────────────────────────
+        var subTotal   = parseFloat(h.SubTotal   || 0);
+        var taxTotal   = parseFloat(h.TaxTotal   || 0);
+        var grandTotal = parseFloat(h.GrandTotal || 0);
+        var totalItems = items.length;
+        var totalQty   = 0;
+        $.each(items, function(i, it){ totalQty += parseFloat(it.Quantity || 0); });
+
+        var igstTotal = parseFloat(h.IGST || 0);
+        var cgstTotal = parseFloat(h.CGST || 0);
+        var sgstTotal = parseFloat(h.SGST || 0);
+
+        // One row per tax line (grouped by rate)
+        var taxRows = '';
+        if (igstTotal > 0) {
+            var igstByRate = {};
+            $.each(items, function(i, it){
+                var r = parseFloat(it.TaxPercentage || 0);
+                if (!igstByRate[r]) igstByRate[r] = 0;
+                igstByRate[r] += parseFloat(it.TaxAmount || 0);
+            });
+            $.each(igstByRate, function(rate, amt){
+                if (amt > 0) taxRows += '<tr><td></td>'
+                    + '<td class="right bold">IGST ' + rate + '% ' + sym + fmt(amt) + '</td></tr>';
+            });
+        } else if (cgstTotal > 0 || sgstTotal > 0) {
+            var gstByRate = {};
+            $.each(items, function(i, it){
+                var r = parseFloat(it.TaxPercentage || 0);
+                if (!gstByRate[r]) gstByRate[r] = { c:0, s:0 };
+                gstByRate[r].c += parseFloat(it.CGST || 0);
+                gstByRate[r].s += parseFloat(it.SGST || 0);
+            });
+            $.each(gstByRate, function(rate, v){
+                if (v.c > 0) taxRows += '<tr><td></td>'
+                    + '<td class="right bold">CGST ' + (rate/2) + '% ' + sym + fmt(v.c) + '</td></tr>';
+                if (v.s > 0) taxRows += '<tr><td></td>'
+                    + '<td class="right bold">SGST ' + (rate/2) + '% ' + sym + fmt(v.s) + '</td></tr>';
+            });
+        } else if (taxTotal > 0) {
+            taxRows = '<tr><td></td><td class="right bold">Tax ' + sym + fmt(taxTotal) + '</td></tr>';
+        }
+
+        var totalsBlock = '<table>'
+            + '<tr><td>Total Items / Qty : ' + totalItems + ' / ' + totalQty.toFixed(3) + '</td>'
+            + '<td class="right bold">Taxable Amount ' + sym + fmt(subTotal) + '</td></tr>'
+            + taxRows
+            + '<tr><td></td><td class="right amount">Total ' + sym + fmt(grandTotal) + '</td></tr>'
+            + '</table>';
+
+        // ── AMOUNT IN WORDS ───────────────────────────────────────────────
+        var amtInWords = 'INR ' + _numberToWords(grandTotal) + ' Only.';
+
+        // ── HSN / SAC TAX TABLE (6 columns matching Tata invoice) ─────────
+        var hsnMap = {};
+        $.each(items, function(i, it){
+            var hsn = it.HSNSACCode || 'N/A';
+            if (!hsnMap[hsn]) hsnMap[hsn] = { taxable:0, taxAmt:0, rate: parseFloat(it.TaxPercentage || 0) };
+            hsnMap[hsn].taxable += parseFloat(it.TaxableValue || it.SubTotal || 0);
+            hsnMap[hsn].taxAmt  += parseFloat(it.TaxAmount || 0);
+        });
+        var hsnTotTaxable = 0, hsnTotTax = 0;
+        var taxColLabel = igstTotal > 0 ? 'Integrated Tax' : (cgstTotal > 0 ? 'GST' : 'Tax');
+        var hsnDataRows = '';
+        $.each(hsnMap, function(hsn, d){
+            hsnTotTaxable += d.taxable; hsnTotTax += d.taxAmt;
+            hsnDataRows += '<tr>'
+                + '<td>' + hsn + '</td>'
+                + '<td class="right">' + fmt(d.taxable) + '</td>'
+                + '<td class="center">' + d.rate + '%</td>'
+                + '<td class="right">' + fmt(d.taxAmt) + '</td>'
+                + '<td class="right">' + fmt(d.taxAmt) + '</td>'
+                + '<td class="right">' + fmt(d.taxAmt) + '</td>'
+                + '</tr>';
+        });
+        var hsnTaxTable = '<table>'
+            + '<tr>'
+            + '<th>HSN/SAC</th><th>Taxable Value</th><th>Rate</th>'
+            + '<th>' + taxColLabel + '</th><th>Amount</th><th>Total Tax Amount</th>'
+            + '</tr>'
+            + hsnDataRows
+            + '<tr>'
+            + '<td><b>TOTAL</b></td>'
+            + '<td class="right"><b>' + fmt(hsnTotTaxable) + '</b></td>'
+            + '<td></td>'
+            + '<td class="right"><b>' + fmt(hsnTotTax) + '</b></td>'
+            + '<td></td>'
+            + '<td class="right"><b>' + fmt(hsnTotTax) + '</b></td>'
+            + '</tr>'
+            + '<tr><td colspan="6" class="right">'
+            + '<span style="background:#22c55e;color:#fff;padding:3px 14px;border-radius:3px;font-size:11px;font-weight:600;">&#10003; Amount Paid</span>'
+            + '</td></tr>'
+            + '</table>';
+
+        // ── BANK DETAILS (br-separated to fit inside <td>) ────────────────
+        var bankParts = [];
+        if (org.BankName)   bankParts.push('Bank: '       + org.BankName);
+        if (org.AccountNo)  bankParts.push('Account #: '  + org.AccountNo);
+        if (org.IFSCCode)   bankParts.push('IFSC: '       + org.IFSCCode);
+        if (org.BranchName) bankParts.push('Branch: '     + org.BranchName);
+        var bankLines = bankParts.join('<br>');
+
+        // ── UPI QR CODE ───────────────────────────────────────────────────
+        var upiHtml = '';
+        if (org.QrCodeUrl) {
+            upiHtml = '<img src="' + org.QrCodeUrl + '" style="width:90px;max-width:100%;height:auto;" alt="UPI QR">';
+        } else if (org.UpiId) {
+            upiHtml = org.UpiId;
+        }
+
+        // ── STAMP / SIGNATURE ─────────────────────────────────────────────
+        var stampHtml = '';
+        if (org.SignatureUrl || org.StampUrl) {
+            stampHtml = '<img src="' + (org.SignatureUrl || org.StampUrl) + '" style="max-height:70px;max-width:120px;object-fit:contain;" alt="Signature">';
+        }
+
+        // ── TERMS CONDITIONS ──────────────────────────────────────────────
+        var termsHtml = '';
+        if (org.TermsConditions) {
+            $.each(org.TermsConditions.split('\n'), function(i, t){
+                if (t.trim()) termsHtml += (i + 1) + '. ' + t.trim() + '<br>';
+            });
+        }
+
+        // ── TOKEN MAP ─────────────────────────────────────────────────────
+        var orgAddr = [org.Address1, org.Address2, org.City, org.State, org.PinCode].filter(Boolean).join(', ');
         var map = {
-            '{{ORG_NAME}}':          org.OrgName        || '',
-            '{{ORG_ADDRESS}}':       orgAddress,
-            '{{ORG_GSTIN}}':         (thm.ShowGSTIN == 1 ? (org.GSTIN || '') : ''),
-            '{{ORG_LOGO}}':          orgLogoHtml,
-            '{{DOC_NUMBER}}':        h.DocNumber         || '',
-            '{{DOC_DATE}}':          h.DocDate           || '',
-            '{{DUE_DATE}}':          h.DueDate           || '',
-            '{{CUSTOMER_NAME}}':     h.CustomerName      || '',
-            '{{CUSTOMER_ADDRESS}}':  custAddress,
-            '{{ITEMS_TABLE}}':       itemsTable,
-            '{{SUBTOTAL}}':          sym + ' ' + subTotal,
-            '{{TAX_TOTAL}}':         sym + ' ' + taxTotal,
-            '{{GRAND_TOTAL}}':       sym + ' ' + grandTotal,
-            '{{FOOTER_TEXT}}':       thm.FooterText      || '',
-            '{{PRIMARY_COLOR}}':     thm.PrimaryColor    || '#1a3c6e',
-            '{{ACCENT_COLOR}}':      thm.AccentColor     || '#f59e0b',
-            '{{FONT_FAMILY}}':       thm.FontFamily      || 'Arial',
-            '{{FONT_SIZE}}':         (parseInt(thm.FontSizePx) || 11) + 'px',
-            '{{CURRENCY_SYMBOL}}':   sym,
+            '{{ORG_LOGO}}':               orgLogo,
+            '{{ORG_NAME}}':               org.OrgName || '',
+            '{{ORG_INFO_LINES}}':         orgInfoLines,
+            '{{ORG_ADDRESS}}':            orgAddr,
+            '{{ORG_GSTIN}}':              (thm.ShowGSTIN == 1 ? (org.GSTIN || '') : ''),
+            '{{DOC_TYPE}}':               docType,
+            '{{DOC_NUMBER}}':             h.DocNumber       || '',
+            '{{DOC_DATE}}':               h.DocDate         || '',
+            '{{PLACE_OF_SUPPLY}}':        h.PlaceOfSupply   || org.State || '',
+            '{{DUE_DATE}}':               h.DueDate         || h.DocDate || '',
+            '{{CUSTOMER_NAME}}':          h.CustomerName    || '',
+            '{{BILLING_ADDRESS_LINES}}':  billingLines,
+            '{{CUSTOMER_PHONE_LINE}}':    custPhoneLine,
+            '{{SHIPPING_ADDRESS_LINES}}': shippingLines,
+            '{{CUSTOMER_ADDRESS}}':       billParts.join(', '),
+            '{{SHIPPING_ADDRESS}}':       shipParts.join(', '),
+            '{{ITEMS_TABLE_ROWS}}':       itemRows,
+            '{{ITEMS_TABLE}}':            itemRows,
+            '{{TOTALS_BLOCK}}':           totalsBlock,
+            '{{AMOUNT_IN_WORDS}}':        amtInWords,
+            '{{HSN_TAX_TABLE}}':          hsnTaxTable,
+            '{{BANK_DETAILS_LINES}}':     bankLines,
+            '{{UPI_QR_CODE}}':            upiHtml,
+            '{{STAMP_SIGNATURE}}':        stampHtml,
+            '{{FOOTER_TEXT}}':            thm.FooterText    || '',
+            '{{TERMS_CONDITIONS}}':       termsHtml,
+            '{{SUBTOTAL}}':               sym + fmt(subTotal),
+            '{{TAX_TOTAL}}':              sym + fmt(taxTotal),
+            '{{GRAND_TOTAL}}':            sym + fmt(grandTotal),
+            '{{PRIMARY_COLOR}}':          thm.PrimaryColor  || '#000000',
+            '{{ACCENT_COLOR}}':           thm.AccentColor   || '#f59e0b',
+            '{{FONT_FAMILY}}':            thm.FontFamily    || 'Arial',
+            '{{FONT_SIZE}}':              (parseInt(thm.FontSizePx) || 12) + 'px',
+            '{{CURRENCY_SYMBOL}}':        sym,
         };
 
         var result = html;

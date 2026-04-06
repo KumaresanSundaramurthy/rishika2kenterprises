@@ -70,7 +70,7 @@ if (!empty($DataLists)) {
                 <?php if ($isDraft || empty($list->UniqueNumber)): ?>
                     <span class="text-muted fst-italic small">—</span>
                 <?php else: ?>
-                    <span class="fw-semibold text-primary"><?php echo htmlspecialchars($list->UniqueNumber); ?></span>
+                    <span class="fw-semibold text-primary"><a href="javascript: void(0)" class="text-decoration-underline viewQuotation" data-uid="<?php echo (int) $list->TransUID; ?>"><?php echo htmlspecialchars($list->UniqueNumber); ?></a></span>
                 <?php endif; ?>
             </td>
 
@@ -150,17 +150,13 @@ if (!empty($DataLists)) {
                 <div class="d-flex align-items-center justify-content-center gap-1">
 
                     <!-- View: always visible -->
-                    <button class="btn btn-icon btn-sm text-info viewQuotation"
-                            data-uid="<?php echo (int) $list->TransUID; ?>"
-                            title="View">
+                    <!-- <button class="btn btn-icon btn-sm text-info viewQuotation" data-uid="<?php echo (int) $list->TransUID; ?>" title="View">
                         <i class="bx bx-show fs-6"></i>
-                    </button>
+                    </button> -->
 
                     <!-- Edit: hidden for Closed and Cancelled -->
                     <?php if (!$isClosed && !$isCancelled): ?>
-                    <a class="btn btn-icon btn-sm text-warning"
-                       href="/quotations/edit/<?php echo (int) $list->TransUID; ?>"
-                       title="Edit">
+                    <a class="btn btn-icon btn-sm text-warning" href="/quotations/edit/<?php echo (int) $list->TransUID; ?>" title="Edit">
                         <i class="bx bx-edit fs-6"></i>
                     </a>
                     <?php endif; ?>

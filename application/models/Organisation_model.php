@@ -281,4 +281,240 @@ class Organisation_model extends CI_Model {
 
     }
 
+    /** Get org details (name, GSTIN, mobile, billing address) for thermal receipt. */
+    public function getOrgForReceipt($orgUID) {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $this->ReadDb->select(
+                'Org.Name, Org.BrandName, Org.GSTIN, Org.MobileNumber, Org.EmailAddress, ' .
+                'Addr.Line1, Addr.Line2, Addr.CityText, Addr.StateText, Addr.Pincode'
+            );
+            $this->ReadDb->from('Organisation.OrganisationTbl AS Org');
+            $this->ReadDb->join(
+                'Organisation.OrgAddressTbl AS Addr',
+                "Addr.OrgUID = Org.OrgUID AND Addr.AddressType = 'Billing' AND Addr.IsDeleted = 0 AND Addr.IsActive = 1",
+                'left'
+            );
+            $this->ReadDb->where('Org.OrgUID', $orgUID);
+            $this->ReadDb->where('Org.IsDeleted', 0);
+            $this->ReadDb->limit(1);
+            $row = $this->ReadDb->get()->row();
+
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Data  = $row;
+            return $this->EndReturnData;
+
+        } catch (Exception $e) {
+
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+            throw new Exception($this->EndReturnData->Message);
+
+        }
+
+    }
+
+    /** Get all print theme configs for an org. */
+    public function getPrintThemeConfigs($orgUID) {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $this->ReadDb->from('Organisation.PrintThemeConfigTbl');
+            $this->ReadDb->where(['OrgUID' => $orgUID, 'IsDeleted' => 0]);
+            $this->ReadDb->order_by('ThemeConfigUID', 'ASC');
+            $rows = $this->ReadDb->get()->result();
+
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Data  = $rows;
+            return $this->EndReturnData;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+            throw new Exception($this->EndReturnData->Message);
+        }
+
+    }
+
+    /** Get print theme config for a specific transaction type, joined with template HTML. */
+    public function getPrintThemeByType($orgUID, $transactionType) {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $this->ReadDb->select([
+                'TC.*',
+                'PT.HtmlContent   AS TemplateHtmlContent',
+                'PT.PreviewImage  AS TemplatePreviewImage',
+                'PT.TemplateName  AS TemplateName',
+            ]);
+            $this->ReadDb->from('Organisation.PrintThemeConfigTbl TC');
+            $this->ReadDb->join('Organisation.PrintTemplatesTbl PT', 'PT.TemplateUID = TC.TemplateUID AND PT.IsDeleted = 0', 'left');
+            $this->ReadDb->where(['TC.OrgUID' => $orgUID, 'TC.TransactionType' => $transactionType, 'TC.IsDeleted' => 0]);
+            $this->ReadDb->limit(1);
+            $row = $this->ReadDb->get()->row();
+
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Data  = $row;
+            return $this->EndReturnData;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+            throw new Exception($this->EndReturnData->Message);
+        }
+
+    }
+
+    /** Paginated list of print theme configs for an org. */
+    public function getPrintThemeConfigsPaginated($orgUID, $limit, $offset, $search = '') {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $base = ['TC.OrgUID' => $orgUID, 'TC.IsDeleted' => 0];
+
+            // Count
+            $this->ReadDb->from('Organisation.PrintThemeConfigTbl TC');
+            $this->ReadDb->join('Organisation.PrintTemplatesTbl PT', 'PT.TemplateUID = TC.TemplateUID AND PT.IsDeleted = 0', 'left');
+            $this->ReadDb->where($base);
+            $total = $this->ReadDb->count_all_results();
+
+            // Rows
+            $this->ReadDb->select([
+                'TC.*',
+                'PT.TemplateName  AS TemplateName',
+                'PT.PreviewImage  AS TemplatePreviewImage',
+            ]);
+            $this->ReadDb->from('Organisation.PrintThemeConfigTbl TC');
+            $this->ReadDb->join('Organisation.PrintTemplatesTbl PT', 'PT.TemplateUID = TC.TemplateUID AND PT.IsDeleted = 0', 'left');
+            $this->ReadDb->where($base);
+            $this->ReadDb->order_by('TC.ThemeConfigUID', 'ASC');
+            $this->ReadDb->limit($limit, $offset);
+            $rows = $this->ReadDb->get()->result();
+
+            $this->EndReturnData->Error      = FALSE;
+            $this->EndReturnData->rows       = $rows;
+            $this->EndReturnData->totalCount = $total;
+            return $this->EndReturnData;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+            throw new Exception($this->EndReturnData->Message);
+        }
+
+    }
+
+    /** Paginated list of global print templates. */
+    public function getPrintTemplatesPaginated($limit, $offset, $search = '') {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $this->ReadDb->from('Organisation.PrintTemplatesTbl');
+            $this->ReadDb->where('IsDeleted', 0);
+            if ($search) {
+                $this->ReadDb->like('TemplateName', $search);
+            }
+            $total = $this->ReadDb->count_all_results();
+
+            $this->ReadDb->select(['TemplateUID', 'TemplateKey', 'TemplateName', 'Description', 'Category', 'PreviewImage', 'SortOrder', 'IsActive', 'CreatedOn', 'UpdatedOn']);
+            $this->ReadDb->from('Organisation.PrintTemplatesTbl');
+            $this->ReadDb->where('IsDeleted', 0);
+            if ($search) {
+                $this->ReadDb->like('TemplateName', $search);
+            }
+            $this->ReadDb->order_by('SortOrder', 'ASC');
+            $this->ReadDb->limit($limit, $offset);
+            $rows = $this->ReadDb->get()->result();
+
+            $this->EndReturnData->Error      = FALSE;
+            $this->EndReturnData->rows       = $rows;
+            $this->EndReturnData->totalCount = $total;
+            return $this->EndReturnData;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+            throw new Exception($this->EndReturnData->Message);
+        }
+
+    }
+
+    /** Get all active print templates (for carousel / dropdown). */
+    public function getPrintTemplatesAll() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $this->ReadDb->select(['TemplateUID', 'TemplateKey', 'TemplateName', 'Description', 'Category', 'PreviewImage']);
+            $this->ReadDb->from('Organisation.PrintTemplatesTbl');
+            $this->ReadDb->where(['IsDeleted' => 0, 'IsActive' => 1]);
+            $this->ReadDb->order_by('SortOrder', 'ASC');
+            $rows = $this->ReadDb->get()->result();
+
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Data  = $rows;
+            return $this->EndReturnData;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+            throw new Exception($this->EndReturnData->Message);
+        }
+
+    }
+
+    /** Get a single print template by UID (full row including HtmlContent). */
+    public function getPrintTemplateByUID($templateUID) {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $this->ReadDb->from('Organisation.PrintTemplatesTbl');
+            $this->ReadDb->where(['TemplateUID' => (int)$templateUID, 'IsDeleted' => 0]);
+            $this->ReadDb->limit(1);
+            $row = $this->ReadDb->get()->row();
+
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Data  = $row;
+            return $this->EndReturnData;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+            throw new Exception($this->EndReturnData->Message);
+        }
+
+    }
+
+    /** Get thermal print config for an org. Returns NULL if not configured yet. */
+    public function getThermalPrintConfig($orgUID) {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $this->ReadDb->from('Organisation.ThermalPrintConfigTbl');
+            $this->ReadDb->where(['OrgUID' => $orgUID, 'IsDeleted' => 0]);
+            $this->ReadDb->limit(1);
+            $row = $this->ReadDb->get()->row();
+
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Data  = $row;
+            return $this->EndReturnData;
+
+        } catch (Exception $e) {
+
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+            throw new Exception($this->EndReturnData->Message);
+
+        }
+
+    }
+
 }

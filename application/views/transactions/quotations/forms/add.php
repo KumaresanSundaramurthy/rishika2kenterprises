@@ -611,6 +611,8 @@
 const StateInfo = <?php echo json_encode($StateData); ?>;
 const CityInfo = <?php echo json_encode($CityData); ?>;
 const EnableStorage = <?php echo $JwtData->GenSettings->EnableStorage; ?>;
+// Org's billing/shipping state — used by searchCustomers to detect inter-state customers
+var _orgState = '<?php echo addslashes($DispatchAddress->StateText ?? ''); ?>';
 let imgData;
 $(function() {
     'use strict'
@@ -750,15 +752,18 @@ $(function() {
                 data    : postData,
                 cache   : false,
                 success : function (response) {
-                    setFormLoading(false);
                     if (response.Error) {
+                        setFormLoading(false);
                         showFormError(response.Message);
                     } else {
+                        // Keep buttons disabled — redirect is imminent; prevent any re-submission
                         Swal.fire({
                             icon             : 'success',
                             title            : 'Quotation Saved',
                             text             : response.Message || 'Quotation created successfully.',
                             confirmButtonText: 'OK',
+                            timer            : 3000,
+                            timerProgressBar : true,
                         }).then(function () {
                             window.location.href = '/quotations';
                         });

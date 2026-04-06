@@ -6,6 +6,7 @@ class BillManager {
         this.globalDiscountPercent = 0;
         this.roundOffEnabled = true;
         this.chargeTypes = ['shipping', 'handling', 'packing', 'other'];
+        this.isInterState = false; // true = IGST only; false = CGST+SGST
         
         // THREE-TIER SUMMARY STRUCTURE
         this.summary = {
@@ -901,12 +902,31 @@ class BillManager {
         item.effectiveSellingPrice = effectiveSellingPricePerUnit;
         item.quantity = quantity;
         item.line_total = this.roundValue(effectiveUnitPricePerUnit * quantity);
-        item.taxAmount = this.roundValue(item.line_total * (taxPercent / 100));
-        
-        // Calculate tax components
-        item.cgstAmount = this.roundValue(item.line_total * (parseFloat(item.cgstPercent) || 0) / 100);
-        item.sgstAmount = this.roundValue(item.line_total * (parseFloat(item.sgstPercent) || 0) / 100);
-        item.igstAmount = this.roundValue(item.line_total * (parseFloat(item.igstPercent) || 0) / 100);
+        // Derive tax from (net_total - line_total) to avoid accumulated per-unit rounding error.
+        // e.g. selling price 6 × 20 qty: line_total=101.69, net_total=120.00 → tax=18.31 (not 18.30)
+        item.taxAmount = this.roundValue(effectiveSellingTotal - item.line_total);
+
+        // Split tax: inter-state → IGST only; intra-state → CGST+SGST (IGST=0).
+        // Customer state vs org state is managed via billManager.setInterState().
+        // CGST and SGST use 3 decimal places so equal splits (e.g. 6.865 / 6.865) never differ.
+        if (this.isInterState) {
+            item.cgstAmount = 0;
+            item.sgstAmount = 0;
+            item.igstAmount = item.taxAmount; // IGST keeps normal decimal precision
+        } else {
+            const _cgstPct = parseFloat(item.cgstPercent) || 0;
+            const _sgstPct = parseFloat(item.sgstPercent) || 0;
+            const _splitBase = _cgstPct + _sgstPct;
+            if (_splitBase > 0 && item.taxAmount > 0) {
+                // 3dp so symmetric splits like 9/9 give identical values (e.g. 6.865 = 6.865)
+                item.cgstAmount = parseFloat((item.taxAmount * (_cgstPct / _splitBase)).toFixed(3));
+                item.sgstAmount = parseFloat((item.taxAmount - item.cgstAmount).toFixed(3));
+            } else {
+                item.cgstAmount = 0;
+                item.sgstAmount = 0;
+            }
+            item.igstAmount = 0;
+        }
         
         // Store discount information
         item.discount = parseFloat(discountData.discountValue) || 0;
@@ -1584,6 +1604,21 @@ class BillManager {
         return parseFloat(parseFloat(value).toFixed(genSettings.DecimalPoints || 2));
     }
 
+    /**
+     * Switch between intra-state (CGST+SGST) and inter-state (IGST) mode.
+     * Triggers a full recalculation of all items in the cart.
+     * @param {boolean} flag  true = inter-state (IGST), false = intra-state (CGST+SGST)
+     */
+    setInterState(flag) {
+        this.isInterState = !!flag;
+        this.items.forEach(item => {
+            item._lastChanged = 'quantity';
+            this.calculateRowItem(item);
+        });
+        if (typeof updateItemTaxBreakdown === 'function') updateItemTaxBreakdown();
+        this.updateSummary();
+    }
+
 }
 
 const billManager = new BillManager();
@@ -2200,11 +2235,21 @@ function searchCustomers(key) {
                 <div>${data.address.City || ''}, ${data.address.State || ''} - ${data.address.Pincode || ''}</div>
             `;
             $("#customerAddressBox").html(addrHtml).removeClass('d-none');
+
+            // Determine intra-state vs inter-state for GST tax split
+            if (typeof billManager !== 'undefined') {
+                var custState = (data.address.State || '').trim().toLowerCase();
+                var orgState  = (typeof _orgState !== 'undefined' ? _orgState : '').trim().toLowerCase();
+                var interState = (custState !== '' && orgState !== '' && custState !== orgState);
+                billManager.setInterState(interState);
+            }
         } else {
             $("#customerAddressBox").addClass('d-none').empty();
+            if (typeof billManager !== 'undefined') billManager.setInterState(false);
         }
     }).on('select2:clear', function () {
         $("#customerAddressBox").addClass('d-none').empty();
+        if (typeof billManager !== 'undefined') billManager.setInterState(false);
     }).on('select2:close', function () {
         AjaxLoading = 1;
     });

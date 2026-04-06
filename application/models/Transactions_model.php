@@ -73,8 +73,8 @@ class Transactions_model extends CI_Model {
     private function applyFilters($filter) {
 
         if (empty($filter)) {
-            // Default: exclude Drafts
-            $this->ReadDb->where('Ts.DocStatus !=', 'Draft');
+            // Default: exclude Drafts and Cancelled (Rejected)
+            $this->ReadDb->where_not_in('Ts.DocStatus', ['Draft', 'Rejected']);
             return;
         }
 
@@ -107,8 +107,8 @@ class Transactions_model extends CI_Model {
         } elseif (isset($tabToDb[$tab])) {
             $this->ReadDb->where('Ts.DocStatus', $tabToDb[$tab]);
         } else {
-            // 'All' or unrecognised: exclude Drafts
-            $this->ReadDb->where('Ts.DocStatus !=', 'Draft');
+            // 'All' or unrecognised: exclude Drafts and Cancelled
+            $this->ReadDb->where_not_in('Ts.DocStatus', ['Draft', 'Rejected']);
         }
 
         if (!empty($filter['MinAmount'])) {
@@ -137,6 +137,26 @@ class Transactions_model extends CI_Model {
         $this->ReadDb->where(['Ts.TransUID' => $transUID, 'Ts.OrgUID' => $orgUID, 'Ts.ModuleUID' => $moduleUID, 'Ts.IsDeleted' => 0]);
         return $this->ReadDb->get()->row();
 
+    }
+
+    /** Returns true if any active transaction with a higher TransUID exists for this org+module. */
+    public function hasNewerTransactions($transUID, $orgUID, $moduleUID) {
+        $this->ReadDb->select('TransUID');
+        $this->ReadDb->from('Transaction.TransactionsTbl');
+        $this->ReadDb->where(['OrgUID' => $orgUID, 'ModuleUID' => $moduleUID, 'IsDeleted' => 0]);
+        $this->ReadDb->where('TransUID >', $transUID);
+        $this->ReadDb->limit(1);
+        $row = $this->ReadDb->get()->row();
+        return $row !== null;
+    }
+
+    /** Max ItemSequence ever used for a transaction (including soft-deleted rows). */
+    public function getMaxItemSequence($transUID) {
+        $this->ReadDb->select_max('ItemSequence', 'MaxSeq');
+        $this->ReadDb->from('Transaction.TransProductsTbl');
+        $this->ReadDb->where('TransUID', $transUID);
+        $row = $this->ReadDb->get()->row();
+        return $row ? (int) $row->MaxSeq : 0;
     }
 
     /** All active line items for a transaction. */

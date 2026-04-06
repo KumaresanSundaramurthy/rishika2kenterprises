@@ -308,8 +308,8 @@ class Quotations extends CI_Controller {
             $existing = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
             if (!$existing) throw new Exception('Quotation not found.');
 
-            // --- Draft → Pending: assign prefix + unique number ---
-            $numberUpdateFields = [];
+            // --- Build UniqueNumber when promoting Draft → Pending ---
+            $uniqueNumber = NULL;
             if ($existing->DocStatus === 'Draft' && !$isDraft) {
                 if ($prefixUID <= 0) throw new Exception('Please select a prefix to finalize this quotation.');
                 if ($transNumber <= 0) throw new Exception('Transaction number must be greater than 0.');
@@ -337,49 +337,42 @@ class Quotations extends CI_Controller {
                         ? $fyStart . '-' . ($fyStart + 1)
                         : str_pad($fyStart % 100, 2, '0', STR_PAD_LEFT) . '-' . str_pad(($fyStart + 1) % 100, 2, '0', STR_PAD_LEFT);
                 }
-                $padding = (int)($prefix->NumberPadding ?? 1);
-                $parts[] = $padding > 1 ? str_pad($transNumber, $padding, '0', STR_PAD_LEFT) : (string)$transNumber;
-
-                $numberUpdateFields = [
-                    'PrefixUID'    => $prefixUID,
-                    'TransNumber'  => $transNumber,
-                    'UniqueNumber' => implode($sep, $parts),
-                ];
+                $padding      = (int)($prefix->NumberPadding ?? 1);
+                $parts[]      = $padding > 1 ? str_pad($transNumber, $padding, '0', STR_PAD_LEFT) : (string)$transNumber;
+                $uniqueNumber = implode($sep, $parts);
             }
 
-            // --- Update header ---
-            $headerData = array_merge([
-                'PartyUID'              => $customerUID,
-                'TransDate'             => $transDate,
-                'QuotationType'         => getPostValue($PostData, 'quotationType') ?: NULL,
-                'DispatchFromUID'       => ($dfUID = (int) getPostValue($PostData, 'dispatchFrom')) > 0 ? $dfUID : NULL,
-                'GrossAmount'           => $subTotal + $discountAmount,
-                'SubTotal'              => $subTotal,
-                'DiscountAmount'        => $discountAmount,
-                'AdditionalCharges'     => $additionalChargesTotal,
-                'TaxAmount'             => $taxAmount,
-                'CgstAmount'            => $cgstAmount,
-                'SgstAmount'            => $sgstAmount,
-                'IgstAmount'            => $igstAmount,
-                'RoundOff'              => $roundOff,
-                'GlobalDiscPercent'     => $globalDiscPercent,
-                'ExtraDiscApplied'      => $extraDiscount > 0 ? 1 : 0,
-                'ExtraDiscAmount'       => $extraDiscount,
-                'ExtraDiscType'         => getPostValue($PostData, 'extDiscountType') ?: NULL,
-                'NetAmount'             => $netAmount,
-                'DocStatus'             => $status,
-                'UpdatedBy'             => $userUID,
-            ], $numberUpdateFields);
-
-            $updateResp = $this->dbwrite_model->updateData(
-                'Transaction', 'TransactionsTbl', $headerData,
-                ['TransUID' => $transUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
-            );
-            if ($updateResp->Error) throw new Exception($updateResp->Message);
-
-            // --- Update detail row ---
             $additionalChargesJson = $this->buildAdditionalChargesJson($PostData);
-            $detailData = [
+
+            // --- Shared header fields (used in both update and clone paths) ---
+            $commonHeader = [
+                'OrgUID'            => $orgUID,
+                'ModuleUID'         => $this->pageModuleUID,
+                'PartyType'         => 'C',
+                'PartyUID'          => $customerUID,
+                'TransDate'         => $transDate,
+                'TransType'         => 'Quotation',
+                'QuotationType'     => getPostValue($PostData, 'quotationType') ?: NULL,
+                'DispatchFromUID'   => ($dfUID = (int) getPostValue($PostData, 'dispatchFrom')) > 0 ? $dfUID : NULL,
+                'GrossAmount'       => $subTotal + $discountAmount,
+                'SubTotal'          => $subTotal,
+                'DiscountAmount'    => $discountAmount,
+                'AdditionalCharges' => $additionalChargesTotal,
+                'TaxAmount'         => $taxAmount,
+                'CgstAmount'        => $cgstAmount,
+                'SgstAmount'        => $sgstAmount,
+                'IgstAmount'        => $igstAmount,
+                'RoundOff'          => $roundOff,
+                'GlobalDiscPercent' => $globalDiscPercent,
+                'ExtraDiscApplied'  => $extraDiscount > 0 ? 1 : 0,
+                'ExtraDiscAmount'   => $extraDiscount,
+                'ExtraDiscType'     => getPostValue($PostData, 'extDiscountType') ?: NULL,
+                'NetAmount'         => $netAmount,
+                'DocStatus'         => $status,
+                'UpdatedBy'         => $userUID,
+            ];
+
+            $commonDetail = [
                 'ValidityDays'      => $validityDays ?: NULL,
                 'ValidityDate'      => $validityDate ?: NULL,
                 'Reference'         => getPostValue($PostData, 'referenceDetails') ?: NULL,
@@ -387,19 +380,76 @@ class Quotations extends CI_Controller {
                 'TermsConditions'   => getPostValue($PostData, 'transTermsCond') ?: NULL,
                 'AdditionalCharges' => $additionalChargesJson,
             ];
-            $this->dbwrite_model->updateData(
-                'Transaction', 'TransDetailTbl', $detailData,
-                ['FinancialYear' => $financialYear, 'TransUID' => $transUID]
-            );
 
-            // --- Replace line items: soft-delete old items + taxes, insert new ---
-            $this->dbwrite_model->updateData(
-                'Transaction', 'TransProductsTbl',
-                ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID, 'UpdatedOn' => time()],
-                ['TransUID' => $transUID, 'IsDeleted' => 0]
-            );
+            // --- CLONE PATH: Draft being saved as Pending and newer records exist ---
+            // We insert a new TransactionsTbl row (gets a higher auto-increment TransUID)
+            // so it naturally sorts to the top of the DESC list, then hard-delete the old draft.
+            if ($existing->DocStatus === 'Draft' && !$isDraft
+                && $this->transactions_model->hasNewerTransactions($transUID, $orgUID, $this->pageModuleUID)) {
 
-            $this->saveQuotationItems($transUID, $financialYear, $orgUID, $userUID, $items);
+                // Insert new header row
+                $newHeader = array_merge($commonHeader, [
+                    'PrefixUID'    => $prefixUID,
+                    'TransNumber'  => $transNumber,
+                    'UniqueNumber' => $uniqueNumber,
+                    'IsActive'     => 1,
+                    'IsDeleted'    => 0,
+                    'CreatedBy'    => $userUID,
+                ]);
+                $insertResp = $this->dbwrite_model->insertData('Transaction', 'TransactionsTbl', $newHeader);
+                if ($insertResp->Error) throw new Exception($insertResp->Message);
+                $newTransUID = $insertResp->ID;
+
+                // Insert new detail row
+                $this->dbwrite_model->insertData('Transaction', 'TransDetailTbl', array_merge($commonDetail, [
+                    'FinancialYear' => $financialYear,
+                    'TransUID'      => $newTransUID,
+                ]));
+
+                // Soft-delete old items (audit trail), insert new items under new TransUID
+                $this->dbwrite_model->updateData(
+                    'Transaction', 'TransProductsTbl',
+                    ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
+                    ['TransUID' => $transUID, 'IsDeleted' => 0]
+                );
+                $this->saveQuotationItems($newTransUID, $financialYear, $orgUID, $userUID, $items);
+
+                // Hard-delete old draft header and its detail — only TransactionsTbl drives list order
+                $this->dbwrite_model->deleteInTransaction('Transaction', 'TransactionsTbl', ['TransUID' => $transUID]);
+                $this->dbwrite_model->deleteInTransaction('Transaction', 'TransDetailTbl',  ['TransUID' => $transUID]);
+
+            } else {
+                // --- NORMAL UPDATE PATH (draft stays draft, or no newer records exist) ---
+                $numberFields = [];
+                if ($uniqueNumber !== NULL) {
+                    $numberFields = [
+                        'PrefixUID'    => $prefixUID,
+                        'TransNumber'  => $transNumber,
+                        'UniqueNumber' => $uniqueNumber,
+                    ];
+                }
+
+                $updateResp = $this->dbwrite_model->updateData(
+                    'Transaction', 'TransactionsTbl',
+                    array_merge($commonHeader, $numberFields),
+                    ['TransUID' => $transUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
+                );
+                if ($updateResp->Error) throw new Exception($updateResp->Message);
+
+                $this->dbwrite_model->updateData(
+                    'Transaction', 'TransDetailTbl', $commonDetail,
+                    ['FinancialYear' => $financialYear, 'TransUID' => $transUID]
+                );
+
+                // Soft-delete old items and insert new ones at offset sequences
+                $this->dbwrite_model->updateData(
+                    'Transaction', 'TransProductsTbl',
+                    ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
+                    ['TransUID' => $transUID, 'IsDeleted' => 0]
+                );
+                $seqOffset = $this->transactions_model->getMaxItemSequence($transUID);
+                $this->saveQuotationItems($transUID, $financialYear, $orgUID, $userUID, $items, $seqOffset);
+            }
 
             $this->dbwrite_model->commitTransaction();
 
@@ -539,7 +589,7 @@ class Quotations extends CI_Controller {
                 'SgstAmount'        => $src->SgstAmount,
                 'IgstAmount'        => $src->IgstAmount,
                 'RoundOff'          => $src->RoundOff,
-                'GlobalDiscPercent' => $src->GlobalDiscPercent,
+                'GlobalDiscPercent' => (float) $src->GlobalDiscPercent,
                 'ExtraDiscApplied'  => $src->ExtraDiscApplied,
                 'ExtraDiscAmount'   => $src->ExtraDiscAmount,
                 'ExtraDiscType'     => $src->ExtraDiscType,
@@ -680,8 +730,8 @@ class Quotations extends CI_Controller {
 
             $validTransitions = [
                 'Pending'   => ['Accepted', 'Partial', 'Rejected'],
-                'Accepted'  => ['Pending',  'Partial'],
-                'Partial'   => ['Accepted', 'Pending'],
+                'Accepted'  => ['Pending',  'Partial', 'Rejected'],
+                'Partial'   => ['Accepted', 'Pending', 'Rejected'],
                 'Draft'     => ['Pending'],
                 'Rejected'  => [],
                 'Converted' => [],
@@ -735,9 +785,17 @@ class Quotations extends CI_Controller {
 
             $items = $this->transactions_model->getTransactionItems($transUID, $orgUID);
 
-            $this->EndReturnData->Error   = FALSE;
-            $this->EndReturnData->Header  = $header;
-            $this->EndReturnData->Items   = $items;
+            $this->load->model('organisation_model');
+            $orgInfo          = $this->organisation_model->getOrgForReceipt($orgUID);
+            $thermalCfgResult = $this->organisation_model->getThermalPrintConfig($orgUID);
+            $printThemeResult = $this->organisation_model->getPrintThemeByType($orgUID, 'Quotation');
+
+            $this->EndReturnData->Error        = FALSE;
+            $this->EndReturnData->Header       = $header;
+            $this->EndReturnData->Items        = $items;
+            $this->EndReturnData->OrgInfo      = $orgInfo->Data ?? null;
+            $this->EndReturnData->ThermalConfig = $thermalCfgResult->Data ?? null;
+            $this->EndReturnData->PrintTheme   = $printThemeResult->Data ?? null;
 
         } catch (Exception $e) {
             $this->EndReturnData->Error   = TRUE;
@@ -757,74 +815,60 @@ class Quotations extends CI_Controller {
      *   JS item.line_total      → PHP $lineTaxable   (unit_price×qty, BEFORE tax)
      *   JS item.net_total       → PHP $netAmount      (selling_price×qty, WITH tax)
      */
-    private function saveQuotationItems($transUID, $financialYear, $orgUID, $userUID, array $items) {
+    private function saveQuotationItems($transUID, $financialYear, $orgUID, $userUID, array $items, $seqOffset = 0) {
 
         $this->load->model('dbwrite_model');
-        $now = time();
 
+        $rows = [];
         foreach ($items as $seq => $item) {
 
-            $productUID      = isset($item['id'])       ? (int)   $item['id']       : 0;
-            $qty             = isset($item['quantity'])  ? (float) $item['quantity']  : 0;   // JS: item.quantity
-            $unitPrice       = isset($item['unitPrice']) ? (float) $item['unitPrice'] : 0;
+            $productUID = isset($item['id'])       ? (int)   $item['id']       : 0;
+            $qty        = isset($item['quantity'])  ? (float) $item['quantity']  : 0;
+            $unitPrice  = isset($item['unitPrice']) ? (float) $item['unitPrice'] : 0;
 
             if ($productUID <= 0 || $qty <= 0) continue;
 
-            $taxPercent      = (float) ($item['taxPercent']   ?? 0);
-            $cgst            = (float) ($item['cgstPercent']  ?? 0);
-            $sgst            = (float) ($item['sgstPercent']  ?? 0);
-            $igst            = (float) ($item['igstPercent']  ?? 0);
-            $taxDetailsUID   = isset($item['taxDetailsUID'])   ? (int)   $item['taxDetailsUID']   : 1;
-            $discountTypeUID = isset($item['discountTypeUID']) ? (int)   $item['discountTypeUID'] : NULL;
-            $discount        = (float) ($item['discount']      ?? 0);
-            $discountAmount  = (float) ($item['discount_amount'] ?? 0);  // JS: item.discount_amount
-            $taxAmount       = (float) ($item['taxAmount']     ?? 0);
-            $cgstAmount      = (float) ($item['cgstAmount']    ?? 0);
-            $sgstAmount      = (float) ($item['sgstAmount']    ?? 0);
-            $igstAmount      = (float) ($item['igstAmount']    ?? 0);
-            $sellingPrice    = (float) ($item['sellingPrice']  ?? $unitPrice);
-            $lineTaxable     = (float) ($item['line_total']    ?? 0);    // JS: item.line_total  (before tax)
-            $netAmount       = (float) ($item['net_total']     ?? 0);    // JS: item.net_total   (with tax)
-
-            $itemData = [
-                'OrgUID'          => $orgUID,
-                'FinancialYear'   => $financialYear,
-                'TransUID'        => $transUID,
-                'ItemSequence'    => $seq + 1,
-                'ProductUID'      => $productUID,
-                'ProductName'     => substr(strip_tags($item['itemName'] ?? ''), 0, 100),
-                'PartNumber'      => isset($item['partNumber'])   ? substr($item['partNumber'], 0, 50) : NULL,
-                'CategoryUID'     => isset($item['categoryUID'])  ? (int) $item['categoryUID']         : NULL,
-                'StorageUID'      => isset($item['storageUID'])   ? (int) $item['storageUID']           : NULL,
-                'Quantity'        => $qty,
-                'PrimaryUnitName' => isset($item['primaryUnit'])  ? substr($item['primaryUnit'], 0, 20) : NULL,
-                'TaxDetailsUID'   => $taxDetailsUID,
-                'TaxPercentage'   => $taxPercent,
-                'CGST'            => $cgst,
-                'SGST'            => $sgst,
-                'IGST'            => $igst,
-                'DiscountTypeUID' => $discountTypeUID,
-                'Discount'        => $discount,
-                'UnitPrice'       => $unitPrice,
-                'SellingPrice'    => $sellingPrice,
-                'TaxableAmount'   => $lineTaxable,
-                'CgstAmount'      => $cgstAmount,
-                'SgstAmount'      => $sgstAmount,
-                'IgstAmount'      => $igstAmount,
-                'TaxAmount'       => $taxAmount,
-                'DiscountAmount'  => $discountAmount,
-                'NetAmount'       => $netAmount,
+            $rows[] = [
+                'OrgUID'            => $orgUID,
+                'FinancialYear'     => $financialYear,
+                'TransUID'          => $transUID,
+                'ItemSequence'      => $seqOffset + $seq + 1,
+                'ProductUID'        => $productUID,
+                'ProductName'       => substr(strip_tags($item['itemName'] ?? ''), 0, 100),
+                'PartNumber'        => isset($item['partNumber'])    ? substr($item['partNumber'], 0, 50) : NULL,
+                'CategoryUID'       => isset($item['categoryUID'])   ? (int) $item['categoryUID']          : NULL,
+                'StorageUID'        => isset($item['storageUID'])    ? (int) $item['storageUID']            : NULL,
+                'Quantity'          => $qty,
+                'PrimaryUnitName'   => isset($item['primaryUnit'])   ? substr($item['primaryUnit'], 0, 20)  : NULL,
+                'TaxDetailsUID'     => isset($item['taxDetailsUID']) ? (int) $item['taxDetailsUID']          : 1,
+                'TaxPercentage'     => (float) ($item['taxPercent']   ?? 0),
+                'CGST'              => (float) ($item['cgstPercent']  ?? 0),
+                'SGST'              => (float) ($item['sgstPercent']  ?? 0),
+                'IGST'              => (float) ($item['igstPercent']  ?? 0),
+                'DiscountTypeUID'   => isset($item['discountTypeUID']) ? (int) $item['discountTypeUID'] : NULL,
+                'Discount'          => (float) ($item['discount']       ?? 0),
+                'UnitPrice'         => $unitPrice,
+                'SellingPrice'      => (float) ($item['sellingPrice']   ?? $unitPrice),
+                'TaxableAmount'     => (float) ($item['line_total']     ?? 0),
+                'CgstAmount'        => (float) ($item['cgstAmount']     ?? 0),
+                'SgstAmount'        => (float) ($item['sgstAmount']     ?? 0),
+                'IgstAmount'        => (float) ($item['igstAmount']     ?? 0),
+                'TaxAmount'         => (float) ($item['taxAmount']      ?? 0),
+                'DiscountAmount'    => (float) ($item['discount_amount'] ?? 0),
+                'NetAmount'         => (float) ($item['net_total']       ?? 0),
                 'QuantityConverted' => 0,
-                'IsActive'        => 1,
-                'IsDeleted'       => 0,
-                'CreatedBy'       => $userUID,
-                'UpdatedBy'       => $userUID,
+                'IsActive'          => 1,
+                'IsDeleted'         => 0,
+                'CreatedBy'         => $userUID,
+                'UpdatedBy'         => $userUID,
             ];
-
-            $itemResp = $this->dbwrite_model->insertData('Transaction', 'TransProductsTbl', $itemData);
-            if ($itemResp->Error) throw new Exception($itemResp->Message);
-
         }
+
+        if (empty($rows)) return;
+
+        // Single batch INSERT instead of one query per item — much faster for large carts
+        $batchResp = $this->dbwrite_model->insertBatchInTransaction('Transaction', 'TransProductsTbl', $rows);
+        if ($batchResp->Error) throw new Exception($batchResp->Message);
 
     }
 
@@ -1006,6 +1050,79 @@ class Quotations extends CI_Controller {
         } catch (Exception $e) {
             redirect('quotations', 'refresh');
         }
+
+    }
+
+    // ── Thermal Print Config ──────────────────────────────────────────────────
+    public function thermalPrintConfig() {
+
+        try {
+
+            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+
+            $this->load->model('organisation_model');
+            $cfgResult = $this->organisation_model->getThermalPrintConfig($orgUID);
+            $this->pageData['ThermalConfig'] = $cfgResult->Data ?? null;
+
+            $this->load->view('transactions/quotations/thermal_config', $this->pageData);
+
+        } catch (Exception $e) {
+            redirect('quotations', 'refresh');
+        }
+
+    }
+
+    public function saveThermalPrintConfig() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $PostData = $this->input->post();
+            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $userUID  = $this->pageData['JwtData']->User->UserUID;
+
+            $configData = [
+                'PaperWidth'       => in_array(getPostValue($PostData, 'PaperWidth'), ['58mm', '80mm'])
+                                        ? getPostValue($PostData, 'PaperWidth') : '80mm',
+                'HeaderLine1'      => substr(getPostValue($PostData, 'HeaderLine1') ?: '', 0, 100) ?: NULL,
+                'HeaderLine2'      => substr(getPostValue($PostData, 'HeaderLine2') ?: '', 0, 100) ?: NULL,
+                'HeaderLine3'      => substr(getPostValue($PostData, 'HeaderLine3') ?: '', 0, 100) ?: NULL,
+                'ShowGSTIN'        => (int)(bool)getPostValue($PostData, 'ShowGSTIN'),
+                'ShowMobile'       => (int)(bool)getPostValue($PostData, 'ShowMobile'),
+                'ShowLogo'         => (int)(bool)getPostValue($PostData, 'ShowLogo'),
+                'ShowHSN'          => (int)(bool)getPostValue($PostData, 'ShowHSN'),
+                'ShowTaxBreakdown' => (int)(bool)getPostValue($PostData, 'ShowTaxBreakdown'),
+                'FooterMessage'    => substr(getPostValue($PostData, 'FooterMessage') ?: '', 0, 200) ?: NULL,
+                'UpdatedBy'        => $userUID,
+            ];
+
+            $this->load->model('organisation_model');
+            $this->load->model('dbwrite_model');
+
+            $existing = $this->organisation_model->getThermalPrintConfig($orgUID);
+
+            if (!empty($existing->Data)) {
+                $this->dbwrite_model->updateData(
+                    'Organisation', 'ThermalPrintConfigTbl', $configData,
+                    ['OrgUID' => $orgUID, 'IsDeleted' => 0]
+                );
+            } else {
+                $configData['OrgUID']    = $orgUID;
+                $configData['CreatedBy'] = $userUID;
+                $configData['IsActive']  = 1;
+                $configData['IsDeleted'] = 0;
+                $this->dbwrite_model->insertData('Organisation', 'ThermalPrintConfigTbl', $configData);
+            }
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Thermal print settings saved.';
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
 
     }
 

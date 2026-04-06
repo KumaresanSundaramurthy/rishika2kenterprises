@@ -670,6 +670,9 @@
 const StateInfo  = <?php echo json_encode($StateData); ?>;
 const CityInfo   = <?php echo json_encode($CityData); ?>;
 const EnableStorage = <?php echo $JwtData->GenSettings->EnableStorage; ?>;
+// Org state for intra/inter-state GST detection
+var _orgState  = '<?php echo addslashes($DispatchAddress->StateText ?? ''); ?>';
+var _custState = '<?php echo addslashes($CustAddr->StateText ?? ''); ?>';
 
 // ── Existing items to pre-load ────────────────────────────────────────────────
 var _editItems = <?php echo json_encode(array_map(function($item) {
@@ -709,6 +712,11 @@ $(function () {
     transDatePickr('#transDate', false, 'Y-m-d', false, true, true, true, 'd-m-Y');
     transDatePickr('#validityDate', false, 'Y-m-d', false, false, false, true, 'd-m-Y', '#transDate');
     setupTransactionValidity('#transDate', '#validityDays', '#validityDate');
+
+    // Set inter-state flag from saved customer state before items are pre-loaded
+    if (typeof billManager !== 'undefined' && _orgState && _custState) {
+        billManager.isInterState = (_custState.trim().toLowerCase() !== _orgState.trim().toLowerCase());
+    }
 
     // ── Pre-load items into BillManager and render rows ───────────────────────
     if (typeof billManager !== 'undefined' && typeof formationTableBillItems === 'function'
@@ -841,15 +849,18 @@ $(function () {
                 data   : postData,
                 cache  : false,
                 success: function (response) {
-                    setFormLoading(false);
                     if (response.Error) {
+                        setFormLoading(false);
                         showFormError(response.Message);
                     } else {
+                        // Keep buttons disabled — redirect is imminent; prevent any re-submission
                         Swal.fire({
                             icon             : 'success',
                             title            : 'Quotation Updated',
                             text             : response.Message || 'Quotation updated successfully.',
                             confirmButtonText: 'OK',
+                            timer            : 3000,
+                            timerProgressBar : true,
                         }).then(function () {
                             window.location.href = '/quotations';
                         });

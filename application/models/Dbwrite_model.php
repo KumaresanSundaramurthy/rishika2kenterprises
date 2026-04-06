@@ -92,6 +92,30 @@ class Dbwrite_model extends CI_Model {
 
     }
 
+    /** Batch insert using the existing WriteDB connection (safe inside a transaction). */
+    public function insertBatchInTransaction($Database, $Table, array $Data) {
+
+        $this->EndReturnData = new stdclass();
+        $this->EndReturnData->Error = FALSE;
+        $this->EndReturnData->Message = 'Success';
+        try {
+
+            $this->WriteDB->db_debug = FALSE;
+            $res = $this->WriteDB->insert_batch($Database . '.' . $Table, $Data);
+            if ($res === false) {
+                $this->EndReturnData->Error   = TRUE;
+                $this->EndReturnData->Message = $this->WriteDB->error()['message'] ?? 'Batch insert failed';
+            }
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        return $this->EndReturnData;
+
+    }
+
     public function insertBatchData($Database, $Table, $Data) {
 
         $this->EndReturnData = new stdclass();
@@ -234,6 +258,30 @@ class Dbwrite_model extends CI_Model {
             $this->EndReturnData->Field = $Field;
             $this->EndReturnData->Message = $e->getMessage();
 
+        }
+
+        return $this->EndReturnData;
+
+    }
+
+    /** Hard-delete using the existing WriteDB connection (safe inside a transaction). */
+    public function deleteInTransaction($Database, $Table, array $Condition) {
+
+        $this->EndReturnData = new stdclass();
+        $this->EndReturnData->Error   = FALSE;
+        $this->EndReturnData->Message = 'Success';
+        try {
+
+            $this->WriteDB->db_debug = FALSE;
+            $res = $this->WriteDB->delete($Database . '.' . $Table, $Condition);
+            if ($res === false) {
+                $this->EndReturnData->Error   = TRUE;
+                $this->EndReturnData->Message = $this->WriteDB->error()['message'] ?? 'Delete failed';
+            }
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         }
 
         return $this->EndReturnData;

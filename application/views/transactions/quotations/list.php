@@ -22,12 +22,14 @@ $statusTransitions = [
         ['db' => 'Rejected', 'label' => 'Cancel'],
     ],
     'Accepted'  => [
-        ['db' => 'Pending', 'label' => 'Reopen'],
-        ['db' => 'Partial', 'label' => 'Mark as Partial'],
+        ['db' => 'Pending',  'label' => 'Reopen'],
+        ['db' => 'Partial',  'label' => 'Mark as Partial'],
+        ['db' => 'Rejected', 'label' => 'Cancel'],
     ],
     'Partial'   => [
         ['db' => 'Accepted', 'label' => 'Mark as Closed'],
         ['db' => 'Pending',  'label' => 'Mark as Open'],
+        ['db' => 'Rejected', 'label' => 'Cancel'],
     ],
     'Draft'     => [
         ['db' => 'Pending', 'label' => 'Finalize (Mark Open)'],
@@ -44,6 +46,8 @@ if (!empty($DataLists)) {
     foreach ($DataLists as $list) {
         $SerialNumber++;
         $isDraft     = ($list->Status === 'Draft');
+        $isClosed    = ($list->Status === 'Accepted');
+        $isCancelled = ($list->Status === 'Rejected');
         $badge       = $statusBadge[$list->Status]  ?? 'bg-label-secondary';
         $label       = $statusLabel[$list->Status]   ?? $list->Status;
         $transitions = $statusTransitions[$list->Status] ?? [];
@@ -144,21 +148,63 @@ if (!empty($DataLists)) {
             <!-- Actions -->
             <td style="width:50px">
                 <div class="d-flex align-items-center justify-content-center gap-1">
+
+                    <!-- View: always visible -->
                     <button class="btn btn-icon btn-sm text-info viewQuotation"
                             data-uid="<?php echo (int) $list->TransUID; ?>"
                             title="View">
                         <i class="bx bx-show fs-6"></i>
                     </button>
+
+                    <!-- Edit: hidden for Closed and Cancelled -->
+                    <?php if (!$isClosed && !$isCancelled): ?>
                     <a class="btn btn-icon btn-sm text-warning"
                        href="/quotations/edit/<?php echo (int) $list->TransUID; ?>"
                        title="Edit">
                         <i class="bx bx-edit fs-6"></i>
                     </a>
+                    <?php endif; ?>
+
+                    <!-- 3-dot menu -->
                     <div class="dropdown">
                         <button class="btn btn-icon btn-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="bx bx-dots-vertical-rounded fs-5 text-muted"></i>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+
+                            <?php if ($isCancelled): ?>
+                            <!-- Cancelled: View (icon above) + Duplicate only -->
+                            <li>
+                                <button class="dropdown-item duplicateQuotation"
+                                        data-uid="<?php echo (int) $list->TransUID; ?>">
+                                    <i class="bx bx-copy me-2 text-secondary"></i>Duplicate
+                                </button>
+                            </li>
+
+                            <?php elseif ($isClosed): ?>
+                            <!-- Closed: View (icon above) + Thermal Print + A4 Print + Duplicate only -->
+                            <li>
+                                <button class="dropdown-item thermalPrintQuotation"
+                                        data-uid="<?php echo (int) $list->TransUID; ?>">
+                                    <i class="bx bx-receipt me-2 text-dark"></i>Thermal Print
+                                </button>
+                            </li>
+                            <li>
+                                <button class="dropdown-item a4PrintQuotation"
+                                        data-uid="<?php echo (int) $list->TransUID; ?>">
+                                    <i class="bx bx-file me-2 text-primary"></i>Print (A4 / A5)
+                                </button>
+                            </li>
+                            <li><hr class="dropdown-divider my-1"></li>
+                            <li>
+                                <button class="dropdown-item duplicateQuotation"
+                                        data-uid="<?php echo (int) $list->TransUID; ?>">
+                                    <i class="bx bx-copy me-2 text-secondary"></i>Duplicate
+                                </button>
+                            </li>
+
+                            <?php else: ?>
+                            <!-- All other statuses: full menu -->
                             <?php if (!$isDraft && $list->Status !== 'Converted'): ?>
                             <li>
                                 <button class="dropdown-item convertToQuot"
@@ -178,6 +224,21 @@ if (!empty($DataLists)) {
                             </li>
                             <li><hr class="dropdown-divider my-1"></li>
                             <?php endif; ?>
+                            <?php if (!$isDraft): ?>
+                            <li>
+                                <button class="dropdown-item thermalPrintQuotation"
+                                        data-uid="<?php echo (int) $list->TransUID; ?>">
+                                    <i class="bx bx-receipt me-2 text-dark"></i>Thermal Print
+                                </button>
+                            </li>
+                            <li>
+                                <button class="dropdown-item a4PrintQuotation"
+                                        data-uid="<?php echo (int) $list->TransUID; ?>">
+                                    <i class="bx bx-file me-2 text-primary"></i>Print (A4 / A5)
+                                </button>
+                            </li>
+                            <li><hr class="dropdown-divider my-1"></li>
+                            <?php endif; ?>
                             <li>
                                 <button class="dropdown-item duplicateQuotation"
                                         data-uid="<?php echo (int) $list->TransUID; ?>">
@@ -191,6 +252,8 @@ if (!empty($DataLists)) {
                                     <i class="bx bx-trash me-2"></i>Delete
                                 </button>
                             </li>
+                            <?php endif; ?>
+
                         </ul>
                     </div>
                 </div>

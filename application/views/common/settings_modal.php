@@ -13,7 +13,7 @@
 
             <div class="modal-body">
                 <div class="table-responsive">
-                    <input type="hidden" name="InPageAllColumns" id="InPageAllColumns" value="<?php echo implode(',', array_column($DispSettColumnDetails, 'ViewDataUID')); ?>" />
+                    <input type="hidden" name="InPageAllColumns" id="InPageAllColumns" value="<?php echo isset($DispSettColumnDetails) && !empty($DispSettColumnDetails) ? implode(',', array_column($DispSettColumnDetails, 'ViewDataUID')) : ''; ?>" />
                     <table class="table table-bordered align-middle text-center">
                         <thead>
                             <tr>
@@ -29,7 +29,8 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach ($DispSettColumnDetails as $CmKey => $CmVal) { ?>
+                            <?php if(isset($DispSettColumnDetails) && !empty($DispSettColumnDetails)) {
+                                foreach ($DispSettColumnDetails as $CmKey => $CmVal) { ?>
                                 <tr>
                                     <td><?php echo $CmVal->DisplayName; ?></td>
                                     <td>
@@ -63,7 +64,7 @@
                                         </div>
                                     </td>
                                 </tr>
-                            <?php } ?>
+                            <?php } } ?>
                         </tbody>
                     </table>
                 </div>

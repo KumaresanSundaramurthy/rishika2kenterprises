@@ -58,9 +58,18 @@ $route['portal'] = 'login/login';
 $route['logout'] = 'login/logout';
 
 // Settings
-$route['settings/profile'] = 'profile';
+$route['settings/profile']      = 'profile';
 $route['settings/organisation'] = 'organisation';
-$route['settings/users'] = 'users';
+$route['settings/users']        = 'users';
+$route['settings/users/saveUser'] = 'users/saveUser';
+
+// Roles
+$route['settings/roles']                         = 'roles/index';
+$route['settings/roles/getRolesList']            = 'roles/getRolesList';
+$route['settings/roles/getRolePermissions']      = 'roles/getRolePermissions';
+$route['settings/roles/saveRole']                = 'roles/saveRole';
+$route['settings/roles/saveRolePermissions']     = 'roles/saveRolePermissions';
+$route['settings/roles/deleteRole']              = 'roles/deleteRole';
 
 // Customers
 $route['customers/(:num)/edit'] = 'customers/edit/$1';
@@ -73,3 +82,16 @@ $route['vendors/(:num)/clone'] = 'vendors/clonevendor/$1';
 // Products
 $route['products/(:num)/edit'] = 'products/edit/$1';
 $route['products/(:num)/clone'] = 'products/clone/$1';
+
+// Print Themes
+$route['print-themes']                    = 'printthemes/index';
+$route['print-themes/save']               = 'printthemes/save';
+$route['print-themes/delete']             = 'printthemes/delete';
+$route['print-themes/getThemeData']       = 'printthemes/getThemeData';
+$route['print-themes/getThemeList']       = 'printthemes/getThemeList';
+$route['print-themes/saveTheme']          = 'printthemes/saveTheme';
+$route['print-themes/deleteTheme']        = 'printthemes/deleteTheme';
+$route['print-themes/getTemplateList']    = 'printthemes/getTemplateList';
+$route['print-themes/saveTemplate']       = 'printthemes/saveTemplate';
+$route['print-themes/deleteTemplate']     = 'printthemes/deleteTemplate';
+$route['print-themes/getTemplateData']    = 'printthemes/getTemplateData';

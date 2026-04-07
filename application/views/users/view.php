@@ -75,6 +75,7 @@
 
             <?php $this->load->view('common/settings_modal'); ?>
             <?php $this->load->view('common/footer_desc'); ?>
+            <?php $this->load->view('users/modals/user'); ?>
 
         </div>
 
@@ -96,11 +97,113 @@ const ModuleFileName = 'Customer_Data';
 const ModuleSheetName = 'Customer';
 const previewName = 'Customer Details';
 let sortState = 0;
+
+/* ── User Modal helpers ───────────────────────────────────────────────── */
+function openUserModal(uid, data) {
+    if (uid > 0) {
+        $('#userModalTitle').html('<i class="bx bx-edit me-1"></i>Edit User');
+        $('#UserModalUID').val(uid);
+        $('#UserFirstName').val(data.FirstName || '');
+        $('#UserLastName').val(data.LastName || '');
+        $('#UserUsername').val(data.UserName || '');
+        $('#UserEmail').val(data.EmailAddress || '');
+        $('#UserMobile').val(data.MobileNumber || '');
+        $('#UserRoleUID').val(data.RoleUID || '');
+        $('#passwordGroup, #confirmPasswordGroup').addClass('d-none');
+        $('#userStatusRow').removeClass('d-none');
+        $('#UserIsActive').prop('checked', data.IsActive == 1);
+    } else {
+        $('#userModalTitle').html('<i class="bx bx-user me-1"></i>Add User');
+        $('#userModal').find('input[type=text], input[type=email], input[type=password]').val('');
+        $('#UserModalUID').val(0);
+        $('#UserRoleUID').val('');
+        $('#passwordGroup, #confirmPasswordGroup').removeClass('d-none');
+        $('#userStatusRow').addClass('d-none');
+    }
+    $('#userModal').modal('show');
+}
+
 $(function() {
     'use strict'
 
     $('#SearchDetails').val('');
     $(ModuleRow).prop('checked', false).trigger('change');
+
+    // Open Add User modal from the top bar button
+    $(document).on('click', '#AddNewRecord', function(e) {
+        e.preventDefault();
+        openUserModal(0, {});
+    });
+
+    // Toggle password visibility
+    $('#togglePwd').click(function() {
+        const pwd = $('#UserPassword');
+        const isHidden = pwd.attr('type') === 'password';
+        pwd.attr('type', isHidden ? 'text' : 'password');
+        $(this).find('i').toggleClass('bx-hide bx-show');
+    });
+
+    // Save User
+    $('#saveUserBtn').click(function() {
+        const uid       = parseInt($('#UserModalUID').val()) || 0;
+        const firstName = $.trim($('#UserFirstName').val());
+        const username  = $.trim($('#UserUsername').val());
+        const email     = $.trim($('#UserEmail').val());
+        const roleUID   = $('#UserRoleUID').val();
+        const pwd       = $('#UserPassword').val();
+        const cpwd      = $('#UserConfirmPassword').val();
+
+        if (!firstName) { _toastErr('First name is required.'); return; }
+        if (!username)  { _toastErr('Username is required.'); return; }
+        if (!email)     { _toastErr('Email address is required.'); return; }
+        if (!roleUID)   { _toastErr('Please select a role.'); return; }
+        if (uid === 0) {
+            if (!pwd)       { _toastErr('Password is required.'); return; }
+            if (pwd !== cpwd) { _toastErr('Passwords do not match.'); return; }
+        }
+
+        $('#saveUserSpinner').removeClass('d-none');
+        $('#saveUserBtn').prop('disabled', true);
+
+        var fd = new FormData();
+        fd.append('UserUID',    uid);
+        fd.append('FirstName',  firstName);
+        fd.append('LastName',   $.trim($('#UserLastName').val()));
+        fd.append('UserName',   username);
+        fd.append('Email',      email);
+        fd.append('Mobile',     $.trim($('#UserMobile').val()));
+        fd.append('RoleUID',    roleUID);
+        if (uid === 0) fd.append('Password', pwd);
+        fd.append('IsActive',   $('#UserIsActive').is(':checked') ? 1 : 0);
+        fd.append([CsrfName], CsrfToken);
+
+        $.ajax({
+            url: '/settings/users/saveUser',
+            type: 'POST',
+            data: fd,
+            contentType: false,
+            processData: false,
+            success: function(res) {
+                $('#saveUserSpinner').addClass('d-none');
+                $('#saveUserBtn').prop('disabled', false);
+                if (res.Error === false) {
+                    _toastOk(res.Message);
+                    $('#userModal').modal('hide');
+                    getCustomersDetails(PageNo, RowLimit, Filter);
+                } else {
+                    _toastErr(res.Message);
+                }
+            },
+            error: function() {
+                $('#saveUserSpinner').addClass('d-none');
+                $('#saveUserBtn').prop('disabled', false);
+                _toastErr('Request failed.');
+            }
+        });
+    });
+
+    function _toastOk(msg)  { Swal.fire({ toast:true, position:'top-end', icon:'success', title:msg, showConfirmButton:false, timer:2500, timerProgressBar:true }); }
+    function _toastErr(msg) { Swal.fire({ toast:true, position:'top-end', icon:'error',   title:msg, showConfirmButton:false, timer:3000 }); }
 
     baseExportFunctions();
     basePaginationFunc(ModulePag, getCustomersDetails);

@@ -58,9 +58,14 @@ Class Globalservice {
                 return $sm->ParentSubMenuUID == $subMenu->SubMenuUID;
             });
 
+            $iconHtml = !empty($subMenu->Icons)
+                ? '<i class="menu-icon tf-icons ' . htmlspecialchars($subMenu->Icons) . '"></i>'
+                : '';
+
             if (count($childMenus) > 0) {
                 echo '<li class="menu-item">';
                 echo '<a href="javascript:void(0);" class="menu-link menu-toggle">';
+                echo $iconHtml;
                 echo '<div data-i18n="' . htmlspecialchars($subMenu->SubMenuName) . '">' . htmlspecialchars($subMenu->SubMenuName) . '</div>';
                 echo '</a>';
                 echo '<ul class="menu-sub">';
@@ -68,12 +73,12 @@ Class Globalservice {
                 echo '</ul>';
                 echo '</li>';
             } else {
-                // $activeClass = (strtolower($ControllerName) == strtolower($subMenu->ControllerName)) ? 'active' : '';
                 $isActive = (strtolower($ControllerName) == strtolower($subMenu->ControllerName));
                 $activeClass = $isActive ? 'active' : '';
                 $href = $isActive ? 'javascript: void(0);' : '/' . htmlspecialchars($subMenu->ControllerName);
                 echo '<li class="menu-item ' . $activeClass . '">';
                 echo '<a href="' . $href . '" class="menu-link">';
+                echo $iconHtml;
                 echo '<div data-i18n="' . htmlspecialchars($subMenu->SubMenuName) . '">' . htmlspecialchars($subMenu->SubMenuName) . '</div>';
                 echo '</a>';
                 echo '</li>';

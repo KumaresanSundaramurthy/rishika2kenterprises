@@ -38,14 +38,27 @@ class Login_model extends CI_Model {
             $JwtUserData['RoleName'] = $UserData->UserRoleName;
             $JwtUserData['Timezone'] = $UserData->Timezone;
 
-            $MainModule = $this->getUserRightsMainModule($UserData->UserUID)->Data;
-            $SubModule = $this->getUserRightsSubModule($UserData->UserUID)->Data;
+            $MainModule = $this->getRoleMainMenus($UserData->UserRoleUID)->Data;
+            $SubModule  = $this->getRoleSubMenus($UserData->UserRoleUID)->Data;
 
             // Organisation Settings
             $GeneralSettings = $this->getOrgGeneralSettings($UserData->UserOrgUID)->Data[0];
             $ModuleInfo = $this->getModuleDetails($UserData->UserOrgUID)->Data;
 
-            $jwtPayload = array('User' => $JwtUserData, 'UserMainModule' => $MainModule, 'UserSubModule' => $SubModule, 'GenSettings' => $GeneralSettings, 'ModuleInfo' => $ModuleInfo);
+            // Build flat permissions map: ControllerName => {CanView,CanCreate,CanEdit,CanDelete}
+            $Permissions = [];
+            foreach ($SubModule as $sm) {
+                if (!empty($sm->ControllerName)) {
+                    $Permissions[$sm->ControllerName] = [
+                        'CanView'   => (int)$sm->CanView,
+                        'CanCreate' => (int)$sm->CanCreate,
+                        'CanEdit'   => (int)$sm->CanEdit,
+                        'CanDelete' => (int)$sm->CanDelete,
+                    ];
+                }
+            }
+
+            $jwtPayload = array('User' => $JwtUserData, 'UserMainModule' => $MainModule, 'UserSubModule' => $SubModule, 'Permissions' => $Permissions, 'GenSettings' => $GeneralSettings, 'ModuleInfo' => $ModuleInfo);
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Message = 'Success';
@@ -104,6 +117,72 @@ class Login_model extends CI_Model {
         return $this->EndReturnData;
         
     }
+
+    // ── Role-based menu queries ──────────────────────────────────
+
+    public function getRoleMainMenus($RoleUID) {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $this->ReadDb->select('RMM.RoleMainMenuUID, RMM.MainMenuUID, MainMenu.Name as MainMenuName, MainMenu.Icons as MainMenuIcons, RMM.Sorting, RMM.CanView, RMM.CanCreate, RMM.CanEdit, RMM.CanDelete');
+            $this->ReadDb->from('UserRole.RoleMainMenusTbl as RMM');
+            $this->ReadDb->join('Modules.MainMenusTbl as MainMenu', 'MainMenu.MainMenuUID = RMM.MainMenuUID', 'left');
+            $this->ReadDb->where('RMM.RoleUID', $RoleUID);
+            $this->ReadDb->where('RMM.IsActive', 1);
+            $this->ReadDb->where('RMM.IsDeleted', 0);
+            $this->ReadDb->where('RMM.CanView', 1);
+            $this->ReadDb->order_by('RMM.Sorting', 'ASC');
+            $query = $this->ReadDb->get();
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Success';
+            $this->EndReturnData->Data    = $query->result();
+
+            return $this->EndReturnData;
+
+        } catch(Exception $e) {
+
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+            throw new Exception($this->EndReturnData->Message);
+
+        }
+
+    }
+
+    public function getRoleSubMenus($RoleUID) {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $this->ReadDb->select('RSM.RoleSubMenuUID, SubMenu.MainMenuUID, RSM.SubMenuUID, SubMenu.Name as SubMenuName, SubMenu.ControllerName, SubMenu.ParentSubMenuUID, SubMenu.Icons, RSM.Sorting, RSM.CanView, RSM.CanCreate, RSM.CanEdit, RSM.CanDelete');
+            $this->ReadDb->from('UserRole.RoleSubMenusTbl as RSM');
+            $this->ReadDb->join('Modules.SubMenusTbl as SubMenu', 'SubMenu.SubMenuUID = RSM.SubMenuUID', 'left');
+            $this->ReadDb->where('RSM.RoleUID', $RoleUID);
+            $this->ReadDb->where('RSM.IsActive', 1);
+            $this->ReadDb->where('RSM.IsDeleted', 0);
+            $this->ReadDb->where('RSM.CanView', 1);
+            $this->ReadDb->order_by('RSM.Sorting', 'ASC');
+            $query = $this->ReadDb->get();
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Success';
+            $this->EndReturnData->Data    = $query->result();
+
+            return $this->EndReturnData;
+
+        } catch(Exception $e) {
+
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+            throw new Exception($this->EndReturnData->Message);
+
+        }
+
+    }
+
+    // ── Legacy user-level queries (kept for reference) ──────────
 
     public function getUserRightsMainModule($UserUID) {
 

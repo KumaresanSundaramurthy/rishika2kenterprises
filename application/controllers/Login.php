@@ -62,12 +62,12 @@ class Login extends CI_Controller {
                                 $this->load->model('dbwrite_model');
                                 $this->dbwrite_model->updateData('Users', 'UserTbl', ['LastLogin' => date('Y-m-d H:i:s')], array('UserUID' => $UserData->Data[0]->UserUID));
 
-                                $this->redis_cache->set('Redis_UserMainModule', $newPayload->JWTData['UserMainModule'] ?? [], getenv('LOGIN_EXPIRE_SECS'));
-                                $this->redis_cache->set('Redis_UserSubModule', $newPayload->JWTData['UserSubModule'] ?? [], getenv('LOGIN_EXPIRE_SECS'));
-                                $this->redis_cache->set('Redis_UserModuleInfo', $newPayload->JWTData['ModuleInfo'] ?? [], getenv('LOGIN_EXPIRE_SECS'));
-
-                                $this->redis_cache->set('Redis_UserGenSettings', $newPayload->JWTData['GenSettings'] ?? [], getenv('LOGIN_EXPIRE_SECS'));
-                                $this->redis_cache->set('Redis_UserInfo', $UserData->Data[0], getenv('LOGIN_EXPIRE_SECS'));
+                                $this->redis_cache->set('Redis_UserMainModule',   $newPayload->JWTData['UserMainModule'] ?? [], getenv('LOGIN_EXPIRE_SECS'));
+                                $this->redis_cache->set('Redis_UserSubModule',    $newPayload->JWTData['UserSubModule']  ?? [], getenv('LOGIN_EXPIRE_SECS'));
+                                $this->redis_cache->set('Redis_UserModuleInfo',   $newPayload->JWTData['ModuleInfo']     ?? [], getenv('LOGIN_EXPIRE_SECS'));
+                                $this->redis_cache->set('Redis_UserPermissions',  $newPayload->JWTData['Permissions']    ?? [], getenv('LOGIN_EXPIRE_SECS'));
+                                $this->redis_cache->set('Redis_UserGenSettings',  $newPayload->JWTData['GenSettings']    ?? [], getenv('LOGIN_EXPIRE_SECS'));
+                                $this->redis_cache->set('Redis_UserInfo',         $UserData->Data[0], getenv('LOGIN_EXPIRE_SECS'));
                                 
                                 redirect('dashboard', 'refresh');
 
@@ -297,6 +297,7 @@ class Login extends CI_Controller {
             $this->redis_cache->delete('Redis_UserMainModule');
             $this->redis_cache->delete('Redis_UserSubModule');
             $this->redis_cache->delete('Redis_UserModuleInfo');
+            $this->redis_cache->delete('Redis_UserPermissions');
             $this->redis_cache->delete('Redis_UserGenSettings');
             $this->redis_cache->delete('Redis_UserInfo');
 

@@ -107,3 +107,8 @@
   text-align: center;
   margin-top: 1rem;
 }
+
+/* Remove theme-generated bullet dots from sub-menu items that have an icon */
+.menu-vertical .menu-sub .menu-item .menu-link:has(.menu-icon)::before {
+  display: none !important;
+}

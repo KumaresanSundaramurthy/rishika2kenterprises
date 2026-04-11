@@ -328,4 +328,109 @@ class Dbwrite_model extends CI_Model {
 
     }
 
+    // ── Stock Movement Methods ─────────────────────────────────────────────────
+
+    /**
+     * Stock movement direction by ModuleUID.
+     *   IN  = stock increases: Purchases(105), Sales Returns(106), Credit Notes(107)
+     *   OUT = stock decreases: Invoices(103), Purchase Returns(108), Debit Notes(109)
+     */
+    private static $stockMovementMap = [
+        103 => 'OUT',   // Invoices
+        105 => 'IN',    // Purchases
+        106 => 'IN',    // Sales Returns
+        107 => 'IN',    // Credit Notes
+        108 => 'OUT',   // Purchase Returns
+        109 => 'OUT',   // Debit Notes
+    ];
+
+    /**
+     * Record stock movements for a saved (non-draft) transaction's items.
+     * Inserts rows into StockLedgerTbl and adjusts AvailableQuantity in ProductTbl.
+     * Only 'Product' type items are tracked; 'Service' items are skipped.
+     *
+     * @param int    $transUID   Transaction UID
+     * @param int    $moduleUID  Module UID (determines IN vs OUT)
+     * @param int    $orgUID     Organisation UID
+     * @param int    $userUID    User performing the action
+     * @param array  $items      Items array from form (each has 'id', 'quantity', 'unitPrice', 'productType')
+     */
+    public function saveStockMovements($transUID, $moduleUID, $orgUID, $userUID, array $items) {
+
+        $movementType = self::$stockMovementMap[$moduleUID] ?? null;
+        if (!$movementType) return; // module does not affect stock
+
+        foreach ($items as $item) {
+            $productUID  = isset($item['id'])          ? (int)   $item['id']          : 0;
+            $qty         = isset($item['quantity'])     ? (float) $item['quantity']    : 0;
+            $unitCost    = isset($item['unitPrice'])    ? (float) $item['unitPrice']   : 0;
+            $productType = isset($item['productType'])  ?         $item['productType'] : 'Product';
+
+            if ($productUID <= 0 || $qty <= 0)               continue; // invalid row
+            if (strtolower($productType) === 'service')       continue; // services have no stock
+
+            // Insert ledger row
+            $this->WriteDB->db_debug = FALSE;
+            $this->WriteDB->insert('Products.StockLedgerTbl', [
+                'OrgUID'       => $orgUID,
+                'ProductUID'   => $productUID,
+                'TransUID'     => $transUID,
+                'ModuleUID'    => $moduleUID,
+                'MovementType' => $movementType,
+                'Quantity'     => $qty,
+                'UnitCost'     => $unitCost,
+                'IsDeleted'    => 0,
+                'CreatedBy'    => $userUID,
+                'UpdatedBy'    => $userUID,
+            ]);
+
+            // Update AvailableQuantity (never go below 0)
+            if ($movementType === 'IN') {
+                $this->WriteDB->set('AvailableQuantity', 'AvailableQuantity + ' . $qty, false);
+            } else {
+                $this->WriteDB->set('AvailableQuantity', 'GREATEST(0, AvailableQuantity - ' . $qty . ')', false);
+            }
+            $this->WriteDB->where(['ProductUID' => $productUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
+            $this->WriteDB->update('Products.ProductTbl');
+        }
+
+    }
+
+    /**
+     * Reverse all stock movements for a transaction (used on edit of non-draft or on delete).
+     * Soft-deletes the ledger rows and adds back / subtracts the quantities.
+     * Safe to call on draft transactions — finds no ledger rows and does nothing.
+     *
+     * @param int $transUID  Transaction UID whose stock movements to reverse
+     * @param int $orgUID    Organisation UID
+     * @param int $userUID   User performing the action
+     */
+    public function reverseStockMovements($transUID, $orgUID, $userUID) {
+
+        $this->WriteDB->db_debug = FALSE;
+        $this->WriteDB->select('LedgerUID, ProductUID, MovementType, Quantity');
+        $this->WriteDB->from('Products.StockLedgerTbl');
+        $this->WriteDB->where(['TransUID' => $transUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
+        $query      = $this->WriteDB->get();
+        $ledgerRows = $query ? $query->result() : [];
+
+        foreach ($ledgerRows as $row) {
+            // Reverse quantity: an IN entry was +qty, so reverse is -qty (and vice versa)
+            if ($row->MovementType === 'IN') {
+                $this->WriteDB->set('AvailableQuantity', 'GREATEST(0, AvailableQuantity - ' . (float)$row->Quantity . ')', false);
+            } else {
+                $this->WriteDB->set('AvailableQuantity', 'AvailableQuantity + ' . (float)$row->Quantity, false);
+            }
+            $this->WriteDB->where(['ProductUID' => (int)$row->ProductUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
+            $this->WriteDB->update('Products.ProductTbl');
+
+            // Soft-delete ledger entry
+            $this->WriteDB->update('Products.StockLedgerTbl',
+                ['IsDeleted' => 1, 'UpdatedBy' => $userUID],
+                ['LedgerUID' => (int)$row->LedgerUID]
+            );
+        }
+
+    }
+
 }

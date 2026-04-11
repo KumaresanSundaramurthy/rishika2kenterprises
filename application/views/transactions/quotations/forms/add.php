@@ -28,7 +28,7 @@
                                         $defaultPrefixConfig = null;
                                         if (!empty($PrefixData)) {
                                             foreach ($PrefixData as $_pd) {
-                                                if ($TransPageSettings->DefaultPrefix == $_pd->Name) {
+                                                if ($_pd->IsDefault == 1) {
                                                     $defaultPrefixConfig = $_pd;
                                                     break;
                                                 }
@@ -58,7 +58,7 @@
                                     <?php try {
                                             if (empty($PrefixData)) throw new Exception('Prefix data not loaded');
                                             foreach ($PrefixData as $preData) {
-                                                $isSelected = $TransPageSettings->DefaultPrefix == $preData->Name ? 'selected' : '';
+                                                $isSelected = $preData->IsDefault == 1 ? 'selected' : '';
                                             ?>
                                             <option value="<?php echo (int)$preData->PrefixUID; ?>"
                                                 data-sep="<?php echo htmlspecialchars($preData->Separator ?? '-'); ?>"
@@ -744,7 +744,7 @@ $(function() {
                 [csrfName]             : csrfVal,
             }, charges);
 
-            setFormLoading(true, action);
+            setFormLoading('#addQuotationForm', true, action);
 
             $.ajax({
                 url     : '/quotations/addQuotation',
@@ -753,7 +753,7 @@ $(function() {
                 cache   : false,
                 success : function (response) {
                     if (response.Error) {
-                        setFormLoading(false);
+                        setFormLoading('#addQuotationForm', false);
                         showFormError(response.Message);
                     } else {
                         // Keep buttons disabled — redirect is imminent; prevent any re-submission
@@ -770,7 +770,7 @@ $(function() {
                     }
                 },
                 error: function () {
-                    setFormLoading(false);
+                    setFormLoading('#addQuotationForm', false);
                     showFormError('Server error. Please try again.');
                 }
             });

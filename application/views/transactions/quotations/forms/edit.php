@@ -841,7 +841,7 @@ $(function () {
                 [csrfName]             : csrfVal,
             }, charges);
 
-            setFormLoading(true, action);
+            setFormLoading('#addQuotationForm', true, action);
 
             $.ajax({
                 url    : '/quotations/updateQuotation',
@@ -850,7 +850,7 @@ $(function () {
                 cache  : false,
                 success: function (response) {
                     if (response.Error) {
-                        setFormLoading(false);
+                        setFormLoading('#addQuotationForm', false);
                         showFormError(response.Message);
                     } else {
                         // Keep buttons disabled — redirect is imminent; prevent any re-submission
@@ -867,7 +867,7 @@ $(function () {
                     }
                 },
                 error: function () {
-                    setFormLoading(false);
+                    setFormLoading('#addQuotationForm', false);
                     showFormError('Server error. Please try again.');
                 }
             });

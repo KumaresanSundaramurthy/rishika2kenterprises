@@ -139,13 +139,13 @@ let _activeRoleUID  = 0;
 let _permData       = { main: [], sub: [] };
 
 /* ── Helpers ────────────────────────────────────────────────────────── */
-function _chk(prefix, uid, field, checked, disabled) {
-    return `<input type="checkbox" class="form-check-input ${prefix}-perm-chk" style="width:.9rem;height:.9rem;cursor:pointer;"
+function _chk(uid, field, checked, disabled) {
+    return `<input type="checkbox" class="form-check-input sm-perm-chk" style="width:.9rem;height:.9rem;cursor:pointer;"
                 data-uid="${uid}" data-field="${field}" ${checked ? 'checked' : ''} ${disabled ? 'disabled' : ''}>`;
 }
 
-function _rowAllChk(prefix, uid, allChecked) {
-    return `<input type="checkbox" class="form-check-input ${prefix}-row-all" style="width:.9rem;height:.9rem;cursor:pointer;"
+function _rowAllChk(uid, allChecked) {
+    return `<input type="checkbox" class="form-check-input sm-row-all" style="width:.9rem;height:.9rem;cursor:pointer;"
                 data-uid="${uid}" title="Toggle all" ${allChecked ? 'checked' : ''}>`;
 }
 
@@ -180,13 +180,14 @@ function _buildMatrix(mainPerms, subPerms) {
     .perm-table thead th.th-enable-mm { background:#ede9ff; color:#5e35b1; }
     .perm-table thead th.th-enable-sm { background:#e8f5e9; color:#2e7d32; }
 
-    /* ── Main-menu rows — strong purple accent ── */
+    /* ── Main-menu rows — purple accent, enable toggle only ── */
     .perm-table .mm-row td { background:#eef1fb; font-weight:600; color:#2c3575; border-top:2px solid #c5cff7; }
     .perm-table .mm-row td:first-child { border-left:4px solid #696cff; }
     .perm-table .mm-row .td-mm-enable { background:#ede9ff; }
     .mm-enable-toggle { accent-color:#696cff; width:2.2rem !important; height:1.1rem !important; cursor:pointer; }
+    .mm-access-note { font-size:.71rem; color:#888; font-weight:400; font-style:italic; }
 
-    /* ── Sub-menu rows — teal accent, indented ── */
+    /* ── Sub-menu / page rows — teal accent, indented ── */
     .perm-table .sm-row td { background:#fafafa; color:#444; }
     .perm-table .sm-row td:first-child { padding-left:2.6rem; border-left:4px solid transparent; }
     .perm-table .sm-row.sm-enabled td:first-child { border-left-color:#26a69a; }
@@ -201,18 +202,17 @@ function _buildMatrix(mainPerms, subPerms) {
 
     /* ── "All" column ── */
     .perm-table .td-row-all { background:#fafbff; }
-    .perm-table .mm-row .td-row-all { background:#eaecf9; }
     </style>
     <div class="table-responsive">
     <table class="perm-table">
     <thead>
         <tr>
-            <th style="min-width:220px; text-align:left;">Module / Sub-module</th>
+            <th style="min-width:220px; text-align:left;">Module / Page</th>
             <th class="th-enable-mm" style="width:78px;">
                 <i class="bx bx-toggle-right me-1" style="font-size:.85rem;"></i>Menu
             </th>
             <th class="th-enable-sm" style="width:68px;">
-                <i class="bx bx-toggle-right me-1" style="font-size:.85rem;"></i>Sub
+                <i class="bx bx-toggle-right me-1" style="font-size:.85rem;"></i>Page
             </th>
             <th style="width:50px; text-align:center; background:#f8f9ff;">All</th>
             <th style="width:68px;">${_colHdrChk('CanView')}<span>View</span></th>
@@ -224,13 +224,11 @@ function _buildMatrix(mainPerms, subPerms) {
     <tbody>`;
 
     _allMainMenus.forEach(mm => {
-        const mp       = mmMap[mm.MainMenuUID] || {};
-        const mmOn     = !!(mp.CanView || mp.CanCreate || mp.CanEdit || mp.CanDelete);
-        const mmAllChk = _allChecked4(mp);
-        const subs     = _allSubMenus.filter(s => s.MainMenuUID == mm.MainMenuUID && !s.ParentSubMenuUID);
-        const pdis     = mmOn ? '' : 'perm-disabled';
+        const mp   = mmMap[mm.MainMenuUID] || {};
+        const mmOn = !!(mp.CanView || mp.CanCreate || mp.CanEdit || mp.CanDelete);
+        const subs = _allSubMenus.filter(s => s.MainMenuUID == mm.MainMenuUID && !s.ParentSubMenuUID);
 
-        // ── Main-menu row ────────────────────────────────────────────
+        // ── Main-menu row — enable/disable toggle only, no granular perms ──
         html += `
         <tr class="mm-row" data-mmuid="${mm.MainMenuUID}">
             <td>
@@ -244,17 +242,15 @@ function _buildMatrix(mainPerms, subPerms) {
                         data-mmuid="${mm.MainMenuUID}" ${mmOn ? 'checked' : ''}>
                 </div>
             </td>
-            <td class="text-center" style="background:#f4faf4;"></td>
-            <td class="text-center td-row-all">
-                ${_rowAllChk('mm', mm.MainMenuUID, mmAllChk)}
+            <td colspan="6" class="mm-access-note ps-2">
+                ${mmOn
+                    ? '<span class="badge bg-label-primary" style="font-size:.65rem;"><i class="bx bx-check me-1"></i>Menu enabled — configure page access below</span>'
+                    : '<span class="text-muted" style="font-size:.7rem;">Enable menu to configure pages</span>'
+                }
             </td>
-            <td class="text-center ${pdis}">${_chk('mm', mm.MainMenuUID, 'CanView',   mp.CanView,   !mmOn)}</td>
-            <td class="text-center ${pdis}">${_chk('mm', mm.MainMenuUID, 'CanCreate', mp.CanCreate, !mmOn)}</td>
-            <td class="text-center ${pdis}">${_chk('mm', mm.MainMenuUID, 'CanEdit',   mp.CanEdit,   !mmOn)}</td>
-            <td class="text-center ${pdis}">${_chk('mm', mm.MainMenuUID, 'CanDelete', mp.CanDelete, !mmOn)}</td>
         </tr>`;
 
-        // ── Sub-menu rows ────────────────────────────────────────────
+        // ── Sub-menu / page rows ─────────────────────────────────────
         subs.forEach(sm => {
             const sp       = smMap[sm.SubMenuUID] || {};
             const smOn     = mmOn && !!(sp.CanView || sp.CanCreate || sp.CanEdit || sp.CanDelete);
@@ -277,12 +273,12 @@ function _buildMatrix(mainPerms, subPerms) {
                     </div>
                 </td>
                 <td class="text-center td-row-all">
-                    ${_rowAllChk('sm', sm.SubMenuUID, smAllChk)}
+                    ${_rowAllChk(sm.SubMenuUID, smAllChk)}
                 </td>
-                <td class="text-center ${spdis}">${_chk('sm', sm.SubMenuUID, 'CanView',   sp.CanView,   !smOn)}</td>
-                <td class="text-center ${spdis}">${_chk('sm', sm.SubMenuUID, 'CanCreate', sp.CanCreate, !smOn)}</td>
-                <td class="text-center ${spdis}">${_chk('sm', sm.SubMenuUID, 'CanEdit',   sp.CanEdit,   !smOn)}</td>
-                <td class="text-center ${spdis}">${_chk('sm', sm.SubMenuUID, 'CanDelete', sp.CanDelete, !smOn)}</td>
+                <td class="text-center ${spdis}">${_chk(sm.SubMenuUID, 'CanView',   sp.CanView,   !smOn)}</td>
+                <td class="text-center ${spdis}">${_chk(sm.SubMenuUID, 'CanCreate', sp.CanCreate, !smOn)}</td>
+                <td class="text-center ${spdis}">${_chk(sm.SubMenuUID, 'CanEdit',   sp.CanEdit,   !smOn)}</td>
+                <td class="text-center ${spdis}">${_chk(sm.SubMenuUID, 'CanDelete', sp.CanDelete, !smOn)}</td>
             </tr>`;
         });
     });
@@ -333,12 +329,11 @@ function loadRolePermissions(roleUID) {
 /* ── Matrix event bindings (all delegated — called once on ready) ────── */
 function _bindMatrixEvents() {
 
-    // 1. Column header "Select all column" checkbox
+    // 1. Column header "Select all column" checkbox — pages only
     $(document).off('change', '.col-hdr-chk').on('change', '.col-hdr-chk', function() {
         const field   = $(this).data('field');
         const checked = $(this).is(':checked');
-        // Touch only rows that are visible and not disabled
-        $(`.mm-perm-chk[data-field="${field}"], .sm-perm-chk[data-field="${field}"]`).each(function() {
+        $(`.sm-perm-chk[data-field="${field}"]`).each(function() {
             const $tr = $(this).closest('tr');
             if (!$tr.hasClass('sm-hidden') && !$(this).prop('disabled')) {
                 $(this).prop('checked', checked);
@@ -347,35 +342,27 @@ function _bindMatrixEvents() {
         _syncAllRowCheckboxes();
     });
 
-    // 2. Row "All" checkbox — toggle all 4 perm cells for that row
-    $(document).off('change', '.mm-row-all, .sm-row-all').on('change', '.mm-row-all, .sm-row-all', function() {
+    // 2. Row "All" checkbox — toggle all 4 perm cells for that page row
+    $(document).off('change', '.sm-row-all').on('change', '.sm-row-all', function() {
         const uid     = $(this).data('uid');
         const checked = $(this).is(':checked');
-        const prefix  = $(this).hasClass('mm-row-all') ? 'mm' : 'sm';
-        $(`.${prefix}-perm-chk[data-uid="${uid}"]`).not(':disabled').prop('checked', checked);
+        $(`.sm-perm-chk[data-uid="${uid}"]`).not(':disabled').prop('checked', checked);
         _syncHeaderCheckboxes();
     });
 
-    // 3. Main-menu Enable toggle — show/hide sub-rows, enable/disable perm cells
+    // 3. Main-menu Enable toggle — show/hide page rows, update note label
     $(document).off('change', '.mm-enable-toggle').on('change', '.mm-enable-toggle', function() {
         const mmUID    = $(this).data('mmuid');
         const enabled  = $(this).is(':checked');
         const $mmRow   = $(`.mm-row[data-mmuid="${mmUID}"]`);
         const $subRows = $(`.sm-row[data-mmuid="${mmUID}"]`);
 
+        const $noteCell = $mmRow.find('td[colspan="6"]');
         if (enabled) {
-            // Show perm cells, enable checkboxes
-            $mmRow.find('.mm-perm-chk').prop('disabled', false).closest('td').removeClass('perm-disabled');
-            $mmRow.find('.mm-row-all').prop('disabled', false);
-            // Auto-check CanView on main menu
-            $mmRow.find(`.mm-perm-chk[data-field="CanView"]`).prop('checked', true);
-            // Show sub-rows (leave each sub's own enable state as-is)
+            $noteCell.html('<span class="badge bg-label-primary" style="font-size:.65rem;"><i class="bx bx-check me-1"></i>Menu enabled — configure page access below</span>');
             $subRows.removeClass('sm-hidden');
         } else {
-            // Disable + clear perm cells on main menu row
-            $mmRow.find('.mm-perm-chk').prop('checked', false).prop('disabled', true).closest('td').addClass('perm-disabled');
-            $mmRow.find('.mm-row-all').prop('checked', false);
-            // Hide + clear + disable all sub-rows
+            $noteCell.html('<span class="text-muted" style="font-size:.7rem;">Enable menu to configure pages</span>');
             $subRows.addClass('sm-hidden');
             $subRows.find('.sm-perm-chk').prop('checked', false).prop('disabled', true).closest('td').addClass('perm-disabled');
             $subRows.find('.sm-row-all').prop('checked', false);
@@ -387,7 +374,7 @@ function _bindMatrixEvents() {
         _syncHeaderCheckboxes();
     });
 
-    // 4. Sub-menu Enable toggle — enable/disable perm cells for that sub row only
+    // 4. Page Enable toggle — enable/disable perm cells for that page row only
     $(document).off('change', '.sm-enable-toggle').on('change', '.sm-enable-toggle', function() {
         const smUID   = $(this).data('smuid');
         const enabled = $(this).is(':checked');
@@ -396,13 +383,12 @@ function _bindMatrixEvents() {
         if (enabled) {
             $smRow.addClass('sm-enabled');
             $smRow.find('.sm-perm-chk').prop('disabled', false).closest('td').removeClass('perm-disabled');
-            $smRow.find('.sm-row-all').prop('disabled', false);
-            // Auto-check CanView when enabling
+            $smRow.find('.sm-row-all').prop('disabled', false).prop('checked', false);
             $smRow.find(`.sm-perm-chk[data-field="CanView"]`).prop('checked', true);
         } else {
             $smRow.removeClass('sm-enabled');
             $smRow.find('.sm-perm-chk').prop('checked', false).prop('disabled', true).closest('td').addClass('perm-disabled');
-            $smRow.find('.sm-row-all').prop('checked', false);
+            $smRow.find('.sm-row-all').prop('checked', false).prop('disabled', true);
         }
 
         _syncAllRowCheckboxes();
@@ -410,35 +396,33 @@ function _bindMatrixEvents() {
     });
 
     // 5. Any individual perm checkbox change → sync row-All + column headers
-    $(document).off('change', '.mm-perm-chk, .sm-perm-chk').on('change', '.mm-perm-chk, .sm-perm-chk', function() {
-        const uid    = $(this).data('uid');
-        const prefix = $(this).hasClass('mm-perm-chk') ? 'mm' : 'sm';
-        _syncRowAllForUID(prefix, uid);
+    $(document).off('change', '.sm-perm-chk').on('change', '.sm-perm-chk', function() {
+        const uid = $(this).data('uid');
+        _syncRowAllForUID(uid);
         _syncHeaderCheckboxes();
     });
 }
 
-/* ── Sync the "All" checkbox for one specific row ────────────────────── */
-function _syncRowAllForUID(prefix, uid) {
-    const $chks = $(`.${prefix}-perm-chk[data-uid="${uid}"]`).not(':disabled');
+/* ── Sync the "All" checkbox for one page row ────────────────────────── */
+function _syncRowAllForUID(uid) {
+    const $chks   = $(`.sm-perm-chk[data-uid="${uid}"]`).not(':disabled');
     const total   = $chks.length;
     const checked = $chks.filter(':checked').length;
-    const $rowAll = $(`.${prefix}-row-all[data-uid="${uid}"]`);
+    const $rowAll = $(`.sm-row-all[data-uid="${uid}"]`);
     $rowAll.prop('checked', total > 0 && checked === total);
     $rowAll.prop('indeterminate', checked > 0 && checked < total);
 }
 
 /* ── Sync ALL row-level "All" checkboxes ─────────────────────────────── */
 function _syncAllRowCheckboxes() {
-    _allMainMenus.forEach(mm => _syncRowAllForUID('mm', mm.MainMenuUID));
-    _allSubMenus.forEach(sm  => _syncRowAllForUID('sm', sm.SubMenuUID));
+    _allSubMenus.forEach(sm => _syncRowAllForUID(sm.SubMenuUID));
 }
 
 /* ── Sync column header checkboxes ──────────────────────────────────── */
 function _syncHeaderCheckboxes() {
     ['CanView', 'CanCreate', 'CanEdit', 'CanDelete'].forEach(function(field) {
         let total = 0, checked = 0;
-        $(`.mm-perm-chk[data-field="${field}"], .sm-perm-chk[data-field="${field}"]`).each(function() {
+        $(`.sm-perm-chk[data-field="${field}"]`).each(function() {
             const $tr = $(this).closest('tr');
             if (!$tr.hasClass('sm-hidden') && !$(this).prop('disabled')) {
                 total++;
@@ -457,24 +441,23 @@ function _collectPermissions() {
     const mainMenus = [];
     const subMenus  = [];
 
+    // Main menu: only enabled/disabled — when enabled all 4 flags set to 1 for menu-level access
     _allMainMenus.forEach(mm => {
         const uid     = mm.MainMenuUID;
-        const enabled = $(`.mm-enable-toggle[data-mmuid="${uid}"]`).is(':checked');
-
+        const enabled = $(`.mm-enable-toggle[data-mmuid="${uid}"]`).is(':checked') ? 1 : 0;
         mainMenus.push({
             MainMenuUID: uid,
-            CanView:   enabled && $(`.mm-perm-chk[data-uid="${uid}"][data-field="CanView"]`).is(':checked')   ? 1 : 0,
-            CanCreate: enabled && $(`.mm-perm-chk[data-uid="${uid}"][data-field="CanCreate"]`).is(':checked') ? 1 : 0,
-            CanEdit:   enabled && $(`.mm-perm-chk[data-uid="${uid}"][data-field="CanEdit"]`).is(':checked')   ? 1 : 0,
-            CanDelete: enabled && $(`.mm-perm-chk[data-uid="${uid}"][data-field="CanDelete"]`).is(':checked') ? 1 : 0,
-            Sorting:   mm.Sorting || 0,
+            CanView:    enabled,
+            CanCreate:  enabled,
+            CanEdit:    enabled,
+            CanDelete:  enabled,
+            Sorting:    mm.Sorting || 0,
         });
     });
 
     _allSubMenus.forEach(sm => {
-        const uid     = sm.SubMenuUID;
-        const smOn    = $(`.sm-enable-toggle[data-smuid="${uid}"]`).is(':checked');
-
+        const uid  = sm.SubMenuUID;
+        const smOn = $(`.sm-enable-toggle[data-smuid="${uid}"]`).is(':checked');
         subMenus.push({
             SubMenuUID: uid,
             CanView:   smOn && $(`.sm-perm-chk[data-uid="${uid}"][data-field="CanView"]`).is(':checked')   ? 1 : 0,

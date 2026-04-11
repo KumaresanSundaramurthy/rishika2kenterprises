@@ -207,6 +207,7 @@ class Products extends CI_Controller {
             'SKU'                        => isset($TaxDetails->SKU) ? $TaxDetails->SKU : null,
             'Description'                => getPostValue($postData, 'Description'),
             'OpeningQuantity'            => ($postData['ProductType'] ?? 'Product') === 'Product' ? (float) getPostValue($postData, 'OpeningQuantity', '', 0) : 0,
+            'AvailableQuantity'          => ($postData['ProductType'] ?? 'Product') === 'Product' ? (float) getPostValue($postData, 'OpeningQuantity', '', 0) : 0,
             'OpeningPurchasePrice'       => ($postData['ProductType'] ?? 'Product') === 'Product' ? (float) getPostValue($postData, 'OpeningPurchasePrice', '', 0) : 0,
             'OpeningStockValue'          => ($postData['ProductType'] ?? 'Product') === 'Product' ? (float) getPostValue($postData, 'OpeningStockValue', '', 0) : 0,
             'Discount'                   => (float) getPostValue($postData, 'Discount', '', 0),

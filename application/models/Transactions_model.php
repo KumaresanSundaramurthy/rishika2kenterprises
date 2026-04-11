@@ -212,10 +212,11 @@ class Transactions_model extends CI_Model {
             $this->ReadDb->from('Transaction.TransactionPrefixTbl as Prefix');
 
             // Strip any ModuleUID filter passed by legacy callers — prefixes are now org-level
-            $cleanFilter = array_filter($FilterArray, function ($key) {
-                return stripos($key, 'ModuleUID') === FALSE;
-            }, ARRAY_FILTER_USE_KEY);
+            // $cleanFilter = array_filter($FilterArray, function ($key) {
+            //     return stripos($key, 'ModuleUID') === FALSE;
+            // }, ARRAY_FILTER_USE_KEY);
 
+            $cleanFilter = $FilterArray;
             if (!empty($cleanFilter)) {
                 $this->ReadDb->where($cleanFilter);
             }
@@ -292,10 +293,11 @@ class Transactions_model extends CI_Model {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select_max('TransNumber', 'MaxNumber');
             $this->ReadDb->from('Transaction.TransactionsTbl');
+            // Do NOT filter by ModuleUID — the DB unique key on (OrgUID, PrefixUID, TransNumber, YEAR(TransDate))
+            // spans all modules, so the next available number must be max across all modules for this prefix.
             $this->ReadDb->where([
                 'PrefixUID' => (int) $prefixUID,
                 'OrgUID'    => (int) $orgUID,
-                'ModuleUID' => (int) $moduleUID,
                 'IsDeleted' => 0,
             ]);
             $query  = $this->ReadDb->get();
@@ -319,11 +321,13 @@ class Transactions_model extends CI_Model {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('TransUID');
             $this->ReadDb->from('Transaction.TransactionsTbl');
+            // Do NOT filter by ModuleUID — the DB unique key spans all modules for the same prefix.
+            // A TransNumber already used by any module (Quotation, Sales Order, Invoice, etc.)
+            // with the same prefix cannot be reused.
             $this->ReadDb->where([
                 'PrefixUID'   => (int) $prefixUID,
                 'TransNumber' => (int) $transNumber,
                 'OrgUID'      => (int) $orgUID,
-                'ModuleUID'   => (int) $moduleUID,
                 'IsDeleted'   => 0,
             ]);
             $this->ReadDb->limit(1);
@@ -540,11 +544,162 @@ class Transactions_model extends CI_Model {
             $this->ReadDb->where(['CustomerUID' => $customerId, 'IsDeleted' => 0, 'IsActive' => 1]);
             $this->ReadDb->limit(10);
             $query = $this->ReadDb->get();
-            
+
             return $query->result();
-            
+
         } catch (Exception $e) {
             throw new Exception($e->getMessage());
+        }
+
+    }
+
+    // ── Payment Methods ──────────────────────────────────────────
+
+    public function getPaymentTypesList() {
+
+        try {
+
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('PaymentTypeUID, Name, Code, IsCash');
+            $this->ReadDb->from('Transaction.PaymentTypesTbl');
+            $this->ReadDb->where(['IsDeleted' => 0, 'IsActive' => 1]);
+            $this->ReadDb->order_by('PaymentTypeUID', 'ASC');
+            $query = $this->ReadDb->get();
+            if (!$query) return [];
+            return $query->result();
+
+        } catch (Exception $e) {
+            return [];
+        }
+
+    }
+
+    public function getOrgBankAccounts($orgUID) {
+
+        try {
+
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('BankAccountUID, AccountName, BankName, AccountNumber, IFSC, BranchName, UPIId, UPINumber, IsDefault');
+            $this->ReadDb->from('Transaction.OrgBankAccountsTbl');
+            $this->ReadDb->where(['OrgUID' => $orgUID, 'IsDeleted' => 0, 'IsActive' => 1]);
+            $this->ReadDb->order_by('IsDefault', 'DESC');
+            $this->ReadDb->order_by('AccountName', 'ASC');
+            $query = $this->ReadDb->get();
+            if (!$query) return [];
+            return $query->result();
+
+        } catch (Exception $e) {
+            return [];
+        }
+
+    }
+
+    public function getTransactionPayments($transUID, $orgUID) {
+
+        try {
+
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select([
+                'P.PaymentUID',
+                'P.Amount',
+                'P.ReferenceNo',
+                'P.Notes',
+                'P.IsFullyPaid',
+                'P.ExcessAmount',
+                'P.CreatedOn',
+                'PT.Name AS PaymentTypeName',
+                'PT.IsCash',
+                'BA.AccountName',
+                'BA.BankName',
+                'BA.AccountNumber',
+            ]);
+            $this->ReadDb->from('Transaction.PaymentsTbl AS P');
+            $this->ReadDb->join('Transaction.PaymentTypesTbl AS PT', 'PT.PaymentTypeUID = P.PaymentTypeUID', 'LEFT');
+            $this->ReadDb->join('Transaction.OrgBankAccountsTbl AS BA', 'BA.BankAccountUID = P.BankAccountUID', 'LEFT');
+            $this->ReadDb->where(['P.TransUID' => $transUID, 'P.OrgUID' => $orgUID, 'P.IsDeleted' => 0]);
+            $this->ReadDb->order_by('P.PaymentUID', 'ASC');
+            $query = $this->ReadDb->get();
+            if (!$query) return [];
+            return $query->result();
+
+        } catch (Exception $e) {
+            return [];
+        }
+
+    }
+
+    public function getPaymentsList($limit, $offset, $orgUID, $filter) {
+
+        try {
+
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select([
+                'P.PaymentUID',
+                'P.TransUID',
+                'P.ModuleUID',
+                'P.PartyType',
+                'P.Amount',
+                'P.IsFullyPaid',
+                'P.ExcessAmount',
+                'P.ReferenceNo',
+                'P.CreatedOn',
+                'PT.Name AS PaymentTypeName',
+                'PT.IsCash',
+                'T.UniqueNumber AS TransNumber',
+                'T.TransDate',
+                'T.NetAmount AS BillAmount',
+                "CASE WHEN P.PartyType = 'C' THEN C.Name ELSE V.Name END AS PartyName",
+                'BA.AccountName',
+                'BA.BankName',
+            ]);
+            $this->ReadDb->from('Transaction.PaymentsTbl AS P');
+            $this->ReadDb->join('Transaction.PaymentTypesTbl AS PT', 'PT.PaymentTypeUID = P.PaymentTypeUID', 'LEFT');
+            $this->ReadDb->join('Transaction.TransactionsTbl AS T', 'T.TransUID = P.TransUID', 'LEFT');
+            $this->ReadDb->join('Customers.CustomerTbl AS C', "C.CustomerUID = P.PartyUID AND P.PartyType = 'C'", 'LEFT');
+            $this->ReadDb->join('Vendors.VendorTbl AS V', "V.VendorUID = P.PartyUID AND P.PartyType = 'V'", 'LEFT');
+            $this->ReadDb->join('Transaction.OrgBankAccountsTbl AS BA', 'BA.BankAccountUID = P.BankAccountUID', 'LEFT');
+            $this->ReadDb->where(['P.OrgUID' => $orgUID, 'P.IsDeleted' => 0, 'P.IsActive' => 1]);
+
+            if (!empty($filter['PartyType'])) {
+                $this->ReadDb->where('P.PartyType', $filter['PartyType']);
+            }
+            if (!empty($filter['ModuleUID'])) {
+                $this->ReadDb->where('P.ModuleUID', (int)$filter['ModuleUID']);
+            }
+
+            $this->ReadDb->order_by('P.PaymentUID', 'DESC');
+            if ($limit > 0) {
+                $this->ReadDb->limit($limit, $offset);
+            }
+            $query = $this->ReadDb->get();
+            if (!$query) return [];
+            return $query->result();
+
+        } catch (Exception $e) {
+            return [];
+        }
+
+    }
+
+    public function getPaymentsCount($orgUID, $filter) {
+
+        try {
+
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->from('Transaction.PaymentsTbl AS P');
+            $this->ReadDb->where(['P.OrgUID' => $orgUID, 'P.IsDeleted' => 0, 'P.IsActive' => 1]);
+
+            if (!empty($filter['PartyType'])) {
+                $this->ReadDb->where('P.PartyType', $filter['PartyType']);
+            }
+            if (!empty($filter['ModuleUID'])) {
+                $this->ReadDb->where('P.ModuleUID', (int)$filter['ModuleUID']);
+            }
+
+            return $this->ReadDb->count_all_results();
+
+        } catch (Exception $e) {
+            return 0;
         }
 
     }

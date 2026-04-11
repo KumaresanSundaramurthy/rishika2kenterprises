@@ -114,6 +114,7 @@ class Products_model extends CI_Model {
                 'Products.Description AS Description',
                 'Products.Image AS Image',
                 'Products.OpeningQuantity AS OpeningQuantity',
+                'Products.AvailableQuantity AS AvailableQuantity',
                 'Products.OpeningPurchasePrice AS OpeningPurchasePrice',
                 'Products.OpeningStockValue AS OpeningStockValue',
                 'Products.Discount AS Discount',

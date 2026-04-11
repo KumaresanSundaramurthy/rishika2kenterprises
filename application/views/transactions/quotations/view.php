@@ -538,8 +538,13 @@ $(function () {
                     if (resp.Error) {
                         Swal.fire({ icon: 'error', text: resp.Message });
                     } else {
-                        getQuotationsDetails();
-                        Swal.fire({ icon: 'success', text: resp.Message, timer: 500, showConfirmButton: false });
+                        if (resp.RedirectURL) {
+                            Swal.fire({ icon: 'success', text: resp.Message, timer: 800, showConfirmButton: false })
+                                .then(function () { window.location.href = resp.RedirectURL; });
+                        } else {
+                            getQuotationsDetails();
+                            Swal.fire({ icon: 'success', text: resp.Message, timer: 500, showConfirmButton: false });
+                        }
                     }
                 }
             });

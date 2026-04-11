@@ -2418,12 +2418,22 @@ function searchProductInfo() {
             if (!data.id) return data.text;
             const hsnText = data.hsnCode ? ` | HSN: ${data.hsnCode}` : '';
             const taxBreakup = data.cgstPercent ? `CGST: ${data.cgstPercent}%, SGST: ${data.sgstPercent}%, IGST: ${data.igstPercent}%` : `Tax: ${data.taxPercent || '0'}%`;
+            const isService = data.productType === 'Service';
+            const qty = data.availableQuantity || 0;
+            let qtyHtml;
+            if (isService) {
+                qtyHtml = `<span class="text-muted">Service</span>`;
+            } else if (qty <= 0) {
+                qtyHtml = `<span class="text-danger fw-semibold">Out of Stock</span>`;
+            } else {
+                qtyHtml = `<span class="text-success fw-semibold">Qty: ${smartDecimal(qty)}</span>`;
+            }
             return $(`
                 <div class="d-flex justify-content-between flex-column flex-md-row">
                     <div class="text-start">
                         <div class="text-primary fw-semibold">${data.text}</div>
                         <div class="text-muted transtext-small">
-                            Qty: ${data.availableQuantity || '0'}${hsnText} | ${data.primaryUnit || '-'} | ${data.category || ''}
+                            ${qtyHtml}${hsnText} | ${data.primaryUnit || '-'} | ${data.category || ''}
                         </div>
                     </div>
                     <div class="text-end">
@@ -2500,7 +2510,14 @@ function formationTableBillItems(productRow) {
         <tr data-id="${productRow.id}">
             <td>
                 <div class="text-primary fw-semibold">${productRow.text}</div>
-                <div class="transtext-small text-muted">#<span id="sequenceId_${productRow.id}">${rowCount+1}</span> Stock: ${productRow.availableQuantity} ${productRow.primaryUnit}</div>
+                <div class="transtext-small text-muted">#<span id="sequenceId_${productRow.id}">${rowCount+1}</span>
+                    ${productRow.productType === 'Service'
+                        ? '<span class="text-muted">Service</span>'
+                        : productRow.availableQuantity <= 0
+                            ? `<span class="text-danger">Out of Stock</span>`
+                            : `Stock: <span class="text-success fw-semibold">${smartDecimal(productRow.availableQuantity)}</span> ${productRow.primaryUnit}`
+                    }
+                </div>
                 ${hsnText}
             </td>
             <td>
@@ -3155,4 +3172,23 @@ function updateChargeTaxBreakdown() {
     // Update total charges tax
     $('#chargeTaxTotal').text(smartDecimal(charges.total.taxAmount, genSettings.DecimalPoints, true));
 
+}
+
+function showFormError(message) {
+    Swal.fire({ icon: 'error', title: 'Validation Error', text: message });
+}
+
+function setFormLoading(formName, isLoading, action) {
+    var $btns = $(formName + ' button[type="submit"]');
+    if (isLoading) {
+        $btns.prop('disabled', true);
+        var $activeBtn = action === 'draft'
+            ? $btns.filter('[value="draft"]')
+            : $btns.filter('[value="save"]');
+        $activeBtn.html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
+    } else {
+        $btns.prop('disabled', false);
+        $btns.filter('[value="save"]').text('Save');
+        $btns.filter('[value="draft"]').text('Save as Draft');
+    }
 }

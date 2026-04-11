@@ -89,10 +89,20 @@ if (!empty($DataLists)) {
             </td>
             <td><?php echo htmlspecialchars($row->CategoryName ?? '—'); ?></td>
             <td>
-                <?php if ($row->IsComposite): ?>
+                <?php if ($row->IsComposite || $row->ProductType === 'Service'): ?>
                     <span class="text-muted">—</span>
                 <?php else: ?>
-                    <?php echo $row->AvailableQuantity > 0 ? smartDecimal($row->AvailableQuantity) : '<span class="text-muted">0</span>'; ?>
+                    <?php
+                        $qty = (float) $row->AvailableQuantity;
+                        $lowStock = !empty($row->LowStockAlertAt) && $qty <= (float) $row->LowStockAlertAt && $qty > 0;
+                        if ($qty > 0) {
+                            $qtyClass = $lowStock ? 'text-warning fw-semibold' : 'text-dark fw-semibold';
+                            echo '<span class="' . $qtyClass . '">' . smartDecimal($qty) . '</span>';
+                            if ($lowStock) echo ' <span class="badge bg-label-warning" style="font-size:0.65rem;">Low</span>';
+                        } else {
+                            echo '<span class="text-danger fw-semibold">0</span> <span class="badge bg-label-danger" style="font-size:0.65rem;">Out</span>';
+                        }
+                    ?>
                 <?php endif; ?>
             </td>
             <td>

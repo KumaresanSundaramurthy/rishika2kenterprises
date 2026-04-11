@@ -25855,8 +25855,8 @@ li:not(:first-child) .dropdown-item,.dropdown-menu .dropdown-item:not(:first-chi
 
 .menu-vertical {
     flex-direction: column;
-    margin: 5px 0;
-    border-radius: 5px;
+    /* margin: 5px 0;
+    border-radius: 5px; */
 }
 
 .menu-vertical:not(.menu-no-animation) {
@@ -26760,7 +26760,7 @@ li:not(:first-child) .dropdown-item,.dropdown-menu .dropdown-item:not(:first-chi
         inset-block: 0;
         inset-inline-start: 0;
         margin-inline:0 !important;
-        margin-left: 5px !important;
+        /* margin-left: 5px !important; */
     }
 
     .layout-menu-fixed-offcanvas.layout-menu-collapsed .layout-menu {

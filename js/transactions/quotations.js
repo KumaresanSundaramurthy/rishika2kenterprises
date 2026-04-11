@@ -112,22 +112,3 @@ function debounce(fn, delay) {
         t = setTimeout(function () { fn.apply(ctx, args); }, delay);
     };
 }
-
-function showFormError(message) {
-    Swal.fire({ icon: 'error', title: 'Validation Error', text: message });
-}
-
-function setFormLoading(isLoading, action) {
-    var $btns = $('#addQuotationForm button[type="submit"]');
-    if (isLoading) {
-        $btns.prop('disabled', true);
-        var $activeBtn = action === 'draft'
-            ? $btns.filter('[value="draft"]')
-            : $btns.filter('[value="save"]');
-        $activeBtn.html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
-    } else {
-        $btns.prop('disabled', false);
-        $btns.filter('[value="save"]').text('Save');
-        $btns.filter('[value="draft"]').text('Save as Draft');
-    }
-}

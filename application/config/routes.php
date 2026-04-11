@@ -71,6 +71,125 @@ $route['settings/roles/saveRole']                = 'roles/saveRole';
 $route['settings/roles/saveRolePermissions']     = 'roles/saveRolePermissions';
 $route['settings/roles/deleteRole']              = 'roles/deleteRole';
 
+// Sales Orders
+$route['salesorders']                                      = 'salesorders/index';
+$route['salesorders/create']                               = 'salesorders/create';
+$route['salesorders/(:num)/edit']                          = 'salesorders/edit/$1';
+$route['salesorders/getSalesOrdersPageDetails/(:num)']     = 'salesorders/getSalesOrdersPageDetails/$1';
+$route['salesorders/getSalesOrdersPageDetails']            = 'salesorders/getSalesOrdersPageDetails';
+$route['salesorders/addSalesOrder']                        = 'salesorders/addSalesOrder';
+$route['salesorders/updateSalesOrder']                     = 'salesorders/updateSalesOrder';
+$route['salesorders/deleteSalesOrder']                     = 'salesorders/deleteSalesOrder';
+$route['salesorders/duplicateSalesOrder']                  = 'salesorders/duplicateSalesOrder';
+$route['salesorders/convertSalesOrderToInvoice']           = 'salesorders/convertSalesOrderToInvoice';
+$route['salesorders/updateSalesOrderStatus']               = 'salesorders/updateSalesOrderStatus';
+$route['salesorders/getSalesOrderDetail']                  = 'salesorders/getSalesOrderDetail';
+
+// Invoices
+$route['invoices']                                         = 'invoices/index';
+$route['invoices/create']                                  = 'invoices/create';
+$route['invoices/(:num)/edit']                             = 'invoices/edit/$1';
+$route['invoices/getInvoicesPageDetails/(:num)']           = 'invoices/getInvoicesPageDetails/$1';
+$route['invoices/getInvoicesPageDetails']                  = 'invoices/getInvoicesPageDetails';
+$route['invoices/addInvoice']                              = 'invoices/addInvoice';
+$route['invoices/updateInvoice']                           = 'invoices/updateInvoice';
+$route['invoices/deleteInvoice']                           = 'invoices/deleteInvoice';
+$route['invoices/duplicateInvoice']                        = 'invoices/duplicateInvoice';
+$route['invoices/updateInvoiceStatus']                     = 'invoices/updateInvoiceStatus';
+$route['invoices/getInvoiceDetail']                        = 'invoices/getInvoiceDetail';
+
+// Purchase Orders
+$route['purchaseorders']                                       = 'purchaseorders/index';
+$route['purchaseorders/create']                                = 'purchaseorders/create';
+$route['purchaseorders/(:num)/edit']                           = 'purchaseorders/edit/$1';
+$route['purchaseorders/getPurchaseOrdersPageDetails/(:num)']   = 'purchaseorders/getPurchaseOrdersPageDetails/$1';
+$route['purchaseorders/getPurchaseOrdersPageDetails']          = 'purchaseorders/getPurchaseOrdersPageDetails';
+$route['purchaseorders/addPurchaseOrder']                      = 'purchaseorders/addPurchaseOrder';
+$route['purchaseorders/updatePurchaseOrder']                   = 'purchaseorders/updatePurchaseOrder';
+$route['purchaseorders/deletePurchaseOrder']                   = 'purchaseorders/deletePurchaseOrder';
+$route['purchaseorders/duplicatePurchaseOrder']                = 'purchaseorders/duplicatePurchaseOrder';
+$route['purchaseorders/updatePurchaseOrderStatus']             = 'purchaseorders/updatePurchaseOrderStatus';
+$route['purchaseorders/getPurchaseOrderDetail']                = 'purchaseorders/getPurchaseOrderDetail';
+
+// Purchases (Purchase Bills)
+$route['purchases']                                        = 'purchases/index';
+$route['purchases/create']                                 = 'purchases/create';
+$route['purchases/(:num)/edit']                            = 'purchases/edit/$1';
+$route['purchases/getPurchasesPageDetails/(:num)']         = 'purchases/getPurchasesPageDetails/$1';
+$route['purchases/getPurchasesPageDetails']                = 'purchases/getPurchasesPageDetails';
+$route['purchases/addPurchase']                            = 'purchases/addPurchase';
+$route['purchases/updatePurchase']                         = 'purchases/updatePurchase';
+$route['purchases/deletePurchase']                         = 'purchases/deletePurchase';
+$route['purchases/duplicatePurchase']                      = 'purchases/duplicatePurchase';
+$route['purchases/updatePurchaseStatus']                   = 'purchases/updatePurchaseStatus';
+$route['purchases/getPurchaseDetail']                      = 'purchases/getPurchaseDetail';
+
+// Sales Returns
+$route['salesreturns']                                             = 'salesreturns/index';
+$route['salesreturns/create']                                      = 'salesreturns/create';
+$route['salesreturns/(:num)/edit']                                 = 'salesreturns/edit/$1';
+$route['salesreturns/getSalesReturnsPageDetails']                  = 'salesreturns/getSalesReturnsPageDetails';
+$route['salesreturns/addSalesReturn']                              = 'salesreturns/addSalesReturn';
+$route['salesreturns/updateSalesReturn']                           = 'salesreturns/updateSalesReturn';
+$route['salesreturns/deleteSalesReturn']                           = 'salesreturns/deleteSalesReturn';
+$route['salesreturns/duplicateSalesReturn']                        = 'salesreturns/duplicateSalesReturn';
+$route['salesreturns/updateSalesReturnStatus']                     = 'salesreturns/updateSalesReturnStatus';
+$route['salesreturns/getSalesReturnDetail']                        = 'salesreturns/getSalesReturnDetail';
+
+// Credit Notes
+$route['creditnotes']                                              = 'creditnotes/index';
+$route['creditnotes/create']                                       = 'creditnotes/create';
+$route['creditnotes/(:num)/edit']                                  = 'creditnotes/edit/$1';
+$route['creditnotes/getCreditNotesPageDetails']                    = 'creditnotes/getCreditNotesPageDetails';
+$route['creditnotes/addCreditNote']                                = 'creditnotes/addCreditNote';
+$route['creditnotes/updateCreditNote']                             = 'creditnotes/updateCreditNote';
+$route['creditnotes/deleteCreditNote']                             = 'creditnotes/deleteCreditNote';
+$route['creditnotes/duplicateCreditNote']                          = 'creditnotes/duplicateCreditNote';
+$route['creditnotes/updateCreditNoteStatus']                       = 'creditnotes/updateCreditNoteStatus';
+$route['creditnotes/getCreditNoteDetail']                          = 'creditnotes/getCreditNoteDetail';
+
+// Purchase Returns
+$route['purchasereturns']                                          = 'purchasereturns/index';
+$route['purchasereturns/create']                                   = 'purchasereturns/create';
+$route['purchasereturns/(:num)/edit']                              = 'purchasereturns/edit/$1';
+$route['purchasereturns/getPurchaseReturnsPageDetails']            = 'purchasereturns/getPurchaseReturnsPageDetails';
+$route['purchasereturns/addPurchaseReturn']                        = 'purchasereturns/addPurchaseReturn';
+$route['purchasereturns/updatePurchaseReturn']                     = 'purchasereturns/updatePurchaseReturn';
+$route['purchasereturns/deletePurchaseReturn']                     = 'purchasereturns/deletePurchaseReturn';
+$route['purchasereturns/duplicatePurchaseReturn']                  = 'purchasereturns/duplicatePurchaseReturn';
+$route['purchasereturns/updatePurchaseReturnStatus']               = 'purchasereturns/updatePurchaseReturnStatus';
+$route['purchasereturns/getPurchaseReturnDetail']                  = 'purchasereturns/getPurchaseReturnDetail';
+
+// Debit Notes
+$route['debitnotes']                                               = 'debitnotes/index';
+$route['debitnotes/create']                                        = 'debitnotes/create';
+$route['debitnotes/(:num)/edit']                                   = 'debitnotes/edit/$1';
+$route['debitnotes/getDebitNotesPageDetails']                      = 'debitnotes/getDebitNotesPageDetails';
+$route['debitnotes/addDebitNote']                                  = 'debitnotes/addDebitNote';
+$route['debitnotes/updateDebitNote']                               = 'debitnotes/updateDebitNote';
+$route['debitnotes/deleteDebitNote']                               = 'debitnotes/deleteDebitNote';
+$route['debitnotes/duplicateDebitNote']                            = 'debitnotes/duplicateDebitNote';
+$route['debitnotes/updateDebitNoteStatus']                         = 'debitnotes/updateDebitNoteStatus';
+$route['debitnotes/getDebitNoteDetail']                            = 'debitnotes/getDebitNoteDetail';
+
+// Payments
+$route['payments']                                     = 'payments/index';
+$route['payments/getPaymentsPageDetails/(:num)']       = 'payments/getPaymentsPageDetails/$1';
+$route['payments/getPaymentsPageDetails']              = 'payments/getPaymentsPageDetails';
+$route['payments/addPayment']                          = 'payments/addPayment';
+$route['payments/getPaymentsByTransaction']            = 'payments/getPaymentsByTransaction';
+$route['payments/deletePayment']                       = 'payments/deletePayment';
+$route['payments/getPaymentTypes']                     = 'payments/getPaymentTypes';
+$route['payments/getBankAccounts']                     = 'payments/getBankAccounts';
+$route['payments/saveBankAccount']                     = 'payments/saveBankAccount';
+$route['payments/deleteBankAccount']                   = 'payments/deleteBankAccount';
+$route['payments/getBankDetails']                      = 'payments/getBankDetails';
+$route['payments/setDefaultBank']                      = 'payments/setDefaultBank';
+$route['payments/getBanksList']                        = 'payments/getBanksList';
+
+// Banks Settings
+$route['settings/banks']                               = 'banks/index';
+
 // Customers
 $route['customers/(:num)/edit'] = 'customers/edit/$1';
 $route['customers/(:num)/clone'] = 'customers/clonecustomer/$1';

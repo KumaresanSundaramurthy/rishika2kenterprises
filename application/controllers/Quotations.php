@@ -182,6 +182,7 @@ class Quotations extends CI_Controller {
                 'PartyType'             => 'C',
                 'PartyUID'              => $customerUID,
                 'TransDate'             => $transDate,
+                'TransYear'             => $financialYear,
                 'QuotationType'         => getPostValue($PostData, 'quotationType') ?: NULL,
                 'DispatchFromUID'       => ($dfUID = (int) getPostValue($PostData, 'dispatchFrom')) > 0 ? $dfUID : NULL,
                 'GrossAmount'           => $subTotal + $discountAmount,
@@ -351,6 +352,7 @@ class Quotations extends CI_Controller {
                 'PartyType'         => 'C',
                 'PartyUID'          => $customerUID,
                 'TransDate'         => $transDate,
+                'TransYear'         => $financialYear,
                 'TransType'         => 'Quotation',
                 'QuotationType'     => getPostValue($PostData, 'quotationType') ?: NULL,
                 'DispatchFromUID'   => ($dfUID = (int) getPostValue($PostData, 'dispatchFrom')) > 0 ? $dfUID : NULL,
@@ -578,6 +580,7 @@ class Quotations extends CI_Controller {
                 'PartyType'         => $src->PartyType,
                 'PartyUID'          => $src->PartyUID,
                 'TransDate'         => $today,
+                'TransYear'         => (int) date('Y'),
                 'QuotationType'     => $src->QuotationType,
                 'DispatchFromUID'   => $src->DispatchFromUID ?? NULL,
                 'GrossAmount'       => $src->GrossAmount,
@@ -690,19 +693,29 @@ class Quotations extends CI_Controller {
 
             if ($transUID <= 0) throw new Exception('Invalid quotation.');
 
+            $convertTarget = trim(getPostValue($PostData, 'ConvertTarget') ?: 'Invoice');
+
             // Mark quotation as Converted
             $this->dbwrite_model->startTransaction();
             $resp = $this->dbwrite_model->updateData(
                 'Transaction', 'TransactionsTbl',
-                ['Status' => 'Converted', 'DocStatus' => 'Converted', 'UpdatedBy' => $userUID, 'UpdatedOn' => date('Y-m-d H:i:s')],
+                ['DocStatus' => 'Converted', 'UpdatedBy' => $userUID, 'UpdatedOn' => date('Y-m-d H:i:s')],
                 ['TransUID' => $transUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
             );
             if ($resp->Error) throw new Exception($resp->Message);
             $this->dbwrite_model->commitTransaction();
 
-            $this->EndReturnData->Error     = FALSE;
-            $this->EndReturnData->Message   = 'Quotation marked as converted.';
-            $this->EndReturnData->RedirectURL = '/invoices/create?fromQuotation=' . $transUID;
+            if ($convertTarget === 'SalesOrder') {
+                $redirectURL = '/salesorders/create?fromQuotation=' . $transUID;
+                $message     = 'Quotation marked as converted. Redirecting to Sales Order...';
+            } else {
+                $redirectURL = '/invoices/create?fromQuotation=' . $transUID;
+                $message     = 'Quotation marked as converted.';
+            }
+
+            $this->EndReturnData->Error       = FALSE;
+            $this->EndReturnData->Message     = $message;
+            $this->EndReturnData->RedirectURL = $redirectURL;
 
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -899,9 +912,8 @@ class Quotations extends CI_Controller {
             $this->load->model('transactions_model');
 
             // Prefixes are org-level (shared across all transaction types)
-            $prefixResult                         = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.OrgUID' => $orgUID]);
+            $prefixResult                         = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.OrgUID' => $orgUID, 'Prefix.ModuleUID' => $this->pageModuleUID]);
             $this->pageData['PrefixData']         = $prefixResult->Data ?? [];
-            $this->pageData['TransPageSettings']  = $this->transactions_model->getTransPageSettings(['pageSettings.ModuleUID' => $this->pageModuleUID]);
 
             // Preload next transaction number for each prefix — embedded in the view as data-attrs,
             // so the JS never needs an AJAX call to get the next number.
@@ -996,9 +1008,8 @@ class Quotations extends CI_Controller {
             $this->pageData['QuotItems'] = $quotItems;
 
             // Prefix data
-            $prefixResult                        = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.OrgUID' => $orgUID]);
+            $prefixResult                        = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.OrgUID' => $orgUID, 'Prefix.ModuleUID' => $this->pageModuleUID]);
             $this->pageData['PrefixData']        = $prefixResult->Data ?? [];
-            $this->pageData['TransPageSettings'] = $this->transactions_model->getTransPageSettings(['pageSettings.ModuleUID' => $this->pageModuleUID]);
 
             $nextNumberMap = [];
             foreach ($this->pageData['PrefixData'] as $pd) {

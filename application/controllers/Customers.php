@@ -36,6 +36,10 @@ class Customers extends CI_Controller {
             $this->pageData['ModPagination'] = $ReturnResponse->Pagination;
             $this->pageData['DispSettColumnDetails'] = $ReturnResponse->DispSettingsViewColumns;
             
+            $this->load->model('customers_model');
+            $stats = $this->customers_model->getCustomerStats($this->pageData['JwtData']->User->OrgUID);
+            $this->pageData['CustStats'] = $stats;
+
             $this->load->view('customers/view', $this->pageData);
 
         } catch (Exception $e) {

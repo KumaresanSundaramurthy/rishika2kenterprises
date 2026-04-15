@@ -32,6 +32,7 @@ class Salesorders extends CI_Controller {
             $this->pageData['ModRowData'] = $this->load->view('transactions/salesorders/list', ['DataLists' => $allData, 'SerialNumber' => 0, 'JwtData' => $this->pageData['JwtData']], TRUE);
             $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/salesorders/getSalesOrdersPageDetails', $allDataCount, 1, $limit);
             $this->pageData['ModAllCount'] = $allDataCount;
+            $this->pageData['SummaryStats'] = $this->transactions_model->getTransactionSummaryStats($this->pageModuleUID, $this->pageData['JwtData']->User->OrgUID);
 
             $this->load->view('transactions/salesorders/view', $this->pageData);
 
@@ -215,6 +216,15 @@ class Salesorders extends CI_Controller {
             $this->dbwrite_model->insertData('Transaction', 'TransDetailTbl', $detailData);
 
             $this->saveSalesOrderItems($transUID, $financialYear, $orgUID, $userUID, $items);
+
+            // Conversion tracking: Quotation → SalesOrder
+            $fromQuotationUID = (int) getPostValue($PostData, 'fromQuotationUID');
+            if ($fromQuotationUID > 0 && !$isDraft) {
+                $this->dbwrite_model->updateTransDocStatus($fromQuotationUID, $orgUID, 'Converted', $userUID);
+                $this->dbwrite_model->insertConversionRecord(
+                    $orgUID, $fromQuotationUID, 101, $transUID, $this->pageModuleUID, 'QuotToOrder', $userUID
+                );
+            }
 
             $this->dbwrite_model->commitTransaction();
 
@@ -744,13 +754,15 @@ class Salesorders extends CI_Controller {
 
             $this->load->model('organisation_model');
             $orgInfo          = $this->organisation_model->getOrgForReceipt($orgUID);
+            $thermalCfgResult = $this->organisation_model->getThermalPrintConfig($orgUID);
             $printThemeResult = $this->organisation_model->getPrintThemeByType($orgUID, 'SalesOrder');
 
-            $this->EndReturnData->Error      = FALSE;
-            $this->EndReturnData->Header     = $header;
-            $this->EndReturnData->Items      = $items;
-            $this->EndReturnData->OrgInfo    = $orgInfo->Data ?? null;
-            $this->EndReturnData->PrintTheme = $printThemeResult->Data ?? null;
+            $this->EndReturnData->Error         = FALSE;
+            $this->EndReturnData->Header        = $header;
+            $this->EndReturnData->Items         = $items;
+            $this->EndReturnData->OrgInfo       = $orgInfo->Data ?? null;
+            $this->EndReturnData->ThermalConfig = $thermalCfgResult->Data ?? null;
+            $this->EndReturnData->PrintTheme    = $printThemeResult->Data ?? null;
 
         } catch (Exception $e) {
             $this->EndReturnData->Error   = TRUE;

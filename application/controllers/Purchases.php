@@ -32,6 +32,7 @@ class Purchases extends CI_Controller {
             $this->pageData['ModRowData']    = $this->load->view('transactions/purchases/list', ['DataLists' => $allData, 'SerialNumber' => 0, 'JwtData' => $this->pageData['JwtData']], TRUE);
             $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/purchases/getPurchasesPageDetails', $allDataCount, 1, $limit);
             $this->pageData['ModAllCount']   = $allDataCount;
+            $this->pageData['SummaryStats']  = $this->transactions_model->getTransactionSummaryStats($this->pageModuleUID, $this->pageData['JwtData']->User->OrgUID);
 
             $this->load->view('transactions/purchases/view', $this->pageData);
 
@@ -731,18 +732,20 @@ class Purchases extends CI_Controller {
 
             $this->load->model('organisation_model');
             $orgInfo          = $this->organisation_model->getOrgForReceipt($orgUID);
+            $thermalCfgResult = $this->organisation_model->getThermalPrintConfig($orgUID);
             $printThemeResult = $this->organisation_model->getPrintThemeByType($orgUID, 'Purchase');
 
             $payments  = $this->transactions_model->getTransactionPayments($transUID, $orgUID);
             $paidTotal = array_sum(array_map(function($p) { return (float) $p->Amount; }, $payments));
 
-            $this->EndReturnData->Error      = FALSE;
-            $this->EndReturnData->Header     = $header;
-            $this->EndReturnData->Items      = $items;
-            $this->EndReturnData->Payments   = $payments;
-            $this->EndReturnData->PaidTotal  = $paidTotal;
-            $this->EndReturnData->OrgInfo    = $orgInfo->Data ?? null;
-            $this->EndReturnData->PrintTheme = $printThemeResult->Data ?? null;
+            $this->EndReturnData->Error         = FALSE;
+            $this->EndReturnData->Header        = $header;
+            $this->EndReturnData->Items         = $items;
+            $this->EndReturnData->Payments      = $payments;
+            $this->EndReturnData->PaidTotal     = $paidTotal;
+            $this->EndReturnData->OrgInfo       = $orgInfo->Data ?? null;
+            $this->EndReturnData->ThermalConfig = $thermalCfgResult->Data ?? null;
+            $this->EndReturnData->PrintTheme    = $printThemeResult->Data ?? null;
 
         } catch (Exception $e) {
             $this->EndReturnData->Error   = TRUE;

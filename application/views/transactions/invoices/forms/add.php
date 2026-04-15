@@ -16,6 +16,10 @@
             <?php $FormAttribute = ['id' => 'addInvForm', 'name' => 'addInvForm', 'autocomplete' => 'off', 'data-csrf' => $this->security->get_csrf_token_name(), 'data-csrf-value' => $this->security->get_csrf_hash()];
                     echo form_open('invoices/addInvoice', $FormAttribute); ?>
 
+                    <!-- Hidden: source UIDs for conversion tracking -->
+                    <input type="hidden" name="fromSalesOrderUID" id="fromSalesOrderUID" value="<?php echo (int)($FromSalesOrderUID ?? 0); ?>" />
+                    <input type="hidden" name="fromQuotationUID" id="fromQuotationUID" value="<?php echo (int)($FromQuotationUID ?? 0); ?>" />
+
                     <div class="card mb-3">
 
                         <div class="card-header bg-body-tertiary trans-header-static trans-theme modal-header-center-sticky d-flex justify-content-between align-items-center pb-3">
@@ -535,7 +539,35 @@ var _orgState       = '<?php echo addslashes($DispatchAddress->StateText ?? '');
 
 <?php if (!empty($SalesOrderData)): ?>
 var _fromSO      = <?php echo json_encode(['uid' => (int)$FromSalesOrderUID, 'customer' => (int)$SalesOrderData->PartyUID, 'customerName' => $SalesOrderData->PartyName ?? '']); ?>;
-var _fromSOItems = <?php echo json_encode($SalesOrderItems); ?>;
+var _fromSOItems = <?php echo json_encode(array_map(function($item) {
+    return [
+        'id'               => (int)   $item->ProductUID,
+        'text'             => $item->ProductName,
+        'itemName'         => $item->ProductName,
+        'unitPrice'        => (float) $item->UnitPrice,
+        'sellingPrice'     => (float) $item->SellingPrice,
+        'taxAmount'        => (float) $item->TaxAmount,
+        'purchasePrice'    => 0,
+        'availableQuantity'=> 0,
+        'hsnCode'          => '',
+        'categoryUID'      => $item->CategoryUID ? (int)$item->CategoryUID : null,
+        'storageUID'       => $item->StorageUID  ? (int)$item->StorageUID  : null,
+        'taxPercent'       => (float) $item->TaxPercentage,
+        'cgstPercent'      => (float) $item->CGST,
+        'sgstPercent'      => (float) $item->SGST,
+        'igstPercent'      => (float) $item->IGST,
+        'taxDetailsUID'    => (int)   $item->TaxDetailsUID,
+        'quantity'         => (float) $item->Quantity,
+        'partNumber'       => $item->PartNumber      ?? '',
+        'primaryUnit'      => $item->PrimaryUnitName ?? '',
+        'discount'         => (float) $item->Discount,
+        'discountType'     => 'Percentage',
+        'discountTypeUID'  => $item->DiscountTypeUID ? (int)$item->DiscountTypeUID : null,
+        'discount_amount'  => (float) $item->DiscountAmount,
+        'line_total'       => (float) $item->TaxableAmount,
+        'net_total'        => (float) $item->NetAmount,
+    ];
+}, $SalesOrderItems ?? [])); ?>;
 <?php else: ?>
 var _fromSO      = null;
 var _fromSOItems = [];
@@ -543,7 +575,35 @@ var _fromSOItems = [];
 
 <?php if (!empty($QuotationData)): ?>
 var _fromQuotation = <?php echo json_encode(['uid' => (int)$FromQuotationUID, 'customer' => (int)$QuotationData->PartyUID, 'customerName' => $QuotationData->PartyName ?? '']); ?>;
-var _fromQuotItems = <?php echo json_encode($QuotationItems); ?>;
+var _fromQuotItems = <?php echo json_encode(array_map(function($item) {
+    return [
+        'id'               => (int)   $item->ProductUID,
+        'text'             => $item->ProductName,
+        'itemName'         => $item->ProductName,
+        'unitPrice'        => (float) $item->UnitPrice,
+        'sellingPrice'     => (float) $item->SellingPrice,
+        'taxAmount'        => (float) $item->TaxAmount,
+        'purchasePrice'    => 0,
+        'availableQuantity'=> 0,
+        'hsnCode'          => '',
+        'categoryUID'      => $item->CategoryUID ? (int)$item->CategoryUID : null,
+        'storageUID'       => $item->StorageUID  ? (int)$item->StorageUID  : null,
+        'taxPercent'       => (float) $item->TaxPercentage,
+        'cgstPercent'      => (float) $item->CGST,
+        'sgstPercent'      => (float) $item->SGST,
+        'igstPercent'      => (float) $item->IGST,
+        'taxDetailsUID'    => (int)   $item->TaxDetailsUID,
+        'quantity'         => (float) $item->Quantity,
+        'partNumber'       => $item->PartNumber      ?? '',
+        'primaryUnit'      => $item->PrimaryUnitName ?? '',
+        'discount'         => (float) $item->Discount,
+        'discountType'     => 'Percentage',
+        'discountTypeUID'  => $item->DiscountTypeUID ? (int)$item->DiscountTypeUID : null,
+        'discount_amount'  => (float) $item->DiscountAmount,
+        'line_total'       => (float) $item->TaxableAmount,
+        'net_total'        => (float) $item->NetAmount,
+    ];
+}, $QuotationItems ?? [])); ?>;
 <?php else: ?>
 var _fromQuotation = null;
 var _fromQuotItems = [];
@@ -558,40 +618,26 @@ $(function() {
     transDatePickr('#transDate', false, 'Y-m-d', false, true, true, true, 'd-m-Y');
     transDatePickr('#dueDate', false, 'Y-m-d', false, false, true, true, 'd-m-Y', '#transDate');
 
-    // Pre-fill from Sales Order conversion
-    var _sourceData  = _fromSO      || _fromQuotation;
-    var _sourceItems = _fromSO      ? _fromSOItems : _fromQuotItems;
+    // Pre-fill from Sales Order / Quotation conversion
+    var _sourceData  = _fromSO || _fromQuotation;
+    var _sourceItems = _fromSO ? _fromSOItems : _fromQuotItems;
 
     if (_sourceData && _sourceData.uid > 0) {
         if (_sourceData.customer > 0) {
             $('#customerSearch').append(new Option(_sourceData.customerName, _sourceData.customer, true, true)).trigger('change');
         }
-        $(document).one('billmanager:ready', function() {
-            if (_sourceItems && _sourceItems.length > 0) {
-                _sourceItems.forEach(function(item) {
-                    if (typeof billManager !== 'undefined') {
-                        billManager.addItem({
-                            id              : item.ProductUID,
-                            itemName        : item.ProductName,
-                            partNumber      : item.PartNumber,
-                            categoryUID     : item.CategoryUID,
-                            storageUID      : item.StorageUID,
-                            quantity        : parseFloat(item.Quantity),
-                            unitPrice       : parseFloat(item.UnitPrice),
-                            sellingPrice    : parseFloat(item.SellingPrice),
-                            taxDetailsUID   : item.TaxDetailsUID,
-                            taxPercent      : parseFloat(item.TaxPercentage),
-                            cgstPercent     : parseFloat(item.CGST),
-                            sgstPercent     : parseFloat(item.SGST),
-                            igstPercent     : parseFloat(item.IGST),
-                            discountTypeUID : item.DiscountTypeUID,
-                            discount        : parseFloat(item.Discount),
-                            primaryUnit     : item.PrimaryUnitName,
-                        });
-                    }
-                });
-            }
-        });
+        if (typeof billManager !== 'undefined' && typeof formationTableBillItems === 'function'
+                && Array.isArray(_sourceItems) && _sourceItems.length > 0) {
+            $('#billTableBody').empty();
+            _sourceItems.forEach(function(item) {
+                var added = billManager.addItem(item, item.quantity);
+                if (added !== false) {
+                    formationTableBillItems(billManager.getItemById(item.id));
+                }
+            });
+            if (typeof updateItemTaxBreakdown === 'function') updateItemTaxBreakdown();
+            billManager.updateSummary();
+        }
     }
 
     // ── Add Invoice form submit ───────────────────────
@@ -666,6 +712,8 @@ $(function() {
                 transDate              : transDate,
                 dueDate                : $.trim($('#dueDate').val()),
                 customerSearch         : customerUID,
+                fromSalesOrderUID      : parseInt($('#fromSalesOrderUID').val(), 10) || 0,
+                fromQuotationUID       : parseInt($('#fromQuotationUID').val(), 10) || 0,
                 invoiceType            : $('#invoiceType').val() || '',
                 dispatchFrom           : $('#dispatchFrom').val() || '',
                 referenceDetails       : $.trim($('#referenceDetails').val()),

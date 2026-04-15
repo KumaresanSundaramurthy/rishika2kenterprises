@@ -16,11 +16,20 @@
             <?php $FormAttribute = ['id' => 'addSOForm', 'name' => 'addSOForm', 'autocomplete' => 'off', 'data-csrf' => $this->security->get_csrf_token_name(), 'data-csrf-value' => $this->security->get_csrf_hash()];
                     echo form_open('salesorders/addSalesOrder', $FormAttribute); ?>
 
+                    <!-- Hidden: source quotation UID for conversion tracking -->
+                    <input type="hidden" name="fromQuotationUID" id="fromQuotationUID" value="<?php echo (int)($FromQuotationUID ?? 0); ?>" />
+
                     <div class="card mb-3">
 
                         <div class="card-header bg-body-tertiary trans-header-static trans-theme modal-header-center-sticky d-flex justify-content-between align-items-center pb-3">
                             <div class="d-flex flex-wrap align-items-center gap-3" id="transHeaderInfo">
-                                <h5 class="modal-title mb-0 ms-2">Create Sales Order</h5>
+                                <h5 class="modal-title mb-0 ms-2">Create Sales Order
+                                <?php if (!empty($QuotationData)): ?>
+                                    <span class="badge bg-label-primary ms-2" style="font-size:.72rem;">
+                                        <i class="bx bx-transfer-alt me-1"></i>From Quotation: <?php echo htmlspecialchars($QuotationData->UniqueNumber ?? ''); ?>
+                                    </span>
+                                <?php endif; ?>
+                                </h5>
                                 <div class="d-flex align-items-center gap-1">
                                     <div class="input-group w-auto">
                                         <?php
@@ -521,7 +530,35 @@ const EnableStorage = <?php echo $JwtData->GenSettings->EnableStorage; ?>;
 var _orgState      = '<?php echo addslashes($DispatchAddress->StateText ?? ''); ?>';
 <?php if (!empty($QuotationData)): ?>
 var _fromQuotation = <?php echo json_encode(['uid' => (int)$FromQuotationUID, 'customer' => (int)$QuotationData->PartyUID, 'customerName' => $QuotationData->PartyName ?? '']); ?>;
-var _fromQuotItems = <?php echo json_encode($QuotationItems); ?>;
+var _fromQuotItems = <?php echo json_encode(array_map(function($item) {
+    return [
+        'id'               => (int)   $item->ProductUID,
+        'text'             => $item->ProductName,
+        'itemName'         => $item->ProductName,
+        'unitPrice'        => (float) $item->UnitPrice,
+        'sellingPrice'     => (float) $item->SellingPrice,
+        'taxAmount'        => (float) $item->TaxAmount,
+        'purchasePrice'    => 0,
+        'availableQuantity'=> 0,
+        'hsnCode'          => '',
+        'categoryUID'      => $item->CategoryUID ? (int)$item->CategoryUID : null,
+        'storageUID'       => $item->StorageUID  ? (int)$item->StorageUID  : null,
+        'taxPercent'       => (float) $item->TaxPercentage,
+        'cgstPercent'      => (float) $item->CGST,
+        'sgstPercent'      => (float) $item->SGST,
+        'igstPercent'      => (float) $item->IGST,
+        'taxDetailsUID'    => (int)   $item->TaxDetailsUID,
+        'quantity'         => (float) $item->Quantity,
+        'partNumber'       => $item->PartNumber      ?? '',
+        'primaryUnit'      => $item->PrimaryUnitName ?? '',
+        'discount'         => (float) $item->Discount,
+        'discountType'     => 'Percentage',
+        'discountTypeUID'  => $item->DiscountTypeUID ? (int)$item->DiscountTypeUID : null,
+        'discount_amount'  => (float) $item->DiscountAmount,
+        'line_total'       => (float) $item->TaxableAmount,
+        'net_total'        => (float) $item->NetAmount,
+    ];
+}, $QuotationItems ?? [])); ?>;
 <?php else: ?>
 var _fromQuotation = null;
 var _fromQuotItems = [];
@@ -540,33 +577,18 @@ $(function() {
         if (_fromQuotation.customer > 0) {
             $('#customerSearch').append(new Option(_fromQuotation.customerName, _fromQuotation.customer, true, true)).trigger('change');
         }
-        // Load items into billManager after it initialises
-        $(document).one('billmanager:ready', function() {
-            if (_fromQuotItems && _fromQuotItems.length > 0) {
-                _fromQuotItems.forEach(function(item) {
-                    if (typeof billManager !== 'undefined') {
-                        billManager.addItem({
-                            id          : item.ProductUID,
-                            itemName    : item.ProductName,
-                            partNumber  : item.PartNumber,
-                            categoryUID : item.CategoryUID,
-                            storageUID  : item.StorageUID,
-                            quantity    : parseFloat(item.Quantity),
-                            unitPrice   : parseFloat(item.UnitPrice),
-                            sellingPrice: parseFloat(item.SellingPrice),
-                            taxDetailsUID : item.TaxDetailsUID,
-                            taxPercent  : parseFloat(item.TaxPercentage),
-                            cgstPercent : parseFloat(item.CGST),
-                            sgstPercent : parseFloat(item.SGST),
-                            igstPercent : parseFloat(item.IGST),
-                            discountTypeUID : item.DiscountTypeUID,
-                            discount    : parseFloat(item.Discount),
-                            primaryUnit : item.PrimaryUnitName,
-                        });
-                    }
-                });
-            }
-        });
+        if (typeof billManager !== 'undefined' && typeof formationTableBillItems === 'function'
+                && Array.isArray(_fromQuotItems) && _fromQuotItems.length > 0) {
+            $('#billTableBody').empty();
+            _fromQuotItems.forEach(function(item) {
+                var added = billManager.addItem(item, item.quantity);
+                if (added !== false) {
+                    formationTableBillItems(billManager.getItemById(item.id));
+                }
+            });
+            if (typeof updateItemTaxBreakdown === 'function') updateItemTaxBreakdown();
+            billManager.updateSummary();
+        }
     }
 
     // ── Add Sales Order form submit ───────────────────────
@@ -636,6 +658,7 @@ $(function() {
                 transDate              : transDate,
                 deliveryDate           : $.trim($('#deliveryDate').val()),
                 customerSearch         : customerUID,
+                fromQuotationUID       : parseInt($('#fromQuotationUID').val(), 10) || 0,
                 orderType              : $('#orderType').val() || '',
                 dispatchFrom           : $('#dispatchFrom').val() || '',
                 referenceDetails       : $.trim($('#referenceDetails').val()),

@@ -66,6 +66,48 @@ class Transactions_model extends CI_Model {
     }
 
     /**
+     * Returns per-status summary (count + total amount) for the stat cards.
+     * Used by all module index() methods.
+     */
+    public function getTransactionSummaryStats($moduleUID, $orgUID) {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+
+            // Regular status counts
+            $this->ReadDb->select('Ts.DocStatus, COUNT(*) AS TotalCount, SUM(Ts.NetAmount) AS TotalAmount');
+            $this->ReadDb->from('Transaction.TransactionsTbl AS Ts');
+            $this->ReadDb->join('Transaction.TransDetailTbl AS Td', 'Td.TransUID = Ts.TransUID AND Td.FinancialYear = YEAR(Ts.TransDate)', 'LEFT');
+            $this->ReadDb->where(['Ts.ModuleUID' => $moduleUID, 'Ts.OrgUID' => $orgUID, 'Ts.IsDeleted' => 0]);
+            $this->ReadDb->group_by('Ts.DocStatus');
+            $query = $this->ReadDb->get();
+            if (!$query) return [];
+
+            $out = [];
+            foreach ($query->result() as $r) {
+                $out[$r->DocStatus] = ['count' => (int)$r->TotalCount, 'amount' => (float)$r->TotalAmount];
+            }
+
+            // Expired count: Pending + ValidityDate < today
+            $this->ReadDb->select('COUNT(*) AS ExpiredCount, SUM(Ts.NetAmount) AS ExpiredAmount');
+            $this->ReadDb->from('Transaction.TransactionsTbl AS Ts');
+            $this->ReadDb->join('Transaction.TransDetailTbl AS Td', 'Td.TransUID = Ts.TransUID AND Td.FinancialYear = YEAR(Ts.TransDate)', 'LEFT');
+            $this->ReadDb->where(['Ts.ModuleUID' => $moduleUID, 'Ts.OrgUID' => $orgUID, 'Ts.IsDeleted' => 0, 'Ts.DocStatus' => 'Pending']);
+            $this->ReadDb->where('Td.ValidityDate <', date('Y-m-d'));
+            $this->ReadDb->where('Td.ValidityDate IS NOT NULL', null, false);
+            $expQuery = $this->ReadDb->get();
+            if ($expQuery) {
+                $expRow = $expQuery->row();
+                $out['Expired'] = ['count' => (int)($expRow->ExpiredCount ?? 0), 'amount' => (float)($expRow->ExpiredAmount ?? 0)];
+            }
+
+            return $out;
+
+        } catch (Exception $e) {
+            return [];
+        }
+    }
+
+    /**
      * Tab label → DB DocStatus mapping.
      * 'All' (or empty) excludes Draft.
      * Any other tab filters to a specific DocStatus.
@@ -73,7 +115,6 @@ class Transactions_model extends CI_Model {
     private function applyFilters($filter) {
 
         if (empty($filter)) {
-            // Default: exclude Drafts and Cancelled (Rejected)
             $this->ReadDb->where_not_in('Ts.DocStatus', ['Draft', 'Rejected']);
             return;
         }
@@ -92,23 +133,23 @@ class Transactions_model extends CI_Model {
             $this->ReadDb->where('Ts.TransDate <=', $filter['DateTo']);
         }
 
-        // Tab → DB value map. 'All' or empty excludes Draft; 'Draft' shows only Draft.
-        $tabToDb = [
-            'Open'      => 'Pending',
-            'Closed'    => 'Accepted',
-            'Partial'   => 'Partial',
-            'Cancelled' => 'Rejected',
-            'Converted' => 'Converted',
-            'Draft'     => 'Draft',
-        ];
-        $tab = $filter['Status'] ?? '';
-        if ($tab === 'Draft') {
+        $tab = $filter['Status'] ?? 'All';
+
+        if ($tab === 'Open') {
+            // Open = Pending (not expired check — show all pending regardless of validity)
+            $this->ReadDb->where('Ts.DocStatus', 'Pending');
+        } elseif ($tab === 'Accepted') {
+            $this->ReadDb->where('Ts.DocStatus', 'Accepted');
+        } elseif ($tab === 'Converted') {
+            $this->ReadDb->where('Ts.DocStatus', 'Converted');
+        } elseif ($tab === 'Cancelled') {
+            // Cancelled tab shows both Cancelled and Rejected records
+            $this->ReadDb->where_in('Ts.DocStatus', ['Cancelled', 'Rejected']);
+        } elseif ($tab === 'Draft') {
             $this->ReadDb->where('Ts.DocStatus', 'Draft');
-        } elseif (isset($tabToDb[$tab])) {
-            $this->ReadDb->where('Ts.DocStatus', $tabToDb[$tab]);
         } else {
-            // 'All' or unrecognised: exclude Drafts and Cancelled
-            $this->ReadDb->where_not_in('Ts.DocStatus', ['Draft', 'Rejected']);
+            // All — exclude Draft, Cancelled, Rejected
+            $this->ReadDb->where_not_in('Ts.DocStatus', ['Draft', 'Cancelled', 'Rejected']);
         }
 
         if (!empty($filter['MinAmount'])) {
@@ -291,18 +332,40 @@ class Transactions_model extends CI_Model {
         try {
 
             $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->reset_query();
+
+            // Get MAX across ALL records (including soft-deleted) so we never
+            // suggest a number that was previously used, even if now deleted.
             $this->ReadDb->select_max('TransNumber', 'MaxNumber');
             $this->ReadDb->from('Transaction.TransactionsTbl');
-            // Do NOT filter by ModuleUID — the DB unique key on (OrgUID, PrefixUID, TransNumber, YEAR(TransDate))
-            // spans all modules, so the next available number must be max across all modules for this prefix.
             $this->ReadDb->where([
                 'PrefixUID' => (int) $prefixUID,
                 'OrgUID'    => (int) $orgUID,
-                'IsDeleted' => 0,
             ]);
             $query  = $this->ReadDb->get();
             $result = $query->row();
-            return $result ? ((int)($result->MaxNumber ?? 0) + 1) : 1;
+            $next   = $result ? ((int)($result->MaxNumber ?? 0) + 1) : 1;
+
+            // Safety loop: keep incrementing until we find a number
+            // that has no active (IsDeleted = 0) record.
+            $maxAttempts = 100;
+            while ($maxAttempts-- > 0) {
+                $this->ReadDb->reset_query();
+                $this->ReadDb->select('TransUID');
+                $this->ReadDb->from('Transaction.TransactionsTbl');
+                $this->ReadDb->where([
+                    'PrefixUID'   => (int) $prefixUID,
+                    'TransNumber' => $next,
+                    'OrgUID'      => (int) $orgUID,
+                    'IsDeleted'   => 0,
+                ]);
+                $this->ReadDb->limit(1);
+                $check = $this->ReadDb->get()->row();
+                if (!$check) break;
+                $next++;
+            }
+
+            return $next;
 
         } catch (Exception $e) {
             return 1;
@@ -319,11 +382,9 @@ class Transactions_model extends CI_Model {
         try {
 
             $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->reset_query();
             $this->ReadDb->select('TransUID');
             $this->ReadDb->from('Transaction.TransactionsTbl');
-            // Do NOT filter by ModuleUID — the DB unique key spans all modules for the same prefix.
-            // A TransNumber already used by any module (Quotation, Sales Order, Invoice, etc.)
-            // with the same prefix cannot be reused.
             $this->ReadDb->where([
                 'PrefixUID'   => (int) $prefixUID,
                 'TransNumber' => (int) $transNumber,
@@ -339,35 +400,6 @@ class Transactions_model extends CI_Model {
         }
 
     }
-
-    public function getTransPageSettings($whereCondition = []) {
-
-        $this->EndReturnData = new StdClass();
-        try {
-
-            $this->ReadDb->select('pageSettings.TransPageSetgUID as TransPageSetgUID, pageSettings.ModuleUID as ModuleUID, pageSettings.DefaultPrefix as DefaultPrefix, pageSettings.ShowFiscalYear as ShowFiscalYear, pageSettings.FiscalYearType as FiscalYearType, pageSettings.InvoiceSepText as InvoiceSepText, pageSettings.ValidityDays as ValidityDays');
-            $this->ReadDb->from('Transaction.TransPageSettingsTbl as pageSettings');
-            if (sizeof($whereCondition) > 0) {
-                $this->ReadDb->where($whereCondition);
-            }
-            $this->ReadDb->limit(1);
-            $query = $this->ReadDb->get();
-            $error = $this->ReadDb->error();
-            if ($error['code']) {
-                throw new Exception($error['message']);
-            } else {
-                $this->EndReturnData->Data = $query->result()[0];
-            }
-
-            return $this->EndReturnData->Data;
-
-        } catch (Exception $e) {
-            $this->EndReturnData->Error = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-            throw new Exception($this->EndReturnData->Message);
-        }
-        
-    } 
 
     public function getCustomersDetails(string $Term = '', $WhereCondition = []) {
         

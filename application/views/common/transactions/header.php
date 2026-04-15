@@ -42,7 +42,8 @@
 
     <link rel="stylesheet" href="/assets/vendor/libs/dropzone/dropzone.css">
 
-    <!-- Page CSS -->
+    <!-- Transaction theme -->
+    <link rel="stylesheet" href="/css/transactions-theme.css">
 
     <!-- Helpers -->
     <script src="/assets/vendor/js/helpers.js"></script>

@@ -27,6 +27,7 @@ class Purchasereturns extends CI_Controller {
             $this->pageData['ModRowData']    = $this->load->view('transactions/purchasereturns/list', ['DataLists' => $allData, 'SerialNumber' => 0, 'JwtData' => $this->pageData['JwtData']], TRUE);
             $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/purchasereturns/getPurchaseReturnsPageDetails', $allDataCount, 1, $limit);
             $this->pageData['ModAllCount']   = $allDataCount;
+            $this->pageData['SummaryStats']  = $this->transactions_model->getTransactionSummaryStats($this->pageModuleUID, $this->pageData['JwtData']->User->OrgUID);
 
             $this->load->view('transactions/purchasereturns/view', $this->pageData);
         } catch (Exception $e) {
@@ -595,12 +596,14 @@ class Purchasereturns extends CI_Controller {
             $items = $this->transactions_model->getTransactionItems($transUID, $orgUID);
             $this->load->model('organisation_model');
             $orgInfo          = $this->organisation_model->getOrgForReceipt($orgUID);
+            $thermalCfgResult = $this->organisation_model->getThermalPrintConfig($orgUID);
             $printThemeResult = $this->organisation_model->getPrintThemeByType($orgUID, 'Purchase Return');
-            $this->EndReturnData->Error      = FALSE;
-            $this->EndReturnData->Header     = $header;
-            $this->EndReturnData->Items      = $items;
-            $this->EndReturnData->OrgInfo    = $orgInfo->Data ?? null;
-            $this->EndReturnData->PrintTheme = $printThemeResult->Data ?? null;
+            $this->EndReturnData->Error         = FALSE;
+            $this->EndReturnData->Header        = $header;
+            $this->EndReturnData->Items         = $items;
+            $this->EndReturnData->OrgInfo       = $orgInfo->Data ?? null;
+            $this->EndReturnData->ThermalConfig = $thermalCfgResult->Data ?? null;
+            $this->EndReturnData->PrintTheme    = $printThemeResult->Data ?? null;
         } catch (Exception $e) {
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();

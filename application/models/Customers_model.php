@@ -199,6 +199,26 @@ class Customers_model extends CI_Model {
 
     }
 
+    public function getCustomerStats($OrgUID) {
+
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select([
+                'COUNT(*) AS TotalCount',
+                'SUM(CASE WHEN IsActive = 1 THEN 1 ELSE 0 END) AS ActiveCount',
+                'SUM(CASE WHEN MONTH(CreatedOn) = MONTH(NOW()) AND YEAR(CreatedOn) = YEAR(NOW()) THEN 1 ELSE 0 END) AS MonthCount',
+            ]);
+            $this->ReadDb->from('Customers.CustomerTbl');
+            $this->ReadDb->where(['IsDeleted' => 0, 'OrgUID' => $OrgUID]);
+            $query = $this->ReadDb->get();
+            if (!$query) throw new Exception('DB error');
+            return $query->row();
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+
+    }
+
     public function getCustomerTypeList($OrgUID) {
 
         try {

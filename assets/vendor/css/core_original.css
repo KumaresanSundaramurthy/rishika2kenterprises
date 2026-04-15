@@ -25978,7 +25978,9 @@ li:not(:first-child) .dropdown-item,.dropdown-menu .dropdown-item:not(:first-chi
 }
 
 .menu-vertical .menu-sub .menu-link {
-    padding-inline-start:2.9375rem}
+    /* padding-inline-start:2.9375rem; */
+    padding-inline-start: 2;
+}
 
 .layout-wrapper:not(.layout-horizontal) .menu-vertical .menu-inner>.menu-item .menu-sub .menu-sub .menu-link {
     padding-inline-start:3.4375rem}

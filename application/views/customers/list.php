@@ -5,20 +5,20 @@
         $SerialNumber++; ?>
 
         <tr>
-            <td>
-                <div class="form-check form-check-inline"><input class="form-check-input customerCheck" type="checkbox" value="<?php echo $list->TablePrimaryUID; ?>"></div>
+            <td class="td-chk">
+                <div class="form-check mb-0">
+                    <input class="form-check-input customerCheck" type="checkbox" value="<?php echo $list->TablePrimaryUID; ?>">
+                </div>
             </td>
-            <td class="<?php echo $GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>"><?php echo $SerialNumber; ?></td>
+            <td class="td-sno <?php echo $GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>"><?php echo $SerialNumber; ?></td>
             <?php
                 $getData = format_disp_allcolumns('html', $DispViewColumns, $list, $JwtData, $JwtData->GenSettings);
-                if(!empty($getData) && is_array($getData)) {
-                    echo implode('', $getData);
-                }
+                if (!empty($getData) && is_array($getData)) echo implode('', $getData);
             ?>
-            <td>
-                <div class="d-flex align-items-sm-center justify-content-sm-center">
-                    <a href="/customers/<?php echo $list->TablePrimaryUID; ?>/edit" class="btn btn-icon text-warning"><i class="bx bx-edit me-1"></i></a>
-                    <button class="btn btn-icon text-danger DeleteCustomer" data-customeruid="<?php echo $list->TablePrimaryUID; ?>"><i class="bx bx-trash"></i></button>
+            <td class="td-act">
+                <div class="row-acts">
+                    <a href="/customers/<?php echo $list->TablePrimaryUID; ?>/edit" class="btn-re" title="Edit"><i class="bx bx-edit"></i></a>
+                    <button class="btn-rd DeleteCustomer" data-customeruid="<?php echo $list->TablePrimaryUID; ?>" title="Delete"><i class="bx bx-trash"></i></button>
                 </div>
             </td>
         </tr>
@@ -27,22 +27,12 @@
 } else { ?>
 
     <tr>
-        <td colspan="10">
-            <div class="d-flex justify-content-center align-items-center" style="height: 57vh;">
-                <div class="d-flex flex-column align-items-center w-100" style="max-width: 500px; padding: 1rem;">
-
-                    <div class="w-100 mb-3" style="flex: 3; display: flex; justify-content: center; align-items: center;">
-                        <img src="/assets/img/elements/no-record-found.png" alt="No Records Found" class="img-fluid" style="max-height: 40vh;object-fit: contain;" />
-                    </div>
-
-                    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                        <span class="mb-2">Add a Customer Now</span>
-                        <a href="/customers/create" class="btn btn-primary px-3">
-                            <i class="bx bx-plus"></i> Create Customer
-                        </a>
-                    </div>
-
-                </div>
+        <td colspan="20" style="padding:0; border:none;">
+            <div class="mod-empty">
+                <img src="/assets/img/elements/no-record-found.png" alt="No records" />
+                <p style="font-weight:600; color:#1e293b;">No customers found</p>
+                <p>Get started by adding your first customer</p>
+                <a href="/customers/create" class="mod-create-btn mt-1"><i class="bx bx-plus"></i> Create Customer</a>
             </div>
         </td>
     </tr>

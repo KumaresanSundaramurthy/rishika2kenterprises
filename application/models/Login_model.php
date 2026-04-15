@@ -119,7 +119,6 @@ class Login_model extends CI_Model {
     }
 
     // ── Role-based menu queries ──────────────────────────────────
-
     public function getRoleMainMenus($RoleUID) {
 
         $this->EndReturnData = new stdClass();
@@ -175,70 +174,6 @@ class Login_model extends CI_Model {
         } catch(Exception $e) {
 
             $this->EndReturnData->Error   = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-            throw new Exception($this->EndReturnData->Message);
-
-        }
-
-    }
-
-    // ── Legacy user-level queries (kept for reference) ──────────
-
-    public function getUserRightsMainModule($UserUID) {
-
-        $this->EndReturnData = new stdClass();
-        try {
-
-            $this->ReadDb->select('UserMM.UserMainMenuUID as UserMainMenuUID, UserMM.MainMenuUID as MainMenuUID, MainMenu.Name as MainMenuName, MainMenu.Icons as MainMenuIcons, UserMM.Sorting as Sorting');
-            $this->ReadDb->from('UserRole.UserMainMenusTbl as UserMM');
-            $this->ReadDb->join('Modules.MainMenusTbl as MainMenu', 'MainMenu.MainMenuUID = UserMM.MainMenuUID', 'left');
-            $this->ReadDb->where('UserMM.UserUID', $UserUID);
-            $this->ReadDb->where('UserMM.IsActive', 1);
-            $this->ReadDb->where('UserMM.IsDeleted', 0);
-            $this->ReadDb->group_by('UserMM.UserMainMenuUID');
-            $this->ReadDb->order_by('UserMM.Sorting', 'ASC');
-            $query = $this->ReadDb->get();
-
-            $this->EndReturnData->Error = FALSE;
-            $this->EndReturnData->Message = 'Success';
-            $this->EndReturnData->Data = $query->result();
-
-            return $this->EndReturnData;
-
-        } catch(Exception $e) {
-
-            $this->EndReturnData->Error = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-            throw new Exception($this->EndReturnData->Message);
-
-        }
-
-    }
-
-    public function getUserRightsSubModule($UserUID) {
-
-        $this->EndReturnData = new stdClass();
-        try {
-
-            $this->ReadDb->select('UserSM.UserSubMenuUID as UserSubMenuUID, SubMenu.MainMenuUID as MainMenuUID, UserSM.SubMenuUID as SubMenuUID, SubMenu.Name as SubMenuName, SubMenu.ControllerName as ControllerName, SubMenu.ParentSubMenuUID as ParentSubMenuUID, SubMenu.Icons as Icons, UserSM.Sorting as Sorting');
-            $this->ReadDb->from('UserRole.UserSubMenusTbl as UserSM');
-            $this->ReadDb->join('Modules.SubMenusTbl as SubMenu', 'SubMenu.SubMenuUID = UserSM.SubMenuUID', 'left');
-            $this->ReadDb->where('UserSM.UserUID', $UserUID);
-            $this->ReadDb->where('UserSM.IsActive', 1);
-            $this->ReadDb->where('UserSM.IsDeleted', 0);
-            $this->ReadDb->group_by('UserSM.UserSubMenuUID');
-            $this->ReadDb->order_by('UserSM.Sorting', 'ASC');
-            $query = $this->ReadDb->get();
-
-            $this->EndReturnData->Error = FALSE;
-            $this->EndReturnData->Message = 'Success';
-            $this->EndReturnData->Data = $query->result();
-
-            return $this->EndReturnData;
-
-        } catch(Exception $e) {
-
-            $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
 

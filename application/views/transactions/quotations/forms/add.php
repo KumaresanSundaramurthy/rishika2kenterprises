@@ -20,7 +20,13 @@
                         
                         <div class="card-header bg-body-tertiary trans-header-static trans-theme modal-header-center-sticky d-flex justify-content-between align-items-center pb-3">
                             <div class="d-flex flex-wrap align-items-center gap-3" id="transHeaderInfo">
-                                <h5 class="modal-title mb-0 ms-2">Create Quotation</h5>
+                                <h5 class="modal-title mb-0 ms-2">Create Quotation
+                                <?php if (!empty($CloneData)): ?>
+                                    <span class="badge bg-label-warning ms-2" style="font-size:.72rem;">
+                                        <i class="bx bx-copy me-1"></i>Cloned from: <?php echo htmlspecialchars($CloneData->UniqueNumber ?? 'Draft'); ?>
+                                    </span>
+                                <?php endif; ?>
+                                </h5>
                                 <div class="d-flex align-items-center gap-1">
                                     <div class="input-group w-auto">
                                         <?php
@@ -166,7 +172,7 @@
                                     </div>
                                     <div>
                                         <label for="referenceDetails" class="form-label small fw-semibold">Reference</label>
-                                        <input type="text" id="referenceDetails" name="referenceDetails" class="form-control form-control-sm" placeholder="Reference, e.g. PO Number, Sales Person, Shipment No..." maxlength="100" />
+                                        <input type="text" id="referenceDetails" name="referenceDetails" class="form-control form-control-sm" placeholder="Reference, e.g. PO Number, Sales Person, Shipment No..." maxlength="100" value="<?php echo !empty($CloneData->Reference) ? htmlspecialchars($CloneData->Reference) : ''; ?>" />
                                     </div>
                                 </div>
                             </div>
@@ -346,11 +352,11 @@
                                 <div class="col-md-6">
                                     <div class="mb-2">
                                         <label for="transNotes" class="form-label small fw-semibold">Notes </label>
-                                        <textarea class="form-control" name="transNotes" id="transNotes" rows="2" placeholder="Enter your notes, say thanks, or anything else"></textarea>
+                                        <textarea class="form-control" name="transNotes" id="transNotes" rows="2" placeholder="Enter your notes, say thanks, or anything else"><?php echo !empty($CloneData->Notes) ? htmlspecialchars($CloneData->Notes) : ''; ?></textarea>
                                     </div>
                                     <div class="mb-2">
                                         <label for="transTermsCond" class="form-label small fw-semibold">Terms & Conditions </label>
-                                        <textarea class="form-control" name="transTermsCond" id="transTermsCond" rows="2" placeholder="Enter your business terms & Condition"><?php echo "1. Goods once sold will not be taken back or exchanged\n2. All disputes are subject to Gingee jurisdiction only"; ?></textarea>
+                                        <textarea class="form-control" name="transTermsCond" id="transTermsCond" rows="2" placeholder="Enter your business terms & Condition"><?php echo !empty($CloneData->TermsConditions) ? htmlspecialchars($CloneData->TermsConditions) : "1. Goods once sold will not be taken back or exchanged\n2. All disputes are subject to Gingee jurisdiction only"; ?></textarea>
                                     </div>
                                     <div class="accordion transAccordion" id="dropZoneAccordion">
                                         <div class="accordion-item">
@@ -613,6 +619,37 @@ const CityInfo = <?php echo json_encode($CityData); ?>;
 const EnableStorage = <?php echo $JwtData->GenSettings->EnableStorage; ?>;
 // Org's billing/shipping state — used by searchCustomers to detect inter-state customers
 var _orgState = '<?php echo addslashes($DispatchAddress->StateText ?? ''); ?>';
+<?php if (!empty($CloneData)): ?>
+var _cloneData  = <?php echo json_encode(['customerUID' => (int)$CloneData->PartyUID, 'customerName' => $CloneData->PartyName ?? '']); ?>;
+var _cloneItems = <?php echo json_encode(array_map(function($item) {
+    return [
+        'id'              => (int)$item->ProductUID,
+        'text'            => $item->ProductName,
+        'itemName'        => $item->ProductName,
+        'partNumber'      => $item->PartNumber,
+        'categoryUID'     => $item->CategoryUID,
+        'storageUID'      => $item->StorageUID,
+        'quantity'        => (float)$item->Quantity,
+        'unitPrice'       => (float)$item->UnitPrice,
+        'sellingPrice'    => (float)$item->SellingPrice,
+        'taxDetailsUID'   => (int)$item->TaxDetailsUID,
+        'taxPercent'      => (float)$item->TaxPercentage,
+        'cgstPercent'     => (float)$item->CGST,
+        'sgstPercent'     => (float)$item->SGST,
+        'igstPercent'     => (float)$item->IGST,
+        'discountTypeUID' => $item->DiscountTypeUID,
+        'discountType'    => 'Percentage',
+        'discount'        => (float)$item->Discount,
+        'primaryUnit'     => $item->PrimaryUnitName,
+        'productType'     => 'Product',
+        'availableQuantity' => 0,
+        'hsnCode'         => null,
+    ];
+}, $CloneItems)); ?>;
+<?php else: ?>
+var _cloneData  = null;
+var _cloneItems = [];
+<?php endif; ?>
 let imgData;
 $(function() {
     'use strict'
@@ -622,6 +659,27 @@ $(function() {
     transDatePickr('#validityDate', false, 'Y-m-d', false, false, false, true, 'd-m-Y', '#transDate');
     
     setupTransactionValidity('#transDate', '#validityDays', '#validityDate');
+
+    // ── Clone pre-fill ────────────────────────────────────
+    // Customer: NOT auto-selected — user must choose manually
+    // Items: loaded into billManager once it is ready
+    if (_cloneItems && _cloneItems.length > 0) {
+        var _cloneAttempts = 0;
+        var _cloneInterval = setInterval(function () {
+            _cloneAttempts++;
+            if (typeof billManager !== 'undefined' && typeof billManager.addItem === 'function'
+                && typeof formationTableBillItems === 'function') {
+                clearInterval(_cloneInterval);
+                _cloneItems.forEach(function (item) {
+                    var added = billManager.addItem(item, item.quantity);
+                    if (added) {
+                        formationTableBillItems(billManager.getItemById(item.id));
+                    }
+                });
+            }
+            if (_cloneAttempts > 50) clearInterval(_cloneInterval);
+        }, 100);
+    }
 
     // ── Add Quotation form submit ─────────────────────────
     var $form = $('#addQuotationForm');

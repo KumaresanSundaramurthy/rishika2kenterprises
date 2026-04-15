@@ -8,100 +8,162 @@
         <?php $this->load->view('common/menu_view'); ?>
 
         <div class="layout-page">
-
             <?php $this->load->view('common/navbar_view'); ?>
 
             <div class="content-wrapper">
                 <div class="container-xxl flex-grow-1 container-p-y">
 
+                    <?php
+                    $stats       = $SummaryStats ?? [];
+                    $cur         = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
+                    $dec         = $JwtData->GenSettings->DecimalPoints ?? 2;
+
+                    $cntAll      = array_sum(array_column($stats, 'count'));
+                    $cntPending  = ($stats['Received']['count'] ?? 0) + ($stats['Partial']['count'] ?? 0);
+                    $cntPaid     = $stats['Paid']['count']    ?? 0;
+                    $cntDraft    = $stats['Draft']['count']   ?? 0;
+
+                    $amtAll      = array_sum(array_column($stats, 'amount'));
+                    $amtPending  = ($stats['Received']['amount'] ?? 0) + ($stats['Partial']['amount'] ?? 0);
+                    $amtPaid     = $stats['Paid']['amount']   ?? 0;
+
+                    function fmtAmt($val, $sym, $dec) {
+                        return $sym . ' ' . number_format((float)$val, $dec, '.', ',');
+                    }
+                    ?>
+
+                    <!-- ── Stat Cards ────────────────────────────────────── -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-6 col-md-3">
+                            <a href="javascript:void(0);" class="trans-stat-card stat-all active-stat" data-stat-filter="All">
+                                <div class="trans-stat-label">All Purchases</div>
+                                <div class="trans-stat-count"><?php echo number_format($cntAll); ?></div>
+                                <div class="trans-stat-amount"><?php echo fmtAmt($amtAll, $cur, $dec); ?></div>
+                                <i class="bx bx-package trans-stat-icon"></i>
+                            </a>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <a href="javascript:void(0);" class="trans-stat-card stat-active" data-stat-filter="Received">
+                                <div class="trans-stat-label">Pending Payment</div>
+                                <div class="trans-stat-count"><?php echo number_format($cntPending); ?></div>
+                                <div class="trans-stat-amount"><?php echo fmtAmt($amtPending, $cur, $dec); ?></div>
+                                <i class="bx bx-time-five trans-stat-icon"></i>
+                            </a>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <a href="javascript:void(0);" class="trans-stat-card stat-paid" data-stat-filter="Paid">
+                                <div class="trans-stat-label">Paid</div>
+                                <div class="trans-stat-count"><?php echo number_format($cntPaid); ?></div>
+                                <div class="trans-stat-amount"><?php echo fmtAmt($amtPaid, $cur, $dec); ?></div>
+                                <i class="bx bx-check-circle trans-stat-icon"></i>
+                            </a>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <a href="javascript:void(0);" class="trans-stat-card stat-draft" data-stat-filter="Draft">
+                                <div class="trans-stat-label">Drafts</div>
+                                <div class="trans-stat-count"><?php echo number_format($cntDraft); ?></div>
+                                <div class="trans-stat-amount">&nbsp;</div>
+                                <i class="bx bx-pencil trans-stat-icon"></i>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- ── Main Card ─────────────────────────────────────── -->
                     <div class="card">
 
-                        <!-- ── Toolbar ─────────────────────────────── -->
-                        <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2 py-2 border-bottom-0">
+                        <!-- Toolbar -->
+                        <div class="trans-toolbar">
 
                             <!-- Status tabs -->
-                            <ul class="nav nav-pills gap-1" id="purchStatusTabs" role="tablist">
+                            <ul class="nav trans-status-tabs gap-1" id="purchStatusTabs" role="tablist">
                                 <li class="nav-item">
-                                    <a class="nav-link py-1 px-3 active purch-status-tab" data-status="All" href="javascript:void(0);">
-                                        All <span class="badge bg-info ms-1 purch-tab-count"><?php echo $ModAllCount; ?></span>
+                                    <a class="nav-link active purch-status-tab" data-status="All" href="javascript:void(0);">
+                                        All <span class="trans-tab-count ms-1"><?php echo $ModAllCount; ?></span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link py-1 px-3 purch-status-tab" data-status="Received" href="javascript:void(0);">
-                                        Received <span class="badge bg-info ms-1 purch-tab-count d-none"></span>
+                                    <a class="nav-link purch-status-tab" data-status="Received" href="javascript:void(0);">
+                                        Received <span class="trans-tab-count ms-1 d-none"></span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link py-1 px-3 purch-status-tab" data-status="Paid" href="javascript:void(0);">
-                                        Paid <span class="badge bg-info ms-1 purch-tab-count d-none"></span>
+                                    <a class="nav-link purch-status-tab" data-status="Partial" href="javascript:void(0);">
+                                        Partial <span class="trans-tab-count ms-1 d-none"></span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link py-1 px-3 purch-status-tab" data-status="Cancelled" href="javascript:void(0);">
-                                        Cancelled <span class="badge bg-info ms-1 purch-tab-count d-none"></span>
+                                    <a class="nav-link purch-status-tab" data-status="Paid" href="javascript:void(0);">
+                                        Paid <span class="trans-tab-count ms-1 d-none"></span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link py-1 px-3 purch-status-tab" data-status="Draft" href="javascript:void(0);">
-                                        Drafts <span class="badge bg-info ms-1 purch-tab-count d-none"></span>
+                                    <a class="nav-link purch-status-tab" data-status="Cancelled" href="javascript:void(0);">
+                                        Cancelled <span class="trans-tab-count ms-1 d-none"></span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link purch-status-tab" data-status="Draft" href="javascript:void(0);">
+                                        Drafts <span class="trans-tab-count ms-1 d-none"></span>
                                     </a>
                                 </li>
                             </ul>
 
-                            <!-- Search + Date filter + Create -->
-                            <div class="d-flex align-items-center gap-2">
-                                <a href="javascript:void(0);" class="btn pageRefresh p-2 me-0"><i class="bx bx-refresh fs-4"></i></a>
-                                <div class="input-group input-group-sm" style="width:220px">
-                                    <span class="input-group-text"><i class="bx bx-search"></i></span>
-                                    <input type="text" class="form-control" id="searchTransactionData" placeholder="Search..." title="Bill Number or Vendor Name">
+                            <!-- Right controls -->
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <a href="javascript:void(0);" class="btn btn-sm btn-outline-secondary p-1 pageRefresh" title="Refresh">
+                                    <i class="bx bx-refresh fs-5"></i>
+                                </a>
+                                <div class="input-group input-group-sm" style="width:210px">
+                                    <span class="input-group-text bg-transparent border-end-0"><i class="bx bx-search text-muted"></i></span>
+                                    <input type="text" class="form-control border-start-0" id="searchTransactionData"
+                                           placeholder="Bill # or vendor..." title="Search purchases">
                                 </div>
-
                                 <div class="dropdown">
                                     <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button"
                                             id="dateFilterBtn" data-bs-toggle="dropdown" aria-expanded="false">
                                         <i class="bx bx-calendar me-1"></i><span id="dateFilterLabel">All Dates</span>
                                     </button>
-                                    <ul class="dropdown-menu shadow" style="width:220px;max-height:320px;overflow-y:auto">
+                                    <ul class="dropdown-menu shadow" style="width:210px;max-height:300px;overflow-y:auto;font-size:.82rem;">
                                         <li><a class="dropdown-item date-option" data-range=""><i class="bx bx-list-ul me-2"></i>All Dates</a></li>
                                         <li><hr class="dropdown-divider"></li>
-                                        <li><a class="dropdown-item date-option" data-range="today"><i class="bx bx-circle me-2"></i>Today</a></li>
-                                        <li><a class="dropdown-item date-option" data-range="yesterday"><i class="bx bx-circle me-2"></i>Yesterday</a></li>
+                                        <li><a class="dropdown-item date-option" data-range="today">Today</a></li>
+                                        <li><a class="dropdown-item date-option" data-range="yesterday">Yesterday</a></li>
                                         <li><hr class="dropdown-divider"></li>
-                                        <li><a class="dropdown-item date-option" data-range="this_week"><i class="bx bx-circle me-2"></i>This Week</a></li>
-                                        <li><a class="dropdown-item date-option" data-range="last_week"><i class="bx bx-circle me-2"></i>Last Week</a></li>
-                                        <li><a class="dropdown-item date-option" data-range="last_7_days"><i class="bx bx-circle me-2"></i>Last 7 Days</a></li>
+                                        <li><a class="dropdown-item date-option" data-range="this_week">This Week</a></li>
+                                        <li><a class="dropdown-item date-option" data-range="last_week">Last Week</a></li>
+                                        <li><a class="dropdown-item date-option" data-range="last_7_days">Last 7 Days</a></li>
                                         <li><hr class="dropdown-divider"></li>
-                                        <li><a class="dropdown-item date-option" data-range="this_month"><i class="bx bx-circle me-2"></i>This Month</a></li>
-                                        <li><a class="dropdown-item date-option" data-range="previous_month"><i class="bx bx-circle me-2"></i>Previous Month</a></li>
-                                        <li><a class="dropdown-item date-option" data-range="last_30_days"><i class="bx bx-circle me-2"></i>Last 30 Days</a></li>
+                                        <li><a class="dropdown-item date-option" data-range="this_month">This Month</a></li>
+                                        <li><a class="dropdown-item date-option" data-range="previous_month">Previous Month</a></li>
+                                        <li><a class="dropdown-item date-option" data-range="last_30_days">Last 30 Days</a></li>
                                         <li><hr class="dropdown-divider"></li>
-                                        <li><a class="dropdown-item date-option" data-range="this_year"><i class="bx bx-circle me-2"></i>This Year</a></li>
-                                        <li><a class="dropdown-item date-option" data-range="last_year"><i class="bx bx-circle me-2"></i>Last Year</a></li>
-                                        <li><a class="dropdown-item date-option" data-range="last_quarter"><i class="bx bx-circle me-2"></i>Last Quarter</a></li>
+                                        <li><a class="dropdown-item date-option" data-range="this_year">This Year</a></li>
+                                        <li><a class="dropdown-item date-option" data-range="last_year">Last Year</a></li>
                                         <li><hr class="dropdown-divider"></li>
                                         <li><a class="dropdown-item date-option fw-bold" data-range="fy_25_26">
-                                            <i class="bx bxs-star text-warning me-2"></i>FY 25-26
+                                            <i class="bx bxs-star text-warning me-1"></i>FY 25-26
                                         </a></li>
                                     </ul>
                                 </div>
-
-                                <a href="/purchases/create" class="btn btn-primary btn-sm px-3">Record Bill</a>
+                                <a href="/purchases/create" class="btn btn-primary btn-sm px-3">
+                                    <i class="bx bx-plus me-1"></i>Record Bill
+                                </a>
                             </div>
                         </div>
 
-                        <!-- ── Table ───────────────────────────────── -->
-                        <div class="table-responsive text-nowrap">
-                            <table class="table table-hover MainviewTable mb-0" id="purchTable">
-                                <thead class="bg-body-tertiary">
+                        <!-- Table -->
+                        <div class="table-responsive">
+                            <table class="table trans-table table-hover MainviewTable mb-0" id="purchTable">
+                                <thead>
                                     <tr>
-                                        <th class="table-checkbox" style="width:40px">
-                                            <div class="form-check">
+                                        <th style="width:36px">
+                                            <div class="form-check mb-0">
                                                 <input class="form-check-input table-chkbox purchHeaderCheck" type="checkbox">
                                             </div>
                                         </th>
-                                        <th class="<?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?> table-serialno" style="width:50px">S.No</th>
+                                        <th class="<?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?> table-serialno" style="width:44px">S.No</th>
                                         <th class="col-sortable cursor-pointer user-select-none" data-sort="Number">
-                                            # Bill <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Number"></i>
+                                            Bill # <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Number"></i>
                                         </th>
                                         <th class="col-sortable cursor-pointer user-select-none" data-sort="Amount">
                                             Amount <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Amount"></i>
@@ -109,11 +171,10 @@
                                         <th>Status</th>
                                         <th>Vendor</th>
                                         <th class="col-sortable cursor-pointer user-select-none" data-sort="Date">
-                                            Bill Date <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Date"></i>
+                                            Due Date <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Date"></i>
                                         </th>
-                                        <th>Due Date</th>
                                         <th>Last Updated</th>
-                                        <th style="width:50px">Actions</th>
+                                        <th style="width:50px"></th>
                                     </tr>
                                 </thead>
                                 <tbody class="table-border-bottom-0">
@@ -122,53 +183,77 @@
                             </table>
                         </div>
 
-                        <!-- ── Pagination ──────────────────────────── -->
+                        <!-- Pagination -->
                         <hr class="my-0">
                         <div class="row mx-3 my-2 justify-content-between align-items-center purchPagination" id="purchPagination">
-                            <?php echo $ModPagination ? $ModPagination : ''; ?>
+                            <?php echo $ModPagination ?: ''; ?>
                         </div>
 
                     </div>
 
-                    <!-- ── A4 Print Modal ────────────────────────── -->
+                    <!-- ── Print Modal ──────────────────────────────────── -->
                     <div class="modal fade" id="a4PrintModal" tabindex="-1" aria-hidden="true">
                         <div class="modal-dialog modal-xl modal-dialog-centered">
                             <div class="modal-content border-0 shadow-lg" style="border-radius:12px;overflow:hidden;">
-                                <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom" style="background:#fff;">
-                                    <div class="fw-semibold text-dark" style="font-size:.92rem;"><i class="bx bx-file-blank text-primary me-1"></i>Purchase Bill Preview</div>
+                                <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom bg-white">
+                                    <div class="fw-semibold" style="font-size:.92rem;">
+                                        <i class="bx bx-file-blank text-primary me-1"></i>Purchase Bill Preview
+                                    </div>
                                     <div class="d-flex align-items-center gap-2">
-                                        <div class="form-check form-check-inline mb-0 me-1">
+                                        <div class="form-check form-check-inline mb-0">
                                             <input class="form-check-input" type="radio" name="a4PaperSize" id="psA4" value="A4" checked>
                                             <label class="form-check-label small fw-semibold" for="psA4">A4</label>
                                         </div>
-                                        <div class="form-check form-check-inline mb-0 me-2">
+                                        <div class="form-check form-check-inline mb-0">
                                             <input class="form-check-input" type="radio" name="a4PaperSize" id="psA5" value="A5">
                                             <label class="form-check-label small fw-semibold" for="psA5">A5</label>
                                         </div>
-                                        <button type="button" class="btn btn-sm btn-success px-3 py-1" id="a4PrintBtn">
+                                        <button type="button" class="btn btn-sm btn-success px-3" id="a4PrintBtn">
                                             <i class="bx bx-printer me-1"></i>Print
                                         </button>
-                                        <button type="button" class="btn btn-sm btn-danger px-3 py-1" data-bs-dismiss="modal">Close</button>
+                                        <button type="button" class="btn btn-sm btn-danger px-3" data-bs-dismiss="modal">Close</button>
                                     </div>
                                 </div>
-                                <div id="a4PrintPreview"
-                                     style="background:#404040;overflow-y:auto;overflow-x:auto;
-                                            height:82vh;display:flex;align-items:flex-start;
-                                            justify-content:center;padding:24px 16px;">
+                                <div id="a4PrintPreview" style="background:#404040;overflow-y:auto;height:82vh;display:flex;align-items:flex-start;justify-content:center;padding:24px 16px;">
                                     <div class="d-flex justify-content-center align-items-center w-100 h-100">
-                                        <div class="spinner-border text-light" role="status"></div>
+                                        <div class="spinner-border text-light"></div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- ── View Purchase Modal ───────────────────── -->
+                    <!-- ── Thermal Print Modal ─────────────────────────────── -->
+                    <div class="modal fade" id="thermalPrintModal" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-top" style="max-width:600px">
+                            <div class="modal-content">
+                                <div class="modal-header p-3">
+                                    <h6 class="modal-title text-primary fw-bold fs-6 mb-0"><i class="bx bx-printer me-1"></i>Thermal Receipt Preview</h6>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body p-2 bg-white" id="thermalPrintBody">
+                                    <div class="d-flex justify-content-center py-5">
+                                        <div class="spinner-border text-primary" role="status"></div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer py-2">
+                                    <a href="/quotations/thermalPrintConfig" class="btn btn-outline-secondary btn-sm me-auto">
+                                        <i class="bx bx-cog me-1"></i>Configure
+                                    </a>
+                                    <button type="button" class="btn btn-dark btn-sm" id="thermalPrintBtn">
+                                        <i class="bx bx-printer me-1"></i>Print
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ── View Purchase Modal ──────────────────────────── -->
                     <div class="modal fade" id="viewPurchaseModal" tabindex="-1" aria-hidden="true">
                         <div class="modal-dialog modal-xl modal-dialog-scrollable">
                             <div class="modal-content">
-                                <div class="modal-header modal-header-border-bottom p-3 d-flex justify-content-between align-items-center">
-                                    <h6 class="modal-title fw-semibold fs-6 text-primary mb-0" id="viewPurchaseModalTitle">Purchase Bill Details</h6>
+                                <div class="modal-header p-3 d-flex justify-content-between align-items-center">
+                                    <h6 class="modal-title fw-semibold text-primary mb-0" id="viewPurchaseModalTitle">Purchase Bill Details</h6>
                                     <div class="gap-2">
                                         <a href="javascript:void(0);" id="viewPurchaseEditBtn" class="btn btn-warning btn-sm me-2">
                                             <i class="bx bx-edit me-1"></i>Edit
@@ -178,7 +263,7 @@
                                 </div>
                                 <div class="modal-body p-0" id="viewPurchaseModalBody">
                                     <div class="d-flex justify-content-center align-items-center py-5">
-                                        <div class="spinner-border text-primary" role="status"></div>
+                                        <div class="spinner-border text-primary"></div>
                                     </div>
                                 </div>
                                 <div class="modal-footer py-2"></div>
@@ -190,7 +275,6 @@
             </div>
 
             <?php $this->load->view('common/footer_desc'); ?>
-
         </div>
     </div>
 </div>
@@ -200,23 +284,38 @@
 <script src="/js/transactions/purchases.js"></script>
 
 <script>
-const  ModuleId     = 105;
-const  ModuleTable  = '#purchTable';
-const  ModulePag    = '.purchPagination';
-const  ModuleHeader = '.purchHeaderCheck';
-const  ModuleRow    = '.purchCheck';
+const ModuleId     = 105;
+const ModuleTable  = '#purchTable';
+const ModulePag    = '.purchPagination';
+const ModuleHeader = '.purchHeaderCheck';
+const ModuleRow    = '.purchCheck';
 
 $(function () {
-    'use strict'
+    'use strict';
 
     Filter['Status'] = 'All';
 
-    // ── Status tabs ─────────────────────────────────────
+    // ── Stat card click → filter ────────────────────────────
+    $(document).on('click', '[data-stat-filter]', function () {
+        var status = $(this).data('stat-filter') || 'All';
+        $('.trans-stat-card').removeClass('active-stat');
+        $(this).addClass('active-stat');
+        $('.purch-status-tab').removeClass('active');
+        $('.purch-status-tab[data-status="' + status + '"]').addClass('active');
+        Filter.Status = status;
+        PageNo = 1;
+        getPurchasesDetails();
+    });
+
+    // ── Status tabs ─────────────────────────────────────────
     $(document).on('click', '.purch-status-tab', function (e) {
         e.preventDefault();
         $('.purch-status-tab').removeClass('active');
         $(this).addClass('active');
-        Filter.Status = $(this).data('status') || 'All';
+        $('.trans-stat-card').removeClass('active-stat');
+        var status = $(this).data('status') || 'All';
+        $('[data-stat-filter="' + status + '"]').addClass('active-stat');
+        Filter.Status = status;
         PageNo = 1;
         getPurchasesDetails();
     });
@@ -266,15 +365,11 @@ $(function () {
     // Pagination
     $(document).on('click', '.purchPagination .page-link', function (e) {
         e.preventDefault();
-        var href  = $(this).attr('href') || '';
-        var match = href.match(/\/(\d+)$/);
-        if (match) {
-            PageNo = parseInt(match[1]);
-            getPurchasesDetails();
-        }
+        var match = ($(this).attr('href') || '').match(/\/(\d+)$/);
+        if (match) { PageNo = parseInt(match[1]); getPurchasesDetails(); }
     });
 
-    // ── Inline status update ────────────────────────────
+    // ── Inline status update ────────────────────────────────
     $(document).on('click', '.purch-status-update', function () {
         var uid    = $(this).data('uid');
         var status = $(this).data('status');
@@ -283,16 +378,13 @@ $(function () {
             method: 'POST',
             data  : { TransUID: uid, Status: status, [CsrfName]: CsrfToken },
             success: function (resp) {
-                if (resp.Error) {
-                    Swal.fire({ icon: 'error', text: resp.Message });
-                } else {
-                    getPurchasesDetails();
-                }
+                if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); }
+                else            { getPurchasesDetails(); }
             }
         });
     });
 
-    // ── View modal ──────────────────────────────────────
+    // ── View modal ──────────────────────────────────────────
     $(document).on('click', '.viewPurchase', function () {
         var uid = $(this).data('uid');
         $('#viewPurchaseModal').modal('show');
@@ -316,7 +408,7 @@ $(function () {
         });
     });
 
-    // ── A4 Print ─────────────────────────────────────────
+    // ── A4 Print ─────────────────────────────────────────────
     $(document).on('click', '.a4PrintPurchase', function () {
         var uid = $(this).data('uid');
         $('#a4PrintModal').modal('show');
@@ -336,89 +428,59 @@ $(function () {
             }
         });
     });
-
     $('input[name="a4PaperSize"]').on('change', function () {
-        if (!window._purchLastPrintData) return;
-        var size = $(this).val();
-        $('#a4PrintPreview').html(_buildA4Html(window._purchLastPrintData, size));
+        if (window._purchLastPrintData) $('#a4PrintPreview').html(_buildA4Html(window._purchLastPrintData, $(this).val()));
     });
-
     $('#a4PrintBtn').on('click', function () {
         var frame = document.getElementById('a4PrintFrame');
-        if (!frame) {
-            frame = document.createElement('iframe');
-            frame.id = 'a4PrintFrame';
-            frame.style.display = 'none';
-            document.body.appendChild(frame);
-        }
+        if (!frame) { frame = document.createElement('iframe'); frame.id = 'a4PrintFrame'; frame.style.display = 'none'; document.body.appendChild(frame); }
         var size    = $('input[name="a4PaperSize"]:checked').val() || 'A4';
         var content = _buildA4Html(window._purchLastPrintData, size, true);
-        frame.contentDocument.open();
-        frame.contentDocument.write(content);
-        frame.contentDocument.close();
+        frame.contentDocument.open(); frame.contentDocument.write(content); frame.contentDocument.close();
         frame.onload = function () { frame.contentWindow.print(); };
     });
 
-    // ── Delete ───────────────────────────────────────────
+    // ── Delete ───────────────────────────────────────────────
     $(document).on('click', '.deletePurchase', function () {
         var uid = $(this).data('uid');
         var num = $(this).data('num') || '';
         Swal.fire({
-            title            : 'Delete Purchase Bill?',
-            html             : num ? 'Delete <strong>' + num + '</strong>? This cannot be undone.' : 'This cannot be undone.',
-            icon             : 'warning',
-            showCancelButton : true,
-            confirmButtonText: 'Delete',
-            confirmButtonColor: '#d33',
-        }).then(function (result) {
-            if (!result.isConfirmed) return;
+            title: 'Delete Purchase Bill?',
+            html : num ? 'Delete <strong>' + num + '</strong>? This cannot be undone.' : 'This cannot be undone.',
+            icon : 'warning', showCancelButton: true,
+            confirmButtonText: 'Delete', confirmButtonColor: '#d33',
+        }).then(function (r) {
+            if (!r.isConfirmed) return;
             $.ajax({
                 url   : '/purchases/deletePurchase',
                 method: 'POST',
                 data  : { TransUID: uid, [CsrfName]: CsrfToken },
                 success: function (resp) {
-                    if (resp.Error) {
-                        Swal.fire({ icon: 'error', text: resp.Message });
-                    } else {
-                        getPurchasesDetails();
-                        Swal.fire({ icon: 'success', text: resp.Message, timer: 1500, showConfirmButton: false });
-                    }
+                    if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); }
+                    else { getPurchasesDetails(); Swal.fire({ icon: 'success', text: resp.Message, timer: 1500, showConfirmButton: false }); }
                 }
             });
         });
     });
 
-    // ── Duplicate ────────────────────────────────────────
+    // ── Duplicate ────────────────────────────────────────────
     $(document).on('click', '.duplicatePurchase', function () {
         var uid = $(this).data('uid');
         Swal.fire({
-            title            : 'Duplicate Purchase Bill?',
-            text             : 'A new draft copy will be created.',
-            icon             : 'question',
-            showCancelButton : true,
-            confirmButtonText: 'Duplicate',
-        }).then(function (result) {
-            if (!result.isConfirmed) return;
+            title: 'Duplicate Purchase Bill?', text: 'A new draft copy will be created.',
+            icon : 'question', showCancelButton: true, confirmButtonText: 'Duplicate',
+        }).then(function (r) {
+            if (!r.isConfirmed) return;
             $.ajax({
                 url   : '/purchases/duplicatePurchase',
                 method: 'POST',
                 data  : { TransUID: uid, [CsrfName]: CsrfToken },
                 success: function (resp) {
-                    if (resp.Error) {
-                        Swal.fire({ icon: 'error', text: resp.Message });
-                    } else {
+                    if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); }
+                    else {
                         getPurchasesDetails();
-                        Swal.fire({
-                            icon : 'success',
-                            text : resp.Message,
-                            showCancelButton : true,
-                            confirmButtonText: 'Edit Now',
-                            cancelButtonText : 'Stay Here',
-                        }).then(function (r) {
-                            if (r.isConfirmed && resp.EditURL) {
-                                window.location.href = resp.EditURL;
-                            }
-                        });
+                        Swal.fire({ icon: 'success', text: resp.Message, showCancelButton: true, confirmButtonText: 'Edit Now', cancelButtonText: 'Stay Here' })
+                            .then(function (r2) { if (r2.isConfirmed && resp.EditURL) window.location.href = resp.EditURL; });
                     }
                 }
             });
@@ -435,28 +497,24 @@ $(function () {
 // ── Detail view HTML builder ──────────────────────────────
 function _buildPurchDetailHtml(resp) {
     window._purchLastPrintData = resp;
-    var h   = resp.Header || {};
-    var org = resp.OrgInfo || {};
-    var cur = (org.CurrenySymbol || '₹') + ' ';
-    var dec = h.DecimalPoints || 2;
+    var h = resp.Header || {}, org = resp.OrgInfo || {};
+    var cur = (org.CurrenySymbol || '₹') + ' ', dec = h.DecimalPoints || 2;
     var rows = '';
     (resp.Items || []).forEach(function (item, i) {
         rows += '<tr>' +
             '<td class="text-center">' + (i + 1) + '</td>' +
             '<td>' + _esc(item.ProductName) + (item.PartNumber ? '<br><small class="text-muted">' + _esc(item.PartNumber) + '</small>' : '') + '</td>' +
             '<td class="text-center">' + _esc(item.Quantity) + ' ' + _esc(item.PrimaryUnitName) + '</td>' +
-            '<td class="text-end">' + cur + _esc(parseFloat(item.UnitPrice).toFixed(dec)) + '</td>' +
-            '<td class="text-end">' + cur + _esc(parseFloat(item.NetAmount).toFixed(dec)) + '</td>' +
+            '<td class="text-end">' + cur + parseFloat(item.UnitPrice || 0).toFixed(dec) + '</td>' +
+            '<td class="text-end">' + cur + parseFloat(item.NetAmount || 0).toFixed(dec) + '</td>' +
             '</tr>';
     });
     return '<div class="p-3">' +
         '<div class="row mb-3">' +
             '<div class="col-md-6"><strong>' + _esc(org.OrgName || '') + '</strong><br>' +
                 '<small class="text-muted">' + _esc(h.UniqueNumber || '—') + ' &nbsp;|&nbsp; ' + _esc(h.TransDate || '') + '</small></div>' +
-            '<div class="col-md-6 text-end">' +
-                '<strong>Vendor:</strong> ' + _esc(h.PartyName || '—') +
-                (h.ValidityDate ? '<br><small class="text-muted">Due: ' + _esc(h.ValidityDate) + '</small>' : '') +
-            '</div>' +
+            '<div class="col-md-6 text-end"><strong>Vendor:</strong> ' + _esc(h.PartyName || '—') +
+                (h.ValidityDate ? '<br><small class="text-muted">Due: ' + _esc(h.ValidityDate) + '</small>' : '') + '</div>' +
         '</div>' +
         '<table class="table table-bordered table-sm">' +
             '<thead class="table-light"><tr><th>#</th><th>Product</th><th class="text-center">Qty</th><th class="text-end">Unit Price</th><th class="text-end">Net Amount</th></tr></thead>' +
@@ -476,27 +534,23 @@ function _buildPurchDetailHtml(resp) {
 function _buildA4Html(resp, size, forPrint) {
     if (!resp) return '';
     window._purchLastPrintData = resp;
-    var w   = size === 'A5' ? '148mm' : '210mm';
-    var h   = resp.Header || {};
-    var org = resp.OrgInfo || {};
-    var cur = (org.CurrenySymbol || '₹') + ' ';
-    var dec = 2;
+    var w = size === 'A5' ? '148mm' : '210mm';
+    var h = resp.Header || {}, org = resp.OrgInfo || {};
+    var cur = (org.CurrenySymbol || '₹') + ' ', dec = 2;
     var rows = '';
     (resp.Items || []).forEach(function (item, i) {
-        rows += '<tr>' +
-            '<td style="text-align:center">' + (i + 1) + '</td>' +
+        rows += '<tr><td style="text-align:center">' + (i + 1) + '</td>' +
             '<td>' + _esc(item.ProductName) + (item.PartNumber ? '<br><span style="font-size:.8em;color:#888">' + _esc(item.PartNumber) + '</span>' : '') + '</td>' +
             '<td style="text-align:center">' + _esc(item.Quantity) + ' ' + (_esc(item.PrimaryUnitName) || '') + '</td>' +
             '<td style="text-align:right">' + cur + parseFloat(item.UnitPrice || 0).toFixed(dec) + '</td>' +
-            '<td style="text-align:right">' + cur + parseFloat(item.NetAmount || 0).toFixed(dec) + '</td>' +
-            '</tr>';
+            '<td style="text-align:right">' + cur + parseFloat(item.NetAmount || 0).toFixed(dec) + '</td></tr>';
     });
-    var printStyles = forPrint ? '@media print { body { margin: 0; } .page { box-shadow: none; } }' : '';
-    var html = '<!DOCTYPE html><html><head><meta charset="UTF-8">' +
-        '<style>body{font-family:Arial,sans-serif;font-size:12px;background:#404040}' +
+    var ps = forPrint ? '@media print{body{margin:0}.page{box-shadow:none}}' : '';
+    var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>' +
+        'body{font-family:Arial,sans-serif;font-size:12px;background:#404040}' +
         '.page{width:' + w + ';background:#fff;margin:0 auto;padding:20px;box-shadow:0 0 20px rgba(0,0,0,.5)}' +
         'table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:6px 8px;font-size:11px}' +
-        'th{background:#f5f5f5;font-weight:bold}' + printStyles + '</style></head>' +
+        'th{background:#f5f5f5;font-weight:bold}' + ps + '</style></head>' +
         '<body><div class="page">' +
         '<div style="display:flex;justify-content:space-between;margin-bottom:12px">' +
             '<div><strong style="font-size:14px">' + _esc(org.OrgName || '') + '</strong>' +
@@ -529,5 +583,131 @@ function _buildA4Html(resp, size, forPrint) {
 function _esc(v) {
     if (v === null || v === undefined) return '—';
     return $('<span>').text(String(v)).html();
+}
+
+// ── Thermal Print ─────────────────────────────────────────────────────────
+var _thermalData = null;
+
+$(document).on('click', '.thermalPrintPurchase', function () {
+    var uid = $(this).data('uid');
+    _thermalData = null;
+    $('#thermalPrintBody').html('<div class="d-flex justify-content-center py-5"><div class="spinner-border text-primary"></div></div>');
+    new bootstrap.Modal(document.getElementById('thermalPrintModal')).show();
+    AjaxLoading = 0;
+    $.ajax({
+        url   : '/purchases/getPurchaseDetail',
+        method: 'GET',
+        data  : { TransUID: uid },
+        success: function (resp) {
+            AjaxLoading = 1;
+            if (resp.Error) { $('#thermalPrintBody').html('<div class="alert alert-danger m-2">' + _esc(resp.Message) + '</div>'); return; }
+            _thermalData = resp;
+            $('#thermalPrintBody').html(_buildThermalHtml(resp, 0));
+        },
+        error: function () { AjaxLoading = 1; $('#thermalPrintBody').html('<div class="alert alert-danger m-2">Failed to load receipt.</div>'); }
+    });
+});
+
+$('#thermalPrintBtn').on('click', function () {
+    if (!_thermalData) return;
+    var cfg = _thermalData.ThermalConfig;
+    var paperWidth = (cfg && cfg.PaperWidth) ? cfg.PaperWidth : '80mm';
+    var receiptHtml = _buildThermalHtml(_thermalData, 1);
+    var win = window.open('', '_blank', 'width=400,height=700');
+    win.document.write('<!DOCTYPE html><html><head><title>Thermal Receipt</title><style>' +
+        '* { margin:0; padding:0; box-sizing:border-box; }' +
+        'body { font-family: Arial, Helvetica, sans-serif; font-size:12px; width:' + paperWidth + '; padding:4px; }' +
+        '.fs-6 { font-size: 0.8rem !important; } .tp-center { text-align: center; } .tp-bold { font-weight: bold; }' +
+        '.tp-hr { border: none; border-top: 1px dashed #000; margin: 4px 0; }' +
+        '.tp-row { display: flex; justify-content: space-between; margin: 1px 0; }' +
+        '.tp-row-end { display: flex; justify-content: end; margin: 1px 0; }' +
+        '.tp-item-name { font-weight: bold; margin-top: 2px; } .tp-small { font-size:11px; }' +
+        '.tp-total { font-size:13px; font-weight:bold; border-top:1px solid #000; padding-top:3px; margin-top:3px; }' +
+        '.tp-footer { text-align:center; margin-top:6px; font-size:11px; }' +
+        '@media print { @page { margin:0; size:' + paperWidth + ' auto; } body { width:' + paperWidth + '; } }' +
+        '</style></head><body style="font-family:Arial,Helvetica,sans-serif!important;font-size:12px!important;width:' + paperWidth + ';padding:4px;">' +
+        receiptHtml + '</body></html>');
+    win.document.close(); win.focus();
+    setTimeout(function () { win.print(); }, 300);
+});
+
+function _buildThermalHtml(resp, type) {
+    var h   = resp.Header;
+    var org = resp.OrgInfo  || {};
+    var cfg = resp.ThermalConfig || {};
+    var sym = '<?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>';
+    var line1 = cfg.HeaderLine1 || org.BrandName || org.Name || '';
+    var line2 = cfg.HeaderLine2 || '';
+    var line3 = cfg.HeaderLine3 || [org.CityText, org.StateText, org.Pincode].filter(Boolean).join(', ');
+    var showGSTIN  = cfg.ShowGSTIN   !== undefined ? parseInt(cfg.ShowGSTIN)   : 1;
+    var showMobile = cfg.ShowMobile  !== undefined ? parseInt(cfg.ShowMobile)  : 1;
+    var showHSN    = cfg.ShowHSN     !== undefined ? parseInt(cfg.ShowHSN)     : 1;
+    var showTaxBkd = cfg.ShowTaxBreakdown !== undefined ? parseInt(cfg.ShowTaxBreakdown) : 1;
+    var footer     = cfg.FooterMessage || 'Thank you for your business!';
+    var html = '';
+    html += '<div style="display:flex;align-items:center;justify-content:center;"><img src="/images/logo/favicon_io/android-chrome-512x512-1.png" width="60px" height="60px" alt="Logo">';
+    html += '<div class="fs-6 ms-1"><div class="tp-center tp-bold">' + _esc(line1) + '</div>';
+    if (line2) html += '<div class="tp-center tp-small">' + _esc(line2) + '</div>';
+    if (line3) html += '<div class="tp-center tp-small">' + _esc(line3) + '</div>';
+    if (showMobile && org.MobileNumber) html += '<div class="tp-center tp-small">Ph: ' + _esc(org.MobileNumber) + '</div>';
+    if (showGSTIN && org.GSTIN) html += '<div class="tp-center tp-small">GSTIN: ' + _esc(org.GSTIN) + '</div>';
+    html += '</div></div>';
+    html += '<hr class="tp-hr my-1">';
+    html += '<div class="fs-6"><div class="d-flex justify-content-between align-items-center mb-1">';
+    html += '<div class="tp-row fs-6"><span class="tp-bold">Bill No.: </span><span class="tp-bold">' + _esc(h.UniqueNumber || '—') + '</span></div>';
+    html += '<div class="tp-row"><span>Date: </span><span>' + _esc(h.TransDate) + '</span></div></div>';
+    html += '<div class="d-flex justify-content-between align-items-center">';
+    html += '<div class="tp-row"><span>Vendor: </span><span style="text-align:right;max-width:60%">' + _esc(h.PartyName) + '</span></div>';
+    if (h.PartyMobile) html += '<div class="tp-row"><span>Phone: </span><span>' + _esc(h.PartyMobile) + '</span></div>';
+    html += '</div></div>';
+    html += '<hr class="tp-hr my-1">';
+    html += '<div class="fs-6"><div class="mb-1" style="display:flex;align-items:center;justify-content:space-between;">';
+    html += '<div class="tp-row tp-item-name tp-bold"><span>Item </span></div><div></div></div>';
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;">';
+    html += '<div class="tp-row" style="font-size:smaller;">Quantity x Price</div><div class="tp-row">Amount</div></div></div>';
+    html += '<hr class="tp-hr my-1">';
+    $.each(resp.Items || [], function (i, item) {
+        html += '<div class="fs-6">';
+        var lineAmt = parseFloat(item.NetAmount) || 0;
+        var hsnLine = (showHSN && item.HSNCode) ? ' [HSN:' + item.HSNCode + ']' : '';
+        html += '<div class="mb-1" style="display:flex;align-items:center;justify-content:space-between;">';
+        html += '<div class="tp-item-name fs-6">' + _esc(item.ProductName) + _esc(hsnLine) + '</div><div></div></div>';
+        html += '<div class="mb-1" style="display:flex;align-items:center;justify-content:space-between;">';
+        html += '<div class="tp-row tp-small" style="font-size:smaller;">' + _esc(item.Quantity) + ' (' + _esc(item.PrimaryUnitName || 'PCS') + ') x ' + _esc(item.UnitPrice) + '</div>';
+        html += '<div class="fs-6">' + lineAmt.toFixed(2) + '</div></div>';
+        if (showTaxBkd && parseFloat(item.TaxPercentage) > 0) {
+            var cgst = parseFloat(item.CgstAmount) || 0, sgst = parseFloat(item.SgstAmount) || 0, igst = parseFloat(item.IgstAmount) || 0;
+            html += '<div style="display:flex;align-items:center;justify-content:space-between;">';
+            if (cgst > 0 && sgst > 0) {
+                html += '<div class="tp-row tp-small" style="color:#555;font-size:smaller;">CGST ' + item.CGST + '% ' + cgst.toFixed(2) + '</div>';
+                html += '<div class="tp-row tp-small" style="color:#555;font-size:smaller;">SGST ' + item.SGST + '% ' + sgst.toFixed(2) + '</div>';
+            } else if (igst > 0) { html += '<div class="tp-row tp-small" style="color:#555;font-size:smaller;">IGST ' + item.IGST + '% ' + igst.toFixed(2) + '</div>'; }
+            html += '</div>';
+        }
+        html += '</div>';
+        if (resp.Items.length > 1 && i != resp.Items.length - 1) html += '<hr class="tp-hr my-1">';
+    });
+    html += '<hr class="tp-hr my-1">';
+    html += '<div class="tp-small fs-6" style="text-align:center!important;">Items/Qty: ' + (resp.Items ? resp.Items.length : 0) + ' / ' + (function(){ var q=0; $.each(resp.Items||[],function(i,it){q+=parseFloat(it.Quantity)||0;}); return q; }()) + '</div>';
+    html += '<hr class="tp-hr my-1">';
+    html += '<div style="text-align:end!important;">';
+    html += '<div class="tp-row-end fw-semibold tp-item-name"><span>Subtotal: </span><span class="fs-6">' + sym + ' ' + parseFloat(h.SubTotal || 0).toFixed(2) + '</span></div>';
+    if (parseFloat(h.DiscountAmount) > 0) html += '<div class="tp-row-end fw-semibold"><span>Discount: </span><span class="fs-6">- ' + sym + ' ' + parseFloat(h.DiscountAmount).toFixed(2) + '</span></div>';
+    if (parseFloat(h.TaxAmount) > 0) {
+        html += '<div class="tp-row-end fw-semibold"><span>Total Tax: </span><span class="fs-6">' + sym + ' ' + parseFloat(h.TaxAmount).toFixed(2) + '</span></div>';
+        if (showTaxBkd) {
+            if (parseFloat(h.CgstAmount) > 0) html += '<div class="tp-row-end tp-small"><span>  CGST: </span><span class="fs-6">' + sym + ' ' + parseFloat(h.CgstAmount).toFixed(2) + '</span></div>';
+            if (parseFloat(h.SgstAmount) > 0) html += '<div class="tp-row-end tp-small"><span>  SGST: </span><span class="fs-6">' + sym + ' ' + parseFloat(h.SgstAmount).toFixed(2) + '</span></div>';
+            if (parseFloat(h.IgstAmount) > 0) html += '<div class="tp-row-end tp-small"><span>  IGST: </span><span class="fs-6">' + sym + ' ' + parseFloat(h.IgstAmount).toFixed(2) + '</span></div>';
+        }
+    }
+    if (parseFloat(h.AdditionalCharges) > 0) html += '<div class="tp-row-end fw-semibold"><span>Charges: </span><span class="fs-6">' + sym + ' ' + parseFloat(h.AdditionalCharges).toFixed(2) + '</span></div>';
+    if (parseFloat(h.RoundOff || 0) !== 0) html += '<div class="tp-row-end tp-small fw-semibold"><span>Round Off: </span><span class="fs-6">' + sym + ' ' + parseFloat(h.RoundOff).toFixed(2) + '</span></div>';
+    html += '<div class="tp-total tp-row-end fw-semibold tp-item-name"><span>Total Amount: </span><span class="fs-5">' + sym + ' ' + parseFloat(h.NetAmount || 0).toFixed(2) + '</span></div>';
+    html += '</div>';
+    html += '<hr class="tp-hr my-1">';
+    html += '<div class="tp-footer" style="text-align:center!important;">' + _esc(footer) + '</div>';
+    html += '<div style="margin-bottom:8px"></div>';
+    return type === 0 ? '<div style="font-family:\'Courier New\',Courier,monospace;font-size:13px;padding:8px;max-width:580px;margin:0 auto;font-weight:900;">' + html + '</div>' : html;
 }
 </script>

@@ -9,101 +9,137 @@
 
         <div class="layout-page">
 
-            <?php $this->load->view('common/navbar_view'); ?>
-
             <div class="content-wrapper">
                 <div class="container-xxl flex-grow-1 container-p-y">
 
+                    <?php
+                    $stats        = $SummaryStats ?? [];
+                    $cur          = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
+                    $dec          = $JwtData->GenSettings->DecimalPoints ?? 2;
+
+                    // All = everything except Draft, Cancelled, Rejected
+                    $cntAll       = array_sum(array_column(
+                        array_filter($stats, fn($k) => !in_array($k, ['Draft','Cancelled','Rejected']), ARRAY_FILTER_USE_KEY),
+                        'count'
+                    ));
+                    $amtAll       = array_sum(array_column(
+                        array_filter($stats, fn($k) => !in_array($k, ['Draft','Cancelled','Rejected']), ARRAY_FILTER_USE_KEY),
+                        'amount'
+                    ));
+
+                    // Open = Pending
+                    $cntOpen      = $stats['Pending']['count']   ?? 0;
+                    $amtOpen      = $stats['Pending']['amount']  ?? 0;
+
+                    // Accepted
+                    $cntAccepted  = $stats['Accepted']['count']  ?? 0;
+                    $amtAccepted  = $stats['Accepted']['amount'] ?? 0;
+
+                    // Draft
+                    $cntDraft     = $stats['Draft']['count']     ?? 0;
+
+                    // Converted
+                    $cntConverted = $stats['Converted']['count']  ?? 0;
+                    $amtConverted = $stats['Converted']['amount'] ?? 0;
+
+                    // Cancelled = Cancelled + Rejected combined
+                    $cntCancelled = ($stats['Cancelled']['count'] ?? 0) + ($stats['Rejected']['count'] ?? 0);
+
+                    function fmtAmt($val, $sym, $dec) {
+                        return $sym . ' ' . number_format((float)$val, $dec, '.', ',');
+                    }
+                    ?>
+
+                    <!-- ── Stat Cards ────────────────────────────────────── -->
+                    <div class="row g-3 mb-2">
+                        <div class="col-6 col-md">
+                            <a href="javascript:void(0);" class="trans-stat-card stat-all active-stat" data-stat-filter="All">
+                                <div class="trans-stat-label">All Quotations</div>
+                                <div class="trans-stat-count"><?php echo number_format($cntAll); ?></div>
+                                <div class="trans-stat-amount"><?php echo fmtAmt($amtAll, $cur, $dec); ?></div>
+                                <i class="bx bx-file trans-stat-icon"></i>
+                            </a>
+                        </div>
+                        <div class="col-6 col-md">
+                            <a href="javascript:void(0);" class="trans-stat-card stat-active" data-stat-filter="Open">
+                                <div class="trans-stat-label">Open</div>
+                                <div class="trans-stat-count"><?php echo number_format($cntOpen); ?></div>
+                                <div class="trans-stat-amount"><?php echo fmtAmt($amtOpen, $cur, $dec); ?></div>
+                                <i class="bx bx-send trans-stat-icon"></i>
+                            </a>
+                        </div>
+                        <div class="col-6 col-md">
+                            <a href="javascript:void(0);" class="trans-stat-card stat-paid" data-stat-filter="Accepted">
+                                <div class="trans-stat-label">Accepted</div>
+                                <div class="trans-stat-count"><?php echo number_format($cntAccepted); ?></div>
+                                <div class="trans-stat-amount"><?php echo fmtAmt($amtAccepted, $cur, $dec); ?></div>
+                                <i class="bx bx-check-circle trans-stat-icon"></i>
+                            </a>
+                        </div>
+                        <div class="col-6 col-md">
+                            <a href="javascript:void(0);" class="trans-stat-card stat-converted" data-stat-filter="Converted">
+                                <div class="trans-stat-label">Converted</div>
+                                <div class="trans-stat-count"><?php echo number_format($cntConverted); ?></div>
+                                <div class="trans-stat-amount"><?php echo fmtAmt($amtConverted, $cur, $dec); ?></div>
+                                <i class="bx bx-transfer-alt trans-stat-icon"></i>
+                            </a>
+                        </div>
+                        <div class="col-6 col-md">
+                            <a href="javascript:void(0);" class="trans-stat-card stat-draft" data-stat-filter="Draft">
+                                <div class="trans-stat-label">Drafts</div>
+                                <div class="trans-stat-count"><?php echo number_format($cntDraft); ?></div>
+                                <div class="trans-stat-amount">&nbsp;</div>
+                                <i class="bx bx-pencil trans-stat-icon"></i>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- ── Main Card ─────────────────────────────────────── -->
                     <div class="card">
 
-                        <!-- ── Toolbar ─────────────────────────────── -->
-                        <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2 py-2 border-bottom-0">
-
-                            <!-- Status tabs -->
-                            <ul class="nav nav-pills gap-1" id="quotStatusTabs" role="tablist">
-                                <li class="nav-item">
-                                    <a class="nav-link py-1 px-3 active quot-status-tab" data-status="All" href="javascript:void(0);">
-                                        All <span class="badge bg-info ms-1 quot-tab-count"><?php echo $ModAllCount; ?></span>
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link py-1 px-3 quot-status-tab" data-status="Open" href="javascript:void(0);">
-                                        Open <span class="badge bg-info ms-1 quot-tab-count d-none"></span></a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link py-1 px-3 quot-status-tab" data-status="Closed" href="javascript:void(0);">
-                                        Closed <span class="badge bg-info ms-1 quot-tab-count d-none"></span></a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link py-1 px-3 quot-status-tab" data-status="Partial" href="javascript:void(0);">
-                                        Partial <span class="badge bg-info ms-1 quot-tab-count d-none"></span></a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link py-1 px-3 quot-status-tab" data-status="Cancelled" href="javascript:void(0);">
-                                        Cancelled <span class="badge bg-info ms-1 quot-tab-count d-none"></span></a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link py-1 px-3 quot-status-tab" data-status="Draft" href="javascript:void(0);">
-                                        Drafts <span class="badge bg-info ms-1 quot-tab-count d-none"></span></a>
-                                </li>
-                            </ul>
-
-                            <!-- Search + Date filter + Create -->
-                            <div class="d-flex align-items-center gap-2">
-                                <a href="javascript: void(0);" class="btn pageRefresh p-2 me-0"><i class="bx bx-refresh fs-4"></i></a>
-                                <div class="input-group input-group-sm" style="width:220px">
-                                    <span class="input-group-text" id="transSearchIcon"><i class="bx bx-search"></i></span>
-                                    <input type="text" class="form-control" id="searchTransactionData" placeholder="Search..." title="Quotation Number or Customer Name">
+                        <!-- Toolbar -->
+                        <div class="trans-toolbar">
+                            <div class="trans-toolbar-tabs">
+                                <ul class="nav trans-status-tabs" id="quotStatusTabs" role="tablist">
+                                    <li class="nav-item"><a class="nav-link active quot-status-tab" data-status="All" href="javascript:void(0);">All <span class="trans-tab-count"><?php echo $ModAllCount; ?></span></a></li>
+                                    <li class="nav-item"><a class="nav-link quot-status-tab" data-status="Open" href="javascript:void(0);">Open <span class="trans-tab-count d-none"></span></a></li>
+                                    <li class="nav-item"><a class="nav-link quot-status-tab" data-status="Accepted" href="javascript:void(0);">Accepted <span class="trans-tab-count d-none"></span></a></li>
+                                    <li class="nav-item"><a class="nav-link quot-status-tab" data-status="Converted" href="javascript:void(0);">Converted <span class="trans-tab-count d-none"></span></a></li>
+                                    <li class="nav-item"><a class="nav-link quot-status-tab" data-status="Cancelled" href="javascript:void(0);">Cancelled <?php if ($cntCancelled > 0): ?><span class="trans-tab-count"><?php echo $cntCancelled; ?></span><?php else: ?><span class="trans-tab-count d-none"></span><?php endif; ?></a></li>
+                                    <li class="nav-item"><a class="nav-link quot-status-tab" data-status="Draft" href="javascript:void(0);">Draft <span class="trans-tab-count d-none"></span></a></li>
+                                </ul>
+                            </div>
+                            <div class="trans-toolbar-actions">
+                                <a href="javascript:void(0);" class="r2k-icon-btn pageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
+                                <div class="r2k-search-wrap">
+                                    <i class="bx bx-search r2k-si"></i>
+                                    <input type="text" id="searchTransactionData" placeholder="Quot. # or customer...">
+                                    <i class="bx bx-x r2k-clear d-none" id="clearQuotSearch"></i>
                                 </div>
-
                                 <div class="dropdown">
-                                    <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button"
-                                            id="dateFilterBtn" data-bs-toggle="dropdown" aria-expanded="false">
-                                        <i class="bx bx-calendar me-1"></i><span id="dateFilterLabel">All Dates</span>
+                                    <button class="r2k-dd-btn" type="button" id="dateFilterBtn" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                        <i class="bx bx-calendar"></i> <span id="dateFilterLabel">All Dates</span> <i class="bx bx-chevron-down" style="font-size:.75rem;"></i>
                                     </button>
-                                    <ul class="dropdown-menu shadow" style="width:220px;max-height:320px;overflow-y:auto">
-                                        <li><a class="dropdown-item date-option" data-range="">
-                                            <i class="bx bx-list-ul me-2"></i>All Dates
-                                        </a></li>
-                                        <li><hr class="dropdown-divider"></li>
-                                        <li><a class="dropdown-item date-option" data-range="today"><i class="bx bx-circle me-2"></i>Today</a></li>
-                                        <li><a class="dropdown-item date-option" data-range="yesterday"><i class="bx bx-circle me-2"></i>Yesterday</a></li>
-                                        <li><hr class="dropdown-divider"></li>
-                                        <li><a class="dropdown-item date-option" data-range="this_week"><i class="bx bx-circle me-2"></i>This Week</a></li>
-                                        <li><a class="dropdown-item date-option" data-range="last_week"><i class="bx bx-circle me-2"></i>Last Week</a></li>
-                                        <li><a class="dropdown-item date-option" data-range="last_7_days"><i class="bx bx-circle me-2"></i>Last 7 Days</a></li>
-                                        <li><hr class="dropdown-divider"></li>
-                                        <li><a class="dropdown-item date-option" data-range="this_month"><i class="bx bx-circle me-2"></i>This Month</a></li>
-                                        <li><a class="dropdown-item date-option" data-range="previous_month"><i class="bx bx-circle me-2"></i>Previous Month</a></li>
-                                        <li><a class="dropdown-item date-option" data-range="last_30_days"><i class="bx bx-circle me-2"></i>Last 30 Days</a></li>
-                                        <li><hr class="dropdown-divider"></li>
-                                        <li><a class="dropdown-item date-option" data-range="this_year"><i class="bx bx-circle me-2"></i>This Year</a></li>
-                                        <li><a class="dropdown-item date-option" data-range="last_year"><i class="bx bx-circle me-2"></i>Last Year</a></li>
-                                        <li><a class="dropdown-item date-option" data-range="last_quarter"><i class="bx bx-circle me-2"></i>Last Quarter</a></li>
-                                        <li><hr class="dropdown-divider"></li>
-                                        <li><a class="dropdown-item date-option fw-bold" data-range="fy_25_26">
-                                            <i class="bx bxs-star text-warning me-2"></i>FY 25-26
-                                        </a></li>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow" id="dateFilterMenu" style="width:240px;max-height:420px;overflow-y:auto;font-size:.82rem;z-index:9999;">
                                     </ul>
                                 </div>
-
-                                <a href="/quotations/create" class="btn btn-primary btn-sm px-3">Create </a>
+                                <a href="/quotations/create" class="r2k-create-btn"><i class="bx bx-plus"></i> Create</a>
                             </div>
                         </div>
 
-                        <!-- ── Table ───────────────────────────────── -->
-                        <div class="table-responsive text-nowrap">
-                            <table class="table table-hover MainviewTable mb-0" id="quotTable">
-                                <thead class="bg-body-tertiary">
+                        <!-- Table -->
+                        <div class="table-responsive">
+                            <table class="table trans-table MainviewTable mb-0" id="quotTable">
+                                <thead class="r2k-thead">
                                     <tr>
-                                        <th class="table-checkbox" style="width:40px">
-                                            <div class="form-check">
+                                        <th style="width:36px">
+                                            <div class="form-check mb-0">
                                                 <input class="form-check-input table-chkbox quotHeaderCheck" type="checkbox">
                                             </div>
                                         </th>
-                                        <th class="<?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?> table-serialno" style="width:50px">S.No</th>
+                                        <th class="<?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?> table-serialno" style="width:44px">S.No</th>
                                         <th class="col-sortable cursor-pointer user-select-none" data-sort="Number">
-                                            # Quotation <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Number"></i>
+                                            Quotation # <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Number"></i>
                                         </th>
                                         <th class="col-sortable cursor-pointer user-select-none" data-sort="Amount">
                                             Amount <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Amount"></i>
@@ -111,73 +147,63 @@
                                         <th>Status</th>
                                         <th>Customer</th>
                                         <th class="col-sortable cursor-pointer user-select-none" data-sort="Date">
-                                            Date <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Date"></i>
+                                            Valid Until <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Date"></i>
                                         </th>
-                                        <th>Valid Until</th>
                                         <th>Last Updated</th>
                                         <th style="width:50px">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody class="table-border-bottom-0">
+                                <tbody class="r2k-tbody table-border-bottom-0">
                                     <?php echo $ModRowData; ?>
                                 </tbody>
                             </table>
                         </div>
 
-                        <!-- ── Pagination ──────────────────────────── -->
+                        <!-- Pagination -->
                         <hr class="my-0">
                         <div class="row mx-3 my-2 justify-content-between align-items-center quotPagination" id="quotPagination">
-                            <?php echo $ModPagination ? $ModPagination : ''; ?>
+                            <?php echo $ModPagination ?: ''; ?>
                         </div>
 
                     </div>
 
-                    <!-- ── Invoice Preview Modal (Swipe-style) ──────── -->
+                    <!-- ── Print Modal ──────────────────────────────────── -->
                     <div class="modal fade" id="a4PrintModal" tabindex="-1" aria-hidden="true">
                         <div class="modal-dialog modal-xl modal-dialog-centered">
                             <div class="modal-content border-0 shadow-lg" style="border-radius:12px;overflow:hidden;">
-
-                                <!-- Top bar: title + action buttons + close -->
-                                <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom" style="background:#fff;">
-                                    <div class="fw-semibold text-dark" style="font-size:.92rem;"><i class="bx bx-file-blank text-primary me-1"></i>Invoice Preview</div>
+                                <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom bg-white">
+                                    <div class="fw-semibold" style="font-size:.92rem;">
+                                        <i class="bx bx-file-blank text-primary me-1"></i>Quotation Preview
+                                    </div>
                                     <div class="d-flex align-items-center gap-2">
-                                        <div class="form-check form-check-inline mb-0 me-1">
+                                        <div class="form-check form-check-inline mb-0">
                                             <input class="form-check-input" type="radio" name="a4PaperSize" id="psA4" value="A4" checked>
                                             <label class="form-check-label small fw-semibold" for="psA4">A4</label>
                                         </div>
-                                        <div class="form-check form-check-inline mb-0 me-2">
+                                        <div class="form-check form-check-inline mb-0">
                                             <input class="form-check-input" type="radio" name="a4PaperSize" id="psA5" value="A5">
                                             <label class="form-check-label small fw-semibold" for="psA5">A5</label>
                                         </div>
-                                        <button type="button" class="btn btn-sm btn-outline-secondary px-2 py-1" id="a4DownloadBtn" title="Download PDF">
-                                            <i class="bx bx-download"></i>
-                                        </button>
-                                        <button type="button" class="btn btn-sm btn-success px-3 py-1" id="a4PrintBtn">
+                                        <button type="button" class="btn btn-sm btn-success px-3" id="a4PrintBtn">
                                             <i class="bx bx-printer me-1"></i>Print
                                         </button>
-                                        <button type="button" class="btn btn-sm btn-danger px-3 py-1" data-bs-dismiss="modal">Close</button>
+                                        <button type="button" class="btn btn-sm btn-danger px-3" data-bs-dismiss="modal">Close</button>
                                     </div>
                                 </div>
-
-                                <!-- Preview canvas — single scrollable area, no modal-body scroll -->
-                                <div id="a4PrintPreview"
-                                     style="background:#404040;overflow-y:auto;overflow-x:auto;
-                                            height:82vh;display:flex;align-items:flex-start;
-                                            justify-content:center;padding:24px 16px;">
+                                <div id="a4PrintPreview" style="background:#404040;overflow-y:auto;height:82vh;display:flex;align-items:flex-start;justify-content:center;padding:24px 16px;">
                                     <div class="d-flex justify-content-center align-items-center w-100 h-100">
-                                        <div class="spinner-border text-light" role="status"></div>
+                                        <div class="spinner-border text-light"></div>
                                     </div>
                                 </div>
-
                             </div>
                         </div>
                     </div>
 
-                    <!-- ── Thermal Print Modal ──────────────────────── -->
+                    <!-- ── Thermal Print Modal ─────────────────────────────── -->
                     <div class="modal fade" id="thermalPrintModal" tabindex="-1" aria-hidden="true">
-                        <div class="modal-dialog modal-dialog-top" style="max-width: 600px">
+                        <div class="modal-dialog modal-dialog-top" style="max-width:600px">
                             <div class="modal-content">
-                                <div class="modal-header modal-header-border-bottom p-3">
+                                <div class="modal-header p-3">
                                     <h6 class="modal-title text-primary fw-bold fs-6 mb-0"><i class="bx bx-printer me-1"></i>Thermal Receipt Preview</h6>
                                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                 </div>
@@ -187,10 +213,9 @@
                                     </div>
                                 </div>
                                 <div class="modal-footer py-2">
-                                    <a href="/quotations/thermalPrintConfig" class="btn btn-outline-secondary btn-sm me-auto" title="Configure printer">
+                                    <a href="/quotations/thermalPrintConfig" class="btn btn-outline-secondary btn-sm me-auto">
                                         <i class="bx bx-cog me-1"></i>Configure
                                     </a>
-                                    <!-- <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button> -->
                                     <button type="button" class="btn btn-dark btn-sm" id="thermalPrintBtn">
                                         <i class="bx bx-printer me-1"></i>Print
                                     </button>
@@ -199,12 +224,12 @@
                         </div>
                     </div>
 
-                    <!-- ── View Quotation Modal ──────────────────── -->
+                    <!-- ── View Quotation Modal ──────────────────────────── -->
                     <div class="modal fade" id="viewQuotationModal" tabindex="-1" aria-hidden="true">
                         <div class="modal-dialog modal-xl modal-dialog-scrollable">
                             <div class="modal-content">
-                                <div class="modal-header modal-header-border-bottom p-3 d-flex justify-content-between align-items-center">
-                                    <h6 class="modal-title fw-semibold fs-6 text-primary mb-0" id="viewQuotModalTitle">Quotation Details</h6>
+                                <div class="modal-header p-3 d-flex justify-content-between align-items-center">
+                                    <h6 class="modal-title fw-semibold text-primary mb-0" id="viewQuotModalTitle">Quotation Details</h6>
                                     <div class="gap-2">
                                         <a href="javascript:void(0);" id="viewQuotEditBtn" class="btn btn-warning btn-sm me-2">
                                             <i class="bx bx-edit me-1"></i>Edit
@@ -214,7 +239,7 @@
                                 </div>
                                 <div class="modal-body p-0" id="viewQuotModalBody">
                                     <div class="d-flex justify-content-center align-items-center py-5">
-                                        <div class="spinner-border text-primary" role="status"></div>
+                                        <div class="spinner-border text-primary"></div>
                                     </div>
                                 </div>
                                 <div class="modal-footer py-2"></div>
@@ -226,7 +251,6 @@
             </div>
 
             <?php $this->load->view('common/footer_desc'); ?>
-
         </div>
     </div>
 </div>
@@ -236,54 +260,86 @@
 <script src="/js/transactions/quotations.js"></script>
 
 <script>
-const  ModuleId     = 101;
-const  ModuleTable  = '#quotTable';
-const  ModulePag    = '.quotPagination';
-const  ModuleHeader = '.quotHeaderCheck';
-const  ModuleRow    = '.quotationCheck';
+const ModuleId     = 101;
+const ModuleTable  = '#quotTable';
+const ModulePag    = '.quotPagination';
+const ModuleHeader = '.quotHeaderCheck';
+const ModuleRow    = '.quotationCheck';
+
 $(function () {
-    'use strict'
+    'use strict';
 
     Filter['Status'] = 'All';
 
-    // ── Status tabs (with count badge) ──────────────────
+    // ── Stat card click ─────────────────────────────────────
+    $(document).on('click', '[data-stat-filter]', function () {
+        var status = $(this).data('stat-filter') || 'All';
+        $('.trans-stat-card').removeClass('active-stat');
+        $(this).addClass('active-stat');
+        $('.quot-status-tab').removeClass('active');
+        $('.quot-status-tab[data-status="' + status + '"]').addClass('active');
+        Filter.Status = status;
+        PageNo = 1;
+        getQuotationsDetails();
+    });
+
+    // ── Status tabs ─────────────────────────────────────────
     $(document).on('click', '.quot-status-tab', function (e) {
         e.preventDefault();
         $('.quot-status-tab').removeClass('active');
         $(this).addClass('active');
-        Filter.Status = $(this).data('status') || 'All';
+        $('.trans-stat-card').removeClass('active-stat');
+        var status = $(this).data('status') || 'All';
+        $('[data-stat-filter="' + status + '"]').addClass('active-stat');
+        Filter.Status = status;
         PageNo = 1;
         getQuotationsDetails();
     });
 
     $(document).on('click', '.pageRefresh', function (e) {
         e.preventDefault();
-        Filter.Status = $(this).data('status') || 'All';
         PageNo = 1;
         getQuotationsDetails();
     });
 
-    // Search
     $('#searchTransactionData').on('keyup', debounce(function () {
-        Filter.Name = $.trim($(this).val());
+        var val = $.trim($(this).val());
+        if (val === '') {
+            $('#clearQuotSearch').addClass('d-none');
+            delete Filter.Name;
+            PageNo = 1;
+            getQuotationsDetails();
+            return;
+        }
+        $('#clearQuotSearch').removeClass('d-none');
+        Filter.Name = val;
         PageNo = 1;
         getQuotationsDetails();
     }, 400));
 
-    // Date filter
-    $(document).on('click', '.date-option', function () {
-        $('.date-option').removeClass('active');
-        $(this).addClass('active');
-        var range = $(this).data('range') || '';
-        var dates = getDateRange(range);
-        $('#dateFilterLabel').text($.trim($(this).text()));
-        Filter.DateFrom = dates.from;
-        Filter.DateTo   = dates.to;
+    $('#clearQuotSearch').on('click', function () {
+        $('#searchTransactionData').val('');
+        $(this).addClass('d-none');
+        delete Filter.Name;
         PageNo = 1;
         getQuotationsDetails();
     });
 
-    // Column sorting
+    // ── Date filter ──────────────────────────────────────────
+    $('#dateFilterMenu').html(buildDateFilterHtml('customDateFrom', 'customDateTo'));
+    initDateFilter({
+        btnId  : 'dateFilterBtn',
+        labelId: 'dateFilterLabel',
+        fromId : 'customDateFrom',
+        toId   : 'customDateTo',
+        onApply: function (from, to) {
+            Filter.DateFrom = from;
+            Filter.DateTo   = to;
+            PageNo = 1;
+            getQuotationsDetails();
+        }
+    });
+
     $(document).on('click', '.col-sortable', function () {
         var col = $(this).data('sort');
         if (Filter.SortBy === col) {
@@ -292,1584 +348,355 @@ $(function () {
             Filter.SortBy  = col;
             Filter.SortDir = 'DESC';
         }
-        // Update sort icons
         $('.sort-icon').removeClass('bx-sort-up bx-sort-down').addClass('bx-sort-alt-2');
-        var icon = Filter.SortDir === 'ASC' ? 'bx-sort-up' : 'bx-sort-down';
-        $('.sort-icon[data-col="' + col + '"]').removeClass('bx-sort-alt-2').addClass(icon);
+        $('.sort-icon[data-col="' + col + '"]').removeClass('bx-sort-alt-2').addClass(Filter.SortDir === 'ASC' ? 'bx-sort-up' : 'bx-sort-down');
         PageNo = 1;
         getQuotationsDetails();
     });
 
-    // Pagination
     $(document).on('click', '.quotPagination .page-link', function (e) {
         e.preventDefault();
-        var href  = $(this).attr('href') || '';
-        var match = href.match(/\/(\d+)$/);
-        if (match) {
-            PageNo = parseInt(match[1]);
-            getQuotationsDetails();
-        }
+        var match = ($(this).attr('href') || '').match(/\/(\d+)$/);
+        if (match) { PageNo = parseInt(match[1]); getQuotationsDetails(); }
     });
 
-    // Delete
-    $(document).on('click', '.deleteQuotation', function () {
-        var uid = $(this).data('uid');
-        var num = $(this).data('num') || '';
-        Swal.fire({
-            title            : 'Delete Quotation?',
-            html             : num ? 'Delete <strong>' + num + '</strong>? This cannot be undone.' : 'This cannot be undone.',
-            icon             : 'warning',
-            showCancelButton : true,
-            confirmButtonText: 'Delete',
-            confirmButtonColor: '#d33',
-        }).then(function (result) {
-            if (!result.isConfirmed) return;
-            $.ajax({
-                url    : '/quotations/deleteQuotation',
-                method : 'POST',
-                data   : { TransUID: uid, [CsrfName]: CsrfToken },
-                success: function (resp) {
-                    if (resp.Error) {
-                        Swal.fire({ icon: 'error', text: resp.Message });
-                    } else {
-                        getQuotationsDetails();
-                    }
-                }
-            });
-        });
-    });
-
-    // Duplicate
-    $(document).on('click', '.duplicateQuotation', function () {
-        var uid = $(this).data('uid');
-        Swal.fire({
-            title            : 'Duplicate Quotation?',
-            text             : 'A new draft copy will be created.',
-            icon             : 'question',
-            showCancelButton : true,
-            confirmButtonText: 'Duplicate',
-        }).then(function (result) {
-            if (!result.isConfirmed) return;
-            $.ajax({
-                url    : '/quotations/duplicateQuotation',
-                method : 'POST',
-                data   : { TransUID: uid, [CsrfName]: CsrfToken },
-                success: function (resp) {
-                    if (resp.Error) {
-                        Swal.fire({ icon: 'error', text: resp.Message });
-                    } else {
-                        Swal.fire({
-                            icon             : 'success',
-                            text             : resp.Message,
-                            showCancelButton : true,
-                            confirmButtonText: 'Edit Now',
-                            cancelButtonText : 'Stay Here',
-                        }).then(function (r) {
-                            if (r.isConfirmed && resp.EditURL) {
-                                window.location.href = resp.EditURL;
-                            } else {
-                                getQuotationsDetails();
-                            }
-                        });
-                    }
-                }
-            });
-        });
-    });
-
-    // ── Inline status update ──────────────────────────────
+    // ── Inline status update ────────────────────────────────
     $(document).on('click', '.quot-status-update', function () {
-        var uid       = $(this).data('uid');
-        var newStatus = $(this).data('status');
-        $.ajax({
-            url    : '/quotations/updateQuotationStatus',
-            method : 'POST',
-            data   : { TransUID: uid, Status: newStatus, [CsrfName]: CsrfToken },
-            success: function (resp) {
-                if (resp.Error) {
-                    Swal.fire({ icon: 'error', text: resp.Message });
-                } else {
-                    getQuotationsDetails();
+        var uid    = $(this).data('uid');
+        var status = $(this).data('status');
+        var target = $(this).data('target') || '';
+
+        // Conversion actions — redirect to create form, do NOT change status here
+        if (status === 'Converted') {
+            $.ajax({
+                url   : '/quotations/convertQuotationToInvoice',
+                method: 'POST',
+                data  : { TransUID: uid, ConvertTarget: target, [CsrfName]: CsrfToken },
+                success: function (resp) {
+                    if (resp.Error) {
+                        Swal.fire({ icon: 'error', text: resp.Message });
+                    } else {
+                        window.location.href = resp.RedirectURL;
+                    }
                 }
+            });
+            return;
+        }
+
+        // All other status changes
+        $.ajax({
+            url   : '/quotations/updateQuotationStatus',
+            method: 'POST',
+            data  : { TransUID: uid, Status: status, [CsrfName]: CsrfToken },
+            success: function (resp) {
+                if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); }
+                else            { getQuotationsDetails(); }
             }
         });
     });
 
-    // ── View quotation modal ──────────────────────────────
-    var _quotStatusLabel = { Pending: 'Open', Accepted: 'Closed', Rejected: 'Cancelled' };
-    var _quotStatusBadge = {
-        Pending: 'bg-label-warning', Accepted: 'bg-label-success',
-        Partial: 'bg-label-info',    Rejected: 'bg-label-danger',
-        Converted: 'bg-label-primary', Draft: 'bg-label-secondary'
-    };
-
+    // ── View modal ──────────────────────────────────────────
     $(document).on('click', '.viewQuotation', function () {
-        $('#viewQuotEditBtn').addClass('d-none');
         var uid = $(this).data('uid');
+        $('#viewQuotationModal').modal('show');
         $('#viewQuotModalBody').html('<div class="d-flex justify-content-center py-5"><div class="spinner-border text-primary"></div></div>');
         $('#viewQuotEditBtn').attr('href', '/quotations/edit/' + uid);
-        $('#viewQuotModalTitle').text('Quotation Details');
-        var modal = new bootstrap.Modal(document.getElementById('viewQuotationModal'));
-        modal.show();
-        AjaxLoading = 0;
         $.ajax({
-            url    : '/quotations/getQuotationDetail',
-            method : 'GET',
-            data   : { TransUID: uid },
+            url   : '/quotations/getQuotationDetail',
+            method: 'POST',
+            data  : { TransUID: uid, [CsrfName]: CsrfToken },
             success: function (resp) {
-                AjaxLoading = 1;
-                $('#viewQuotEditBtn').removeClass('d-none');
                 if (resp.Error) {
                     $('#viewQuotModalBody').html('<div class="alert alert-danger m-3">' + resp.Message + '</div>');
-                    return;
-                }
-                var h   = resp.Header;
-                var sym = '<?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? ''); ?>';
-                var statusLabel = _quotStatusLabel[h.DocStatus] || h.DocStatus;
-                var statusBadge = _quotStatusBadge[h.DocStatus] || 'bg-label-secondary';
-
-                if (h.UniqueNumber) $('#viewQuotModalTitle').text('Quotation — ' + h.UniqueNumber);
-
-                // ── Header info ──────────────────────────
-                var html = '<div class="p-3 border-bottom">'
-                    + '<div class="row g-2">'
-                    + '<div class="col-sm-4">'
-                    + '  <div class="small text-muted fw-bold">Customer</div>'
-                    + '  <div class="text-primary fw-bold">' + _esc(h.PartyName) + '</div>'
-                    + (h.PartyMobile ? '<div class="small text-muted">' + _esc(h.PartyCountryCode) + ' ' + _esc(h.PartyMobile) + '</div>' : '')
-                    + '</div>'
-                    + '<div class="col-sm-2">'
-                    + '  <div class="small text-muted fw-bold">Date</div>'
-                    + '  <div>' + _esc(h.TransDate) + '</div>'
-                    + '</div>'
-                    + '<div class="col-sm-2">'
-                    + '  <div class="small text-muted fw-bold">Valid Until</div>'
-                    + '  <div>' + (h.ValidityDate || '—') + '</div>'
-                    + '</div>'
-                    + '<div class="col-sm-2">'
-                    + '  <div class="small text-muted fw-bold">Status</div>'
-                    + '  <span class="badge ' + statusBadge + '">' + statusLabel + '</span>'
-                    + '</div>'
-                    + '<div class="col-sm-2 text-end">'
-                    + '  <div class="small text-muted fw-bold">Net Amount</div>'
-                    + '  <div class="fw-bold fs-6">' + sym + ' ' + _esc(h.NetAmount) + '</div>'
-                    + '</div>'
-                    + '</div>'
-                    + (h.Reference ? '<div class="small text-muted mt-2">Ref: <span class="text-body">' + _esc(h.Reference) + '</span></div>' : '')
-                    + '</div>';
-
-                // ── Items table ──────────────────────────
-                html += '<div class="table-responsive"><table class="table table-sm table-hover MainviewTable mb-0">'
-                    + '<thead class="bg-body-tertiary"><tr>'
-                    + '<th>#</th><th>Product</th><th class="text-end">Qty</th>'
-                    + '<th class="text-end">Unit Price</th><th class="text-end">Tax %</th>'
-                    + '<th class="text-end">Tax Amt</th><th class="text-end">Net Amt</th>'
-                    + '</tr></thead><tbody>';
-
-                if (resp.Items && resp.Items.length) {
-                    $.each(resp.Items, function (i, item) {
-                        html += '<tr>'
-                            + '<td>' + (i + 1) + '</td>'
-                            + '<td><div class="fw-semibold">' + _esc(item.ProductName) + '</div>'
-                            + (item.PartNumber ? '<div class="small text-muted">' + _esc(item.PartNumber) + '</div>' : '')
-                            + '</td>'
-                            + '<td class="text-end">' + _esc(smartDecimal(item.Quantity)) + ' ' + _esc(item.PrimaryUnitName || '') + '</td>'
-                            + '<td class="text-end">' + sym + ' ' + _esc(item.UnitPrice) + '</td>'
-                            + '<td class="text-end">' + _esc(item.TaxPercentage) + '%</td>'
-                            + '<td class="text-end">' + sym + ' ' + _esc(item.TaxAmount) + '</td>'
-                            + '<td class="text-end fw-semibold">' + sym + ' ' + _esc(item.NetAmount) + '</td>'
-                            + '</tr>';
-                    });
                 } else {
-                    html += '<tr><td colspan="7" class="text-center text-muted py-3">No items</td></tr>';
+                    $('#viewQuotModalTitle').text('Quotation — ' + (resp.Header.UniqueNumber || 'Details'));
+                    $('#viewQuotModalBody').html(_buildQuotDetailHtml(resp));
                 }
-
-                html += '</tbody></table></div>';
-
-                // ── Totals ───────────────────────────────
-                html += '<div class="d-flex justify-content-end p-3 border-top">'
-                    + '<table class="table table-sm w-auto mb-0">'
-                    + '<tr><td class="text-muted pe-4">Sub Total</td><td class="text-end fw-semibold">' + sym + ' ' + _esc(h.SubTotal) + '</td></tr>'
-                    + (parseFloat(h.DiscountAmount) > 0 ? '<tr><td class="text-muted pe-4">Discount</td><td class="text-end text-danger">- ' + sym + ' ' + _esc(h.DiscountAmount) + '</td></tr>' : '')
-                    + (parseFloat(h.TaxAmount) > 0 ? '<tr><td class="text-muted pe-4">Tax</td><td class="text-end">' + sym + ' ' + _esc(h.TaxAmount) + '</td></tr>' : '')
-                    + (parseFloat(h.AdditionalCharges) > 0 ? '<tr><td class="text-muted pe-4">Charges</td><td class="text-end">' + sym + ' ' + _esc(h.AdditionalCharges) + '</td></tr>' : '')
-                    + '<tr class="border-top"><td class="fw-bold pe-4">Net Amount</td><td class="text-end fw-bold">' + sym + ' ' + _esc(h.NetAmount) + '</td></tr>'
-                    + '</table></div>';
-
-                if (h.Notes) {
-                    html += '<div class="px-3 pb-3"><div class="small text-muted mb-1">Notes</div><div class="small border rounded p-2 bg-body-secondary">' + _esc(h.Notes) + '</div></div>';
-                }
-
-                $('#viewQuotModalBody').html(html);
             },
             error: function () {
-                AjaxLoading = 1;
-                $('#viewQuotEditBtn').removeClass('d-none');
                 $('#viewQuotModalBody').html('<div class="alert alert-danger m-3">Failed to load quotation.</div>');
             }
         });
     });
 
-    function _esc(v) {
-        if (v === null || v === undefined) return '—';
-        return $('<span>').text(String(v)).html();
-    }
-
-    // Convert to Sales Order / Invoice
-    $(document).on('click', '.convertToQuot', function () {
-        var uid    = $(this).data('uid');
-        var num    = $(this).data('num') || '';
-        var target = $(this).data('target') || 'Invoice';
-        var label  = target === 'SalesOrder' ? 'Sales Order' : 'Invoice';
-        Swal.fire({
-            title            : 'Convert to ' + label + '?',
-            html             : num ? '<strong>' + num + '</strong> will be marked as Converted.' : '',
-            icon             : 'question',
-            showCancelButton : true,
-            confirmButtonText: 'Convert',
-            confirmButtonColor: '#28a745',
-        }).then(function (result) {
-            if (!result.isConfirmed) return;
-            $.ajax({
-                url    : '/quotations/convertQuotationToInvoice',
-                method : 'POST',
-                data   : { TransUID: uid, ConvertTarget: target, [CsrfName]: CsrfToken },
-                success: function (resp) {
-                    if (resp.Error) {
-                        Swal.fire({ icon: 'error', text: resp.Message });
-                    } else {
-                        if (resp.RedirectURL) {
-                            Swal.fire({ icon: 'success', text: resp.Message, timer: 800, showConfirmButton: false })
-                                .then(function () { window.location.href = resp.RedirectURL; });
-                        } else {
-                            getQuotationsDetails();
-                            Swal.fire({ icon: 'success', text: resp.Message, timer: 500, showConfirmButton: false });
-                        }
-                    }
-                }
-            });
-        });
-    });
-
-    // ── Thermal Print ─────────────────────────────────────────────────────────
-    var _thermalData = null;
-
-    $(document).on('click', '.thermalPrintQuotation', function () {
-        var uid = $(this).data('uid');
-        _thermalData = null;
-        $('#thermalPrintBody').html('<div class="d-flex justify-content-center py-5"><div class="spinner-border text-primary"></div></div>');
-        new bootstrap.Modal(document.getElementById('thermalPrintModal')).show();
-        AjaxLoading = 0;
-        $.ajax({
-            url   : '/quotations/getQuotationDetail',
-            method: 'GET',
-            data  : { TransUID: uid },
-            success: function (resp) {
-                AjaxLoading = 1;
-                if (resp.Error) {
-                    $('#thermalPrintBody').html('<div class="alert alert-danger m-2">' + _esc(resp.Message) + '</div>');
-                    return;
-                }
-                _thermalData = resp;
-                $('#thermalPrintBody').html(_buildThermalHtml(resp, 0));
-            },
-            error: function () {
-                AjaxLoading = 1;
-                $('#thermalPrintBody').html('<div class="alert alert-danger m-2">Failed to load receipt.</div>');
-            }
-        });
-    });
-
-    $('#thermalPrintBtn').on('click', function () {
-        if (!_thermalData) return;
-        var cfg = _thermalData.ThermalConfig;
-        var paperWidth = (cfg && cfg.PaperWidth) ? cfg.PaperWidth : '80mm';
-        var receiptHtml = _buildThermalHtml(_thermalData, 1);
-        var win = window.open('', '_blank', 'width=400,height=700');
-        win.document.write(
-            '<!DOCTYPE html><html><head><title>Thermal Receipt</title>' +
-            '<style>' +
-            '  * { margin:0; padding:0; box-sizing:border-box; }' +
-            '  body { font-family: Arial, Helvetica, sans-serif; font-size:12px; width:' + paperWidth + '; padding:4px; }' +
-            '  .fs-6 { font-size: 0.8rem !important; }' +
-            '  .tp-center { text-align: center; }' +
-            '  .tp-bold { font-weight: bold; }' +
-            '  .tp-hr { border: none; border-top: 1px dashed #000; margin: 4px 0; }' +
-            '  .tp-row { display: flex; justify-content: space-between; margin: 1px 0; }' +
-            '  .tp-row-end { display: flex; justify-content: end; margin: 1px 0; }' +
-            '  .tp-item-name { font-weight: bold; margin-top: 2px; }' +
-            '  .tp-small { font-size:11px; }' +
-            '  .tp-total { font-size:13px; font-weight:bold; border-top:1px solid #000; padding-top:3px; margin-top:3px; }' +
-            '  .tp-footer { text-align:center; margin-top:6px; font-size:11px; }' +
-            '  @media print { @page { margin:0; size:' + paperWidth + ' auto; } body { width:' + paperWidth + '; } }' +
-            '</style></head><body style="font-family: Arial, Helvetica, sans-serif !important; font-size: 12px !important; width:' + paperWidth + '; padding:4px;">' +
-            receiptHtml +
-            '</body></html>'
-        );
-        win.document.close();
-        win.focus();
-        setTimeout(function () { win.print(); }, 300);
-    });
-
-    function _buildThermalHtml(resp, type) {
-        var h   = resp.Header;
-        var org = resp.OrgInfo  || {};
-        var cfg = resp.ThermalConfig || {};
-        var sym = '<?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>';
-
-        var line1 = cfg.HeaderLine1 || org.BrandName || org.Name || '';
-        var line2 = cfg.HeaderLine2 || '';
-        var line3 = cfg.HeaderLine3 || [org.CityText, org.StateText, org.Pincode].filter(Boolean).join(', ');
-
-        var showGSTIN   = cfg.ShowGSTIN   !== undefined ? parseInt(cfg.ShowGSTIN)   : 1;
-        var showMobile  = cfg.ShowMobile  !== undefined ? parseInt(cfg.ShowMobile)  : 1;
-        var showHSN     = cfg.ShowHSN     !== undefined ? parseInt(cfg.ShowHSN)     : 1;
-        var showTaxBkd  = cfg.ShowTaxBreakdown !== undefined ? parseInt(cfg.ShowTaxBreakdown) : 1;
-        var footer      = cfg.FooterMessage || 'Thank you for your business!';
-
-        var html = '';
-
-        // Header
-        html += '<div style="display: flex; align-items: center; justify-content: center;"><img src="/images/logo/favicon_io/android-chrome-512x512-1.png" width="60px;" height="60px;" alt="Rishika 2K Enterprises">';
-        html += '<div class="fs-6 ms-1"><div class="tp-center tp-bold">' + _esc(line1) + '</div>';
-        if (line2) html += '<div class="tp-center tp-small">' + _esc(line2) + '</div>';
-        if (line3) html += '<div class="tp-center tp-small">' + _esc(line3) + '</div>';
-        if (showMobile && org.MobileNumber) html += '<div class="tp-center tp-small">Ph: ' + _esc(org.MobileNumber) + '</div>';
-        if (showGSTIN && org.GSTIN) html += '<div class="tp-center tp-small">GSTIN: ' + _esc(org.GSTIN) + '</div></div></div>';
-
-        html += '<hr class="tp-hr my-1">';
-
-        // Bill info
-        html += '<div class="fs-6">';
-            html += '<div class="d-flex justify-content-between align-items-center mb-1">';
-                html += '<div class="tp-row fs-6"><span class="tp-bold">Quotation: </span><span class="tp-bold">' + _esc(h.UniqueNumber || '—') + '</span></div>';
-                html += '<div class="tp-row"><span>Date: </span><span>' + _esc(h.TransDate) + '</span></div>';
-            html += '</div>';
-            html += '<div class="d-flex justify-content-between align-items-center">';
-                html += '<div class="tp-row"><span>Customer: </span><span style="text-align:right;max-width:60%">' + _esc(h.PartyName) + '</span></div>';
-                if (h.PartyMobile) html += '<div class="tp-row"><span>Phone: </span><span>' + _esc(h.PartyMobile) + '</span></div>';
-            html += '</div>';
-        html += '</div>';
-
-        html += '<hr class="tp-hr my-1">';
-        html += '<div class="fs-6">';
-            html += '<div class="mb-1" style="display: flex; align-items: center; justify-content: space-between;">';
-                html += '<div class="tp-row tp-item-name tp-bold"><span>Item </span></div><div></div>';
-            html += '</div>';
-            html += '<div style="display: flex; align-items: center; justify-content: space-between;">';
-                html += '<div class="tp-row" style="font-size: smaller;">Quantity x Price</div>';
-                html += '<div class="tp-row">Amount</div>';
-            html += '</div>';
-        html += '</div>';
-        html += '<hr class="tp-hr my-1">';
-
-        // Items
-        $.each(resp.Items || [], function (i, item) {
-
-            html += '<div class="fs-6">';
-            var lineAmt = parseFloat(item.NetAmount) || 0;
-            var hsnLine = (showHSN && item.HSNCode) ? ' [HSN:' + item.HSNCode + ']' : '';
-
-            html += '<div class="mb-1" style="display: flex; align-items: center; justify-content: space-between;">';
-                html += '<div class="tp-item-name fs-6">' + _esc(item.ProductName) + _esc(hsnLine) + '</div>';
-                html += '<div></div>';
-            html += '</div>';
-
-            html += '<div class="mb-1" style="display: flex; align-items: center; justify-content: space-between;">';
-                html += '<div class="tp-row tp-small" style="font-size: smaller;">'+ _esc(item.Quantity) + ' (' + _esc(item.PrimaryUnitName || ' PCS') + ') x ' + _esc(item.UnitPrice) + '</div>';
-                html += '<div class="fs-6">' + lineAmt.toFixed(2) + '</div>';
-            html += '</div>';
-
-            if (showTaxBkd && parseFloat(item.TaxPercentage) > 0) {
-                html += '<div style="display: flex; align-items: center; justify-content: space-between;">';
-                var cgst = parseFloat(item.CgstAmount) || 0;
-                var sgst = parseFloat(item.SgstAmount) || 0;
-                var igst = parseFloat(item.IgstAmount) || 0;
-                if (cgst > 0 && sgst > 0) {
-                    html += '<div class="tp-row tp-small" style="color: #555; font-size: smaller;">' + 'CGST ' + item.CGST + '% ' + cgst.toFixed(2) + '</div>';
-                    html += '<div class="tp-row tp-small" style="color: #555; font-size: smaller;">' + 'SGST ' + item.SGST + '% ' + sgst.toFixed(2) + '</div>';
-                } else if (igst > 0) {
-                    html += '<div class="tp-row tp-small" style="color: #555; font-size: smaller;">' + 'IGST ' + item.IGST + '%' + igst.toFixed(2) + '</div>';
-                }
-                html += '</div>';
-            }
-            html += '</div>';
-
-            if(resp.Items.length > 1 && i != resp.Items.length - 1) {
-                html += '<hr class="tp-hr my-1">';
-            }
-
-        });
-
-        html += '<hr class="tp-hr my-1">';
-
-        // Items / qty summary
-        html += '<div class="tp-small fs-6" style="text-align: center !important;">Items/Qty: ' + (resp.Items ? resp.Items.length : 0) + ' / ' + (function(){var q=0; $.each(resp.Items||[],function(i,it){q+=parseFloat(it.Quantity)||0;}); return q;}()) + '</div>';
-        html += '<hr class="tp-hr my-1">';
-
-        // Totals
-        html += '<div style="text-align: end !important;">';
-            html += '<div class="tp-row-end fw-semibold tp-item-name"><span>Subtotal: </span><span class="fs-6">' + sym + ' ' + parseFloat(h.SubTotal || 0).toFixed(2) + '</span></div>';
-            if (parseFloat(h.DiscountAmount) > 0) {
-                html += '<div class="tp-row-end fw-semibold"><span>Discount: </span><span class="fs-6">- ' + sym + ' ' + parseFloat(h.DiscountAmount).toFixed(2) + '</span></div>';
-            }
-            if (parseFloat(h.TaxAmount) > 0) {
-                html += '<div class="tp-row-end fw-semibold"><span>Total Tax: </span><span class="fs-6">' + sym + ' ' + parseFloat(h.TaxAmount).toFixed(2) + '</span></div>';
-                if (showTaxBkd) {
-                    if (parseFloat(h.CgstAmount) > 0) html += '<div class="tp-row-end tp-small"><span>  CGST: </span><span class="fs-6">' + sym + ' ' + parseFloat(h.CgstAmount).toFixed(2) + '</span></div>';
-                    if (parseFloat(h.SgstAmount) > 0) html += '<div class="tp-row-end tp-small"><span>  SGST: </span><span class="fs-6">' + sym + ' ' + parseFloat(h.SgstAmount).toFixed(2) + '</span></div>';
-                    if (parseFloat(h.IgstAmount) > 0) html += '<div class="tp-row-end tp-small"><span>  IGST: </span><span class="fs-6">' + sym + ' ' + parseFloat(h.IgstAmount).toFixed(2) + '</span></div>';
-                }
-            }
-            if (parseFloat(h.AdditionalCharges) > 0) {
-                html += '<div class="tp-row-end fw-semibold"><span>Charges: </span><span class="fs-6">' + sym + ' ' + parseFloat(h.AdditionalCharges).toFixed(2) + '</span></div>';
-            }
-            if (parseFloat(h.RoundOff || 0) !== 0) {
-                html += '<div class="tp-row-end tp-small fw-semibold"><span>Round Off: </span><span class="fs-6">' + sym + ' ' + parseFloat(h.RoundOff).toFixed(2) + '</span></div>';
-            }
-
-            html += '<div class="tp-total tp-row-end fw-semibold tp-item-name"><span>Total Amount: </span><span class="fs-5">' + sym + ' ' + parseFloat(h.NetAmount || 0).toFixed(2) + '</span></div>';
-        html += '</div>';
-
-        // Footer
-        html += '<hr class="tp-hr my-1">';
-        html += '<div class="tp-footer" style="text-align: center !important;">' + _esc(footer) + '</div>';
-        html += '<div style="margin-bottom:8px"></div>';
-
-        // Wrap for modal preview
-        if(type === 0) {
-            return '<div style="font-family:\'Courier New\',Courier,monospace; font-size:13px; padding:8px; max-width: 580px; margin:0 auto; font-weight: 900;">' + html + '</div>';
-        } else {
-            return html;
-        }
-
-    }
-
-    // ── A4 / A5 Print ────────────────────────────────────────────────────────
-    var _a4Data = null;
-
-    function _renderA4Preview() {
-        if (!_a4Data) return;
-        var size       = $('input[name="a4PaperSize"]:checked').val() || 'A4';
-        var thm        = _a4Data.PrintTheme || {};
-
-        // ── DB template: write into an iframe — template's own CSS fully preserved ──
-        if (thm.TemplateHtmlContent && thm.TemplateHtmlContent.trim().length > 0) {
-            var tokenHtml = _buildA4Html(_a4Data, size);
-            // iframe natural width matches template's .invoice { width:900px }
-            // For A5 we scale the iframe down visually
-            var iframeW = 900;
-            var scale   = size === 'A5' ? (620 / iframeW) : 1;   // A5 display width ~620px
-            var wrapW   = Math.round(iframeW * scale);
-
-            $('#a4PrintPreview').html(
-                '<div style="transform:scale(' + scale + ');transform-origin:top center;' +
-                     'width:' + iframeW + 'px;margin:0 auto;">' +
-                  '<iframe id="tplRenderFrame" scrolling="no" frameborder="0" ' +
-                    'style="width:' + iframeW + 'px;height:600px;border:none;display:block;' +
-                           'box-shadow:0 4px 24px rgba(0,0,0,.35);"></iframe>' +
-                '</div>'
-            );
-
-            var fr = document.getElementById('tplRenderFrame');
-            fr.contentDocument.open();
-            fr.contentDocument.write(tokenHtml);
-            fr.contentDocument.close();
-            fr.onload = function () {
-                var h = this.contentDocument.body.scrollHeight + 30;
-                this.style.height = h + 'px';
-                // Shrink the outer #a4PrintPreview flex container to match scaled height
-                var scaledH = Math.round(h * scale);
-                $(this).closest('#a4PrintPreview').css('height', Math.max(scaledH + 48, 300) + 'px');
-            };
-            return;
-        }
-
-        // ── Built-in JS renderer ──────────────────────────────────────────
-        var pageW      = size === 'A5' ? '148mm' : '210mm';
-        var pageH      = size === 'A5' ? '210mm' : '297mm';
-        var fontFamily = thm.FontFamily || 'Arial';
-        var fontSizePt = ((parseInt(thm.FontSizePx) || 11) * 0.75).toFixed(1) + 'pt';
-        var systemFonts = ['Arial','Helvetica','Verdana','Tahoma','Trebuchet MS','Times New Roman','Georgia','Palatino Linotype','Calibri'];
-        if ($.inArray(fontFamily, systemFonts) === -1) {
-            var linkId = 'gfont-' + fontFamily.replace(/\s+/g, '-');
-            if (!$('#' + linkId).length) {
-                $('<link>', { id: linkId, rel: 'stylesheet',
-                    href: 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(fontFamily) + ':wght@400;600;700&display=swap'
-                }).appendTo('head');
-            }
-        }
-        var html = '<div style="background:#fff;width:' + pageW + ';min-height:' + pageH + ';margin:0 auto;' +
-                        'padding:14mm 12mm;box-shadow:0 4px 24px rgba(0,0,0,.35);' +
-                        'font-size:' + fontSizePt + ';font-family:\'' + fontFamily + '\',Arial,Helvetica,sans-serif;box-sizing:border-box;">'
-                 + _buildA4Html(_a4Data, size)
-                 + '</div>';
-        $('#a4PrintPreview').css('height', '82vh').html(html);
-    }
-
+    // ── A4 Print ─────────────────────────────────────────────
     $(document).on('click', '.a4PrintQuotation', function () {
         var uid = $(this).data('uid');
-        _a4Data = null;
-        $('#a4PrintPreview').html('<div class="d-flex justify-content-center py-5"><div class="spinner-border text-primary"></div></div>');
-        $('input[name="a4PaperSize"][value="A4"]').prop('checked', true);
-        new bootstrap.Modal(document.getElementById('a4PrintModal')).show();
+        $('#a4PrintModal').modal('show');
+        $('#a4PrintPreview').html('<div class="d-flex justify-content-center align-items-center w-100 h-100"><div class="spinner-border text-light"></div></div>');
+        $.ajax({
+            url   : '/quotations/getQuotationDetail',
+            method: 'POST',
+            data  : { TransUID: uid, [CsrfName]: CsrfToken },
+            success: function (resp) {
+                if (resp.Error) { $('#a4PrintPreview').html('<div class="alert alert-danger m-3">' + resp.Message + '</div>'); }
+                else { window._quotLastPrintData = resp; $('#a4PrintPreview').html(_buildA4Html(resp, $('input[name="a4PaperSize"]:checked').val() || 'A4')); }
+            }
+        });
+    });
+    $('input[name="a4PaperSize"]').on('change', function () {
+        if (window._quotLastPrintData) $('#a4PrintPreview').html(_buildA4Html(window._quotLastPrintData, $(this).val()));
+    });
+    $('#a4PrintBtn').on('click', function () {
+        var frame = document.getElementById('a4PrintFrame');
+        if (!frame) { frame = document.createElement('iframe'); frame.id = 'a4PrintFrame'; frame.style.display = 'none'; document.body.appendChild(frame); }
+        var content = _buildA4Html(window._quotLastPrintData, $('input[name="a4PaperSize"]:checked').val() || 'A4', true);
+        frame.contentDocument.open(); frame.contentDocument.write(content); frame.contentDocument.close();
+        frame.onload = function () { frame.contentWindow.print(); };
+    });
+
+    // ── Download PDF ──────────────────────────────────────────
+    $(document).on('click', '.downloadPdfQuotation', function () {
+        var uid = $(this).data('uid');
+        var num = $(this).data('num') || ('Quotation_' + uid);
         AjaxLoading = 0;
         $.ajax({
             url   : '/quotations/getQuotationDetail',
-            method: 'GET',
-            data  : { TransUID: uid },
+            method: 'POST',
+            data  : { TransUID: uid, [CsrfName]: CsrfToken },
             success: function (resp) {
                 AjaxLoading = 1;
-                if (resp.Error) {
-                    $('#a4PrintPreview').html('<div class="alert alert-danger m-3">' + _esc(resp.Message) + '</div>');
-                    return;
+                if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); return; }
+                var html    = _buildA4Html(resp, 'A4', true);
+                var blob    = new Blob([html], { type: 'text/html' });
+                var url     = URL.createObjectURL(blob);
+                var frame   = document.getElementById('_pdfDownloadFrame');
+                if (!frame) {
+                    frame    = document.createElement('iframe');
+                    frame.id = '_pdfDownloadFrame';
+                    frame.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none;';
+                    document.body.appendChild(frame);
                 }
-                _a4Data = resp;
-                _renderA4Preview();
+                frame.src = url;
+                frame.onload = function () {
+                    frame.contentWindow.document.title = num;
+                    frame.contentWindow.print();
+                    setTimeout(function () { URL.revokeObjectURL(url); }, 3000);
+                };
             },
             error: function () {
                 AjaxLoading = 1;
-                $('#a4PrintPreview').html('<div class="alert alert-danger m-3">Failed to load quotation.</div>');
+                Swal.fire({ icon: 'error', text: 'Failed to load quotation data.' });
             }
         });
     });
 
-    // Download = open print dialog in new window (user saves as PDF)
-    $('#a4DownloadBtn').on('click', function () {
-        $('#a4PrintBtn').trigger('click');
-    });
-
-    // Reset preview area height when modal closes
-    $('#a4PrintModal').on('hidden.bs.modal', function () {
-        $('#a4PrintPreview').css('height', '82vh').html(
-            '<div class="d-flex justify-content-center align-items-center w-100 h-100">' +
-            '<div class="spinner-border text-light" role="status"></div></div>'
-        );
-    });
-
-    // Re-render preview when paper size changes
-    $(document).on('change', 'input[name="a4PaperSize"]', function () {
-        _renderA4Preview();
-    });
-
-    $('#a4PrintBtn').on('click', function () {
-        if (!_a4Data) return;
-        var size = $('input[name="a4PaperSize"]:checked').val() || 'A4';
-        var thm  = _a4Data.PrintTheme || {};
-
-        // ── DB template: template already has its own CSS — print it directly ──
-        if (thm.TemplateHtmlContent && thm.TemplateHtmlContent.trim().length > 0) {
-            var tokenHtml = _buildA4Html(_a4Data, size);
-            var win = window.open('', '_blank', 'width=960,height=700');
-            win.document.write(tokenHtml);
-            win.document.close();
-            win.focus();
-            // Inject print @page rule after doc is written
-            var style = win.document.createElement('style');
-            style.textContent = '@media print { @page { size:' + size + ' portrait; margin:10mm; } body { background:#fff !important; } .invoice { border:2px solid #000; } }';
-            win.document.head.appendChild(style);
-            setTimeout(function () { win.print(); }, 400);
-            return;
-        }
-
-        // ── Built-in JS renderer: build HTML with own styles ──────────────
-        var fontFamily = thm.FontFamily || 'Arial';
-        var fontSizePt = ((parseInt(thm.FontSizePx) || 11) * 0.75).toFixed(1) + 'pt';
-        var body       = _buildA4Html(_a4Data, size);
-        var systemFonts = ['Arial','Helvetica','Verdana','Tahoma','Trebuchet MS','Times New Roman','Georgia','Palatino Linotype','Calibri'];
-        var gfontImport = '';
-        if ($.inArray(fontFamily, systemFonts) === -1) {
-            gfontImport = '@import url("https://fonts.googleapis.com/css2?family=' + encodeURIComponent(fontFamily) + ':wght@400;600;700&display=swap");';
-        }
-        var win = window.open('', '_blank', 'width=900,height=700');
-        win.document.write(
-            '<!DOCTYPE html><html><head><title>Quotation</title>' +
-            '<style>' +
-            gfontImport +
-            '  * { margin:0; padding:0; box-sizing:border-box; }' +
-            '  body { font-family:"' + fontFamily + '",Arial,Helvetica,sans-serif; font-size:' + fontSizePt + '; color:#222; }' +
-            '  @media print { @page { size:' + size + ' portrait; margin:12mm; } body { margin:0; } .no-print { display:none; } }' +
-            '  table { border-collapse:collapse; width:100%; }' +
-            '  th { background:#f3f4f6; font-size:9pt; font-weight:600; padding:5px 6px; border:1px solid #ddd; text-align:left; }' +
-            '  td { padding:5px 6px; border:1px solid #ddd; font-size:9.5pt; vertical-align:top; }' +
-            '  .text-end { text-align:right; }' +
-            '  .text-center { text-align:center; }' +
-            '  .fw-bold { font-weight:700; }' +
-            '  .text-muted { color:#666; }' +
-            '  .bg-light { background:#f8f9fa; }' +
-            '</style>' +
-            '</head><body>' +
-            '<div style="padding:0;">' + body + '</div>' +
-            '</body></html>'
-        );
-        win.document.close();
-        win.focus();
-        setTimeout(function () { win.print(); }, 350);
-    });
-
-    // ══════════════════════════════════════════════════════════════════════
-    // A4/A5 Professional Invoice Theme Renderers
-    // ══════════════════════════════════════════════════════════════════════
-
-    function _amountToWords(amount) {
-        var ones = ['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine',
-                    'Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen',
-                    'Seventeen','Eighteen','Nineteen'];
-        var tens = ['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
-        function grp(n) {
-            if (!n) return '';
-            if (n < 20) return ones[n] + ' ';
-            if (n < 100) return tens[Math.floor(n/10)] + (n%10 ? ' '+ones[n%10] : '') + ' ';
-            return ones[Math.floor(n/100)] + ' Hundred ' + grp(n%100);
-        }
-        var num = Math.round(parseFloat(amount) || 0);
-        if (!num) return 'Zero Only';
-        var r = '';
-        if (num >= 10000000) { r += grp(Math.floor(num/10000000)) + 'Crore ';  num %= 10000000; }
-        if (num >= 100000)   { r += grp(Math.floor(num/100000))   + 'Lakh ';   num %= 100000; }
-        if (num >= 1000)     { r += grp(Math.floor(num/1000))     + 'Thousand '; num %= 1000; }
-        r += grp(num);
-        return r.trim() + ' Only';
-    }
-
-    function _isInterState(items) {
-        var inter = false;
-        $.each(items || [], function(i, it) {
-            if (parseFloat(it.IgstAmount) > 0) { inter = true; return false; }
-        });
-        return inter;
-    }
-
-    // ── Professional GST items table (CGST/SGST or IGST columns) ─────────
-    function _gstItemsTable(items, sym, fmt, thm, hBg, hFg) {
-        var showHSN = !thm || parseInt(thm.ShowHSN) !== 0;
-        var showTax = !thm || parseInt(thm.ShowTaxBreakdown) !== 0;
-        var inter   = _isInterState(items);
-        hBg = hBg || ((thm && thm.PrimaryColor) ? thm.PrimaryColor : '#1a3c6e');
-        hFg = hFg || '#fff';
-
-        var ths = 'padding:5px 4px;font-size:7.5pt;font-weight:700;border:1px solid rgba(0,0,0,.12);background:' + hBg + ';color:' + hFg + ';white-space:nowrap;';
-        var tdr = 'padding:4px 4px;font-size:8.5pt;border:1px solid #e0e0e0;vertical-align:middle;';
-
-        var html = '<table style="width:100%;border-collapse:collapse;margin-bottom:0;">';
-        html += '<thead><tr>';
-        html += '<th style="' + ths + 'text-align:center;width:26px;">S.No</th>';
-        html += '<th style="' + ths + 'text-align:left;">Item Description</th>';
-        if (showHSN) html += '<th style="' + ths + 'text-align:center;width:50px;">HSN/SAC</th>';
-        html += '<th style="' + ths + 'text-align:center;width:48px;">Qty</th>';
-        html += '<th style="' + ths + 'text-align:right;width:65px;">Rate</th>';
-        html += '<th style="' + ths + 'text-align:right;width:52px;">Disc.</th>';
-        html += '<th style="' + ths + 'text-align:right;width:65px;">Taxable</th>';
-        if (showTax) {
-            if (inter) {
-                html += '<th style="' + ths + 'text-align:center;width:34px;">IGST%</th>';
-                html += '<th style="' + ths + 'text-align:right;width:58px;">IGST Amt</th>';
-            } else {
-                html += '<th style="' + ths + 'text-align:center;width:34px;">CGST%</th>';
-                html += '<th style="' + ths + 'text-align:right;width:55px;">CGST Amt</th>';
-                html += '<th style="' + ths + 'text-align:center;width:34px;">SGST%</th>';
-                html += '<th style="' + ths + 'text-align:right;width:55px;">SGST Amt</th>';
-            }
-        } else {
-            html += '<th style="' + ths + 'text-align:center;width:40px;">Tax%</th>';
-            html += '<th style="' + ths + 'text-align:right;width:58px;">Tax Amt</th>';
-        }
-        html += '<th style="' + ths + 'text-align:right;width:70px;">Amount</th>';
-        html += '</tr></thead><tbody>';
-
-        $.each(items || [], function(i, item) {
-            var bg   = i%2 ? '#f9fafb' : '#ffffff';
-            var cgst = parseFloat(item.CgstAmount) || 0;
-            var sgst = parseFloat(item.SgstAmount) || 0;
-            var igst = parseFloat(item.IgstAmount) || 0;
-            var disc = parseFloat(item.DiscountAmount) || 0;
-            var td   = tdr + 'background:' + bg + ';';
-
-            html += '<tr>';
-            html += '<td style="' + td + 'text-align:center;">' + (i+1) + '</td>';
-            html += '<td style="' + td + 'text-align:left;"><div style="font-weight:600;">' + _esc(item.ProductName) + '</div>';
-            if (item.PartNumber) html += '<div style="font-size:7pt;color:#888;">Part#: ' + _esc(item.PartNumber) + '</div>';
-            html += '</td>';
-            if (showHSN) html += '<td style="' + td + 'text-align:center;font-size:7.5pt;color:#666;">' + _esc(item.HSNCode || '—') + '</td>';
-            html += '<td style="' + td + 'text-align:center;">' + fmt(item.Quantity) + '<div style="font-size:7pt;color:#999;">' + _esc(item.PrimaryUnitName||'') + '</div></td>';
-            html += '<td style="' + td + 'text-align:right;">' + fmt(item.UnitPrice) + '</td>';
-            html += '<td style="' + td + 'text-align:right;">' + (disc > 0 ? fmt(disc) : '—') + '</td>';
-            html += '<td style="' + td + 'text-align:right;">' + fmt(item.TaxableAmount) + '</td>';
-            if (showTax) {
-                if (inter) {
-                    html += '<td style="' + td + 'text-align:center;">' + (parseFloat(item.IGST)||0) + '%</td>';
-                    html += '<td style="' + td + 'text-align:right;">' + fmt(igst) + '</td>';
-                } else {
-                    html += '<td style="' + td + 'text-align:center;">' + (parseFloat(item.CGST)||0) + '%</td>';
-                    html += '<td style="' + td + 'text-align:right;">' + fmt(cgst) + '</td>';
-                    html += '<td style="' + td + 'text-align:center;">' + (parseFloat(item.SGST)||0) + '%</td>';
-                    html += '<td style="' + td + 'text-align:right;">' + fmt(sgst) + '</td>';
+    // ── Delete ───────────────────────────────────────────────
+    $(document).on('click', '.deleteQuotation', function () {
+        var uid = $(this).data('uid'), num = $(this).data('num') || '';
+        Swal.fire({
+            title: 'Delete Quotation?',
+            html : num ? 'Delete <strong>' + num + '</strong>? This cannot be undone.' : 'This cannot be undone.',
+            icon : 'warning', showCancelButton: true, confirmButtonText: 'Delete', confirmButtonColor: '#d33',
+        }).then(function (r) {
+            if (!r.isConfirmed) return;
+            $.ajax({
+                url   : '/quotations/deleteQuotation',
+                method: 'POST',
+                data  : { TransUID: uid, [CsrfName]: CsrfToken },
+                success: function (resp) {
+                    if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); }
+                    else { getQuotationsDetails(); Swal.fire({ icon: 'success', text: resp.Message, timer: 1500, showConfirmButton: false }); }
                 }
-            } else {
-                html += '<td style="' + td + 'text-align:center;">' + (parseFloat(item.TaxPercentage)||0) + '%</td>';
-                html += '<td style="' + td + 'text-align:right;">' + fmt(item.TaxAmount) + '</td>';
-            }
-            html += '<td style="' + td + 'text-align:right;font-weight:700;">' + fmt(item.NetAmount) + '</td>';
-            html += '</tr>';
-        });
-
-        html += '</tbody></table>';
-        return html;
-    }
-
-    // ── Totals table + amount in words ────────────────────────────────────
-    function _totalsSection(h, sym, fmt, primary, items) {
-        var html = '<table style="width:100%;border-collapse:collapse;margin-bottom:8px;">';
-        html += '<tr>';
-        // Left: Amount in words + tax summary
-        html += '<td style="border:none;vertical-align:top;padding-right:12px;">';
-        html += '<div style="font-size:8pt;font-weight:700;color:#555;margin-bottom:4px;">Amount in Words:</div>';
-        html += '<div style="font-size:8.5pt;font-weight:600;color:#222;border:1px solid #ddd;background:#f9f9f9;padding:5px 8px;border-radius:2px;">' + _amountToWords(h.NetAmount) + '</div>';
-        html += '</td>';
-        // Right: numeric totals
-        html += '<td style="border:none;vertical-align:top;width:240px;">';
-        html += '<table style="width:100%;border-collapse:collapse;">';
-        function totRow(lbl, val, bold, color) {
-            return '<tr><td style="padding:3px 8px;font-size:8.5pt;color:#555;border:1px solid #e8e8e8;">' + lbl + '</td>'
-                 + '<td style="padding:3px 8px;font-size:8.5pt;text-align:right;white-space:nowrap;border:1px solid #e8e8e8;' + (bold?'font-weight:700;':'') + (color?'color:'+color+';':'') + '">' + sym + ' ' + val + '</td></tr>';
-        }
-        html += totRow('Sub Total', fmt(h.SubTotal));
-        if (parseFloat(h.DiscountAmount) > 0) html += totRow('Discount', '− ' + fmt(h.DiscountAmount), false, '#c00');
-        if (parseFloat(h.CgstAmount)  > 0) html += totRow('CGST',     fmt(h.CgstAmount));
-        if (parseFloat(h.SgstAmount)  > 0) html += totRow('SGST',     fmt(h.SgstAmount));
-        if (parseFloat(h.IgstAmount)  > 0) html += totRow('IGST',     fmt(h.IgstAmount));
-        if (parseFloat(h.AdditionalCharges) > 0) html += totRow('Additional Charges', fmt(h.AdditionalCharges));
-        if (parseFloat(h.RoundOff||0) !== 0) html += totRow('Round Off', fmt(h.RoundOff));
-        html += '<tr style="background:' + primary + ';color:#fff;">'
-              + '<td style="padding:6px 8px;font-size:10pt;font-weight:700;border:1px solid ' + primary + ';">Grand Total</td>'
-              + '<td style="padding:6px 8px;font-size:10pt;font-weight:700;text-align:right;white-space:nowrap;border:1px solid ' + primary + ';">' + sym + ' ' + fmt(h.NetAmount) + '</td></tr>';
-        html += '</table>';
-        html += '</td></tr></table>';
-        return html;
-    }
-
-    // ── Notes / Terms block ───────────────────────────────────────────────
-    function _notesTermsBlock(h) {
-        if (!h.Notes && !h.TermsConditions) return '';
-        var html = '<table style="width:100%;border-collapse:collapse;border:1px solid #ddd;margin-bottom:8px;"><tr>';
-        if (h.Notes) {
-            html += '<td style="padding:6px 10px;vertical-align:top;font-size:8.5pt;' + (h.TermsConditions ? 'width:50%;border-right:1px solid #ddd;' : '') + '">'
-                  + '<div style="font-weight:700;margin-bottom:3px;color:#333;">Notes</div>'
-                  + '<div style="color:#555;">' + _esc(h.Notes) + '</div></td>';
-        }
-        if (h.TermsConditions) {
-            html += '<td style="padding:6px 10px;vertical-align:top;font-size:8.5pt;">'
-                  + '<div style="font-weight:700;margin-bottom:3px;color:#333;">Terms &amp; Conditions</div>'
-                  + '<div style="color:#555;">' + _esc(h.TermsConditions) + '</div></td>';
-        }
-        html += '</tr></table>';
-        return html;
-    }
-
-    // ── Signature block ───────────────────────────────────────────────────
-    function _signatureBlock(orgName, primary) {
-        return '<table style="width:100%;border-collapse:collapse;margin-top:6px;"><tr>'
-             + '<td style="border:none;vertical-align:bottom;font-size:8pt;color:#777;">This is a computer generated document.</td>'
-             + '<td style="border:none;width:180px;text-align:center;vertical-align:bottom;">'
-             + '<div style="border-top:1px solid #555;padding-top:4px;font-size:8pt;font-weight:600;color:#333;">Authorised Signatory</div>'
-             + '<div style="font-size:7.5pt;color:#666;">For ' + _esc(orgName) + '</div>'
-             + '</td></tr></table>';
-    }
-
-    // ══════════════════════════════════════════════════════════════════════
-    // THEME 1 — CLASSIC (Luxury-style: bordered, clean, traditional)
-    // ══════════════════════════════════════════════════════════════════════
-    function _themeClassic(resp, sym, fmt, thm) {
-        var h       = resp.Header  || {};
-        var org     = resp.OrgInfo || {};
-        var primary = (thm && thm.PrimaryColor) ? thm.PrimaryColor : '#1a3c6e';
-        var accent  = (thm && thm.AccentColor)  ? thm.AccentColor  : '#f59e0b';
-        var showLogo  = !thm || parseInt(thm.ShowLogo) !== 0;
-        var showAddr  = !thm || parseInt(thm.ShowOrgAddress) !== 0;
-        var showGSTIN = !thm || parseInt(thm.ShowGSTIN) !== 0;
-        var footer    = (thm && thm.FooterText) ? thm.FooterText : 'Thank you for your business!';
-        var html = '';
-
-        // Outer border frame
-        html += '<div style="border:2px solid ' + primary + ';padding:10px;">';
-
-        // Top header: logo+org | document title
-        html += '<table style="width:100%;border-collapse:collapse;margin-bottom:0;border-bottom:2px solid ' + accent + ';padding-bottom:8px;"><tr>';
-        html += '<td style="border:none;vertical-align:top;">';
-        if (showLogo) html += '<img src="/images/logo/favicon_io/android-chrome-512x512-1.png" width="48" height="48" alt="Logo" style="float:left;margin-right:10px;">';
-        html += '<div style="font-size:14pt;font-weight:800;color:' + primary + ';">' + _esc(org.BrandName || org.Name || '') + '</div>';
-        if (showAddr) {
-            if (org.Line1) html += '<div style="font-size:8pt;color:#444;">' + _esc(org.Line1) + (org.Line2 ? ', ' + _esc(org.Line2) : '') + '</div>';
-            if (org.CityText) html += '<div style="font-size:8pt;color:#444;">' + _esc(org.CityText) + (org.StateText ? ', ' + _esc(org.StateText) : '') + (org.Pincode ? ' – ' + _esc(org.Pincode) : '') + '</div>';
-            if (org.MobileNumber) html += '<div style="font-size:8pt;color:#444;">Ph: ' + _esc(org.MobileNumber) + (org.EmailAddress ? '  |  ' + _esc(org.EmailAddress) : '') + '</div>';
-        }
-        if (showGSTIN && org.GSTIN) html += '<div style="font-size:8pt;color:#444;">GSTIN: <strong>' + _esc(org.GSTIN) + '</strong></div>';
-        html += '</td>';
-        html += '<td style="border:none;text-align:right;vertical-align:top;min-width:180px;">';
-        html += '<div style="font-size:18pt;font-weight:800;color:' + primary + ';letter-spacing:2px;border-bottom:2px solid ' + accent + ';display:inline-block;padding-bottom:2px;">QUOTATION</div>';
-        html += '<table style="margin-left:auto;border-collapse:collapse;margin-top:6px;border:1px solid #ddd;">';
-        if (h.UniqueNumber) html += '<tr><td style="padding:3px 8px;font-size:8pt;color:#777;border-bottom:1px solid #eee;">Quotation No.</td><td style="padding:3px 8px;font-size:8.5pt;font-weight:700;border-bottom:1px solid #eee;">' + _esc(h.UniqueNumber) + '</td></tr>';
-        html += '<tr><td style="padding:3px 8px;font-size:8pt;color:#777;border-bottom:1px solid #eee;">Date</td><td style="padding:3px 8px;font-size:8.5pt;border-bottom:1px solid #eee;">' + _esc(h.TransDate) + '</td></tr>';
-        if (h.ValidityDate) html += '<tr><td style="padding:3px 8px;font-size:8pt;color:#777;">Valid Until</td><td style="padding:3px 8px;font-size:8.5pt;">' + _esc(h.ValidityDate) + '</td></tr>';
-        html += '</table></td></tr></table>';
-
-        // Bill To
-        html += '<table style="width:100%;border-collapse:collapse;margin:8px 0;"><tr>';
-        html += '<td style="width:50%;vertical-align:top;border:1px solid #ddd;padding:0;">';
-        html += '<div style="background:#f3f4f6;font-size:7.5pt;font-weight:700;padding:4px 8px;border-bottom:1px solid #ddd;color:' + primary + ';letter-spacing:.5px;text-transform:uppercase;">Bill To</div>';
-        html += '<div style="padding:6px 8px;">';
-        html += '<div style="font-size:11pt;font-weight:700;color:#222;">' + _esc(h.PartyName || '—') + '</div>';
-        if (h.PartyMobile) html += '<div style="font-size:8pt;color:#555;">' + _esc(h.PartyCountryCode||'') + ' ' + _esc(h.PartyMobile) + '</div>';
-        if (h.Reference) html += '<div style="font-size:8pt;color:#777;margin-top:3px;">Ref: ' + _esc(h.Reference) + '</div>';
-        html += '</div></td>';
-        html += '<td style="border:none;"></td></tr></table>';
-
-        // Items table
-        html += _gstItemsTable(resp.Items, sym, fmt, thm, primary, '#fff');
-
-        // Totals
-        html += _totalsSection(h, sym, fmt, primary, resp.Items);
-        html += _notesTermsBlock(h);
-        html += _signatureBlock(org.BrandName || org.Name || '', primary);
-
-        html += '</div>'; // end outer border frame
-        html += '<div style="text-align:center;font-size:8pt;color:#888;margin-top:8px;border-top:2px solid ' + accent + ';padding-top:5px;">' + _esc(footer) + '</div>';
-        return html;
-    }
-
-    // ══════════════════════════════════════════════════════════════════════
-    // THEME 2 — MODERN (Stylish: bold brand header, two-tone)
-    // ══════════════════════════════════════════════════════════════════════
-    function _themeModern(resp, sym, fmt, thm) {
-        var h       = resp.Header  || {};
-        var org     = resp.OrgInfo || {};
-        var primary = (thm && thm.PrimaryColor) ? thm.PrimaryColor : '#1a3c6e';
-        var accent  = (thm && thm.AccentColor)  ? thm.AccentColor  : '#f59e0b';
-        var showLogo  = !thm || parseInt(thm.ShowLogo) !== 0;
-        var showAddr  = !thm || parseInt(thm.ShowOrgAddress) !== 0;
-        var showGSTIN = !thm || parseInt(thm.ShowGSTIN) !== 0;
-        var footer    = (thm && thm.FooterText) ? thm.FooterText : 'Thank you for your business!';
-        var html = '';
-
-        // Full-width primary header band
-        html += '<div style="background:' + primary + ';padding:14px 16px;margin-bottom:0;">';
-        html += '<div style="display:flex;justify-content:space-between;align-items:center;">';
-        html += '<div style="display:flex;align-items:center;gap:12px;">';
-        if (showLogo) html += '<img src="/images/logo/favicon_io/android-chrome-512x512-1.png" width="50" height="50" alt="Logo" style="background:#fff;border-radius:6px;padding:3px;">';
-        html += '<div>';
-        html += '<div style="font-size:17pt;font-weight:800;color:#fff;letter-spacing:.5px;">' + _esc(org.BrandName || org.Name || '') + '</div>';
-        if (showAddr && org.CityText) html += '<div style="font-size:8pt;color:rgba(255,255,255,.8);">' + _esc(org.CityText) + (org.StateText ? ', ' + _esc(org.StateText) : '') + '</div>';
-        if (showAddr && org.MobileNumber) html += '<div style="font-size:8pt;color:rgba(255,255,255,.8);">Ph: ' + _esc(org.MobileNumber) + (org.EmailAddress ? ' | ' + _esc(org.EmailAddress) : '') + '</div>';
-        if (showGSTIN && org.GSTIN) html += '<div style="font-size:8pt;color:rgba(255,255,255,.8);">GSTIN: ' + _esc(org.GSTIN) + '</div>';
-        html += '</div></div>';
-        html += '<div style="text-align:right;">';
-        html += '<div style="font-size:22pt;font-weight:900;color:' + accent + ';letter-spacing:3px;">QUOTATION</div>';
-        if (h.UniqueNumber) html += '<div style="font-size:10pt;font-weight:700;color:#fff;">' + _esc(h.UniqueNumber) + '</div>';
-        html += '<div style="font-size:8pt;color:rgba(255,255,255,.8);">Date: ' + _esc(h.TransDate) + '</div>';
-        if (h.ValidityDate) html += '<div style="font-size:8pt;color:rgba(255,255,255,.8);">Valid Until: ' + _esc(h.ValidityDate) + '</div>';
-        html += '</div></div></div>';
-        // Accent stripe
-        html += '<div style="background:' + accent + ';height:4px;margin-bottom:10px;"></div>';
-
-        // Address + Bill To row
-        html += '<table style="width:100%;border-collapse:collapse;margin-bottom:10px;"><tr>';
-        if (showAddr && (org.Line1 || org.CityText)) {
-            html += '<td style="border:none;width:50%;vertical-align:top;padding-right:10px;">';
-            html += '<div style="font-size:7.5pt;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.8px;margin-bottom:3px;">From</div>';
-            if (org.Line1) html += '<div style="font-size:8.5pt;color:#444;">' + _esc(org.Line1) + (org.Line2 ? ', ' + _esc(org.Line2) : '') + '</div>';
-            if (org.CityText) html += '<div style="font-size:8.5pt;color:#444;">' + _esc(org.CityText) + (org.StateText ? ', ' + _esc(org.StateText) : '') + (org.Pincode ? ' – ' + _esc(org.Pincode) : '') + '</div>';
-            html += '</td>';
-        }
-        html += '<td style="border:none;vertical-align:top;">';
-        html += '<div style="font-size:7.5pt;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.8px;margin-bottom:3px;">Bill To</div>';
-        html += '<div style="font-size:11pt;font-weight:700;color:#222;">' + _esc(h.PartyName || '—') + '</div>';
-        if (h.PartyMobile) html += '<div style="font-size:8.5pt;color:#555;">' + _esc(h.PartyCountryCode||'') + ' ' + _esc(h.PartyMobile) + '</div>';
-        if (h.Reference) html += '<div style="font-size:8pt;color:#888;margin-top:2px;">Ref: ' + _esc(h.Reference) + '</div>';
-        html += '</td></tr></table>';
-
-        html += _gstItemsTable(resp.Items, sym, fmt, thm, primary, '#fff');
-        html += _totalsSection(h, sym, fmt, primary, resp.Items);
-        html += _notesTermsBlock(h);
-        html += _signatureBlock(org.BrandName || org.Name || '', primary);
-        html += '<div style="margin-top:10px;border-top:4px solid ' + accent + ';padding-top:6px;font-size:8pt;color:#666;text-align:center;">' + _esc(footer) + '</div>';
-        return html;
-    }
-
-    // ══════════════════════════════════════════════════════════════════════
-    // THEME 3 — MINIMAL (Clean, spacious, PayPal-style)
-    // ══════════════════════════════════════════════════════════════════════
-    function _themeMinimal(resp, sym, fmt, thm) {
-        var h       = resp.Header  || {};
-        var org     = resp.OrgInfo || {};
-        var primary = (thm && thm.PrimaryColor) ? thm.PrimaryColor : '#1a3c6e';
-        var accent  = (thm && thm.AccentColor)  ? thm.AccentColor  : '#f59e0b';
-        var showLogo  = !thm || parseInt(thm.ShowLogo) !== 0;
-        var showAddr  = !thm || parseInt(thm.ShowOrgAddress) !== 0;
-        var showGSTIN = !thm || parseInt(thm.ShowGSTIN) !== 0;
-        var footer    = (thm && thm.FooterText) ? thm.FooterText : 'Thank you for your business!';
-        var html = '';
-
-        // Minimal top bar (just a thin colored line)
-        html += '<div style="border-top:3px solid ' + primary + ';padding-top:14px;">';
-
-        // Header: logo+name left, doc info right
-        html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">';
-        html += '<div>';
-        if (showLogo) html += '<img src="/images/logo/favicon_io/android-chrome-512x512-1.png" width="44" height="44" alt="Logo" style="display:block;margin-bottom:6px;">';
-        html += '<div style="font-size:16pt;font-weight:800;color:' + primary + ';">' + _esc(org.BrandName || org.Name || '') + '</div>';
-        if (showAddr) {
-            if (org.Line1) html += '<div style="font-size:8.5pt;color:#888;margin-top:2px;">' + _esc(org.Line1) + (org.Line2 ? ', ' + _esc(org.Line2) : '') + '</div>';
-            if (org.CityText) html += '<div style="font-size:8.5pt;color:#888;">' + _esc(org.CityText) + (org.StateText ? ', ' + _esc(org.StateText) : '') + (org.Pincode ? ' ' + _esc(org.Pincode) : '') + '</div>';
-            if (org.MobileNumber) html += '<div style="font-size:8.5pt;color:#888;">' + _esc(org.MobileNumber) + (org.EmailAddress ? '  •  ' + _esc(org.EmailAddress) : '') + '</div>';
-        }
-        if (showGSTIN && org.GSTIN) html += '<div style="font-size:8.5pt;color:#888;">GSTIN: ' + _esc(org.GSTIN) + '</div>';
-        html += '</div>';
-        html += '<div style="text-align:right;">';
-        html += '<div style="font-size:22pt;font-weight:300;letter-spacing:4px;color:' + primary + ';text-transform:uppercase;">Quotation</div>';
-        if (h.UniqueNumber) html += '<div style="font-size:10pt;color:#333;font-weight:600;margin-top:4px;">' + _esc(h.UniqueNumber) + '</div>';
-        html += '<table style="margin-left:auto;margin-top:4px;border-collapse:collapse;">';
-        html += '<tr><td style="font-size:8pt;color:#aaa;padding:2px 8px;border:none;text-align:right;">Date</td><td style="font-size:8.5pt;color:#333;padding:2px 0;border:none;">' + _esc(h.TransDate) + '</td></tr>';
-        if (h.ValidityDate) html += '<tr><td style="font-size:8pt;color:#aaa;padding:2px 8px;border:none;text-align:right;">Valid Until</td><td style="font-size:8.5pt;color:#333;padding:2px 0;border:none;">' + _esc(h.ValidityDate) + '</td></tr>';
-        html += '</table></div></div>';
-
-        html += '<div style="border-bottom:1px solid #ddd;margin-bottom:12px;"></div>';
-
-        // Bill To
-        html += '<div style="margin-bottom:12px;">';
-        html += '<div style="font-size:7.5pt;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px;">Bill To</div>';
-        html += '<div style="font-size:11pt;font-weight:600;color:#222;">' + _esc(h.PartyName || '—') + '</div>';
-        if (h.PartyMobile) html += '<div style="font-size:8.5pt;color:#888;">' + _esc(h.PartyCountryCode||'') + ' ' + _esc(h.PartyMobile) + '</div>';
-        if (h.Reference) html += '<div style="font-size:8pt;color:#aaa;margin-top:2px;">Ref: ' + _esc(h.Reference) + '</div>';
-        html += '</div>';
-
-        html += _gstItemsTable(resp.Items, sym, fmt, thm, primary, '#fff');
-        html += _totalsSection(h, sym, fmt, primary, resp.Items);
-        html += _notesTermsBlock(h);
-        html += _signatureBlock(org.BrandName || org.Name || '', primary);
-
-        html += '</div>';
-        html += '<div style="border-top:1px solid #ddd;padding-top:8px;margin-top:10px;font-size:8pt;color:#aaa;text-align:center;letter-spacing:.5px;">' + _esc(footer) + '</div>';
-        return html;
-    }
-
-    // ══════════════════════════════════════════════════════════════════════
-    // THEME 4 — BOLD (Flipkart-style: dark band + accent corner)
-    // ══════════════════════════════════════════════════════════════════════
-    function _themeBold(resp, sym, fmt, thm) {
-        var h       = resp.Header  || {};
-        var org     = resp.OrgInfo || {};
-        var primary = (thm && thm.PrimaryColor) ? thm.PrimaryColor : '#1a3c6e';
-        var accent  = (thm && thm.AccentColor)  ? thm.AccentColor  : '#f59e0b';
-        var showLogo  = !thm || parseInt(thm.ShowLogo) !== 0;
-        var showAddr  = !thm || parseInt(thm.ShowOrgAddress) !== 0;
-        var showGSTIN = !thm || parseInt(thm.ShowGSTIN) !== 0;
-        var footer    = (thm && thm.FooterText) ? thm.FooterText : 'Thank you for your business!';
-        var html = '';
-
-        // Dark header: left (logo+org) + right (accent panel for doc title)
-        html += '<div style="display:flex;margin-bottom:0;">';
-        // Left dark band
-        html += '<div style="background:' + primary + ';flex:1;padding:14px 16px;display:flex;align-items:center;gap:12px;">';
-        if (showLogo) html += '<img src="/images/logo/favicon_io/android-chrome-512x512-1.png" width="50" height="50" alt="Logo" style="background:#fff;border-radius:6px;padding:3px;flex-shrink:0;">';
-        html += '<div style="color:#fff;">';
-        html += '<div style="font-size:16pt;font-weight:800;">' + _esc(org.BrandName || org.Name || '') + '</div>';
-        if (showAddr) {
-            var addrLine = [org.Line1, org.CityText, org.StateText].filter(Boolean).join(', ');
-            if (addrLine) html += '<div style="font-size:8pt;opacity:.8;margin-top:2px;">' + _esc(addrLine) + (org.Pincode ? ' – ' + _esc(org.Pincode) : '') + '</div>';
-            if (org.MobileNumber) html += '<div style="font-size:8pt;opacity:.8;">Ph: ' + _esc(org.MobileNumber) + (org.EmailAddress ? ' | ' + _esc(org.EmailAddress) : '') + '</div>';
-        }
-        if (showGSTIN && org.GSTIN) html += '<div style="font-size:8pt;opacity:.8;">GSTIN: ' + _esc(org.GSTIN) + '</div>';
-        html += '</div></div>';
-        // Right accent panel
-        html += '<div style="background:' + accent + ';padding:14px 18px;text-align:right;min-width:185px;display:flex;flex-direction:column;justify-content:center;">';
-        html += '<div style="font-size:20pt;font-weight:900;color:#fff;letter-spacing:2px;line-height:1.1;">QUOTATION</div>';
-        if (h.UniqueNumber) html += '<div style="font-size:10pt;font-weight:700;color:#fff;">' + _esc(h.UniqueNumber) + '</div>';
-        html += '<div style="font-size:8pt;color:rgba(255,255,255,.9);margin-top:2px;">Date: ' + _esc(h.TransDate) + '</div>';
-        if (h.ValidityDate) html += '<div style="font-size:8pt;color:rgba(255,255,255,.9);">Valid: ' + _esc(h.ValidityDate) + '</div>';
-        html += '</div></div>';
-
-        // Bill To strip below header
-        html += '<div style="background:#f5f5f5;padding:7px 14px;border-bottom:3px solid ' + accent + ';margin-bottom:10px;display:flex;align-items:center;gap:16px;">';
-        html += '<span style="font-size:7.5pt;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.8px;flex-shrink:0;">Bill To</span>';
-        html += '<span style="font-size:11pt;font-weight:700;color:#222;">' + _esc(h.PartyName || '—') + '</span>';
-        if (h.PartyMobile) html += '<span style="font-size:8.5pt;color:#666;">' + _esc(h.PartyCountryCode||'') + ' ' + _esc(h.PartyMobile) + '</span>';
-        if (h.Reference) html += '<span style="font-size:8pt;color:#999;margin-left:auto;">Ref: ' + _esc(h.Reference) + '</span>';
-        html += '</div>';
-
-        html += _gstItemsTable(resp.Items, sym, fmt, thm, primary, '#fff');
-        html += _totalsSection(h, sym, fmt, primary, resp.Items);
-        html += _notesTermsBlock(h);
-        html += _signatureBlock(org.BrandName || org.Name || '', primary);
-        html += '<div style="background:' + primary + ';color:#fff;text-align:center;padding:7px;font-size:8pt;margin-top:8px;">' + _esc(footer) + '</div>';
-        return html;
-    }
-
-    // ══════════════════════════════════════════════════════════════════════
-    // THEME 5 — EXECUTIVE (Tally-style: formal, side accent bar, detailed)
-    // ══════════════════════════════════════════════════════════════════════
-    function _themeExecutive(resp, sym, fmt, thm) {
-        var h       = resp.Header  || {};
-        var org     = resp.OrgInfo || {};
-        var primary = (thm && thm.PrimaryColor) ? thm.PrimaryColor : '#1a3c6e';
-        var accent  = (thm && thm.AccentColor)  ? thm.AccentColor  : '#f59e0b';
-        var showLogo  = !thm || parseInt(thm.ShowLogo) !== 0;
-        var showAddr  = !thm || parseInt(thm.ShowOrgAddress) !== 0;
-        var showGSTIN = !thm || parseInt(thm.ShowGSTIN) !== 0;
-        var footer    = (thm && thm.FooterText) ? thm.FooterText : 'Thank you for your business!';
-        var html = '';
-
-        // Outer wrapper with left accent bar
-        html += '<div style="border-left:5px solid ' + primary + ';padding-left:14px;">';
-
-        // Header
-        html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid ' + primary + ';padding-bottom:10px;margin-bottom:10px;">';
-        html += '<div style="display:flex;align-items:flex-start;gap:10px;">';
-        if (showLogo) html += '<img src="/images/logo/favicon_io/android-chrome-512x512-1.png" width="52" height="52" alt="Logo">';
-        html += '<div>';
-        html += '<div style="font-size:15pt;font-weight:700;color:' + primary + ';border-bottom:2px solid ' + accent + ';display:inline-block;padding-bottom:2px;margin-bottom:4px;">' + _esc(org.BrandName || org.Name || '') + '</div>';
-        if (showAddr) {
-            if (org.Line1) html += '<div style="font-size:8.5pt;color:#444;">' + _esc(org.Line1) + (org.Line2 ? ', ' + _esc(org.Line2) : '') + '</div>';
-            if (org.CityText) html += '<div style="font-size:8.5pt;color:#444;">' + _esc(org.CityText) + (org.StateText ? ', ' + _esc(org.StateText) : '') + (org.Pincode ? ' – ' + _esc(org.Pincode) : '') + '</div>';
-            if (org.MobileNumber) html += '<div style="font-size:8.5pt;color:#444;">Tel: ' + _esc(org.MobileNumber) + (org.EmailAddress ? '  |  ' + _esc(org.EmailAddress) : '') + '</div>';
-        }
-        if (showGSTIN && org.GSTIN) html += '<div style="font-size:8.5pt;color:#444;">GSTIN: <strong>' + _esc(org.GSTIN) + '</strong></div>';
-        html += '</div></div>';
-        html += '<div style="text-align:right;">';
-        html += '<div style="font-size:18pt;font-weight:700;color:' + primary + ';font-variant:small-caps;letter-spacing:2px;">Quotation</div>';
-        html += '<table style="margin-left:auto;border:1px solid #ddd;border-collapse:collapse;margin-top:4px;">';
-        if (h.UniqueNumber) html += '<tr><td style="padding:3px 8px;font-size:8pt;color:#777;border-bottom:1px solid #eee;">Quotation No.</td><td style="padding:3px 8px;font-size:9pt;font-weight:700;border-bottom:1px solid #eee;">' + _esc(h.UniqueNumber) + '</td></tr>';
-        html += '<tr><td style="padding:3px 8px;font-size:8pt;color:#777;border-bottom:1px solid #eee;">Date</td><td style="padding:3px 8px;font-size:9pt;border-bottom:1px solid #eee;">' + _esc(h.TransDate) + '</td></tr>';
-        if (h.ValidityDate) html += '<tr><td style="padding:3px 8px;font-size:8pt;color:#777;">Valid Until</td><td style="padding:3px 8px;font-size:9pt;">' + _esc(h.ValidityDate) + '</td></tr>';
-        html += '</table></div></div>';
-
-        // Bill To box
-        html += '<div style="border:1px solid #ddd;background:#fafafa;padding:8px 12px;margin-bottom:12px;display:inline-block;min-width:45%;">';
-        html += '<div style="font-size:7.5pt;font-weight:700;color:' + primary + ';text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">Bill To</div>';
-        html += '<div style="font-size:11pt;font-weight:700;color:#222;">' + _esc(h.PartyName || '—') + '</div>';
-        if (h.PartyMobile) html += '<div style="font-size:8.5pt;color:#555;">' + _esc(h.PartyCountryCode||'') + ' ' + _esc(h.PartyMobile) + '</div>';
-        if (h.Reference) html += '<div style="font-size:8pt;color:#888;margin-top:2px;">Ref: ' + _esc(h.Reference) + '</div>';
-        html += '</div>';
-
-        html += _gstItemsTable(resp.Items, sym, fmt, thm, primary, '#fff');
-        html += _totalsSection(h, sym, fmt, primary, resp.Items);
-        html += _notesTermsBlock(h);
-        html += _signatureBlock(org.BrandName || org.Name || '', primary);
-
-        html += '</div>'; // close accent bar wrapper
-        html += '<div style="border-top:3px solid ' + accent + ';padding-top:6px;margin-top:10px;font-size:8pt;color:#666;text-align:center;">' + _esc(footer) + '</div>';
-        return html;
-    }
-
-    // ── HSN/SAC tax summary table (used by swipe_formal) ─────────────────
-    function _hsnTaxSummary(items, sym, fmt, primary) {
-        var groups = {};
-        $.each(items || [], function(i, it) {
-            var hsn     = it.HSNSACCode || '-';
-            var taxable = parseFloat(it.TaxableAmount || 0);
-            var igst    = parseFloat(it.IgstAmount  || 0);
-            var cgst    = parseFloat(it.CgstAmount  || 0);
-            var sgst    = parseFloat(it.SgstAmount  || 0);
-            var tax     = igst + cgst + sgst;
-            var rate    = parseFloat(it.IgstRate || 0) || (parseFloat(it.CgstRate || 0) + parseFloat(it.SgstRate || 0));
-            if (!groups[hsn]) groups[hsn] = { taxable: 0, tax: 0, rate: rate };
-            groups[hsn].taxable += taxable;
-            groups[hsn].tax     += tax;
-        });
-        var ths = 'padding:4px 6px;font-size:7.5pt;font-weight:700;background:' + primary + ';color:#fff;border:1px solid rgba(0,0,0,.1);';
-        var td  = 'padding:4px 6px;font-size:8pt;border:1px solid #ddd;';
-        var html = '<table style="width:100%;border-collapse:collapse;margin:0;">';
-        html += '<thead><tr>'
-              + '<th style="' + ths + '">HSN/SAC</th>'
-              + '<th style="' + ths + 'text-align:right;">Taxable Value</th>'
-              + '<th style="' + ths + 'text-align:center;">Rate</th>'
-              + '<th style="' + ths + 'text-align:right;">Total Tax Amount</th>'
-              + '</tr></thead><tbody>';
-        var totTaxable = 0, totTax = 0;
-        $.each(groups, function(hsn, g) {
-            totTaxable += g.taxable; totTax += g.tax;
-            html += '<tr>'
-                  + '<td style="' + td + '">' + _esc(hsn) + '</td>'
-                  + '<td style="' + td + 'text-align:right;">' + sym + ' ' + fmt(g.taxable) + '</td>'
-                  + '<td style="' + td + 'text-align:center;">' + fmt(g.rate) + '%</td>'
-                  + '<td style="' + td + 'text-align:right;">' + sym + ' ' + fmt(g.tax) + '</td>'
-                  + '</tr>';
-        });
-        html += '<tr style="font-weight:700;background:#f5f5f5;">'
-              + '<td style="' + td + '">TOTAL</td>'
-              + '<td style="' + td + 'text-align:right;">' + sym + ' ' + fmt(totTaxable) + '</td>'
-              + '<td style="' + td + '"></td>'
-              + '<td style="' + td + 'text-align:right;">' + sym + ' ' + fmt(totTax) + '</td>'
-              + '</tr>';
-        html += '</tbody></table>';
-        html += '<div style="text-align:right;padding:4px 8px;font-size:8pt;color:#27ae60;font-weight:700;">&#10003; Amount Paid</div>';
-        return html;
-    }
-
-    // ══════════════════════════════════════════════════════════════════════
-    // THEME 6 — SWIPE CLEAN (Amazon/Swipe style: no border, 3-col customer, bank footer)
-    // ══════════════════════════════════════════════════════════════════════
-    function _themeSwipeClean(resp, sym, fmt, thm) {
-        var h         = resp.Header  || {};
-        var org       = resp.OrgInfo || {};
-        var primary   = (thm && thm.PrimaryColor) ? thm.PrimaryColor : '#1a3c6e';
-        var accent    = (thm && thm.AccentColor)  ? thm.AccentColor  : '#f59e0b';
-        var showLogo  = !thm || parseInt(thm.ShowLogo)      !== 0;
-        var showAddr  = !thm || parseInt(thm.ShowOrgAddress) !== 0;
-        var showGSTIN = !thm || parseInt(thm.ShowGSTIN)     !== 0;
-        var footer    = (thm && thm.FooterText) ? thm.FooterText : 'Thank you for your business!';
-        var html = '';
-
-        // Header
-        html += '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;">';
-        html += '<div style="font-size:13pt;font-weight:700;color:' + primary + ';letter-spacing:.8px;">TAX INVOICE</div>';
-        html += '<div style="font-size:8pt;color:#888;font-style:italic;">ORIGINAL FOR RECIPIENT</div>';
-        html += '</div>';
-
-        // Company + Logo
-        html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid #e0e0e0;padding-bottom:10px;margin-bottom:10px;">';
-        html += '<div style="flex:1;">';
-        html += '<div style="font-size:17pt;font-weight:800;color:#1a1a1a;margin-bottom:3px;">' + _esc(org.BrandName || org.Name || '') + '</div>';
-        if (showGSTIN && org.GSTIN) html += '<div style="font-size:8.5pt;color:#555;margin-bottom:1px;">GSTIN ' + _esc(org.GSTIN) + '</div>';
-        if (showAddr) {
-            if (org.Line1) html += '<div style="font-size:8.5pt;color:#555;margin-bottom:1px;">' + _esc(org.Line1) + (org.Line2 ? ', ' + _esc(org.Line2) : '') + '</div>';
-            if (org.CityText) html += '<div style="font-size:8.5pt;color:#555;margin-bottom:1px;">' + _esc(org.CityText) + (org.StateText ? ', ' + _esc(org.StateText) : '') + (org.Pincode ? ' - ' + _esc(org.Pincode) : '') + '</div>';
-            if (org.MobileNumber) html += '<div style="font-size:8.5pt;color:#555;">Mobile ' + _esc(org.MobileNumber) + (org.EmailAddress ? ' &nbsp; Email ' + _esc(org.EmailAddress) : '') + '</div>';
-        }
-        html += '</div>';
-        if (showLogo) html += '<img src="/images/logo/favicon_io/android-chrome-512x512-1.png" width="64" height="64" alt="Logo" style="border-radius:6px;margin-left:14px;">';
-        html += '</div>';
-
-        // Invoice meta row
-        html += '<div style="display:flex;gap:28px;font-size:8.5pt;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #eee;">';
-        html += '<div><span style="font-weight:600;color:#333;">Invoice #:</span> ' + _esc(h.UniqueNumber || '—') + '</div>';
-        html += '<div><span style="font-weight:600;color:#333;">Invoice Date:</span> ' + _esc(h.TransDate || '') + '</div>';
-        if (h.ValidityDate) html += '<div><span style="font-weight:600;color:#333;">Due Date:</span> ' + _esc(h.ValidityDate) + '</div>';
-        html += '</div>';
-
-        // Customer 3-column table
-        html += '<table style="width:100%;border-collapse:collapse;margin-bottom:8px;border:1px solid #e8e8e8;font-size:8.5pt;">';
-        html += '<tr>';
-        html += '<td style="width:33%;border-right:1px solid #e8e8e8;vertical-align:top;padding:7px 9px;">';
-        html += '<div style="font-weight:700;font-size:7.5pt;color:#888;margin-bottom:4px;">Customer Details:</div>';
-        html += '<div style="font-weight:700;font-size:10pt;margin-bottom:2px;">' + _esc(h.PartyName || '—') + '</div>';
-        if (h.PartyMobile) html += '<div style="color:#555;">Ph: ' + _esc(h.PartyCountryCode || '') + ' ' + _esc(h.PartyMobile) + '</div>';
-        html += '</td>';
-        html += '<td style="width:33%;border-right:1px solid #e8e8e8;vertical-align:top;padding:7px 9px;">';
-        html += '<div style="font-weight:700;font-size:7.5pt;color:#888;margin-bottom:4px;">Billing address:</div>';
-        html += '<div style="color:#444;line-height:1.5;">' + _esc(h.BillingAddress || h.PartyName || '—') + '</div>';
-        html += '</td>';
-        html += '<td style="vertical-align:top;padding:7px 9px;">';
-        html += '<div style="font-weight:700;font-size:7.5pt;color:#888;margin-bottom:4px;">Shipping address:</div>';
-        html += '<div style="color:#444;line-height:1.5;">' + _esc(h.ShippingAddress || h.BillingAddress || h.PartyName || '—') + '</div>';
-        html += '</td></tr></table>';
-
-        if (h.PlaceOfSupply) html += '<div style="font-size:8.5pt;margin-bottom:10px;"><strong>Place of Supply:</strong> ' + _esc(h.PlaceOfSupply) + '</div>';
-
-        html += _gstItemsTable(resp.Items, sym, fmt, thm, primary, '#fff');
-        html += _totalsSection(h, sym, fmt, primary, resp.Items);
-
-        // Amount in words
-        html += '<div style="font-size:8pt;color:#555;margin-bottom:12px;">';
-        html += '<strong>Total amount (in words):</strong> ' + _amountToWords(parseFloat(h.GrandTotal || 0));
-        html += '</div>';
-
-        // Bank / UPI / Signature 3-column
-        html += '<table style="width:100%;border-collapse:collapse;margin-top:10px;border-top:1px solid #ddd;font-size:8pt;">';
-        html += '<tr>';
-        html += '<td style="width:33%;border-right:1px solid #eee;vertical-align:top;padding:8px 6px 6px 0;">';
-        html += '<div style="font-weight:700;margin-bottom:6px;">Pay using UPI:</div>';
-        if (org.UPIId) html += '<div style="color:#555;">' + _esc(org.UPIId) + '</div>';
-        html += '</td>';
-        html += '<td style="width:33%;border-right:1px solid #eee;vertical-align:top;padding:8px;">';
-        html += '<div style="font-weight:700;margin-bottom:6px;">Bank Details:</div>';
-        if (org.BankName)    html += '<div><span style="color:#888;">Bank:</span> '       + _esc(org.BankName)    + '</div>';
-        if (org.AccountNo)   html += '<div><span style="color:#888;">Account #:</span> ' + _esc(org.AccountNo)   + '</div>';
-        if (org.IFSCCode)    html += '<div><span style="color:#888;">IFSC:</span> '      + _esc(org.IFSCCode)    + '</div>';
-        if (org.BranchName)  html += '<div><span style="color:#888;">Branch:</span> '   + _esc(org.BranchName)  + '</div>';
-        html += '</td>';
-        html += '<td style="vertical-align:bottom;padding:8px 0 6px 8px;text-align:right;">';
-        html += '<div style="font-size:8pt;color:#666;margin-bottom:28px;">For ' + _esc(org.BrandName || org.Name || '') + '</div>';
-        html += '<div style="display:inline-block;border-top:1px solid #555;padding-top:4px;font-size:8.5pt;font-weight:600;text-align:center;min-width:130px;">Authorised Signatory</div>';
-        html += '</td></tr></table>';
-
-        html += _notesTermsBlock(h);
-        html += '<div style="margin-top:10px;border-top:2px solid ' + accent + ';padding-top:6px;text-align:center;font-size:8pt;color:#888;">' + _esc(footer) + '</div>';
-        html += '<div style="margin-top:4px;font-size:7.5pt;color:#aaa;text-align:center;">This is a computer generated document. &nbsp; Page 1 / 1</div>';
-        return html;
-    }
-
-    // ══════════════════════════════════════════════════════════════════════
-    // THEME 7 — SWIPE FORMAL (Tata/Swipe style: outer border, header band, HSN tax summary)
-    // ══════════════════════════════════════════════════════════════════════
-    function _themeSwipeFormal(resp, sym, fmt, thm) {
-        var h         = resp.Header  || {};
-        var org       = resp.OrgInfo || {};
-        var primary   = (thm && thm.PrimaryColor) ? thm.PrimaryColor : '#1a3c6e';
-        var accent    = (thm && thm.AccentColor)  ? thm.AccentColor  : '#f59e0b';
-        var showLogo  = !thm || parseInt(thm.ShowLogo)      !== 0;
-        var showAddr  = !thm || parseInt(thm.ShowOrgAddress) !== 0;
-        var showGSTIN = !thm || parseInt(thm.ShowGSTIN)     !== 0;
-        var footer    = (thm && thm.FooterText) ? thm.FooterText : 'Thank you for your business!';
-        var html = '<div style="border:1.5px solid #bbb;">';
-
-        // Header band
-        html += '<div style="background:#f8f9fa;border-bottom:1px solid #ccc;padding:6px 12px;display:flex;justify-content:space-between;align-items:center;">';
-        html += '<div style="font-size:13pt;font-weight:700;letter-spacing:1.5px;color:#222;">TAX INVOICE</div>';
-        html += '<div style="font-size:8pt;color:#888;font-style:italic;">ORIGINAL FOR RECIPIENT</div>';
-        html += '</div>';
-
-        // Company (left) + Invoice meta (right)
-        html += '<table style="width:100%;border-collapse:collapse;border-bottom:1px solid #ccc;">';
-        html += '<tr>';
-        html += '<td style="width:55%;border-right:1px solid #ccc;vertical-align:top;padding:10px 12px;">';
-        html += '<div style="display:flex;align-items:flex-start;gap:10px;">';
-        if (showLogo) html += '<img src="/images/logo/favicon_io/android-chrome-512x512-1.png" width="52" height="52" alt="Logo" style="border-radius:4px;flex-shrink:0;">';
-        html += '<div>';
-        html += '<div style="font-size:14pt;font-weight:800;color:#1a1a1a;margin-bottom:3px;">' + _esc(org.BrandName || org.Name || '') + '</div>';
-        if (showGSTIN && org.GSTIN) html += '<div style="font-size:8.5pt;color:#555;margin-bottom:1px;">GSTIN ' + _esc(org.GSTIN) + '</div>';
-        if (showAddr) {
-            if (org.Line1) html += '<div style="font-size:8.5pt;color:#555;margin-bottom:1px;">' + _esc(org.Line1) + (org.Line2 ? ', ' + _esc(org.Line2) : '') + '</div>';
-            if (org.CityText) html += '<div style="font-size:8.5pt;color:#555;margin-bottom:1px;">' + _esc(org.CityText) + (org.StateText ? ', ' + _esc(org.StateText) : '') + (org.Pincode ? ' - ' + _esc(org.Pincode) : '') + '</div>';
-            if (org.MobileNumber) html += '<div style="font-size:8.5pt;color:#555;margin-bottom:1px;">Mobile ' + _esc(org.MobileNumber) + '</div>';
-            if (org.EmailAddress) html += '<div style="font-size:8.5pt;color:#555;">Email ' + _esc(org.EmailAddress) + '</div>';
-        }
-        html += '</div></div></td>';
-        // Invoice meta
-        html += '<td style="vertical-align:top;padding:10px 12px;">';
-        html += '<table style="width:100%;border-collapse:collapse;font-size:8.5pt;">';
-        html += '<tr><td style="color:#888;padding:3px 6px 3px 0;border-bottom:1px solid #eee;">Invoice #:</td><td style="font-weight:700;padding:3px 0;border-bottom:1px solid #eee;">' + _esc(h.UniqueNumber || '—') + '</td></tr>';
-        html += '<tr><td style="color:#888;padding:3px 6px 3px 0;border-bottom:1px solid #eee;">Invoice Date:</td><td style="padding:3px 0;border-bottom:1px solid #eee;">' + _esc(h.TransDate || '') + '</td></tr>';
-        if (h.PlaceOfSupply) html += '<tr><td style="color:#888;padding:3px 6px 3px 0;border-bottom:1px solid #eee;">Place of Supply:</td><td style="font-weight:700;color:' + primary + ';padding:3px 0;border-bottom:1px solid #eee;">' + _esc(h.PlaceOfSupply) + '</td></tr>';
-        if (h.ValidityDate) html += '<tr><td style="color:#888;padding:3px 6px 3px 0;">Due Date:</td><td style="padding:3px 0;">' + _esc(h.ValidityDate) + '</td></tr>';
-        html += '</table></td></tr></table>';
-
-        // Customer (left) + Shipping (right)
-        html += '<table style="width:100%;border-collapse:collapse;border-bottom:1px solid #ccc;font-size:8.5pt;">';
-        html += '<tr>';
-        html += '<td style="width:50%;border-right:1px solid #ccc;vertical-align:top;padding:8px 12px;">';
-        html += '<div style="font-weight:700;font-size:7.5pt;color:#888;margin-bottom:4px;">Customer Details:</div>';
-        html += '<div style="font-weight:700;font-size:10pt;margin-bottom:2px;">' + _esc(h.PartyName || '—') + '</div>';
-        if (h.PartyMobile) html += '<div style="color:#555;margin-bottom:6px;">Ph: ' + _esc(h.PartyCountryCode || '') + ' ' + _esc(h.PartyMobile) + '</div>';
-        html += '<div style="font-weight:700;font-size:7.5pt;color:#888;margin-bottom:3px;">Billing address:</div>';
-        html += '<div style="color:#444;line-height:1.5;">' + _esc(h.BillingAddress || h.PartyName || '—') + '</div>';
-        html += '</td>';
-        html += '<td style="vertical-align:top;padding:8px 12px;">';
-        html += '<div style="font-weight:700;font-size:7.5pt;color:#888;margin-bottom:4px;">Shipping address:</div>';
-        html += '<div style="color:#444;line-height:1.5;">' + _esc(h.ShippingAddress || h.BillingAddress || h.PartyName || '—') + '</div>';
-        html += '</td></tr></table>';
-
-        html += _gstItemsTable(resp.Items, sym, fmt, thm, primary, '#fff');
-        html += _totalsSection(h, sym, fmt, primary, resp.Items);
-
-        // Amount in words
-        html += '<div style="border-bottom:1px solid #ccc;padding:6px 12px;font-size:8.5pt;color:#555;">';
-        html += '<strong>Total amount (in words):</strong> ' + _amountToWords(parseFloat(h.GrandTotal || 0));
-        html += '</div>';
-
-        // HSN/SAC tax summary
-        html += '<div style="border-bottom:1px solid #ccc;">' + _hsnTaxSummary(resp.Items, sym, fmt, primary) + '</div>';
-
-        // Bank / UPI / Signature
-        html += '<table style="width:100%;border-collapse:collapse;font-size:8pt;">';
-        html += '<tr>';
-        html += '<td style="width:34%;border-right:1px solid #ccc;vertical-align:top;padding:8px 12px;">';
-        html += '<div style="font-weight:700;margin-bottom:6px;">Bank Details:</div>';
-        if (org.BankName)    html += '<div><span style="color:#888;">Bank:</span> '        + _esc(org.BankName)   + '</div>';
-        if (org.AccountNo)   html += '<div><span style="color:#888;">Account #:</span> '  + _esc(org.AccountNo)  + '</div>';
-        if (org.IFSCCode)    html += '<div><span style="color:#888;">IFSC:</span> '       + _esc(org.IFSCCode)   + '</div>';
-        if (org.BranchName)  html += '<div><span style="color:#888;">Branch:</span> '    + _esc(org.BranchName) + '</div>';
-        html += '</td>';
-        html += '<td style="width:33%;border-right:1px solid #ccc;vertical-align:top;padding:8px 12px;text-align:center;">';
-        html += '<div style="font-weight:700;margin-bottom:6px;">Pay using UPI:</div>';
-        if (org.UPIId) html += '<div style="font-size:8.5pt;color:#555;">' + _esc(org.UPIId) + '</div>';
-        html += '</td>';
-        html += '<td style="vertical-align:bottom;padding:8px 12px;text-align:right;">';
-        html += '<div style="font-size:8pt;color:#666;margin-bottom:28px;">For ' + _esc(org.BrandName || org.Name || '') + '</div>';
-        html += '<div style="display:inline-block;border-top:1px solid #555;padding-top:4px;font-size:8.5pt;font-weight:600;text-align:center;min-width:130px;">Authorised Signatory</div>';
-        html += '<div style="font-size:7.5pt;color:#888;margin-top:2px;">This is a computer generated document.</div>';
-        html += '</td></tr></table>';
-
-        html += _notesTermsBlock(h);
-        html += '</div>'; // close outer border
-        html += '<div style="margin-top:8px;text-align:center;font-size:8pt;color:#888;">' + _esc(footer) + ' &nbsp;|&nbsp; Page 1 / 1</div>';
-        return html;
-    }
-
-    // ── Number-to-words (Indian system) ──────────────────────────────────────
-    function _numberToWords(n) {
-        n = Math.abs(Math.round(n));
-        if (n === 0) return 'Zero';
-        var ones = ['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven',
-                    'Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
-        var tens = ['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
-        function below100(x)  { return x < 20 ? ones[x] : tens[Math.floor(x/10)] + (x%10 ? ' '+ones[x%10] : ''); }
-        function below1000(x) { return x < 100 ? below100(x) : ones[Math.floor(x/100)] + ' Hundred' + (x%100 ? ' '+below100(x%100) : ''); }
-        var out = '';
-        if (n >= 10000000) { out += below1000(Math.floor(n/10000000)) + ' Crore '; n %= 10000000; }
-        if (n >= 100000)   { out += below1000(Math.floor(n/100000))   + ' Lakh ';  n %= 100000;   }
-        if (n >= 1000)     { out += below1000(Math.floor(n/1000))     + ' Thousand '; n %= 1000;   }
-        if (n > 0)         { out += below1000(n); }
-        return out.trim();
-    }
-
-    // ── Token-template renderer (DB-driven HTML with {{PLACEHOLDER}} tokens) ─
-    function _renderTokenTemplate(html, resp, sym, fmt, thm) {
-        var h     = resp.Header  || {};
-        var org   = resp.OrgInfo || {};
-        var items = resp.Items   || [];
-
-        // ── ORG LOGO ──────────────────────────────────────────────────────
-        var orgLogo = (org.LogoUrl && thm.ShowLogo == 1)
-            ? '<img src="' + org.LogoUrl + '" class="sf-invoice__logo" style="width:80px;max-width:100%;" alt="Logo">'
-            : '';
-
-        // ── ORG INFO LINES (br-separated to fit inside <td>) ─────────────
-        var orgInfoParts = [];
-        if (thm.ShowGSTIN == 1 && org.GSTIN) orgInfoParts.push('GSTIN ' + org.GSTIN);
-        var a1 = [org.Address1, org.Address2].filter(Boolean).join(', ');
-        var a23 = [org.City, org.State, org.PinCode].filter(Boolean).join(', ');
-        if (a1)  orgInfoParts.push(a1);
-        if (a23) orgInfoParts.push(a23);
-        if (org.Phone) orgInfoParts.push('Mobile ' + org.Phone);
-        if (org.Email) orgInfoParts.push('Email '  + org.Email);
-        var orgInfoLines = orgInfoParts.join('<br>');
-
-        // ── DOC TYPE ──────────────────────────────────────────────────────
-        var docTypeMap = { quotation:'QUOTATION', invoice:'TAX INVOICE', tax_invoice:'TAX INVOICE',
-                           purchase_order:'PURCHASE ORDER', delivery_note:'DELIVERY NOTE',
-                           credit_note:'CREDIT NOTE', debit_note:'DEBIT NOTE', proforma:'PROFORMA INVOICE' };
-        var docType = docTypeMap[(h.TransactionType || '').toLowerCase()] || 'TAX INVOICE';
-
-        // ── ADDRESS LINES ─────────────────────────────────────────────────
-        var billParts = [h.BillingAddress1, h.BillingAddress2, h.BillingCity, h.BillingState, h.BillingPinCode].filter(Boolean);
-        var shipParts = [h.ShippingAddress1, h.ShippingAddress2, h.ShippingCity, h.ShippingState, h.ShippingPinCode].filter(Boolean);
-        var billingLines  = billParts.join('<br>');
-        var shippingLines = shipParts.length ? shipParts.join('<br>') : billingLines;
-        var custPhoneLine = h.CustomerPhone ? 'Ph: ' + h.CustomerPhone : '';
-
-        // ── ITEMS TABLE ROWS ──────────────────────────────────────────────
-        // Item rows — classes match the template's own CSS (.right, .center, .bold)
-        var itemRows = '';
-        $.each(items, function (idx, it) {
-            var taxPct = parseFloat(it.TaxPercentage || 0);
-            var taxAmt = parseFloat(it.TaxAmount || 0);
-            var taxStr = fmt(taxAmt) + (taxPct > 0 ? '<br>(' + taxPct + '%)' : '');
-            var subItemsHtml = '';
-            if (it.SubItems && it.SubItems.length) {
-                $.each(it.SubItems, function(si, sub){
-                    subItemsHtml += '<br>' + (si+1) + '. Item - ' + (sub.ItemName || sub.Name || '');
-                });
-            }
-            itemRows += '<tr>'
-                + '<td class="center">' + (idx + 1) + '</td>'
-                + '<td><b>' + (it.ItemName || '') + '</b>' + subItemsHtml + '</td>'
-                + '<td>' + (it.HSNSACCode || '') + '</td>'
-                + '<td class="right">' + fmt(it.UnitPrice || it.Rate || 0) + '</td>'
-                + '<td class="center">' + fmt(it.Quantity || 0) + '</td>'
-                + '<td class="right">' + fmt(it.TaxableValue || it.SubTotal || 0) + '</td>'
-                + '<td class="right">' + taxStr + '</td>'
-                + '<td class="right">' + fmt(it.TotalAmount || it.Amount || 0) + '</td>'
-                + '</tr>';
-        });
-
-        // ── TOTALS BLOCK ──────────────────────────────────────────────────
-        var subTotal   = parseFloat(h.SubTotal   || 0);
-        var taxTotal   = parseFloat(h.TaxTotal   || 0);
-        var grandTotal = parseFloat(h.GrandTotal || 0);
-        var totalItems = items.length;
-        var totalQty   = 0;
-        $.each(items, function(i, it){ totalQty += parseFloat(it.Quantity || 0); });
-
-        var igstTotal = parseFloat(h.IGST || 0);
-        var cgstTotal = parseFloat(h.CGST || 0);
-        var sgstTotal = parseFloat(h.SGST || 0);
-
-        // One row per tax line (grouped by rate)
-        var taxRows = '';
-        if (igstTotal > 0) {
-            var igstByRate = {};
-            $.each(items, function(i, it){
-                var r = parseFloat(it.TaxPercentage || 0);
-                if (!igstByRate[r]) igstByRate[r] = 0;
-                igstByRate[r] += parseFloat(it.TaxAmount || 0);
             });
-            $.each(igstByRate, function(rate, amt){
-                if (amt > 0) taxRows += '<tr><td></td>'
-                    + '<td class="right bold">IGST ' + rate + '% ' + sym + fmt(amt) + '</td></tr>';
-            });
-        } else if (cgstTotal > 0 || sgstTotal > 0) {
-            var gstByRate = {};
-            $.each(items, function(i, it){
-                var r = parseFloat(it.TaxPercentage || 0);
-                if (!gstByRate[r]) gstByRate[r] = { c:0, s:0 };
-                gstByRate[r].c += parseFloat(it.CGST || 0);
-                gstByRate[r].s += parseFloat(it.SGST || 0);
-            });
-            $.each(gstByRate, function(rate, v){
-                if (v.c > 0) taxRows += '<tr><td></td>'
-                    + '<td class="right bold">CGST ' + (rate/2) + '% ' + sym + fmt(v.c) + '</td></tr>';
-                if (v.s > 0) taxRows += '<tr><td></td>'
-                    + '<td class="right bold">SGST ' + (rate/2) + '% ' + sym + fmt(v.s) + '</td></tr>';
-            });
-        } else if (taxTotal > 0) {
-            taxRows = '<tr><td></td><td class="right bold">Tax ' + sym + fmt(taxTotal) + '</td></tr>';
-        }
-
-        var totalsBlock = '<table>'
-            + '<tr><td>Total Items / Qty : ' + totalItems + ' / ' + totalQty.toFixed(3) + '</td>'
-            + '<td class="right bold">Taxable Amount ' + sym + fmt(subTotal) + '</td></tr>'
-            + taxRows
-            + '<tr><td></td><td class="right amount">Total ' + sym + fmt(grandTotal) + '</td></tr>'
-            + '</table>';
-
-        // ── AMOUNT IN WORDS ───────────────────────────────────────────────
-        var amtInWords = 'INR ' + _numberToWords(grandTotal) + ' Only.';
-
-        // ── HSN / SAC TAX TABLE (6 columns matching Tata invoice) ─────────
-        var hsnMap = {};
-        $.each(items, function(i, it){
-            var hsn = it.HSNSACCode || 'N/A';
-            if (!hsnMap[hsn]) hsnMap[hsn] = { taxable:0, taxAmt:0, rate: parseFloat(it.TaxPercentage || 0) };
-            hsnMap[hsn].taxable += parseFloat(it.TaxableValue || it.SubTotal || 0);
-            hsnMap[hsn].taxAmt  += parseFloat(it.TaxAmount || 0);
         });
-        var hsnTotTaxable = 0, hsnTotTax = 0;
-        var taxColLabel = igstTotal > 0 ? 'Integrated Tax' : (cgstTotal > 0 ? 'GST' : 'Tax');
-        var hsnDataRows = '';
-        $.each(hsnMap, function(hsn, d){
-            hsnTotTaxable += d.taxable; hsnTotTax += d.taxAmt;
-            hsnDataRows += '<tr>'
-                + '<td>' + hsn + '</td>'
-                + '<td class="right">' + fmt(d.taxable) + '</td>'
-                + '<td class="center">' + d.rate + '%</td>'
-                + '<td class="right">' + fmt(d.taxAmt) + '</td>'
-                + '<td class="right">' + fmt(d.taxAmt) + '</td>'
-                + '<td class="right">' + fmt(d.taxAmt) + '</td>'
-                + '</tr>';
-        });
-        var hsnTaxTable = '<table>'
-            + '<tr>'
-            + '<th>HSN/SAC</th><th>Taxable Value</th><th>Rate</th>'
-            + '<th>' + taxColLabel + '</th><th>Amount</th><th>Total Tax Amount</th>'
-            + '</tr>'
-            + hsnDataRows
-            + '<tr>'
-            + '<td><b>TOTAL</b></td>'
-            + '<td class="right"><b>' + fmt(hsnTotTaxable) + '</b></td>'
-            + '<td></td>'
-            + '<td class="right"><b>' + fmt(hsnTotTax) + '</b></td>'
-            + '<td></td>'
-            + '<td class="right"><b>' + fmt(hsnTotTax) + '</b></td>'
-            + '</tr>'
-            + '<tr><td colspan="6" class="right">'
-            + '<span style="background:#22c55e;color:#fff;padding:3px 14px;border-radius:3px;font-size:11px;font-weight:600;">&#10003; Amount Paid</span>'
-            + '</td></tr>'
-            + '</table>';
+    });
 
-        // ── BANK DETAILS (br-separated to fit inside <td>) ────────────────
-        var bankParts = [];
-        if (org.BankName)   bankParts.push('Bank: '       + org.BankName);
-        if (org.AccountNo)  bankParts.push('Account #: '  + org.AccountNo);
-        if (org.IFSCCode)   bankParts.push('IFSC: '       + org.IFSCCode);
-        if (org.BranchName) bankParts.push('Branch: '     + org.BranchName);
-        var bankLines = bankParts.join('<br>');
-
-        // ── UPI QR CODE ───────────────────────────────────────────────────
-        var upiHtml = '';
-        if (org.QrCodeUrl) {
-            upiHtml = '<img src="' + org.QrCodeUrl + '" style="width:90px;max-width:100%;height:auto;" alt="UPI QR">';
-        } else if (org.UpiId) {
-            upiHtml = org.UpiId;
-        }
-
-        // ── STAMP / SIGNATURE ─────────────────────────────────────────────
-        var stampHtml = '';
-        if (org.SignatureUrl || org.StampUrl) {
-            stampHtml = '<img src="' + (org.SignatureUrl || org.StampUrl) + '" style="max-height:70px;max-width:120px;object-fit:contain;" alt="Signature">';
-        }
-
-        // ── TERMS CONDITIONS ──────────────────────────────────────────────
-        var termsHtml = '';
-        if (org.TermsConditions) {
-            $.each(org.TermsConditions.split('\n'), function(i, t){
-                if (t.trim()) termsHtml += (i + 1) + '. ' + t.trim() + '<br>';
-            });
-        }
-
-        // ── TOKEN MAP ─────────────────────────────────────────────────────
-        var orgAddr = [org.Address1, org.Address2, org.City, org.State, org.PinCode].filter(Boolean).join(', ');
-        var map = {
-            '{{ORG_LOGO}}':               orgLogo,
-            '{{ORG_NAME}}':               org.OrgName || '',
-            '{{ORG_INFO_LINES}}':         orgInfoLines,
-            '{{ORG_ADDRESS}}':            orgAddr,
-            '{{ORG_GSTIN}}':              (thm.ShowGSTIN == 1 ? (org.GSTIN || '') : ''),
-            '{{DOC_TYPE}}':               docType,
-            '{{DOC_NUMBER}}':             h.DocNumber       || '',
-            '{{DOC_DATE}}':               h.DocDate         || '',
-            '{{PLACE_OF_SUPPLY}}':        h.PlaceOfSupply   || org.State || '',
-            '{{DUE_DATE}}':               h.DueDate         || h.DocDate || '',
-            '{{CUSTOMER_NAME}}':          h.CustomerName    || '',
-            '{{BILLING_ADDRESS_LINES}}':  billingLines,
-            '{{CUSTOMER_PHONE_LINE}}':    custPhoneLine,
-            '{{SHIPPING_ADDRESS_LINES}}': shippingLines,
-            '{{CUSTOMER_ADDRESS}}':       billParts.join(', '),
-            '{{SHIPPING_ADDRESS}}':       shipParts.join(', '),
-            '{{ITEMS_TABLE_ROWS}}':       itemRows,
-            '{{ITEMS_TABLE}}':            itemRows,
-            '{{TOTALS_BLOCK}}':           totalsBlock,
-            '{{AMOUNT_IN_WORDS}}':        amtInWords,
-            '{{HSN_TAX_TABLE}}':          hsnTaxTable,
-            '{{BANK_DETAILS_LINES}}':     bankLines,
-            '{{UPI_QR_CODE}}':            upiHtml,
-            '{{STAMP_SIGNATURE}}':        stampHtml,
-            '{{FOOTER_TEXT}}':            thm.FooterText    || '',
-            '{{TERMS_CONDITIONS}}':       termsHtml,
-            '{{SUBTOTAL}}':               sym + fmt(subTotal),
-            '{{TAX_TOTAL}}':              sym + fmt(taxTotal),
-            '{{GRAND_TOTAL}}':            sym + fmt(grandTotal),
-            '{{PRIMARY_COLOR}}':          thm.PrimaryColor  || '#000000',
-            '{{ACCENT_COLOR}}':           thm.AccentColor   || '#f59e0b',
-            '{{FONT_FAMILY}}':            thm.FontFamily    || 'Arial',
-            '{{FONT_SIZE}}':              (parseInt(thm.FontSizePx) || 12) + 'px',
-            '{{CURRENCY_SYMBOL}}':        sym,
-        };
-
-        var result = html;
-        $.each(map, function (token, value) {
-            result = result.split(token).join(value);
-        });
-        return result;
-    }
-
-    // ── Main dispatcher ───────────────────────────────────────────────────
-    function _buildA4Html(resp, size) {
-        var sym = '<?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? "₹"); ?>';
-        var dec = <?php echo (int)($JwtData->GenSettings->DecimalPoints ?? 2); ?>;
-        function fmt(v) { return parseFloat(v || 0).toFixed(dec); }
-        var thm        = resp.PrintTheme || {};
-        var key        = (thm.ThemeKey || 'classic').toLowerCase();
-        var fontFamily = thm.FontFamily || 'Arial';
-        var fontSizePx = parseInt(thm.FontSizePx) || 11;
-
-        // If a DB template HTML exists, use token-replacement renderer
-        if (thm.TemplateHtmlContent && thm.TemplateHtmlContent.trim().length > 0) {
-            return _renderTokenTemplate(thm.TemplateHtmlContent, resp, sym, fmt, thm);
-        }
-
-        // Fallback: built-in JS renderers
-        var inner;
-        switch (key) {
-            case 'modern':       inner = _themeModern(resp,      sym, fmt, thm); break;
-            case 'minimal':      inner = _themeMinimal(resp,     sym, fmt, thm); break;
-            case 'bold':         inner = _themeBold(resp,        sym, fmt, thm); break;
-            case 'executive':    inner = _themeExecutive(resp,   sym, fmt, thm); break;
-            case 'swipe_clean':  inner = _themeSwipeClean(resp,  sym, fmt, thm); break;
-            case 'swipe_formal': inner = _themeSwipeFormal(resp, sym, fmt, thm); break;
-            default:             inner = _themeClassic(resp,     sym, fmt, thm); break;
-        }
-        return '<div style="font-family:\'' + fontFamily + '\',Arial,Helvetica,sans-serif; font-size:' + fontSizePx + 'px;">' + inner + '</div>';
-    }
+    $(document).on('change', '.quotHeaderCheck', function () {
+        $('.quotationCheck').prop('checked', $(this).is(':checked'));
+    });
 
 });
+
+function _buildQuotDetailHtml(resp) {
+    window._quotLastPrintData = resp;
+    var h = resp.Header || {}, org = resp.OrgInfo || {};
+    var cur = (org.CurrenySymbol || '₹') + ' ', dec = h.DecimalPoints || 2;
+    var rows = '';
+    (resp.Items || []).forEach(function (item, i) {
+        rows += '<tr><td class="text-center">' + (i + 1) + '</td><td>' + _esc(item.ProductName) + '</td>' +
+            '<td class="text-center">' + _esc(item.Quantity) + ' ' + _esc(item.PrimaryUnitName) + '</td>' +
+            '<td class="text-end">' + cur + parseFloat(item.UnitPrice||0).toFixed(dec) + '</td>' +
+            '<td class="text-end">' + cur + parseFloat(item.NetAmount||0).toFixed(dec) + '</td></tr>';
+    });
+    return '<div class="p-3"><div class="row mb-3"><div class="col-md-6"><strong>' + _esc(org.OrgName||'') + '</strong><br>' +
+        '<small class="text-muted">' + _esc(h.UniqueNumber||'—') + ' | ' + _esc(h.TransDate||'') + '</small></div>' +
+        '<div class="col-md-6 text-end"><strong>Customer:</strong> ' + _esc(h.PartyName||'—') +
+        (h.ValidityDate ? '<br><small class="text-muted">Valid Until: ' + _esc(h.ValidityDate) + '</small>' : '') + '</div></div>' +
+        '<table class="table table-bordered table-sm"><thead class="table-light"><tr><th>#</th><th>Product</th>' +
+        '<th class="text-center">Qty</th><th class="text-end">Unit Price</th><th class="text-end">Amount</th></tr></thead>' +
+        '<tbody>' + rows + '</tbody><tfoot class="table-light">' +
+        '<tr><td colspan="4" class="text-end fw-semibold">Sub Total</td><td class="text-end">' + cur + parseFloat(h.SubTotal||0).toFixed(dec) + '</td></tr>' +
+        (parseFloat(h.DiscountAmount)>0 ? '<tr><td colspan="4" class="text-end text-danger">Discount</td><td class="text-end text-danger">- ' + cur + parseFloat(h.DiscountAmount).toFixed(dec) + '</td></tr>' : '') +
+        (parseFloat(h.TaxAmount)>0 ? '<tr><td colspan="4" class="text-end">Tax</td><td class="text-end">' + cur + parseFloat(h.TaxAmount).toFixed(dec) + '</td></tr>' : '') +
+        '<tr><td colspan="4" class="text-end fw-bold">Net Amount</td><td class="text-end fw-bold">' + cur + parseFloat(h.NetAmount||0).toFixed(dec) + '</td></tr>' +
+        '</tfoot></table>' +
+        (h.Notes ? '<p class="small text-muted mt-2"><strong>Notes:</strong> ' + _esc(h.Notes) + '</p>' : '') + '</div>';
+}
+
+function _buildA4Html(resp, size, forPrint) {
+    if (!resp) return '';
+    window._quotLastPrintData = resp;
+    var w = size === 'A5' ? '148mm' : '210mm';
+    var h = resp.Header || {}, org = resp.OrgInfo || {};
+    var cur = (org.CurrenySymbol || '₹') + ' ', dec = 2, rows = '';
+    (resp.Items || []).forEach(function (item, i) {
+        rows += '<tr><td style="text-align:center">' + (i+1) + '</td><td>' + _esc(item.ProductName) + '</td>' +
+            '<td style="text-align:center">' + _esc(item.Quantity) + ' ' + _esc(item.PrimaryUnitName) + '</td>' +
+            '<td style="text-align:right">' + cur + parseFloat(item.UnitPrice||0).toFixed(dec) + '</td>' +
+            '<td style="text-align:right">' + cur + parseFloat(item.NetAmount||0).toFixed(dec) + '</td></tr>';
+    });
+    var ps = forPrint ? '@media print{body{margin:0}.page{box-shadow:none}}' : '';
+    var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{font-family:Arial,sans-serif;font-size:12px;background:#404040}' +
+        '.page{width:' + w + ';background:#fff;margin:0 auto;padding:20px;box-shadow:0 0 20px rgba(0,0,0,.5)}' +
+        'table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:6px 8px;font-size:11px}th{background:#f5f5f5}' + ps + '</style></head>' +
+        '<body><div class="page"><div style="display:flex;justify-content:space-between;margin-bottom:12px">' +
+        '<div><strong style="font-size:14px">' + _esc(org.OrgName||'') + '</strong>' +
+        (org.GSTNumber ? '<br><span style="color:#666">GSTIN: ' + _esc(org.GSTNumber) + '</span>' : '') + '</div>' +
+        '<div style="text-align:right"><strong style="font-size:16px">QUOTATION</strong><br><span style="color:#666">' + _esc(h.UniqueNumber||'—') + '</span><br>' +
+        '<span style="color:#666">Date: ' + _esc(h.TransDate||'') + '</span>' +
+        (h.ValidityDate ? '<br><span style="color:#666">Valid Until: ' + _esc(h.ValidityDate) + '</span>' : '') + '</div></div>' +
+        '<div style="background:#f9f9f9;padding:8px;border-radius:4px;margin-bottom:12px"><strong>Customer:</strong> ' + _esc(h.PartyName||'—') + '</div>' +
+        '<table><thead><tr><th style="width:30px">#</th><th>Product</th><th style="width:60px;text-align:center">Qty</th>' +
+        '<th style="width:90px;text-align:right">Unit Price</th><th style="width:90px;text-align:right">Amount</th></tr></thead>' +
+        '<tbody>' + rows + '</tbody><tfoot>' +
+        '<tr><td colspan="4" style="text-align:right;font-weight:bold">Sub Total</td><td style="text-align:right">' + cur + parseFloat(h.SubTotal||0).toFixed(dec) + '</td></tr>' +
+        (parseFloat(h.DiscountAmount)>0 ? '<tr><td colspan="4" style="text-align:right;color:#c00">Discount</td><td style="text-align:right;color:#c00">- ' + cur + parseFloat(h.DiscountAmount).toFixed(dec) + '</td></tr>' : '') +
+        (parseFloat(h.TaxAmount)>0 ? '<tr><td colspan="4" style="text-align:right">Tax</td><td style="text-align:right">' + cur + parseFloat(h.TaxAmount).toFixed(dec) + '</td></tr>' : '') +
+        '<tr><td colspan="4" style="text-align:right;font-weight:bold">Net Amount</td><td style="text-align:right;font-weight:bold">' + cur + parseFloat(h.NetAmount||0).toFixed(dec) + '</td></tr>' +
+        '</tfoot></table>' + (h.TermsConditions ? '<p style="font-size:11px;color:#666;margin-top:12px"><strong>Terms:</strong> ' + _esc(h.TermsConditions) + '</p>' : '') +
+        '</div></body></html>';
+    return forPrint ? html : '<iframe srcdoc="' + html.replace(/"/g, '&quot;') + '" style="width:100%;height:100%;border:0;min-height:75vh"></iframe>';
+}
+
+function _esc(v) {
+    if (v === null || v === undefined) return '—';
+    return $('<span>').text(String(v)).html();
+}
+
+// ── Thermal Print ─────────────────────────────────────────────────────────
+var _thermalData = null;
+
+$(document).on('click', '.thermalPrintQuotation', function () {
+    var uid = $(this).data('uid');
+    _thermalData = null;
+    $('#thermalPrintBody').html('<div class="d-flex justify-content-center py-5"><div class="spinner-border text-primary"></div></div>');
+    new bootstrap.Modal(document.getElementById('thermalPrintModal')).show();
+    AjaxLoading = 0;
+    $.ajax({
+        url   : '/quotations/getQuotationDetail',
+        method: 'GET',
+        data  : { TransUID: uid },
+        success: function (resp) {
+            AjaxLoading = 1;
+            if (resp.Error) { $('#thermalPrintBody').html('<div class="alert alert-danger m-2">' + _esc(resp.Message) + '</div>'); return; }
+            _thermalData = resp;
+            $('#thermalPrintBody').html(_buildThermalHtml(resp, 0));
+        },
+        error: function () { AjaxLoading = 1; $('#thermalPrintBody').html('<div class="alert alert-danger m-2">Failed to load receipt.</div>'); }
+    });
+});
+
+$('#thermalPrintBtn').on('click', function () {
+    if (!_thermalData) return;
+    var cfg = _thermalData.ThermalConfig;
+    var paperWidth = (cfg && cfg.PaperWidth) ? cfg.PaperWidth : '80mm';
+    var receiptHtml = _buildThermalHtml(_thermalData, 1);
+    var win = window.open('', '_blank', 'width=400,height=700');
+    win.document.write('<!DOCTYPE html><html><head><title>Thermal Receipt</title><style>' +
+        '* { margin:0; padding:0; box-sizing:border-box; }' +
+        'body { font-family: Arial, Helvetica, sans-serif; font-size:12px; width:' + paperWidth + '; padding:4px; }' +
+        '.fs-6 { font-size: 0.8rem !important; } .tp-center { text-align: center; } .tp-bold { font-weight: bold; }' +
+        '.tp-hr { border: none; border-top: 1px dashed #000; margin: 4px 0; }' +
+        '.tp-row { display: flex; justify-content: space-between; margin: 1px 0; }' +
+        '.tp-row-end { display: flex; justify-content: end; margin: 1px 0; }' +
+        '.tp-item-name { font-weight: bold; margin-top: 2px; } .tp-small { font-size:11px; }' +
+        '.tp-total { font-size:13px; font-weight:bold; border-top:1px solid #000; padding-top:3px; margin-top:3px; }' +
+        '.tp-footer { text-align:center; margin-top:6px; font-size:11px; }' +
+        '@media print { @page { margin:0; size:' + paperWidth + ' auto; } body { width:' + paperWidth + '; } }' +
+        '</style></head><body style="font-family:Arial,Helvetica,sans-serif!important;font-size:12px!important;width:' + paperWidth + ';padding:4px;">' +
+        receiptHtml + '</body></html>');
+    win.document.close(); win.focus();
+    setTimeout(function () { win.print(); }, 300);
+});
+
+function _buildThermalHtml(resp, type) {
+    var h   = resp.Header;
+    var org = resp.OrgInfo  || {};
+    var cfg = resp.ThermalConfig || {};
+    var sym = '<?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>';
+    var line1 = cfg.HeaderLine1 || org.BrandName || org.Name || '';
+    var line2 = cfg.HeaderLine2 || '';
+    var line3 = cfg.HeaderLine3 || [org.CityText, org.StateText, org.Pincode].filter(Boolean).join(', ');
+    var showGSTIN  = cfg.ShowGSTIN   !== undefined ? parseInt(cfg.ShowGSTIN)   : 1;
+    var showMobile = cfg.ShowMobile  !== undefined ? parseInt(cfg.ShowMobile)  : 1;
+    var showHSN    = cfg.ShowHSN     !== undefined ? parseInt(cfg.ShowHSN)     : 1;
+    var showTaxBkd = cfg.ShowTaxBreakdown !== undefined ? parseInt(cfg.ShowTaxBreakdown) : 1;
+    var footer     = cfg.FooterMessage || 'Thank you for your business!';
+    var html = '';
+    html += '<div style="display:flex;align-items:center;justify-content:center;"><img src="/images/logo/favicon_io/android-chrome-512x512-1.png" width="60px" height="60px" alt="Logo">';
+    html += '<div class="fs-6 ms-1"><div class="tp-center tp-bold">' + _esc(line1) + '</div>';
+    if (line2) html += '<div class="tp-center tp-small">' + _esc(line2) + '</div>';
+    if (line3) html += '<div class="tp-center tp-small">' + _esc(line3) + '</div>';
+    if (showMobile && org.MobileNumber) html += '<div class="tp-center tp-small">Ph: ' + _esc(org.MobileNumber) + '</div>';
+    if (showGSTIN && org.GSTIN) html += '<div class="tp-center tp-small">GSTIN: ' + _esc(org.GSTIN) + '</div>';
+    html += '</div></div>';
+    html += '<hr class="tp-hr my-1">';
+    html += '<div class="fs-6"><div class="d-flex justify-content-between align-items-center mb-1">';
+    html += '<div class="tp-row fs-6"><span class="tp-bold">Quotation: </span><span class="tp-bold">' + _esc(h.UniqueNumber || '—') + '</span></div>';
+    html += '<div class="tp-row"><span>Date: </span><span>' + _esc(h.TransDate) + '</span></div></div>';
+    html += '<div class="d-flex justify-content-between align-items-center">';
+    html += '<div class="tp-row"><span>Customer: </span><span style="text-align:right;max-width:60%">' + _esc(h.PartyName) + '</span></div>';
+    if (h.PartyMobile) html += '<div class="tp-row"><span>Phone: </span><span>' + _esc(h.PartyMobile) + '</span></div>';
+    html += '</div></div>';
+    html += '<hr class="tp-hr my-1">';
+    html += '<div class="fs-6"><div class="mb-1" style="display:flex;align-items:center;justify-content:space-between;">';
+    html += '<div class="tp-row tp-item-name tp-bold"><span>Item </span></div><div></div></div>';
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;">';
+    html += '<div class="tp-row" style="font-size:smaller;">Quantity x Price</div><div class="tp-row">Amount</div></div></div>';
+    html += '<hr class="tp-hr my-1">';
+    $.each(resp.Items || [], function (i, item) {
+        html += '<div class="fs-6">';
+        var lineAmt = parseFloat(item.NetAmount) || 0;
+        var hsnLine = (showHSN && item.HSNCode) ? ' [HSN:' + item.HSNCode + ']' : '';
+        html += '<div class="mb-1" style="display:flex;align-items:center;justify-content:space-between;">';
+        html += '<div class="tp-item-name fs-6">' + _esc(item.ProductName) + _esc(hsnLine) + '</div><div></div></div>';
+        html += '<div class="mb-1" style="display:flex;align-items:center;justify-content:space-between;">';
+        html += '<div class="tp-row tp-small" style="font-size:smaller;">' + _esc(item.Quantity) + ' (' + _esc(item.PrimaryUnitName || 'PCS') + ') x ' + _esc(item.UnitPrice) + '</div>';
+        html += '<div class="fs-6">' + lineAmt.toFixed(2) + '</div></div>';
+        if (showTaxBkd && parseFloat(item.TaxPercentage) > 0) {
+            var cgst = parseFloat(item.CgstAmount) || 0, sgst = parseFloat(item.SgstAmount) || 0, igst = parseFloat(item.IgstAmount) || 0;
+            html += '<div style="display:flex;align-items:center;justify-content:space-between;">';
+            if (cgst > 0 && sgst > 0) {
+                html += '<div class="tp-row tp-small" style="color:#555;font-size:smaller;">CGST ' + item.CGST + '% ' + cgst.toFixed(2) + '</div>';
+                html += '<div class="tp-row tp-small" style="color:#555;font-size:smaller;">SGST ' + item.SGST + '% ' + sgst.toFixed(2) + '</div>';
+            } else if (igst > 0) { html += '<div class="tp-row tp-small" style="color:#555;font-size:smaller;">IGST ' + item.IGST + '% ' + igst.toFixed(2) + '</div>'; }
+            html += '</div>';
+        }
+        html += '</div>';
+        if (resp.Items.length > 1 && i != resp.Items.length - 1) html += '<hr class="tp-hr my-1">';
+    });
+    html += '<hr class="tp-hr my-1">';
+    html += '<div class="tp-small fs-6" style="text-align:center!important;">Items/Qty: ' + (resp.Items ? resp.Items.length : 0) + ' / ' + (function(){ var q=0; $.each(resp.Items||[],function(i,it){q+=parseFloat(it.Quantity)||0;}); return q; }()) + '</div>';
+    html += '<hr class="tp-hr my-1">';
+    html += '<div style="text-align:end!important;">';
+    html += '<div class="tp-row-end fw-semibold tp-item-name"><span>Subtotal: </span><span class="fs-6">' + sym + ' ' + parseFloat(h.SubTotal || 0).toFixed(2) + '</span></div>';
+    if (parseFloat(h.DiscountAmount) > 0) html += '<div class="tp-row-end fw-semibold"><span>Discount: </span><span class="fs-6">- ' + sym + ' ' + parseFloat(h.DiscountAmount).toFixed(2) + '</span></div>';
+    if (parseFloat(h.TaxAmount) > 0) {
+        html += '<div class="tp-row-end fw-semibold"><span>Total Tax: </span><span class="fs-6">' + sym + ' ' + parseFloat(h.TaxAmount).toFixed(2) + '</span></div>';
+        if (showTaxBkd) {
+            if (parseFloat(h.CgstAmount) > 0) html += '<div class="tp-row-end tp-small"><span>  CGST: </span><span class="fs-6">' + sym + ' ' + parseFloat(h.CgstAmount).toFixed(2) + '</span></div>';
+            if (parseFloat(h.SgstAmount) > 0) html += '<div class="tp-row-end tp-small"><span>  SGST: </span><span class="fs-6">' + sym + ' ' + parseFloat(h.SgstAmount).toFixed(2) + '</span></div>';
+            if (parseFloat(h.IgstAmount) > 0) html += '<div class="tp-row-end tp-small"><span>  IGST: </span><span class="fs-6">' + sym + ' ' + parseFloat(h.IgstAmount).toFixed(2) + '</span></div>';
+        }
+    }
+    if (parseFloat(h.AdditionalCharges) > 0) html += '<div class="tp-row-end fw-semibold"><span>Charges: </span><span class="fs-6">' + sym + ' ' + parseFloat(h.AdditionalCharges).toFixed(2) + '</span></div>';
+    if (parseFloat(h.RoundOff || 0) !== 0) html += '<div class="tp-row-end tp-small fw-semibold"><span>Round Off: </span><span class="fs-6">' + sym + ' ' + parseFloat(h.RoundOff).toFixed(2) + '</span></div>';
+    html += '<div class="tp-total tp-row-end fw-semibold tp-item-name"><span>Total Amount: </span><span class="fs-5">' + sym + ' ' + parseFloat(h.NetAmount || 0).toFixed(2) + '</span></div>';
+    html += '</div>';
+    html += '<hr class="tp-hr my-1">';
+    html += '<div class="tp-footer" style="text-align:center!important;">' + _esc(footer) + '</div>';
+    html += '<div style="margin-bottom:8px"></div>';
+    return type === 0 ? '<div style="font-family:\'Courier New\',Courier,monospace;font-size:13px;padding:8px;max-width:580px;margin:0 auto;font-weight:900;">' + html + '</div>' : html;
+}
 </script>

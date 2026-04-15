@@ -25,13 +25,17 @@ class Invoices extends CI_Controller {
             $this->pageData['JwtData']->GenSettings = $GeneralSettings;
             $this->pageData['DiscTypeInfo'] = [];
 
+            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+
             $this->load->model('transactions_model');
             $allData      = $this->transactions_model->getTransactionPageList($limit, 0, $this->pageModuleUID, [], 0);
             $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, []);
+            $summaryStats = $this->transactions_model->getTransactionSummaryStats($this->pageModuleUID, $orgUID);
 
             $this->pageData['ModRowData']      = $this->load->view('transactions/invoices/list', ['DataLists' => $allData, 'SerialNumber' => 0, 'JwtData' => $this->pageData['JwtData']], TRUE);
             $this->pageData['ModPagination']   = $this->globalservice->buildPagePaginationHtml('/invoices/getInvoicesPageDetails', $allDataCount, 1, $limit);
             $this->pageData['ModAllCount']     = $allDataCount;
+            $this->pageData['SummaryStats']    = $summaryStats;
 
             $this->load->view('transactions/invoices/view', $this->pageData);
 
@@ -220,6 +224,24 @@ class Invoices extends CI_Controller {
             // Save optional payment records
             if (!$isDraft && (int) getPostValue($PostData, 'RecordPayment') === 1) {
                 $this->savePaymentRecord($transUID, $orgUID, $userUID, 'C', $customerUID, $netAmount, $PostData);
+            }
+
+            // Conversion tracking
+            if (!$isDraft) {
+                $fromSalesOrderUID = (int) getPostValue($PostData, 'fromSalesOrderUID');
+                if ($fromSalesOrderUID > 0) {
+                    $this->dbwrite_model->updateTransDocStatus($fromSalesOrderUID, $orgUID, 'Converted', $userUID);
+                    $this->dbwrite_model->insertConversionRecord(
+                        $orgUID, $fromSalesOrderUID, 102, $transUID, $this->pageModuleUID, 'OrderToInvoice', $userUID
+                    );
+                }
+                $fromQuotationUID = (int) getPostValue($PostData, 'fromQuotationUID');
+                if ($fromQuotationUID > 0) {
+                    $this->dbwrite_model->updateTransDocStatus($fromQuotationUID, $orgUID, 'Converted', $userUID);
+                    $this->dbwrite_model->insertConversionRecord(
+                        $orgUID, $fromQuotationUID, 101, $transUID, $this->pageModuleUID, 'QuotToInvoice', $userUID
+                    );
+                }
             }
 
             $this->dbwrite_model->commitTransaction();
@@ -733,18 +755,20 @@ class Invoices extends CI_Controller {
 
             $this->load->model('organisation_model');
             $orgInfo          = $this->organisation_model->getOrgForReceipt($orgUID);
+            $thermalCfgResult = $this->organisation_model->getThermalPrintConfig($orgUID);
             $printThemeResult = $this->organisation_model->getPrintThemeByType($orgUID, 'Invoice');
 
             $payments  = $this->transactions_model->getTransactionPayments($transUID, $orgUID);
             $paidTotal = array_sum(array_map(function($p) { return (float) $p->Amount; }, $payments));
 
-            $this->EndReturnData->Error      = FALSE;
-            $this->EndReturnData->Header     = $header;
-            $this->EndReturnData->Items      = $items;
-            $this->EndReturnData->Payments   = $payments;
-            $this->EndReturnData->PaidTotal  = $paidTotal;
-            $this->EndReturnData->OrgInfo    = $orgInfo->Data ?? null;
-            $this->EndReturnData->PrintTheme = $printThemeResult->Data ?? null;
+            $this->EndReturnData->Error         = FALSE;
+            $this->EndReturnData->Header        = $header;
+            $this->EndReturnData->Items         = $items;
+            $this->EndReturnData->Payments      = $payments;
+            $this->EndReturnData->PaidTotal     = $paidTotal;
+            $this->EndReturnData->OrgInfo       = $orgInfo->Data ?? null;
+            $this->EndReturnData->ThermalConfig = $thermalCfgResult->Data ?? null;
+            $this->EndReturnData->PrintTheme    = $printThemeResult->Data ?? null;
 
         } catch (Exception $e) {
             $this->EndReturnData->Error   = TRUE;
@@ -900,14 +924,14 @@ class Invoices extends CI_Controller {
 
             // Pre-fill from Sales Order if converting
             $fromSOUID = (int) $this->input->get('fromSalesOrder');
-            $this->pageData['FromSOUID']  = $fromSOUID;
-            $this->pageData['SOData']     = null;
-            $this->pageData['SOItems']    = [];
+            $this->pageData['FromSalesOrderUID'] = $fromSOUID;
+            $this->pageData['SalesOrderData']    = null;
+            $this->pageData['SalesOrderItems']   = [];
             if ($fromSOUID > 0) {
                 $soData  = $this->transactions_model->getTransactionById($fromSOUID, $orgUID, 102);
                 $soItems = $soData ? $this->transactions_model->getTransactionItems($fromSOUID, $orgUID) : [];
-                $this->pageData['SOData']  = $soData;
-                $this->pageData['SOItems'] = $soItems;
+                $this->pageData['SalesOrderData']  = $soData;
+                $this->pageData['SalesOrderItems'] = $soItems;
             }
 
             // Pre-fill from Quotation if converting directly

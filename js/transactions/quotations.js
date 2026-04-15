@@ -25,6 +25,10 @@ function getQuotationsDetails(pageNo, rowLimit, filter) {
                 var $active = $('.quot-status-tab.active');
                 $active.find('.quot-tab-count').text(count > 0 ? count : '').removeClass('d-none');
                 initTooltips();
+                // Refresh stat cards if summary stats returned
+                if (response.SummaryStats) {
+                    updateQuotStatCards(response.SummaryStats);
+                }
             }
         },
         error: function() {
@@ -33,70 +37,47 @@ function getQuotationsDetails(pageNo, rowLimit, filter) {
     });
 }
 
-// ── helpers ──────────────────────────────────────────────
-function getDateRange(range) {
-    var today  = new Date();
-    var from   = '';
-    var to     = formatDate(today);
+function updateQuotStatCards(stats) {
+    var cur = (typeof currencySymbol !== 'undefined') ? currencySymbol : '₹';
+    var dec = (typeof JwtData !== 'undefined' && JwtData.GenSettings) ? (JwtData.GenSettings.DecimalPoints || 2) : 2;
 
-    switch (range) {
-        case 'today':
-            from = to = formatDate(today);
-            break;
-        case 'yesterday':
-            var y = new Date(today); y.setDate(today.getDate() - 1);
-            from = to = formatDate(y);
-            break;
-        case 'this_week':
-            var s = new Date(today); s.setDate(today.getDate() - today.getDay());
-            from = formatDate(s);
-            break;
-        case 'last_week':
-            var ls = new Date(today); ls.setDate(today.getDate() - today.getDay() - 7);
-            var le = new Date(ls);    le.setDate(ls.getDate() + 6);
-            from = formatDate(ls); to = formatDate(le);
-            break;
-        case 'last_7_days':
-            var l7 = new Date(today); l7.setDate(today.getDate() - 6);
-            from = formatDate(l7);
-            break;
-        case 'this_month':
-            from = formatDate(new Date(today.getFullYear(), today.getMonth(), 1));
-            break;
-        case 'previous_month':
-            from = formatDate(new Date(today.getFullYear(), today.getMonth() - 1, 1));
-            to   = formatDate(new Date(today.getFullYear(), today.getMonth(), 0));
-            break;
-        case 'last_30_days':
-            var l30 = new Date(today); l30.setDate(today.getDate() - 29);
-            from = formatDate(l30);
-            break;
-        case 'this_year':
-            from = today.getFullYear() + '-01-01';
-            break;
-        case 'last_year':
-            var ly = today.getFullYear() - 1;
-            from = ly + '-01-01'; to = ly + '-12-31';
-            break;
-        case 'last_quarter':
-            var q = Math.floor(today.getMonth() / 3);
-            from = formatDate(new Date(today.getFullYear(), (q - 1) * 3, 1));
-            to   = formatDate(new Date(today.getFullYear(), q * 3, 0));
-            break;
-        case 'fy_25_26':
-            from = '2025-04-01'; to = '2026-03-31';
-            break;
-        default:
-            from = ''; to = '';
+    function fmt(v) {
+        return cur + ' ' + parseFloat(v || 0).toLocaleString('en-IN', { minimumFractionDigits: dec, maximumFractionDigits: dec });
     }
-    return { from: from, to: to };
+    function cnt(key) {
+        return stats[key] ? (stats[key].count || 0) : 0;
+    }
+    function amt(key) {
+        return stats[key] ? (stats[key].amount || 0) : 0;
+    }
+
+    // All = sum excluding Draft, Cancelled, Rejected
+    var excludeKeys = ['Draft', 'Cancelled', 'Rejected', 'Expired'];
+    var cntAll = 0, amtAll = 0;
+    $.each(stats, function(k, v) {
+        if (excludeKeys.indexOf(k) === -1) {
+            cntAll += (v.count  || 0);
+            amtAll += (v.amount || 0);
+        }
+    });
+
+    $('[data-stat-filter="All"] .trans-stat-count').text(cntAll.toLocaleString('en-IN'));
+    $('[data-stat-filter="All"] .trans-stat-amount').text(fmt(amtAll));
+
+    $('[data-stat-filter="Open"] .trans-stat-count').text(cnt('Pending').toLocaleString('en-IN'));
+    $('[data-stat-filter="Open"] .trans-stat-amount').text(fmt(amt('Pending')));
+
+    $('[data-stat-filter="Accepted"] .trans-stat-count').text(cnt('Accepted').toLocaleString('en-IN'));
+    $('[data-stat-filter="Accepted"] .trans-stat-amount').text(fmt(amt('Accepted')));
+
+    $('[data-stat-filter="Converted"] .trans-stat-count').text(cnt('Converted').toLocaleString('en-IN'));
+    $('[data-stat-filter="Converted"] .trans-stat-amount').text(fmt(amt('Converted')));
+
+    $('[data-stat-filter="Draft"] .trans-stat-count').text(cnt('Draft').toLocaleString('en-IN'));
 }
 
-function formatDate(date) {
-    var d = String(date.getDate()).padStart(2, '0');
-    var m = String(date.getMonth() + 1).padStart(2, '0');
-    return date.getFullYear() + '-' + m + '-' + d;
-}
+// ── helpers ──────────────────────────────────────────────
+// getDateRange(), formatDate() are in /js/common/datefilter.js
 
 function initTooltips() {
     document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (el) {

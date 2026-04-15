@@ -195,7 +195,6 @@ class Transactions extends CI_Controller {
 
     // ----------------------------------------------------------------
     // POST /transactions/setDefaultTransactionPrefix
-    // Updates TransPageSettingsTbl.DefaultPrefix for this module/org
     // ----------------------------------------------------------------
     public function setDefaultTransactionPrefix() {
 

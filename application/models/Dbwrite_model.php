@@ -328,6 +328,42 @@ class Dbwrite_model extends CI_Model {
 
     }
 
+    // ── Transaction Number Helpers (WriteDB — avoids read-replica lag) ─────────
+
+    public function checkTransactionNumberExists($prefixUID, $transNumber, $orgUID) {
+        $this->WriteDB->db_debug = FALSE;
+        $this->WriteDB->select('TransUID');
+        $this->WriteDB->from('Transaction.TransactionsTbl');
+        $this->WriteDB->where([
+            'PrefixUID'   => (int) $prefixUID,
+            'TransNumber' => (int) $transNumber,
+            'OrgUID'      => (int) $orgUID,
+            'IsDeleted'   => 0,
+        ]);
+        $this->WriteDB->limit(1);
+        return $this->WriteDB->get()->row();
+    }
+
+    public function getNextAvailableTransNumber($prefixUID, $orgUID) {
+        $this->WriteDB->db_debug = FALSE;
+        $this->WriteDB->select_max('TransNumber', 'MaxNumber');
+        $this->WriteDB->from('Transaction.TransactionsTbl');
+        $this->WriteDB->where(['PrefixUID' => (int) $prefixUID, 'OrgUID' => (int) $orgUID]);
+        $result = $this->WriteDB->get()->row();
+        $next   = $result ? ((int)($result->MaxNumber ?? 0) + 1) : 1;
+
+        $maxAttempts = 100;
+        while ($maxAttempts-- > 0) {
+            $this->WriteDB->select('TransUID');
+            $this->WriteDB->from('Transaction.TransactionsTbl');
+            $this->WriteDB->where(['PrefixUID' => (int)$prefixUID, 'TransNumber' => $next, 'OrgUID' => (int)$orgUID, 'IsDeleted' => 0]);
+            $this->WriteDB->limit(1);
+            if (!$this->WriteDB->get()->row()) break;
+            $next++;
+        }
+        return $next;
+    }
+
     // ── Stock Movement Methods ─────────────────────────────────────────────────
 
     /**
@@ -430,6 +466,52 @@ class Dbwrite_model extends CI_Model {
                 ['LedgerUID' => (int)$row->LedgerUID]
             );
         }
+
+    }
+
+    // ── Conversion Tracking ───────────────────────────────────────────────────
+
+    /**
+     * Record a document conversion in TransConversionTbl.
+     * Module UIDs: 101=Quotation, 102=SalesOrder, 103=Invoice.
+     * ConversionType: QuotToOrder | QuotToInvoice | OrderToInvoice
+     * Skips silently if the exact same source→target pair is already recorded.
+     */
+    /**
+     * Update DocStatus on a transaction row using a raw parameterized query.
+     * Bypasses CI3's query builder to avoid bit(1) / partition / escaping issues
+     * that cause the Active Record WHERE builder to silently match 0 rows.
+     */
+    public function updateTransDocStatus($transUID, $orgUID, $newStatus, $userUID) {
+        $this->WriteDB->db_debug = FALSE;
+        return $this->WriteDB->query(
+            "UPDATE Transaction.TransactionsTbl
+                SET DocStatus = ?, UpdatedBy = ?, UpdatedOn = NOW()
+              WHERE TransUID = ? AND OrgUID = ?",
+            [$newStatus, (int) $userUID, (int) $transUID, (int) $orgUID]
+        );
+    }
+
+    public function insertConversionRecord($orgUID, $sourceUID, $sourceModuleUID, $targetUID, $targetModuleUID, $conversionType, $userUID) {
+
+        $this->WriteDB->db_debug = FALSE;
+
+        // Duplicate guard — uses WriteDB to avoid read-replica lag
+        $this->WriteDB->select('ConversionUID');
+        $this->WriteDB->from('Transaction.TransConversionTbl');
+        $this->WriteDB->where(['SourceTransUID' => (int)$sourceUID, 'TargetTransUID' => (int)$targetUID]);
+        $this->WriteDB->limit(1);
+        if ($this->WriteDB->get()->row()) return; // already recorded
+
+        $this->WriteDB->insert('Transaction.TransConversionTbl', [
+            'OrgUID'          => (int) $orgUID,
+            'SourceTransUID'  => (int) $sourceUID,
+            'SourceModuleUID' => (int) $sourceModuleUID,
+            'TargetTransUID'  => (int) $targetUID,
+            'TargetModuleUID' => (int) $targetModuleUID,
+            'ConversionType'  => $conversionType,
+            'ConvertedBy'     => (int) $userUID,
+        ]);
 
     }
 

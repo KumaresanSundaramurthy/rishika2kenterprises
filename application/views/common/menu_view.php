@@ -71,6 +71,46 @@
         <?php }
         } ?>
 
+        <!-- Profile Dropdown – properly styled for the sidebar menu -->
+        <li class="menu-item user-profile-item">
+            <a class="menu-link dropdown-toggle" href="javascript:void(0);" data-bs-toggle="dropdown" aria-expanded="false" style="display: flex; align-items: center; gap: 0.75rem;">
+                <div class="avatar avatar-online flex-shrink-0">
+                    <img src="<?php echo $JwtData->User->UserImage ? getenv('CFLARE_R2_CDN').$JwtData->User->UserImage : '/images/logo/avathar_user.png'; ?>" 
+                        alt="<?php echo strtoupper($JwtData->User->FirstName); ?>" 
+                        class="w-px-36 h-px-36 rounded-circle" />
+                </div>
+                <div class="flex-grow-1" style="line-height: 1.2;">
+                    <div class="fw-semibold" style="font-size: 0.9rem;"><?php echo strtoupper($JwtData->User->FirstName); ?></div>
+                    <small class="text-muted" style="font-size: 0.7rem;"><?php echo strtoupper($JwtData->User->RoleName); ?></small>
+                </div>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end shadow" style="position: absolute; inset: auto auto auto auto; margin-top: 0.25rem;">
+                <li>
+                    <a class="dropdown-item" href="/settings/profile">
+                        <i class="bx bx-user me-2"></i> My Profile
+                    </a>
+                </li>
+                <?php if ($JwtData->User->RoleUID == 1) { ?>
+                <li>
+                    <a class="dropdown-item" href="javascript:void(0);">
+                        <i class="bx bx-cog me-2"></i> Settings
+                    </a>
+                </li>
+                <?php } ?>
+                <li>
+                    <a class="dropdown-item" id="ChangePasswordBtn" href="javascript:void(0);">
+                        <i class="bx bx-lock me-2"></i> Change Password
+                    </a>
+                </li>
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                    <a class="dropdown-item" href="/logout">
+                        <i class="bx bx-power-off me-2"></i> Log Out
+                    </a>
+                </li>
+            </ul>
+        </li>
+
         <li class="menu-item menu-item-static mt-auto">
             <a href="javascript: void(0);" id="SettingsMenuBarBtn" class="menu-link">
                 <i class="menu-icon tf-icons bx bx-cog"></i>

@@ -32,7 +32,8 @@ class Quotations extends CI_Controller {
             $this->pageData['ModRowData'] = $this->load->view('transactions/quotations/list', ['DataLists' => $allData, 'SerialNumber' => 0, 'JwtData'   => $this->pageData['JwtData']], TRUE);
             $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/quotations/getQuotationsPageDetails', $allDataCount, 1, $limit);
             $this->pageData['ModAllCount'] = $allDataCount;
-            
+            $this->pageData['SummaryStats'] = $this->transactions_model->getTransactionSummaryStats($this->pageModuleUID, $this->pageData['JwtData']->User->OrgUID);
+
             $this->load->view('transactions/quotations/view', $this->pageData);
 
         } catch (Exception $e) {
@@ -71,6 +72,7 @@ class Quotations extends CI_Controller {
             $this->EndReturnData->RecordHtmlData = $rowHtml;
             $this->EndReturnData->Pagination = $this->globalservice->buildPagePaginationHtml('/quotations/getQuotationsPageDetails', $allDataCount, $pageNo, $limit);
             $this->EndReturnData->TotalCount = $allDataCount;
+            $this->EndReturnData->SummaryStats = $this->transactions_model->getTransactionSummaryStats($this->pageModuleUID, $this->pageData['JwtData']->User->OrgUID);
 
 		} catch (Exception $e) {
             $this->EndReturnData->Error = TRUE;
@@ -145,29 +147,13 @@ class Quotations extends CI_Controller {
                 if (empty($prefixData->Data)) throw new Exception('Invalid prefix selected.');
                 $prefix = $prefixData->Data[0];
 
-                // Duplicate check (padding-agnostic)
-                $dupCheck = $this->transactions_model->getTransactionByPrefixAndNumber($prefixUID, $transNumber, $orgUID, $this->pageModuleUID);
-                if ($dupCheck) {
-                    $nextSuggested = $this->transactions_model->getNextTransactionNumber($prefixUID, $orgUID, $this->pageModuleUID);
-                    throw new Exception("Transaction number {$transNumber} already exists for this prefix. Next available: {$nextSuggested}.");
+                // Race condition guard: if the submitted number is already taken
+                // (another user saved first), auto-advance to the next free number.
+                if ($this->dbwrite_model->checkTransactionNumberExists($prefixUID, $transNumber, $orgUID)) {
+                    $transNumber = $this->dbwrite_model->getNextAvailableTransNumber($prefixUID, $orgUID);
                 }
 
-                $sep   = $prefix->Separator ?? '-';
-                $parts = [strtoupper($prefix->Name)];
-                if (!empty($prefix->IncludeShortName) && !empty($prefix->ShortName)) {
-                    $parts[] = strtoupper($prefix->ShortName);
-                }
-                if (!empty($prefix->IncludeFiscalYear)) {
-                    $txMonth = (int) date('m', strtotime($transDate));
-                    $txYear  = (int) date('Y', strtotime($transDate));
-                    $fyStart = $txMonth >= 4 ? $txYear : $txYear - 1;
-                    $parts[] = ($prefix->FiscalYearFormat ?? 'SHORT') === 'LONG'
-                        ? $fyStart . '-' . ($fyStart + 1)
-                        : str_pad($fyStart % 100, 2, '0', STR_PAD_LEFT) . '-' . str_pad(($fyStart + 1) % 100, 2, '0', STR_PAD_LEFT);
-                }
-                $padding      = (int)($prefix->NumberPadding ?? 1);
-                $parts[]      = $padding > 1 ? str_pad($transNumber, $padding, '0', STR_PAD_LEFT) : (string)$transNumber;
-                $uniqueNumber = implode($sep, $parts);
+                list($uniqueNumber) = $this->buildUniqueNumber($prefix, $transNumber, $transDate);
             }
 
             // --- Insert header ---
@@ -319,28 +305,12 @@ class Quotations extends CI_Controller {
                 if (empty($prefixData->Data)) throw new Exception('Invalid prefix selected.');
                 $prefix = $prefixData->Data[0];
 
-                $dupCheck = $this->transactions_model->getTransactionByPrefixAndNumber($prefixUID, $transNumber, $orgUID, $this->pageModuleUID);
-                if ($dupCheck) {
-                    $nextSuggested = $this->transactions_model->getNextTransactionNumber($prefixUID, $orgUID, $this->pageModuleUID);
-                    throw new Exception("Transaction number {$transNumber} already exists. Next available: {$nextSuggested}.");
+                // Race condition guard for updateQuotation
+                if ($this->dbwrite_model->checkTransactionNumberExists($prefixUID, $transNumber, $orgUID)) {
+                    $transNumber = $this->dbwrite_model->getNextAvailableTransNumber($prefixUID, $orgUID);
                 }
 
-                $sep   = $prefix->Separator ?? '-';
-                $parts = [strtoupper($prefix->Name)];
-                if (!empty($prefix->IncludeShortName) && !empty($prefix->ShortName)) {
-                    $parts[] = strtoupper($prefix->ShortName);
-                }
-                if (!empty($prefix->IncludeFiscalYear)) {
-                    $txMonth = (int) date('m', strtotime($transDate));
-                    $txYear  = (int) date('Y', strtotime($transDate));
-                    $fyStart = $txMonth >= 4 ? $txYear : $txYear - 1;
-                    $parts[] = ($prefix->FiscalYearFormat ?? 'SHORT') === 'LONG'
-                        ? $fyStart . '-' . ($fyStart + 1)
-                        : str_pad($fyStart % 100, 2, '0', STR_PAD_LEFT) . '-' . str_pad(($fyStart + 1) % 100, 2, '0', STR_PAD_LEFT);
-                }
-                $padding      = (int)($prefix->NumberPadding ?? 1);
-                $parts[]      = $padding > 1 ? str_pad($transNumber, $padding, '0', STR_PAD_LEFT) : (string)$transNumber;
-                $uniqueNumber = implode($sep, $parts);
+                list($uniqueNumber) = $this->buildUniqueNumber($prefix, $transNumber, $transDate);
             }
 
             $additionalChargesJson = $this->buildAdditionalChargesJson($PostData);
@@ -524,201 +494,30 @@ class Quotations extends CI_Controller {
 
     }
 
-    public function duplicateQuotation() {
-
-        $this->EndReturnData = new stdClass();
-        try {
-
-            $this->load->model('dbwrite_model');
-            $this->dbwrite_model->startTransaction();
-
-            $PostData = $this->input->post();
-            $srcUID   = (int) getPostValue($PostData, 'TransUID');
-            $userUID  = $this->pageData['JwtData']->User->UserUID;
-            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
-
-            if ($srcUID <= 0) throw new Exception('Invalid quotation.');
-
-            $this->load->model('transactions_model');
-            $src = $this->transactions_model->getTransactionById($srcUID, $orgUID, $this->pageModuleUID);
-            if (!$src) throw new Exception('Quotation not found.');
-
-            // Next number for the same prefix
-            $nextNumber   = $this->transactions_model->getNextTransactionNumber($src->PrefixUID, $orgUID, $this->pageModuleUID);
-            $prefixResult = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.PrefixUID' => $src->PrefixUID, 'Prefix.OrgUID' => $orgUID]);
-            $prefix       = $prefixResult->Data[0] ?? null;
-            if (!$prefix) throw new Exception('Prefix not found.');
-
-            // Build UniqueNumber
-            $sep   = $prefix->Separator ?? '-';
-            $parts = [strtoupper($prefix->Name)];
-            if (!empty($prefix->IncludeShortName) && !empty($prefix->ShortName)) {
-                $parts[] = strtoupper($prefix->ShortName);
-            }
-            if (!empty($prefix->IncludeFiscalYear)) {
-                $m  = (int) date('m');
-                $yr = (int) date('Y');
-                $fy = $m >= 4 ? $yr : $yr - 1;
-                $parts[] = ($prefix->FiscalYearFormat ?? 'SHORT') === 'LONG'
-                    ? $fy . '-' . ($fy + 1)
-                    : str_pad($fy % 100, 2, '0', STR_PAD_LEFT) . '-' . str_pad(($fy + 1) % 100, 2, '0', STR_PAD_LEFT);
-            }
-            $pad     = (int)($prefix->NumberPadding ?? 1);
-            $parts[] = $pad > 1 ? str_pad($nextNumber, $pad, '0', STR_PAD_LEFT) : (string) $nextNumber;
-            $uniqueNumber = implode($sep, $parts);
-
-            $today = date('Y-m-d');
-
-            // Insert duplicate header
-            $headerData = [
-                'OrgUID'            => $orgUID,
-                'ModuleUID'         => $this->pageModuleUID,
-                'PrefixUID'         => $src->PrefixUID,
-                'UniqueNumber'      => $uniqueNumber,
-                'TransType'         => $src->TransType,
-                'TransNumber'       => $nextNumber,
-                'PartyType'         => $src->PartyType,
-                'PartyUID'          => $src->PartyUID,
-                'TransDate'         => $today,
-                'TransYear'         => (int) date('Y'),
-                'QuotationType'     => $src->QuotationType,
-                'DispatchFromUID'   => $src->DispatchFromUID ?? NULL,
-                'GrossAmount'       => $src->GrossAmount,
-                'SubTotal'          => $src->SubTotal,
-                'DiscountAmount'    => $src->DiscountAmount,
-                'AdditionalCharges' => $src->AdditionalCharges,
-                'TaxAmount'         => $src->TaxAmount,
-                'CgstAmount'        => $src->CgstAmount,
-                'SgstAmount'        => $src->SgstAmount,
-                'IgstAmount'        => $src->IgstAmount,
-                'RoundOff'          => $src->RoundOff,
-                'GlobalDiscPercent' => (float) $src->GlobalDiscPercent,
-                'ExtraDiscApplied'  => $src->ExtraDiscApplied,
-                'ExtraDiscAmount'   => $src->ExtraDiscAmount,
-                'ExtraDiscType'     => $src->ExtraDiscType,
-                'NetAmount'         => $src->NetAmount,
-                'DocStatus'         => 'Draft',
-                'IsActive'          => 1,
-                'IsDeleted'         => 0,
-                'CreatedBy'         => $userUID,
-                'UpdatedBy'         => $userUID,
-            ];
-            $insertResp = $this->dbwrite_model->insertData('Transaction', 'TransactionsTbl', $headerData);
-            if ($insertResp->Error) throw new Exception($insertResp->Message);
-            $newTransUID = $insertResp->ID;
-
-            // Insert detail
-            $detailData = [
-                'FinancialYear'     => (int) date('Y'),
-                'TransUID'          => $newTransUID,
-                'ValidityDays'      => $src->ValidityDays  ?? NULL,
-                'ValidityDate'      => NULL,
-                'Reference'         => $src->Reference     ?? NULL,
-                'Notes'             => $src->Notes         ?? NULL,
-                'TermsConditions'   => $src->TermsConditions ?? NULL,
-                'AdditionalCharges' => $src->AdditionalChargesJson ?? NULL,
-            ];
-            $this->dbwrite_model->insertData('Transaction', 'TransDetailTbl', $detailData);
-
-            // Copy line items
-            $srcItems = $this->transactions_model->getTransactionItems($srcUID, $orgUID);
-            $now      = time();
-            foreach ($srcItems as $seq => $item) {
-                $itemRow = [
-                    'OrgUID'          => $orgUID,
-                    'FinancialYear'   => (int) date('Y'),
-                    'TransUID'        => $newTransUID,
-                    'ItemSequence'    => $seq + 1,
-                    'ProductUID'      => $item->ProductUID,
-                    'ProductName'     => $item->ProductName,
-                    'PartNumber'      => $item->PartNumber,
-                    'CategoryUID'     => $item->CategoryUID,
-                    'StorageUID'      => $item->StorageUID,
-                    'Quantity'        => $item->Quantity,
-                    'PrimaryUnitName' => $item->PrimaryUnitName,
-                    'TaxDetailsUID'   => $item->TaxDetailsUID,
-                    'TaxPercentage'   => $item->TaxPercentage,
-                    'CGST'            => $item->CGST,
-                    'SGST'            => $item->SGST,
-                    'IGST'            => $item->IGST,
-                    'DiscountTypeUID' => $item->DiscountTypeUID,
-                    'Discount'        => $item->Discount,
-                    'UnitPrice'       => $item->UnitPrice,
-                    'SellingPrice'    => $item->SellingPrice,
-                    'TaxableAmount'   => $item->TaxableAmount,
-                    'CgstAmount'      => $item->CgstAmount,
-                    'SgstAmount'      => $item->SgstAmount,
-                    'IgstAmount'      => $item->IgstAmount,
-                    'TaxAmount'       => $item->TaxAmount,
-                    'DiscountAmount'  => $item->DiscountAmount,
-                    'NetAmount'       => $item->NetAmount,
-                    'QuantityConverted' => 0,
-                    'IsActive'        => 1,
-                    'IsDeleted'       => 0,
-                    'CreatedBy'       => $userUID,
-                    'UpdatedBy'       => $userUID,
-                    'CreatedOn'       => $now,
-                    'UpdatedOn'       => $now,
-                ];
-                $this->dbwrite_model->insertData('Transaction', 'TransProductsTbl', $itemRow);
-            }
-
-            $this->dbwrite_model->commitTransaction();
-
-            $this->EndReturnData->Error      = FALSE;
-            $this->EndReturnData->Message    = 'Quotation duplicated as ' . $uniqueNumber . '.';
-            $this->EndReturnData->TransUID   = $newTransUID;
-            $this->EndReturnData->EditURL    = '/quotations/edit/' . $newTransUID;
-
-        } catch (Exception $e) {
-            $this->dbwrite_model->rollbackTransaction();
-            $this->EndReturnData->Error   = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-        }
-
-        $this->globalservice->sendJsonResponse($this->EndReturnData);
-
-    }
-
     public function convertQuotationToInvoice() {
 
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->load->model('dbwrite_model');
-            $PostData = $this->input->post();
-            $transUID = (int) getPostValue($PostData, 'TransUID');
-            $userUID  = $this->pageData['JwtData']->User->UserUID;
-            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $PostData      = $this->input->post();
+            $transUID      = (int) getPostValue($PostData, 'TransUID');
+            $convertTarget = trim(getPostValue($PostData, 'ConvertTarget') ?: 'Invoice');
 
             if ($transUID <= 0) throw new Exception('Invalid quotation.');
 
-            $convertTarget = trim(getPostValue($PostData, 'ConvertTarget') ?: 'Invoice');
-
-            // Mark quotation as Converted
-            $this->dbwrite_model->startTransaction();
-            $resp = $this->dbwrite_model->updateData(
-                'Transaction', 'TransactionsTbl',
-                ['DocStatus' => 'Converted', 'UpdatedBy' => $userUID, 'UpdatedOn' => date('Y-m-d H:i:s')],
-                ['TransUID' => $transUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
-            );
-            if ($resp->Error) throw new Exception($resp->Message);
-            $this->dbwrite_model->commitTransaction();
-
+            // Do NOT change quotation status here.
+            // Status is set to Converted only after the target document is saved.
             if ($convertTarget === 'SalesOrder') {
                 $redirectURL = '/salesorders/create?fromQuotation=' . $transUID;
-                $message     = 'Quotation marked as converted. Redirecting to Sales Order...';
             } else {
                 $redirectURL = '/invoices/create?fromQuotation=' . $transUID;
-                $message     = 'Quotation marked as converted.';
             }
 
             $this->EndReturnData->Error       = FALSE;
-            $this->EndReturnData->Message     = $message;
+            $this->EndReturnData->Message     = 'Redirecting...';
             $this->EndReturnData->RedirectURL = $redirectURL;
 
         } catch (Exception $e) {
-            $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -742,11 +541,10 @@ class Quotations extends CI_Controller {
             if ($transUID <= 0) throw new Exception('Invalid quotation.');
 
             $validTransitions = [
-                'Pending'   => ['Accepted', 'Partial', 'Rejected'],
-                'Accepted'  => ['Pending',  'Partial', 'Rejected'],
-                'Partial'   => ['Accepted', 'Pending', 'Rejected'],
                 'Draft'     => ['Pending'],
-                'Rejected'  => [],
+                'Pending'   => ['Accepted', 'Cancelled'],
+                'Accepted'  => ['Pending', 'Cancelled', 'Converted'],
+                'Cancelled' => [],
                 'Converted' => [],
             ];
 
@@ -885,6 +683,25 @@ class Quotations extends CI_Controller {
 
     }
 
+    private function buildUniqueNumber($prefix, $transNumber, $transDate) {
+        $sep   = $prefix->Separator ?? '-';
+        $parts = [strtoupper($prefix->Name)];
+        if (!empty($prefix->IncludeShortName) && !empty($prefix->ShortName)) {
+            $parts[] = strtoupper($prefix->ShortName);
+        }
+        if (!empty($prefix->IncludeFiscalYear)) {
+            $txMonth = (int) date('m', strtotime($transDate));
+            $txYear  = (int) date('Y', strtotime($transDate));
+            $fyStart = $txMonth >= 4 ? $txYear : $txYear - 1;
+            $parts[] = ($prefix->FiscalYearFormat ?? 'SHORT') === 'LONG'
+                ? $fyStart . '-' . ($fyStart + 1)
+                : str_pad($fyStart % 100, 2, '0', STR_PAD_LEFT) . '-' . str_pad(($fyStart + 1) % 100, 2, '0', STR_PAD_LEFT);
+        }
+        $padding = (int)($prefix->NumberPadding ?? 1);
+        $parts[] = $padding > 1 ? str_pad($transNumber, $padding, '0', STR_PAD_LEFT) : (string)$transNumber;
+        return [implode($sep, $parts), $transNumber];
+    }
+
     private function buildAdditionalChargesJson($PostData) {
         $charges = [];
         $types   = ['shipping', 'handling', 'packing', 'other'];
@@ -906,17 +723,13 @@ class Quotations extends CI_Controller {
             $this->pageData['JwtData']->GenSettings = $GeneralSettings;
 
             $orgUID = $this->pageData['JwtData']->User->OrgUID;
-
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
 
             $this->load->model('transactions_model');
 
-            // Prefixes are org-level (shared across all transaction types)
             $prefixResult                         = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.OrgUID' => $orgUID, 'Prefix.ModuleUID' => $this->pageModuleUID]);
             $this->pageData['PrefixData']         = $prefixResult->Data ?? [];
 
-            // Preload next transaction number for each prefix — embedded in the view as data-attrs,
-            // so the JS never needs an AJAX call to get the next number.
             $nextNumberMap = [];
             foreach ($this->pageData['PrefixData'] as $pd) {
                 $nextNumberMap[(int)$pd->PrefixUID] = $this->transactions_model->getNextTransactionNumber(
@@ -925,7 +738,17 @@ class Quotations extends CI_Controller {
             }
             $this->pageData['NextNumberMap'] = $nextNumberMap;
 
-            // Dispatch address: Shipping first, Billing as fallback, NULL if neither
+            // Clone: pre-fill from source quotation if ?fromQuotation= is in URL
+            $fromUID = (int) $this->input->get('fromQuotation');
+            $this->pageData['CloneData']  = null;
+            $this->pageData['CloneItems'] = [];
+            if ($fromUID > 0) {
+                $cloneData  = $this->transactions_model->getTransactionById($fromUID, $orgUID, $this->pageModuleUID);
+                $cloneItems = $cloneData ? $this->transactions_model->getTransactionItems($fromUID, $orgUID) : [];
+                $this->pageData['CloneData']  = $cloneData;
+                $this->pageData['CloneItems'] = $cloneItems;
+            }
+
             $this->load->model('organisation_model');
             $dispatchAddrResult                  = $this->organisation_model->getOrgDispatchAddress($orgUID);
             $this->pageData['DispatchAddress']   = $dispatchAddrResult->Data ?? NULL;
@@ -940,25 +763,20 @@ class Quotations extends CI_Controller {
             $OrgCountryISO2 = $this->pageData['JwtData']->User->OrgCISO2;
             if(!empty($OrgCountryISO2)) {
                 $StateInfo = $this->global_model->getStateofCountry($OrgCountryISO2);
-                if($StateInfo->Error === FALSE) {
-                    $this->pageData['StateData'] = $StateInfo->Data;
-                }
+                if($StateInfo->Error === FALSE) $this->pageData['StateData'] = $StateInfo->Data;
                 $CityInfo = $this->global_model->getCityofCountry($OrgCountryISO2);
-                if($CityInfo->Error === FALSE) {
-                    $this->pageData['CityData'] = $CityInfo->Data;
-                }
+                if($CityInfo->Error === FALSE) $this->pageData['CityData'] = $CityInfo->Data;
             }
 
-            /** Product Details */
             $this->pageData['PrimaryUnitInfo'] = $this->global_model->getPrimaryUnitInfo()->Data ?? [];
             $this->pageData['DiscTypeInfo']    = $this->global_model->getDiscountTypeInfo()->Data ?? [];
             $this->pageData['ProdTypeInfo']    = $this->global_model->getProductTypeInfo()->Data ?? [];
             $this->pageData['ProdTaxInfo']     = $this->global_model->getProductTaxInfo()->Data ?? [];
             $this->pageData['TaxDetInfo']      = $this->global_model->getTaxDetailsInfo()->Data ?? [];
-            
+
             $this->load->model('products_model');
-            $this->pageData['SizeInfo']   = $this->products_model->getSizeDetails([]) ?? [];
-            $this->pageData['BrandInfo']  = $this->products_model->getBrandDetails([]) ?? [];
+            $this->pageData['SizeInfo']        = $this->products_model->getSizeDetails([]) ?? [];
+            $this->pageData['BrandInfo']       = $this->products_model->getBrandDetails([]) ?? [];
             $this->pageData['fltCategoryData'] = $this->products_model->getCategoriesDetails([]) ?? [];
 
             $this->pageData['fltStorageData'] = [];
@@ -966,7 +784,7 @@ class Quotations extends CI_Controller {
                 $this->load->model('storage_model');
                 $this->pageData['fltStorageData'] = $this->storage_model->getStorageDetails([]) ?? [];
             }
-            
+
             $this->load->view('transactions/quotations/forms/add', $this->pageData);
 
         } catch (Exception $e) {

@@ -1611,6 +1611,10 @@ class BillManager {
      */
     setInterState(flag) {
         this.isInterState = !!flag;
+        // Keep global customerInterState in sync — used by tax breakdown UI functions
+        if (typeof customerInterState !== 'undefined') {
+            customerInterState = this.isInterState;
+        }
         this.items.forEach(item => {
             item._lastChanged = 'quantity';
             this.calculateRowItem(item);
@@ -2240,11 +2244,13 @@ function searchCustomers(key) {
             if (typeof billManager !== 'undefined') {
                 var custState = (data.address.State || '').trim().toLowerCase();
                 var orgState  = (typeof _orgState !== 'undefined' ? _orgState : '').trim().toLowerCase();
+                // Inter-state only when BOTH states are known AND they differ
                 var interState = (custState !== '' && orgState !== '' && custState !== orgState);
                 billManager.setInterState(interState);
             }
         } else {
             $("#customerAddressBox").addClass('d-none').empty();
+            // No address info — default to intra-state (CGST+SGST)
             if (typeof billManager !== 'undefined') billManager.setInterState(false);
         }
     }).on('select2:clear', function () {

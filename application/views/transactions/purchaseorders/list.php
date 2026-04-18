@@ -144,10 +144,10 @@ if (!empty($DataLists)) {
 
                             <?php if (!$isDraft): ?>
                             <li>
-                                <button class="dropdown-item a4PrintPO"
-                                        data-uid="<?php echo (int) $list->TransUID; ?>">
+                                <button class="dropdown-item a4PrintTransaction"
+                                    data-uid="<?php echo (int) $list->TransUID; ?>" data-url="/purchaseorders/getPurchaseOrderDetail" data-label="Purchase Order">
                                     <i class="bx bx-file me-2 text-primary"></i>Print (A4 / A5)
-                                </button>
+                            </button>
                             </li>
                             <li><hr class="dropdown-divider my-1"></li>
                             <?php endif; ?>

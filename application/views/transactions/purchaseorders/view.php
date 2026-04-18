@@ -143,6 +143,7 @@
 
 <?php $this->load->view('common/transactions/footer'); ?>
 
+<script src="/js/transactions/a4_print.js"></script>
 <script src="/js/transactions/purchaseorders.js"></script>
 
 <script>

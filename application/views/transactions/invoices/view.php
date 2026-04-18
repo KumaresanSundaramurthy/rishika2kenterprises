@@ -200,6 +200,7 @@
 
 <?php $this->load->view('common/transactions/footer'); ?>
 
+<script src="/js/transactions/a4_print.js"></script>
 <script src="/js/transactions/invoices.js"></script>
 
 <script>
@@ -328,37 +329,7 @@ $(function () {
         });
     });
 
-    // ── A4 Print ────────────────────────────────────────────
-    $(document).on('click', '.a4PrintInvoice', function () {
-        var uid = $(this).data('uid');
-        $('#a4ModalTitle').text('Invoice Preview');
-        $('#a4PrintModal').modal('show');
-        $('#a4PrintPreview').html('<div class="d-flex justify-content-center align-items-center w-100 h-100"><div class="spinner-border text-light"></div></div>');
-        $.ajax({
-            url   : '/invoices/getInvoiceDetail',
-            method: 'POST',
-            data  : { TransUID: uid, [CsrfName]: CsrfToken },
-            success: function (resp) {
-                if (resp.Error) {
-                    $('#a4PrintPreview').html('<div class="alert alert-danger m-3">' + resp.Message + '</div>');
-                } else {
-                    var size = $('input[name="a4PaperSize"]:checked').val() || 'A4';
-                    $('#a4PrintPreview').html(_buildA4Html(resp, size));
-                }
-            }
-        });
-    });
-    $('input[name="a4PaperSize"]').on('change', function () {
-        if (window._invLastPrintData) $('#a4PrintPreview').html(_buildA4Html(window._invLastPrintData, $(this).val()));
-    });
-    $('#a4PrintBtn').on('click', function () {
-        var frame = document.getElementById('a4PrintFrame');
-        if (!frame) { frame = document.createElement('iframe'); frame.id = 'a4PrintFrame'; frame.style.display = 'none'; document.body.appendChild(frame); }
-        var size    = $('input[name="a4PaperSize"]:checked').val() || 'A4';
-        var content = _buildA4Html(window._invLastPrintData, size, true);
-        frame.contentDocument.open(); frame.contentDocument.write(content); frame.contentDocument.close();
-        frame.onload = function () { frame.contentWindow.print(); };
-    });
+    // ── A4 Print — handled by /js/transactions/a4_print.js ──
 
     // ── Delete ──────────────────────────────────────────────
     $(document).on('click', '.deleteInvoice', function () {
@@ -444,51 +415,7 @@ function _buildInvDetailHtml(resp) {
     '</div>';
 }
 
-function _buildA4Html(resp, size, forPrint) {
-    if (!resp) return '';
-    window._invLastPrintData = resp;
-    var w = size === 'A5' ? '148mm' : '210mm';
-    var h = resp.Header || {}, org = resp.OrgInfo || {};
-    var cur = (org.CurrenySymbol || '₹') + ' ', dec = 2;
-    var rows = '';
-    (resp.Items || []).forEach(function (item, i) {
-        rows += '<tr><td style="text-align:center">' + (i+1) + '</td>' +
-            '<td>' + _esc(item.ProductName) + (item.PartNumber ? '<br><span style="font-size:.8em;color:#888">' + _esc(item.PartNumber) + '</span>' : '') + '</td>' +
-            '<td style="text-align:center">' + _esc(item.Quantity) + ' ' + (_esc(item.PrimaryUnitName)||'') + '</td>' +
-            '<td style="text-align:right">' + cur + parseFloat(item.UnitPrice||0).toFixed(dec) + '</td>' +
-            '<td style="text-align:right">' + cur + parseFloat(item.NetAmount||0).toFixed(dec) + '</td></tr>';
-    });
-    var ps = forPrint ? '@media print{body{margin:0}.page{box-shadow:none}}' : '';
-    var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>' +
-        'body{font-family:Arial,sans-serif;font-size:12px;background:#404040}' +
-        '.page{width:'+w+';background:#fff;margin:0 auto;padding:20px;box-shadow:0 0 20px rgba(0,0,0,.5)}' +
-        'table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:6px 8px;font-size:11px}' +
-        'th{background:#f5f5f5;font-weight:bold}' + ps + '</style></head>' +
-        '<body><div class="page">' +
-        '<div style="display:flex;justify-content:space-between;margin-bottom:12px">' +
-            '<div><strong style="font-size:14px">' + _esc(org.OrgName||'') + '</strong>' +
-            (org.Address ? '<br><span style="color:#666">' + _esc(org.Address) + '</span>' : '') +
-            (org.GSTNumber ? '<br><span style="color:#666">GSTIN: ' + _esc(org.GSTNumber) + '</span>' : '') + '</div>' +
-            '<div style="text-align:right"><strong style="font-size:16px">INVOICE</strong><br>' +
-            '<span style="color:#666">' + _esc(h.UniqueNumber||'—') + '</span><br>' +
-            '<span style="color:#666">Date: ' + _esc(h.TransDate||'') + '</span>' +
-            (h.ValidityDate ? '<br><span style="color:#c00">Due: ' + _esc(h.ValidityDate) + '</span>' : '') + '</div>' +
-        '</div>' +
-        '<div style="background:#f9f9f9;padding:8px;border-radius:4px;margin-bottom:12px"><strong>Bill To:</strong> ' + _esc(h.PartyName||'—') +
-            (h.Reference ? ' &nbsp;|&nbsp; <strong>Ref:</strong> ' + _esc(h.Reference) : '') + '</div>' +
-        '<table><thead><tr><th style="width:30px">#</th><th>Product</th><th style="width:60px;text-align:center">Qty</th><th style="width:90px;text-align:right">Unit Price</th><th style="width:90px;text-align:right">Amount</th></tr></thead>' +
-        '<tbody>' + rows + '</tbody>' +
-        '<tfoot>' +
-            '<tr><td colspan="4" style="text-align:right;font-weight:bold">Sub Total</td><td style="text-align:right">' + cur + parseFloat(h.SubTotal||0).toFixed(dec) + '</td></tr>' +
-            (parseFloat(h.DiscountAmount)>0 ? '<tr><td colspan="4" style="text-align:right;color:#c00">Discount</td><td style="text-align:right;color:#c00">- ' + cur + parseFloat(h.DiscountAmount).toFixed(dec) + '</td></tr>' : '') +
-            (parseFloat(h.TaxAmount)>0 ? '<tr><td colspan="4" style="text-align:right">Tax</td><td style="text-align:right">' + cur + parseFloat(h.TaxAmount).toFixed(dec) + '</td></tr>' : '') +
-            '<tr><td colspan="4" style="text-align:right;font-weight:bold">Net Amount</td><td style="text-align:right;font-weight:bold">' + cur + parseFloat(h.NetAmount||0).toFixed(dec) + '</td></tr>' +
-        '</tfoot></table>' +
-        (h.Notes ? '<p style="margin-top:12px;font-size:11px;color:#666"><strong>Notes:</strong> ' + _esc(h.Notes) + '</p>' : '') +
-        (h.TermsConditions ? '<p style="font-size:11px;color:#666"><strong>Terms & Conditions:</strong> ' + _esc(h.TermsConditions) + '</p>' : '') +
-    '</div></body></html>';
-    return forPrint ? html : '<iframe srcdoc="' + html.replace(/"/g, '&quot;') + '" style="width:100%;height:100%;border:0;min-height:75vh"></iframe>';
-}
+
 
 function _esc(v) {
     if (v === null || v === undefined) return '—';

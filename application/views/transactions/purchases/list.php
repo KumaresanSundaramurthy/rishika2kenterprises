@@ -158,7 +158,7 @@ if (!empty($DataLists)):
                             </button>
                         </li>
                         <li>
-                            <button class="dropdown-item a4PrintPurchase" data-uid="<?php echo (int)$list->TransUID; ?>">
+                            <button class="dropdown-item a4PrintTransaction" data-uid="<?php echo (int)$list->TransUID; ?>" data-url="/purchases/getPurchaseDetail" data-label="Purchase Bill">
                                 <i class="bx bx-printer me-2 text-primary"></i>Print / Download
                             </button>
                         </li>

@@ -58,10 +58,14 @@ $route['portal'] = 'login/login';
 $route['logout'] = 'login/logout';
 
 // Settings
-$route['settings/profile']      = 'profile';
-$route['settings/organisation'] = 'organisation';
-$route['settings/users']        = 'users';
-$route['settings/users/saveUser'] = 'users/saveUser';
+$route['settings/profile']           = 'profile';
+$route['settings/organisation']      = 'organisation';
+$route['settings/users']             = 'users';
+$route['settings/users/saveUser']    = 'users/saveUser';
+$route['settings/generalsettings']        = 'settings/generalsettings';
+$route['settings/getThermalConfigList']   = 'settings/getThermalConfigList';
+$route['settings/saveThermalConfig']      = 'settings/saveThermalConfig';
+$route['settings/deleteThermalConfig']    = 'settings/deleteThermalConfig';
 
 // Roles
 $route['settings/roles']                         = 'roles/index';
@@ -203,14 +207,14 @@ $route['products/(:num)/edit'] = 'products/edit/$1';
 $route['products/(:num)/clone'] = 'products/clone/$1';
 
 // Print Themes
-$route['print-themes']                    = 'printthemes/index';
-$route['print-themes/save']               = 'printthemes/save';
-$route['print-themes/delete']             = 'printthemes/delete';
-$route['print-themes/getThemeData']       = 'printthemes/getThemeData';
-$route['print-themes/getThemeList']       = 'printthemes/getThemeList';
-$route['print-themes/saveTheme']          = 'printthemes/saveTheme';
-$route['print-themes/deleteTheme']        = 'printthemes/deleteTheme';
-$route['print-themes/getTemplateList']    = 'printthemes/getTemplateList';
-$route['print-themes/saveTemplate']       = 'printthemes/saveTemplate';
-$route['print-themes/deleteTemplate']     = 'printthemes/deleteTemplate';
-$route['print-themes/getTemplateData']    = 'printthemes/getTemplateData';
+$route['settings/printthemes']                    = 'printthemes/index';
+$route['settings/printthemes/save']               = 'printthemes/save';
+$route['settings/printthemes/delete']             = 'printthemes/delete';
+$route['settings/printthemes/getThemeData']       = 'printthemes/getThemeData';
+$route['settings/printthemes/getThemeList']       = 'printthemes/getThemeList';
+$route['settings/printthemes/saveTheme']          = 'printthemes/saveTheme';
+$route['settings/printthemes/deleteTheme']        = 'printthemes/deleteTheme';
+$route['settings/printthemes/getTemplateList']    = 'printthemes/getTemplateList';
+$route['settings/printthemes/saveTemplate']       = 'printthemes/saveTemplate';
+$route['settings/printthemes/deleteTemplate']     = 'printthemes/deleteTemplate';
+$route['settings/printthemes/getTemplateData']    = 'printthemes/getTemplateData';

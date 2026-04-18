@@ -161,7 +161,7 @@ if (!empty($DataLists)):
                             </button>
                         </li>
                         <li>
-                            <button class="dropdown-item thermalPrintQuotation" data-uid="<?php echo (int)$list->TransUID; ?>">
+                            <button class="dropdown-item thermalPrintTransaction" data-uid="<?php echo (int)$list->TransUID; ?>" data-module="<?php echo (int)$list->ModuleUID; ?>">
                                 <i class="bx bx-receipt me-2 text-dark"></i>Thermal Print
                             </button>
                         </li>

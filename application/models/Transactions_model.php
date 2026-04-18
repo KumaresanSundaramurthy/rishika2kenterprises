@@ -19,6 +19,7 @@ class Transactions_model extends CI_Model {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select([
                 'Ts.TransUID AS TransUID',
+                'Ts.ModuleUID AS ModuleUID',
                 'Ts.UniqueNumber AS UniqueNumber',
                 'Ts.TransNumber AS TransNumber',
                 'Ts.TransDate AS TransDate',
@@ -206,6 +207,7 @@ class Transactions_model extends CI_Model {
         $this->ReadDb->select([
             'Tprod.*',
             'Product.HSNSACCode AS HSNCode',
+            'Product.Description AS Description',
         ]);
         $this->ReadDb->from('Transaction.TransProductsTbl as Tprod');
         $this->ReadDb->join('Products.ProductTbl AS Product', 'Product.ProductUID = Tprod.ProductUID', 'LEFT');

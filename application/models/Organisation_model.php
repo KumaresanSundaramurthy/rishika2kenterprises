@@ -517,4 +517,54 @@ class Organisation_model extends CI_Model {
 
     }
 
+    /** Get thermal print config for a specific transaction type. */
+    public function getThermalPrintConfigByType($orgUID, $transactionType) {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $this->ReadDb->from('Organisation.ThermalPrintConfigTbl');
+            $this->ReadDb->where(['OrgUID' => $orgUID, 'TransactionType' => $transactionType, 'IsDeleted' => 0]);
+            $this->ReadDb->limit(1);
+            $row = $this->ReadDb->get()->row();
+
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Data  = $row;
+            return $this->EndReturnData;
+
+        } catch (Exception $e) {
+
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+            throw new Exception($this->EndReturnData->Message);
+
+        }
+
+    }
+
+    /** Get all thermal print configs for an org (one per transaction type). */
+    public function getThermalPrintConfigList($orgUID) {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $this->ReadDb->from('Organisation.ThermalPrintConfigTbl');
+            $this->ReadDb->where(['OrgUID' => $orgUID, 'IsDeleted' => 0]);
+            $this->ReadDb->order_by('ThermalConfigUID', 'ASC');
+            $rows = $this->ReadDb->get()->result();
+
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Data  = $rows;
+            return $this->EndReturnData;
+
+        } catch (Exception $e) {
+
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+            throw new Exception($this->EndReturnData->Message);
+
+        }
+
+    }
+
 }

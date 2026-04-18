@@ -46,7 +46,7 @@ class PrintThemes extends CI_Controller {
 
         $resp                 = new stdClass();
         $resp->RecordHtmlData = $rowHtml;
-        $resp->Pagination     = $this->globalservice->buildPagePaginationHtml('/print-themes/getThemeList', $result->totalCount, $pageNo, $limit);
+        $resp->Pagination     = $this->globalservice->buildPagePaginationHtml('/settings/printthemes/getThemeList', $result->totalCount, $pageNo, $limit);
         $resp->TotalCount     = $result->totalCount;
         return $resp;
 
@@ -72,7 +72,7 @@ class PrintThemes extends CI_Controller {
 
         $resp                 = new stdClass();
         $resp->RecordHtmlData = $rowHtml;
-        $resp->Pagination     = $this->globalservice->buildPagePaginationHtml('/print-themes/getTemplateList', $result->totalCount, $pageNo, $limit);
+        $resp->Pagination     = $this->globalservice->buildPagePaginationHtml('/settings/printthemes/getTemplateList', $result->totalCount, $pageNo, $limit);
         $resp->TotalCount     = $result->totalCount;
         return $resp;
 
@@ -110,6 +110,10 @@ class PrintThemes extends CI_Controller {
             $orgUID = (int) $this->pageData['JwtData']->User->OrgUID;
             $configs = $this->organisation_model->getPrintThemeConfigs($orgUID)->Data ?? [];
             $this->pageData['UsedTypes'] = array_map(fn($c) => $c->TransactionType, $configs);
+
+            // Org data for preview
+            $orgData = $this->organisation_model->getOrgForReceipt($orgUID)->Data;
+            $this->pageData['OrgPreviewData'] = $orgData;
 
             $this->load->view('printthemes/view', $this->pageData);
 

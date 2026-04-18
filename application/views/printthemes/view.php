@@ -151,13 +151,13 @@ $('#clearSearch').on('click', function(){ $('#SearchDetails').val('').trigger('i
 
 // Loaders
 function _loadThemes(){
-    $.ajax({ url:'/print-themes/getThemeList', method:'POST',
+    $.ajax({ url:'/settings/printthemes/getThemeList', method:'POST',
         data:{ PageNo:PageNo, RowLimit:10, Filter:Filter, [CsrfName]:CsrfToken },
         success:function(r){ if(r.Error) return; $('#ThemesTable tbody').html(r.RecordHtmlData); $('#ThemesPagination').html(r.Pagination); if(r.TotalCount!==undefined) $('#themeTotalCount').text(r.TotalCount); }
     });
 }
 function _loadTemplates(){
-    $.ajax({ url:'/print-themes/getTemplateList', method:'POST',
+    $.ajax({ url:'/settings/printthemes/getTemplateList', method:'POST',
         data:{ PageNo:PageNo, RowLimit:10, Search:Filter.SearchAllData||'', [CsrfName]:CsrfToken },
         success:function(r){ if(r.Error) return; $('#TemplatesTable tbody').html(r.RecordHtmlData); $('#TemplatesPagination').html(r.Pagination); if(r.TotalCount!==undefined) $('#templateTotalCount').text(r.TotalCount); }
     });
@@ -278,7 +278,7 @@ $('#btnNewTheme').on('click', function(){
 // Edit theme
 $(document).on('click','.editThemeBtn', function(){
     var uid = $(this).data('uid');
-    $.ajax({ url:'/print-themes/getThemeData', method:'GET', data:{ThemeConfigUID:uid},
+    $.ajax({ url:'/settings/printthemes/getThemeData', method:'GET', data:{ThemeConfigUID:uid},
         success:function(resp){
             if(resp.Error){ Swal.fire({icon:'error',text:resp.Message}); return; }
             var d = resp.Data;
@@ -321,7 +321,7 @@ $('#saveThemeBtn').on('click', function(){
     fd.append('FontFamily',$('#FontFamily').val());
     fd.append('FontSizePx',$('#FontSizePx').val());
     fd.append(CsrfName,CsrfToken);
-    $.ajax({ url:'/print-themes/saveTheme', method:'POST', data:fd, processData:false, contentType:false,
+    $.ajax({ url:'/settings/printthemes/saveTheme', method:'POST', data:fd, processData:false, contentType:false,
         success:function(r){ $('#saveThemeSpinner').addClass('d-none'); $('#saveThemeBtn').prop('disabled',false); if(r.Error){Swal.fire({icon:'error',text:r.Message});return;} _themeModal.hide(); Swal.fire({icon:'success',text:r.Message,timer:1500,showConfirmButton:false}); _loadThemes(); },
         error:function(){ $('#saveThemeSpinner').addClass('d-none'); $('#saveThemeBtn').prop('disabled',false); Swal.fire({icon:'error',text:'Request failed.'}); }
     });
@@ -332,7 +332,7 @@ $(document).on('click','.deleteThemeBtn', function(){
     var uid=$(this).data('uid'), label=$(this).data('label');
     Swal.fire({icon:'warning',title:'Remove Theme?',text:'Remove theme for '+label+'?',showCancelButton:true,confirmButtonText:'Remove',confirmButtonColor:'#d33'})
     .then(function(r){ if(!r.isConfirmed) return;
-        $.ajax({ url:'/print-themes/deleteTheme', method:'POST', data:{ThemeConfigUID:uid,[CsrfName]:CsrfToken},
+        $.ajax({ url:'/settings/printthemes/deleteTheme', method:'POST', data:{ThemeConfigUID:uid,[CsrfName]:CsrfToken},
             success:function(r){ if(r.Error){Swal.fire({icon:'error',text:r.Message});return;} Swal.fire({icon:'success',text:r.Message,timer:1200,showConfirmButton:false}); _loadThemes(); }
         });
     });
@@ -382,7 +382,7 @@ $('#TplPreviewImageUrl').on('input', function(){
 
 $(document).on('click','.editTemplateBtn', function(){
     var uid=$(this).data('uid');
-    $.ajax({ url:'/print-themes/getTemplateData', method:'GET', data:{TemplateUID:uid},
+    $.ajax({ url:'/settings/printthemes/getTemplateData', method:'GET', data:{TemplateUID:uid},
         success:function(resp){
             if(resp.Error){Swal.fire({icon:'error',text:resp.Message});return;}
             var d=resp.Data;
@@ -416,7 +416,7 @@ $('#saveTplBtn').on('click', function(){
     fd.append('SortOrder',$('#TplSortOrder').val());
     fd.append('HtmlContent',$('#TplHtmlContent').val());
     fd.append(CsrfName,CsrfToken);
-    $.ajax({ url:'/print-themes/saveTemplate', method:'POST', data:fd, processData:false, contentType:false,
+    $.ajax({ url:'/settings/printthemes/saveTemplate', method:'POST', data:fd, processData:false, contentType:false,
         success:function(r){ $('#saveTplSpinner').addClass('d-none'); $('#saveTplBtn').prop('disabled',false); if(r.Error){Swal.fire({icon:'error',text:r.Message});return;} _tplModal.hide(); Swal.fire({icon:'success',text:r.Message,timer:1500,showConfirmButton:false}); _loadTemplates(); },
         error:function(){ $('#saveTplSpinner').addClass('d-none'); $('#saveTplBtn').prop('disabled',false); Swal.fire({icon:'error',text:'Request failed.'}); }
     });
@@ -426,7 +426,7 @@ $(document).on('click','.deleteTemplateBtn', function(){
     var uid=$(this).data('uid'), label=$(this).data('label');
     Swal.fire({icon:'warning',title:'Delete Template?',text:'Delete "'+label+'"?',showCancelButton:true,confirmButtonText:'Delete',confirmButtonColor:'#d33'})
     .then(function(r){ if(!r.isConfirmed) return;
-        $.ajax({ url:'/print-themes/deleteTemplate', method:'POST', data:{TemplateUID:uid,[CsrfName]:CsrfToken},
+        $.ajax({ url:'/settings/printthemes/deleteTemplate', method:'POST', data:{TemplateUID:uid,[CsrfName]:CsrfToken},
             success:function(r){ if(r.Error){Swal.fire({icon:'error',text:r.Message});return;} Swal.fire({icon:'success',text:r.Message,timer:1200,showConfirmButton:false}); _loadTemplates(); }
         });
     });

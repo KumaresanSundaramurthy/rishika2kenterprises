@@ -130,64 +130,7 @@
 
                     </div>
 
-                    <!-- ── A4 Print Modal ────────────────────────── -->
-                    <div class="modal fade" id="a4PrintModal" tabindex="-1" aria-hidden="true">
-                        <div class="modal-dialog modal-xl modal-dialog-centered">
-                            <div class="modal-content border-0 shadow-lg" style="border-radius:12px;overflow:hidden;">
-                                <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom" style="background:#fff;">
-                                    <div class="fw-semibold text-dark" style="font-size:.92rem;"><i class="bx bx-file-blank text-primary me-1"></i>Purchase Order Preview</div>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <div class="form-check form-check-inline mb-0 me-1">
-                                            <input class="form-check-input" type="radio" name="a4PaperSize" id="psA4" value="A4" checked>
-                                            <label class="form-check-label small fw-semibold" for="psA4">A4</label>
-                                        </div>
-                                        <div class="form-check form-check-inline mb-0 me-2">
-                                            <input class="form-check-input" type="radio" name="a4PaperSize" id="psA5" value="A5">
-                                            <label class="form-check-label small fw-semibold" for="psA5">A5</label>
-                                        </div>
-                                        <button type="button" class="btn btn-sm btn-outline-secondary px-2 py-1" id="a4DownloadBtn" title="Download PDF">
-                                            <i class="bx bx-download"></i>
-                                        </button>
-                                        <button type="button" class="btn btn-sm btn-success px-3 py-1" id="a4PrintBtn">
-                                            <i class="bx bx-printer me-1"></i>Print
-                                        </button>
-                                        <button type="button" class="btn btn-sm btn-danger px-3 py-1" data-bs-dismiss="modal">Close</button>
-                                    </div>
-                                </div>
-                                <div id="a4PrintPreview"
-                                     style="background:#404040;overflow-y:auto;overflow-x:auto;
-                                            height:82vh;display:flex;align-items:flex-start;
-                                            justify-content:center;padding:24px 16px;">
-                                    <div class="d-flex justify-content-center align-items-center w-100 h-100">
-                                        <div class="spinner-border text-light" role="status"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- ── View PO Modal ─────────────────────────── -->
-                    <div class="modal fade" id="viewPOModal" tabindex="-1" aria-hidden="true">
-                        <div class="modal-dialog modal-xl modal-dialog-scrollable">
-                            <div class="modal-content">
-                                <div class="modal-header modal-header-border-bottom p-3 d-flex justify-content-between align-items-center">
-                                    <h6 class="modal-title fw-semibold fs-6 text-primary mb-0" id="viewPOModalTitle">Purchase Order Details</h6>
-                                    <div class="gap-2">
-                                        <a href="javascript:void(0);" id="viewPOEditBtn" class="btn btn-warning btn-sm me-2">
-                                            <i class="bx bx-edit me-1"></i>Edit
-                                        </a>
-                                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
-                                    </div>
-                                </div>
-                                <div class="modal-body p-0" id="viewPOModalBody">
-                                    <div class="d-flex justify-content-center align-items-center py-5">
-                                        <div class="spinner-border text-primary" role="status"></div>
-                                    </div>
-                                </div>
-                                <div class="modal-footer py-2"></div>
-                            </div>
-                        </div>
-                    </div>
+                    <?php $this->load->view('common/transactions/print_modals'); ?>
 
                 </div>
             </div>
@@ -298,23 +241,23 @@ $(function () {
     // ── View modal ──────────────────────────────────────
     $(document).on('click', '.viewPO', function () {
         var uid = $(this).data('uid');
-        $('#viewPOModal').modal('show');
-        $('#viewPOModalBody').html('<div class="d-flex justify-content-center py-5"><div class="spinner-border text-primary"></div></div>');
-        $('#viewPOEditBtn').attr('href', '/purchaseorders/edit/' + uid);
+        $('#viewTransModal').modal('show');
+        $('#viewTransModalBody').html('<div class="d-flex justify-content-center py-5"><div class="spinner-border text-primary"></div></div>');
+        $('#viewTransEditBtn').attr('href', '/purchaseorders/edit/' + uid);
         $.ajax({
             url   : '/purchaseorders/getPurchaseOrderDetail',
             method: 'POST',
             data  : { TransUID: uid, [CsrfName]: CsrfToken },
             success: function (resp) {
                 if (resp.Error) {
-                    $('#viewPOModalBody').html('<div class="alert alert-danger m-3">' + resp.Message + '</div>');
+                    $('#viewTransModalBody').html('<div class="alert alert-danger m-3">' + resp.Message + '</div>');
                 } else {
-                    $('#viewPOModalTitle').text('Purchase Order — ' + (resp.Header.UniqueNumber || 'Details'));
-                    $('#viewPOModalBody').html(_buildPODetailHtml(resp));
+                    $('#viewTransModalTitle').text('Purchase Order — ' + (resp.Header.UniqueNumber || 'Details'));
+                    $('#viewTransModalBody').html(_buildPODetailHtml(resp));
                 }
             },
             error: function () {
-                $('#viewPOModalBody').html('<div class="alert alert-danger m-3">Failed to load purchase order.</div>');
+                $('#viewTransModalBody').html('<div class="alert alert-danger m-3">Failed to load purchase order.</div>');
             }
         });
     });
@@ -322,6 +265,7 @@ $(function () {
     // ── A4 Print ─────────────────────────────────────────
     $(document).on('click', '.a4PrintPO', function () {
         var uid = $(this).data('uid');
+        $('#a4ModalTitle').text('Purchase Order Preview');
         $('#a4PrintModal').modal('show');
         $('#a4PrintPreview').html('<div class="d-flex justify-content-center align-items-center w-100 h-100"><div class="spinner-border text-light"></div></div>');
         $.ajax({

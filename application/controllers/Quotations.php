@@ -598,15 +598,15 @@ class Quotations extends CI_Controller {
 
             $this->load->model('organisation_model');
             $orgInfo          = $this->organisation_model->getOrgForReceipt($orgUID);
-            $thermalCfgResult = $this->organisation_model->getThermalPrintConfig($orgUID);
-            $printThemeResult = $this->organisation_model->getPrintThemeByType($orgUID, 'Quotation');
+            $thermalCfgResult = $this->organisation_model->getThermalPrintConfigByType($orgUID, $header->TransType);
+            $printThemeResult = $this->organisation_model->getPrintThemeByType($orgUID, $header->TransType);
 
-            $this->EndReturnData->Error        = FALSE;
-            $this->EndReturnData->Header       = $header;
-            $this->EndReturnData->Items        = $items;
-            $this->EndReturnData->OrgInfo      = $orgInfo->Data ?? null;
+            $this->EndReturnData->Error         = FALSE;
+            $this->EndReturnData->Header        = $header;
+            $this->EndReturnData->Items         = $items;
+            $this->EndReturnData->OrgInfo       = $orgInfo->Data ?? null;
             $this->EndReturnData->ThermalConfig = $thermalCfgResult->Data ?? null;
-            $this->EndReturnData->PrintTheme   = $printThemeResult->Data ?? null;
+            $this->EndReturnData->PrintTheme    = $printThemeResult->Data ?? null;
 
         } catch (Exception $e) {
             $this->EndReturnData->Error   = TRUE;
@@ -879,79 +879,6 @@ class Quotations extends CI_Controller {
         } catch (Exception $e) {
             redirect('quotations', 'refresh');
         }
-
-    }
-
-    // ── Thermal Print Config ──────────────────────────────────────────────────
-    public function thermalPrintConfig() {
-
-        try {
-
-            $orgUID = $this->pageData['JwtData']->User->OrgUID;
-
-            $this->load->model('organisation_model');
-            $cfgResult = $this->organisation_model->getThermalPrintConfig($orgUID);
-            $this->pageData['ThermalConfig'] = $cfgResult->Data ?? null;
-
-            $this->load->view('transactions/quotations/thermal_config', $this->pageData);
-
-        } catch (Exception $e) {
-            redirect('quotations', 'refresh');
-        }
-
-    }
-
-    public function saveThermalPrintConfig() {
-
-        $this->EndReturnData = new stdClass();
-        try {
-
-            $PostData = $this->input->post();
-            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
-            $userUID  = $this->pageData['JwtData']->User->UserUID;
-
-            $configData = [
-                'PaperWidth'       => in_array(getPostValue($PostData, 'PaperWidth'), ['58mm', '80mm'])
-                                        ? getPostValue($PostData, 'PaperWidth') : '80mm',
-                'HeaderLine1'      => substr(getPostValue($PostData, 'HeaderLine1') ?: '', 0, 100) ?: NULL,
-                'HeaderLine2'      => substr(getPostValue($PostData, 'HeaderLine2') ?: '', 0, 100) ?: NULL,
-                'HeaderLine3'      => substr(getPostValue($PostData, 'HeaderLine3') ?: '', 0, 100) ?: NULL,
-                'ShowGSTIN'        => (int)(bool)getPostValue($PostData, 'ShowGSTIN'),
-                'ShowMobile'       => (int)(bool)getPostValue($PostData, 'ShowMobile'),
-                'ShowLogo'         => (int)(bool)getPostValue($PostData, 'ShowLogo'),
-                'ShowHSN'          => (int)(bool)getPostValue($PostData, 'ShowHSN'),
-                'ShowTaxBreakdown' => (int)(bool)getPostValue($PostData, 'ShowTaxBreakdown'),
-                'FooterMessage'    => substr(getPostValue($PostData, 'FooterMessage') ?: '', 0, 200) ?: NULL,
-                'UpdatedBy'        => $userUID,
-            ];
-
-            $this->load->model('organisation_model');
-            $this->load->model('dbwrite_model');
-
-            $existing = $this->organisation_model->getThermalPrintConfig($orgUID);
-
-            if (!empty($existing->Data)) {
-                $this->dbwrite_model->updateData(
-                    'Organisation', 'ThermalPrintConfigTbl', $configData,
-                    ['OrgUID' => $orgUID, 'IsDeleted' => 0]
-                );
-            } else {
-                $configData['OrgUID']    = $orgUID;
-                $configData['CreatedBy'] = $userUID;
-                $configData['IsActive']  = 1;
-                $configData['IsDeleted'] = 0;
-                $this->dbwrite_model->insertData('Organisation', 'ThermalPrintConfigTbl', $configData);
-            }
-
-            $this->EndReturnData->Error   = FALSE;
-            $this->EndReturnData->Message = 'Thermal print settings saved.';
-
-        } catch (Exception $e) {
-            $this->EndReturnData->Error   = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-        }
-
-        $this->globalservice->sendJsonResponse($this->EndReturnData);
 
     }
 

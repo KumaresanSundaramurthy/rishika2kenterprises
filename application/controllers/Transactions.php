@@ -289,6 +289,50 @@ class Transactions extends CI_Controller {
         
     }
 
+    // ----------------------------------------------------------------
+    // GET|POST /transactions/getTransactionDetail
+    // Common function to fetch transaction header, items, org info,
+    // thermal config and print theme — used by all transaction pages.
+    // ----------------------------------------------------------------
+    public function getTransactionDetail() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $transUID  = (int) $this->input->get_post('TransUID');
+            $moduleUID = (int) $this->input->get_post('ModuleUID');
+            $orgUID    = $this->pageData['JwtData']->User->OrgUID;
+
+            if ($transUID  <= 0) throw new Exception('Invalid transaction.');
+            if ($moduleUID <= 0) throw new Exception('ModuleUID is required.');
+
+            $this->load->model('transactions_model');
+            $header = $this->transactions_model->getTransactionById($transUID, $orgUID, $moduleUID);
+            if (!$header) throw new Exception('Transaction not found.');
+
+            $items = $this->transactions_model->getTransactionItems($transUID, $orgUID);
+
+            $this->load->model('organisation_model');
+            $orgInfo          = $this->organisation_model->getOrgForReceipt($orgUID);
+            $thermalCfgResult = $this->organisation_model->getThermalPrintConfigByType($orgUID, $header->TransType);
+            $printThemeResult = $this->organisation_model->getPrintThemeByType($orgUID, $header->TransType);
+
+            $this->EndReturnData->Error         = FALSE;
+            $this->EndReturnData->Header        = $header;
+            $this->EndReturnData->Items         = $items;
+            $this->EndReturnData->OrgInfo       = $orgInfo->Data ?? null;
+            $this->EndReturnData->ThermalConfig = $thermalCfgResult->Data ?? null;
+            $this->EndReturnData->PrintTheme    = $printThemeResult->Data ?? null;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
     public function searchTransProducts() {
 
         $this->EndReturnData = new stdClass();

@@ -520,9 +520,24 @@
         var key     = $('input[name="ThemeKey"]:checked').val() || 'classic';
         var primary = $('#PrimaryColor').val()  || '#1a3c6e';
         var accent  = $('#AccentColor').val()   || '#f59e0b';
-        var orgName = 'Your Company Name';
-        var p = primary, a = accent;
+        var orgName  = '<?php echo addslashes(htmlspecialchars($OrgPreviewData->Name ?? 'Your Company Name')); ?>';
+        var sampleOrg = {
+            name  : orgName,
+            gstin : '<?php echo addslashes($OrgPreviewData->GSTIN ?? '29XXXXX1234X1Z1'); ?>',
+            phone : '<?php echo addslashes($OrgPreviewData->MobileNumber ?? '9876543210'); ?>',
+            addr  : '<?php
+                $parts = array_filter([
+                    $OrgPreviewData->Line1    ?? '',
+                    $OrgPreviewData->Line2    ?? '',
+                    $OrgPreviewData->CityText ?? '',
+                    $OrgPreviewData->StateText ?? '',
+                    $OrgPreviewData->Pincode  ?? '',
+                ]);
+                echo addslashes(implode(', ', $parts));
+            ?>'
+        };
 
+        var p = primary, a = accent;
         var themeLabels = {
             classic: 'Classic', modern: 'Modern', minimal: 'Minimal', bold: 'Bold', executive: 'Executive'
         };
@@ -535,7 +550,6 @@
 
         // Large preview panel
         var box = $('#themePreviewBox');
-        var sampleOrg   = { name: orgName, gstin: '29XXXXX1234X1Z1', phone: '9876543210', addr: 'No.12, Main Road, Chennai, Tamil Nadu - 600001' };
         var sampleItems = [
             { name: 'Rotavator Blade',    hsn: '84322900', qty: '2 Nos', rate: '4,500.00', disc: '—',      taxable: '9,000.00', cgst: '9%', cgstAmt: '810.00', sgst: '9%', sgstAmt: '810.00', amount: '10,620.00' },
             { name: 'Gear Assembly Kit',  hsn: '84831000', qty: '1 Set', rate: '3,200.00', disc: '160.00', taxable: '3,040.00', cgst: '9%', cgstAmt: '273.60', sgst: '9%', sgstAmt: '273.60', amount: '3,587.20' },

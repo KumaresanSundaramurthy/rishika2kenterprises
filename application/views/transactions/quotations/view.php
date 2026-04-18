@@ -167,85 +167,7 @@
 
                     </div>
 
-                    <!-- ── Print Modal ──────────────────────────────────── -->
-                    <div class="modal fade" id="a4PrintModal" tabindex="-1" aria-hidden="true">
-                        <div class="modal-dialog modal-xl modal-dialog-centered">
-                            <div class="modal-content border-0 shadow-lg" style="border-radius:12px;overflow:hidden;">
-                                <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom bg-white">
-                                    <div class="fw-semibold" style="font-size:.92rem;">
-                                        <i class="bx bx-file-blank text-primary me-1"></i>Quotation Preview
-                                    </div>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <div class="form-check form-check-inline mb-0">
-                                            <input class="form-check-input" type="radio" name="a4PaperSize" id="psA4" value="A4" checked>
-                                            <label class="form-check-label small fw-semibold" for="psA4">A4</label>
-                                        </div>
-                                        <div class="form-check form-check-inline mb-0">
-                                            <input class="form-check-input" type="radio" name="a4PaperSize" id="psA5" value="A5">
-                                            <label class="form-check-label small fw-semibold" for="psA5">A5</label>
-                                        </div>
-                                        <button type="button" class="btn btn-sm btn-success px-3" id="a4PrintBtn">
-                                            <i class="bx bx-printer me-1"></i>Print
-                                        </button>
-                                        <button type="button" class="btn btn-sm btn-danger px-3" data-bs-dismiss="modal">Close</button>
-                                    </div>
-                                </div>
-                                <div id="a4PrintPreview" style="background:#404040;overflow-y:auto;height:82vh;display:flex;align-items:flex-start;justify-content:center;padding:24px 16px;">
-                                    <div class="d-flex justify-content-center align-items-center w-100 h-100">
-                                        <div class="spinner-border text-light"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- ── Thermal Print Modal ─────────────────────────────── -->
-                    <div class="modal fade" id="thermalPrintModal" tabindex="-1" aria-hidden="true">
-                        <div class="modal-dialog modal-dialog-top" style="max-width:600px">
-                            <div class="modal-content">
-                                <div class="modal-header p-3">
-                                    <h6 class="modal-title text-primary fw-bold fs-6 mb-0"><i class="bx bx-printer me-1"></i>Thermal Receipt Preview</h6>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                </div>
-                                <div class="modal-body p-2 bg-white" id="thermalPrintBody">
-                                    <div class="d-flex justify-content-center py-5">
-                                        <div class="spinner-border text-primary" role="status"></div>
-                                    </div>
-                                </div>
-                                <div class="modal-footer py-2">
-                                    <a href="/quotations/thermalPrintConfig" class="btn btn-outline-secondary btn-sm me-auto">
-                                        <i class="bx bx-cog me-1"></i>Configure
-                                    </a>
-                                    <button type="button" class="btn btn-dark btn-sm" id="thermalPrintBtn">
-                                        <i class="bx bx-printer me-1"></i>Print
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- ── View Quotation Modal ──────────────────────────── -->
-                    <div class="modal fade" id="viewQuotationModal" tabindex="-1" aria-hidden="true">
-                        <div class="modal-dialog modal-xl modal-dialog-scrollable">
-                            <div class="modal-content">
-                                <div class="modal-header p-3 d-flex justify-content-between align-items-center">
-                                    <h6 class="modal-title fw-semibold text-primary mb-0" id="viewQuotModalTitle">Quotation Details</h6>
-                                    <div class="gap-2">
-                                        <a href="javascript:void(0);" id="viewQuotEditBtn" class="btn btn-warning btn-sm me-2">
-                                            <i class="bx bx-edit me-1"></i>Edit
-                                        </a>
-                                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
-                                    </div>
-                                </div>
-                                <div class="modal-body p-0" id="viewQuotModalBody">
-                                    <div class="d-flex justify-content-center align-items-center py-5">
-                                        <div class="spinner-border text-primary"></div>
-                                    </div>
-                                </div>
-                                <div class="modal-footer py-2"></div>
-                            </div>
-                        </div>
-                    </div>
+                    <?php $this->load->view('common/transactions/print_modals'); ?>
 
                 </div>
             </div>
@@ -398,23 +320,23 @@ $(function () {
     // ── View modal ──────────────────────────────────────────
     $(document).on('click', '.viewQuotation', function () {
         var uid = $(this).data('uid');
-        $('#viewQuotationModal').modal('show');
-        $('#viewQuotModalBody').html('<div class="d-flex justify-content-center py-5"><div class="spinner-border text-primary"></div></div>');
-        $('#viewQuotEditBtn').attr('href', '/quotations/edit/' + uid);
+        $('#viewTransModal').modal('show');
+        $('#viewTransModalBody').html('<div class="d-flex justify-content-center py-5"><div class="spinner-border text-primary"></div></div>');
+        $('#viewTransEditBtn').attr('href', '/quotations/edit/' + uid);
         $.ajax({
             url   : '/quotations/getQuotationDetail',
             method: 'POST',
             data  : { TransUID: uid, [CsrfName]: CsrfToken },
             success: function (resp) {
                 if (resp.Error) {
-                    $('#viewQuotModalBody').html('<div class="alert alert-danger m-3">' + resp.Message + '</div>');
+                    $('#viewTransModalBody').html('<div class="alert alert-danger m-3">' + resp.Message + '</div>');
                 } else {
-                    $('#viewQuotModalTitle').text('Quotation — ' + (resp.Header.UniqueNumber || 'Details'));
-                    $('#viewQuotModalBody').html(_buildQuotDetailHtml(resp));
+                    $('#viewTransModalTitle').text('Quotation — ' + (resp.Header.UniqueNumber || 'Details'));
+                    $('#viewTransModalBody').html(_buildQuotDetailHtml(resp));
                 }
             },
             error: function () {
-                $('#viewQuotModalBody').html('<div class="alert alert-danger m-3">Failed to load quotation.</div>');
+                $('#viewTransModalBody').html('<div class="alert alert-danger m-3">Failed to load quotation.</div>');
             }
         });
     });
@@ -422,6 +344,7 @@ $(function () {
     // ── A4 Print ─────────────────────────────────────────────
     $(document).on('click', '.a4PrintQuotation', function () {
         var uid = $(this).data('uid');
+        $('#a4ModalTitle').text('Quotation Preview');
         $('#a4PrintModal').modal('show');
         $('#a4PrintPreview').html('<div class="d-flex justify-content-center align-items-center w-100 h-100"><div class="spinner-border text-light"></div></div>');
         $.ajax({
@@ -574,129 +497,8 @@ function _esc(v) {
     return $('<span>').text(String(v)).html();
 }
 
-// ── Thermal Print ─────────────────────────────────────────────────────────
-var _thermalData = null;
-
-$(document).on('click', '.thermalPrintQuotation', function () {
-    var uid = $(this).data('uid');
-    _thermalData = null;
-    $('#thermalPrintBody').html('<div class="d-flex justify-content-center py-5"><div class="spinner-border text-primary"></div></div>');
-    new bootstrap.Modal(document.getElementById('thermalPrintModal')).show();
-    AjaxLoading = 0;
-    $.ajax({
-        url   : '/quotations/getQuotationDetail',
-        method: 'GET',
-        data  : { TransUID: uid },
-        success: function (resp) {
-            AjaxLoading = 1;
-            if (resp.Error) { $('#thermalPrintBody').html('<div class="alert alert-danger m-2">' + _esc(resp.Message) + '</div>'); return; }
-            _thermalData = resp;
-            $('#thermalPrintBody').html(_buildThermalHtml(resp, 0));
-        },
-        error: function () { AjaxLoading = 1; $('#thermalPrintBody').html('<div class="alert alert-danger m-2">Failed to load receipt.</div>'); }
-    });
-});
-
-$('#thermalPrintBtn').on('click', function () {
-    if (!_thermalData) return;
-    var cfg = _thermalData.ThermalConfig;
-    var paperWidth = (cfg && cfg.PaperWidth) ? cfg.PaperWidth : '80mm';
-    var receiptHtml = _buildThermalHtml(_thermalData, 1);
-    var win = window.open('', '_blank', 'width=400,height=700');
-    win.document.write('<!DOCTYPE html><html><head><title>Thermal Receipt</title><style>' +
-        '* { margin:0; padding:0; box-sizing:border-box; }' +
-        'body { font-family: Arial, Helvetica, sans-serif; font-size:12px; width:' + paperWidth + '; padding:4px; }' +
-        '.fs-6 { font-size: 0.8rem !important; } .tp-center { text-align: center; } .tp-bold { font-weight: bold; }' +
-        '.tp-hr { border: none; border-top: 1px dashed #000; margin: 4px 0; }' +
-        '.tp-row { display: flex; justify-content: space-between; margin: 1px 0; }' +
-        '.tp-row-end { display: flex; justify-content: end; margin: 1px 0; }' +
-        '.tp-item-name { font-weight: bold; margin-top: 2px; } .tp-small { font-size:11px; }' +
-        '.tp-total { font-size:13px; font-weight:bold; border-top:1px solid #000; padding-top:3px; margin-top:3px; }' +
-        '.tp-footer { text-align:center; margin-top:6px; font-size:11px; }' +
-        '@media print { @page { margin:0; size:' + paperWidth + ' auto; } body { width:' + paperWidth + '; } }' +
-        '</style></head><body style="font-family:Arial,Helvetica,sans-serif!important;font-size:12px!important;width:' + paperWidth + ';padding:4px;">' +
-        receiptHtml + '</body></html>');
-    win.document.close(); win.focus();
-    setTimeout(function () { win.print(); }, 300);
-});
-
-function _buildThermalHtml(resp, type) {
-    var h   = resp.Header;
-    var org = resp.OrgInfo  || {};
-    var cfg = resp.ThermalConfig || {};
-    var sym = '<?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>';
-    var line1 = cfg.HeaderLine1 || org.BrandName || org.Name || '';
-    var line2 = cfg.HeaderLine2 || '';
-    var line3 = cfg.HeaderLine3 || [org.CityText, org.StateText, org.Pincode].filter(Boolean).join(', ');
-    var showGSTIN  = cfg.ShowGSTIN   !== undefined ? parseInt(cfg.ShowGSTIN)   : 1;
-    var showMobile = cfg.ShowMobile  !== undefined ? parseInt(cfg.ShowMobile)  : 1;
-    var showHSN    = cfg.ShowHSN     !== undefined ? parseInt(cfg.ShowHSN)     : 1;
-    var showTaxBkd = cfg.ShowTaxBreakdown !== undefined ? parseInt(cfg.ShowTaxBreakdown) : 1;
-    var footer     = cfg.FooterMessage || 'Thank you for your business!';
-    var html = '';
-    html += '<div style="display:flex;align-items:center;justify-content:center;"><img src="/images/logo/favicon_io/android-chrome-512x512-1.png" width="60px" height="60px" alt="Logo">';
-    html += '<div class="fs-6 ms-1"><div class="tp-center tp-bold">' + _esc(line1) + '</div>';
-    if (line2) html += '<div class="tp-center tp-small">' + _esc(line2) + '</div>';
-    if (line3) html += '<div class="tp-center tp-small">' + _esc(line3) + '</div>';
-    if (showMobile && org.MobileNumber) html += '<div class="tp-center tp-small">Ph: ' + _esc(org.MobileNumber) + '</div>';
-    if (showGSTIN && org.GSTIN) html += '<div class="tp-center tp-small">GSTIN: ' + _esc(org.GSTIN) + '</div>';
-    html += '</div></div>';
-    html += '<hr class="tp-hr my-1">';
-    html += '<div class="fs-6"><div class="d-flex justify-content-between align-items-center mb-1">';
-    html += '<div class="tp-row fs-6"><span class="tp-bold">Quotation: </span><span class="tp-bold">' + _esc(h.UniqueNumber || '—') + '</span></div>';
-    html += '<div class="tp-row"><span>Date: </span><span>' + _esc(h.TransDate) + '</span></div></div>';
-    html += '<div class="d-flex justify-content-between align-items-center">';
-    html += '<div class="tp-row"><span>Customer: </span><span style="text-align:right;max-width:60%">' + _esc(h.PartyName) + '</span></div>';
-    if (h.PartyMobile) html += '<div class="tp-row"><span>Phone: </span><span>' + _esc(h.PartyMobile) + '</span></div>';
-    html += '</div></div>';
-    html += '<hr class="tp-hr my-1">';
-    html += '<div class="fs-6"><div class="mb-1" style="display:flex;align-items:center;justify-content:space-between;">';
-    html += '<div class="tp-row tp-item-name tp-bold"><span>Item </span></div><div></div></div>';
-    html += '<div style="display:flex;align-items:center;justify-content:space-between;">';
-    html += '<div class="tp-row" style="font-size:smaller;">Quantity x Price</div><div class="tp-row">Amount</div></div></div>';
-    html += '<hr class="tp-hr my-1">';
-    $.each(resp.Items || [], function (i, item) {
-        html += '<div class="fs-6">';
-        var lineAmt = parseFloat(item.NetAmount) || 0;
-        var hsnLine = (showHSN && item.HSNCode) ? ' [HSN:' + item.HSNCode + ']' : '';
-        html += '<div class="mb-1" style="display:flex;align-items:center;justify-content:space-between;">';
-        html += '<div class="tp-item-name fs-6">' + _esc(item.ProductName) + _esc(hsnLine) + '</div><div></div></div>';
-        html += '<div class="mb-1" style="display:flex;align-items:center;justify-content:space-between;">';
-        html += '<div class="tp-row tp-small" style="font-size:smaller;">' + _esc(item.Quantity) + ' (' + _esc(item.PrimaryUnitName || 'PCS') + ') x ' + _esc(item.UnitPrice) + '</div>';
-        html += '<div class="fs-6">' + lineAmt.toFixed(2) + '</div></div>';
-        if (showTaxBkd && parseFloat(item.TaxPercentage) > 0) {
-            var cgst = parseFloat(item.CgstAmount) || 0, sgst = parseFloat(item.SgstAmount) || 0, igst = parseFloat(item.IgstAmount) || 0;
-            html += '<div style="display:flex;align-items:center;justify-content:space-between;">';
-            if (cgst > 0 && sgst > 0) {
-                html += '<div class="tp-row tp-small" style="color:#555;font-size:smaller;">CGST ' + item.CGST + '% ' + cgst.toFixed(2) + '</div>';
-                html += '<div class="tp-row tp-small" style="color:#555;font-size:smaller;">SGST ' + item.SGST + '% ' + sgst.toFixed(2) + '</div>';
-            } else if (igst > 0) { html += '<div class="tp-row tp-small" style="color:#555;font-size:smaller;">IGST ' + item.IGST + '% ' + igst.toFixed(2) + '</div>'; }
-            html += '</div>';
-        }
-        html += '</div>';
-        if (resp.Items.length > 1 && i != resp.Items.length - 1) html += '<hr class="tp-hr my-1">';
-    });
-    html += '<hr class="tp-hr my-1">';
-    html += '<div class="tp-small fs-6" style="text-align:center!important;">Items/Qty: ' + (resp.Items ? resp.Items.length : 0) + ' / ' + (function(){ var q=0; $.each(resp.Items||[],function(i,it){q+=parseFloat(it.Quantity)||0;}); return q; }()) + '</div>';
-    html += '<hr class="tp-hr my-1">';
-    html += '<div style="text-align:end!important;">';
-    html += '<div class="tp-row-end fw-semibold tp-item-name"><span>Subtotal: </span><span class="fs-6">' + sym + ' ' + parseFloat(h.SubTotal || 0).toFixed(2) + '</span></div>';
-    if (parseFloat(h.DiscountAmount) > 0) html += '<div class="tp-row-end fw-semibold"><span>Discount: </span><span class="fs-6">- ' + sym + ' ' + parseFloat(h.DiscountAmount).toFixed(2) + '</span></div>';
-    if (parseFloat(h.TaxAmount) > 0) {
-        html += '<div class="tp-row-end fw-semibold"><span>Total Tax: </span><span class="fs-6">' + sym + ' ' + parseFloat(h.TaxAmount).toFixed(2) + '</span></div>';
-        if (showTaxBkd) {
-            if (parseFloat(h.CgstAmount) > 0) html += '<div class="tp-row-end tp-small"><span>  CGST: </span><span class="fs-6">' + sym + ' ' + parseFloat(h.CgstAmount).toFixed(2) + '</span></div>';
-            if (parseFloat(h.SgstAmount) > 0) html += '<div class="tp-row-end tp-small"><span>  SGST: </span><span class="fs-6">' + sym + ' ' + parseFloat(h.SgstAmount).toFixed(2) + '</span></div>';
-            if (parseFloat(h.IgstAmount) > 0) html += '<div class="tp-row-end tp-small"><span>  IGST: </span><span class="fs-6">' + sym + ' ' + parseFloat(h.IgstAmount).toFixed(2) + '</span></div>';
-        }
-    }
-    if (parseFloat(h.AdditionalCharges) > 0) html += '<div class="tp-row-end fw-semibold"><span>Charges: </span><span class="fs-6">' + sym + ' ' + parseFloat(h.AdditionalCharges).toFixed(2) + '</span></div>';
-    if (parseFloat(h.RoundOff || 0) !== 0) html += '<div class="tp-row-end tp-small fw-semibold"><span>Round Off: </span><span class="fs-6">' + sym + ' ' + parseFloat(h.RoundOff).toFixed(2) + '</span></div>';
-    html += '<div class="tp-total tp-row-end fw-semibold tp-item-name"><span>Total Amount: </span><span class="fs-5">' + sym + ' ' + parseFloat(h.NetAmount || 0).toFixed(2) + '</span></div>';
-    html += '</div>';
-    html += '<hr class="tp-hr my-1">';
-    html += '<div class="tp-footer" style="text-align:center!important;">' + _esc(footer) + '</div>';
-    html += '<div style="margin-bottom:8px"></div>';
-    return type === 0 ? '<div style="font-family:\'Courier New\',Courier,monospace;font-size:13px;padding:8px;max-width:580px;margin:0 auto;font-weight:900;">' + html + '</div>' : html;
+function _stripHtml(v) {
+    if (!v) return '';
+    return $('<div>').html(String(v)).text().trim();
 }
 </script>

@@ -26,6 +26,37 @@ const currencySymbol = '<?php echo $JwtData->GenSettings->CurrenySymbol ?? '₹'
 $(function() {
 	'use strict'
 
+    // Settings menu toggle
+    $('#SettingsMenuBarBtn').click(function() {
+        $('#ModulesMenuBar').addClass('d-none');
+        $('#SettingsMenuBar').removeClass('d-none');
+    });
+    $('#SettingsBackMenuBarBtn').click(function() {
+        $('#SettingsMenuBar').addClass('d-none');
+        $('#ModulesMenuBar').removeClass('d-none');
+    });
+
+    // Profile dropdown toggle
+    $(document).on('click', '#ProfileDropdownToggle', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var $li   = $(this).closest('.user-profile-item');
+        var $menu = $('#ProfileDropdownMenu');
+        if ($li.hasClass('profile-open')) {
+            $menu.slideUp(160);
+            $li.removeClass('profile-open');
+        } else {
+            $menu.slideDown(160);
+            $li.addClass('profile-open');
+        }
+    });
+    $(document).on('click', function(e) {
+        if (!$(e.target).closest('.user-profile-item').length) {
+            $('#ProfileDropdownMenu').slideUp(160);
+            $('.user-profile-item').removeClass('profile-open');
+        }
+    });
+
     $('#ChangePasswordBtn').click(function(e) {
         e.preventDefault();
         $('#ChangePasswordModal').modal('show');

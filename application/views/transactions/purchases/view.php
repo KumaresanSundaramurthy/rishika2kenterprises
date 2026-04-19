@@ -336,24 +336,24 @@ $(function () {
         var uid = $(this).data('uid');
         $('#a4ModalTitle').text('Purchase Bill Preview');
         $('#a4PrintModal').modal('show');
-        $('#a4PrintPreview').html('<div class="d-flex justify-content-center align-items-center w-100 h-100"><div class="spinner-border text-light"></div></div>');
+        $("#a4PreviewStage").html('<div class="d-flex justify-content-center align-items-center w-100 h-100"><div class="spinner-border text-light"></div></div>');
         $.ajax({
             url   : '/purchases/getPurchaseDetail',
             method: 'POST',
             data  : { TransUID: uid, [CsrfName]: CsrfToken },
             success: function (resp) {
                 if (resp.Error) {
-                    $('#a4PrintPreview').html('<div class="alert alert-danger m-3">' + resp.Message + '</div>');
+                    $("#a4PreviewStage").html('<div class="alert alert-danger m-3">' + resp.Message + '</div>');
                 } else {
                     var size = $('input[name="a4PaperSize"]:checked').val() || 'A4';
                     window._purchLastPrintData = resp;
-                    $('#a4PrintPreview').html(_buildA4Html(resp, size));
+                    $("#a4PreviewStage").html(_buildA4Html(resp, size));
                 }
             }
         });
     });
     $('input[name="a4PaperSize"]').on('change', function () {
-        if (window._purchLastPrintData) $('#a4PrintPreview').html(_buildA4Html(window._purchLastPrintData, $(this).val()));
+        if (window._purchLastPrintData) $("#a4PreviewStage").html(_buildA4Html(window._purchLastPrintData, $(this).val()));
     });
     $('#a4PrintBtn').on('click', function () {
         var frame = document.getElementById('a4PrintFrame');

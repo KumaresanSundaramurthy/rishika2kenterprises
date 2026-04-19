@@ -92,6 +92,7 @@ class Debitnotes extends CI_Controller {
             $transDate              =         getPostValue($PostData, 'transDate');
             $dueDate                =         getPostValue($PostData, 'dueDate');
             $items                  = json_decode($itemsJson, true);
+            $totalQty               = (float) array_sum(array_column($items, 'quantity'));
             $netAmount              = (float) getPostValue($PostData, 'NetAmount',              'Array', 0);
             $subTotal               = (float) getPostValue($PostData, 'SubTotal',               'Array', 0);
             $discountAmount         = (float) getPostValue($PostData, 'DiscountAmount',         'Array', 0);
@@ -152,6 +153,9 @@ class Debitnotes extends CI_Controller {
                 'TransYear'         => $financialYear,
                 'QuotationType'     => NULL,
                 'DispatchFromUID'   => NULL,
+                'DispatchFrom'      => NULL,
+                'TotalQuantity'     => $totalQty,
+                'TotalItems'        => count($items),
                 'GrossAmount'       => $subTotal + $discountAmount,
                 'SubTotal'          => $subTotal,
                 'DiscountAmount'    => $discountAmount,
@@ -178,6 +182,7 @@ class Debitnotes extends CI_Controller {
             $transUID = $insertResp->ID;
 
             $additionalChargesJson = $this->buildAdditionalChargesJson($PostData);
+            $isInterState          = $igstAmount > 0 ? 1 : ($cgstAmount > 0 || $sgstAmount > 0 ? 0 : NULL);
             $detailData = [
                 'FinancialYear'     => $financialYear,
                 'TransUID'          => $transUID,
@@ -187,6 +192,8 @@ class Debitnotes extends CI_Controller {
                 'Notes'             => getPostValue($PostData, 'transNotes') ?: NULL,
                 'TermsConditions'   => getPostValue($PostData, 'transTermsCond') ?: NULL,
                 'AdditionalCharges' => $additionalChargesJson,
+                'IsInterState'      => $isInterState,
+                'IsForeignCustomer' => NULL,
             ];
             $this->dbwrite_model->insertData('Transaction', 'TransDetailTbl', $detailData);
             $this->saveTransactionItems($transUID, $financialYear, $orgUID, $userUID, $items);
@@ -233,6 +240,7 @@ class Debitnotes extends CI_Controller {
             $transDate              =         getPostValue($PostData, 'transDate');
             $dueDate                =         getPostValue($PostData, 'dueDate');
             $items                  = json_decode($itemsJson, true);
+            $totalQty               = (float) array_sum(array_column($items, 'quantity'));
             $netAmount              = (float) getPostValue($PostData, 'NetAmount',              'Array', 0);
             $subTotal               = (float) getPostValue($PostData, 'SubTotal',               'Array', 0);
             $discountAmount         = (float) getPostValue($PostData, 'DiscountAmount',         'Array', 0);
@@ -291,6 +299,9 @@ class Debitnotes extends CI_Controller {
                 'TransType'         => 'Debit Note',
                 'QuotationType'     => NULL,
                 'DispatchFromUID'   => NULL,
+                'DispatchFrom'      => NULL,
+                'TotalQuantity'     => $totalQty,
+                'TotalItems'        => count($items),
                 'GrossAmount'       => $subTotal + $discountAmount,
                 'SubTotal'          => $subTotal,
                 'DiscountAmount'    => $discountAmount,
@@ -308,6 +319,7 @@ class Debitnotes extends CI_Controller {
                 'DocStatus'         => $status,
                 'UpdatedBy'         => $userUID,
             ];
+            $isInterState          = $igstAmount > 0 ? 1 : ($cgstAmount > 0 || $sgstAmount > 0 ? 0 : NULL);
             $commonDetail = [
                 'ValidityDays'      => NULL,
                 'ValidityDate'      => $dueDate ?: NULL,
@@ -315,6 +327,8 @@ class Debitnotes extends CI_Controller {
                 'Notes'             => getPostValue($PostData, 'transNotes') ?: NULL,
                 'TermsConditions'   => getPostValue($PostData, 'transTermsCond') ?: NULL,
                 'AdditionalCharges' => $additionalChargesJson,
+                'IsInterState'      => $isInterState,
+                'IsForeignCustomer' => NULL,
             ];
 
             $wasNonDraft = ($existing->DocStatus !== 'Draft');
@@ -454,6 +468,9 @@ class Debitnotes extends CI_Controller {
                 'TransYear'         => (int) date('Y'),
                 'QuotationType'     => NULL,
                 'DispatchFromUID'   => NULL,
+                'DispatchFrom'      => NULL,
+                'TotalQuantity'     => $totalQty,
+                'TotalItems'        => count($items),
                 'GrossAmount'       => $src->GrossAmount,
                 'SubTotal'          => $src->SubTotal,
                 'DiscountAmount'    => $src->DiscountAmount,
@@ -487,6 +504,8 @@ class Debitnotes extends CI_Controller {
                 'Notes'             => $src->Notes           ?? NULL,
                 'TermsConditions'   => $src->TermsConditions ?? NULL,
                 'AdditionalCharges' => $src->AdditionalChargesJson ?? NULL,
+                'IsInterState'      => ($src->IgstAmount ?? 0) > 0 ? 1 : (($src->CgstAmount ?? 0) > 0 || ($src->SgstAmount ?? 0) > 0 ? 0 : NULL),
+                'IsForeignCustomer' => NULL,
             ];
             $this->dbwrite_model->insertData('Transaction', 'TransDetailTbl', $detailData);
 

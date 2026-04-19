@@ -110,6 +110,7 @@ class Salesorders extends CI_Controller {
             $transDate              =         getPostValue($PostData, 'transDate');
             $deliveryDate           =         getPostValue($PostData, 'deliveryDate');
             $items                  = json_decode($itemsJson, true);
+            $totalQty               = (float) array_sum(array_column($items, 'quantity'));
             $netAmount              = (float) getPostValue($PostData, 'NetAmount',              'Array', 0);
             $subTotal               = (float) getPostValue($PostData, 'SubTotal',               'Array', 0);
             $discountAmount         = (float) getPostValue($PostData, 'DiscountAmount',         'Array', 0);
@@ -176,6 +177,9 @@ class Salesorders extends CI_Controller {
                 'TransYear'             => $financialYear,
                 'QuotationType'         => getPostValue($PostData, 'orderType') ?: NULL,
                 'DispatchFromUID'       => ($dfUID = (int) getPostValue($PostData, 'dispatchFrom')) > 0 ? $dfUID : NULL,
+                'DispatchFrom'          => getPostValue($PostData, 'dispatchFrom') ?: NULL,
+                'TotalQuantity'         => $totalQty,
+                'TotalItems'            => count($items),
                 'GrossAmount'           => $subTotal + $discountAmount,
                 'SubTotal'              => $subTotal,
                 'DiscountAmount'        => $discountAmount,
@@ -203,6 +207,9 @@ class Salesorders extends CI_Controller {
             $transUID = $insertResp->ID;
 
             $additionalChargesJson = $this->buildAdditionalChargesJson($PostData);
+            $isInterState          = $igstAmount > 0 ? 1 : ($cgstAmount > 0 || $sgstAmount > 0 ? 0 : NULL);
+            $_cc                   = $this->transactions_model->getCustomerCountryCode($customerUID);
+            $isForeignCustomer     = $_cc !== NULL ? ($_cc === 'IN' ? 0 : 1) : NULL;
             $detailData = [
                 'FinancialYear'     => $financialYear,
                 'TransUID'          => $transUID,
@@ -212,6 +219,8 @@ class Salesorders extends CI_Controller {
                 'Notes'             => getPostValue($PostData, 'transNotes') ?: NULL,
                 'TermsConditions'   => getPostValue($PostData, 'transTermsCond') ?: NULL,
                 'AdditionalCharges' => $additionalChargesJson,
+                'IsInterState'      => $isInterState,
+                'IsForeignCustomer' => $isForeignCustomer,
             ];
             $this->dbwrite_model->insertData('Transaction', 'TransDetailTbl', $detailData);
 
@@ -271,6 +280,7 @@ class Salesorders extends CI_Controller {
             $transDate              =         getPostValue($PostData, 'transDate');
             $deliveryDate           =         getPostValue($PostData, 'deliveryDate');
             $items                  = json_decode($itemsJson, true);
+            $totalQty               = (float) array_sum(array_column($items, 'quantity'));
             $netAmount              = (float) getPostValue($PostData, 'NetAmount',              'Array', 0);
             $subTotal               = (float) getPostValue($PostData, 'SubTotal',               'Array', 0);
             $discountAmount         = (float) getPostValue($PostData, 'DiscountAmount',         'Array', 0);
@@ -354,6 +364,9 @@ class Salesorders extends CI_Controller {
                 'UpdatedBy'         => $userUID,
             ];
 
+            $isInterState          = $igstAmount > 0 ? 1 : ($cgstAmount > 0 || $sgstAmount > 0 ? 0 : NULL);
+            $_cc                   = $this->transactions_model->getCustomerCountryCode($customerUID);
+            $isForeignCustomer     = $_cc !== NULL ? ($_cc === 'IN' ? 0 : 1) : NULL;
             $commonDetail = [
                 'ValidityDays'      => NULL,
                 'ValidityDate'      => $deliveryDate ?: NULL,
@@ -361,6 +374,8 @@ class Salesorders extends CI_Controller {
                 'Notes'             => getPostValue($PostData, 'transNotes') ?: NULL,
                 'TermsConditions'   => getPostValue($PostData, 'transTermsCond') ?: NULL,
                 'AdditionalCharges' => $additionalChargesJson,
+                'IsInterState'      => $isInterState,
+                'IsForeignCustomer' => $isForeignCustomer,
             ];
 
             if ($existing->DocStatus === 'Draft' && !$isDraft
@@ -549,6 +564,9 @@ class Salesorders extends CI_Controller {
                 'TransYear'         => (int) date('Y'),
                 'QuotationType'     => $src->QuotationType,
                 'DispatchFromUID'   => $src->DispatchFromUID ?? NULL,
+                'DispatchFrom'      => $src->DispatchFrom ?? NULL,
+                'TotalQuantity'     => (float)($src->TotalQuantity ?? 0),
+                'TotalItems'        => (int)($src->TotalItems ?? 0),
                 'GrossAmount'       => $src->GrossAmount,
                 'SubTotal'          => $src->SubTotal,
                 'DiscountAmount'    => $src->DiscountAmount,
@@ -573,6 +591,7 @@ class Salesorders extends CI_Controller {
             if ($insertResp->Error) throw new Exception($insertResp->Message);
             $newTransUID = $insertResp->ID;
 
+            $_srcCC     = $src->PartyCountryCode ?? NULL;
             $detailData = [
                 'FinancialYear'     => (int) date('Y'),
                 'TransUID'          => $newTransUID,
@@ -582,6 +601,8 @@ class Salesorders extends CI_Controller {
                 'Notes'             => $src->Notes        ?? NULL,
                 'TermsConditions'   => $src->TermsConditions ?? NULL,
                 'AdditionalCharges' => $src->AdditionalChargesJson ?? NULL,
+                'IsInterState'      => ($src->IgstAmount ?? 0) > 0 ? 1 : (($src->CgstAmount ?? 0) > 0 || ($src->SgstAmount ?? 0) > 0 ? 0 : NULL),
+                'IsForeignCustomer' => $_srcCC !== NULL ? ($_srcCC === 'IN' ? 0 : 1) : NULL,
             ];
             $this->dbwrite_model->insertData('Transaction', 'TransDetailTbl', $detailData);
 

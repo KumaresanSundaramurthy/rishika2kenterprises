@@ -112,6 +112,7 @@ class Quotations extends CI_Controller {
             $validityDate           =         getPostValue($PostData, 'validityDate');
             $validityDays           = (int)   getPostValue($PostData, 'validityDays', 'Array', 0);
             $items                  = json_decode($itemsJson, true);
+            $totalQty               = (float) array_sum(array_column($items, 'quantity'));
             $netAmount              = (float) getPostValue($PostData, 'NetAmount',              'Array', 0);
             $subTotal               = (float) getPostValue($PostData, 'SubTotal',               'Array', 0);
             $discountAmount         = (float) getPostValue($PostData, 'DiscountAmount',         'Array', 0);
@@ -171,6 +172,9 @@ class Quotations extends CI_Controller {
                 'TransYear'             => $financialYear,
                 'QuotationType'         => getPostValue($PostData, 'quotationType') ?: NULL,
                 'DispatchFromUID'       => ($dfUID = (int) getPostValue($PostData, 'dispatchFrom')) > 0 ? $dfUID : NULL,
+                'DispatchFrom'          => getPostValue($PostData, 'dispatchFrom') ?: NULL,
+                'TotalQuantity'         => $totalQty,
+                'TotalItems'            => count($items),
                 'GrossAmount'           => $subTotal + $discountAmount,
                 'SubTotal'              => $subTotal,
                 'DiscountAmount'        => $discountAmount,
@@ -199,6 +203,9 @@ class Quotations extends CI_Controller {
 
             // --- Insert detail row (TransDetailTbl — notes, terms, validity, charges) ---
             $additionalChargesJson = $this->buildAdditionalChargesJson($PostData);
+            $isInterState          = $igstAmount > 0 ? 1 : ($cgstAmount > 0 || $sgstAmount > 0 ? 0 : NULL);
+            $_cc                   = $this->transactions_model->getCustomerCountryCode($customerUID);
+            $isForeignCustomer     = $_cc !== NULL ? ($_cc === 'IN' ? 0 : 1) : NULL;
             $detailData = [
                 'FinancialYear'     => $financialYear,
                 'TransUID'          => $transUID,
@@ -208,6 +215,8 @@ class Quotations extends CI_Controller {
                 'Notes'             => getPostValue($PostData, 'transNotes') ?: NULL,
                 'TermsConditions'   => getPostValue($PostData, 'transTermsCond') ?: NULL,
                 'AdditionalCharges' => $additionalChargesJson,
+                'IsInterState'      => $isInterState,
+                'IsForeignCustomer' => $isForeignCustomer,
             ];
             $this->dbwrite_model->insertData('Transaction', 'TransDetailTbl', $detailData);
 
@@ -270,6 +279,7 @@ class Quotations extends CI_Controller {
             $validityDate           =         getPostValue($PostData, 'validityDate');
             $validityDays           = (int)   getPostValue($PostData, 'validityDays', 'Array', 0);
             $items                  = json_decode($itemsJson, true);
+            $totalQty               = (float) array_sum(array_column($items, 'quantity'));
             $netAmount              = (float) getPostValue($PostData, 'NetAmount',              'Array', 0);
             $subTotal               = (float) getPostValue($PostData, 'SubTotal',               'Array', 0);
             $discountAmount         = (float) getPostValue($PostData, 'DiscountAmount',         'Array', 0);
@@ -344,6 +354,9 @@ class Quotations extends CI_Controller {
                 'UpdatedBy'         => $userUID,
             ];
 
+            $isInterState          = $igstAmount > 0 ? 1 : ($cgstAmount > 0 || $sgstAmount > 0 ? 0 : NULL);
+            $_cc                   = $this->transactions_model->getCustomerCountryCode($customerUID);
+            $isForeignCustomer     = $_cc !== NULL ? ($_cc === 'IN' ? 0 : 1) : NULL;
             $commonDetail = [
                 'ValidityDays'      => $validityDays ?: NULL,
                 'ValidityDate'      => $validityDate ?: NULL,
@@ -351,6 +364,8 @@ class Quotations extends CI_Controller {
                 'Notes'             => getPostValue($PostData, 'transNotes') ?: NULL,
                 'TermsConditions'   => getPostValue($PostData, 'transTermsCond') ?: NULL,
                 'AdditionalCharges' => $additionalChargesJson,
+                'IsInterState'      => $isInterState,
+                'IsForeignCustomer' => $isForeignCustomer,
             ];
 
             // --- CLONE PATH: Draft being saved as Pending and newer records exist ---

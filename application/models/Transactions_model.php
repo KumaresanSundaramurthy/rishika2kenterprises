@@ -470,6 +470,18 @@ class Transactions_model extends CI_Model {
 
     }
 
+    // Returns the CountryCode for a customer (e.g. 'IN', 'US'). NULL if not found.
+    public function getCustomerCountryCode(int $customerUID) {
+        if ($customerUID <= 0) return NULL;
+        $this->ReadDb->select('CountryCode');
+        $this->ReadDb->from('Customers.CustomerTbl');
+        $this->ReadDb->where('CustomerUID', $customerUID);
+        $this->ReadDb->where('IsDeleted', 0);
+        $this->ReadDb->limit(1);
+        $row = $this->ReadDb->get()->row();
+        return $row ? ($row->CountryCode ?: NULL) : NULL;
+    }
+
     public function getTransProductsDetails(string $Term = '', $WhereCondition = []) {
 
         $this->EndReturnData = new StdClass();
@@ -613,6 +625,35 @@ class Transactions_model extends CI_Model {
             return [];
         }
 
+    }
+
+    // Returns ONE bank account for print templates.
+    // Priority: IsDefault=1 & IsCash=0  →  any IsCash=0  →  NULL
+    public function getPrintBankAccount($orgUID) {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $base = ['OrgUID' => $orgUID, 'IsDeleted' => 0, 'IsActive' => 1, 'IsCash' => 0];
+
+            // 1. Default non-cash account
+            $this->ReadDb->select('BankAccountUID, AccountName, BankName, AccountNumber, IFSC, BranchName, UPIId, UPINumber, IsDefault, IsCash');
+            $this->ReadDb->from('Transaction.OrgBankAccountsTbl');
+            $this->ReadDb->where(array_merge($base, ['IsDefault' => 1]));
+            $this->ReadDb->limit(1);
+            $row = $this->ReadDb->get()->row();
+            if ($row) return $row;
+
+            // 2. Any non-cash account
+            $this->ReadDb->select('BankAccountUID, AccountName, BankName, AccountNumber, IFSC, BranchName, UPIId, UPINumber, IsDefault, IsCash');
+            $this->ReadDb->from('Transaction.OrgBankAccountsTbl');
+            $this->ReadDb->where($base);
+            $this->ReadDb->order_by('IsDefault', 'DESC');
+            $this->ReadDb->limit(1);
+            $row = $this->ReadDb->get()->row();
+            return $row ?: NULL;
+
+        } catch (Exception $e) {
+            return NULL;
+        }
     }
 
     public function getOrgBankAccounts($orgUID) {

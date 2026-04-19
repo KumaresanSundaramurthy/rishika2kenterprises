@@ -29465,7 +29465,7 @@ body:not(.modal-open) .layout-content-navbar .layout-navbar {
     background: #fafafa; border-top: none; white-space: nowrap;
 }
 .trans-table thead tr th {
-    padding-block: 0.5rem;
+    padding-block: 0.65rem;
 }
 .trans-table td {
     vertical-align: middle; padding: 10px 12px;

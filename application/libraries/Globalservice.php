@@ -804,7 +804,6 @@ Class Globalservice {
 
         $recordIds   = (array) $recordIds;
         $currentUser = $this->CI->pageData['JwtData']->User->UserUID ?? null;
-        $now         = time();
 
         $updArray = [];
         foreach ($recordIds as $rid) {
@@ -812,7 +811,6 @@ Class Globalservice {
                 $pkField    => (int) $rid,
                 'IsDeleted' => 1,
                 'UpdatedBy' => $currentUser,
-                'UpdatedOn' => $now,
             ];
         }
 
@@ -839,7 +837,6 @@ Class Globalservice {
         $updateBatch = [];
 
         $currentUser = $this->CI->pageData['JwtData']->User->UserUID ?? null;
-        $now = time();
 
         foreach ($details as $record) {
             $id = $record['id'] ?? null;
@@ -853,12 +850,10 @@ Class Globalservice {
                 'BankAccountHolderName'   => getPostValue($record, 'holder') ?? NULL,
                 'UPI_Id'                  => getPostValue($record, 'upiId') ?? NULL,
                 'UpdatedBy'               => $currentUser,
-                'UpdatedOn'               => $now,
             ], $extraFields);
 
             if (is_string($id) && strpos($id, 'New-') === 0) {
                 $dataArray['CreatedBy'] = $currentUser;
-                $dataArray['CreatedOn'] = $now;
                 $insertBatch[] = $dataArray;
             } elseif (is_numeric($id) || (is_string($id) && ctype_digit($id))) {
                 $updateBatch[] = [
@@ -887,7 +882,6 @@ Class Globalservice {
 
         $recordIds   = (array) $recordIds;
         $currentUser = $this->CI->pageData['JwtData']->User->UserUID ?? null;
-        $now         = time();
 
         $updArray = [];
         foreach ($recordIds as $rid) {
@@ -895,7 +889,6 @@ Class Globalservice {
                 $pkField    => (int) $rid,
                 'IsDeleted' => 1,
                 'UpdatedBy' => $currentUser,
-                'UpdatedOn' => $now,
             ];
         }
 
@@ -929,14 +922,12 @@ Class Globalservice {
             'State'      => getPostValue($postData, $typePrefix.'AddrState') ?? NULL,
             'StateText'  => getPostValue($postData, $typePrefix.'AddrStateText') ?? NULL,
             'UpdatedBy'  => $this->CI->pageData['JwtData']->User->UserUID,
-            'UpdatedOn'  => time(),
         ];
 
         $addressUIDField = $typePrefix.'AddressUID';
 
         if (isset($postData[$addressUIDField]) && $postData[$addressUIDField] == 0) {
             $addressData['CreatedBy'] = $this->CI->pageData['JwtData']->User->UserUID;
-            $addressData['CreatedOn'] = time();
 
             $resp = $this->CI->dbwrite_model->insertData($moduleName, $tableName, $addressData);
             if ($resp->Error) throw new Exception($resp->Message);

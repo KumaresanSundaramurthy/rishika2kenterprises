@@ -121,13 +121,13 @@
                             <?php endif; ?>
                         </div>
                         <div class="d-flex gap-1">
-                            <button class="btn btn-sm btn-icon text-primary editBankBtn"
+                            <button class="btn btn-icon btn-sm text-warning editBankBtn"
                                     data-uid="<?php echo (int)$bank->BankAccountUID; ?>"
                                     title="Edit">
                                 <i class="bx bx-edit"></i>
                             </button>
                             <?php if (!$isDefault): ?>
-                            <button class="btn btn-sm btn-icon text-danger deleteBankBtn"
+                            <button class="btn btn-icon btn-sm text-danger deleteBankBtn"
                                     data-uid="<?php echo (int)$bank->BankAccountUID; ?>"
                                     data-name="<?php echo htmlspecialchars(($bank->BankName ?? '') . ' (' . ($bank->AccountName ?? '') . ')'); ?>"
                                     title="Delete">

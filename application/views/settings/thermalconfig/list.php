@@ -68,16 +68,16 @@ foreach ($DataLists as $row):
     </td>
     <td class="align-middle text-nowrap"><?php echo $updatedOn; ?></td>
     <td class="text-center align-middle text-nowrap">
-        <a href="javascript:void(0);" class="btn btn-sm btn-icon btn-text-secondary EditThermalConfig"
+        <a href="javascript:void(0);" class="btn btn-icon btn-sm text-warning EditThermalConfig"
             data-config='<?php echo $editData; ?>'
-            data-bs-toggle="tooltip" title="Edit">
-            <i class="bx bx-edit-alt fs-5"></i>
+            title="Edit">
+            <i class="bx bx-edit"></i>
         </a>
-        <a href="javascript:void(0);" class="btn btn-sm btn-icon btn-text-danger DeleteThermalConfig"
+        <a href="javascript:void(0);" class="btn btn-icon btn-sm text-danger DeleteThermalConfig"
             data-uid="<?php echo (int)$row->ThermalConfigUID; ?>"
             data-type="<?php echo htmlspecialchars($typeLabel); ?>"
-            data-bs-toggle="tooltip" title="Delete">
-            <i class="bx bx-trash fs-5"></i>
+            title="Delete">
+            <i class="bx bx-trash"></i>
         </a>
     </td>
 </tr>

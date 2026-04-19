@@ -452,8 +452,8 @@
 
                                 <!-- Table -->
                                 <div class="table-responsive text-nowrap tablecard">
-                                    <table class="table table-hover" id="ThermalConfigTable">
-                                        <thead class="bg-body-tertiary">
+                                    <table class="table trans-table MainviewTable" id="ThermalConfigTable">
+                                        <thead class="r2k-thead">
                                             <tr>
                                                 <th class="text-center" style="width:50px;">S.No</th>
                                                 <th>Transaction Type</th>
@@ -464,7 +464,7 @@
                                                 <th class="text-center">Actions</th>
                                             </tr>
                                         </thead>
-                                        <tbody id="ThermalConfigBody" class="table-border-bottom-0">
+                                        <tbody id="ThermalConfigBody" class="r2k-tbody table-border-bottom-0">
                                             <tr>
                                                 <td colspan="7" class="text-center py-4 text-muted">
                                                     <span class="spinner-border spinner-border-sm me-2"></span>Loading...

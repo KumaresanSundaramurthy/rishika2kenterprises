@@ -40,8 +40,8 @@ if (!function_exists('format_disp_column_value')) {
                 case 2:
                     if ($type === 'html' || $type === 'preview') {
                         $lastUpdatedBy = $list->{'Last Updated By'} ?? '';
-                        $value  = '<div>'.changeTimeZonefromDateTime($value, $JwtData->User->Timezone, 2).'</div>';
-                        $value .= '<div class="text-muted" style="font-size: 0.75rem;">by '.$lastUpdatedBy.'</div>';
+                        $value  = '<div class="text-muted" style="font-size:.78rem;">'.changeTimeZonefromDateTime($value, $JwtData->User->Timezone, 2).'</div>';
+                        $value .= '<div style="font-size:.71rem; color:#bbb;">by '.$lastUpdatedBy.'</div>';
                     } else {
                         $value = changeTimeZonefromDateTime($value, $JwtData->User->Timezone, 2);
                     }

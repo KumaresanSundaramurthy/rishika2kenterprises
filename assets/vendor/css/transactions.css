@@ -67,10 +67,6 @@
     --bs-table-bg: #c0e6ff;
 }
 
-.trans-table thead tr th {
-    padding-block: 0.5rem;
-}
-
 .transAccordion .accordion-item {
     border: 1px solid #dee2e6;
     border-radius: .25rem;

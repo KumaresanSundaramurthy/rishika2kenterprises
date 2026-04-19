@@ -61,54 +61,84 @@
                         </div>
                     </div>
 
+                    <!-- ── Main Card ── -->
                     <div class="card">
-                        <div class="row">
-                            <div class="col-md-12">
-                                <div class="d-flex flex-column flex-md-row justify-content-between align-items-center p-3">
-                                    <ul class="nav nav-pills nav nav-pills flex-row" role="tablist">
-                                        <li class="nav-item">
-                                            <a class="nav-link active" role="tab" data-bs-toggle="tab" data-bs-target="#NavVendorPage" aria-controls="NavVendorPage" aria-selected="true" href="javascript: void(0);"><i class="bx bx-user me-1"></i> Vendor</a>
+
+                        <!-- Toolbar -->
+                        <div class="trans-toolbar">
+                            <div class="trans-toolbar-tabs">
+                                <ul class="nav trans-status-tabs" id="vendStatusTabs" role="tablist">
+                                    <li class="nav-item"><a class="nav-link active vend-tab" data-status="All" href="javascript:void(0);">All <span class="trans-tab-count"><?php echo $VendStats->TotalCount ?? 0; ?></span></a></li>
+                                    <li class="nav-item"><a class="nav-link vend-tab" data-status="Active" href="javascript:void(0);">Active <span class="trans-tab-count d-none"></span></a></li>
+                                    <li class="nav-item"><a class="nav-link vend-tab" data-status="Inactive" href="javascript:void(0);">Inactive <span class="trans-tab-count d-none"></span></a></li>
+                                </ul>
+                            </div>
+                            <div class="trans-toolbar-actions">
+                                <a href="javascript:void(0);" class="r2k-icon-btn PageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
+                                <a href="javascript:void(0);" id="btnPageSettings" class="r2k-icon-btn" title="Column Settings"><i class="bx bx-cog"></i></a>
+                                <div class="r2k-search-wrap">
+                                    <i class="bx bx-search r2k-si"></i>
+                                    <input type="text" id="SearchDetails" placeholder="Name, mobile, GSTIN...">
+                                    <i class="bx bx-x r2k-clear d-none" id="clearSearch"></i>
+                                </div>
+                                <div class="btn-group r2k-toolbar-actions" id="ActionsDD-Div">
+                                    <button class="r2k-dd-btn dropdown-toggle" type="button" id="actionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="bx bx-slider-alt"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="actionsDropdown">
+                                        <li class="d-none" id="CloneOption">
+                                            <a class="dropdown-item" href="javascript:void(0);" id="btnClone"><i class="bx bx-duplicate me-1"></i> Clone</a>
+                                        </li>
+                                        <li class="d-none" id="DeleteOption">
+                                            <a class="dropdown-item text-danger" href="javascript:void(0);" id="btnDelete"><i class="bx bx-trash me-1"></i> Delete</a>
+                                        </li>
+                                        <li class="dropdown-submenu">
+                                            <a class="dropdown-item" href="javascript:void(0);"><i class="bx bx-export me-1"></i> Export</a>
+                                            <ul class="dropdown-menu">
+                                                <li><a class="dropdown-item" href="javascript:void(0);" id="btnExportPrint"><i class="bx bx-printer me-1"></i> Print</a></li>
+                                                <li><a class="dropdown-item" href="javascript:void(0);" id="btnExportCSV"><i class="bx bx-file me-1"></i> CSV</a></li>
+                                                <li><a class="dropdown-item" href="javascript:void(0);" id="btnExportExcel"><i class="bx bxs-file-export me-1"></i> Excel</a></li>
+                                                <li><a class="dropdown-item" href="javascript:void(0);" id="btnExportPDF"><i class="bx bxs-file-pdf me-1"></i> PDF</a></li>
+                                            </ul>
                                         </li>
                                     </ul>
-                                <?php echo $this->load->view('common/view/action_details', ['redirectUrl' => '/vendors/create', 'addActionName' => 'Create Vendor'], TRUE); ?>
                                 </div>
-                                <div class="tab-content p-0">
-
-                                    <div class="tab-pane fade show active" id="NavVendorPage" role="tabpanel">
-
-                                        <div class="table-responsive text-nowrap h-100 tablecard">
-                                            <table class="table table-hover" id="VendorsTable">
-                                                <thead class="bg-body-tertiary">
-                                                    <tr>
-                                                        <th class="table-checkbox">
-                                                            <div class="form-check">
-                                                                <input class="form-check-input table-chkbox vendorHeaderCheck" type="checkbox">
-                                                            </div>
-                                                        </th>
-                                                        <th class="table-serialno <?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>">S.No</th>
-                                                        <?php foreach (array_column($ModColumnData, 'DisplayName') as $ItemKey => $ItemVal) { ?>
-                                                            <th <?php echo $ModColumnData[$ItemKey]->MainPageColumnAddon; ?>><?php echo $ItemVal; ?> <?php if ($ModColumnData[$ItemKey]->MPSortApplicable == 1) {
-                                                                    echo '<i class="bx bx-sort-alt-2 ms-1 cursor-pointer"></i>';
-                                                                } ?></th>
-                                                        <?php } ?>
-                                                        <th class="text-center">Actions</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody class="table-border-bottom-0">
-                                                    <?php echo $ModRowData; ?>
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                        <hr class="my-0" />
-                                        <div class="row mx-3 justify-content-between VendorsPagination" id="VendorsPagination">
-                                            <?php echo $ModPagination; ?>
-                                        </div>
-
-                                    </div>
-
-                                </div>
+                                <a href="/vendors/create" class="r2k-create-btn"><i class="bx bx-plus"></i> Create</a>
                             </div>
                         </div>
+
+                        <!-- Table -->
+                        <div class="table-responsive">
+                            <table class="table trans-table MainviewTable mb-0" id="VendorsTable">
+                                <thead class="r2k-thead">
+                                    <tr>
+                                        <th style="width:36px">
+                                            <div class="form-check mb-0">
+                                                <input class="form-check-input table-chkbox vendorHeaderCheck" type="checkbox">
+                                            </div>
+                                        </th>
+                                        <th class="<?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>" style="width:44px">#</th>
+                                        <?php foreach (array_column($ModColumnData, 'DisplayName') as $ItemKey => $ItemVal) { ?>
+                                            <th <?php echo $ModColumnData[$ItemKey]->MainPageColumnAddon; ?>>
+                                                <?php echo $ItemVal; ?>
+                                                <?php if ($ModColumnData[$ItemKey]->MPSortApplicable == 1) { echo '<i class="bx bx-sort-alt-2 ms-1 sort-ic"></i>'; } ?>
+                                            </th>
+                                        <?php } ?>
+                                        <th style="width:80px">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="r2k-tbody table-border-bottom-0">
+                                    <?php echo $ModRowData; ?>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Pagination -->
+                        <hr class="my-0">
+                        <div class="row mx-3 my-2 justify-content-between align-items-center VendorsPagination" id="VendorsPagination">
+                            <?php echo $ModPagination ?: ''; ?>
+                        </div>
+
                     </div>
 
                 </div>
@@ -150,114 +180,82 @@ $(function() {
     baseRefreshPageFunc('.PageRefresh', getVendorsDetails);
     basePageHeaderFunc(ModuleHeader, ModuleTable, ModuleRow);
 
-    $(document).on('click', ModuleRow, function() {
+    // ── Status tabs ──
+    $(document).on('click', '.vend-tab', function (e) {
+        e.preventDefault();
+        $('.vend-tab').removeClass('active');
+        $(this).addClass('active');
+        var status = $(this).data('status') || 'All';
+        if (status === 'All')      { delete Filter['IsActive']; }
+        else if (status === 'Active')   { Filter['IsActive'] = 1; }
+        else if (status === 'Inactive') { Filter['IsActive'] = 0; }
+        PageNo = 0;
+        getVendorsDetails(PageNo, RowLimit, Filter);
+    });
+
+    // ── Search ──
+    $('#SearchDetails').on('keyup', inputDelay(function () {
+        var val = $.trim($(this).val());
+        $('#clearSearch').toggleClass('d-none', !val);
+        delete Filter['SearchAllData'];
+        if (val.length >= 3) Filter['SearchAllData'] = val;
+        if (val.length === 0 || val.length >= 3) { PageNo = 0; getVendorsDetails(PageNo, RowLimit, Filter); }
+    }, 400));
+
+    $('#clearSearch').on('click', function () {
+        $('#SearchDetails').val('');
+        $(this).addClass('d-none');
+        delete Filter['SearchAllData'];
+        PageNo = 0; getVendorsDetails(PageNo, RowLimit, Filter);
+    });
+
+    // ── Row checkbox ──
+    $(document).on('click', ModuleRow, function () {
         onClickOfCheckbox($(this), ModuleTable, ModuleHeader, ModuleRow);
         $('#CloneOption').addClass('d-none');
-        if (SelectedUIDs.length == 1) {
-            $('#CloneOption').removeClass('d-none');
-        }
+        if (SelectedUIDs.length === 1) $('#CloneOption').removeClass('d-none');
         MultipleDeleteOption();
     });
-
-    $('#btnClone').click(function(e) {
+    $('#btnClone').on('click', function (e) {
         e.preventDefault();
-        if (SelectedUIDs.length == 1) {
-            window.location.href = '/vendors/' + SelectedUIDs[0] + '/clone';
-        }
+        if (SelectedUIDs.length === 1) window.location.href = '/vendors/' + SelectedUIDs[0] + '/clone';
     });
 
-    $('.SearchDetails').keyup(inputDelay(function(e) {
-        PageNo = 0;
-        let searchText = $('#SearchDetails').val();
-        if (searchText.length >= 3) {
-            SelectedUIDs = [];
-            delete Filter['SearchAllData'];
-            $('#clearSearch').removeClass('d-none');
-            if (searchText) {
-                Filter['SearchAllData'] = searchText;
-            }
-            $('#SearchDetails').blur();
-            getVendorsDetails(PageNo, RowLimit, Filter);
-        }
-    }, 500));
-
-    $('#clearSearch').click(function(e) {
+    // ── Delete single ──
+    $(document).on('click', '.DeleteVendor', function (e) {
         e.preventDefault();
-        var searchText = $('#SearchDetails').val();
-        $('#SearchDetails').val('');
-        $('#clearSearch').addClass('d-none');
-        if ($.trim(searchText) != '') {
-            PageNo = 0;
-            SelectedUIDs = [];
-            delete Filter['SearchAllData'];
-            $('#SearchDetails').blur();
-            getVendorsDetails(PageNo, RowLimit, Filter);
-        }
+        var id = $(this).data('vendoruid');
+        if (!id) return;
+        Swal.fire({
+            title: 'Delete this vendor?', text: "This action cannot be undone.",
+            icon: 'warning', showCancelButton: true,
+            confirmButtonColor: '#dc2626', cancelButtonColor: '#64748b',
+            confirmButtonText: 'Yes, delete',
+        }).then(function (r) { if (r.isConfirmed) deleteVendor(id); });
     });
 
-    $(document).on('click', '.DeleteVendor', function(e) {
+    // ── Delete bulk ──
+    $('#btnDelete').on('click', function (e) {
         e.preventDefault();
-        var GetId = $(this).data('vendoruid');
-        if (GetId) {
-            Swal.fire({
-                title: "Do you want to delete the vendor?",
-                text: "You won't be able to revert this!",
-                icon: "info",
-                showCancelButton: true,
-                confirmButtonColor: "#d33",
-                confirmButtonText: "Yes, delete it!",
-                cancelButtonColor: "#3085d6",
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    deleteVendor(GetId);
-                }
-            });
-        }
+        if (!SelectedUIDs.length) return;
+        Swal.fire({
+            title: 'Delete ' + SelectedUIDs.length + ' vendor(s)?',
+            text: "This action cannot be undone.",
+            icon: 'warning', showCancelButton: true,
+            confirmButtonColor: '#dc2626', cancelButtonColor: '#64748b',
+            confirmButtonText: 'Yes, delete all',
+        }).then(function (r) { if (r.isConfirmed) deleteMultipleVendors(); });
     });
 
-    $('#btnDelete').click(function(e) {
-        e.preventDefault();
-        if (SelectedUIDs.length > 0) {
-            let DeleteContent = 'Do you want to delete all the selected vendors?';
-            Swal.fire({
-                title: DeleteContent,
-                text: "You won't be able to revert this!",
-                icon: "info",
-                showCancelButton: true,
-                confirmButtonColor: "#d33",
-                confirmButtonText: "Yes, delete it!",
-                cancelButtonColor: "#3085d6",
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    deleteMultipleVendors();
-                }
-            });
-        }
-    });
-
-    /** sorting opeartions */
-    $(document).on('click', '.name-sortable', function(e) {
+    // ── Sort ──
+    $(document).on('click', '.name-sortable', function (e) {
         e.preventDefault();
         sortState = (sortState + 1) % 3;
-        const icon = $(this).find('i');
-        icon.removeClass('bx-sort-alt-2 bx-up-arrow-alt bx-down-arrow-alt text-primary');
-        $('#sortName').removeClass('text-primary');
-        if (sortState == 1) {
-            icon.addClass('bx-up-arrow-alt text-primary');
-            $('#sortName').addClass('text-primary');
-            $(this).attr('title', 'Click sorting descending');
-            Filter['NameSorting'] = 1;
-        } else if (sortState === 2) {
-            icon.addClass('bx-down-arrow-alt text-primary');
-            $('#sortName').addClass('text-primary');
-            $(this).attr('title', 'Remove sorting');
-            Filter['NameSorting'] = 2;
-        } else {
-            icon.addClass('bx-sort-alt-2');
-            $(this).attr('title', 'Click sorting ascending');
-            delete Filter['NameSorting'];
-        }
-        $(this).tooltip('dispose').tooltip();
+        const icon = $(this).find('.sort-ic');
+        icon.removeClass('bx-sort-alt-2 bx-up-arrow-alt bx-down-arrow-alt');
+        if (sortState === 1)      { icon.addClass('bx-up-arrow-alt');   Filter['NameSorting'] = 1; }
+        else if (sortState === 2) { icon.addClass('bx-down-arrow-alt'); Filter['NameSorting'] = 2; }
+        else                      { icon.addClass('bx-sort-alt-2');     delete Filter['NameSorting']; }
         getVendorsDetails(PageNo, RowLimit, Filter);
     });
 

@@ -1,50 +1,96 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
-<?php if (sizeof($DataLists) > 0) {
-    foreach ($DataLists as $list) {
-        $SerialNumber++; ?>
+<?php
+$showSerial = isset($GenSettings->SerialNoDisplay) && $GenSettings->SerialNoDisplay == 1;
 
-        <tr>
-            <td>
-                <div class="form-check form-check-inline"><input class="form-check-input vendorsCheck" type="checkbox" value="<?php echo $list->TablePrimaryUID; ?>"></div>
-            </td>
-            <td class="<?php echo $GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>"><?php echo $SerialNumber; ?></td>
-            <?php
-                $getData = format_disp_allcolumns('html', $DispViewColumns, $list, $JwtData, $JwtData->GenSettings);
-                if(!empty($getData) && is_array($getData)) {
-                    echo implode('', $getData);
-                }
-            ?>
-            <td>
-                <div class="d-flex align-items-sm-center justify-content-sm-center">
-                    <a href="/vendors/<?php echo $list->TablePrimaryUID; ?>/edit" class="btn btn-icon text-warning"><i class="bx bx-edit me-1"></i></a>
-                    <button class="btn btn-icon text-danger DeleteVendor" data-vendoruid="<?php echo $list->TablePrimaryUID; ?>"><i class="bx bx-trash"></i></button>
-                </div>
-            </td>
-        </tr>
-
-    <?php }
-} else { ?>
-
+if (!empty($DataLists)):
+    foreach ($DataLists as $list):
+        $SerialNumber++;
+        $uid  = (int)$list->TablePrimaryUID;
+        $name = htmlspecialchars($list->Name ?? '—');
+?>
     <tr>
-        <td colspan="10">
-            <div class="d-flex justify-content-center align-items-center" style="height: 57vh;">
-                <div class="d-flex flex-column align-items-center w-100" style="max-width: 500px; padding: 1rem;">
 
-                    <div class="w-100 mb-3" style="flex: 3; display: flex; justify-content: center; align-items: center;">
-                        <img src="/assets/img/elements/no-record-found.png" alt="No Records Found" class="img-fluid" style="max-height: 40vh;object-fit: contain;" />
-                    </div>
+        <!-- Checkbox -->
+        <td style="width:36px">
+            <div class="form-check mb-0">
+                <input class="form-check-input table-chkbox vendorsCheck" type="checkbox" value="<?php echo $uid; ?>">
+            </div>
+        </td>
 
-                    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                        <span class="mb-2">Add a Vendor Now</span>
-                        <a href="/vendors/create" class="btn btn-primary px-3">
-                            <i class="bx bx-plus"></i> Create Vendor
-                        </a>
-                    </div>
+        <!-- S.No -->
+        <td class="<?php echo $showSerial ? '' : 'd-none'; ?> table-serialno" style="width:44px">
+            <span class="text-muted" style="font-size:.78rem;"><?php echo $SerialNumber; ?></span>
+        </td>
 
+        <!-- Dynamic columns -->
+        <?php
+            $getData = format_disp_allcolumns('html', $DispViewColumns, $list, $JwtData, $JwtData->GenSettings);
+            if (!empty($getData) && is_array($getData)) echo implode('', $getData);
+        ?>
+
+        <!-- Actions -->
+        <td style="width:80px">
+            <div class="d-flex align-items-center justify-content-end gap-1">
+
+                <!-- Edit icon (always visible) -->
+                <a class="btn btn-icon btn-sm text-warning"
+                   href="/vendors/<?php echo $uid; ?>/edit"
+                   title="Edit">
+                    <i class="bx bx-edit"></i>
+                </a>
+
+                <!-- 3-dot dropdown -->
+                <div class="dropdown">
+                    <button class="trans-actions-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bx bx-dots-vertical-rounded fs-5"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:.82rem;min-width:170px;">
+
+                        <li>
+                            <a class="dropdown-item" href="/vendors/<?php echo $uid; ?>/clone">
+                                <i class="bx bx-copy me-2 text-secondary"></i>Clone
+                            </a>
+                        </li>
+
+                        <?php if (!empty($list->MobileNumber)): ?>
+                        <li>
+                            <a class="dropdown-item" href="https://wa.me/<?php echo htmlspecialchars($list->MobileNumber); ?>?text=Hi" target="_blank">
+                                <i class="bx bxl-whatsapp me-2 text-success"></i>Send WhatsApp
+                            </a>
+                        </li>
+                        <?php endif; ?>
+
+                        <li><hr class="dropdown-divider my-1"></li>
+
+                        <li>
+                            <button class="dropdown-item text-danger DeleteVendor"
+                                    data-vendoruid="<?php echo $uid; ?>"
+                                    data-name="<?php echo $name; ?>">
+                                <i class="bx bx-trash me-2"></i>Delete
+                            </button>
+                        </li>
+
+                    </ul>
                 </div>
+
+            </div>
+        </td>
+
+    </tr>
+<?php
+    endforeach;
+else:
+?>
+    <tr>
+        <td colspan="20" style="padding:0;border:none;">
+            <div class="d-flex flex-column align-items-center py-5">
+                <img src="/assets/img/elements/no-record-found.png" alt="No Records" class="img-fluid mb-3" style="max-height:150px;object-fit:contain;">
+                <span class="text-muted mb-3" style="font-size:.9rem;">No vendors found</span>
+                <a href="/vendors/create" class="btn btn-primary btn-sm px-4">
+                    <i class="bx bx-plus me-1"></i>Create Vendor
+                </a>
             </div>
         </td>
     </tr>
-
-<?php } ?>
+<?php endif; ?>

@@ -29284,3 +29284,256 @@ body:not(.modal-open) .layout-content-navbar .layout-navbar {
 .stat-converted { --stat-accent: #6f42c1; }
 
 /* ============================================================================= */
+
+/* =============================================================================
+   R2K TOOLBAR & TABLE THEME  —  R2K Enterprises
+   Reusable toolbar, search, status-tabs, table header/row styles used across
+   ALL module pages (Customers, Vendors, Products, Transactions, etc.)
+   Moved from css/transactions-theme.css so all pages can use them without
+   including transactions-theme.css separately.
+   ============================================================================= */
+
+/* ── Status color tokens ── */
+:root {
+    --status-draft:         #6c757d;  --status-draft-bg:    #f0f0f0;
+    --status-issued:        #0d6efd;  --status-issued-bg:   #e7f0ff;
+    --status-paid:          #198754;  --status-paid-bg:     #e6f4ed;
+    --status-partial:       #fd7e14;  --status-partial-bg:  #fff3e6;
+    --status-overdue:       #dc3545;  --status-overdue-bg:  #fde8ea;
+    --status-cancelled:     #adb5bd;  --status-cancelled-bg:#f2f3f4;
+    --status-converted:     #6f42c1;  --status-converted-bg:#f0ecfb;
+    --status-pending:       #e6ac00;  --status-pending-bg:  #fffbea;
+    --status-confirmed:     #0dcaf0;  --status-confirmed-bg:#e4f9fd;
+}
+
+/* ── Toolbar wrapper ── */
+.trans-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px 0 0;
+    border-bottom: 1px solid #f0f0f0;
+    gap: 12px;
+    min-height: 48px;
+    overflow: visible;
+    position: relative;
+}
+.trans-toolbar-tabs {
+    display: flex;
+    align-items: center;
+    overflow-x: auto;
+    flex: 1;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    min-width: 0;
+}
+.trans-toolbar-tabs::-webkit-scrollbar { display: none; }
+
+/* ── Status tabs ── */
+.trans-status-tabs {
+    flex-wrap: nowrap !important;
+    border-bottom: none;
+    gap: 0 !important;
+}
+.trans-status-tabs .nav-item { flex-shrink: 0; }
+.trans-status-tabs .nav-link {
+    padding: 14px 14px 12px;
+    font-size: .78rem;
+    font-weight: 600;
+    border-radius: 0;
+    color: #6c757d;
+    border: none;
+    border-bottom: 3px solid transparent;
+    white-space: nowrap;
+    transition: color .15s, border-color .15s, background .15s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.trans-status-tabs .nav-link:hover:not(.active) {
+    color: #696cff;
+    background: #f8f8ff;
+    border-bottom-color: #d0d0ff;
+}
+.trans-status-tabs .nav-link.active {
+    color: #696cff;
+    background: transparent;
+    border-bottom: 3px solid #696cff;
+    font-weight: 700;
+}
+.trans-tab-count {
+    font-size: .63rem;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 10px;
+    background: #e9ecef;
+    color: #495057;
+    line-height: 1.4;
+}
+.trans-status-tabs .nav-link.active .trans-tab-count {
+    background: #696cff;
+    color: #fff;
+}
+
+/* ── Toolbar right actions ── */
+.trans-toolbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    padding: 6px 0;
+}
+
+/* ── r2k icon button (refresh, settings, etc.) ── */
+.r2k-icon-btn {
+    height: 34px; width: 34px; border-radius: 7px;
+    border: 1.5px solid #e2e8f0; background: #fff;
+    color: #64748b; display: inline-flex;
+    align-items: center; justify-content: center;
+    font-size: 1rem; cursor: pointer;
+    transition: all .15s; text-decoration: none;
+}
+.r2k-icon-btn:hover { background: #eff6ff; border-color: #bfdbfe; color: #2563eb; }
+
+/* ── r2k search wrap ── */
+.r2k-search-wrap { position: relative; }
+.r2k-search-wrap input {
+    height: 34px; width: 200px;
+    padding: 0 30px 0 32px;
+    border: 1.5px solid #e2e8f0; border-radius: 7px;
+    font-size: .82rem; color: #1e293b;
+    outline: none; background: #fff;
+    transition: border-color .2s, box-shadow .2s;
+    display: block;
+}
+.r2k-search-wrap input:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37,99,235,.1);
+}
+.r2k-search-wrap .r2k-si  { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: .9rem; pointer-events: none; }
+.r2k-search-wrap .r2k-clear { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); color: #94a3b8; cursor: pointer; font-size: .95rem; }
+
+/* ── r2k dropdown button ── */
+.r2k-dd-btn {
+    height: 34px; padding: 0 12px;
+    border: 1.5px solid #e2e8f0; border-radius: 7px;
+    background: #fff; color: #374151;
+    font-size: .82rem; font-weight: 500;
+    display: inline-flex; align-items: center; gap: 5px;
+    cursor: pointer; transition: background .15s;
+}
+.r2k-dd-btn:hover { background: #f8fafc; }
+.r2k-dd-btn::after { display: none; }
+
+/* ── r2k create button ── */
+.r2k-create-btn {
+    height: 34px; padding: 0 14px;
+    background: #2563eb; color: #fff;
+    border: none; border-radius: 7px;
+    font-size: .82rem; font-weight: 600;
+    display: inline-flex; align-items: center; gap: 5px;
+    text-decoration: none; transition: background .15s;
+    white-space: nowrap;
+}
+.r2k-create-btn:hover { background: #1d4ed8; color: #fff; }
+
+/* ── r2k actions dropdown menu ── */
+.r2k-toolbar-actions .dropdown-menu {
+    border-radius: 9px; border: 1px solid #e2e8f0;
+    box-shadow: 0 6px 20px rgba(0,0,0,.09);
+    font-size: .82rem; min-width: 160px; padding: 5px;
+}
+.r2k-toolbar-actions .dropdown-item {
+    border-radius: 6px; padding: 7px 11px;
+    display: flex; align-items: center; gap: 7px; color: #374151;
+}
+.r2k-toolbar-actions .dropdown-item:hover { background: #eff6ff; color: #2563eb; }
+.r2k-toolbar-actions .dropdown-item.text-danger:hover { background: #fef2f2; color: #dc2626; }
+
+/* ── r2k actions button (3-dot) ── */
+.trans-actions-btn {
+    padding: 4px 6px; border-radius: 6px; border: 1px solid #e9ecef;
+    background: transparent; color: #aaa; transition: all .15s;
+}
+.trans-actions-btn:hover { background: #f8f9fa; color: #495057; border-color: #dee2e6; }
+
+/* ── Table ── */
+.trans-table thead th {
+    font-size: 0.71rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .04em;
+    color: #9aa0ac; padding: 9px 12px;
+    background: #fafafa; border-top: none; white-space: nowrap;
+}
+.trans-table thead tr th {
+    padding-block: 0.5rem;
+}
+.trans-table td {
+    vertical-align: middle; padding: 10px 12px;
+    font-size: 0.84rem; border-bottom: 1px solid #f2f2f2;
+}
+.trans-table tbody tr:last-child td { border-bottom: none; }
+.trans-table tbody tr:hover td { background: rgba(105,108,255,.025); }
+.trans-row-overdue td { background: rgba(220,53,69,.03) !important; }
+
+/* ── r2k gradient table header ── */
+.r2k-thead tr {
+    background: linear-gradient(90deg, #c4b5fd 0%, #d8b4fe 20%, #f0abfc 40%, #fdba74 60%, #6ee7b7 80%, #93c5fd 100%) !important;
+}
+.r2k-thead th {
+    background: transparent !important;
+    color: #1e1b4b !important;
+    font-size: .7rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .6px;
+    padding: 9px 12px;
+    border-bottom: 2px solid rgba(99,40,217,.2) !important;
+    border-right: 1px solid rgba(99,40,217,.12);
+    white-space: nowrap;
+}
+.r2k-thead th:last-child { border-right: none; }
+
+/* ── r2k table rows ── */
+.r2k-tbody tr:nth-child(odd)  td { background: #ffffff; }
+.r2k-tbody tr:nth-child(even) td { background: #f8fafc; }
+.r2k-tbody td {
+    padding: 10px 14px;
+    border-bottom: 1px solid #f1f5f9;
+    color: #334155; vertical-align: middle;
+    transition: background .12s;
+}
+.r2k-tbody tr:last-child td { border-bottom: none; }
+.r2k-tbody tr:hover td { background: #eff6ff !important; color: #1e40af; }
+.r2k-tbody tr:hover td .text-muted { color: #94a3b8 !important; }
+.r2k-tbody tr:hover td:first-child { border-left: 3px solid #2563eb; }
+.r2k-tbody tr.row-sel td { background: #dbeafe !important; color: #1d4ed8; }
+.r2k-tbody tr.row-sel td:first-child { border-left: 3px solid #1d4ed8; }
+
+/* ── Doc number link ── */
+.trans-doc-number { font-weight: 700; font-size: .84rem; color: #696cff; text-decoration: none; }
+.trans-doc-number:hover { text-decoration: underline; color: #4a4fc4; }
+
+/* ── Amount ── */
+.trans-amount-main { font-weight: 700; font-size: .875rem; color: #1e2330; }
+
+/* ── Party ── */
+.trans-party-name   { font-weight: 600; font-size: .84rem; color: #1e2330; line-height: 1.2; }
+.trans-party-mobile { font-size: .74rem; color: #888; }
+
+/* ── Due date ── */
+.trans-due-overdue { color: var(--status-overdue); font-weight: 700; font-size: .79rem; }
+.trans-due-soon    { color: var(--status-partial);  font-weight: 600; font-size: .79rem; }
+.trans-due-normal  { font-size: .79rem; color: #555; }
+
+/* ── Date filter option ── */
+.date-option {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+.df-date-preview {
+    font-size: .68rem; color: #94a3b8;
+    white-space: nowrap; margin-left: auto;
+    font-weight: 400; pointer-events: none;
+}
+
+/* ============================================================================= */

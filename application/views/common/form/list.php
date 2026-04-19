@@ -21,8 +21,8 @@
                 break;
             case 2:
                 $lastUpdatedBy = $list->{'Last Updated By'} ?? '';
-                $value  = '<div>'.changeTimeZomeDateFormat($value, $JwtData->User->Timezone, 2).'</div>';
-                $value .= '<div class="text-muted" style="font-size: 0.75rem;">by '.$lastUpdatedBy.'</div>';
+                $value  = '<div class="text-muted" style="font-size:.78rem;">'.changeTimeZomeDateFormat($value, $JwtData->User->Timezone, 2).'</div>';
+                $value .= '<div style="font-size:.71rem; color:#bbb;">by '.$lastUpdatedBy.'</div>';
                 break;
             default:
                 $value = changeTimeZomeDateFormat($value, $JwtData->User->Timezone, 1);

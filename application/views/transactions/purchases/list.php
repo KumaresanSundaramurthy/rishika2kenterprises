@@ -137,7 +137,7 @@ if (!empty($DataLists)):
 
         <!-- Actions -->
         <td style="width:50px">
-            <div class="d-flex align-items-center justify-content-center gap-1">
+            <div class="d-flex align-items-center justify-content-end gap-1">
 
                 <?php if (!$isTerminal): ?>
                 <a class="btn btn-icon btn-sm text-warning" href="/purchases/edit/<?php echo (int)$list->TransUID; ?>" title="Edit">
@@ -158,7 +158,7 @@ if (!empty($DataLists)):
                             </button>
                         </li>
                         <li>
-                            <button class="dropdown-item a4PrintTransaction" data-uid="<?php echo (int)$list->TransUID; ?>" data-url="/purchases/getPurchaseDetail" data-label="Purchase Bill">
+                            <button class="dropdown-item a4PrintTransaction" data-uid="<?php echo (int)$list->TransUID; ?>" data-module="<?php echo (int)$list->ModuleUID; ?>">
                                 <i class="bx bx-printer me-2 text-primary"></i>Print / Download
                             </button>
                         </li>

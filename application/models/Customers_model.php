@@ -207,6 +207,8 @@ class Customers_model extends CI_Model {
                 'COUNT(*) AS TotalCount',
                 'SUM(CASE WHEN IsActive = 1 THEN 1 ELSE 0 END) AS ActiveCount',
                 'SUM(CASE WHEN MONTH(CreatedOn) = MONTH(NOW()) AND YEAR(CreatedOn) = YEAR(NOW()) THEN 1 ELSE 0 END) AS MonthCount',
+                'SUM(CASE WHEN CreatedOn >= IF(MONTH(NOW())>=4, CONCAT(YEAR(NOW()),\'-04-01\'), CONCAT(YEAR(NOW())-1,\'-04-01\')) THEN 1 ELSE 0 END) AS FYCount',
+                'SUM(CASE WHEN MONTH(CreatedOn) = MONTH(NOW() - INTERVAL 1 MONTH) AND YEAR(CreatedOn) = YEAR(NOW() - INTERVAL 1 MONTH) THEN 1 ELSE 0 END) AS LastMonthCount',
             ]);
             $this->ReadDb->from('Customers.CustomerTbl');
             $this->ReadDb->where(['IsDeleted' => 0, 'OrgUID' => $OrgUID]);

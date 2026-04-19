@@ -647,7 +647,8 @@
                     var o = document.querySelector("#nav-theme-text")
                       , i = document.querySelector(".theme-icon-active")
                       , r = document.querySelector('[data-bs-theme-value="'.concat(e, '"]'))
-                      , a = r.querySelector("i").getAttribute("data-icon");
+                      , a = r && r.querySelector("i") ? r.querySelector("i").getAttribute("data-icon") : null;
+                    if (!r || !a) return;
                     document.querySelectorAll("[data-bs-theme-value]").forEach((function(e) {
                         e.classList.remove("active"),
                         e.setAttribute("aria-pressed", "false")
@@ -660,7 +661,7 @@
                     }
                     ));
                     i.setAttribute("class", "bx-".concat(a, " ").concat(s.join(" ")));
-                    var u = "".concat(o.textContent, " (").concat(r.dataset.bsThemeValue, ")");
+                    var u = "".concat(o ? o.textContent : "", " (").concat(r.dataset.bsThemeValue, ")");
                     n.setAttribute("aria-label", u),
                     t && n.focus()
                 }

@@ -34,6 +34,10 @@ class Vendors extends CI_Controller {
             $this->pageData['ModRowData'] = $ReturnResponse->RecordHtmlData;
             $this->pageData['ModPagination'] = $ReturnResponse->Pagination;
             $this->pageData['DispSettColumnDetails'] = $ReturnResponse->DispSettingsViewColumns;
+
+            $this->load->model('vendors_model');
+            $this->pageData['VendStats'] = $this->vendors_model->getVendorStats($this->pageData['JwtData']->User->OrgUID);
+
             $this->load->view('vendors/view', $this->pageData);
 
         } catch (Exception $e) {

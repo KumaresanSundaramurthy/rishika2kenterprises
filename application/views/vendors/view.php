@@ -11,12 +11,55 @@
         <!-- Layout container -->
         <div class="layout-page">
 
-            <?php $this->load->view('common/navbar_view'); ?>
-
             <!-- Content wrapper -->
             <div class="content-wrapper">
 
                 <div class="container-xxl flex-grow-1 container-p-y">
+
+                    <!-- ── Stat Cards ── -->
+                    <?php $s = $VendStats ?? null; ?>
+                    <div class="row g-3 mb-3">
+                        <div class="col-6 col-md">
+                            <div class="trans-stat-card stat-all">
+                                <div class="trans-stat-label">Total Vendors</div>
+                                <div class="trans-stat-count"><?php echo number_format((int)($s->TotalCount ?? 0)); ?></div>
+                                <div class="trans-stat-amount">&nbsp;</div>
+                                <i class="bx bxs-store trans-stat-icon"></i>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md">
+                            <div class="trans-stat-card stat-active">
+                                <div class="trans-stat-label">Active</div>
+                                <div class="trans-stat-count"><?php echo number_format((int)($s->ActiveCount ?? 0)); ?></div>
+                                <div class="trans-stat-amount">&nbsp;</div>
+                                <i class="bx bx-check-circle trans-stat-icon"></i>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md">
+                            <div class="trans-stat-card stat-paid">
+                                <div class="trans-stat-label">This Month</div>
+                                <div class="trans-stat-count"><?php echo number_format((int)($s->MonthCount ?? 0)); ?></div>
+                                <div class="trans-stat-amount">&nbsp;</div>
+                                <i class="bx bx-calendar trans-stat-icon"></i>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md">
+                            <div class="trans-stat-card stat-converted">
+                                <div class="trans-stat-label">This Financial Year</div>
+                                <div class="trans-stat-count"><?php echo number_format((int)($s->FYCount ?? 0)); ?></div>
+                                <div class="trans-stat-amount">&nbsp;</div>
+                                <i class="bx bx-trending-up trans-stat-icon"></i>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md">
+                            <div class="trans-stat-card stat-draft">
+                                <div class="trans-stat-label">Last Month</div>
+                                <div class="trans-stat-count"><?php echo number_format((int)($s->LastMonthCount ?? 0)); ?></div>
+                                <div class="trans-stat-amount">&nbsp;</div>
+                                <i class="bx bx-history trans-stat-icon"></i>
+                            </div>
+                        </div>
+                    </div>
 
                     <div class="card">
                         <div class="row">

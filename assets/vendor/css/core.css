@@ -29194,3 +29194,93 @@ body:not(.modal-open) .layout-content-navbar .layout-navbar {
 .combo-bom-row .combo-bom-content table tbody tr:last-child {
     border-bottom: none !important;
 }
+
+
+/* =============================================================================
+   STAT CARDS  —  R2K Enterprises
+   Reusable summary stat cards used across Customers, Vendors, Products,
+   Transactions and any other module that needs KPI summary tiles.
+   Classes: .trans-stat-card, .stat-all, .stat-active, .stat-paid,
+            .stat-draft, .stat-overdue, .stat-cancelled, .stat-partial,
+            .stat-converted
+   Moved from css/transactions-theme.css so all pages can use them.
+   ============================================================================= */
+
+/* ── Stat card accent token (overridden per variant below) ── */
+:root {
+    --stat-card-radius: 10px;
+}
+
+/* ── Base card ── */
+.trans-stat-card {
+    border-radius: var(--stat-card-radius);
+    border: 1px solid #e9ecef;
+    padding: 14px 18px;
+    background: #fff;
+    cursor: pointer;
+    text-decoration: none;
+    display: block;
+    transition: box-shadow 0.15s, transform 0.1s;
+    position: relative;
+    overflow: hidden;
+}
+.trans-stat-card:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, .09);
+    transform: translateY(-2px);
+}
+.trans-stat-card.active-stat {
+    border-color: var(--stat-accent, #696cff);
+    box-shadow: 0 0 0 1.5px var(--stat-accent, #696cff);
+}
+
+/* ── Left accent bar ── */
+.trans-stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 4px; height: 100%;
+    background: var(--stat-accent, #696cff);
+}
+
+/* ── Inner text elements ── */
+.trans-stat-label {
+    font-size: 0.69rem;
+    font-weight: 700;
+    color: #999;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+}
+.trans-stat-count {
+    font-size: 1.55rem;
+    font-weight: 800;
+    line-height: 1.1;
+    color: #1e2330;
+}
+.trans-stat-amount {
+    font-size: 0.74rem;
+    color: #888;
+    margin-top: 2px;
+}
+
+/* ── Background icon ── */
+.trans-stat-icon {
+    font-size: 1.9rem;
+    opacity: .1;
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--stat-accent, #696cff);
+}
+
+/* ── Colour variants ── */
+.stat-all       { --stat-accent: #696cff; }
+.stat-active    { --stat-accent: #0d6efd; }
+.stat-paid      { --stat-accent: #198754; }
+.stat-draft     { --stat-accent: #6c757d; }
+.stat-overdue   { --stat-accent: #dc3545; }
+.stat-cancelled { --stat-accent: #adb5bd; }
+.stat-partial   { --stat-accent: #fd7e14; }
+.stat-converted { --stat-accent: #6f42c1; }
+
+/* ============================================================================= */

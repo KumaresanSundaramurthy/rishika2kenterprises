@@ -66,6 +66,12 @@ $route['settings/generalsettings']        = 'settings/generalsettings';
 $route['settings/getThermalConfigList']   = 'settings/getThermalConfigList';
 $route['settings/saveThermalConfig']      = 'settings/saveThermalConfig';
 $route['settings/deleteThermalConfig']    = 'settings/deleteThermalConfig';
+$route['settings/getBankList']            = 'settings/getBankList';
+$route['settings/getBankDetail']          = 'settings/getBankDetail';
+$route['settings/saveBankDetail']         = 'settings/saveBankDetail';
+$route['settings/deleteBankDetail']       = 'settings/deleteBankDetail';
+$route['settings/setDefaultBank']         = 'settings/setDefaultBank';
+$route['settings/transferFunds']          = 'settings/transferFunds';
 
 // Roles
 $route['settings/roles']                         = 'roles/index';
@@ -190,9 +196,6 @@ $route['payments/deleteBankAccount']                   = 'payments/deleteBankAcc
 $route['payments/getBankDetails']                      = 'payments/getBankDetails';
 $route['payments/setDefaultBank']                      = 'payments/setDefaultBank';
 $route['payments/getBanksList']                        = 'payments/getBanksList';
-
-// Banks Settings
-$route['settings/banks']                               = 'banks/index';
 
 // Customers
 $route['customers/(:num)/edit'] = 'customers/edit/$1';

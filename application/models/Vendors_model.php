@@ -276,4 +276,27 @@ class Vendors_model extends CI_Model {
 
     }
 
+
+    public function getVendorStats($OrgUID) {
+
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select([
+                'COUNT(*) AS TotalCount',
+                'SUM(CASE WHEN IsActive = 1 THEN 1 ELSE 0 END) AS ActiveCount',
+                'SUM(CASE WHEN MONTH(CreatedOn) = MONTH(NOW()) AND YEAR(CreatedOn) = YEAR(NOW()) THEN 1 ELSE 0 END) AS MonthCount',
+                'SUM(CASE WHEN CreatedOn >= IF(MONTH(NOW())>=4, CONCAT(YEAR(NOW()),\'-04-01\'), CONCAT(YEAR(NOW())-1,\'-04-01\')) THEN 1 ELSE 0 END) AS FYCount',
+                'SUM(CASE WHEN MONTH(CreatedOn) = MONTH(NOW() - INTERVAL 1 MONTH) AND YEAR(CreatedOn) = YEAR(NOW() - INTERVAL 1 MONTH) THEN 1 ELSE 0 END) AS LastMonthCount',
+            ]);
+            $this->ReadDb->from('Vendors.VendorTbl');
+            $this->ReadDb->where(['IsDeleted' => 0, 'OrgUID' => $OrgUID]);
+            $query = $this->ReadDb->get();
+            if (!$query) throw new Exception('DB error');
+            return $query->row();
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+
+    }
+
 }

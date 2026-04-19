@@ -542,6 +542,60 @@ class Organisation_model extends CI_Model {
 
     }
 
+    // ── Bank Accounts ────────────────────────────────────────────────────────
+
+    /** Get all active bank accounts (including Cash) for an org. */
+    public function getBankAccountList($orgUID) {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $this->ReadDb->select([
+                'BankAccountUID', 'AccountName', 'BankName', 'AccountNumber',
+                'IFSC', 'BranchName', 'UPIId', 'UPINumber',
+                'OpeningBalance', 'Notes', 'IsDefault', 'IsCash',
+                'CreatedOn', 'UpdatedOn',
+            ]);
+            $this->ReadDb->from('Transaction.OrgBankAccountsTbl');
+            $this->ReadDb->where(['OrgUID' => $orgUID, 'IsDeleted' => 0, 'IsActive' => 1]);
+            $this->ReadDb->order_by('IsCash DESC, IsDefault DESC, BankAccountUID ASC');
+            $rows = $this->ReadDb->get()->result();
+
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Data  = $rows;
+            return $this->EndReturnData;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+            throw new Exception($this->EndReturnData->Message);
+        }
+
+    }
+
+    /** Get a single bank account by UID + OrgUID. */
+    public function getBankAccountByUID($bankUID, $orgUID) {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $this->ReadDb->from('Transaction.OrgBankAccountsTbl');
+            $this->ReadDb->where(['BankAccountUID' => (int)$bankUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
+            $this->ReadDb->limit(1);
+            $row = $this->ReadDb->get()->row();
+
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Data  = $row;
+            return $this->EndReturnData;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+            throw new Exception($this->EndReturnData->Message);
+        }
+
+    }
+
     /** Get all thermal print configs for an org (one per transaction type). */
     public function getThermalPrintConfigList($orgUID) {
 

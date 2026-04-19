@@ -151,6 +151,267 @@ class Settings extends CI_Controller {
 
     }
 
+    // ── Bank Accounts ────────────────────────────────────────────────────────
+
+    /** AJAX: return bank list HTML */
+    public function getBankList() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+            $this->load->model('organisation_model');
+            $result = $this->organisation_model->getBankAccountList($orgUID);
+            $rows   = $result->Error === FALSE ? $result->Data : [];
+
+            $rowHtml = $this->load->view('settings/banks/list', [
+                'DataLists' => $rows,
+                'JwtData'   => $this->pageData['JwtData'],
+            ], TRUE);
+
+            $this->EndReturnData->Error          = FALSE;
+            $this->EndReturnData->RecordHtmlData = $rowHtml;
+            $this->EndReturnData->TotalCount     = count($rows);
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    /** AJAX POST: get a single bank account for editing */
+    public function getBankDetail() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $PostData = $this->input->post();
+            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $bankUID  = (int) getPostValue($PostData, 'BankAccountUID');
+
+            if ($bankUID <= 0) throw new Exception('Invalid bank account ID.');
+
+            $this->load->model('organisation_model');
+            $result = $this->organisation_model->getBankAccountByUID($bankUID, $orgUID);
+            if (!$result->Data) throw new Exception('Bank account not found.');
+
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Data  = $result->Data;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    /** AJAX POST: create or update a bank account */
+    public function saveBankDetail() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $PostData     = $this->input->post();
+            $orgUID       = $this->pageData['JwtData']->User->OrgUID;
+            $userUID      = $this->pageData['JwtData']->User->UserUID;
+            $bankUID      = (int) getPostValue($PostData, 'BankAccountUID');
+            $accountName  = trim(getPostValue($PostData, 'AccountName') ?: '');
+            $accountNo    = trim(getPostValue($PostData, 'AccountNumber') ?: '');
+            $confirmNo    = trim(getPostValue($PostData, 'ConfirmAccountNumber') ?: '');
+            $ifsc         = strtoupper(trim(getPostValue($PostData, 'IFSC') ?: ''));
+            $bankName     = trim(getPostValue($PostData, 'BankName') ?: '');
+            $branchName   = trim(getPostValue($PostData, 'BranchName') ?: '');
+            $upiId        = trim(getPostValue($PostData, 'UPIId') ?: '') ?: NULL;
+            $upiNumber    = trim(getPostValue($PostData, 'UPINumber') ?: '') ?: NULL;
+            $openingBal   = (float) (getPostValue($PostData, 'OpeningBalance') ?: 0);
+            $notes        = trim(getPostValue($PostData, 'Notes') ?: '') ?: NULL;
+            $isDefault    = (int)(bool) getPostValue($PostData, 'IsDefault');
+
+            if (!$accountName) throw new Exception('Account Holder Name is required.');
+            if (!$accountNo)   throw new Exception('Account Number is required.');
+            if ($bankUID <= 0 && $accountNo !== $confirmNo) throw new Exception('Account numbers do not match.');
+            if (!$ifsc)        throw new Exception('IFSC Code is required.');
+            if (!$bankName)    throw new Exception('Bank Name is required.');
+            if (!$branchName)  throw new Exception('Branch Name is required.');
+
+            $this->load->model('dbwrite_model');
+
+            if ($isDefault) {
+                $this->dbwrite_model->updateData(
+                    'Transaction', 'OrgBankAccountsTbl',
+                    ['IsDefault' => 0, 'UpdatedBy' => $userUID],
+                    ['OrgUID' => $orgUID, 'IsDeleted' => 0]
+                );
+            }
+
+            $data = [
+                'AccountName'    => $accountName,
+                'AccountNumber'  => $accountNo,
+                'IFSC'           => $ifsc,
+                'BankName'       => $bankName,
+                'BranchName'     => $branchName,
+                'UPIId'          => $upiId,
+                'UPINumber'      => $upiNumber,
+                'OpeningBalance' => $openingBal,
+                'Notes'          => $notes,
+                'IsDefault'      => $isDefault,
+                'UpdatedBy'      => $userUID,
+            ];
+
+            if ($bankUID > 0) {
+                $this->dbwrite_model->updateData(
+                    'Transaction', 'OrgBankAccountsTbl', $data,
+                    ['BankAccountUID' => $bankUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0, 'IsCash' => 0]
+                );
+                $this->EndReturnData->Message = 'Bank account updated successfully.';
+            } else {
+                $data['OrgUID']    = $orgUID;
+                $data['IsCash']    = 0;
+                $data['IsActive']  = 1;
+                $data['IsDeleted'] = 0;
+                $data['CreatedBy'] = $userUID;
+                $this->dbwrite_model->insertData('Transaction', 'OrgBankAccountsTbl', $data);
+                $this->EndReturnData->Message = 'Bank account added successfully.';
+            }
+
+            $this->EndReturnData->Error = FALSE;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    /** AJAX POST: soft-delete a bank account */
+    public function deleteBankDetail() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $PostData = $this->input->post();
+            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $userUID  = $this->pageData['JwtData']->User->UserUID;
+            $bankUID  = (int) getPostValue($PostData, 'BankAccountUID');
+
+            if ($bankUID <= 0) throw new Exception('Invalid bank account ID.');
+
+            $this->load->model('organisation_model');
+            $row = $this->organisation_model->getBankAccountByUID($bankUID, $orgUID);
+            if (!$row->Data) throw new Exception('Bank account not found.');
+            if ($row->Data->IsCash) throw new Exception('Cash account cannot be deleted.');
+
+            $this->load->model('dbwrite_model');
+            $this->dbwrite_model->updateData(
+                'Transaction', 'OrgBankAccountsTbl',
+                ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
+                ['BankAccountUID' => $bankUID, 'OrgUID' => $orgUID]
+            );
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Bank account deleted successfully.';
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    /** AJAX POST: set a bank as the default */
+    public function setDefaultBank() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $PostData = $this->input->post();
+            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $userUID  = $this->pageData['JwtData']->User->UserUID;
+            $bankUID  = (int) getPostValue($PostData, 'BankAccountUID');
+
+            if ($bankUID <= 0) throw new Exception('Invalid bank account ID.');
+
+            $this->load->model('dbwrite_model');
+            $this->dbwrite_model->updateData(
+                'Transaction', 'OrgBankAccountsTbl',
+                ['IsDefault' => 0, 'UpdatedBy' => $userUID],
+                ['OrgUID' => $orgUID, 'IsDeleted' => 0]
+            );
+            $this->dbwrite_model->updateData(
+                'Transaction', 'OrgBankAccountsTbl',
+                ['IsDefault' => 1, 'UpdatedBy' => $userUID],
+                ['BankAccountUID' => $bankUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
+            );
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Default bank updated.';
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    /** AJAX POST: internal fund transfer between bank accounts */
+    public function transferFunds() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $PostData    = $this->input->post();
+            $orgUID      = $this->pageData['JwtData']->User->OrgUID;
+            $userUID     = $this->pageData['JwtData']->User->UserUID;
+            $fromUID     = (int) getPostValue($PostData, 'FromBankUID');
+            $toUID       = (int) getPostValue($PostData, 'ToBankUID');
+            $amount      = (float) getPostValue($PostData, 'Amount');
+            $transDate   = trim(getPostValue($PostData, 'TransferDate') ?: date('Y-m-d'));
+            $referenceNo = trim(getPostValue($PostData, 'ReferenceNo') ?: '') ?: NULL;
+            $notes       = trim(getPostValue($PostData, 'Notes') ?: '') ?: NULL;
+
+            if ($fromUID <= 0) throw new Exception('Please select source account.');
+            if ($toUID <= 0)   throw new Exception('Please select destination account.');
+            if ($fromUID === $toUID) throw new Exception('Source and destination cannot be the same.');
+            if ($amount <= 0)  throw new Exception('Transfer amount must be greater than zero.');
+
+            $this->load->model('dbwrite_model');
+            $this->dbwrite_model->insertData('Transaction', 'FundTransfersTbl', [
+                'OrgUID'       => $orgUID,
+                'FromBankUID'  => $fromUID,
+                'ToBankUID'    => $toUID,
+                'Amount'       => $amount,
+                'TransferDate' => $transDate,
+                'ReferenceNo'  => $referenceNo,
+                'Notes'        => $notes,
+                'IsActive'     => 1,
+                'IsDeleted'    => 0,
+                'CreatedBy'    => $userUID,
+                'UpdatedBy'    => $userUID,
+            ]);
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Funds transferred successfully.';
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
     /** AJAX POST: soft-delete a thermal config row */
     public function deleteThermalConfig() {
 

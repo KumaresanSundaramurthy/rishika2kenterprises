@@ -19,7 +19,7 @@
     --status-expired:       #adb5bd;
     --status-fulfilled:     #198754;
     --status-sent:          #0d6efd;
-    --stat-card-radius:     10px;
+    --stat-card-radius:     10px;  /* also defined in core.css for global use */
 }
 
 /* ── Status Badges ────────────────────────────────── */
@@ -47,31 +47,10 @@
 .trans-badge-Expired   { color:var(--status-expired);   background:var(--status-cancelled-bg); }
 .trans-badge-Fulfilled { color:var(--status-fulfilled); background:var(--status-paid-bg); }
 
-/* ── Stat Cards ───────────────────────────────────── */
-.trans-stat-card {
-    border-radius: var(--stat-card-radius);
-    border: 1px solid #e9ecef;
-    padding: 14px 18px; background: #fff;
-    cursor: pointer; text-decoration: none; display: block;
-    transition: box-shadow 0.15s, transform 0.1s;
-    position: relative; overflow: hidden;
-}
-.trans-stat-card:hover       { box-shadow:0 4px 16px rgba(0,0,0,.09); transform:translateY(-2px); }
-.trans-stat-card.active-stat { border-color:var(--stat-accent,#696cff); box-shadow:0 0 0 1.5px var(--stat-accent,#696cff); }
-.trans-stat-card::before     { content:''; position:absolute; top:0; left:0; width:4px; height:100%; background:var(--stat-accent,#696cff); }
-.trans-stat-label  { font-size:0.69rem; font-weight:700; color:#999; text-transform:uppercase; letter-spacing:.05em; }
-.trans-stat-count  { font-size:1.55rem; font-weight:800; line-height:1.1; color:#1e2330; }
-.trans-stat-amount { font-size:0.74rem; color:#888; margin-top:2px; }
-.trans-stat-icon   { font-size:1.9rem; opacity:.1; position:absolute; right:14px; top:50%; transform:translateY(-50%); color:var(--stat-accent,#696cff); }
-.stat-all       { --stat-accent:#696cff; }
-.stat-active    { --stat-accent:#0d6efd; }
-.stat-paid      { --stat-accent:#198754; }
-.stat-draft     { --stat-accent:#6c757d; }
-.stat-overdue   { --stat-accent:#dc3545; }
-.stat-cancelled { --stat-accent:#adb5bd; }
-.stat-partial   { --stat-accent:#fd7e14; }
-.stat-converted { --stat-accent:#6f42c1; }
-
+/* ── Stat Cards ── moved to assets/vendor/css/core.css ──────────────────── */
+/* .trans-stat-card and .stat-* variants are now in core.css                  */
+/* so they are available globally across all modules (Customers, Vendors,     */
+/* Products, Transactions, etc.)                                               */
 /* ── Table ────────────────────────────────────────── */
 .trans-table thead th {
     font-size: 0.71rem; font-weight: 700;

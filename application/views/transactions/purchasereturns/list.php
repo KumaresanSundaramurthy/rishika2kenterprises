@@ -112,7 +112,7 @@ if (!empty($DataLists)):
 
         <!-- Actions -->
         <td style="width:50px">
-            <div class="d-flex align-items-center justify-content-center gap-1">
+            <div class="d-flex align-items-center justify-content-end gap-1">
 
                 <?php if (!$isTerminal): ?>
                 <a class="btn btn-icon btn-sm text-warning" href="/purchasereturns/edit/<?php echo (int)$list->TransUID; ?>" title="Edit">

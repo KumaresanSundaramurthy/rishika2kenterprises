@@ -22,8 +22,8 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 COPY . /var/www/html
 WORKDIR /var/www/html
 
-# Regenerate optimized autoloader from vendor already present in the image
-RUN composer dump-autoload --no-dev --optimize --no-interaction
+# Install PHP dependencies
+RUN COMPOSER_MEMORY_LIMIT=-1 composer install --no-dev --optimize-autoloader --no-interaction
 
 # Copy nginx config
 COPY nginx/default.conf /etc/nginx/conf.d/default.conf

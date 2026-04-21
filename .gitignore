@@ -29,7 +29,6 @@ assets/exports/*
 uploads/
 assets/uploads/
 
-composer.lock
 tests/mocks/database/ci_test.sqlite
 
 user_guide_src/build/*

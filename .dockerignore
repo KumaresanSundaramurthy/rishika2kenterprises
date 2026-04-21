@@ -1,0 +1,6 @@
+vendor/
+.git/
+.claude/
+database/
+*.md
+node_modules/

@@ -3,12 +3,13 @@ FROM php:8.1-fpm
 # Install system dependencies first
 RUN apt-get update --fix-missing && \
     apt-get install -y nginx supervisor libzip-dev unzip zip git libpng-dev \
-    libjpeg-dev libfreetype6-dev libonig-dev libxml2-dev build-essential pkg-config && \
+    libjpeg-dev libfreetype6-dev libonig-dev libxml2-dev build-essential pkg-config \
+    libicu-dev && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install PHP extensions (configure gd first)
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg && \
-    docker-php-ext-install gd zip mysqli pdo pdo_mysql mbstring xml fileinfo ctype
+    docker-php-ext-install gd zip mysqli pdo pdo_mysql mbstring xml fileinfo ctype intl bcmath
 
 # Install Redis via PECL
 RUN pecl install -o -f redis && \

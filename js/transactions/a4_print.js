@@ -2,6 +2,8 @@
 
 var _a4Html  = null;
 var _a4Title = '';
+var _a4DownloadUid       = null;
+var _a4DownloadModuleUID = null;
 
 // Paper dimensions at 96dpi (px)
 var _paperW = { A4: 794, A5: 559 };
@@ -11,6 +13,8 @@ $(document).on('click', '.a4PrintTransaction', function () {
     var uid       = $(this).data('uid');
     var moduleUID = $(this).data('module');
     _a4Html = null;
+    _a4DownloadUid       = uid;
+    _a4DownloadModuleUID = moduleUID;
     $('#a4PrintModal').modal('show');
     _a4SetLoading(true);
     AjaxLoading = 0;
@@ -55,27 +59,22 @@ function _a4ShowPreview() {
     var pw    = _paperW[size] || 794;
     var ph    = _paperH[size] || 1123;
 
-    var $stage   = $('#a4PreviewStage');
-    var stageW   = $stage.width() || 860;
-    var scale    = Math.min(1, (stageW - 48) / pw);   // 24px padding each side
-    var scaledH  = Math.round(ph * scale);
+    var $stage  = $('#a4PreviewStage');
+    var stageW  = $stage.width() || 860;
+    var scale   = Math.min(1, (stageW - 48) / pw);
 
-    // Paper wrapper holds the iframe at natural size, then gets scaled
+    // Paper box uses min-height so it grows for multi-page content after iframe loads
     var paperHtml =
-        '<div style="' +
-            'display:flex;justify-content:center;' +
-            'padding:24px 0 32px;' +
-        '">' +
-            '<div style="' +
-                'width:' + pw + 'px;' +
-                'height:' + ph + 'px;' +
+        '<div style="display:flex;justify-content:center;padding:24px 0 32px;">' +
+            '<div id="a4PaperBox" style="' +
+                'width:'      + pw + 'px;' +
+                'min-height:' + ph + 'px;' +
                 'transform:scale(' + scale + ');' +
                 'transform-origin:top center;' +
                 'box-shadow:0 4px 24px rgba(0,0,0,.45);' +
                 'background:#fff;' +
                 'flex-shrink:0;' +
-                'overflow:hidden;' +
-            '" id="a4PaperBox">' +
+            '">' +
                 '<iframe id="a4PreviewFrame" ' +
                     'style="width:' + pw + 'px;height:' + ph + 'px;border:0;display:block;" ' +
                     'scrolling="no">' +
@@ -83,17 +82,34 @@ function _a4ShowPreview() {
             '</div>' +
         '</div>';
 
-    // Outer wrapper height must account for scaling shrinkage
     $stage.html(
-        '<div style="min-height:' + (scaledH + 56) + 'px;">' + paperHtml + '</div>'
+        '<div id="a4StageWrap" style="min-height:' + (Math.round(ph * scale) + 56) + 'px;">' +
+        paperHtml + '</div>'
     );
 
-    // Write HTML into iframe
-    var iframe = document.getElementById('a4PreviewFrame');
-    var doc    = iframe.contentDocument || iframe.contentWindow.document;
-    doc.open();
-    doc.write(_a4Html);
-    doc.close();
+    // Load via Blob URL so the iframe document has a real URL context,
+    // allowing external resources (Google Fonts) to load correctly.
+    var iframe  = document.getElementById('a4PreviewFrame');
+    var blob    = new Blob([_a4Html], { type: 'text/html; charset=utf-8' });
+    var blobUrl = URL.createObjectURL(blob);
+
+    iframe.onload = function () {
+        URL.revokeObjectURL(blobUrl);
+        iframe.onload = null;
+        // Auto-expand iframe to full content height (multi-page support)
+        try {
+            var doc      = iframe.contentDocument || iframe.contentWindow.document;
+            var contentH = Math.max(ph, doc.documentElement.scrollHeight);
+            if (contentH > ph) {
+                iframe.style.height = contentH + 'px';
+                var box  = document.getElementById('a4PaperBox');
+                var wrap = document.getElementById('a4StageWrap');
+                if (box)  box.style.minHeight  = contentH + 'px';
+                if (wrap) wrap.style.minHeight = (Math.round(contentH * scale) + 56) + 'px';
+            }
+        } catch (e) {}
+    };
+    iframe.src = blobUrl;
 }
 
 // Paper size toggle
@@ -108,15 +124,19 @@ $(window).on('resize', function () {
     }
 });
 
-// Returns _a4Html with @page size patched to the currently selected paper size
+// Patch @page size for print/PDF
 function _a4HtmlForSize() {
     var size = $('input[name="a4PaperSize"]:checked').val() || 'A4';
     return _a4Html.replace(/@page\s*\{[^}]*\}/, '@page{size:' + size + ';margin:0;}');
 }
 
-// Print button — write HTML into hidden iframe and trigger print
+// Print button — load into hidden iframe via Blob URL and trigger browser print
 $('#a4PrintBtn').on('click', function () {
     if (!_a4Html) return;
+    var html    = _a4HtmlForSize();
+    var blob    = new Blob([html], { type: 'text/html; charset=utf-8' });
+    var blobUrl = URL.createObjectURL(blob);
+
     var frame = document.getElementById('a4PrintFrame');
     if (!frame) {
         frame = document.createElement('iframe');
@@ -124,32 +144,63 @@ $('#a4PrintBtn').on('click', function () {
         frame.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none;';
         document.body.appendChild(frame);
     }
-    var printHtml = _a4HtmlForSize();
-    frame.contentDocument.open();
-    frame.contentDocument.write(printHtml);
-    frame.contentDocument.close();
     frame.onload = function () {
+        URL.revokeObjectURL(blobUrl);
+        frame.onload = null;
         frame.contentWindow.document.title = _a4Title;
         frame.contentWindow.print();
     };
+    frame.src = blobUrl;
 });
 
-// Download button
+// Direct PDF download — bypasses the preview modal entirely
+$(document).on('click', '.downloadPdfQuotation', function () {
+    var uid       = $(this).data('uid');
+    var moduleUID = $(this).data('module');
+    if (!uid || !moduleUID) {
+        Swal.fire({ icon: 'warning', text: 'Unable to download: missing transaction data.' });
+        return;
+    }
+    var form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/transactions/downloadA4Pdf';
+    form.style.display = 'none';
+    var fields = { TransUID: uid, ModuleUID: moduleUID, PaperSize: 'A4', [CsrfName]: CsrfToken };
+    Object.keys(fields).forEach(function (key) {
+        var input = document.createElement('input');
+        input.type  = 'hidden';
+        input.name  = key;
+        input.value = fields[key];
+        form.appendChild(input);
+    });
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
+});
+
+// Download button — POST to server, receive PDF file download
 $('#a4DownloadBtn').on('click', function () {
     if (!_a4Html) return;
-    var blob  = new Blob([_a4HtmlForSize()], { type: 'text/html' });
-    var url   = URL.createObjectURL(blob);
-    var frame = document.getElementById('_pdfDownloadFrame');
-    if (!frame) {
-        frame = document.createElement('iframe');
-        frame.id = '_pdfDownloadFrame';
-        frame.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none;';
-        document.body.appendChild(frame);
+    var uid       = _a4DownloadUid;
+    var moduleUID = _a4DownloadModuleUID;
+    var size      = $('input[name="a4PaperSize"]:checked').val() || 'A4';
+    if (!uid || !moduleUID) {
+        Swal.fire({ icon: 'warning', text: 'Transaction data not loaded yet.' });
+        return;
     }
-    frame.src = url;
-    frame.onload = function () {
-        frame.contentWindow.document.title = _a4Title;
-        frame.contentWindow.print();
-        setTimeout(function () { URL.revokeObjectURL(url); }, 3000);
-    };
+    var form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/transactions/downloadA4Pdf';
+    form.style.display = 'none';
+    var fields = { TransUID: uid, ModuleUID: moduleUID, PaperSize: size, [CsrfName]: CsrfToken };
+    Object.keys(fields).forEach(function (key) {
+        var input = document.createElement('input');
+        input.type  = 'hidden';
+        input.name  = key;
+        input.value = fields[key];
+        form.appendChild(input);
+    });
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
 });

@@ -156,7 +156,10 @@ if (!empty($DataLists)):
                             </button>
                         </li>
                         <li>
-                            <button class="dropdown-item downloadPdfQuotation" data-uid="<?php echo (int)$list->TransUID; ?>" data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>">
+                            <button class="dropdown-item downloadPdfQuotation"
+                                data-uid="<?php echo (int)$list->TransUID; ?>"
+                                data-module="<?php echo (int)$list->ModuleUID; ?>"
+                                data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>">
                                 <i class="bx bx-download me-2 text-primary"></i>Download PDF
                             </button>
                         </li>

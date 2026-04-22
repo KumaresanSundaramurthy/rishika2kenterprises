@@ -464,7 +464,7 @@ class Transactions extends CI_Controller {
                 : 'https://pub-bb40942a33344637936ade1f3800ff8b.r2.dev/Global/favicon_io/android-chrome-512x512-1.png';
             $bankQrHtml = '<div style="position:relative;display:inline-block;line-height:0;">'
                 . '<img src="' . $qrUrl . '" width="150" height="150">'
-                . '<div style="position:absolute;top:50%;left:50%;'
+                . '<div class="qr-logo-overlay" style="position:absolute;top:50%;left:50%;'
                     . 'transform:translate(-50%,-50%);width:38px;height:38px;'
                     . 'background:#fff;border-radius:4px;padding:3px;box-sizing:border-box;">'
                 . '<img src="' . $orgLogoSrc . '" style="width:100%;height:100%;object-fit:contain;">'
@@ -578,12 +578,77 @@ class Transactions extends CI_Controller {
         $html = $this->_processConditionals($html, $tokens);
         $html = str_replace(array_keys($tokens), array_values($tokens), $html);
 
-        return '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>' .
-                    '@page{size:A4;margin:0;}' .
-                    'body{margin:10mm;padding:0;background:#fff;box-sizing:border-box;}' .
-                    '@media print{body{background:#fff;}}' .
-                    '</style></head><body>' . $html . '</body></html>';
+        $systemFonts   = ['Arial', 'Helvetica', 'Verdana', 'Tahoma', 'Trebuchet MS', 'Times New Roman', 'Georgia', 'Palatino Linotype', 'Calibri'];
+        $fontFamily    = $theme->FontFamily ?? 'Arial';
+        $fontFamilyEsc = str_replace("'", "\\'", $fontFamily);
+        $fontSizePx    = (int) ($theme->FontSizePx ?? 11);
 
+        $headInject = '<style>'
+            . '@page{size:A4;margin:0;}'
+            . '@media print{body{background:#fff;}}'
+            . "body{padding:0 5mm;box-sizing:border-box;font-size:{$fontSizePx}px !important;}"
+            . '.invoice{width:100%!important;max-width:100%!important;box-sizing:border-box!important;margin:10px 0!important;}'
+            . "body,body *{font-family:'{$fontFamilyEsc}',Arial,Helvetica,sans-serif !important;}"
+            . '</style>';
+
+        // For Google Fonts: inject <link> tag — rendered via Blob URL so external requests load correctly
+        if (!in_array($fontFamily, $systemFonts)) {
+            $headInject .= '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family='
+                . str_replace(' ', '+', $fontFamily)
+                . ':wght@400;600;700&display=swap">';
+        }
+
+        $html = str_replace('</head>', $headInject . '</head>', $html);
+        return $html;
+
+    }
+
+    // Composites the QR code and logo overlay into a single base64 PNG using GD.
+    // This is called only for PDF output — Dompdf cannot handle position:absolute overlays.
+    private function _compositeQrForPdf(string $html): string {
+        $pattern = '/<div[^>]*>\s*<img[^>]+src="(https:\/\/api\.qrserver\.com[^"]+)"[^>]*>\s*<div[^>]*class="qr-logo-overlay"[^>]*>\s*<img[^>]+src="([^"]+)"[^>]*>\s*<\/div>\s*<\/div>/is';
+
+        return preg_replace_callback($pattern, function ($m) {
+            $qrUrl   = $m[1];
+            $logoUrl = $m[2];
+
+            $qrData = @file_get_contents($qrUrl);
+            if (!$qrData) return '<img src="' . htmlspecialchars($qrUrl) . '" width="150" height="150">';
+
+            $qrImg = @imagecreatefromstring($qrData);
+            if (!$qrImg) return '<img src="' . htmlspecialchars($qrUrl) . '" width="150" height="150">';
+
+            $logoData = @file_get_contents($logoUrl);
+            if ($logoData) {
+                $logoImg = @imagecreatefromstring($logoData);
+                if ($logoImg) {
+                    $qrW      = imagesx($qrImg);
+                    $qrH      = imagesy($qrImg);
+                    $logoSize = (int)($qrW * 0.25);
+
+                    $logoResized = imagecreatetruecolor($logoSize, $logoSize);
+                    imagefill($logoResized, 0, 0, imagecolorallocate($logoResized, 255, 255, 255));
+                    imagecopyresampled($logoResized, $logoImg, 0, 0, 0, 0, $logoSize, $logoSize, imagesx($logoImg), imagesy($logoImg));
+
+                    $x       = (int)(($qrW - $logoSize) / 2);
+                    $y       = (int)(($qrH - $logoSize) / 2);
+                    $padding = 4;
+                    $white   = imagecolorallocate($qrImg, 255, 255, 255);
+                    imagefilledrectangle($qrImg, $x - $padding, $y - $padding, $x + $logoSize + $padding, $y + $logoSize + $padding, $white);
+                    imagecopy($qrImg, $logoResized, $x, $y, 0, 0, $logoSize, $logoSize);
+
+                    imagedestroy($logoResized);
+                    imagedestroy($logoImg);
+                }
+            }
+
+            ob_start();
+            imagepng($qrImg);
+            $imgData = ob_get_clean();
+            imagedestroy($qrImg);
+
+            return '<img src="data:image/png;base64,' . base64_encode($imgData) . '" width="150" height="150">';
+        }, $html);
     }
 
     private function _numberToWords(float $amount): string {
@@ -783,6 +848,101 @@ class Transactions extends CI_Controller {
             (!empty($h->Notes) ? '<p style="margin-top:12px;font-size:11px;color:#666"><strong>Notes:</strong> ' . $e($h->Notes) . '</p>' : '') .
             (!empty($h->TermsConditions) ? '<p style="font-size:11px;color:#666"><strong>Terms:</strong> ' . $e($h->TermsConditions) . '</p>' : '') .
         '</div></body></html>';
+    }
+
+    // ----------------------------------------------------------------
+    // POST /transactions/downloadA4Pdf
+    // Renders the transaction as HTML, converts to PDF via DomPDF,
+    // and streams it as a file download.
+    // ----------------------------------------------------------------
+    public function downloadA4Pdf() {
+
+        try {
+
+            $transUID  = (int) $this->input->get_post('TransUID');
+            $moduleUID = (int) $this->input->get_post('ModuleUID');
+            $orgUID    = $this->pageData['JwtData']->User->OrgUID;
+
+            if ($transUID  <= 0) throw new Exception('Invalid transaction.');
+            if ($moduleUID <= 0) throw new Exception('ModuleUID is required.');
+
+            $this->load->model('transactions_model');
+            $header = $this->transactions_model->getTransactionById($transUID, $orgUID, $moduleUID);
+            if (!$header) throw new Exception('Transaction not found.');
+
+            $items = $this->transactions_model->getTransactionItems($transUID, $orgUID);
+
+            $this->load->model('organisation_model');
+            $orgInfo          = $this->organisation_model->getOrgForReceipt($orgUID);
+            $printThemeResult = $this->organisation_model->getPrintThemeByType($orgUID, $header->TransType);
+            $printBankAccount = $this->transactions_model->getPrintBankAccount($orgUID);
+
+            $html = $this->_renderA4Html($header, $items, $orgInfo->Data ?? null, $printThemeResult->Data ?? null, $printBankAccount);
+
+            // ── PDF-specific HTML adjustments ────────────────────────
+            $paperSize  = strtoupper(trim($this->input->get_post('PaperSize') ?: 'A4'));
+            $fontFamily = $printThemeResult->Data->FontFamily ?? 'Arial';
+
+            // 1. Strip Google Fonts link — Dompdf cannot load WOFF2/web fonts.
+            //    The font-family !important rule in _renderA4Html falls back to Arial in Dompdf.
+            $html = preg_replace('/<link[^>]*fonts\.googleapis\.com[^>]*>/i', '', $html);
+
+            // 2. PDF layout overrides — body padding is for browser preview only;
+            //    @page margin handles spacing in the PDF.
+            $html = str_replace('</head>',
+                '<style>'
+                . 'body{padding:0!important;margin:0!important;}'
+                . '.print-content{margin:0!important;}'
+                . '#trans-type-header td{border-left:none!important;border-right:none!important;}'
+                . '</style></head>',
+                $html);
+
+            // 3. Composite QR + logo into a single base64 PNG (Dompdf can't do CSS positioning)
+            $html = $this->_compositeQrForPdf($html);
+
+            // 4. Dompdf CSS compatibility fixes
+            $html = preg_replace('/\bdisplay\s*:\s*flex\s*;?/i',                       'display:block;', $html);
+            $html = preg_replace('/\bflex-direction\s*:[^;"}]+;?/i',                   '', $html);
+            $html = preg_replace('/\bjustify-content\s*:[^;"}]+;?/i',                  '', $html);
+            $html = preg_replace('/\balign-items\s*:[^;"}]+;?/i',                      '', $html);
+            $html = preg_replace('/\bheight\s*:\s*100%\s*;?/i',                        '', $html);
+            $html = preg_replace('/\bposition\s*:\s*(absolute|relative|fixed)\s*;?/i', '', $html);
+            $html = preg_replace('/\btransform\s*:[^;"}]+;?/i',                        '', $html);
+            $html = preg_replace('/\btop\s*:\s*[^;"}]+;?/i',                           '', $html);
+            $html = preg_replace('/\bleft\s*:\s*[^;"}]+;?/i',                          '', $html);
+
+            // 5. Page size — body padding removed above, so @page margin is the only spacing
+            $html = preg_replace('/@page\s*\{[^}]*\}/', "@page{size:{$paperSize};margin:10mm 5mm;}", $html);
+
+            // ── DomPDF ──────────────────────────────────────────────
+            require_once FCPATH . 'vendor/autoload.php';
+
+            $options = new \Dompdf\Options();
+            $options->set('isHtml5ParserEnabled', true);
+            $options->set('isRemoteEnabled', true);
+            $options->set('defaultFont', 'Arial');
+            $options->set('chroot', FCPATH);
+
+            $dompdf = new \Dompdf\Dompdf($options);
+            $dompdf->loadHtml($html, 'UTF-8');
+            $dompdf->setPaper(strtolower($paperSize), 'portrait');
+            $dompdf->render();
+
+            $filename = preg_replace('/[^A-Za-z0-9_\-]/', '_', $header->UniqueNumber ?? ('Trans_' . $transUID)) . '.pdf';
+
+            // Stream PDF to browser as download
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: attachment; filename="' . $filename . '"');
+            header('Cache-Control: private, max-age=0, must-revalidate');
+            echo $dompdf->output();
+            exit;
+
+        } catch (Exception $e) {
+            header('Content-Type: application/json');
+            echo json_encode(['Error' => true, 'Message' => $e->getMessage()]);
+            exit;
+        }
+
     }
 
     public function searchTransProducts() {

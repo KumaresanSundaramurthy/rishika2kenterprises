@@ -183,6 +183,7 @@
                                             <option value="Open Sans">Open Sans</option>
                                             <option value="Lato">Lato</option>
                                             <option value="Nunito">Nunito</option>
+                                            <option value="Mulish">Mulish</option>
                                             <option value="Poppins">Poppins</option>
                                             <option value="Montserrat">Montserrat</option>
                                             <option value="Source Sans Pro">Source Sans Pro</option>

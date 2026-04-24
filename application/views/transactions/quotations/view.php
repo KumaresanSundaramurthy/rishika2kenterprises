@@ -319,32 +319,7 @@ $(function () {
         });
     });
 
-    // ── View modal ──────────────────────────────────────────
-    $(document).on('click', '.viewQuotation', function () {
-        var uid = $(this).data('uid');
-        $('#viewTransModal').modal('show');
-        $('#viewTransModalTitle').text('Quotation Details');
-        $('#viewTransModalBody').html('<div class="d-flex justify-content-center py-5"><div class="spinner-border text-primary"></div></div>');
-        $('#viewTransEditBtn').attr('href', '/quotations/edit/' + uid);
-        AjaxLoading = 0;
-        $.ajax({
-            url   : '/quotations/getQuotationDetail',
-            method: 'POST',
-            data  : { TransUID: uid, [CsrfName]: CsrfToken },
-            success: function (resp) {
-                AjaxLoading = 1;
-                if (resp.Error) {
-                    $('#viewTransModalBody').html('<div class="alert alert-danger m-3">' + resp.Message + '</div>');
-                } else {
-                    $('#viewTransModalBody').html(_buildQuotDetailHtml(resp));
-                }
-            },
-            error: function () {
-                AjaxLoading = 1;
-                $('#viewTransModalBody').html('<div class="alert alert-danger m-3">Failed to load quotation.</div>');
-            }
-        });
-    });
+    // View modal — handled by /js/transactions/viewmodal.js (.viewTransaction)
 
     // ── Delete ───────────────────────────────────────────────
     $(document).on('click', '.deleteQuotation', function () {

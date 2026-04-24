@@ -53,7 +53,7 @@ if (!empty($DataLists)) {
                     <span class="text-muted fst-italic small">—</span>
                 <?php else: ?>
                     <span class="fw-semibold text-primary">
-                        <a href="javascript:void(0)" class="text-decoration-underline viewPO" data-uid="<?php echo (int) $list->TransUID; ?>">
+                        <a href="javascript:void(0)" class="text-decoration-underline viewTransaction" data-uid="<?php echo (int) $list->TransUID; ?>" data-module="<?php echo (int) $list->ModuleUID; ?>" data-type="purchaseorder">
                             <?php echo htmlspecialchars($list->UniqueNumber); ?>
                         </a>
                     </span>

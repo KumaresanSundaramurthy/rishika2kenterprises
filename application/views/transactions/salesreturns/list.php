@@ -38,7 +38,7 @@ if (!empty($DataLists)):
                     <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars(format_datedisplay($list->TransDate, 'd M Y')); ?></div>
                 <?php endif; ?>
             <?php else: ?>
-                <a href="javascript:void(0)" class="trans-doc-number viewSalesReturn" data-uid="<?php echo (int)$list->TransUID; ?>">
+                <a href="javascript:void(0)" class="trans-doc-number viewTransaction" data-uid="<?php echo (int)$list->TransUID; ?>" data-module="<?php echo (int)$list->ModuleUID; ?>" data-type="salesreturn">
                     <?php echo htmlspecialchars($list->UniqueNumber); ?>
                 </a>
                 <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars(format_datedisplay($list->TransDate, 'd M Y')); ?></div>

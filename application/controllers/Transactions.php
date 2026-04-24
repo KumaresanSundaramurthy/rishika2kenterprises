@@ -310,7 +310,9 @@ class Transactions extends CI_Controller {
             $header = $this->transactions_model->getTransactionById($transUID, $orgUID, $moduleUID);
             if (!$header) throw new Exception('Transaction not found.');
 
-            $items = $this->transactions_model->getTransactionItems($transUID, $orgUID);
+            $items     = $this->transactions_model->getTransactionItems($transUID, $orgUID);
+            $payments  = $this->transactions_model->getTransactionPayments($transUID, $orgUID);
+            $paidTotal = array_sum(array_map(function ($p) { return (float) $p->Amount; }, $payments));
 
             $this->load->model('organisation_model');
             $orgInfo          = $this->organisation_model->getOrgForReceipt($orgUID);
@@ -321,6 +323,8 @@ class Transactions extends CI_Controller {
             $this->EndReturnData->Error         = FALSE;
             $this->EndReturnData->Header        = $header;
             $this->EndReturnData->Items         = $items;
+            $this->EndReturnData->Payments      = $payments;
+            $this->EndReturnData->PaidTotal     = $paidTotal;
             $this->EndReturnData->OrgInfo       = $orgInfo->Data ?? null;
             $this->EndReturnData->ThermalConfig = $thermalCfgResult->Data ?? null;
             $this->EndReturnData->PrintTheme    = $printThemeResult->Data ?? null;

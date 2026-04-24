@@ -415,4 +415,95 @@
         return html;
     };
 
+    // ── Type config: one entry per transaction type ────────────────────────────
+    var _typeConfig = {
+        'quotation': {
+            title      : 'Quotation Details',
+            editPath   : '/quotations/edit/',
+            dataKey    : '_quotLastPrintData',
+            partyLabel : 'Customer',
+            typeIcon   : 'bx-file-blank',
+            typeColor  : '#0891b2',
+            typeBg     : '#e0f5fb',
+            hasPayments: false,
+            validLabel : 'Valid Until',
+        },
+        'invoice': {
+            title      : 'Invoice Details',
+            editPath   : '/invoices/edit/',
+            dataKey    : '_invLastPrintData',
+            partyLabel : 'Customer',
+            typeIcon   : 'bx-receipt',
+            typeColor  : '#0d6efd',
+            typeBg     : '#e8f0fe',
+            hasPayments: true,
+        },
+        'purchase': {
+            title      : 'Purchase Bill Details',
+            editPath   : '/purchases/edit/',
+            dataKey    : '_purchLastPrintData',
+            partyLabel : 'Vendor',
+            typeIcon   : 'bx-cart',
+            typeColor  : '#6f42c1',
+            typeBg     : '#f0ebff',
+            hasPayments: true,
+            validLabel : 'Bill Due',
+        },
+        'salesorder': {
+            title      : 'Sales Order Details',
+            editPath   : '/salesorders/edit/',
+            dataKey    : '_soLastPrintData',
+            partyLabel : 'Customer',
+            typeIcon   : 'bx-store-alt',
+            typeColor  : '#d97706',
+            typeBg     : '#fff8e1',
+            hasPayments: false,
+            validLabel : 'Expected Delivery',
+        },
+        'purchaseorder': {
+            title      : 'Purchase Order Details',
+            editPath   : '/purchaseorders/edit/',
+            dataKey    : '_poLastPrintData',
+            partyLabel : 'Vendor',
+            typeIcon   : 'bx-purchase-tag-alt',
+            typeColor  : '#0f766e',
+            typeBg     : '#e0f5f2',
+            hasPayments: false,
+            validLabel : 'Expected Delivery',
+        },
+    };
+
+    // ── Single common click handler for all transaction view buttons ──────────
+    $(document).on('click', '.viewTransaction', function () {
+        var uid       = $(this).data('uid');
+        var moduleUID = $(this).data('module');
+        var type      = $(this).data('type');
+        var cfg       = _typeConfig[type];
+        if (!cfg || !uid || !moduleUID) return;
+
+        $('#viewTransModal').modal('show');
+        $('#viewTransModalTitle').text(cfg.title);
+        $('#viewTransModalBody').html('<div class="d-flex justify-content-center py-5"><div class="spinner-border text-primary"></div></div>');
+        $('#viewTransEditBtn').attr('href', cfg.editPath + uid);
+        AjaxLoading = 0;
+        $.ajax({
+            url   : '/transactions/getTransactionDetail',
+            method: 'POST',
+            data  : { TransUID: uid, ModuleUID: moduleUID, [CsrfName]: CsrfToken },
+            success: function (resp) {
+                AjaxLoading = 1;
+                if (resp.Error) {
+                    $('#viewTransModalBody').html('<div class="alert alert-danger m-3">' + _esc(resp.Message || 'Error loading details.') + '</div>');
+                } else {
+                    window[cfg.dataKey] = resp;
+                    $('#viewTransModalBody').html(_buildTransDetailHtml(resp, cfg));
+                }
+            },
+            error: function () {
+                AjaxLoading = 1;
+                $('#viewTransModalBody').html('<div class="alert alert-danger m-3">Failed to load transaction details.</div>');
+            }
+        });
+    });
+
 }());

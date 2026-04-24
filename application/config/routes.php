@@ -209,6 +209,9 @@ $route['vendors/(:num)/clone'] = 'vendors/clonevendor/$1';
 $route['products/(:num)/edit'] = 'products/edit/$1';
 $route['products/(:num)/clone'] = 'products/clone/$1';
 
+// Barcode & QR Code Config
+$route['settings/barcodeconfig'] = 'barcodeconfig/index';
+
 // Print Themes
 $route['settings/printthemes']                    = 'printthemes/index';
 $route['settings/printthemes/save']               = 'printthemes/save';

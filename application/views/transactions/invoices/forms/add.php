@@ -22,15 +22,34 @@
 
                     <div class="card mb-3">
 
-                        <div class="card-header bg-body-tertiary trans-header-static trans-theme modal-header-center-sticky d-flex justify-content-between align-items-center pb-3">
-                            <div class="d-flex flex-wrap align-items-center gap-3" id="transHeaderInfo">
-                                <h5 class="modal-title mb-0 ms-2">Create Invoice</h5>
-                                <?php $this->load->view('transactions/partials/form_prefix_add'); ?>
+                        <div class="card-header bg-white border-bottom d-flex align-items-center justify-content-between px-3 py-2 trans-header-static trans-theme modal-header-center-sticky">
+                            <div class="d-flex align-items-center gap-3" id="transHeaderInfo">
+                                <div class="trans-doc-icon bg-primary bg-opacity-10">
+                                    <i class="bx bx-receipt text-primary" style="font-size:1.1rem;"></i>
+                                </div>
+                                <div>
+                                    <div class="trans-section-label lh-1 mb-1">New Document</div>
+                                    <div class="d-flex align-items-center flex-wrap gap-2">
+                                        <span class="fw-bold" style="font-size:.92rem;">Create Invoice</span>
+                                        <?php $this->load->view('transactions/partials/form_prefix_add'); ?>
+                                    </div>
+                                </div>
                             </div>
                             <div class="d-flex align-items-center gap-2">
-                                <button type="submit" name="action" value="save" class="btn btn-primary">Save</button>
-                                <button type="submit" name="action" value="draft" class="btn btn-outline-secondary">Save as Draft</button>
-                                <a href="/invoices" class="btn btn-label-danger">Close</a>
+                                <button type="submit" name="action" value="draft" class="btn btn-sm btn-outline-secondary"><i class="bx bx-save me-1"></i>Draft</button>
+                                <div class="btn-group">
+                                    <button type="submit" name="action" value="save" class="btn btn-sm btn-primary px-3"><i class="bx bx-check me-1"></i>Save</button>
+                                    <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split ps-2 pe-2" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <span class="visually-hidden">Save options</span>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow" style="min-width:195px;font-size:.82rem;">
+                                        <li><span class="dropdown-header py-1" style="font-size:.65rem;letter-spacing:.4px;">SAVE &amp; PRINT</span></li>
+                                        <li><button type="submit" class="dropdown-item py-1" name="action" value="save_a4"><i class="bx bx-file text-primary me-2"></i>Save &amp; Print A4</button></li>
+                                        <li><button type="submit" class="dropdown-item py-1" name="action" value="save_a5"><i class="bx bx-file-blank text-info me-2"></i>Save &amp; Print A5</button></li>
+                                        <li><button type="submit" class="dropdown-item py-1" name="action" value="save_thermal"><i class="bx bx-receipt text-success me-2"></i>Save &amp; Print Thermal</button></li>
+                                    </ul>
+                                </div>
+                                <a href="/invoices" class="btn btn-sm btn-outline-danger px-3"><i class="bx bx-x me-1"></i>Close</a>
                             </div>
                         </div>
 

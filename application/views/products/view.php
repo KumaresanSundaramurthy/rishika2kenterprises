@@ -101,7 +101,7 @@
 
                                         <div class="table-responsive text-nowrap h-100 tablecard">
                                             <table class="table table-hover MainviewTable" id="ProductsTable">
-                                                <thead class="bg-body-tertiary">
+                                                <thead class="r2k-thead">
                                                     <tr>
                                                         <th class="table-checkbox text-center align-middle">
                                                             <div class="form-check d-flex justify-content-center align-items-center mb-0">
@@ -134,7 +134,7 @@
                                                         <th class="text-center">Actions</th>
                                                     </tr>
                                                 </thead>
-                                                <tbody class="table-border-bottom-0">
+                                                <tbody class="r2k-tbody table-border-bottom-0">
                                                     <?php if ($ActiveTabData == 'item') {
                                                         echo $ModRowData;
                                                     } else {
@@ -267,6 +267,7 @@
             <?php $this->load->view('products/modals/category'); ?>
             <?php $this->load->view('products/modals/sizes'); ?>
             <?php $this->load->view('products/modals/brands'); ?>
+            <?php $this->load->view('products/modals/barcodeprint'); ?>
 
             <?php $this->load->view('common/footer_desc'); ?>
 
@@ -277,10 +278,13 @@
 
 <?php $this->load->view('common/footer'); ?>
 
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="/js/products.js"></script>
 <script src="/js/combinemodules/products.js"></script>
 <script src="/js/combinemodules/combo.js"></script>
 <script src="/js/common/pagecheckbox.js"></script>
+<script src="/js/products/barcodeprint.js"></script>
 
 <script>
 let ItemModuleId = 4;

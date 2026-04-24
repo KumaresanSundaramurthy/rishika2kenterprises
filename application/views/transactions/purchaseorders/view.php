@@ -9,8 +9,6 @@
 
         <div class="layout-page">
 
-            <?php $this->load->view('common/navbar_view'); ?>
-
             <div class="content-wrapper">
                 <div class="container-xxl flex-grow-1 container-p-y">
 
@@ -143,6 +141,7 @@
 
 <?php $this->load->view('common/transactions/footer'); ?>
 
+<script src="/js/transactions/viewmodal.js"></script>
 <script src="/js/transactions/a4_print.js"></script>
 <script src="/js/transactions/purchaseorders.js"></script>
 
@@ -243,21 +242,24 @@ $(function () {
     $(document).on('click', '.viewPO', function () {
         var uid = $(this).data('uid');
         $('#viewTransModal').modal('show');
+        $('#viewTransModalTitle').text('Purchase Order Details');
         $('#viewTransModalBody').html('<div class="d-flex justify-content-center py-5"><div class="spinner-border text-primary"></div></div>');
         $('#viewTransEditBtn').attr('href', '/purchaseorders/edit/' + uid);
+        AjaxLoading = 0;
         $.ajax({
             url   : '/purchaseorders/getPurchaseOrderDetail',
             method: 'POST',
             data  : { TransUID: uid, [CsrfName]: CsrfToken },
             success: function (resp) {
+                AjaxLoading = 1;
                 if (resp.Error) {
                     $('#viewTransModalBody').html('<div class="alert alert-danger m-3">' + resp.Message + '</div>');
                 } else {
-                    $('#viewTransModalTitle').text('Purchase Order — ' + (resp.Header.UniqueNumber || 'Details'));
                     $('#viewTransModalBody').html(_buildPODetailHtml(resp));
                 }
             },
             error: function () {
+                AjaxLoading = 1;
                 $('#viewTransModalBody').html('<div class="alert alert-danger m-3">Failed to load purchase order.</div>');
             }
         });
@@ -378,42 +380,14 @@ $(function () {
 // ── Detail view HTML builder ──────────────────────────────
 function _buildPODetailHtml(resp) {
     window._poLastPrintData = resp;
-    var h   = resp.Header || {};
-    var org = resp.OrgInfo || {};
-    var cur = (org.CurrenySymbol || '₹') + ' ';
-    var dec = h.DecimalPoints || 2;
-    var rows = '';
-    (resp.Items || []).forEach(function (item, i) {
-        rows += '<tr>' +
-            '<td class="text-center">' + (i + 1) + '</td>' +
-            '<td>' + _esc(item.ProductName) + (item.PartNumber ? '<br><small class="text-muted">' + _esc(item.PartNumber) + '</small>' : '') + '</td>' +
-            '<td class="text-center">' + _esc(item.Quantity) + ' ' + _esc(item.PrimaryUnitName) + '</td>' +
-            '<td class="text-end">' + cur + _esc(parseFloat(item.UnitPrice).toFixed(dec)) + '</td>' +
-            '<td class="text-end">' + cur + _esc(parseFloat(item.NetAmount).toFixed(dec)) + '</td>' +
-            '</tr>';
+    return _buildTransDetailHtml(resp, {
+        partyLabel  : 'Vendor',
+        typeIcon    : 'bx-purchase-tag-alt',
+        typeColor   : '#0f766e',
+        typeBg      : '#e0f5f2',
+        hasPayments : false,
+        validLabel  : 'Expected Delivery',
     });
-    return '<div class="p-3">' +
-        '<div class="row mb-3">' +
-            '<div class="col-md-6"><strong>' + _esc(org.OrgName || '') + '</strong><br>' +
-                '<small class="text-muted">' + _esc(h.UniqueNumber || '—') + ' &nbsp;|&nbsp; ' + _esc(h.TransDate || '') + '</small></div>' +
-            '<div class="col-md-6 text-end">' +
-                '<strong>Vendor:</strong> ' + _esc(h.PartyName || '—') +
-                (h.ValidityDate ? '<br><small class="text-muted">Expected: ' + _esc(h.ValidityDate) + '</small>' : '') +
-            '</div>' +
-        '</div>' +
-        '<table class="table table-bordered table-sm">' +
-            '<thead class="table-light"><tr><th>#</th><th>Product</th><th class="text-center">Qty</th><th class="text-end">Unit Price</th><th class="text-end">Net Amount</th></tr></thead>' +
-            '<tbody>' + rows + '</tbody>' +
-            '<tfoot class="table-light">' +
-                '<tr><td colspan="4" class="text-end fw-semibold">Sub Total</td><td class="text-end">' + cur + parseFloat(h.SubTotal || 0).toFixed(dec) + '</td></tr>' +
-                (parseFloat(h.DiscountAmount) > 0 ? '<tr><td colspan="4" class="text-end text-danger">Discount</td><td class="text-end text-danger">- ' + cur + parseFloat(h.DiscountAmount).toFixed(dec) + '</td></tr>' : '') +
-                (parseFloat(h.TaxAmount) > 0 ? '<tr><td colspan="4" class="text-end">Tax</td><td class="text-end">' + cur + parseFloat(h.TaxAmount).toFixed(dec) + '</td></tr>' : '') +
-                '<tr><td colspan="4" class="text-end fw-bold">Net Amount</td><td class="text-end fw-bold">' + cur + parseFloat(h.NetAmount || 0).toFixed(dec) + '</td></tr>' +
-            '</tfoot>' +
-        '</table>' +
-        (h.Notes ? '<p class="small text-muted mt-2"><strong>Notes:</strong> ' + _esc(h.Notes) + '</p>' : '') +
-        (h.TermsConditions ? '<p class="small text-muted"><strong>Terms:</strong> ' + _esc(h.TermsConditions) + '</p>' : '') +
-    '</div>';
 }
 
 function _buildA4Html(resp, size, forPrint) {

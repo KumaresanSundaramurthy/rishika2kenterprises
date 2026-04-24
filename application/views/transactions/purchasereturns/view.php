@@ -8,7 +8,6 @@
         <?php $this->load->view('common/menu_view'); ?>
 
         <div class="layout-page">
-            <?php $this->load->view('common/navbar_view'); ?>
 
             <div class="content-wrapper">
                 <div class="container-xxl flex-grow-1 container-p-y">

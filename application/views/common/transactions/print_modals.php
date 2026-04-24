@@ -69,21 +69,17 @@
 <div class="modal fade" id="viewTransModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <div class="modal-content">
-            <div class="modal-header p-3 d-flex justify-content-between align-items-center">
-                <h6 class="modal-title fw-semibold text-primary mb-0" id="viewTransModalTitle">Transaction Details</h6>
-                <div class="gap-2">
-                    <a href="javascript:void(0);" id="viewTransEditBtn" class="btn btn-warning btn-sm me-2">
-                        <i class="bx bx-edit me-1"></i>Edit
-                    </a>
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
-                </div>
+            <div class="modal-header py-2 px-4 border-bottom">
+                <h6 class="modal-title fw-semibold mb-0" id="viewTransModalTitle" style="font-size:.88rem;color:#495057;">Transaction Details</h6>
+                <!-- Edit anchor kept hidden so JS can set its href; visible edit button renders inside the banner -->
+                <a href="javascript:void(0);" id="viewTransEditBtn" style="display:none;" aria-hidden="true"></a>
+                <button type="button" class="btn-close ms-3" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-0" id="viewTransModalBody">
                 <div class="d-flex justify-content-center align-items-center py-5">
                     <div class="spinner-border text-primary"></div>
                 </div>
             </div>
-            <div class="modal-footer py-2"></div>
         </div>
     </div>
 </div>

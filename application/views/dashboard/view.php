@@ -11,8 +11,6 @@
 		<!-- Layout container -->
 		<div class="layout-page">
 
-			<?php $this->load->view('common/navbar_view'); ?>
-
 			<!-- Content wrapper -->
 			<div class="content-wrapper">
 				

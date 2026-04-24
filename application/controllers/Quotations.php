@@ -33,7 +33,7 @@ class Quotations extends CI_Controller {
             $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/quotations/getQuotationsPageDetails', $allDataCount, 1, $limit);
             $this->pageData['ModAllCount'] = $allDataCount;
             $this->pageData['SummaryStats'] = $this->transactions_model->getTransactionSummaryStats($this->pageModuleUID, $this->pageData['JwtData']->User->OrgUID);
-
+            
             $this->load->view('transactions/quotations/view', $this->pageData);
 
         } catch (Exception $e) {

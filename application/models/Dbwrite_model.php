@@ -407,7 +407,7 @@ class Dbwrite_model extends CI_Model {
 
             // Insert ledger row
             $this->WriteDB->db_debug = FALSE;
-            $this->WriteDB->insert('Products.StockLedgerTbl', [
+            $insOk = $this->WriteDB->insert('Products.StockLedgerTbl', [
                 'OrgUID'       => $orgUID,
                 'ProductUID'   => $productUID,
                 'TransUID'     => $transUID,
@@ -419,15 +419,24 @@ class Dbwrite_model extends CI_Model {
                 'CreatedBy'    => $userUID,
                 'UpdatedBy'    => $userUID,
             ]);
+            if ($insOk === false) {
+                $err = $this->WriteDB->error();
+                throw new Exception('Stock ledger insert failed (ProductUID=' . $productUID . '): ' . ($err['message'] ?? 'unknown DB error'));
+            }
 
-            // Update AvailableQuantity (never go below 0)
+            // Update AvailableQuantity (never go below 0).
+            // CAST to SIGNED prevents BIGINT UNSIGNED underflow when stock is already 0.
             if ($movementType === 'IN') {
                 $this->WriteDB->set('AvailableQuantity', 'AvailableQuantity + ' . $qty, false);
             } else {
-                $this->WriteDB->set('AvailableQuantity', 'GREATEST(0, AvailableQuantity - ' . $qty . ')', false);
+                $this->WriteDB->set('AvailableQuantity', 'GREATEST(0, CAST(AvailableQuantity AS SIGNED) - ' . $qty . ')', false);
             }
             $this->WriteDB->where(['ProductUID' => $productUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
-            $this->WriteDB->update('Products.ProductTbl');
+            $updOk = $this->WriteDB->update('Products.ProductTbl');
+            if ($updOk === false) {
+                $err = $this->WriteDB->error();
+                throw new Exception('Stock quantity update failed (ProductUID=' . $productUID . '): ' . ($err['message'] ?? 'unknown DB error'));
+            }
         }
 
     }
@@ -448,23 +457,73 @@ class Dbwrite_model extends CI_Model {
         $this->WriteDB->from('Products.StockLedgerTbl');
         $this->WriteDB->where(['TransUID' => $transUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
         $query      = $this->WriteDB->get();
-        $ledgerRows = $query ? $query->result() : [];
+        if (!$query) {
+            $err = $this->WriteDB->error();
+            throw new Exception('Stock reversal read failed: ' . ($err['message'] ?? 'unknown error'));
+        }
+        $ledgerRows = $query->result();
 
         foreach ($ledgerRows as $row) {
-            // Reverse quantity: an IN entry was +qty, so reverse is -qty (and vice versa)
             if ($row->MovementType === 'IN') {
-                $this->WriteDB->set('AvailableQuantity', 'GREATEST(0, AvailableQuantity - ' . (float)$row->Quantity . ')', false);
+                $qtyExpr = 'GREATEST(0, CAST(AvailableQuantity AS SIGNED) - ' . (float)$row->Quantity . ')';
             } else {
-                $this->WriteDB->set('AvailableQuantity', 'AvailableQuantity + ' . (float)$row->Quantity, false);
+                $qtyExpr = 'AvailableQuantity + ' . (float)$row->Quantity;
             }
-            $this->WriteDB->where(['ProductUID' => (int)$row->ProductUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
-            $this->WriteDB->update('Products.ProductTbl');
 
-            // Soft-delete ledger entry
-            $this->WriteDB->update('Products.StockLedgerTbl',
-                ['IsDeleted' => 1, 'UpdatedBy' => $userUID],
-                ['LedgerUID' => (int)$row->LedgerUID]
+            $ok = $this->WriteDB->query(
+                "UPDATE Products.ProductTbl SET AvailableQuantity = {$qtyExpr} WHERE ProductUID = ? AND OrgUID = ? AND IsDeleted = 0",
+                [(int)$row->ProductUID, (int)$orgUID]
             );
+            if ($ok === false) {
+                $err = $this->WriteDB->error();
+                throw new Exception('Stock quantity reversal failed (ProductUID=' . $row->ProductUID . '): ' . ($err['message'] ?? 'unknown error'));
+            }
+
+            $ok = $this->WriteDB->query(
+                "UPDATE Products.StockLedgerTbl SET IsDeleted = 1, UpdatedBy = ? WHERE LedgerUID = ?",
+                [(int)$userUID, (int)$row->LedgerUID]
+            );
+            if ($ok === false) {
+                $err = $this->WriteDB->error();
+                throw new Exception('Stock ledger soft-delete failed (LedgerUID=' . $row->LedgerUID . '): ' . ($err['message'] ?? 'unknown error'));
+            }
+        }
+
+    }
+
+    // Soft-deletes a transaction row using a raw parameterized query.
+    // Required because CI3's Active Record query builder has escaping issues
+    // with bit(1) fields and partitioned tables on TransactionsTbl.
+    public function softDeleteTransaction($transUID, $orgUID, $userUID) {
+
+        $this->WriteDB->db_debug = FALSE;
+        $ok = $this->WriteDB->query(
+            "UPDATE Transaction.TransactionsTbl
+                SET IsDeleted = 1, IsActive = 0, UpdatedBy = ?, UpdatedOn = NOW()
+              WHERE TransUID = ? AND OrgUID = ? AND IsDeleted = 0",
+            [(int)$userUID, (int)$transUID, (int)$orgUID]
+        );
+        if ($ok === false) {
+            $err = $this->WriteDB->error();
+            throw new Exception('Failed to delete invoice: ' . ($err['message'] ?? 'unknown error'));
+        }
+
+    }
+
+    // Soft-deletes all line items for a transaction using a raw parameterized query.
+    // CI3 Active Record silently fails on TransProductsTbl due to bit(1) IsDeleted in WHERE.
+    public function softDeleteTransactionItems($transUID, $userUID) {
+
+        $this->WriteDB->db_debug = FALSE;
+        $ok = $this->WriteDB->query(
+            "UPDATE Transaction.TransProductsTbl
+                SET IsDeleted = 1, IsActive = 0, UpdatedBy = ?, UpdatedOn = NOW()
+              WHERE TransUID = ? AND IsDeleted = 0",
+            [(int)$userUID, (int)$transUID]
+        );
+        if ($ok === false) {
+            $err = $this->WriteDB->error();
+            throw new Exception('Failed to delete invoice items: ' . ($err['message'] ?? 'unknown error'));
         }
 
     }
@@ -489,6 +548,16 @@ class Dbwrite_model extends CI_Model {
                 SET DocStatus = ?, UpdatedBy = ?, UpdatedOn = NOW()
               WHERE TransUID = ? AND OrgUID = ?",
             [$newStatus, (int) $userUID, (int) $transUID, (int) $orgUID]
+        );
+    }
+
+    public function updateTransIsFullyPaid($transUID, $isFullyPaid, $userUID) {
+        $this->WriteDB->db_debug = FALSE;
+        return $this->WriteDB->query(
+            "UPDATE Transaction.TransactionsTbl
+                SET IsFullyPaid = ?, UpdatedBy = ?, UpdatedOn = NOW()
+              WHERE TransUID = ?",
+            [(int) $isFullyPaid, (int) $userUID, (int) $transUID]
         );
     }
 

@@ -5,14 +5,12 @@
  */
 function getCustomersDetails(PageNo, RowLimit, Filter) {
     $.ajax({
-        url: '/globally/getModPageDataDetails/' + PageNo,
+        url: '/customers/getCustomersPageDetails/' + PageNo,
         method: "POST",
         cache: false,
         data: {
             RowLimit: RowLimit,
-            PageNo: PageNo,
-            Filter: Filter,
-            ModuleId: ModuleId
+            Filter: Filter
         },
         success: function(response) {
             if (response.Error) {
@@ -20,7 +18,7 @@ function getCustomersDetails(PageNo, RowLimit, Filter) {
                 $(ModulePag).html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');
             } else {
                 $(ModulePag).html(response.Pagination);
-                $(ModuleTable + ' tbody').html(response.List);
+                $(ModuleTable + ' tbody').html(response.RecordHtmlData);
             }
             executeTablePagnCommonFunc(response, false);
         },
@@ -125,5 +123,26 @@ function deleteMultipleCustomers() {
                 executeTablePagnCommonFunc(response, true);
             }
         },
+    });
+}
+
+function toggleCustomerStatus(CustomerUID, IsActive) {
+    $.ajax({
+        url: '/customers/toggleCustomerStatus',
+        method: 'POST',
+        cache: false,
+        data: {
+            CustomerUID: CustomerUID,
+            IsActive: IsActive,
+            [CsrfName]: CsrfToken
+        },
+        success: function (response) {
+            if (response.Error) {
+                showAlertMessageSwal('error', '', response.Message);
+            } else {
+                showAlertMessageSwal('success', '', response.Message);
+                getCustomersDetails(PageNo, RowLimit, Filter);
+            }
+        }
     });
 }

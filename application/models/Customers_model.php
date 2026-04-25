@@ -69,6 +69,7 @@ class Customers_model extends CI_Model {
                 'Customers.Notes as Notes',
                 'Customers.Tags as Tags',
                 'Customers.CCEmails as CCEmails',
+                'Customers.CustomerTypeUID as CustomerTypeUID',
                 'Customers.CreatedOn as CreatedOn',
                 'Customers.UpdatedOn as UpdatedOn',
             ]);
@@ -221,6 +222,140 @@ class Customers_model extends CI_Model {
 
     }
 
+    public function getCustomerListPaginated($orgUID, $limit, $offset, $filter = []) {
+
+        try {
+            $this->ReadDb->db_debug = FALSE;
+
+            $baseWhere = ['Customers.IsDeleted' => 0, 'Customers.OrgUID' => $orgUID];
+            if (isset($filter['IsActive'])) {
+                $baseWhere['Customers.IsActive'] = (int)$filter['IsActive'];
+            }
+
+            // Count query
+            $this->ReadDb->select('COUNT(*) AS cnt');
+            $this->ReadDb->from('Customers.CustomerTbl as Customers');
+            $this->ReadDb->where($baseWhere);
+            if (!empty($filter['SearchAllData'])) {
+                $s = $filter['SearchAllData'];
+                $this->ReadDb->group_start();
+                $this->ReadDb->or_like('Customers.Name', $s, 'both');
+                $this->ReadDb->or_like('Customers.Area', $s, 'both');
+                $this->ReadDb->or_like('Customers.MobileNumber', $s, 'both');
+                $this->ReadDb->or_like('Customers.ContactPerson', $s, 'both');
+                $this->ReadDb->group_end();
+            }
+            if (!empty($filter['Tags'])) {
+                $tags = is_array($filter['Tags']) ? $filter['Tags'] : [$filter['Tags']];
+                $this->ReadDb->group_start();
+                foreach ($tags as $tag) { $this->ReadDb->or_like('Customers.Tags', $tag, 'both'); }
+                $this->ReadDb->group_end();
+            }
+            if (!empty($filter['CustomerTypeUIDs'])) {
+                $typeUIDs = array_filter(array_map('intval', (array)$filter['CustomerTypeUIDs']));
+                if (!empty($typeUIDs)) $this->ReadDb->where_in('Customers.CustomerTypeUID', $typeUIDs);
+            }
+            $cntQuery = $this->ReadDb->get();
+            if (!$cntQuery) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
+            $totalCount = (int) $cntQuery->row()->cnt;
+
+            // Data query
+            $this->ReadDb->select([
+                'Customers.CustomerUID AS TablePrimaryUID',
+                'Customers.CustomerUID AS CustomerUID',
+                'Customers.OrgUID AS OrgUID',
+                'Customers.Name AS Name',
+                'Customers.Area AS Area',
+                'Customers.CountryISO2 AS CountryISO2',
+                'Customers.CountryCode AS CountryCode',
+                'Customers.MobileNumber AS MobileNumber',
+                'Customers.EmailAddress AS EmailAddress',
+                'Customers.GSTIN AS GSTIN',
+                'Customers.CompanyName AS CompanyName',
+                'Customers.DebitCreditType AS DebitCreditType',
+                'Customers.DebitCreditAmount AS DebitCreditAmount',
+                'Customers.Image AS Image',
+                'Customers.PANNumber AS PANNumber',
+                'Customers.ContactPerson AS ContactPerson',
+                'Customers.DateOfBirth AS DateOfBirth',
+                'Customers.DiscountPercent AS DiscountPercent',
+                'Customers.CreditPeriod AS CreditPeriod',
+                'Customers.CreditLimit AS CreditLimit',
+                'Customers.Notes AS Notes',
+                'Customers.Tags AS Tags',
+                'Customers.CCEmails AS CCEmails',
+                'Customers.CustomerTypeUID AS CustomerTypeUID',
+                'Customers.IsActive AS IsActive',
+                'Customers.CreatedOn AS CreatedOn',
+                'Customers.UpdatedOn AS UpdatedOn',
+                "CONCAT(User.FirstName, ' ', User.LastName) AS UpdatedBy",
+                'IFNULL(COA.CurrentBalance, 0.00) AS ClosingBalance',
+                "IFNULL(COA.CurrentBalanceType, 'Debit') AS ClosingBalanceType",
+                'CT.TypeName AS CustomerTypeName',
+            ]);
+            $this->ReadDb->from('Customers.CustomerTbl as Customers');
+            $this->ReadDb->join('Users.UserTbl as User', 'User.UserUID = Customers.UpdatedBy', 'left');
+            $this->ReadDb->join(
+                'Accounting.EntityLedgerMap as ELM',
+                "ELM.CustomerUID = Customers.CustomerUID AND ELM.EntityType = 'Customer' AND ELM.IsDeleted = 0",
+                'left'
+            );
+            $this->ReadDb->join(
+                'Accounting.ChartOfAccounts as COA',
+                'COA.LedgerUID = ELM.LedgerUID AND COA.IsDeleted = 0',
+                'left'
+            );
+            $this->ReadDb->join(
+                'Customers.CustomerTypeTbl as CT',
+                'CT.CustomerTypeUID = Customers.CustomerTypeUID AND CT.IsDeleted = 0',
+                'left'
+            );
+            $this->ReadDb->where($baseWhere);
+            if (!empty($filter['SearchAllData'])) {
+                $s = $filter['SearchAllData'];
+                $this->ReadDb->group_start();
+                $this->ReadDb->or_like('Customers.Name', $s, 'both');
+                $this->ReadDb->or_like('Customers.Area', $s, 'both');
+                $this->ReadDb->or_like('Customers.MobileNumber', $s, 'both');
+                $this->ReadDb->or_like('Customers.ContactPerson', $s, 'both');
+                $this->ReadDb->group_end();
+            }
+            if (!empty($filter['Tags'])) {
+                $tags = is_array($filter['Tags']) ? $filter['Tags'] : [$filter['Tags']];
+                $this->ReadDb->group_start();
+                foreach ($tags as $tag) {
+                    $this->ReadDb->or_like('Customers.Tags', $tag, 'both');
+                }
+                $this->ReadDb->group_end();
+            }
+            if (!empty($filter['CustomerTypeUIDs'])) {
+                $typeUIDs = array_filter(array_map('intval', (array)$filter['CustomerTypeUIDs']));
+                if (!empty($typeUIDs)) $this->ReadDb->where_in('Customers.CustomerTypeUID', $typeUIDs);
+            }
+            if (!empty($filter['NameSorting'])) {
+                $this->ReadDb->order_by('Customers.Name', (int)$filter['NameSorting'] === 1 ? 'ASC' : 'DESC');
+            } elseif (!empty($filter['AreaSorting'])) {
+                $this->ReadDb->order_by('Customers.Area', (int)$filter['AreaSorting'] === 1 ? 'ASC' : 'DESC');
+            } elseif (!empty($filter['BalanceSorting'])) {
+                $this->ReadDb->order_by('ClosingBalance', (int)$filter['BalanceSorting'] === 1 ? 'ASC' : 'DESC');
+            } else {
+                $this->ReadDb->order_by('Customers.CustomerUID', 'DESC');
+            }
+            $this->ReadDb->limit($limit, $offset);
+            $dataQuery = $this->ReadDb->get();
+            if (!$dataQuery) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
+
+            $result             = new stdClass();
+            $result->rows       = $dataQuery->result();
+            $result->totalCount = $totalCount;
+            return $result;
+
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+
+    }
+
     public function getCustomerTypeList($OrgUID) {
 
         try {
@@ -245,6 +380,29 @@ class Customers_model extends CI_Model {
             throw new Exception($e->getMessage());
         }
 
+    }
+
+    public function getCustomerTags($OrgUID) {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('Customers.Tags AS Tags');
+            $this->ReadDb->from('Customers.CustomerTbl as Customers');
+            $this->ReadDb->where(['Customers.OrgUID' => (int)$OrgUID, 'Customers.IsDeleted' => 0, 'Customers.IsActive' => 1]);
+            $this->ReadDb->where('Customers.Tags IS NOT NULL');
+            $this->ReadDb->where('Customers.Tags !=', '');
+            $query = $this->ReadDb->get();
+            if (!$query) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
+            $tags = [];
+            foreach ($query->result() as $row) {
+                foreach (explode(',', $row->Tags) as $t) {
+                    $t = trim($t);
+                    if ($t !== '') $tags[$t] = true;
+                }
+            }
+            return array_keys($tags);
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
     }
 
 }

@@ -394,6 +394,62 @@ Class Accountledger {
 
     }
 
+    public function applyLedgerEntry($entityId, $entityType, $amount, $entryType, $referenceId = NULL) {
+
+        $amount = round((float) $amount, 2);
+        if ($amount <= 0) return;
+
+        $mapping = $this->getEntityLedgerMapping($entityId, $entityType);
+        if (!$mapping || empty($mapping->LedgerUID)) {
+            throw new Exception("No ledger found for {$entityType} ID {$entityId}. Create the customer/vendor first.");
+        }
+
+        $ledgerUID      = $mapping->LedgerUID;
+        $currentBalance = round((float) $mapping->CurrentBalance, 2);
+        $currentType    = $mapping->CurrentBalanceType ?? 'Debit';
+
+        // Standard double-entry: same side adds, opposite side nets
+        if ($entryType === $currentType) {
+            $newBalance = $currentBalance + $amount;
+            $newType    = $currentType;
+        } else {
+            if ($amount >= $currentBalance) {
+                $newBalance = round($amount - $currentBalance, 2);
+                $newType    = $entryType;
+            } else {
+                $newBalance = round($currentBalance - $amount, 2);
+                $newType    = $currentType;
+            }
+        }
+
+        $updateResp = $this->CI->dbwrite_model->updateData(
+            'Accounting', 'ChartOfAccounts',
+            [
+                'CurrentBalance'     => $newBalance,
+                'CurrentBalanceType' => $newType,
+                'UpdatedBy'          => $this->CI->pageData['JwtData']->User->UserUID,
+            ],
+            ['LedgerUID' => $ledgerUID]
+        );
+        if ($updateResp->Error) {
+            throw new Exception('Failed to update ledger balance: ' . $updateResp->Message);
+        }
+
+        // Audit log is non-critical — runs outside any caller transaction
+        // so it cannot poison a parent commit. Failures are logged silently.
+        try {
+            $this->logLedgerAudit($entityId, $ledgerUID, 'BALANCE_ADJUST', [
+                'reason'              => "{$entryType} entry applied",
+                'amount_change'       => $amount,
+                'balance_type_change' => $newType,
+                'reference_id'        => $referenceId,
+            ], $entityType);
+        } catch (Exception $ignored) {
+            log_message('error', "Ledger audit log failed [{$entityType} ID {$entityId}]: " . $ignored->getMessage());
+        }
+
+    }
+
     private function getFinancialYear() {
         $year = (int)date('Y');
         return (date('m') >= 4) ? $year : ($year - 1);

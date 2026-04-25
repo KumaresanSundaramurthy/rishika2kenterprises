@@ -34,6 +34,8 @@ class Payments extends CI_Controller {
             ], TRUE);
             $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/payments/getPaymentsPageDetails', $allDataCount, 1, $limit);
             $this->pageData['ModAllCount']   = $allDataCount;
+            $this->pageData['MethodSummary'] = $this->transactions_model->getPaymentMethodSummary($orgUID);
+            $this->pageData['Totals']        = $this->transactions_model->getPaymentsTotals($orgUID);
 
             $this->load->view('transactions/payments/view', $this->pageData);
 
@@ -72,6 +74,7 @@ class Payments extends CI_Controller {
             $this->EndReturnData->RecordHtmlData = $rowHtml;
             $this->EndReturnData->Pagination     = $this->globalservice->buildPagePaginationHtml('/payments/getPaymentsPageDetails', $allDataCount, $pageNo, $limit);
             $this->EndReturnData->TotalCount     = $allDataCount;
+            $this->EndReturnData->Totals         = $this->transactions_model->getPaymentsTotals($orgUID, $filter);
 
         } catch (Exception $e) {
             $this->EndReturnData->Error   = TRUE;

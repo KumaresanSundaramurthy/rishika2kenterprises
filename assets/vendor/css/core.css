@@ -29477,7 +29477,7 @@ body:not(.modal-open) .layout-content-navbar .layout-navbar {
 
 /* ── r2k gradient table header ── */
 .r2k-thead tr {
-    background: linear-gradient(90deg, #c4b5fd 0%, #d8b4fe 20%, #f0abfc 40%, #fdba74 60%, #6ee7b7 80%, #93c5fd 100%) !important;
+    background: linear-gradient(90deg, #f1f5f9 0%, #e2e8f0 50%, #f8fafc 100%) !important;
 }
 .r2k-thead th {
     background: transparent !important;

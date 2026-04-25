@@ -196,8 +196,7 @@ $(function() {
 
     /* ── serialize → hidden input (called before submit) ──── */
     window.serializePaymentRows = function() {
-        var rows  = [];
-        var valid = true;
+        var rows = [];
 
         $('#paymentRowsBody tr').each(function() {
             var $tr            = $(this);
@@ -206,12 +205,9 @@ $(function() {
             var notes          = $.trim($tr.find('.pay-notes-inp').val());
             var bankAccountUID = parseInt($tr.find('.pay-bank-sel').val(), 10) || 0;
 
-            if (amount <= 0) {
-                $tr.find('.pay-amount-inp').css('border', '1px solid #dc3545');
-                valid = false;
-                return;
-            }
             $tr.find('.pay-amount-inp').css('border', '');
+
+            if (amount <= 0) return; // skip empty rows silently — no payment entered
 
             rows.push({
                 paymentTypeUID : paymentTypeUID,
@@ -221,10 +217,6 @@ $(function() {
                 referenceNo    : null,
             });
         });
-
-        if (!valid) return false;
-
-        rows = rows.filter(function(r){ return r.amount > 0; });
 
         $('#PaymentRowsJson').val(rows.length > 0 ? JSON.stringify(rows) : '');
         return true;

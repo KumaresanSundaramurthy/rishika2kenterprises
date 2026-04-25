@@ -5,24 +5,24 @@
  */
 function getVendorsDetails(PageNo, RowLimit, Filter) {
     $.ajax({
-        url: '/globally/getModPageDataDetails/' + PageNo,
-        method: "POST",
-        cache: false,
-        data: {
-            RowLimit: RowLimit,
-            PageNo: PageNo,
-            Filter: Filter,
-            ModuleId: ModuleId
+        url   : '/vendors/getVendorsPageDetails/' + (PageNo || 1),
+        method: 'POST',
+        cache : false,
+        data  : {
+            RowLimit  : RowLimit,
+            PageNo    : PageNo,
+            Filter    : Filter,
+            ModuleId  : ModuleId,
+            [CsrfName]: CsrfToken,
         },
-        success: function(response) {
+        success: function (response) {
             if (response.Error) {
                 $(ModuleTable + ' tbody').html('');
                 $(ModulePag).html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');
             } else {
                 $(ModulePag).html(response.Pagination);
-                $(ModuleTable + ' tbody').html(response.List);
+                $(ModuleTable + ' tbody').html(response.RecordHtmlData);
             }
-            executeTablePagnCommonFunc(response, false);
         },
     });
 }

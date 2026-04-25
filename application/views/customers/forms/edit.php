@@ -91,6 +91,18 @@
                                     <label for="CPDateOfBirth" class="form-label">Date of Birth</label>
                                     <input type="text" id="CPDateOfBirth" name="CPDateOfBirth" class="form-control flatpickr-basic" placeholder="YYYY-MM-DD" value="<?php echo isset($EditData->DateOfBirth) ? $EditData->DateOfBirth : ''; ?>" />
                                 </div>
+                                <div class="mb-3 col-md-4">
+                                    <label for="CustomerTypeUID" class="form-label">Customer Type <span class="text-danger">*</span></label>
+                                    <select id="CustomerTypeUID" name="CustomerTypeUID" class="form-select" required>
+                                        <option value="">-- Select Customer Type --</option>
+                                        <?php foreach ($CustomerTypeList as $ct) { ?>
+                                            <option value="<?php echo $ct->CustomerTypeUID; ?>"
+                                                <?php echo (isset($EditData->CustomerTypeUID) && $EditData->CustomerTypeUID == $ct->CustomerTypeUID) ? 'selected' : ($ct->IsDefault && !isset($EditData->CustomerTypeUID) ? 'selected' : ''); ?>>
+                                                <?php echo htmlspecialchars($ct->TypeName); ?>
+                                            </option>
+                                        <?php } ?>
+                                    </select>
+                                </div>
                             </div>
                             <hr>
 

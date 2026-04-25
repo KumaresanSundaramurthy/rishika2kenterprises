@@ -163,6 +163,8 @@ class Products extends CI_Controller {
                 $this->load->model('storage_model');
                 $this->pageData['fltStorageData'] = $this->storage_model->getStorageDetails([]) ?? [];
             }
+
+            $this->pageData['ProductStats'] = $this->products_model->getProductStats($OrgUID);
             
             $this->load->view('products/view', $this->pageData);
 
@@ -962,6 +964,27 @@ class Products extends CI_Controller {
             $this->EndReturnData->Message = 'Unable to fetch categories';
         }
         
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    public function getProductsByCategory() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+            $CategoryUID = (int) $this->input->post('CategoryUID');
+            $OrgUID      = (int) $this->pageData['JwtData']->User->OrgUID;
+            if ($CategoryUID <= 0) throw new Exception('Invalid Category.');
+
+            $products = $this->products_model->getProductsByCategoryUID($CategoryUID, $OrgUID);
+
+            $this->EndReturnData->Error    = false;
+            $this->EndReturnData->Products = $products;
+            $this->EndReturnData->Count    = count($products);
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
 
     }

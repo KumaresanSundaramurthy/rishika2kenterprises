@@ -1,57 +1,55 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <div class="modal fade" id="barcodePrintModal" tabindex="-1" aria-labelledby="barcodePrintModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-top" style="max-width:480px;">
+    <div class="modal-dialog modal-dialog-top" style="max-width:740px;">
         <div class="modal-content">
 
+            <!-- Header -->
             <div class="modal-header py-2 px-4 border-bottom">
-                <div>
-                    <h6 class="modal-title fw-semibold mb-0" id="barcodePrintModalLabel">
-                        <i class="bx bx-barcode me-1 text-primary" id="bcModalIcon"></i>
-                        <span id="bcModalTitle">Print Barcode</span>
-                    </h6>
-                    <div class="text-muted mt-1" id="barcodeProductSubtitle" style="font-size:.78rem;"></div>
-                </div>
-                <button type="button" class="btn-close ms-3" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-
-            <div class="modal-body pb-2">
-
-                <!-- Barcode section -->
-                <div id="bcSection" class="border rounded p-3 text-center mb-3">
-                    <div class="mb-2" style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#6c757d;">Barcode Preview</div>
-                    <svg id="barcodeSvg" style="max-width:100%;"></svg>
-                </div>
-
-                <!-- QR Code section -->
-                <div id="qrSection" class="border rounded p-3 text-center mb-3 d-none">
-                    <div class="mb-2" style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#6c757d;">QR Code Preview</div>
-                    <div id="qrcodeDiv" class="d-inline-block"></div>
-                </div>
-
-                <!-- Print copies selector -->
-                <div class="border-top pt-3">
-                    <div class="d-flex align-items-center gap-3">
-                        <span style="font-size:.75rem;font-weight:600;color:#6c757d;white-space:nowrap;">Print Copies:</span>
-                        <div class="btn-group btn-group-sm flex-grow-1" role="group">
-                            <input type="radio" class="btn-check" name="printCopies" id="pc1" value="1" checked autocomplete="off">
-                            <label class="btn btn-outline-primary" for="pc1">1</label>
-                            <input type="radio" class="btn-check" name="printCopies" id="pc2" value="2" autocomplete="off">
-                            <label class="btn btn-outline-primary" for="pc2">2</label>
-                            <input type="radio" class="btn-check" name="printCopies" id="pc4" value="4" autocomplete="off">
-                            <label class="btn btn-outline-primary" for="pc4">4</label>
-                            <input type="radio" class="btn-check" name="printCopies" id="pc8" value="8" autocomplete="off">
-                            <label class="btn btn-outline-primary" for="pc8">8</label>
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bx fs-4" id="bcModalIcon"></i>
+                    <div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="fw-bold" style="font-size:.95rem;" id="bcModalTitle">Barcode</span>
+                            <span class="badge bg-label-warning" style="font-size:.6rem;vertical-align:middle;padding:3px 6px;">BETA</span>
                         </div>
+                        <div class="text-muted" id="barcodeProductSubtitle" style="font-size:.75rem;max-width:500px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
                     </div>
                 </div>
-
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
 
-            <div class="modal-footer py-2">
-                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+            <!-- Layout tabs -->
+            <div class="border-bottom bg-body-tertiary" style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+                <ul class="nav nav-tabs border-0 flex-nowrap px-3 pt-0" id="bcLayoutTabs" style="gap:0;">
+                    <li class="nav-item"><a class="nav-link active px-3 py-2" href="#" data-layout="1x2" style="font-size:.82rem;white-space:nowrap;">1 × 2</a></li>
+                    <li class="nav-item"><a class="nav-link px-3 py-2" href="#" data-layout="1x4" style="font-size:.82rem;white-space:nowrap;">1 × 4</a></li>
+                    <li class="nav-item"><a class="nav-link px-3 py-2" href="#" data-layout="1x1" style="font-size:.82rem;white-space:nowrap;">1 × 1</a></li>
+                    <li class="nav-item"><a class="nav-link px-3 py-2" href="#" data-layout="1x3" style="font-size:.82rem;white-space:nowrap;">1 × 3</a></li>
+                    <li class="nav-item"><a class="nav-link px-3 py-2" href="#" data-layout="a4_8x2" style="font-size:.82rem;white-space:nowrap;">A4 (8 × 2)</a></li>
+                    <li class="nav-item"><a class="nav-link px-3 py-2" href="#" data-layout="a4_10x4" style="font-size:.82rem;white-space:nowrap;">A4 40 Labels (10 × 4)</a></li>
+                    <li class="nav-item"><a class="nav-link px-3 py-2" href="#" data-layout="a4_13x5" style="font-size:.82rem;white-space:nowrap;">A4 65 Labels (13 × 5)</a></li>
+                    <li class="nav-item"><a class="nav-link px-3 py-2" href="#" data-layout="square" style="font-size:.82rem;white-space:nowrap;">Square Label</a></li>
+                </ul>
+            </div>
+
+            <!-- Preview area -->
+            <div class="modal-body p-3" style="background:#f4f5f7;min-height:220px;max-height:420px;overflow-y:auto;" id="bcPreviewWrap">
+                <div id="bcPreviewArea" class="d-flex flex-wrap" style="gap:8px;align-items:flex-start;justify-content:flex-start;">
+                    <div class="text-muted small d-flex align-items-center gap-2 p-3">
+                        <i class="bx bx-loader-alt bx-spin"></i> Generating preview...
+                    </div>
+                </div>
+                <div id="bcPreviewNote" class="text-center text-muted mt-2" style="font-size:.72rem;"></div>
+            </div>
+
+            <!-- Footer -->
+            <div class="modal-footer py-2 border-top">
+                <button type="button" id="btnEditBcProduct" class="btn btn-outline-primary btn-sm px-3">
+                    <i class="bx bx-edit me-1"></i>Edit
+                </button>
                 <button type="button" id="btnPrintBarcode" class="btn btn-primary btn-sm px-4">
-                    <i class="bx bx-printer me-1"></i><span id="bcPrintBtnText">Print</span>
+                    <i class="bx bx-printer me-1"></i>Print
                 </button>
             </div>
 

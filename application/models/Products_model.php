@@ -596,11 +596,14 @@ class Products_model extends CI_Model {
                 'Category.Image AS Image',
                 'Category.UpdatedOn AS UpdatedOn',
                 "CONCAT(User.FirstName, ' ', User.LastName) AS UpdatedBy",
+                'COUNT(CASE WHEN Products.IsDeleted = 0 AND Products.IsActive = 1 THEN 1 END) AS ProductCount',
             ]);
             $this->ReadDb->from('Products.CategoryTbl as Category');
             $this->ReadDb->join('Users.UserTbl as User', 'User.UserUID = Category.UpdatedBy', 'left');
+            $this->ReadDb->join('Products.ProductTbl as Products', 'Products.CategoryUID = Category.CategoryUID', 'left');
             $this->ReadDb->where($baseWhere);
             if (!empty($searchQuery)) { $this->ReadDb->where($searchQuery, null, false); }
+            $this->ReadDb->group_by('Category.CategoryUID');
             if (!empty($sortArr)) {
                 foreach ($sortArr as $col => $dir) { $this->ReadDb->order_by($col, $dir); }
             } else {
@@ -616,6 +619,75 @@ class Products_model extends CI_Model {
             $result->totalCount = $totalCount;
             return $result;
 
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+
+    }
+
+    public function getProductsByCategoryUID($CategoryUID, $OrgUID) {
+
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select([
+                'Products.ProductUID AS ProductUID',
+                'Products.ItemName AS ItemName',
+                'Products.SellingPrice AS SellingPrice',
+                'Products.MRP AS MRP',
+                'Products.PurchasePrice AS PurchasePrice',
+                'Products.AvailableQuantity AS AvailableQuantity',
+                'Products.ProductType AS ProductType',
+                'Products.IsComposite AS IsComposite',
+            ]);
+            $this->ReadDb->from('Products.ProductTbl as Products');
+            $this->ReadDb->where([
+                'Products.CategoryUID' => (int) $CategoryUID,
+                'Products.OrgUID'      => (int) $OrgUID,
+                'Products.IsDeleted'   => 0,
+                'Products.IsActive'    => 1,
+            ]);
+            $this->ReadDb->order_by('Products.ItemName', 'ASC');
+            $query = $this->ReadDb->get();
+            $error = $this->ReadDb->error();
+            if ($error['code']) throw new Exception($error['message']);
+            return $query->result();
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+
+    }
+
+    public function getProductStats($OrgUID) {
+
+        try {
+            $this->ReadDb->db_debug = FALSE;
+
+            // Financial year start: April 1st
+            $month   = (int) date('m');
+            $year    = (int) date('Y');
+            $fyStart = ($month >= 4) ? $year . '-04-01' : ($year - 1) . '-04-01';
+            $sevenDaysAgo = date('Y-m-d', strtotime('-7 days'));
+            $monthStart   = date('Y-m-01');
+
+            $this->ReadDb->select([
+                'COUNT(*)                                                                          AS TotalProducts',
+                'SUM(CASE WHEN Products.ProductType = \'Product\' AND Products.IsComposite = 0 THEN Products.AvailableQuantity * Products.PurchasePrice ELSE 0 END) AS TotalStockValue',
+                'SUM(CASE WHEN Products.CreatedOn >= \'' . $monthStart . '\' THEN 1 ELSE 0 END)   AS AddedThisMonth',
+                'SUM(CASE WHEN Products.CreatedOn >= \'' . $fyStart . '\' THEN 1 ELSE 0 END)      AS AddedThisFY',
+                'SUM(CASE WHEN Products.UpdatedOn >= \'' . $sevenDaysAgo . '\' THEN 1 ELSE 0 END) AS RecentlyUpdated',
+                'SUM(CASE WHEN Products.LowStockAlertAt > 0 AND Products.AvailableQuantity <= Products.LowStockAlertAt AND Products.AvailableQuantity > 0 AND Products.ProductType = \'Product\' AND Products.IsComposite = 0 THEN 1 ELSE 0 END) AS LowStockItems',
+                'SUM(CASE WHEN Products.NotForSale = \'Yes\' THEN 1 ELSE 0 END)                   AS NotForSale',
+            ]);
+            $this->ReadDb->from('Products.ProductTbl as Products');
+            $this->ReadDb->where([
+                'Products.IsDeleted' => 0,
+                'Products.IsActive'  => 1,
+                'Products.OrgUID'    => (int) $OrgUID,
+            ]);
+            $query = $this->ReadDb->get();
+            $error = $this->ReadDb->error();
+            if ($error['code']) throw new Exception($error['message']);
+            return $query->row();
         } catch (Exception $e) {
             throw new Exception($e->getMessage());
         }

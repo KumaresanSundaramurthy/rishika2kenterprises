@@ -260,6 +260,18 @@ $(function() {
     transDatePickr('#transDate', false, 'Y-m-d', false, true, true, true, 'd-m-Y');
     transDatePickr('#dueDate', false, 'Y-m-d', false, false, true, true, 'd-m-Y', '#transDate');
 
+    // Default due date = invoice date; sync when invoice date changes
+    var _dueDatePicker = document.querySelector('#dueDate')._flatpickr;
+    var _transDatePicker = document.querySelector('#transDate')._flatpickr;
+    if (_dueDatePicker && _transDatePicker) {
+        _dueDatePicker.setDate(_transDatePicker.selectedDates[0], true);
+        document.querySelector('#transDate').addEventListener('change', function () {
+            if (_transDatePicker.selectedDates[0]) {
+                _dueDatePicker.setDate(_transDatePicker.selectedDates[0], true);
+            }
+        });
+    }
+
     // Pre-fill from Sales Order / Quotation conversion
     var _sourceData  = _fromSO || _fromQuotation;
     var _sourceItems = _fromSO ? _fromSOItems : _fromQuotItems;

@@ -118,12 +118,14 @@
                                             </div>
                                         </th>
                                         <th class="<?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>" style="width:44px">#</th>
-                                        <?php foreach (array_column($ModColumnData, 'DisplayName') as $ItemKey => $ItemVal) { ?>
-                                            <th <?php echo $ModColumnData[$ItemKey]->MainPageColumnAddon; ?>>
-                                                <?php echo $ItemVal; ?>
-                                                <?php if ($ModColumnData[$ItemKey]->MPSortApplicable == 1) { echo '<i class="bx bx-sort-alt-2 ms-1 sort-ic"></i>'; } ?>
-                                            </th>
-                                        <?php } ?>
+                                        <th class="vend-name-sortable cursor-pointer" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">
+                                            Vendor <i class="bx bx-sort sort-icon ms-1"></i>
+                                        </th>
+                                        <th class="vend-area-sortable cursor-pointer" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">Area <i class="bx bx-sort sort-icon ms-1"></i></th>
+                                        <th>Mobile</th>
+                                        <th>GSTIN / Company</th>
+                                        <th class="vend-bal-sortable cursor-pointer" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">Balance <i class="bx bx-sort sort-icon ms-1"></i></th>
+                                        <th>Last Updated</th>
                                         <th style="width:80px">Actions</th>
                                     </tr>
                                 </thead>
@@ -168,7 +170,10 @@ const ModuleRow = '.vendorsCheck';
 const ModuleFileName = 'Vendor_Data';
 const ModuleSheetName = 'Vendor';
 const previewName = 'Vendor Details';
-let sortState = 0;
+let nameSortState = 0;
+let balSortState  = 0;
+let areaSortState = 0;
+
 $(function() {
     'use strict'
 
@@ -186,7 +191,7 @@ $(function() {
         $('.vend-tab').removeClass('active');
         $(this).addClass('active');
         var status = $(this).data('status') || 'All';
-        if (status === 'All')      { delete Filter['IsActive']; }
+        if (status === 'All')           { delete Filter['IsActive']; }
         else if (status === 'Active')   { Filter['IsActive'] = 1; }
         else if (status === 'Inactive') { Filter['IsActive'] = 0; }
         PageNo = 0;
@@ -227,7 +232,7 @@ $(function() {
         var id = $(this).data('vendoruid');
         if (!id) return;
         Swal.fire({
-            title: 'Delete this vendor?', text: "This action cannot be undone.",
+            title: 'Delete this vendor?', text: 'This action cannot be undone.',
             icon: 'warning', showCancelButton: true,
             confirmButtonColor: '#dc2626', cancelButtonColor: '#64748b',
             confirmButtonText: 'Yes, delete',
@@ -239,24 +244,86 @@ $(function() {
         e.preventDefault();
         if (!SelectedUIDs.length) return;
         Swal.fire({
-            title: 'Delete ' + SelectedUIDs.length + ' vendor(s)?',
-            text: "This action cannot be undone.",
+            title: 'Delete ' + SelectedUIDs.length + ' vendor(s)?', text: 'This action cannot be undone.',
             icon: 'warning', showCancelButton: true,
             confirmButtonColor: '#dc2626', cancelButtonColor: '#64748b',
             confirmButtonText: 'Yes, delete all',
         }).then(function (r) { if (r.isConfirmed) deleteMultipleVendors(); });
     });
 
-    // ── Sort ──
-    $(document).on('click', '.name-sortable', function (e) {
+    // ── Name sort ──
+    $(document).on('click', '.vend-name-sortable', function (e) {
         e.preventDefault();
-        sortState = (sortState + 1) % 3;
-        const icon = $(this).find('.sort-ic');
-        icon.removeClass('bx-sort-alt-2 bx-up-arrow-alt bx-down-arrow-alt');
-        if (sortState === 1)      { icon.addClass('bx-up-arrow-alt');   Filter['NameSorting'] = 1; }
-        else if (sortState === 2) { icon.addClass('bx-down-arrow-alt'); Filter['NameSorting'] = 2; }
-        else                      { icon.addClass('bx-sort-alt-2');     delete Filter['NameSorting']; }
-        getVendorsDetails(PageNo, RowLimit, Filter);
+        nameSortState = (nameSortState + 1) % 3;
+        if (nameSortState !== 0) {
+            areaSortState = 0; balSortState = 0;
+            delete Filter['AreaSorting']; delete Filter['BalanceSorting'];
+            $('.vend-area-sortable .sort-icon, .vend-bal-sortable .sort-icon').removeClass('bx-up-arrow-alt bx-down-arrow-alt text-primary').addClass('bx-sort');
+        }
+        var icon = $(this).find('.sort-icon');
+        icon.removeClass('bx-sort bx-up-arrow-alt bx-down-arrow-alt text-primary');
+        if (nameSortState === 1)      { icon.addClass('bx-up-arrow-alt text-primary');   Filter['NameSorting'] = 1; }
+        else if (nameSortState === 2) { icon.addClass('bx-down-arrow-alt text-primary'); Filter['NameSorting'] = 2; }
+        else                          { icon.addClass('bx-sort'); delete Filter['NameSorting']; }
+        PageNo = 0; getVendorsDetails(PageNo, RowLimit, Filter);
+    });
+
+    // ── Area sort ──
+    $(document).on('click', '.vend-area-sortable', function (e) {
+        e.preventDefault();
+        areaSortState = (areaSortState + 1) % 3;
+        if (areaSortState !== 0) {
+            nameSortState = 0; balSortState = 0;
+            delete Filter['NameSorting']; delete Filter['BalanceSorting'];
+            $('.vend-name-sortable .sort-icon, .vend-bal-sortable .sort-icon').removeClass('bx-up-arrow-alt bx-down-arrow-alt text-primary').addClass('bx-sort');
+        }
+        var icon = $(this).find('.sort-icon');
+        icon.removeClass('bx-sort bx-up-arrow-alt bx-down-arrow-alt text-primary');
+        if (areaSortState === 1)      { icon.addClass('bx-up-arrow-alt text-primary');   Filter['AreaSorting'] = 1; }
+        else if (areaSortState === 2) { icon.addClass('bx-down-arrow-alt text-primary'); Filter['AreaSorting'] = 2; }
+        else                          { icon.addClass('bx-sort'); delete Filter['AreaSorting']; }
+        PageNo = 0; getVendorsDetails(PageNo, RowLimit, Filter);
+    });
+
+    // ── Balance sort ──
+    $(document).on('click', '.vend-bal-sortable', function (e) {
+        e.preventDefault();
+        balSortState = (balSortState + 1) % 3;
+        if (balSortState !== 0) {
+            nameSortState = 0; areaSortState = 0;
+            delete Filter['NameSorting']; delete Filter['AreaSorting'];
+            $('.vend-name-sortable .sort-icon, .vend-area-sortable .sort-icon').removeClass('bx-up-arrow-alt bx-down-arrow-alt text-primary').addClass('bx-sort');
+        }
+        var icon = $(this).find('.sort-icon');
+        icon.removeClass('bx-sort bx-up-arrow-alt bx-down-arrow-alt text-primary');
+        if (balSortState === 1)      { icon.addClass('bx-up-arrow-alt text-primary');   Filter['BalanceSorting'] = 1; }
+        else if (balSortState === 2) { icon.addClass('bx-down-arrow-alt text-primary'); Filter['BalanceSorting'] = 2; }
+        else                         { icon.addClass('bx-sort'); delete Filter['BalanceSorting']; }
+        PageNo = 0; getVendorsDetails(PageNo, RowLimit, Filter);
+    });
+
+    // ── Status toggle ──
+    $(document).on('click', '.vend-status-toggle', function (e) {
+        e.preventDefault();
+        var uid = $(this).data('uid');
+        var newStatus = $(this).data('newstatus');
+        var label = newStatus == 1 ? 'Active' : 'In-Active';
+        Swal.fire({
+            title: 'Change status to ' + label + '?',
+            icon: 'question', showCancelButton: true,
+            confirmButtonColor: '#0d6efd', cancelButtonColor: '#64748b',
+            confirmButtonText: 'Yes, change it',
+        }).then(function (r) {
+            if (!r.isConfirmed) return;
+            $.ajax({
+                url: '/vendors/toggleVendorStatus', method: 'POST',
+                data: { VendorUID: uid, IsActive: newStatus, [CsrfName]: CsrfToken },
+                success: function (resp) {
+                    if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); }
+                    else { getVendorsDetails(PageNo, RowLimit, Filter); }
+                }
+            });
+        });
     });
 
 });

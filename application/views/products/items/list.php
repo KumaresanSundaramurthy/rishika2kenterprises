@@ -9,6 +9,11 @@ if (!empty($DataLists)) {
         $sno    = $StartFrom + $i + 1;
         $imgSrc = !empty($row->Image) ? $cdnUrl . $row->Image : null;
 
+        // Avatar initials: up to 2 letters from first 2 words
+        $_words   = preg_split('/\s+/', trim($row->ItemName));
+        $_initials = strtoupper(substr($_words[0], 0, 1));
+        if (isset($_words[1]) && $_words[1] !== '') $_initials .= strtoupper(substr($_words[1], 0, 1));
+
         $typeBadge = ($row->ProductType === 'Service')
             ? '<span class="badge bg-label-info">Service</span>'
             : '<span class="badge bg-label-primary">Product</span>';
@@ -85,7 +90,7 @@ if (!empty($DataLists)) {
                              style="width:40px;height:40px;object-fit:cover;" />
                     <?php else: ?>
                         <span class="avatar-initial rounded <?php echo $row->IsComposite ? 'bg-label-warning' : 'bg-label-secondary'; ?>">
-                            <?php echo strtoupper(substr($row->ItemName, 0, 1)); ?>
+                            <?php echo $_initials; ?>
                         </span>
                     <?php endif; ?>
                     </div>
@@ -97,7 +102,7 @@ if (!empty($DataLists)) {
                             <?php if (!empty($row->HSNSACCode)): ?>
                                 <span class="text-muted"><?php echo htmlspecialchars($row->HSNSACCode); ?></span>
                             <?php endif; ?>
-                            <?php if (!empty($row->PartNumber)): ?>
+                            <?php if (!$row->IsComposite && !empty($row->PartNumber)): ?>
                                 <button type="button" class="btn p-0 border-0 bg-transparent BarcodeOnlyBtn"
                                     <?php echo $bcAttrs; ?>
                                     title="Print Barcode — <?php echo $pn; ?>">
@@ -147,8 +152,10 @@ if (!empty($DataLists)) {
                         $qtyClass = $lowStock ? 'text-warning fw-semibold' : 'text-dark fw-semibold';
                         echo '<span class="' . $qtyClass . '">' . smartDecimal($qty) . '</span>';
                         if ($lowStock) echo ' <span class="badge bg-label-warning" style="font-size:.65rem;">Low</span>';
+                    } elseif ($qty == 0) {
+                        echo '<span class="text-danger fw-semibold">0</span>';
                     } else {
-                        echo '<span class="text-danger fw-semibold">0</span> <span class="badge bg-label-danger" style="font-size:.65rem;">Out</span>';
+                        echo '<span class="text-danger fw-semibold">' . smartDecimal($qty) . '</span> <span class="badge bg-label-danger" style="font-size:.65rem;">Out</span>';
                     }
                 endif; ?>
             </td>
@@ -199,9 +206,10 @@ if (!empty($DataLists)) {
                         <button class="trans-actions-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="bx bx-dots-vertical-rounded fs-5"></i>
                         </button>
-                        <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:.82rem;min-width:175px;">
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:.82rem;min-width:185px;">
 
-                            <?php if (!empty($row->PartNumber)): ?>
+                            <?php if (!$row->IsComposite && !empty($row->PartNumber)): ?>
+                            <li><span class="dropdown-header text-uppercase" style="font-size:.68rem;letter-spacing:.4px;color:#adb5bd;padding:4px 12px 2px;">Print Label</span></li>
                             <li>
                                 <button class="dropdown-item BarcodeOnlyBtn" <?php echo $bcAttrs; ?>>
                                     <i class="bx bx-barcode me-2 text-primary"></i>Print Barcode
@@ -215,6 +223,15 @@ if (!empty($DataLists)) {
                             <li><hr class="dropdown-divider my-1"></li>
                             <?php endif; ?>
 
+                            <!-- Item actions group -->
+                            <li>
+                                <a class="dropdown-item" href="/products/<?php echo $uid; ?>/clone">
+                                    <i class="bx bx-copy me-2 text-secondary"></i>Clone
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider my-1"></li>
+
+                            <!-- Danger zone -->
                             <li>
                                 <button class="dropdown-item text-danger DeleteProduct"
                                         data-productuid="<?php echo $uid; ?>">

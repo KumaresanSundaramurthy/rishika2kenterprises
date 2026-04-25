@@ -443,6 +443,23 @@ $(function () {
     transDatePickr('#transDate', false, 'Y-m-d', false, true, true, true, 'd-m-Y');
     transDatePickr('#dueDate', false, 'Y-m-d', false, false, false, true, 'd-m-Y', '#transDate');
 
+    // If no due date saved, default to invoice date; sync when invoice date changes
+    var _dueDatePicker   = document.querySelector('#dueDate')._flatpickr;
+    var _transDatePicker = document.querySelector('#transDate')._flatpickr;
+    if (_dueDatePicker && _transDatePicker) {
+        if (!_dueDatePicker.selectedDates.length) {
+            _dueDatePicker.setDate(_transDatePicker.selectedDates[0], true);
+        }
+        document.querySelector('#transDate').addEventListener('change', function () {
+            if (_transDatePicker.selectedDates[0] && !$('#dueDate').data('manually-set')) {
+                _dueDatePicker.setDate(_transDatePicker.selectedDates[0], true);
+            }
+        });
+        $('#dueDate').on('change', function () {
+            $(this).data('manually-set', true);
+        });
+    }
+
     if (typeof billManager !== 'undefined' && _orgState && _custState) {
         billManager.isInterState = (_custState.trim().toLowerCase() !== _orgState.trim().toLowerCase());
     }

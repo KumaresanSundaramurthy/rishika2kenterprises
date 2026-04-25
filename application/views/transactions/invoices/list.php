@@ -65,10 +65,20 @@ if (!empty($DataLists)):
 
         <!-- Amount -->
         <td>
+            <?php
+            $paidAmt    = (float)($list->PaidAmount ?? 0);
+            $pendingAmt = max(0, round((float)$list->NetAmount - $paidAmt, 2));
+            $showPending = !$isDraft && $pendingAmt > 0 && !in_array($status, ['Paid', 'Cancelled', 'Rejected']);
+            ?>
             <?php if ($isDraft && (float)$list->NetAmount == 0): ?>
                 <span class="text-muted">—</span>
             <?php else: ?>
                 <div class="trans-amount-main"><?php echo $currency . ' ' . smartDecimal($list->NetAmount, $decimals, true); ?></div>
+                <?php if ($showPending): ?>
+                    <div style="font-size:.72rem;color:#d33;font-weight:500;">
+                        Balance <?php echo $currency . ' ' . smartDecimal($pendingAmt, $decimals, true); ?>
+                    </div>
+                <?php endif; ?>
             <?php endif; ?>
         </td>
 
@@ -165,6 +175,21 @@ if (!empty($DataLists)):
                         <li><hr class="dropdown-divider my-1"></li>
                         <?php endif; ?>
 
+                        <?php if ($showPending): ?>
+                        <li>
+                            <button class="dropdown-item invReceivePayment"
+                                    data-uid="<?php echo (int)$list->TransUID; ?>"
+                                    data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
+                                    data-date="<?php echo htmlspecialchars(format_datedisplay($list->TransDate ?? '', 'd M Y')); ?>"
+                                    data-party="<?php echo htmlspecialchars($list->PartyName ?? ''); ?>"
+                                    data-total="<?php echo (float)$list->NetAmount; ?>"
+                                    data-paid="<?php echo $paidAmt; ?>"
+                                    data-pending="<?php echo $pendingAmt; ?>">
+                                <i class="bx bx-money-withdraw me-2 text-success"></i>Receive Payment
+                            </button>
+                        </li>
+                        <li><hr class="dropdown-divider my-1"></li>
+                        <?php endif; ?>
                         <li>
                             <button class="dropdown-item duplicateInvoice" data-uid="<?php echo (int)$list->TransUID; ?>">
                                 <i class="bx bx-copy me-2 text-secondary"></i>Duplicate

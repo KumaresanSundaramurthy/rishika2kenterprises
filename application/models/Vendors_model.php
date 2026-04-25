@@ -277,6 +277,110 @@ class Vendors_model extends CI_Model {
     }
 
 
+    public function getVendorListPaginated($orgUID, $limit, $offset, $filter = []) {
+
+        try {
+            $this->ReadDb->db_debug = FALSE;
+
+            $baseWhere = ['Vendors.IsDeleted' => 0, 'Vendors.IsActive' => 1, 'Vendors.OrgUID' => $orgUID];
+
+            // Count query
+            $this->ReadDb->select('COUNT(*) AS cnt');
+            $this->ReadDb->from('Vendors.VendorTbl as Vendors');
+            $this->ReadDb->where($baseWhere);
+            if (!empty($filter['SearchAllData'])) {
+                $s = $filter['SearchAllData'];
+                $this->ReadDb->group_start();
+                $this->ReadDb->or_like('Vendors.Name', $s, 'both');
+                $this->ReadDb->or_like('Vendors.Area', $s, 'both');
+                $this->ReadDb->or_like('Vendors.MobileNumber', $s, 'both');
+                $this->ReadDb->or_like('Vendors.ContactPerson', $s, 'both');
+                $this->ReadDb->group_end();
+            }
+            if (isset($filter['IsActive']) && $filter['IsActive'] !== '') {
+                $this->ReadDb->where('Vendors.IsActive', (int)$filter['IsActive']);
+            }
+            $cntQuery = $this->ReadDb->get();
+            if (!$cntQuery) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
+            $totalCount = (int) $cntQuery->row()->cnt;
+
+            // Data query
+            $this->ReadDb->select([
+                'Vendors.VendorUID AS TablePrimaryUID',
+                'Vendors.VendorUID AS VendorUID',
+                'Vendors.OrgUID AS OrgUID',
+                'Vendors.Name AS Name',
+                'Vendors.Area AS Area',
+                'Vendors.CountryISO2 AS CountryISO2',
+                'Vendors.CountryCode AS CountryCode',
+                'Vendors.MobileNumber AS MobileNumber',
+                'Vendors.EmailAddress AS EmailAddress',
+                'Vendors.GSTIN AS GSTIN',
+                'Vendors.CompanyName AS CompanyName',
+                'Vendors.DebitCreditType AS DebitCreditType',
+                'Vendors.DebitCreditAmount AS DebitCreditAmount',
+                'Vendors.Image AS Image',
+                'Vendors.PANNumber AS PANNumber',
+                'Vendors.Notes AS Notes',
+                'Vendors.Tags AS Tags',
+                'Vendors.CCEmails AS CCEmails',
+                'Vendors.CreatedOn AS CreatedOn',
+                'Vendors.UpdatedOn AS UpdatedOn',
+                "CONCAT(User.FirstName, ' ', User.LastName) AS UpdatedBy",
+                'IFNULL(COA.CurrentBalance, 0.00) AS ClosingBalance',
+                "IFNULL(COA.CurrentBalanceType, 'Credit') AS ClosingBalanceType",
+            ]);
+            $this->ReadDb->from('Vendors.VendorTbl as Vendors');
+            $this->ReadDb->join('Users.UserTbl as User', 'User.UserUID = Vendors.UpdatedBy', 'left');
+            $this->ReadDb->join(
+                'Accounting.EntityLedgerMap as ELM',
+                "ELM.VendorUID = Vendors.VendorUID AND ELM.EntityType = 'Vendor' AND ELM.IsDeleted = 0",
+                'left'
+            );
+            $this->ReadDb->join(
+                'Accounting.ChartOfAccounts as COA',
+                'COA.LedgerUID = ELM.LedgerUID AND COA.IsDeleted = 0',
+                'left'
+            );
+            $this->ReadDb->where($baseWhere);
+            if (!empty($filter['SearchAllData'])) {
+                $s = $filter['SearchAllData'];
+                $this->ReadDb->group_start();
+                $this->ReadDb->or_like('Vendors.Name', $s, 'both');
+                $this->ReadDb->or_like('Vendors.Area', $s, 'both');
+                $this->ReadDb->or_like('Vendors.MobileNumber', $s, 'both');
+                $this->ReadDb->or_like('Vendors.ContactPerson', $s, 'both');
+                $this->ReadDb->group_end();
+            }
+            // IsActive filter
+            if (isset($filter['IsActive']) && $filter['IsActive'] !== '') {
+                $this->ReadDb->where('Vendors.IsActive', (int)$filter['IsActive']);
+            }
+            // Sorting
+            if (!empty($filter['NameSorting'])) {
+                $this->ReadDb->order_by('Vendors.Name', (int)$filter['NameSorting'] === 1 ? 'ASC' : 'DESC');
+            } elseif (!empty($filter['AreaSorting'])) {
+                $this->ReadDb->order_by('Vendors.Area', (int)$filter['AreaSorting'] === 1 ? 'ASC' : 'DESC');
+            } elseif (!empty($filter['BalanceSorting'])) {
+                $this->ReadDb->order_by('COA.CurrentBalance', (int)$filter['BalanceSorting'] === 1 ? 'ASC' : 'DESC');
+            } else {
+                $this->ReadDb->order_by('Vendors.VendorUID', 'DESC');
+            }
+            $this->ReadDb->limit($limit, $offset);
+            $dataQuery = $this->ReadDb->get();
+            if (!$dataQuery) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
+
+            $result             = new stdClass();
+            $result->rows       = $dataQuery->result();
+            $result->totalCount = $totalCount;
+            return $result;
+
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+
+    }
+
     public function getVendorStats($OrgUID) {
 
         try {

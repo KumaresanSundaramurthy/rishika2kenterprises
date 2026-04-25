@@ -128,7 +128,7 @@ $(document).ready(function () {
     }
     loadTaxDetailOptions();
     loadSelect2Field('#PrimaryUnit',       '-- Select Primary Unit --', '#itemsModal');
-    loadSelect2Field('#Category',          '-- Select Category --',     '#itemsModal');
+    initCategorySelect2();
     loadSelect2Field('#CustomerTypeSelect','-- Select Customer Type --', '#itemsModal');
 
     QuillEditor('.ql-toolbar', 'Enter product description...');
@@ -219,3 +219,67 @@ function loadCustomerPricingRows(pricingData) {
     });
     updateCustomerPricingData();
 }
+
+// ── Category Select2 with inline "+ Create" option ────────────────────
+function initCategorySelect2() {
+    $('#Category').select2({
+        placeholder: '-- Select Category --',
+        allowClear: true,
+        width: 'resolve',
+        dropdownParent: $('#itemsModal'),
+        tags: true,
+        createTag: function (params) {
+            var term = $.trim(params.term);
+            if (!term) return null;
+            // Check if exact match exists in options
+            var matched = false;
+            $('#Category option').each(function () {
+                if ($(this).text().toLowerCase() === term.toLowerCase()) {
+                    matched = true;
+                    return false;
+                }
+            });
+            if (matched) return null;
+            return { id: '__new__' + term, text: term, newTag: true };
+        },
+        templateResult: function (data) {
+            if (data.newTag) {
+                return $('<span class="text-primary fw-semibold"><i class="bx bx-plus-circle me-1"></i> Create "' + $('<span>').text(data.text).html() + '"</span>');
+            }
+            return data.text;
+        },
+        templateSelection: function (data) {
+            if (data.newTag) return '';
+            return data.text;
+        }
+    });
+
+    $('#Category').on('select2:select', function (e) {
+        if (e.params.data.newTag) {
+            var name = e.params.data.text;
+            $('#Category').val(null).trigger('change');
+            _openCatgModal(name);
+        }
+    });
+}
+
+function _openCatgModal(name) {
+    $('#categoryForm').trigger('reset');
+    $('#CatgModalTitle').text('Add Category');
+    $('#CatgSaveButton').text('Save');
+    $('#categoryForm #CategoryUID').val(0);
+    if (typeof myTwoDropzone !== 'undefined') myTwoDropzone.removeAllFiles(true);
+    $('#CategoryName').val(name);
+    $('#categoryModal').data('calledFromItemForm', true);
+    $('#categoryModal').modal('show');
+}
+
+$(document).on('catgSavedFromItemForm', function (e, data) {
+    if (!data || !data.id || !data.name) return;
+    // Option already added by updateCategoryOptions — just select it
+    $('#Category').val(data.id).trigger('change');
+    // Re-open the item modal if it was hidden
+    if (!$('#itemsModal').hasClass('show')) {
+        $('#itemsModal').modal('show');
+    }
+});

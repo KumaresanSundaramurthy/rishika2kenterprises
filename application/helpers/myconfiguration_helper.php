@@ -43,6 +43,7 @@ function getAWSConfigurationDetails() {
 }
 
 function changeTimeZonefromDateTime($DateTimeVal, $TimeZone, $FormatType = 1) {
+    if (empty($DateTimeVal)) return '—';
     $DateTime = new DateTime($DateTimeVal);
 	$DateTime->setTimezone(new DateTimeZone($TimeZone));
 	switch($FormatType) {

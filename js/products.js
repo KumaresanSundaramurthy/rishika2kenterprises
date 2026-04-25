@@ -290,12 +290,18 @@ function addCategoryDetails(formdata) {
                 myTwoDropzone.removeAllFiles(true);
                 $('#categoryForm').trigger('reset');
                 $('#categoryModal').modal('hide');
-                executeCatgPagnFunc(response, true);
+                if (!$('#categoryModal').data('calledFromItemForm')) {
+                    executeCatgPagnFunc(response, true);
+                }
                 if(response.InsertId) {
                     var formObj = {};
                     formObj.InsertId = response.InsertId;
                     formObj.CategoryName = formdata.get('CategoryName');
                     updateCategoryOptions(formObj, 'insert');
+                    if ($('#categoryModal').data('calledFromItemForm')) {
+                        $('#categoryModal').data('calledFromItemForm', false);
+                        $(document).trigger('catgSavedFromItemForm', [{ id: response.InsertId, name: formdata.get('CategoryName') }]);
+                    }
                 }
             }
         }

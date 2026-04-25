@@ -192,6 +192,95 @@
                 </div>
             </div>
 
+        <!-- ── Record Payment Offcanvas ─────────────────────────── -->
+        <div class="offcanvas offcanvas-end" tabindex="-1" id="recordPaymentOffcanvas" aria-labelledby="recordPaymentLabel" style="width:480px;max-width:100vw;">
+            <div class="offcanvas-header border-bottom py-3 px-4" style="background:#fff;">
+                <div>
+                    <h6 class="mb-0 fw-semibold" id="recordPaymentLabel">Record Payment for <span id="rpInvNum" class="text-primary">—</span></h6>
+                    <div class="text-muted" style="font-size:.78rem;" id="rpInvDate"></div>
+                </div>
+                <button type="button" class="btn btn-primary btn-sm ms-auto me-3" id="btnSubmitPayment">
+                    Record Payment <i class="bx bx-right-arrow-alt ms-1"></i>
+                </button>
+                <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+            </div>
+
+            <div class="offcanvas-body px-4 py-3" style="background:#f8f9fa;">
+
+                <!-- Party + Balance -->
+                <div class="d-flex justify-content-between align-items-center mb-3 px-1">
+                    <span class="text-muted" style="font-size:.82rem;">Payment Info - <strong id="rpPartyName">—</strong></span>
+                    <span class="fw-semibold text-danger" style="font-size:.85rem;">Balance &nbsp;<span id="rpBalanceDisplay">—</span></span>
+                </div>
+
+                <!-- Payment Details -->
+                <div class="card mb-3 border-0 shadow-sm">
+                    <div class="card-header bg-white py-2 px-3" style="cursor:pointer;" id="rpDetailsToggle">
+                        <i class="bx bx-chevron-down me-1 text-muted"></i>
+                        <span style="font-size:.85rem;font-weight:600;">Payment Details</span>
+                    </div>
+                    <div class="card-body px-3 py-3" id="rpDetailsBody">
+
+                        <!-- Amount -->
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold" style="font-size:.82rem;"><span class="text-danger">*</span> Amount to be Recorded</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-white" style="font-size:.9rem;" id="rpCurrencySymbol">₹</span>
+                                <input type="number" class="form-control" id="rpAmount" step="0.01" min="0.01" placeholder="0.00">
+                            </div>
+                            <div class="d-flex justify-content-between mt-1">
+                                <span class="text-muted" style="font-size:.73rem;">Total Amount <strong id="rpTotalLabel">—</strong></span>
+                                <span class="text-muted" style="font-size:.73rem;">Amount Pending <strong id="rpPendingLabel">—</strong></span>
+                            </div>
+                        </div>
+
+                        <!-- Payment Date -->
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold" style="font-size:.82rem;">Payment Date</label>
+                            <input type="date" class="form-control" id="rpPaymentDate">
+                        </div>
+
+                        <!-- Payment Type -->
+                        <div class="mb-2">
+                            <label class="form-label fw-semibold" style="font-size:.82rem;">Payment Type</label>
+                            <div class="d-flex flex-wrap gap-2" id="rpPaymentTypes">
+                                <div class="text-muted" style="font-size:.8rem;"><i class="bx bx-loader-alt bx-spin"></i> Loading…</div>
+                            </div>
+                            <input type="hidden" id="rpPaymentTypeUID" value="">
+                            <input type="hidden" id="rpIsCash" value="1">
+                        </div>
+
+                        <!-- Bank Account (shown for non-cash) -->
+                        <div class="mb-2 d-none" id="rpBankRow">
+                            <label class="form-label fw-semibold" style="font-size:.82rem;">Bank Account</label>
+                            <select class="form-select form-select-sm" id="rpBankAccount">
+                                <option value="">Select bank account…</option>
+                            </select>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- More Details -->
+                <div class="card mb-3 border-0 shadow-sm">
+                    <div class="card-body px-3 py-3">
+                        <div class="fw-semibold mb-3" style="font-size:.85rem;">More Details</div>
+                        <div class="mb-2">
+                            <label class="form-label text-muted" style="font-size:.78rem;">Payment Reference ID &nbsp;<span class="text-muted fw-normal">(Optional)</span></label>
+                            <input type="text" class="form-control form-control-sm" id="rpReferenceNo" placeholder="Your UTR ID for the payment">
+                            <div class="text-muted mt-1" style="font-size:.72rem;">A unique ID for each payment.</div>
+                        </div>
+                        <div class="mb-0">
+                            <label class="form-label text-muted" style="font-size:.78rem;">Notes &nbsp;<span class="text-muted fw-normal">(Optional)</span></label>
+                            <textarea class="form-control form-control-sm" id="rpNotes" rows="2" placeholder="Add a note…"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <input type="hidden" id="rpTransUID" value="">
+            </div>
+        </div>
+
             <?php $this->load->view('common/footer_desc'); ?>
         </div>
     </div>
@@ -375,4 +464,138 @@ function _esc(v) {
     if (v === null || v === undefined) return '—';
     return $('<span>').text(String(v)).html();
 }
+
+// ── Record Payment Offcanvas ──────────────────────────────────────
+(function () {
+    'use strict';
+
+    var _payTypes    = [];
+    var _bankAccts   = [];
+    var _typesLoaded = false;
+    var _banksLoaded = false;
+    var _currency    = '<?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>';
+
+    function loadPaymentTypes() {
+        if (_typesLoaded) return;
+        $.get('/payments/getPaymentTypes', function (resp) {
+            if (resp.Error) return;
+            _payTypes    = resp.Data || [];
+            _typesLoaded = true;
+            renderPaymentTypes();
+        });
+    }
+
+    function loadBankAccounts() {
+        if (_banksLoaded) return;
+        $.get('/payments/getBankAccounts', function (resp) {
+            if (resp.Error) return;
+            _bankAccts   = resp.Data || [];
+            _banksLoaded = true;
+            var $sel = $('#rpBankAccount').empty().append('<option value="">Select bank account…</option>');
+            $.each(_bankAccts, function (i, b) {
+                $sel.append('<option value="' + b.BankAccountUID + '">' + _esc(b.BankName) + ' — ' + _esc(b.AccountName) + '</option>');
+            });
+        });
+    }
+
+    function renderPaymentTypes() {
+        var $wrap = $('#rpPaymentTypes').empty();
+        $.each(_payTypes, function (i, t) {
+            var active = (i === 0) ? ' active' : '';
+            if (i === 0) { $('#rpPaymentTypeUID').val(t.PaymentTypeUID); $('#rpIsCash').val(t.IsCash); }
+            $wrap.append(
+                '<button type="button" class="rp-type-pill btn btn-sm btn-outline-secondary' + active + '" ' +
+                'data-uid="' + t.PaymentTypeUID + '" data-iscash="' + t.IsCash + '">' + _esc(t.Name) + '</button>'
+            );
+        });
+        toggleBankRow();
+    }
+
+    function toggleBankRow() {
+        var isCash = parseInt($('#rpIsCash').val(), 10);
+        if (isCash) { $('#rpBankRow').addClass('d-none'); } else { $('#rpBankRow').removeClass('d-none'); loadBankAccounts(); }
+    }
+
+    // Open offcanvas when "Receive Payment" clicked
+    $(document).on('click', '.invReceivePayment', function () {
+        var uid     = $(this).data('uid');
+        var num     = $(this).data('num')     || '';
+        var date    = $(this).data('date')    || '';
+        var party   = $(this).data('party')   || '';
+        var total   = parseFloat($(this).data('total'))   || 0;
+        var pending = parseFloat($(this).data('pending')) || 0;
+
+        $('#rpTransUID').val(uid);
+        $('#rpInvNum').text(num);
+        $('#rpInvDate').text(date);
+        $('#rpPartyName').text(party);
+        $('#rpBalanceDisplay').text(_currency + ' ' + pending.toFixed(2));
+        $('#rpTotalLabel').text(_currency + ' ' + total.toFixed(2));
+        $('#rpPendingLabel').text(_currency + ' ' + pending.toFixed(2));
+        $('#rpAmount').val(pending.toFixed(2)).attr('max', pending);
+        $('#rpCurrencySymbol').text(_currency);
+        $('#rpPaymentDate').val(new Date().toISOString().split('T')[0]);
+        $('#rpReferenceNo').val('');
+        $('#rpNotes').val('');
+        $('#rpBankAccount').val('');
+
+        loadPaymentTypes();
+        var oc = new bootstrap.Offcanvas(document.getElementById('recordPaymentOffcanvas'));
+        oc.show();
+    });
+
+    // Payment type pill toggle
+    $(document).on('click', '.rp-type-pill', function () {
+        $('.rp-type-pill').removeClass('active btn-primary').addClass('btn-outline-secondary');
+        $(this).addClass('active btn-primary').removeClass('btn-outline-secondary');
+        $('#rpPaymentTypeUID').val($(this).data('uid'));
+        $('#rpIsCash').val($(this).data('iscash'));
+        toggleBankRow();
+    });
+
+    // Submit payment
+    $('#btnSubmitPayment').on('click', function () {
+        var transUID       = parseInt($('#rpTransUID').val(), 10);
+        var paymentTypeUID = parseInt($('#rpPaymentTypeUID').val(), 10);
+        var amount         = parseFloat($('#rpAmount').val()) || 0;
+        var bankAccountUID = parseInt($('#rpBankAccount').val(), 10) || 0;
+        var referenceNo    = $.trim($('#rpReferenceNo').val());
+        var notes          = $.trim($('#rpNotes').val());
+
+        if (!transUID)       { Swal.fire({ icon: 'warning', text: 'Invalid invoice.' }); return; }
+        if (!paymentTypeUID) { Swal.fire({ icon: 'warning', text: 'Please select a payment type.' }); return; }
+        if (amount <= 0)     { Swal.fire({ icon: 'warning', text: 'Enter a valid amount.' }); return; }
+
+        var $btn = $(this).prop('disabled', true).text('Saving…');
+
+        $.ajax({
+            url   : '/invoices/recordInvoicePayment',
+            method: 'POST',
+            data  : {
+                TransUID       : transUID,
+                PaymentTypeUID : paymentTypeUID,
+                Amount         : amount,
+                BankAccountUID : bankAccountUID || '',
+                ReferenceNo    : referenceNo,
+                Notes          : notes,
+                [CsrfName]     : CsrfToken,
+            },
+            success: function (resp) {
+                $btn.prop('disabled', false).html('Record Payment <i class="bx bx-right-arrow-alt ms-1"></i>');
+                if (resp.Error) {
+                    Swal.fire({ icon: 'error', title: 'Error', text: resp.Message });
+                } else {
+                    bootstrap.Offcanvas.getInstance(document.getElementById('recordPaymentOffcanvas')).hide();
+                    getInvoicesDetails();
+                    Swal.fire({ icon: 'success', text: resp.Message, timer: 1800, showConfirmButton: false });
+                }
+            },
+            error: function () {
+                $btn.prop('disabled', false).html('Record Payment <i class="bx bx-right-arrow-alt ms-1"></i>');
+                Swal.fire({ icon: 'error', text: 'Request failed. Try again.' });
+            }
+        });
+    });
+
+}());
 </script>

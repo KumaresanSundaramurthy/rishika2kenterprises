@@ -16,83 +16,133 @@
 
                 <div class="container-xxl flex-grow-1 container-p-y">
 
+                    <!-- ── Product Stats ── -->
+                    <?php $s = $ProductStats ?? null; ?>
+                    <div class="row g-3 mb-3">
+
+                        <!-- Total Products -->
+                        <div class="col-6 col-md">
+                            <div class="trans-stat-card stat-all">
+                                <div class="trans-stat-label">Total Products</div>
+                                <div class="trans-stat-count"><?php echo number_format((int)($s->TotalProducts ?? 0)); ?></div>
+                                <div class="trans-stat-amount">&nbsp;</div>
+                                <i class="bx bx-package trans-stat-icon"></i>
+                            </div>
+                        </div>
+
+                        <!-- Total Stock Value -->
+                        <div class="col-6 col-md">
+                            <div class="trans-stat-card stat-paid">
+                                <div class="trans-stat-label">Stock Value</div>
+                                <div class="trans-stat-count"><?php echo $JwtData->GenSettings->CurrenySymbol . ' ' . number_format((float)($s->TotalStockValue ?? 0), 2); ?></div>
+                                <div class="trans-stat-amount">&nbsp;</div>
+                                <i class="bx bx-rupee trans-stat-icon"></i>
+                            </div>
+                        </div>
+
+                        <!-- Added (Month / FY / Recent) -->
+                        <div class="col-6 col-md">
+                            <div class="trans-stat-card stat-active">
+                                <div class="trans-stat-label">Added</div>
+                                <div class="trans-stat-count"><?php echo number_format((int)($s->AddedThisMonth ?? 0)); ?> <span style="font-size:.7rem;font-weight:400;">this month</span></div>
+                                <div class="trans-stat-amount">
+                                    <?php echo number_format((int)($s->AddedThisFY ?? 0)); ?> this FY &nbsp;|&nbsp;
+                                    <?php echo number_format((int)($s->RecentlyUpdated ?? 0)); ?> updated (7d)
+                                </div>
+                                <i class="bx bx-calendar-plus trans-stat-icon"></i>
+                            </div>
+                        </div>
+
+                        <!-- Low Stock -->
+                        <div class="col-6 col-md">
+                            <div class="trans-stat-card stat-draft">
+                                <div class="trans-stat-label">Low Stock</div>
+                                <div class="trans-stat-count"><?php echo number_format((int)($s->LowStockItems ?? 0)); ?></div>
+                                <div class="trans-stat-amount">&nbsp;</div>
+                                <i class="bx bx-error trans-stat-icon"></i>
+                            </div>
+                        </div>
+
+                        <!-- Not For Sale -->
+                        <div class="col-6 col-md">
+                            <div class="trans-stat-card stat-converted">
+                                <div class="trans-stat-label">Not For Sale</div>
+                                <div class="trans-stat-count"><?php echo number_format((int)($s->NotForSale ?? 0)); ?></div>
+                                <div class="trans-stat-amount">&nbsp;</div>
+                                <i class="bx bx-block trans-stat-icon"></i>
+                            </div>
+                        </div>
+
+                    </div><!-- /stats row -->
+
                     <div class="card">
                         <div class="row">
                             <div class="col-md-12">
-                                <div class="d-flex flex-column flex-md-row justify-content-between align-items-center p-3">
-                                    <ul class="nav nav-pills nav nav-pills flex-row" role="tablist">
-                                        <li class="nav-item">
-                                            <a class="nav-link <?php echo $ActiveTabData == 'item' ? 'active' : ''; ?> TabPane disabled" data-id="Item" role="tab" data-bs-toggle="tab" data-bs-target="#NavItemPage" aria-controls="NavItemPage" aria-selected="true" href="javascript: void(0);"><i class="bx bx-package me-1"></i> Item <span class="badge bg-label-warning ms-1" id="productTotalCount"><?php echo $ProductTotalCount; ?></span></a>
-                                        </li>
-                                        <li class="nav-item">
-                                            <a class="nav-link <?php echo $ActiveTabData == 'category' ? 'active' : ''; ?> TabPane disabled" data-id="Categories" role="tab" data-bs-toggle="tab" data-bs-target="#NavCategoriesPage" aria-controls="NavCategoriesPage" aria-selected="true" href="javascript: void(0);"><i class="bx bx-layer me-1"></i> Categories</a>
-                                        </li>
-                                        <li class="nav-item">
-                                            <a class="nav-link TabPane disabled d-none" data-id="Sizes" role="tab" data-bs-toggle="tab" data-bs-target="#NavSizesPage" aria-controls="NavSizesPage" aria-selected="true" href="javascript: void(0);"><i class="bx bx-ruler me-1"></i> Sizes</a>
-                                        </li>
-                                        <li class="nav-item">
-                                            <a class="nav-link TabPane disabled d-none" data-id="Brands" role="tab" data-bs-toggle="tab" data-bs-target="#NavBrandsPage" aria-controls="NavBrandsPage" aria-selected="true" href="javascript: void(0);"><i class="bx bx-badge-check me-1"></i> Brands</a>
-                                        </li>
-                                    </ul>
-                                    <div class="d-flex mt-2 mt-md-0">
-                                        <a href="javascript: void(0);" class="btn PageRefresh p-2 me-0"><i class="bx bx-refresh fs-4"></i></a>
-                                        <!-- <a href="javascript: void(0);" id="btnPageSettings" class="btn p-2"><i class="bx bx-cog fs-4"></i></a> -->
-                                        <div class="position-relative me-2">
-                                            <input type="text" class="form-control SearchDetails" name="SearchDetails" id="SearchDetails" placeholder="Search details..." data-toggle="tooltip" title="Please type at least 3 characters to search" />
-                                            <i class="bx bx-x position-absolute top-50 end-0 translate-middle-y me-3 text-muted cursor-pointer d-none" id="clearSearch"></i>
+
+                                <!-- Toolbar -->
+                                <div class="trans-toolbar">
+                                    <div class="trans-toolbar-tabs">
+                                        <ul class="nav trans-status-tabs" role="tablist">
+                                            <li class="nav-item">
+                                                <a class="nav-link <?php echo $ActiveTabData == 'item' ? 'active' : ''; ?> TabPane disabled" data-id="Item" role="tab" data-bs-toggle="tab" data-bs-target="#NavItemPage" href="javascript:void(0);">
+                                                    <i class="bx bx-package me-1"></i> Item
+                                                    <span class="trans-tab-count" id="productTotalCount"><?php echo $ProductTotalCount; ?></span>
+                                                </a>
+                                            </li>
+                                            <li class="nav-item">
+                                                <a class="nav-link <?php echo $ActiveTabData == 'category' ? 'active' : ''; ?> TabPane disabled" data-id="Categories" role="tab" data-bs-toggle="tab" data-bs-target="#NavCategoriesPage" href="javascript:void(0);">
+                                                    <i class="bx bx-layer me-1"></i> Categories
+                                                    <span class="trans-tab-count d-none"></span>
+                                                </a>
+                                            </li>
+                                            <li class="nav-item">
+                                                <a class="nav-link TabPane disabled d-none" data-id="Sizes" role="tab" data-bs-toggle="tab" data-bs-target="#NavSizesPage" href="javascript:void(0);">
+                                                    <i class="bx bx-ruler me-1"></i> Sizes
+                                                    <span class="trans-tab-count d-none"></span>
+                                                </a>
+                                            </li>
+                                            <li class="nav-item">
+                                                <a class="nav-link TabPane disabled d-none" data-id="Brands" role="tab" data-bs-toggle="tab" data-bs-target="#NavBrandsPage" href="javascript:void(0);">
+                                                    <i class="bx bx-badge-check me-1"></i> Brands
+                                                    <span class="trans-tab-count d-none"></span>
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                    <div class="trans-toolbar-actions">
+                                        <a href="javascript:void(0);" class="r2k-icon-btn PageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
+                                        <div class="r2k-search-wrap">
+                                            <i class="bx bx-search r2k-si"></i>
+                                            <input type="text" class="SearchDetails" id="SearchDetails" placeholder="Search items...">
+                                            <i class="bx bx-x r2k-clear d-none" id="clearSearch"></i>
                                         </div>
-                                        <div class="btn-group" id="ActionsDD-Div">
-                                            <button class="btn btn-label-secondary dropdown-toggle me-2" type="button" id="actionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                                                <span class="d-flex align-items-center gap-2">
-                                                    <i class="icon-base bx bx-slider-alt icon-xs"></i>
-                                                    <span class="d-none d-sm-inline-block"></span>
-                                                </span>
+                                        <div class="btn-group r2k-toolbar-actions" id="ActionsDD-Div">
+                                            <button class="r2k-dd-btn dropdown-toggle" type="button" id="actionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                                <i class="bx bx-slider-alt"></i>
                                             </button>
-                                            <ul class="dropdown-menu" aria-labelledby="actionsDropdown">
+                                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="actionsDropdown">
                                                 <li class="d-none" id="CloneOption">
-                                                    <a class="dropdown-item" href="javascript: void(0);" id="btnClone">
-                                                        <i class="bx bx-duplicate me-1"></i> Clone
-                                                    </a>
+                                                    <a class="dropdown-item" href="javascript:void(0);" id="btnClone"><i class="bx bx-duplicate me-1"></i> Clone</a>
                                                 </li>
                                                 <li class="d-none" id="DeleteOption">
-                                                    <a class="dropdown-item text-danger" href="javascript: void(0);" id="btnDelete">
-                                                        <i class="bx bx-trash me-1"></i> Delete
-                                                    </a>
+                                                    <a class="dropdown-item text-danger" href="javascript:void(0);" id="btnDelete"><i class="bx bx-trash me-1"></i> Delete</a>
                                                 </li>
                                                 <li class="dropdown-submenu">
-                                                    <a class="dropdown-item" href="javascript: void(0);">
-                                                        <i class="bx bx-export me-1"></i> Export
-                                                    </a>
+                                                    <a class="dropdown-item" href="javascript:void(0);"><i class="bx bx-export me-1"></i> Export</a>
                                                     <ul class="dropdown-menu">
-                                                        <li>
-                                                            <a class="dropdown-item" href="javascript: void(0);" id="btnExportPrint">
-                                                                <i class="bx bx-printer me-1"></i> Print
-                                                            </a>
-                                                        </li>
-                                                        <li>
-                                                            <a class="dropdown-item" href="javascript: void(0);" id="btnExportCSV">
-                                                                <i class="bx bx-file me-1"></i> CSV
-                                                            </a>
-                                                        </li>
-                                                        <li>
-                                                            <a class="dropdown-item" href="javascript: void(0);" id="btnExportExcel">
-                                                                <i class="bx bxs-file-export me-1"></i> Excel
-                                                            </a>
-                                                        </li>
-                                                        <li>
-                                                            <a class="dropdown-item" href="javascript: void(0);" id="btnExportPDF">
-                                                                <i class="bx bxs-file-pdf me-1"></i> PDF
-                                                            </a>
-                                                        </li>
+                                                        <li><a class="dropdown-item" href="javascript:void(0);" id="btnExportPrint"><i class="bx bx-printer me-1"></i> Print</a></li>
+                                                        <li><a class="dropdown-item" href="javascript:void(0);" id="btnExportCSV"><i class="bx bx-file me-1"></i> CSV</a></li>
+                                                        <li><a class="dropdown-item" href="javascript:void(0);" id="btnExportExcel"><i class="bx bxs-file-export me-1"></i> Excel</a></li>
+                                                        <li><a class="dropdown-item" href="javascript:void(0);" id="btnExportPDF"><i class="bx bxs-file-pdf me-1"></i> PDF</a></li>
                                                     </ul>
                                                 </li>
                                             </ul>
                                         </div>
-                                        <a href="javascript: void(0);" class="btn btn-primary px-3 addItem <?php echo $ActiveTabData == 'item' ? '' : 'd-none'; ?>" id="NewItem"> Create Item</a>
-                                        <a href="javascript: void(0);" class="btn btn-outline-primary px-3 ms-2 <?php echo $ActiveTabData == 'item' ? '' : 'd-none'; ?>" id="NewComboItem"><i class="bx bx-git-merge me-1"></i> Add Combo Item</a>
-                                        <a href="javascript: void(0);" class="btn btn-primary px-3 addCategory <?php echo $ActiveTabData == 'category' ? '' : 'd-none'; ?>" id="NewCategory"> Create Category</a>
-                                        <a href="javascript: void(0);" class="btn btn-primary px-3 addSizes <?php echo $ActiveTabData == 'size' ? '' : 'd-none'; ?>" id="NewSizes"> Create Size</a>
-                                        <a href="javascript: void(0);" class="btn btn-primary px-3 addBrands <?php echo $ActiveTabData == 'brand' ? '' : 'd-none'; ?>" id="NewBrands"> Create Brand</a>
+                                        <a href="javascript:void(0);" class="r2k-create-btn addItem <?php echo $ActiveTabData == 'item' ? '' : 'd-none'; ?>" id="NewItem"><i class="bx bx-plus"></i> Create Item</a>
+                                        <a href="javascript:void(0);" class="r2k-create-btn <?php echo $ActiveTabData == 'item' ? '' : 'd-none'; ?>" id="NewComboItem"><i class="bx bx-git-merge"></i> Combo</a>
+                                        <a href="javascript:void(0);" class="r2k-create-btn addCategory <?php echo $ActiveTabData == 'category' ? '' : 'd-none'; ?>" id="NewCategory"><i class="bx bx-plus"></i> Create Category</a>
+                                        <a href="javascript:void(0);" class="r2k-create-btn addSizes <?php echo $ActiveTabData == 'size' ? '' : 'd-none'; ?>" id="NewSizes"><i class="bx bx-plus"></i> Create Size</a>
+                                        <a href="javascript:void(0);" class="r2k-create-btn addBrands <?php echo $ActiveTabData == 'brand' ? '' : 'd-none'; ?>" id="NewBrands"><i class="bx bx-plus"></i> Create Brand</a>
                                     </div>
                                 </div>
                                 <div class="tab-content p-0">
@@ -100,7 +150,7 @@
                                     <div class="tab-pane fade <?php echo $ActiveTabData == 'item' ? 'show active' : ''; ?>" id="NavItemPage" role="tabpanel">
 
                                         <div class="table-responsive text-nowrap h-100 tablecard">
-                                            <table class="table table-hover MainviewTable" id="ProductsTable">
+                                            <table class="table trans-table table-hover" id="ProductsTable">
                                                 <thead class="r2k-thead">
                                                     <tr>
                                                         <th class="table-checkbox text-center align-middle">
@@ -154,8 +204,8 @@
                                     <div class="tab-pane fade <?php echo $ActiveTabData == 'category' ? 'show active' : ''; ?>" id="NavCategoriesPage" role="tabpanel">
 
                                         <div class="table-responsive text-nowrap h-100 tablecard">
-                                            <table class="table table-hover MainviewTable" id="CategoriesTable">
-                                                <thead class="bg-body-tertiary">
+                                            <table class="table trans-table table-hover" id="CategoriesTable">
+                                                <thead class="r2k-thead">
                                                     <tr>
                                                         <th class="table-checkbox">
                                                             <div class="form-check form-check-inline">
@@ -166,11 +216,12 @@
                                                         <th class="name-sortable position-relative" id="sortCatgName" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">
                                                             <span class="sort-label cursor-pointer">Name <i class="bx bx-sort sort-icon ms-1"></i></span>
                                                         </th>
+                                                        <th>Products</th>
                                                         <th>Last Updated</th>
                                                         <th class="text-center">Actions</th>
                                                     </tr>
                                                 </thead>
-                                                <tbody class="table-border-bottom-0">
+                                                <tbody class="r2k-tbody table-border-bottom-0">
                                                     <?php if ($ActiveTabData == 'category') {
                                                         echo $ModRowData;
                                                     } else {
@@ -268,6 +319,26 @@
             <?php $this->load->view('products/modals/sizes'); ?>
             <?php $this->load->view('products/modals/brands'); ?>
             <?php $this->load->view('products/modals/barcodeprint'); ?>
+
+            <!-- Category Products Modal -->
+            <style>
+            @keyframes catgPulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+            .catg-skeleton { animation: catgPulse 1.4s ease-in-out infinite; }
+            </style>
+            <div class="modal fade" id="catgProductsModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                    <div class="modal-content" style="overflow:hidden;">
+                        <button type="button" class="btn-close position-absolute" data-bs-dismiss="modal"
+                            style="top:14px;right:16px;z-index:10;background-color:rgba(255,255,255,.85);border-radius:50%;padding:6px;box-shadow:0 1px 4px rgba(0,0,0,.15);"
+                            aria-label="Close"></button>
+                        <div class="modal-body p-0">
+                            <div id="catgProductsModalBody">
+                                <div class="d-flex justify-content-center py-5"><div class="spinner-border text-primary"></div></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <?php $this->load->view('common/footer_desc'); ?>
 
@@ -769,7 +840,9 @@ $(function() {
     });
 
     $('#categoryModal').on('hide.bs.modal', function() {
-        formOpenCloseDefActions();
+        if (!$(this).data('calledFromItemForm')) {
+            formOpenCloseDefActions();
+        }
     });
     
     basePaginationFunc(CatgPag, getCategoriesDetails);
@@ -1052,5 +1125,130 @@ $(function() {
 });
 $(window).on('load', function() {
     $('.nav-item .TabPane').removeClass('disabled');
+});
+
+// Category product count click
+$(document).on('click', '.catg-prod-count-btn', function () {
+    var catgUID  = $(this).data('catguid');
+    var catgName = $(this).data('catgname');
+    var prodCount = parseInt($(this).text()) || 0;
+    var sym = (typeof currencySymbol !== 'undefined') ? currencySymbol : '\u20b9';
+
+    // Show banner + skeleton immediately — no blank page
+    var skeleton =
+        '<div style="background:#e8f0fe;border-left:4px solid #0d6efd;padding:14px 20px;">'
+        + '<div class="d-flex align-items-center gap-3">'
+        + '<div style="background:#0d6efd22;border-radius:10px;padding:9px 11px;">'
+        + '<i class="bx bx-layer" style="font-size:1.7rem;color:#0d6efd;display:block;"></i></div>'
+        + '<div>'
+        + '<div style="font-size:1.05rem;font-weight:800;color:#0d6efd;">' + $('<span>').text(catgName).html() + '</div>'
+        + '<div style="font-size:.77rem;color:#6c757d;margin-top:3px;">'
+        + '<i class="bx bx-package me-1"></i>' + prodCount + ' active product' + (prodCount !== 1 ? 's' : '')
+        + '</div></div></div></div>'
+        // skeleton summary cards
+        + '<div style="padding:14px 20px;border-bottom:1px solid #e9ecef;">'
+        + '<div class="row g-2">'
+        + '<div class="col-6"><div style="background:#f0f0f0;border-radius:6px;height:60px;" class="catg-skeleton"></div></div>'
+        + '<div class="col-6"><div style="background:#f0f0f0;border-radius:6px;height:60px;" class="catg-skeleton"></div></div>'
+        + '</div></div>'
+        // skeleton rows
+        + '<div style="padding:14px 20px;">'
+        + [1,2,3].map(function(){ return '<div style="background:#f0f0f0;border-radius:4px;height:32px;margin-bottom:8px;" class="catg-skeleton"></div>'; }).join('')
+        + '</div>';
+
+    $('#catgProductsModalBody').html(skeleton);
+    $('#catgProductsModal').modal('show');
+    AjaxLoading = 0;
+    $.ajax({
+        url    : '/products/getProductsByCategory',
+        method : 'POST',
+        data   : { CategoryUID: catgUID, [CsrfName]: CsrfToken },
+        success: function (res) {
+            AjaxLoading = 1;
+            function _esc(v) { return $('<span>').text(String(v || '')).html(); }
+            function _amt(n) { return sym + ' ' + parseFloat(n || 0).toFixed(2); }
+            function _infoCard(content, borderColor) {
+                return '<div style="background:#fafafa;border:1px solid #e9ecef;border-left:3px solid '
+                    + borderColor + ';border-radius:6px;padding:10px 12px;height:100%;">' + content + '</div>';
+            }
+            function _secHdr(icon, label, color) {
+                return '<div class="d-flex align-items-center gap-2" style="padding:4px 0 10px;">'
+                    + '<i class="bx ' + icon + '" style="font-size:1.05rem;color:' + color + ';"></i>'
+                    + '<span style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:' + color + ';">' + label + '</span></div>';
+            }
+
+            // Banner always stays — update product count with real value
+            var realCount = (res.Products && res.Products.length) ? res.Products.length : 0;
+            var html = '<div style="background:#e8f0fe;border-left:4px solid #0d6efd;padding:14px 20px;">'
+                + '<div class="d-flex align-items-center gap-3">'
+                + '<div style="background:#0d6efd22;border-radius:10px;padding:9px 11px;">'
+                + '<i class="bx bx-layer" style="font-size:1.7rem;color:#0d6efd;display:block;"></i></div>'
+                + '<div>'
+                + '<div style="font-size:1.05rem;font-weight:800;color:#0d6efd;">' + _esc(catgName) + '</div>'
+                + '<div style="font-size:.77rem;color:#6c757d;margin-top:3px;">'
+                + '<i class="bx bx-package me-1"></i>' + realCount + ' active product' + (realCount !== 1 ? 's' : '')
+                + '</div></div></div></div>';
+
+            if (res.Error || !res.Products || res.Products.length === 0) {
+                html += '<div class="d-flex flex-column align-items-center py-5 text-muted">'
+                    + '<i class="bx bx-package" style="font-size:2.5rem;color:#dee2e6;"></i>'
+                    + '<p class="mt-2 mb-0" style="font-size:.88rem;">No active products in this category.</p>'
+                    + '</div>';
+                $('#catgProductsModalBody').html(html);
+                return;
+            }
+
+            // Summary cards
+            var totalStockVal = 0;
+            res.Products.forEach(function(p) {
+                totalStockVal += parseFloat(p.AvailableQuantity || 0) * parseFloat(p.PurchasePrice || 0);
+            });
+            var card1 = '<div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#6c757d;margin-bottom:5px;"><i class="bx bx-package me-1"></i>Total Items</div>'
+                + '<div style="font-size:1.3rem;font-weight:800;color:#0d6efd;">' + res.Products.length + '</div>';
+            var card2 = '<div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#6c757d;margin-bottom:5px;"><i class="bx bx-rupee me-1"></i>Stock Value</div>'
+                + '<div style="font-size:1.1rem;font-weight:800;color:#198754;">' + sym + ' ' + totalStockVal.toFixed(2) + '</div>';
+            html += '<div style="padding:14px 20px;border-bottom:1px solid #e9ecef;">'
+                + _secHdr('bx-bar-chart-alt-2', 'Summary', '#6c757d')
+                + '<div class="row g-2">'
+                + '<div class="col-6">' + _infoCard(card1, '#0d6efd') + '</div>'
+                + '<div class="col-6">' + _infoCard(card2, '#198754') + '</div>'
+                + '</div></div>';
+
+            // Product table
+            var rows = '';
+            res.Products.forEach(function (p, i) {
+                var qty = parseFloat(p.AvailableQuantity || 0);
+                var qtyHtml = qty > 0
+                    ? '<span style="color:#198754;font-weight:600;">' + qty + '</span>'
+                    : (qty === 0
+                        ? '<span style="color:#dc3545;font-weight:600;">0</span>'
+                        : '<span style="color:#dc3545;font-weight:600;">' + qty + '</span><span class="badge bg-label-danger ms-1" style="font-size:.62rem;">Out</span>');
+                var mrp = parseFloat(p.MRP || 0);
+                rows += '<tr>'
+                    + '<td class="text-muted text-center" style="width:32px;">' + (i + 1) + '</td>'
+                    + '<td><span style="font-weight:500;">' + _esc(p.ItemName) + '</span></td>'
+                    + '<td class="text-end">' + _amt(p.SellingPrice) + '</td>'
+                    + '<td class="text-end">' + (mrp > 0 ? _amt(mrp) : '<span class="text-muted">—</span>') + '</td>'
+                    + '<td class="text-end">' + _amt(p.PurchasePrice) + '</td>'
+                    + '<td class="text-center">' + qtyHtml + '</td>'
+                    + '</tr>';
+            });
+            html += '<div style="padding:14px 20px;">'
+                + _secHdr('bx-package', 'Product List', '#fd7e14')
+                + '<div class="table-responsive">'
+                + '<table class="table table-sm table-hover mb-0" style="font-size:.82rem;">'
+                + '<thead><tr style="background:#fff3e0;">'
+                + '<th class="text-center">#</th><th>Item Name</th>'
+                + '<th class="text-end">Selling Price</th><th class="text-end">MRP</th>'
+                + '<th class="text-end">Purchase Price</th><th class="text-center">Avail. Qty</th>'
+                + '</tr></thead><tbody>' + rows + '</tbody></table></div></div>';
+
+            $('#catgProductsModalBody').html(html);
+        },
+        error: function () {
+            AjaxLoading = 1;
+            $('#catgProductsModalBody').html('<div class="alert alert-danger m-3">Failed to load products.</div>');
+        }
+    });
 });
 </script>

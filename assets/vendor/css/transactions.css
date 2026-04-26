@@ -200,3 +200,87 @@
     white-space: nowrap;
     flex-shrink: 0;
 }
+
+/* ─────────────────────────────────────────────────────────────────
+   Select2 — Combobox style
+   Clicking the field places the cursor directly in it; the options
+   list appears below without a separate floating search box.
+   ───────────────────────────────────────────────────────────────── */
+
+/* Pull dropdown up to overlap the selection field — combobox style */
+.select2-container--default .select2-dropdown--below {
+    margin-top: -38px;
+    border-radius: 6px !important;
+    border-color: #86b7fe !important;
+    box-shadow: 0 0 0 0.18rem rgba(13,110,253,.15), 0 4px 18px rgba(0,0,0,.08) !important;
+}
+
+/* Search input fills the top of the dropdown (the "visible field") */
+.select2-container--default .select2-search--dropdown {
+    padding: 0;
+    border-bottom: 1px solid #e9ecef;
+}
+.select2-container--default .select2-search--dropdown .select2-search__field {
+    height: 38px;
+    padding: 0.375rem 2rem 0.375rem 0.75rem;
+    border: none !important;
+    border-radius: 6px 6px 0 0;
+    font-size: 0.875rem;
+    font-weight: 400;
+    color: #566a7f;
+    background: #fff !important;
+    outline: none !important;
+    box-shadow: none !important;
+    width: 100%;
+    box-sizing: border-box;
+}
+.select2-container--default .select2-search--dropdown .select2-search__field:focus {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* Hide the selection's rendered text — search input overlaps it */
+.select2-container--default.select2-container--open .select2-selection--single .select2-selection__rendered {
+    color: transparent !important;
+}
+/* But keep the placeholder visible when no value is selected */
+.select2-container--default.select2-container--open .select2-selection--single .select2-selection__placeholder {
+    color: #acb5bd !important;
+}
+/* Suppress the selection container's own focus ring when dropdown is open */
+.select2-container--default.select2-container--open .select2-selection--single {
+    border-color: transparent !important;
+    box-shadow: none !important;
+}
+
+/* Flip the arrow indicator when open */
+.select2-container--default.select2-container--open .select2-selection--single .select2-selection__arrow b {
+    border-color: transparent transparent #566a7f transparent !important;
+    border-width: 0 4px 5px 4px !important;
+}
+
+/* Results list */
+.select2-container--default .select2-results__option {
+    font-size: 0.875rem;
+    color: #566a7f;
+    padding: 6px 12px;
+}
+.select2-container--default .select2-results__option--highlighted[aria-selected],
+.select2-container--default .select2-results__option--highlighted[data-selected] {
+    background-color: rgba(105, 108, 255, 0.10) !important;
+    color: #566a7f !important;
+}
+
+/* ── Product search dropdown sub-info colors ───────────────────── */
+.prod-info-sep  { color: #c5cdd6; margin: 0 5px; }
+.prod-info-hsn  { color: #0891b2; }   /* teal   — HSN code  */
+.prod-info-unit { color: #7c3aed; }   /* violet — unit      */
+.prod-info-cat  { color: #c2782c; }   /* amber  — category  */
+.prod-info-tax  { color: #6d7fcc; }   /* indigo — tax rate  */
+
+/* Keep sub-info colors visible on hover highlight */
+.select2-results__option--highlighted .prod-info-sep  { color: #b0bec5; }
+.select2-results__option--highlighted .prod-info-hsn  { color: #0e7490; }
+.select2-results__option--highlighted .prod-info-unit { color: #6d28d9; }
+.select2-results__option--highlighted .prod-info-cat  { color: #b45309; }
+.select2-results__option--highlighted .prod-info-tax  { color: #5a6fbb; }

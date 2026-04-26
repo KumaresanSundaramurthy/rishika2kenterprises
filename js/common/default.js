@@ -822,6 +822,18 @@ function initializeSelect2Tags(fieldSelector, placeholder, modalSelector = null)
 
 }
 
+/* ── Copy Select2 placeholder into the dropdown search box on open ── */
+$(document).on('select2:open', function(e) {
+    var opts        = $(e.target).data('select2').options.options;
+    var placeholder = (opts && opts.placeholder) ? opts.placeholder : '';
+    if (typeof placeholder === 'object') placeholder = placeholder.text || '';
+    if (!placeholder) return;
+    setTimeout(function() {
+        $('.select2-container--open .select2-search--dropdown .select2-search__field')
+            .attr('placeholder', placeholder);
+    }, 0);
+});
+
 function initializeFlatPickr(FieldName, IsModal = '') {
     if(IsModal) {
         flatpickr(FieldName, {

@@ -57,75 +57,73 @@
                             <div class="card-header modal-header-center-sticky p-1 mb-3">
                                 <h5 class="modal-title mb-0"><i class="bx bx-user me-1"></i> Customer Details</h5>
                             </div>
-                            <div class="row">
-                                <div class="col-md-3 trans-right-border">
-                                    <div class="mb-2">
-                                        <label for="invoiceType" class="form-label small fw-semibold">Type <span style="color:red">*</span></label>
-                                        <select id="invoiceType" name="invoiceType" class="form-select form-select-sm" required>
-                                            <option value="Regular" selected>Regular</option>
-                                            <option value="Without_GST">Without GST</option>
-                                        </select>
+                            <!-- Row 1: Customer | Type | Dispatch From | Invoice Date | Due Date -->
+                            <div class="row g-2 align-items-end">
+                                <div class="col-md-4">
+                                    <div class="d-flex align-items-center justify-content-between mb-1">
+                                        <label for="customerSearch" class="trans-field-label mb-0">Select Customer <span class="text-danger">*</span></label>
+                                        <button type="button" id="addTransCustomer" class="trans-add-btn btn btn-outline-primary" aria-label="Add new customer"><i class="bx bx-plus-circle me-1"></i> Customer</button>
                                     </div>
-                                    <?php if (!empty($DispatchAddress)): ?>
-                                        <?php
-                                            $addrLines = array_filter([
-                                                htmlspecialchars($DispatchAddress->Line1  ?? ''),
-                                                htmlspecialchars($DispatchAddress->Line2  ?? ''),
-                                            ]);
-                                            $cityPin = trim(implode(' - ', array_filter([
-                                                htmlspecialchars($DispatchAddress->CityText ?? ''),
-                                                htmlspecialchars($DispatchAddress->Pincode  ?? ''),
-                                            ])));
-                                            if ($cityPin) $addrLines[] = $cityPin;
-                                            if (!empty($DispatchAddress->StateText)) $addrLines[] = htmlspecialchars($DispatchAddress->StateText);
-                                        ?>
-                                    <div class="mb-2">
-                                        <label class="form-label small fw-semibold">Dispatch From <span style="color:red">*</span></label>
-                                        <select id="dispatchFrom" name="dispatchFrom" class="form-select form-select-sm" required>
-                                            <option value="<?php echo (int)$DispatchAddress->OrgAddressUID; ?>" selected><?php echo implode(', ', $addrLines); ?></option>
-                                        </select>
-                                    </div>
-                                    <?php endif; ?>
+                                    <select id="customerSearch" name="customerSearch" class="form-select form-select-sm"></select>
                                 </div>
-                                <div class="col-md-6 border-end pe-3">
-                                    <div class="d-flex flex-wrap align-items-center gap-2">
-                                        <div class="d-flex align-items-center gap-2">
-                                            <label for="customerSearch" class="form-label small fw-semibold">Select Customer <span class="text-danger">*</span></label>
-                                            <button type="button" id="addTransCustomer" class="btn btn-sm btn-outline-primary mt-1" aria-label="Add new customer"><i class="bx bx-plus-circle me-1"></i> Customer</button>
-                                        </div>
-                                        <div class="flex-grow-1">
-                                            <select id="customerSearch" name="customerSearch" class="form-select form-select-sm"></select>
-                                        </div>
-                                    </div>
-                                    <div id="customerAddressBox" class="mt-2 p-2 border border-secondary trans-border-dotted rounded small d-none"></div>
+                                <div class="col-md-2">
+                                    <label for="invoiceType" class="trans-field-label">Type <span class="text-danger">*</span></label>
+                                    <select id="invoiceType" name="invoiceType" class="form-select form-select-sm" required>
+                                        <option value="Regular" selected>Regular</option>
+                                        <option value="Without_GST">Without GST</option>
+                                    </select>
                                 </div>
-                                <div class="col-md-3">
-                                    <div class="mb-2">
-                                        <label for="transDate" class="form-label small fw-semibold">Invoice Date <span class="text-danger">*</span></label>
-                                        <div class="input-group input-group-merge">
-                                            <span class="input-group-text"><i class="icon-base bx bx-calendar"></i></span>
-                                            <input type="text" class="form-control form-control-sm" id="transDate" name="transDate" readonly="readonly" value="<?php echo format_datedisplay(time(), 'Y-m-d'); ?>" required />
-                                        </div>
+                                <?php if (!empty($DispatchAddress)): ?>
+                                    <?php
+                                        $addrLines = array_filter([
+                                            htmlspecialchars($DispatchAddress->Line1  ?? ''),
+                                            htmlspecialchars($DispatchAddress->Line2  ?? ''),
+                                        ]);
+                                        $cityPin = trim(implode(' - ', array_filter([
+                                            htmlspecialchars($DispatchAddress->CityText ?? ''),
+                                            htmlspecialchars($DispatchAddress->Pincode  ?? ''),
+                                        ])));
+                                        if ($cityPin) $addrLines[] = $cityPin;
+                                        if (!empty($DispatchAddress->StateText)) $addrLines[] = htmlspecialchars($DispatchAddress->StateText);
+                                    ?>
+                                <div class="col-md-2">
+                                    <label class="trans-field-label">Dispatch From <span class="text-danger">*</span></label>
+                                    <select id="dispatchFrom" name="dispatchFrom" class="form-select form-select-sm" required>
+                                        <option value="<?php echo (int)$DispatchAddress->OrgAddressUID; ?>" selected><?php echo implode(', ', $addrLines); ?></option>
+                                    </select>
+                                </div>
+                                <?php endif; ?>
+                                <div class="col-md-2">
+                                    <label for="transDate" class="trans-field-label">Invoice Date <span class="text-danger">*</span></label>
+                                    <div class="input-group input-group-sm input-group-merge">
+                                        <span class="input-group-text"><i class="icon-base bx bx-calendar"></i></span>
+                                        <input type="text" class="form-control form-control-sm" id="transDate" name="transDate" readonly="readonly" value="<?php echo format_datedisplay(time(), 'Y-m-d'); ?>" required />
                                     </div>
-                                    <div class="mb-2">
-                                        <label for="dueDate" class="form-label small fw-semibold">Due Date</label>
-                                        <div class="input-group input-group-merge">
-                                            <span class="input-group-text"><i class="icon-base bx bx-calendar"></i></span>
-                                            <input type="text" class="form-control form-control-sm" id="dueDate" name="dueDate" readonly="readonly" />
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label for="referenceDetails" class="form-label small fw-semibold">Reference</label>
-                                        <input type="text" id="referenceDetails" name="referenceDetails" class="form-control form-control-sm" placeholder="PO Number, Sales Person, Ref No..." maxlength="100"
-                                        <?php if (!empty($SalesOrderData)): ?>
-                                            value="<?php echo htmlspecialchars($SalesOrderData->Reference ?? ''); ?>"
-                                        <?php elseif (!empty($QuotationData)): ?>
-                                            value="<?php echo htmlspecialchars($QuotationData->Reference ?? ''); ?>"
-                                        <?php endif; ?> />
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="dueDate" class="trans-field-label">Due Date</label>
+                                    <div class="input-group input-group-sm input-group-merge">
+                                        <span class="input-group-text"><i class="icon-base bx bx-calendar"></i></span>
+                                        <input type="text" class="form-control form-control-sm" id="dueDate" name="dueDate" readonly="readonly" />
                                     </div>
                                 </div>
                             </div>
-                            <hr/>
+                            <!-- Row 2: Customer address (when selected) + Reference -->
+                            <div class="row g-2 mt-2">
+                                <div class="col-md-4">
+                                    <div id="customerAddressBox" class="p-2 border border-secondary trans-border-dotted rounded small d-none"></div>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="referenceDetails" class="trans-field-label">Reference</label>
+                                    <input type="text" id="referenceDetails" name="referenceDetails" class="form-control form-control-sm" placeholder="PO Number, Sales Person, Ref No..." maxlength="100"
+                                    <?php if (!empty($SalesOrderData)): ?>
+                                        value="<?php echo htmlspecialchars($SalesOrderData->Reference ?? ''); ?>"
+                                    <?php elseif (!empty($QuotationData)): ?>
+                                        value="<?php echo htmlspecialchars($QuotationData->Reference ?? ''); ?>"
+                                    <?php endif; ?> />
+                                </div>
+                            </div>
+                            <hr class="mt-3"/>
 
                             <?php $this->load->view('transactions/partials/form_products_add', [
                                 'transNotesPlaceholder' => 'Enter notes or anything else',

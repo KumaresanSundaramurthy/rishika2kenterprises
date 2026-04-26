@@ -994,6 +994,8 @@ class Transactions extends CI_Controller {
                     "discount" => (float) smartDecimal($value->Discount),
                     "discountType" => $value->DiscountTypeName,
                     "primaryUnit" => $value->priUnitShortName,
+                    "isComboItem" => (int) $value->IsComboItem,
+                    "comboItemCount" => (int) $value->ComboItemCount,
                 ];
 
                 $retProdDetails[] = $formData;

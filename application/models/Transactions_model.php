@@ -539,6 +539,8 @@ class Transactions_model extends CI_Model {
                 'product.DiscountTypeUID AS DiscountTypeUID',
                 'discountType.Name AS DiscountTypeName',
                 'primaryUnit.ShortName AS priUnitShortName',
+                'product.IsComboItem AS IsComboItem',
+                '(SELECT COUNT(*) FROM Products.ProductBOMTbl pc WHERE pc.ParentProductUID = product.ProductUID AND pc.IsDeleted = 0 AND pc.IsActive = 1) AS ComboItemCount',
             );
             $where_ary = array(
                 'product.IsDeleted' => 0,

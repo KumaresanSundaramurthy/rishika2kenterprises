@@ -2422,32 +2422,60 @@ function searchProductInfo() {
         },
         templateResult: function (data) {
             if (!data.id) return data.text;
-            const hsnText = data.hsnCode ? ` | HSN: ${data.hsnCode}` : '';
-            const taxBreakup = data.cgstPercent ? `CGST: ${data.cgstPercent}%, SGST: ${data.sgstPercent}%, IGST: ${data.igstPercent}%` : `Tax: ${data.taxPercent || '0'}%`;
+
+            const priceHtml = `
+                <div class="text-end ms-3 flex-shrink-0">
+                    <div class="fw-semibold" style="color:#696cff;">${genSettings.CurrenySymbol} ${smartDecimal(data.sellingPrice, genSettings.DecimalPoints, true)}</div>
+                    <div class="prod-info-tax transtext-small">incl tax: ${data.taxPercent || '0'}%</div>
+                </div>`;
+
+            // ── Combo item ───────────────────────────────────────────
+            if (data.isComboItem) {
+                const count = data.comboItemCount || 0;
+                return $(`
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="text-start">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="fw-semibold" style="color:#696cff;">${data.text}</span>
+                                <span style="font-size:.65rem;font-weight:700;letter-spacing:.4px;padding:1px 6px;border-radius:4px;background:#f0edff;color:#7c3aed;border:1px solid #d9d0ff;">COMBO</span>
+                            </div>
+                            <div class="transtext-small mt-1" style="color:#7c3aed;">
+                                <i class="bx bx-package me-1"></i>${count} item${count !== 1 ? 's' : ''} bundled in this combo
+                            </div>
+                        </div>
+                        ${priceHtml}
+                    </div>
+                `);
+            }
+
+            // ── Regular / Service item ───────────────────────────────
             const isService = data.productType === 'Service';
             const qty = data.availableQuantity || 0;
             let qtyHtml;
             if (isService) {
-                qtyHtml = `<span class="text-muted">Service</span>`;
+                qtyHtml = `<span style="color:#94a3b8;font-weight:500;">Service</span>`;
             } else if (qty < 0) {
-                qtyHtml = `<span class="text-danger fw-semibold">Qty: ${smartDecimal(qty)}</span>`;
+                qtyHtml = `<span style="color:#e53e3e;font-weight:600;">Qty: ${smartDecimal(qty)}</span>`;
             } else if (qty === 0) {
-                qtyHtml = `<span class="text-warning fw-semibold">Qty: 0</span>`;
+                qtyHtml = `<span style="color:#d97706;font-weight:600;">Qty: 0</span>`;
             } else {
-                qtyHtml = `<span class="text-success fw-semibold">Qty: ${smartDecimal(qty)}</span>`;
+                qtyHtml = `<span style="color:#16a34a;font-weight:600;">Qty: ${smartDecimal(qty)}</span>`;
             }
+            const hsnHtml = data.hsnCode
+                ? `<span class="prod-info-sep">|</span><span class="prod-info-hsn">HSN: ${data.hsnCode}</span>`
+                : '';
             return $(`
-                <div class="d-flex justify-content-between flex-column flex-md-row">
+                <div class="d-flex justify-content-between align-items-center">
                     <div class="text-start">
-                        <div class="text-primary fw-semibold">${data.text}</div>
-                        <div class="text-muted transtext-small">
-                            ${qtyHtml}${hsnText} | ${data.primaryUnit || '-'} | ${data.category || ''}
+                        <div class="fw-semibold" style="color:#696cff;">${data.text}</div>
+                        <div class="transtext-small mt-1">
+                            ${qtyHtml}
+                            ${hsnHtml}
+                            <span class="prod-info-sep">|</span><span class="prod-info-unit">${data.primaryUnit || '-'}</span>
+                            <span class="prod-info-sep">|</span><span class="prod-info-cat">${data.category || ''}</span>
                         </div>
                     </div>
-                    <div class="text-end">
-                        <div class="text-primary fw-semibold">${genSettings.CurrenySymbol} ${smartDecimal(data.sellingPrice, genSettings.DecimalPoints, true)}</div>
-                        <div class="text-muted transtext-small">incl tax: ${data.taxPercent || '0'}%</div>
-                    </div>
+                    ${priceHtml}
                 </div>
             `);
         },

@@ -31,14 +31,23 @@ class Transactions_model extends CI_Model {
                 'Ts.UpdatedOn AS UpdatedOn',
                 "CONCAT(User.FirstName, ' ', User.LastName) AS UpdatedBy",
                 'IFNULL(PaidSum.PaidAmount, 0) AS PaidAmount',
+                "CONCAT(CreatedUser.FirstName, ' ', CreatedUser.LastName) AS CreatedBy",
+                'IFNULL(PayInfo.PaymentCount, 0) AS PaymentCount',
+                'PayInfo.PaymentModes AS PaymentModes',
             ]);
             $this->ReadDb->from('Transaction.TransactionsTbl as Ts');
             $this->ReadDb->join('Customers.CustomerTbl as Cust', 'Cust.CustomerUID = Ts.PartyUID', 'LEFT');
             $this->ReadDb->join('Transaction.TransDetailTbl as Td', 'Td.TransUID = Ts.TransUID AND Td.FinancialYear = YEAR(Ts.TransDate)', 'LEFT');
             $this->ReadDb->join('Users.UserTbl as User', 'User.UserUID = Ts.UpdatedBy', 'left');
+            $this->ReadDb->join('Users.UserTbl as CreatedUser', 'CreatedUser.UserUID = Ts.CreatedBy', 'left');
             $this->ReadDb->join(
                 '(SELECT TransUID, SUM(Amount) AS PaidAmount FROM Transaction.PaymentsTbl WHERE IsDeleted = 0 AND IsActive = 1 GROUP BY TransUID) AS PaidSum',
                 'PaidSum.TransUID = Ts.TransUID',
+                'LEFT'
+            );
+            $this->ReadDb->join(
+                "(SELECT P.TransUID, COUNT(*) AS PaymentCount, GROUP_CONCAT(PT.Name ORDER BY P.PaymentUID ASC SEPARATOR ',') AS PaymentModes FROM Transaction.PaymentsTbl P JOIN Transaction.PaymentTypesTbl PT ON PT.PaymentTypeUID = P.PaymentTypeUID WHERE P.IsDeleted = 0 AND P.IsActive = 1 GROUP BY P.TransUID) AS PayInfo",
+                'PayInfo.TransUID = Ts.TransUID',
                 'LEFT'
             );
             $this->ReadDb->where(['Ts.IsDeleted' => 0, 'Ts.IsActive' => 1, 'Ts.ModuleUID' => $ModuleUID]);
@@ -476,16 +485,33 @@ class Transactions_model extends CI_Model {
 
     }
 
-    // Returns the CountryCode for a customer (e.g. 'IN', 'US'). NULL if not found.
+    // Returns the ISO-2 country code for a customer (e.g. 'IN', 'US'). NULL if not found.
+    // Uses CountryISO2 — CountryCode stores the full country name, not the ISO code.
     public function getCustomerCountryCode(int $customerUID) {
         if ($customerUID <= 0) return NULL;
-        $this->ReadDb->select('CountryCode');
+        $this->ReadDb->select('CountryISO2');
         $this->ReadDb->from('Customers.CustomerTbl');
         $this->ReadDb->where('CustomerUID', $customerUID);
         $this->ReadDb->where('IsDeleted', 0);
         $this->ReadDb->limit(1);
         $row = $this->ReadDb->get()->row();
-        return $row ? ($row->CountryCode ?: NULL) : NULL;
+        return $row ? ($row->CountryISO2 ?: NULL) : NULL;
+    }
+
+    // Returns the billing address StateText for a customer — used as PlaceOfSupply on invoices.
+    public function getCustomerBillingState(int $customerUID): ?string {
+        if ($customerUID <= 0) return NULL;
+        $this->ReadDb->select('StateText');
+        $this->ReadDb->from('Customers.CustAddressTbl');
+        $this->ReadDb->where([
+            'CustomerUID' => $customerUID,
+            'AddressType' => 'Billing',
+            'IsDeleted'   => 0,
+            'IsActive'    => 1,
+        ]);
+        $this->ReadDb->limit(1);
+        $row = $this->ReadDb->get()->row();
+        return $row ? ($row->StateText ?: NULL) : NULL;
     }
 
     public function getTransProductsDetails(string $Term = '', $WhereCondition = []) {
@@ -667,7 +693,7 @@ class Transactions_model extends CI_Model {
         try {
 
             $this->ReadDb->db_debug = FALSE;
-            $this->ReadDb->select('BankAccountUID, AccountName, BankName, AccountNumber, IFSC, BranchName, UPIId, UPINumber, IsDefault');
+            $this->ReadDb->select('BankAccountUID, AccountName, BankName, AccountNumber, IFSC, BranchName, UPIId, UPINumber, IsDefault, IsCash');
             $this->ReadDb->from('Transaction.OrgBankAccountsTbl');
             $this->ReadDb->where(['OrgUID' => $orgUID, 'IsDeleted' => 0, 'IsActive' => 1]);
             $this->ReadDb->order_by('IsDefault', 'DESC');

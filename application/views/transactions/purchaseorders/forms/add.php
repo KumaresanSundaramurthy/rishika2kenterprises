@@ -24,7 +24,6 @@
                                     <i class="bx bx-purchase-tag-alt" style="font-size:1.1rem;color:#0f766e;"></i>
                                 </div>
                                 <div>
-                                    <div class="trans-section-label lh-1 mb-1">New Document</div>
                                     <div class="d-flex align-items-center flex-wrap gap-2">
                                         <span class="fw-bold" style="font-size:.92rem;">Create Purchase Order</span>
                                         <?php $this->load->view('transactions/partials/form_prefix_add'); ?>

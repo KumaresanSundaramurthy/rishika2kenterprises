@@ -24,7 +24,6 @@
                                     <i class="bx bx-cart" style="font-size:1.1rem;color:#6f42c1;"></i>
                                 </div>
                                 <div>
-                                    <div class="trans-section-label lh-1 mb-1">New Document</div>
                                     <div class="d-flex align-items-center flex-wrap gap-2">
                                         <span class="fw-bold" style="font-size:.92rem;">Record Purchase Bill</span>
                                         <?php $this->load->view('transactions/partials/form_prefix_add'); ?>

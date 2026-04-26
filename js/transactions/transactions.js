@@ -2429,8 +2429,10 @@ function searchProductInfo() {
             let qtyHtml;
             if (isService) {
                 qtyHtml = `<span class="text-muted">Service</span>`;
-            } else if (qty <= 0) {
-                qtyHtml = `<span class="text-danger fw-semibold">Out of Stock</span>`;
+            } else if (qty < 0) {
+                qtyHtml = `<span class="text-danger fw-semibold">Qty: ${smartDecimal(qty)}</span>`;
+            } else if (qty === 0) {
+                qtyHtml = `<span class="text-warning fw-semibold">Qty: 0</span>`;
             } else {
                 qtyHtml = `<span class="text-success fw-semibold">Qty: ${smartDecimal(qty)}</span>`;
             }
@@ -2519,9 +2521,11 @@ function formationTableBillItems(productRow) {
                 <div class="transtext-small text-muted">#<span id="sequenceId_${productRow.id}">${rowCount+1}</span>
                     ${productRow.productType === 'Service'
                         ? '<span class="text-muted">Service</span>'
-                        : productRow.availableQuantity <= 0
-                            ? `<span class="text-danger">Out of Stock</span>`
-                            : `Stock: <span class="text-success fw-semibold">${smartDecimal(productRow.availableQuantity)}</span> ${productRow.primaryUnit}`
+                        : productRow.availableQuantity < 0
+                            ? `Stock: <span class="text-danger fw-semibold">${smartDecimal(productRow.availableQuantity)}</span> ${productRow.primaryUnit}`
+                            : productRow.availableQuantity === 0
+                                ? `Stock: <span class="text-warning fw-semibold">0</span> ${productRow.primaryUnit}`
+                                : `Stock: <span class="text-success fw-semibold">${smartDecimal(productRow.availableQuantity)}</span> ${productRow.primaryUnit}`
                     }
                 </div>
                 ${hsnText}

@@ -27,7 +27,7 @@ $(function() {
 
     function buildBankOptions(selectedUID) {
         var opts = '<option value="">— Select Bank Account —</option>';
-        _bankAccounts.forEach(function(ba) {
+        _bankAccounts.filter(function(ba) { return parseInt(ba.IsCash) !== 1; }).forEach(function(ba) {
             var isDefault = parseInt(ba.IsDefault) === 1;
             var label     = esc(ba.AccountName) + ' — ' + esc(ba.BankName);
             if (isDefault) label += ' ★';
@@ -59,12 +59,14 @@ $(function() {
 
         var subLabelHtml;
         if (isCash) {
-            subLabelHtml = 'Cash (-)';
+            subLabelHtml = '<span class="pay-cash-label"><i class="bx bx-money me-1"></i>Cash</span>';
         } else if (_bankAccounts.length === 0) {
-            subLabelHtml = '<a href="/settings/banks" target="_blank" class="text-warning small"><i class="bx bx-plus-circle me-1"></i>Add bank account</a>';
+            subLabelHtml = '<div class="pay-mode-sublabel mt-1"><a href="/settings/banks" target="_blank" class="text-warning small"><i class="bx bx-plus-circle me-1"></i>Add bank account</a></div>';
         } else {
-            subLabelHtml = '<select class="pay-bank-sel" data-row="' + rowId + '">' + buildBankOptions(data.bankAccountUID) + '</select>' +
-                           ' <a href="/settings/banks" target="_blank" class="text-muted ms-1" title="Manage Banks" style="font-size:0.72rem;"><i class="bx bx-link-external"></i></a>';
+            subLabelHtml = '<div class="pay-bank-wrap">' +
+                               '<select class="pay-bank-sel" data-row="' + rowId + '">' + buildBankOptions(data.bankAccountUID) + '</select>' +
+                               '<a href="/settings/banks" target="_blank" class="pay-bank-link" title="Manage Banks"><i class="bx bx-cog"></i></a>' +
+                           '</div>';
         }
 
         var removeHtml = isFirst
@@ -125,13 +127,15 @@ $(function() {
         var isCash = parseInt($(this).find(':selected').data('is-cash'), 10) === 1;
         var $subLabel = $('.pay-mode-sublabel[data-row="' + rowId + '"]');
         if (isCash) {
-            $subLabel.html('Cash (-)');
+            $subLabel.html('<span class="pay-cash-label"><i class="bx bx-money me-1"></i>Cash</span>');
         } else if (_bankAccounts.length === 0) {
-            $subLabel.html('<a href="/settings/banks" target="_blank" class="text-warning small"><i class="bx bx-plus-circle me-1"></i>Add bank account</a>');
+            $subLabel.html('<div class="mt-1"><a href="/settings/banks" target="_blank" class="text-warning small"><i class="bx bx-plus-circle me-1"></i>Add bank account</a></div>');
         } else {
             $subLabel.html(
-                '<select class="pay-bank-sel" data-row="' + rowId + '">' + buildBankOptions() + '</select>' +
-                ' <a href="/settings/banks" target="_blank" class="text-muted ms-1" title="Manage Banks" style="font-size:0.72rem;"><i class="bx bx-link-external"></i></a>'
+                '<div class="pay-bank-wrap">' +
+                    '<select class="pay-bank-sel" data-row="' + rowId + '">' + buildBankOptions() + '</select>' +
+                    '<a href="/settings/banks" target="_blank" class="pay-bank-link" title="Manage Banks"><i class="bx bx-cog"></i></a>' +
+                '</div>'
             );
         }
     });

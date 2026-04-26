@@ -24,7 +24,6 @@
                                     <i class="bx bx-file-blank text-primary" style="font-size:1.1rem;"></i>
                                 </div>
                                 <div>
-                                    <div class="trans-section-label lh-1 mb-1">New Document</div>
                                     <div class="d-flex align-items-center flex-wrap gap-2">
                                         <span class="fw-bold" style="font-size:.92rem;">Create Quotation</span>
                                         <?php if (!empty($CloneData)): ?>

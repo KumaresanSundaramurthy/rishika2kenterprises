@@ -85,8 +85,18 @@ if (!empty($DataLists)):
         <!-- Mobile -->
         <td>
             <?php if (!empty($list->MobileNumber)): ?>
-                <div><?php echo htmlspecialchars($list->MobileNumber); ?></div>
-                <a href="https://wa.me/<?php echo htmlspecialchars($list->MobileNumber); ?>?text=Hi"
+                <?php $fullMobile = ($list->CountryCode ? $list->CountryCode . ' ' : '') . $list->MobileNumber; ?>
+                <div class="d-flex align-items-center gap-1">
+                    <span class="copy-mobile cursor-pointer"
+                          data-mobile="<?php echo htmlspecialchars($list->MobileNumber); ?>"
+                          data-bs-toggle="tooltip"
+                          data-bs-placement="top"
+                          title="Click to copy mobile number"
+                          style="font-size:.82rem;">
+                        <?php echo htmlspecialchars($fullMobile); ?>
+                    </span>
+                </div>
+                <a href="https://wa.me/<?php echo htmlspecialchars(preg_replace('/[^0-9]/', '', $list->CountryCode . $list->MobileNumber)); ?>?text=Hi"
                    target="_blank" class="text-success" style="font-size:.75rem;">
                     <i class="bx bxl-whatsapp me-1"></i>WhatsApp
                 </a>

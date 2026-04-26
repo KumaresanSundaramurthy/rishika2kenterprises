@@ -8,7 +8,7 @@ $currency   = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
 $decimals   = $JwtData->GenSettings->DecimalPoints ?? 2;
 $showSerial = $JwtData->GenSettings->SerialNoDisplay == 1;
 $today      = time();
-$soonDays   = 3; // due within 3 days = "soon" warning
+$soonDays   = 3;
 
 if (!empty($DataLists)):
     foreach ($DataLists as $list):
@@ -16,11 +16,30 @@ if (!empty($DataLists)):
         $status      = $list->Status ?? 'Draft';
         $isDraft     = $status === 'Draft';
         $isTerminal  = in_array($status, $terminalStatuses);
-        $badgeClass  = $statusBadgeClass[$status]  ?? 'trans-badge-Draft';
-        $icon        = $statusIcon[$status]         ?? 'bx-circle';
-        $transitions = $moduleTransitions[$status]  ?? [];
+        $transitions = $moduleTransitions[$status] ?? [];
 
-        // Due date logic
+        $paidAmt    = (float)($list->PaidAmount ?? 0);
+        $netAmt     = (float)($list->NetAmount  ?? 0);
+        $pendingAmt = max(0, round($netAmt - $paidAmt, 2));
+
+        // Payment status
+        if ($isDraft) {
+            $payStatus = '';
+            $payBadge  = '';
+        } elseif ($paidAmt <= 0) {
+            $payStatus = 'Pending';
+            $payBadge  = '<span class="badge bg-label-warning" style="font-size:.68rem;">Pending</span>';
+        } elseif ($pendingAmt <= 0.01) {
+            $payStatus = 'Paid';
+            $payBadge  = '<span class="badge bg-label-success" style="font-size:.68rem;">Paid</span>';
+        } else {
+            $payStatus = 'Partially Paid';
+            $payBadge  = '<span class="badge bg-label-info" style="font-size:.68rem;">Partially Paid</span>';
+        }
+
+        $showPending = !$isDraft && $pendingAmt > 0 && !in_array($status, ['Paid', 'Cancelled', 'Rejected']);
+
+        // Due date styling
         $dueClass = 'trans-due-normal';
         $dueTag   = '';
         if (!$isDraft && !$isTerminal && !empty($list->ValidityDate)) {
@@ -48,7 +67,7 @@ if (!empty($DataLists)):
             <span class="text-muted" style="font-size:.78rem;"><?php echo $SerialNumber; ?></span>
         </td>
 
-        <!-- Invoice Number -->
+        <!-- 1. # Bill -->
         <td>
             <?php if ($isDraft || empty($list->UniqueNumber)): ?>
                 <span class="trans-doc-draft"><i class="bx bx-pencil me-1" style="font-size:.8rem;"></i>Draft</span>
@@ -56,68 +75,82 @@ if (!empty($DataLists)):
                     <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars(format_datedisplay($list->TransDate, 'd M Y')); ?></div>
                 <?php endif; ?>
             <?php else: ?>
-                <a href="javascript:void(0)" class="trans-doc-number viewTransaction" data-uid="<?php echo (int)$list->TransUID; ?>" data-module="<?php echo (int)$list->ModuleUID; ?>" data-type="invoice">
+                <a href="javascript:void(0)" class="trans-doc-number viewTransaction"
+                   data-uid="<?php echo (int)$list->TransUID; ?>"
+                   data-module="<?php echo (int)$list->ModuleUID; ?>"
+                   data-type="invoice">
                     <?php echo htmlspecialchars($list->UniqueNumber); ?>
                 </a>
                 <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars(format_datedisplay($list->TransDate, 'd M Y')); ?></div>
+                <?php if (!empty($list->CreatedBy)): ?>
+                <div style="font-size:.68rem;color:#bbb;">by <?php echo htmlspecialchars($list->CreatedBy); ?></div>
+                <?php endif; ?>
             <?php endif; ?>
         </td>
 
-        <!-- Amount -->
+        <!-- 2. Amount -->
         <td>
-            <?php
-            $paidAmt    = (float)($list->PaidAmount ?? 0);
-            $pendingAmt = max(0, round((float)$list->NetAmount - $paidAmt, 2));
-            $showPending = !$isDraft && $pendingAmt > 0 && !in_array($status, ['Paid', 'Cancelled', 'Rejected']);
-            ?>
-            <?php if ($isDraft && (float)$list->NetAmount == 0): ?>
+            <?php if ($isDraft && $netAmt == 0): ?>
                 <span class="text-muted">—</span>
             <?php else: ?>
-                <div class="trans-amount-main"><?php echo $currency . ' ' . smartDecimal($list->NetAmount, $decimals, true); ?></div>
+                <div class="trans-amount-main"><?php echo $currency . ' ' . smartDecimal($netAmt, $decimals, true); ?></div>
                 <?php if ($showPending): ?>
-                    <div style="font-size:.72rem;color:#d33;font-weight:500;">
-                        Balance <?php echo $currency . ' ' . smartDecimal($pendingAmt, $decimals, true); ?>
+                    <div style="font-size:.68rem;color:#d33;font-weight:500;">
+                        Bal <?php echo $currency . ' ' . smartDecimal($pendingAmt, $decimals, true); ?>
                     </div>
                 <?php endif; ?>
             <?php endif; ?>
         </td>
 
-        <!-- Status -->
+        <!-- 3. Payment Status -->
         <td>
-            <?php if (!empty($transitions)): ?>
-            <div class="dropdown">
-                <span class="trans-badge <?php echo $badgeClass; ?>" data-bs-toggle="dropdown"
-                      data-uid="<?php echo (int)$list->TransUID; ?>"
-                      data-current="<?php echo htmlspecialchars($status); ?>">
-                    <i class="bx <?php echo $icon; ?>" style="font-size:.8rem;"></i>
-                    <?php echo htmlspecialchars($status); ?>
-                    <i class="bx bx-chevron-down" style="font-size:.7rem;"></i>
-                </span>
-                <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="min-width:170px;font-size:.82rem;">
-                    <?php foreach ($transitions as $t): ?>
-                    <li>
-                        <button class="dropdown-item inv-status-update"
-                                data-uid="<?php echo (int)$list->TransUID; ?>"
-                                data-status="<?php echo htmlspecialchars($t['db']); ?>">
-                            <?php echo htmlspecialchars($t['label']); ?>
-                        </button>
-                    </li>
-                    <?php endforeach; ?>
-                </ul>
-            </div>
-            <?php else: ?>
-                <span class="trans-badge <?php echo $badgeClass; ?>">
-                    <i class="bx <?php echo $icon; ?>" style="font-size:.8rem;"></i>
-                    <?php echo htmlspecialchars($status); ?>
-                </span>
+            <?php echo $payBadge; ?>
+            <?php if (($payStatus === 'Pending' || $payStatus === 'Partially Paid') && !$isDraft): ?>
+                <?php $daysPending = (int) floor((time() - strtotime($list->TransDate)) / 86400); ?>
+                <div style="font-size:.68rem;color:#e67e22;font-weight:600;margin-top:3px;">
+                    <i class="bx bx-time-five" style="font-size:.72rem;"></i>
+                    since <?php echo $daysPending; ?> day<?php echo $daysPending !== 1 ? 's' : ''; ?>
+                </div>
+                <?php if (!empty($list->ValidityDate)): ?>
+                <div style="font-size:.68rem;color:#6c757d;margin-top:1px;">
+                    Due: <?php echo format_datedisplay($list->ValidityDate, 'd M Y'); ?>
+                </div>
+                <?php endif; ?>
             <?php endif; ?>
         </td>
 
-        <!-- Customer -->
+        <!-- 4. Payment Mode -->
+        <td>
+            <?php
+            $payCount  = (int)($list->PaymentCount ?? 0);
+            $payModes  = $payCount > 0 ? explode(',', $list->PaymentModes ?? '') : [];
+            $firstMode = isset($payModes[0]) ? htmlspecialchars(trim($payModes[0])) : '';
+            $extraCnt  = max(0, $payCount - 1);
+            ?>
+            <?php if ($payCount > 0 && $firstMode): ?>
+                <div class="pay-mode-cell d-flex align-items-center gap-1 flex-wrap<?php echo $payCount > 1 ? ' pay-mode-clickable' : ''; ?>"
+                     <?php if ($payCount > 1): ?>
+                     data-trans-uid="<?php echo (int)$list->TransUID; ?>"
+                     data-trans-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
+                     style="cursor:pointer;"
+                     <?php endif; ?>>
+                    <span class="badge bg-label-primary" style="font-size:.68rem;">
+                        <i class="bx bx-credit-card me-1"></i><?php echo $firstMode; ?>
+                    </span>
+                    <?php if ($extraCnt > 0): ?>
+                        <span class="badge bg-label-secondary" style="font-size:.68rem;">+<?php echo $extraCnt; ?></span>
+                    <?php endif; ?>
+                </div>
+            <?php else: ?>
+                <span class="text-muted" style="font-size:.78rem;">—</span>
+            <?php endif; ?>
+        </td>
+
+        <!-- 5. Customer -->
         <td>
             <div class="trans-party-name"><?php echo htmlspecialchars($list->PartyName ?? '—'); ?></div>
             <?php if (!empty($list->MobileNumber)): ?>
-            <div class="trans-party-mobile d-flex align-items-center gap-1">
+            <div class="trans-party-mobile d-flex align-items-center gap-1 mt-1">
                 <?php echo htmlspecialchars($list->MobileNumber); ?>
                 <a href="https://wa.me/<?php echo htmlspecialchars($list->MobileNumber); ?>?text=Hi"
                    target="_blank" class="text-success" title="WhatsApp" style="line-height:1;">
@@ -127,7 +160,7 @@ if (!empty($DataLists)):
             <?php endif; ?>
         </td>
 
-        <!-- Due Date -->
+        <!-- 6. Due Date -->
         <td class="<?php echo $dueClass; ?>">
             <?php if (!$isDraft && !empty($list->ValidityDate)): ?>
                 <?php echo format_datedisplay($list->ValidityDate, 'd M Y'); ?>
@@ -137,12 +170,23 @@ if (!empty($DataLists)):
             <?php endif; ?>
         </td>
 
-        <!-- Last Updated -->
+        <!-- 7. Last Updated -->
         <td>
-            <div class="text-muted" style="font-size:.78rem;">
-                <?php echo changeTimeZonefromDateTime($list->UpdatedOn, $JwtData->User->Timezone, 2); ?>
-            </div>
-            <div style="font-size:.71rem; color:#bbb;">by <?php echo htmlspecialchars($list->UpdatedBy ?? '—'); ?></div>
+            <?php
+                $updatedOn  = $list->UpdatedOn ?? null;
+                $secondsAgo = $updatedOn ? (time() - strtotime($updatedOn)) : null;
+                $within24h  = $secondsAgo !== null && $secondsAgo < 86400;
+                if ($within24h) {
+                    if ($secondsAgo < 60)        $agoText = 'just now';
+                    elseif ($secondsAgo < 3600)  $agoText = (int)($secondsAgo / 60) . ' min' . ((int)($secondsAgo / 60) > 1 ? 's' : '') . ' ago';
+                    else                         $agoText = (int)($secondsAgo / 3600) . ' hr' . ((int)($secondsAgo / 3600) > 1 ? 's' : '') . ' ago';
+                }
+            ?>
+            <div style="font-size:.78rem;"><?php echo $updatedOn ? changeTimeZonefromDateTime($updatedOn, $JwtData->User->Timezone, 2) : '—'; ?></div>
+            <?php if ($within24h): ?>
+            <div style="font-size:.68rem;color:#0d6efd;font-weight:500;"><?php echo $agoText; ?></div>
+            <?php endif; ?>
+            <div class="text-muted" style="font-size:.7rem;">by <?php echo htmlspecialchars($list->UpdatedBy ?? '—'); ?></div>
         </td>
 
         <!-- Actions -->
@@ -182,7 +226,7 @@ if (!empty($DataLists)):
                                     data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
                                     data-date="<?php echo htmlspecialchars(format_datedisplay($list->TransDate ?? '', 'd M Y')); ?>"
                                     data-party="<?php echo htmlspecialchars($list->PartyName ?? ''); ?>"
-                                    data-total="<?php echo (float)$list->NetAmount; ?>"
+                                    data-total="<?php echo $netAmt; ?>"
                                     data-paid="<?php echo $paidAmt; ?>"
                                     data-pending="<?php echo $pendingAmt; ?>">
                                 <i class="bx bx-money-withdraw me-2 text-success"></i>Receive Payment
@@ -190,6 +234,7 @@ if (!empty($DataLists)):
                         </li>
                         <li><hr class="dropdown-divider my-1"></li>
                         <?php endif; ?>
+
                         <li>
                             <button class="dropdown-item duplicateInvoice" data-uid="<?php echo (int)$list->TransUID; ?>">
                                 <i class="bx bx-copy me-2 text-secondary"></i>Duplicate
@@ -218,7 +263,7 @@ if (!empty($DataLists)):
 else:
 ?>
     <tr>
-        <td colspan="9">
+        <td colspan="10">
             <div class="d-flex flex-column align-items-center py-5">
                 <img src="/assets/img/elements/no-record-found.png" alt="No Records" class="img-fluid mb-3" style="max-height:150px;object-fit:contain;">
                 <span class="text-muted mb-3" style="font-size:.9rem;">No invoices found</span>

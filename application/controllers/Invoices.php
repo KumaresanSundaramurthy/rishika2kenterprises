@@ -174,6 +174,7 @@ class Invoices extends CI_Controller {
                 'PartyType'             => 'C',
                 'PartyUID'              => $customerUID,
                 'TransDate'             => $transDate,
+                'TransYear'             => $financialYear,
                 'QuotationType'         => getPostValue($PostData, 'invoiceType') ?: NULL,
                 'DispatchFromUID'       => ($dfUID = (int) getPostValue($PostData, 'dispatchFrom')) > 0 ? $dfUID : NULL,
                 'DispatchFrom'          => getPostValue($PostData, 'dispatchFrom') ?: NULL,
@@ -193,13 +194,15 @@ class Invoices extends CI_Controller {
                 'ExtraDiscAmount'       => $extraDiscount,
                 'ExtraDiscType'         => getPostValue($PostData, 'extDiscountType') ?: NULL,
                 'NetAmount'             => $netAmount,
+                'TaxableAmount'         => $subTotal,
+                'PaidAmount'            => 0,
+                'BalanceAmount'         => $netAmount,
                 'DocStatus'             => $status,
                 'IsActive'              => 1,
                 'IsDeleted'             => 0,
                 'CreatedBy'             => $userUID,
                 'UpdatedBy'             => $userUID,
             ];
-            
             $insertResp = $this->dbwrite_model->insertData('Transaction', 'TransactionsTbl', $headerData);
             if ($insertResp->Error) throw new Exception($insertResp->Message);
 
@@ -209,6 +212,7 @@ class Invoices extends CI_Controller {
             $isInterState          = $igstAmount > 0 ? 1 : ($cgstAmount > 0 || $sgstAmount > 0 ? 0 : NULL);
             $_cc                   = $this->transactions_model->getCustomerCountryCode($customerUID);
             $isForeignCustomer     = $_cc !== NULL ? ($_cc === 'IN' ? 0 : 1) : NULL;
+            $placeOfSupply         = $this->transactions_model->getCustomerBillingState($customerUID);
             $detailData = [
                 'FinancialYear'     => $financialYear,
                 'TransUID'          => $transUID,
@@ -218,10 +222,12 @@ class Invoices extends CI_Controller {
                 'Notes'             => getPostValue($PostData, 'transNotes') ?: NULL,
                 'TermsConditions'   => getPostValue($PostData, 'transTermsCond') ?: NULL,
                 'AdditionalCharges' => $additionalChargesJson,
+                'PlaceOfSupply'     => $placeOfSupply,
                 'IsInterState'      => $isInterState,
                 'IsForeignCustomer' => $isForeignCustomer,
             ];
-            $this->dbwrite_model->insertData('Transaction', 'TransDetailTbl', $detailData);
+            $detailResp = $this->dbwrite_model->insertData('Transaction', 'TransDetailTbl', $detailData);
+            if ($detailResp->Error) throw new Exception($detailResp->Message);
 
             $this->saveInvoiceItems($transUID, $financialYear, $orgUID, $userUID, $items);
 
@@ -229,19 +235,12 @@ class Invoices extends CI_Controller {
                 $this->dbwrite_model->saveStockMovements($transUID, $this->pageModuleUID, $orgUID, $userUID, $items);
             }
 
-            // Update customer ledger balance and record payment if provided
-            if (!$isDraft) {
-                $this->load->library('accountledger');
-                // Invoice raises a receivable: Debit customer ledger
-                $this->accountledger->applyLedgerEntry($customerUID, 'Customer', $netAmount, 'Debit', $transUID);
-
-                if ((int) getPostValue($PostData, 'RecordPayment') === 1) {
-                    $paidAmount = $this->savePaymentRecord($transUID, $orgUID, $userUID, 'C', $customerUID, $netAmount, $PostData);
-                    if ($paidAmount > 0) {
-                        $this->updateTransactionBalance($transUID, $netAmount, $paidAmount, $userUID);
-                        // Payment received: Credit customer ledger
-                        $this->accountledger->applyLedgerEntry($customerUID, 'Customer', $paidAmount, 'Credit', $transUID);
-                    }
+            // Record payment DB rows inside the transaction; ledger entries applied after commit
+            $paidAmountForLedger = 0;
+            if (!$isDraft && (int) getPostValue($PostData, 'RecordPayment') === 1) {
+                $paidAmountForLedger = $this->savePaymentRecord($transUID, $orgUID, $userUID, 'C', $customerUID, $netAmount, $PostData);
+                if ($paidAmountForLedger > 0) {
+                    $this->updateTransactionBalance($transUID, $netAmount, $paidAmountForLedger, $userUID);
                 }
             }
 
@@ -264,6 +263,19 @@ class Invoices extends CI_Controller {
             }
 
             $this->dbwrite_model->commitTransaction();
+
+            // Apply ledger entries after commit so ReadDb sees the committed invoice write
+            if (!$isDraft) {
+                try {
+                    $this->load->library('accountledger');
+                    $this->accountledger->applyLedgerEntry($customerUID, 'Customer', $netAmount, 'Debit', $transUID);
+                    if ($paidAmountForLedger > 0) {
+                        $this->accountledger->applyLedgerEntry($customerUID, 'Customer', $paidAmountForLedger, 'Credit', $transUID);
+                    }
+                } catch (Exception $ledgerEx) {
+                    log_message('error', 'Ledger update failed after invoice creation: ' . $ledgerEx->getMessage());
+                }
+            }
 
             $this->EndReturnData->Error    = FALSE;
             $this->EndReturnData->Message  = 'Invoice created successfully.';
@@ -366,12 +378,14 @@ class Invoices extends CI_Controller {
 
             $activeTransUID = $transUID; // tracks the final transUID (may change for draft→issued with newer transactions)
 
+            $existingPaid  = (float) ($existing->PaidAmount ?? 0);
             $commonHeader = [
                 'OrgUID'            => $orgUID,
                 'ModuleUID'         => $this->pageModuleUID,
                 'PartyType'         => 'C',
                 'PartyUID'          => $customerUID,
                 'TransDate'         => $transDate,
+                'TransYear'         => $financialYear,
                 'TransType'         => 'Invoice',
                 'QuotationType'     => getPostValue($PostData, 'invoiceType') ?: NULL,
                 'DispatchFromUID'   => ($dfUID = (int) getPostValue($PostData, 'dispatchFrom')) > 0 ? $dfUID : NULL,
@@ -389,6 +403,8 @@ class Invoices extends CI_Controller {
                 'ExtraDiscAmount'   => $extraDiscount,
                 'ExtraDiscType'     => getPostValue($PostData, 'extDiscountType') ?: NULL,
                 'NetAmount'         => $netAmount,
+                'TaxableAmount'     => $subTotal,
+                'BalanceAmount'     => max(0, round($netAmount - $existingPaid, 2)),
                 'DocStatus'         => $status,
                 'UpdatedBy'         => $userUID,
             ];
@@ -396,6 +412,7 @@ class Invoices extends CI_Controller {
             $isInterState          = $igstAmount > 0 ? 1 : ($cgstAmount > 0 || $sgstAmount > 0 ? 0 : NULL);
             $_cc                   = $this->transactions_model->getCustomerCountryCode($customerUID);
             $isForeignCustomer     = $_cc !== NULL ? ($_cc === 'IN' ? 0 : 1) : NULL;
+            $placeOfSupply         = $this->transactions_model->getCustomerBillingState($customerUID);
             $commonDetail = [
                 'ValidityDays'      => NULL,
                 'ValidityDate'      => $dueDate ?: NULL,
@@ -403,6 +420,7 @@ class Invoices extends CI_Controller {
                 'Notes'             => getPostValue($PostData, 'transNotes') ?: NULL,
                 'TermsConditions'   => getPostValue($PostData, 'transTermsCond') ?: NULL,
                 'AdditionalCharges' => $additionalChargesJson,
+                'PlaceOfSupply'     => $placeOfSupply,
                 'IsInterState'      => $isInterState,
                 'IsForeignCustomer' => $isForeignCustomer,
             ];
@@ -483,28 +501,32 @@ class Invoices extends CI_Controller {
                 }
             }
 
-            // Update customer ledger balance and record payment if provided
-            if (!$isDraft) {
-                $this->load->library('accountledger');
-
-                if ($wasNonDraft) {
-                    // Reverse the old invoice amount from the ledger before applying new amount
-                    $this->accountledger->applyLedgerEntry($customerUID, 'Customer', (float) $existing->NetAmount, 'Credit', $activeTransUID);
-                }
-                // Apply new invoice amount as receivable
-                $this->accountledger->applyLedgerEntry($customerUID, 'Customer', $netAmount, 'Debit', $activeTransUID);
-
-                if ((int) getPostValue($PostData, 'RecordPayment') === 1) {
-                    $paidAmount = $this->savePaymentRecord($activeTransUID, $orgUID, $userUID, 'C', $customerUID, $netAmount, $PostData);
-                    if ($paidAmount > 0) {
-                        $this->updateTransactionBalance($activeTransUID, $netAmount, $paidAmount, $userUID);
-                        // Payment received: Credit customer ledger
-                        $this->accountledger->applyLedgerEntry($customerUID, 'Customer', $paidAmount, 'Credit', $activeTransUID);
-                    }
+            // Record payment DB rows inside the transaction; ledger entries applied after commit
+            $paidAmountForLedger = 0;
+            if (!$isDraft && (int) getPostValue($PostData, 'RecordPayment') === 1) {
+                $paidAmountForLedger = $this->savePaymentRecord($activeTransUID, $orgUID, $userUID, 'C', $customerUID, $netAmount, $PostData);
+                if ($paidAmountForLedger > 0) {
+                    $this->updateTransactionBalance($activeTransUID, $netAmount, $paidAmountForLedger, $userUID);
                 }
             }
 
             $this->dbwrite_model->commitTransaction();
+
+            // Apply ledger entries after commit so each ReadDb read sees the prior committed write
+            if (!$isDraft) {
+                try {
+                    $this->load->library('accountledger');
+                    if ($wasNonDraft) {
+                        $this->accountledger->applyLedgerEntry($customerUID, 'Customer', (float) $existing->NetAmount, 'Credit', $activeTransUID);
+                    }
+                    $this->accountledger->applyLedgerEntry($customerUID, 'Customer', $netAmount, 'Debit', $activeTransUID);
+                    if ($paidAmountForLedger > 0) {
+                        $this->accountledger->applyLedgerEntry($customerUID, 'Customer', $paidAmountForLedger, 'Credit', $activeTransUID);
+                    }
+                } catch (Exception $ledgerEx) {
+                    log_message('error', 'Ledger update failed after invoice update: ' . $ledgerEx->getMessage());
+                }
+            }
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Invoice updated successfully.';
@@ -584,8 +606,9 @@ class Invoices extends CI_Controller {
             $resp = $this->dbwrite_model->insertData('Transaction', 'PaymentsTbl', $paymentData);
             if ($resp->Error) throw new Exception($resp->Message);
 
-            // Update IsFullyPaid + DocStatus on the transaction
-            $ok = $this->dbwrite_model->updateTransIsFullyPaid($transUID, $isFullyPaid, $userUID);
+            // Update IsFullyPaid + PaidAmount + BalanceAmount + DocStatus on the transaction
+            $balanceAmount = max(0, round((float) $existing->NetAmount - $newTotalPaid, 2));
+            $ok = $this->dbwrite_model->updateTransIsFullyPaid($transUID, $isFullyPaid, $newTotalPaid, $balanceAmount, $userUID);
             if ($ok === false) throw new Exception('Failed to update transaction balance.');
 
             $this->dbwrite_model->updateTransDocStatus($transUID, $orgUID, $newStatus, $userUID);
@@ -647,9 +670,17 @@ class Invoices extends CI_Controller {
             if ($existing->DocStatus !== 'Draft' && $existing->PartyType === 'C' && $existing->PartyUID > 0) {
                 $netAmount = (float) $existing->NetAmount;
                 if ($netAmount > 0) {
-                    $this->load->library('accountledger');
-                    // Credit back the full invoice amount; prior payments remain as customer credit balance
-                    $this->accountledger->applyLedgerEntry($existing->PartyUID, 'Customer', $netAmount, 'Credit', $transUID);
+                    // Only reverse the UNPAID balance. Payments were already credited to
+                    // the ledger when they were recorded; reversing them again would
+                    // double-subtract and corrupt the customer balance.
+                    $payments    = $this->transactions_model->getTransactionPayments($transUID, $orgUID);
+                    $alreadyPaid = array_sum(array_column((array) $payments, 'Amount'));
+                    $remaining   = max(0, round($netAmount - $alreadyPaid, 2));
+
+                    if ($remaining > 0) {
+                        $this->load->library('accountledger');
+                        $this->accountledger->applyLedgerEntry($existing->PartyUID, 'Customer', $remaining, 'Credit', $transUID);
+                    }
                 }
             }
 
@@ -799,8 +830,6 @@ class Invoices extends CI_Controller {
                     'IsDeleted'         => 0,
                     'CreatedBy'         => $userUID,
                     'UpdatedBy'         => $userUID,
-                    'CreatedOn'         => $now,
-                    'UpdatedOn'         => $now,
                 ];
                 $this->dbwrite_model->insertData('Transaction', 'TransProductsTbl', $itemRow);
             }
@@ -855,7 +884,7 @@ class Invoices extends CI_Controller {
             $this->dbwrite_model->startTransaction();
             $resp = $this->dbwrite_model->updateData(
                 'Transaction', 'TransactionsTbl',
-                ['DocStatus' => $newStatus, 'UpdatedBy' => $userUID, 'UpdatedOn' => date('Y-m-d H:i:s')],
+                ['DocStatus' => $newStatus, 'UpdatedBy' => $userUID],
                 ['TransUID' => $transUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
             );
             if ($resp->Error) throw new Exception($resp->Message);
@@ -974,8 +1003,9 @@ class Invoices extends CI_Controller {
     }
 
     private function updateTransactionBalance($transUID, $netAmount, $paidAmount, $userUID) {
-        $isFullyPaid = ($netAmount > 0 && round($netAmount - $paidAmount, 4) <= 0) ? 1 : 0;
-        $ok = $this->dbwrite_model->updateTransIsFullyPaid($transUID, $isFullyPaid, $userUID);
+        $isFullyPaid   = ($netAmount > 0 && round($netAmount - $paidAmount, 4) <= 0) ? 1 : 0;
+        $balanceAmount = max(0, round($netAmount - $paidAmount, 2));
+        $ok = $this->dbwrite_model->updateTransIsFullyPaid($transUID, $isFullyPaid, $paidAmount, $balanceAmount, $userUID);
         if ($ok === false) {
             throw new Exception('Failed to update transaction balance for TransUID ' . $transUID);
         }

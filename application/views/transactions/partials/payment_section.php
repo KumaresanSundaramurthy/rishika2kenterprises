@@ -28,14 +28,14 @@ $currSymbol       = $JwtData->GenSettings->CurrenySymbol ?? '₹';
     </div>
 
     <!-- Payment Rows -->
-    <div class="payment-rows-container rounded border" style="background:#f6faf7;">
+    <div class="payment-rows-container rounded border" style="background:#f0f7f1;">
         <table class="table table-sm mb-0" id="paymentRowsTable" style="background:transparent;">
             <thead>
-                <tr style="background:#eaf4ec; border-bottom:1px solid #d4e9d7;">
-                    <th class="fw-semibold small text-secondary ps-3" style="width:42%;">Notes</th>
+                <tr style="background:#dff0e2; border-bottom:1px solid #b8d4ba;">
+                    <th class="fw-semibold small text-secondary ps-3" style="width:38%;">Notes</th>
                     <th class="fw-semibold small text-secondary" style="width:20%;">Amount</th>
-                    <th class="fw-semibold small text-secondary" style="width:28%;">Payment Mode</th>
-                    <th style="width:10%;"></th>
+                    <th class="fw-semibold small text-secondary" style="width:34%;">Payment Mode</th>
+                    <th style="width:8%;"></th>
                 </tr>
             </thead>
             <tbody id="paymentRowsBody">
@@ -74,18 +74,108 @@ $currSymbol       = $JwtData->GenSettings->CurrenySymbol ?? '₹';
 <script id="bankAccountOptionsData"  type="application/json"><?php echo json_encode(array_values($BankAccounts  ?? [])); ?></script>
 
 <style>
-#paymentRowsTable td, #paymentRowsTable th { border: none; vertical-align: middle; padding: 6px 8px; }
-#paymentRowsTable tr + tr td { border-top: 1px solid #d4e9d7; }
-.pay-mode-sublabel { font-size: 0.75rem; color: #6c757d; margin-top: 2px; cursor: pointer; }
-.pay-mode-sublabel:hover { color: #198754; }
-.pay-amount-inp { border: none; background: transparent; box-shadow: none; font-size: 0.9rem; }
-.pay-amount-inp:focus { background: #fff; border: 1px solid #86b7fe; box-shadow: 0 0 0 0.2rem rgba(13,110,253,.15); border-radius: 4px; }
-.pay-notes-inp { border: none; background: transparent; box-shadow: none; font-size: 0.85rem; resize: none; }
-.pay-notes-inp:focus { background: #fff; border: 1px solid #86b7fe; box-shadow: 0 0 0 0.2rem rgba(13,110,253,.15); border-radius: 4px; }
-.pay-type-sel { border: none; background: transparent; font-size: 0.85rem; font-weight: 600; box-shadow: none; padding: 0 4px; }
-.pay-type-sel:focus { box-shadow: none; border-bottom: 1px solid #198754; }
-.pay-bank-sel { border: none; background: transparent; font-size: 0.75rem; color: #6c757d; box-shadow: none; padding: 0 4px; }
-.pay-bank-sel:focus { box-shadow: none; }
+#paymentRowsTable td, #paymentRowsTable th { border: none; vertical-align: top; padding: 8px 8px; }
+#paymentRowsTable td { vertical-align: middle; }
+#paymentRowsTable tr + tr td { border-top: 1px solid #cfe5d0; }
+
+.pay-notes-inp {
+    background: #fff;
+    border: 1px solid #b8d4ba;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    resize: none;
+    box-shadow: none;
+    width: 100%;
+    padding: 6px 10px;
+    color: #333;
+}
+.pay-notes-inp:focus {
+    background: #fff;
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.18rem rgba(13,110,253,.15);
+    outline: none;
+}
+
+.pay-amount-inp {
+    background: #fff;
+    border: 1px solid #b8d4ba;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    box-shadow: none;
+    width: 100%;
+    padding: 6px 10px;
+    text-align: right;
+    color: #333;
+}
+.pay-amount-inp:focus {
+    background: #fff;
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.18rem rgba(13,110,253,.15);
+    outline: none;
+}
+
+.pay-type-sel {
+    background: #fff;
+    border: 1px solid #b8d4ba;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    box-shadow: none;
+    padding: 6px 8px;
+    width: 100%;
+    cursor: pointer;
+    color: #333;
+}
+.pay-type-sel:focus {
+    background: #fff;
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.18rem rgba(13,110,253,.15);
+    outline: none;
+}
+
+.pay-bank-wrap {
+    margin-top: 5px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.pay-bank-sel {
+    background: #fff;
+    border: 1px solid #b8d4ba;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    color: #566a7f;
+    box-shadow: none;
+    padding: 4px 8px;
+    flex: 1;
+    min-width: 0;
+    cursor: pointer;
+}
+.pay-bank-sel:focus {
+    background: #fff;
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.18rem rgba(13,110,253,.15);
+    outline: none;
+}
+.pay-bank-link {
+    color: #adb5bd;
+    font-size: 0.82rem;
+    flex-shrink: 0;
+    line-height: 1;
+}
+.pay-bank-link:hover { color: #198754; }
+
+.pay-cash-label {
+    display: inline-block;
+    margin-top: 5px;
+    font-size: 0.75rem;
+    color: #6c757d;
+    background: #e8f5ea;
+    border-radius: 4px;
+    padding: 2px 8px;
+}
+.pay-mode-sublabel { font-size: 0.75rem; color: #6c757d; margin-top: 4px; }
 </style>
 
 <script>

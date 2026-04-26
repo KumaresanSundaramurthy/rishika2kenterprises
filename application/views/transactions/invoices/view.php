@@ -159,12 +159,13 @@
                                         </th>
                                         <th class="<?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?> table-serialno" style="width:44px">S.No</th>
                                         <th class="col-sortable cursor-pointer user-select-none" data-sort="Number">
-                                            Invoice # <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Number"></i>
+                                            # Bill <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Number"></i>
                                         </th>
                                         <th class="col-sortable cursor-pointer user-select-none" data-sort="Amount">
                                             Amount <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Amount"></i>
                                         </th>
-                                        <th>Status</th>
+                                        <th>Payment Status</th>
+                                        <th>Payment Mode</th>
                                         <th>Customer</th>
                                         <th class="col-sortable cursor-pointer user-select-none" data-sort="Date">
                                             Due Date <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Date"></i>
@@ -286,6 +287,30 @@
     </div>
 </div>
 
+<!-- Payment Details Panel -->
+<div id="payDetailPanel" style="
+    display:none;position:fixed;z-index:1080;
+    background:#fff;border-radius:10px;
+    border:1px solid rgba(0,0,0,.1);
+    width:290px;
+    box-shadow:0 6px 24px rgba(0,0,0,.13);
+    overflow:hidden;
+">
+    <div style="background:#f8f9fa;padding:10px 14px 8px;border-bottom:1px solid #eee;">
+        <div class="d-flex justify-content-between align-items-center">
+            <span style="font-size:.8rem;font-weight:600;color:#566a7f;">
+                <i class="bx bx-credit-card me-1 text-primary"></i>
+                <span id="payPanelTitle">Payments</span>
+            </span>
+            <button type="button" id="payPanelClose"
+                    style="background:none;border:none;padding:0 2px;line-height:1;font-size:1rem;color:#aaa;cursor:pointer;">
+                <i class="bx bx-x"></i>
+            </button>
+        </div>
+    </div>
+    <div id="payDetailBody" style="padding:10px 14px;max-height:300px;overflow-y:auto;"></div>
+</div>
+
 <?php $this->load->view('common/transactions/footer'); ?>
 
 <script src="/js/transactions/viewmodal.js"></script>
@@ -377,21 +402,6 @@ $(function () {
         e.preventDefault();
         var match = ($(this).attr('href') || '').match(/\/(\d+)$/);
         if (match) { PageNo = parseInt(match[1]); getInvoicesDetails(); }
-    });
-
-    // ── Inline status update ────────────────────────────────
-    $(document).on('click', '.inv-status-update', function () {
-        var uid    = $(this).data('uid');
-        var status = $(this).data('status');
-        $.ajax({
-            url   : '/invoices/updateInvoiceStatus',
-            method: 'POST',
-            data  : { TransUID: uid, Status: status, [CsrfName]: CsrfToken },
-            success: function (resp) {
-                if (resp.Error) { Swal.fire({ icon:'error', text:resp.Message }); }
-                else            { getInvoicesDetails(); }
-            }
-        });
     });
 
     // View modal — handled by /js/transactions/viewmodal.js (.viewTransaction)

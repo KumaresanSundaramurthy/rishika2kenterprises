@@ -424,12 +424,12 @@ class Dbwrite_model extends CI_Model {
                 throw new Exception('Stock ledger insert failed (ProductUID=' . $productUID . '): ' . ($err['message'] ?? 'unknown DB error'));
             }
 
-            // Update AvailableQuantity (never go below 0).
-            // CAST to SIGNED prevents BIGINT UNSIGNED underflow when stock is already 0.
+            // Update AvailableQuantity — allow negative (oversold) values.
+            // CAST to SIGNED prevents UNSIGNED underflow wrapping to a huge positive number.
             if ($movementType === 'IN') {
-                $this->WriteDB->set('AvailableQuantity', 'AvailableQuantity + ' . $qty, false);
+                $this->WriteDB->set('AvailableQuantity', 'CAST(AvailableQuantity AS SIGNED) + ' . $qty, false);
             } else {
-                $this->WriteDB->set('AvailableQuantity', 'GREATEST(0, CAST(AvailableQuantity AS SIGNED) - ' . $qty . ')', false);
+                $this->WriteDB->set('AvailableQuantity', 'CAST(AvailableQuantity AS SIGNED) - ' . $qty, false);
             }
             $this->WriteDB->where(['ProductUID' => $productUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
             $updOk = $this->WriteDB->update('Products.ProductTbl');
@@ -465,7 +465,7 @@ class Dbwrite_model extends CI_Model {
 
         foreach ($ledgerRows as $row) {
             if ($row->MovementType === 'IN') {
-                $qtyExpr = 'GREATEST(0, CAST(AvailableQuantity AS SIGNED) - ' . (float)$row->Quantity . ')';
+                $qtyExpr = 'CAST(AvailableQuantity AS SIGNED) - ' . (float)$row->Quantity;
             } else {
                 $qtyExpr = 'AvailableQuantity + ' . (float)$row->Quantity;
             }
@@ -551,13 +551,13 @@ class Dbwrite_model extends CI_Model {
         );
     }
 
-    public function updateTransIsFullyPaid($transUID, $isFullyPaid, $userUID) {
+    public function updateTransIsFullyPaid($transUID, $isFullyPaid, $paidAmount, $balanceAmount, $userUID) {
         $this->WriteDB->db_debug = FALSE;
         return $this->WriteDB->query(
             "UPDATE Transaction.TransactionsTbl
-                SET IsFullyPaid = ?, UpdatedBy = ?, UpdatedOn = NOW()
+                SET IsFullyPaid = ?, PaidAmount = ?, BalanceAmount = ?, UpdatedBy = ?
               WHERE TransUID = ?",
-            [(int) $isFullyPaid, (int) $userUID, (int) $transUID]
+            [(int) $isFullyPaid, (float) $paidAmount, (float) $balanceAmount, (int) $userUID, (int) $transUID]
         );
     }
 

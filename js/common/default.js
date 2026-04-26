@@ -1217,3 +1217,35 @@ function validateGSTIN(gstinValue) {
         message: ''
     };
 }
+
+// ── Copy Mobile Number ────────────────────────────────────────────────────
+// Usage: add class="copy-mobile" and data-mobile="number" to any element.
+// Tooltip text "Click to copy mobile number" is set via data-bs-title.
+// Works globally across all pages.
+
+function copyMobileNumber(mobile) {
+    if (!mobile) return;
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(mobile).then(function () {
+            Swal.fire({ icon: 'success', text: 'Mobile number copied!', timer: 1200, showConfirmButton: false });
+        });
+    } else {
+        var $tmp = $('<input>').val(mobile).appendTo('body').select();
+        document.execCommand('copy');
+        $tmp.remove();
+        Swal.fire({ icon: 'success', text: 'Mobile number copied!', timer: 1200, showConfirmButton: false });
+    }
+}
+
+// Click handler — works on dynamically rendered rows (AJAX pagination)
+$(document).on('click', '.copy-mobile', function () {
+    copyMobileNumber($(this).data('mobile'));
+});
+
+// Tooltip init for dynamically rendered .copy-mobile elements
+$(document).on('mouseenter', '.copy-mobile', function () {
+    if (!bootstrap.Tooltip.getInstance(this)) {
+        new bootstrap.Tooltip(this, { trigger: 'hover' });
+        $(this).tooltip('show');
+    }
+});

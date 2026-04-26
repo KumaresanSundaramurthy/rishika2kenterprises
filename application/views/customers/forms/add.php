@@ -241,6 +241,7 @@
 <?php $this->load->view('common/footer'); ?>
 
 <script src="/js/customers.js"></script>
+<script src="/js/common/gstin_fetch.js"></script>
 <script src="/js/common/bankdetails.js"></script>
 <script src="/js/common/address.js"></script>
 

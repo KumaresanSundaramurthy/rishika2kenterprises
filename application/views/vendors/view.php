@@ -75,7 +75,7 @@
                             </div>
                             <div class="trans-toolbar-actions">
                                 <a href="javascript:void(0);" class="r2k-icon-btn PageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
-                                <a href="javascript:void(0);" id="btnPageSettings" class="r2k-icon-btn" title="Column Settings"><i class="bx bx-cog"></i></a>
+                                <!-- <a href="javascript:void(0);" id="btnPageSettings" class="r2k-icon-btn" title="Column Settings"><i class="bx bx-cog"></i></a> -->
                                 <div class="r2k-search-wrap">
                                     <i class="bx bx-search r2k-si"></i>
                                     <input type="text" id="SearchDetails" placeholder="Name, mobile, GSTIN...">

@@ -90,7 +90,7 @@
                         <!-- ── Table ───────────────────────────────── -->
                         <div class="table-responsive text-nowrap">
                             <table class="table table-hover MainviewTable mb-0" id="poTable">
-                                <thead class="bg-body-tertiary">
+                                <thead class="r2k-thead bg-body-tertiary">
                                     <tr>
                                         <th class="table-checkbox" style="width:40px">
                                             <div class="form-check">
@@ -114,7 +114,7 @@
                                         <th style="width:50px">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody class="table-border-bottom-0">
+                                <tbody class="r2k-tbody table-border-bottom-0">
                                     <?php echo $ModRowData; ?>
                                 </tbody>
                             </table>
@@ -404,8 +404,8 @@ function _buildA4Html(resp, size, forPrint) {
             '<strong>Vendor:</strong> ' + _esc(h.PartyName || '—') +
             (h.Reference ? ' &nbsp;|&nbsp; <strong>Ref:</strong> ' + _esc(h.Reference) : '') +
         '</div>' +
-        '<table><thead><tr><th style="width:30px">#</th><th>Product</th><th style="width:60px;text-align:center">Qty</th><th style="width:90px;text-align:right">Unit Price</th><th style="width:90px;text-align:right">Net Amount</th></tr></thead>' +
-        '<tbody>' + rows + '</tbody>' +
+        '<table><thead class="r2k-thead"><tr><th style="width:30px">#</th><th>Product</th><th style="width:60px;text-align:center">Qty</th><th style="width:90px;text-align:right">Unit Price</th><th style="width:90px;text-align:right">Net Amount</th></tr></thead>' +
+        '<tbody class="r2k-tbody">' + rows + '</tbody>' +
         '<tfoot>' +
             '<tr><td colspan="4" style="text-align:right;font-weight:bold">Sub Total</td><td style="text-align:right">' + cur + parseFloat(h.SubTotal || 0).toFixed(dec) + '</td></tr>' +
             (parseFloat(h.DiscountAmount) > 0 ? '<tr><td colspan="4" style="text-align:right;color:#c00">Discount</td><td style="text-align:right;color:#c00">- ' + cur + parseFloat(h.DiscountAmount).toFixed(dec) + '</td></tr>' : '') +

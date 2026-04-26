@@ -144,7 +144,7 @@
                         <!-- Table -->
                         <div class="table-responsive">
                             <table class="table trans-table table-hover MainviewTable mb-0" id="soTable">
-                                <thead>
+                                <thead class="r2k-thead">
                                     <tr>
                                         <th style="width:36px">
                                             <div class="form-check mb-0">
@@ -167,7 +167,7 @@
                                         <th style="width:50px"></th>
                                     </tr>
                                 </thead>
-                                <tbody class="table-border-bottom-0">
+                                <tbody class="r2k-tbody table-border-bottom-0">
                                     <?php echo $ModRowData; ?>
                                 </tbody>
                             </table>

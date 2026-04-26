@@ -355,4 +355,67 @@ class Globally extends CI_Controller {
 
 	}
 
+
+    // ── GET /globally/fetchGstinDetails?gstin=XXXX ──────────────────────────
+    // Fetches GSTIN details from free public API and returns structured data.
+    public function fetchGstinDetails() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $gstin = strtoupper(trim($this->input->get('gstin') ?? ''));
+
+            if (empty($gstin) || strlen($gstin) !== 15) {
+                throw new Exception('Please enter a valid 15-character GSTIN.');
+            }
+
+            // Free public GSTIN lookup API (no key required)
+            $url = 'https://sheet.gstincheck.co.in/check/'.getenv('GSTIN_API_KEY').'/' . urlencode($gstin);
+
+            $this->load->library('curlservice');
+            $response = $this->curlservice->retrieve($url, 'GET', null, [
+                'Accept: application/json',
+                'User-Agent: Mozilla/5.0',
+            ]);
+
+            if (!$response || $response->Error) {
+                throw new Exception('Failed to reach GSTIN lookup service. Please try again.');
+            }
+
+            $data = is_array($response->Data) ? $response->Data : json_decode(json_encode($response->Data ?? []), true);
+
+            if (empty($data) || ($data['flag'] ?? false) === false) {
+                throw new Exception('GSTIN not found or invalid. Please verify the number.');
+            }
+
+            $d = $data['data'] ?? [];
+
+            // Parse principal place of business address
+            $pradr = $d['pradr']['addr'] ?? [];
+            $addr  = array_filter([
+                $pradr['bnm']  ?? '',   // building name
+                $pradr['st']   ?? '',   // street
+                $pradr['loc']  ?? '',   // locality
+            ]);
+
+            $this->EndReturnData->Error       = false;
+            $this->EndReturnData->GSTIN       = $gstin;
+            $this->EndReturnData->LegalName   = $d['lgnm']  ?? '';   // Legal name
+            $this->EndReturnData->TradeName   = $d['tradeNam'] ?? ($d['lgnm'] ?? '');
+            $this->EndReturnData->Status      = $d['sts']   ?? '';   // Active / Cancelled
+            $this->EndReturnData->StateCode   = substr($gstin, 0, 2);
+            $this->EndReturnData->StateName   = $pradr['stcd'] ?? '';
+            $this->EndReturnData->City        = $pradr['dst']  ?? $pradr['loc'] ?? '';
+            $this->EndReturnData->Pincode     = $pradr['pncd'] ?? '';
+            $this->EndReturnData->AddressLine1 = implode(', ', $addr);
+            $this->EndReturnData->AddressLine2 = '';
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
 }

@@ -141,6 +141,13 @@
             'background:rgba(255,255,255,.7);">' +
             '<i class="bx bx-edit" style="font-size:.9rem;"></i>Edit</a>';
 
+        var closeBtn =
+            '<button type="button" data-bs-dismiss="modal" aria-label="Close" ' +
+            'style="background:rgba(255,255,255,.85);border:none;border-radius:50%;width:28px;height:28px;' +
+            'display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;' +
+            'box-shadow:0 1px 4px rgba(0,0,0,.15);padding:0;">' +
+            '<i class="bx bx-x" style="font-size:1.2rem;color:#555;line-height:1;"></i></button>';
+
         html +=
         '<div style="background:' + typeBg + ';border-left:4px solid ' + typeColor + ';padding:14px 20px;">' +
             '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">' +
@@ -163,6 +170,7 @@
                         : '') +
                     _statusBadge(h.DocStatus) +
                     editBtn +
+                    closeBtn +
                 '</div>' +
             '</div>' +
         '</div>';
@@ -473,6 +481,43 @@
         },
     };
 
+    // ── Attachment section builder ─────────────────────────────────────────────
+    function _buildAttachSectionHtml(attachments) {
+        if (!attachments || !attachments.length) return '';
+        var cdnUrl = (typeof CDN_URL !== 'undefined' && CDN_URL) ? CDN_URL : '';
+        var cards = '';
+        attachments.forEach(function (a) {
+            var name    = a.FileName || '';
+            var safeName = $('<span>').text(name).html();
+            var fullUrl  = cdnUrl + (a.FilePath || '');
+            var encUrl   = encodeURIComponent(fullUrl);
+            var isImg    = /image\//i.test(a.FileType || '') || /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(name);
+            var isPdf    = /pdf/i.test(a.FileType || '') || /\.pdf$/i.test(name);
+            var previewType = isImg ? 'img' : (isPdf ? 'pdf' : 'file');
+            var iconCls  = isImg ? 'bx-image-alt text-success' : (isPdf ? 'bxs-file-pdf text-danger' : 'bx-file text-secondary');
+            var bgColor  = isImg ? '#f0fff4' : (isPdf ? '#fff5f5' : '#f8f9fa');
+
+            cards +=
+            '<div class="col-6 col-sm-4 col-md-3">' +
+                '<div class="border rounded overflow-hidden" style="cursor:pointer;background:' + bgColor + ';" ' +
+                'onclick="typeof _openAttachPreview===\'function\' && _openAttachPreview(\'' + encUrl + '\',\'' + previewType + '\',\'' + safeName.replace(/'/g, "\\'") + '\')">' +
+                    (isImg
+                        ? '<img src="' + $('<span>').text(fullUrl).html() + '" style="width:100%;height:80px;object-fit:cover;display:block;" loading="lazy" alt="' + safeName + '">'
+                        : '<div class="d-flex align-items-center justify-content-center" style="height:80px;">' +
+                          '<i class="bx ' + iconCls + '" style="font-size:2.2rem;"></i></div>'
+                    ) +
+                    '<div class="px-2 py-1 border-top" style="background:#fff;font-size:.7rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + safeName + '">' +
+                        safeName +
+                    '</div>' +
+                '</div>' +
+            '</div>';
+        });
+        return '<div style="padding:14px 20px;">' +
+            _secHdr('bx-paperclip', 'Attachments (' + attachments.length + ')', '#6c757d') +
+            '<div class="row g-2">' + cards + '</div>' +
+        '</div>';
+    }
+
     // ── Single common click handler for all transaction view buttons ──────────
     $(document).on('click', '.viewTransaction', function () {
         var uid       = $(this).data('uid');
@@ -482,27 +527,40 @@
         if (!cfg || !uid || !moduleUID) return;
 
         $('#viewTransModal').modal('show');
-        $('#viewTransModalTitle').text(cfg.title);
         $('#viewTransModalBody').html('<div class="d-flex justify-content-center py-5"><div class="spinner-border text-primary"></div></div>');
         $('#viewTransEditBtn').attr('href', cfg.editPath + uid);
         AjaxLoading = 0;
-        $.ajax({
+
+        var detailReq = $.ajax({
             url   : '/transactions/getTransactionDetail',
             method: 'POST',
             data  : { TransUID: uid, ModuleUID: moduleUID, [CsrfName]: CsrfToken },
-            success: function (resp) {
-                AjaxLoading = 1;
-                if (resp.Error) {
-                    $('#viewTransModalBody').html('<div class="alert alert-danger m-3">' + _esc(resp.Message || 'Error loading details.') + '</div>');
-                } else {
-                    window[cfg.dataKey] = resp;
-                    $('#viewTransModalBody').html(_buildTransDetailHtml(resp, cfg));
-                }
-            },
-            error: function () {
-                AjaxLoading = 1;
-                $('#viewTransModalBody').html('<div class="alert alert-danger m-3">Failed to load transaction details.</div>');
+        });
+
+        // Fetch attachments in parallel for invoice type
+        var attachReq = (type === 'invoice')
+            ? $.ajax({ url: '/invoices/getAttachments', method: 'POST', data: { TransUID: uid, [CsrfName]: CsrfToken } })
+            : null;
+
+        detailReq.done(function (resp) {
+            AjaxLoading = 1;
+            if (resp.Error) {
+                $('#viewTransModalBody').html('<div class="alert alert-danger m-3">' + _esc(resp.Message || 'Error loading details.') + '</div>');
+                return;
             }
+            window[cfg.dataKey] = resp;
+            $('#viewTransModalBody').html(_buildTransDetailHtml(resp, cfg));
+
+            if (attachReq) {
+                attachReq.done(function (aResp) {
+                    if (!aResp.Error && aResp.Attachments && aResp.Attachments.length > 0) {
+                        $('#viewTransModalBody > div').first().append(_buildAttachSectionHtml(aResp.Attachments));
+                    }
+                });
+            }
+        }).fail(function () {
+            AjaxLoading = 1;
+            $('#viewTransModalBody').html('<div class="alert alert-danger m-3">Failed to load transaction details.</div>');
         });
     });
 

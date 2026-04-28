@@ -129,6 +129,7 @@
                                 'transNotesPlaceholder' => 'Enter notes or anything else',
                                 'transNotesContent'     => !empty($SalesOrderData->Notes) ? $SalesOrderData->Notes : (!empty($QuotationData->Notes) ? $QuotationData->Notes : ''),
                                 'transTermsContent'     => !empty($SalesOrderData->TermsConditions) ? $SalesOrderData->TermsConditions : (!empty($QuotationData->TermsConditions) ? $QuotationData->TermsConditions : "1. Goods once sold will not be taken back or exchanged\n2. All disputes are subject to Gingee jurisdiction only"),
+                                'transShowDropzone'     => true,
                             ]); ?>
 
                         <?php
@@ -357,61 +358,57 @@ $(function() {
                 if (!serializePaymentRows()) return showFormError('Please enter a valid amount for every payment row.');
             }
 
-            var postData = $.extend({
-                transPrefixSelect      : parseInt($('#transPrefixSelect').val(), 10) || 0,
-                transNumber            : $.trim($('#transNumber').val()),
-                transDate              : transDate,
-                dueDate                : $.trim($('#dueDate').val()),
-                customerSearch         : customerUID,
-                fromSalesOrderUID      : parseInt($('#fromSalesOrderUID').val(), 10) || 0,
-                fromQuotationUID       : parseInt($('#fromQuotationUID').val(), 10) || 0,
-                invoiceType            : $('#invoiceType').val() || '',
-                dispatchFrom           : $('#dispatchFrom').val() || '',
-                referenceDetails       : $.trim($('#referenceDetails').val()),
-                transNotes             : $.trim($('#transNotes').val()),
-                transTermsCond         : $.trim($('#transTermsCond').val()),
-                extraDiscount          : extraDisc,
-                extDiscountType        : $('#extDiscountType').val() || '',
-                SubTotal               : subTotal,
-                DiscountAmount         : discountAmt,
-                TaxAmount              : taxAmt,
-                CgstAmount             : cgstAmt,
-                SgstAmount             : sgstAmt,
-                IgstAmount             : igstAmt,
-                AdditionalChargesTotal : addCharges,
-                GlobalDiscPercent      : globalDiscPct,
-                RoundOff               : roundOff,
-                NetAmount              : netAmount,
-                Items                  : JSON.stringify(items),
-                action                 : action,
-                PaymentRows            : $('#PaymentRowsJson').val(),
-                IsFullyPaid            : $('#isFullyPaid').is(':checked') ? 1 : 0,
-                RecordPayment          : action !== 'draft' ? 1 : 0,
-                [csrfName]             : csrfVal,
-            }, charges);
+            var fd = new FormData();
+            fd.append(csrfName, csrfVal);
+            fd.append('transPrefixSelect',      parseInt($('#transPrefixSelect').val(), 10) || 0);
+            fd.append('transNumber',            $.trim($('#transNumber').val()));
+            fd.append('transDate',              transDate);
+            fd.append('dueDate',                $.trim($('#dueDate').val()));
+            fd.append('customerSearch',         customerUID);
+            fd.append('fromSalesOrderUID',      parseInt($('#fromSalesOrderUID').val(), 10) || 0);
+            fd.append('fromQuotationUID',       parseInt($('#fromQuotationUID').val(), 10) || 0);
+            fd.append('invoiceType',            $('#invoiceType').val() || '');
+            fd.append('dispatchFrom',           $('#dispatchFrom').val() || '');
+            fd.append('referenceDetails',       $.trim($('#referenceDetails').val()));
+            fd.append('transNotes',             $.trim($('#transNotes').val()));
+            fd.append('transTermsCond',         $.trim($('#transTermsCond').val()));
+            fd.append('extraDiscount',          extraDisc);
+            fd.append('extDiscountType',        $('#extDiscountType').val() || '');
+            fd.append('SubTotal',               subTotal);
+            fd.append('DiscountAmount',         discountAmt);
+            fd.append('TaxAmount',              taxAmt);
+            fd.append('CgstAmount',             cgstAmt);
+            fd.append('SgstAmount',             sgstAmt);
+            fd.append('IgstAmount',             igstAmt);
+            fd.append('AdditionalChargesTotal', addCharges);
+            fd.append('GlobalDiscPercent',      globalDiscPct);
+            fd.append('RoundOff',               roundOff);
+            fd.append('NetAmount',              netAmount);
+            fd.append('Items',                  JSON.stringify(items));
+            fd.append('action',                 action);
+            fd.append('PaymentRows',            $('#PaymentRowsJson').val() || '');
+            fd.append('IsFullyPaid',            $('#isFullyPaid').is(':checked') ? 1 : 0);
+            fd.append('RecordPayment',          action !== 'draft' ? 1 : 0);
+            $.each(charges, function(k, v) { fd.append(k, v); });
+            if (typeof multiDropzone !== 'undefined' && multiDropzone) {
+                multiDropzone.files.forEach(function(f) { fd.append('AttachFiles[]', f); });
+            }
 
             setFormLoading('#addInvForm', true, action);
 
             $.ajax({
-                url    : '/invoices/addInvoice',
-                method : 'POST',
-                data   : postData,
-                cache  : false,
+                url         : '/invoices/addInvoice',
+                method      : 'POST',
+                data        : fd,
+                processData : false,
+                contentType : false,
+                cache       : false,
                 success: function(response) {
                     if (response.Error) {
                         setFormLoading('#addInvForm', false);
                         showFormError(response.Message);
                     } else {
-                        Swal.fire({
-                            icon             : 'success',
-                            title            : 'Invoice Saved',
-                            text             : response.Message || 'Invoice created successfully.',
-                            confirmButtonText: 'OK',
-                            timer            : 3000,
-                            timerProgressBar : true,
-                        }).then(function() {
-                            window.location.href = '/invoices';
-                        });
+                        _showSavedAndGo('Invoice Saved', response.Message || 'Invoice created successfully.');
                     }
                 },
                 error: function() {
@@ -429,4 +426,17 @@ $(function() {
     }
 
 });
+
+function _showSavedAndGo(title, msg) {
+    Swal.fire({
+        icon             : 'success',
+        title            : title,
+        text             : msg,
+        confirmButtonText: 'OK',
+        timer            : 3000,
+        timerProgressBar : true,
+    }).then(function() {
+        window.location.href = '/invoices';
+    });
+}
 </script>

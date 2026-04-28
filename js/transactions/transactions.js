@@ -2209,12 +2209,41 @@ function updateTableRow(productRow) {
     }
 }
 
+function _custBalanceHtml(balance, balanceType) {
+    if (!balance || balance === 0) {
+        return '<span style="color:#6c757d;font-weight:600;">&#8377; 0</span>';
+    }
+    var isCredit = (balanceType === 'Credit');
+    var color    = isCredit ? '#198754' : '#dc3545';
+    var label    = isCredit ? 'Adv' : 'Bal';
+    return '<span style="color:' + color + ';font-weight:600;">' + label + ' &#8377; ' + parseFloat(balance).toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2}) + '</span>';
+}
+
 function searchCustomers(key) {
     $("#"+key).select2({
         placeholder: "Search Customer by Name, Email, Mobile, GSTIN, Company, Contact Person.",
         minimumInputLength: 0,
         allowClear: true,
         escapeMarkup: function (markup) { return markup; },
+        templateResult: function (d) {
+            if (d.loading || !d.name) return d.text;
+            var area    = d.area ? '<span style="color:#6c757d;font-size:.78rem;">' + d.area + '</span>' : '<span style="color:transparent;font-size:.78rem;">-</span>';
+            var balHtml = _custBalanceHtml(d.balance, d.balanceType);
+            return $(
+                '<div style="display:flex;align-items:center;gap:6px;">' +
+                    '<div style="flex:1;min-width:0;">' +
+                        '<div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + d.name + '</div>' +
+                        '<div>' + area + '</div>' +
+                    '</div>' +
+                    '<div style="text-align:right;white-space:nowrap;flex-shrink:0;">' + balHtml + '</div>' +
+                '</div>'
+            );
+        },
+        templateSelection: function (d) {
+            if (!d.id) return d.text;
+            if (d.name) return d.area ? d.name + ' (' + d.area + ')' : d.name;
+            return d.text;
+        },
         ajax: {
             url: '/transactions/searchCustomers',
             dataType: 'json',
@@ -2524,7 +2553,8 @@ function formationTableBillItems(productRow) {
 
     let rowCount = $('#billTableBody tr[data-id]').length;
 
-    const hsnText = productRow.hsnCode ? `<div class="transtext-small text-muted">HSN: ${productRow.hsnCode}</div>` : '';
+    const hsnText  = productRow.hsnCode    ? `<div class="transtext-small text-muted">HSN: ${productRow.hsnCode}</div>` : '';
+    const descText = productRow.description ? `<div class="transtext-small text-muted" style="font-style:italic;">${productRow.description}</div>` : '';
 
     // const discTypeHtml = discTypeInfo.map(d => `<option value="${d.Name}">${d.Symbol}</option>` ).join('');
     const discTypeHtml = `
@@ -2556,6 +2586,7 @@ function formationTableBillItems(productRow) {
                                 : `Stock: <span class="text-success fw-semibold">${smartDecimal(productRow.availableQuantity)}</span> ${productRow.primaryUnit}`
                     }
                 </div>
+                ${descText}
                 ${hsnText}
             </td>
             <td>

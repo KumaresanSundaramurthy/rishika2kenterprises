@@ -160,6 +160,65 @@
     }
 }
 
+/* ── Record Payment offcanvas — payment type pills ──────────────── */
+.rp-type-pill {
+    border-radius: 20px !important;
+    font-size: .78rem !important;
+    padding: 4px 14px !important;
+    font-weight: 600 !important;
+    border-color: #d0d5dd !important;
+    color: #566a7f !important;
+    background: #fff !important;
+    transition: all .15s;
+}
+.rp-type-pill:hover {
+    border-color: #696cff !important;
+    color: #696cff !important;
+    background: #f0f0ff !important;
+}
+.rp-type-pill.active {
+    background: #696cff !important;
+    border-color: #696cff !important;
+    color: #fff !important;
+    box-shadow: 0 2px 8px rgba(105,108,255,.3) !important;
+}
+
+/* ── Record Payment quick-action button (hover on list row) ─────── */
+.inv-pay-quick-btn {
+    font-size: .78rem;
+    font-weight: 700;
+    padding: 3px 11px;
+    border-radius: 20px;
+    background: #f0fdf4;
+    border: 1px solid #86efac;
+    color: #16a34a;
+    line-height: 1.4;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .15s, background .15s, color .15s;
+}
+tr:hover .inv-pay-quick-btn {
+    opacity: 1;
+    pointer-events: auto;
+}
+.inv-pay-quick-btn:hover,
+.inv-pay-quick-btn:focus {
+    background: #16a34a;
+    color: #fff;
+    border-color: #16a34a;
+    box-shadow: 0 2px 8px rgba(22,163,74,.25);
+}
+.inv-row-action {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .15s;
+}
+tr:hover .inv-row-action {
+    opacity: 1;
+    pointer-events: auto;
+}
+
 /* ── Transaction form header utilities ─────────────────────────── */
 .trans-doc-icon {
     width: 36px;

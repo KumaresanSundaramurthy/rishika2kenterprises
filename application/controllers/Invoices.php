@@ -36,6 +36,8 @@ class Invoices extends CI_Controller {
             $this->pageData['ModPagination']   = $this->globalservice->buildPagePaginationHtml('/invoices/getInvoicesPageDetails', $allDataCount, 1, $limit);
             $this->pageData['ModAllCount']     = $allDataCount;
             $this->pageData['SummaryStats']    = $summaryStats;
+            $this->pageData['PaymentTypes']    = $this->transactions_model->getPaymentTypesList();
+            $this->pageData['BankAccounts']    = $this->transactions_model->getOrgBankAccounts($orgUID);
 
             $this->load->view('transactions/invoices/view', $this->pageData);
 
@@ -238,7 +240,7 @@ class Invoices extends CI_Controller {
             // Record payment DB rows inside the transaction; ledger entries applied after commit
             $paidAmountForLedger = 0;
             if (!$isDraft && (int) getPostValue($PostData, 'RecordPayment') === 1) {
-                $paidAmountForLedger = $this->savePaymentRecord($transUID, $orgUID, $userUID, 'C', $customerUID, $netAmount, $PostData);
+                $paidAmountForLedger = $this->savePaymentRecord($transUID, $orgUID, $userUID, 'C', $customerUID, $netAmount, $PostData, $transDate);
                 if ($paidAmountForLedger > 0) {
                     $this->updateTransactionBalance($transUID, $netAmount, $paidAmountForLedger, $userUID);
                 }
@@ -280,6 +282,7 @@ class Invoices extends CI_Controller {
             $this->EndReturnData->Error    = FALSE;
             $this->EndReturnData->Message  = 'Invoice created successfully.';
             $this->EndReturnData->TransUID = $transUID;
+            $this->_saveAttachments($transUID);
 
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -341,6 +344,24 @@ class Invoices extends CI_Controller {
             $existing = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
             if (!$existing) throw new Exception('Invoice not found.');
 
+            $wasNonDraft  = ($existing->DocStatus !== 'Draft');
+            $existingPaid = (float)($existing->PaidAmount ?? 0);
+            $newBalance   = max(0, round($netAmount - $existingPaid, 2));
+
+            // Recalculate status based on payment state when editing a live (non-draft) invoice
+            if (!$isDraft && $wasNonDraft && $existingPaid > 0) {
+                if ($netAmount > 0 && $existingPaid >= $netAmount) {
+                    $computedStatus = 'Paid';
+                    $newIsFullyPaid = 1;
+                } else {
+                    $computedStatus = 'Partial';
+                    $newIsFullyPaid = 0;
+                }
+            } else {
+                $computedStatus = $status;
+                $newIsFullyPaid = 0;
+            }
+
             $uniqueNumber = NULL;
             if ($existing->DocStatus === 'Draft' && !$isDraft) {
                 if ($prefixUID <= 0) throw new Exception('Please select a prefix to finalise this invoice.');
@@ -378,7 +399,6 @@ class Invoices extends CI_Controller {
 
             $activeTransUID = $transUID; // tracks the final transUID (may change for draft→issued with newer transactions)
 
-            $existingPaid  = (float) ($existing->PaidAmount ?? 0);
             $commonHeader = [
                 'OrgUID'            => $orgUID,
                 'ModuleUID'         => $this->pageModuleUID,
@@ -404,8 +424,9 @@ class Invoices extends CI_Controller {
                 'ExtraDiscType'     => getPostValue($PostData, 'extDiscountType') ?: NULL,
                 'NetAmount'         => $netAmount,
                 'TaxableAmount'     => $subTotal,
-                'BalanceAmount'     => max(0, round($netAmount - $existingPaid, 2)),
-                'DocStatus'         => $status,
+                'BalanceAmount'     => $newBalance,
+                'IsFullyPaid'       => $newIsFullyPaid,
+                'DocStatus'         => $computedStatus,
                 'UpdatedBy'         => $userUID,
             ];
 
@@ -426,7 +447,6 @@ class Invoices extends CI_Controller {
             ];
 
             // Reverse stock if existing doc was already non-draft (edit of live invoice)
-            $wasNonDraft = ($existing->DocStatus !== 'Draft');
             if ($wasNonDraft) {
                 $this->dbwrite_model->reverseStockMovements($transUID, $orgUID, $userUID);
             }
@@ -504,7 +524,7 @@ class Invoices extends CI_Controller {
             // Record payment DB rows inside the transaction; ledger entries applied after commit
             $paidAmountForLedger = 0;
             if (!$isDraft && (int) getPostValue($PostData, 'RecordPayment') === 1) {
-                $paidAmountForLedger = $this->savePaymentRecord($activeTransUID, $orgUID, $userUID, 'C', $customerUID, $netAmount, $PostData);
+                $paidAmountForLedger = $this->savePaymentRecord($activeTransUID, $orgUID, $userUID, 'C', $customerUID, $netAmount, $PostData, $transDate);
                 if ($paidAmountForLedger > 0) {
                     $this->updateTransactionBalance($activeTransUID, $netAmount, $paidAmountForLedger, $userUID);
                 }
@@ -530,6 +550,8 @@ class Invoices extends CI_Controller {
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Invoice updated successfully.';
+            $this->_saveAttachments($activeTransUID);
+            $this->_softDeleteAttachments($this->input->post('RemovedAttachIDs') ?? '');
 
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -539,6 +561,69 @@ class Invoices extends CI_Controller {
 
         $this->globalservice->sendJsonResponse($this->EndReturnData);
 
+    }
+
+    private function _saveAttachments($transUID) {
+        $files = $_FILES['AttachFiles'] ?? null;
+        if (empty($files) || empty($files['name'][0])) return;
+
+        $userUID   = $this->pageData['JwtData']->User->UserUID;
+        $orgUID    = $this->pageData['JwtData']->User->OrgUID;
+        $moduleUID = $this->pageModuleUID;
+
+        $this->load->library('fileupload');
+        $this->load->model('dbwrite_model');
+
+        $fileCount = count($files['name']);
+        for ($i = 0; $i < $fileCount; $i++) {
+            if ($files['error'][$i] !== UPLOAD_ERR_OK || empty($files['name'][$i])) continue;
+
+            $origName    = basename($files['name'][$i]);
+            $tmpPath     = $files['tmp_name'][$i];
+            $fileType    = $files['type'][$i];
+            $fileSize    = $files['size'][$i];
+            $safeName    = time() . '_' . $i . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $origName);
+            $storagePath = 'invoices/' . $transUID . '/' . $safeName;
+
+            $uploadResult = $this->fileupload->fileUpload('file', $storagePath, $tmpPath);
+            if ($uploadResult->Error) continue;
+
+            $filePath = '/' . ltrim($uploadResult->Path, '/');
+
+            $this->dbwrite_model->insertData('Transaction', 'TransAttachmentsTbl', [
+                'OrgUID'    => $orgUID,
+                'TransUID'  => $transUID,
+                'ModuleUID' => $moduleUID,
+                'FileName'  => $origName,
+                'FilePath'  => $filePath,
+                'FileType'  => $fileType,
+                'FileSize'  => $fileSize,
+                'SortOrder' => $i,
+                'IsActive'  => 1,
+                'IsDeleted' => 0,
+                'CreatedBy' => $userUID,
+            ]);
+        }
+    }
+
+    private function _softDeleteAttachments($removedJson) {
+        if (empty($removedJson)) return;
+        $uids = json_decode($removedJson, true);
+        if (empty($uids) || !is_array($uids)) return;
+
+        $orgUID  = $this->pageData['JwtData']->User->OrgUID;
+        $userUID = $this->pageData['JwtData']->User->UserUID;
+        $this->load->model('dbwrite_model');
+
+        foreach ($uids as $attachUID) {
+            $attachUID = (int) $attachUID;
+            if ($attachUID <= 0) continue;
+            $this->dbwrite_model->updateData(
+                'Transaction', 'TransAttachmentsTbl',
+                ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
+                ['AttachUID' => $attachUID, 'OrgUID' => $orgUID]
+            );
+        }
     }
 
     public function recordInvoicePayment() {
@@ -556,6 +641,7 @@ class Invoices extends CI_Controller {
             $transUID       = (int)   getPostValue($PostData, 'TransUID');
             $paymentTypeUID = (int)   getPostValue($PostData, 'PaymentTypeUID');
             $amount         = (float) getPostValue($PostData, 'Amount', 'Array', 0);
+            $paymentDate    =         getPostValue($PostData, 'PaymentDate') ?: date('Y-m-d');
             $bankAccountUID = (int)   getPostValue($PostData, 'BankAccountUID') ?: NULL;
             $referenceNo    =         getPostValue($PostData, 'ReferenceNo') ?: NULL;
             $notes          =         getPostValue($PostData, 'Notes') ?: NULL;
@@ -584,8 +670,21 @@ class Invoices extends CI_Controller {
             $excessAmount = max(0, round($newTotalPaid - (float)$existing->NetAmount, 4));
             $newStatus    = $isFullyPaid ? 'Paid' : 'Partial';
 
+            // Resolve payment prefix + unique number (module 110)
+            $payTransYear   = (int) date('Y', strtotime($paymentDate));
+            $payPrefixData  = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.OrgUID' => $orgUID, 'Prefix.ModuleUID' => 110]);
+            $payPrefix      = !empty($payPrefixData->Data) ? $payPrefixData->Data[0] : null;
+            $payPrefixUID   = $payPrefix ? (int) $payPrefix->PrefixUID : null;
+            $paymentNumber  = $payPrefixUID ? $this->transactions_model->getNextPaymentNumber($payPrefixUID, $orgUID, $payTransYear) : 0;
+            $payUniqueNum   = ($payPrefix && $paymentNumber > 0) ? $this->buildPaymentUniqueNumber($payPrefix, $paymentDate, $paymentNumber) : null;
+
             $paymentData = [
                 'OrgUID'         => $orgUID,
+                'PaymentDate'    => $paymentDate,
+                'PrefixUID'      => $payPrefixUID,
+                'PaymentNumber'  => $paymentNumber,
+                'UniqueNumber'   => $payUniqueNum,
+                'TransYear'      => $payTransYear,
                 'TransUID'       => $transUID,
                 'ModuleUID'      => $this->pageModuleUID,
                 'PartyType'      => 'C',
@@ -595,6 +694,7 @@ class Invoices extends CI_Controller {
                 'BankAccountUID' => $bankAccountUID,
                 'ReferenceNo'    => $referenceNo,
                 'Notes'          => $notes,
+                'PaymentSource'  => 'Record',
                 'IsFullyPaid'    => $isFullyPaid,
                 'ExcessAmount'   => $excessAmount,
                 'IsActive'       => 1,
@@ -866,8 +966,9 @@ class Invoices extends CI_Controller {
             if ($transUID <= 0) throw new Exception('Invalid invoice.');
 
             $validTransitions = [
-                'Draft'     => ['Issued'],
-                'Issued'    => ['Paid', 'Cancelled'],
+                'Draft'     => ['Issued', 'Cancelled'],
+                'Issued'    => ['Paid', 'Partial', 'Cancelled'],
+                'Partial'   => ['Paid', 'Cancelled'],
                 'Paid'      => [],
                 'Cancelled' => [],
             ];
@@ -966,6 +1067,7 @@ class Invoices extends CI_Controller {
                 'ItemSequence'      => $seqOffset + $seq + 1,
                 'ProductUID'        => $productUID,
                 'ProductName'       => substr(strip_tags($item['itemName'] ?? ''), 0, 100),
+                'Description'       => isset($item['description'])   ? substr($item['description'], 0, 500) : NULL,
                 'PartNumber'        => isset($item['partNumber'])    ? substr($item['partNumber'], 0, 50) : NULL,
                 'CategoryUID'       => isset($item['categoryUID'])   ? (int) $item['categoryUID']          : NULL,
                 'StorageUID'        => isset($item['storageUID'])    ? (int) $item['storageUID']            : NULL,
@@ -1011,7 +1113,7 @@ class Invoices extends CI_Controller {
         }
     }
 
-    private function savePaymentRecord($transUID, $orgUID, $userUID, $partyType, $partyUID, $billTotal, $PostData) {
+    private function savePaymentRecord($transUID, $orgUID, $userUID, $partyType, $partyUID, $billTotal, $PostData, $transDate = null) {
 
         $rowsJson    = getPostValue($PostData, 'PaymentRows') ?: '';
         $isFullyPaid = (int) getPostValue($PostData, 'IsFullyPaid') === 1 ? 1 : 0;
@@ -1020,7 +1122,14 @@ class Invoices extends CI_Controller {
         $rows = json_decode($rowsJson, true);
         if (!is_array($rows) || empty($rows)) return 0;
 
-        $totalPaid = array_sum(array_column($rows, 'amount'));
+        $paymentDate = $transDate ?: date('Y-m-d');
+        $totalPaid   = array_sum(array_column($rows, 'amount'));
+
+        // Resolve payment prefix once for all rows in this batch
+        $payTransYear  = (int) date('Y', strtotime($paymentDate));
+        $payPrefixData = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.OrgUID' => $orgUID, 'Prefix.ModuleUID' => 110]);
+        $payPrefix     = !empty($payPrefixData->Data) ? $payPrefixData->Data[0] : null;
+        $payPrefixUID  = $payPrefix ? (int) $payPrefix->PrefixUID : null;
 
         foreach ($rows as $idx => $row) {
             $paymentTypeUID = (int)   ($row['paymentTypeUID'] ?? 0);
@@ -1037,8 +1146,16 @@ class Invoices extends CI_Controller {
                 $rowExcess = round($totalPaid - $billTotal, 4);
             }
 
+            $paymentNumber = $payPrefixUID ? $this->transactions_model->getNextPaymentNumber($payPrefixUID, $orgUID, $payTransYear) : 0;
+            $payUniqueNum  = ($payPrefix && $paymentNumber > 0) ? $this->buildPaymentUniqueNumber($payPrefix, $paymentDate, $paymentNumber) : null;
+
             $paymentData = [
                 'OrgUID'            => $orgUID,
+                'PaymentDate'       => $paymentDate,
+                'PrefixUID'         => $payPrefixUID,
+                'PaymentNumber'     => $paymentNumber,
+                'UniqueNumber'      => $payUniqueNum,
+                'TransYear'         => $payTransYear,
                 'TransUID'          => (int) $transUID,
                 'ModuleUID'         => $this->pageModuleUID,
                 'PartyType'         => $partyType,
@@ -1048,6 +1165,7 @@ class Invoices extends CI_Controller {
                 'BankAccountUID'    => $bankAccountUID,
                 'ReferenceNo'       => $referenceNo,
                 'Notes'             => $notes,
+                'PaymentSource'     => 'Create',
                 'IsFullyPaid'       => ($idx === count($rows) - 1) ? $isFullyPaid : 0,
                 'ExcessAmount'      => $rowExcess,
                 'AppliedToTransUID' => NULL,
@@ -1062,6 +1180,122 @@ class Invoices extends CI_Controller {
         }
 
         return $totalPaid;
+
+    }
+
+    /**
+     * Builds a formatted UniqueNumber for a payment entry using the same
+     * prefix formatting rules as invoice numbers.
+     */
+    private function buildPaymentUniqueNumber($prefix, $paymentDate, $paymentNumber) {
+        $sep   = $prefix->Separator ?? '-';
+        $parts = [strtoupper($prefix->Name)];
+        if (!empty($prefix->IncludeShortName) && !empty($prefix->ShortName)) {
+            $parts[] = strtoupper($prefix->ShortName);
+        }
+        if (!empty($prefix->IncludeFiscalYear)) {
+            $m  = (int) date('m', strtotime($paymentDate));
+            $yr = (int) date('Y', strtotime($paymentDate));
+            $fy = $m >= 4 ? $yr : $yr - 1;
+            $parts[] = ($prefix->FiscalYearFormat ?? 'SHORT') === 'LONG'
+                ? $fy . '-' . ($fy + 1)
+                : str_pad($fy % 100, 2, '0', STR_PAD_LEFT) . '-' . str_pad(($fy + 1) % 100, 2, '0', STR_PAD_LEFT);
+        }
+        $pad     = (int)($prefix->NumberPadding ?? 1);
+        $parts[] = $pad > 1 ? str_pad($paymentNumber, $pad, '0', STR_PAD_LEFT) : (string) $paymentNumber;
+        return implode($sep, $parts);
+    }
+
+    public function uploadAttachments() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $PostData  = $this->input->post();
+            $userUID   = $this->pageData['JwtData']->User->UserUID;
+            $orgUID    = $this->pageData['JwtData']->User->OrgUID;
+            $transUID  = (int) getPostValue($PostData, 'TransUID');
+            $moduleUID = (int) getPostValue($PostData, 'ModuleUID') ?: $this->pageModuleUID;
+
+            if ($transUID <= 0) throw new Exception('Invalid invoice reference.');
+
+            $files = $_FILES['AttachFiles'] ?? null;
+            if (empty($files) || empty($files['name'][0])) {
+                $this->EndReturnData->Error   = FALSE;
+                $this->EndReturnData->Message = 'No files to upload.';
+                $this->globalservice->sendJsonResponse($this->EndReturnData);
+                return;
+            }
+
+            $this->load->library('fileupload');
+            $this->load->model('dbwrite_model');
+
+            $uploaded = 0;
+            $fileCount = count($files['name']);
+            for ($i = 0; $i < $fileCount; $i++) {
+                if ($files['error'][$i] !== UPLOAD_ERR_OK || empty($files['name'][$i])) continue;
+
+                $origName  = basename($files['name'][$i]);
+                $tmpPath   = $files['tmp_name'][$i];
+                $fileType  = $files['type'][$i];
+                $fileSize  = $files['size'][$i];
+                $ext       = strtolower(pathinfo($origName, PATHINFO_EXTENSION));
+                $safeName  = time() . '_' . $i . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $origName);
+                $storagePath = 'invoices/' . $transUID . '/' . $safeName;
+
+                $uploadResult = $this->fileupload->fileUpload('file', $storagePath, $tmpPath);
+                if ($uploadResult->Error) continue;
+
+                $this->dbwrite_model->insertData('Transaction', 'TransAttachmentsTbl', [
+                    'OrgUID'     => $orgUID,
+                    'TransUID'   => $transUID,
+                    'ModuleUID'  => $moduleUID,
+                    'FileName'   => $origName,
+                    'FilePath'   => $uploadResult->Path,
+                    'FileType'   => $fileType,
+                    'FileSize'   => $fileSize,
+                    'SortOrder'  => $i,
+                    'IsActive'   => 1,
+                    'IsDeleted'  => 0,
+                    'CreatedBy'  => $userUID,
+                ]);
+                $uploaded++;
+            }
+
+            $this->EndReturnData->Error    = FALSE;
+            $this->EndReturnData->Message  = $uploaded . ' file(s) uploaded.';
+            $this->EndReturnData->Uploaded = $uploaded;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    public function getAttachments() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $transUID = (int) $this->input->post('TransUID');
+            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            if ($transUID <= 0) throw new Exception('Invalid invoice.');
+
+            $this->load->model('transactions_model');
+            $attachments = $this->transactions_model->getTransactionAttachments($transUID, $orgUID);
+
+            $this->EndReturnData->Error       = FALSE;
+            $this->EndReturnData->Attachments = $attachments;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
 
     }
 
@@ -1183,6 +1417,12 @@ class Invoices extends CI_Controller {
             if (!$invData) redirect('invoices');
 
             $invItems = $this->transactions_model->getTransactionItems($transUID, $orgUID);
+
+            $this->load->model('customers_model');
+            $custAddr = $this->customers_model->getCustomerAddress(['CustAddress.CustomerUID' => $invData->PartyUID, 'CustAddress.OrgUID' => $orgUID]);
+            $shipping = current(array_filter($custAddr, fn($a) => $a->AddressType === 'Shipping'));
+            $billing  = current(array_filter($custAddr, fn($a) => $a->AddressType === 'Billing'));
+            $this->pageData['CustAddr'] = $shipping ?: ($billing ?: ($custAddr[0] ?? null));
 
             $this->pageData['InvData']  = $invData;
             $this->pageData['InvItems'] = $invItems;

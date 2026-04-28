@@ -486,6 +486,20 @@ class Customers extends CI_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
+
+    public function getStats() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $this->load->model('customers_model');
+            $stats = $this->customers_model->getCustomerStats($this->pageData['JwtData']->User->OrgUID);
+            $this->EndReturnData->Error = false;
+            $this->EndReturnData->Stats = $stats;
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
     public function toggleCustomerStatus() {
         $this->EndReturnData = new stdClass();
         try {

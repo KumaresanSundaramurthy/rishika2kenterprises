@@ -56,55 +56,99 @@
 
                     <div class="card mb-3">
 
-                        <div class="card-header bg-body-tertiary trans-header-static trans-theme modal-header-center-sticky d-flex justify-content-between align-items-center pb-3">
-                            <div class="d-flex flex-wrap align-items-center gap-3" id="transHeaderInfo">
-                                <h5 class="modal-title mb-0 ms-2"><?php echo $isDraftEdit ? '' : 'Edit'; ?> Invoice</h5>
-                                <?php if (!$isDraftEdit && !empty($InvData->UniqueNumber)): ?>
-                                    <span class="badge bg-label-primary fs-6"><?php echo htmlspecialchars($InvData->UniqueNumber); ?></span>
-                                <?php endif; ?>
-                                <div class="d-flex align-items-center gap-1">
-                                    <div class="input-group w-auto <?php echo (!$isDraftEdit ? 'd-none' : ''); ?>">
-                                        <select id="transPrefixSelect" name="transPrefixSelect" class="select2 form-select form-select-sm" <?php echo (!$isDraftEdit ? 'disabled' : 'required'); ?>>
-                                    <?php try {
-                                            if (empty($PrefixData)) throw new Exception('Prefix data not loaded');
-                                            foreach ($PrefixData as $preData) {
-                                                $isSelected = (int)$preData->PrefixUID === (int)$InvData->PrefixUID ? 'selected' : '';
-                                            ?>
-                                            <option value="<?php echo (int)$preData->PrefixUID; ?>"
-                                                data-sep="<?php echo htmlspecialchars($preData->Separator ?? '-'); ?>"
-                                                data-fiscal="<?php echo !empty($preData->IncludeFiscalYear) ? '1' : '0'; ?>"
-                                                data-fiscal-format="<?php echo htmlspecialchars($preData->FiscalYearFormat ?? 'SHORT'); ?>"
-                                                data-inc-short="<?php echo !empty($preData->IncludeShortName) ? '1' : '0'; ?>"
-                                                data-short-name="<?php echo htmlspecialchars($preData->ShortName ?? ''); ?>"
-                                                data-padding="<?php echo (int)($preData->NumberPadding ?? 3); ?>"
-                                                data-next-number="<?php echo (int)($NextNumberMap[(int)$preData->PrefixUID] ?? 1); ?>"
-                                                <?php echo $isSelected; ?>
-                                            ><?php echo htmlspecialchars($preData->Name); ?></option>
-                                        <?php }
-                                        } catch (Exception $e) { ?>
-                                            <option value="">Error loading prefixes</option>
-                                        <?php } ?>
-                                        </select>
-                                        <?php if ($isDraftEdit): ?>
-                                        <button type="button" class="btn btn-outline-secondary" id="addTransPrefixBtn" title="Configure Prefix"><i class="bx bx-cog"></i></button>
+                        <?php
+                            $hNetAmt    = (float)($InvData->NetAmount   ?? 0);
+                            $hPaidAmt   = (float)($InvData->PaidAmount  ?? 0);
+                            $hBalAmt    = max(0, round($hNetAmt - $hPaidAmt, 2));
+                            $hCurrency  = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
+                            $hDecimals  = $JwtData->GenSettings->DecimalPoints ?? 2;
+                            $hStatus    = $InvData->DocStatus ?? '';
+                            $hStatusMap = ['Issued' => 'primary', 'Partial' => 'info', 'Paid' => 'success', 'Cancelled' => 'danger', 'Rejected' => 'secondary', 'Draft' => 'secondary'];
+                            $hStatusClr = $hStatusMap[$hStatus] ?? 'secondary';
+                        ?>
+                        <div class="card-header bg-white border-bottom d-flex align-items-center justify-content-between px-3 py-2 trans-header-static trans-theme modal-header-center-sticky">
+                            <div class="d-flex align-items-center gap-3" id="transHeaderInfo">
+                                <div class="trans-doc-icon bg-primary bg-opacity-10">
+                                    <i class="bx bx-receipt text-primary" style="font-size:1.1rem;"></i>
+                                </div>
+                                <div>
+                                    <div class="d-flex align-items-center flex-wrap gap-2">
+                                        <span class="fw-bold" style="font-size:.92rem;"><?php echo $isDraftEdit ? '' : 'Edit'; ?> Invoice</span>
+                                        <?php if (!$isDraftEdit && !empty($InvData->UniqueNumber)): ?>
+                                            <span class="badge bg-label-primary"><?php echo htmlspecialchars($InvData->UniqueNumber); ?></span>
+                                            <span class="badge bg-label-<?php echo $hStatusClr; ?>" style="font-size:.7rem;"><?php echo $hStatus; ?></span>
+                                        <?php endif; ?>
+                                        <div class="d-flex align-items-center gap-1 <?php echo (!$isDraftEdit ? 'd-none' : ''); ?>">
+                                            <div class="input-group w-auto">
+                                                <select id="transPrefixSelect" name="transPrefixSelect" class="select2 form-select form-select-sm" <?php echo (!$isDraftEdit ? 'disabled' : 'required'); ?>>
+                                            <?php try {
+                                                    if (empty($PrefixData)) throw new Exception('Prefix data not loaded');
+                                                    foreach ($PrefixData as $preData) {
+                                                        $isSelected = (int)$preData->PrefixUID === (int)$InvData->PrefixUID ? 'selected' : '';
+                                                    ?>
+                                                    <option value="<?php echo (int)$preData->PrefixUID; ?>"
+                                                        data-sep="<?php echo htmlspecialchars($preData->Separator ?? '-'); ?>"
+                                                        data-fiscal="<?php echo !empty($preData->IncludeFiscalYear) ? '1' : '0'; ?>"
+                                                        data-fiscal-format="<?php echo htmlspecialchars($preData->FiscalYearFormat ?? 'SHORT'); ?>"
+                                                        data-inc-short="<?php echo !empty($preData->IncludeShortName) ? '1' : '0'; ?>"
+                                                        data-short-name="<?php echo htmlspecialchars($preData->ShortName ?? ''); ?>"
+                                                        data-padding="<?php echo (int)($preData->NumberPadding ?? 3); ?>"
+                                                        data-next-number="<?php echo (int)($NextNumberMap[(int)$preData->PrefixUID] ?? 1); ?>"
+                                                        <?php echo $isSelected; ?>
+                                                    ><?php echo htmlspecialchars($preData->Name); ?></option>
+                                                <?php }
+                                                } catch (Exception $e) { ?>
+                                                    <option value="">Error loading prefixes</option>
+                                                <?php } ?>
+                                                </select>
+                                                <?php if ($isDraftEdit): ?>
+                                                <button type="button" class="btn btn-outline-secondary" id="addTransPrefixBtn" title="Configure Prefix"><i class="bx bx-cog"></i></button>
+                                                <?php endif; ?>
+                                            </div>
+                                            <div class="input-group input-group-sm w-auto">
+                                                <span class="input-group-text cursor-pointer fw-semibold text-primary" id="appendPrefixVal"><?php echo htmlspecialchars($editPrefixSeg); ?></span>
+                                                <input type="number" id="transNumber" name="transNumber" class="form-control transAutoGenNumber stop-incre-indicator" maxLength="20" onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))" oninput="this.value=this.value.slice(0,this.maxLength)" pattern="[0-9]*" value="<?php echo $editTransNumber; ?>" <?php echo (!$isDraftEdit ? 'disabled' : 'required'); ?> />
+                                            </div>
+                                        </div>
+                                        <?php if (!$isDraftEdit): ?>
+                                        <input type="hidden" name="transPrefixSelect" value="<?php echo (int)$InvData->PrefixUID; ?>" />
+                                        <input type="hidden" name="transNumber" value="<?php echo (int)$InvData->TransNumber; ?>" />
                                         <?php endif; ?>
                                     </div>
-                                    <div class="input-group input-group-sm w-auto <?php echo (!$isDraftEdit ? 'd-none' : ''); ?>">
-                                        <span class="input-group-text cursor-pointer fw-semibold text-primary" id="appendPrefixVal"><?php echo htmlspecialchars($editPrefixSeg); ?></span>
-                                        <input type="number" id="transNumber" name="transNumber" class="form-control transAutoGenNumber stop-incre-indicator" maxLength="20" onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))" oninput="this.value=this.value.slice(0,this.maxLength)" pattern="[0-9]*" value="<?php echo $editTransNumber; ?>" <?php echo (!$isDraftEdit ? 'disabled' : 'required'); ?> />
-                                    </div>
                                     <?php if (!$isDraftEdit): ?>
-                                    <input type="hidden" name="transPrefixSelect" value="<?php echo (int)$InvData->PrefixUID; ?>" />
-                                    <input type="hidden" name="transNumber" value="<?php echo (int)$InvData->TransNumber; ?>" />
+                                    <div class="d-flex align-items-center gap-3 mt-1">
+                                        <div class="d-flex align-items-center gap-1">
+                                            <span style="font-size:.7rem;color:#8592a3;">Invoice Amount</span>
+                                            <span style="font-size:.82rem;font-weight:600;"><?php echo $hCurrency . ' ' . smartDecimal($hNetAmt, $hDecimals, true); ?></span>
+                                        </div>
+                                        <?php if ($hPaidAmt > 0): ?>
+                                        <div class="d-flex align-items-center gap-1">
+                                            <span style="font-size:.7rem;color:#8592a3;">Paid</span>
+                                            <span style="font-size:.82rem;font-weight:600;color:#28a745;"><?php echo $hCurrency . ' ' . smartDecimal($hPaidAmt, $hDecimals, true); ?></span>
+                                        </div>
+                                        <?php endif; ?>
+                                        <?php if ($hBalAmt > 0.009): ?>
+                                        <div class="d-flex align-items-center gap-1">
+                                            <span style="font-size:.7rem;color:#8592a3;">Balance</span>
+                                            <span style="font-size:.82rem;font-weight:600;color:#dc3545;"><?php echo $hCurrency . ' ' . smartDecimal($hBalAmt, $hDecimals, true); ?></span>
+                                        </div>
+                                        <?php endif; ?>
+                                        <?php if (!empty($InvData->TransDate)): ?>
+                                        <div class="d-flex align-items-center gap-1">
+                                            <span style="font-size:.7rem;color:#8592a3;">Date</span>
+                                            <span style="font-size:.78rem;color:#566a7f;"><?php echo htmlspecialchars(format_datedisplay($InvData->TransDate, 'd M Y')); ?></span>
+                                        </div>
+                                        <?php endif; ?>
+                                    </div>
                                     <?php endif; ?>
                                 </div>
                             </div>
                             <div class="d-flex align-items-center gap-2">
-                                <button type="submit" name="action" value="save" class="btn btn-primary"><?php echo $isDraftEdit ? 'Save' : 'Update'; ?></button>
                                 <?php if ($isDraftEdit): ?>
-                                <button type="submit" name="action" value="draft" class="btn btn-outline-secondary">Save as Draft</button>
+                                <button type="submit" name="action" value="draft" class="btn btn-sm btn-outline-secondary"><i class="bx bx-save me-1"></i>Draft</button>
                                 <?php endif; ?>
-                                <a href="/invoices" class="btn btn-label-danger">Close</a>
+                                <button type="submit" name="action" value="save" class="btn btn-sm btn-primary px-3"><i class="bx bx-check me-1"></i><?php echo $isDraftEdit ? 'Save' : 'Update'; ?></button>
+                                <a href="/invoices" class="btn btn-sm btn-outline-danger px-3"><i class="bx bx-x me-1"></i>Close</a>
                             </div>
                         </div>
 
@@ -117,7 +161,13 @@
                             <div class="row g-2 align-items-end">
                                 <div class="col-md-4">
                                     <label for="customerSearch" class="trans-field-label">Select Customer <span class="text-danger">*</span></label>
-                                    <select id="customerSearch" name="customerSearch" class="form-select form-select-sm"></select>
+                                    <select id="customerSearch" name="customerSearch" class="form-select form-select-sm">
+                                        <?php if (!empty($InvData->PartyUID)): ?>
+                                        <option value="<?php echo (int)$InvData->PartyUID; ?>" selected>
+                                            <?php echo htmlspecialchars($InvData->PartyName ?? ''); ?>
+                                        </option>
+                                        <?php endif; ?>
+                                    </select>
                                 </div>
                                 <div class="col-md-2">
                                     <label for="invoiceType" class="trans-field-label">Type <span class="text-danger">*</span></label>
@@ -165,7 +215,18 @@
                             <!-- Row 2: Customer address (when selected) + Reference -->
                             <div class="row g-2 mt-2">
                                 <div class="col-md-4">
-                                    <div id="customerAddressBox" class="p-2 border border-secondary trans-border-dotted rounded small d-none"></div>
+                                    <div id="customerAddressBox" class="p-2 border border-secondary trans-border-dotted rounded small <?php echo isset($CustAddr) && !empty($CustAddr) ? '' : 'd-none'; ?>">
+                                        <?php if (isset($CustAddr) && !empty($CustAddr)): ?>
+                                        <div><strong>Shipping Address:</strong></div>
+                                        <div><?php echo htmlspecialchars($CustAddr->Line1 ?? ''); ?></div>
+                                        <div><?php echo htmlspecialchars($CustAddr->Line2 ?? ''); ?></div>
+                                        <div><?php echo htmlspecialchars(trim(implode(' - ', array_filter([
+                                            $CustAddr->CityText ?? '',
+                                            $CustAddr->Pincode  ?? '',
+                                        ])))); ?></div>
+                                        <div><?php echo htmlspecialchars($CustAddr->StateText ?? ''); ?></div>
+                                        <?php endif; ?>
+                                    </div>
                                 </div>
                                 <div class="col-md-4">
                                     <label for="referenceDetails" class="trans-field-label">Reference</label>
@@ -279,11 +340,84 @@
                                         <label for="transTermsCond" class="form-label small fw-semibold">Terms & Conditions</label>
                                         <textarea class="form-control" name="transTermsCond" id="transTermsCond" rows="2"><?php echo htmlspecialchars($InvData->TermsConditions ?? ''); ?></textarea>
                                     </div>
+                                    <!-- Attach Files (Dropzone) -->
+                                    <div class="accordion transAccordion" id="dropZoneAccordion">
+                                        <div class="accordion-item">
+                                            <h2 class="accordion-header text-body d-flex justify-content-between">
+                                                <button type="button" class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#accordionUploadFiles" aria-controls="accordionUploadFiles" aria-expanded="false">
+                                                    <i class="icon-base bx bx-paperclip me-2"></i> Attach Files <span class="ms-2 text-muted">(Max: 5)</span>
+                                                    <span id="existingAttachCount" class="badge bg-label-primary ms-2 d-none" style="font-size:.7rem;"></span>
+                                                </button>
+                                            </h2>
+                                            <div id="accordionUploadFiles" class="accordion-collapse collapse" data-bs-parent="#dropZoneAccordion">
+                                                <div class="accordion-body">
+                                                    <!-- Saved attachments -->
+                                                    <div id="existingAttachList" class="mb-3 d-none">
+                                                        <div class="d-flex align-items-center gap-1 mb-2">
+                                                            <i class="bx bx-link-alt text-primary" style="font-size:.85rem;"></i>
+                                                            <span style="font-size:.75rem;font-weight:700;color:#566a7f;text-transform:uppercase;letter-spacing:.5px;">Saved Files</span>
+                                                        </div>
+                                                        <div id="existingAttachItems" class="d-flex flex-wrap gap-2"></div>
+                                                    </div>
+                                                    <div class="dropzone needsclick p-3 dz-clickable w-100" id="multipleDropzone">
+                                                        <div class="dz-message needsclick text-center">
+                                                            <i class="upload-icon mb-3"></i>
+                                                            <p class="h5 needsclick mb-2">Drag and drop files / images here</p>
+                                                            <p class="h4 text-body-secondary fw-normal mb-0">or click to browse</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <!-- Summary -->
                                 <div class="col-md-6 p-2 trans-theme" style="align-self:flex-start;">
                                     <div class="row">
+
+                                        <!-- Tax Breakdown Panel (left) -->
+                                        <div class="col-md-6 tax-summary-section">
+                                            <div id="taxBreakupPanel" style="display:none;" class="tax-details-view p-2 bg-light rounded border">
+                                                <h6 class="tax-details-title mb-2">Tax Breakdown</h6>
+                                                <div class="mb-3">
+                                                    <p class="small fw-semibold mb-2 text-secondary">Items Tax</p>
+                                                    <div class="table-responsive">
+                                                        <table class="table table-sm mb-0">
+                                                            <thead class="small bg-light">
+                                                                <tr>
+                                                                    <th class="fw-semibold border-bottom"># Items</th>
+                                                                    <th class="fw-semibold border-bottom taxBreakUpItemsCgst">CGST</th>
+                                                                    <th class="fw-semibold border-bottom taxBreakUpItemsSgst">SGST</th>
+                                                                    <th class="fw-semibold border-bottom taxBreakUpItemsIgst d-none">IGST</th>
+                                                                    <th class="fw-semibold border-bottom text-end">Total Amount</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                <tr>
+                                                                    <td class="py-1"><span class="taxBreakUpItemsCnt">0</span></td>
+                                                                    <td class="py-1 taxBreakUpItemsCgst"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span class="taxBreakUpItemsCgstVal">0</span></td>
+                                                                    <td class="py-1 taxBreakUpItemsSgst"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span class="taxBreakUpItemsSgstVal">0</span></td>
+                                                                    <td class="py-1 taxBreakUpItemsIgst d-none"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span class="taxBreakUpItemsIgstVal">0</span></td>
+                                                                    <td class="py-1 text-end fw-semibold"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span class="taxBreakUpItemsTotAmt">0</span></td>
+                                                                </tr>
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                </div>
+                                                <div class="border-top pt-2">
+                                                    <table class="table table-sm mb-0">
+                                                        <tbody>
+                                                            <tr>
+                                                                <td class="fw-bold">Grand Tax Total</td>
+                                                                <td class="text-end fw-bold"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span id="grandChargesTaxTotal">0</span></td>
+                                                            </tr>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+
                                         <div class="col-md-6 p-2 pe-5">
                                             <div class="row g-2">
                                                 <div class="d-flex align-items-center justify-content-end">
@@ -315,12 +449,14 @@
                                                     <div class="d-flex justify-content-end w-70 me-1"><span class="me-1"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span><span id="othersChargeAmt"><?php echo smartDecimal(0, $JwtData->GenSettings->DecimalPoints, true); ?></span></div>
                                                 </div>
 
-                                                <div class="d-flex align-items-center justify-content-end mt-2">
+                                                <div class="d-flex align-items-center justify-content-end mt-2 d-none">
                                                     <div class="d-flex justify-content-end w-70"><label class="form-label small fw-semibold">Taxable Amount</label></div>
                                                     <div class="d-flex justify-content-end w-70 me-1"><span class="me-1"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span><span class="bill_taxable_amt"><?php echo smartDecimal(0, $JwtData->GenSettings->DecimalPoints, true); ?></span></div>
                                                 </div>
                                                 <div class="d-flex align-items-center justify-content-end mt-2">
-                                                    <div class="d-flex justify-content-end w-70"><label class="form-label small fw-semibold">Total Tax</label></div>
+                                                    <div class="d-flex justify-content-end w-70">
+                                                        <label class="form-label small fw-semibold">Total Tax <button type="button" class="btn btn-sm btn-link p-0 border-0" id="taxBreakupToggle"><i id="showHideTaxBreakUp" class="bx bxs-show tax-toggle-icon ms-1 fs-6 d-none"></i></button></label>
+                                                    </div>
                                                     <div class="d-flex justify-content-end w-70 me-1"><span class="me-1"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span><span class="bill_tot_tax_amt"><?php echo smartDecimal(0, $JwtData->GenSettings->DecimalPoints, true); ?></span></div>
                                                 </div>
                                                 <div class="d-flex align-items-center justify-content-end mt-2">
@@ -347,16 +483,6 @@
 
                             </div>
 
-                        <?php
-                            $paymentPartyType = 'C';
-                            $this->load->view('transactions/partials/payment_section', [
-                                'PaymentTypes'     => $PaymentTypes ?? [],
-                                'BankAccounts'     => $BankAccounts ?? [],
-                                'JwtData'          => $JwtData,
-                                'paymentPartyType' => $paymentPartyType,
-                            ]);
-                        ?>
-
                         </div> <!-- /card-body -->
                     </div> <!-- /card -->
 
@@ -378,13 +504,30 @@
 
 <?php $this->load->view('common/transactions/footer'); ?>
 
+<!-- ── Edit Page Attachment Preview Modal ──────────────────────── -->
+<div class="modal fade" id="editAttachPreviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header py-2 px-3">
+                <h6 class="modal-title d-flex align-items-center gap-2 mb-0" style="font-size:.88rem;font-weight:700;max-width:90%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                    <i class="bx bx-file text-primary"></i>
+                    <span id="editAttachPreviewTitle">Preview</span>
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0" id="editAttachPreviewBody" style="min-height:200px;background:#1a1a2e;">
+                <div class="text-center py-5"><span class="spinner-border text-light"></span></div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="/js/transactions/invoices.js"></script>
 <script src="/js/transactions/transactions.js"></script>
 <script src="/js/transactions/transprefix.js"></script>
 <script src="/js/transactions/modaladdress.js"></script>
 <script src="/js/transactions/products.js"></script>
 <script src="/js/combinemodules/products.js"></script>
-<script src="/js/transactions/payment_section.js"></script>
 
 <script>
 const StateInfo     = <?php echo json_encode($StateData); ?>;
@@ -398,6 +541,7 @@ var _editItems = <?php echo json_encode(array_map(function($item) {
         'id'               => (int)  $item->ProductUID,
         'text'             => $item->ProductName,
         'itemName'         => $item->ProductName,
+        'description'      => $item->Description ?? '',
         'unitPrice'        => (float)$item->UnitPrice,
         'taxAmount'        => (float)$item->TaxAmount,
         'sellingPrice'     => (float)$item->SellingPrice,
@@ -427,14 +571,6 @@ $(function () {
     'use strict'
 
     searchCustomers('customerSearch');
-
-    // Pre-load existing customer
-    <?php if (!empty($InvData->PartyUID)): ?>
-    $('#customerSearch').append(new Option(
-        '<?php echo addslashes($InvData->PartyName ?? ''); ?>',
-        <?php echo (int)$InvData->PartyUID; ?>, true, true
-    )).trigger('change');
-    <?php endif; ?>
 
     transDatePickr('#transDate', false, 'Y-m-d', false, true, true, true, 'd-m-Y');
     transDatePickr('#dueDate', false, 'Y-m-d', false, false, false, true, 'd-m-Y', '#transDate');
@@ -471,6 +607,55 @@ $(function () {
         });
         if (typeof updateItemTaxBreakdown === 'function') updateItemTaxBreakdown();
         billManager.updateSummary();
+    }
+
+    // ── Load existing attachments ─────────────────────────
+    var _removedAttachIDs = [];
+    var _transUID = parseInt($('input[name="TransUID"]').val(), 10);
+    if (_transUID > 0) {
+        $.ajax({
+            url   : '/invoices/getAttachments',
+            method: 'POST',
+            data  : { TransUID: _transUID, [CsrfName]: CsrfToken },
+            success: function(resp) {
+                if (resp.Error || !resp.Attachments || !resp.Attachments.length) return;
+                var cdnUrl = (typeof CDN_URL !== 'undefined' && CDN_URL) ? CDN_URL : '';
+                var $container = $('#existingAttachItems').empty();
+                resp.Attachments.forEach(function(a) {
+                    var uid      = a.AttachUID;
+                    var name     = a.FileName || '';
+                    var safeName = $('<span>').text(name).html();
+                    var fullUrl  = cdnUrl + (a.FilePath || '');
+                    var isImg    = /image\//i.test(a.FileType || '') || /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(name);
+                    var isPdf    = /pdf/i.test(a.FileType || '') || /\.pdf$/i.test(name);
+                    var iconCls  = isImg ? 'bx-image-alt text-success' : (isPdf ? 'bxs-file-pdf text-danger' : 'bx-file text-secondary');
+                    var encUrl   = encodeURIComponent(fullUrl);
+                    var $item = $('<div class="d-flex align-items-center gap-1 border rounded px-2 py-1 bg-light existing-attach-item" style="font-size:.78rem;max-width:220px;" data-uid="' + uid + '">' +
+                        '<i class="bx ' + iconCls + '" style="font-size:1rem;flex-shrink:0;cursor:pointer;" onclick="_openEditAttachPreview(\'' + encUrl + '\',\'' + (isImg?'img':(isPdf?'pdf':'file')) + '\',\'' + safeName.replace(/'/g,"\\'") + '\')"></i>' +
+                        '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;cursor:pointer;" title="' + safeName + '" onclick="_openEditAttachPreview(\'' + encUrl + '\',\'' + (isImg?'img':(isPdf?'pdf':'file')) + '\',\'' + safeName.replace(/'/g,"\\'") + '\')">' + safeName + '</span>' +
+                        '<button type="button" class="btn-close btn-close-sm ms-1 remove-attach-btn" style="font-size:.6rem;" title="Remove" data-uid="' + uid + '"></button>' +
+                    '</div>');
+                    $container.append($item);
+                });
+                $('#existingAttachList').removeClass('d-none');
+                var cnt = resp.Attachments.length;
+                $('#existingAttachCount').text(cnt).removeClass('d-none');
+                // Open accordion if there are saved files
+                $('#accordionUploadFiles').addClass('show');
+
+                // Remove handler
+                $(document).on('click', '.remove-attach-btn', function() {
+                    var attachUID = parseInt($(this).data('uid'), 10);
+                    $(this).closest('.existing-attach-item').remove();
+                    _removedAttachIDs.push(attachUID);
+                    var remaining = $('#existingAttachItems .existing-attach-item').length;
+                    if (remaining === 0) $('#existingAttachList').addClass('d-none');
+                    var newCnt = remaining;
+                    if (newCnt > 0) $('#existingAttachCount').text(newCnt);
+                    else $('#existingAttachCount').addClass('d-none');
+                });
+            }
+        });
     }
 
     // ── Edit Invoice form submit ──────────────────────────
@@ -519,65 +704,54 @@ $(function () {
                 });
             }
 
-            // Serialize payment rows (skip for draft)
-            if (action !== 'draft') {
-                if (!serializePaymentRows()) return showFormError('Please enter a valid amount for every payment row.');
+            var fd = new FormData();
+            fd.append(csrfName, csrfVal);
+            fd.append('TransUID',               parseInt($('input[name="TransUID"]').val(), 10));
+            fd.append('transPrefixSelect',      parseInt($('#transPrefixSelect').val(), 10) || 0);
+            fd.append('transNumber',            $.trim($('#transNumber').val()));
+            fd.append('transDate',              transDate);
+            fd.append('dueDate',                $.trim($('#dueDate').val()));
+            fd.append('customerSearch',         customerUID);
+            fd.append('invoiceType',            $('#invoiceType').val() || '');
+            fd.append('dispatchFrom',           $('#dispatchFrom').val() || '');
+            fd.append('referenceDetails',       $.trim($('#referenceDetails').val()));
+            fd.append('transNotes',             $.trim($('#transNotes').val()));
+            fd.append('transTermsCond',         $.trim($('#transTermsCond').val()));
+            fd.append('extraDiscount',          extraDisc);
+            fd.append('extDiscountType',        $('#extDiscountType').val() || '');
+            fd.append('SubTotal',               subTotal);
+            fd.append('DiscountAmount',         discountAmt);
+            fd.append('TaxAmount',              taxAmt);
+            fd.append('CgstAmount',             cgstAmt);
+            fd.append('SgstAmount',             sgstAmt);
+            fd.append('IgstAmount',             igstAmt);
+            fd.append('AdditionalChargesTotal', addCharges);
+            fd.append('GlobalDiscPercent',      globalDiscPct);
+            fd.append('RoundOff',               roundOff);
+            fd.append('NetAmount',              netAmount);
+            fd.append('Items',                  JSON.stringify(items));
+            fd.append('action',                 action);
+            $.each(charges, function(k, v) { fd.append(k, v); });
+            if (typeof multiDropzone !== 'undefined' && multiDropzone) {
+                multiDropzone.files.forEach(function(f) { fd.append('AttachFiles[]', f); });
             }
-
-            var postData = $.extend({
-                TransUID               : parseInt($('input[name="TransUID"]').val(), 10),
-                transPrefixSelect      : parseInt($('#transPrefixSelect').val(), 10) || 0,
-                transNumber            : $.trim($('#transNumber').val()),
-                transDate              : transDate,
-                dueDate                : $.trim($('#dueDate').val()),
-                customerSearch         : customerUID,
-                invoiceType            : $('#invoiceType').val() || '',
-                dispatchFrom           : $('#dispatchFrom').val() || '',
-                referenceDetails       : $.trim($('#referenceDetails').val()),
-                transNotes             : $.trim($('#transNotes').val()),
-                transTermsCond         : $.trim($('#transTermsCond').val()),
-                extraDiscount          : extraDisc,
-                extDiscountType        : $('#extDiscountType').val() || '',
-                SubTotal               : subTotal,
-                DiscountAmount         : discountAmt,
-                TaxAmount              : taxAmt,
-                CgstAmount             : cgstAmt,
-                SgstAmount             : sgstAmt,
-                IgstAmount             : igstAmt,
-                AdditionalChargesTotal : addCharges,
-                GlobalDiscPercent      : globalDiscPct,
-                RoundOff               : roundOff,
-                NetAmount              : netAmount,
-                Items                  : JSON.stringify(items),
-                action                 : action,
-                PaymentRows            : $('#PaymentRowsJson').val(),
-                IsFullyPaid            : $('#isFullyPaid').is(':checked') ? 1 : 0,
-                RecordPayment          : action !== 'draft' ? 1 : 0,
-                [csrfName]             : csrfVal,
-            }, charges);
+            fd.append('RemovedAttachIDs', JSON.stringify(_removedAttachIDs || []));
 
             setFormLoading('#editInvForm', true, action);
 
             $.ajax({
-                url    : '/invoices/updateInvoice',
-                method : 'POST',
-                data   : postData,
-                cache  : false,
+                url         : '/invoices/updateInvoice',
+                method      : 'POST',
+                data        : fd,
+                processData : false,
+                contentType : false,
+                cache       : false,
                 success: function(response) {
                     if (response.Error) {
                         setFormLoading('#editInvForm', false);
                         showFormError(response.Message);
                     } else {
-                        Swal.fire({
-                            icon             : 'success',
-                            title            : 'Invoice Updated',
-                            text             : response.Message,
-                            confirmButtonText: 'OK',
-                            timer            : 3000,
-                            timerProgressBar : true,
-                        }).then(function() {
-                            window.location.href = '/invoices';
-                        });
+                        _showSavedAndGo('Invoice Updated', response.Message);
                     }
                 },
                 error: function() {
@@ -595,4 +769,37 @@ $(function () {
     }
 
 });
+
+function _openEditAttachPreview(encUrl, type, name) {
+    var url = decodeURIComponent(encUrl);
+    var safeName = $('<span>').text(name).html();
+    var body = '';
+    if (type === 'img') {
+        body = '<div class="text-center p-3"><img src="' + $('<span>').text(url).html() + '" class="img-fluid rounded" style="max-height:70vh;" alt="' + safeName + '"></div>';
+    } else if (type === 'pdf') {
+        body = '<iframe src="' + $('<span>').text(url).html() + '" style="width:100%;height:70vh;border:none;"></iframe>';
+    } else {
+        body = '<div class="text-center py-5">' +
+            '<i class="bx bx-file-blank text-secondary" style="font-size:4rem;display:block;margin-bottom:12px;"></i>' +
+            '<div style="font-size:.9rem;font-weight:600;margin-bottom:16px;">' + safeName + '</div>' +
+            '<button class="btn btn-primary px-4" onclick="(function(u,n){var a=document.createElement(\'a\');a.href=u;a.download=n;a.style.display=\'none\';document.body.appendChild(a);a.click();document.body.removeChild(a);})(decodeURIComponent(\'' + encUrl + '\'),\'' + safeName.replace(/'/g, "\\'") + '\')"><i class="bx bx-download me-2"></i>Download File</button>' +
+            '</div>';
+    }
+    $('#editAttachPreviewBody').html(body);
+    $('#editAttachPreviewTitle').text(name || 'Preview');
+    new bootstrap.Modal(document.getElementById('editAttachPreviewModal')).show();
+}
+
+function _showSavedAndGo(title, msg) {
+    Swal.fire({
+        icon             : 'success',
+        title            : title,
+        text             : msg,
+        confirmButtonText: 'OK',
+        timer            : 3000,
+        timerProgressBar : true,
+    }).then(function() {
+        window.location.href = '/invoices';
+    });
+}
 </script>

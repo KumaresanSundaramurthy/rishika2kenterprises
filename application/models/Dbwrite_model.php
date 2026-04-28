@@ -405,38 +405,64 @@ class Dbwrite_model extends CI_Model {
             if ($productUID <= 0 || $qty <= 0)               continue; // invalid row
             if (strtolower($productType) === 'service')       continue; // services have no stock
 
-            // Insert ledger row
+            // For composite products expand to BOM components; reduce components, not the combo itself
             $this->WriteDB->db_debug = FALSE;
-            $insOk = $this->WriteDB->insert('Products.StockLedgerTbl', [
-                'OrgUID'       => $orgUID,
-                'ProductUID'   => $productUID,
-                'TransUID'     => $transUID,
-                'ModuleUID'    => $moduleUID,
-                'MovementType' => $movementType,
-                'Quantity'     => $qty,
-                'UnitCost'     => $unitCost,
-                'IsDeleted'    => 0,
-                'CreatedBy'    => $userUID,
-                'UpdatedBy'    => $userUID,
-            ]);
-            if ($insOk === false) {
-                $err = $this->WriteDB->error();
-                throw new Exception('Stock ledger insert failed (ProductUID=' . $productUID . '): ' . ($err['message'] ?? 'unknown DB error'));
-            }
-
-            // Update AvailableQuantity — allow negative (oversold) values.
-            // CAST to SIGNED prevents UNSIGNED underflow wrapping to a huge positive number.
-            if ($movementType === 'IN') {
-                $this->WriteDB->set('AvailableQuantity', 'CAST(AvailableQuantity AS SIGNED) + ' . $qty, false);
-            } else {
-                $this->WriteDB->set('AvailableQuantity', 'CAST(AvailableQuantity AS SIGNED) - ' . $qty, false);
-            }
+            $this->WriteDB->select('IsComposite');
+            $this->WriteDB->from('Products.ProductTbl');
             $this->WriteDB->where(['ProductUID' => $productUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
-            $updOk = $this->WriteDB->update('Products.ProductTbl');
-            if ($updOk === false) {
-                $err = $this->WriteDB->error();
-                throw new Exception('Stock quantity update failed (ProductUID=' . $productUID . '): ' . ($err['message'] ?? 'unknown DB error'));
+            $prodRow = $this->WriteDB->get()->row();
+            $isComposite = $prodRow && (int)$prodRow->IsComposite === 1;
+
+            if ($isComposite) {
+                $this->WriteDB->select('ChildProductUID, Quantity');
+                $this->WriteDB->from('Products.ProductBOMTbl');
+                $this->WriteDB->where(['ParentProductUID' => $productUID, 'IsDeleted' => 0, 'IsActive' => 1]);
+                $bomRows = $this->WriteDB->get()->result();
+
+                foreach ($bomRows as $bom) {
+                    $componentUID = (int)$bom->ChildProductUID;
+                    $componentQty = round((float)$bom->Quantity * $qty, 5);
+                    $this->_applyStockMovement($transUID, $moduleUID, $orgUID, $userUID, $componentUID, $componentQty, $unitCost, $movementType);
+                }
+            } else {
+                $this->_applyStockMovement($transUID, $moduleUID, $orgUID, $userUID, $productUID, $qty, $unitCost, $movementType);
             }
+        }
+
+    }
+
+    private function _applyStockMovement($transUID, $moduleUID, $orgUID, $userUID, $productUID, $qty, $unitCost, $movementType) {
+
+        $this->WriteDB->db_debug = FALSE;
+        $insOk = $this->WriteDB->insert('Products.StockLedgerTbl', [
+            'OrgUID'       => $orgUID,
+            'ProductUID'   => $productUID,
+            'TransUID'     => $transUID,
+            'ModuleUID'    => $moduleUID,
+            'MovementType' => $movementType,
+            'Quantity'     => $qty,
+            'UnitCost'     => $unitCost,
+            'IsDeleted'    => 0,
+            'CreatedBy'    => $userUID,
+            'UpdatedBy'    => $userUID,
+        ]);
+        if ($insOk === false) {
+            $err = $this->WriteDB->error();
+            throw new Exception('Stock ledger insert failed (ProductUID=' . $productUID . '): ' . ($err['message'] ?? 'unknown DB error'));
+        }
+
+        // Update AvailableQuantity — allow negative (oversold) values.
+        // CAST to SIGNED prevents UNSIGNED underflow wrapping to a huge positive number.
+        if ($movementType === 'IN') {
+            $this->WriteDB->set('AvailableQuantity', 'CAST(AvailableQuantity AS SIGNED) + ' . $qty, false);
+        } else {
+            $this->WriteDB->set('AvailableQuantity', 'CAST(AvailableQuantity AS SIGNED) - ' . $qty, false);
+        }
+        $this->WriteDB->where(['ProductUID' => $productUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
+        $updOk = $this->WriteDB->update('Products.ProductTbl');
+        if ($updOk === false) {
+            $err = $this->WriteDB->error();
+            throw new Exception('Stock quantity update failed (ProductUID=' . $productUID . '): ' . ($err['message'] ?? 'unknown DB error'));
         }
 
     }

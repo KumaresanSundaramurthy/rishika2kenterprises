@@ -372,6 +372,51 @@ class Vendors extends CI_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
+
+    public function getStats() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $this->load->model('vendors_model');
+            $stats = $this->vendors_model->getVendorStats($this->pageData['JwtData']->User->OrgUID);
+            $this->EndReturnData->Error = false;
+            $this->EndReturnData->Stats = $stats;
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+    public function toggleVendorStatus() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $VendorUID = (int) $this->input->post('VendorUID');
+            $newStatus = (int) $this->input->post('IsActive');
+
+            if (!$VendorUID) throw new Exception('Vendor ID is missing.');
+            if (!in_array($newStatus, [0, 1])) throw new Exception('Invalid status value.');
+
+            $this->load->model('dbwrite_model');
+            $resp = $this->dbwrite_model->updateData(
+                'Vendors', 'VendorTbl',
+                ['IsActive' => $newStatus, 'UpdatedBy' => $this->pageData['JwtData']->User->UserUID],
+                ['VendorUID' => $VendorUID]
+            );
+            if ($resp->Error) throw new Exception($resp->Message);
+
+            $this->EndReturnData->Error   = false;
+            $this->EndReturnData->Message = 'Status updated successfully.';
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
     public function deleteVendorData() {
         $this->EndReturnData = new stdClass();
         try {

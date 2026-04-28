@@ -167,9 +167,6 @@
                                         <th>Payment Status</th>
                                         <th>Payment Mode</th>
                                         <th>Customer</th>
-                                        <th class="col-sortable cursor-pointer user-select-none" data-sort="Date">
-                                            Due Date <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Date"></i>
-                                        </th>
                                         <th>Last Updated</th>
                                         <th style="width:50px"></th>
                                     </tr>
@@ -193,92 +190,150 @@
                 </div>
             </div>
 
-        <!-- ── Record Payment Offcanvas ─────────────────────────── -->
-        <div class="offcanvas offcanvas-end" tabindex="-1" id="recordPaymentOffcanvas" aria-labelledby="recordPaymentLabel" style="width:480px;max-width:100vw;">
-            <div class="offcanvas-header border-bottom py-3 px-4" style="background:#fff;">
-                <div>
-                    <h6 class="mb-0 fw-semibold" id="recordPaymentLabel">Record Payment for <span id="rpInvNum" class="text-primary">—</span></h6>
-                    <div class="text-muted" style="font-size:.78rem;" id="rpInvDate"></div>
-                </div>
-                <button type="button" class="btn btn-primary btn-sm ms-auto me-3" id="btnSubmitPayment">
-                    Record Payment <i class="bx bx-right-arrow-alt ms-1"></i>
-                </button>
-                <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
-            </div>
+        <!-- ── Record Payment Modal ──────────────────────────────── -->
+        <div class="modal fade" id="recordPaymentModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-content" style="overflow:hidden;">
 
-            <div class="offcanvas-body px-4 py-3" style="background:#f8f9fa;">
+                    <!-- Floating close button (catgProductsModal style) -->
+                    <button type="button" class="btn-close position-absolute" data-bs-dismiss="modal"
+                        style="top:14px;right:16px;z-index:10;background-color:rgba(255,255,255,.85);border-radius:50%;padding:6px;box-shadow:0 1px 4px rgba(0,0,0,.15);"
+                        aria-label="Close"></button>
 
-                <!-- Party + Balance -->
-                <div class="d-flex justify-content-between align-items-center mb-3 px-1">
-                    <span class="text-muted" style="font-size:.82rem;">Payment Info - <strong id="rpPartyName">—</strong></span>
-                    <span class="fw-semibold text-danger" style="font-size:.85rem;">Balance &nbsp;<span id="rpBalanceDisplay">—</span></span>
-                </div>
+                    <div class="modal-body p-0">
 
-                <!-- Payment Details -->
-                <div class="card mb-3 border-0 shadow-sm">
-                    <div class="card-header bg-white py-2 px-3" style="cursor:pointer;" id="rpDetailsToggle">
-                        <i class="bx bx-chevron-down me-1 text-muted"></i>
-                        <span style="font-size:.85rem;font-weight:600;">Payment Details</span>
-                    </div>
-                    <div class="card-body px-3 py-3" id="rpDetailsBody">
-
-                        <!-- Amount -->
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold" style="font-size:.82rem;"><span class="text-danger">*</span> Amount to be Recorded</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-white" style="font-size:.9rem;" id="rpCurrencySymbol">₹</span>
-                                <input type="number" class="form-control" id="rpAmount" step="0.01" min="0.01" placeholder="0.00">
-                            </div>
-                            <div class="d-flex justify-content-between mt-1">
-                                <span class="text-muted" style="font-size:.73rem;">Total Amount <strong id="rpTotalLabel">—</strong></span>
-                                <span class="text-muted" style="font-size:.73rem;">Amount Pending <strong id="rpPendingLabel">—</strong></span>
+                        <!-- Banner -->
+                        <div style="background:#e8f0fe;border-left:4px solid #0d6efd;padding:14px 20px;">
+                            <div class="d-flex align-items-center gap-3">
+                                <div style="background:#0d6efd22;border-radius:10px;padding:9px 11px;">
+                                    <i class="bx bx-money-withdraw" style="font-size:1.7rem;color:#0d6efd;display:block;"></i>
+                                </div>
+                                <div>
+                                    <div style="font-size:1.05rem;font-weight:800;color:#0d6efd;">
+                                        Record Payment &mdash; <span id="rpInvNum">—</span>
+                                    </div>
+                                    <div style="font-size:.77rem;color:#6c757d;margin-top:3px;">
+                                        <i class="bx bx-user me-1"></i><span id="rpPartyName">—</span>
+                                        <span class="mx-2" style="color:#dee2e6;">|</span>
+                                        <i class="bx bx-calendar me-1"></i><span id="rpInvDate">—</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Payment Date -->
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold" style="font-size:.82rem;">Payment Date</label>
-                            <input type="date" class="form-control" id="rpPaymentDate">
-                        </div>
-
-                        <!-- Payment Type -->
-                        <div class="mb-2">
-                            <label class="form-label fw-semibold" style="font-size:.82rem;">Payment Type</label>
-                            <div class="d-flex flex-wrap gap-2" id="rpPaymentTypes">
-                                <div class="text-muted" style="font-size:.8rem;"><i class="bx bx-loader-alt bx-spin"></i> Loading…</div>
+                        <!-- Summary cards -->
+                        <div style="padding:14px 20px;border-bottom:1px solid #e9ecef;">
+                            <div class="d-flex align-items-center gap-2" style="padding:4px 0 10px;">
+                                <i class="bx bx-bar-chart-alt-2" style="font-size:1.05rem;color:#6c757d;"></i>
+                                <span style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#6c757d;">Payment Summary</span>
                             </div>
-                            <input type="hidden" id="rpPaymentTypeUID" value="">
-                            <input type="hidden" id="rpIsCash" value="1">
+                            <div class="row g-2">
+                                <div class="col-4">
+                                    <div style="background:#fafafa;border:1px solid #e9ecef;border-left:3px solid #0d6efd;border-radius:6px;padding:10px 12px;">
+                                        <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#6c757d;margin-bottom:5px;">
+                                            <i class="bx bx-receipt me-1"></i>Invoice Total
+                                        </div>
+                                        <div style="font-size:1.1rem;font-weight:800;color:#0d6efd;" id="rpTotalCard">—</div>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div style="background:#fafafa;border:1px solid #e9ecef;border-left:3px solid #198754;border-radius:6px;padding:10px 12px;">
+                                        <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#6c757d;margin-bottom:5px;">
+                                            <i class="bx bx-check-circle me-1"></i>Paid So Far
+                                        </div>
+                                        <div style="font-size:1.1rem;font-weight:800;color:#198754;" id="rpPaidCard">—</div>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div style="background:#fafafa;border:1px solid #e9ecef;border-left:3px solid #dc3545;border-radius:6px;padding:10px 12px;">
+                                        <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#6c757d;margin-bottom:5px;">
+                                            <i class="bx bx-time me-1"></i>Balance Due
+                                        </div>
+                                        <div style="font-size:1.1rem;font-weight:800;color:#dc3545;" id="rpBalanceCard">—</div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
-                        <!-- Bank Account (shown for non-cash) -->
-                        <div class="mb-2 d-none" id="rpBankRow">
-                            <label class="form-label fw-semibold" style="font-size:.82rem;">Bank Account</label>
-                            <select class="form-select form-select-sm" id="rpBankAccount">
-                                <option value="">Select bank account…</option>
-                            </select>
+                        <!-- Payment form -->
+                        <div style="padding:14px 20px;">
+                            <div class="d-flex align-items-center gap-2" style="padding:4px 0 10px;">
+                                <i class="bx bx-edit-alt" style="font-size:1.05rem;color:#fd7e14;"></i>
+                                <span style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#fd7e14;">Payment Details</span>
+                            </div>
+                            <div class="row g-3">
+
+                                <!-- Amount -->
+                                <div class="col-5">
+                                    <label class="form-label fw-semibold mb-1" style="font-size:.78rem;">
+                                        <span class="text-danger">*</span> Amount
+                                    </label>
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text bg-white fw-semibold" id="rpCurrencySymbol">₹</span>
+                                        <input type="number" class="form-control" id="rpAmount" step="0.01" min="0.01" placeholder="0.00">
+                                    </div>
+                                </div>
+
+                                <!-- Payment Date -->
+                                <div class="col-7">
+                                    <label class="form-label fw-semibold mb-1" style="font-size:.78rem;">Payment Date</label>
+                                    <div class="input-group input-group-sm input-group-merge">
+                                        <span class="input-group-text bg-white"><i class="bx bx-calendar"></i></span>
+                                        <input type="text" class="form-control" id="rpPaymentDate" placeholder="Today" readonly>
+                                    </div>
+                                </div>
+
+                                <!-- Payment Type -->
+                                <div class="col-12">
+                                    <label class="form-label fw-semibold mb-1" style="font-size:.78rem;">Payment Type</label>
+                                    <div class="d-flex flex-wrap gap-2" id="rpPaymentTypes">
+                                        <div class="text-muted" style="font-size:.8rem;"><i class="bx bx-loader-alt bx-spin"></i> Loading…</div>
+                                    </div>
+                                    <input type="hidden" id="rpPaymentTypeUID" value="">
+                                    <input type="hidden" id="rpIsCash" value="1">
+                                </div>
+
+                                <!-- Bank Account (non-cash only) -->
+                                <div class="col-12 d-none" id="rpBankRow">
+                                    <label class="form-label fw-semibold mb-1" style="font-size:.78rem;">Bank Account <span class="text-danger">*</span></label>
+                                    <select class="form-select form-select-sm" id="rpBankAccount">
+                                        <option value="">— Select bank account —</option>
+                                    </select>
+                                </div>
+
+                                <!-- Reference ID -->
+                                <div class="col-6">
+                                    <label class="form-label mb-1" style="font-size:.75rem;color:#566a7f;font-weight:600;">
+                                        Reference ID <span class="fw-normal text-muted">(Optional)</span>
+                                    </label>
+                                    <input type="text" class="form-control form-control-sm" id="rpReferenceNo"
+                                           placeholder="UTR, Cheque No, UPI Ref…" maxlength="100">
+                                </div>
+
+                                <!-- Notes -->
+                                <div class="col-6">
+                                    <label class="form-label mb-1" style="font-size:.75rem;color:#566a7f;font-weight:600;">
+                                        Notes <span class="fw-normal text-muted">(Optional)</span>
+                                    </label>
+                                    <textarea class="form-control form-control-sm" id="rpNotes" rows="1"
+                                              placeholder="Add a payment note…" maxlength="255"></textarea>
+                                </div>
+
+                            </div>
                         </div>
+
+                        <!-- Footer -->
+                        <div class="d-flex justify-content-end gap-2 px-4 py-3 border-top" style="background:#f8f9fa;">
+                            <button type="button" class="btn btn-outline-secondary btn-sm px-3" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-primary btn-sm px-4" id="btnSubmitPayment">
+                                <i class="bx bx-check me-1"></i> Record Payment
+                            </button>
+                        </div>
+
+                        <input type="hidden" id="rpTransUID" value="">
 
                     </div>
                 </div>
-
-                <!-- More Details -->
-                <div class="card mb-3 border-0 shadow-sm">
-                    <div class="card-body px-3 py-3">
-                        <div class="fw-semibold mb-3" style="font-size:.85rem;">More Details</div>
-                        <div class="mb-2">
-                            <label class="form-label text-muted" style="font-size:.78rem;">Payment Reference ID &nbsp;<span class="text-muted fw-normal">(Optional)</span></label>
-                            <input type="text" class="form-control form-control-sm" id="rpReferenceNo" placeholder="Your UTR ID for the payment">
-                            <div class="text-muted mt-1" style="font-size:.72rem;">A unique ID for each payment.</div>
-                        </div>
-                        <div class="mb-0">
-                            <label class="form-label text-muted" style="font-size:.78rem;">Notes &nbsp;<span class="text-muted fw-normal">(Optional)</span></label>
-                            <textarea class="form-control form-control-sm" id="rpNotes" rows="2" placeholder="Add a note…"></textarea>
-                        </div>
-                    </div>
-                </div>
-
-                <input type="hidden" id="rpTransUID" value="">
             </div>
         </div>
 
@@ -431,6 +486,29 @@ $(function () {
         });
     });
 
+    // ── Cancel Invoice ──────────────────────────────────────
+    $(document).on('click', '.cancelInvoice', function () {
+        var uid = $(this).data('uid');
+        var num = $(this).data('num') || '';
+        Swal.fire({
+            title: 'Cancel Invoice?',
+            html : num ? 'Cancel <strong>' + num + '</strong>? This cannot be undone.' : 'This cannot be undone.',
+            icon : 'warning', showCancelButton: true,
+            confirmButtonText: 'Yes, Cancel It', confirmButtonColor: '#fd7e14',
+        }).then(function (r) {
+            if (!r.isConfirmed) return;
+            $.ajax({
+                url   : '/invoices/updateInvoiceStatus',
+                method: 'POST',
+                data  : { TransUID: uid, Status: 'Cancelled', [CsrfName]: CsrfToken },
+                success: function (resp) {
+                    if (resp.Error) { Swal.fire({ icon:'error', text: resp.Message }); }
+                    else { getInvoicesDetails(); Swal.fire({ icon:'success', text: resp.Message, timer:1500, showConfirmButton:false }); }
+                }
+            });
+        });
+    });
+
     // ── Duplicate ───────────────────────────────────────────
     $(document).on('click', '.duplicateInvoice', function () {
         var uid = $(this).data('uid');
@@ -475,41 +553,34 @@ function _esc(v) {
     return $('<span>').text(String(v)).html();
 }
 
-// ── Record Payment Offcanvas ──────────────────────────────────────
+// ── Record Payment Modal ──────────────────────────────────────────
 (function () {
     'use strict';
 
-    var _payTypes    = [];
-    var _bankAccts   = [];
-    var _typesLoaded = false;
-    var _banksLoaded = false;
-    var _currency    = '<?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>';
+    // Data injected at page render — zero extra requests
+    var _payTypes  = <?php echo json_encode(array_map(function($t) {
+        return ['PaymentTypeUID' => (int)$t->PaymentTypeUID, 'Name' => (string)$t->Name, 'IsCash' => (int)$t->IsCash];
+    }, $PaymentTypes ?? [])); ?>;
+    var _bankAccts = <?php echo json_encode(array_map(function($b) {
+        return ['BankAccountUID' => (int)$b->BankAccountUID, 'BankName' => (string)$b->BankName, 'AccountName' => (string)$b->AccountName];
+    }, $BankAccounts ?? [])); ?>;
+    var _fpInstance = null;
+    var _currency   = '<?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>';
 
-    function loadPaymentTypes() {
-        if (_typesLoaded) return;
-        $.get('/payments/getPaymentTypes', function (resp) {
-            if (resp.Error) return;
-            _payTypes    = resp.Data || [];
-            _typesLoaded = true;
-            renderPaymentTypes();
+    // Populate bank account select once from pre-loaded data
+    (function () {
+        var $sel = $('#rpBankAccount').empty().append('<option value="">— Select bank account —</option>');
+        $.each(_bankAccts, function (i, b) {
+            $sel.append('<option value="' + b.BankAccountUID + '">' + _esc(b.BankName) + ' — ' + _esc(b.AccountName) + '</option>');
         });
-    }
-
-    function loadBankAccounts() {
-        if (_banksLoaded) return;
-        $.get('/payments/getBankAccounts', function (resp) {
-            if (resp.Error) return;
-            _bankAccts   = resp.Data || [];
-            _banksLoaded = true;
-            var $sel = $('#rpBankAccount').empty().append('<option value="">Select bank account…</option>');
-            $.each(_bankAccts, function (i, b) {
-                $sel.append('<option value="' + b.BankAccountUID + '">' + _esc(b.BankName) + ' — ' + _esc(b.AccountName) + '</option>');
-            });
-        });
-    }
+    }());
 
     function renderPaymentTypes() {
         var $wrap = $('#rpPaymentTypes').empty();
+        if (!_payTypes.length) {
+            $wrap.html('<div class="text-muted" style="font-size:.8rem;"><i class="bx bx-loader-alt bx-spin"></i> Loading…</div>');
+            return;
+        }
         $.each(_payTypes, function (i, t) {
             var active = (i === 0) ? ' active' : '';
             if (i === 0) { $('#rpPaymentTypeUID').val(t.PaymentTypeUID); $('#rpIsCash').val(t.IsCash); }
@@ -523,35 +594,51 @@ function _esc(v) {
 
     function toggleBankRow() {
         var isCash = parseInt($('#rpIsCash').val(), 10);
-        if (isCash) { $('#rpBankRow').addClass('d-none'); } else { $('#rpBankRow').removeClass('d-none'); loadBankAccounts(); }
+        $('#rpBankRow').toggleClass('d-none', !!isCash);
     }
 
-    // Open offcanvas when "Receive Payment" clicked
+    // Init flatpickr once modal is fully visible; reset to today on each open
+    $('#recordPaymentModal').on('shown.bs.modal', function () {
+        if (!_fpInstance) {
+            _fpInstance = flatpickr('#rpPaymentDate', {
+                dateFormat   : 'Y-m-d',
+                altInput     : true,
+                altFormat    : 'd M Y',
+                maxDate      : 'today',
+                disableMobile: true,
+                defaultDate  : 'today',
+                appendTo: document.querySelector('#recordPaymentModal .modal-body'),
+            });
+        } else {
+            _fpInstance.setDate(new Date(), false);
+        }
+    });
+
+    // Open modal when "Receive Payment" clicked
     $(document).on('click', '.invReceivePayment', function () {
         var uid     = $(this).data('uid');
         var num     = $(this).data('num')     || '';
         var date    = $(this).data('date')    || '';
         var party   = $(this).data('party')   || '';
         var total   = parseFloat($(this).data('total'))   || 0;
+        var paid    = parseFloat($(this).data('paid'))    || 0;
         var pending = parseFloat($(this).data('pending')) || 0;
 
         $('#rpTransUID').val(uid);
         $('#rpInvNum').text(num);
         $('#rpInvDate').text(date);
         $('#rpPartyName').text(party);
-        $('#rpBalanceDisplay').text(_currency + ' ' + pending.toFixed(2));
-        $('#rpTotalLabel').text(_currency + ' ' + total.toFixed(2));
-        $('#rpPendingLabel').text(_currency + ' ' + pending.toFixed(2));
+        $('#rpTotalCard').text(_currency + ' ' + total.toFixed(2));
+        $('#rpPaidCard').text(_currency + ' ' + paid.toFixed(2));
+        $('#rpBalanceCard').text(_currency + ' ' + pending.toFixed(2));
         $('#rpAmount').val(pending.toFixed(2)).attr('max', pending);
         $('#rpCurrencySymbol').text(_currency);
-        $('#rpPaymentDate').val(new Date().toISOString().split('T')[0]);
         $('#rpReferenceNo').val('');
         $('#rpNotes').val('');
         $('#rpBankAccount').val('');
 
-        loadPaymentTypes();
-        var oc = new bootstrap.Offcanvas(document.getElementById('recordPaymentOffcanvas'));
-        oc.show();
+        renderPaymentTypes();
+        $('#recordPaymentModal').modal('show');
     });
 
     // Payment type pill toggle
@@ -568,6 +655,7 @@ function _esc(v) {
         var transUID       = parseInt($('#rpTransUID').val(), 10);
         var paymentTypeUID = parseInt($('#rpPaymentTypeUID').val(), 10);
         var amount         = parseFloat($('#rpAmount').val()) || 0;
+        var paymentDate    = $('#rpPaymentDate').val() || new Date().toISOString().split('T')[0];
         var bankAccountUID = parseInt($('#rpBankAccount').val(), 10) || 0;
         var referenceNo    = $.trim($('#rpReferenceNo').val());
         var notes          = $.trim($('#rpNotes').val());
@@ -575,8 +663,10 @@ function _esc(v) {
         if (!transUID)       { Swal.fire({ icon: 'warning', text: 'Invalid invoice.' }); return; }
         if (!paymentTypeUID) { Swal.fire({ icon: 'warning', text: 'Please select a payment type.' }); return; }
         if (amount <= 0)     { Swal.fire({ icon: 'warning', text: 'Enter a valid amount.' }); return; }
+        var isCash = parseInt($('#rpIsCash').val(), 10);
+        if (!isCash && !bankAccountUID) { Swal.fire({ icon: 'warning', text: 'Please select a bank account for this payment type.' }); return; }
 
-        var $btn = $(this).prop('disabled', true).text('Saving…');
+        var $btn = $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Saving…');
 
         $.ajax({
             url   : '/invoices/recordInvoicePayment',
@@ -585,27 +675,166 @@ function _esc(v) {
                 TransUID       : transUID,
                 PaymentTypeUID : paymentTypeUID,
                 Amount         : amount,
+                PaymentDate    : paymentDate,
                 BankAccountUID : bankAccountUID || '',
                 ReferenceNo    : referenceNo,
                 Notes          : notes,
                 [CsrfName]     : CsrfToken,
             },
             success: function (resp) {
-                $btn.prop('disabled', false).html('Record Payment <i class="bx bx-right-arrow-alt ms-1"></i>');
+                $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i> Record Payment');
                 if (resp.Error) {
                     Swal.fire({ icon: 'error', title: 'Error', text: resp.Message });
                 } else {
-                    bootstrap.Offcanvas.getInstance(document.getElementById('recordPaymentOffcanvas')).hide();
+                    $('#recordPaymentModal').modal('hide');
                     getInvoicesDetails();
                     Swal.fire({ icon: 'success', text: resp.Message, timer: 1800, showConfirmButton: false });
                 }
             },
             error: function () {
-                $btn.prop('disabled', false).html('Record Payment <i class="bx bx-right-arrow-alt ms-1"></i>');
+                $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i> Record Payment');
                 Swal.fire({ icon: 'error', text: 'Request failed. Try again.' });
             }
         });
     });
 
 }());
+
+// ── Attachment Viewer ─────────────────────────────────────────────
+$(document).on('click', '.invAttachBtn', function () {
+    var uid = $(this).data('uid');
+    var num = $(this).data('num') || ('Invoice #' + uid);
+    $('#invAttachModalTitle').text('Attachments — ' + num);
+    $('#invAttachGallery').html('<div class="text-center py-4"><span class="spinner-border spinner-border-sm text-primary"></span></div>');
+    var modal = new bootstrap.Modal(document.getElementById('invAttachModal'));
+    modal.show();
+    $.ajax({
+        url    : '/invoices/getAttachments',
+        method : 'POST',
+        data   : { TransUID: uid, [CsrfName]: CsrfToken },
+        success: function (resp) {
+            if (resp.Error || !resp.Attachments || !resp.Attachments.length) {
+                $('#invAttachGallery').html('<div class="text-center py-5 text-muted"><i class="bx bx-paperclip fs-2 d-block mb-2"></i>No attachments found.</div>');
+                return;
+            }
+            var cdnUrl = (typeof CDN_URL !== 'undefined' && CDN_URL) ? CDN_URL : '';
+            var html = '<div class="row g-2">';
+            resp.Attachments.forEach(function (a, idx) {
+                var fullUrl = cdnUrl + (a.FilePath || '');
+                var safeName = $('<span>').text(a.FileName || '').html();
+                var isImg = /image\//i.test(a.FileType || '') || /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(a.FileName || '');
+                var isPdf = /pdf/i.test(a.FileType || '') || /\.pdf$/i.test(a.FileName || '');
+                var isMedia = /^video\//i.test(a.FileType || '') || /\.(mp4|webm|ogg|mov)$/i.test(a.FileName || '');
+                var encUrl = encodeURIComponent(fullUrl);
+
+                if (isImg) {
+                    html += '<div class="col-6 col-md-4">' +
+                        '<div class="attach-thumb-wrap border rounded overflow-hidden" style="cursor:pointer;height:120px;background:#f8f9fa;" ' +
+                        'onclick="_openAttachPreview(\'' + encUrl + '\',\'img\',\'' + safeName + '\')">' +
+                        '<img src="' + $('<span>').text(fullUrl).html() + '" style="width:100%;height:100%;object-fit:cover;" loading="lazy" alt="' + safeName + '">' +
+                        '</div>' +
+                        '<div class="text-muted mt-1 d-flex align-items-center gap-1" style="font-size:.72rem;">' +
+                        '<i class="bx bx-image-alt"></i>' +
+                        '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + safeName + '">' + safeName + '</span></div>' +
+                        '</div>';
+                } else if (isPdf) {
+                    html += '<div class="col-6 col-md-4">' +
+                        '<div class="attach-thumb-wrap border rounded d-flex flex-column align-items-center justify-content-center gap-1" style="cursor:pointer;height:120px;background:#fff5f5;" ' +
+                        'onclick="_openAttachPreview(\'' + encUrl + '\',\'pdf\',\'' + safeName + '\')">' +
+                        '<i class="bx bxs-file-pdf text-danger" style="font-size:2.5rem;"></i>' +
+                        '<span style="font-size:.72rem;color:#dc3545;font-weight:600;">PDF</span>' +
+                        '</div>' +
+                        '<div class="text-muted mt-1 d-flex align-items-center gap-1" style="font-size:.72rem;">' +
+                        '<i class="bx bx-file-blank"></i>' +
+                        '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + safeName + '">' + safeName + '</span></div>' +
+                        '</div>';
+                } else {
+                    var icon = isMedia ? 'bxs-videos text-primary' : 'bx-file text-secondary';
+                    html += '<div class="col-6 col-md-4">' +
+                        '<div class="attach-thumb-wrap border rounded d-flex flex-column align-items-center justify-content-center gap-1" style="cursor:pointer;height:120px;background:#f8f9fa;" ' +
+                        'onclick="_openAttachPreview(\'' + encUrl + '\',\'file\',\'' + safeName + '\')">' +
+                        '<i class="bx ' + icon + '" style="font-size:2.5rem;"></i>' +
+                        '<span style="font-size:.72rem;color:#6c757d;font-weight:500;text-align:center;padding:0 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:90%;">' + safeName + '</span>' +
+                        '</div>' +
+                        '<div class="text-muted mt-1 d-flex align-items-center gap-1" style="font-size:.72rem;">' +
+                        '<i class="bx bx-file-blank"></i>' +
+                        '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + safeName + '">' + safeName + '</span></div>' +
+                        '</div>';
+                }
+            });
+            html += '</div>';
+            $('#invAttachGallery').html(html);
+        },
+        error: function () {
+            $('#invAttachGallery').html('<div class="text-center py-4 text-danger">Failed to load attachments.</div>');
+        }
+    });
+});
+
+function _openAttachPreview(encUrl, type, name) {
+    var url = decodeURIComponent(encUrl);
+    var safeName = $('<span>').text(name).html();
+    $('#attachPreviewTitle').text(name || 'Preview');
+    var body = '';
+    if (type === 'img') {
+        body = '<div class="text-center p-3"><img src="' + $('<span>').text(url).html() + '" class="img-fluid rounded" style="max-height:70vh;" alt="' + safeName + '"></div>';
+    } else if (type === 'pdf') {
+        body = '<iframe src="' + $('<span>').text(url).html() + '" style="width:100%;height:70vh;border:none;"></iframe>';
+    } else {
+        body = '<div class="text-center py-5">' +
+            '<i class="bx bx-file-blank text-secondary" style="font-size:4rem;display:block;margin-bottom:12px;"></i>' +
+            '<div style="font-size:.9rem;font-weight:600;margin-bottom:16px;">' + safeName + '</div>' +
+            '<button class="btn btn-primary px-4" onclick="(function(u,n){var a=document.createElement(\'a\');a.href=u;a.download=n;a.style.display=\'none\';document.body.appendChild(a);a.click();document.body.removeChild(a);})(decodeURIComponent(\'' + encUrl + '\'),\'' + safeName.replace(/'/g, "\\'") + '\'))"><i class="bx bx-download me-2"></i>Download File</button>' +
+            '</div>';
+    }
+    $('#attachPreviewBody').html(body);
+    var previewModal = new bootstrap.Modal(document.getElementById('attachPreviewModal'));
+    previewModal.show();
+}
+
 </script>
+
+<!-- ── Invoice Attachment Viewer Modal ──────────────────────────── -->
+<div class="modal fade" id="invAttachModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content" style="overflow:hidden;">
+            <button type="button" class="btn-close position-absolute" data-bs-dismiss="modal"
+                style="top:14px;right:16px;z-index:10;background-color:rgba(255,255,255,.85);border-radius:50%;padding:6px;box-shadow:0 1px 4px rgba(0,0,0,.15);"
+                aria-label="Close"></button>
+            <div class="modal-body p-0">
+                <div style="background:#e8f0fe;border-left:4px solid #0d6efd;padding:14px 20px;">
+                    <div class="d-flex align-items-center gap-3">
+                        <div style="background:#0d6efd22;border-radius:10px;padding:9px 11px;">
+                            <i class="bx bx-paperclip" style="font-size:1.7rem;color:#0d6efd;display:block;"></i>
+                        </div>
+                        <div>
+                            <div style="font-size:1rem;font-weight:800;color:#0d6efd;" id="invAttachModalTitle">Attachments</div>
+                            <div style="font-size:.77rem;color:#6c757d;margin-top:3px;">Click any file to preview</div>
+                        </div>
+                    </div>
+                </div>
+                <div style="padding:16px 20px;" id="invAttachGallery">
+                    <div class="text-center py-4"><span class="spinner-border spinner-border-sm text-primary"></span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Attachment Preview Modal ──────────────────────────────────── -->
+<div class="modal fade" id="attachPreviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header py-2 px-3">
+                <h6 class="modal-title d-flex align-items-center gap-2 mb-0" style="font-size:.88rem;font-weight:700;max-width:90%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                    <i class="bx bx-file text-primary"></i>
+                    <span id="attachPreviewTitle">Preview</span>
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0" id="attachPreviewBody" style="min-height:200px;background:#1a1a2e;">
+                <div class="text-center py-5"><span class="spinner-border text-light"></span></div>
+            </div>
+        </div>
+    </div>
+</div>

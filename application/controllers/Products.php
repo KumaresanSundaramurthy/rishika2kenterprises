@@ -697,23 +697,29 @@ class Products extends CI_Controller {
                 $Unit_Price = $comboPrice / (1 + ($Tax_Percentage / 100));
             }
 
+            $primaryUnitUID = (int) getPostValue($PostData, 'ComboPrimaryUnit');
+            if ($primaryUnitUID <= 0) {
+                throw new InvalidArgumentException('Primary unit is required.');
+            }
+
             $comboData = [
-                'OrgUID'       => $orgUID,
-                'ItemName'     => $comboName,
-                'ProductType'  => 'Product',
-                'UnitPrice'    => round($Unit_Price, 5),
-                'SellingPrice' => $comboPrice,
-                'MRP'          => (float) getPostValue($PostData, 'ComboMRP', '', 0),
-                'TaxDetailsUID'=> $taxUID ?: null,
-                'TaxPercentage'=> isset($TaxDetails->Percentage) ? $TaxDetails->Percentage : null,
-                'CGST'         => isset($TaxDetails->CGST) ? $TaxDetails->CGST : null,
-                'SGST'         => isset($TaxDetails->SGST) ? $TaxDetails->SGST : null,
-                'IGST'         => isset($TaxDetails->IGST) ? $TaxDetails->IGST : null,
-                'Description'  => getPostValue($PostData, 'ComboDescription'),
-                'IsComposite'  => 1,
-                'IsComboItem'  => 0,
-                'CreatedBy'    => $userUID,
-                'UpdatedBy'    => $userUID,
+                'OrgUID'        => $orgUID,
+                'ItemName'      => $comboName,
+                'ProductType'   => 'Product',
+                'UnitPrice'     => round($Unit_Price, 5),
+                'SellingPrice'  => $comboPrice,
+                'MRP'           => (float) getPostValue($PostData, 'ComboMRP', '', 0),
+                'TaxDetailsUID' => $taxUID ?: null,
+                'TaxPercentage' => isset($TaxDetails->Percentage) ? $TaxDetails->Percentage : null,
+                'CGST'          => isset($TaxDetails->CGST) ? $TaxDetails->CGST : null,
+                'SGST'          => isset($TaxDetails->SGST) ? $TaxDetails->SGST : null,
+                'IGST'          => isset($TaxDetails->IGST) ? $TaxDetails->IGST : null,
+                'Description'   => getPostValue($PostData, 'ComboDescription'),
+                'PrimaryUnitUID'=> $primaryUnitUID,
+                'IsComposite'   => 1,
+                'IsComboItem'   => 0,
+                'CreatedBy'     => $userUID,
+                'UpdatedBy'     => $userUID,
             ];
 
             $InsertResp = $this->dbwrite_model->insertData('Products', 'ProductTbl', $comboData);
@@ -787,17 +793,23 @@ class Products extends CI_Controller {
                 $TaxDetails = $this->global_model->getTaxPercentageDetailsInfo(['TaxDetail.TaxDetailsUID' => $taxUID])->Data[0] ?? null;
             }
 
+            $primaryUnitUID = (int) getPostValue($PostData, 'ComboPrimaryUnit');
+            if ($primaryUnitUID <= 0) {
+                throw new InvalidArgumentException('Primary unit is required.');
+            }
+
             $comboData = [
-                'ItemName'     => $comboName,
-                'SellingPrice' => $comboPrice,
-                'MRP'          => (float) getPostValue($PostData, 'ComboMRP', '', 0),
-                'TaxDetailsUID'=> $taxUID ?: null,
-                'TaxPercentage'=> isset($TaxDetails->Percentage) ? $TaxDetails->Percentage : null,
-                'CGST'         => isset($TaxDetails->CGST) ? $TaxDetails->CGST : null,
-                'SGST'         => isset($TaxDetails->SGST) ? $TaxDetails->SGST : null,
-                'IGST'         => isset($TaxDetails->IGST) ? $TaxDetails->IGST : null,
-                'Description'  => getPostValue($PostData, 'ComboDescription'),
-                'UpdatedBy'    => $userUID,
+                'ItemName'      => $comboName,
+                'SellingPrice'  => $comboPrice,
+                'MRP'           => (float) getPostValue($PostData, 'ComboMRP', '', 0),
+                'TaxDetailsUID' => $taxUID ?: null,
+                'TaxPercentage' => isset($TaxDetails->Percentage) ? $TaxDetails->Percentage : null,
+                'CGST'          => isset($TaxDetails->CGST) ? $TaxDetails->CGST : null,
+                'SGST'          => isset($TaxDetails->SGST) ? $TaxDetails->SGST : null,
+                'IGST'          => isset($TaxDetails->IGST) ? $TaxDetails->IGST : null,
+                'Description'   => getPostValue($PostData, 'ComboDescription'),
+                'PrimaryUnitUID'=> $primaryUnitUID,
+                'UpdatedBy'     => $userUID,
             ];
 
             $UpdateResp = $this->dbwrite_model->updateData('Products', 'ProductTbl', $comboData, ['ProductUID' => $comboUID]);

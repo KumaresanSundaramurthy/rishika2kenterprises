@@ -173,7 +173,6 @@ $(function() {
             `,
             parallelUploads: 1,
             maxFilesize: 20, // In MB
-            acceptedFiles: ".jpg,.jpeg,.png",
             addRemoveLinks: true,
             maxFiles: 5,
             init: function() {

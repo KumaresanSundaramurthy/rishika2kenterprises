@@ -100,57 +100,83 @@ function editVendorData(formdata) {
     });
 }
 
-function deleteVendor(DeleteId) {
+// ── Refresh vendor stats cards ──────────────────────────────────────────
+function refreshVendorStats() {
     $.ajax({
-        url: '/customers/deleteVendorData',
+        url   : '/vendors/getStats',
         method: 'POST',
-        data: {
-            RowLimit: RowLimit,
-            PageNo: PageNo,
-            Filter: Filter,
-            VendorUID: DeleteId,
-            ModuleId: ModuleId
-        },
-        cache: false,
-        success: function (response) {
-            if (response.Error) {
-                Swal.fire(response.Message, "", "danger");
-                $(ModuleTable + ' tbody').html('');
-                $(ModulePag).html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');
-            } else {
-                Swal.fire(response.Message, "", "success");
-                $(ModulePag).html(response.Pagination);
-                $(ModuleTable + ' tbody').html(response.List);
-            }
-            executeTablePagnCommonFunc(response, true);
+        data  : { [CsrfName]: CsrfToken },
+        success: function (resp) {
+            if (resp.Error || !resp.Stats) return;
+            var s = resp.Stats;
+            $('.vend-stat-total').text(Number(s.TotalCount  || 0).toLocaleString('en-IN'));
+            $('.vend-stat-active').text(Number(s.ActiveCount || 0).toLocaleString('en-IN'));
+            $('.vend-stat-month').text(Number(s.MonthCount  || 0).toLocaleString('en-IN'));
+            $('.vend-stat-fy').text(Number(s.FYCount        || 0).toLocaleString('en-IN'));
+            $('.vend-stat-lastmonth').text(Number(s.LastMonthCount || 0).toLocaleString('en-IN'));
         }
     });
 }
 
-function deleteMultipleVendors() {
+// ── Toggle vendor active/inactive status ────────────────────────────────
+function toggleVendorStatus(VendorUID, IsActive) {
     $.ajax({
-        url: '/vendors/deleteBulkVendors',
-        method: "POST",
-        cache: false,
-        data: {
-            RowLimit: RowLimit,
-            PageNo: PageNo,
-            Filter: Filter,
-            VendorUIDs: SelectedUIDs,
-            ModuleId: ModuleId
-        },
+        url   : '/vendors/toggleVendorStatus',
+        method: 'POST',
+        cache : false,
+        data  : { VendorUID: VendorUID, IsActive: IsActive, [CsrfName]: CsrfToken },
         success: function (response) {
             if (response.Error) {
-                Swal.fire(response.Message, "", "danger");
-                $(ModuleTable + ' tbody').html('');
-                $(ModulePag).html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');
+                showAlertMessageSwal('error', '', response.Message);
             } else {
-                Swal.fire(response.Message, "", "success");
+                showAlertMessageSwal('success', '', response.Message, true, 1500);
+                getVendorsDetails(PageNo, RowLimit, Filter);
+                refreshVendorStats();
+            }
+        }
+    });
+}
+
+// ── Delete single vendor ─────────────────────────────────────────────────
+function deleteVendor(DeleteId) {
+    $.ajax({
+        url   : '/vendors/deleteVendorData',
+        method: 'POST',
+        cache : false,
+        data  : { VendorUID: DeleteId, PageNo: PageNo, [CsrfName]: CsrfToken },
+        success: function (response) {
+            if (response.Error) {
+                Swal.fire({ icon: 'error', text: response.Message });
+            } else {
+                Swal.fire({ icon: 'success', text: response.Message, timer: 1500, showConfirmButton: false });
+                $(ModulePag).html(response.Pagination);
+                $(ModuleTable + ' tbody').html(response.List);
+                refreshVendorStats();
+            }
+        }
+    });
+}
+
+// ── Delete multiple vendors ──────────────────────────────────────────────
+function deleteMultipleVendors() {
+    $.ajax({
+        url   : '/vendors/deleteMultipleVendors',
+        method: 'POST',
+        cache : false,
+        data  : { 'VendorUIDs[]': SelectedUIDs, PageNo: PageNo, [CsrfName]: CsrfToken },
+        success: function (response) {
+            if (response.Error) {
+                Swal.fire({ icon: 'error', text: response.Message });
+            } else {
+                Swal.fire({ icon: 'success', text: response.Message, timer: 1500, showConfirmButton: false });
                 $(ModulePag).html(response.Pagination);
                 $(ModuleTable + ' tbody').html(response.List);
                 SelectedUIDs = [];
-                executeTablePagnCommonFunc(response, true);
+                refreshVendorStats();
             }
+        }
+    });
+}
         },
     });
 }

@@ -34,6 +34,7 @@ class Transactions_model extends CI_Model {
                 "CONCAT(CreatedUser.FirstName, ' ', CreatedUser.LastName) AS CreatedBy",
                 'IFNULL(PayInfo.PaymentCount, 0) AS PaymentCount',
                 'PayInfo.PaymentModes AS PaymentModes',
+                '(SELECT COUNT(*) FROM Transaction.TransAttachmentsTbl AT WHERE AT.TransUID = Ts.TransUID AND AT.IsDeleted = 0 AND AT.IsActive = 1) AS AttachmentCount',
             ]);
             $this->ReadDb->from('Transaction.TransactionsTbl as Ts');
             $this->ReadDb->join('Customers.CustomerTbl as Cust', 'Cust.CustomerUID = Ts.PartyUID', 'LEFT');
@@ -398,6 +399,55 @@ class Transactions_model extends CI_Model {
     }
 
     /**
+     * Returns the next sequential PaymentNumber for a given prefix + org + year.
+     * Scans ALL rows (including soft-deleted) so a previously-used number is
+     * never re-issued.
+     */
+    public function getNextPaymentNumber($prefixUID, $orgUID, $transYear) {
+
+        try {
+
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->reset_query();
+
+            $this->ReadDb->select_max('PaymentNumber', 'MaxNumber');
+            $this->ReadDb->from('Transaction.PaymentsTbl');
+            $this->ReadDb->where([
+                'PrefixUID' => (int) $prefixUID,
+                'OrgUID'    => (int) $orgUID,
+                'TransYear' => (int) $transYear,
+            ]);
+            $query  = $this->ReadDb->get();
+            $result = $query->row();
+            $next   = $result ? ((int)($result->MaxNumber ?? 0) + 1) : 1;
+
+            // Safety loop: skip any number that still has an active row
+            $maxAttempts = 100;
+            while ($maxAttempts-- > 0) {
+                $this->ReadDb->reset_query();
+                $this->ReadDb->select('PaymentUID');
+                $this->ReadDb->from('Transaction.PaymentsTbl');
+                $this->ReadDb->where([
+                    'PrefixUID'     => (int) $prefixUID,
+                    'OrgUID'        => (int) $orgUID,
+                    'TransYear'     => (int) $transYear,
+                    'PaymentNumber' => $next,
+                    'IsDeleted'     => 0,
+                ]);
+                $this->ReadDb->limit(1);
+                if (!$this->ReadDb->get()->row()) break;
+                $next++;
+            }
+
+            return $next;
+
+        } catch (Exception $e) {
+            return 1;
+        }
+
+    }
+
+    /**
      * Checks whether a TransNumber already exists for a given prefix within
      * the same org+module.  Returns the matching row or NULL.
      */
@@ -441,7 +491,9 @@ class Transactions_model extends CI_Model {
                 'MAX(COALESCE(Ship.Line2, Bill.Line2)) AS Line2',
                 'MAX(COALESCE(Ship.Pincode, Bill.Pincode)) AS Pincode',
                 'MAX(COALESCE(Ship.CityText, Bill.CityText)) AS CityText',
-                'MAX(COALESCE(Ship.StateText, Bill.StateText)) AS StateText'
+                'MAX(COALESCE(Ship.StateText, Bill.StateText)) AS StateText',
+                'MAX(COALESCE(COA.CurrentBalance, 0)) AS CustomerBalance',
+                "MAX(COALESCE(COA.CurrentBalanceType, 'Debit')) AS BalanceType",
             );
             $where_ary = array(
                 'Customers.IsDeleted' => 0,
@@ -451,6 +503,8 @@ class Transactions_model extends CI_Model {
             $this->ReadDb->from('Customers.CustomerTbl as Customers');
             $this->ReadDb->join('Customers.CustAddressTbl as Bill', 'Bill.CustomerUID = Customers.CustomerUID AND Bill.IsDeleted = 0 AND Bill.IsActive = 1', 'LEFT');
             $this->ReadDb->join('Customers.CustAddressTbl as Ship', 'Ship.CustomerUID = Customers.CustomerUID AND Ship.IsDeleted = 0 AND Ship.IsActive = 1', 'LEFT');
+            $this->ReadDb->join('Accounting.EntityLedgerMap AS ELM', "ELM.CustomerUID = Customers.CustomerUID AND ELM.EntityType = 'Customer' AND ELM.IsDeleted = 0", 'LEFT');
+            $this->ReadDb->join('Accounting.ChartOfAccounts AS COA', 'COA.LedgerUID = ELM.LedgerUID', 'LEFT');
             if(!empty($Term)) {
                 $this->ReadDb->group_start();
                 $this->ReadDb->or_like('Customers.Name', $Term, 'both');
@@ -539,6 +593,7 @@ class Transactions_model extends CI_Model {
                 'product.DiscountTypeUID AS DiscountTypeUID',
                 'discountType.Name AS DiscountTypeName',
                 'primaryUnit.ShortName AS priUnitShortName',
+                'product.Description AS Description',
                 'product.IsComboItem AS IsComboItem',
                 '(SELECT COUNT(*) FROM Products.ProductBOMTbl pc WHERE pc.ParentProductUID = product.ProductUID AND pc.IsDeleted = 0 AND pc.IsActive = 1) AS ComboItemCount',
             );
@@ -744,6 +799,74 @@ class Transactions_model extends CI_Model {
 
     }
 
+    /** Single payment row for pre-deletion checks (no joins). */
+    public function getPaymentRow($paymentUID, $orgUID) {
+        $this->ReadDb->db_debug = FALSE;
+        $this->ReadDb->select('PaymentUID, TransUID, Amount, PartyType, PartyUID');
+        $this->ReadDb->from('Transaction.PaymentsTbl');
+        $this->ReadDb->where(['PaymentUID' => $paymentUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
+        $query = $this->ReadDb->get();
+        return ($query && $query->num_rows() > 0) ? $query->row() : null;
+    }
+
+    /** SUM of active (IsDeleted=0, IsActive=1) payments for a transaction. */
+    public function getSumPaidForTransaction($transUID, $orgUID) {
+        $this->ReadDb->db_debug = FALSE;
+        $this->ReadDb->select('COALESCE(SUM(Amount), 0) AS TotalPaid');
+        $this->ReadDb->from('Transaction.PaymentsTbl');
+        $this->ReadDb->where(['TransUID' => $transUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0, 'IsActive' => 1]);
+        $query = $this->ReadDb->get();
+        $row   = ($query && $query->num_rows() > 0) ? $query->row() : null;
+        return $row ? (float) $row->TotalPaid : 0;
+    }
+
+    /** Minimal transaction header: NetAmount + DocStatus (for balance recalculation). */
+    public function getTransactionBasicInfo($transUID, $orgUID) {
+        $this->ReadDb->db_debug = FALSE;
+        $this->ReadDb->select('TransUID, NetAmount, DocStatus');
+        $this->ReadDb->from('Transaction.TransactionsTbl');
+        $this->ReadDb->where(['TransUID' => $transUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
+        $query = $this->ReadDb->get();
+        return ($query && $query->num_rows() > 0) ? $query->row() : null;
+    }
+
+    /** Full payment detail with all joins for the view modal. */
+    public function getPaymentDetailById($paymentUID, $orgUID) {
+        $this->ReadDb->db_debug = FALSE;
+        $this->ReadDb->select([
+            'P.PaymentUID', 'P.TransUID', 'P.PartyType', 'P.Amount', 'P.ExcessAmount',
+            'P.IsFullyPaid', 'P.ReferenceNo', 'P.Notes', 'P.CreatedOn',
+            'P.PaymentDate', 'P.UniqueNumber', 'P.PaymentNumber', 'P.TransYear',
+            'PT.Name AS PaymentTypeName', 'PT.IsCash',
+            'T.UniqueNumber AS TransNumber', 'T.TransDate', 'T.NetAmount AS BillAmount',
+            "CASE WHEN P.PartyType = 'C' THEN C.Name ELSE V.Name END AS PartyName",
+            "CASE WHEN P.PartyType = 'C' THEN C.MobileNumber ELSE V.MobileNumber END AS PartyMobile",
+            'BA.AccountName', 'BA.BankName', 'BA.AccountNumber', 'BA.IFSC', 'BA.BranchName',
+            "CONCAT(CrUser.FirstName, ' ', CrUser.LastName) AS CreatedByName",
+        ]);
+        $this->ReadDb->from('Transaction.PaymentsTbl AS P');
+        $this->ReadDb->join('Transaction.PaymentTypesTbl AS PT', 'PT.PaymentTypeUID = P.PaymentTypeUID', 'LEFT');
+        $this->ReadDb->join('Transaction.TransactionsTbl AS T', 'T.TransUID = P.TransUID AND T.IsDeleted = 0', 'LEFT');
+        $this->ReadDb->join('Customers.CustomerTbl AS C', "C.CustomerUID = P.PartyUID AND P.PartyType = 'C'", 'LEFT');
+        $this->ReadDb->join('Vendors.VendorTbl AS V', "V.VendorUID = P.PartyUID AND P.PartyType = 'V'", 'LEFT');
+        $this->ReadDb->join('Transaction.OrgBankAccountsTbl AS BA', 'BA.BankAccountUID = P.BankAccountUID', 'LEFT');
+        $this->ReadDb->join('Users.UserTbl AS CrUser', 'CrUser.UserUID = P.CreatedBy', 'LEFT');
+        $this->ReadDb->where(['P.PaymentUID' => $paymentUID, 'P.OrgUID' => $orgUID]);
+        $query = $this->ReadDb->get();
+        return ($query && $query->num_rows() > 0) ? $query->row() : null;
+    }
+
+    public function getTransactionAttachments($transUID, $orgUID) {
+        $this->ReadDb->db_debug = FALSE;
+        $this->ReadDb->select('AttachUID, FileName, FilePath, FileType, FileSize, CreatedOn');
+        $this->ReadDb->from('Transaction.TransAttachmentsTbl');
+        $this->ReadDb->where(['TransUID' => $transUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
+        $this->ReadDb->order_by('SortOrder', 'ASC');
+        $this->ReadDb->order_by('AttachUID', 'ASC');
+        $query = $this->ReadDb->get();
+        return ($query && $query->num_rows() > 0) ? $query->result() : [];
+    }
+
     public function getPaymentsList($limit, $offset, $orgUID, $filter) {
 
         try {
@@ -757,17 +880,18 @@ class Transactions_model extends CI_Model {
                 'P.Amount',
                 'P.IsFullyPaid',
                 'P.ExcessAmount',
-                'P.ReferenceNo',
+                'P.UniqueNumber as PaymentUniqueNumber',
                 'P.Notes',
                 'P.CreatedOn',
                 'PT.Name AS PaymentTypeName',
                 'PT.IsCash',
                 'PT.Code AS PaymentTypeCode',
-                'T.UniqueNumber AS TransNumber',
+                'T.UniqueNumber as TransNumber',
                 'T.TransDate',
                 'T.NetAmount AS BillAmount',
                 "CASE WHEN P.PartyType = 'C' THEN C.Name ELSE V.Name END AS PartyName",
                 "CASE WHEN P.PartyType = 'C' THEN C.MobileNumber ELSE V.MobileNumber END AS PartyMobile",
+                "CASE WHEN P.PartyType = 'C' THEN C.CountryCode ELSE V.CountryCode END AS PartyCountryCode",
                 'BA.AccountName',
                 'BA.BankName',
                 'BA.AccountNumber',

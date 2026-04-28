@@ -30,8 +30,9 @@ $(document).ready(function () {
         }
     });
 
-    // Tax % select2
+    // Tax % and Primary Unit select2
     loadSelect2Field('#ComboTaxPercentage', '-- Select Tax Percentage --', '#comboItemModal');
+    loadSelect2Field('#ComboPrimaryUnit', '-- Select Unit --', '#comboItemModal');
 
     // ──────────────────────────────────────────────
     // Open combo modal on "Add Combo Item" button
@@ -244,6 +245,7 @@ function clearComboForm() {
     $('#AddEditComboForm')[0].reset();
     $('#HComboUID').val(0);
     $('#ComboTaxPercentage').val('').trigger('change');
+    $('#ComboPrimaryUnit').val('').trigger('change');
     $('#ComboItemSearch').val(null).trigger('change');
     $('#ComboComponentsBody tr[data-uid]').remove();
     $('#ComboComponentEmptyRow').show();
@@ -273,6 +275,9 @@ function loadComboForEdit(comboUID) {
             $('#ComboDescription').val(d.Description || '');
             if (d.TaxDetailsUID) {
                 $('#ComboTaxPercentage').val(d.TaxDetailsUID).trigger('change');
+            }
+            if (d.PrimaryUnitUID) {
+                $('#ComboPrimaryUnit').val(d.PrimaryUnitUID).trigger('change');
             }
 
             // Load BOM components

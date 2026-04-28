@@ -228,7 +228,7 @@ class Purchases extends CI_Controller {
 
             // Save optional payment records
             if (!$isDraft && (int) getPostValue($PostData, 'RecordPayment') === 1) {
-                $this->savePaymentRecord($transUID, $orgUID, $userUID, 'V', $vendorUID, $netAmount, $PostData);
+                $this->savePaymentRecord($transUID, $orgUID, $userUID, 'V', $vendorUID, $netAmount, $PostData, $transDate);
             }
 
             $this->dbwrite_model->commitTransaction();
@@ -448,7 +448,7 @@ class Purchases extends CI_Controller {
 
             // Save optional payment records
             if (!$isDraft && (int) getPostValue($PostData, 'RecordPayment') === 1) {
-                $this->savePaymentRecord($transUID, $orgUID, $userUID, 'V', $vendorUID, $netAmount, $PostData);
+                $this->savePaymentRecord($transUID, $orgUID, $userUID, 'V', $vendorUID, $netAmount, $PostData, $transDate);
             }
 
             $this->dbwrite_model->commitTransaction();
@@ -826,7 +826,26 @@ class Purchases extends CI_Controller {
 
     }
 
-    private function savePaymentRecord($transUID, $orgUID, $userUID, $partyType, $partyUID, $billTotal, $PostData) {
+    private function buildPaymentUniqueNumber($prefix, $paymentDate, $paymentNumber) {
+        $sep   = $prefix->Separator ?? '-';
+        $parts = [strtoupper($prefix->Name)];
+        if (!empty($prefix->IncludeShortName) && !empty($prefix->ShortName)) {
+            $parts[] = strtoupper($prefix->ShortName);
+        }
+        if (!empty($prefix->IncludeFiscalYear)) {
+            $m  = (int) date('m', strtotime($paymentDate));
+            $yr = (int) date('Y', strtotime($paymentDate));
+            $fy = $m >= 4 ? $yr : $yr - 1;
+            $parts[] = ($prefix->FiscalYearFormat ?? 'SHORT') === 'LONG'
+                ? $fy . '-' . ($fy + 1)
+                : str_pad($fy % 100, 2, '0', STR_PAD_LEFT) . '-' . str_pad(($fy + 1) % 100, 2, '0', STR_PAD_LEFT);
+        }
+        $pad     = (int)($prefix->NumberPadding ?? 1);
+        $parts[] = $pad > 1 ? str_pad($paymentNumber, $pad, '0', STR_PAD_LEFT) : (string) $paymentNumber;
+        return implode($sep, $parts);
+    }
+
+    private function savePaymentRecord($transUID, $orgUID, $userUID, $partyType, $partyUID, $billTotal, $PostData, $transDate = null) {
 
         $rowsJson    = getPostValue($PostData, 'PaymentRows') ?: '';
         $isFullyPaid = (int) getPostValue($PostData, 'IsFullyPaid') === 1 ? 1 : 0;
@@ -835,7 +854,15 @@ class Purchases extends CI_Controller {
         $rows = json_decode($rowsJson, true);
         if (!is_array($rows) || empty($rows)) return;
 
-        $totalPaid = array_sum(array_column($rows, 'amount'));
+        $paymentDate = $transDate ?: date('Y-m-d');
+        $totalPaid   = array_sum(array_column($rows, 'amount'));
+
+        // Resolve payment prefix once for all rows in this batch
+        $this->load->model('transactions_model');
+        $payTransYear  = (int) date('Y', strtotime($paymentDate));
+        $payPrefixData = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.OrgUID' => $orgUID, 'Prefix.ModuleUID' => 110]);
+        $payPrefix     = !empty($payPrefixData->Data) ? $payPrefixData->Data[0] : null;
+        $payPrefixUID  = $payPrefix ? (int) $payPrefix->PrefixUID : null;
 
         foreach ($rows as $idx => $row) {
             $paymentTypeUID = (int)   ($row['paymentTypeUID'] ?? 0);
@@ -851,8 +878,16 @@ class Purchases extends CI_Controller {
                 $rowExcess = round($totalPaid - $billTotal, 4);
             }
 
+            $paymentNumber = $payPrefixUID ? $this->transactions_model->getNextPaymentNumber($payPrefixUID, $orgUID, $payTransYear) : 0;
+            $payUniqueNum  = ($payPrefix && $paymentNumber > 0) ? $this->buildPaymentUniqueNumber($payPrefix, $paymentDate, $paymentNumber) : null;
+
             $paymentData = [
                 'OrgUID'            => $orgUID,
+                'PaymentDate'       => $paymentDate,
+                'PrefixUID'         => $payPrefixUID,
+                'PaymentNumber'     => $paymentNumber,
+                'UniqueNumber'      => $payUniqueNum,
+                'TransYear'         => $payTransYear,
                 'TransUID'          => $transUID,
                 'ModuleUID'         => $this->pageModuleUID,
                 'PartyType'         => $partyType,
@@ -862,6 +897,7 @@ class Purchases extends CI_Controller {
                 'BankAccountUID'    => $bankAccountUID,
                 'ReferenceNo'       => $referenceNo,
                 'Notes'             => $notes,
+                'PaymentSource'     => 'Create',
                 'IsFullyPaid'       => ($idx === count($rows) - 1) ? $isFullyPaid : 0,
                 'ExcessAmount'      => $rowExcess,
                 'AppliedToTransUID' => NULL,

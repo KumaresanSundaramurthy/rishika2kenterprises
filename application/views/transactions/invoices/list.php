@@ -7,22 +7,19 @@ include(APPPATH . 'views/transactions/partials/status_config.php');
 $currency   = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
 $decimals   = $JwtData->GenSettings->DecimalPoints ?? 2;
 $showSerial = $JwtData->GenSettings->SerialNoDisplay == 1;
-$today      = time();
-$soonDays   = 3;
 
 if (!empty($DataLists)):
     foreach ($DataLists as $list):
         $SerialNumber++;
         $status      = $list->Status ?? 'Draft';
         $isDraft     = $status === 'Draft';
-        $isTerminal  = in_array($status, $terminalStatuses);
-        $transitions = $moduleTransitions[$status] ?? [];
+        $isCancelled = $status === 'Cancelled';
 
         $paidAmt    = (float)($list->PaidAmount ?? 0);
         $netAmt     = (float)($list->NetAmount  ?? 0);
         $pendingAmt = max(0, round($netAmt - $paidAmt, 2));
 
-        // Payment status
+        // Payment status badge
         if ($isDraft) {
             $payStatus = '';
             $payBadge  = '';
@@ -38,22 +35,9 @@ if (!empty($DataLists)):
         }
 
         $showPending = !$isDraft && $pendingAmt > 0 && !in_array($status, ['Paid', 'Cancelled', 'Rejected']);
-
-        // Due date styling
-        $dueClass = 'trans-due-normal';
-        $dueTag   = '';
-        if (!$isDraft && !$isTerminal && !empty($list->ValidityDate)) {
-            $dueTs = strtotime($list->ValidityDate);
-            if ($dueTs < $today) {
-                $dueClass = 'trans-due-overdue';
-                $dueTag   = '<br><span style="font-size:.68rem;">Overdue</span>';
-            } elseif ($dueTs <= strtotime("+{$soonDays} days")) {
-                $dueClass = 'trans-due-soon';
-            }
-        }
-        $isOverdueRow = ($dueClass === 'trans-due-overdue');
+        $hasAttach   = !empty($list->AttachmentCount) && (int)$list->AttachmentCount > 0;
 ?>
-    <tr class="<?php echo $isOverdueRow ? 'trans-row-overdue' : ''; ?>">
+    <tr>
 
         <!-- Checkbox -->
         <td style="width:36px">
@@ -81,7 +65,18 @@ if (!empty($DataLists)):
                    data-type="invoice">
                     <?php echo htmlspecialchars($list->UniqueNumber); ?>
                 </a>
-                <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars(format_datedisplay($list->TransDate, 'd M Y')); ?></div>
+                <div class="d-flex align-items-center gap-2 mt-1">
+                    <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars(format_datedisplay($list->TransDate, 'd M Y')); ?></div>
+                    <?php if ($hasAttach): ?>
+                    <button type="button" class="btn btn-link p-0 invAttachBtn"
+                            data-uid="<?php echo (int)$list->TransUID; ?>"
+                            data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
+                            title="<?php echo (int)$list->AttachmentCount; ?> attachment(s)"
+                            style="font-size:.82rem;line-height:1;color:#0d6efd;">
+                        <i class="bx bx-paperclip"></i>
+                    </button>
+                    <?php endif; ?>
+                </div>
                 <?php if (!empty($list->CreatedBy)): ?>
                 <div style="font-size:.68rem;color:#bbb;">by <?php echo htmlspecialchars($list->CreatedBy); ?></div>
                 <?php endif; ?>
@@ -160,17 +155,7 @@ if (!empty($DataLists)):
             <?php endif; ?>
         </td>
 
-        <!-- 6. Due Date -->
-        <td class="<?php echo $dueClass; ?>">
-            <?php if (!$isDraft && !empty($list->ValidityDate)): ?>
-                <?php echo format_datedisplay($list->ValidityDate, 'd M Y'); ?>
-                <?php echo $dueTag; ?>
-            <?php else: ?>
-                <span class="text-muted">—</span>
-            <?php endif; ?>
-        </td>
-
-        <!-- 7. Last Updated -->
+        <!-- 6. Last Updated -->
         <td>
             <?php
                 $updatedOn  = $list->UpdatedOn ?? null;
@@ -190,14 +175,29 @@ if (!empty($DataLists)):
         </td>
 
         <!-- Actions -->
-        <td style="width:50px">
+        <td style="width:110px">
             <div class="d-flex align-items-center justify-content-end gap-1">
 
-                <?php if (!$isTerminal): ?>
-                <a class="btn btn-icon btn-sm text-warning" href="/invoices/edit/<?php echo (int)$list->TransUID; ?>" title="Edit">
+                <!-- Quick: Record Payment (hover, pending invoices only) -->
+                <?php if ($showPending): ?>
+                <button type="button"
+                        class="btn inv-pay-quick-btn invReceivePayment"
+                        data-uid="<?php echo (int)$list->TransUID; ?>"
+                        data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
+                        data-date="<?php echo htmlspecialchars(format_datedisplay($list->TransDate ?? '', 'd M Y')); ?>"
+                        data-party="<?php echo htmlspecialchars($list->PartyName ?? ''); ?>"
+                        data-total="<?php echo $netAmt; ?>"
+                        data-paid="<?php echo $paidAmt; ?>"
+                        data-pending="<?php echo $pendingAmt; ?>"
+                        title="Record Payment — <?php echo $currency . ' ' . smartDecimal($pendingAmt, $decimals, true); ?> pending">
+                    <?php echo $currency; ?>
+                </button>
+                <?php endif; ?>
+
+                <!-- Edit (always visible on hover) -->
+                <a class="btn btn-icon btn-sm text-warning inv-row-action" href="/invoices/edit/<?php echo (int)$list->TransUID; ?>" title="Edit">
                     <i class="bx bx-edit"></i>
                 </a>
-                <?php endif; ?>
 
                 <div class="dropdown">
                     <button class="trans-actions-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -241,7 +241,17 @@ if (!empty($DataLists)):
                             </button>
                         </li>
 
-                        <?php if (!$isTerminal): ?>
+                        <?php if (!$isCancelled): ?>
+                        <li><hr class="dropdown-divider my-1"></li>
+                        <li>
+                            <button class="dropdown-item text-warning cancelInvoice"
+                                    data-uid="<?php echo (int)$list->TransUID; ?>"
+                                    data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? 'Draft'); ?>">
+                                <i class="bx bx-x-circle me-2"></i>Cancel Invoice
+                            </button>
+                        </li>
+                        <?php endif; ?>
+
                         <li><hr class="dropdown-divider my-1"></li>
                         <li>
                             <button class="dropdown-item text-danger deleteInvoice"
@@ -250,7 +260,6 @@ if (!empty($DataLists)):
                                 <i class="bx bx-trash me-2"></i>Delete
                             </button>
                         </li>
-                        <?php endif; ?>
 
                     </ul>
                 </div>
@@ -263,7 +272,7 @@ if (!empty($DataLists)):
 else:
 ?>
     <tr>
-        <td colspan="10">
+        <td colspan="9">
             <div class="d-flex flex-column align-items-center py-5">
                 <img src="/assets/img/elements/no-record-found.png" alt="No Records" class="img-fluid mb-3" style="max-height:150px;object-fit:contain;">
                 <span class="text-muted mb-3" style="font-size:.9rem;">No invoices found</span>

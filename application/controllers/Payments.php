@@ -181,12 +181,40 @@ class Payments extends CI_Controller {
 
     }
 
+    public function getPaymentDetail() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $PostData   = $this->input->post();
+            $paymentUID = (int) getPostValue($PostData, 'PaymentUID');
+            $orgUID     = $this->pageData['JwtData']->User->OrgUID;
+
+            if ($paymentUID <= 0) throw new Exception('Invalid payment record.');
+
+            $this->load->model('transactions_model');
+            $record = $this->transactions_model->getPaymentDetailById($paymentUID, $orgUID);
+            if (!$record) throw new Exception('Payment record not found.');
+
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Data  = $record;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
     public function deletePayment() {
 
         $this->EndReturnData = new stdClass();
         try {
 
             $this->load->model('dbwrite_model');
+            $this->load->model('transactions_model');
 
             $PostData   = $this->input->post();
             $paymentUID = (int) getPostValue($PostData, 'PaymentUID');
@@ -195,19 +223,69 @@ class Payments extends CI_Controller {
 
             if ($paymentUID <= 0) throw new Exception('Invalid payment record.');
 
+            // 1. Fetch payment + existing paid total BEFORE deletion (avoids read-replica lag)
+            $payment = $this->transactions_model->getPaymentRow($paymentUID, $orgUID);
+            if (!$payment) throw new Exception('Payment record not found or already deleted.');
+
+            $transUID     = (int) $payment->TransUID;
+            $existingPaid = ($transUID > 0)
+                ? $this->transactions_model->getSumPaidForTransaction($transUID, $orgUID)
+                : 0;
+
+            $this->dbwrite_model->startTransaction();
+
+            // 2. Soft-delete the payment
             $deleteData = $this->globalservice->baseDeleteArrayDetails();
             $deleteData['IsActive'] = 0;
-
             $resp = $this->dbwrite_model->updateData(
                 'Transaction', 'PaymentsTbl', $deleteData,
                 ['PaymentUID' => $paymentUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
             );
             if ($resp->Error) throw new Exception($resp->Message);
 
+            // 3. Recalculate and persist updated transaction balance
+            if ($transUID > 0) {
+                $newTotalPaid = max(0, round($existingPaid - (float) $payment->Amount, 2));
+
+                $trans = $this->transactions_model->getTransactionBasicInfo($transUID, $orgUID);
+                if ($trans) {
+                    $netAmount     = (float) $trans->NetAmount;
+                    $balanceAmount = max(0, round($netAmount - $newTotalPaid, 2));
+                    $isFullyPaid   = ($netAmount > 0 && $balanceAmount <= 0) ? 1 : 0;
+
+                    $this->dbwrite_model->updateTransIsFullyPaid($transUID, $isFullyPaid, $newTotalPaid, $balanceAmount, $userUID);
+
+                    if ($newTotalPaid <= 0)  $newStatus = 'Unpaid';
+                    elseif ($isFullyPaid)    $newStatus = 'Paid';
+                    else                     $newStatus = 'Partial';
+
+                    $this->dbwrite_model->updateTransDocStatus($transUID, $orgUID, $newStatus, $userUID);
+
+                    $this->EndReturnData->NewPaidAmount    = round($newTotalPaid, 2);
+                    $this->EndReturnData->NewBalanceAmount = $balanceAmount;
+                    $this->EndReturnData->NewStatus        = $newStatus;
+                }
+            }
+
+            $this->dbwrite_model->commitTransaction();
+
+            // 4. Reverse customer ledger entry outside transaction (non-fatal on failure)
+            if ($transUID > 0 && $payment->PartyType === 'C' && (int)$payment->PartyUID > 0) {
+                try {
+                    $this->load->library('accountledger');
+                    $this->accountledger->applyLedgerEntry(
+                        (int) $payment->PartyUID, 'Customer', (float) $payment->Amount, 'Debit', $transUID
+                    );
+                } catch (Exception $ledgerEx) {
+                    log_message('error', 'Ledger reversal failed after payment deletion PaymentUID=' . $paymentUID . ': ' . $ledgerEx->getMessage());
+                }
+            }
+
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Payment deleted.';
 
         } catch (Exception $e) {
+            if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }

@@ -260,11 +260,17 @@ class Transactions extends CI_Controller {
 
             $customersDetails = [];
             foreach ($customersData as $value) {
+                $balance     = (float)($value->CustomerBalance ?? 0);
+                $balanceType = $value->BalanceType ?? 'Debit';
                 $formData = [
-                    'id'   => $value->CustomerUID,
-                    'text' => $value->Area 
-                        ? $value->Name . ' (' . $value->Area . ')' 
+                    'id'          => $value->CustomerUID,
+                    'text'        => $value->Area
+                        ? $value->Name . ' (' . $value->Area . ')'
                         : $value->Name,
+                    'name'        => $value->Name,
+                    'area'        => $value->Area ?? '',
+                    'balance'     => $balance,
+                    'balanceType' => $balanceType,
                 ];
                 if($value->AddrUID) {
                     $formData['address'] = [
@@ -994,6 +1000,7 @@ class Transactions extends CI_Controller {
                     "discount" => (float) smartDecimal($value->Discount),
                     "discountType" => $value->DiscountTypeName,
                     "primaryUnit" => $value->priUnitShortName,
+                    "description" => $value->Description ?? '',
                     "isComboItem" => (int) $value->IsComboItem,
                     "comboItemCount" => (int) $value->ComboItemCount,
                 ];

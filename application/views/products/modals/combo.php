@@ -59,6 +59,15 @@
                             </select>
                         </div>
                         <div class="mb-3 col-md-6">
+                            <label for="ComboPrimaryUnit" class="form-label">Primary Unit <span style="color:red">*</span></label>
+                            <select id="ComboPrimaryUnit" name="ComboPrimaryUnit" class="select2 form-select" required>
+                                <option value="">-- Select Unit --</option>
+                                <?php if (!empty($PrimaryUnitInfo)): foreach ($PrimaryUnitInfo as $unit): ?>
+                                    <option value="<?php echo (int)$unit->PrimaryUnitUID; ?>"><?php echo htmlspecialchars($unit->ShortName . ' — ' . $unit->UnitName); ?></option>
+                                <?php endforeach; endif; ?>
+                            </select>
+                        </div>
+                        <div class="mb-3 col-md-6">
                             <label for="ComboDescription" class="form-label">Description</label>
                             <textarea class="form-control" id="ComboDescription" name="ComboDescription" rows="2" placeholder="Enter combo description (optional)" maxlength="500"></textarea>
                         </div>

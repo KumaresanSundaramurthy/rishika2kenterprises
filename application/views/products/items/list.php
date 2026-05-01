@@ -121,21 +121,25 @@ if (!empty($DataLists)) {
 
             <!-- Status -->
             <td>
-                <?php if ($row->IsActive == 1): ?>
-                <span class="badge bg-label-primary change-status"
-                    data-uid="<?php echo $uid; ?>"
-                    data-bs-toggle="tooltip" data-bs-html="true"
-                    data-bs-title="Change status to InActive?<br><button class='btn btn-sm btn-danger confirm-change' data-uid='<?php echo $uid; ?>'>Yes</button>">
-                    Active
-                </span>
-                <?php else: ?>
-                <span class="badge bg-label-danger change-status"
-                    data-uid="<?php echo $uid; ?>"
-                    data-bs-toggle="tooltip" data-bs-html="true"
-                    data-bs-title="Change status to Active?<br><button class='btn btn-sm btn-success confirm-change' data-uid='<?php echo $uid; ?>'>Yes</button>">
-                    InActive
-                </span>
-                <?php endif; ?>
+                <div class="dropdown d-inline-block">
+                    <span class="badge <?php echo $row->IsActive == 1 ? 'bg-label-success' : 'bg-label-danger'; ?> cursor-pointer" style="font-size:.68rem;" data-bs-toggle="dropdown">
+                        <?php echo $row->IsActive == 1 ? 'Active' : 'In-Active'; ?>
+                        <i class="bx bx-chevron-down" style="font-size:.65rem;"></i>
+                    </span>
+                    <ul class="dropdown-menu shadow-sm" style="min-width:150px;font-size:.82rem;">
+                        <li>
+                            <button class="dropdown-item prod-status-toggle"
+                                    data-uid="<?php echo $uid; ?>"
+                                    data-newstatus="<?php echo $row->IsActive == 1 ? 0 : 1; ?>">
+                                <?php if ($row->IsActive == 1): ?>
+                                    <i class="bx bx-x-circle me-2 text-danger"></i>Mark In-Active
+                                <?php else: ?>
+                                    <i class="bx bx-check-circle me-2 text-success"></i>Mark Active
+                                <?php endif; ?>
+                            </button>
+                        </li>
+                    </ul>
+                </div>
             </td>
 
             <!-- Category -->
@@ -146,16 +150,15 @@ if (!empty($DataLists)) {
                 <?php if ($row->IsComposite || $row->ProductType === 'Service'): ?>
                     <span class="text-muted">—</span>
                 <?php else:
-                    $qty      = (float)$row->AvailableQuantity;
+                    $qty      = (float) $row->AvailableQuantity;
                     $lowStock = !empty($row->LowStockAlertAt) && $qty <= (float)$row->LowStockAlertAt && $qty > 0;
                     if ($qty > 0) {
                         $qtyClass = $lowStock ? 'text-warning fw-semibold' : 'text-dark fw-semibold';
-                        echo '<span class="' . $qtyClass . '">' . smartDecimal($qty) . '</span>';
-                        if ($lowStock) echo ' <span class="badge bg-label-warning" style="font-size:.65rem;">Low</span>';
+                        echo '<span class="' . $qtyClass . '">' . smartDecimal($qty) .' <span class="text-primary">'.$row->PUShortName.'</span></span>';
                     } elseif ($qty == 0) {
-                        echo '<span class="text-danger fw-semibold">0</span>';
+                        echo '<span class="text-danger fw-semibold">0 <span class="text-primary">'.$row->PUShortName.'</span></span>';
                     } else {
-                        echo '<span class="text-danger fw-semibold">' . smartDecimal($qty) . '</span> <span class="badge bg-label-danger" style="font-size:.65rem;">Out</span>';
+                        echo '<span class="text-danger fw-semibold">' . smartDecimal($qty).' <span class="text-primary">'.$row->PUShortName.'</span></span>';
                     }
                 endif; ?>
             </td>
@@ -187,8 +190,21 @@ if (!empty($DataLists)) {
 
             <!-- Last Updated -->
             <td>
-                <div style="font-size:.8rem;"><?php echo changeTimeZonefromDateTime($row->UpdatedOn, $JwtData->User->Timezone, 2); ?></div>
-                <div class="text-muted" style="font-size:.7rem;"><?php echo 'by ' . $row->UpdatedBy; ?></div>
+                <?php
+                    $updatedOn  = $row->UpdatedOn ?? null;
+                    $secondsAgo = $updatedOn ? (time() - strtotime($updatedOn)) : null;
+                    $within24h  = $secondsAgo !== null && $secondsAgo < 86400;
+                    if ($within24h) {
+                        if ($secondsAgo < 60)       $agoText = 'just now';
+                        elseif ($secondsAgo < 3600) $agoText = (int)($secondsAgo / 60) . ' min' . ((int)($secondsAgo / 60) > 1 ? 's' : '') . ' ago';
+                        else                        $agoText = (int)($secondsAgo / 3600) . ' hr' . ((int)($secondsAgo / 3600) > 1 ? 's' : '') . ' ago';
+                    }
+                ?>
+                <div style="font-size:.8rem;"><?php echo $updatedOn ? changeTimeZonefromDateTime($updatedOn, $JwtData->User->Timezone, 2) : '—'; ?></div>
+                <?php if ($within24h): ?>
+                <div style="font-size:.68rem;color:#0d6efd;font-weight:500;"><?php echo $agoText; ?></div>
+                <?php endif; ?>
+                <div class="text-muted" style="font-size:.7rem;">by <?php echo htmlspecialchars($row->UpdatedBy ?? '—'); ?></div>
             </td>
 
             <!-- Actions: edit icon + 3-dot dropdown -->

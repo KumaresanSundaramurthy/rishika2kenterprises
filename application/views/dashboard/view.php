@@ -1,9 +1,9 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php $this->load->view('common/header'); ?>
 
 <!-- Layout wrapper -->
-<div class="layout-wrapper layout-content-navbar">
+<div class="layout-wrapper layout-horizontal layout-content-navbar">
 	<div class="layout-container">
 
 		<?php $this->load->view('common/menu_view'); ?>

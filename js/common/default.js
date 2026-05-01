@@ -822,15 +822,15 @@ function initializeSelect2Tags(fieldSelector, placeholder, modalSelector = null)
 
 }
 
-/* ── Copy Select2 placeholder into the dropdown search box on open ── */
+/* ── Select2: copy placeholder + auto-focus search field on open ── */
 $(document).on('select2:open', function(e) {
     var opts        = $(e.target).data('select2').options.options;
     var placeholder = (opts && opts.placeholder) ? opts.placeholder : '';
     if (typeof placeholder === 'object') placeholder = placeholder.text || '';
-    if (!placeholder) return;
     setTimeout(function() {
-        $('.select2-container--open .select2-search--dropdown .select2-search__field')
-            .attr('placeholder', placeholder);
+        var $search = $('.select2-container--open .select2-search--dropdown .select2-search__field');
+        if (placeholder) $search.attr('placeholder', placeholder);
+        $search.trigger('focus').select();
     }, 0);
 });
 
@@ -1230,6 +1230,31 @@ function validateGSTIN(gstinValue) {
     };
 }
 
+// ── Toast Notification ───────────────────────────────────────────────────
+// Usage: showToastNotification('Your message here', 'success' | 'error' | 'info')
+function showToastNotification(message, type) {
+    var _id    = 'r2k-toast-' + Date.now();
+    var _color = type === 'success' ? '#198754' : (type === 'error' ? '#dc3545' : '#0d6efd');
+    var _icon  = type === 'success' ? 'bx-check-circle' : (type === 'error' ? 'bx-x-circle' : 'bx-info-circle');
+    var _html  =
+        '<div id="' + _id + '" class="r2k-toast-notify" style="border-left-color:' + _color + ';">' +
+            '<i class="bx ' + _icon + ' r2k-toast-icon" style="color:' + _color + ';"></i>' +
+            '<span class="r2k-toast-msg">' + message + '</span>' +
+            '<button class="r2k-toast-close" onclick="$(this).closest(\'.r2k-toast-notify\').remove()">&times;</button>' +
+            '<div class="r2k-toast-bar" style="background:' + _color + ';"></div>' +
+        '</div>';
+    if (!$('#r2k-toast-wrap').length) {
+        $('body').append('<div id="r2k-toast-wrap"></div>');
+    }
+    $('#r2k-toast-wrap').append(_html);
+    var $el = $('#' + _id);
+    setTimeout(function() { $el.addClass('r2k-toast-show'); }, 10);
+    setTimeout(function() {
+        $el.removeClass('r2k-toast-show');
+        setTimeout(function() { $el.remove(); }, 350);
+    }, 2500);
+}
+
 // ── Copy Mobile Number ────────────────────────────────────────────────────
 // Usage: add class="copy-mobile" and data-mobile="number" to any element.
 // Tooltip text "Click to copy mobile number" is set via data-bs-title.
@@ -1239,13 +1264,13 @@ function copyMobileNumber(mobile) {
     if (!mobile) return;
     if (navigator.clipboard && window.isSecureContext) {
         navigator.clipboard.writeText(mobile).then(function () {
-            Swal.fire({ icon: 'success', text: 'Mobile number copied!', timer: 1200, showConfirmButton: false });
+            showToastNotification('Mobile number copied!', 'success');
         });
     } else {
         var $tmp = $('<input>').val(mobile).appendTo('body').select();
         document.execCommand('copy');
         $tmp.remove();
-        Swal.fire({ icon: 'success', text: 'Mobile number copied!', timer: 1200, showConfirmButton: false });
+        showToastNotification('Mobile number copied!', 'success');
     }
 }
 

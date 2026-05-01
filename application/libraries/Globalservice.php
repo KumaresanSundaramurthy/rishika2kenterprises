@@ -967,9 +967,13 @@ Class Globalservice {
     }
 
     public function sendJsonResponse($data) {
+        $json = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PARTIAL_OUTPUT_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE);
+        if ($json === false) {
+            $json = json_encode(['Error' => true, 'Message' => 'Response encoding failed: ' . json_last_error_msg()]);
+        }
         $this->CI->output->set_status_header(200)
             ->set_content_type('application/json', 'utf-8')
-            ->set_output(json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES))
+            ->set_output($json)
             ->_display();
         exit;
     }

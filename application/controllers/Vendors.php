@@ -65,6 +65,7 @@ class Vendors extends CI_Controller {
 
             $this->load->model('vendors_model');
             $this->pageData['VendStats'] = $this->vendors_model->getVendorStats($this->pageData['JwtData']->User->OrgUID);
+            $this->pageData['Tags']      = $this->vendors_model->getVendorTags($this->pageData['JwtData']->User->OrgUID);
 
             $this->load->view('vendors/view', $this->pageData);
 
@@ -373,6 +374,20 @@ class Vendors extends CI_Controller {
     }
 
 
+    public function getVendorTags() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $this->load->model('vendors_model');
+            $tags = $this->vendors_model->getVendorTags($this->pageData['JwtData']->User->OrgUID);
+            $this->EndReturnData->Error = false;
+            $this->EndReturnData->Tags  = $tags;
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
     public function getStats() {
         $this->EndReturnData = new stdClass();
         try {
@@ -407,6 +422,9 @@ class Vendors extends CI_Controller {
 
             $this->EndReturnData->Error   = false;
             $this->EndReturnData->Message = 'Status updated successfully.';
+            
+            $this->load->model('vendors_model');
+            $this->EndReturnData->Stats   = $this->vendors_model->getVendorStats($this->pageData['JwtData']->User->OrgUID);
 
         } catch (Exception $e) {
             $this->EndReturnData->Error   = true;
@@ -452,6 +470,7 @@ class Vendors extends CI_Controller {
             $this->EndReturnData->Message    = 'Deleted Successfully';
             $this->EndReturnData->List       = $pageData->RecordHtmlData;
             $this->EndReturnData->Pagination = $pageData->Pagination;
+            $this->EndReturnData->Stats      = $this->vendors_model->getVendorStats($this->pageData['JwtData']->User->OrgUID);
 
         } catch (Exception $e) {
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
@@ -505,6 +524,7 @@ class Vendors extends CI_Controller {
             $this->EndReturnData->Message    = count($VendorUIDs) . ' vendor(s) deleted successfully';
             $this->EndReturnData->List       = $pageData->RecordHtmlData;
             $this->EndReturnData->Pagination = $pageData->Pagination;
+            $this->EndReturnData->Stats      = $this->vendors_model->getVendorStats($this->pageData['JwtData']->User->OrgUID);
 
         } catch (Exception $e) {
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
@@ -522,6 +542,50 @@ class Vendors extends CI_Controller {
         } catch (Exception $e) {
             return false;
         }
+    }
+
+    // ── Send SMS / Email ─────────────────────────────────────────────────────
+    public function sendCommunication() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $sentBy   = $this->pageData['JwtData']->User->UserUID;
+            $commType = $this->input->post('CommType');
+            $message  = trim($this->input->post('Message'));
+            $subject  = trim($this->input->post('Subject') ?: '');
+            $uids     = $this->input->post('UIDs');
+
+            if (!in_array($commType, ['SMS', 'Email'])) throw new Exception('Invalid communication type.');
+            if (empty($message))                         throw new Exception('Message cannot be empty.');
+            if ($commType === 'Email' && empty($subject)) throw new Exception('Email subject is required.');
+            if (empty($uids) || !is_array($uids))        throw new Exception('No recipients selected.');
+
+            $uids = array_map('intval', $uids);
+
+            $this->load->library('communicationservice');
+
+            if ($commType === 'SMS') {
+                $result = $this->communicationservice->sendSMS($orgUID, $sentBy, 'Vendor', $uids, $message);
+            } else {
+                $result = $this->communicationservice->sendEmail($orgUID, $sentBy, 'Vendor', $uids, $subject, $message);
+            }
+
+            if ($result->Error) throw new Exception($result->Message);
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = $result->Message;
+            $this->EndReturnData->Sent    = $result->Sent   ?? 0;
+            $this->EndReturnData->Failed  = $result->Failed ?? 0;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
     }
 
 }

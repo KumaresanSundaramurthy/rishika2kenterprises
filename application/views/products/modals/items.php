@@ -8,11 +8,18 @@
         <?php $FormAttribute = array('id' => 'AddEditItemForm', 'name' => 'AddEditItemForm', 'class' => '', 'autocomplete' => 'off');
                 echo form_open('products/addEditItem', $FormAttribute); ?>
 
-            <div class="modal-header modal-header-center-sticky trans-theme d-flex justify-content-between align-items-center p-3">
-                <h5 class="modal-title" id="ItemModalTitle">Create Item</h5>
+            <div class="modal-header bg-white border-bottom d-flex align-items-center justify-content-between px-3 py-2 modal-header-center-sticky trans-theme">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="modal-doc-icon bg-primary bg-opacity-10">
+                        <i class="bx bx-package text-primary modal-doc-icon-inner"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title mb-0" id="ItemModalTitle">Create Item</h5>
+                    </div>
+                </div>
                 <div class="d-flex align-items-center gap-2">
-                    <button type="submit" class="btn btn-primary AddEditProductBtn">Save</button>
-                    <button type="button" class="btn btn-label-danger" data-bs-dismiss="modal" aria-label="Close">Close</button>
+                    <button type="submit" class="btn btn-sm btn-primary AddEditProductBtn"><i class="bx bx-check me-1"></i>Save</button>
+                    <button type="button" class="btn btn-sm btn-outline-danger" data-bs-dismiss="modal" aria-label="Close"><i class="bx bx-x me-1"></i>Close</button>
                 </div>
             </div>
 
@@ -49,7 +56,7 @@
                             <div class="input-group input-group-merge">
                                 <span class="input-group-text"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span>
                                 <input type="text" class="form-control" name="SellingPrice" id="SellingPrice" min="0" placeholder="Enter Selling Price" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" maxLength="<?php echo $JwtData->GenSettings->PriceMaxLength; ?>" pattern="^\d{1,<?php echo $JwtData->GenSettings->PriceMaxLength; ?>}(\.\d{0,<?php echo $JwtData->GenSettings->DecimalPoints; ?>})?$" onpaste="handlePricePaste(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" ondrop="handlePriceDrop(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" required />
-                                <select class="form-select" style="flex: 0 0 35%;" id="SellingTaxOption" name="SellingTaxOption">
+                                <select class="form-select tax-option-select" id="SellingTaxOption" name="SellingTaxOption">
                                     <?php if (sizeof($ProdTaxInfo) > 0) {
                                         foreach ($ProdTaxInfo as $ProdTax) { ?>
                                             <option value="<?php echo $ProdTax->ProductTaxUID; ?>"><?php echo $ProdTax->Name; ?></option>
@@ -70,7 +77,7 @@
                             <div class="input-group input-group-merge">
                                 <span class="input-group-text"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span>
                                 <input type="text" class="form-control" name="PurchasePrice" id="PurchasePrice" min="0" placeholder="Enter Purchase Price" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" maxLength="<?php echo $JwtData->GenSettings->PriceMaxLength; ?>" pattern="^\d{1,<?php echo $JwtData->GenSettings->PriceMaxLength; ?>}(\.\d{0,<?php echo $JwtData->GenSettings->DecimalPoints; ?>})?$" onpaste="handlePricePaste(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" ondrop="handlePriceDrop(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" />
-                                <select class="form-select" style="flex: 0 0 35%;" id="PurchaseTaxOption" name="PurchaseTaxOption">
+                                <select class="form-select tax-option-select" id="PurchaseTaxOption" name="PurchaseTaxOption">
                                     <?php if (sizeof($ProdTaxInfo) > 0) {
                                         foreach ($ProdTaxInfo as $ProdTax) { ?>
                                             <option value="<?php echo $ProdTax->ProductTaxUID; ?>"><?php echo $ProdTax->Name; ?></option>
@@ -82,7 +89,7 @@
                         <div class="mb-3 col-md-6">
                             <label class="form-label" for="TaxPercentage">Tax % <span style="color:red">*</span></label>
                             <select id="TaxPercentage" name="TaxPercentage" class="select2 form-select" required>
-                                <option label="-- Select Tax Percentage --"></option>
+                                <option value=""></option>
                                 <?php if (sizeof($TaxDetInfo) > 0) {
                                     foreach ($TaxDetInfo as $TaxInfo) { ?>
                                         <option value="<?php echo $TaxInfo->TaxDetailsUID; ?>" data-left="<?php echo smartDecimal($TaxInfo->Percentage); ?>" data-right="<?php echo $TaxInfo->TaxName; ?>"><?php echo $TaxInfo->TaxName; ?></option>
@@ -93,7 +100,7 @@
                         <div class="mb-3 col-md-6">
                             <label class="form-label" for="PrimaryUnit">Primary Unit <span style="color:red">*</span></label>
                             <select id="PrimaryUnit" name="PrimaryUnit" class="select2 form-select" required>
-                                <option label="-- Select Primary Unit --"></option>
+                                <option value=""></option>
                                 <?php if (sizeof($PrimaryUnitInfo) > 0) {
                                     foreach ($PrimaryUnitInfo as $PriUnitData) { ?>
                                         <option value="<?php echo $PriUnitData->PrimaryUnitUID; ?>"><?php echo $PriUnitData->Name . ' (' . $PriUnitData->ShortName . ')'; ?></option>
@@ -104,7 +111,7 @@
                         <div class="mb-3 col-md-6">
                             <label for="Category" class="form-label">Category <span style="color:red">*</span></label>
                             <select id="Category" name="Category" class="select2 form-select" required>
-                                <option label="-- Select Category --"></option>
+                                <option value=""></option>
                                 <?php if (sizeof($fltCategoryData) > 0) {
                                     foreach ($fltCategoryData as $Catg) { ?>
                                         <option value="<?php echo $Catg->CategoryUID; ?>"><?php echo $Catg->Name; ?></option>
@@ -117,7 +124,7 @@
                         <div class="mb-3 col-md-6">
                             <label for="StorageUID" class="form-label">Storage <?php echo $JwtData->GenSettings->MandatoryStorage == 1 ? '<span style="color:red">*</span>': ''; ?></label>
                             <select class="form-select" id="StorageUID" name="StorageUID" <?php echo $JwtData->GenSettings->MandatoryStorage == 1 ? 'required': ''; ?>>
-                                <option label="-- Select Storage --"></option>
+                                <option value=""></option>
                                 <?php if (sizeof($fltStorageData) > 0) {
                                     foreach ($fltStorageData as $strg) { ?>
                                         <option value="<?php echo $strg->StorageUID; ?>"><?php echo $strg->Name; ?></option>

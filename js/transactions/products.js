@@ -126,15 +126,21 @@ function prodOpenCloseDefActions() {
 }
 
 function loadTaxDetailOptions() {
-    $('#TaxPercentage').select2({
+    var $el = $('#TaxPercentage');
+    if (!$el.length) return;
+    if ($el.hasClass('select2-hidden-accessible')) $el.select2('destroy');
+    $el.select2({
         placeholder: '-- Select Tax Percentage --',
-        allowClear: false,
-        width: 'resolve',
+        allowClear: true,
+        width: '100%',
+        minimumResultsForSearch: Infinity,
+        dropdownParent: $('#itemsModal'),
         templateResult: function (data) {
             if (!data.id) return data.text;
             const el = $(data.element);
             const left  = el.data('left');
             const right = el.data('right');
+            if (!left && !right) return data.text;
             return $('<div class="d-flex justify-content-between">' +
                     '<span class="fw-semibold">' + left + '</span>' +
                     '<span class="text-muted small">' + right + '</span>' +
@@ -145,12 +151,12 @@ function loadTaxDetailOptions() {
             const el = $(data.element);
             const left  = el.data('left');
             const right = el.data('right');
+            if (!left && !right) return data.text;
             return $('<div class="d-flex justify-content-between">' +
                     '<span class="fw-semibold">' + left + '</span>' +
                     '<span class="text-muted small">' + right + '</span>' +
                     '</div>');
         },
-        dropdownParent: '#itemsModal',
     });
 }
 

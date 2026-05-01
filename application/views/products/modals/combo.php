@@ -8,11 +8,18 @@
         <?php $ComboFormAttr = array('id' => 'AddEditComboForm', 'name' => 'AddEditComboForm', 'class' => '', 'autocomplete' => 'off');
                 echo form_open('products/addComboItem', $ComboFormAttr); ?>
 
-            <div class="modal-header modal-header-center-sticky trans-theme d-flex justify-content-between align-items-center p-3">
-                <h5 class="modal-title" id="ComboModalTitle">Add Combo Item</h5>
+            <div class="modal-header bg-white border-bottom d-flex align-items-center justify-content-between px-3 py-2 modal-header-center-sticky trans-theme">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="modal-doc-icon bg-warning bg-opacity-10">
+                        <i class="bx bx-git-merge text-warning modal-doc-icon-inner"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title mb-0" id="ComboModalTitle">Add Combo Item</h5>
+                    </div>
+                </div>
                 <div class="d-flex align-items-center gap-2">
-                    <button type="submit" class="btn btn-primary AddEditComboBtn">Save</button>
-                    <button type="button" class="btn btn-label-danger" data-bs-dismiss="modal" aria-label="Close">Close</button>
+                    <button type="submit" class="btn btn-sm btn-primary AddEditComboBtn"><i class="bx bx-check me-1"></i>Save</button>
+                    <button type="button" class="btn btn-sm btn-outline-danger" data-bs-dismiss="modal" aria-label="Close"><i class="bx bx-x me-1"></i>Close</button>
                 </div>
             </div>
 
@@ -50,7 +57,7 @@
                         <div class="mb-3 col-md-6">
                             <label for="ComboTaxPercentage" class="form-label">Tax %</label>
                             <select id="ComboTaxPercentage" name="ComboTaxPercentage" class="select2 form-select">
-                                <option label="-- Select Tax Percentage --"></option>
+                                <option value=""></option>
                                 <?php if (sizeof($TaxDetInfo) > 0) {
                                     foreach ($TaxDetInfo as $TaxInfo) { ?>
                                         <option value="<?php echo $TaxInfo->TaxDetailsUID; ?>" data-left="<?php echo smartDecimal($TaxInfo->Percentage); ?>" data-right="<?php echo $TaxInfo->TaxName; ?>"><?php echo $TaxInfo->TaxName; ?></option>
@@ -59,11 +66,11 @@
                             </select>
                         </div>
                         <div class="mb-3 col-md-6">
-                            <label for="ComboPrimaryUnit" class="form-label">Primary Unit <span style="color:red">*</span></label>
-                            <select id="ComboPrimaryUnit" name="ComboPrimaryUnit" class="select2 form-select" required>
+                            <label for="ComboPrimaryUnit" class="form-label">Primary Unit</label>
+                            <select id="ComboPrimaryUnit" name="ComboPrimaryUnit" class="select2 form-select">
                                 <option value="">-- Select Unit --</option>
                                 <?php if (!empty($PrimaryUnitInfo)): foreach ($PrimaryUnitInfo as $unit): ?>
-                                    <option value="<?php echo (int)$unit->PrimaryUnitUID; ?>"><?php echo htmlspecialchars($unit->ShortName . ' — ' . $unit->UnitName); ?></option>
+                                    <option value="<?php echo (int)$unit->PrimaryUnitUID; ?>"><?php echo htmlspecialchars($unit->ShortName . ' — ' . $unit->Name); ?></option>
                                 <?php endforeach; endif; ?>
                             </select>
                         </div>
@@ -86,7 +93,13 @@
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Quantity</label>
-                            <input type="number" class="form-control" id="ComboItemQty" min="0.001" step="any" placeholder="Qty" value="1" />
+                            <input type="text" class="form-control" id="ComboItemQty" placeholder="Qty"
+                                onkeydown="return handleDotOnly(event)"
+                                oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?= (int)($JwtData->GenSettings->PriceMaxLength ?? 10) ?>, <?= (int)($JwtData->GenSettings->DecimalPoints ?? 2) ?>)"
+                                maxlength="<?= (int)($JwtData->GenSettings->PriceMaxLength ?? 10) ?>"
+                                onpaste="handlePricePaste(event, <?= (int)($JwtData->GenSettings->PriceMaxLength ?? 10) ?>, <?= (int)($JwtData->GenSettings->DecimalPoints ?? 2) ?>)"
+                                ondrop="handlePriceDrop(event, <?= (int)($JwtData->GenSettings->PriceMaxLength ?? 10) ?>, <?= (int)($JwtData->GenSettings->DecimalPoints ?? 2) ?>)"
+                                value="1" />
                         </div>
                         <div class="col-md-2 d-flex align-items-end">
                             <button type="button" class="btn btn-success w-100" id="AddComboComponentBtn">
@@ -120,3 +133,7 @@
         </div>
     </div>
 </div>
+<script>
+var _comboQtyMaxLen = <?= (int)($JwtData->GenSettings->PriceMaxLength ?? 10) ?>;
+var _comboQtyDecimals = <?= (int)($JwtData->GenSettings->DecimalPoints ?? 2) ?>;
+</script>

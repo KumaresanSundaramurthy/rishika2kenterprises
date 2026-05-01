@@ -1,0 +1,271 @@
+/* =============================================================================
+   core.css — Project-level custom overrides
+   Loaded after vendor/css/core.css and demo.css so these rules take priority.
+   No inline styles. All custom CSS lives here.
+   ============================================================================= */
+
+/* ── Select2 — Global styling to match Bootstrap 5 form controls ─────────── */
+
+/* Base selection box */
+.select2-container--default .select2-selection--single,
+.select2-container--default .select2-selection--multiple {
+  border: 1px solid #d9dee3;
+  border-radius: 0.375rem;
+  height: 38px;
+  background-color: #fff;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+/* Rendered text inside selection */
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+  color: #697a8d;
+  line-height: 36px;
+  padding-left: 0.75rem;
+  padding-right: 2rem;
+  font-size: 0.9375rem;
+}
+
+/* Placeholder text */
+.select2-container--default .select2-selection--single .select2-selection__placeholder {
+  color: #b4bdc6;
+}
+
+/* Dropdown arrow */
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+  height: 36px;
+  right: 0.5rem;
+}
+
+/* Focus / open state — Bootstrap-style focus ring */
+.select2-container--default.select2-container--focus .select2-selection--single,
+.select2-container--default.select2-container--open .select2-selection--single {
+  border-color: #86b7fe;
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+  outline: 0;
+}
+
+/* Dropdown container */
+.select2-dropdown {
+  border: 1px solid #d9dee3;
+  border-radius: 0.375rem;
+  box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+}
+
+/* Internal dropdown search (used only when minimumResultsForSearch allows it) */
+.select2-search--dropdown {
+  padding: 6px 8px;
+  border-bottom: 1px solid #e9ecef;
+  background: #fff;
+}
+
+.select2-search--dropdown .select2-search__field {
+  border: 1px solid #d9dee3;
+  border-radius: 0.25rem;
+  padding: 0.3rem 0.625rem;
+  font-size: 0.875rem;
+  color: #697a8d;
+  outline: none;
+  width: 100%;
+}
+
+.select2-search--dropdown .select2-search__field:focus {
+  border-color: #86b7fe;
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.2);
+}
+
+/* Inline search (tags / multiple — search input is inside the selection box) */
+.select2-container--default .select2-selection--single .select2-search--inline .select2-search__field,
+.select2-container--default .select2-selection--multiple .select2-search--inline .select2-search__field {
+  font-size: 0.9375rem;
+  color: #697a8d;
+  margin-top: 0;
+  padding-left: 0.5rem;
+  height: 34px;
+  line-height: 34px;
+}
+
+.select2-container--default .select2-selection--single .select2-search--inline .select2-search__field::placeholder,
+.select2-container--default .select2-selection--multiple .select2-search--inline .select2-search__field::placeholder {
+  color: #b4bdc6;
+}
+
+/* Result options */
+.select2-results__option {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.9rem;
+  color: #697a8d;
+}
+
+.select2-results__option--highlighted[aria-selected] {
+  background-color: #0d6efd;
+  color: #fff;
+}
+
+.select2-results__option[aria-selected=true] {
+  background-color: #e7f1ff;
+  color: #0d6efd;
+}
+
+/* Clear (×) button */
+.select2-container--default .select2-selection--single .select2-selection__clear {
+  color: #8592a3;
+  font-size: 1.1rem;
+  margin-right: 0.25rem;
+}
+
+/* Ensure the Select2 container fills its parent column */
+.select2-container {
+  width: 100% !important;
+}
+
+/* ── Sidebar profile avatar ──────────────────────────────────────────────────
+   overflow:hidden + border-radius:50% on the wrapper clips the image to the
+   circle boundary. object-position:center center ensures the image subject is
+   always cropped from the mathematical center, not from an edge.
+   ─────────────────────────────────────────────────────────────────────────── */
+.profile-avatar-wrap {
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px;
+  min-height: 38px;
+  max-width: 38px;
+  max-height: 38px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  padding: 2px;
+  flex-shrink: 0;
+  overflow: hidden;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.07);
+  transition: border-color 0.2s ease;
+}
+
+.user-profile-item:hover .profile-avatar-wrap,
+.user-profile-item.profile-open .profile-avatar-wrap {
+  border-color: rgba(255, 255, 255, 0.55);
+}
+
+.profile-avatar-wrap img {
+  width: 30px !important;
+  height: 30px !important;
+  min-width: 30px;
+  min-height: 30px;
+  max-width: 30px;
+  max-height: 30px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center center;
+  display: block !important;
+  flex-shrink: 0;
+}
+
+/* Profile text */
+.profile-text-info {
+  line-height: 1.25;
+  overflow: hidden;
+}
+
+.profile-text-info .profile-name {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.92);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.profile-text-info .profile-role {
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.45);
+  white-space: nowrap;
+}
+
+/* Caret */
+.profile-caret {
+  margin-left: auto;
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.35);
+  transition: transform 0.2s ease, color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.user-profile-item.profile-open .profile-caret {
+  transform: rotate(180deg);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* Profile dropdown panel */
+#ProfileDropdownMenu {
+  display: none;
+  list-style: none;
+  margin: 4px 8px 8px 8px;
+  padding: 6px 4px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+#ProfileDropdownMenu .dropdown-item {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.82rem;
+  padding: 7px 10px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.15s, color 0.15s;
+}
+
+#ProfileDropdownMenu .dropdown-item:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+#ProfileDropdownMenu .dropdown-item i {
+  font-size: 0.95rem;
+}
+
+#ProfileDropdownMenu .dropdown-divider {
+  border-color: rgba(255, 255, 255, 0.08);
+  margin: 4px 0;
+}
+
+.user-profile-item > a.menu-link {
+  padding-top: 10px;
+  padding-bottom: 10px;
+  gap: 10px;
+}
+
+/* ── Suppress vertical-layout navbar ::before on horizontal-layout pages ─────
+   The vendor CSS fires .layout-page::before (a fixed backdrop-blur spacer) when
+   .layout-wrapper lacks .layout-horizontal. Theme JS should add that class from
+   data-layout="horizontal" on <html>, but if it fails in production the spurious
+   gradient appears. This project is exclusively horizontal — suppress it cleanly
+   by matching the same specificity (4 classes) so load-order wins, no !important.
+   ───────────────────────────────────────────────────────────────────────────── */
+.layout-navbar-fixed .layout-wrapper.layout-content-navbar .layout-page::before {
+  display: none;
+}
+
+/* ── modal-md — narrow modal used when category modal stacks over item form ── */
+.modal-dialog.modal-md {
+  max-width: 540px;
+}
+
+/* Inside the narrow category modal, stack the name/desc and dropzone columns
+   vertically so neither overflows the reduced width. */
+#categoryModalDialog.modal-md .col-md-9,
+#categoryModalDialog.modal-md .col-md-3 {
+  flex: 0 0 auto;
+  width: 100%;
+}
+
+/* Constrain the dropzone to a sensible height when stacked full-width */
+#categoryModalDialog.modal-md #DropzoneTwoBasic {
+  max-height: 140px;
+}

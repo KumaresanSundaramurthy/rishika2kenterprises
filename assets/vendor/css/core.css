@@ -29503,7 +29503,6 @@ body:not(.modal-open) .layout-content-navbar .layout-navbar {
 .r2k-tbody tr:last-child td { border-bottom: none; }
 .r2k-tbody tr:hover td { background: #eff6ff !important; color: #1e40af; }
 .r2k-tbody tr:hover td .text-muted { color: #94a3b8 !important; }
-.r2k-tbody tr:hover td:first-child { border-left: 3px solid #2563eb; }
 .r2k-tbody tr.row-sel td { background: #dbeafe !important; color: #1d4ed8; }
 .r2k-tbody tr.row-sel td:first-child { border-left: 3px solid #1d4ed8; }
 
@@ -29537,3 +29536,274 @@ body:not(.modal-open) .layout-content-navbar .layout-navbar {
 }
 
 /* ============================================================================= */
+
+
+/* ── R2K Toast Notification ─────────────────────────────────────────────── */
+#r2k-toast-wrap {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 99999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    pointer-events: none;
+}
+.r2k-toast-notify {
+    pointer-events: all;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #fff;
+    border-left: 4px solid #198754;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,.13);
+    padding: 10px 14px 14px 14px;
+    min-width: 260px;
+    max-width: 380px;
+    position: relative;
+    opacity: 0;
+    transform: translateY(-12px);
+    transition: opacity .25s ease, transform .25s ease;
+    overflow: hidden;
+}
+.r2k-toast-notify.r2k-toast-show {
+    opacity: 1;
+    transform: translateY(0);
+}
+.r2k-toast-icon { font-size: 1.2rem; flex-shrink: 0; }
+.r2k-toast-msg  { font-size: .84rem; font-weight: 500; color: #212529; flex: 1; }
+.r2k-toast-close {
+    background: none;
+    border: none;
+    font-size: 1.1rem;
+    line-height: 1;
+    color: #adb5bd;
+    cursor: pointer;
+    padding: 0;
+    flex-shrink: 0;
+}
+.r2k-toast-close:hover { color: #495057; }
+.r2k-toast-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    width: 100%;
+    animation: r2kToastBar 2.5s linear forwards;
+    border-radius: 0 0 8px 8px;
+}
+@keyframes r2kToastBar {
+    from { width: 100%; }
+    to   { width: 0%; }
+}
+
+
+/* ── Modal Select2 — standard dropdown (no combobox overlap) ────────────── */
+/* Hides the search box inside modals where combobox style is not needed     */
+#itemsModal .select2-container--default .select2-search--dropdown,
+#categoryModal .select2-container--default .select2-search--dropdown,
+#comboModal .select2-container--default .select2-search--dropdown {
+    display: none;
+}
+#itemsModal .select2-container--default .select2-dropdown--below,
+#categoryModal .select2-container--default .select2-dropdown--below,
+#comboModal .select2-container--default .select2-dropdown--below {
+    margin-top: 0;
+    border-radius: var(--bs-border-radius) !important;
+    border-color: var(--bs-select-border-color) !important;
+    box-shadow: var(--bs-select-dropdown-box-shadow) !important;
+}
+#itemsModal .select2-container--default.select2-container--open .select2-selection--single .select2-selection__rendered,
+#categoryModal .select2-container--default.select2-container--open .select2-selection--single .select2-selection__rendered,
+#comboModal .select2-container--default.select2-container--open .select2-selection--single .select2-selection__rendered {
+    color: var(--bs-select-color) !important;
+}
+#itemsModal .select2-container--default.select2-container--open .select2-selection--single,
+#categoryModal .select2-container--default.select2-container--open .select2-selection--single,
+#comboModal .select2-container--default.select2-container--open .select2-selection--single {
+    border-color: var(--bs-select-active-border-color) !important;
+    box-shadow: var(--bs-select-active-box-shadow) !important;
+}
+
+/* ── Modal header doc-icon utility ─────────────────────────────────────── */
+.modal-doc-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+/* ── Tax option select inside input-group — fixed width ─────────────────── */
+.input-group .tax-option-select {
+    flex: 0 0 35%;
+    width: 35%;
+}
+
+.modal-doc-icon-inner { font-size: 1.1rem; }
+
+
+/* ── Modal Select2 — search enabled + placeholder vertical center fix ─────
+   Overrides the previous block that hid the search box.
+   Scoped to product modals only.
+   ───────────────────────────────────────────────────────────────────────── */
+
+/* Show the search box (override previous display:none) */
+#itemsModal .select2-container--default .select2-search--dropdown,
+#categoryModal .select2-container--default .select2-search--dropdown,
+#comboModal .select2-container--default .select2-search--dropdown {
+    display: block;
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--bs-border-color);
+}
+
+/* Style the search input */
+#itemsModal .select2-container--default .select2-search--dropdown .select2-search__field,
+#categoryModal .select2-container--default .select2-search--dropdown .select2-search__field,
+#comboModal .select2-container--default .select2-search--dropdown .select2-search__field {
+    width: 100%;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius-sm);
+    background-color: var(--bs-body-bg);
+    color: var(--bs-heading-color);
+    outline: none;
+    box-shadow: none;
+}
+#itemsModal .select2-container--default .select2-search--dropdown .select2-search__field:focus,
+#categoryModal .select2-container--default .select2-search--dropdown .select2-search__field:focus,
+#comboModal .select2-container--default .select2-search--dropdown .select2-search__field:focus {
+    border-color: var(--bs-primary);
+    box-shadow: 0 0 0 0.15rem rgba(var(--bs-primary-rgb), 0.2);
+}
+
+/* Fix placeholder vertical centering — match line-height to field height */
+#itemsModal .select2-container--default .select2-selection--single .select2-selection__rendered,
+#categoryModal .select2-container--default .select2-selection--single .select2-selection__rendered,
+#comboModal .select2-container--default .select2-selection--single .select2-selection__rendered {
+    line-height: var(--bs-select-height);
+    display: flex;
+    align-items: center;
+    height: 100%;
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+#itemsModal .select2-container--default .select2-selection--single .select2-selection__placeholder,
+#categoryModal .select2-container--default .select2-selection--single .select2-selection__placeholder,
+#comboModal .select2-container--default .select2-selection--single .select2-selection__placeholder {
+    line-height: var(--bs-select-height);
+}
+
+
+/* ── Product modal Select2: inline search (search replaces the selection box) ──────────
+   When the dropdown opens, collapse the selection box to zero height and pull the
+   dropdown up by the same amount so the search field sits exactly where the
+   selection box was — one seamless box, no separation.
+   ──────────────────────────────────────────────────────────────────────────────────── */
+
+/* Collapse the selection box when open */
+#itemsModal .select2-container--default.select2-container--open .select2-selection--single,
+#categoryModal .select2-container--default.select2-container--open .select2-selection--single,
+#comboModal .select2-container--default.select2-container--open .select2-selection--single {
+    height: 0 !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    overflow: hidden;
+}
+
+/* Pull the dropdown up to cover where the selection box was (39px = selection height) */
+#itemsModal .select2-container--default .select2-dropdown--below,
+#categoryModal .select2-container--default .select2-dropdown--below,
+#comboModal .select2-container--default .select2-dropdown--below {
+    margin-top: -41px;
+}
+
+/* Make the search field look and feel like the original selection box */
+#itemsModal .select2-container--default .select2-search--dropdown,
+#categoryModal .select2-container--default .select2-search--dropdown,
+#comboModal .select2-container--default .select2-search--dropdown {
+    display: block;
+    padding: 0;
+    border-bottom: 1px solid var(--bs-border-color);
+}
+
+#itemsModal .select2-container--default .select2-search--dropdown .select2-search__field,
+#categoryModal .select2-container--default .select2-search--dropdown .select2-search__field,
+#comboModal .select2-container--default .select2-search--dropdown .select2-search__field {
+    width: 100%;
+    height: 39px;
+    padding: 0.4375rem 0.875rem;
+    font-size: 0.9375rem;
+    border: none;
+    border-radius: 0;
+    background-color: var(--bs-body-bg);
+    color: var(--bs-body-color);
+    outline: none;
+    box-shadow: none;
+}
+
+
+/* ── Select2 — match form-control height/width & plain textbox look ─────── */
+
+.select2-container {
+    width: 100% !important;
+}
+
+.select2-container--default .select2-selection--single {
+    height: calc(1.5em + 0.9375rem + 2px) !important;
+    padding: 0.4375rem 0.875rem !important;
+    border: 1px solid #d9dee3 !important;
+    border-radius: 0.375rem !important;
+    background-color: #fff !important;
+    box-shadow: none !important;
+    display: flex !important;
+    align-items: center !important;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    display: none !important;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    line-height: normal !important;
+    padding: 0 !important;
+    color: #697a8d !important;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__rendered:not(:empty) {
+    color: #566a7f !important;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__placeholder {
+    color: #b4bec8 !important;
+}
+
+.select2-container--default.select2-container--open .select2-selection--single,
+.select2-container--default.select2-container--focus .select2-selection--single {
+    border-color: #696cff !important;
+    outline: 0 !important;
+    box-shadow: 0 0 0 0.2rem rgba(105, 108, 255, 0.25) !important;
+}
+
+.select2-container--default .select2-search--dropdown .select2-search__field {
+    border: 1px solid #d9dee3 !important;
+    border-radius: 0.375rem !important;
+    padding: 0.375rem 0.75rem !important;
+    font-size: 0.9375rem !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+.select2-container--default .select2-search--dropdown .select2-search__field:focus {
+    border-color: #696cff !important;
+    outline: 0 !important;
+    box-shadow: 0 0 0 0.2rem rgba(105, 108, 255, 0.25) !important;
+}

@@ -85,8 +85,18 @@ if (!empty($DataLists)):
         <!-- Mobile -->
         <td>
             <?php if (!empty($list->MobileNumber)): ?>
-                <div><?php echo htmlspecialchars($list->MobileNumber); ?></div>
-                <a href="https://wa.me/<?php echo htmlspecialchars($list->MobileNumber); ?>?text=Hi"
+                <?php $fullMobile = ($list->CountryCode ? $list->CountryCode . ' ' : '') . $list->MobileNumber; ?>
+                <div class="d-flex align-items-center gap-1">
+                    <span class="copy-mobile cursor-pointer"
+                          data-mobile="<?php echo htmlspecialchars($list->MobileNumber); ?>"
+                          data-bs-toggle="tooltip"
+                          data-bs-placement="top"
+                          title="Click to copy mobile number"
+                          style="font-size:.82rem;">
+                        <?php echo htmlspecialchars($fullMobile); ?>
+                    </span>
+                </div>
+                <a href="https://wa.me/<?php echo htmlspecialchars(preg_replace('/[^0-9]/', '', $list->CountryCode . $list->MobileNumber)); ?>?text=Hi"
                    target="_blank" class="text-success" style="font-size:.75rem;">
                     <i class="bx bxl-whatsapp me-1"></i>WhatsApp
                 </a>
@@ -125,7 +135,20 @@ if (!empty($DataLists)):
 
         <!-- Updated On -->
         <td>
-            <div style="font-size:.8rem;"><?php echo !empty($list->UpdatedOn) ? changeTimeZonefromDateTime($list->UpdatedOn, $JwtData->User->Timezone, 2) : '—'; ?></div>
+            <?php
+                $updatedOn  = $list->UpdatedOn ?? null;
+                $secondsAgo = $updatedOn ? (time() - strtotime($updatedOn)) : null;
+                $within24h  = $secondsAgo !== null && $secondsAgo < 86400;
+                if ($within24h) {
+                    if ($secondsAgo < 60)       $agoText = 'just now';
+                    elseif ($secondsAgo < 3600) $agoText = (int)($secondsAgo / 60) . ' min' . ((int)($secondsAgo / 60) > 1 ? 's' : '') . ' ago';
+                    else                        $agoText = (int)($secondsAgo / 3600) . ' hr' . ((int)($secondsAgo / 3600) > 1 ? 's' : '') . ' ago';
+                }
+            ?>
+            <div style="font-size:.8rem;"><?php echo $updatedOn ? changeTimeZonefromDateTime($updatedOn, $JwtData->User->Timezone, 2) : '—'; ?></div>
+            <?php if ($within24h): ?>
+            <div style="font-size:.68rem;color:#0d6efd;font-weight:500;"><?php echo $agoText; ?></div>
+            <?php endif; ?>
             <div class="text-muted" style="font-size:.7rem;">by <?php echo htmlspecialchars($list->UpdatedBy ?? '—'); ?></div>
         </td>
 
@@ -156,6 +179,31 @@ if (!empty($DataLists)):
                             <a class="dropdown-item" href="https://wa.me/<?php echo htmlspecialchars($list->MobileNumber); ?>?text=Hi" target="_blank">
                                 <i class="bx bxl-whatsapp me-2 text-success"></i>Send WhatsApp
                             </a>
+                        </li>
+                        <li>
+                            <button class="dropdown-item comm-send-single"
+                                    data-commtype="SMS"
+                                    data-recipienttype="Vendor"
+                                    data-uid="<?php echo $uid; ?>"
+                                    data-name="<?php echo $name; ?>"
+                                    data-mobile="<?php echo htmlspecialchars($list->MobileNumber ?? ''); ?>"
+                                    data-email="<?php echo htmlspecialchars($list->EmailAddress ?? ''); ?>">
+                                <i class="bx bx-message-rounded me-2 text-info"></i>Send SMS
+                            </button>
+                        </li>
+                        <?php endif; ?>
+
+                        <?php if (!empty($list->EmailAddress)): ?>
+                        <li>
+                            <button class="dropdown-item comm-send-single"
+                                    data-commtype="Email"
+                                    data-recipienttype="Vendor"
+                                    data-uid="<?php echo $uid; ?>"
+                                    data-name="<?php echo $name; ?>"
+                                    data-mobile="<?php echo htmlspecialchars($list->MobileNumber ?? ''); ?>"
+                                    data-email="<?php echo htmlspecialchars($list->EmailAddress ?? ''); ?>">
+                                <i class="bx bx-envelope me-2 text-primary"></i>Send Email
+                            </button>
                         </li>
                         <?php endif; ?>
 

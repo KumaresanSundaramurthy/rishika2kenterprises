@@ -2,7 +2,7 @@
 
 <?php $this->load->view('common/header'); ?>
 
-<div class="layout-wrapper layout-content-navbar">
+<div class="layout-wrapper layout-horizontal layout-content-navbar">
     <div class="layout-container">
 
         <?php $this->load->view('common/menu_view'); ?>
@@ -18,7 +18,7 @@
                         <div class="col-6 col-md">
                             <div class="trans-stat-card stat-all">
                                 <div class="trans-stat-label">Total Customers</div>
-                                <div class="trans-stat-count"><?php echo number_format((int)($s->TotalCount ?? 0)); ?></div>
+                                <div class="trans-stat-count cust-stat-total"><?php echo number_format((int)($s->TotalCount ?? 0)); ?></div>
                                 <div class="trans-stat-amount">&nbsp;</div>
                                 <i class="bx bxs-group trans-stat-icon"></i>
                             </div>
@@ -26,7 +26,7 @@
                         <div class="col-6 col-md">
                             <div class="trans-stat-card stat-active">
                                 <div class="trans-stat-label">Active</div>
-                                <div class="trans-stat-count"><?php echo number_format((int)($s->ActiveCount ?? 0)); ?></div>
+                                <div class="trans-stat-count cust-stat-active"><?php echo number_format((int)($s->ActiveCount ?? 0)); ?></div>
                                 <div class="trans-stat-amount">&nbsp;</div>
                                 <i class="bx bx-check-circle trans-stat-icon"></i>
                             </div>
@@ -34,7 +34,7 @@
                         <div class="col-6 col-md">
                             <div class="trans-stat-card stat-paid">
                                 <div class="trans-stat-label">This Month</div>
-                                <div class="trans-stat-count"><?php echo number_format((int)($s->MonthCount ?? 0)); ?></div>
+                                <div class="trans-stat-count cust-stat-month"><?php echo number_format((int)($s->MonthCount ?? 0)); ?></div>
                                 <div class="trans-stat-amount">&nbsp;</div>
                                 <i class="bx bx-calendar trans-stat-icon"></i>
                             </div>
@@ -42,7 +42,7 @@
                         <div class="col-6 col-md">
                             <div class="trans-stat-card stat-converted">
                                 <div class="trans-stat-label">This Financial Year</div>
-                                <div class="trans-stat-count"><?php echo number_format((int)($s->FYCount ?? 0)); ?></div>
+                                <div class="trans-stat-count cust-stat-fy"><?php echo number_format((int)($s->FYCount ?? 0)); ?></div>
                                 <div class="trans-stat-amount">&nbsp;</div>
                                 <i class="bx bx-trending-up trans-stat-icon"></i>
                             </div>
@@ -50,7 +50,7 @@
                         <div class="col-6 col-md">
                             <div class="trans-stat-card stat-draft">
                                 <div class="trans-stat-label">Last Month</div>
-                                <div class="trans-stat-count"><?php echo number_format((int)($s->LastMonthCount ?? 0)); ?></div>
+                                <div class="trans-stat-count cust-stat-lastmonth"><?php echo number_format((int)($s->LastMonthCount ?? 0)); ?></div>
                                 <div class="trans-stat-amount">&nbsp;</div>
                                 <i class="bx bx-history trans-stat-icon"></i>
                             </div>
@@ -87,6 +87,12 @@
                                         </li>
                                         <li class="d-none" id="DeleteOption">
                                             <a class="dropdown-item text-danger" href="javascript:void(0);" id="btnDelete"><i class="bx bx-trash me-1"></i> Delete</a>
+                                        </li>
+                                        <li class="d-none" id="BulkSmsOption">
+                                            <a class="dropdown-item" href="javascript:void(0);" id="btnBulkSms"><i class="bx bx-message-rounded me-1 text-info"></i> Send SMS</a>
+                                        </li>
+                                        <li class="d-none" id="BulkEmailOption">
+                                            <a class="dropdown-item" href="javascript:void(0);" id="btnBulkEmail"><i class="bx bx-envelope me-1 text-primary"></i> Send Email</a>
                                         </li>
                                         <li class="dropdown-submenu">
                                             <a class="dropdown-item" href="javascript:void(0);"><i class="bx bx-export me-1"></i> Export</a>
@@ -151,6 +157,7 @@
 
             <?php $this->load->view('common/imagepreview_modal'); ?>
             <?php $this->load->view('common/settings_modal'); ?>
+            <?php $this->load->view('common/modals/send_communication'); ?>
             <?php $this->load->view('common/footer_desc'); ?>
         </div>
 
@@ -160,8 +167,8 @@
 <?php $this->load->view('common/footer'); ?>
 
 <script src="/js/customers.js"></script>
-
 <script src="/js/common/pagecheckbox.js"></script>
+<script src="/js/common/communication.js"></script>
 
 <script>
 let ModuleId = <?php echo $ModuleId; ?>;

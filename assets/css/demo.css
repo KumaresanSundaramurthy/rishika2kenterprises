@@ -112,3 +112,5 @@
 .menu-vertical .menu-sub .menu-item .menu-link:has(.menu-icon)::before {
   display: none !important;
 }
+
+/* Select2 rules moved to assets/css/core.css */

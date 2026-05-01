@@ -49,8 +49,21 @@ if (!empty($DataLists)) {
                 <?php endif; ?>
             </td>
             <td>
-                <div><?php echo changeTimeZonefromDateTime($row->UpdatedOn, $JwtData->User->Timezone, 2); ?></div>
-                <div class="text-muted" style="font-size: 0.75rem;"><?php echo 'by ' . $row->UpdatedBy; ?></div>
+                <?php
+                    $updatedOn  = $row->UpdatedOn ?? null;
+                    $secondsAgo = $updatedOn ? (time() - strtotime($updatedOn)) : null;
+                    $within24h  = $secondsAgo !== null && $secondsAgo < 86400;
+                    if ($within24h) {
+                        if ($secondsAgo < 60)       $agoText = 'just now';
+                        elseif ($secondsAgo < 3600) $agoText = (int)($secondsAgo / 60) . ' min' . ((int)($secondsAgo / 60) > 1 ? 's' : '') . ' ago';
+                        else                        $agoText = (int)($secondsAgo / 3600) . ' hr' . ((int)($secondsAgo / 3600) > 1 ? 's' : '') . ' ago';
+                    }
+                ?>
+                <div><?php echo $updatedOn ? changeTimeZonefromDateTime($updatedOn, $JwtData->User->Timezone, 2) : '—'; ?></div>
+                <?php if ($within24h): ?>
+                <div style="font-size:.68rem;color:#0d6efd;font-weight:500;"><?php echo $agoText; ?></div>
+                <?php endif; ?>
+                <div class="text-muted" style="font-size: 0.75rem;">by <?php echo htmlspecialchars($row->UpdatedBy ?? '—'); ?></div>
             </td>
             <td>
                 <div class="d-flex align-items-center justify-content-end gap-1">

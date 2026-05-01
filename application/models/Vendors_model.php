@@ -282,7 +282,7 @@ class Vendors_model extends CI_Model {
         try {
             $this->ReadDb->db_debug = FALSE;
 
-            $baseWhere = ['Vendors.IsDeleted' => 0, 'Vendors.IsActive' => 1, 'Vendors.OrgUID' => $orgUID];
+            $baseWhere = ['Vendors.IsDeleted' => 0, 'Vendors.OrgUID' => $orgUID];
 
             // Count query
             $this->ReadDb->select('COUNT(*) AS cnt');
@@ -298,7 +298,7 @@ class Vendors_model extends CI_Model {
                 $this->ReadDb->group_end();
             }
             if (isset($filter['IsActive']) && $filter['IsActive'] !== '') {
-                $this->ReadDb->where('Vendors.IsActive', (int)$filter['IsActive']);
+                $this->ReadDb->where('Vendors.IsActive', (int) $filter['IsActive']);
             }
             $cntQuery = $this->ReadDb->get();
             if (!$cntQuery) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
@@ -324,6 +324,7 @@ class Vendors_model extends CI_Model {
                 'Vendors.Notes AS Notes',
                 'Vendors.Tags AS Tags',
                 'Vendors.CCEmails AS CCEmails',
+                'Vendors.IsActive AS IsActive',
                 'Vendors.CreatedOn AS CreatedOn',
                 'Vendors.UpdatedOn AS UpdatedOn',
                 "CONCAT(User.FirstName, ' ', User.LastName) AS UpdatedBy",
@@ -401,6 +402,29 @@ class Vendors_model extends CI_Model {
             throw new Exception($e->getMessage());
         }
 
+    }
+
+    public function getVendorTags($OrgUID) {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('Vendors.Tags AS Tags');
+            $this->ReadDb->from('Vendors.VendorTbl as Vendors');
+            $this->ReadDb->where(['Vendors.OrgUID' => (int)$OrgUID, 'Vendors.IsDeleted' => 0, 'Vendors.IsActive' => 1]);
+            $this->ReadDb->where('Vendors.Tags IS NOT NULL');
+            $this->ReadDb->where('Vendors.Tags !=', '');
+            $query = $this->ReadDb->get();
+            if (!$query) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
+            $tags = [];
+            foreach ($query->result() as $row) {
+                foreach (explode(',', $row->Tags) as $t) {
+                    $t = trim($t);
+                    if ($t !== '') $tags[$t] = true;
+                }
+            }
+            return array_keys($tags);
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
     }
 
 }

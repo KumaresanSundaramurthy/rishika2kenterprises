@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php $this->load->view('common/header'); ?>
 
 <style>
@@ -26,7 +26,7 @@
 .bc-preview-svg         { max-width: 130px; }
 </style>
 
-<div class="layout-wrapper layout-content-navbar">
+<div class="layout-wrapper layout-horizontal layout-content-navbar">
     <div class="layout-container">
         <?php $this->load->view('common/menu_view'); ?>
         <div class="layout-page">

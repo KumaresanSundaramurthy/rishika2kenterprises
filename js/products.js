@@ -3,6 +3,30 @@
  * @param {*} RowLimit
  * @param {*} Filter
  */
+function toggleProductStatus(ProductUID, IsActive) {
+    $.ajax({
+        url: '/products/toggleProductStatus',
+        method: 'POST',
+        cache: false,
+        data: {
+            ProductUID: ProductUID,
+            IsActive: IsActive,
+            PageNo: PageNo,
+            RowLimit: RowLimit,
+            Filter: Filter,
+            [CsrfName]: CsrfToken
+        },
+        success: function (response) {
+            if (response.Error) {
+                showAlertMessageSwal('error', '', response.Message);
+            } else {
+                showToastNotification(response.Message, 'success');
+                executeProdPagnFunc(response, true, true);
+            }
+        }
+    });
+}
+
 function getProductDetails(PageNo, RowLimit, Filter) {
     $.ajax({
         url: '/products/getProductList',
@@ -46,7 +70,8 @@ function addProductData(formdata) {
                 $('#AddEditItemForm').trigger('reset');
                 $('#itemsModal').modal('hide');
                 clearItemValues();
-                executeProdPagnFunc(response, true);
+                showToastNotification(response.Message, 'success');
+                executeProdPagnFunc(response, true, true);
             }
         }
     });
@@ -162,7 +187,8 @@ function editProductData(formdata) {
                 $('#AddEditItemForm').trigger('reset');
                 $('#itemsModal').modal('hide');
                 clearItemValues();
-                executeProdPagnFunc(response, true);
+                showToastNotification(response.Message, 'success');
+                executeProdPagnFunc(response, true, true);
             }
         }
     });
@@ -220,18 +246,19 @@ function deleteMultipleProduct() {
     });
 }
 
-function executeProdPagnFunc(response, tableinfo = false) {
+function executeProdPagnFunc(response, tableinfo = false, silent = false) {
     if (tableinfo) {
         $(ProdPag).html(response.Pagination);
         $(ProdTable + ' tbody').html(response.List);
-        Swal.fire(response.Message, "", "success");
     }
     if (typeof response.TotalCount !== 'undefined') {
         updateProductCount(response.TotalCount);
     } else if (tableinfo) {
-        // After add/edit/delete, re-read count from pagination result count element if available
         var $countEl = $(ProdPag).find('.pagination-result-count, [data-total-count]');
         if ($countEl.length) updateProductCount(parseInt($countEl.data('total-count') || $countEl.text()) || 0);
+    }
+    if (response.Stats) {
+        updateProductStats(response.Stats);
     }
     headerCheckboxTrueFalse(ProdTable, ProdHeader, ProdRow);
     MultipleDeleteOption();
@@ -242,6 +269,24 @@ function updateProductCount(count) {
     if ($badge.length) {
         $badge.text(count);
     }
+}
+
+function updateProductStats(stats) {
+    if (!stats) return;
+    var s = stats;
+    // Total / Active / Inactive
+    $('.stat-all .trans-stat-count').text(Number(s.TotalProducts || 0).toLocaleString());
+    $('.stat-all .trans-stat-amount .text-success').html('<i class="bx bx-check-circle"></i> ' + Number(s.ActiveCount || 0).toLocaleString() + ' Active');
+    $('.stat-all .trans-stat-amount .text-danger').html('<i class="bx bx-x-circle"></i> ' + Number(s.InActiveCount || 0).toLocaleString() + ' In-Active');
+    // Stock Value
+    $('.stat-paid .trans-stat-count').text(currencySymbol + ' ' + parseFloat(s.TotalStockValue || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','));
+    // Added
+    $('.stat-active .trans-stat-count').html(Number(s.AddedThisMonth || 0).toLocaleString() + ' <span style="font-size:.7rem;font-weight:400;">this month</span>');
+    $('.stat-active .trans-stat-amount').html(Number(s.AddedThisFY || 0).toLocaleString() + ' this FY &nbsp;|&nbsp; ' + Number(s.RecentlyUpdated || 0).toLocaleString() + ' updated (7d)');
+    // Low Stock
+    $('.stat-draft .trans-stat-count').text(Number(s.LowStockItems || 0).toLocaleString());
+    // Not For Sale
+    $('.stat-converted .trans-stat-count').text(Number(s.NotForSale || 0).toLocaleString());
 }
 
 /**
@@ -298,6 +343,7 @@ function addCategoryDetails(formdata) {
                     formObj.InsertId = response.InsertId;
                     formObj.CategoryName = formdata.get('CategoryName');
                     updateCategoryOptions(formObj, 'insert');
+                    showToastNotification(response.Message, 'success');
                     if ($('#categoryModal').data('calledFromItemForm')) {
                         $('#categoryModal').data('calledFromItemForm', false);
                         $(document).trigger('catgSavedFromItemForm', [{ id: response.InsertId, name: formdata.get('CategoryName') }]);
@@ -430,7 +476,7 @@ function executeCatgPagnFunc(response, tableinfo = false) {
     if (tableinfo) {
         $(CatgPag).html(response.Pagination);
         $(CatgTable + ' tbody').html(response.List);
-        Swal.fire(response.Message, "", "success");
+        showToastNotification(response.Message, 'success');
     }
     headerCheckboxTrueFalse(CatgTable, CatgHeader, CatgRow);
     MultipleDeleteOption();
@@ -606,7 +652,7 @@ function executeSizePagnFunc(response, tableinfo = false) {
     if (tableinfo) {
         $(SizePag).html(response.Pagination);
         $(SizeTable + ' tbody').html(response.List);
-        Swal.fire(response.Message, "", "success");
+        showToastNotification(response.Message, 'success');
     }
     headerCheckboxTrueFalse(SizeTable, SizeHeader, SizeRow);
     MultipleDeleteOption();
@@ -781,7 +827,7 @@ function executeBrandPagnFunc(response, tableinfo = false) {
     if (tableinfo) {
         $(BrandPag).html(response.Pagination);
         $(BrandTable + ' tbody').html(response.List);
-        Swal.fire(response.Message, "", "success");
+        showToastNotification(response.Message, 'success');
     }
     headerCheckboxTrueFalse(BrandTable, BrandHeader, BrandRow);
     MultipleDeleteOption();
@@ -1333,6 +1379,6 @@ function loadTaxDetailOptions() {
                     '<span class="text-muted small">' + right + '</span>' +
                     '</div>');
         },
-        dropdownParent: '#itemsModal',
+        dropdownParent: $('#itemsModal'),
     });
 }

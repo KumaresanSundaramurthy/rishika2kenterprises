@@ -1,9 +1,9 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php $this->load->view('common/header'); ?>
 
 <!-- Layout wrapper -->
-<div class="layout-wrapper layout-content-navbar">
+<div class="layout-wrapper layout-horizontal layout-content-navbar">
     <div class="layout-container">
 
         <?php $this->load->view('common/menu_view'); ?>
@@ -22,7 +22,7 @@
                         <div class="col-6 col-md">
                             <div class="trans-stat-card stat-all">
                                 <div class="trans-stat-label">Total Vendors</div>
-                                <div class="trans-stat-count"><?php echo number_format((int)($s->TotalCount ?? 0)); ?></div>
+                                <div class="trans-stat-count vend-stat-total"><?php echo number_format((int)($s->TotalCount ?? 0)); ?></div>
                                 <div class="trans-stat-amount">&nbsp;</div>
                                 <i class="bx bxs-store trans-stat-icon"></i>
                             </div>
@@ -30,7 +30,7 @@
                         <div class="col-6 col-md">
                             <div class="trans-stat-card stat-active">
                                 <div class="trans-stat-label">Active</div>
-                                <div class="trans-stat-count"><?php echo number_format((int)($s->ActiveCount ?? 0)); ?></div>
+                                <div class="trans-stat-count vend-stat-active"><?php echo number_format((int)($s->ActiveCount ?? 0)); ?></div>
                                 <div class="trans-stat-amount">&nbsp;</div>
                                 <i class="bx bx-check-circle trans-stat-icon"></i>
                             </div>
@@ -38,7 +38,7 @@
                         <div class="col-6 col-md">
                             <div class="trans-stat-card stat-paid">
                                 <div class="trans-stat-label">This Month</div>
-                                <div class="trans-stat-count"><?php echo number_format((int)($s->MonthCount ?? 0)); ?></div>
+                                <div class="trans-stat-count vend-stat-month"><?php echo number_format((int)($s->MonthCount ?? 0)); ?></div>
                                 <div class="trans-stat-amount">&nbsp;</div>
                                 <i class="bx bx-calendar trans-stat-icon"></i>
                             </div>
@@ -46,7 +46,7 @@
                         <div class="col-6 col-md">
                             <div class="trans-stat-card stat-converted">
                                 <div class="trans-stat-label">This Financial Year</div>
-                                <div class="trans-stat-count"><?php echo number_format((int)($s->FYCount ?? 0)); ?></div>
+                                <div class="trans-stat-count vend-stat-fy"><?php echo number_format((int)($s->FYCount ?? 0)); ?></div>
                                 <div class="trans-stat-amount">&nbsp;</div>
                                 <i class="bx bx-trending-up trans-stat-icon"></i>
                             </div>
@@ -54,7 +54,7 @@
                         <div class="col-6 col-md">
                             <div class="trans-stat-card stat-draft">
                                 <div class="trans-stat-label">Last Month</div>
-                                <div class="trans-stat-count"><?php echo number_format((int)($s->LastMonthCount ?? 0)); ?></div>
+                                <div class="trans-stat-count vend-stat-lastmonth"><?php echo number_format((int)($s->LastMonthCount ?? 0)); ?></div>
                                 <div class="trans-stat-amount">&nbsp;</div>
                                 <i class="bx bx-history trans-stat-icon"></i>
                             </div>
@@ -92,6 +92,12 @@
                                         <li class="d-none" id="DeleteOption">
                                             <a class="dropdown-item text-danger" href="javascript:void(0);" id="btnDelete"><i class="bx bx-trash me-1"></i> Delete</a>
                                         </li>
+                                        <li class="d-none" id="BulkSmsOption">
+                                            <a class="dropdown-item" href="javascript:void(0);" id="btnBulkSms"><i class="bx bx-message-rounded me-1 text-info"></i> Send SMS</a>
+                                        </li>
+                                        <li class="d-none" id="BulkEmailOption">
+                                            <a class="dropdown-item" href="javascript:void(0);" id="btnBulkEmail"><i class="bx bx-envelope me-1 text-primary"></i> Send Email</a>
+                                        </li>
                                         <li class="dropdown-submenu">
                                             <a class="dropdown-item" href="javascript:void(0);"><i class="bx bx-export me-1"></i> Export</a>
                                             <ul class="dropdown-menu">
@@ -118,8 +124,10 @@
                                             </div>
                                         </th>
                                         <th class="<?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>" style="width:44px">#</th>
-                                        <th class="vend-name-sortable cursor-pointer" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">
-                                            Vendor <i class="bx bx-sort sort-icon ms-1"></i>
+                                        <th class="vend-name-sortable position-relative cursor-pointer" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">
+                                            <span class="sort-label">Vendor <i class="bx bx-sort sort-icon ms-1"></i></span>
+                                            <a href="javascript:void(0);" id="vendTagFilter" class="text-body ms-1" onclick="toggleVendTagFilter(); event.stopPropagation();" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by Tag"><i class="bx bx-filter-alt fs-6 align-middle"></i></a>
+                                            <div id="vendTagFilterBox" class="card mp-filterbox position-absolute" style="min-width:220px;z-index:1056;display:none;top:100%;left:0;"><?php $this->load->view('vendors/tagfilter', ['Tags' => $Tags]); ?></div>
                                         </th>
                                         <th class="vend-area-sortable cursor-pointer" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">Area <i class="bx bx-sort sort-icon ms-1"></i></th>
                                         <th>Mobile</th>
@@ -149,6 +157,7 @@
             <!-- Content wrapper -->
             
             <?php $this->load->view('common/settings_modal'); ?>
+            <?php $this->load->view('common/modals/send_communication'); ?>
             <?php $this->load->view('common/footer_desc'); ?>
 
         </div>
@@ -160,6 +169,7 @@
 
 <script src="/js/vendors.js"></script>
 <script src="/js/common/pagecheckbox.js"></script>
+<script src="/js/common/communication.js"></script>
 
 <script>
 let ModuleId = <?php echo $ModuleId; ?>;
@@ -302,6 +312,45 @@ $(function() {
         PageNo = 0; getVendorsDetails(PageNo, RowLimit, Filter);
     });
 
+    // ── Tag filter ──
+    window.toggleVendTagFilter = function () {
+        var $box = $('#vendTagFilterBox');
+        $box.toggle();
+    };
+    window.closeVendTagFilter = function () { $('#vendTagFilterBox').hide(); };
+    window.toggleAllVendTags = function (el) {
+        var checked = $(el).is(':checked');
+        $('#vendTagList .vend-tag-chk').prop('checked', checked);
+        $('#vendTagSelectAllLabel').text(checked ? 'Deselect All' : 'Select All');
+    };
+    window.applyVendTagFilter = function () {
+        var selected = $('.vend-tag-chk:checked').map(function () { return $(this).val(); }).get();
+        if (selected.length) Filter['Tags'] = selected; else delete Filter['Tags'];
+        $('#vendTagFilterBox').hide();
+        $('#vendTagFilter').toggleClass('text-primary', !!selected.length);
+        PageNo = 0; getVendorsDetails(PageNo, RowLimit, Filter);
+    };
+    window.resetVendTagFilter = function () {
+        $('.vend-tag-chk').prop('checked', false);
+        $('#selectAllVendTags').prop('checked', false);
+        $('#vendTagSelectAllLabel').text('Select All');
+        delete Filter['Tags'];
+        $('#vendTagFilterBox').hide();
+        $('#vendTagFilter').removeClass('text-primary');
+        PageNo = 0; getVendorsDetails(PageNo, RowLimit, Filter);
+    };
+    $(document).on('input', '#vendTagSearch', function () {
+        var term = $(this).val().toLowerCase();
+        $('#vendTagList .catg-list-item').each(function () {
+            $(this).toggle($(this).text().toLowerCase().includes(term));
+        });
+    });
+    $(document).on('change', '.vend-tag-chk', function () {
+        var total = $('.vend-tag-chk').length, checked = $('.vend-tag-chk:checked').length;
+        $('#selectAllVendTags').prop('checked', total === checked && total > 0);
+        $('#vendTagSelectAllLabel').text(total === checked && total > 0 ? 'Deselect All' : 'Select All');
+    });
+
     // ── Status toggle ──
     $(document).on('click', '.vend-status-toggle', function (e) {
         e.preventDefault();
@@ -315,15 +364,13 @@ $(function() {
             confirmButtonText: 'Yes, change it',
         }).then(function (r) {
             if (!r.isConfirmed) return;
-            $.ajax({
-                url: '/vendors/toggleVendorStatus', method: 'POST',
-                data: { VendorUID: uid, IsActive: newStatus, [CsrfName]: CsrfToken },
-                success: function (resp) {
-                    if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); }
-                    else { getVendorsDetails(PageNo, RowLimit, Filter); }
-                }
-            });
+            toggleVendorStatus(uid, newStatus);
         });
+    });
+
+    // ── Close filter boxes on outside click ──
+    $(document).on('click', function (e) {
+        if (!$(e.target).closest('#vendTagFilterBox, #vendTagFilter').length) $('#vendTagFilterBox').hide();
     });
 
 });

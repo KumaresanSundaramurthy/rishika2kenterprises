@@ -1,4 +1,4 @@
-<html>
+﻿<html>
 <head>
     <title><?php echo getSiteConfiguration()->ShortName; ?></title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -28,7 +28,7 @@
 
     ?>
 
-    <div class="layout-wrapper layout-content-navbar">
+    <div class="layout-wrapper layout-horizontal layout-content-navbar">
         <div class="layout-container">
 
             <div class="layout-page">

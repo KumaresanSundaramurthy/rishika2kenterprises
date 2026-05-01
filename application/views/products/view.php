@@ -1,9 +1,9 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php $this->load->view('common/header'); ?>
 
 <!-- Layout wrapper -->
-<div class="layout-wrapper layout-content-navbar">
+<div class="layout-wrapper layout-horizontal layout-content-navbar">
     <div class="layout-container">
 
         <?php $this->load->view('common/menu_view'); ?>
@@ -25,7 +25,10 @@
                             <div class="trans-stat-card stat-all">
                                 <div class="trans-stat-label">Total Products</div>
                                 <div class="trans-stat-count"><?php echo number_format((int)($s->TotalProducts ?? 0)); ?></div>
-                                <div class="trans-stat-amount">&nbsp;</div>
+                                <div class="trans-stat-amount">
+                                    <span class="text-success me-2"><i class="bx bx-check-circle"></i> <?php echo number_format((int)($s->ActiveCount ?? 0)); ?> Active</span>
+                                    <span class="text-danger"><i class="bx bx-x-circle"></i> <?php echo number_format((int)($s->InActiveCount ?? 0)); ?> In-Active</span>
+                                </div>
                                 <i class="bx bx-package trans-stat-icon"></i>
                             </div>
                         </div>
@@ -166,6 +169,8 @@
                                                         </th>
                                                         <th class="col-sortable cursor-pointer position-relative" data-filterkey="StatusSorting" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">
                                                             Status <i class="bx bx-sort sort-icon ms-1"></i>
+                                                            <a href="javascript:void(0);" id="statusFilter" class="text-body ms-1" onclick="toggleStatusFilter(); event.stopPropagation();" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by Status"><i class="bx bx-filter-alt fs-6 align-middle"></i></a>
+                                                            <div id="statusFilterBox" class="card mp-filterbox position-absolute" style="min-width:200px; z-index:1056; display:none; top:100%; left:0;"><?php $this->load->view('products/items/statusfilter'); ?></div>
                                                         </th>
                                                         <th class="col-sortable cursor-pointer position-relative" data-filterkey="CategorySorting" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">
                                                             Category <i class="bx bx-sort sort-icon ms-1"></i>
@@ -410,7 +415,7 @@ $(function() {
             $('.name-sortable .sort-icon, .col-sortable .sort-icon').removeClass('bx-up-arrow-alt bx-down-arrow-alt text-primary').addClass('bx-sort');
             $('.name-sortable, .col-sortable').removeClass('col-active').attr('data-bs-title', 'Click for ascending order');
             $('.mp-filterbox').hide();
-            $('#categoryFilter, #productTypeFilter').removeClass('text-primary');
+            $('#categoryFilter, #productTypeFilter, #statusFilter').removeClass('text-primary');
             $('#ProductCountWrap').addClass('d-none');
             if (ActiveTabId == 'Item') {
                 $('#NewItem,#NewComboItem,#ItemCategory-Div,#ProductCountWrap').removeClass('d-none');
@@ -654,6 +659,11 @@ $(function() {
         $('#ItemCategory-Div').closest('th').toggleClass('col-active', catgActive);
         $('#categoryFilter').toggleClass('text-primary', !!(Filter.Category && Filter.Category.length > 0));
 
+        // Status col — active if filter OR sort applied
+        const statusActive = (Filter.StatusFilter && Filter.StatusFilter.length > 0) || (colSortStates['StatusSorting'] || 0) > 0;
+        $('#statusFilter').closest('th').toggleClass('col-active', statusActive);
+        $('#statusFilter').toggleClass('text-primary', !!(Filter.StatusFilter && Filter.StatusFilter.length > 0));
+
         // Each col-sortable (skip CategorySorting — already handled above)
         $('.col-sortable').each(function() {
             const k = $(this).data('filterkey');
@@ -692,6 +702,36 @@ $(function() {
         }
     };
 
+    /** Status filter functions */
+    window.toggleStatusFilter = function() {
+        const $target = $('#statusFilterBox');
+        $('.mp-filterbox').not($target).hide();
+        $target.toggle();
+    };
+    window.closeStatusFilter = function() {
+        $('#statusFilterBox').hide();
+    };
+    window.applyStatusFilter = function() {
+        delete Filter['StatusFilter'];
+        let selected = $('.status-checkbox:checked').map(function() { return $(this).val(); }).get();
+        if (selected.length > 0) {
+            Filter['StatusFilter'] = selected;
+        }
+        $('#statusFilterBox').hide();
+        PageNo = 0;
+        showProductPageDetails();
+    };
+    window.resetStatusFilter = function() {
+        $('.status-checkbox').prop('checked', false);
+        if (Filter.StatusFilter) {
+            delete Filter['StatusFilter'];
+            PageNo = 0;
+            showProductPageDetails();
+        } else {
+            $('#statusFilterBox').hide();
+        }
+    };
+
     // Close filter boxes on outside click
     $(document).on('click', function(e) {
         if (!$(e.target).closest('#categoryFilterBox, #categoryFilter').length) {
@@ -700,56 +740,31 @@ $(function() {
         if (!$(e.target).closest('#productTypeFilterBox, #productTypeFilter').length) {
             $('#productTypeFilterBox').hide();
         }
+        if (!$(e.target).closest('#statusFilterBox, #statusFilter').length) {
+            $('#statusFilterBox').hide();
+        }
     });
 
-    /** Product-Item Related Coding */
-    document.addEventListener('DOMContentLoaded', function () {
-        // Initialize all tooltips
-        const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-        tooltipTriggerList.forEach(el => {
-            new bootstrap.Tooltip(el, { html: true, placement: 'top' });
-        });
-
-        // Handle "Yes" button click (dynamic)
-        document.body.addEventListener('click', function (e) {
-            const yesBtn = e.target.closest('.confirm-change');
-            if (!yesBtn) return;
-
-            const uid = yesBtn.dataset.uid;
-            const badge = document.querySelector(`.change-status[data-uid="${uid}"]`);
-            if (!badge) return;
-
-            const currentStatus = badge.innerText.trim(); // "Active" or "InActive"
-            const newStatus = (currentStatus === 'Active') ? 0 : 1; // 1 = Active, 0 = InActive
-
-            // AJAX to update
-            fetch('/update-status.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ uid: uid, active: newStatus })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Update badge text and style
-                    if (newStatus === 1) {
-                        badge.className = 'badge bg-label-primary change-status';
-                        badge.innerText = 'Active';
-                    } else {
-                        badge.className = 'badge bg-label-danger change-status';
-                        badge.innerText = 'InActive';
-                    }
-                    // Update tooltip content (optional)
-                    const tooltip = bootstrap.Tooltip.getInstance(badge);
-                    if (tooltip) tooltip.hide();
-                } else {
-                    alert('Error: ' + (data.message || 'Failed to update'));
-                }
-            })
-            .catch(error => {
-                console.error(error);
-                alert('An error occurred.');
-            });
+    $(document).on('click', '.prod-status-toggle', function(e) {
+        e.preventDefault();
+        var uid       = $(this).data('uid');
+        var newStatus = $(this).data('newstatus');
+        var label     = newStatus == 1 ? 'Active' : 'In-Active';
+        var icon      = newStatus == 1 ? 'bx-check-circle' : 'bx-x-circle';
+        var color     = newStatus == 1 ? '#198754' : '#dc3545';
+        Swal.fire({
+            title: 'Change Status?',
+            html: 'Mark this product as <strong style="color:' + color + ';">' + label + '</strong>?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: color,
+            confirmButtonText: 'Yes, mark ' + label,
+            cancelButtonColor: '#6c757d',
+            cancelButtonText: 'Cancel',
+        }).then(function(result) {
+            if (result.isConfirmed) {
+                toggleProductStatus(uid, newStatus);
+            }
         });
     });
 
@@ -840,6 +855,7 @@ $(function() {
     });
 
     $('#categoryModal').on('hide.bs.modal', function() {
+        $('#categoryModalDialog').removeClass('modal-md').addClass('modal-lg');
         if (!$(this).data('calledFromItemForm')) {
             formOpenCloseDefActions();
         }

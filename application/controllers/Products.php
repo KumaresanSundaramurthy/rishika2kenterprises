@@ -51,6 +51,11 @@ class Products extends CI_Controller {
 
     }
 
+    private function fetchProductStats() {
+        $OrgUID = (int) $this->pageData['JwtData']->User->OrgUID;
+        return $this->products_model->getProductStats($OrgUID);
+    }
+
     private function fetchProductTableData($pageNo, $limit = 0) {
 
         $OrgUID = (int) $this->pageData['JwtData']->User->OrgUID;
@@ -60,17 +65,21 @@ class Products extends CI_Controller {
             $limit = $postLimit ?: ($settingsLimit ?: 10);
         }
         $pageNo = (int) $pageNo;
-        if ($pageNo < 1) {
-            $pageNo = 1;
-        }
+        if ($pageNo < 1) { $pageNo = 1; }
         $offset = ($pageNo - 1) * $limit;
 
-        $result  = $this->products_model->getProductListPaginated($OrgUID, $limit, $offset);
-        $rowHtml = $this->load->view('products/items/list', [
+        $filter       = $this->input->post('Filter') ?: [];
+        $filterResult = $this->products_model->itemFilterFormation((object)['TableAliasName' => 'Products'], $filter);
+        $result       = $this->products_model->getProductListPaginated($OrgUID, $limit, $offset, $filterResult->SearchDirectQuery, $filterResult->sortOperation);
+
+        // Use CI's view loader — same as getProductList() which works correctly
+        $CI =& get_instance();
+        $CI->load->vars([
             'DataLists' => $result->rows,
             'StartFrom' => $offset,
             'JwtData'   => $this->pageData['JwtData'],
-        ], TRUE);
+        ]);
+        $rowHtml = $CI->load->view('products/items/list', [], TRUE);
 
         $resp                 = new stdClass();
         $resp->RecordHtmlData = $rowHtml;
@@ -78,6 +87,15 @@ class Products extends CI_Controller {
         $resp->TotalCount     = $result->totalCount;
         return $resp;
 
+    }
+
+    private function renderViewHtml($viewFile, $data = []) {
+        if (!file_exists($viewFile)) return '';
+        extract($data);
+        ob_start();
+        include($viewFile);
+        $html = ob_get_clean();
+        return ($html !== false && $html !== '') ? $html : '';
     }
 
     private function fetchCategoryTableData($pageNo, $limit = 0) {
@@ -411,6 +429,7 @@ class Products extends CI_Controller {
 
                 $this->EndReturnData->List       = $getResp->RecordHtmlData;
                 $this->EndReturnData->Pagination = $getResp->Pagination;
+                $this->EndReturnData->Stats      = $this->fetchProductStats();
 
             } else if(getPostValue($PostData, 'getTableDetails') == 0) {
                 $this->EndReturnData->Info = $ProductUID;
@@ -518,6 +537,7 @@ class Products extends CI_Controller {
             $this->EndReturnData->Message    = 'Updated Successfully';
             $this->EndReturnData->List       = $getResp->RecordHtmlData;
             $this->EndReturnData->Pagination = $getResp->Pagination;
+            $this->EndReturnData->Stats      = $this->fetchProductStats();
 
         } catch (InvalidArgumentException $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -565,6 +585,7 @@ class Products extends CI_Controller {
             $this->EndReturnData->Message    = 'Deleted Successfully';
             $this->EndReturnData->List       = $getResp->RecordHtmlData;
             $this->EndReturnData->Pagination = $getResp->Pagination;
+            $this->EndReturnData->Stats      = $this->fetchProductStats();
 
         } catch (Exception $e) {
             $this->EndReturnData->Error = TRUE;
@@ -618,6 +639,7 @@ class Products extends CI_Controller {
             $this->EndReturnData->Message    = count($ProductUIDs) . ' product(s) deleted successfully';
             $this->EndReturnData->List       = $getResp->RecordHtmlData;
             $this->EndReturnData->Pagination = $getResp->Pagination;
+            $this->EndReturnData->Stats      = $this->fetchProductStats();
 
         } catch (Exception $e) {
             $this->EndReturnData->Error = TRUE;
@@ -697,10 +719,7 @@ class Products extends CI_Controller {
                 $Unit_Price = $comboPrice / (1 + ($Tax_Percentage / 100));
             }
 
-            $primaryUnitUID = (int) getPostValue($PostData, 'ComboPrimaryUnit');
-            if ($primaryUnitUID <= 0) {
-                throw new InvalidArgumentException('Primary unit is required.');
-            }
+            $primaryUnitUID = (int) getPostValue($PostData, 'ComboPrimaryUnit') ?: null;
 
             $comboData = [
                 'OrgUID'        => $orgUID,
@@ -738,14 +757,11 @@ class Products extends CI_Controller {
                 $getResp = $this->fetchProductTableData($pageNo);
                 $this->EndReturnData->List       = $getResp->RecordHtmlData;
                 $this->EndReturnData->Pagination = $getResp->Pagination;
+                $this->EndReturnData->Stats      = $this->fetchProductStats();
             }
 
-        } catch (InvalidArgumentException $e) {
-            $this->dbwrite_model->rollbackTransaction();
-            $this->EndReturnData->Error   = true;
-            $this->EndReturnData->Message = $e->getMessage();
-        } catch (Exception $e) {
-            $this->dbwrite_model->rollbackTransaction();
+        } catch (\Throwable $e) {
+            if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -793,10 +809,7 @@ class Products extends CI_Controller {
                 $TaxDetails = $this->global_model->getTaxPercentageDetailsInfo(['TaxDetail.TaxDetailsUID' => $taxUID])->Data[0] ?? null;
             }
 
-            $primaryUnitUID = (int) getPostValue($PostData, 'ComboPrimaryUnit');
-            if ($primaryUnitUID <= 0) {
-                throw new InvalidArgumentException('Primary unit is required.');
-            }
+            $primaryUnitUID = (int) getPostValue($PostData, 'ComboPrimaryUnit') ?: null;
 
             $comboData = [
                 'ItemName'      => $comboName,
@@ -820,22 +833,19 @@ class Products extends CI_Controller {
             $this->saveProductBOM($comboUID, $PostData);
             $this->dbwrite_model->commitTransaction();
 
-            $this->EndReturnData->Error   = false;
-            $this->EndReturnData->Message = 'Combo item updated successfully';
-
             if (getPostValue($PostData, 'getTableDetails') == 1) {
                 $pageNo  = (int) $this->input->post('PageNo') ?: 1;
                 $getResp = $this->fetchProductTableData($pageNo);
                 $this->EndReturnData->List       = $getResp->RecordHtmlData;
                 $this->EndReturnData->Pagination = $getResp->Pagination;
+                $this->EndReturnData->Stats      = $this->fetchProductStats();
             }
 
-        } catch (InvalidArgumentException $e) {
-            $this->dbwrite_model->rollbackTransaction();
-            $this->EndReturnData->Error   = true;
-            $this->EndReturnData->Message = $e->getMessage();
-        } catch (Exception $e) {
-            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = false;
+            $this->EndReturnData->Message = 'Combo item updated successfully';
+
+        } catch (\Throwable $e) {
+            if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -906,6 +916,7 @@ class Products extends CI_Controller {
             $this->EndReturnData->Message    = 'Combo item deleted successfully';
             $this->EndReturnData->List       = $getResp->RecordHtmlData;
             $this->EndReturnData->Pagination = $getResp->Pagination;
+            $this->EndReturnData->Stats      = $this->fetchProductStats();
 
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -919,6 +930,46 @@ class Products extends CI_Controller {
     // ──────────────────────────────────────────────────────────
     // END COMBO METHODS
     // ──────────────────────────────────────────────────────────
+
+    public function toggleProductStatus() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $ProductUID = (int) $this->input->post('ProductUID');
+            $newStatus  = (int) $this->input->post('IsActive');
+            if (!$ProductUID) throw new Exception('Product ID is missing');
+            if (!in_array($newStatus, [0, 1])) throw new Exception('Invalid status value');
+
+            $this->load->model('dbwrite_model');
+            $resp = $this->dbwrite_model->updateData(
+                'Products', 'ProductTbl',
+                ['IsActive' => $newStatus, 'UpdatedBy' => $this->pageData['JwtData']->User->UserUID],
+                ['ProductUID' => $ProductUID]
+            );
+            if ($resp->Error) throw new Exception($resp->Message);
+
+            $GeneralSettings = ($this->redis_cache->get('Redis_UserGenSettings')->Value) ?? new stdClass();
+            $this->pageData['JwtData']->GenSettings = $GeneralSettings;
+
+            $pageNo  = (int) $this->input->post('PageNo') ?: 1;
+            $getResp = $this->fetchProductTableData($pageNo);
+
+            $this->EndReturnData->Error      = false;
+            $this->EndReturnData->Message    = 'Status updated successfully';
+            $this->EndReturnData->List       = $getResp->RecordHtmlData;
+            $this->EndReturnData->Pagination = $getResp->Pagination;
+            $this->EndReturnData->TotalCount = $getResp->TotalCount;
+            $this->EndReturnData->Stats      = $this->fetchProductStats();
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
 
     /** Category List (AJAX pagination) — dedicated query */
     public function getCategoryList() {

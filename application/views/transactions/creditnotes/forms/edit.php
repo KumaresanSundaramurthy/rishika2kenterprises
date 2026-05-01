@@ -1,6 +1,6 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php $this->load->view('common/transactions/header'); ?>
-<div class="layout-wrapper transactionPage layout-content-navbar">
+<div class="layout-wrapper layout-horizontal transactionPage layout-content-navbar">
     <div class="layout-container">
         <?php $this->load->view('common/menu_view'); ?>
         <div class="layout-page">

@@ -30,8 +30,9 @@ $(document).ready(function () {
         }
     });
 
-    // Tax % and Primary Unit select2
-    loadSelect2Field('#ComboTaxPercentage', '-- Select Tax Percentage --', '#comboItemModal');
+    // Tax % — styled with left (percentage) / right (tax name) templates
+    loadComboTaxSelect2();
+
     loadSelect2Field('#ComboPrimaryUnit', '-- Select Unit --', '#comboItemModal');
 
     // ──────────────────────────────────────────────
@@ -212,10 +213,18 @@ function addComboComponentRow(itemUID, itemName, qty) {
     $('#ComboComponentEmptyRow').hide();
     var count   = $('#ComboComponentsBody tr[data-uid]').length + 1;
     var dispQty = (typeof smartDecimal === 'function') ? smartDecimal(qty) : parseFloat(qty);
+    var _maxLen = (typeof _comboQtyMaxLen !== 'undefined') ? _comboQtyMaxLen : 10;
+    var _dec    = (typeof _comboQtyDecimals !== 'undefined') ? _comboQtyDecimals : 2;
     var row = '<tr data-uid="' + itemUID + '">' +
                 '<td>' + count + '</td>' +
                 '<td>' + itemName + '</td>' +
-                '<td><input type="number" class="form-control form-control-sm ComboComponentQtyInput" value="' + dispQty + '" min="0.001" step="any" style="width:90px;" /></td>' +
+                '<td><input type="text" class="form-control form-control-sm ComboComponentQtyInput" value="' + dispQty + '"' +
+                    ' onkeydown="return handleDotOnly(event)"' +
+                    ' oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this,' + _maxLen + ',' + _dec + ')"' +
+                    ' maxlength="' + _maxLen + '"' +
+                    ' onpaste="handlePricePaste(event,' + _maxLen + ',' + _dec + ')"' +
+                    ' ondrop="handlePriceDrop(event,' + _maxLen + ',' + _dec + ')"' +
+                    ' style="width:90px;" /></td>' +
                 '<td><button type="button" class="btn btn-sm btn-danger RemoveComboComponent"><i class="bx bx-trash"></i></button></td>' +
               '</tr>';
     $('#ComboComponentsBody').append(row);
@@ -236,6 +245,37 @@ function updateComboComponentsData() {
         });
     });
     $('#ComboComponentsData').val(JSON.stringify(components));
+}
+
+// ──────────────────────────────────────────────────
+// Tax % Select2 — styled left (%) / right (name)
+// ──────────────────────────────────────────────────
+function loadComboTaxSelect2() {
+    var $el = $('#ComboTaxPercentage');
+    if (!$el.length) return;
+    if ($el.hasClass('select2-hidden-accessible')) $el.select2('destroy');
+
+    function taxTemplate(data) {
+        if (!data.id) return data.text;
+        var el    = $(data.element);
+        var left  = el.data('left');
+        var right = el.data('right');
+        if (!left && !right) return data.text;
+        return $('<div class="d-flex justify-content-between">' +
+                '<span class="fw-semibold">' + left + '</span>' +
+                '<span class="text-muted small">' + right + '</span>' +
+                '</div>');
+    }
+
+    $el.select2({
+        placeholder: '-- Select Tax Percentage --',
+        allowClear: true,
+        width: '100%',
+        minimumResultsForSearch: Infinity,
+        dropdownParent: $('#comboItemModal'),
+        templateResult:    taxTemplate,
+        templateSelection: taxTemplate
+    });
 }
 
 // ──────────────────────────────────────────────────
@@ -283,10 +323,6 @@ function loadComboForEdit(comboUID) {
             // Load BOM components
             if (response.Components && response.Components.length > 0) {
                 $.each(response.Components, function (i, comp) {
-                    if ($('#ComboItemSearch option[value="' + comp.ChildProductUID + '"]').length === 0) {
-                        var option = new Option(comp.ItemName, comp.ChildProductUID, true, true);
-                        $('#ComboItemSearch').append(option);
-                    }
                     addComboComponentRow(comp.ChildProductUID, comp.ItemName, comp.Quantity);
                 });
                 updateComboComponentsData();

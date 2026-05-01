@@ -127,9 +127,12 @@ $(document).ready(function () {
         loadSelect2Field('#StorageUID', '-- Select Storage --', '#itemsModal');
     }
     loadTaxDetailOptions();
-    loadSelect2Field('#PrimaryUnit',       '-- Select Primary Unit --', '#itemsModal');
+    loadSelect2Field('#PrimaryUnit',        '-- Select Primary Unit --', '#itemsModal');
     initCategorySelect2();
-    loadSelect2Field('#CustomerTypeSelect','-- Select Customer Type --', '#itemsModal');
+    loadSelect2Field('#CustomerTypeSelect', '-- Select Customer Type --', '#itemsModal');
+
+    // Product Type — simple dropdown, no placeholder needed
+    $('#ProductType').select2({ width: '100%', minimumResultsForSearch: Infinity, dropdownParent: $('#itemsModal') });
 
     QuillEditor('.ql-toolbar', 'Enter product description...');
 
@@ -225,7 +228,7 @@ function initCategorySelect2() {
     $('#Category').select2({
         placeholder: '-- Select Category --',
         allowClear: true,
-        width: 'resolve',
+        width: '100%',
         dropdownParent: $('#itemsModal'),
         tags: true,
         createTag: function (params) {
@@ -271,11 +274,13 @@ function _openCatgModal(name) {
     if (typeof myTwoDropzone !== 'undefined') myTwoDropzone.removeAllFiles(true);
     $('#CategoryName').val(name);
     $('#categoryModal').data('calledFromItemForm', true);
+    $('#categoryModalDialog').addClass('modal-md').removeClass('modal-lg');
     $('#categoryModal').modal('show');
 }
 
 $(document).on('catgSavedFromItemForm', function (e, data) {
     if (!data || !data.id || !data.name) return;
+    $('#categoryModalDialog').removeClass('modal-md').addClass('modal-lg');
     // Option already added by updateCategoryOptions — just select it
     $('#Category').val(data.id).trigger('change');
     // Re-open the item modal if it was hidden

@@ -30,90 +30,6 @@
 
     <div class="menu-inner-shadow"></div>
 
-    <style>
-        /* Profile avatar ring */
-        .profile-avatar-wrap {
-            width: 38px; height: 38px;
-            border-radius: 50%;
-            border: 2px solid rgba(255,255,255,0.25);
-            padding: 2px;
-            flex-shrink: 0;
-            display: flex; align-items: center; justify-content: center;
-            background: rgba(255,255,255,0.07);
-            transition: border-color 0.2s ease;
-        }
-        .user-profile-item:hover .profile-avatar-wrap,
-        .user-profile-item.profile-open .profile-avatar-wrap {
-            border-color: rgba(255,255,255,0.55);
-        }
-        .profile-avatar-wrap img {
-            width: 30px; height: 30px;
-            border-radius: 50%;
-            object-fit: cover;
-            display: block;
-        }
-        /* Profile text */
-        .profile-text-info {
-            line-height: 1.25;
-            overflow: hidden;
-        }
-        .profile-text-info .profile-name {
-            font-size: 0.82rem;
-            font-weight: 600;
-            color: rgba(255,255,255,0.92);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .profile-text-info .profile-role {
-            font-size: 0.68rem;
-            color: rgba(255,255,255,0.45);
-            white-space: nowrap;
-        }
-        /* Caret */
-        .profile-caret {
-            margin-left: auto;
-            font-size: 1rem;
-            color: rgba(255,255,255,0.35);
-            transition: transform 0.2s ease, color 0.2s ease;
-            flex-shrink: 0;
-        }
-        .user-profile-item.profile-open .profile-caret {
-            transform: rotate(180deg);
-            color: rgba(255,255,255,0.7);
-        }
-        /* Dropdown panel */
-        #ProfileDropdownMenu {
-            display: none;
-            list-style: none;
-            margin: 4px 8px 8px 8px;
-            padding: 6px 4px;
-            border-radius: 8px;
-            background: rgba(255,255,255,0.06);
-            border: 1px solid rgba(255,255,255,0.08);
-        }
-        #ProfileDropdownMenu .dropdown-item {
-            color: rgba(255,255,255,0.72);
-            font-size: 0.82rem;
-            padding: 7px 10px;
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            transition: background 0.15s, color 0.15s;
-        }
-        #ProfileDropdownMenu .dropdown-item:hover {
-            color: #fff;
-            background: rgba(255,255,255,0.1);
-        }
-        #ProfileDropdownMenu .dropdown-item i { font-size: 0.95rem; }
-        #ProfileDropdownMenu .dropdown-divider { border-color: rgba(255,255,255,0.08); margin: 4px 0; }
-        /* Profile toggle row */
-        .user-profile-item > a.menu-link {
-            padding-top: 10px; padding-bottom: 10px;
-            gap: 10px;
-        }
-    </style>
 
     <ul id="ModulesMenuBar" class="menu-inner py-1 flex-grow-1 overflow-auto <?php echo $isSettingsPage ? 'd-none' : ''; ?>">
 
@@ -165,7 +81,7 @@
 
         <!-- Profile Section -->
         <li class="menu-item user-profile-item">
-            <a class="menu-link d-flex align-items-center" id="ProfileDropdownToggle" href="javascript:void(0);">
+            <a class="menu-link d-flex align-items-center" style="margin-inline: 0.5rem;" id="ProfileDropdownToggle" href="javascript:void(0);">
                 <span class="profile-avatar-wrap">
                     <img src="<?php echo $JwtData->User->UserImage ? getenv('CFLARE_R2_CDN').$JwtData->User->UserImage : '/images/logo/avathar_user.png'; ?>"
                         alt="<?php echo htmlspecialchars($JwtData->User->FirstName); ?>" />

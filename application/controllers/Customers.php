@@ -448,6 +448,7 @@ class Customers extends CI_Controller {
             $this->EndReturnData->Message    = 'Deleted Successfully';
             $this->EndReturnData->List       = $pageData->RecordHtmlData;
             $this->EndReturnData->Pagination = $pageData->Pagination;
+            $this->EndReturnData->Stats      = $this->customers_model->getCustomerStats($this->pageData['JwtData']->User->OrgUID);
 
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -518,6 +519,7 @@ class Customers extends CI_Controller {
 
             $this->EndReturnData->Error   = false;
             $this->EndReturnData->Message = 'Status updated successfully';
+            $this->EndReturnData->Stats   = $this->customers_model->getCustomerStats($this->pageData['JwtData']->User->OrgUID);
         } catch (Exception $e) {
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
@@ -577,6 +579,7 @@ class Customers extends CI_Controller {
             $this->EndReturnData->Message    = count($CustomerUIDs) . ' customer(s) deleted successfully';
             $this->EndReturnData->List       = $pageData->RecordHtmlData;
             $this->EndReturnData->Pagination = $pageData->Pagination;
+            $this->EndReturnData->Stats      = $this->customers_model->getCustomerStats($this->pageData['JwtData']->User->OrgUID);
 
         } catch (Exception $e) {
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
@@ -585,6 +588,50 @@ class Customers extends CI_Controller {
         }
 
         $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    // ── Send SMS / Email ─────────────────────────────────────────────────────
+    public function sendCommunication() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $sentBy   = $this->pageData['JwtData']->User->UserUID;
+            $commType = $this->input->post('CommType');
+            $message  = trim($this->input->post('Message'));
+            $subject  = trim($this->input->post('Subject') ?: '');
+            $uids     = $this->input->post('UIDs');
+
+            if (!in_array($commType, ['SMS', 'Email'])) throw new Exception('Invalid communication type.');
+            if (empty($message))                         throw new Exception('Message cannot be empty.');
+            if ($commType === 'Email' && empty($subject)) throw new Exception('Email subject is required.');
+            if (empty($uids) || !is_array($uids))        throw new Exception('No recipients selected.');
+
+            $uids = array_map('intval', $uids);
+
+            $this->load->library('communicationservice');
+
+            if ($commType === 'SMS') {
+                $result = $this->communicationservice->sendSMS($orgUID, $sentBy, 'Customer', $uids, $message);
+            } else {
+                $result = $this->communicationservice->sendEmail($orgUID, $sentBy, 'Customer', $uids, $subject, $message);
+            }
+
+            if ($result->Error) throw new Exception($result->Message);
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = $result->Message;
+            $this->EndReturnData->Sent    = $result->Sent   ?? 0;
+            $this->EndReturnData->Failed  = $result->Failed ?? 0;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
     }
 
 }

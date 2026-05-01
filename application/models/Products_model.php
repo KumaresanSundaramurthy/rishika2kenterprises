@@ -45,6 +45,13 @@ class Products_model extends CI_Model {
                     }
                     $SearchDirectQuery .= $ModuleInfoData->TableAliasName.'.StorageUID IN ('.implode(',', $Filter['Storage']).')';
                 }
+                if (array_key_exists('StatusFilter', $Filter)) {
+                    if($SearchDirectQuery != '') {
+                        $SearchDirectQuery .= ' AND ';
+                    }
+                    $safeVals = array_map('intval', $Filter['StatusFilter']);
+                    $SearchDirectQuery .= $ModuleInfoData->TableAliasName.'.IsActive IN ('.implode(',', $safeVals).')';
+                }
                 if (array_key_exists('NameSorting', $Filter)) {
                     $sortOperation[$ModuleInfoData->TableAliasName . '.ItemName'] = $Filter['NameSorting'] == 1 ? 'ASC' : 'DESC';
                 }
@@ -504,7 +511,6 @@ class Products_model extends CI_Model {
             $this->ReadDb->db_debug = FALSE;
             $baseWhere = [
                 'Products.IsDeleted' => 0,
-                'Products.IsActive'  => 1,
                 'Products.OrgUID'    => (int) $OrgUID,
             ];
 
@@ -539,12 +545,14 @@ class Products_model extends CI_Model {
                 'Products.TaxPercentage AS TaxPercentage',
                 'SelTaxType.Name AS SellingTaxType',
                 'PurTaxType.Name AS PurchaseTaxType',
+                'puid.ShortName AS PUShortName',
             ]);
             $this->ReadDb->from('Products.ProductTbl as Products');
             $this->ReadDb->join('Products.CategoryTbl as Category', 'Category.CategoryUID = Products.CategoryUID', 'left');
-            $this->ReadDb->join('Users.UserTbl as User', 'User.UserUID = Products.UpdatedBy', 'left');
             $this->ReadDb->join('Global.ProductTaxTbl as SelTaxType', 'SelTaxType.ProductTaxUID = Products.SellingProductTaxUID', 'left');
             $this->ReadDb->join('Global.ProductTaxTbl as PurTaxType', 'PurTaxType.ProductTaxUID = Products.PurchasePriceProductTaxUID', 'left');
+            $this->ReadDb->join('Global.PrimaryUnitTbl as puid', 'puid.PrimaryUnitUID = Products.PrimaryUnitUID', 'left');
+            $this->ReadDb->join('Users.UserTbl as User', 'User.UserUID = Products.UpdatedBy', 'left');
             $this->ReadDb->where($baseWhere);
             if (!empty($searchQuery)) { $this->ReadDb->where($searchQuery, null, false); }
             if (!empty($sortArr)) {
@@ -670,18 +678,19 @@ class Products_model extends CI_Model {
             $monthStart   = date('Y-m-01');
 
             $this->ReadDb->select([
-                'COUNT(*)                                                                          AS TotalProducts',
-                'SUM(CASE WHEN Products.ProductType = \'Product\' AND Products.IsComposite = 0 THEN Products.AvailableQuantity * Products.PurchasePrice ELSE 0 END) AS TotalStockValue',
-                'SUM(CASE WHEN Products.CreatedOn >= \'' . $monthStart . '\' THEN 1 ELSE 0 END)   AS AddedThisMonth',
-                'SUM(CASE WHEN Products.CreatedOn >= \'' . $fyStart . '\' THEN 1 ELSE 0 END)      AS AddedThisFY',
-                'SUM(CASE WHEN Products.UpdatedOn >= \'' . $sevenDaysAgo . '\' THEN 1 ELSE 0 END) AS RecentlyUpdated',
-                'SUM(CASE WHEN Products.LowStockAlertAt > 0 AND Products.AvailableQuantity <= Products.LowStockAlertAt AND Products.AvailableQuantity > 0 AND Products.ProductType = \'Product\' AND Products.IsComposite = 0 THEN 1 ELSE 0 END) AS LowStockItems',
-                'SUM(CASE WHEN Products.NotForSale = \'Yes\' THEN 1 ELSE 0 END)                   AS NotForSale',
+                'COUNT(*)                                                                                                                                                                                                                       AS TotalProducts',
+                'SUM(CASE WHEN Products.IsActive = 1 THEN 1 ELSE 0 END)                                                                                                                                                                        AS ActiveCount',
+                'SUM(CASE WHEN Products.IsActive = 0 THEN 1 ELSE 0 END)                                                                                                                                                                        AS InActiveCount',
+                'SUM(CASE WHEN Products.ProductType = \'Product\' AND Products.IsComposite = 0 AND Products.IsActive = 1 THEN Products.AvailableQuantity * Products.PurchasePrice ELSE 0 END)                                                   AS TotalStockValue',
+                'SUM(CASE WHEN Products.CreatedOn >= \'' . $monthStart . '\' AND Products.IsActive = 1 THEN 1 ELSE 0 END)                                                                                                                       AS AddedThisMonth',
+                'SUM(CASE WHEN Products.CreatedOn >= \'' . $fyStart . '\' AND Products.IsActive = 1 THEN 1 ELSE 0 END)                                                                                                                         AS AddedThisFY',
+                'SUM(CASE WHEN Products.UpdatedOn >= \'' . $sevenDaysAgo . '\' AND Products.IsActive = 1 THEN 1 ELSE 0 END)                                                                                                                    AS RecentlyUpdated',
+                'SUM(CASE WHEN Products.LowStockAlertAt > 0 AND Products.AvailableQuantity <= Products.LowStockAlertAt AND Products.AvailableQuantity > 0 AND Products.ProductType = \'Product\' AND Products.IsComposite = 0 AND Products.IsActive = 1 THEN 1 ELSE 0 END) AS LowStockItems',
+                'SUM(CASE WHEN Products.NotForSale = \'Yes\' AND Products.IsActive = 1 THEN 1 ELSE 0 END)                                                                                                                                      AS NotForSale',
             ]);
             $this->ReadDb->from('Products.ProductTbl as Products');
             $this->ReadDb->where([
                 'Products.IsDeleted' => 0,
-                'Products.IsActive'  => 1,
                 'Products.OrgUID'    => (int) $OrgUID,
             ]);
             $query = $this->ReadDb->get();

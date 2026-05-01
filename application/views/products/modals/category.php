@@ -2,7 +2,7 @@
 
 <!-- Product Category Form -->
 <div class="modal fade" id="categoryModal" tabindex="-1" aria-labelledby="categoryModal" data-bs-backdrop="static" data-bs-keyboard="false" aria-hidden="true" aria-modal="true" role="dialog">
-    <div class="modal-dialog modal-dialog-full-height modal-xl">
+    <div class="modal-dialog modal-dialog-full-height modal-lg" id="categoryModalDialog">
         <div class="modal-content modal-content-hidden h-100 d-flex flex-column">
 
         <?php $FormAttribute = array('id' => 'categoryForm', 'name' => 'categoryForm', 'class' => '', 'autocomplete' => 'off');

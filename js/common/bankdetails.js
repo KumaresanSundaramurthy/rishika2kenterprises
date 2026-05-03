@@ -1,14 +1,12 @@
-$(document).ready(function () {
-    
-    $('#addBankDetails').on('click', function(e) {
-        e.preventDefault();
-        $('#AddEditBankDataForm')[0].reset();
-        $('#HBankId').val('');
-        $('#addEditBankDataModal .AddEditBankDataBtn').text('Save');
-        $('#addEditBankDataModal').modal('show');
-    });
+$(document).on('click', '#addBankDetails', function(e) {
+    e.preventDefault();
+    $('#AddEditBankDataForm')[0].reset();
+    $('#HBankId').val('');
+    $('#addEditBankDataModal .AddEditBankDataBtn').text('Save');
+    $('#addEditBankDataModal').modal('show');
+});
 
-    $('#AddEditBankDataForm').on('submit', function(e) {
+$(document).on('submit', '#AddEditBankDataForm', function(e) {
         e.preventDefault();
 
         const bankFields = [
@@ -143,8 +141,6 @@ $(document).ready(function () {
             }
         });
     });
-    
-});
 
 function getBankRecordsFromTable() {
     const records = [];

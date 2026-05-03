@@ -63,6 +63,8 @@ class Vendors extends CI_Controller {
             $this->pageData['ModRowData']    = $pageData->RecordHtmlData;
             $this->pageData['ModPagination'] = $pageData->Pagination;
 
+            $this->loadCountryStateCityData();
+
             $this->load->model('vendors_model');
             $this->pageData['VendStats'] = $this->vendors_model->getVendorStats($this->pageData['JwtData']->User->OrgUID);
             $this->pageData['Tags']      = $this->vendors_model->getVendorTags($this->pageData['JwtData']->User->OrgUID);
@@ -297,6 +299,59 @@ class Vendors extends CI_Controller {
         } catch (Exception $e) {
             redirect('vendors', 'refresh');
         }
+    }
+
+    public function loadModalForm($type = 'add', $uid = 0) {
+        $this->EndReturnData = new stdClass();
+        try {
+            $type = in_array($type, ['add', 'edit', 'clone']) ? $type : 'add';
+            $uid  = (int) $uid;
+
+            $this->load->model('vendors_model');
+            $this->loadCountryStateCityData();
+
+            $formData     = null;
+            $bankDetails  = [];
+            $billingAddr  = null;
+            $shippingAddr = null;
+
+            if (in_array($type, ['edit', 'clone']) && $uid > 0) {
+                $getVendorData = $this->vendors_model->getVendors(['Vendors.VendorUID' => $uid]);
+                if (!empty($getVendorData)) {
+                    $formData    = $getVendorData[0];
+                    $bankDetails = $this->vendors_model->getVendorBankInfo(['VendBankDetails.VendorUID' => $uid]);
+                    $addrInfo    = $this->vendors_model->getVendorAddress(['VendAddress.VendorUID' => $uid]);
+                    foreach ($addrInfo as $addr) {
+                        if ($addr->AddressType === 'Billing')  $billingAddr  = $addr;
+                        if ($addr->AddressType === 'Shipping') $shippingAddr = $addr;
+                    }
+                }
+            }
+
+            $html = $this->load->view('vendors/forms/modal_body', [
+                'FormMode'     => $type,
+                'FormData'     => $formData,
+                'BankDetails'  => $bankDetails,
+                'BillingAddr'  => $billingAddr,
+                'ShippingAddr' => $shippingAddr,
+                'CountryInfo'  => $this->pageData['CountryInfo'],
+                'JwtData'      => $this->pageData['JwtData'],
+            ], TRUE);
+
+            $this->EndReturnData->Error        = FALSE;
+            $this->EndReturnData->Html         = $html;
+            $this->EndReturnData->StateData    = $this->pageData['StateData'];
+            $this->EndReturnData->CityData     = $this->pageData['CityData'];
+            $this->EndReturnData->FormMode     = $type;
+            $this->EndReturnData->ImgData      = $formData ? ($formData->Image ?? '') : '';
+            $this->EndReturnData->BillingAddr  = $billingAddr;
+            $this->EndReturnData->ShippingAddr = $shippingAddr;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
     public function updateVendorData() {

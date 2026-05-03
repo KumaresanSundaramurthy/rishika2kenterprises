@@ -200,10 +200,15 @@ $route['payments/getBanksList']                        = 'payments/getBanksList'
 // Customers
 $route['customers/(:num)/edit'] = 'customers/edit/$1';
 $route['customers/(:num)/clone'] = 'customers/clonecustomer/$1';
+$route['customers/modal/(:any)/(:num)'] = 'customers/loadModalForm/$1/$2';
+$route['customers/modal/(:any)']        = 'customers/loadModalForm/$1';
+$route['customers/getCustomerForModal/(:num)'] = 'customers/getCustomerForModal/$1';
 
 // Vendors
 $route['vendors/(:num)/edit'] = 'vendors/edit/$1';
 $route['vendors/(:num)/clone'] = 'vendors/clonevendor/$1';
+$route['vendors/modal/(:any)/(:num)'] = 'vendors/loadModalForm/$1/$2';
+$route['vendors/modal/(:any)']        = 'vendors/loadModalForm/$1';
 
 // Products
 $route['products/(:num)/edit'] = 'products/edit/$1';

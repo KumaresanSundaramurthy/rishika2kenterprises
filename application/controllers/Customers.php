@@ -69,6 +69,10 @@ class Customers extends CI_Controller {
             $this->pageData['CustomerTypeList'] = $this->customers_model->getCustomerTypeList($this->pageData['JwtData']->User->OrgUID);
             $this->pageData['Tags']             = $this->customers_model->getCustomerTags($this->pageData['JwtData']->User->OrgUID);
 
+            $this->load->model('global_model');
+            $GetCountryInfo = $this->global_model->getCountryInfo();
+            $this->pageData['CountryInfo'] = $GetCountryInfo->Error === FALSE ? $GetCountryInfo->Data : [];
+
             $this->load->view('customers/view', $this->pageData);
 
         } catch (Exception $e) {
@@ -339,6 +343,93 @@ class Customers extends CI_Controller {
         } catch (Exception $e) {
             redirect('customers', 'refresh');
         }
+    }
+
+    public function loadModalForm($type = 'add', $uid = 0) {
+        $this->EndReturnData = new stdClass();
+        try {
+            $type = in_array($type, ['add', 'edit', 'clone']) ? $type : 'add';
+            $uid  = (int) $uid;
+
+            $this->load->model('customers_model');
+            $this->loadCountryStateCityData();
+            $this->pageData['CustomerTypeList'] = $this->customers_model->getCustomerTypeList($this->pageData['JwtData']->User->OrgUID);
+
+            $formData     = null;
+            $bankDetails  = [];
+            $billingAddr  = null;
+            $shippingAddr = null;
+
+            if (in_array($type, ['edit', 'clone']) && $uid > 0) {
+                $getCustData = $this->customers_model->getCustomers(['Customers.CustomerUID' => $uid]);
+                if (!empty($getCustData)) {
+                    $formData    = $getCustData[0];
+                    $bankDetails = $this->customers_model->getCustomerBankInfo(['CustBankDetails.CustomerUID' => $uid]);
+                    $addrInfo    = $this->customers_model->getCustomerAddress(['CustAddress.CustomerUID' => $uid]);
+                    foreach ($addrInfo as $addr) {
+                        if ($addr->AddressType === 'Billing')  $billingAddr  = $addr;
+                        if ($addr->AddressType === 'Shipping') $shippingAddr = $addr;
+                    }
+                }
+            }
+
+            $html = $this->load->view('customers/forms/modal_body', [
+                'FormMode'         => $type,
+                'FormData'         => $formData,
+                'BankDetails'      => $bankDetails,
+                'BillingAddr'      => $billingAddr,
+                'ShippingAddr'     => $shippingAddr,
+                'CustomerTypeList' => $this->pageData['CustomerTypeList'],
+                'CountryInfo'      => $this->pageData['CountryInfo'],
+                'JwtData'          => $this->pageData['JwtData'],
+            ], TRUE);
+
+            $this->EndReturnData->Error        = FALSE;
+            $this->EndReturnData->Html         = $html;
+            $this->EndReturnData->StateData    = $this->pageData['StateData'];
+            $this->EndReturnData->CityData     = $this->pageData['CityData'];
+            $this->EndReturnData->FormMode     = $type;
+            $this->EndReturnData->ImgData      = $formData ? ($formData->Image ?? '') : '';
+            $this->EndReturnData->BillingAddr  = $billingAddr;
+            $this->EndReturnData->ShippingAddr = $shippingAddr;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    public function getCustomerForModal($uid = 0) {
+        $this->EndReturnData = new stdClass();
+        try {
+            $uid = (int) $uid;
+            if ($uid <= 0) throw new Exception('Invalid customer ID.');
+
+            $this->load->model('customers_model');
+            $getCustData = $this->customers_model->getCustomers(['Customers.CustomerUID' => $uid]);
+            if (empty($getCustData)) throw new Exception('Customer not found.');
+
+            $bankDetails = $this->customers_model->getCustomerBankInfo(['CustBankDetails.CustomerUID' => $uid]);
+            $addrInfo    = $this->customers_model->getCustomerAddress(['CustAddress.CustomerUID' => $uid]);
+
+            $billingAddr = null; $shippingAddr = null;
+            foreach ($addrInfo as $addr) {
+                if ($addr->AddressType === 'Billing')  $billingAddr  = $addr;
+                if ($addr->AddressType === 'Shipping') $shippingAddr = $addr;
+            }
+
+            $this->EndReturnData->Error        = FALSE;
+            $this->EndReturnData->Data         = $getCustData[0];
+            $this->EndReturnData->BankDetails  = $bankDetails;
+            $this->EndReturnData->BillingAddr  = $billingAddr;
+            $this->EndReturnData->ShippingAddr = $shippingAddr;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
     public function updateCustomerData() {

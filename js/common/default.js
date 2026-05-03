@@ -945,6 +945,68 @@ function checkPageSettingsSortOrder() {
     return hasDuplicates;
 }
 
+function reinitDropzoneOne(selector) {
+    var el = document.querySelector(selector || '#DropzoneOneBasic');
+    if (!el) return;
+    if (myOneDropzone) {
+        try { myOneDropzone.destroy(); } catch (e) {}
+        myOneDropzone = null;
+    }
+    Dropzone.instances = Dropzone.instances.filter(function (d) { return d.element !== el; });
+    el.classList.remove('dz-started', 'dropzone');
+    myOneDropzone = new Dropzone(el, {
+        url: '#',
+        autoProcessQueue: false,
+        previewTemplate: `
+            <div class="dz-preview dz-file-preview" style="width:100%;margin:0;">
+                <div class="dz-details" style="padding:0;">
+                    <div class="dz-thumbnail" style="width:100%;overflow:hidden;border-radius:6px;">
+                        <img data-dz-thumbnail style="width:100%;height:auto;max-height:200px;object-fit:contain;display:block;border-radius:6px;">
+                        <span class="dz-nopreview">No preview</span>
+                        <div class="dz-success-mark"></div>
+                        <div class="dz-error-mark"></div>
+                        <div class="dz-error-message"><span data-dz-errormessage></span></div>
+                        <div class="progress">
+                            <div class="progress-bar progress-bar-primary" role="progressbar" aria-valuemin="0" aria-valuemax="100" data-dz-uploadprogress></div>
+                        </div>
+                    </div>
+                    <div class="dz-filename text-truncate mt-1" data-dz-name></div>
+                    <div class="dz-size" data-dz-size></div>
+                </div>
+            </div>`,
+        parallelUploads: 1,
+        maxFilesize: 1,
+        acceptedFiles: '.jpg,.jpeg,.png',
+        addRemoveLinks: true,
+        maxFiles: 1,
+        init: function () {
+            this.on('addedfile', function (file) {
+                if (this.files.length > 1) this.removeFile(this.files[1]);
+            });
+            this.on('error', function (file) {
+                if (file.size > this.options.maxFilesize * 1024 * 1024) {
+                    Swal.fire({ icon: 'error', title: 'File too large', text: 'Maximum allowed size is 1 MB.' });
+                    this.removeFile(file);
+                }
+            });
+            this.on('removedfile', function (file) {
+                if (file.isStored) hasRemovedStoredImage = true;
+            });
+            this.on('maxfilesexceeded', function (file) {
+                this.removeFile(file);
+                Swal.fire({ icon: 'error', title: 'Oops...', text: 'Only one image is allowed.' });
+            });
+        }
+    });
+    el.addEventListener('click', function (e) {
+        if (myOneDropzone && myOneDropzone.files.length >= 1) {
+            e.preventDefault();
+            e.stopPropagation();
+            Swal.fire({ icon: 'error', title: 'Oops...', text: 'Only one image is allowed.' });
+        }
+    });
+}
+
 function commonSetDropzoneImageOne(ImageUrl) {
     myOneDropzone.removeAllFiles(true);
     fetch(ImageUrl)

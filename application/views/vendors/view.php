@@ -109,7 +109,7 @@
                                         </li>
                                     </ul>
                                 </div>
-                                <a href="/vendors/create" class="r2k-create-btn"><i class="bx bx-plus"></i> Create</a>
+                                <a href="javascript:void(0);" class="r2k-create-btn" id="btnCreateVendor"><i class="bx bx-plus"></i> Create</a>
                             </div>
                         </div>
 
@@ -158,6 +158,42 @@
             
             <?php $this->load->view('common/settings_modal'); ?>
             <?php $this->load->view('common/modals/send_communication'); ?>
+
+            <!-- Vendor Add / Edit / Clone Modal -->
+            <div class="modal fade" id="VendorFormModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false" aria-hidden="true" style="padding:0!important;">
+                <div class="modal-dialog modal-xl modal-dialog-scrollable" style="height:100vh;max-height:100vh;margin:0 auto;">
+                    <div class="modal-content h-100 d-flex flex-column">
+
+                        <div class="modal-header bg-white border-bottom d-flex align-items-center justify-content-between px-3 py-2 trans-theme">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="modal-doc-icon bg-warning bg-opacity-10">
+                                    <i class="bx bx-store text-warning modal-doc-icon-inner"></i>
+                                </div>
+                                <div>
+                                    <h5 class="modal-title mb-0" id="VendorFormModalTitle">Vendor</h5>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <button type="button" class="btn btn-sm btn-primary" id="VendorFormSaveBtn">
+                                    <i class="bx bx-check me-1"></i>Save
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-danger" data-bs-dismiss="modal">
+                                    <i class="bx bx-x me-1"></i>Close
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="modal-body p-0 flex-grow-1 overflow-auto" id="VendorFormModalBody">
+                            <div class="text-center py-5">
+                                <span class="spinner-border text-primary"></span>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <?php $this->load->view('common/form/bank_details'); ?>
             <?php $this->load->view('common/footer_desc'); ?>
 
         </div>
@@ -170,6 +206,9 @@
 <script src="/js/vendors.js"></script>
 <script src="/js/common/pagecheckbox.js"></script>
 <script src="/js/common/communication.js"></script>
+<script src="/js/common/gstin_fetch.js"></script>
+<script src="/js/common/bankdetails.js"></script>
+<script src="/js/common/address.js"></script>
 
 <script>
 let ModuleId = <?php echo $ModuleId; ?>;
@@ -183,6 +222,8 @@ const previewName = 'Vendor Details';
 let nameSortState = 0;
 let balSortState  = 0;
 let areaSortState = 0;
+var StateInfo = <?php echo json_encode($StateData ?? []); ?>;
+var CityInfo  = <?php echo json_encode($CityData  ?? []); ?>;
 
 $(function() {
     'use strict'
@@ -233,7 +274,7 @@ $(function() {
     });
     $('#btnClone').on('click', function (e) {
         e.preventDefault();
-        if (SelectedUIDs.length === 1) window.location.href = '/vendors/' + SelectedUIDs[0] + '/clone';
+        if (SelectedUIDs.length === 1) openVendorModal('clone', SelectedUIDs[0]);
     });
 
     // ── Delete single ──

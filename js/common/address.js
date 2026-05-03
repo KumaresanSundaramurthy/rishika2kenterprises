@@ -1,50 +1,46 @@
-$(document).ready(function () {
+$(document).on('click', '#addBillingAddress', function(e) {
+    e.preventDefault();
+    creationBilngAddrActions();
+});
 
-    $('#addBillingAddress').click(function(e) {
-        e.preventDefault();
-        creationBilngAddrActions();
-    });
+$(document).on('click', '#addShippingAddress', function(e) {
+    e.preventDefault();
+    creationShipAddrActions();
+});
 
-    $('#addShippingAddress').click(function(e) {
-        e.preventDefault();
-        creationShipAddrActions();
-    });
+$(document).on('click', '#addrCopyToShipping', function(e) {
+    e.preventDefault();
+    $('#ShipAddrLine1').val($('#BillAddrLine1').val());
+    $('#ShipAddrLine2').val($('#BillAddrLine2').val());
+    $('#ShipAddrPincode').val($('#BillAddrPincode').val());
+    $('#ShipAddrState').val($('#BillAddrState').find('option:selected').val()).trigger('change');
+    $('#ShipAddrCity').val($('#BillAddrCity').find('option:selected').val()).trigger('change');
+});
 
-    $('#addrCopyToShipping').click(function(e) {
-        e.preventDefault();
-        $('#ShipAddrLine1').val($('#BillAddrLine1').val());
-        $('#ShipAddrLine2').val($('#BillAddrLine2').val());
-        $('#ShipAddrPincode').val($('#BillAddrPincode').val());
-        $('#ShipAddrState').val($('#BillAddrState').find('option:selected').val()).trigger('change');
-        $('#ShipAddrCity').val($('#BillAddrCity').find('option:selected').val()).trigger('change');
-    });
+$(document).on('click', '#deleteBillingAddress', function(e) {
+    e.preventDefault();
+    $(this).addClass('d-none');
+    var addrUID = $('#BillAddressUID').val();
+    if(addrUID > 0) {
+        delAddrDetailFlag = 1;
+        delAddrData.push(addrUID);
+    }
+    $('#addBillingAddress').removeClass('d-none');
+    $('#appendBillingAddress').html('').addClass('d-none');
+    $('#addrCopyToShipping').addClass('d-none');
+});
 
-    $('#deleteBillingAddress').click(function(e) {
-        e.preventDefault();
-        $(this).addClass('d-none');
-        var addrUID = $('#BillAddressUID').val();
-        if(addrUID > 0) {
-            delAddrDetailFlag = 1;
-            delAddrData.push(addrUID);
-        }
-        $('#addBillingAddress').removeClass('d-none');
-        $('#appendBillingAddress').html('').addClass('d-none');
-        $('#addrCopyToShipping').addClass('d-none');
-    });
-
-    $('#deleteShippingAddress').click(function(e) {
-        e.preventDefault();
-        $(this).addClass('d-none');
-        var addrUID = $('#ShipAddressUID').val();
-        if(addrUID > 0) {
-            delAddrDetailFlag = 1;
-            delAddrData.push(addrUID);
-        }
-        $('#addShippingAddress').removeClass('d-none');
-        $('#appendShippingAddress').html('').addClass('d-none');
-        $('#addrCopyToShipping').addClass('d-none');
-    });
-
+$(document).on('click', '#deleteShippingAddress', function(e) {
+    e.preventDefault();
+    $(this).addClass('d-none');
+    var addrUID = $('#ShipAddressUID').val();
+    if(addrUID > 0) {
+        delAddrDetailFlag = 1;
+        delAddrData.push(addrUID);
+    }
+    $('#addShippingAddress').removeClass('d-none');
+    $('#appendShippingAddress').html('').addClass('d-none');
+    $('#addrCopyToShipping').addClass('d-none');
 });
 
 function baseAddressCreation(AddressType, StateInfo, CityInfo) {

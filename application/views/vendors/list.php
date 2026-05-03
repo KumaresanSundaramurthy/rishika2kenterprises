@@ -156,11 +156,10 @@ if (!empty($DataLists)):
         <td>
             <div class="d-flex align-items-center justify-content-end gap-1">
 
-                <a class="btn btn-icon btn-sm text-warning"
-                   href="/vendors/<?php echo $uid; ?>/edit"
-                   title="Edit">
+                <button class="btn btn-icon btn-sm text-warning vend-edit-btn"
+                        data-uid="<?php echo $uid; ?>" title="Edit">
                     <i class="bx bx-edit"></i>
-                </a>
+                </button>
 
                 <div class="dropdown">
                     <button class="trans-actions-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -169,9 +168,9 @@ if (!empty($DataLists)):
                     <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:.82rem;min-width:170px;">
 
                         <li>
-                            <a class="dropdown-item" href="/vendors/<?php echo $uid; ?>/clone">
+                            <button class="dropdown-item vend-clone-btn" data-uid="<?php echo $uid; ?>">
                                 <i class="bx bx-copy me-2 text-secondary"></i>Clone
-                            </a>
+                            </button>
                         </li>
 
                         <?php if (!empty($list->MobileNumber)): ?>

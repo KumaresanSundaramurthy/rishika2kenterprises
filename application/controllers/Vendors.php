@@ -180,7 +180,7 @@ class Vendors extends CI_Controller {
                 if ($UploadResp->Error) throw new Exception($UploadResp->Message);
             }
 
-            $this->globalservice->saveBankDetails($VendorUID, $this->input->post('BankDetailsJSON'), 'Vendors', 'VendBankDetailsTbl');
+            $this->globalservice->saveBankDetails($VendorUID, $this->input->post('BankDetailsJSON'), 'Vendors', 'VendBankDetailsTbl', [], 'VendBankDetUID');
 
             foreach ([['Bill', 'Billing'], ['Ship', 'Shipping']] as [$prefix, $type]) {
                 $this->globalservice->saveAddressInfo($PostData, $VendorUID, $prefix, $type, 'Vendors', 'VendAddressTbl', 'VendAddressUID', 'VendorUID');
@@ -202,7 +202,7 @@ class Vendors extends CI_Controller {
                 $insCustDataResp = $this->dbwrite_model->insertData('Customers', 'CustomerTbl', $vendorFormData);
                 if ($insCustDataResp->Error) throw new Exception($insCustDataResp->Message);
 
-                $this->globalservice->saveBankDetails($insCustDataResp->ID, $this->input->post('BankDetailsJSON'), 'Customers', 'CustBankDetailsTbl');
+                $this->globalservice->saveBankDetails($insCustDataResp->ID, $this->input->post('BankDetailsJSON'), 'Customers', 'CustBankDetailsTbl', [], 'CustBankDetUID');
                 foreach ([['Bill', 'Billing'], ['Ship', 'Shipping']] as [$prefix, $type]) {
                     $this->globalservice->saveAddressInfo($PostData, $insCustDataResp->ID, $prefix, $type, 'Customers', 'CustAddressTbl', 'CustAddressUID', 'CustomerUID');
                 }
@@ -220,8 +220,13 @@ class Vendors extends CI_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
-            $this->EndReturnData->Error   = FALSE;
-            $this->EndReturnData->Message = 'Created Successfully';
+            $this->_initModule();
+            $pageData = $this->_fetchTableData(1, $this->pageData['Limit']);
+            $this->EndReturnData->Error      = FALSE;
+            $this->EndReturnData->Message    = 'Created Successfully';
+            $this->EndReturnData->List       = $pageData->RecordHtmlData;
+            $this->EndReturnData->Pagination = $pageData->Pagination;
+            $this->EndReturnData->Stats      = $this->vendors_model->getVendorStats($this->pageData['JwtData']->User->OrgUID);
 
         } catch (InvalidArgumentException $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -384,7 +389,7 @@ class Vendors extends CI_Controller {
             if ($delBnkFlag == 1) {
                 $this->globalservice->softDeleteBankRecords(getPostValue($PostData, 'delBankData'), 'Vendors', 'VendBankDetailsTbl', 'VendBankDetUID');
             }
-            $this->globalservice->saveBankDetails($PostData['VendorUID'], $this->input->post('BankDetailsJSON'), 'Vendors', 'VendBankDetailsTbl');
+            $this->globalservice->saveBankDetails($PostData['VendorUID'], $this->input->post('BankDetailsJSON'), 'Vendors', 'VendBankDetailsTbl', [], 'VendBankDetUID');
 
             $delAddrFlag = getPostValue($PostData, 'delAddrDetailFlag');
             if ($delAddrFlag == 1) {
@@ -407,8 +412,14 @@ class Vendors extends CI_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
-            $this->EndReturnData->Error   = FALSE;
-            $this->EndReturnData->Message = 'Updated Successfully';
+            $pageNo = (int) ($this->input->post('PageNo') ?: 1);
+            $this->_initModule();
+            $pageData = $this->_fetchTableData($pageNo, $this->pageData['Limit']);
+            $this->EndReturnData->Error      = FALSE;
+            $this->EndReturnData->Message    = 'Updated Successfully';
+            $this->EndReturnData->List       = $pageData->RecordHtmlData;
+            $this->EndReturnData->Pagination = $pageData->Pagination;
+            $this->EndReturnData->Stats      = $this->vendors_model->getVendorStats($this->pageData['JwtData']->User->OrgUID);
 
         } catch (InvalidArgumentException $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -475,11 +486,14 @@ class Vendors extends CI_Controller {
             );
             if ($resp->Error) throw new Exception($resp->Message);
 
-            $this->EndReturnData->Error   = false;
-            $this->EndReturnData->Message = 'Status updated successfully.';
-            
-            $this->load->model('vendors_model');
-            $this->EndReturnData->Stats   = $this->vendors_model->getVendorStats($this->pageData['JwtData']->User->OrgUID);
+            $pageNo = (int) ($this->input->post('PageNo') ?: 1);
+            $this->_initModule();
+            $pageData = $this->_fetchTableData($pageNo, $this->pageData['Limit']);
+            $this->EndReturnData->Error      = false;
+            $this->EndReturnData->Message    = 'Status updated successfully.';
+            $this->EndReturnData->Stats      = $this->vendors_model->getVendorStats($this->pageData['JwtData']->User->OrgUID);
+            $this->EndReturnData->List       = $pageData->RecordHtmlData;
+            $this->EndReturnData->Pagination = $pageData->Pagination;
 
         } catch (Exception $e) {
             $this->EndReturnData->Error   = true;

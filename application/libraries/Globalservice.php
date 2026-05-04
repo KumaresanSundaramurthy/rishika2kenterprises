@@ -826,7 +826,7 @@ Class Globalservice {
 
     }
 
-    public function saveBankDetails($entityUID, $detailsJson, $moduleName, $tableName, $extraFields = []) {
+    public function saveBankDetails($entityUID, $detailsJson, $moduleName, $tableName, $extraFields = [], $pkField = '') {
 
         if (!$detailsJson) return;
 
@@ -842,7 +842,7 @@ Class Globalservice {
             $id = $record['id'] ?? null;
 
             $dataArray = array_merge([
-                $moduleName . 'UID'       => $entityUID,
+                rtrim($moduleName, 's') . 'UID' => $entityUID,
                 'Type'                    => $record['type'] ?? NULL,
                 'BankAccountNumber'       => getPostValue($record, 'accNumber') ?? NULL,
                 'BankIFSC_Code'           => getPostValue($record, 'ifsc') ?? NULL,
@@ -858,7 +858,7 @@ Class Globalservice {
             } elseif (is_numeric($id) || (is_string($id) && ctype_digit($id))) {
                 $updateBatch[] = [
                     'data'  => $dataArray,
-                    'where' => [$tableName . 'UID' => (int) $id],
+                    'where' => [($pkField ?: $tableName . 'UID') => (int) $id],
                 ];
             }
         }

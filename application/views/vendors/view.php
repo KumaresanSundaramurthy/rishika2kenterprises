@@ -194,6 +194,7 @@
             </div>
 
             <?php $this->load->view('common/form/bank_details'); ?>
+            <?php $this->load->view('common/form/address_form'); ?>
             <?php $this->load->view('common/footer_desc'); ?>
 
         </div>

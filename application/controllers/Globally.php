@@ -46,41 +46,27 @@ class Globally extends CI_Controller {
     public function getStateCityOfCountry() {
 
         $this->EndReturnData = new stdClass();
-		try {
+        try {
 
-            $CountryCode = $this->input->post('CountryCode');
-            if($CountryCode) {
-
-                $this->load->model('global_model');
-
-                $StateInfo = $this->global_model->getStateofCountry($CountryCode);
-                if($StateInfo->Error === FALSE) {
-                    $this->EndReturnData->StateInfo = $StateInfo->Data;
-                }
-
-                $CityInfo = $this->global_model->getCityofCountry($CountryCode);
-                if($CityInfo->Error === FALSE) {
-                    $this->EndReturnData->CityInfo = $CityInfo->Data;
-                }
-
-                $this->EndReturnData->Error = FALSE;
-                $this->EndReturnData->Message = 'Data Retrieved Successfully';
-
-            } else {
+            $CountryCode = strtoupper(trim($this->input->post('CountryCode') ?? ''));
+            if (!$CountryCode) {
                 throw new Exception('Country Code information is missing.');
             }
 
+            $this->load->model('location_model');
+
+            $StateResult = $this->location_model->getStatesFromDB($CountryCode);
+            $this->EndReturnData->StateInfo = ($StateResult->Error === FALSE) ? $StateResult->Data : [];
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Data Retrieved Successfully';
+
         } catch (Exception $e) {
-            $this->EndReturnData->Error = TRUE;
+            $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
 
-		$this->output->set_status_header(200)
-            ->set_content_type('application/json', 'utf-8')
-            ->set_output(json_encode($this->EndReturnData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES))
-            ->_display();
-        exit;
-
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
     public function getStateofCountry() {
@@ -149,6 +135,24 @@ class Globally extends CI_Controller {
             ->_display();
         exit;
 
+    }
+
+    public function getCitiesOfState() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $countryISO2 = strtoupper(trim($this->input->post('CountryISO2') ?? ''));
+            $stateISO2   = strtoupper(trim($this->input->post('StateISO2')   ?? ''));
+            if (!$countryISO2 || !$stateISO2) throw new Exception('Country and State codes are required.');
+            $this->load->model('location_model');
+            $result = $this->location_model->getCitiesOfStateFromDB($countryISO2, $stateISO2);
+            $this->EndReturnData->Error = $result->Error;
+            $this->EndReturnData->Data  = ($result->Error === FALSE) ? $result->Data : [];
+            if ($result->Error) $this->EndReturnData->Message = $result->Message;
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
     public function getStorageTypeInfo() {
@@ -417,5 +421,113 @@ class Globally extends CI_Controller {
 
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
+
+
+    // ── GET /globally/fetchIfscDetails?ifsc=XXXX ─────────────────────────────
+    public function fetchIfscDetails() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $ifsc = strtoupper(trim($this->input->get('ifsc') ?? ''));
+
+            if (empty($ifsc) || !preg_match('/^[A-Z]{4}0[A-Z0-9]{6}$/', $ifsc)) {
+                throw new Exception('Please enter a valid 11-character IFSC code.');
+            }
+
+            $url = 'https://ifsc.razorpay.com/' . urlencode($ifsc);
+
+            $this->load->library('curlservice');
+            $response = $this->curlservice->retrieve($url, 'GET', null, [
+                'Accept: application/json',
+                'User-Agent: Mozilla/5.0',
+            ]);
+
+            if (!$response || $response->Error) {
+                throw new Exception('Failed to reach IFSC lookup service. Please try again.');
+            }
+
+            $data = is_array($response->Data) ? $response->Data : json_decode(json_encode($response->Data ?? []), true);
+
+            if (empty($data) || empty($data['BANK'])) {
+                throw new Exception('IFSC code not found. Please verify the code.');
+            }
+
+            $this->EndReturnData->Error  = false;
+            $this->EndReturnData->IFSC   = $ifsc;
+            $this->EndReturnData->Bank   = $data['BANK']   ?? '';
+            $this->EndReturnData->Branch = $data['BRANCH'] ?? '';
+            $this->EndReturnData->City   = $data['CITY']   ?? '';
+            $this->EndReturnData->State  = $data['STATE']  ?? '';
+            $this->EndReturnData->Address = $data['ADDRESS'] ?? '';
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    // public function importCities() {
+
+    //         $this->load->model('dbwrite_model');
+
+    //         $folderPath = APPPATH . 'data/cities/';
+    //         $files = glob($folderPath . '*.json');
+
+    //         if (empty($files)) {
+    //             echo "No JSON files found";
+    //             return;
+    //         }
+
+    //         $batch = [];
+
+    //         foreach ($files as $file) {
+
+    //             $json = file_get_contents($file);
+    //             $cities = json_decode($json, true);
+
+    //             if (!$cities) continue;
+
+    //             foreach ($cities as $c) {
+
+    //                 $batch[] = [
+    //                     'id'            => $c['id'],
+    //                     'name'          => $c['name'],
+    //                     'state_id'      => $c['state_id'],
+    //                     'state_code'    => $c['state_code'],
+    //                     'country_id'    => $c['country_id'],
+    //                     'country_code'  => $c['country_code'],
+    //                     'type'          => $c['type'] ?? null,
+    //                     'level'         => $c['level'] ?? null,
+    //                     'parent_id'     => $c['parent_id'] ?? null,
+    //                     'latitude'      => $c['latitude'],
+    //                     'longitude'     => $c['longitude'],
+    //                     'native'        => $c['native'] ?? null,
+    //                     'population'    => $c['population'] ?? null,
+    //                     'timezone'      => $c['timezone'] ?? null,
+    //                     'translations'  => json_encode($c['translations']),
+    //                     'created_at'    => date('Y-m-d H:i:s', strtotime($c['created_at'])),
+    //                     'updated_at'    => date('Y-m-d H:i:s', strtotime($c['updated_at'])),
+    //                     'flag'          => $c['flag'] ?? 1,
+    //                     'wikiDataId'    => $c['wikiDataId'] ?? null,
+    //                 ];
+
+    //                 // 🔥 Insert every 1000 rows (IMPORTANT)
+    //                 if (count($batch) >= 1000) {
+    //                     $this->dbwrite_model->insertBatchData('Global', 'CitiesTbl', $batch);
+    //                     $batch = [];
+    //                 }
+    //             }
+    //         }
+
+    //         // Insert remaining
+    //         if (!empty($batch)) {
+    //             $this->dbwrite_model->insertBatchData('Global', 'CitiesTbl', $batch);
+    //         }
+
+    //         echo "Import completed successfully!";
+    //     }
 
 }

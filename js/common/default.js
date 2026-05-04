@@ -1,4 +1,4 @@
-jQuery.fn.center = function () {
+﻿jQuery.fn.center = function () {
     this.css("position", "absolute");
     this.css("top", Math.max(0, (($(window).height() - $(this).outerHeight()) / 2) +
         $(window).scrollTop()) + "px");
@@ -834,19 +834,10 @@ $(document).on('select2:open', function(e) {
     }, 0);
 });
 
-function initializeFlatPickr(FieldName, IsModal = '') {
-    if(IsModal) {
-        flatpickr(FieldName, {
-            dateFormat: "Y-m-d",
-            appendTo: document.querySelector(IsModal+' .modal-body'),
-            clickOpens: true,                
-        });
-    } else {
-        flatpickr(FieldName, {
-            dateFormat: "Y-m-d",
-            clickOpens: true,                
-        });
-    }
+function initializeFlatPickr(FieldName, IsModal) {
+    var opts = { dateFormat: "Y-m-d", altInput: true, altFormat: "d M Y", clickOpens: true };
+    if (IsModal) { opts.appendTo = document.querySelector(IsModal + " .modal-body"); }
+    flatpickr(FieldName, opts);
 }
 
 function updatePageSettings(formdata) {

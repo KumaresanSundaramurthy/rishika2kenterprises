@@ -34,19 +34,11 @@ $d       = $FormData; // shorthand, null for add
                     value="<?php echo htmlspecialchars($d->Area ?? ''); ?>" />
             </div>
             <?php
-                $orgISO2      = $JwtData->User->OrgCISO2 ?? 'IN';
-                $defPhoneCode = '+91';
-                foreach ($CountryInfo as $_c) {
-                    if ($_c->iso->{'alpha-2'} == $orgISO2) { $defPhoneCode = $_c->phone[0]; break; }
-                }
-                $activePhoneCode = (($isEdit || $isClone) && !empty($d->CountryCode)) ? $d->CountryCode : $defPhoneCode;
-                $activeISO2 = $orgISO2;
-                foreach ($CountryInfo as $_c) {
-                    if ($_c->phone[0] == $activePhoneCode) { $activeISO2 = $_c->iso->{'alpha-2'}; break; }
-                }
+                $activePhoneCode = (($isEdit || $isClone) && !empty($d->CountryCode)) ? $d->CountryCode : $OrgCCode;
+                $activeISO2      = (($isEdit || $isClone) && !empty($d->CountryISO2))  ? $d->CountryISO2  : $OrgCISO2;
             ?>
             <div class="mb-3 col-md-4">
-                <label class="form-label" for="CM_MobileNumber">Mobile Number <span class="text-danger">*</span></label>
+                <label class="form-label" for="CM_MobileNumber">Mobile Number </label>
                 <div class="input-group">
                     <span class="input-group-text fw-semibold"><?php echo htmlspecialchars($activePhoneCode); ?></span>
                     <input type="hidden" name="CountryCode" id="CM_CountryCode" value="<?php echo htmlspecialchars($activePhoneCode); ?>" />
@@ -145,6 +137,13 @@ $d       = $FormData; // shorthand, null for add
                 </a>
             </h5>
         </div>
+        <!-- Bank empty state -->
+        <div class="d-flex flex-column align-items-center justify-content-center py-4 <?php echo count($BankDetails) > 0 ? 'd-none' : ''; ?>" id="bankEmptyState">
+            <i class="bx bx-credit-card text-muted mb-2" style="font-size:2.5rem;"></i>
+            <div class="fw-semibold text-muted mb-1">No bank accounts added</div>
+            <div class="text-muted small">Add customer bank information to manage transactions</div>
+        </div>
+
         <div class="table-responsive <?php echo count($BankDetails) > 0 ? '' : 'd-none'; ?>" id="appendBankDetails">
             <table class="table table-bordered table-sm align-middle mb-0">
                 <thead class="table-light">
@@ -188,36 +187,34 @@ $d       = $FormData; // shorthand, null for add
         </div>
         <div class="row">
             <div class="mb-3 col-md-6">
-                <div class="card-header modal-header-center-sticky d-flex justify-content-between align-items-center p-0 mb-2">
-                    <h5 class="mb-2">
-                        Billing Address
-                        <a href="javascript:void(0)" class="btn btn-sm btn-outline-warning ms-1" id="addBillingAddress" data-divid="appendBillingAddress">
-                            <i class="bx bx-plus-circle me-1"></i> Billing Address
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="fw-semibold small text-muted text-uppercase">Billing Address</span>
+                        <a href="javascript:void(0)" class="btn btn-sm btn-outline-warning" id="addBillingAddress" data-divid="appendBillingAddress">
+                            <i class="bx bx-plus-circle"></i>
                         </a>
-                    </h5>
-                    <div class="ms-auto d-flex align-items-center">
-                        <a href="javascript:void(0)" class="btn btn-sm btn-outline-primary ms-1 d-none" id="addrCopyToShipping">
-                            <i class="bx bx-copy-alt me-1"></i> Copy to Shipping
-                        </a>
-                        <button type="button" id="deleteBillingAddress" class="btn btn-outline-danger btn-sm ms-2 d-none"><i class="bx bx-trash"></i></button>
                     </div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary d-none" id="copyToShippingBtn">
+                        <i class="bx bx-copy-alt me-1"></i>Copy to Shipping
+                    </button>
                 </div>
-                <div id="appendBillingAddress" class="d-none"></div>
+                <div id="appendBillingAddress"></div>
             </div>
             <div class="mb-3 col-md-6">
-                <div class="card-header modal-header-center-sticky d-flex justify-content-between align-items-center p-0 mb-2">
-                    <h5 class="mb-2">
-                        Shipping Address
-                        <a href="javascript:void(0)" class="btn btn-sm btn-outline-warning ms-1" id="addShippingAddress" data-divid="appendShippingAddress">
-                            <i class="bx bx-plus-circle me-1"></i> Shipping Address
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="fw-semibold small text-muted text-uppercase">Shipping Address</span>
+                        <a href="javascript:void(0)" class="btn btn-sm btn-outline-warning" id="addShippingAddress" data-divid="appendShippingAddress">
+                            <i class="bx bx-plus-circle"></i>
                         </a>
-                    </h5>
-                    <button type="button" id="deleteShippingAddress" class="btn btn-outline-danger btn-sm d-none"><i class="bx bx-trash"></i></button>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary d-none" id="copyToBillingBtn">
+                        <i class="bx bx-copy-alt me-1"></i>Copy to Billing
+                    </button>
                 </div>
-                <div id="appendShippingAddress" class="d-none"></div>
+                <div id="appendShippingAddress"></div>
             </div>
         </div>
-        <hr id="AddressDivider" class="d-none">
 
         <!-- Other Details -->
         <div class="card-header modal-header-center-sticky p-1 mb-3">

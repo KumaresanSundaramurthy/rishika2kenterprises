@@ -207,36 +207,24 @@ $d       = $FormData;
         </div>
         <div class="row">
             <div class="mb-3 col-md-6">
-                <div class="card-header modal-header-center-sticky d-flex justify-content-between align-items-center p-0 mb-2">
-                    <h5 class="mb-2">
-                        Billing Address
-                        <a href="javascript:void(0)" class="btn btn-sm btn-outline-warning ms-1" id="addBillingAddress" data-divid="appendBillingAddress">
-                            <i class="bx bx-plus-circle me-1"></i> Billing Address
-                        </a>
-                    </h5>
-                    <div class="ms-auto d-flex align-items-center">
-                        <a href="javascript:void(0)" class="btn btn-sm btn-outline-primary ms-1 d-none" id="addrCopyToShipping">
-                            <i class="bx bx-copy-alt me-1"></i> Copy to Shipping
-                        </a>
-                        <button type="button" id="deleteBillingAddress" class="btn btn-outline-danger btn-sm ms-2 d-none"><i class="bx bx-trash"></i></button>
-                    </div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="fw-semibold small text-muted text-uppercase">Billing Address</span>
+                    <a href="javascript:void(0)" class="btn btn-sm btn-outline-warning" id="addBillingAddress">
+                        <i class="bx bx-plus-circle me-1"></i>Add
+                    </a>
                 </div>
-                <div id="appendBillingAddress" class="d-none"></div>
+                <div id="appendBillingAddress"></div>
             </div>
             <div class="mb-3 col-md-6">
-                <div class="card-header modal-header-center-sticky d-flex justify-content-between align-items-center p-0 mb-2">
-                    <h5 class="mb-2">
-                        Shipping Address
-                        <a href="javascript:void(0)" class="btn btn-sm btn-outline-warning ms-1" id="addShippingAddress" data-divid="appendShippingAddress">
-                            <i class="bx bx-plus-circle me-1"></i> Shipping Address
-                        </a>
-                    </h5>
-                    <button type="button" id="deleteShippingAddress" class="btn btn-outline-danger btn-sm d-none"><i class="bx bx-trash"></i></button>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="fw-semibold small text-muted text-uppercase">Shipping Address</span>
+                    <a href="javascript:void(0)" class="btn btn-sm btn-outline-warning" id="addShippingAddress">
+                        <i class="bx bx-plus-circle me-1"></i>Add
+                    </a>
                 </div>
-                <div id="appendShippingAddress" class="d-none"></div>
+                <div id="appendShippingAddress"></div>
             </div>
         </div>
-        <hr id="AddressDivider" class="d-none">
 
     </div><!-- /p-4 -->
 

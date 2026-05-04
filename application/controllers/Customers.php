@@ -73,6 +73,21 @@ class Customers extends CI_Controller {
             $GetCountryInfo = $this->global_model->getCountryInfo();
             $this->pageData['CountryInfo'] = $GetCountryInfo->Error === FALSE ? $GetCountryInfo->Data : [];
 
+            // Resolve org phone country code from JwtData (sourced from OrganisationTbl at login)
+            // Fall back to OrganisationTbl only if missing from JwtData
+            $orgCCode  = $this->pageData['JwtData']->User->OrgCCode  ?? '';
+            $orgCISO2  = $this->pageData['JwtData']->User->OrgCISO2  ?? '';
+            if (empty($orgCCode) || empty($orgCISO2)) {
+                $this->load->model('organisation_model');
+                $orgResp = $this->organisation_model->getOrganisationDetails(['Org.OrgUID' => $this->pageData['JwtData']->User->OrgUID]);
+                if ($orgResp->Error === FALSE && !empty($orgResp->Data)) {
+                    $orgCCode = $orgCCode  ?: ($orgResp->Data[0]->CountryCode ?? '');
+                    $orgCISO2 = $orgCISO2  ?: ($orgResp->Data[0]->CountryISO2 ?? '');
+                }
+            }
+            $this->pageData['OrgCCode'] = $orgCCode;
+            $this->pageData['OrgCISO2'] = $orgCISO2;
+
             $this->load->view('customers/view', $this->pageData);
 
         } catch (Exception $e) {
@@ -222,7 +237,7 @@ class Customers extends CI_Controller {
                 if ($UploadResp->Error) throw new Exception($UploadResp->Message);
             }
 
-            $this->globalservice->saveBankDetails($CustomerUID, $this->input->post('BankDetailsJSON'), 'Customers', 'CustBankDetailsTbl');
+            $this->globalservice->saveBankDetails($CustomerUID, $this->input->post('BankDetailsJSON'), 'Customers', 'CustBankDetailsTbl', [], 'CustBankDetUID');
 
             foreach ([['Bill', 'Billing'], ['Ship', 'Shipping']] as [$prefix, $type]) {
                 $this->globalservice->saveAddressInfo($PostData, $CustomerUID, $prefix, $type, 'Customers', 'CustAddressTbl', 'CustAddressUID', 'CustomerUID');
@@ -263,8 +278,13 @@ class Customers extends CI_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
-            $this->EndReturnData->Error   = FALSE;
-            $this->EndReturnData->Message = 'Created Successfully';
+            $this->_initModule();
+            $pageData = $this->_fetchTableData(1, $this->pageData['Limit']);
+            $this->EndReturnData->Error      = FALSE;
+            $this->EndReturnData->Message    = 'Created Successfully';
+            $this->EndReturnData->List       = $pageData->RecordHtmlData;
+            $this->EndReturnData->Pagination = $pageData->Pagination;
+            $this->EndReturnData->Stats      = $this->customers_model->getCustomerStats($this->pageData['JwtData']->User->OrgUID);
 
         } catch (InvalidArgumentException $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -461,7 +481,7 @@ class Customers extends CI_Controller {
             if ($delBnkFlag == 1) {
                 $this->globalservice->softDeleteBankRecords(getPostValue($PostData, 'delBankData'), 'Customers', 'CustBankDetailsTbl', 'CustBankDetUID');
             }
-            $this->globalservice->saveBankDetails($CustomerUID, $this->input->post('BankDetailsJSON'), 'Customers', 'CustBankDetailsTbl');
+            $this->globalservice->saveBankDetails($CustomerUID, $this->input->post('BankDetailsJSON'), 'Customers', 'CustBankDetailsTbl', [], 'CustBankDetUID');
 
             $delAddrFlag = getPostValue($PostData, 'delAddrDetailFlag');
             if ($delAddrFlag == 1) {
@@ -484,8 +504,14 @@ class Customers extends CI_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
-            $this->EndReturnData->Error   = FALSE;
-            $this->EndReturnData->Message = 'Updated Successfully';
+            $pageNo = (int) ($this->input->post('PageNo') ?: 1);
+            $this->_initModule();
+            $pageData = $this->_fetchTableData($pageNo, $this->pageData['Limit']);
+            $this->EndReturnData->Error      = FALSE;
+            $this->EndReturnData->Message    = 'Updated Successfully';
+            $this->EndReturnData->List       = $pageData->RecordHtmlData;
+            $this->EndReturnData->Pagination = $pageData->Pagination;
+            $this->EndReturnData->Stats      = $this->customers_model->getCustomerStats($this->pageData['JwtData']->User->OrgUID);
 
         } catch (InvalidArgumentException $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -608,9 +634,14 @@ class Customers extends CI_Controller {
             );
             if ($resp->Error) throw new Exception($resp->Message);
 
-            $this->EndReturnData->Error   = false;
-            $this->EndReturnData->Message = 'Status updated successfully';
-            $this->EndReturnData->Stats   = $this->customers_model->getCustomerStats($this->pageData['JwtData']->User->OrgUID);
+            $pageNo = (int) ($this->input->post('PageNo') ?: 1);
+            $this->_initModule();
+            $pageData = $this->_fetchTableData($pageNo, $this->pageData['Limit']);
+            $this->EndReturnData->Error      = false;
+            $this->EndReturnData->Message    = 'Status updated successfully';
+            $this->EndReturnData->Stats      = $this->customers_model->getCustomerStats($this->pageData['JwtData']->User->OrgUID);
+            $this->EndReturnData->List       = $pageData->RecordHtmlData;
+            $this->EndReturnData->Pagination = $pageData->Pagination;
         } catch (Exception $e) {
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();

@@ -41,44 +41,41 @@ $(document).on('click', '#GSTIN_Fetch', function () {
             // GSTIN status badge
             var statusText = resp.Status ? ' (' + resp.Status + ')' : '';
 
-            // Billing address — trigger billing address section if not open
+            // Billing address — open address modal and pre-fill from GSTIN data
             if (resp.AddressLine1 || resp.City || resp.Pincode) {
+                openAddressModal(1);
 
-                // Open billing address section if it exists and is hidden
-                if ($('#appendBillingAddress').hasClass('d-none')) {
-                    $('#addBillingAddress').trigger('click');
-                }
-
-                // Wait a tick for the address form to render
+                // Wait for modal to render and states to load
                 setTimeout(function () {
-                    if (resp.AddressLine1) $('#BillAddrLine1').val(resp.AddressLine1);
-                    if (resp.AddressLine2) $('#BillAddrLine2').val(resp.AddressLine2);
-                    if (resp.Pincode)      $('#BillAddrPincode').val(resp.Pincode);
+                    if (resp.AddressLine1) $('#ModalAddrLine1').val(resp.AddressLine1);
+                    if (resp.AddressLine2) $('#ModalAddrLine2').val(resp.AddressLine2);
+                    if (resp.Pincode)      $('#ModalAddrPincode').val(resp.Pincode);
 
                     // State — match by name
                     if (resp.StateName) {
-                        var $stateOpt = $('#BillAddrState option').filter(function () {
+                        var $stateOpt = $('#ModalAddrState option').filter(function () {
                             return $(this).text().trim().toLowerCase() === resp.StateName.trim().toLowerCase();
                         });
                         if ($stateOpt.length) {
-                            $('#BillAddrState').val($stateOpt.val()).trigger('change');
+                            $('#ModalAddrState').val($stateOpt.val()).trigger('change');
                         }
                     }
 
-                    // City — match by name after state loads
+                    // City — match by name after state change triggers city load
                     if (resp.City) {
                         setTimeout(function () {
                             var cityLower = resp.City.trim().toLowerCase();
-                            var $cityOpt = $('#BillAddrCity option').filter(function () {
+                            var $cityOpt = $('#ModalAddrCity option').filter(function () {
                                 return $(this).text().trim().toLowerCase() === cityLower
                                     || $(this).text().trim().toLowerCase().indexOf(cityLower) === 0;
                             });
                             if ($cityOpt.length) {
-                                $('#BillAddrCity').val($cityOpt.first().val()).trigger('change');
+                                $('#ModalAddrCity').val($cityOpt.first().val());
+                                if ($('#ModalAddrCity').hasClass('select2')) $('#ModalAddrCity').trigger('change');
                             }
                         }, 600);
                     }
-                }, 300);
+                }, 400);
             }
 
             // Success toast

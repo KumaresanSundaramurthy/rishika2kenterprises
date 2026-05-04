@@ -2,8 +2,60 @@ $(document).on('click', '#addBankDetails', function(e) {
     e.preventDefault();
     $('#AddEditBankDataForm')[0].reset();
     $('#HBankId').val('');
-    $('#addEditBankDataModal .AddEditBankDataBtn').text('Save');
+    $('#bankDataModalTitle').text('Add Bank Details');
+    $('#addEditBankDataModal .AddEditBankDataBtn').html('<i class="bx bx-check me-1"></i>Save');
     $('#addEditBankDataModal').modal('show');
+});
+
+// ── IFSC Code Fetch ───────────────────────────────────────────────────────
+$(document).on('click', '#IFSC_Fetch', function () {
+
+    var ifsc = $.trim($('#BankIFSC_Code').val()).toUpperCase();
+    $('#BankIFSC_Code').val(ifsc);
+
+    if (!ifsc) {
+        Swal.fire({ icon: 'warning', text: 'Please enter an IFSC code first.' });
+        return;
+    }
+    if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(ifsc)) {
+        Swal.fire({ icon: 'warning', text: 'Invalid IFSC format. Example: HDFC0001234' });
+        return;
+    }
+
+    var $btn = $(this);
+    $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Fetching...');
+
+    $.ajax({
+        url   : '/globally/fetchIfscDetails',
+        method: 'GET',
+        data  : { ifsc: ifsc },
+        success: function (resp) {
+            $btn.prop('disabled', false).html('Fetch');
+
+            if (resp.Error) {
+                Swal.fire({ icon: 'error', title: 'IFSC Lookup Failed', text: resp.Message });
+                return;
+            }
+
+            var branchText = (resp.Bank || '') + (resp.Branch ? ' - ' + resp.Branch : '');
+            $('#BankBranchName').val(branchText);
+
+            Swal.fire({
+                icon : 'success',
+                title: 'IFSC Details Fetched',
+                html : '<b>' + (resp.Bank || '') + '</b>' +
+                       (resp.Branch ? '<br><small class="text-muted">Branch: ' + resp.Branch + '</small>' : '') +
+                       (resp.City   ? '<br><small class="text-muted">City: '   + resp.City   + '</small>' : ''),
+                timer: 2500,
+                showConfirmButton: false,
+            });
+        },
+        error: function () {
+            $btn.prop('disabled', false).html('Fetch');
+            Swal.fire({ icon: 'error', text: 'Network error. Please try again.' });
+        }
+    });
+
 });
 
 $(document).on('submit', '#AddEditBankDataForm', function(e) {
@@ -84,6 +136,7 @@ $(document).on('submit', '#AddEditBankDataForm', function(e) {
                 $('#bankDetailsBody').append(rowHtml);
             }
 
+            $('#bankEmptyState').addClass('d-none');
             $('#appendBankDetails').removeClass('d-none');
             $('#bankDivider').removeClass('d-none');
             $('#addEditBankDataModal').modal('hide');
@@ -111,7 +164,8 @@ $(document).on('submit', '#AddEditBankDataForm', function(e) {
         }
 
         $('#AddEditBankDataForm #HBankId').val(record.id || '');
-        $('#addEditBankDataModal .AddEditBankDataBtn').text('Update');
+        $('#bankDataModalTitle').text('Update Bank Details');
+        $('#addEditBankDataModal .AddEditBankDataBtn').html('<i class="bx bx-check me-1"></i>Update');
         $('#addEditBankDataModal').modal('show');
 
     });
@@ -137,10 +191,36 @@ $(document).on('submit', '#AddEditBankDataForm', function(e) {
                 if ($('#bankDetailsBody').children().length === 0) {
                     $('#appendBankDetails').addClass('d-none');
                     $('#bankDivider').addClass('d-none');
+                    $('#bankEmptyState').removeClass('d-none');
                 }
             }
         });
     });
+
+function appendBankRowToTable(record) {
+    var id = record.id || record.CustBankDetUID || record.VendBankDetUID || ('New-' + Date.now());
+    var type = record.type || record.Type || 'Bank';
+    var accNumber = record.accNumber || record.BankAccountNumber || '';
+    var ifsc      = record.ifsc     || record.BankIFSC_Code      || '';
+    var branch    = record.branch   || record.BankBranchName     || '';
+    var holder    = record.holder   || record.BankAccountHolderName || '';
+    var upiId     = record.upiId    || record.UPI_Id             || '';
+    var rec = { id: id, type: type, accNumber: accNumber, ifsc: ifsc, branch: branch, holder: holder, upiId: upiId };
+    var rowHtml = '<tr data-id="' + id + '" data-type="' + type + '" data-record=\'' + JSON.stringify(rec) + '\'>' +
+        '<td>' + type + '</td>' +
+        '<td>' + (type === 'Bank' ? accNumber : upiId) + '</td>' +
+        '<td>' + (type === 'Bank' ? ifsc   : '-') + '</td>' +
+        '<td>' + (type === 'Bank' ? branch : '-') + '</td>' +
+        '<td>' + (type === 'Bank' ? holder : '-') + '</td>' +
+        '<td class="text-center">' +
+            '<button class="btn btn-sm btn-primary me-1 editBankDataBtn"><i class="bx bx-edit-alt"></i></button>' +
+            '<button class="btn btn-sm btn-danger deleteBankDataBtn"><i class="bx bx-trash"></i></button>' +
+        '</td></tr>';
+    $('#bankDetailsBody').append(rowHtml);
+    $('#bankEmptyState').addClass('d-none');
+    $('#appendBankDetails').removeClass('d-none');
+    $('#bankDivider').removeClass('d-none');
+}
 
 function getBankRecordsFromTable() {
     const records = [];

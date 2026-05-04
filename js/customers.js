@@ -1,5 +1,11 @@
 // ── List page AJAX functions ──────────────────────────────────────────────
 
+function _smartDecimal(val) {
+    var n = parseFloat(val);
+    if (isNaN(n)) return '0';
+    return n === 0 ? '0' : String(parseFloat(n.toFixed(6)));
+}
+
 function getCustomersDetails(PageNo, RowLimit, Filter) {
     $.ajax({
         url: '/customers/getCustomersPageDetails/' + PageNo,
@@ -34,13 +40,11 @@ function addCustomerData(formdata) {
                 showAlertMessageSwal('error', '', response.Message);
             } else {
                 showToastNotification(response.Message, 'success');
-                if ($('#CustomerFormModal').hasClass('show')) {
-                    $('#CustomerFormModal').modal('hide');
-                    if (typeof getCustomersDetails === 'function') getCustomersDetails(PageNo, RowLimit, Filter);
-                } else {
-                    $('#AddCustomerForm').trigger('reset');
-                    setTimeout(function () { window.history.back(); }, 250);
-                }
+                $('#CustomerFormModal').modal('hide');
+                $(ModulePag).html(response.Pagination);
+                $(ModuleTable + ' tbody').html(response.List);
+                updateCustomerStats(response.Stats);
+                executeTablePagnCommonFunc(response, false);
             }
         }
     });
@@ -61,13 +65,11 @@ function editCustomerData(formdata) {
                 showAlertMessageSwal('error', '', response.Message);
             } else {
                 showToastNotification(response.Message, 'success');
-                if ($('#CustomerFormModal').hasClass('show')) {
-                    $('#CustomerFormModal').modal('hide');
-                    if (typeof getCustomersDetails === 'function') getCustomersDetails(PageNo, RowLimit, Filter);
-                } else {
-                    $('#EditCustomerForm').trigger('reset');
-                    setTimeout(function () { window.history.back(); }, 250);
-                }
+                $('#CustomerFormModal').modal('hide');
+                $(ModulePag).html(response.Pagination);
+                $(ModuleTable + ' tbody').html(response.List);
+                updateCustomerStats(response.Stats);
+                executeTablePagnCommonFunc(response, false);
             }
         }
     });
@@ -119,14 +121,16 @@ function toggleCustomerStatus(CustomerUID, IsActive) {
         url: '/customers/toggleCustomerStatus',
         method: 'POST',
         cache: false,
-        data: { CustomerUID: CustomerUID, IsActive: IsActive, [CsrfName]: CsrfToken },
+        data: { CustomerUID: CustomerUID, IsActive: IsActive, PageNo: PageNo, [CsrfName]: CsrfToken },
         success: function (response) {
             if (response.Error) {
                 showAlertMessageSwal('error', '', response.Message);
             } else {
                 showToastNotification(response.Message, 'success');
+                $(ModulePag).html(response.Pagination);
+                $(ModuleTable + ' tbody').html(response.List);
                 updateCustomerStats(response.Stats);
-                getCustomersDetails(PageNo, RowLimit, Filter);
+                executeTablePagnCommonFunc(response, false);
             }
         }
     });
@@ -144,6 +148,8 @@ function updateCustomerStats(stats) {
 
 // ── Add / Edit / Clone modal ──────────────────────────────────────────────
 
+var _editCustomerUID = 0;
+
 function openCustomerModal(type, uid) {
     var titles = { add: 'Create Customer', edit: 'Update Customer', clone: 'Clone Customer' };
     $('#CustomerFormModalTitle').text(titles[type] || 'Customer');
@@ -156,36 +162,29 @@ function openCustomerModal(type, uid) {
         return;
     }
 
-    // edit / clone — fetch only data JSON
-    $('#CustomerFormSaveBtn').prop('disabled', true);
-    $('#CustomerFormModal').modal('show');
-
+    // edit / clone — fetch data first, show modal only after populated
     $.ajax({
         url: '/customers/getCustomerForModal/' + uid,
         method: 'GET',
         cache: false,
         success: function (response) {
-            $('#CustomerFormSaveBtn').prop('disabled', false);
             if (response.Error) {
-                $('#CustomerFormModal').modal('hide');
                 showAlertMessageSwal('error', '', response.Message || 'Failed to load customer.');
                 return;
             }
             _populateCustomerModal(type, response);
+            $('#CustomerFormModal').modal('show');
         },
         error: function () {
-            $('#CustomerFormSaveBtn').prop('disabled', false);
-            $('#CustomerFormModal').modal('hide');
             showAlertMessageSwal('error', '', 'Failed to load customer.');
         }
     });
 }
 
 function _resetCustomerModal() {
+    _editCustomerUID  = 0;
     delBankDataFlag   = 0;
     delBankData       = [];
-    delAddrDetailFlag = 0;
-    delAddrData       = [];
     hasRemovedStoredImage = false;
 
     // Reset form fields
@@ -199,11 +198,7 @@ function _resetCustomerModal() {
     $('#bankDivider').addClass('d-none');
 
     // Reset address
-    $('#appendBillingAddress').addClass('d-none').empty();
-    $('#appendShippingAddress').addClass('d-none').empty();
-    $('#addrCopyToShipping').addClass('d-none');
-    $('#deleteBillingAddress').addClass('d-none');
-    $('#deleteShippingAddress').addClass('d-none');
+    resetAddrData();
 
     // Reset dropzone
     reinitDropzoneOne('#CustomerFormModalBody #DropzoneOneBasic');
@@ -219,7 +214,9 @@ function _populateCustomerModal(type, response) {
     var isClone = (type === 'clone');
 
     if (!isClone) {
-        $('#CustomerUID').val(d.CustomerUID || '');
+        _editCustomerUID = d.CustomerUID || 0;
+    } else {
+        _editCustomerUID = 0;
     }
 
     $('#CM_Name').val(d.Name || '');
@@ -228,7 +225,7 @@ function _populateCustomerModal(type, response) {
     $('#CM_CountryCode').val(d.CountryCode || '');
     $('#CM_CountryISO2').val(d.CountryISO2 || '');
     $('#CM_EmailAddress').val(d.EmailAddress || '');
-    $('#CM_DebitCreditAmount').val(d.DebitCreditAmount || '0');
+    $('#CM_DebitCreditAmount').val(_smartDecimal(d.DebitCreditAmount));
     $('#CM_DebitCreditCheck').val(d.DebitCreditType || 'Debit').trigger('change');
     $('#CM_PANNumber').val(d.PANNumber || '');
     $('#CM_ContactPerson').val(d.ContactPerson || '');
@@ -236,9 +233,9 @@ function _populateCustomerModal(type, response) {
     $('#CM_CustomerTypeUID').val(d.CustomerTypeUID || '').trigger('change');
     $('#CM_GSTIN').val(d.GSTIN || '');
     $('#CM_CompanyName').val(d.CompanyName || '');
-    $('#CM_DiscountPercent').val(d.DiscountPercent || '0');
+    $('#CM_DiscountPercent').val(_smartDecimal(d.DiscountPercent));
     $('#CM_CreditPeriod').val(d.CreditPeriod || '30');
-    $('#CM_CreditLimit').val(d.CreditLimit || '0');
+    $('#CM_CreditLimit').val(_smartDecimal(d.CreditLimit));
     $('#CM_Notes').val(d.Notes || '');
 
     // Tags
@@ -279,25 +276,36 @@ function _populateCustomerModal(type, response) {
 
     // Addresses
     if (response.BillingAddr) {
-        creationBilngAddrActions();
         var ba = response.BillingAddr;
-        $('#BillAddressUID').val(isClone ? 0 : (ba.CustAddressUID || 0));
-        $('#BillAddrLine1').val(ba.Line1 || '');
-        $('#BillAddrLine2').val(ba.Line2 || '');
-        $('#BillAddrPincode').val(ba.Pincode || '');
-        $('#BillAddrState').val(ba.State || '').trigger('change');
-        setTimeout(function () { $('#BillAddrCity').val(ba.City || '').trigger('change'); }, 300);
+        billingAddrData = {
+            UID      : isClone ? 0 : (ba.CustAddressUID || 0),
+            Line1    : ba.Line1    || '',
+            Line2    : ba.Line2    || '',
+            Pincode  : ba.Pincode  || '',
+            StateId  : ba.State    || '',
+            StateName: ba.StateText || '',
+            StateISO2: '',
+            CityId   : ba.City     || '',
+            CityName : ba.CityText || ''
+        };
+        renderAddrSummary(1, billingAddrData);
     }
     if (response.ShippingAddr) {
-        creationShipAddrActions();
         var sa = response.ShippingAddr;
-        $('#ShipAddressUID').val(isClone ? 0 : (sa.CustAddressUID || 0));
-        $('#ShipAddrLine1').val(sa.Line1 || '');
-        $('#ShipAddrLine2').val(sa.Line2 || '');
-        $('#ShipAddrPincode').val(sa.Pincode || '');
-        $('#ShipAddrState').val(sa.State || '').trigger('change');
-        setTimeout(function () { $('#ShipAddrCity').val(sa.City || '').trigger('change'); }, 300);
+        shippingAddrData = {
+            UID      : isClone ? 0 : (sa.CustAddressUID || 0),
+            Line1    : sa.Line1    || '',
+            Line2    : sa.Line2    || '',
+            Pincode  : sa.Pincode  || '',
+            StateId  : sa.State    || '',
+            StateName: sa.StateText || '',
+            StateISO2: '',
+            CityId   : sa.City     || '',
+            CityName : sa.CityText || ''
+        };
+        renderAddrSummary(2, shippingAddrData);
     }
+    _updateCopyButtons();
 }
 
 // ── Save button in modal header ───────────────────────────────────────────
@@ -324,6 +332,11 @@ $(document).on('submit', '#CustomerModalForm', function (e) {
 
     var formData = new FormData($('#CustomerModalForm')[0]);
 
+    // Ensure CustomerUID is included for edit mode
+    if (mode === 'edit') {
+        formData.set('CustomerUID', _editCustomerUID || 0);
+    }
+
     if (mode === 'edit' && hasRemovedStoredImage && myOneDropzone && myOneDropzone.files.length === 0) {
         formData.append('ImageRemoved', 1);
     }
@@ -342,19 +355,25 @@ $(document).on('submit', '#CustomerModalForm', function (e) {
         delBankData.forEach(function (id) { formData.append('delBankData[]', id); });
     }
 
-    var billLine1 = $('#BillAddrLine1').val();
-    if (hasValue(billLine1)) {
-        var bc = $('#BillAddrCity').find('option:selected');
-        var bs = $('#BillAddrState').find('option:selected');
-        if (hasValue(bc.val()) && $.isNumeric(bc.val())) formData.append('BillAddrCityText', bc.text());
-        if (hasValue(bs.val()) && $.isNumeric(bs.val())) formData.append('BillAddrStateText', bs.text());
+    if (billingAddrData) {
+        formData.append('BillAddressUID',    billingAddrData.UID      || 0);
+        formData.append('BillAddrLine1',     billingAddrData.Line1    || '');
+        formData.append('BillAddrLine2',     billingAddrData.Line2    || '');
+        formData.append('BillAddrPincode',   billingAddrData.Pincode  || '');
+        formData.append('BillAddrState',     billingAddrData.StateId  || '');
+        formData.append('BillAddrStateText', billingAddrData.StateName|| '');
+        formData.append('BillAddrCity',      billingAddrData.CityId   || '');
+        formData.append('BillAddrCityText',  billingAddrData.CityName || '');
     }
-    var shipLine1 = $('#ShipAddrLine1').val();
-    if (hasValue(shipLine1)) {
-        var sc = $('#ShipAddrCity').find('option:selected');
-        var ss = $('#ShipAddrState').find('option:selected');
-        if (hasValue(sc.val()) && $.isNumeric(sc.val())) formData.append('ShipAddrCityText', sc.text());
-        if (hasValue(ss.val()) && $.isNumeric(ss.val())) formData.append('ShipAddrStateText', ss.text());
+    if (shippingAddrData) {
+        formData.append('ShipAddressUID',    shippingAddrData.UID      || 0);
+        formData.append('ShipAddrLine1',     shippingAddrData.Line1    || '');
+        formData.append('ShipAddrLine2',     shippingAddrData.Line2    || '');
+        formData.append('ShipAddrPincode',   shippingAddrData.Pincode  || '');
+        formData.append('ShipAddrState',     shippingAddrData.StateId  || '');
+        formData.append('ShipAddrStateText', shippingAddrData.StateName|| '');
+        formData.append('ShipAddrCity',      shippingAddrData.CityId   || '');
+        formData.append('ShipAddrCityText',  shippingAddrData.CityName || '');
     }
     if (delAddrDetailFlag) {
         formData.append('delAddrDetailFlag', delAddrDetailFlag);
@@ -364,6 +383,7 @@ $(document).on('submit', '#CustomerModalForm', function (e) {
     $('#CustomerFormSaveBtn').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
 
     if (mode === 'edit') {
+        formData.append('PageNo', PageNo);
         editCustomerData(formData);
     } else {
         formData.append('transCustomer', 0);
@@ -444,22 +464,3 @@ $(function () {
     reinitDropzoneOne('#CustomerFormModalBody #DropzoneOneBasic');
 });
 
-// ── Lazy-load State/City on first modal open ──────────────────────────────────
-var _custStateLoaded = false;
-$(document).on('show.bs.modal', '#CustomerFormModal', function () {
-    if (_custStateLoaded) return;
-    _custStateLoaded = true;
-    var orgISO2 = typeof OrgCountryISO2 !== 'undefined' ? OrgCountryISO2 : 'IN';
-    $.ajax({
-        url: '/globally/getStateCityOfCountry',
-        method: 'POST',
-        cache: true,
-        data: { CountryCode: orgISO2 },
-        success: function (resp) {
-            if (!resp.Error) {
-                window.StateInfo = resp.StateInfo || [];
-                window.CityInfo  = resp.CityInfo  || [];
-            }
-        }
-    });
-});

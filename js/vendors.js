@@ -39,13 +39,11 @@ function addVendorData(formdata) {
                 showAlertMessageSwal('error', '', response.Message);
             } else {
                 showToastNotification(response.Message, 'success');
-                if ($('#VendorFormModal').hasClass('show')) {
-                    $('#VendorFormModal').modal('hide');
-                    if (typeof getVendorsDetails === 'function') getVendorsDetails(PageNo, RowLimit, Filter);
-                } else {
-                    $('#AddVendorForm').trigger('reset');
-                    setTimeout(function () { window.history.back(); }, 250);
-                }
+                $('#VendorFormModal').modal('hide');
+                $(ModulePag).html(response.Pagination);
+                $(ModuleTable + ' tbody').html(response.List);
+                updateVendorStats(response.Stats);
+                executeTablePagnCommonFunc(response, false);
             }
         }
     });
@@ -66,13 +64,11 @@ function editVendorData(formdata) {
                 showAlertMessageSwal('error', '', response.Message);
             } else {
                 showToastNotification(response.Message, 'success');
-                if ($('#VendorFormModal').hasClass('show')) {
-                    $('#VendorFormModal').modal('hide');
-                    if (typeof getVendorsDetails === 'function') getVendorsDetails(PageNo, RowLimit, Filter);
-                } else {
-                    $('#EditVendorForm').trigger('reset');
-                    setTimeout(function () { window.history.back(); }, 250);
-                }
+                $('#VendorFormModal').modal('hide');
+                $(ModulePag).html(response.Pagination);
+                $(ModuleTable + ' tbody').html(response.List);
+                updateVendorStats(response.Stats);
+                executeTablePagnCommonFunc(response, false);
             }
         }
     });
@@ -120,14 +116,16 @@ function toggleVendorStatus(VendorUID, IsActive) {
         url   : '/vendors/toggleVendorStatus',
         method: 'POST',
         cache : false,
-        data  : { VendorUID: VendorUID, IsActive: IsActive, [CsrfName]: CsrfToken },
+        data  : { VendorUID: VendorUID, IsActive: IsActive, PageNo: PageNo, [CsrfName]: CsrfToken },
         success: function (response) {
             if (response.Error) {
                 showAlertMessageSwal('error', '', response.Message);
             } else {
                 showToastNotification(response.Message, 'success');
+                $(ModulePag).html(response.Pagination);
+                $(ModuleTable + ' tbody').html(response.List);
                 updateVendorStats(response.Stats);
-                getVendorsDetails(PageNo, RowLimit, Filter);
+                executeTablePagnCommonFunc(response, false);
             }
         }
     });
@@ -148,6 +146,7 @@ function deleteVendor(DeleteId) {
                 $(ModulePag).html(response.Pagination);
                 $(ModuleTable + ' tbody').html(response.List);
                 updateVendorStats(response.Stats);
+                executeTablePagnCommonFunc(response, true);
             }
         }
     });
@@ -165,10 +164,11 @@ function deleteMultipleVendors() {
                 showAlertMessageSwal('error', '', response.Message);
             } else {
                 showToastNotification(response.Message, 'success');
+                SelectedUIDs = [];
                 $(ModulePag).html(response.Pagination);
                 $(ModuleTable + ' tbody').html(response.List);
-                SelectedUIDs = [];
                 updateVendorStats(response.Stats);
+                executeTablePagnCommonFunc(response, true);
             }
         }
     });
@@ -178,9 +178,14 @@ function deleteMultipleVendors() {
 
 function openVendorModal(type, uid) {
     var titles = { add: 'Create Vendor', edit: 'Update Vendor', clone: 'Clone Vendor' };
+    var isAdd  = (type === 'add');
+
     $('#VendorFormModalTitle').text(titles[type] || 'Vendor');
-    $('#VendorFormModalBody').html('<div class="text-center py-5"><span class="spinner-border text-primary"></span></div>');
-    $('#VendorFormModal').modal('show');
+
+    if (isAdd) {
+        $('#VendorFormModalBody').html('<div class="text-center py-5"><span class="spinner-border text-primary"></span></div>');
+        $('#VendorFormModal').modal('show');
+    }
 
     $.ajax({
         url: '/vendors/modal/' + type + (uid ? '/' + uid : ''),
@@ -188,7 +193,7 @@ function openVendorModal(type, uid) {
         cache: false,
         success: function (response) {
             if (response.Error) {
-                $('#VendorFormModal').modal('hide');
+                if (isAdd) $('#VendorFormModal').modal('hide');
                 showAlertMessageSwal('error', '', response.Message || 'Failed to load form.');
                 return;
             }
@@ -196,9 +201,10 @@ function openVendorModal(type, uid) {
             window.CityInfo  = response.CityData;
             $('#VendorFormModalBody').html(response.Html);
             _initVendorModalPlugins(response);
+            if (!isAdd) $('#VendorFormModal').modal('show');
         },
         error: function () {
-            $('#VendorFormModal').modal('hide');
+            if (isAdd) $('#VendorFormModal').modal('hide');
             showAlertMessageSwal('error', '', 'Failed to load form.');
         }
     });
@@ -207,9 +213,9 @@ function openVendorModal(type, uid) {
 function _initVendorModalPlugins(response) {
     delBankDataFlag   = 0;
     delBankData       = [];
-    delAddrDetailFlag = 0;
-    delAddrData       = [];
     hasRemovedStoredImage = false;
+
+    resetAddrData();
 
     initializeFlatPickr('#VM_CPDateOfBirth', '#VendorFormModal');
 
@@ -222,25 +228,37 @@ function _initVendorModalPlugins(response) {
         searchCustomers('VM_Customers');
     }
 
+    var isClone = (response.FormMode === 'clone');
+
     if (response.BillingAddr) {
-        creationBilngAddrActions();
         var b = response.BillingAddr;
-        $('#BillAddressUID').val(b.VendAddressUID || 0);
-        $('#BillAddrLine1').val(b.Line1 || '');
-        $('#BillAddrLine2').val(b.Line2 || '');
-        $('#BillAddrPincode').val(b.Pincode || '');
-        $('#BillAddrState').val(b.State || '').trigger('change');
-        setTimeout(function () { $('#BillAddrCity').val(b.City || '').trigger('change'); }, 300);
+        billingAddrData = {
+            UID      : isClone ? 0 : (b.VendAddressUID || 0),
+            Line1    : b.Line1    || '',
+            Line2    : b.Line2    || '',
+            Pincode  : b.Pincode  || '',
+            StateId  : b.State    || '',
+            StateName: b.StateText || '',
+            StateISO2: '',
+            CityId   : b.City     || '',
+            CityName : b.CityText || ''
+        };
+        renderAddrSummary(1, billingAddrData);
     }
     if (response.ShippingAddr) {
-        creationShipAddrActions();
         var s = response.ShippingAddr;
-        $('#ShipAddressUID').val(s.VendAddressUID || 0);
-        $('#ShipAddrLine1').val(s.Line1 || '');
-        $('#ShipAddrLine2').val(s.Line2 || '');
-        $('#ShipAddrPincode').val(s.Pincode || '');
-        $('#ShipAddrState').val(s.State || '').trigger('change');
-        setTimeout(function () { $('#ShipAddrCity').val(s.City || '').trigger('change'); }, 300);
+        shippingAddrData = {
+            UID      : isClone ? 0 : (s.VendAddressUID || 0),
+            Line1    : s.Line1    || '',
+            Line2    : s.Line2    || '',
+            Pincode  : s.Pincode  || '',
+            StateId  : s.State    || '',
+            StateName: s.StateText || '',
+            StateISO2: '',
+            CityId   : s.City     || '',
+            CityName : s.CityText || ''
+        };
+        renderAddrSummary(2, shippingAddrData);
     }
 }
 
@@ -286,19 +304,25 @@ $(document).on('submit', '#VendorModalForm', function (e) {
         delBankData.forEach(function (id) { formData.append('delBankData[]', id); });
     }
 
-    var billLine1 = $('#BillAddrLine1').val();
-    if (hasValue(billLine1)) {
-        var bc = $('#BillAddrCity').find('option:selected');
-        var bs = $('#BillAddrState').find('option:selected');
-        if (hasValue(bc.val()) && $.isNumeric(bc.val())) formData.append('BillAddrCityText', bc.text());
-        if (hasValue(bs.val()) && $.isNumeric(bs.val())) formData.append('BillAddrStateText', bs.text());
+    if (billingAddrData) {
+        formData.append('BillAddressUID',    billingAddrData.UID      || 0);
+        formData.append('BillAddrLine1',     billingAddrData.Line1    || '');
+        formData.append('BillAddrLine2',     billingAddrData.Line2    || '');
+        formData.append('BillAddrPincode',   billingAddrData.Pincode  || '');
+        formData.append('BillAddrState',     billingAddrData.StateId  || '');
+        formData.append('BillAddrStateText', billingAddrData.StateName|| '');
+        formData.append('BillAddrCity',      billingAddrData.CityId   || '');
+        formData.append('BillAddrCityText',  billingAddrData.CityName || '');
     }
-    var shipLine1 = $('#ShipAddrLine1').val();
-    if (hasValue(shipLine1)) {
-        var sc = $('#ShipAddrCity').find('option:selected');
-        var ss = $('#ShipAddrState').find('option:selected');
-        if (hasValue(sc.val()) && $.isNumeric(sc.val())) formData.append('ShipAddrCityText', sc.text());
-        if (hasValue(ss.val()) && $.isNumeric(ss.val())) formData.append('ShipAddrStateText', ss.text());
+    if (shippingAddrData) {
+        formData.append('ShipAddressUID',    shippingAddrData.UID      || 0);
+        formData.append('ShipAddrLine1',     shippingAddrData.Line1    || '');
+        formData.append('ShipAddrLine2',     shippingAddrData.Line2    || '');
+        formData.append('ShipAddrPincode',   shippingAddrData.Pincode  || '');
+        formData.append('ShipAddrState',     shippingAddrData.StateId  || '');
+        formData.append('ShipAddrStateText', shippingAddrData.StateName|| '');
+        formData.append('ShipAddrCity',      shippingAddrData.CityId   || '');
+        formData.append('ShipAddrCityText',  shippingAddrData.CityName || '');
     }
     if (delAddrDetailFlag) {
         formData.append('delAddrDetailFlag', delAddrDetailFlag);
@@ -308,6 +332,7 @@ $(document).on('submit', '#VendorModalForm', function (e) {
     $('#VendorFormSaveBtn').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
 
     if (mode === 'edit') {
+        formData.append('PageNo', PageNo);
         editVendorData(formData);
     } else {
         addVendorData(formData);

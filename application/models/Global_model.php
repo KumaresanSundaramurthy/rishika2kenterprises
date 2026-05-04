@@ -174,6 +174,35 @@ class Global_model extends CI_Model {
 
     }
 
+    public function getCitiesOfState($countryISO2, $stateISO2) {
+        $this->EndReturnData = new stdClass();
+        try {
+            $cacheKey = getSiteConfiguration()->RedisName . getenv('REDIS_STATICKEY') . "Glb_CityOfState-{$countryISO2}-{$stateISO2}";
+            $cached   = $this->redis_cache->get($cacheKey);
+            if ($cached->Error) {
+                $this->load->library('curlservice');
+                $resp = $this->curlservice->retrieve(
+                    getenv('COUNTRY_API_URL') . '/countries/' . $countryISO2 . '/states/' . $stateISO2 . '/cities',
+                    'GET', [], ['X-CSCAPI-KEY: ' . getenv('COUNTRY_API_KEY')]
+                );
+                if ($resp->Error === false && sizeof($resp->Data) > 0) {
+                    $this->EndReturnData->Data = $resp->Data;
+                } else {
+                    $this->EndReturnData->Data = [];
+                }
+                $this->redis_cache->set($cacheKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
+            } else {
+                $this->EndReturnData->Data = $cached->Value;
+            }
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Data Retrieved Successfully';
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        return $this->EndReturnData;
+    }
+
     public function getPrimaryUnitInfo() {
 
         $this->EndReturnData = new stdClass();

@@ -1,17 +1,27 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <div class="modal fade" id="addEditBankDataModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false" aria-hidden="true" aria-modal="true" role="dialog">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
 
         <?php $FormAttribute = array('id' => 'AddEditBankDataForm', 'name' => 'AddEditBankDataForm', 'class' => '', 'autocomplete' => 'off');
                 echo form_open('common/addEditBankInformation', $FormAttribute); ?>
 
-            <div class="modal-header modal-header-center-sticky d-flex justify-content-between align-items-center p-3">
-                <h5 class="modal-title" id="bankDataModalTitle">Add Bank Details</h5>
+            <div class="modal-header bg-white border-bottom d-flex align-items-center justify-content-between px-3 py-2 trans-theme">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="modal-doc-icon bg-primary bg-opacity-10">
+                        <i class="bx bx-buildings text-primary modal-doc-icon-inner"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title mb-0" id="bankDataModalTitle">Add Bank Details</h5>
+                    </div>
+                </div>
                 <div class="d-flex align-items-center gap-2">
-                    <button type="button" class="btn btn-outline-danger btn-icon-square" data-bs-dismiss="modal" aria-label="Close">
-                        <i class="bx bx-x fs-4"></i>
+                    <button type="submit" class="btn btn-sm btn-primary AddEditBankDataBtn">
+                        <i class="bx bx-check me-1"></i>Save
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-danger" data-bs-dismiss="modal" aria-label="Close">
+                        <i class="bx bx-x me-1"></i>Close
                     </button>
                 </div>
             </div>
@@ -32,7 +42,10 @@
                         </div>
                         <div class="mb-3">
                             <label for="BankIFSC_Code" class="form-label">IFSC Code <span style="color:red">*</span></label>
-                            <input class="form-control" type="text" id="BankIFSC_Code" name="BankIFSC_Code" maxlength="50" placeholder="Bank IFSC Code" />
+                            <div class="input-group">
+                                <input class="form-control" type="text" id="BankIFSC_Code" name="BankIFSC_Code" maxlength="11" placeholder="e.g. HDFC0001234" style="text-transform:uppercase;" />
+                                <button class="btn btn-outline-primary" type="button" id="IFSC_Fetch">Fetch</button>
+                            </div>
                         </div>
                         <div class="mb-3">
                             <label for="BankBranchName" class="form-label">Bank & Branch Name <span style="color:red">*</span></label>
@@ -63,11 +76,6 @@
                 </div>
             </div>
 
-            <hr class="mt-0 mb-0 border-top" />
-            <div class="modal-footer p-3">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="submit" class="btn btn-primary AddEditBankDataBtn">Save</button>
-            </div>
 
             <?php echo form_close(); ?>
 

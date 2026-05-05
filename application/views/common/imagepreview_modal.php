@@ -10,8 +10,3 @@
         </div>
     </div>
 </div>
-
-<style>
-    .cursor-pointer { cursor: pointer; }
-    .preview-image:hover { opacity: 0.8; transition: 0.3s; }
-</style>

@@ -28,6 +28,7 @@ class Transactions_model extends CI_Model {
                 'COALESCE(Cust.Name, Vend.Name) AS PartyName',
                 'COALESCE(Cust.MobileNumber, Vend.MobileNumber) AS MobileNumber',
                 'COALESCE(Cust.CountryCode, Vend.CountryCode) AS CountryCode',
+                'COALESCE(Cust.Image, Vend.Image) AS PartyImage',
                 'Td.ValidityDate AS ValidityDate',
                 'Ts.UpdatedOn AS UpdatedOn',
                 "CONCAT(User.FirstName, ' ', User.LastName) AS UpdatedBy",
@@ -154,20 +155,27 @@ class Transactions_model extends CI_Model {
 
         $tab = $filter['Status'] ?? 'All';
 
-        if ($tab === 'Open') {
-            // Open = Pending (not expired check — show all pending regardless of validity)
+        if ($tab === 'Pending') {
+            // Pending = Received + Partial (bills not yet fully paid)
+            $this->ReadDb->where_in('Ts.DocStatus', ['Received', 'Partial']);
+        } elseif ($tab === 'Received') {
+            $this->ReadDb->where('Ts.DocStatus', 'Received');
+        } elseif ($tab === 'Partial') {
+            $this->ReadDb->where('Ts.DocStatus', 'Partial');
+        } elseif ($tab === 'Open') {
             $this->ReadDb->where('Ts.DocStatus', 'Pending');
         } elseif ($tab === 'Accepted') {
             $this->ReadDb->where('Ts.DocStatus', 'Accepted');
         } elseif ($tab === 'Converted') {
             $this->ReadDb->where('Ts.DocStatus', 'Converted');
+        } elseif ($tab === 'Paid') {
+            $this->ReadDb->where('Ts.DocStatus', 'Paid');
         } elseif ($tab === 'Cancelled') {
-            // Cancelled tab shows both Cancelled and Rejected records
             $this->ReadDb->where_in('Ts.DocStatus', ['Cancelled', 'Rejected']);
         } elseif ($tab === 'Draft') {
             $this->ReadDb->where('Ts.DocStatus', 'Draft');
         } else {
-            // All — exclude Draft only; Cancelled and other statuses remain visible
+            // All — exclude Draft only
             $this->ReadDb->where_not_in('Ts.DocStatus', ['Draft']);
         }
 
@@ -185,19 +193,20 @@ class Transactions_model extends CI_Model {
 
         $this->ReadDb->select([
             'Ts.*',
-            'Cust.Name AS PartyName',
-            'Cust.CountryCode AS PartyCountryCode',
-            'Cust.MobileNumber AS PartyMobile',
-            'Cust.GSTIN AS PartyGSTIN',
+            'COALESCE(Cust.Name, Vend.Name) AS PartyName',
+            'COALESCE(Cust.CountryCode, Vend.CountryCode) AS PartyCountryCode',
+            'COALESCE(Cust.MobileNumber, Vend.MobileNumber) AS PartyMobile',
+            'COALESCE(Cust.GSTIN, Vend.GSTIN) AS PartyGSTIN',
             'BillAddr.Line1 AS BillLine1', 'BillAddr.Line2 AS BillLine2',
             'BillAddr.CityText AS BillCity', 'BillAddr.StateText AS BillState', 'BillAddr.Pincode AS BillPincode',
             'ShipAddr.Line1 AS ShipLine1', 'ShipAddr.Line2 AS ShipLine2',
             'ShipAddr.CityText AS ShipCity', 'ShipAddr.StateText AS ShipState', 'ShipAddr.Pincode AS ShipPincode',
-            'Td.ValidityDays', 'Td.ValidityDate', 'Td.Reference',
+            'Td.ValidityDays', 'Td.ValidityDate', 'Td.Reference', 'Td.SupplierInvoiceNo',
             'Td.Notes', 'Td.TermsConditions', 'Td.AdditionalCharges AS AdditionalChargesJson', 'Td.PlaceOfSupply',
         ]);
         $this->ReadDb->from('Transaction.TransactionsTbl AS Ts');
         $this->ReadDb->join('Customers.CustomerTbl AS Cust', 'Cust.CustomerUID = Ts.PartyUID AND Ts.PartyType = \'C\'', 'LEFT');
+        $this->ReadDb->join('Vendors.VendorTbl AS Vend', 'Vend.VendorUID = Ts.PartyUID AND Ts.PartyType = \'S\'', 'LEFT');
         $this->ReadDb->join('Transaction.TransDetailTbl AS Td', 'Td.TransUID = Ts.TransUID AND Td.FinancialYear = YEAR(Ts.TransDate)', 'LEFT');
         $this->ReadDb->join('Customers.CustAddressTbl AS BillAddr', "BillAddr.CustomerUID = Ts.PartyUID AND BillAddr.AddressType = 'Billing' AND BillAddr.IsDeleted = 0 AND BillAddr.IsActive = 1", 'LEFT');
         $this->ReadDb->join('Customers.CustAddressTbl AS ShipAddr', "ShipAddr.CustomerUID = Ts.PartyUID AND ShipAddr.AddressType = 'Shipping' AND ShipAddr.IsDeleted = 0 AND ShipAddr.IsActive = 1", 'LEFT');
@@ -850,7 +859,7 @@ class Transactions_model extends CI_Model {
         $this->ReadDb->join('Transaction.PaymentTypesTbl AS PT', 'PT.PaymentTypeUID = P.PaymentTypeUID', 'LEFT');
         $this->ReadDb->join('Transaction.TransactionsTbl AS T', 'T.TransUID = P.TransUID AND T.IsDeleted = 0', 'LEFT');
         $this->ReadDb->join('Customers.CustomerTbl AS C', "C.CustomerUID = P.PartyUID AND P.PartyType = 'C'", 'LEFT');
-        $this->ReadDb->join('Vendors.VendorTbl AS V', "V.VendorUID = P.PartyUID AND P.PartyType = 'V'", 'LEFT');
+        $this->ReadDb->join('Vendors.VendorTbl AS V', "V.VendorUID = P.PartyUID AND P.PartyType = 'S'", 'LEFT');
         $this->ReadDb->join('Transaction.OrgBankAccountsTbl AS BA', 'BA.BankAccountUID = P.BankAccountUID', 'LEFT');
         $this->ReadDb->join('Users.UserTbl AS CrUser', 'CrUser.UserUID = P.CreatedBy', 'LEFT');
         $this->ReadDb->where(['P.PaymentUID' => $paymentUID, 'P.OrgUID' => $orgUID]);
@@ -903,7 +912,7 @@ class Transactions_model extends CI_Model {
             $this->ReadDb->join('Transaction.PaymentTypesTbl AS PT', 'PT.PaymentTypeUID = P.PaymentTypeUID', 'LEFT');
             $this->ReadDb->join('Transaction.TransactionsTbl AS T', 'T.TransUID = P.TransUID AND T.IsDeleted = 0', 'LEFT');
             $this->ReadDb->join('Customers.CustomerTbl AS C', "C.CustomerUID = P.PartyUID AND P.PartyType = 'C'", 'LEFT');
-            $this->ReadDb->join('Vendors.VendorTbl AS V', "V.VendorUID = P.PartyUID AND P.PartyType = 'V'", 'LEFT');
+            $this->ReadDb->join('Vendors.VendorTbl AS V', "V.VendorUID = P.PartyUID AND P.PartyType = 'S'", 'LEFT');
             $this->ReadDb->join('Transaction.OrgBankAccountsTbl AS BA', 'BA.BankAccountUID = P.BankAccountUID', 'LEFT');
             $this->ReadDb->join('Users.UserTbl AS CrUser', 'CrUser.UserUID = P.CreatedBy', 'LEFT');
 
@@ -913,7 +922,9 @@ class Transactions_model extends CI_Model {
             } else {
                 $this->ReadDb->where(['P.OrgUID' => $orgUID, 'P.IsDeleted' => 0, 'P.IsActive' => 1]);
             }
-
+            if (!empty($filter['PaymentDirection'])) {
+                $this->ReadDb->where('P.PaymentDirection', $filter['PaymentDirection']);
+            }
             if (!empty($filter['PartyType'])) {
                 $this->ReadDb->where('P.PartyType', $filter['PartyType']);
             }
@@ -939,7 +950,7 @@ class Transactions_model extends CI_Model {
             if ($limit > 0) {
                 $this->ReadDb->limit($limit, $offset);
             }
-            $query = $this->ReadDb->get();
+            $query = $this->ReadDb->get();            
             if (!$query) return [];
             return $query->result();
 
@@ -962,7 +973,9 @@ class Transactions_model extends CI_Model {
             } else {
                 $this->ReadDb->where(['P.OrgUID' => $orgUID, 'P.IsDeleted' => 0, 'P.IsActive' => 1]);
             }
-
+            if (!empty($filter['PaymentDirection'])) {
+                $this->ReadDb->where('P.PaymentDirection', $filter['PaymentDirection']);
+            }
             if (!empty($filter['PartyType'])) {
                 $this->ReadDb->where('P.PartyType', $filter['PartyType']);
             }
@@ -979,7 +992,7 @@ class Transactions_model extends CI_Model {
                 $s = $filter['Search'];
                 $this->ReadDb->join('Transaction.TransactionsTbl AS TS2', 'TS2.TransUID = P.TransUID AND TS2.IsDeleted = 0', 'LEFT');
                 $this->ReadDb->join('Customers.CustomerTbl AS CS2', "CS2.CustomerUID = P.PartyUID AND P.PartyType = 'C'", 'LEFT');
-                $this->ReadDb->join('Vendors.VendorTbl AS VS2', "VS2.VendorUID = P.PartyUID AND P.PartyType = 'V'", 'LEFT');
+                $this->ReadDb->join('Vendors.VendorTbl AS VS2', "VS2.VendorUID = P.PartyUID AND P.PartyType = 'S'", 'LEFT');
                 $this->ReadDb->group_start();
                 $this->ReadDb->or_like('TS2.UniqueNumber', $s, 'both');
                 $this->ReadDb->or_like('CS2.Name', $s, 'both');
@@ -1001,25 +1014,28 @@ class Transactions_model extends CI_Model {
 
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select([
-                "COALESCE(BA.AccountName, 'Cash') AS AccountLabel",
-                "COALESCE(BA.BankName, '') AS BankName",
-                'IFNULL(PT.IsCash, 1) AS IsCash',
-                'BA.BankAccountUID AS BankAccountUID',
+                "IF(PT.IsCash = 1, 'Cash', COALESCE(BA.AccountName, 'Unknown')) AS AccountLabel",
+                "IF(PT.IsCash = 1, '', COALESCE(BA.BankName, '')) AS BankName",
+                'MAX(PT.IsCash) AS IsCash',
+                "IF(PT.IsCash = 1, NULL, BA.BankAccountUID) AS BankAccountUID",
                 "SUM(CASE WHEN P.PartyType = 'C' THEN P.Amount ELSE 0 END) AS TotalReceived",
-                "SUM(CASE WHEN P.PartyType = 'V' THEN P.Amount ELSE 0 END) AS TotalPaid",
-                "(SUM(CASE WHEN P.PartyType = 'C' THEN P.Amount ELSE 0 END) - SUM(CASE WHEN P.PartyType = 'V' THEN P.Amount ELSE 0 END)) AS NetBalance",
+                "SUM(CASE WHEN P.PartyType = 'S' THEN P.Amount ELSE 0 END) AS TotalPaid",
+                "(SUM(CASE WHEN P.PartyType = 'C' THEN P.Amount ELSE 0 END) - SUM(CASE WHEN P.PartyType = 'S' THEN P.Amount ELSE 0 END)) AS NetBalance",
             ]);
             $this->ReadDb->from('Transaction.PaymentsTbl AS P');
             $this->ReadDb->join('Transaction.PaymentTypesTbl AS PT', 'PT.PaymentTypeUID = P.PaymentTypeUID', 'LEFT');
             $this->ReadDb->join('Transaction.OrgBankAccountsTbl AS BA', 'BA.BankAccountUID = P.BankAccountUID', 'LEFT');
             $this->ReadDb->where(['P.OrgUID' => $orgUID, 'P.IsDeleted' => 0, 'P.IsActive' => 1]);
 
-            if (!empty($filter['DateFrom'])) $this->ReadDb->where('DATE(P.CreatedOn) >=', $filter['DateFrom']);
-            if (!empty($filter['DateTo']))   $this->ReadDb->where('DATE(P.CreatedOn) <=', $filter['DateTo']);
+            if (!empty($filter['PartyType']))        $this->ReadDb->where('P.PartyType', $filter['PartyType']);
+            if (!empty($filter['PaymentDirection'])) $this->ReadDb->where('P.PaymentDirection', $filter['PaymentDirection']);
+            if (!empty($filter['DateFrom']))         $this->ReadDb->where('DATE(P.CreatedOn) >=', $filter['DateFrom']);
+            if (!empty($filter['DateTo']))           $this->ReadDb->where('DATE(P.CreatedOn) <=', $filter['DateTo']);
 
-            $this->ReadDb->group_by('BA.BankAccountUID, PT.IsCash');
+            // Group cash into one row; each bank account gets its own row
+            $this->ReadDb->group_by('IF(PT.IsCash = 1, NULL, BA.BankAccountUID), PT.IsCash');
             $this->ReadDb->order_by('PT.IsCash', 'DESC');
-            $this->ReadDb->order_by('NetBalance', 'DESC');
+            $this->ReadDb->order_by('SUM(P.Amount)', 'DESC');
             $query = $this->ReadDb->get();
             if (!$query) return [];
             return $query->result();
@@ -1037,14 +1053,15 @@ class Transactions_model extends CI_Model {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select([
                 "SUM(CASE WHEN P.PartyType = 'C' THEN P.Amount ELSE 0 END) AS TotalReceived",
-                "SUM(CASE WHEN P.PartyType = 'V' THEN P.Amount ELSE 0 END) AS TotalPaid",
+                "SUM(CASE WHEN P.PartyType = 'S' THEN P.Amount ELSE 0 END) AS TotalPaid",
             ]);
             $this->ReadDb->from('Transaction.PaymentsTbl AS P');
             $this->ReadDb->where(['P.OrgUID' => $orgUID, 'P.IsDeleted' => 0, 'P.IsActive' => 1]);
 
             if (!empty($filter['DateFrom'])) $this->ReadDb->where('DATE(P.CreatedOn) >=', $filter['DateFrom']);
             if (!empty($filter['DateTo']))   $this->ReadDb->where('DATE(P.CreatedOn) <=', $filter['DateTo']);
-            if (!empty($filter['PartyType'])) $this->ReadDb->where('P.PartyType', $filter['PartyType']);
+            if (!empty($filter['PartyType']))        $this->ReadDb->where('P.PartyType', $filter['PartyType']);
+            if (!empty($filter['PaymentDirection'])) $this->ReadDb->where('P.PaymentDirection', $filter['PaymentDirection']);
 
             $query = $this->ReadDb->get();
             if (!$query) return (object)['TotalReceived' => 0, 'TotalPaid' => 0];

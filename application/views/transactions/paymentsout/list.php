@@ -4,7 +4,6 @@
 $cur = $JwtData->GenSettings->CurrenySymbol ?? '₹';
 $dec = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
 
-// Payment type → badge colour
 $modeColors = [
     'cash'        => ['bg' => '#e8f5e9', 'color' => '#2e7d32'],
     'upi'         => ['bg' => '#ede7f6', 'color' => '#4527a0'],
@@ -15,7 +14,7 @@ $modeColors = [
     'tds'         => ['bg' => '#f3e5f5', 'color' => '#6a1b9a'],
 ];
 
-function pmtModeBadge($name, $modeColors) {
+function poutModeBadge($name, $modeColors) {
     $key   = strtolower(trim($name ?? ''));
     $style = isset($modeColors[$key])
         ? 'background:' . $modeColors[$key]['bg'] . ';color:' . $modeColors[$key]['color'] . ';'
@@ -27,38 +26,30 @@ function pmtModeBadge($name, $modeColors) {
 <?php if (!empty($DataLists)): ?>
     <?php foreach ($DataLists as $row): ?>
     <?php
-        // Avatar initials
-        $words    = preg_split('/\s+/', trim($row->PartyName ?? ''));
-        $initials = strtoupper(substr($words[0] ?? '', 0, 1));
+        $words       = preg_split('/\s+/', trim($row->PartyName ?? ''));
+        $initials    = strtoupper(substr($words[0] ?? '', 0, 1));
         if (!empty($words[1])) $initials .= strtoupper(substr($words[1], 0, 1));
-        $avatarColors = ['#4f46e5','#0891b2','#059669','#d97706','#db2777','#7c3aed'];
+        $avatarColors = ['#f57c00','#e53935','#8e24aa','#d81b60','#6d4c41','#00838f'];
         $avatarColor  = $avatarColors[crc32($row->PartyName ?? '') % count($avatarColors)];
 
-        // "X mins/hours ago" for created within 24 h
-        $createdTs  = strtotime($row->CreatedOn);
-        $diffSec    = time() - $createdTs;
-        $showAgo    = ($diffSec >= 0 && $diffSec < 86400);
-        $agoText    = '';
+        $createdTs     = strtotime($row->CreatedOn);
+        $diffSec       = time() - $createdTs;
+        $showAgo       = ($diffSec >= 0 && $diffSec < 86400);
+        $agoText       = '';
         if ($showAgo) {
             $mins = (int)floor($diffSec / 60);
-            if ($mins < 60)       $agoText = $mins . 'm ago';
-            else                  $agoText = (int)floor($mins / 60) . 'h ago';
+            $agoText = $mins < 60 ? $mins . 'm ago' : (int)floor($mins / 60) . 'h ago';
         }
         $dateFormatted = date('d M Y, h:i A', $createdTs);
-
-        // Mobile with country code
-        $countryCode = trim($row->PartyCountryCode ?? '');
-        $mobileNum   = trim($row->PartyMobile ?? '');
-        $fullMobile  = ($countryCode && $countryCode !== '+91' && $countryCode !== '91'
-                        ? $countryCode . ' ' : '+91 ') . $mobileNum;
-        if (empty($mobileNum)) $fullMobile = '';
+        $mobileNum     = trim($row->PartyMobile ?? '');
+        $fullMobile    = $mobileNum ? ('+91 ' . $mobileNum) : '';
     ?>
     <tr>
 
-        <!-- # Invoice (PaymentUniqueNumber) -->
+        <!-- Ref No -->
         <td class="ps-3">
             <?php if (!empty($row->PaymentUniqueNumber)): ?>
-                <span class="fw-semibold text-primary" style="font-size:.82rem;">
+                <span class="fw-semibold" style="font-size:.82rem;color:#f57c00;">
                     <?php echo htmlspecialchars($row->PaymentUniqueNumber); ?>
                 </span>
             <?php else: ?>
@@ -68,7 +59,8 @@ function pmtModeBadge($name, $modeColors) {
 
         <!-- Amount -->
         <td class="ps-3">
-            <div class="fw-semibold text-dark" style="font-size:.88rem;">
+            <div class="fw-semibold text-danger" style="font-size:.88rem;">
+                <i class="bx bx-down-arrow-alt me-1" style="font-size:.8rem;"></i>
                 <?php echo htmlspecialchars($cur); ?> <?php echo number_format((float)$row->Amount, $dec, '.', ','); ?>
             </div>
             <?php if ($row->ExcessAmount > 0): ?>
@@ -76,9 +68,9 @@ function pmtModeBadge($name, $modeColors) {
             <?php endif; ?>
         </td>
 
-        <!-- Mode + Bank Details (merged) -->
+        <!-- Mode + Bank -->
         <td>
-            <?php echo pmtModeBadge($row->PaymentTypeName, $modeColors); ?>
+            <?php echo poutModeBadge($row->PaymentTypeName, $modeColors); ?>
             <?php if (!$row->IsCash && !empty($row->BankName)): ?>
                 <div style="font-size:.76rem;font-weight:500;color:#444;margin-top:4px;"><?php echo htmlspecialchars($row->BankName); ?></div>
                 <?php if (!empty($row->AccountNumber)): ?>
@@ -87,7 +79,7 @@ function pmtModeBadge($name, $modeColors) {
             <?php endif; ?>
         </td>
 
-        <!-- Linked Document -->
+        <!-- Linked Bill -->
         <td>
             <?php if (!empty($row->TransNumber)): ?>
                 <span class="fw-semibold text-primary" style="font-size:.82rem;"><?php echo htmlspecialchars($row->TransNumber); ?></span>
@@ -96,7 +88,7 @@ function pmtModeBadge($name, $modeColors) {
             <?php endif; ?>
         </td>
 
-        <!-- Party Name + Mobile -->
+        <!-- Vendor -->
         <td>
             <div class="d-flex align-items-center gap-2">
                 <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
@@ -106,33 +98,26 @@ function pmtModeBadge($name, $modeColors) {
                 <div>
                     <div style="font-size:.82rem;font-weight:600;"><?php echo htmlspecialchars($row->PartyName ?? '—'); ?></div>
                     <?php if ($fullMobile): ?>
-                        <span class="copy-mobile cursor-pointer"
-                              data-mobile="<?php echo htmlspecialchars($fullMobile); ?>"
-                              data-bs-toggle="tooltip"
-                              data-bs-placement="top"
-                              title="Click to copy mobile number"
-                              style="font-size:.72rem;color:#666;">
-                            <?php echo htmlspecialchars($fullMobile); ?>
-                        </span>
+                        <span class="copy-mobile cursor-pointer" data-mobile="<?php echo htmlspecialchars($fullMobile); ?>"
+                              style="font-size:.72rem;color:#666;"><?php echo htmlspecialchars($fullMobile); ?></span>
                     <?php endif; ?>
                 </div>
             </div>
         </td>
 
-        <!-- Created By + Date + ago -->
+        <!-- Recorded By + Date -->
         <td>
             <div style="font-size:.82rem;font-weight:500;"><?php echo htmlspecialchars($row->CreatedByName ?? '—'); ?></div>
             <div class="text-muted" style="font-size:.72rem;"><?php echo $dateFormatted; ?></div>
             <?php if ($showAgo && $agoText): ?>
-                <div style="font-size:.68rem;color:#0d6efd;font-weight:500;"><?php echo $agoText; ?></div>
+                <div style="font-size:.68rem;color:#f57c00;font-weight:500;"><?php echo $agoText; ?></div>
             <?php endif; ?>
         </td>
 
         <!-- Actions -->
         <td class="text-end pe-3">
             <div class="dropdown">
-                <button class="trans-actions-btn" type="button"
-                        data-bs-toggle="dropdown" aria-expanded="false">
+                <button class="trans-actions-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="bx bx-dots-vertical-rounded fs-5"></i>
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:.82rem;min-width:160px;">
@@ -144,14 +129,9 @@ function pmtModeBadge($name, $modeColors) {
                     </li>
                     <li><hr class="dropdown-divider my-1"></li>
                     <li>
-                        <button class="dropdown-item cancelPayment text-warning"
-                                data-payment-uid="<?php echo (int)$row->PaymentUID; ?>">
-                            <i class="bx bx-x-circle me-2"></i>Cancel Payment
-                        </button>
-                    </li>
-                    <li>
-                        <button class="dropdown-item deletePayment text-danger"
-                                data-payment-uid="<?php echo (int)$row->PaymentUID; ?>">
+                        <button class="dropdown-item deletePaymentOut text-danger"
+                                data-payment-uid="<?php echo (int)$row->PaymentUID; ?>"
+                                data-amount="<?php echo htmlspecialchars(number_format((float)$row->Amount, $dec)); ?>">
                             <i class="bx bx-trash me-2"></i>Delete
                         </button>
                     </li>
@@ -165,11 +145,11 @@ function pmtModeBadge($name, $modeColors) {
     <tr>
         <td colspan="7">
             <div class="d-flex flex-column align-items-center justify-content-center py-5" style="gap:10px;">
-                <div style="width:56px;height:56px;border-radius:50%;background:#e8f0fe;display:flex;align-items:center;justify-content:center;">
-                    <i class="bx bx-credit-card-front" style="font-size:1.6rem;color:#0d6efd;"></i>
+                <div style="width:56px;height:56px;border-radius:50%;background:#fff3e0;display:flex;align-items:center;justify-content:center;">
+                    <i class="bx bx-money-withdraw" style="font-size:1.6rem;color:#f57c00;"></i>
                 </div>
-                <div class="fw-semibold text-dark" style="font-size:.92rem;">No Payments Yet</div>
-                <div class="text-muted" style="font-size:.8rem;">Payments received from customers will appear here.</div>
+                <div class="fw-semibold text-dark" style="font-size:.92rem;">No Payments Out Yet</div>
+                <div class="text-muted" style="font-size:.8rem;">Payments made to vendors will appear here.</div>
             </div>
         </td>
     </tr>

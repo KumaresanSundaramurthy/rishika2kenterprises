@@ -256,18 +256,22 @@ class Transactions extends CI_Controller {
             $term = $this->input->get('term') ? trim($this->input->get('term')) : '';
 
             $this->load->model('vendors_model');
-            $filter = !empty($term) ? ['Name' => $term] : [];
-            $vendorsData = $this->vendors_model->getVendorsList(20, 0, $filter);
+            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+            $filter = !empty($term) ? ['SearchAllData' => $term] : [];
+            $result = $this->vendors_model->getVendorListPaginated($orgUID, 20, 0, $filter);
 
             $vendorDetails = [];
-            foreach ($vendorsData as $value) {
+            foreach ($result->rows as $value) {
                 $vendorDetails[] = [
-                    'id'   => $value->VendorUID,
-                    'text' => !empty($value->Area)
+                    'id'          => $value->VendorUID,
+                    'text'        => !empty($value->Area)
                         ? $value->Name . ' (' . $value->Area . ')'
                         : $value->Name,
-                    'name' => $value->Name,
-                    'area' => $value->Area ?? '',
+                    'name'        => $value->Name,
+                    'area'        => $value->Area ?? '',
+                    'companyName' => $value->CompanyName ?? '',
+                    'balance'     => (float)($value->ClosingBalance ?? 0),
+                    'balanceType' => $value->ClosingBalanceType ?? 'Credit',
                 ];
             }
 

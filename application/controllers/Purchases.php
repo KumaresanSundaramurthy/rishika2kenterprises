@@ -29,10 +29,14 @@ class Purchases extends CI_Controller {
             $allData      = $this->transactions_model->getTransactionPageList($limit, 0, $this->pageModuleUID, [], 0);
             $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, []);
 
+            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+
             $this->pageData['ModRowData']    = $this->load->view('transactions/purchases/list', ['DataLists' => $allData, 'SerialNumber' => 0, 'JwtData' => $this->pageData['JwtData']], TRUE);
             $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/purchases/getPurchasesPageDetails', $allDataCount, 1, $limit);
             $this->pageData['ModAllCount']   = $allDataCount;
-            $this->pageData['SummaryStats']  = $this->transactions_model->getTransactionSummaryStats($this->pageModuleUID, $this->pageData['JwtData']->User->OrgUID);
+            $this->pageData['SummaryStats']  = $this->transactions_model->getTransactionSummaryStats($this->pageModuleUID, $orgUID);
+            $this->pageData['PaymentTypes']  = $this->transactions_model->getPaymentTypesList();
+            $this->pageData['BankAccounts']  = $this->transactions_model->getOrgBankAccounts($orgUID);
 
             $this->load->view('transactions/purchases/view', $this->pageData);
 
@@ -70,6 +74,84 @@ class Purchases extends CI_Controller {
             $this->EndReturnData->RecordHtmlData = $rowHtml;
             $this->EndReturnData->Pagination     = $this->globalservice->buildPagePaginationHtml('/purchases/getPurchasesPageDetails', $allDataCount, $pageNo, $limit);
             $this->EndReturnData->TotalCount     = $allDataCount;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    public function purchasePayments() {
+
+        try {
+
+            $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
+
+            $GeneralSettings = ($this->redis_cache->get('Redis_UserGenSettings')->Value) ?? new stdClass();
+            $this->pageData['JwtData']->GenSettings = $GeneralSettings;
+            $limit  = $GeneralSettings->RowLimit ?? 10;
+            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+
+            $filter = ['PartyType' => 'V', 'ModuleUID' => $this->pageModuleUID];
+
+            $this->load->model('transactions_model');
+            $allData      = $this->transactions_model->getPaymentsList($limit, 0, $orgUID, $filter);
+            $allDataCount = $this->transactions_model->getPaymentsCount($orgUID, $filter);
+
+            $this->pageData['ModRowData']    = $this->load->view('transactions/payments/list', [
+                'DataLists'    => $allData,
+                'SerialNumber' => 0,
+                'JwtData'      => $this->pageData['JwtData'],
+            ], TRUE);
+            $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/purchases/getPurchasePaymentsPageDetails', $allDataCount, 1, $limit);
+            $this->pageData['ModAllCount']   = $allDataCount;
+            $this->pageData['Totals']        = $this->transactions_model->getPaymentsTotals($orgUID, $filter);
+
+            $this->load->view('transactions/purchases/payments', $this->pageData);
+
+        } catch (Exception $e) {
+            redirect('purchases', 'refresh');
+        }
+
+    }
+
+    public function getPurchasePaymentsPageDetails($pageNo = 0) {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $pageNo = (int) $pageNo;
+            if ($pageNo < 1) $pageNo = 1;
+
+            $limit  = (int) $this->input->post('RowLimit') ?: 10;
+            $offset = ($pageNo - 1) * $limit;
+            $filter = $this->input->post('Filter') ?: [];
+
+            // Always scope to vendor payments for this module
+            $filter['PartyType'] = 'V';
+            $filter['ModuleUID'] = $this->pageModuleUID;
+
+            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+            $this->pageData['JwtData']->GenSettings = ($this->redis_cache->get('Redis_UserGenSettings')->Value) ?? new stdClass();
+
+            $this->load->model('transactions_model');
+            $allData      = $this->transactions_model->getPaymentsList($limit, $offset, $orgUID, $filter);
+            $allDataCount = $this->transactions_model->getPaymentsCount($orgUID, $filter);
+
+            $rowHtml = $this->load->view('transactions/payments/list', [
+                'DataLists'    => $allData,
+                'SerialNumber' => ($pageNo - 1) * $limit,
+                'JwtData'      => $this->pageData['JwtData'],
+            ], true);
+
+            $this->EndReturnData->Error          = FALSE;
+            $this->EndReturnData->RecordHtmlData = $rowHtml;
+            $this->EndReturnData->Pagination     = $this->globalservice->buildPagePaginationHtml('/purchases/getPurchasePaymentsPageDetails', $allDataCount, $pageNo, $limit);
+            $this->EndReturnData->TotalCount     = $allDataCount;
+            $this->EndReturnData->Totals         = $this->transactions_model->getPaymentsTotals($orgUID, $filter);
 
         } catch (Exception $e) {
             $this->EndReturnData->Error   = TRUE;
@@ -168,13 +250,12 @@ class Purchases extends CI_Controller {
                 'UniqueNumber'          => $uniqueNumber,
                 'TransType'             => 'Purchase',
                 'TransNumber'           => $transNumber,
-                'PartyType'             => 'V',
+                'PartyType'             => 'S',
                 'PartyUID'              => $vendorUID,
                 'TransDate'             => $transDate,
                 'TransYear'             => $financialYear,
                 'QuotationType'         => getPostValue($PostData, 'purchaseType') ?: NULL,
-                'DispatchFromUID'       => NULL,
-                'DispatchFrom'          => NULL,
+                'DispatchFrom'          => getPostValue($PostData, 'dispatchTo') ?: NULL,
                 'TotalQuantity'         => $totalQty,
                 'TotalItems'            => count($items),
                 'GrossAmount'           => $subTotal + $discountAmount,
@@ -191,6 +272,10 @@ class Purchases extends CI_Controller {
                 'ExtraDiscAmount'       => $extraDiscount,
                 'ExtraDiscType'         => getPostValue($PostData, 'extDiscountType') ?: NULL,
                 'NetAmount'             => $netAmount,
+                'TaxableAmount'         => $subTotal,
+                'PaidAmount'            => 0,
+                'BalanceAmount'         => $netAmount,
+                'IsFullyPaid'           => 0,
                 'DocStatus'             => $status,
                 'IsActive'              => 1,
                 'IsDeleted'             => 0,
@@ -205,25 +290,24 @@ class Purchases extends CI_Controller {
 
             $additionalChargesJson = $this->buildAdditionalChargesJson($PostData);
             $isInterState          = $igstAmount > 0 ? 1 : ($cgstAmount > 0 || $sgstAmount > 0 ? 0 : NULL);
-            $isForeignCustomer     = NULL;
+
+            $this->load->model('vendors_model');
+            $vendorAddrArr = $this->vendors_model->getVendorAddress(['VendAddress.VendorUID' => $vendorUID, 'VendAddress.OrgUID' => $orgUID]);
+            $placeOfSupply = !empty($vendorAddrArr) ? ($vendorAddrArr[0]->StateText ?? NULL) : NULL;
+
             $detailData = [
                 'FinancialYear'     => $financialYear,
                 'TransUID'          => $transUID,
                 'ValidityDays'      => NULL,
                 'ValidityDate'      => $billDueDate ?: NULL,
-                'Reference'         => getPostValue($PostData, 'supplierInvoiceNo') ?: (getPostValue($PostData, 'referenceDetails') ?: NULL),
-                'Notes'             => (function() use ($PostData) {
-                    $ref   = trim(getPostValue($PostData, 'referenceDetails') ?? '');
-                    $notes = trim(getPostValue($PostData, 'transNotes') ?? '');
-                    if ($ref !== '') {
-                        return $notes !== '' ? '[PO Ref: ' . $ref . '] ' . $notes : '[PO Ref: ' . $ref . ']';
-                    }
-                    return $notes ?: NULL;
-                })(),
+                'SupplierInvoiceNo' => getPostValue($PostData, 'supplierInvoiceNo') ?: NULL,
+                'Reference'         => getPostValue($PostData, 'referenceDetails') ?: NULL,
+                'Notes'             => getPostValue($PostData, 'transNotes') ?: NULL,
                 'TermsConditions'   => getPostValue($PostData, 'transTermsCond') ?: NULL,
                 'AdditionalCharges' => $additionalChargesJson,
+                'PlaceOfSupply'     => $placeOfSupply,
                 'IsInterState'      => $isInterState,
-                'IsForeignCustomer' => $isForeignCustomer,
+                'IsForeignCustomer' => NULL,
             ];
             $this->dbwrite_model->insertData('Transaction', 'TransDetailTbl', $detailData);
 
@@ -233,9 +317,13 @@ class Purchases extends CI_Controller {
                 $this->dbwrite_model->saveStockMovements($transUID, $this->pageModuleUID, $orgUID, $userUID, $items);
             }
 
-            // Save optional payment records
+            // Save payment records and update balance
+            $paidAmountForLedger = 0;
             if (!$isDraft && (int) getPostValue($PostData, 'RecordPayment') === 1) {
-                $this->savePaymentRecord($transUID, $orgUID, $userUID, 'V', $vendorUID, $netAmount, $PostData, $transDate);
+                $paidAmountForLedger = $this->savePaymentRecord($transUID, $orgUID, $userUID, 'S', $vendorUID, $netAmount, $PostData, $transDate);
+                if ($paidAmountForLedger > 0) {
+                    $this->updateTransactionBalance($transUID, $netAmount, $paidAmountForLedger, $userUID);
+                }
             }
 
             $this->dbwrite_model->commitTransaction();
@@ -245,6 +333,9 @@ class Purchases extends CI_Controller {
                 try {
                     $this->load->library('accountledger');
                     $this->accountledger->applyLedgerEntry($vendorUID, 'Vendor', $netAmount, 'Credit', $transUID);
+                    if ($paidAmountForLedger > 0) {
+                        $this->accountledger->applyLedgerEntry($vendorUID, 'Vendor', $paidAmountForLedger, 'Debit', $transUID);
+                    }
                     $this->accountledger->postPurchaseJournal(
                         $transUID, $transDate, $uniqueNumber, $financialYear,
                         $netAmount, $subTotal, $cgstAmount, $sgstAmount, $igstAmount,
@@ -254,6 +345,8 @@ class Purchases extends CI_Controller {
                     log_message('error', 'Ledger update failed after purchase creation: ' . $ledgerEx->getMessage());
                 }
             }
+
+            $this->_saveAttachments($transUID);
 
             $this->EndReturnData->Error    = FALSE;
             $this->EndReturnData->Message  = 'Purchase bill recorded successfully.';
@@ -357,13 +450,13 @@ class Purchases extends CI_Controller {
             $commonHeader = [
                 'OrgUID'            => $orgUID,
                 'ModuleUID'         => $this->pageModuleUID,
-                'PartyType'         => 'V',
+                'PartyType'         => 'S',
                 'PartyUID'          => $vendorUID,
                 'TransDate'         => $transDate,
                 'TransYear'         => $financialYear,
                 'TransType'         => 'Purchase',
                 'QuotationType'     => getPostValue($PostData, 'purchaseType') ?: NULL,
-                'DispatchFromUID'   => NULL,
+                'DispatchFrom'      => getPostValue($PostData, 'dispatchTo') ?: NULL,
                 'GrossAmount'       => $subTotal + $discountAmount,
                 'SubTotal'          => $subTotal,
                 'DiscountAmount'    => $discountAmount,
@@ -378,25 +471,27 @@ class Purchases extends CI_Controller {
                 'ExtraDiscAmount'   => $extraDiscount,
                 'ExtraDiscType'     => getPostValue($PostData, 'extDiscountType') ?: NULL,
                 'NetAmount'         => $netAmount,
+                'TaxableAmount'     => $subTotal,
+                'BalanceAmount'     => max(0, round($netAmount - (float)($existing->PaidAmount ?? 0), 2)),
                 'DocStatus'         => $status,
                 'UpdatedBy'         => $userUID,
             ];
 
-            $isInterState          = $igstAmount > 0 ? 1 : ($cgstAmount > 0 || $sgstAmount > 0 ? 0 : NULL);
+            $isInterState = $igstAmount > 0 ? 1 : ($cgstAmount > 0 || $sgstAmount > 0 ? 0 : NULL);
+
+            $this->load->model('vendors_model');
+            $vendorAddrArr = $this->vendors_model->getVendorAddress(['VendAddress.VendorUID' => $vendorUID, 'VendAddress.OrgUID' => $orgUID]);
+            $placeOfSupply = !empty($vendorAddrArr) ? ($vendorAddrArr[0]->StateText ?? NULL) : NULL;
+
             $commonDetail = [
                 'ValidityDays'      => NULL,
                 'ValidityDate'      => $billDueDate ?: NULL,
-                'Reference'         => getPostValue($PostData, 'supplierInvoiceNo') ?: (getPostValue($PostData, 'referenceDetails') ?: NULL),
-                'Notes'             => (function() use ($PostData) {
-                    $ref   = trim(getPostValue($PostData, 'referenceDetails') ?? '');
-                    $notes = trim(getPostValue($PostData, 'transNotes') ?? '');
-                    if ($ref !== '') {
-                        return $notes !== '' ? '[PO Ref: ' . $ref . '] ' . $notes : '[PO Ref: ' . $ref . ']';
-                    }
-                    return $notes ?: NULL;
-                })(),
+                'SupplierInvoiceNo' => getPostValue($PostData, 'supplierInvoiceNo') ?: NULL,
+                'Reference'         => getPostValue($PostData, 'referenceDetails') ?: NULL,
+                'Notes'             => getPostValue($PostData, 'transNotes') ?: NULL,
                 'TermsConditions'   => getPostValue($PostData, 'transTermsCond') ?: NULL,
                 'AdditionalCharges' => $additionalChargesJson,
+                'PlaceOfSupply'     => $placeOfSupply,
                 'IsInterState'      => $isInterState,
                 'IsForeignCustomer' => NULL,
             ];
@@ -479,10 +574,8 @@ class Purchases extends CI_Controller {
 
             // Save optional payment records
             if (!$isDraft && (int) getPostValue($PostData, 'RecordPayment') === 1) {
-                $this->savePaymentRecord($transUID, $orgUID, $userUID, 'V', $vendorUID, $netAmount, $PostData, $transDate);
+                $this->savePaymentRecord($transUID, $orgUID, $userUID, 'S', $vendorUID, $netAmount, $PostData, $transDate);
             }
-
-            $this->dbwrite_model->commitTransaction();
 
             // Apply vendor ledger + post journal after commit
             if (!$isDraft) {
@@ -503,6 +596,11 @@ class Purchases extends CI_Controller {
                     log_message('error', 'Ledger update failed after purchase update: ' . $ledgerEx->getMessage());
                 }
             }
+
+            $this->_saveAttachments($activeTransUID);
+            $this->_softDeleteAttachments($this->input->post('RemovedAttachIDs') ?? '');
+
+            $this->dbwrite_model->commitTransaction();
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Purchase bill updated successfully.';
@@ -558,7 +656,7 @@ class Purchases extends CI_Controller {
             $this->dbwrite_model->commitTransaction();
 
             // Reverse vendor ledger + journal after commit
-            if ($existing->DocStatus !== 'Draft' && $existing->PartyType === 'V' && $existing->PartyUID > 0) {
+            if ($existing->DocStatus !== 'Draft' && $existing->PartyType === 'S' && $existing->PartyUID > 0) {
                 try {
                     $this->load->library('accountledger');
                     $this->accountledger->applyLedgerEntry($existing->PartyUID, 'Vendor', (float) $existing->NetAmount, 'Debit', $transUID);
@@ -631,12 +729,11 @@ class Purchases extends CI_Controller {
                 'UniqueNumber'      => $uniqueNumber,
                 'TransType'         => 'Purchase',
                 'TransNumber'       => $nextNumber,
-                'PartyType'         => 'V',
+                'PartyType'         => 'S',
                 'PartyUID'          => $src->PartyUID,
                 'TransDate'         => $today,
                 'TransYear'         => (int) date('Y'),
                 'QuotationType'     => $src->QuotationType,
-                'DispatchFromUID'   => NULL,
                 'GrossAmount'       => $src->GrossAmount,
                 'SubTotal'          => $src->SubTotal,
                 'DiscountAmount'    => $src->DiscountAmount,
@@ -904,14 +1001,20 @@ class Purchases extends CI_Controller {
         return implode($sep, $parts);
     }
 
+    private function updateTransactionBalance($transUID, $netAmount, $paidAmount, $userUID) {
+        $isFullyPaid   = ($netAmount > 0 && round($netAmount - $paidAmount, 4) <= 0) ? 1 : 0;
+        $balanceAmount = max(0, round($netAmount - $paidAmount, 2));
+        $this->dbwrite_model->updateTransIsFullyPaid($transUID, $isFullyPaid, $paidAmount, $balanceAmount, $userUID);
+    }
+
     private function savePaymentRecord($transUID, $orgUID, $userUID, $partyType, $partyUID, $billTotal, $PostData, $transDate = null) {
 
         $rowsJson    = getPostValue($PostData, 'PaymentRows') ?: '';
         $isFullyPaid = (int) getPostValue($PostData, 'IsFullyPaid') === 1 ? 1 : 0;
 
-        if (empty($rowsJson)) return;
+        if (empty($rowsJson)) return 0;
         $rows = json_decode($rowsJson, true);
-        if (!is_array($rows) || empty($rows)) return;
+        if (!is_array($rows) || empty($rows)) return 0;
 
         $paymentDate = $transDate ?: date('Y-m-d');
         $totalPaid   = array_sum(array_column($rows, 'amount'));
@@ -957,6 +1060,7 @@ class Purchases extends CI_Controller {
                 'ReferenceNo'       => $referenceNo,
                 'Notes'             => $notes,
                 'PaymentSource'     => 'Create',
+                'PaymentDirection'  => 'Out',
                 'IsFullyPaid'       => ($idx === count($rows) - 1) ? $isFullyPaid : 0,
                 'ExcessAmount'      => $rowExcess,
                 'AppliedToTransUID' => NULL,
@@ -968,6 +1072,8 @@ class Purchases extends CI_Controller {
 
             $this->dbwrite_model->insertData('Transaction', 'PaymentsTbl', $paymentData);
         }
+
+        return $totalPaid;
 
     }
 
@@ -1050,7 +1156,7 @@ class Purchases extends CI_Controller {
             $dispatchAddrResult                  = $this->organisation_model->getOrgDispatchAddress($orgUID);
             $this->pageData['DispatchAddress']   = $dispatchAddrResult->Data ?? NULL;
 
-            $this->load->view('transactions/purchases/forms/add', $this->pageData);
+            $this->load->view('transactions/purchases/forms/form', $this->pageData);
 
         } catch (Exception $e) {
             redirect('purchases', 'refresh');
@@ -1078,8 +1184,9 @@ class Purchases extends CI_Controller {
 
             $purchItems = $this->transactions_model->getTransactionItems($transUID, $orgUID);
 
-            $this->pageData['PurchData']  = $purchData;
-            $this->pageData['PurchItems'] = $purchItems;
+            $this->pageData['PurchData']        = $purchData;
+            $this->pageData['PurchItems']       = $purchItems;
+            $this->pageData['PurchAttachments'] = $this->transactions_model->getTransactionAttachments($transUID, $orgUID);
 
             $prefixResult                    = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.OrgUID' => $orgUID, 'Prefix.ModuleUID' => $this->pageModuleUID]);
             $this->pageData['PrefixData']    = $prefixResult->Data ?? [];
@@ -1128,11 +1235,265 @@ class Purchases extends CI_Controller {
             $dispatchAddrResult                  = $this->organisation_model->getOrgDispatchAddress($orgUID);
             $this->pageData['DispatchAddress']   = $dispatchAddrResult->Data ?? NULL;
 
-            $this->load->view('transactions/purchases/forms/edit', $this->pageData);
+            $this->load->view('transactions/purchases/forms/form', $this->pageData);
 
         } catch (Exception $e) {
             redirect('purchases', 'refresh');
         }
+
+    }
+
+    private function _saveAttachments($transUID) {
+        $files = $_FILES['AttachFiles'] ?? null;
+        if (empty($files) || empty($files['name'][0])) return;
+
+        $userUID   = $this->pageData['JwtData']->User->UserUID;
+        $orgUID    = $this->pageData['JwtData']->User->OrgUID;
+        $moduleUID = $this->pageModuleUID;
+
+        $this->load->library('fileupload');
+        $this->load->model('dbwrite_model');
+
+        $fileCount = count($files['name']);
+        for ($i = 0; $i < $fileCount; $i++) {
+            if ($files['error'][$i] !== UPLOAD_ERR_OK || empty($files['name'][$i])) continue;
+
+            $origName    = basename($files['name'][$i]);
+            $tmpPath     = $files['tmp_name'][$i];
+            $fileType    = $files['type'][$i];
+            $fileSize    = $files['size'][$i];
+            $safeName    = time() . '_' . $i . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $origName);
+            $storagePath = 'purchases/' . $transUID . '/' . $safeName;
+
+            $uploadResult = $this->fileupload->fileUpload('file', $storagePath, $tmpPath);
+            if ($uploadResult->Error) continue;
+
+            $this->dbwrite_model->insertData('Transaction', 'TransAttachmentsTbl', [
+                'OrgUID'    => $orgUID,
+                'TransUID'  => $transUID,
+                'ModuleUID' => $moduleUID,
+                'FileName'  => $origName,
+                'FilePath'  => '/' . ltrim($uploadResult->Path, '/'),
+                'FileType'  => $fileType,
+                'FileSize'  => $fileSize,
+                'SortOrder' => $i,
+                'IsActive'  => 1,
+                'IsDeleted' => 0,
+                'CreatedBy' => $userUID,
+            ]);
+        }
+    }
+
+    private function _softDeleteAttachments($removedJson) {
+        if (empty($removedJson)) return;
+        $uids = json_decode($removedJson, true);
+        if (empty($uids) || !is_array($uids)) return;
+
+        $orgUID  = $this->pageData['JwtData']->User->OrgUID;
+        $userUID = $this->pageData['JwtData']->User->UserUID;
+        $this->load->model('dbwrite_model');
+
+        foreach ($uids as $attachUID) {
+            $attachUID = (int) $attachUID;
+            if ($attachUID <= 0) continue;
+            $this->dbwrite_model->updateData(
+                'Transaction', 'TransAttachmentsTbl',
+                ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
+                ['AttachUID' => $attachUID, 'OrgUID' => $orgUID]
+            );
+        }
+    }
+
+    public function uploadAttachments() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $PostData  = $this->input->post();
+            $userUID   = $this->pageData['JwtData']->User->UserUID;
+            $orgUID    = $this->pageData['JwtData']->User->OrgUID;
+            $transUID  = (int) getPostValue($PostData, 'TransUID');
+            $moduleUID = (int) getPostValue($PostData, 'ModuleUID') ?: $this->pageModuleUID;
+
+            if ($transUID <= 0) throw new Exception('Invalid purchase reference.');
+
+            $files = $_FILES['AttachFiles'] ?? null;
+            if (empty($files) || empty($files['name'][0])) {
+                $this->EndReturnData->Error   = FALSE;
+                $this->EndReturnData->Message = 'No files to upload.';
+                $this->globalservice->sendJsonResponse($this->EndReturnData);
+                return;
+            }
+
+            $this->load->library('fileupload');
+            $this->load->model('dbwrite_model');
+
+            $uploaded  = 0;
+            $fileCount = count($files['name']);
+            for ($i = 0; $i < $fileCount; $i++) {
+                if ($files['error'][$i] !== UPLOAD_ERR_OK || empty($files['name'][$i])) continue;
+
+                $origName    = basename($files['name'][$i]);
+                $tmpPath     = $files['tmp_name'][$i];
+                $fileType    = $files['type'][$i];
+                $fileSize    = $files['size'][$i];
+                $safeName    = time() . '_' . $i . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $origName);
+                $storagePath = 'purchases/' . $transUID . '/' . $safeName;
+
+                $uploadResult = $this->fileupload->fileUpload('file', $storagePath, $tmpPath);
+                if ($uploadResult->Error) continue;
+
+                $this->dbwrite_model->insertData('Transaction', 'TransAttachmentsTbl', [
+                    'OrgUID'    => $orgUID,
+                    'TransUID'  => $transUID,
+                    'ModuleUID' => $moduleUID,
+                    'FileName'  => $origName,
+                    'FilePath'  => $uploadResult->Path,
+                    'FileType'  => $fileType,
+                    'FileSize'  => $fileSize,
+                    'SortOrder' => $i,
+                    'IsActive'  => 1,
+                    'IsDeleted' => 0,
+                    'CreatedBy' => $userUID,
+                ]);
+                $uploaded++;
+            }
+
+            $this->EndReturnData->Error    = FALSE;
+            $this->EndReturnData->Message  = $uploaded . ' file(s) uploaded.';
+            $this->EndReturnData->Uploaded = $uploaded;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    public function getAttachments() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $transUID = (int) $this->input->post('TransUID');
+            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            if ($transUID <= 0) throw new Exception('Invalid purchase.');
+
+            $this->load->model('transactions_model');
+            $attachments = $this->transactions_model->getTransactionAttachments($transUID, $orgUID);
+
+            $this->EndReturnData->Error       = FALSE;
+            $this->EndReturnData->Attachments = $attachments;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    public function recordPurchasePayment() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $this->load->model('dbwrite_model');
+            $this->dbwrite_model->startTransaction();
+
+            $PostData = $this->input->post();
+            $userUID  = $this->pageData['JwtData']->User->UserUID;
+            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+
+            $transUID       = (int)   getPostValue($PostData, 'TransUID');
+            $paymentTypeUID = (int)   getPostValue($PostData, 'PaymentTypeUID');
+            $amount         = (float) getPostValue($PostData, 'Amount', 'Array', 0);
+            $paymentDate    =         getPostValue($PostData, 'PaymentDate') ?: date('Y-m-d');
+            $bankAccountUID = (int)   getPostValue($PostData, 'BankAccountUID') ?: NULL;
+            $referenceNo    =         getPostValue($PostData, 'ReferenceNo') ?: NULL;
+            $notes          =         getPostValue($PostData, 'Notes') ?: NULL;
+
+            if ($transUID <= 0)       throw new Exception('Invalid transaction.');
+            if ($paymentTypeUID <= 0) throw new Exception('Please select a payment type.');
+            if ($amount <= 0)         throw new Exception('Amount must be greater than 0.');
+
+            $this->load->model('transactions_model');
+            $existing = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
+            if (!$existing) throw new Exception('Purchase not found.');
+            if ($existing->DocStatus === 'Draft')                          throw new Exception('Cannot record payment for a Draft purchase.');
+            if (in_array($existing->DocStatus, ['Cancelled', 'Rejected'])) throw new Exception('Purchase is cancelled.');
+
+            $payments    = $this->transactions_model->getTransactionPayments($transUID, $orgUID);
+            $alreadyPaid = array_sum(array_column((array) $payments, 'Amount'));
+            $pending     = max(0, round((float)$existing->NetAmount - $alreadyPaid, 2));
+
+            if ($amount > $pending + 0.01) {
+                throw new Exception('Amount (' . $amount . ') exceeds pending balance (' . $pending . ').');
+            }
+
+            $newTotalPaid = $alreadyPaid + $amount;
+            $isFullyPaid  = ($existing->NetAmount > 0 && round((float)$existing->NetAmount - $newTotalPaid, 4) <= 0) ? 1 : 0;
+            $excessAmount = max(0, round($newTotalPaid - (float)$existing->NetAmount, 4));
+            $newStatus    = $isFullyPaid ? 'Paid' : 'Partial';
+
+            $payTransYear  = (int) date('Y', strtotime($paymentDate));
+            $payPrefixData = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.OrgUID' => $orgUID, 'Prefix.ModuleUID' => 110]);
+            $payPrefix     = !empty($payPrefixData->Data) ? $payPrefixData->Data[0] : null;
+            $payPrefixUID  = $payPrefix ? (int) $payPrefix->PrefixUID : null;
+            $paymentNumber = $payPrefixUID ? $this->transactions_model->getNextPaymentNumber($payPrefixUID, $orgUID, $payTransYear) : 0;
+            $payUniqueNum  = ($payPrefix && $paymentNumber > 0) ? $this->buildPaymentUniqueNumber($payPrefix, $paymentDate, $paymentNumber) : null;
+
+            $paymentData = [
+                'OrgUID'           => $orgUID,
+                'PaymentDate'      => $paymentDate,
+                'PrefixUID'        => $payPrefixUID,
+                'PaymentNumber'    => $paymentNumber,
+                'UniqueNumber'     => $payUniqueNum,
+                'TransYear'        => $payTransYear,
+                'TransUID'         => $transUID,
+                'ModuleUID'        => $this->pageModuleUID,
+                'PartyType'        => 'V',
+                'PartyUID'         => $existing->PartyUID,
+                'PaymentTypeUID'   => $paymentTypeUID,
+                'Amount'           => $amount,
+                'BankAccountUID'   => $bankAccountUID,
+                'ReferenceNo'      => $referenceNo,
+                'Notes'            => $notes,
+                'PaymentSource'    => 'Record',
+                'PaymentDirection' => 'Out',
+                'IsFullyPaid'      => $isFullyPaid,
+                'ExcessAmount'     => $excessAmount,
+                'IsActive'         => 1,
+                'IsDeleted'        => 0,
+                'CreatedBy'        => $userUID,
+                'UpdatedBy'        => $userUID,
+            ];
+
+            $resp = $this->dbwrite_model->insertData('Transaction', 'PaymentsTbl', $paymentData);
+            if ($resp->Error) throw new Exception($resp->Message);
+
+            $balanceAmount = max(0, round((float) $existing->NetAmount - $newTotalPaid, 2));
+            $ok = $this->dbwrite_model->updateTransIsFullyPaid($transUID, $isFullyPaid, $newTotalPaid, $balanceAmount, $userUID);
+            if ($ok === false) throw new Exception('Failed to update purchase balance.');
+
+            $this->dbwrite_model->updateTransDocStatus($transUID, $orgUID, $newStatus, $userUID);
+
+            $this->dbwrite_model->commitTransaction();
+
+            $this->EndReturnData->Error      = FALSE;
+            $this->EndReturnData->Message    = 'Payment of ' . $amount . ' recorded successfully.';
+            $this->EndReturnData->IsFullyPaid = $isFullyPaid;
+
+        } catch (Exception $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
 
     }
 

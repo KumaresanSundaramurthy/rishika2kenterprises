@@ -13,7 +13,8 @@
                     <?php
                     $cur      = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
                     $dec      = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
-                    $summary  = $MethodSummary ?? [];
+                    $summary      = $MethodSummary ?? [];
+                    $bankAccounts = $BankAccounts ?? [];
                     $totals   = $Totals ?? (object)['TotalReceived' => 0, 'TotalPaid' => 0];
                     $received = (float)($totals->TotalReceived ?? 0);
                     $paid     = (float)($totals->TotalPaid ?? 0);
@@ -27,36 +28,60 @@
                     <!-- ── Balance Summary Cards ──────────────────────────── -->
                     <div class="d-flex gap-3 mb-4 flex-wrap" id="pmtSummaryCards">
 
-                        <?php foreach ($summary as $row): ?>
-                        <?php
-                            $balance  = (float)$row->NetBalance;
-                            $isPos    = $balance >= 0;
-                            $label    = htmlspecialchars($row->AccountLabel ?? 'Cash');
-                            $bankName = htmlspecialchars($row->BankName ?? '');
-                        ?>
-                        <div class="card border-0 shadow-sm pmt-summary-card" style="min-width:200px;flex:1 1 180px;max-width:260px;">
-                            <div class="card-body py-3 px-3">
-                                <div class="d-flex align-items-center gap-2 mb-1">
-                                    <?php if ($row->IsCash): ?>
-                                        <i class="bx bx-money fs-5 text-success"></i>
-                                    <?php else: ?>
-                                        <i class="bx bx-building-house fs-5 text-primary"></i>
+                        <?php if (!empty($summary)): ?>
+                            <?php foreach ($summary as $row): ?>
+                            <?php
+                                $balance  = (float)$row->NetBalance;
+                                $isPos    = $balance >= 0;
+                                $label    = htmlspecialchars($row->AccountLabel ?? 'Cash');
+                                $bankName = htmlspecialchars($row->BankName ?? '');
+                            ?>
+                            <div class="card border-0 shadow-sm pmt-summary-card" style="min-width:200px;flex:1 1 180px;max-width:260px;">
+                                <div class="card-body py-3 px-3">
+                                    <div class="d-flex align-items-center gap-2 mb-1">
+                                        <?php if ($row->IsCash): ?>
+                                            <i class="bx bx-money fs-5 text-success"></i>
+                                        <?php else: ?>
+                                            <i class="bx bx-building-house fs-5 text-primary"></i>
+                                        <?php endif; ?>
+                                        <span class="fw-semibold" style="font-size:.82rem;"><?php echo $label; ?></span>
+                                        <i class="bx <?php echo $isPos ? 'bx-up-arrow-alt text-success' : 'bx-down-arrow-alt text-danger'; ?> ms-auto fs-5"></i>
+                                    </div>
+                                    <?php if ($bankName): ?>
+                                        <div class="text-muted" style="font-size:.72rem;"><?php echo $bankName; ?></div>
                                     <?php endif; ?>
-                                    <span class="fw-semibold" style="font-size:.82rem;"><?php echo $label; ?></span>
-                                    <i class="bx <?php echo $isPos ? 'bx-up-arrow-alt text-success' : 'bx-down-arrow-alt text-danger'; ?> ms-auto fs-5"></i>
-                                </div>
-                                <?php if ($bankName): ?>
-                                    <div class="text-muted" style="font-size:.72rem;"><?php echo $bankName; ?></div>
-                                <?php endif; ?>
-                                <div class="fw-bold mt-1 <?php echo $isPos ? 'text-dark' : 'text-danger'; ?>" style="font-size:1.05rem;">
-                                    <?php echo pmtFmt($balance, $cur, $dec); ?>
+                                    <div class="fw-bold mt-1 <?php echo $isPos ? 'text-dark' : 'text-danger'; ?>" style="font-size:1.05rem;">
+                                        <?php echo pmtFmt($balance, $cur, $dec); ?>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <?php endforeach; ?>
-
-                        <?php if (empty($summary)): ?>
-                        <div class="text-muted small py-2">No payment data yet.</div>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <!-- No payments yet — show all bank accounts with ₹0 -->
+                            <div class="card border-0 shadow-sm pmt-summary-card" style="min-width:200px;flex:1 1 180px;max-width:260px;">
+                                <div class="card-body py-3 px-3">
+                                    <div class="d-flex align-items-center gap-2 mb-1">
+                                        <i class="bx bx-money fs-5 text-success"></i>
+                                        <span class="fw-semibold" style="font-size:.82rem;">Cash</span>
+                                        <i class="bx bx-minus text-muted ms-auto fs-5"></i>
+                                    </div>
+                                    <div class="fw-bold mt-1 text-muted" style="font-size:1.05rem;"><?php echo pmtFmt(0, $cur, $dec); ?></div>
+                                </div>
+                            </div>
+                            <?php foreach ($bankAccounts as $ba): ?>
+                                <?php if ($ba->IsCash) continue; ?>
+                                <div class="card border-0 shadow-sm pmt-summary-card" style="min-width:200px;flex:1 1 180px;max-width:260px;">
+                                    <div class="card-body py-3 px-3">
+                                        <div class="d-flex align-items-center gap-2 mb-1">
+                                            <i class="bx bx-building-house fs-5 text-primary"></i>
+                                            <span class="fw-semibold" style="font-size:.82rem;"><?php echo htmlspecialchars($ba->AccountName); ?></span>
+                                            <i class="bx bx-minus text-muted ms-auto fs-5"></i>
+                                        </div>
+                                        <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars($ba->BankName); ?></div>
+                                        <div class="fw-bold mt-1 text-muted" style="font-size:1.05rem;"><?php echo pmtFmt(0, $cur, $dec); ?></div>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
                         <?php endif; ?>
 
                     </div>

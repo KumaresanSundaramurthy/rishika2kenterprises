@@ -64,6 +64,7 @@
                             <?php $this->load->view('transactions/partials/form_products_add', [
                                 'transProductSectionTitle' => 'Products / Services',
                                 'transNotesPlaceholder'    => 'Reason for debit note',
+                                'transShowDropzone'        => true,
                             ]); ?>
                         </div>
                     </div>
@@ -163,9 +164,15 @@ $(function() {
                 [csrfName]             : csrfVal,
             }, charges);
 
+            var formData = new FormData();
+            $.each(postData, function(k, v) { formData.append(k, v); });
+            if (typeof multiDropzone !== 'undefined' && multiDropzone.files.length > 0) {
+                multiDropzone.files.forEach(function(f) { formData.append('AttachFiles[]', f); });
+            }
+
             setFormLoading('#addDNForm', true, action);
             $.ajax({
-                url: '/debitnotes/addDebitNote', method: 'POST', data: postData, cache: false,
+                url: '/debitnotes/addDebitNote', method: 'POST', data: formData, processData: false, contentType: false, cache: false,
                 success: function(response) {
                     if (response.Error) { setFormLoading('#addDNForm', false); showFormError(response.Message); }
                     else { Swal.fire({ icon: 'success', title: 'Debit Note Saved', text: response.Message || 'Debit note created successfully.', confirmButtonText: 'OK', timer: 3000, timerProgressBar: true }).then(function() { window.location.href = '/debitnotes'; }); }

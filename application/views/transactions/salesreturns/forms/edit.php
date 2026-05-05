@@ -58,7 +58,7 @@
                             <div class="d-flex flex-wrap align-items-center gap-3" id="transHeaderInfo">
                                 <h5 class="modal-title mb-0 ms-2"><?php echo $isDraftEdit ? '' : 'Edit'; ?> Sales Return</h5>
                                 <?php if (!$isDraftEdit && !empty($SRData->UniqueNumber)): ?>
-                                    <span class="badge bg-label-primary fs-6"><?php echo htmlspecialchars($SRData->UniqueNumber); ?></span>
+                                    <span class="trans-form-doc-number"><?php echo htmlspecialchars($SRData->UniqueNumber); ?></span>
                                 <?php endif; ?>
                                 <div class="d-flex align-items-center gap-1">
                                     <div class="input-group w-auto <?php echo (!$isDraftEdit ? 'd-none' : ''); ?>">
@@ -144,12 +144,12 @@
                             <div class="card-header modal-header-center-sticky p-1 mb-3">
                                 <div class="d-flex align-items-center gap-2">
                                     <h5 class="modal-title mb-0"><i class="bx bx-cart-add me-1"></i> Returned Products</h5>
-                                    <button type="button" class="btn btn-sm btn-outline-primary" id="addTransProduct"><i class="bx bx-plus-circle me-1"></i> Product</button>
+                                    <button type="button" class="trans-add-btn btn btn-outline-primary" id="addTransProduct"><i class="bx bx-plus-circle me-1"></i> Product</button>
                                 </div>
                             </div>
                             <div class="row">
 
-                                <div class="card prod-header-static trans-theme p-2">
+                                <div class="card prod-header-static trans-theme p-1">
                                     <div class="d-flex align-items-center gap-2 mb-1">
                                         <div style="width:20%;">
                                             <select id="prodCategory" name="prodCategory" class="form-select form-select-sm">
@@ -266,6 +266,34 @@
                                     <div class="mb-2">
                                         <label for="transTermsCond" class="form-label small fw-semibold">Terms & Conditions</label>
                                         <textarea class="form-control" name="transTermsCond" id="transTermsCond" rows="2"><?php echo htmlspecialchars($SRData->TermsConditions ?? ''); ?></textarea>
+                                    </div>
+                                    <div class="accordion transAccordion mt-2" id="dropZoneAccordion">
+                                        <div class="accordion-item">
+                                            <h2 class="accordion-header text-body d-flex justify-content-between">
+                                                <button type="button" class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#accordionUploadFiles" aria-controls="accordionUploadFiles" aria-expanded="false">
+                                                    <i class="icon-base bx bx-paperclip me-2"></i> Attach Files <span class="ms-2 text-muted">(Max 5, 3 MB each)</span>
+                                                    <span id="existingAttachCount" class="badge bg-label-primary ms-2 d-none" style="font-size:.7rem;"></span>
+                                                </button>
+                                            </h2>
+                                            <div id="accordionUploadFiles" class="accordion-collapse collapse" data-bs-parent="#dropZoneAccordion">
+                                                <div class="accordion-body">
+                                                    <div id="existingAttachList" class="mb-3 d-none">
+                                                        <div class="d-flex align-items-center gap-1 mb-2">
+                                                            <i class="bx bx-link-alt text-primary" style="font-size:.85rem;"></i>
+                                                            <span style="font-size:.75rem;font-weight:700;color:#566a7f;text-transform:uppercase;letter-spacing:.5px;">Saved Files</span>
+                                                        </div>
+                                                        <div id="existingAttachItems" class="d-flex flex-wrap gap-2"></div>
+                                                    </div>
+                                                    <div class="dropzone needsclick p-3 dz-clickable w-100" id="multipleDropzone">
+                                                        <div class="dz-message needsclick text-center">
+                                                            <i class="upload-icon mb-3"></i>
+                                                            <p class="h5 needsclick mb-2">Drag and drop files here</p>
+                                                            <p class="h4 text-body-secondary fw-normal mb-0">or click to browse (max 3 MB per file)</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -400,6 +428,7 @@
 <script src="/js/transactions/modaladdress.js"></script>
 <script src="/js/transactions/products.js"></script>
 <script src="/js/combinemodules/products.js"></script>
+<script src="/js/transactions/attachments.js"></script>
 
 <script>
 const StateInfo     = <?php echo json_encode($StateData); ?>;
@@ -438,6 +467,7 @@ var _editItems = <?php echo json_encode(array_map(function($item) {
 
 $(function () {
     'use strict'
+    initTransAttachments(<?php echo (int)$SRData->TransUID; ?>, '/salesreturns/getAttachments');
 
     searchCustomers('customerSearch');
 
@@ -527,13 +557,22 @@ $(function () {
                 [csrfName]             : csrfVal,
             }, charges);
 
+            var formData = new FormData();
+            $.each(postData, function(k, v) { formData.append(k, v); });
+            if (typeof multiDropzone !== 'undefined' && multiDropzone.files.length > 0) {
+                multiDropzone.files.forEach(function(f) { formData.append('AttachFiles[]', f); });
+            }
+            formData.append('RemovedAttachIDs', JSON.stringify(typeof _removedAttachIDs !== 'undefined' ? _removedAttachIDs : []));
+
             setFormLoading('#editSRForm', true, action);
 
             $.ajax({
-                url    : '/salesreturns/updateSalesReturn',
-                method : 'POST',
-                data   : postData,
-                cache  : false,
+                url         : '/salesreturns/updateSalesReturn',
+                method      : 'POST',
+                data        : formData,
+                processData : false,
+                contentType : false,
+                cache       : false,
                 success: function(response) {
                     if (response.Error) {
                         setFormLoading('#editSRForm', false);

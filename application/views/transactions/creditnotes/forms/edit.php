@@ -30,7 +30,7 @@
                     <div class="card-header bg-body-tertiary trans-header-static trans-theme modal-header-center-sticky d-flex justify-content-between align-items-center pb-3">
                         <div class="d-flex flex-wrap align-items-center gap-3" id="transHeaderInfo">
                             <h5 class="modal-title mb-0 ms-2"><?php echo $isDraftEdit ? '' : 'Edit'; ?> Credit Note</h5>
-                            <?php if (!$isDraftEdit && !empty($CNData->UniqueNumber)): ?><span class="badge bg-label-primary fs-6"><?php echo htmlspecialchars($CNData->UniqueNumber); ?></span><?php endif; ?>
+                            <?php if (!$isDraftEdit && !empty($CNData->UniqueNumber)): ?><span class="trans-form-doc-number"><?php echo htmlspecialchars($CNData->UniqueNumber); ?></span><?php endif; ?>
                             <div class="d-flex align-items-center gap-1">
                                 <div class="input-group w-auto <?php echo (!$isDraftEdit ? 'd-none' : ''); ?>">
                                     <select id="transPrefixSelect" name="transPrefixSelect" class="select2 form-select form-select-sm" <?php echo (!$isDraftEdit ? 'disabled' : 'required'); ?>>
@@ -75,9 +75,9 @@
                             </div>
                         </div>
                         <hr/>
-                        <div class="card-header modal-header-center-sticky p-1 mb-3"><div class="d-flex align-items-center gap-2"><h5 class="modal-title mb-0"><i class="bx bx-cart-add me-1"></i> Products / Services</h5><button type="button" class="btn btn-sm btn-outline-primary" id="addTransProduct"><i class="bx bx-plus-circle me-1"></i> Product</button></div></div>
+                        <div class="card-header modal-header-center-sticky p-1 mb-3"><div class="d-flex align-items-center gap-2"><h5 class="modal-title mb-0"><i class="bx bx-cart-add me-1"></i> Products / Services</h5><button type="button" class="trans-add-btn btn btn-outline-primary" id="addTransProduct"><i class="bx bx-plus-circle me-1"></i> Product</button></div></div>
                         <div class="row">
-                            <div class="card prod-header-static trans-theme p-2">
+                            <div class="card prod-header-static trans-theme p-1">
                                 <div class="d-flex align-items-center gap-2 mb-1">
                                     <div style="width:20%;"><select id="prodCategory" name="prodCategory" class="form-select form-select-sm"><option label="Select Category"></option><?php foreach ($fltCategoryData as $Catg): ?><option value="<?php echo $Catg->CategoryUID; ?>"><?php echo $Catg->Name; ?></option><?php endforeach; ?></select></div>
                                     <div style="width:35%;"><div class="input-group input-group-sm input-group-merge" id="searchProductGroup"><span class="input-group-text p-2"><i class="icon-base bx bx-search"></i></span><select id="searchProductInfo" name="searchProductInfo" class="form-select form-select-sm"><option label="-- Select Product --"></option></select><div class="transerror-tooltip" id="errSearchProd"><span class="icon">!</span>Please select an item.</div></div></div>
@@ -105,6 +105,34 @@
                             <div class="col-md-6">
                                 <div class="mb-2"><label for="transNotes" class="form-label small fw-semibold">Notes</label><textarea class="form-control" name="transNotes" id="transNotes" rows="2"><?php echo htmlspecialchars($CNData->Notes ?? ''); ?></textarea></div>
                                 <div class="mb-2"><label for="transTermsCond" class="form-label small fw-semibold">Terms & Conditions</label><textarea class="form-control" name="transTermsCond" id="transTermsCond" rows="2"><?php echo htmlspecialchars($CNData->TermsConditions ?? ''); ?></textarea></div>
+                                <div class="accordion transAccordion mt-2" id="dropZoneAccordion">
+                                    <div class="accordion-item">
+                                        <h2 class="accordion-header text-body d-flex justify-content-between">
+                                            <button type="button" class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#accordionUploadFiles" aria-controls="accordionUploadFiles" aria-expanded="false">
+                                                <i class="icon-base bx bx-paperclip me-2"></i> Attach Files <span class="ms-2 text-muted">(Max 5, 3 MB each)</span>
+                                                <span id="existingAttachCount" class="badge bg-label-primary ms-2 d-none" style="font-size:.7rem;"></span>
+                                            </button>
+                                        </h2>
+                                        <div id="accordionUploadFiles" class="accordion-collapse collapse" data-bs-parent="#dropZoneAccordion">
+                                            <div class="accordion-body">
+                                                <div id="existingAttachList" class="mb-3 d-none">
+                                                    <div class="d-flex align-items-center gap-1 mb-2">
+                                                        <i class="bx bx-link-alt text-primary" style="font-size:.85rem;"></i>
+                                                        <span style="font-size:.75rem;font-weight:700;color:#566a7f;text-transform:uppercase;letter-spacing:.5px;">Saved Files</span>
+                                                    </div>
+                                                    <div id="existingAttachItems" class="d-flex flex-wrap gap-2"></div>
+                                                </div>
+                                                <div class="dropzone needsclick p-3 dz-clickable w-100" id="multipleDropzone">
+                                                    <div class="dz-message needsclick text-center">
+                                                        <i class="upload-icon mb-3"></i>
+                                                        <p class="h5 needsclick mb-2">Drag and drop files here</p>
+                                                        <p class="h4 text-body-secondary fw-normal mb-0">or click to browse (max 3 MB per file)</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             <div class="col-md-6 p-2 trans-theme" style="align-self:flex-start;">
                                 <div class="row"><div class="col-md-6 tax-summary-section"><div id="taxBreakupPanel" style="display:none;" class="tax-details-view p-2 bg-light rounded border"><h6 class="tax-details-title mb-2">Tax Breakdown</h6><div class="mb-3"><p class="small fw-semibold mb-2 text-secondary">Items Tax</p><div class="table-responsive"><table class="table table-sm mb-0"><thead class="small bg-light"><tr><th class="fw-semibold border-bottom"># Items</th><th class="fw-semibold border-bottom taxBreakUpItemsCgst">CGST</th><th class="fw-semibold border-bottom taxBreakUpItemsSgst">SGST</th><th class="fw-semibold border-bottom taxBreakUpItemsIgst d-none">IGST</th><th class="fw-semibold border-bottom text-end">Total</th></tr></thead><tbody><tr><td class="py-1"><span class="taxBreakUpItemsCnt">0</span></td><td class="py-1 taxBreakUpItemsCgst"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span class="taxBreakUpItemsCgstVal">0</span></td><td class="py-1 taxBreakUpItemsSgst"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span class="taxBreakUpItemsSgstVal">0</span></td><td class="py-1 taxBreakUpItemsIgst d-none"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span class="taxBreakUpItemsIgstVal">0</span></td><td class="py-1 text-end fw-semibold"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span class="taxBreakUpItemsTotAmt">0</span></td></tr></tbody></table></div></div><div class="border-top pt-2"><table class="table table-sm mb-0"><tbody><tr><td class="fw-bold">Grand Tax Total</td><td class="text-end fw-bold"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span id="grandChargesTaxTotal">0</span></td></tr></tbody></table></div></div></div>
@@ -141,6 +169,7 @@
 <script src="/js/transactions/modaladdress.js"></script>
 <script src="/js/transactions/products.js"></script>
 <script src="/js/combinemodules/products.js"></script>
+<script src="/js/transactions/attachments.js"></script>
 <script>
 const StateInfo     = <?php echo json_encode($StateData); ?>;
 const CityInfo      = <?php echo json_encode($CityData); ?>;
@@ -148,6 +177,7 @@ const EnableStorage = <?php echo $JwtData->GenSettings->EnableStorage; ?>;
 var _editItems = <?php echo json_encode(array_map(function($item) { return ['id' => (int)$item->ProductUID,'text' => $item->ProductName,'itemName' => $item->ProductName,'unitPrice' => (float)$item->UnitPrice,'taxAmount' => (float)$item->TaxAmount,'sellingPrice' => (float)$item->SellingPrice,'purchasePrice' => 0,'availableQuantity' => 0,'hsnCode' => '','categoryUID' => $item->CategoryUID ? (int)$item->CategoryUID : null,'storageUID' => $item->StorageUID ? (int)$item->StorageUID : null,'taxPercent' => (float)$item->TaxPercentage,'cgstPercent' => (float)$item->CGST,'sgstPercent' => (float)$item->SGST,'igstPercent' => (float)$item->IGST,'taxDetailsUID' => (int)$item->TaxDetailsUID,'quantity' => (float)$item->Quantity,'partNumber' => $item->PartNumber ?? '','primaryUnit' => $item->PrimaryUnitName ?? '','discount' => (float)$item->Discount,'discountType' => 'Percentage','discountTypeUID' => $item->DiscountTypeUID ? (int)$item->DiscountTypeUID : null,'discount_amount' => (float)$item->DiscountAmount,'line_total' => (float)$item->TaxableAmount,'net_total' => (float)$item->NetAmount]; }, $CNItems)); ?>;
 $(function() {
     'use strict'
+    initTransAttachments(<?php echo (int)$CNData->TransUID; ?>, '/creditnotes/getAttachments');
     searchCustomers('customerSearch');
     <?php if (!empty($CNData->PartyUID)): ?>
     $('#customerSearch').append(new Option('<?php echo addslashes($CNData->PartyName ?? ''); ?>', <?php echo (int)$CNData->PartyUID; ?>, true, true)).trigger('change');
@@ -174,8 +204,12 @@ $(function() {
             var charges = {};
             if (summary.additionalCharges) { ['shipping','handling','packing','other'].forEach(function(t) { var c = summary.additionalCharges[t]; if (c && c.grossAmount > 0) { charges[t+'Amount'] = c.grossAmount; charges[t+'Tax'] = c.taxPercent || 0; } }); }
             var postData = $.extend({ TransUID: parseInt($('input[name="TransUID"]').val(),10), transPrefixSelect: parseInt($('#transPrefixSelect').val(),10)||0, transNumber: $.trim($('#transNumber').val()), transDate: transDate, customerSearch: customerUID, referenceDetails: $.trim($('#referenceDetails').val()), transNotes: $.trim($('#transNotes').val()), transTermsCond: $.trim($('#transTermsCond').val()), extraDiscount: parseFloat($('#extraDiscount').val())||0, extDiscountType: $('#extDiscountType').val()||'', SubTotal: summary.items?(summary.items.taxableAmount||0):0, DiscountAmount: summary.items?(summary.items.discountTotal||0):0, TaxAmount: summary.taxTotals?(summary.taxTotals.totalTax||0):0, CgstAmount: summary.taxTotals?(summary.taxTotals.cgstTotal||0):0, SgstAmount: summary.taxTotals?(summary.taxTotals.sgstTotal||0):0, IgstAmount: summary.taxTotals?(summary.taxTotals.igstTotal||0):0, AdditionalChargesTotal: (summary.additionalCharges&&summary.additionalCharges.total)?(summary.additionalCharges.total.grossAmount||0):0, GlobalDiscPercent: bm?(bm.globalDiscountPercent||0):0, RoundOff: summary.extra?(summary.extra.roundOff||0):0, NetAmount: summary.totals?(summary.totals.grandTotal||0):0, Items: JSON.stringify(items), action: action, [csrfName]: csrfVal }, charges);
+            var formData = new FormData();
+            $.each(postData, function(k, v) { formData.append(k, v); });
+            if (typeof multiDropzone !== 'undefined' && multiDropzone.files.length > 0) { multiDropzone.files.forEach(function(f) { formData.append('AttachFiles[]', f); }); }
+            formData.append('RemovedAttachIDs', JSON.stringify(typeof _removedAttachIDs !== 'undefined' ? _removedAttachIDs : []));
             setFormLoading('#editCNForm', true, action);
-            $.ajax({ url: '/creditnotes/updateCreditNote', method: 'POST', data: postData, cache: false,
+            $.ajax({ url: '/creditnotes/updateCreditNote', method: 'POST', data: formData, processData: false, contentType: false, cache: false,
                 success: function(response) { if (response.Error) { setFormLoading('#editCNForm', false); showFormError(response.Message); } else { Swal.fire({ icon: 'success', title: 'Credit Note Updated', text: response.Message||'Updated successfully.', confirmButtonText: 'OK', timer: 3000, timerProgressBar: true }).then(function() { window.location.href = '/creditnotes'; }); } },
                 error: function() { setFormLoading('#editCNForm', false); showFormError('Server error. Please try again.'); }
             });

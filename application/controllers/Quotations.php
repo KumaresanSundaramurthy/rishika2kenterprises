@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Quotations extends CI_Controller {
 
@@ -171,7 +171,6 @@ class Quotations extends CI_Controller {
                 'TransDate'             => $transDate,
                 'TransYear'             => $financialYear,
                 'QuotationType'         => getPostValue($PostData, 'quotationType') ?: NULL,
-                'DispatchFromUID'       => ($dfUID = (int) getPostValue($PostData, 'dispatchFrom')) > 0 ? $dfUID : NULL,
                 'DispatchFrom'          => getPostValue($PostData, 'dispatchFrom') ?: NULL,
                 'TotalQuantity'         => $totalQty,
                 'TotalItems'            => count($items),
@@ -201,7 +200,7 @@ class Quotations extends CI_Controller {
 
             $transUID = $insertResp->ID;
 
-            // --- Insert detail row (TransDetailTbl — notes, terms, validity, charges) ---
+            // --- Insert detail row (TransDetailTbl â€” notes, terms, validity, charges) ---
             $additionalChargesJson = $this->buildAdditionalChargesJson($PostData);
             $isInterState          = $igstAmount > 0 ? 1 : ($cgstAmount > 0 || $sgstAmount > 0 ? 0 : NULL);
             $_cc                   = $this->transactions_model->getCustomerCountryCode($customerUID);
@@ -224,6 +223,8 @@ class Quotations extends CI_Controller {
             $this->saveQuotationItems($transUID, $financialYear, $orgUID, $userUID, $items);
 
             $this->dbwrite_model->commitTransaction();
+
+            $this->_saveAttachments($transUID);
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Quotation created successfully.';
@@ -300,12 +301,12 @@ class Quotations extends CI_Controller {
 
             $financialYear = (int) date('Y', strtotime($transDate));
 
-            // Load existing row to check current DocStatus (needed for draft→pending promotion)
+            // Load existing row to check current DocStatus (needed for draftâ†’pending promotion)
             $this->load->model('transactions_model');
             $existing = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
             if (!$existing) throw new Exception('Quotation not found.');
 
-            // --- Build UniqueNumber when promoting Draft → Pending ---
+            // --- Build UniqueNumber when promoting Draft â†’ Pending ---
             $uniqueNumber = NULL;
             if ($existing->DocStatus === 'Draft' && !$isDraft) {
                 if ($prefixUID <= 0) throw new Exception('Please select a prefix to finalize this quotation.');
@@ -335,7 +336,6 @@ class Quotations extends CI_Controller {
                 'TransYear'         => $financialYear,
                 'TransType'         => 'Quotation',
                 'QuotationType'     => getPostValue($PostData, 'quotationType') ?: NULL,
-                'DispatchFromUID'   => ($dfUID = (int) getPostValue($PostData, 'dispatchFrom')) > 0 ? $dfUID : NULL,
                 'GrossAmount'       => $subTotal + $discountAmount,
                 'SubTotal'          => $subTotal,
                 'DiscountAmount'    => $discountAmount,
@@ -401,7 +401,7 @@ class Quotations extends CI_Controller {
                 );
                 $this->saveQuotationItems($newTransUID, $financialYear, $orgUID, $userUID, $items);
 
-                // Hard-delete old draft header and its detail — only TransactionsTbl drives list order
+                // Hard-delete old draft header and its detail â€” only TransactionsTbl drives list order
                 $this->dbwrite_model->deleteInTransaction('Transaction', 'TransactionsTbl', ['TransUID' => $transUID]);
                 $this->dbwrite_model->deleteInTransaction('Transaction', 'TransDetailTbl',  ['TransUID' => $transUID]);
 
@@ -439,6 +439,9 @@ class Quotations extends CI_Controller {
             }
 
             $this->dbwrite_model->commitTransaction();
+
+            $this->_saveAttachments($transUID);
+            $this->_softDeleteAttachments($this->input->post('RemovedAttachIDs') ?? '');
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Quotation updated successfully.';
@@ -635,11 +638,11 @@ class Quotations extends CI_Controller {
     /**
      * Insert line items into TransProductsTbl.
      *
-     * Key JS→PHP field name mappings:
-     *   JS item.quantity        → PHP $qty          (BillManager uses 'quantity', not 'qty')
-     *   JS item.discount_amount → PHP $discountAmount (underscore, not camel)
-     *   JS item.line_total      → PHP $lineTaxable   (unit_price×qty, BEFORE tax)
-     *   JS item.net_total       → PHP $netAmount      (selling_price×qty, WITH tax)
+     * Key JSâ†’PHP field name mappings:
+     *   JS item.quantity        â†’ PHP $qty          (BillManager uses 'quantity', not 'qty')
+     *   JS item.discount_amount â†’ PHP $discountAmount (underscore, not camel)
+     *   JS item.line_total      â†’ PHP $lineTaxable   (unit_priceÃ—qty, BEFORE tax)
+     *   JS item.net_total       â†’ PHP $netAmount      (selling_priceÃ—qty, WITH tax)
      */
     private function saveQuotationItems($transUID, $financialYear, $orgUID, $userUID, array $items, $seqOffset = 0) {
 
@@ -692,7 +695,7 @@ class Quotations extends CI_Controller {
 
         if (empty($rows)) return;
 
-        // Single batch INSERT instead of one query per item — much faster for large carts
+        // Single batch INSERT instead of one query per item â€” much faster for large carts
         $batchResp = $this->dbwrite_model->insertBatchInTransaction('Transaction', 'TransProductsTbl', $rows);
         if ($batchResp->Error) throw new Exception($batchResp->Message);
 
@@ -894,6 +897,159 @@ class Quotations extends CI_Controller {
         } catch (Exception $e) {
             redirect('quotations', 'refresh');
         }
+
+    }
+
+    private function _saveAttachments($transUID) {
+        $files = $_FILES['AttachFiles'] ?? null;
+        if (empty($files) || empty($files['name'][0])) return;
+
+        $userUID   = $this->pageData['JwtData']->User->UserUID;
+        $orgUID    = $this->pageData['JwtData']->User->OrgUID;
+        $moduleUID = $this->pageModuleUID;
+
+        $this->load->library('fileupload');
+        $this->load->model('dbwrite_model');
+
+        $fileCount = count($files['name']);
+        for ($i = 0; $i < $fileCount; $i++) {
+            if ($files['error'][$i] !== UPLOAD_ERR_OK || empty($files['name'][$i])) continue;
+
+            $origName    = basename($files['name'][$i]);
+            $tmpPath     = $files['tmp_name'][$i];
+            $fileType    = $files['type'][$i];
+            $fileSize    = $files['size'][$i];
+            $safeName    = time() . '_' . $i . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $origName);
+            $storagePath = 'quotations/' . $transUID . '/' . $safeName;
+
+            $uploadResult = $this->fileupload->fileUpload('file', $storagePath, $tmpPath);
+            if ($uploadResult->Error) continue;
+
+            $this->dbwrite_model->insertData('Transaction', 'TransAttachmentsTbl', [
+                'OrgUID'    => $orgUID,
+                'TransUID'  => $transUID,
+                'ModuleUID' => $moduleUID,
+                'FileName'  => $origName,
+                'FilePath'  => '/' . ltrim($uploadResult->Path, '/'),
+                'FileType'  => $fileType,
+                'FileSize'  => $fileSize,
+                'SortOrder' => $i,
+                'IsActive'  => 1,
+                'IsDeleted' => 0,
+                'CreatedBy' => $userUID,
+            ]);
+        }
+    }
+
+    private function _softDeleteAttachments($removedJson) {
+        if (empty($removedJson)) return;
+        $uids = json_decode($removedJson, true);
+        if (empty($uids) || !is_array($uids)) return;
+
+        $orgUID  = $this->pageData['JwtData']->User->OrgUID;
+        $userUID = $this->pageData['JwtData']->User->UserUID;
+        $this->load->model('dbwrite_model');
+
+        foreach ($uids as $attachUID) {
+            $attachUID = (int) $attachUID;
+            if ($attachUID <= 0) continue;
+            $this->dbwrite_model->updateData(
+                'Transaction', 'TransAttachmentsTbl',
+                ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
+                ['AttachUID' => $attachUID, 'OrgUID' => $orgUID]
+            );
+        }
+    }
+
+    public function uploadAttachments() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $PostData  = $this->input->post();
+            $userUID   = $this->pageData['JwtData']->User->UserUID;
+            $orgUID    = $this->pageData['JwtData']->User->OrgUID;
+            $transUID  = (int) getPostValue($PostData, 'TransUID');
+            $moduleUID = (int) getPostValue($PostData, 'ModuleUID') ?: $this->pageModuleUID;
+
+            if ($transUID <= 0) throw new Exception('Invalid quotation reference.');
+
+            $files = $_FILES['AttachFiles'] ?? null;
+            if (empty($files) || empty($files['name'][0])) {
+                $this->EndReturnData->Error   = FALSE;
+                $this->EndReturnData->Message = 'No files to upload.';
+                $this->globalservice->sendJsonResponse($this->EndReturnData);
+                return;
+            }
+
+            $this->load->library('fileupload');
+            $this->load->model('dbwrite_model');
+
+            $uploaded  = 0;
+            $fileCount = count($files['name']);
+            for ($i = 0; $i < $fileCount; $i++) {
+                if ($files['error'][$i] !== UPLOAD_ERR_OK || empty($files['name'][$i])) continue;
+
+                $origName    = basename($files['name'][$i]);
+                $tmpPath     = $files['tmp_name'][$i];
+                $fileType    = $files['type'][$i];
+                $fileSize    = $files['size'][$i];
+                $safeName    = time() . '_' . $i . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $origName);
+                $storagePath = 'quotations/' . $transUID . '/' . $safeName;
+
+                $uploadResult = $this->fileupload->fileUpload('file', $storagePath, $tmpPath);
+                if ($uploadResult->Error) continue;
+
+                $this->dbwrite_model->insertData('Transaction', 'TransAttachmentsTbl', [
+                    'OrgUID'    => $orgUID,
+                    'TransUID'  => $transUID,
+                    'ModuleUID' => $moduleUID,
+                    'FileName'  => $origName,
+                    'FilePath'  => $uploadResult->Path,
+                    'FileType'  => $fileType,
+                    'FileSize'  => $fileSize,
+                    'SortOrder' => $i,
+                    'IsActive'  => 1,
+                    'IsDeleted' => 0,
+                    'CreatedBy' => $userUID,
+                ]);
+                $uploaded++;
+            }
+
+            $this->EndReturnData->Error    = FALSE;
+            $this->EndReturnData->Message  = $uploaded . ' file(s) uploaded.';
+            $this->EndReturnData->Uploaded = $uploaded;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    public function getAttachments() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $transUID = (int) $this->input->post('TransUID');
+            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            if ($transUID <= 0) throw new Exception('Invalid quotation.');
+
+            $this->load->model('transactions_model');
+            $attachments = $this->transactions_model->getTransactionAttachments($transUID, $orgUID);
+
+            $this->EndReturnData->Error       = FALSE;
+            $this->EndReturnData->Attachments = $attachments;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
 
     }
 

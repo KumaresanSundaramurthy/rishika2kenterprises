@@ -1,6 +1,8 @@
 ﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php
+$cdnUrl = getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv('CFLARE_R2_CDN');
+include_once(APPPATH . 'views/transactions/partials/party_avatar.php');
 $moduleContext = 'quotation';
 include(APPPATH . 'views/transactions/partials/status_config.php');
 
@@ -103,18 +105,23 @@ if (!empty($DataLists)):
 
         <!-- Customer -->
         <td>
-            <div class="trans-party-name"><?php echo htmlspecialchars($list->PartyName ?? '—'); ?></div>
-            <?php if (!empty($list->MobileNumber)): ?>
-            <div class="trans-party-mobile d-flex align-items-center gap-1 mt-1">
-                <span class="copy-mobile cursor-pointer" data-mobile="<?php echo htmlspecialchars($list->MobileNumber); ?>" title="Click to copy">
-                    <?php echo ($list->CountryCode ? htmlspecialchars($list->CountryCode) . ' ' : '') . htmlspecialchars($list->MobileNumber); ?>
-                </span>
-                <a href="https://wa.me/<?php echo preg_replace('/[^0-9]/', '', ($list->CountryCode ?? '') . $list->MobileNumber); ?>?text=Hi"
-                   target="_blank" class="text-success" title="WhatsApp" style="line-height:1;">
-                    <i class="bx bxl-whatsapp fs-6"></i>
-                </a>
+            <div class="d-flex align-items-center gap-2">
+                <?php partyAvatar($list->PartyName, $list->PartyImage ?? null, $cdnUrl); ?>
+                <div>
+                    <div class="trans-party-name"><?php echo htmlspecialchars($list->PartyName ?? '—'); ?></div>
+                    <?php if (!empty($list->MobileNumber)): ?>
+                    <div class="trans-party-mobile d-flex align-items-center gap-1 mt-1">
+                        <span class="copy-mobile cursor-pointer" data-mobile="<?php echo htmlspecialchars($list->MobileNumber); ?>" title="Click to copy">
+                            <?php echo ($list->CountryCode ? htmlspecialchars($list->CountryCode) . ' ' : '') . htmlspecialchars($list->MobileNumber); ?>
+                        </span>
+                        <a href="https://wa.me/<?php echo preg_replace('/[^0-9]/', '', ($list->CountryCode ?? '') . $list->MobileNumber); ?>?text=Hi"
+                           target="_blank" class="text-success" title="WhatsApp" style="line-height:1;">
+                            <i class="bx bxl-whatsapp fs-6"></i>
+                        </a>
+                    </div>
+                    <?php endif; ?>
+                </div>
             </div>
-            <?php endif; ?>
         </td>
 
         <!-- Valid Until -->

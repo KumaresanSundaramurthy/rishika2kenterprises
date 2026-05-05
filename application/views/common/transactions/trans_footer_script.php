@@ -172,7 +172,7 @@ $(function() {
                 </div>
             `,
             parallelUploads: 1,
-            maxFilesize: 20, // In MB
+            maxFilesize: 3, // In MB
             addRemoveLinks: true,
             maxFiles: 5,
             init: function() {
@@ -181,15 +181,14 @@ $(function() {
                     this.files.forEach(function(f) {
                         totalSize += f.size;
                     });
-                    if (totalSize > (20 * 1024 * 1024)) {
+                    if (totalSize > (15 * 1024 * 1024)) {
                         this.removeFile(file);
-                        Swal.fire({icon: "error", title: "File too large", text: "Total upload size cannot exceed 20MB."});
-                        alert("");
+                        Swal.fire({icon: "error", title: "File too large", text: "Total upload size cannot exceed 15 MB (5 files × 3 MB)."});
                     }
                 });
                 this.on("error", function(file, message) {
                     if (file.size > this.options.maxFilesize * 1024 * 1024) {
-                        Swal.fire({icon: "error", title: "File too large", text: "Total upload size cannot exceed 20MB."});
+                        Swal.fire({icon: "error", title: "File too large", text: "Each file must be 3 MB or smaller."});
                         this.removeFile(file);
                     }
                 });

@@ -29813,3 +29813,5 @@ body:not(.modal-open) .layout-content-navbar .layout-navbar {
 .vtm-status-badge { font-size: .72rem; font-weight: 600; }
 .vtm-pos-badge    { font-size: .7rem; font-weight: 500; }
 .vtm-pay-mode     { font-size: .72rem; }
+
+.preview-image:hover { opacity: 0.8; transition: 0.3s; }

@@ -1,6 +1,8 @@
 ﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php
+$cdnUrl = getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv('CFLARE_R2_CDN');
+include_once(APPPATH . 'views/transactions/partials/party_avatar.php');
 $moduleContext = 'purchase';
 include(APPPATH . 'views/transactions/partials/status_config.php');
 
@@ -19,6 +21,28 @@ if (!empty($DataLists)):
         $badgeClass  = $statusBadgeClass[$status]  ?? 'trans-badge-Draft';
         $icon        = $statusIcon[$status]         ?? 'bx-circle';
         $transitions = $moduleTransitions[$status]  ?? [];
+
+        $paidAmt    = (float)($list->PaidAmount ?? 0);
+        $netAmt     = (float)($list->NetAmount  ?? 0);
+        $pendingAmt = max(0, round($netAmt - $paidAmt, 2));
+
+        // Payment status badge
+        if ($isDraft) {
+            $payStatus = '';
+            $payBadge  = '';
+        } elseif ($paidAmt <= 0) {
+            $payStatus = 'Pending';
+            $payBadge  = '<span class="badge bg-label-warning" style="font-size:.68rem;">Pending</span>';
+        } elseif ($pendingAmt <= 0.01) {
+            $payStatus = 'Paid';
+            $payBadge  = '<span class="badge bg-label-success" style="font-size:.68rem;">Paid</span>';
+        } else {
+            $payStatus = 'Partially Paid';
+            $payBadge  = '<span class="badge bg-label-info" style="font-size:.68rem;">Partially Paid</span>';
+        }
+
+        $showPending = !$isDraft && $pendingAmt > 0 && !in_array($status, ['Paid', 'Cancelled', 'Rejected']);
+        $hasAttach   = !empty($list->AttachmentCount) && (int)$list->AttachmentCount > 0;
 
         // Due date logic
         $dueClass = 'trans-due-normal';
@@ -59,64 +83,101 @@ if (!empty($DataLists)):
                 <a href="javascript:void(0)" class="trans-doc-number viewTransaction" data-uid="<?php echo (int)$list->TransUID; ?>" data-module="<?php echo (int)$list->ModuleUID; ?>" data-type="purchase" data-number="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>" data-date="<?php echo htmlspecialchars($list->TransDate ?? ''); ?>" data-status="<?php echo htmlspecialchars($list->Status ?? ''); ?>">
                     <?php echo htmlspecialchars($list->UniqueNumber); ?>
                 </a>
-                <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars(format_datedisplay($list->TransDate, 'd M Y')); ?></div>
+                <div class="d-flex align-items-center gap-2 mt-1">
+                    <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars(format_datedisplay($list->TransDate, 'd M Y')); ?></div>
+                    <?php if ($hasAttach): ?>
+                    <button type="button" class="btn btn-link p-0 purchAttachBtn"
+                            data-uid="<?php echo (int)$list->TransUID; ?>"
+                            data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
+                            title="<?php echo (int)$list->AttachmentCount; ?> attachment(s)"
+                            style="font-size:.82rem;line-height:1;color:#6f42c1;">
+                        <i class="bx bx-paperclip"></i>
+                    </button>
+                    <?php endif; ?>
+                </div>
+                <?php if (!empty($list->CreatedBy)): ?>
+                <div style="font-size:.68rem;color:#bbb;">by <?php echo htmlspecialchars($list->CreatedBy); ?></div>
+                <?php endif; ?>
             <?php endif; ?>
         </td>
 
         <!-- Amount -->
         <td>
-            <?php if ($isDraft && (float)$list->NetAmount == 0): ?>
+            <?php if ($isDraft && $netAmt == 0): ?>
                 <span class="text-muted">—</span>
             <?php else: ?>
-                <div class="trans-amount-main"><?php echo $currency . ' ' . smartDecimal($list->NetAmount, $decimals, true); ?></div>
+                <div class="trans-amount-main"><?php echo $currency . ' ' . smartDecimal($netAmt, $decimals, true); ?></div>
+                <?php if ($showPending): ?>
+                    <div style="font-size:.68rem;color:#d33;font-weight:500;">
+                        Bal <?php echo $currency . ' ' . smartDecimal($pendingAmt, $decimals, true); ?>
+                    </div>
+                <?php endif; ?>
             <?php endif; ?>
         </td>
 
-        <!-- Status -->
+        <!-- Payment Status -->
         <td>
-            <?php if (!empty($transitions)): ?>
-            <div class="dropdown">
-                <span class="trans-badge <?php echo $badgeClass; ?>" data-bs-toggle="dropdown"
-                      data-uid="<?php echo (int)$list->TransUID; ?>"
-                      data-current="<?php echo htmlspecialchars($status); ?>">
-                    <i class="bx <?php echo $icon; ?>" style="font-size:.8rem;"></i>
-                    <?php echo htmlspecialchars($status); ?>
-                    <i class="bx bx-chevron-down" style="font-size:.7rem;"></i>
-                </span>
-                <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="min-width:170px;font-size:.82rem;">
-                    <?php foreach ($transitions as $t): ?>
-                    <li>
-                        <button class="dropdown-item purch-status-update"
-                                data-uid="<?php echo (int)$list->TransUID; ?>"
-                                data-status="<?php echo htmlspecialchars($t['db']); ?>">
-                            <?php echo htmlspecialchars($t['label']); ?>
-                        </button>
-                    </li>
-                    <?php endforeach; ?>
-                </ul>
-            </div>
+            <?php echo $payBadge; ?>
+            <?php if (($payStatus === 'Pending' || $payStatus === 'Partially Paid') && !$isDraft): ?>
+                <?php $daysPending = (int) floor((time() - strtotime($list->TransDate)) / 86400); ?>
+                <div style="font-size:.68rem;color:#e67e22;font-weight:600;margin-top:3px;">
+                    <i class="bx bx-time-five" style="font-size:.72rem;"></i>
+                    since <?php echo $daysPending; ?> day<?php echo $daysPending !== 1 ? 's' : ''; ?>
+                </div>
+                <?php if (!empty($list->ValidityDate)): ?>
+                <div style="font-size:.68rem;color:#6c757d;margin-top:1px;">
+                    Due: <?php echo format_datedisplay($list->ValidityDate, 'd M Y'); ?>
+                </div>
+                <?php endif; ?>
+            <?php endif; ?>
+        </td>
+
+        <!-- Payment Mode -->
+        <td>
+            <?php
+            $payCount  = (int)($list->PaymentCount ?? 0);
+            $payModes  = $payCount > 0 ? explode(',', $list->PaymentModes ?? '') : [];
+            $firstMode = isset($payModes[0]) ? htmlspecialchars(trim($payModes[0])) : '';
+            $extraCnt  = max(0, $payCount - 1);
+            ?>
+            <?php if ($payCount > 0 && $firstMode): ?>
+                <div class="pay-mode-cell d-flex align-items-center gap-1 flex-wrap<?php echo $payCount > 1 ? ' pay-mode-clickable' : ''; ?>"
+                     <?php if ($payCount > 1): ?>
+                     data-trans-uid="<?php echo (int)$list->TransUID; ?>"
+                     data-trans-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
+                     style="cursor:pointer;"
+                     <?php endif; ?>>
+                    <span class="badge bg-label-primary" style="font-size:.68rem;">
+                        <i class="bx bx-credit-card me-1"></i><?php echo $firstMode; ?>
+                    </span>
+                    <?php if ($extraCnt > 0): ?>
+                        <span class="badge bg-label-secondary" style="font-size:.68rem;">+<?php echo $extraCnt; ?></span>
+                    <?php endif; ?>
+                </div>
             <?php else: ?>
-                <span class="trans-badge <?php echo $badgeClass; ?>">
-                    <i class="bx <?php echo $icon; ?>" style="font-size:.8rem;"></i>
-                    <?php echo htmlspecialchars($status); ?>
-                </span>
+                <span class="text-muted" style="font-size:.78rem;">—</span>
             <?php endif; ?>
         </td>
 
         <!-- Vendor -->
         <td>
-            <div class="trans-party-name"><?php echo htmlspecialchars($list->PartyName ?? '—'); ?></div>
-            <?php if (!empty($list->MobileNumber)): ?>
-            <div class="trans-party-mobile d-flex align-items-center gap-1 mt-1">
-                <span class="copy-mobile cursor-pointer" data-mobile="<?php echo htmlspecialchars($list->MobileNumber); ?>" title="Click to copy">
-                    <?php echo ($list->CountryCode ? htmlspecialchars($list->CountryCode) . ' ' : '') . htmlspecialchars($list->MobileNumber); ?>
-                </span>
-                <a href="https://wa.me/<?php echo preg_replace('/[^0-9]/', '', ($list->CountryCode ?? '') . $list->MobileNumber); ?>?text=Hi"
-                   target="_blank" class="text-success" title="WhatsApp" style="line-height:1;">
-                    <i class="bx bxl-whatsapp fs-6"></i>
-                </a>
+            <div class="d-flex align-items-center gap-2">
+                <?php partyAvatar($list->PartyName, $list->PartyImage ?? null, $cdnUrl); ?>
+                <div>
+                    <div class="trans-party-name"><?php echo htmlspecialchars($list->PartyName ?? '—'); ?></div>
+                    <?php if (!empty($list->MobileNumber)): ?>
+                    <div class="trans-party-mobile d-flex align-items-center gap-1 mt-1">
+                        <span class="copy-mobile cursor-pointer" data-mobile="<?php echo htmlspecialchars($list->MobileNumber); ?>" title="Click to copy">
+                            <?php echo ($list->CountryCode ? htmlspecialchars($list->CountryCode) . ' ' : '') . htmlspecialchars($list->MobileNumber); ?>
+                        </span>
+                        <a href="https://wa.me/<?php echo preg_replace('/[^0-9]/', '', ($list->CountryCode ?? '') . $list->MobileNumber); ?>?text=Hi"
+                           target="_blank" class="text-success" title="WhatsApp" style="line-height:1;">
+                            <i class="bx bxl-whatsapp fs-6"></i>
+                        </a>
+                    </div>
+                    <?php endif; ?>
+                </div>
             </div>
-            <?php endif; ?>
         </td>
 
         <!-- Due Date -->
@@ -149,11 +210,26 @@ if (!empty($DataLists)):
         </td>
 
         <!-- Actions -->
-        <td style="width:50px">
+        <td style="width:110px">
             <div class="d-flex align-items-center justify-content-end gap-1">
 
+                <?php if ($showPending): ?>
+                <button type="button"
+                        class="btn inv-pay-quick-btn purchReceivePayment"
+                        data-uid="<?php echo (int)$list->TransUID; ?>"
+                        data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
+                        data-date="<?php echo htmlspecialchars(format_datedisplay($list->TransDate ?? '', 'd M Y')); ?>"
+                        data-party="<?php echo htmlspecialchars($list->PartyName ?? ''); ?>"
+                        data-total="<?php echo $netAmt; ?>"
+                        data-paid="<?php echo $paidAmt; ?>"
+                        data-pending="<?php echo $pendingAmt; ?>"
+                        title="Record Payment — <?php echo $currency . ' ' . smartDecimal($pendingAmt, $decimals, true); ?> pending">
+                    <?php echo $currency; ?>
+                </button>
+                <?php endif; ?>
+
                 <?php if (!$isTerminal): ?>
-                <a class="btn btn-icon btn-sm text-warning" href="/purchases/edit/<?php echo (int)$list->TransUID; ?>" title="Edit">
+                <a class="btn btn-icon btn-sm text-warning inv-row-action" href="/purchases/edit/<?php echo (int)$list->TransUID; ?>" title="Edit">
                     <i class="bx bx-edit"></i>
                 </a>
                 <?php endif; ?>
@@ -173,6 +249,22 @@ if (!empty($DataLists)):
                         <li>
                             <button class="dropdown-item a4PrintTransaction" data-uid="<?php echo (int)$list->TransUID; ?>" data-module="<?php echo (int)$list->ModuleUID; ?>">
                                 <i class="bx bx-printer me-2 text-primary"></i>Print / Download
+                            </button>
+                        </li>
+                        <li><hr class="dropdown-divider my-1"></li>
+                        <?php endif; ?>
+
+                        <?php if ($showPending): ?>
+                        <li>
+                            <button class="dropdown-item purchReceivePayment"
+                                    data-uid="<?php echo (int)$list->TransUID; ?>"
+                                    data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
+                                    data-date="<?php echo htmlspecialchars(format_datedisplay($list->TransDate ?? '', 'd M Y')); ?>"
+                                    data-party="<?php echo htmlspecialchars($list->PartyName ?? ''); ?>"
+                                    data-total="<?php echo $netAmt; ?>"
+                                    data-paid="<?php echo $paidAmt; ?>"
+                                    data-pending="<?php echo $pendingAmt; ?>">
+                                <i class="bx bx-money-withdraw me-2 text-success"></i>Record Payment
                             </button>
                         </li>
                         <li><hr class="dropdown-divider my-1"></li>
@@ -216,7 +308,7 @@ if (!empty($DataLists)):
 else:
 ?>
     <tr>
-        <td colspan="9">
+        <td colspan="11">
             <div class="d-flex flex-column align-items-center py-5">
                 <img src="/assets/img/elements/no-record-found.png" alt="No Records" class="img-fluid mb-3" style="max-height:150px;object-fit:contain;">
                 <span class="text-muted mb-3" style="font-size:.9rem;">No purchase bills found</span>

@@ -190,154 +190,157 @@
                 </div>
             </div>
 
-        <!-- ── Record Payment Modal ──────────────────────────────── -->
-        <div class="modal fade" id="recordPaymentModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-lg modal-dialog-scrollable">
-                <div class="modal-content" style="overflow:hidden;">
+            <?php $this->load->view('common/imagepreview_modal'); ?>
 
-                    <!-- Floating close button (catgProductsModal style) -->
-                    <button type="button" class="btn-close position-absolute" data-bs-dismiss="modal"
-                        style="top:14px;right:16px;z-index:10;background-color:rgba(255,255,255,.85);border-radius:50%;padding:6px;box-shadow:0 1px 4px rgba(0,0,0,.15);"
-                        aria-label="Close"></button>
+            <!-- ── Record Payment Modal ──────────────────────────────── -->
+            <div class="modal fade" id="recordPaymentModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                    <div class="modal-content" style="overflow:hidden;">
 
-                    <div class="modal-body p-0">
+                        <!-- Floating close button (catgProductsModal style) -->
+                        <button type="button" class="btn-close position-absolute" data-bs-dismiss="modal"
+                            style="top:14px;right:16px;z-index:10;background-color:rgba(255,255,255,.85);border-radius:50%;padding:6px;box-shadow:0 1px 4px rgba(0,0,0,.15);"
+                            aria-label="Close"></button>
 
-                        <!-- Banner -->
-                        <div style="background:#e8f0fe;border-left:4px solid #0d6efd;padding:14px 20px;">
-                            <div class="d-flex align-items-center gap-3">
-                                <div style="background:#0d6efd22;border-radius:10px;padding:9px 11px;">
-                                    <i class="bx bx-money-withdraw" style="font-size:1.7rem;color:#0d6efd;display:block;"></i>
-                                </div>
-                                <div>
-                                    <div style="font-size:1.05rem;font-weight:800;color:#0d6efd;">
-                                        Record Payment &mdash; <span id="rpInvNum">—</span>
+                        <div class="modal-body p-0">
+
+                            <!-- Banner -->
+                            <div style="background:#e8f0fe;border-left:4px solid #0d6efd;padding:14px 20px;">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div style="background:#0d6efd22;border-radius:10px;padding:9px 11px;">
+                                        <i class="bx bx-money-withdraw" style="font-size:1.7rem;color:#0d6efd;display:block;"></i>
                                     </div>
-                                    <div style="font-size:.77rem;color:#6c757d;margin-top:3px;">
-                                        <i class="bx bx-user me-1"></i><span id="rpPartyName">—</span>
-                                        <span class="mx-2" style="color:#dee2e6;">|</span>
-                                        <i class="bx bx-calendar me-1"></i><span id="rpInvDate">—</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Summary cards -->
-                        <div style="padding:14px 20px;border-bottom:1px solid #e9ecef;">
-                            <div class="d-flex align-items-center gap-2" style="padding:4px 0 10px;">
-                                <i class="bx bx-bar-chart-alt-2" style="font-size:1.05rem;color:#6c757d;"></i>
-                                <span style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#6c757d;">Payment Summary</span>
-                            </div>
-                            <div class="row g-2">
-                                <div class="col-4">
-                                    <div style="background:#fafafa;border:1px solid #e9ecef;border-left:3px solid #0d6efd;border-radius:6px;padding:10px 12px;">
-                                        <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#6c757d;margin-bottom:5px;">
-                                            <i class="bx bx-receipt me-1"></i>Invoice Total
+                                    <div>
+                                        <div style="font-size:1.05rem;font-weight:800;color:#0d6efd;">
+                                            Record Payment &mdash; <span id="rpInvNum">—</span>
                                         </div>
-                                        <div style="font-size:1.1rem;font-weight:800;color:#0d6efd;" id="rpTotalCard">—</div>
-                                    </div>
-                                </div>
-                                <div class="col-4">
-                                    <div style="background:#fafafa;border:1px solid #e9ecef;border-left:3px solid #198754;border-radius:6px;padding:10px 12px;">
-                                        <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#6c757d;margin-bottom:5px;">
-                                            <i class="bx bx-check-circle me-1"></i>Paid So Far
+                                        <div style="font-size:.77rem;color:#6c757d;margin-top:3px;">
+                                            <i class="bx bx-user me-1"></i><span id="rpPartyName">—</span>
+                                            <span class="mx-2" style="color:#dee2e6;">|</span>
+                                            <i class="bx bx-calendar me-1"></i><span id="rpInvDate">—</span>
                                         </div>
-                                        <div style="font-size:1.1rem;font-weight:800;color:#198754;" id="rpPaidCard">—</div>
                                     </div>
                                 </div>
-                                <div class="col-4">
-                                    <div style="background:#fafafa;border:1px solid #e9ecef;border-left:3px solid #dc3545;border-radius:6px;padding:10px 12px;">
-                                        <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#6c757d;margin-bottom:5px;">
-                                            <i class="bx bx-time me-1"></i>Balance Due
+                            </div>
+
+                            <!-- Summary cards -->
+                            <div style="padding:14px 20px;border-bottom:1px solid #e9ecef;">
+                                <div class="d-flex align-items-center gap-2" style="padding:4px 0 10px;">
+                                    <i class="bx bx-bar-chart-alt-2" style="font-size:1.05rem;color:#6c757d;"></i>
+                                    <span style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#6c757d;">Payment Summary</span>
+                                </div>
+                                <div class="row g-2">
+                                    <div class="col-4">
+                                        <div style="background:#fafafa;border:1px solid #e9ecef;border-left:3px solid #0d6efd;border-radius:6px;padding:10px 12px;">
+                                            <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#6c757d;margin-bottom:5px;">
+                                                <i class="bx bx-receipt me-1"></i>Invoice Total
+                                            </div>
+                                            <div style="font-size:1.1rem;font-weight:800;color:#0d6efd;" id="rpTotalCard">—</div>
                                         </div>
-                                        <div style="font-size:1.1rem;font-weight:800;color:#dc3545;" id="rpBalanceCard">—</div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div style="background:#fafafa;border:1px solid #e9ecef;border-left:3px solid #198754;border-radius:6px;padding:10px 12px;">
+                                            <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#6c757d;margin-bottom:5px;">
+                                                <i class="bx bx-check-circle me-1"></i>Paid So Far
+                                            </div>
+                                            <div style="font-size:1.1rem;font-weight:800;color:#198754;" id="rpPaidCard">—</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div style="background:#fafafa;border:1px solid #e9ecef;border-left:3px solid #dc3545;border-radius:6px;padding:10px 12px;">
+                                            <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#6c757d;margin-bottom:5px;">
+                                                <i class="bx bx-time me-1"></i>Balance Due
+                                            </div>
+                                            <div style="font-size:1.1rem;font-weight:800;color:#dc3545;" id="rpBalanceCard">—</div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <!-- Payment form -->
-                        <div style="padding:14px 20px;">
-                            <div class="d-flex align-items-center gap-2" style="padding:4px 0 10px;">
-                                <i class="bx bx-edit-alt" style="font-size:1.05rem;color:#fd7e14;"></i>
-                                <span style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#fd7e14;">Payment Details</span>
+                            <!-- Payment form -->
+                            <div style="padding:14px 20px;">
+                                <div class="d-flex align-items-center gap-2" style="padding:4px 0 10px;">
+                                    <i class="bx bx-edit-alt" style="font-size:1.05rem;color:#fd7e14;"></i>
+                                    <span style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#fd7e14;">Payment Details</span>
+                                </div>
+                                <div class="row g-3">
+
+                                    <!-- Amount -->
+                                    <div class="col-5">
+                                        <label class="form-label fw-semibold mb-1" style="font-size:.78rem;">
+                                            <span class="text-danger">*</span> Amount
+                                        </label>
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text bg-white fw-semibold" id="rpCurrencySymbol">₹</span>
+                                            <input type="number" class="form-control" id="rpAmount" step="0.01" min="0.01" placeholder="0.00">
+                                        </div>
+                                    </div>
+
+                                    <!-- Payment Date -->
+                                    <div class="col-7">
+                                        <label class="form-label fw-semibold mb-1" style="font-size:.78rem;">Payment Date</label>
+                                        <div class="input-group input-group-sm input-group-merge">
+                                            <span class="input-group-text bg-white"><i class="bx bx-calendar"></i></span>
+                                            <input type="text" class="form-control" id="rpPaymentDate" placeholder="Today" readonly>
+                                        </div>
+                                    </div>
+
+                                    <!-- Payment Type -->
+                                    <div class="col-12">
+                                        <label class="form-label fw-semibold mb-1" style="font-size:.78rem;">Payment Type</label>
+                                        <div class="d-flex flex-wrap gap-2" id="rpPaymentTypes">
+                                            <div class="text-muted" style="font-size:.8rem;"><i class="bx bx-loader-alt bx-spin"></i> Loading…</div>
+                                        </div>
+                                        <input type="hidden" id="rpPaymentTypeUID" value="">
+                                        <input type="hidden" id="rpIsCash" value="1">
+                                    </div>
+
+                                    <!-- Bank Account (non-cash only) -->
+                                    <div class="col-12 d-none" id="rpBankRow">
+                                        <label class="form-label fw-semibold mb-1" style="font-size:.78rem;">Bank Account <span class="text-danger">*</span></label>
+                                        <select class="form-select form-select-sm" id="rpBankAccount">
+                                            <option value="">— Select bank account —</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Reference ID -->
+                                    <div class="col-6">
+                                        <label class="form-label mb-1" style="font-size:.75rem;color:#566a7f;font-weight:600;">
+                                            Reference ID <span class="fw-normal text-muted">(Optional)</span>
+                                        </label>
+                                        <input type="text" class="form-control form-control-sm" id="rpReferenceNo"
+                                            placeholder="UTR, Cheque No, UPI Ref…" maxlength="100">
+                                    </div>
+
+                                    <!-- Notes -->
+                                    <div class="col-6">
+                                        <label class="form-label mb-1" style="font-size:.75rem;color:#566a7f;font-weight:600;">
+                                            Notes <span class="fw-normal text-muted">(Optional)</span>
+                                        </label>
+                                        <textarea class="form-control form-control-sm" id="rpNotes" rows="1"
+                                                placeholder="Add a payment note…" maxlength="255"></textarea>
+                                    </div>
+
+                                </div>
                             </div>
-                            <div class="row g-3">
 
-                                <!-- Amount -->
-                                <div class="col-5">
-                                    <label class="form-label fw-semibold mb-1" style="font-size:.78rem;">
-                                        <span class="text-danger">*</span> Amount
-                                    </label>
-                                    <div class="input-group input-group-sm">
-                                        <span class="input-group-text bg-white fw-semibold" id="rpCurrencySymbol">₹</span>
-                                        <input type="number" class="form-control" id="rpAmount" step="0.01" min="0.01" placeholder="0.00">
-                                    </div>
-                                </div>
-
-                                <!-- Payment Date -->
-                                <div class="col-7">
-                                    <label class="form-label fw-semibold mb-1" style="font-size:.78rem;">Payment Date</label>
-                                    <div class="input-group input-group-sm input-group-merge">
-                                        <span class="input-group-text bg-white"><i class="bx bx-calendar"></i></span>
-                                        <input type="text" class="form-control" id="rpPaymentDate" placeholder="Today" readonly>
-                                    </div>
-                                </div>
-
-                                <!-- Payment Type -->
-                                <div class="col-12">
-                                    <label class="form-label fw-semibold mb-1" style="font-size:.78rem;">Payment Type</label>
-                                    <div class="d-flex flex-wrap gap-2" id="rpPaymentTypes">
-                                        <div class="text-muted" style="font-size:.8rem;"><i class="bx bx-loader-alt bx-spin"></i> Loading…</div>
-                                    </div>
-                                    <input type="hidden" id="rpPaymentTypeUID" value="">
-                                    <input type="hidden" id="rpIsCash" value="1">
-                                </div>
-
-                                <!-- Bank Account (non-cash only) -->
-                                <div class="col-12 d-none" id="rpBankRow">
-                                    <label class="form-label fw-semibold mb-1" style="font-size:.78rem;">Bank Account <span class="text-danger">*</span></label>
-                                    <select class="form-select form-select-sm" id="rpBankAccount">
-                                        <option value="">— Select bank account —</option>
-                                    </select>
-                                </div>
-
-                                <!-- Reference ID -->
-                                <div class="col-6">
-                                    <label class="form-label mb-1" style="font-size:.75rem;color:#566a7f;font-weight:600;">
-                                        Reference ID <span class="fw-normal text-muted">(Optional)</span>
-                                    </label>
-                                    <input type="text" class="form-control form-control-sm" id="rpReferenceNo"
-                                           placeholder="UTR, Cheque No, UPI Ref…" maxlength="100">
-                                </div>
-
-                                <!-- Notes -->
-                                <div class="col-6">
-                                    <label class="form-label mb-1" style="font-size:.75rem;color:#566a7f;font-weight:600;">
-                                        Notes <span class="fw-normal text-muted">(Optional)</span>
-                                    </label>
-                                    <textarea class="form-control form-control-sm" id="rpNotes" rows="1"
-                                              placeholder="Add a payment note…" maxlength="255"></textarea>
-                                </div>
-
+                            <!-- Footer -->
+                            <div class="d-flex justify-content-end gap-2 px-4 py-3 border-top" style="background:#f8f9fa;">
+                                <button type="button" class="btn btn-outline-secondary btn-sm px-3" data-bs-dismiss="modal">Cancel</button>
+                                <button type="button" class="btn btn-primary btn-sm px-4" id="btnSubmitPayment">
+                                    <i class="bx bx-check me-1"></i> Record Payment
+                                </button>
                             </div>
+
+                            <input type="hidden" id="rpTransUID" value="">
+
                         </div>
-
-                        <!-- Footer -->
-                        <div class="d-flex justify-content-end gap-2 px-4 py-3 border-top" style="background:#f8f9fa;">
-                            <button type="button" class="btn btn-outline-secondary btn-sm px-3" data-bs-dismiss="modal">Cancel</button>
-                            <button type="button" class="btn btn-primary btn-sm px-4" id="btnSubmitPayment">
-                                <i class="bx bx-check me-1"></i> Record Payment
-                            </button>
-                        </div>
-
-                        <input type="hidden" id="rpTransUID" value="">
-
                     </div>
                 </div>
             </div>
-        </div>
 
             <?php $this->load->view('common/footer_desc'); ?>
+            
         </div>
     </div>
 </div>

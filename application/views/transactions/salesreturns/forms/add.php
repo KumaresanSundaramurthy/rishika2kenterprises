@@ -65,6 +65,7 @@
                             <?php $this->load->view('transactions/partials/form_products_add', [
                                 'transProductSectionTitle' => 'Returned Products',
                                 'transNotesPlaceholder'    => 'Enter notes or reason for return',
+                                'transShowDropzone'        => true,
                             ]); ?>
 
                         </div>
@@ -191,13 +192,21 @@ $(function() {
                 [csrfName]             : csrfVal,
             }, charges);
 
+            var formData = new FormData();
+            $.each(postData, function(k, v) { formData.append(k, v); });
+            if (typeof multiDropzone !== 'undefined' && multiDropzone.files.length > 0) {
+                multiDropzone.files.forEach(function(f) { formData.append('AttachFiles[]', f); });
+            }
+
             setFormLoading('#addSRForm', true, action);
 
             $.ajax({
-                url    : '/salesreturns/addSalesReturn',
-                method : 'POST',
-                data   : postData,
-                cache  : false,
+                url         : '/salesreturns/addSalesReturn',
+                method      : 'POST',
+                data        : formData,
+                processData : false,
+                contentType : false,
+                cache       : false,
                 success: function(response) {
                     if (response.Error) {
                         setFormLoading('#addSRForm', false);

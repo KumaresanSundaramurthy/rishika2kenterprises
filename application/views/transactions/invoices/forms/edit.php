@@ -75,7 +75,7 @@
                                     <div class="d-flex align-items-center flex-wrap gap-2">
                                         <span class="fw-bold" style="font-size:.92rem;"><?php echo $isDraftEdit ? '' : 'Edit'; ?> Invoice</span>
                                         <?php if (!$isDraftEdit && !empty($InvData->UniqueNumber)): ?>
-                                            <span class="badge bg-label-primary"><?php echo htmlspecialchars($InvData->UniqueNumber); ?></span>
+                                            <span class="trans-form-doc-number"><?php echo htmlspecialchars($InvData->UniqueNumber); ?></span>
                                             <span class="badge bg-label-<?php echo $hStatusClr; ?>" style="font-size:.7rem;"><?php echo $hStatus; ?></span>
                                         <?php endif; ?>
                                         <div class="d-flex align-items-center gap-1 <?php echo (!$isDraftEdit ? 'd-none' : ''); ?>">
@@ -240,12 +240,12 @@
                             <div class="card-header modal-header-center-sticky p-1 mb-3">
                                 <div class="d-flex align-items-center gap-2">
                                     <h5 class="modal-title mb-0"><i class="bx bx-cart-add me-1"></i> Product & Services Details</h5>
-                                    <button type="button" class="btn btn-sm btn-outline-primary" id="addTransProduct"><i class="bx bx-plus-circle me-1"></i> Product</button>
+                                    <button type="button" class="trans-add-btn btn btn-outline-primary" id="addTransProduct"><i class="bx bx-plus-circle me-1"></i> Product</button>
                                 </div>
                             </div>
                             <div class="row">
 
-                                <div class="card prod-header-static trans-theme p-2">
+                                <div class="card prod-header-static trans-theme p-1">
                                     <div class="d-flex align-items-center gap-2 mb-1">
                                         <div style="width:20%;">
                                             <select id="prodCategory" name="prodCategory" class="form-select form-select-sm">

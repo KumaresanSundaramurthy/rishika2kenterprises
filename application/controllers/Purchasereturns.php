@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Purchasereturns extends CI_Controller {
 
@@ -152,7 +152,6 @@ class Purchasereturns extends CI_Controller {
                 'TransDate'         => $transDate,
                 'TransYear'         => $financialYear,
                 'QuotationType'     => NULL,
-                'DispatchFromUID'   => NULL,
                 'DispatchFrom'      => NULL,
                 'TotalQuantity'     => $totalQty,
                 'TotalItems'        => count($items),
@@ -203,6 +202,8 @@ class Purchasereturns extends CI_Controller {
             }
 
             $this->dbwrite_model->commitTransaction();
+
+            $this->_saveAttachments($transUID);
 
             $this->EndReturnData->Error    = FALSE;
             $this->EndReturnData->Message  = 'Purchase Return created successfully.';
@@ -298,7 +299,6 @@ class Purchasereturns extends CI_Controller {
                 'TransYear'         => $financialYear,
                 'TransType'         => 'Purchase Return',
                 'QuotationType'     => NULL,
-                'DispatchFromUID'   => NULL,
                 'DispatchFrom'      => NULL,
                 'TotalQuantity'     => $totalQty,
                 'TotalItems'        => count($items),
@@ -379,6 +379,8 @@ class Purchasereturns extends CI_Controller {
             }
 
             $this->dbwrite_model->commitTransaction();
+            $this->_saveAttachments($transUID);
+            $this->_softDeleteAttachments($this->input->post('RemovedAttachIDs') ?? '');
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Purchase Return updated successfully.';
         } catch (Exception $e) {
@@ -467,7 +469,6 @@ class Purchasereturns extends CI_Controller {
                 'TransDate'         => $today,
                 'TransYear'         => (int) date('Y'),
                 'QuotationType'     => NULL,
-                'DispatchFromUID'   => NULL,
                 'DispatchFrom'      => NULL,
                 'TotalQuantity'     => $totalQty,
                 'TotalItems'        => count($items),
@@ -779,6 +780,159 @@ class Purchasereturns extends CI_Controller {
             if ($amt > 0) $charges[] = ['type' => $type, 'amount' => $amt, 'tax' => $tax];
         }
         return !empty($charges) ? json_encode($charges) : NULL;
+    }
+
+    private function _saveAttachments($transUID) {
+        $files = $_FILES['AttachFiles'] ?? null;
+        if (empty($files) || empty($files['name'][0])) return;
+
+        $userUID   = $this->pageData['JwtData']->User->UserUID;
+        $orgUID    = $this->pageData['JwtData']->User->OrgUID;
+        $moduleUID = $this->pageModuleUID;
+
+        $this->load->library('fileupload');
+        $this->load->model('dbwrite_model');
+
+        $fileCount = count($files['name']);
+        for ($i = 0; $i < $fileCount; $i++) {
+            if ($files['error'][$i] !== UPLOAD_ERR_OK || empty($files['name'][$i])) continue;
+
+            $origName    = basename($files['name'][$i]);
+            $tmpPath     = $files['tmp_name'][$i];
+            $fileType    = $files['type'][$i];
+            $fileSize    = $files['size'][$i];
+            $safeName    = time() . '_' . $i . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $origName);
+            $storagePath = 'purchasereturns/' . $transUID . '/' . $safeName;
+
+            $uploadResult = $this->fileupload->fileUpload('file', $storagePath, $tmpPath);
+            if ($uploadResult->Error) continue;
+
+            $this->dbwrite_model->insertData('Transaction', 'TransAttachmentsTbl', [
+                'OrgUID'    => $orgUID,
+                'TransUID'  => $transUID,
+                'ModuleUID' => $moduleUID,
+                'FileName'  => $origName,
+                'FilePath'  => '/' . ltrim($uploadResult->Path, '/'),
+                'FileType'  => $fileType,
+                'FileSize'  => $fileSize,
+                'SortOrder' => $i,
+                'IsActive'  => 1,
+                'IsDeleted' => 0,
+                'CreatedBy' => $userUID,
+            ]);
+        }
+    }
+
+    private function _softDeleteAttachments($removedJson) {
+        if (empty($removedJson)) return;
+        $uids = json_decode($removedJson, true);
+        if (empty($uids) || !is_array($uids)) return;
+
+        $orgUID  = $this->pageData['JwtData']->User->OrgUID;
+        $userUID = $this->pageData['JwtData']->User->UserUID;
+        $this->load->model('dbwrite_model');
+
+        foreach ($uids as $attachUID) {
+            $attachUID = (int) $attachUID;
+            if ($attachUID <= 0) continue;
+            $this->dbwrite_model->updateData(
+                'Transaction', 'TransAttachmentsTbl',
+                ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
+                ['AttachUID' => $attachUID, 'OrgUID' => $orgUID]
+            );
+        }
+    }
+
+    public function uploadAttachments() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $PostData  = $this->input->post();
+            $userUID   = $this->pageData['JwtData']->User->UserUID;
+            $orgUID    = $this->pageData['JwtData']->User->OrgUID;
+            $transUID  = (int) getPostValue($PostData, 'TransUID');
+            $moduleUID = (int) getPostValue($PostData, 'ModuleUID') ?: $this->pageModuleUID;
+
+            if ($transUID <= 0) throw new Exception('Invalid purchase return reference.');
+
+            $files = $_FILES['AttachFiles'] ?? null;
+            if (empty($files) || empty($files['name'][0])) {
+                $this->EndReturnData->Error   = FALSE;
+                $this->EndReturnData->Message = 'No files to upload.';
+                $this->globalservice->sendJsonResponse($this->EndReturnData);
+                return;
+            }
+
+            $this->load->library('fileupload');
+            $this->load->model('dbwrite_model');
+
+            $uploaded  = 0;
+            $fileCount = count($files['name']);
+            for ($i = 0; $i < $fileCount; $i++) {
+                if ($files['error'][$i] !== UPLOAD_ERR_OK || empty($files['name'][$i])) continue;
+
+                $origName    = basename($files['name'][$i]);
+                $tmpPath     = $files['tmp_name'][$i];
+                $fileType    = $files['type'][$i];
+                $fileSize    = $files['size'][$i];
+                $safeName    = time() . '_' . $i . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $origName);
+                $storagePath = 'purchasereturns/' . $transUID . '/' . $safeName;
+
+                $uploadResult = $this->fileupload->fileUpload('file', $storagePath, $tmpPath);
+                if ($uploadResult->Error) continue;
+
+                $this->dbwrite_model->insertData('Transaction', 'TransAttachmentsTbl', [
+                    'OrgUID'    => $orgUID,
+                    'TransUID'  => $transUID,
+                    'ModuleUID' => $moduleUID,
+                    'FileName'  => $origName,
+                    'FilePath'  => $uploadResult->Path,
+                    'FileType'  => $fileType,
+                    'FileSize'  => $fileSize,
+                    'SortOrder' => $i,
+                    'IsActive'  => 1,
+                    'IsDeleted' => 0,
+                    'CreatedBy' => $userUID,
+                ]);
+                $uploaded++;
+            }
+
+            $this->EndReturnData->Error    = FALSE;
+            $this->EndReturnData->Message  = $uploaded . ' file(s) uploaded.';
+            $this->EndReturnData->Uploaded = $uploaded;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    public function getAttachments() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $transUID = (int) $this->input->post('TransUID');
+            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            if ($transUID <= 0) throw new Exception('Invalid purchase return.');
+
+            $this->load->model('transactions_model');
+            $attachments = $this->transactions_model->getTransactionAttachments($transUID, $orgUID);
+
+            $this->EndReturnData->Error       = FALSE;
+            $this->EndReturnData->Attachments = $attachments;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
     }
 
 }

@@ -23,9 +23,11 @@ class Payments extends CI_Controller {
 
             $orgUID = $this->pageData['JwtData']->User->OrgUID;
 
+            $filter = ['PartyType' => 'C', 'PaymentDirection' => 'In'];
+
             $this->load->model('transactions_model');
-            $allData      = $this->transactions_model->getPaymentsList($limit, 0, $orgUID, []);
-            $allDataCount = $this->transactions_model->getPaymentsCount($orgUID, []);
+            $allData      = $this->transactions_model->getPaymentsList($limit, 0, $orgUID, $filter);
+            $allDataCount = $this->transactions_model->getPaymentsCount($orgUID, $filter);
 
             $this->pageData['ModRowData']    = $this->load->view('transactions/payments/list', [
                 'DataLists'    => $allData,
@@ -36,6 +38,7 @@ class Payments extends CI_Controller {
             $this->pageData['ModAllCount']   = $allDataCount;
             $this->pageData['MethodSummary'] = $this->transactions_model->getPaymentMethodSummary($orgUID);
             $this->pageData['Totals']        = $this->transactions_model->getPaymentsTotals($orgUID);
+            $this->pageData['BankAccounts']  = $this->transactions_model->getOrgBankAccounts($orgUID);
 
             $this->load->view('transactions/payments/view', $this->pageData);
 

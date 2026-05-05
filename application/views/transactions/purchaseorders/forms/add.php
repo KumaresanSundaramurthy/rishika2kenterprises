@@ -99,6 +99,7 @@
 
                             <?php $this->load->view('transactions/partials/form_products_add', [
                                 'transNotesPlaceholder' => 'Enter notes or anything else',
+                                'transShowDropzone'     => true,
                             ]); ?>
 
                         </div> <!-- /card-body -->
@@ -230,13 +231,21 @@ $(function() {
                 [csrfName]             : csrfVal,
             }, charges);
 
+            var formData = new FormData();
+            $.each(postData, function(k, v) { formData.append(k, v); });
+            if (typeof multiDropzone !== 'undefined' && multiDropzone.files.length > 0) {
+                multiDropzone.files.forEach(function(f) { formData.append('AttachFiles[]', f); });
+            }
+
             setFormLoading('#addPOForm', true, action);
 
             $.ajax({
-                url    : '/purchaseorders/addPurchaseOrder',
-                method : 'POST',
-                data   : postData,
-                cache  : false,
+                url         : '/purchaseorders/addPurchaseOrder',
+                method      : 'POST',
+                data        : formData,
+                processData : false,
+                contentType : false,
+                cache       : false,
                 success: function(response) {
                     if (response.Error) {
                         setFormLoading('#addPOForm', false);

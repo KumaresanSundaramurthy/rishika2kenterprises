@@ -65,6 +65,7 @@
                             <?php $this->load->view('transactions/partials/form_products_add', [
                                 'transProductSectionTitle' => 'Products / Services',
                                 'transNotesPlaceholder'    => 'Reason for credit note',
+                                'transShowDropzone'        => true,
                             ]); ?>
                         </div>
                     </div>
@@ -165,9 +166,15 @@ $(function() {
                 [csrfName]             : csrfVal,
             }, charges);
 
+            var formData = new FormData();
+            $.each(postData, function(k, v) { formData.append(k, v); });
+            if (typeof multiDropzone !== 'undefined' && multiDropzone.files.length > 0) {
+                multiDropzone.files.forEach(function(f) { formData.append('AttachFiles[]', f); });
+            }
+
             setFormLoading('#addCNForm', true, action);
             $.ajax({
-                url: '/creditnotes/addCreditNote', method: 'POST', data: postData, cache: false,
+                url: '/creditnotes/addCreditNote', method: 'POST', data: formData, processData: false, contentType: false, cache: false,
                 success: function(response) {
                     if (response.Error) { setFormLoading('#addCNForm', false); showFormError(response.Message); }
                     else { Swal.fire({ icon: 'success', title: 'Credit Note Saved', text: response.Message || 'Credit note created successfully.', confirmButtonText: 'OK', timer: 3000, timerProgressBar: true }).then(function() { window.location.href = '/creditnotes'; }); }

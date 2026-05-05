@@ -178,7 +178,6 @@ class Invoices extends CI_Controller {
                 'TransDate'             => $transDate,
                 'TransYear'             => $financialYear,
                 'QuotationType'         => getPostValue($PostData, 'invoiceType') ?: NULL,
-                'DispatchFromUID'       => ($dfUID = (int) getPostValue($PostData, 'dispatchFrom')) > 0 ? $dfUID : NULL,
                 'DispatchFrom'          => getPostValue($PostData, 'dispatchFrom') ?: NULL,
                 'TotalQuantity'         => $totalQty,
                 'TotalItems'            => count($items),
@@ -408,7 +407,7 @@ class Invoices extends CI_Controller {
 
             $additionalChargesJson = $this->buildAdditionalChargesJson($PostData);
 
-            $activeTransUID = $transUID; // tracks the final transUID (may change for draft→issued with newer transactions)
+            $activeTransUID = $transUID; // tracks the final transUID (may change for draftâ†’issued with newer transactions)
 
             $commonHeader = [
                 'OrgUID'            => $orgUID,
@@ -419,7 +418,6 @@ class Invoices extends CI_Controller {
                 'TransYear'         => $financialYear,
                 'TransType'         => 'Invoice',
                 'QuotationType'     => getPostValue($PostData, 'invoiceType') ?: NULL,
-                'DispatchFromUID'   => ($dfUID = (int) getPostValue($PostData, 'dispatchFrom')) > 0 ? $dfUID : NULL,
                 'GrossAmount'       => $subTotal + $discountAmount,
                 'SubTotal'          => $subTotal,
                 'DiscountAmount'    => $discountAmount,
@@ -719,6 +717,7 @@ class Invoices extends CI_Controller {
                 'ReferenceNo'    => $referenceNo,
                 'Notes'          => $notes,
                 'PaymentSource'  => 'Record',
+                'PaymentDirection' => 'In',
                 'IsFullyPaid'    => $isFullyPaid,
                 'ExcessAmount'   => $excessAmount,
                 'IsActive'       => 1,
@@ -739,7 +738,7 @@ class Invoices extends CI_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
-            // Credit customer ledger — runs after commit, cannot poison the transaction
+            // Credit customer ledger â€” runs after commit, cannot poison the transaction
             try {
                 $this->load->library('accountledger');
                 $this->accountledger->applyLedgerEntry($existing->PartyUID, 'Customer', $amount, 'Credit', $transUID);
@@ -793,7 +792,7 @@ class Invoices extends CI_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
-            // Reverse customer ledger AFTER commit — runs in auto-commit mode so
+            // Reverse customer ledger AFTER commit â€” runs in auto-commit mode so
             // any audit-log failure cannot roll back the already-committed delete.
             if ($existing->DocStatus !== 'Draft' && $existing->PartyType === 'C' && $existing->PartyUID > 0) {
                 $netAmount = (float) $existing->NetAmount;
@@ -884,7 +883,6 @@ class Invoices extends CI_Controller {
                 'PartyUID'          => $src->PartyUID,
                 'TransDate'         => $today,
                 'QuotationType'     => $src->QuotationType,
-                'DispatchFromUID'   => $src->DispatchFromUID ?? NULL,
                 'DispatchFrom'      => $src->DispatchFrom ?? NULL,
                 'TotalQuantity'     => (float)($src->TotalQuantity ?? 0),
                 'TotalItems'        => (int)($src->TotalItems ?? 0),
@@ -1199,6 +1197,7 @@ class Invoices extends CI_Controller {
                 'ReferenceNo'       => $referenceNo,
                 'Notes'             => $notes,
                 'PaymentSource'     => 'Create',
+                'PaymentDirection'  => 'In',
                 'IsFullyPaid'       => ($idx === count($rows) - 1) ? $isFullyPaid : 0,
                 'ExcessAmount'      => $rowExcess,
                 'AppliedToTransUID' => NULL,

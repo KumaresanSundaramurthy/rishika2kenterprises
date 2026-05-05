@@ -1632,7 +1632,20 @@ $(document).ready(function () {
 
     $('#billTableBody').html(emptyTableTrInfo);
     
-    loadSelect2Field('#prodCategory', 'Select Category');
+    (function () {
+        var $el    = $('#prodCategory');
+        var wrapId = 'categoryGroup_prodCategory';
+        if ($el.length && !$el.closest('.category-search-group').length) {
+            $el.wrap('<div class="category-search-group" id="' + wrapId + '"></div>');
+        }
+        if ($el.hasClass('select2-hidden-accessible')) $el.select2('destroy');
+        $el.select2({
+            placeholder    : 'Select Category',
+            allowClear     : true,
+            width          : '100%',
+            dropdownParent : $('#' + wrapId)
+        });
+    })();
     searchProductInfo();
 
     $('#toggleChargesBtn').on('click', function (e) {
@@ -3087,7 +3100,7 @@ function handleDiscountFieldInput($input, $row, getId) {
 function showTaxDetails() {
     
     if (!billManager || billManager.items.length === 0) {
-        Swal.fire({icon: 'info', title: 'No Items', text: 'Add items to view tax details'});
+        showToastNotification('Add items to view tax details.', 'error');
         return;
     }
     

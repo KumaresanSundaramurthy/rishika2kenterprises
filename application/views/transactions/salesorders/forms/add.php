@@ -131,6 +131,7 @@
                                 'transNotesPlaceholder' => 'Enter notes or anything else',
                                 'transNotesContent'     => !empty($QuotationData->Notes) ? $QuotationData->Notes : '',
                                 'transTermsContent'     => !empty($QuotationData->TermsConditions) ? $QuotationData->TermsConditions : "1. Goods once sold will not be taken back or exchanged\n2. All disputes are subject to Gingee jurisdiction only",
+                                'transShowDropzone'     => true,
                             ]); ?>
 
                         </div> <!-- /card-body -->
@@ -319,13 +320,21 @@ $(function() {
                 [csrfName]             : csrfVal,
             }, charges);
 
+            var formData = new FormData();
+            $.each(postData, function(k, v) { formData.append(k, v); });
+            if (typeof multiDropzone !== 'undefined' && multiDropzone.files.length > 0) {
+                multiDropzone.files.forEach(function(f) { formData.append('AttachFiles[]', f); });
+            }
+
             setFormLoading('#addSOForm', true, action);
 
             $.ajax({
-                url    : '/salesorders/addSalesOrder',
-                method : 'POST',
-                data   : postData,
-                cache  : false,
+                url         : '/salesorders/addSalesOrder',
+                method      : 'POST',
+                data        : formData,
+                processData : false,
+                contentType : false,
+                cache       : false,
                 success: function(response) {
                     if (response.Error) {
                         setFormLoading('#addSOForm', false);

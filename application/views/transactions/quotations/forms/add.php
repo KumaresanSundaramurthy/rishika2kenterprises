@@ -355,13 +355,21 @@ $(function() {
                 [csrfName]             : csrfVal,
             }, charges);
 
+            var formData = new FormData();
+            $.each(postData, function(k, v) { formData.append(k, v); });
+            if (typeof multiDropzone !== 'undefined' && multiDropzone.files.length > 0) {
+                multiDropzone.files.forEach(function(f) { formData.append('AttachFiles[]', f); });
+            }
+
             setFormLoading('#addQuotationForm', true, action);
 
             $.ajax({
-                url     : '/quotations/addQuotation',
-                method  : 'POST',
-                data    : postData,
-                cache   : false,
+                url         : '/quotations/addQuotation',
+                method      : 'POST',
+                data        : formData,
+                processData : false,
+                contentType : false,
+                cache       : false,
                 success : function (response) {
                     if (response.Error) {
                         setFormLoading('#addQuotationForm', false);

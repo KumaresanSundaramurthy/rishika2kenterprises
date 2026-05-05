@@ -127,6 +127,9 @@ $route['purchaseorders/getPurchaseOrderDetail']                = 'purchaseorders
 
 // Purchases (Purchase Bills)
 $route['purchases']                                        = 'purchases/index';
+$route['purchases/payments']                               = 'purchases/purchasePayments';
+$route['purchases/getPurchasePaymentsPageDetails/(:num)']  = 'purchases/getPurchasePaymentsPageDetails/$1';
+$route['purchases/getPurchasePaymentsPageDetails']         = 'purchases/getPurchasePaymentsPageDetails';
 $route['purchases/create']                                 = 'purchases/create';
 $route['purchases/(:num)/edit']                            = 'purchases/edit/$1';
 $route['purchases/getPurchasesPageDetails/(:num)']         = 'purchases/getPurchasesPageDetails/$1';
@@ -200,6 +203,12 @@ $route['payments/deleteBankAccount']                   = 'payments/deleteBankAcc
 $route['payments/getBankDetails']                      = 'payments/getBankDetails';
 $route['payments/setDefaultBank']                      = 'payments/setDefaultBank';
 $route['payments/getBanksList']                        = 'payments/getBanksList';
+$route['payments/getPaymentDetail']                    = 'payments/getPaymentDetail';
+
+// Payments Out (Purchase / Vendor payments)
+$route['paymentsout']                                  = 'paymentsout/index';
+$route['paymentsout/getPageDetails/(:num)']            = 'paymentsout/getPageDetails/$1';
+$route['paymentsout/getPageDetails']                   = 'paymentsout/getPageDetails';
 
 // Customers
 $route['customers/(:num)/edit'] = 'customers/edit/$1';

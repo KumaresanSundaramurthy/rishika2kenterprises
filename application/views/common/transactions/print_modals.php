@@ -69,8 +69,10 @@
 <div class="modal fade" id="viewTransModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <div class="modal-content">
-            <!-- Hidden anchor so JS can set the edit href; close + edit buttons render inside the banner -->
             <a href="javascript:void(0);" id="viewTransEditBtn" style="display:none;" aria-hidden="true"></a>
+            <!-- Banner header — populated instantly before modal shows -->
+            <div id="viewTransModalHeader" class="vtm-banner d-none"></div>
+            <!-- Body — shows loader until data arrives -->
             <div class="modal-body p-0" id="viewTransModalBody">
                 <div class="d-flex justify-content-center align-items-center py-5">
                     <div class="spinner-border text-primary"></div>

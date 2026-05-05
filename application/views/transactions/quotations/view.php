@@ -307,6 +307,14 @@ $(function () {
             return;
         }
 
+        if ($(this).data('_confirmed')) { $(this).removeData('_confirmed'); return; }
+        if (status === 'Cancelled') {
+            var num = $(this).data('num') || '';
+            var lbl = num ? '<strong>' + $('<span>').text(num).html() + '</strong>' : 'this quotation';
+            var $btn = $(this);
+            Swal.fire({ title: 'Cancel Quotation?', html: 'Are you sure you want to cancel ' + lbl + '? This cannot be undone.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', cancelButtonColor: '#6c757d', confirmButtonText: 'Yes, Cancel It', cancelButtonText: 'No, Keep It' }).then(function (r) { if (!r.isConfirmed) return; $btn.data('_confirmed', true).trigger('click'); });
+            return;
+        }
         // All other status changes
         $.ajax({
             url   : '/quotations/updateQuotationStatus',

@@ -25,8 +25,9 @@ class Transactions_model extends CI_Model {
                 'Ts.TransDate AS TransDate',
                 'Ts.DocStatus AS Status',
                 'Ts.NetAmount AS NetAmount',
-                'Cust.Name AS PartyName',
-                'Cust.MobileNumber AS MobileNumber',
+                'COALESCE(Cust.Name, Vend.Name) AS PartyName',
+                'COALESCE(Cust.MobileNumber, Vend.MobileNumber) AS MobileNumber',
+                'COALESCE(Cust.CountryCode, Vend.CountryCode) AS CountryCode',
                 'Td.ValidityDate AS ValidityDate',
                 'Ts.UpdatedOn AS UpdatedOn',
                 "CONCAT(User.FirstName, ' ', User.LastName) AS UpdatedBy",
@@ -37,7 +38,8 @@ class Transactions_model extends CI_Model {
                 '(SELECT COUNT(*) FROM Transaction.TransAttachmentsTbl AT WHERE AT.TransUID = Ts.TransUID AND AT.IsDeleted = 0 AND AT.IsActive = 1) AS AttachmentCount',
             ]);
             $this->ReadDb->from('Transaction.TransactionsTbl as Ts');
-            $this->ReadDb->join('Customers.CustomerTbl as Cust', 'Cust.CustomerUID = Ts.PartyUID', 'LEFT');
+            $this->ReadDb->join('Customers.CustomerTbl as Cust', 'Cust.CustomerUID = Ts.PartyUID AND Ts.PartyType = \'C\'', 'LEFT');
+            $this->ReadDb->join('Vendors.VendorTbl as Vend', 'Vend.VendorUID = Ts.PartyUID AND Ts.PartyType = \'S\'', 'LEFT');
             $this->ReadDb->join('Transaction.TransDetailTbl as Td', 'Td.TransUID = Ts.TransUID AND Td.FinancialYear = YEAR(Ts.TransDate)', 'LEFT');
             $this->ReadDb->join('Users.UserTbl as User', 'User.UserUID = Ts.UpdatedBy', 'left');
             $this->ReadDb->join('Users.UserTbl as CreatedUser', 'CreatedUser.UserUID = Ts.CreatedBy', 'left');
@@ -165,8 +167,8 @@ class Transactions_model extends CI_Model {
         } elseif ($tab === 'Draft') {
             $this->ReadDb->where('Ts.DocStatus', 'Draft');
         } else {
-            // All — exclude Draft, Cancelled, Rejected
-            $this->ReadDb->where_not_in('Ts.DocStatus', ['Draft', 'Cancelled', 'Rejected']);
+            // All — exclude Draft only; Cancelled and other statuses remain visible
+            $this->ReadDb->where_not_in('Ts.DocStatus', ['Draft']);
         }
 
         if (!empty($filter['MinAmount'])) {

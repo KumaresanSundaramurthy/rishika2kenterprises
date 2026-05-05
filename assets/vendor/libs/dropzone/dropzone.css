@@ -254,3 +254,8 @@
     justify-content: center;
     align-items: center;
 }
+
+/* ── Dropzone single-image upload ─────────────────────────────────────── */
+#DropzoneOneBasic.dz-started .dz-message { display: none !important; }
+#DropzoneOneBasic .dz-preview { border-radius: 8px; }
+#DropzoneOneBasic.dz-drag-hover { border-color: #0d6efd !important; background: #f0f4ff !important; }

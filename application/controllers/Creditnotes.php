@@ -206,6 +206,20 @@ class Creditnotes extends CI_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
+            if (!$isDraft) {
+                try {
+                    $this->load->library('accountledger');
+                    $this->accountledger->applyLedgerEntry($customerUID, 'Customer', $netAmount, 'Credit', $transUID);
+                    $this->accountledger->postCreditNoteJournal(
+                        $transUID, $transDate, $uniqueNumber, $financialYear,
+                        $netAmount, $subTotal, $cgstAmount, $sgstAmount, $igstAmount,
+                        $customerUID, $userUID
+                    );
+                } catch (Exception $ledgerEx) {
+                    log_message('error', 'Ledger update failed after credit note creation: ' . $ledgerEx->getMessage());
+                }
+            }
+
             $this->EndReturnData->Error    = FALSE;
             $this->EndReturnData->Message  = 'Credit Note created successfully.';
             $this->EndReturnData->TransUID = $transUID;
@@ -340,6 +354,8 @@ class Creditnotes extends CI_Controller {
                 $this->dbwrite_model->reverseStockMovements($transUID, $orgUID, $userUID);
             }
 
+            $activeTransUID = $transUID;
+
             if ($existing->DocStatus === 'Draft' && !$isDraft
                 && $this->transactions_model->hasNewerTransactions($transUID, $orgUID, $this->pageModuleUID)) {
 
@@ -353,7 +369,8 @@ class Creditnotes extends CI_Controller {
                 ]);
                 $insertResp = $this->dbwrite_model->insertData('Transaction', 'TransactionsTbl', $newHeader);
                 if ($insertResp->Error) throw new Exception($insertResp->Message);
-                $newTransUID = $insertResp->ID;
+                $newTransUID    = $insertResp->ID;
+                $activeTransUID = $newTransUID;
                 $this->dbwrite_model->insertData('Transaction', 'TransDetailTbl', array_merge($commonDetail, ['FinancialYear' => $financialYear, 'TransUID' => $newTransUID]));
                 $this->dbwrite_model->updateData('Transaction', 'TransProductsTbl', ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID], ['TransUID' => $transUID, 'IsDeleted' => 0]);
                 $this->saveTransactionItems($newTransUID, $financialYear, $orgUID, $userUID, $items);
@@ -383,6 +400,26 @@ class Creditnotes extends CI_Controller {
             }
 
             $this->dbwrite_model->commitTransaction();
+
+            if (!$isDraft) {
+                try {
+                    $this->load->library('accountledger');
+                    if ($wasNonDraft) {
+                        $this->accountledger->applyLedgerEntry($existing->PartyUID, 'Customer', (float) $existing->NetAmount, 'Debit', $transUID);
+                        $this->accountledger->reverseJournal('CreditNote', $transUID, $userUID);
+                    }
+                    $this->accountledger->applyLedgerEntry($customerUID, 'Customer', $netAmount, 'Credit', $activeTransUID);
+                    $activeUniqueNumber = $uniqueNumber ?? ($existing->UniqueNumber ?? null);
+                    $this->accountledger->postCreditNoteJournal(
+                        $activeTransUID, $transDate, $activeUniqueNumber, $financialYear,
+                        $netAmount, $subTotal, $cgstAmount, $sgstAmount, $igstAmount,
+                        $customerUID, $userUID
+                    );
+                } catch (Exception $ledgerEx) {
+                    log_message('error', 'Ledger update failed after credit note update: ' . $ledgerEx->getMessage());
+                }
+            }
+
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Credit Note updated successfully.';
         } catch (Exception $e) {
@@ -404,8 +441,8 @@ class Creditnotes extends CI_Controller {
             $transUID = (int) getPostValue($PostData, 'TransUID');
             if ($transUID <= 0) throw new Exception('Credit Note ID is required.');
             $this->load->model('transactions_model');
-            $existing = $this->transactions_model->getTransactionPageList(1, 0, $this->pageModuleUID, ['TransUID' => $transUID, 'OrgUID' => $orgUID]);
-            if (empty($existing)) throw new Exception('Credit Note not found.');
+            $existing = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
+            if (!$existing) throw new Exception('Credit Note not found.');
 
             $this->dbwrite_model->reverseStockMovements($transUID, $orgUID, $userUID);
 
@@ -416,6 +453,17 @@ class Creditnotes extends CI_Controller {
             $deleteResp = $this->dbwrite_model->updateData('Transaction', 'TransactionsTbl', $deleteData, ['TransUID' => $transUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
             if ($deleteResp->Error) throw new Exception($deleteResp->Message);
             $this->dbwrite_model->commitTransaction();
+
+            if ($existing->DocStatus !== 'Draft' && $existing->PartyType === 'C' && $existing->PartyUID > 0) {
+                try {
+                    $this->load->library('accountledger');
+                    $this->accountledger->applyLedgerEntry($existing->PartyUID, 'Customer', (float) $existing->NetAmount, 'Debit', $transUID);
+                    $this->accountledger->reverseJournal('CreditNote', $transUID, $userUID);
+                } catch (Exception $ledgerEx) {
+                    log_message('error', 'Ledger reversal failed after credit note delete: ' . $ledgerEx->getMessage());
+                }
+            }
+
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Credit Note deleted successfully.';
         } catch (Exception $e) {

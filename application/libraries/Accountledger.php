@@ -3,6 +3,7 @@
 Class Accountledger {
 
     protected $CI;
+    private   $_sysLedgerCache = [];
 
     public function __construct() {
         $this->CI =& get_instance();
@@ -453,6 +454,367 @@ Class Accountledger {
     private function getFinancialYear() {
         $year = (int)date('Y');
         return (date('m') >= 4) ? $year : ($year - 1);
+    }
+
+    // -------------------------------------------------------------------------
+    // System ledger lookup (cached per request)
+    // -------------------------------------------------------------------------
+
+    private function _getSystemLedgerUID($purpose) {
+        if (array_key_exists($purpose, $this->_sysLedgerCache)) {
+            return $this->_sysLedgerCache[$purpose];
+        }
+
+        $codeMap = [
+            'sales_revenue' => 'SYS-SALES',
+            'purchase_cost' => 'SYS-PURCH',
+            'cgst_output'   => 'SYS-CGST-OUT',
+            'sgst_output'   => 'SYS-SGST-OUT',
+            'igst_output'   => 'SYS-IGST-OUT',
+            'cgst_input'    => 'SYS-CGST-IN',
+            'sgst_input'    => 'SYS-SGST-IN',
+            'igst_input'    => 'SYS-IGST-IN',
+        ];
+
+        $code = $codeMap[$purpose] ?? null;
+        if (!$code) {
+            return $this->_sysLedgerCache[$purpose] = null;
+        }
+
+        $this->CI->load->model('accountledger_model');
+        $row = $this->CI->accountledger_model->getSystemLedgerByCode($code);
+        return $this->_sysLedgerCache[$purpose] = ($row ? (int) $row->LedgerUID : null);
+    }
+
+    // -------------------------------------------------------------------------
+    // Low-level journal helpers
+    // -------------------------------------------------------------------------
+
+    private function _createJournalHeader($journalDate, $fy, $refType, $refID, $refNo, $narration, $createdBy) {
+        $tmpNo = 'TMP-' . microtime(true) . '-' . $refID;
+        $resp  = $this->CI->dbwrite_model->insertData('Accounting', 'GeneralJournal', [
+            'JournalNo'     => $tmpNo,
+            'JournalDate'   => $journalDate,
+            'FinancialYear' => (int) $fy,
+            'ReferenceType' => $refType,
+            'ReferenceID'   => (int) $refID,
+            'ReferenceNo'   => $refNo,
+            'Narration'     => $narration,
+            'IsDeleted'     => 0,
+            'CreatedBy'     => (int) $createdBy,
+        ]);
+        if ($resp->Error) throw new Exception('GeneralJournal insert failed: ' . $resp->Message);
+
+        $jUID      = (int) $resp->ID;
+        $journalNo = 'JRN-' . $fy . '-' . str_pad($jUID, 7, '0', STR_PAD_LEFT);
+        $this->CI->dbwrite_model->updateData(
+            'Accounting', 'GeneralJournal',
+            ['JournalNo' => $journalNo],
+            ['JournalUID' => $jUID]
+        );
+
+        return $jUID;
+    }
+
+    private function _addJournalLine($journalUID, $ledgerUID, $type, $amount, $particulars, $journalDate, $fy, $createdBy) {
+        $amount = round((float) $amount, 2);
+        if ($amount <= 0 || !$ledgerUID) return;
+
+        $this->CI->dbwrite_model->insertData('Accounting', 'JournalEntries', [
+            'JournalUID'      => (int) $journalUID,
+            'LedgerUID'       => (int) $ledgerUID,
+            'TransactionType' => $type,
+            'Amount'          => $amount,
+            'Particulars'     => $particulars,
+            'IsDeleted'       => 0,
+            'CreatedBy'       => (int) $createdBy,
+            'UpdatedBy'       => (int) $createdBy,
+        ]);
+
+        // Update running balance in LedgerBalances
+        $this->CI->load->model('accountledger_model');
+        $last     = $this->CI->accountledger_model->getLastLedgerBalance((int) $ledgerUID, (int) $fy);
+        $prevBal  = $last ? (float) $last->RunningBalance : 0.0;
+        $prevType = $last ? $last->BalanceType : 'Debit';
+
+        if ($type === $prevType) {
+            $newBal  = $prevBal + $amount;
+            $newType = $prevType;
+        } else {
+            if ($amount >= $prevBal) {
+                $newBal  = round($amount - $prevBal, 2);
+                $newType = $type;
+            } else {
+                $newBal  = round($prevBal - $amount, 2);
+                $newType = $prevType;
+            }
+        }
+
+        $this->CI->dbwrite_model->insertData('Accounting', 'LedgerBalances', [
+            'LedgerUID'       => (int) $ledgerUID,
+            'FinancialYear'   => (int) $fy,
+            'TransactionDate' => $journalDate,
+            'JournalUID'      => (int) $journalUID,
+            'DebitAmount'     => $type === 'Debit'  ? $amount : 0.00,
+            'CreditAmount'    => $type === 'Credit' ? $amount : 0.00,
+            'RunningBalance'  => $newBal,
+            'BalanceType'     => $newType,
+        ]);
+    }
+
+    // -------------------------------------------------------------------------
+    // Public journal posting methods
+    // -------------------------------------------------------------------------
+
+    // Invoice / Sale: Dr Customer, Cr Sales + Cr Output Tax
+    public function postSaleJournal($transUID, $transDate, $uniqueNumber, $fy, $netAmount, $taxableAmount, $cgst, $sgst, $igst, $customerUID, $createdBy) {
+        $netAmount     = round((float) $netAmount, 2);
+        $taxableAmount = round((float) $taxableAmount, 2);
+        $cgst          = round((float) $cgst, 2);
+        $sgst          = round((float) $sgst, 2);
+        $igst          = round((float) $igst, 2);
+        if ($netAmount <= 0) return;
+
+        $mapping = $this->getEntityLedgerMapping($customerUID, 'Customer');
+        if (!$mapping || empty($mapping->LedgerUID)) return;
+        $custLedgerUID = (int) $mapping->LedgerUID;
+
+        $refNo  = $uniqueNumber ?: null;
+        $jUID   = $this->_createJournalHeader(
+            $transDate, $fy, 'Invoice', $transUID, $refNo,
+            'Sale Invoice ' . ($uniqueNumber ?: 'Draft') . ' — Customer #' . $customerUID,
+            $createdBy
+        );
+
+        $this->_addJournalLine($jUID, $custLedgerUID, 'Debit', $netAmount,
+            'Invoice ' . ($uniqueNumber ?: '') . ' — Amount Receivable', $transDate, $fy, $createdBy);
+
+        $salesUID = $this->_getSystemLedgerUID('sales_revenue');
+        if ($salesUID) {
+            $this->_addJournalLine($jUID, $salesUID, 'Credit', $taxableAmount,
+                'Sale of goods/services — ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
+        }
+
+        if ($cgst > 0) {
+            $uid = $this->_getSystemLedgerUID('cgst_output');
+            if ($uid) $this->_addJournalLine($jUID, $uid, 'Credit', $cgst,
+                'Output CGST — ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
+        }
+        if ($sgst > 0) {
+            $uid = $this->_getSystemLedgerUID('sgst_output');
+            if ($uid) $this->_addJournalLine($jUID, $uid, 'Credit', $sgst,
+                'Output SGST — ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
+        }
+        if ($igst > 0) {
+            $uid = $this->_getSystemLedgerUID('igst_output');
+            if ($uid) $this->_addJournalLine($jUID, $uid, 'Credit', $igst,
+                'Output IGST — ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
+        }
+    }
+
+    // Purchase Bill: Dr Purchase + Dr Input Tax, Cr Vendor
+    public function postPurchaseJournal($transUID, $transDate, $uniqueNumber, $fy, $netAmount, $taxableAmount, $cgst, $sgst, $igst, $vendorUID, $createdBy) {
+        $netAmount     = round((float) $netAmount, 2);
+        $taxableAmount = round((float) $taxableAmount, 2);
+        $cgst          = round((float) $cgst, 2);
+        $sgst          = round((float) $sgst, 2);
+        $igst          = round((float) $igst, 2);
+        if ($netAmount <= 0) return;
+
+        $mapping = $this->getEntityLedgerMapping($vendorUID, 'Vendor');
+        if (!$mapping || empty($mapping->LedgerUID)) return;
+        $vendLedgerUID = (int) $mapping->LedgerUID;
+
+        $refNo = $uniqueNumber ?: null;
+        $jUID  = $this->_createJournalHeader(
+            $transDate, $fy, 'Purchase', $transUID, $refNo,
+            'Purchase Bill ' . ($uniqueNumber ?: 'Draft') . ' — Vendor #' . $vendorUID,
+            $createdBy
+        );
+
+        $purchUID = $this->_getSystemLedgerUID('purchase_cost');
+        if ($purchUID) {
+            $this->_addJournalLine($jUID, $purchUID, 'Debit', $taxableAmount,
+                'Purchase of goods/services — ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
+        }
+
+        if ($cgst > 0) {
+            $uid = $this->_getSystemLedgerUID('cgst_input');
+            if ($uid) $this->_addJournalLine($jUID, $uid, 'Debit', $cgst,
+                'Input CGST — ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
+        }
+        if ($sgst > 0) {
+            $uid = $this->_getSystemLedgerUID('sgst_input');
+            if ($uid) $this->_addJournalLine($jUID, $uid, 'Debit', $sgst,
+                'Input SGST — ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
+        }
+        if ($igst > 0) {
+            $uid = $this->_getSystemLedgerUID('igst_input');
+            if ($uid) $this->_addJournalLine($jUID, $uid, 'Debit', $igst,
+                'Input IGST — ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
+        }
+
+        $this->_addJournalLine($jUID, $vendLedgerUID, 'Credit', $netAmount,
+            'Bill ' . ($uniqueNumber ?: '') . ' — Amount Payable', $transDate, $fy, $createdBy);
+    }
+
+    // Payment journal: received = Cr Customer; made = Dr Vendor
+    public function postPaymentJournal($direction, $transUID, $paymentDate, $fy, $amount, $partyUID, $entityType, $createdBy) {
+        $amount = round((float) $amount, 2);
+        if ($amount <= 0) return;
+
+        $mapping = $this->getEntityLedgerMapping($partyUID, $entityType);
+        if (!$mapping || empty($mapping->LedgerUID)) return;
+        $partyLedgerUID = (int) $mapping->LedgerUID;
+
+        if ($direction === 'received') {
+            $jUID = $this->_createJournalHeader(
+                $paymentDate, $fy, 'Payment-In', $transUID, null,
+                'Payment received — ' . $entityType . ' #' . $partyUID, $createdBy
+            );
+            $this->_addJournalLine($jUID, $partyLedgerUID, 'Credit', $amount,
+                'Payment received against transaction #' . $transUID, $paymentDate, $fy, $createdBy);
+        } elseif ($direction === 'made') {
+            $jUID = $this->_createJournalHeader(
+                $paymentDate, $fy, 'Payment-Out', $transUID, null,
+                'Payment made — ' . $entityType . ' #' . $partyUID, $createdBy
+            );
+            $this->_addJournalLine($jUID, $partyLedgerUID, 'Debit', $amount,
+                'Payment made against transaction #' . $transUID, $paymentDate, $fy, $createdBy);
+        }
+    }
+
+    // Credit Note: Dr Sales Revenue + Dr Output Tax, Cr Customer (reversal of a sale)
+    public function postCreditNoteJournal($transUID, $transDate, $uniqueNumber, $fy, $netAmount, $taxableAmount, $cgst, $sgst, $igst, $customerUID, $createdBy) {
+        $netAmount     = round((float) $netAmount, 2);
+        $taxableAmount = round((float) $taxableAmount, 2);
+        $cgst          = round((float) $cgst, 2);
+        $sgst          = round((float) $sgst, 2);
+        $igst          = round((float) $igst, 2);
+        if ($netAmount <= 0) return;
+
+        $mapping = $this->getEntityLedgerMapping($customerUID, 'Customer');
+        if (!$mapping || empty($mapping->LedgerUID)) return;
+        $custLedgerUID = (int) $mapping->LedgerUID;
+
+        $refNo = $uniqueNumber ?: null;
+        $jUID  = $this->_createJournalHeader(
+            $transDate, $fy, 'CreditNote', $transUID, $refNo,
+            'Credit Note ' . ($uniqueNumber ?: 'Draft') . ' — Customer #' . $customerUID,
+            $createdBy
+        );
+
+        $salesUID = $this->_getSystemLedgerUID('sales_revenue');
+        if ($salesUID) {
+            $this->_addJournalLine($jUID, $salesUID, 'Debit', $taxableAmount,
+                'Sales return — ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
+        }
+
+        if ($cgst > 0) {
+            $uid = $this->_getSystemLedgerUID('cgst_output');
+            if ($uid) $this->_addJournalLine($jUID, $uid, 'Debit', $cgst,
+                'Output CGST reversed — ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
+        }
+        if ($sgst > 0) {
+            $uid = $this->_getSystemLedgerUID('sgst_output');
+            if ($uid) $this->_addJournalLine($jUID, $uid, 'Debit', $sgst,
+                'Output SGST reversed — ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
+        }
+        if ($igst > 0) {
+            $uid = $this->_getSystemLedgerUID('igst_output');
+            if ($uid) $this->_addJournalLine($jUID, $uid, 'Debit', $igst,
+                'Output IGST reversed — ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
+        }
+
+        $this->_addJournalLine($jUID, $custLedgerUID, 'Credit', $netAmount,
+            'Credit Note ' . ($uniqueNumber ?: '') . ' — Customer Credit', $transDate, $fy, $createdBy);
+    }
+
+    // Debit Note: Dr Vendor, Cr Purchase Cost + Cr Input Tax (reversal of a purchase)
+    public function postDebitNoteJournal($transUID, $transDate, $uniqueNumber, $fy, $netAmount, $taxableAmount, $cgst, $sgst, $igst, $vendorUID, $createdBy) {
+        $netAmount     = round((float) $netAmount, 2);
+        $taxableAmount = round((float) $taxableAmount, 2);
+        $cgst          = round((float) $cgst, 2);
+        $sgst          = round((float) $sgst, 2);
+        $igst          = round((float) $igst, 2);
+        if ($netAmount <= 0) return;
+
+        $mapping = $this->getEntityLedgerMapping($vendorUID, 'Vendor');
+        if (!$mapping || empty($mapping->LedgerUID)) return;
+        $vendLedgerUID = (int) $mapping->LedgerUID;
+
+        $refNo = $uniqueNumber ?: null;
+        $jUID  = $this->_createJournalHeader(
+            $transDate, $fy, 'DebitNote', $transUID, $refNo,
+            'Debit Note ' . ($uniqueNumber ?: 'Draft') . ' — Vendor #' . $vendorUID,
+            $createdBy
+        );
+
+        $this->_addJournalLine($jUID, $vendLedgerUID, 'Debit', $netAmount,
+            'Debit Note ' . ($uniqueNumber ?: '') . ' — Vendor Debit', $transDate, $fy, $createdBy);
+
+        $purchUID = $this->_getSystemLedgerUID('purchase_cost');
+        if ($purchUID) {
+            $this->_addJournalLine($jUID, $purchUID, 'Credit', $taxableAmount,
+                'Purchase return — ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
+        }
+
+        if ($cgst > 0) {
+            $uid = $this->_getSystemLedgerUID('cgst_input');
+            if ($uid) $this->_addJournalLine($jUID, $uid, 'Credit', $cgst,
+                'Input CGST reversed — ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
+        }
+        if ($sgst > 0) {
+            $uid = $this->_getSystemLedgerUID('sgst_input');
+            if ($uid) $this->_addJournalLine($jUID, $uid, 'Credit', $sgst,
+                'Input SGST reversed — ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
+        }
+        if ($igst > 0) {
+            $uid = $this->_getSystemLedgerUID('igst_input');
+            if ($uid) $this->_addJournalLine($jUID, $uid, 'Credit', $igst,
+                'Input IGST reversed — ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
+        }
+    }
+
+    // Reverse all non-deleted journals for a given reference — creates counter-entry journals
+    public function reverseJournal($refType, $transUID, $createdBy) {
+        $this->CI->load->model('accountledger_model');
+        $journals = $this->CI->accountledger_model->getJournalByReference($refType, (int) $transUID);
+
+        foreach ($journals as $journal) {
+            $jUID    = (int) $journal->JournalUID;
+            $fy      = (int) $journal->FinancialYear;
+            $revDate = date('Y-m-d');
+
+            $entries = $this->CI->accountledger_model->getJournalEntries($jUID);
+
+            // Soft-delete original journal header + lines
+            $this->CI->dbwrite_model->updateData('Accounting', 'GeneralJournal',
+                ['IsDeleted' => 1], ['JournalUID' => $jUID]);
+            $this->CI->dbwrite_model->updateData('Accounting', 'JournalEntries',
+                ['IsDeleted' => 1], ['JournalUID' => $jUID, 'IsDeleted' => 0]);
+
+            if (empty($entries)) continue;
+
+            // Create reversal journal with swapped Dr/Cr
+            $revUID = $this->_createJournalHeader(
+                $revDate, $fy,
+                'Reversal-' . $refType, (int) $transUID,
+                'REV-' . $journal->JournalNo,
+                'Reversal of journal ' . $journal->JournalNo,
+                $createdBy
+            );
+
+            foreach ($entries as $entry) {
+                $counterType = ($entry->TransactionType === 'Debit') ? 'Credit' : 'Debit';
+                $this->_addJournalLine(
+                    $revUID, (int) $entry->LedgerUID, $counterType,
+                    (float) $entry->Amount,
+                    'Reversal: ' . ($entry->Particulars ?? ''),
+                    $revDate, $fy, $createdBy
+                );
+            }
+        }
     }
 
 }

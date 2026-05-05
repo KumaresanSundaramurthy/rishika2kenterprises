@@ -3,7 +3,7 @@
  * Partial view — vendors modal form body.
  * Variables: $FormMode ('add'|'edit'|'clone'), $FormData (object|null),
  *            $BankDetails, $BillingAddr, $ShippingAddr,
- *            $CountryInfo, $JwtData
+ *            $CountryInfo, $OrgCCode, $OrgCISO2, $JwtData
  */
 $isEdit  = ($FormMode === 'edit');
 $isClone = ($FormMode === 'clone');
@@ -12,9 +12,7 @@ $d       = $FormData;
 
 <form id="VendorModalForm" data-mode="<?php echo $FormMode; ?>" autocomplete="off" novalidate>
 
-    <?php if ($isEdit): ?>
-    <input type="hidden" name="VendorUID" id="VendorUID" value="<?php echo (int)($d->VendorUID ?? 0); ?>" />
-    <?php endif; ?>
+    <input type="hidden" name="VendorUID" id="VendorUID" value="0" />
 
     <div class="p-4">
 
@@ -34,16 +32,8 @@ $d       = $FormData;
                     value="<?php echo htmlspecialchars($d->Area ?? ''); ?>" />
             </div>
             <?php
-                $orgISO2      = $JwtData->User->OrgCISO2 ?? 'IN';
-                $defPhoneCode = '+91';
-                foreach ($CountryInfo as $_c) {
-                    if ($_c->iso->{'alpha-2'} == $orgISO2) { $defPhoneCode = $_c->phone[0]; break; }
-                }
-                $activePhoneCode = (($isEdit || $isClone) && !empty($d->CountryCode)) ? $d->CountryCode : $defPhoneCode;
-                $activeISO2 = $orgISO2;
-                foreach ($CountryInfo as $_c) {
-                    if ($_c->phone[0] == $activePhoneCode) { $activeISO2 = $_c->iso->{'alpha-2'}; break; }
-                }
+                $activePhoneCode = (($isEdit || $isClone) && !empty($d->CountryCode)) ? $d->CountryCode : $OrgCCode;
+                $activeISO2      = (($isEdit || $isClone) && !empty($d->CountryISO2))  ? $d->CountryISO2  : $OrgCISO2;
             ?>
             <div class="mb-3 col-md-4">
                 <label class="form-label" for="VM_MobileNumber">Mobile Number <span class="text-danger">*</span></label>
@@ -72,10 +62,10 @@ $d       = $FormData;
                         min="0" placeholder="Debit / Credit Amount" maxlength="6" pattern="[0-9]*"
                         onkeypress="return (event.charCode!=8 && event.charCode==0 || (event.charCode>=48 && event.charCode<=57))"
                         oninput="this.value=this.value.slice(0,this.maxLength)"
-                        value="<?php echo $isEdit ? smartDecimal($d->DebitCreditAmount ?? 0) : '0'; ?>" />
+                        value="0" />
                     <select id="VM_DebitCreditCheck" name="DebitCreditCheck" class="select2 form-select border-start ps-2">
-                        <option value="Debit" <?php echo ($isEdit && ($d->DebitCreditType ?? '') === 'Debit') ? 'selected' : ''; ?>>To Collect</option>
-                        <option value="Credit" <?php echo (!$isEdit || ($d->DebitCreditType ?? '') === 'Credit') ? 'selected' : ''; ?>>To Pay</option>
+                        <option value="Debit">To Collect</option>
+                        <option value="Credit" selected>To Pay</option>
                     </select>
                 </div>
             </div>
@@ -94,7 +84,7 @@ $d       = $FormData;
             <div class="mb-3 col-md-4">
                 <label for="VM_CPDateOfBirth" class="form-label">Date of Birth</label>
                 <input type="text" id="VM_CPDateOfBirth" name="CPDateOfBirth"
-                    class="form-control flatpickr-basic" placeholder="YYYY-MM-DD"
+                    class="form-control flatpickr-basic" placeholder="DD Mon YYYY"
                     value="<?php echo htmlspecialchars($d->DateOfBirth ?? ''); ?>" />
             </div>
         </div>
@@ -106,7 +96,7 @@ $d       = $FormData;
         </div>
         <div class="row">
             <div class="col-md-3">
-                <div class="dropzone dropzone-main-form needsclick dz-clickable w-100" id="DropzoneOneBasic" style="min-height:160px;">
+                <div class="dropzone dropzone-main-form needsclick dz-clickable w-100" id="DropzoneOneBasic">
                     <div class="dz-message needsclick text-center">
                         <i class="upload-icon mb-3"></i>
                         <p class="h5 needsclick mb-2">Drag and drop logo here</p>
@@ -133,8 +123,7 @@ $d       = $FormData;
                     <label for="VM_Notes" class="form-label">Notes</label>
                     <textarea class="form-control" rows="2" name="Notes" id="VM_Notes" placeholder="Notes"><?php echo htmlspecialchars($d->Notes ?? ''); ?></textarea>
                 </div>
-                <?php if (!$isEdit): ?>
-                <div class="mb-3">
+                <div class="mb-3" id="CustomerLinkingDiv">
                     <div class="d-flex align-items-center gap-3 flex-wrap">
                         <div class="form-check form-check-inline">
                             <input class="form-check-input" type="radio" name="CustomerLinkingCheck" id="VM_CreateCustomer" value="NewCustomer" />
@@ -150,7 +139,6 @@ $d       = $FormData;
                         <select class="select2 form-select" id="VM_Customers" name="Customers"></select>
                     </div>
                 </div>
-                <?php endif; ?>
             </div>
         </div>
         <hr>
@@ -160,10 +148,18 @@ $d       = $FormData;
             <h5 class="modal-title mb-0">
                 Bank Details
                 <a href="javascript:void(0)" class="btn btn-sm btn-outline-warning ms-1" id="addBankDetails" data-divid="appendBankDetails">
-                    <i class="bx bx-plus-circle me-1"></i> Bank Accounts
+                    <i class="bx bx-plus-circle"></i>
                 </a>
             </h5>
         </div>
+
+        <!-- Bank empty state -->
+        <div class="d-flex flex-column align-items-center justify-content-center py-4 <?php echo count($BankDetails) > 0 ? 'd-none' : ''; ?>" id="bankEmptyState">
+            <i class="bx bx-credit-card text-muted mb-2" style="font-size:2.5rem;"></i>
+            <div class="fw-semibold text-muted mb-1">No bank accounts added</div>
+            <div class="text-muted small">Add vendor bank information to manage transactions</div>
+        </div>
+
         <div class="table-responsive <?php echo count($BankDetails) > 0 ? '' : 'd-none'; ?>" id="appendBankDetails">
             <table class="table table-bordered table-sm align-middle mb-0">
                 <thead class="table-light">
@@ -208,19 +204,29 @@ $d       = $FormData;
         <div class="row">
             <div class="mb-3 col-md-6">
                 <div class="d-flex justify-content-between align-items-center mb-2">
-                    <span class="fw-semibold small text-muted text-uppercase">Billing Address</span>
-                    <a href="javascript:void(0)" class="btn btn-sm btn-outline-warning" id="addBillingAddress">
-                        <i class="bx bx-plus-circle me-1"></i>Add
-                    </a>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="fw-semibold small text-muted text-uppercase">Billing Address</span>
+                        <a href="javascript:void(0)" class="btn btn-sm btn-outline-warning" id="addBillingAddress" data-divid="appendBillingAddress">
+                            <i class="bx bx-plus-circle"></i>
+                        </a>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary d-none" id="copyToShippingBtn">
+                        <i class="bx bx-copy-alt me-1"></i>Copy to Shipping
+                    </button>
                 </div>
                 <div id="appendBillingAddress"></div>
             </div>
             <div class="mb-3 col-md-6">
                 <div class="d-flex justify-content-between align-items-center mb-2">
-                    <span class="fw-semibold small text-muted text-uppercase">Shipping Address</span>
-                    <a href="javascript:void(0)" class="btn btn-sm btn-outline-warning" id="addShippingAddress">
-                        <i class="bx bx-plus-circle me-1"></i>Add
-                    </a>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="fw-semibold small text-muted text-uppercase">Shipping Address</span>
+                        <a href="javascript:void(0)" class="btn btn-sm btn-outline-warning" id="addShippingAddress" data-divid="appendShippingAddress">
+                            <i class="bx bx-plus-circle"></i>
+                        </a>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary d-none" id="copyToBillingBtn">
+                        <i class="bx bx-copy-alt me-1"></i>Copy to Billing
+                    </button>
                 </div>
                 <div id="appendShippingAddress"></div>
             </div>

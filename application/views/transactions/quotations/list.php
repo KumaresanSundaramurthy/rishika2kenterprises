@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php
 $moduleContext = 'quotation';
@@ -53,7 +53,7 @@ if (!empty($DataLists)):
                     <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars(format_datedisplay($list->TransDate, 'd M Y')); ?></div>
                 <?php endif; ?>
             <?php else: ?>
-                <a href="javascript:void(0)" class="trans-doc-number viewTransaction" data-uid="<?php echo (int)$list->TransUID; ?>" data-module="<?php echo (int)$list->ModuleUID; ?>" data-type="quotation">
+                <a href="javascript:void(0)" class="trans-doc-number viewTransaction" data-uid="<?php echo (int)$list->TransUID; ?>" data-module="<?php echo (int)$list->ModuleUID; ?>" data-type="quotation" data-number="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>" data-date="<?php echo htmlspecialchars($list->TransDate ?? ''); ?>" data-status="<?php echo htmlspecialchars($list->Status ?? ''); ?>">
                     <?php echo htmlspecialchars($list->UniqueNumber); ?>
                 </a>
                 <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars(format_datedisplay($list->TransDate, 'd M Y')); ?></div>
@@ -105,9 +105,11 @@ if (!empty($DataLists)):
         <td>
             <div class="trans-party-name"><?php echo htmlspecialchars($list->PartyName ?? '—'); ?></div>
             <?php if (!empty($list->MobileNumber)): ?>
-            <div class="trans-party-mobile d-flex align-items-center gap-1">
-                <?php echo htmlspecialchars($list->MobileNumber); ?>
-                <a href="https://wa.me/<?php echo htmlspecialchars($list->MobileNumber); ?>?text=Hi"
+            <div class="trans-party-mobile d-flex align-items-center gap-1 mt-1">
+                <span class="copy-mobile cursor-pointer" data-mobile="<?php echo htmlspecialchars($list->MobileNumber); ?>" title="Click to copy">
+                    <?php echo ($list->CountryCode ? htmlspecialchars($list->CountryCode) . ' ' : '') . htmlspecialchars($list->MobileNumber); ?>
+                </span>
+                <a href="https://wa.me/<?php echo preg_replace('/[^0-9]/', '', ($list->CountryCode ?? '') . $list->MobileNumber); ?>?text=Hi"
                    target="_blank" class="text-success" title="WhatsApp" style="line-height:1;">
                     <i class="bx bxl-whatsapp fs-6"></i>
                 </a>
@@ -127,10 +129,21 @@ if (!empty($DataLists)):
 
         <!-- Last Updated -->
         <td>
-            <div class="text-muted" style="font-size:.78rem;">
-                <?php echo changeTimeZonefromDateTime($list->UpdatedOn, $JwtData->User->Timezone, 2); ?>
-            </div>
-            <div style="font-size:.71rem; color:#bbb;">by <?php echo htmlspecialchars($list->UpdatedBy ?? '—'); ?></div>
+            <?php
+                $updatedOn  = $list->UpdatedOn ?? null;
+                $secondsAgo = $updatedOn ? (time() - strtotime($updatedOn)) : null;
+                $within24h  = $secondsAgo !== null && $secondsAgo < 86400;
+                if ($within24h) {
+                    if ($secondsAgo < 60)        $agoText = 'just now';
+                    elseif ($secondsAgo < 3600)  $agoText = (int)($secondsAgo / 60) . ' min' . ((int)($secondsAgo / 60) > 1 ? 's' : '') . ' ago';
+                    else                         $agoText = (int)($secondsAgo / 3600) . ' hr' . ((int)($secondsAgo / 3600) > 1 ? 's' : '') . ' ago';
+                }
+            ?>
+            <div style="font-size:.78rem;"><?php echo $updatedOn ? changeTimeZonefromDateTime($updatedOn, $JwtData->User->Timezone, 2) : '—'; ?></div>
+            <?php if ($within24h): ?>
+            <div style="font-size:.68rem;color:#0d6efd;font-weight:500;"><?php echo $agoText; ?></div>
+            <?php endif; ?>
+            <div class="text-muted" style="font-size:.7rem;">by <?php echo htmlspecialchars($list->UpdatedBy ?? '—'); ?></div>
         </td>
 
         <!-- Actions -->
@@ -168,13 +181,17 @@ if (!empty($DataLists)):
                                 <i class="bx bx-receipt me-2 text-dark"></i>Thermal Print
                             </button>
                         </li>
-                        <?php if (!empty($list->MobileNumber)): ?>
-                        <li>
-                            <a class="dropdown-item" href="https://wa.me/<?php echo htmlspecialchars($list->MobileNumber); ?>?text=Please+find+your+quotation+<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>" target="_blank">
-                                <i class="bx bxl-whatsapp me-2 text-success"></i>Send via WhatsApp
-                            </a>
-                        </li>
-                        <?php endif; ?>
+            <?php if (!empty($list->MobileNumber)): ?>
+            <div class="trans-party-mobile d-flex align-items-center gap-1 mt-1">
+                <span class="copy-mobile cursor-pointer" data-mobile="<?php echo htmlspecialchars($list->MobileNumber); ?>" title="Click to copy">
+                    <?php echo ($list->CountryCode ? htmlspecialchars($list->CountryCode) . ' ' : '') . htmlspecialchars($list->MobileNumber); ?>
+                </span>
+                <a href="https://wa.me/<?php echo preg_replace('/[^0-9]/', '', ($list->CountryCode ?? '') . $list->MobileNumber); ?>?text=Hi"
+                   target="_blank" class="text-success" title="WhatsApp" style="line-height:1;">
+                    <i class="bx bxl-whatsapp fs-6"></i>
+                </a>
+            </div>
+            <?php endif; ?>
                         <li><hr class="dropdown-divider my-1"></li>
                         <?php endif; ?>
 

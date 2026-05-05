@@ -86,11 +86,7 @@ $statusTransitions = [
         'Converted'=> [],
         'Cancelled'=> [],
     ],
-    'salesorder' => [
-        'Draft'     => [['db' => 'Confirmed', 'label' => 'Confirm Order']],
-        'Confirmed' => [['db' => 'Fulfilled', 'label' => 'Mark Fulfilled'],
-                        ['db' => 'Cancelled', 'label' => 'Cancel Order']],
-    ],
+    'salesorder' => [],
     'salesreturn'   => [
         'Draft'    => [['db' => 'Approved',  'label' => 'Approve Return']],
         'Approved' => [['db' => 'Cancelled', 'label' => 'Cancel']],

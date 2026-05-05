@@ -150,7 +150,7 @@ class Formvalidation_model extends CI_Model {
 
         $this->form_validation->set_data($data);
 
-        $dd['VendorUID'] = array('field' => 'VendorUID', 'label' => 'Vendor UID', 'rules' => 'required|xss_clean|trim|numeric');
+        $dd['VendorUID'] = array('field' => 'VendorUID', 'label' => 'Vendor UID', 'rules' => 'xss_clean|trim|numeric');
 
         $dd['Name'] = array('field' => 'Name', 'label' => 'Name', 'rules' => 'trim|required|xss_clean|min_length[3]|max_length[100]');
         $dd['Area'] = array('field' => 'Area', 'label' => 'Area', 'rules' => 'trim|xss_clean|min_length[3]|max_length[100]');

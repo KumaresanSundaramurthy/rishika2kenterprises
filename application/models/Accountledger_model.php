@@ -40,7 +40,7 @@ class Accountledger_model extends CI_Model {
 
         try {
 
-            $this->CI->load->model('accountledger_model');
+            
             
             $tableMap = [
                 'Customer' => ['table' => 'Customers.CustomerTbl', 'alias' => 'c', 'id' => 'CustomerUID'],
@@ -54,7 +54,7 @@ class Accountledger_model extends CI_Model {
             
             $config = $tableMap[$entityType];
             
-            $this->CI->ReadDb->select([
+            $this->ReadDb->select([
                 "{$config['alias']}.{$config['id']}",
                 "{$config['alias']}.Name as EntityName",
                 "{$config['alias']}.IsDeleted",
@@ -67,15 +67,15 @@ class Accountledger_model extends CI_Model {
                 'ca.ParentLedgerUID'
             ]);
             
-            $this->CI->ReadDb->from("{$config['table']} as {$config['alias']}");
-            $this->CI->ReadDb->join('Accounting.EntityLedgerMap as el', 
+            $this->ReadDb->from("{$config['table']} as {$config['alias']}");
+            $this->ReadDb->join('Accounting.EntityLedgerMap as el', 
                 "el.{$config['id']} = {$config['alias']}.{$config['id']} AND el.EntityType = '{$entityType}'", 
                 'left');
-            $this->CI->ReadDb->join('Accounting.ChartOfAccounts as ca', 
+            $this->ReadDb->join('Accounting.ChartOfAccounts as ca', 
                 'ca.LedgerUID = el.LedgerUID AND ca.IsDeleted = 0', 
                 'left');
-            $this->CI->ReadDb->where(["{$config['alias']}.{$config['id']}" => $entityId]);
-            $this->CI->ReadDb->limit(1);
+            $this->ReadDb->where(["{$config['alias']}.{$config['id']}" => $entityId]);
+            $this->ReadDb->limit(1);
             $query = $this->ReadDb->get();
             if (!$query) {
                 $error = $this->ReadDb->error();
@@ -162,5 +162,60 @@ class Accountledger_model extends CI_Model {
 
     }
 
+    public function getSystemLedgerByCode($code) {
+        try {
+            $this->ReadDb->select('LedgerUID, LedgerCode, LedgerName, LedgerType, CurrentBalance, CurrentBalanceType');
+            $this->ReadDb->from('Accounting.ChartOfAccounts');
+            $this->ReadDb->where('LedgerCode', $code);
+            $this->ReadDb->where('IsDeleted', 0);
+            $this->ReadDb->limit(1);
+            $query = $this->ReadDb->get();
+            return ($query && $query->num_rows() > 0) ? $query->row() : null;
+        } catch (Exception $e) {
+            return null;
+        }
+    }
+
+    public function getLastLedgerBalance($ledgerUID, $financialYear) {
+        try {
+            $this->ReadDb->select('RunningBalance, BalanceType');
+            $this->ReadDb->from('Accounting.LedgerBalances');
+            $this->ReadDb->where('LedgerUID', (int) $ledgerUID);
+            $this->ReadDb->where('FinancialYear', (int) $financialYear);
+            $this->ReadDb->order_by('BalanceUID', 'DESC');
+            $this->ReadDb->limit(1);
+            $query = $this->ReadDb->get();
+            return ($query && $query->num_rows() > 0) ? $query->row() : null;
+        } catch (Exception $e) {
+            return null;
+        }
+    }
+
+    public function getJournalByReference($refType, $refID) {
+        try {
+            $this->ReadDb->select('JournalUID, JournalNo, JournalDate, FinancialYear');
+            $this->ReadDb->from('Accounting.GeneralJournal');
+            $this->ReadDb->where('ReferenceType', $refType);
+            $this->ReadDb->where('ReferenceID', (int) $refID);
+            $this->ReadDb->where('IsDeleted', 0);
+            $query = $this->ReadDb->get();
+            return ($query) ? $query->result() : [];
+        } catch (Exception $e) {
+            return [];
+        }
+    }
+
+    public function getJournalEntries($journalUID) {
+        try {
+            $this->ReadDb->select('EntryUID, LedgerUID, TransactionType, Amount, Particulars');
+            $this->ReadDb->from('Accounting.JournalEntries');
+            $this->ReadDb->where('JournalUID', (int) $journalUID);
+            $this->ReadDb->where('IsDeleted', 0);
+            $query = $this->ReadDb->get();
+            return ($query) ? $query->result() : [];
+        } catch (Exception $e) {
+            return [];
+        }
+    }
 
 }

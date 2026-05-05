@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php
 $moduleContext = 'salesorder';
@@ -53,7 +53,7 @@ if (!empty($DataLists)):
                     <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars(format_datedisplay($list->TransDate, 'd M Y')); ?></div>
                 <?php endif; ?>
             <?php else: ?>
-                <a href="javascript:void(0)" class="trans-doc-number viewTransaction" data-uid="<?php echo (int)$list->TransUID; ?>" data-module="<?php echo (int)$list->ModuleUID; ?>" data-type="salesorder">
+                <a href="javascript:void(0)" class="trans-doc-number viewTransaction" data-uid="<?php echo (int)$list->TransUID; ?>" data-module="<?php echo (int)$list->ModuleUID; ?>" data-type="salesorder" data-number="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>" data-date="<?php echo htmlspecialchars($list->TransDate ?? ''); ?>" data-status="<?php echo htmlspecialchars($list->Status ?? ''); ?>">
                     <?php echo htmlspecialchars($list->UniqueNumber); ?>
                 </a>
                 <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars(format_datedisplay($list->TransDate, 'd M Y')); ?></div>
@@ -71,42 +71,21 @@ if (!empty($DataLists)):
 
         <!-- Status -->
         <td>
-            <?php if (!empty($transitions)): ?>
-            <div class="dropdown">
-                <span class="trans-badge <?php echo $badgeClass; ?>" data-bs-toggle="dropdown"
-                      data-uid="<?php echo (int)$list->TransUID; ?>"
-                      data-current="<?php echo htmlspecialchars($status); ?>">
-                    <i class="bx <?php echo $icon; ?>" style="font-size:.8rem;"></i>
-                    <?php echo htmlspecialchars($status); ?>
-                    <i class="bx bx-chevron-down" style="font-size:.7rem;"></i>
-                </span>
-                <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="min-width:170px;font-size:.82rem;">
-                    <?php foreach ($transitions as $t): ?>
-                    <li>
-                        <button class="dropdown-item so-status-update"
-                                data-uid="<?php echo (int)$list->TransUID; ?>"
-                                data-status="<?php echo htmlspecialchars($t['db']); ?>">
-                            <?php echo htmlspecialchars($t['label']); ?>
-                        </button>
-                    </li>
-                    <?php endforeach; ?>
-                </ul>
-            </div>
-            <?php else: ?>
-                <span class="trans-badge <?php echo $badgeClass; ?>">
-                    <i class="bx <?php echo $icon; ?>" style="font-size:.8rem;"></i>
-                    <?php echo htmlspecialchars($status); ?>
-                </span>
-            <?php endif; ?>
+            <span class="trans-badge <?php echo $badgeClass; ?>">
+                <i class="bx <?php echo $icon; ?>" style="font-size:.8rem;"></i>
+                <?php echo htmlspecialchars($status); ?>
+            </span>
         </td>
 
         <!-- Customer -->
         <td>
             <div class="trans-party-name"><?php echo htmlspecialchars($list->PartyName ?? '—'); ?></div>
             <?php if (!empty($list->MobileNumber)): ?>
-            <div class="trans-party-mobile d-flex align-items-center gap-1">
-                <?php echo htmlspecialchars($list->MobileNumber); ?>
-                <a href="https://wa.me/<?php echo htmlspecialchars($list->MobileNumber); ?>?text=Hi"
+            <div class="trans-party-mobile d-flex align-items-center gap-1 mt-1">
+                <span class="copy-mobile cursor-pointer" data-mobile="<?php echo htmlspecialchars($list->MobileNumber); ?>" title="Click to copy">
+                    <?php echo ($list->CountryCode ? htmlspecialchars($list->CountryCode) . ' ' : '') . htmlspecialchars($list->MobileNumber); ?>
+                </span>
+                <a href="https://wa.me/<?php echo preg_replace('/[^0-9]/', '', ($list->CountryCode ?? '') . $list->MobileNumber); ?>?text=Hi"
                    target="_blank" class="text-success" title="WhatsApp" style="line-height:1;">
                     <i class="bx bxl-whatsapp fs-6"></i>
                 </a>
@@ -126,10 +105,21 @@ if (!empty($DataLists)):
 
         <!-- Last Updated -->
         <td>
-            <div class="text-muted" style="font-size:.78rem;">
-                <?php echo changeTimeZonefromDateTime($list->UpdatedOn, $JwtData->User->Timezone, 2); ?>
-            </div>
-            <div style="font-size:.71rem; color:#bbb;">by <?php echo htmlspecialchars($list->UpdatedBy ?? '—'); ?></div>
+            <?php
+                $updatedOn  = $list->UpdatedOn ?? null;
+                $secondsAgo = $updatedOn ? (time() - strtotime($updatedOn)) : null;
+                $within24h  = $secondsAgo !== null && $secondsAgo < 86400;
+                if ($within24h) {
+                    if ($secondsAgo < 60)        $agoText = 'just now';
+                    elseif ($secondsAgo < 3600)  $agoText = (int)($secondsAgo / 60) . ' min' . ((int)($secondsAgo / 60) > 1 ? 's' : '') . ' ago';
+                    else                         $agoText = (int)($secondsAgo / 3600) . ' hr' . ((int)($secondsAgo / 3600) > 1 ? 's' : '') . ' ago';
+                }
+            ?>
+            <div style="font-size:.78rem;"><?php echo $updatedOn ? changeTimeZonefromDateTime($updatedOn, $JwtData->User->Timezone, 2) : '—'; ?></div>
+            <?php if ($within24h): ?>
+            <div style="font-size:.68rem;color:#0d6efd;font-weight:500;"><?php echo $agoText; ?></div>
+            <?php endif; ?>
+            <div class="text-muted" style="font-size:.7rem;">by <?php echo htmlspecialchars($list->UpdatedBy ?? '—'); ?></div>
         </td>
 
         <!-- Actions -->
@@ -168,8 +158,36 @@ if (!empty($DataLists)):
                             </button>
                         </li>
 
+                        <?php if ($status === 'Pending'): ?>
+                        <li><hr class="dropdown-divider my-1"></li>
+                        <li>
+                            <button class="dropdown-item convertSOToInvoice"
+                                    data-uid="<?php echo (int)$list->TransUID; ?>"
+                                    data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>">
+                                <i class="bx bx-receipt me-2 text-success"></i>Convert to Invoice
+                            </button>
+                        </li>
+                        <li>
+                            <button class="dropdown-item convertSOToChallan"
+                                    data-uid="<?php echo (int)$list->TransUID; ?>"
+                                    data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>">
+                                <i class="bx bx-package me-2 text-info"></i>Convert to Delivery Challan
+                            </button>
+                        </li>
+                        <?php endif; ?>
+
                         <?php if (!$isTerminal): ?>
                         <li><hr class="dropdown-divider my-1"></li>
+                        <?php if (!$isDraft): ?>
+                        <li>
+                            <button class="dropdown-item text-warning so-status-update"
+                                    data-uid="<?php echo (int)$list->TransUID; ?>"
+                                    data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
+                                    data-status="Cancelled">
+                                <i class="bx bx-x-circle me-2"></i>Cancel
+                            </button>
+                        </li>
+                        <?php endif; ?>
                         <li>
                             <button class="dropdown-item text-danger deleteSalesOrder"
                                     data-uid="<?php echo (int)$list->TransUID; ?>"

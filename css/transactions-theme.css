@@ -17,7 +17,12 @@
  * This file retains ONLY transaction-specific styles not needed globally.
  */
 
-/* ── Status Badges (transaction-specific) ─────────────────────────────────── */
+/* ── Dispatch From / Dispatch To select — wrap text in dropdown list only ── */
+#dispatchFrom option,
+#dispatchTo option {
+    white-space: normal;
+    word-break: break-word;
+}
 .trans-badge {
     display: inline-flex; align-items: center; gap: 4px;
     padding: 3px 9px; border-radius: 20px;
@@ -55,3 +60,66 @@
     background: #fd7e14 !important;
     color: #fff !important;
 }
+
+/* ── viewTransModal ──────────────────────────────────────────────────────── */
+.vtm-banner                { padding: 14px 20px; border-left: 4px solid var(--vtm-color, #0d6efd); background: var(--vtm-bg, #e8f0fe); }
+.vtm-banner-inner          { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.vtm-banner-left           { display: flex; align-items: center; gap: 12px; }
+.vtm-banner-icon           { background: var(--vtm-icon-bg, rgba(13,110,253,.13)); border-radius: 10px; padding: 9px 11px; flex-shrink: 0; }
+.vtm-banner-icon i         { font-size: 1.7rem; color: var(--vtm-color, #0d6efd); display: block; }
+.vtm-doc-number            { font-size: 1.12rem; font-weight: 800; color: var(--vtm-color, #0d6efd); letter-spacing: .2px; line-height: 1.2; }
+.vtm-doc-meta              { font-size: .77rem; color: #6c757d; margin-top: 4px; }
+.vtm-banner-right          { display: flex; align-items: center; gap: 8px; flex-shrink: 0; flex-wrap: wrap; }
+.vtm-edit-btn              { display: inline-flex; align-items: center; gap: 4px; font-size: .75rem; font-weight: 600; color: var(--vtm-color, #0d6efd); border: 1px solid var(--vtm-color, #0d6efd); border-radius: 5px; padding: 3px 10px; text-decoration: none; white-space: nowrap; background: rgba(255,255,255,.7); }
+.vtm-close-btn             { background: rgba(255,255,255,.85); border: none; border-radius: 50%; width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; box-shadow: 0 1px 4px rgba(0,0,0,.15); padding: 0; }
+.vtm-close-btn i           { font-size: 1.2rem; color: #555; line-height: 1; }
+.vtm-section               { padding: 14px 20px; border-bottom: 1px solid #e9ecef; }
+.vtm-section-last          { padding: 14px 20px; }
+.vtm-section-notes         { padding: 12px 20px; border-bottom: 1px solid #e9ecef; background: #fafafa; }
+.vtm-sec-hdr               { display: flex; align-items: center; gap: 8px; padding: 4px 0 8px; }
+.vtm-sec-hdr i             { font-size: 1.05rem; }
+.vtm-sec-hdr span          { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; }
+.vtm-info-card             { background: #fafafa; border: 1px solid #e9ecef; border-radius: 6px; padding: 10px 12px; height: 100%; min-height: 70px; }
+.vtm-info-card-cyan        { border-left: 3px solid #17a2b8; }
+.vtm-info-card-purple      { border-left: 3px solid #6f42c1; }
+.vtm-info-card-orange      { border-left: 3px solid #fd7e14; }
+.vtm-card-label            { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: #6c757d; margin-bottom: 5px; }
+.vtm-party-name            { font-size: .9rem; font-weight: 600; color: #212529; }
+.vtm-party-sub             { font-size: .8rem; color: #6c757d; margin-top: 3px; }
+.vtm-party-gstin           { font-size: .78rem; color: #6c757d; margin-top: 2px; }
+.vtm-party-gstin span      { font-family: monospace; font-size: .82rem; }
+.vtm-addr-text             { font-size: .8rem; color: #495057; line-height: 1.55; }
+.vtm-items-thead tr        { background: #fff3e0; }
+.vtm-items-table           { font-size: .8rem; }
+.vtm-item-name             { font-weight: 500; }
+.vtm-item-sub              { font-size: .72rem; color: #6c757d; }
+.vtm-tax-igst              { color: #6f42c1; font-weight: 600; }
+.vtm-tax-cgst              { color: #0d6efd; }
+.vtm-tax-sgst              { color: #17a2b8; }
+.vtm-tax-amt               { color: #6c757d; font-size: .78rem; }
+.vtm-disc-val              { color: #dc3545; }
+.vtm-summary-table         { font-size: .85rem; border: 1px solid #dee2e6; border-radius: 6px; overflow: hidden; }
+.vtm-summary-net td        { border-top: 2px solid #198754; color: #198754; font-weight: 700; }
+.vtm-summary-net .vtm-net-val { font-size: .95rem; }
+.vtm-summary-disc td       { color: #dc3545; }
+.vtm-notes-label           { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: #6c757d; margin-bottom: 4px; }
+.vtm-notes-text            { font-size: .82rem; color: #495057; line-height: 1.6; }
+.vtm-terms-text            { font-size: .82rem; color: #495057; line-height: 1.7; }
+.vtm-pay-pill              { display: inline-flex; align-items: center; gap: 6px; border-radius: 20px; padding: 6px 16px; }
+.vtm-pay-pill i            { font-size: 1rem; }
+.vtm-pay-pill span         { font-size: .82rem; font-weight: 600; }
+.vtm-pay-pill-paid         { background: #d1e7dd; border: 1px solid #a3cfbb; }
+.vtm-pay-pill-paid i,
+.vtm-pay-pill-paid span    { color: #0f5132; }
+.vtm-pay-pill-due          { background: #f8d7da; border: 1px solid #f1aeb5; }
+.vtm-pay-pill-due i,
+.vtm-pay-pill-due span     { color: #842029; }
+.vtm-pay-thead tr          { background: #f3eeff; }
+.vtm-pay-table             { font-size: .8rem; }
+.vtm-attach-card           { cursor: pointer; border-radius: 6px; overflow: hidden; }
+.vtm-attach-name           { font-size: .7rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; background: #fff; padding: 4px 8px; border-top: 1px solid #dee2e6; }
+.vtm-spacer                { height: 8px; }
+/* Banner header always visible in modal */
+#viewTransModal .modal-content  { display: flex; flex-direction: column; }
+#viewTransModalHeader           { flex-shrink: 0; }
+#viewTransModalBody             { flex: 1; overflow-y: auto; }

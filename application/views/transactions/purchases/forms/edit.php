@@ -108,56 +108,108 @@
                             </div>
                         </div>
 
-                        <div class="card-body card-body-form-static p-4">
+<?php
+// Parse stored Notes back into PO Ref and user Notes
+$_rawNotes   = $PurchData->Notes ?? '';
+$_poRef      = '';
+$_userNotes  = $_rawNotes;
+if (preg_match('/^\[PO Ref: (.*?)\]\s*(.*)$/s', $_rawNotes, $_m)) {
+    $_poRef     = $_m[1];
+    $_userNotes = trim($_m[2]);
+}
+?>
 
                             <div class="card-header modal-header-center-sticky p-1 mb-3">
                                 <h5 class="modal-title mb-0"><i class="bx bx-store me-1"></i> Vendor Details</h5>
                             </div>
-                            <div class="row">
-                                <div class="col-md-3 trans-right-border">
-                                    <div class="mb-2">
-                                        <label for="purchaseType" class="form-label small fw-semibold">Type <span style="color:red">*</span></label>
-                                        <select id="purchaseType" name="purchaseType" class="form-select form-select-sm">
-                                            <option value="Regular" <?php echo ($PurchData->QuotationType === 'Regular' || empty($PurchData->QuotationType)) ? 'selected' : ''; ?>>Regular</option>
-                                            <option value="Without_GST" <?php echo $PurchData->QuotationType === 'Without_GST' ? 'selected' : ''; ?>>Without GST</option>
-                                        </select>
+                            <!-- Row 1: Vendor | Type | Dispatch To | Supplier Invoice Date | Supplier Payment By -->
+                            <div class="row g-2 align-items-end">
+                                <div class="col-md-4">
+                                    <div class="d-flex align-items-center justify-content-between mb-1">
+                                        <label for="vendorSearch" class="trans-field-label mb-0">Select Vendor <span class="text-danger">*</span></label>
+                                        <button type="button" id="addTransVendor" class="trans-add-btn btn btn-outline-primary" aria-label="Add new vendor"><i class="bx bx-plus-circle me-1"></i> Vendor</button>
+                                    </div>
+                                    <select id="vendorSearch" name="vendorSearch" class="form-select form-select-sm"></select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="purchaseType" class="trans-field-label">Type <span class="text-danger">*</span></label>
+                                    <select id="purchaseType" name="purchaseType" class="form-select form-select-sm" required>
+                                        <option value="Regular" <?php echo ($PurchData->QuotationType === 'Regular' || empty($PurchData->QuotationType)) ? 'selected' : ''; ?>>Regular</option>
+                                        <option value="Without_GST" <?php echo $PurchData->QuotationType === 'Without_GST' ? 'selected' : ''; ?>>Without GST</option>
+                                    </select>
+                                </div>
+                                <?php if (!empty($DispatchAddress)): ?>
+                                <?php
+                                    $addrParts = array_filter([
+                                        htmlspecialchars($DispatchAddress->Line1  ?? ''),
+                                        htmlspecialchars($DispatchAddress->Line2  ?? ''),
+                                    ]);
+                                    $cityPin = trim(implode(' - ', array_filter([
+                                        htmlspecialchars($DispatchAddress->CityText ?? ''),
+                                        htmlspecialchars($DispatchAddress->Pincode  ?? ''),
+                                    ])));
+                                    if ($cityPin) $addrParts[] = $cityPin;
+                                    if (!empty($DispatchAddress->StateText)) $addrParts[] = htmlspecialchars($DispatchAddress->StateText);
+                                ?>
+                                <div class="col-md-2">
+                                    <label class="trans-field-label">Dispatch To <span class="text-danger">*</span></label>
+                                    <select id="dispatchTo" name="dispatchTo" class="form-select form-select-sm" required>
+                                        <option value="<?php echo (int)$DispatchAddress->OrgAddressUID; ?>" selected><?php echo implode(', ', $addrParts); ?></option>
+                                    </select>
+                                </div>
+                                <?php endif; ?>
+                                <div class="col-md-2">
+                                    <label for="transDate" class="trans-field-label">
+                                        Supplier Invoice Date <span class="text-danger">*</span>
+                                        <i class="bx bx-help-circle ms-1 text-muted" style="font-size:.82rem;cursor:pointer;"
+                                           data-bs-toggle="tooltip" data-bs-placement="top"
+                                           title="The date printed on the supplier's invoice. This is the official billing date from your vendor and is used for GST reporting and payment tracking."></i>
+                                    </label>
+                                    <div class="input-group input-group-sm input-group-merge">
+                                        <span class="input-group-text"><i class="icon-base bx bx-calendar"></i></span>
+                                        <input type="text" class="form-control form-control-sm" id="transDate" name="transDate" readonly="readonly" value="<?php echo htmlspecialchars(format_datedisplay($PurchData->TransDate, 'Y-m-d')); ?>" required />
                                     </div>
                                 </div>
-                                <div class="col-md-6 border-end pe-3">
-                                    <div class="d-flex flex-wrap align-items-center gap-2">
-                                        <div class="d-flex align-items-center gap-2">
-                                            <label for="vendorSearch" class="form-label small fw-semibold">Select Vendor <span class="text-danger">*</span></label>
-                                        </div>
-                                        <div class="flex-grow-1">
-                                            <select id="vendorSearch" name="vendorSearch" class="form-select form-select-sm"></select>
-                                        </div>
-                                    </div>
-                                    <div id="vendorAddressBox" class="mt-2 p-2 border border-secondary trans-border-dotted rounded small d-none"></div>
-                                </div>
-                                <div class="col-md-3">
-                                    <div class="mb-2">
-                                        <label for="transDate" class="form-label small fw-semibold">Bill Date <span class="text-danger">*</span></label>
-                                        <div class="input-group input-group-merge">
-                                            <span class="input-group-text"><i class="icon-base bx bx-calendar"></i></span>
-                                            <input type="text" class="form-control form-control-sm" id="transDate" name="transDate" readonly="readonly" value="<?php echo htmlspecialchars(format_datedisplay($PurchData->TransDate, 'Y-m-d')); ?>" required />
-                                        </div>
-                                    </div>
-                                    <div class="mb-2">
-                                        <label for="billDueDate" class="form-label small fw-semibold">Bill Due Date</label>
-                                        <div class="input-group input-group-merge">
-                                            <span class="input-group-text"><i class="icon-base bx bx-calendar"></i></span>
-                                            <input type="text" class="form-control form-control-sm" id="billDueDate" name="billDueDate" readonly="readonly"
-                                                value="<?php echo !empty($PurchData->ValidityDate) ? htmlspecialchars(format_datedisplay($PurchData->ValidityDate, 'Y-m-d')) : ''; ?>" />
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label for="referenceDetails" class="form-label small fw-semibold">Reference / PO No.</label>
-                                        <input type="text" id="referenceDetails" name="referenceDetails" class="form-control form-control-sm" placeholder="Ref No, PO No..." maxlength="100"
-                                            value="<?php echo htmlspecialchars($PurchData->Reference ?? ''); ?>" />
+                                <div class="col-md-2">
+                                    <label for="billDueDate" class="trans-field-label">
+                                        Supplier Payment By
+                                        <i class="bx bx-help-circle ms-1 text-muted" style="font-size:.82rem;cursor:pointer;"
+                                           data-bs-toggle="tooltip" data-bs-placement="top"
+                                           title="The deadline by which you must pay your vendor. Keeping track of this helps you avoid late payment penalties and maintain a good supplier relationship."></i>
+                                    </label>
+                                    <div class="input-group input-group-sm input-group-merge">
+                                        <span class="input-group-text"><i class="icon-base bx bx-calendar"></i></span>
+                                        <input type="text" class="form-control form-control-sm" id="billDueDate" name="billDueDate" readonly="readonly"
+                                            value="<?php echo !empty($PurchData->ValidityDate) ? htmlspecialchars(format_datedisplay($PurchData->ValidityDate, 'Y-m-d')) : ''; ?>" />
                                     </div>
                                 </div>
                             </div>
-                            <hr/>
+                            <!-- Row 2: Vendor address box + Supplier Invoice No + Reference -->
+                            <div class="row g-2 mt-2">
+                                <div class="col-md-4">
+                                    <div id="vendorAddressBox" class="p-2 border border-secondary trans-border-dotted rounded small d-none"></div>
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="supplierInvoiceNo" class="trans-field-label">Supplier Invoice No.</label>
+                                    <input type="text" id="supplierInvoiceNo" name="supplierInvoiceNo" class="form-control form-control-sm"
+                                        placeholder="e.g. INV-2025-0042"
+                                        maxlength="100"
+                                        value="<?php echo htmlspecialchars($PurchData->SupplierInvoiceNo ?? $PurchData->Reference ?? ''); ?>" />
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="referenceDetails" class="trans-field-label">
+                                        Reference / PO No.
+                                        <i class="bx bx-help-circle ms-1 text-muted" style="font-size:.82rem;cursor:pointer;"
+                                           data-bs-toggle="tooltip" data-bs-placement="top"
+                                           title="Use this field to link the bill to a related document. You can enter the supplier's Purchase Order number, your internal order reference, a shipment or tracking number, or the name of the person who placed the order."></i>
+                                    </label>
+                                    <input type="text" id="referenceDetails" name="referenceDetails" class="form-control form-control-sm"
+                                        placeholder="e.g. PO-2025-001, Shipment #TRK456, Sales Person: Ravi, Indent No: IND-88"
+                                        maxlength="100"
+                                        value="<?php echo htmlspecialchars($_poRef); ?>" />
+                                </div>
+                            </div>
+                            <hr class="mt-3"/>
 
                             <!-- Product Details -->
                             <div class="card-header modal-header-center-sticky p-1 mb-3">
@@ -302,7 +354,7 @@
                                 <div class="col-md-6">
                                     <div class="mb-2">
                                         <label for="transNotes" class="form-label small fw-semibold">Notes</label>
-                                        <textarea class="form-control" name="transNotes" id="transNotes" rows="2"><?php echo htmlspecialchars($PurchData->Notes ?? ''); ?></textarea>
+                                        <textarea class="form-control" name="transNotes" id="transNotes" rows="2"><?php echo htmlspecialchars($_userNotes); ?></textarea>
                                     </div>
                                     <div class="mb-2">
                                         <label for="transTermsCond" class="form-label small fw-semibold">Terms & Conditions</label>
@@ -395,6 +447,7 @@
             </div>
 
             <?php $this->load->view('common/transactions/transprefix'); ?>
+            <?php $this->load->view('transactions/modals/vendor'); ?>
             <?php $this->load->view('transactions/modals/taxdetails'); ?>
             <?php $this->load->view('products/modals/items'); ?>
             <?php $this->load->view('common/footer_desc'); ?>
@@ -543,6 +596,7 @@ $(function () {
                 billDueDate            : $.trim($('#billDueDate').val()),
                 vendorSearch           : vendorUID,
                 purchaseType           : $('#purchaseType').val() || '',
+                supplierInvoiceNo      : $.trim($('#supplierInvoiceNo').val()),
                 referenceDetails       : $.trim($('#referenceDetails').val()),
                 transNotes             : $.trim($('#transNotes').val()),
                 transTermsCond         : $.trim($('#transTermsCond').val()),

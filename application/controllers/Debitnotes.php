@@ -204,6 +204,20 @@ class Debitnotes extends CI_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
+            if (!$isDraft) {
+                try {
+                    $this->load->library('accountledger');
+                    $this->accountledger->applyLedgerEntry($vendorUID, 'Vendor', $netAmount, 'Debit', $transUID);
+                    $this->accountledger->postDebitNoteJournal(
+                        $transUID, $transDate, $uniqueNumber, $financialYear,
+                        $netAmount, $subTotal, $cgstAmount, $sgstAmount, $igstAmount,
+                        $vendorUID, $userUID
+                    );
+                } catch (Exception $ledgerEx) {
+                    log_message('error', 'Ledger update failed after debit note creation: ' . $ledgerEx->getMessage());
+                }
+            }
+
             $this->EndReturnData->Error    = FALSE;
             $this->EndReturnData->Message  = 'Debit Note created successfully.';
             $this->EndReturnData->TransUID = $transUID;
@@ -336,6 +350,8 @@ class Debitnotes extends CI_Controller {
                 $this->dbwrite_model->reverseStockMovements($transUID, $orgUID, $userUID);
             }
 
+            $activeTransUID = $transUID;
+
             if ($existing->DocStatus === 'Draft' && !$isDraft
                 && $this->transactions_model->hasNewerTransactions($transUID, $orgUID, $this->pageModuleUID)) {
 
@@ -349,7 +365,8 @@ class Debitnotes extends CI_Controller {
                 ]);
                 $insertResp = $this->dbwrite_model->insertData('Transaction', 'TransactionsTbl', $newHeader);
                 if ($insertResp->Error) throw new Exception($insertResp->Message);
-                $newTransUID = $insertResp->ID;
+                $newTransUID    = $insertResp->ID;
+                $activeTransUID = $newTransUID;
                 $this->dbwrite_model->insertData('Transaction', 'TransDetailTbl', array_merge($commonDetail, ['FinancialYear' => $financialYear, 'TransUID' => $newTransUID]));
                 $this->dbwrite_model->updateData('Transaction', 'TransProductsTbl', ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID], ['TransUID' => $transUID, 'IsDeleted' => 0]);
                 $this->saveTransactionItems($newTransUID, $financialYear, $orgUID, $userUID, $items);
@@ -379,6 +396,26 @@ class Debitnotes extends CI_Controller {
             }
 
             $this->dbwrite_model->commitTransaction();
+
+            if (!$isDraft) {
+                try {
+                    $this->load->library('accountledger');
+                    if ($wasNonDraft) {
+                        $this->accountledger->applyLedgerEntry($existing->PartyUID, 'Vendor', (float) $existing->NetAmount, 'Credit', $transUID);
+                        $this->accountledger->reverseJournal('DebitNote', $transUID, $userUID);
+                    }
+                    $this->accountledger->applyLedgerEntry($vendorUID, 'Vendor', $netAmount, 'Debit', $activeTransUID);
+                    $activeUniqueNumber = $uniqueNumber ?? ($existing->UniqueNumber ?? null);
+                    $this->accountledger->postDebitNoteJournal(
+                        $activeTransUID, $transDate, $activeUniqueNumber, $financialYear,
+                        $netAmount, $subTotal, $cgstAmount, $sgstAmount, $igstAmount,
+                        $vendorUID, $userUID
+                    );
+                } catch (Exception $ledgerEx) {
+                    log_message('error', 'Ledger update failed after debit note update: ' . $ledgerEx->getMessage());
+                }
+            }
+
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Debit Note updated successfully.';
         } catch (Exception $e) {
@@ -400,8 +437,8 @@ class Debitnotes extends CI_Controller {
             $transUID = (int) getPostValue($PostData, 'TransUID');
             if ($transUID <= 0) throw new Exception('Debit Note ID is required.');
             $this->load->model('transactions_model');
-            $existing = $this->transactions_model->getTransactionPageList(1, 0, $this->pageModuleUID, ['TransUID' => $transUID, 'OrgUID' => $orgUID]);
-            if (empty($existing)) throw new Exception('Debit Note not found.');
+            $existing = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
+            if (!$existing) throw new Exception('Debit Note not found.');
 
             $this->dbwrite_model->reverseStockMovements($transUID, $orgUID, $userUID);
 
@@ -412,6 +449,17 @@ class Debitnotes extends CI_Controller {
             $deleteResp = $this->dbwrite_model->updateData('Transaction', 'TransactionsTbl', $deleteData, ['TransUID' => $transUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
             if ($deleteResp->Error) throw new Exception($deleteResp->Message);
             $this->dbwrite_model->commitTransaction();
+
+            if ($existing->DocStatus !== 'Draft' && $existing->PartyType === 'S' && $existing->PartyUID > 0) {
+                try {
+                    $this->load->library('accountledger');
+                    $this->accountledger->applyLedgerEntry($existing->PartyUID, 'Vendor', (float) $existing->NetAmount, 'Credit', $transUID);
+                    $this->accountledger->reverseJournal('DebitNote', $transUID, $userUID);
+                } catch (Exception $ledgerEx) {
+                    log_message('error', 'Ledger reversal failed after debit note delete: ' . $ledgerEx->getMessage());
+                }
+            }
+
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Debit Note deleted successfully.';
         } catch (Exception $e) {

@@ -96,7 +96,6 @@ function executeTablePagnCommonFunc(response, tableinfo = false) {
     if(tableinfo) {
         $(ModulePag).html(response.Pagination);
         $(ModuleTable + ' tbody').html(response.List);
-        Swal.fire(response.Message, "", "success");
     }
     headerCheckboxTrueFalse(ModuleTable, ModuleHeader, ModuleRow);
     MultipleDeleteOption();

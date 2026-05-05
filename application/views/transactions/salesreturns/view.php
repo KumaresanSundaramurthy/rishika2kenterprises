@@ -255,7 +255,15 @@ $(function () {
 
     $(document).on('click', '.sr-status-update', function () {
         var uid = $(this).data('uid'), status = $(this).data('status');
-        $.ajax({
+                if ($(this).data('_confirmed')) { $(this).removeData('_confirmed'); return; }
+        if (status === 'Cancelled') {
+            var num = $(this).data('num') || '';
+            var lbl = num ? '<strong>' + $('<span>').text(num).html() + '</strong>' : 'this sales return';
+            var $btn = $(this);
+            Swal.fire({ title: 'Cancel Sales Return?', html: 'Are you sure you want to cancel ' + lbl + '? This cannot be undone.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', cancelButtonColor: '#6c757d', confirmButtonText: 'Yes, Cancel It', cancelButtonText: 'No, Keep It' }).then(function (r) { if (!r.isConfirmed) return; $btn.data('_confirmed', true).trigger('click'); });
+            return;
+        }
+$.ajax({
             url: '/salesreturns/updateSalesReturnStatus', method: 'POST',
             data: { TransUID: uid, Status: status, [CsrfName]: CsrfToken },
             success: function (resp) { if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); } else { getSalesReturnsDetails(); } }

@@ -211,8 +211,15 @@ class Purchases extends CI_Controller {
                 'TransUID'          => $transUID,
                 'ValidityDays'      => NULL,
                 'ValidityDate'      => $billDueDate ?: NULL,
-                'Reference'         => getPostValue($PostData, 'referenceDetails') ?: NULL,
-                'Notes'             => getPostValue($PostData, 'transNotes') ?: NULL,
+                'Reference'         => getPostValue($PostData, 'supplierInvoiceNo') ?: (getPostValue($PostData, 'referenceDetails') ?: NULL),
+                'Notes'             => (function() use ($PostData) {
+                    $ref   = trim(getPostValue($PostData, 'referenceDetails') ?? '');
+                    $notes = trim(getPostValue($PostData, 'transNotes') ?? '');
+                    if ($ref !== '') {
+                        return $notes !== '' ? '[PO Ref: ' . $ref . '] ' . $notes : '[PO Ref: ' . $ref . ']';
+                    }
+                    return $notes ?: NULL;
+                })(),
                 'TermsConditions'   => getPostValue($PostData, 'transTermsCond') ?: NULL,
                 'AdditionalCharges' => $additionalChargesJson,
                 'IsInterState'      => $isInterState,
@@ -232,6 +239,21 @@ class Purchases extends CI_Controller {
             }
 
             $this->dbwrite_model->commitTransaction();
+
+            // Apply vendor ledger + post journal after commit
+            if (!$isDraft) {
+                try {
+                    $this->load->library('accountledger');
+                    $this->accountledger->applyLedgerEntry($vendorUID, 'Vendor', $netAmount, 'Credit', $transUID);
+                    $this->accountledger->postPurchaseJournal(
+                        $transUID, $transDate, $uniqueNumber, $financialYear,
+                        $netAmount, $subTotal, $cgstAmount, $sgstAmount, $igstAmount,
+                        $vendorUID, $userUID
+                    );
+                } catch (Exception $ledgerEx) {
+                    log_message('error', 'Ledger update failed after purchase creation: ' . $ledgerEx->getMessage());
+                }
+            }
 
             $this->EndReturnData->Error    = FALSE;
             $this->EndReturnData->Message  = 'Purchase bill recorded successfully.';
@@ -364,15 +386,23 @@ class Purchases extends CI_Controller {
             $commonDetail = [
                 'ValidityDays'      => NULL,
                 'ValidityDate'      => $billDueDate ?: NULL,
-                'Reference'         => getPostValue($PostData, 'referenceDetails') ?: NULL,
-                'Notes'             => getPostValue($PostData, 'transNotes') ?: NULL,
+                'Reference'         => getPostValue($PostData, 'supplierInvoiceNo') ?: (getPostValue($PostData, 'referenceDetails') ?: NULL),
+                'Notes'             => (function() use ($PostData) {
+                    $ref   = trim(getPostValue($PostData, 'referenceDetails') ?? '');
+                    $notes = trim(getPostValue($PostData, 'transNotes') ?? '');
+                    if ($ref !== '') {
+                        return $notes !== '' ? '[PO Ref: ' . $ref . '] ' . $notes : '[PO Ref: ' . $ref . ']';
+                    }
+                    return $notes ?: NULL;
+                })(),
                 'TermsConditions'   => getPostValue($PostData, 'transTermsCond') ?: NULL,
                 'AdditionalCharges' => $additionalChargesJson,
                 'IsInterState'      => $isInterState,
                 'IsForeignCustomer' => NULL,
             ];
 
-            $wasNonDraft = ($existing->DocStatus !== 'Draft');
+            $wasNonDraft   = ($existing->DocStatus !== 'Draft');
+            $activeTransUID = $transUID;
             if ($wasNonDraft) {
                 $this->dbwrite_model->reverseStockMovements($transUID, $orgUID, $userUID);
             }
@@ -388,9 +418,10 @@ class Purchases extends CI_Controller {
                     'IsDeleted'    => 0,
                     'CreatedBy'    => $userUID,
                 ]);
-                $insertResp = $this->dbwrite_model->insertData('Transaction', 'TransactionsTbl', $newHeader);
+                $insertResp     = $this->dbwrite_model->insertData('Transaction', 'TransactionsTbl', $newHeader);
                 if ($insertResp->Error) throw new Exception($insertResp->Message);
-                $newTransUID = $insertResp->ID;
+                $newTransUID    = $insertResp->ID;
+                $activeTransUID = $newTransUID;
 
                 $this->dbwrite_model->insertData('Transaction', 'TransDetailTbl', array_merge($commonDetail, [
                     'FinancialYear' => $financialYear,
@@ -453,6 +484,26 @@ class Purchases extends CI_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
+            // Apply vendor ledger + post journal after commit
+            if (!$isDraft) {
+                try {
+                    $this->load->library('accountledger');
+                    if ($wasNonDraft) {
+                        $this->accountledger->applyLedgerEntry($existing->PartyUID, 'Vendor', (float) $existing->NetAmount, 'Debit', $transUID);
+                        $this->accountledger->reverseJournal('Purchase', $transUID, $userUID);
+                    }
+                    $this->accountledger->applyLedgerEntry($vendorUID, 'Vendor', $netAmount, 'Credit', $activeTransUID);
+                    $activeUniqueNumber = $uniqueNumber ?? ($existing->UniqueNumber ?? null);
+                    $this->accountledger->postPurchaseJournal(
+                        $activeTransUID, $transDate, $activeUniqueNumber, $financialYear,
+                        $netAmount, $subTotal, $cgstAmount, $sgstAmount, $igstAmount,
+                        $vendorUID, $userUID
+                    );
+                } catch (Exception $ledgerEx) {
+                    log_message('error', 'Ledger update failed after purchase update: ' . $ledgerEx->getMessage());
+                }
+            }
+
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Purchase bill updated successfully.';
 
@@ -482,11 +533,8 @@ class Purchases extends CI_Controller {
             if ($transUID <= 0) throw new Exception('Purchase bill ID is required.');
 
             $this->load->model('transactions_model');
-            $existing = $this->transactions_model->getTransactionPageList(1, 0, $this->pageModuleUID, [
-                'TransUID' => $transUID,
-                'OrgUID'   => $orgUID,
-            ]);
-            if (empty($existing)) throw new Exception('Purchase bill not found.');
+            $existing = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
+            if (!$existing) throw new Exception('Purchase bill not found.');
 
             $this->dbwrite_model->reverseStockMovements($transUID, $orgUID, $userUID);
 
@@ -508,6 +556,17 @@ class Purchases extends CI_Controller {
             if ($deleteResp->Error) throw new Exception($deleteResp->Message);
 
             $this->dbwrite_model->commitTransaction();
+
+            // Reverse vendor ledger + journal after commit
+            if ($existing->DocStatus !== 'Draft' && $existing->PartyType === 'V' && $existing->PartyUID > 0) {
+                try {
+                    $this->load->library('accountledger');
+                    $this->accountledger->applyLedgerEntry($existing->PartyUID, 'Vendor', (float) $existing->NetAmount, 'Debit', $transUID);
+                    $this->accountledger->reverseJournal('Purchase', $transUID, $userUID);
+                } catch (Exception $ledgerEx) {
+                    log_message('error', 'Ledger reversal failed after purchase delete: ' . $ledgerEx->getMessage());
+                }
+            }
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Purchase bill deleted successfully.';
@@ -987,6 +1046,10 @@ class Purchases extends CI_Controller {
             $this->pageData['PaymentTypes'] = $this->transactions_model->getPaymentTypesList();
             $this->pageData['BankAccounts'] = $this->transactions_model->getOrgBankAccounts($orgUID);
 
+            $this->load->model('organisation_model');
+            $dispatchAddrResult                  = $this->organisation_model->getOrgDispatchAddress($orgUID);
+            $this->pageData['DispatchAddress']   = $dispatchAddrResult->Data ?? NULL;
+
             $this->load->view('transactions/purchases/forms/add', $this->pageData);
 
         } catch (Exception $e) {
@@ -1060,6 +1123,10 @@ class Purchases extends CI_Controller {
 
             $this->pageData['PaymentTypes'] = $this->transactions_model->getPaymentTypesList();
             $this->pageData['BankAccounts'] = $this->transactions_model->getOrgBankAccounts($orgUID);
+
+            $this->load->model('organisation_model');
+            $dispatchAddrResult                  = $this->organisation_model->getOrgDispatchAddress($orgUID);
+            $this->pageData['DispatchAddress']   = $dispatchAddrResult->Data ?? NULL;
 
             $this->load->view('transactions/purchases/forms/edit', $this->pageData);
 

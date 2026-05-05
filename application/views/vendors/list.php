@@ -120,17 +120,13 @@ if (!empty($DataLists)):
         <!-- Closing Balance -->
         <td>
             <?php
-                $bal     = (float)($list->ClosingBalance ?? 0);
+                $bal     = round((float)($list->ClosingBalance ?? 0), 2);
                 $balType = $list->ClosingBalanceType ?? 'Credit';
-                if ($bal > 0):
-                    $balClass = ($balType === 'Credit') ? 'text-danger' : 'text-success';
-                    $balLabel = ($balType === 'Credit') ? 'To Pay' : 'To Collect';
+                $balClass = $bal == 0 ? 'text-muted' : (($balType === 'Credit') ? 'text-danger' : 'text-success');
+                $balLabel = $bal == 0 ? '' : (($balType === 'Credit') ? 'To Pay' : 'To Collect');
             ?>
                 <div class="fw-semibold <?php echo $balClass; ?>"><?php echo $currency . ' ' . number_format($bal, 2); ?></div>
                 <div style="font-size:.72rem;color:#aaa;"><?php echo $balLabel; ?></div>
-            <?php else: ?>
-                <span class="text-muted">—</span>
-            <?php endif; ?>
         </td>
 
         <!-- Updated On -->

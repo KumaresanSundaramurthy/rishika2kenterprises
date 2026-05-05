@@ -274,6 +274,17 @@ class Invoices extends CI_Controller {
                     if ($paidAmountForLedger > 0) {
                         $this->accountledger->applyLedgerEntry($customerUID, 'Customer', $paidAmountForLedger, 'Credit', $transUID);
                     }
+                    $this->accountledger->postSaleJournal(
+                        $transUID, $transDate, $uniqueNumber, $financialYear,
+                        $netAmount, $subTotal, $cgstAmount, $sgstAmount, $igstAmount,
+                        $customerUID, $userUID
+                    );
+                    if ($paidAmountForLedger > 0) {
+                        $this->accountledger->postPaymentJournal(
+                            'received', $transUID, $transDate, $financialYear,
+                            $paidAmountForLedger, $customerUID, 'Customer', $userUID
+                        );
+                    }
                 } catch (Exception $ledgerEx) {
                     log_message('error', 'Ledger update failed after invoice creation: ' . $ledgerEx->getMessage());
                 }
@@ -538,10 +549,23 @@ class Invoices extends CI_Controller {
                     $this->load->library('accountledger');
                     if ($wasNonDraft) {
                         $this->accountledger->applyLedgerEntry($customerUID, 'Customer', (float) $existing->NetAmount, 'Credit', $activeTransUID);
+                        $this->accountledger->reverseJournal('Invoice', $transUID, $userUID);
                     }
                     $this->accountledger->applyLedgerEntry($customerUID, 'Customer', $netAmount, 'Debit', $activeTransUID);
                     if ($paidAmountForLedger > 0) {
                         $this->accountledger->applyLedgerEntry($customerUID, 'Customer', $paidAmountForLedger, 'Credit', $activeTransUID);
+                    }
+                    $activeUniqueNumber = $uniqueNumber ?? ($existing->UniqueNumber ?? null);
+                    $this->accountledger->postSaleJournal(
+                        $activeTransUID, $transDate, $activeUniqueNumber, $financialYear,
+                        $netAmount, $subTotal, $cgstAmount, $sgstAmount, $igstAmount,
+                        $customerUID, $userUID
+                    );
+                    if ($paidAmountForLedger > 0) {
+                        $this->accountledger->postPaymentJournal(
+                            'received', $activeTransUID, $transDate, $financialYear,
+                            $paidAmountForLedger, $customerUID, 'Customer', $userUID
+                        );
                     }
                 } catch (Exception $ledgerEx) {
                     log_message('error', 'Ledger update failed after invoice update: ' . $ledgerEx->getMessage());
@@ -719,6 +743,10 @@ class Invoices extends CI_Controller {
             try {
                 $this->load->library('accountledger');
                 $this->accountledger->applyLedgerEntry($existing->PartyUID, 'Customer', $amount, 'Credit', $transUID);
+                $this->accountledger->postPaymentJournal(
+                    'received', $transUID, $paymentDate, $payTransYear,
+                    $amount, $existing->PartyUID, 'Customer', $userUID
+                );
             } catch (Exception $ledgerEx) {
                 log_message('error', 'Ledger credit failed after invoice payment: ' . $ledgerEx->getMessage());
             }
@@ -777,9 +805,14 @@ class Invoices extends CI_Controller {
                     $alreadyPaid = array_sum(array_column((array) $payments, 'Amount'));
                     $remaining   = max(0, round($netAmount - $alreadyPaid, 2));
 
-                    if ($remaining > 0) {
+                    try {
                         $this->load->library('accountledger');
-                        $this->accountledger->applyLedgerEntry($existing->PartyUID, 'Customer', $remaining, 'Credit', $transUID);
+                        if ($remaining > 0) {
+                            $this->accountledger->applyLedgerEntry($existing->PartyUID, 'Customer', $remaining, 'Credit', $transUID);
+                        }
+                        $this->accountledger->reverseJournal('Invoice', $transUID, $userUID);
+                    } catch (Exception $ledgerEx) {
+                        log_message('error', 'Ledger reversal failed after invoice delete: ' . $ledgerEx->getMessage());
                     }
                 }
             }

@@ -156,6 +156,7 @@
             </div>
             <!-- Content wrapper -->
             
+            <?php $this->load->view('common/imagepreview_modal'); ?>
             <?php $this->load->view('common/settings_modal'); ?>
             <?php $this->load->view('common/modals/send_communication'); ?>
 
@@ -184,9 +185,17 @@
                         </div>
 
                         <div class="modal-body p-0 flex-grow-1 overflow-auto" id="VendorFormModalBody">
-                            <div class="text-center py-5">
-                                <span class="spinner-border text-primary"></span>
-                            </div>
+                            <?php $this->load->view('vendors/forms/modal_body', [
+                                'FormMode'    => 'add',
+                                'FormData'    => null,
+                                'BankDetails' => [],
+                                'BillingAddr' => null,
+                                'ShippingAddr'=> null,
+                                'CountryInfo' => $CountryInfo,
+                                'OrgCCode'    => $OrgCCode,
+                                'OrgCISO2'    => $OrgCISO2,
+                                'JwtData'     => $JwtData,
+                            ]); ?>
                         </div>
 
                     </div>
@@ -223,8 +232,9 @@ const previewName = 'Vendor Details';
 let nameSortState = 0;
 let balSortState  = 0;
 let areaSortState = 0;
-var StateInfo = <?php echo json_encode($StateData ?? []); ?>;
-var CityInfo  = <?php echo json_encode($CityData  ?? []); ?>;
+var StateInfo = [];
+var CityInfo  = [];
+var OrgCountryISO2 = <?php echo json_encode($OrgCISO2 ?? 'IN'); ?>;
 
 $(function() {
     'use strict'

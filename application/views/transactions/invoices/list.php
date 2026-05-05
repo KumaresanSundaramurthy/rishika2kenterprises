@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php
 $moduleContext = 'invoice';
@@ -62,7 +62,10 @@ if (!empty($DataLists)):
                 <a href="javascript:void(0)" class="trans-doc-number viewTransaction"
                    data-uid="<?php echo (int)$list->TransUID; ?>"
                    data-module="<?php echo (int)$list->ModuleUID; ?>"
-                   data-type="invoice">
+                   data-type="invoice"
+                   data-number="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
+                   data-date="<?php echo htmlspecialchars($list->TransDate ?? ''); ?>"
+                   data-status="<?php echo htmlspecialchars($list->Status ?? ''); ?>">
                     <?php echo htmlspecialchars($list->UniqueNumber); ?>
                 </a>
                 <div class="d-flex align-items-center gap-2 mt-1">
@@ -146,8 +149,10 @@ if (!empty($DataLists)):
             <div class="trans-party-name"><?php echo htmlspecialchars($list->PartyName ?? '—'); ?></div>
             <?php if (!empty($list->MobileNumber)): ?>
             <div class="trans-party-mobile d-flex align-items-center gap-1 mt-1">
-                <?php echo htmlspecialchars($list->MobileNumber); ?>
-                <a href="https://wa.me/<?php echo htmlspecialchars($list->MobileNumber); ?>?text=Hi"
+                <span class="copy-mobile cursor-pointer" data-mobile="<?php echo htmlspecialchars($list->MobileNumber); ?>" title="Click to copy">
+                    <?php echo ($list->CountryCode ? htmlspecialchars($list->CountryCode) . ' ' : '') . htmlspecialchars($list->MobileNumber); ?>
+                </span>
+                <a href="https://wa.me/<?php echo preg_replace('/[^0-9]/', '', ($list->CountryCode ?? '') . $list->MobileNumber); ?>?text=Hi"
                    target="_blank" class="text-success" title="WhatsApp" style="line-height:1;">
                     <i class="bx bxl-whatsapp fs-6"></i>
                 </a>
@@ -244,9 +249,10 @@ if (!empty($DataLists)):
                         <?php if (!$isCancelled): ?>
                         <li><hr class="dropdown-divider my-1"></li>
                         <li>
-                            <button class="dropdown-item text-warning cancelInvoice"
+                            <button class="dropdown-item text-warning inv-status-update"
                                     data-uid="<?php echo (int)$list->TransUID; ?>"
-                                    data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? 'Draft'); ?>">
+                                    data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? 'Draft'); ?>"
+                                    data-status="Cancelled">
                                 <i class="bx bx-x-circle me-2"></i>Cancel Invoice
                             </button>
                         </li>

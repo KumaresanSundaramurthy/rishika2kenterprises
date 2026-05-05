@@ -18,13 +18,11 @@
                     $dec         = $JwtData->GenSettings->DecimalPoints ?? 2;
 
                     $cntAll      = array_sum(array_column($stats, 'count'));
-                    $cntConfirmed= $stats['Confirmed']['count']  ?? 0;
-                    $cntFulfilled= $stats['Fulfilled']['count']  ?? 0;
+                    $cntConfirmed= $stats['Pending']['count']   ?? 0;
                     $cntDraft    = $stats['Draft']['count']      ?? 0;
 
                     $amtAll      = array_sum(array_column($stats, 'amount'));
-                    $amtConfirmed= $stats['Confirmed']['amount'] ?? 0;
-                    $amtFulfilled= $stats['Fulfilled']['amount'] ?? 0;
+                    $amtConfirmed= $stats['Pending']['amount']   ?? 0;
 
                     function fmtAmt($val, $sym, $dec) {
                         return $sym . ' ' . number_format((float)$val, $dec, '.', ',');
@@ -42,19 +40,11 @@
                             </a>
                         </div>
                         <div class="col-6 col-md-3">
-                            <a href="javascript:void(0);" class="trans-stat-card stat-active" data-stat-filter="Confirmed">
-                                <div class="trans-stat-label">Confirmed</div>
+                            <a href="javascript:void(0);" class="trans-stat-card stat-active" data-stat-filter="Pending">
+                                <div class="trans-stat-label">Pending</div>
                                 <div class="trans-stat-count"><?php echo number_format($cntConfirmed); ?></div>
                                 <div class="trans-stat-amount"><?php echo fmtAmt($amtConfirmed, $cur, $dec); ?></div>
-                                <i class="bx bx-check-double trans-stat-icon"></i>
-                            </a>
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <a href="javascript:void(0);" class="trans-stat-card stat-paid" data-stat-filter="Fulfilled">
-                                <div class="trans-stat-label">Fulfilled</div>
-                                <div class="trans-stat-count"><?php echo number_format($cntFulfilled); ?></div>
-                                <div class="trans-stat-amount"><?php echo fmtAmt($amtFulfilled, $cur, $dec); ?></div>
-                                <i class="bx bx-package trans-stat-icon"></i>
+                                <i class="bx bx-time trans-stat-icon"></i>
                             </a>
                         </div>
                         <div class="col-6 col-md-3">
@@ -79,13 +69,8 @@
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link so-status-tab" data-status="Confirmed" href="javascript:void(0);">
-                                        Confirmed <span class="trans-tab-count ms-1 d-none"></span>
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link so-status-tab" data-status="Fulfilled" href="javascript:void(0);">
-                                        Fulfilled <span class="trans-tab-count ms-1 d-none"></span>
+                                    <a class="nav-link so-status-tab" data-status="Pending" href="javascript:void(0);">
+                                        Pending <span class="trans-tab-count ms-1 d-none"></span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
@@ -278,24 +263,58 @@ $(function () {
         if (match) { PageNo = parseInt(match[1]); getSalesOrdersDetails(); }
     });
 
-    // ── Inline status update ────────────────────────────────
+    // helper: sync active tab status into Filter then build POST data
+    function _actionPostData(extra) {
+        Filter.Status = $('.so-status-tab.active').data('status') || 'All';
+        return $.extend({ RowLimit: RowLimit, PageNo: PageNo, Filter: Filter, [CsrfName]: CsrfToken }, extra);
+    }
+
+    // helper: render list response returned by cancel/delete directly into the table
+    function _renderListResponse(resp) {
+        $(ModuleTable + ' tbody').html(resp.RecordHtmlData);
+        $(ModulePag).html(resp.Pagination);
+        var count = resp.TotalCount || 0;
+        $('.so-status-tab.active .trans-tab-count').text(count > 0 ? count : '').removeClass('d-none');
+        initTooltips();
+    }
+
+    // ── Inline status update (Cancel from 3-dot or status badge) ──
     $(document).on('click', '.so-status-update', function () {
-        var uid    = $(this).data('uid');
-        var status = $(this).data('status');
+        var $btn   = $(this);
+        var uid    = $btn.data('uid');
+        var status = $btn.data('status');
+
+        if (status === 'Cancelled' && !$btn.data('_confirmed')) {
+            var num = $btn.data('num') || '';
+            var lbl = num ? '<strong>' + $('<span>').text(num).html() + '</strong>' : 'this sales order';
+            Swal.fire({
+                title: 'Cancel Sales Order?',
+                html : 'Are you sure you want to cancel ' + lbl + '? This cannot be undone.',
+                icon : 'warning', showCancelButton: true,
+                confirmButtonColor: '#d33', cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, Cancel It', cancelButtonText: 'No, Keep It'
+            }).then(function (r) {
+                if (!r.isConfirmed) return;
+                $btn.data('_confirmed', true).trigger('click');
+            });
+            return;
+        }
+
+        $btn.removeData('_confirmed');
         $.ajax({
             url   : '/salesorders/updateSalesOrderStatus',
             method: 'POST',
-            data  : { TransUID: uid, Status: status, [CsrfName]: CsrfToken },
+            data  : _actionPostData({ TransUID: uid, Status: status }),
             success: function (resp) {
-                if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); }
-                else            { getSalesOrdersDetails(); }
+                if (resp.Error) {
+                    showToastNotification(resp.Message, 'error');
+                    return;
+                }
+                _renderListResponse(resp);
+                showToastNotification('Sales order cancelled.', 'success');
             }
         });
     });
-
-    // View modal — handled by /js/transactions/viewmodal.js (.viewTransaction)
-
-    // ── A4 Print — handled by /js/transactions/a4_print.js ──
 
     // ── Delete ───────────────────────────────────────────────
     $(document).on('click', '.deleteSalesOrder', function () {
@@ -309,10 +328,57 @@ $(function () {
             $.ajax({
                 url   : '/salesorders/deleteSalesOrder',
                 method: 'POST',
+                data  : _actionPostData({ TransUID: uid }),
+                success: function (resp) {
+                    if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); return; }
+                    _renderListResponse(resp);
+                    Swal.fire({ icon: 'success', text: resp.Message, timer: 1500, showConfirmButton: false });
+                }
+            });
+        });
+    });
+
+    // ── Convert to Invoice ───────────────────────────────────
+    $(document).on('click', '.convertSOToInvoice', function () {
+        var uid = $(this).data('uid'), num = $(this).data('num') || '';
+        Swal.fire({
+            title: 'Convert to Invoice?',
+            html : num ? 'Convert <strong>' + num + '</strong> to an Invoice?' : 'Convert this sales order to an Invoice?',
+            icon : 'question', showCancelButton: true,
+            confirmButtonColor: '#198754', cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, Convert', cancelButtonText: 'Cancel'
+        }).then(function (r) {
+            if (!r.isConfirmed) return;
+            $.ajax({
+                url   : '/salesorders/convertSalesOrderToInvoice',
+                method: 'POST',
                 data  : { TransUID: uid, [CsrfName]: CsrfToken },
                 success: function (resp) {
-                    if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); }
-                    else { getSalesOrdersDetails(); Swal.fire({ icon: 'success', text: resp.Message, timer: 1500, showConfirmButton: false }); }
+                    if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); return; }
+                    window.location.href = resp.RedirectURL;
+                }
+            });
+        });
+    });
+
+    // ── Convert to Delivery Challan ──────────────────────────
+    $(document).on('click', '.convertSOToChallan', function () {
+        var uid = $(this).data('uid'), num = $(this).data('num') || '';
+        Swal.fire({
+            title: 'Convert to Delivery Challan?',
+            html : num ? 'Convert <strong>' + num + '</strong> to a Delivery Challan?' : 'Convert this sales order to a Delivery Challan?',
+            icon : 'question', showCancelButton: true,
+            confirmButtonColor: '#0dcaf0', cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, Convert', cancelButtonText: 'Cancel'
+        }).then(function (r) {
+            if (!r.isConfirmed) return;
+            $.ajax({
+                url   : '/salesorders/convertSalesOrderToDeliveryChallan',
+                method: 'POST',
+                data  : { TransUID: uid, [CsrfName]: CsrfToken },
+                success: function (resp) {
+                    if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); return; }
+                    window.location.href = resp.RedirectURL;
                 }
             });
         });

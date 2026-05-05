@@ -92,6 +92,10 @@ $route['salesorders/updateSalesOrder']                     = 'salesorders/update
 $route['salesorders/deleteSalesOrder']                     = 'salesorders/deleteSalesOrder';
 $route['salesorders/duplicateSalesOrder']                  = 'salesorders/duplicateSalesOrder';
 $route['salesorders/convertSalesOrderToInvoice']           = 'salesorders/convertSalesOrderToInvoice';
+$route['salesorders/convertSalesOrderToDeliveryChallan']    = 'salesorders/convertSalesOrderToDeliveryChallan';
+
+// Transactions shared
+$route['transactions/searchVendors']       = 'transactions/searchVendors';
 $route['salesorders/updateSalesOrderStatus']               = 'salesorders/updateSalesOrderStatus';
 $route['salesorders/getSalesOrderDetail']                  = 'salesorders/getSalesOrderDetail';
 
@@ -203,6 +207,7 @@ $route['customers/(:num)/clone'] = 'customers/clonecustomer/$1';
 $route['customers/modal/(:any)/(:num)'] = 'customers/loadModalForm/$1/$2';
 $route['customers/modal/(:any)']        = 'customers/loadModalForm/$1';
 $route['customers/getCustomerForModal/(:num)'] = 'customers/getCustomerForModal/$1';
+$route['vendors/getVendorForModal/(:num)'] = 'vendors/getVendorForModal/$1';
 
 // Vendors
 $route['vendors/(:num)/edit'] = 'vendors/edit/$1';

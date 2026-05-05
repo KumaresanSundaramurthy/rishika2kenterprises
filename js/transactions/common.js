@@ -64,3 +64,6 @@ function loadTransactionList(config, pageNo, rowLimit, filter) {
         }
     });
 }
+
+// Note: Cancel and Delete confirmations are handled by each page's own
+// -status-update and delete* click handlers (defined in each view's <script>).

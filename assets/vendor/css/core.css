@@ -29807,3 +29807,9 @@ body:not(.modal-open) .layout-content-navbar .layout-navbar {
     outline: 0 !important;
     box-shadow: 0 0 0 0.2rem rgba(105, 108, 255, 0.25) !important;
 }
+
+.text-purple { color: #6f42c1 !important; }
+.fw-500      { font-weight: 500 !important; }
+.vtm-status-badge { font-size: .72rem; font-weight: 600; }
+.vtm-pos-badge    { font-size: .7rem; font-weight: 500; }
+.vtm-pay-mode     { font-size: .72rem; }

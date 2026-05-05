@@ -63,11 +63,26 @@ class Vendors extends CI_Controller {
             $this->pageData['ModRowData']    = $pageData->RecordHtmlData;
             $this->pageData['ModPagination'] = $pageData->Pagination;
 
-            $this->loadCountryStateCityData();
-
             $this->load->model('vendors_model');
             $this->pageData['VendStats'] = $this->vendors_model->getVendorStats($this->pageData['JwtData']->User->OrgUID);
             $this->pageData['Tags']      = $this->vendors_model->getVendorTags($this->pageData['JwtData']->User->OrgUID);
+
+            $this->load->model('global_model');
+            $GetCountryInfo = $this->global_model->getCountryInfo();
+            $this->pageData['CountryInfo'] = $GetCountryInfo->Error === FALSE ? $GetCountryInfo->Data : [];
+
+            $orgCCode = $this->pageData['JwtData']->User->OrgCCode  ?? '';
+            $orgCISO2 = $this->pageData['JwtData']->User->OrgCISO2  ?? '';
+            if (empty($orgCCode) || empty($orgCISO2)) {
+                $this->load->model('organisation_model');
+                $orgResp = $this->organisation_model->getOrganisationDetails(['Org.OrgUID' => $this->pageData['JwtData']->User->OrgUID]);
+                if ($orgResp->Error === FALSE && !empty($orgResp->Data)) {
+                    $orgCCode = $orgCCode ?: ($orgResp->Data[0]->CountryCode ?? '');
+                    $orgCISO2 = $orgCISO2 ?: ($orgResp->Data[0]->CountryISO2 ?? '');
+                }
+            }
+            $this->pageData['OrgCCode'] = $orgCCode;
+            $this->pageData['OrgCISO2'] = $orgCISO2;
 
             $this->load->view('vendors/view', $this->pageData);
 
@@ -134,6 +149,7 @@ class Vendors extends CI_Controller {
             'Name'              => getPostValue($postData, 'Name'),
             'Area'              => getPostValue($postData, 'Area'),
             'OrgUID'            => $this->pageData['JwtData']->User->OrgUID,
+            'BranchUID'         => $this->pageData['JwtData']->User->BranchUID,
             'EmailAddress'      => getPostValue($postData, 'EmailAddress'),
             'CountryCode'       => getPostValue($postData, 'CountryCode'),
             'CountryISO2'       => getPostValue($postData, 'CountryISO2', '', 'IN'),
@@ -224,6 +240,9 @@ class Vendors extends CI_Controller {
             $pageData = $this->_fetchTableData(1, $this->pageData['Limit']);
             $this->EndReturnData->Error      = FALSE;
             $this->EndReturnData->Message    = 'Created Successfully';
+            $this->EndReturnData->VendorUID  = $VendorUID;
+            $this->EndReturnData->VendorName = getPostValue($PostData, 'Name');
+            $this->EndReturnData->VendorArea = getPostValue($PostData, 'Area');
             $this->EndReturnData->List       = $pageData->RecordHtmlData;
             $this->EndReturnData->Pagination = $pageData->Pagination;
             $this->EndReturnData->Stats      = $this->vendors_model->getVendorStats($this->pageData['JwtData']->User->OrgUID);
@@ -349,6 +368,38 @@ class Vendors extends CI_Controller {
             $this->EndReturnData->CityData     = $this->pageData['CityData'];
             $this->EndReturnData->FormMode     = $type;
             $this->EndReturnData->ImgData      = $formData ? ($formData->Image ?? '') : '';
+            $this->EndReturnData->BillingAddr  = $billingAddr;
+            $this->EndReturnData->ShippingAddr = $shippingAddr;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    public function getVendorForModal($uid = 0) {
+        $this->EndReturnData = new stdClass();
+        try {
+            $uid = (int) $uid;
+            if ($uid <= 0) throw new Exception('Invalid vendor ID.');
+
+            $this->load->model('vendors_model');
+            $getVendData = $this->vendors_model->getVendors(['Vendors.VendorUID' => $uid]);
+            if (empty($getVendData)) throw new Exception('Vendor not found.');
+
+            $bankDetails = $this->vendors_model->getVendorBankInfo(['VendBankDetails.VendorUID' => $uid]);
+            $addrInfo    = $this->vendors_model->getVendorAddress(['VendAddress.VendorUID' => $uid]);
+
+            $billingAddr = null; $shippingAddr = null;
+            foreach ($addrInfo as $addr) {
+                if ($addr->AddressType === 'Billing')  $billingAddr  = $addr;
+                if ($addr->AddressType === 'Shipping') $shippingAddr = $addr;
+            }
+
+            $this->EndReturnData->Error        = FALSE;
+            $this->EndReturnData->Data         = $getVendData[0];
+            $this->EndReturnData->BankDetails  = $bankDetails;
             $this->EndReturnData->BillingAddr  = $billingAddr;
             $this->EndReturnData->ShippingAddr = $shippingAddr;
 

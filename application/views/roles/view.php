@@ -618,12 +618,5 @@ $(function() {
         });
     });
 
-    function toastSuccess(msg) {
-        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: msg, showConfirmButton: false, timer: 2500, timerProgressBar: true });
-    }
-    function toastError(msg) {
-        Swal.fire({ toast: true, position: 'top-end', icon: 'error', title: msg, showConfirmButton: false, timer: 3000 });
-    }
-
 });
 </script>

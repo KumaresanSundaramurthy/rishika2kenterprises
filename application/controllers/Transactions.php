@@ -248,6 +248,41 @@ class Transactions extends CI_Controller {
 
     }
 
+    public function searchVendors() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $term = $this->input->get('term') ? trim($this->input->get('term')) : '';
+
+            $this->load->model('vendors_model');
+            $filter = !empty($term) ? ['Name' => $term] : [];
+            $vendorsData = $this->vendors_model->getVendorsList(20, 0, $filter);
+
+            $vendorDetails = [];
+            foreach ($vendorsData as $value) {
+                $vendorDetails[] = [
+                    'id'   => $value->VendorUID,
+                    'text' => !empty($value->Area)
+                        ? $value->Name . ' (' . $value->Area . ')'
+                        : $value->Name,
+                    'name' => $value->Name,
+                    'area' => $value->Area ?? '',
+                ];
+            }
+
+            $this->EndReturnData->Lists = $vendorDetails;
+            $this->EndReturnData->Error = false;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
     public function searchCustomers() {
 
         $this->EndReturnData = new stdClass();

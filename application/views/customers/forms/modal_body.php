@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 /*
  * Partial view — customers modal form body.
  * Variables: $FormMode ('add'|'edit'|'clone'), $FormData (object|null),
@@ -222,10 +222,10 @@ $d       = $FormData; // shorthand, null for add
         </div>
         <div class="row mt-3">
             <div class="col-md-3">
-                <div class="dropzone dropzone-main-form needsclick dz-clickable w-100" id="DropzoneOneBasic" style="min-height:160px;">
+                <div class="dropzone dropzone-main-form needsclick dz-clickable w-100" id="DropzoneOneBasic">
                     <div class="dz-message needsclick text-center">
                         <i class="upload-icon mb-3"></i>
-                        <p class="h5 needsclick mb-2">Drag and drop your photo here</p>
+                        <p class="h5 needsclick mb-2">Drag and drop photo here</p>
                         <p class="h4 text-body-secondary fw-normal mb-0">JPG, GIF or PNG of 1 MB</p>
                     </div>
                 </div>

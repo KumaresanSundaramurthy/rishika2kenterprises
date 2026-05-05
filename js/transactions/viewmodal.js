@@ -28,20 +28,13 @@
         return d + ' ' + months[m] + ' ' + y;
     }
 
-    /**
-     * Smart decimal: show 3 decimal places only when the 3rd decimal digit is non-zero.
-     * Works on both numeric and string inputs — checks the string representation
-     * directly so trailing zeros preserved by PHP/DB are handled correctly.
-     */
     function _smartDec(n) {
         if (n === null || n === undefined || n === '') return '0.00';
-        var str     = String(n).trim();
-        var dotIdx  = str.indexOf('.');
+        var str    = String(n).trim();
+        var dotIdx = str.indexOf('.');
         if (dotIdx !== -1) {
             var decPart = str.slice(dotIdx + 1);
-            if (decPart.length >= 3 && decPart[2] !== '0') {
-                return parseFloat(str).toFixed(3);
-            }
+            if (decPart.length >= 3 && decPart[2] !== '0') return parseFloat(str).toFixed(3);
         }
         return parseFloat(str || 0).toFixed(2);
     }
@@ -58,50 +51,82 @@
         else if (s === 'converted')                                      cls = 'bg-info text-dark';
         else if (s === 'expired')                                        cls = 'bg-warning text-dark';
         else                                                             cls = 'bg-secondary';
-        return '<span class="badge ' + cls + ' px-2 py-1" style="font-size:.72rem;font-weight:600;">' +
-            _esc(status) + '</span>';
+        return '<span class="badge ' + cls + ' px-2 py-1 vtm-status-badge">' + _esc(status) + '</span>';
     }
 
     function _buildAddr(l1, l2, city, state, pin) {
         var parts = [];
-        if (l1)  parts.push(_esc(l1));
-        if (l2)  parts.push(_esc(l2));
+        if (l1) parts.push(_esc(l1));
+        if (l2) parts.push(_esc(l2));
         var cs = [city, state].filter(Boolean).map(_esc).join(', ');
         if (pin) cs += (cs ? ' &ndash; ' : '') + _esc(pin);
         if (cs)  parts.push(cs);
         return parts.join('<br>');
     }
 
-    function _secHdr(icon, label, color) {
-        return '<div class="d-flex align-items-center gap-2" style="padding:4px 0 8px;">' +
-            '<i class="bx ' + icon + '" style="font-size:1.05rem;color:' + color + ';"></i>' +
-            '<span style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:' + color + ';">' +
-            label + '</span></div>';
+    function _secHdr(icon, label, colorClass) {
+        return '<div class="vtm-sec-hdr">' +
+            '<i class="bx ' + icon + ' ' + colorClass + '"></i>' +
+            '<span class="' + colorClass + '">' + label + '</span>' +
+            '</div>';
     }
 
-    function _infoCard(content, borderColor) {
-        return '<div style="background:#fafafa;border:1px solid #e9ecef;border-left:3px solid ' +
-            borderColor + ';border-radius:6px;padding:10px 12px;height:100%;min-height:70px;">' +
-            content + '</div>';
+    function _infoCard(content, borderClass) {
+        return '<div class="vtm-info-card ' + borderClass + '">' + content + '</div>';
     }
 
     function _cardLabel(icon, text) {
-        return '<div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;' +
-            'color:#6c757d;margin-bottom:5px;"><i class="bx ' + icon + ' me-1"></i>' + text + '</div>';
+        return '<div class="vtm-card-label"><i class="bx ' + icon + ' me-1"></i>' + text + '</div>';
     }
 
-    function _summaryRow(label, value, color, topBorder) {
-        var rowStyle   = topBorder ? 'border-top:2px solid ' + topBorder + ';' : '';
-        var labelStyle = color ? 'color:' + color + ';font-weight:700;' : '';
-        var valStyle   = color ? 'color:' + color + ';font-weight:700;' : '';
-        return '<tr style="' + rowStyle + '">' +
-            '<td style="padding:5px 8px;' + labelStyle + '">' + label + '</td>' +
-            '<td class="text-end" style="padding:5px 8px;' + valStyle + '">' + value + '</td>' +
-        '</tr>';
+    function _summaryRow(label, value, rowClass) {
+        return '<tr' + (rowClass ? ' class="' + rowClass + '"' : '') + '>' +
+            '<td class="px-2 py-1">' + label + '</td>' +
+            '<td class="text-end px-2 py-1">' + value + '</td>' +
+            '</tr>';
     }
 
-    // ── main builder ───────────────────────────────────────────────────────────
+    // ── Banner HTML (header — shown instantly) ─────────────────────────────────
+    function _buildBannerHtml(h, cfg) {
+        var metaParts = [];
+        metaParts.push('<i class="bx bx-calendar me-1 text-muted"></i>' + _fmtDate(h.TransDate));
+        if (h.Reference) {
+            metaParts.push('<i class="bx bx-link me-1 text-muted"></i>Ref: ' + _esc(h.Reference));
+        }
+        if (cfg.validLabel && h.ValidityDate) {
+            metaParts.push('<i class="bx bx-time me-1 text-muted"></i>' +
+                _esc(cfg.validLabel) + ': ' + _fmtDate(h.ValidityDate));
+        }
 
+        var editHref = $('#viewTransEditBtn').attr('href') || '#';
+        var editBtn  =
+            '<a href="' + editHref + '" class="vtm-edit-btn">' +
+            '<i class="bx bx-edit"></i>Edit</a>';
+
+        var closeBtn =
+            '<button type="button" class="vtm-close-btn" data-bs-dismiss="modal" aria-label="Close">' +
+            '<i class="bx bx-x"></i></button>';
+
+        return '<div class="vtm-banner-inner">' +
+            '<div class="vtm-banner-left">' +
+                '<div class="vtm-banner-icon">' +
+                    '<i class="bx ' + cfg.typeIcon + '"></i>' +
+                '</div>' +
+                '<div>' +
+                    '<div class="vtm-doc-number">' + _esc(h.UniqueNumber || '—') + '</div>' +
+                    '<div class="vtm-doc-meta">' + metaParts.join(' &nbsp;&middot;&nbsp; ') + '</div>' +
+                '</div>' +
+            '</div>' +
+            '<div class="vtm-banner-right">' +
+                (h.PlaceOfSupply ? '<span class="badge bg-light text-secondary border vtm-pos-badge">POS: ' + _esc(h.PlaceOfSupply) + '</span>' : '') +
+                _statusBadge(h.DocStatus) +
+                editBtn +
+                closeBtn +
+            '</div>' +
+        '</div>';
+    }
+
+    // ── main builder (body only — banner already shown) ────────────────────────
     window._buildTransDetailHtml = function (resp, opts) {
         opts = opts || {};
         var h   = resp.Header  || {};
@@ -109,111 +134,50 @@
         var cur = (org.CurrenySymbol || '&#8377;') + '&nbsp;';
 
         var partyLabel  = opts.partyLabel  || 'Party';
-        var typeIcon    = opts.typeIcon    || 'bx-file-blank';
-        var typeColor   = opts.typeColor   || '#0d6efd';
-        var typeBg      = opts.typeBg      || '#e7f0ff';
         var hasPayments = !!opts.hasPayments;
-        var validLabel  = opts.validLabel  || '';
 
-        function _amt(n)  { return cur + _smartDec(n); }
-        function _n(n)    { return _smartDec(n); }
+        function _amt(n) { return cur + _smartDec(n); }
+        function _n(n)   { return _smartDec(n); }
 
         var html = '<div>';
 
-        // ══════════════════════════════════════════════════════════════════════
-        // SECTION 1 — Document Banner
-        // ══════════════════════════════════════════════════════════════════════
-        var metaParts = [];
-        metaParts.push('<i class="bx bx-calendar me-1" style="color:#6c757d;"></i>' + _fmtDate(h.TransDate));
-        if (h.Reference) {
-            metaParts.push('<i class="bx bx-link me-1" style="color:#6c757d;"></i>Ref: ' + _esc(h.Reference));
-        }
-        if (validLabel && h.ValidityDate) {
-            metaParts.push('<i class="bx bx-time me-1" style="color:#6c757d;"></i>' +
-                _esc(validLabel) + ': ' + _fmtDate(h.ValidityDate));
-        }
-
-        var editHref = $('#viewTransEditBtn').attr('href') || '#';
-        var editBtn  =
-            '<a href="' + editHref + '" style="display:inline-flex;align-items:center;gap:4px;' +
-            'font-size:.75rem;font-weight:600;color:' + typeColor + ';border:1px solid ' + typeColor + ';' +
-            'border-radius:5px;padding:3px 10px;text-decoration:none;white-space:nowrap;' +
-            'background:rgba(255,255,255,.7);">' +
-            '<i class="bx bx-edit" style="font-size:.9rem;"></i>Edit</a>';
-
-        var closeBtn =
-            '<button type="button" data-bs-dismiss="modal" aria-label="Close" ' +
-            'style="background:rgba(255,255,255,.85);border:none;border-radius:50%;width:28px;height:28px;' +
-            'display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;' +
-            'box-shadow:0 1px 4px rgba(0,0,0,.15);padding:0;">' +
-            '<i class="bx bx-x" style="font-size:1.2rem;color:#555;line-height:1;"></i></button>';
-
-        html +=
-        '<div style="background:' + typeBg + ';border-left:4px solid ' + typeColor + ';padding:14px 20px;">' +
-            '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">' +
-                '<div style="display:flex;align-items:center;gap:12px;">' +
-                    '<div style="background:' + typeColor + '22;border-radius:10px;padding:9px 11px;flex-shrink:0;">' +
-                        '<i class="bx ' + typeIcon + '" style="font-size:1.7rem;color:' + typeColor + ';display:block;"></i>' +
-                    '</div>' +
-                    '<div>' +
-                        '<div style="font-size:1.12rem;font-weight:800;color:' + typeColor + ';letter-spacing:.2px;line-height:1.2;">' +
-                            _esc(h.UniqueNumber || '—') +
-                        '</div>' +
-                        '<div style="font-size:.77rem;color:#6c757d;margin-top:4px;">' +
-                            metaParts.join(' &nbsp;&middot;&nbsp; ') +
-                        '</div>' +
-                    '</div>' +
-                '</div>' +
-                '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;">' +
-                    (h.PlaceOfSupply
-                        ? '<span class="badge bg-light text-secondary border" style="font-size:.7rem;font-weight:500;">POS: ' + _esc(h.PlaceOfSupply) + '</span>'
-                        : '') +
-                    _statusBadge(h.DocStatus) +
-                    editBtn +
-                    closeBtn +
-                '</div>' +
-            '</div>' +
-        '</div>';
-
-        // ══════════════════════════════════════════════════════════════════════
-        // SECTION 2 — Party Details
-        // ══════════════════════════════════════════════════════════════════════
+        // ── Party Details ──────────────────────────────────────────────────────
         var billAddr = _buildAddr(h.BillLine1, h.BillLine2, h.BillCity, h.BillState, h.BillPincode);
         var shipAddr = _buildAddr(h.ShipLine1, h.ShipLine2, h.ShipCity, h.ShipState, h.ShipPincode);
 
         var contactHtml = _cardLabel('bx-id-card', 'Contact') +
-            '<div style="font-size:.9rem;font-weight:600;color:#212529;">' + _esc(h.PartyName || '—') + '</div>';
+            '<div class="vtm-party-name">' + _esc(h.PartyName || '—') + '</div>';
         if (h.PartyMobile) {
-            contactHtml += '<div style="font-size:.8rem;color:#6c757d;margin-top:3px;">' +
-                '<i class="bx bx-phone me-1" style="color:#17a2b8;"></i>' + _esc(h.PartyMobile) + '</div>';
+            var _phoneDisplay = (h.PartyCountryCode ? _esc(h.PartyCountryCode) + ' ' : '') + _esc(h.PartyMobile);
+            var _phoneCopy    = (h.PartyCountryCode || '') + h.PartyMobile;
+            contactHtml += '<div class="vtm-party-sub">' +
+                '<i class="bx bx-phone me-1 text-info"></i>' +
+                '<span class="copy-mobile cursor-pointer" data-mobile="' + _esc(_phoneCopy) + '" title="Click to copy">' +
+                _phoneDisplay + '</span>' +
+                '</div>';
         }
         if (h.PartyGSTIN) {
-            contactHtml += '<div style="font-size:.78rem;color:#6c757d;margin-top:2px;">' +
-                '<i class="bx bx-buildings me-1" style="color:#6f42c1;"></i>GSTIN: ' +
-                '<span style="font-family:monospace;font-size:.82rem;">' + _esc(h.PartyGSTIN) + '</span></div>';
+            contactHtml += '<div class="vtm-party-gstin"><i class="bx bx-buildings me-1 text-purple"></i>GSTIN: <span>' + _esc(h.PartyGSTIN) + '</span></div>';
         }
 
-        var partyCols = '<div class="col-sm-4 mb-2">' + _infoCard(contactHtml, '#17a2b8') + '</div>';
+        var partyCols = '<div class="col-sm-4 mb-2">' + _infoCard(contactHtml, 'vtm-info-card-cyan') + '</div>';
         if (billAddr) {
             var billHtml = _cardLabel('bx-home', 'Billing Address') +
-                '<div style="font-size:.8rem;color:#495057;line-height:1.55;">' + billAddr + '</div>';
-            partyCols += '<div class="col-sm-4 mb-2">' + _infoCard(billHtml, '#6f42c1') + '</div>';
+                '<div class="vtm-addr-text">' + billAddr + '</div>';
+            partyCols += '<div class="col-sm-4 mb-2">' + _infoCard(billHtml, 'vtm-info-card-purple') + '</div>';
         }
         if (shipAddr) {
             var shipHtml = _cardLabel('bx-map', 'Shipping Address') +
-                '<div style="font-size:.8rem;color:#495057;line-height:1.55;">' + shipAddr + '</div>';
-            partyCols += '<div class="col-sm-4 mb-2">' + _infoCard(shipHtml, '#fd7e14') + '</div>';
+                '<div class="vtm-addr-text">' + shipAddr + '</div>';
+            partyCols += '<div class="col-sm-4 mb-2">' + _infoCard(shipHtml, 'vtm-info-card-orange') + '</div>';
         }
 
-        html +=
-        '<div style="padding:14px 20px;border-bottom:1px solid #e9ecef;">' +
-            _secHdr('bx-user-circle', partyLabel + ' Details', '#17a2b8') +
+        html += '<div class="vtm-section">' +
+            _secHdr('bx-user-circle', partyLabel + ' Details', 'text-info') +
             '<div class="row g-2">' + partyCols + '</div>' +
         '</div>';
 
-        // ══════════════════════════════════════════════════════════════════════
-        // SECTION 3 — Products / Services  (Tax Amt column merged into Tax column)
-        // ══════════════════════════════════════════════════════════════════════
+        // ── Products / Services ────────────────────────────────────────────────
         var itemRows = '';
         (resp.Items || []).forEach(function (item, i) {
             var cgstPct  = parseFloat(item.CGST  || 0);
@@ -224,55 +188,48 @@
             var igstAmt  = parseFloat(item.IgstAmount || 0);
             var totalTax = cgstAmt + sgstAmt + igstAmt;
 
-            // Tax column: percentage on line 1, total tax amount on line 2
             var taxCell;
             if (igstPct > 0) {
-                taxCell =
-                    '<span style="color:#6f42c1;font-weight:600;">IGST ' + igstPct.toFixed(1) + '%</span>' +
-                    '<br><span style="color:#6c757d;font-size:.78rem;">' +
-                    (totalTax > 0 ? _smartDec(totalTax) : '—') + '</span>';
+                taxCell = '<span class="vtm-tax-igst">IGST ' + igstPct.toFixed(1) + '%</span>' +
+                    '<br><span class="vtm-tax-amt">' + (totalTax > 0 ? _smartDec(totalTax) : '—') + '</span>';
             } else if (cgstPct > 0 || sgstPct > 0) {
-                taxCell =
-                    '<span style="color:#0d6efd;">CGST ' + cgstPct.toFixed(1) + '%</span>' +
-                    ' + <span style="color:#17a2b8;">SGST ' + sgstPct.toFixed(1) + '%</span>' +
-                    '<br><span style="color:#6c757d;font-size:.78rem;">' +
-                    (totalTax > 0 ? _smartDec(totalTax) : '—') + '</span>';
+                taxCell = '<span class="vtm-tax-cgst">CGST ' + cgstPct.toFixed(1) + '%</span>' +
+                    ' + <span class="vtm-tax-sgst">SGST ' + sgstPct.toFixed(1) + '%</span>' +
+                    '<br><span class="vtm-tax-amt">' + (totalTax > 0 ? _smartDec(totalTax) : '—') + '</span>';
             } else {
                 taxCell = '<span class="text-muted">—</span>';
             }
 
             var discVal  = parseFloat(item.Discount || 0);
             var discCell = discVal > 0
-                ? '<span style="color:#dc3545;">' + _n(discVal) +
-                  (parseInt(item.DiscountTypeUID, 10) === 2 ? '%' : '') + '</span>'
+                ? '<span class="vtm-disc-val">' + _n(discVal) + (parseInt(item.DiscountTypeUID, 10) === 2 ? '%' : '') + '</span>'
                 : '<span class="text-muted">—</span>';
 
             itemRows +=
             '<tr>' +
-                '<td class="text-center text-muted" style="width:32px;">' + (i + 1) + '</td>' +
+                '<td class="text-center text-muted">' + (i + 1) + '</td>' +
                 '<td>' +
-                    '<div style="font-weight:500;">' + _esc(item.ProductName) + '</div>' +
-                    (item.PartNumber ? '<div style="font-size:.72rem;color:#6c757d;">Part# ' + _esc(item.PartNumber) + '</div>' : '') +
-                    (item.HSNCode    ? '<div style="font-size:.72rem;color:#6c757d;">HSN: '  + _esc(item.HSNCode)    + '</div>' : '') +
+                    '<div class="vtm-item-name">' + _esc(item.ProductName) + '</div>' +
+                    (item.PartNumber ? '<div class="vtm-item-sub">Part# ' + _esc(item.PartNumber) + '</div>' : '') +
+                    (item.HSNCode    ? '<div class="vtm-item-sub">HSN: '  + _esc(item.HSNCode)    + '</div>' : '') +
                 '</td>' +
                 '<td class="text-center">' +
-                    '<span style="font-weight:500;">' + _esc(item.Quantity) + '</span>' +
-                    '<br><span style="font-size:.72rem;color:#6c757d;">' + _esc(item.PrimaryUnitName) + '</span>' +
+                    '<span class="fw-500">' + _esc(item.Quantity) + '</span>' +
+                    '<br><span class="vtm-item-sub">' + _esc(item.PrimaryUnitName) + '</span>' +
                 '</td>' +
                 '<td class="text-end">' + _n(item.UnitPrice) + '</td>' +
                 '<td class="text-end">' + discCell + '</td>' +
-                '<td class="text-end" style="font-weight:500;">' + _n(item.TaxableAmount) + '</td>' +
-                '<td style="font-size:.8rem;line-height:1.5;">' + taxCell + '</td>' +
+                '<td class="text-end fw-500">' + _n(item.TaxableAmount) + '</td>' +
+                '<td>' + taxCell + '</td>' +
                 '<td class="text-end fw-semibold">' + _n(item.NetAmount) + '</td>' +
             '</tr>';
         });
 
-        html +=
-        '<div style="padding:14px 20px;border-bottom:1px solid #e9ecef;">' +
-            _secHdr('bx-package', 'Products / Services', '#fd7e14') +
+        html += '<div class="vtm-section">' +
+            _secHdr('bx-package', 'Products / Services', 'text-warning') +
             '<div class="table-responsive">' +
-            '<table class="table table-sm table-hover mb-0" style="font-size:.8rem;">' +
-            '<thead><tr style="background:#fff3e0;">' +
+            '<table class="table table-sm table-hover mb-0 vtm-items-table">' +
+            '<thead class="vtm-items-thead"><tr>' +
                 '<th class="text-center">#</th>' +
                 '<th>Product</th>' +
                 '<th class="text-center">Qty</th>' +
@@ -286,9 +243,7 @@
             '</table></div>' +
         '</div>';
 
-        // ══════════════════════════════════════════════════════════════════════
-        // SECTION 4 — Amount Summary
-        // ══════════════════════════════════════════════════════════════════════
+        // ── Amount Summary ─────────────────────────────────────────────────────
         var cgstTot  = parseFloat(h.CgstAmount || 0);
         var sgstTot  = parseFloat(h.SgstAmount || 0);
         var igstTot  = parseFloat(h.IgstAmount || 0);
@@ -298,71 +253,55 @@
         var roundOff = parseFloat(h.RoundOff || 0);
 
         var summRows = '';
-        summRows += _summaryRow('Sub Total', _amt(h.SubTotal), null, null);
+        summRows += _summaryRow('Sub Total', _amt(h.SubTotal));
         if (discTot > 0) {
             summRows += _summaryRow(
                 '<i class="bx bx-minus-circle me-1"></i>Discount',
-                '&minus;&nbsp;' + _amt(h.DiscountAmount), '#dc3545', null
+                '&minus;&nbsp;' + _amt(h.DiscountAmount), 'vtm-summary-disc'
             );
         }
         if (igstTot > 0) {
-            summRows += _summaryRow('IGST', cur + _smartDec(h.IgstAmount), null, null);
+            summRows += _summaryRow('IGST', cur + _smartDec(h.IgstAmount));
         } else {
-            if (cgstTot > 0) summRows += _summaryRow('CGST', cur + _smartDec(h.CgstAmount), null, null);
-            if (sgstTot > 0) summRows += _summaryRow('SGST', cur + _smartDec(h.SgstAmount), null, null);
-            if (taxTot > 0 && cgstTot === 0 && sgstTot === 0) {
-                summRows += _summaryRow('Tax', _amt(h.TaxAmount), null, null);
-            }
+            if (cgstTot > 0) summRows += _summaryRow('CGST', cur + _smartDec(h.CgstAmount));
+            if (sgstTot > 0) summRows += _summaryRow('SGST', cur + _smartDec(h.SgstAmount));
+            if (taxTot > 0 && cgstTot === 0 && sgstTot === 0) summRows += _summaryRow('Tax', _amt(h.TaxAmount));
         }
-        if (addChg > 0) {
-            summRows += _summaryRow('Additional Charges', _amt(h.AdditionalChargesTotal), null, null);
-        }
-        if (roundOff !== 0) {
-            summRows += _summaryRow(
-                'Round Off',
-                cur + (roundOff >= 0 ? '+' : '') + _smartDec(roundOff), null, null
-            );
-        }
+        if (addChg   > 0) summRows += _summaryRow('Additional Charges', _amt(h.AdditionalChargesTotal));
+        if (roundOff !== 0) summRows += _summaryRow('Round Off', cur + (roundOff >= 0 ? '+' : '') + _smartDec(roundOff));
         summRows += _summaryRow(
             'Net Amount',
-            '<span style="font-size:.95rem;">' + _amt(h.NetAmount) + '</span>',
-            '#198754', '#198754'
+            '<span class="vtm-net-val">' + _amt(h.NetAmount) + '</span>',
+            'vtm-summary-net'
         );
 
-        html +=
-        '<div style="padding:14px 20px;border-bottom:1px solid #e9ecef;">' +
-            _secHdr('bx-calculator', 'Amount Summary', '#198754') +
+        html += '<div class="vtm-section">' +
+            _secHdr('bx-calculator', 'Amount Summary', 'text-success') +
             '<div class="row"><div class="col-md-5 ms-auto">' +
-                '<table class="table table-sm mb-0" style="font-size:.85rem;border:1px solid #dee2e6;border-radius:6px;overflow:hidden;">' +
+                '<table class="table table-sm mb-0 vtm-summary-table">' +
                 '<tbody>' + summRows + '</tbody></table>' +
             '</div></div>' +
         '</div>';
 
-        // ── Notes / Terms ────────────────────────────────────────────────────
+        // ── Notes / Terms ──────────────────────────────────────────────────────
         if (h.Notes || h.TermsConditions) {
-            html += '<div style="padding:12px 20px;border-bottom:1px solid #e9ecef;background:#fafafa;">';
+            html += '<div class="vtm-section-notes">';
             if (h.Notes) {
-                html +=
-                '<div class="mb-2">' +
-                    '<div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#6c757d;margin-bottom:4px;">' +
-                    '<i class="bx bx-note me-1"></i>Notes</div>' +
-                    '<div style="font-size:.82rem;color:#495057;line-height:1.6;">' + _escNl(h.Notes) + '</div>' +
+                html += '<div class="mb-2">' +
+                    '<div class="vtm-notes-label"><i class="bx bx-note me-1"></i>Notes</div>' +
+                    '<div class="vtm-notes-text">' + _escNl(h.Notes) + '</div>' +
                 '</div>';
             }
             if (h.TermsConditions) {
-                html +=
-                '<div' + (h.Notes ? ' class="mt-2"' : '') + '>' +
-                    '<div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#6c757d;margin-bottom:4px;">' +
-                    '<i class="bx bx-file-blank me-1"></i>Terms &amp; Conditions</div>' +
-                    '<div style="font-size:.82rem;color:#495057;line-height:1.7;">' + _escNl(h.TermsConditions) + '</div>' +
+                html += '<div' + (h.Notes ? ' class="mt-2"' : '') + '>' +
+                    '<div class="vtm-notes-label"><i class="bx bx-file-blank me-1"></i>Terms &amp; Conditions</div>' +
+                    '<div class="vtm-terms-text">' + _escNl(h.TermsConditions) + '</div>' +
                 '</div>';
             }
             html += '</div>';
         }
 
-        // ══════════════════════════════════════════════════════════════════════
-        // SECTION 5 — Payment Details  (Invoice & Purchase only)
-        // ══════════════════════════════════════════════════════════════════════
+        // ── Payment Details ────────────────────────────────────────────────────
         if (hasPayments) {
             var payments  = resp.Payments  || [];
             var paidTotal = parseFloat(resp.PaidTotal || 0);
@@ -370,18 +309,16 @@
             var balance   = Math.max(0, netAmt - paidTotal);
             var settled   = balance <= 0.001;
 
-            function _pill(bg, border, iconCls, textColor, label, value) {
-                return '<div style="display:inline-flex;align-items:center;gap:6px;background:' + bg +
-                    ';border:1px solid ' + border + ';border-radius:20px;padding:6px 16px;">' +
-                    '<i class="bx ' + iconCls + '" style="color:' + textColor + ';font-size:1rem;"></i>' +
-                    '<span style="font-size:.82rem;font-weight:600;color:' + textColor + ';">' +
-                    label + ': ' + cur + _smartDec(value) + '</span></div>';
+            function _pill(pillClass, iconCls, label, value) {
+                return '<div class="vtm-pay-pill ' + pillClass + '">' +
+                    '<i class="bx ' + iconCls + '"></i>' +
+                    '<span>' + label + ': ' + cur + _smartDec(value) + '</span></div>';
             }
 
-            var paidPill = _pill('#d1e7dd','#a3cfbb','bx-check-circle','#0f5132','Paid', paidTotal);
+            var paidPill = _pill('vtm-pay-pill-paid', 'bx-check-circle', 'Paid', paidTotal);
             var balPill  = settled
-                ? _pill('#d1e7dd','#a3cfbb','bx-check-circle','#0f5132','Balance', balance)
-                : _pill('#f8d7da','#f1aeb5','bx-error-circle','#842029','Balance Due', balance);
+                ? _pill('vtm-pay-pill-paid', 'bx-check-circle', 'Balance', balance)
+                : _pill('vtm-pay-pill-due',  'bx-error-circle', 'Balance Due', balance);
 
             var payRows = '';
             if (payments.length) {
@@ -392,10 +329,9 @@
                     payRows +=
                     '<tr>' +
                         '<td>' + _fmtDate(p.CreatedOn) + '</td>' +
-                        '<td><span class="badge bg-light text-dark border" style="font-size:.72rem;">' +
-                            _esc(p.PaymentTypeName || '—') + '</span></td>' +
-                        '<td style="font-size:.78rem;">' + bankInfo + '</td>' +
-                        '<td class="text-muted" style="font-size:.78rem;">' + _esc(p.ReferenceNo || '—') + '</td>' +
+                        '<td><span class="badge bg-light text-dark border vtm-pay-mode">' + _esc(p.PaymentTypeName || '—') + '</span></td>' +
+                        '<td class="vtm-item-sub">' + bankInfo + '</td>' +
+                        '<td class="text-muted vtm-item-sub">' + _esc(p.ReferenceNo || '—') + '</td>' +
                         '<td class="text-end fw-semibold">' + cur + _smartDec(p.Amount) + '</td>' +
                     '</tr>';
                 });
@@ -403,27 +339,26 @@
                 payRows = '<tr><td colspan="5" class="text-center text-muted py-3">No payments recorded yet</td></tr>';
             }
 
-            html +=
-            '<div style="padding:14px 20px;">' +
-                _secHdr('bx-wallet', 'Payment Details', '#6f42c1') +
+            html += '<div class="vtm-section-last">' +
+                _secHdr('bx-wallet', 'Payment Details', 'text-purple') +
                 '<div class="d-flex gap-3 mb-3 flex-wrap">' + paidPill + balPill + '</div>' +
                 '<div class="table-responsive">' +
-                '<table class="table table-sm table-hover mb-0" style="font-size:.8rem;">' +
-                '<thead style="background:#f3eeff;"><tr>' +
+                '<table class="table table-sm table-hover mb-0 vtm-pay-table">' +
+                '<thead class="vtm-pay-thead"><tr>' +
                 '<th>Date</th><th>Mode</th><th>Account</th><th>Reference</th>' +
                 '<th class="text-end">Amount</th></tr></thead>' +
                 '<tbody>' + payRows + '</tbody>' +
                 '</table></div>' +
             '</div>';
         } else {
-            html += '<div style="height:8px;"></div>';
+            html += '<div class="vtm-spacer"></div>';
         }
 
         html += '</div>';
         return html;
     };
 
-    // ── Type config: one entry per transaction type ────────────────────────────
+    // ── Type config ────────────────────────────────────────────────────────────
     var _typeConfig = {
         'quotation': {
             title      : 'Quotation Details',
@@ -481,13 +416,13 @@
         },
     };
 
-    // ── Attachment section builder ─────────────────────────────────────────────
+    // ── Attachment section ─────────────────────────────────────────────────────
     function _buildAttachSectionHtml(attachments) {
         if (!attachments || !attachments.length) return '';
         var cdnUrl = (typeof CDN_URL !== 'undefined' && CDN_URL) ? CDN_URL : '';
         var cards = '';
         attachments.forEach(function (a) {
-            var name    = a.FileName || '';
+            var name     = a.FileName || '';
             var safeName = $('<span>').text(name).html();
             var fullUrl  = cdnUrl + (a.FilePath || '');
             var encUrl   = encodeURIComponent(fullUrl);
@@ -495,30 +430,27 @@
             var isPdf    = /pdf/i.test(a.FileType || '') || /\.pdf$/i.test(name);
             var previewType = isImg ? 'img' : (isPdf ? 'pdf' : 'file');
             var iconCls  = isImg ? 'bx-image-alt text-success' : (isPdf ? 'bxs-file-pdf text-danger' : 'bx-file text-secondary');
-            var bgColor  = isImg ? '#f0fff4' : (isPdf ? '#fff5f5' : '#f8f9fa');
+            var bgClass  = isImg ? 'bg-success bg-opacity-10' : (isPdf ? 'bg-danger bg-opacity-10' : 'bg-light');
 
             cards +=
             '<div class="col-6 col-sm-4 col-md-3">' +
-                '<div class="border rounded overflow-hidden" style="cursor:pointer;background:' + bgColor + ';" ' +
+                '<div class="vtm-attach-card border ' + bgClass + '" ' +
                 'onclick="typeof _openAttachPreview===\'function\' && _openAttachPreview(\'' + encUrl + '\',\'' + previewType + '\',\'' + safeName.replace(/'/g, "\\'") + '\')">' +
                     (isImg
-                        ? '<img src="' + $('<span>').text(fullUrl).html() + '" style="width:100%;height:80px;object-fit:cover;display:block;" loading="lazy" alt="' + safeName + '">'
-                        : '<div class="d-flex align-items-center justify-content-center" style="height:80px;">' +
-                          '<i class="bx ' + iconCls + '" style="font-size:2.2rem;"></i></div>'
+                        ? '<img src="' + $('<span>').text(fullUrl).html() + '" class="w-100" style="height:80px;object-fit:cover;display:block;" loading="lazy" alt="' + safeName + '">'
+                        : '<div class="d-flex align-items-center justify-content-center" style="height:80px;"><i class="bx ' + iconCls + ' fs-1"></i></div>'
                     ) +
-                    '<div class="px-2 py-1 border-top" style="background:#fff;font-size:.7rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + safeName + '">' +
-                        safeName +
-                    '</div>' +
+                    '<div class="vtm-attach-name" title="' + safeName + '">' + safeName + '</div>' +
                 '</div>' +
             '</div>';
         });
-        return '<div style="padding:14px 20px;">' +
-            _secHdr('bx-paperclip', 'Attachments (' + attachments.length + ')', '#6c757d') +
+        return '<div class="vtm-section-last">' +
+            _secHdr('bx-paperclip', 'Attachments (' + attachments.length + ')', 'text-secondary') +
             '<div class="row g-2">' + cards + '</div>' +
         '</div>';
     }
 
-    // ── Single common click handler for all transaction view buttons ──────────
+    // ── Click handler ──────────────────────────────────────────────────────────
     $(document).on('click', '.viewTransaction', function () {
         var uid       = $(this).data('uid');
         var moduleUID = $(this).data('module');
@@ -526,9 +458,32 @@
         var cfg       = _typeConfig[type];
         if (!cfg || !uid || !moduleUID) return;
 
-        $('#viewTransModal').modal('show');
-        $('#viewTransModalBody').html('<div class="d-flex justify-content-center py-5"><div class="spinner-border text-primary"></div></div>');
+        // Set CSS variables for banner colour
+        var $modal = $('#viewTransModal');
+        $modal[0].style.setProperty('--vtm-color', cfg.typeColor);
+        $modal[0].style.setProperty('--vtm-bg',    cfg.typeBg);
+        $modal[0].style.setProperty('--vtm-icon-bg', cfg.typeColor + '22');
+
+        // Set edit href
         $('#viewTransEditBtn').attr('href', cfg.editPath + uid);
+
+        // Build instant header from data attrs embedded in the row link
+        var quickHeader = {
+            UniqueNumber: $(this).data('number') || $(this).text().trim(),
+            TransDate   : $(this).data('date')   || '',
+            DocStatus   : $(this).data('status') || '',
+        };
+        var $hdr = $('#viewTransModalHeader');
+        $hdr.html(_buildBannerHtml(quickHeader, cfg)).removeClass('d-none');
+
+        // Show spinner in body while AJAX loads
+        $('#viewTransModalBody').html(
+            '<div class="d-flex justify-content-center align-items-center py-5">' +
+            '<div class="spinner-border text-primary"></div></div>'
+        );
+
+        // Show modal immediately — header already visible
+        $modal.modal('show');
         AjaxLoading = 0;
 
         var detailReq = $.ajax({
@@ -537,7 +492,6 @@
             data  : { TransUID: uid, ModuleUID: moduleUID, [CsrfName]: CsrfToken },
         });
 
-        // Fetch attachments in parallel for invoice type
         var attachReq = (type === 'invoice')
             ? $.ajax({ url: '/invoices/getAttachments', method: 'POST', data: { TransUID: uid, [CsrfName]: CsrfToken } })
             : null;
@@ -549,6 +503,11 @@
                 return;
             }
             window[cfg.dataKey] = resp;
+
+            // Replace quick header with full data (adds PlaceOfSupply, Reference, ValidityDate)
+            $hdr.html(_buildBannerHtml(resp.Header || {}, cfg)).removeClass('d-none');
+
+            // Populate body
             $('#viewTransModalBody').html(_buildTransDetailHtml(resp, cfg));
 
             if (attachReq) {

@@ -42,6 +42,9 @@
 
     <link rel="stylesheet" href="/assets/vendor/libs/dropzone/dropzone.css">
 
+    <!-- Project core overrides (profile, select2, etc.) -->
+    <link rel="stylesheet" href="/assets/css/core.css" />
+
     <!-- Transaction theme -->
     <link rel="stylesheet" href="/css/transactions-theme.css">
 

@@ -123,7 +123,7 @@ class Salesorders extends CI_Controller {
             $globalDiscPercent      = (float) getPostValue($PostData, 'GlobalDiscPercent',      'Array', 0);
             $extraDiscount          = (float) getPostValue($PostData, 'extraDiscount',          'Array', 0);
             $isDraft   = getPostValue($PostData, 'action') === 'draft';
-            $status    = $isDraft ? 'Draft' : 'Confirmed';
+            $status    = $isDraft ? 'Draft' : 'Pending';
 
             $financialYear = (int) date('Y', strtotime($transDate));
             $this->load->model('transactions_model');
@@ -293,7 +293,7 @@ class Salesorders extends CI_Controller {
             $globalDiscPercent      = (float) getPostValue($PostData, 'GlobalDiscPercent',      'Array', 0);
             $extraDiscount          = (float) getPostValue($PostData, 'extraDiscount',          'Array', 0);
             $isDraft                = getPostValue($PostData, 'action') === 'draft';
-            $status                 = $isDraft ? 'Draft' : 'Confirmed';
+            $status                 = $isDraft ? 'Draft' : 'Pending';
 
             $financialYear = (int) date('Y', strtotime($transDate));
 
@@ -495,8 +495,20 @@ class Salesorders extends CI_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
-            $this->EndReturnData->Error   = FALSE;
-            $this->EndReturnData->Message = 'Sales order deleted successfully.';
+            $pageNo  = max(1, (int) $this->input->post('PageNo'));
+            $limit   = (int) $this->input->post('RowLimit') ?: 10;
+            $filter  = $this->input->post('Filter') ?: [];
+            $offset  = ($pageNo - 1) * $limit;
+
+            $this->pageData['JwtData']->GenSettings = ($this->redis_cache->get('Redis_UserGenSettings')->Value) ?? new stdClass();
+            $allData      = $this->transactions_model->getTransactionPageList($limit, $offset, $this->pageModuleUID, $filter, 0);
+            $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, $filter);
+
+            $this->EndReturnData->Error          = FALSE;
+            $this->EndReturnData->Message        = 'Sales order deleted successfully.';
+            $this->EndReturnData->RecordHtmlData = $this->load->view('transactions/salesorders/list', ['DataLists' => $allData, 'SerialNumber' => $offset, 'JwtData' => $this->pageData['JwtData']], true);
+            $this->EndReturnData->Pagination     = $this->globalservice->buildPagePaginationHtml('/salesorders/getSalesOrdersPageDetails', $allDataCount, $pageNo, $limit);
+            $this->EndReturnData->TotalCount     = $allDataCount;
 
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -678,6 +690,11 @@ class Salesorders extends CI_Controller {
 
             if ($transUID <= 0) throw new Exception('Invalid sales order.');
 
+            $this->load->model('transactions_model');
+            $existing = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
+            if (!$existing) throw new Exception('Sales Order not found.');
+            if ($existing->DocStatus !== 'Pending') throw new Exception('Only Pending orders can be converted to an Invoice.');
+
             $this->dbwrite_model->startTransaction();
             $resp = $this->dbwrite_model->updateData(
                 'Transaction', 'TransactionsTbl',
@@ -690,6 +707,47 @@ class Salesorders extends CI_Controller {
             $this->EndReturnData->Error       = FALSE;
             $this->EndReturnData->Message     = 'Sales order marked as converted.';
             $this->EndReturnData->RedirectURL = '/invoices/create?fromSalesOrder=' . $transUID;
+
+        } catch (Exception $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    public function convertSalesOrderToDeliveryChallan() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $this->load->model('dbwrite_model');
+            $PostData = $this->input->post();
+            $transUID = (int) getPostValue($PostData, 'TransUID');
+            $userUID  = $this->pageData['JwtData']->User->UserUID;
+            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+
+            if ($transUID <= 0) throw new Exception('Invalid sales order.');
+
+            $this->load->model('transactions_model');
+            $existing = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
+            if (!$existing) throw new Exception('Sales Order not found.');
+            if ($existing->DocStatus !== 'Pending') throw new Exception('Only Pending orders can be converted to a Delivery Challan.');
+
+            $this->dbwrite_model->startTransaction();
+            $resp = $this->dbwrite_model->updateData(
+                'Transaction', 'TransactionsTbl',
+                ['DocStatus' => 'Converted', 'UpdatedBy' => $userUID, 'UpdatedOn' => date('Y-m-d H:i:s')],
+                ['TransUID' => $transUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
+            );
+            if ($resp->Error) throw new Exception($resp->Message);
+            $this->dbwrite_model->commitTransaction();
+
+            $this->EndReturnData->Error       = FALSE;
+            $this->EndReturnData->Message     = 'Sales order marked as converted.';
+            $this->EndReturnData->RedirectURL = '/deliverychallan/create?fromSalesOrder=' . $transUID;
 
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -716,13 +774,10 @@ class Salesorders extends CI_Controller {
             if ($transUID <= 0) throw new Exception('Invalid sales order.');
 
             $validTransitions = [
-                'Draft'       => ['Confirmed'],
-                'Confirmed'   => ['Processing', 'Cancelled'],
-                'Processing'  => ['Dispatched', 'Cancelled'],
-                'Dispatched'  => ['Delivered', 'Cancelled'],
-                'Delivered'   => [],
-                'Cancelled'   => [],
-                'Converted'   => [],
+                'Draft'     => ['Pending'],
+                'Pending'   => ['Cancelled'],
+                'Cancelled' => [],
+                'Converted' => [],
             ];
 
             $this->load->model('transactions_model');
@@ -743,9 +798,21 @@ class Salesorders extends CI_Controller {
             if ($resp->Error) throw new Exception($resp->Message);
             $this->dbwrite_model->commitTransaction();
 
-            $this->EndReturnData->Error     = FALSE;
-            $this->EndReturnData->Message   = 'Status updated.';
-            $this->EndReturnData->NewStatus = $newStatus;
+            $pageNo  = max(1, (int) $this->input->post('PageNo'));
+            $limit   = (int) $this->input->post('RowLimit') ?: 10;
+            $filter  = $this->input->post('Filter') ?: [];
+            $offset  = ($pageNo - 1) * $limit;
+
+            $this->pageData['JwtData']->GenSettings = ($this->redis_cache->get('Redis_UserGenSettings')->Value) ?? new stdClass();
+            $allData      = $this->transactions_model->getTransactionPageList($limit, $offset, $this->pageModuleUID, $filter, 0);
+            $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, $filter);
+
+            $this->EndReturnData->Error           = FALSE;
+            $this->EndReturnData->Message         = 'Status updated.';
+            $this->EndReturnData->NewStatus       = $newStatus;
+            $this->EndReturnData->RecordHtmlData  = $this->load->view('transactions/salesorders/list', ['DataLists' => $allData, 'SerialNumber' => $offset, 'JwtData' => $this->pageData['JwtData']], true);
+            $this->EndReturnData->Pagination      = $this->globalservice->buildPagePaginationHtml('/salesorders/getSalesOrdersPageDetails', $allDataCount, $pageNo, $limit);
+            $this->EndReturnData->TotalCount      = $allDataCount;
 
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();

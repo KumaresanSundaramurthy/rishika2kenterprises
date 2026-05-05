@@ -949,21 +949,18 @@ function reinitDropzoneOne(selector) {
         url: '#',
         autoProcessQueue: false,
         previewTemplate: `
-            <div class="dz-preview dz-file-preview" style="width:100%;margin:0;">
-                <div class="dz-details" style="padding:0;">
-                    <div class="dz-thumbnail" style="width:100%;overflow:hidden;border-radius:6px;">
-                        <img data-dz-thumbnail style="width:100%;height:auto;max-height:200px;object-fit:contain;display:block;border-radius:6px;">
-                        <span class="dz-nopreview">No preview</span>
-                        <div class="dz-success-mark"></div>
-                        <div class="dz-error-mark"></div>
-                        <div class="dz-error-message"><span data-dz-errormessage></span></div>
-                        <div class="progress">
-                            <div class="progress-bar progress-bar-primary" role="progressbar" aria-valuemin="0" aria-valuemax="100" data-dz-uploadprogress></div>
-                        </div>
-                    </div>
-                    <div class="dz-filename text-truncate mt-1" data-dz-name></div>
-                    <div class="dz-size" data-dz-size></div>
+            <div class="dz-preview dz-file-preview" style="display:inline-flex;flex-direction:column;align-items:center;width:150px;padding:10px;border:1px solid #e4e4e7;border-radius:8px;background:#fff;margin:8px auto;box-shadow:0 1px 3px rgba(0,0,0,.06);">
+                <div class="dz-image" style="width:120px;height:90px;border-radius:6px;overflow:hidden;margin-bottom:6px;border:1px solid #f0f0f0;flex-shrink:0;">
+                    <img data-dz-thumbnail style="width:100%;height:100%;object-fit:cover;display:block;" />
                 </div>
+                <div class="dz-filename" style="font-size:.72rem;font-weight:600;color:#374151;width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:2px;text-align:center;">
+                    <span data-dz-name></span>
+                </div>
+                <div class="dz-size" style="font-size:.70rem;color:#9ca3af;margin-bottom:6px;text-align:center;">
+                    <span data-dz-size></span>
+                </div>
+                <div class="dz-error-message" style="font-size:.68rem;color:#ef4444;text-align:center;margin-bottom:4px;"><span data-dz-errormessage></span></div>
+                <a class="dz-remove" href="javascript:void(0);" data-dz-remove style="font-size:.72rem;color:#6b7280;text-decoration:underline;cursor:pointer;">Remove file</a>
             </div>`,
         parallelUploads: 1,
         maxFilesize: 1,
@@ -1339,3 +1336,10 @@ $(document).on('mouseenter', '.copy-mobile', function () {
         $(this).tooltip('show');
     }
 });
+
+function toastSuccess(msg) {
+    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: msg, showConfirmButton: false, timer: 2500, timerProgressBar: true });
+}
+function toastError(msg) {
+    Swal.fire({ toast: true, position: 'top-end', icon: 'error', title: msg, showConfirmButton: false, timer: 3000 });
+}

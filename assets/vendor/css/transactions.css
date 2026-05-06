@@ -395,3 +395,218 @@ tr:hover .inv-row-action {
 .select2-results__option--highlighted .prod-info-unit { color: #6d28d9; }
 .select2-results__option--highlighted .prod-info-cat  { color: #b45309; }
 .select2-results__option--highlighted .prod-info-tax  { color: #5a6fbb; }
+
+
+/* ── Shared Record Payment Modal ────────────────────────────────── */
+.rp-modal-content {
+    overflow: hidden;
+}
+.rp-close-btn {
+    position: absolute;
+    top: 14px;
+    right: 16px;
+    z-index: 10;
+    background-color: rgba(255,255,255,.85);
+    border-radius: 50%;
+    padding: 6px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.15);
+}
+.rp-banner {
+    border-left: 4px solid;
+    padding: 14px 20px;
+}
+.rp-banner-icon {
+    border-radius: 10px;
+    padding: 9px 11px;
+}
+.rp-banner-icon i {
+    font-size: 1.7rem;
+    display: block;
+}
+.rp-banner-title {
+    font-size: 1.05rem;
+    font-weight: 800;
+}
+.rp-banner-meta {
+    font-size: .77rem;
+    color: #6c757d;
+    margin-top: 3px;
+}
+.rp-meta-sep {
+    margin: 0 .5rem;
+    color: #dee2e6;
+}
+.rp-summary-section {
+    padding: 14px 20px;
+    border-bottom: 1px solid #e9ecef;
+}
+.rp-form-section {
+    padding: 14px 20px;
+}
+.rp-section-header {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    padding: 4px 0 10px;
+}
+.rp-section-icon {
+    font-size: 1.05rem;
+    color: #6c757d;
+}
+.rp-section-icon--orange {
+    color: #fd7e14;
+}
+.rp-section-label {
+    font-size: .7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    color: #6c757d;
+}
+.rp-section-label--orange {
+    color: #fd7e14;
+}
+.rp-summary-card {
+    background: #fafafa;
+    border: 1px solid #e9ecef;
+    border-left: 3px solid;
+    border-radius: 6px;
+    padding: 10px 12px;
+}
+.rp-summary-card--paid {
+    border-left-color: #198754;
+}
+.rp-summary-card--due {
+    border-left-color: #dc3545;
+}
+.rp-summary-card-label {
+    font-size: .68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    color: #6c757d;
+    margin-bottom: 5px;
+}
+.rp-summary-card-value {
+    font-size: 1.1rem;
+    font-weight: 800;
+}
+.rp-val-paid { color: #198754; }
+.rp-val-due  { color: #dc3545; }
+.rp-field-label {
+    font-size: .78rem;
+    font-weight: 600;
+    color: #566a7f;
+    display: block;
+    margin-bottom: .25rem;
+}
+.rp-loading {
+    font-size: .8rem;
+}
+.rp-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: .5rem;
+    padding: .75rem 1.5rem;
+    border-top: 1px solid #dee2e6;
+    background: #f8f9fa;
+}
+
+/* ── Payment Details floating panel ────────────────────────────── */
+.pay-detail-panel {
+    display: none;
+    position: fixed;
+    z-index: 1080;
+    background: #fff;
+    border-radius: 10px;
+    border: 1px solid rgba(0,0,0,.1);
+    width: 290px;
+    box-shadow: 0 6px 24px rgba(0,0,0,.13);
+    overflow: hidden;
+}
+.pay-detail-panel__header {
+    background: #f8f9fa;
+    padding: 10px 14px 8px;
+    border-bottom: 1px solid #eee;
+}
+.pay-detail-panel__title {
+    font-size: .8rem;
+    font-weight: 600;
+    color: #566a7f;
+}
+.pay-detail-panel__close {
+    background: none;
+    border: none;
+    padding: 0 2px;
+    line-height: 1;
+    font-size: 1rem;
+    color: #aaa;
+    cursor: pointer;
+}
+.pay-detail-panel__body {
+    padding: 10px 14px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+/* ── Payments view ──────────────────────────────────────────────── */
+.pmt-tab {
+    border-radius: 6px;
+    font-size: .82rem;
+    transition: background .15s;
+}
+.pmt-tab.active {
+    background: #f0f4ff;
+    color: #0d6efd !important;
+}
+.pmt-tab:not(.active):hover {
+    background: #f5f5f5;
+}
+.pmt-summary-card {
+    transition: box-shadow .15s;
+}
+.pmt-summary-card:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,.10) !important;
+}
+.pmt-mode-badge {
+    font-size: .7rem;
+    padding: 2px 8px;
+    border-radius: 20px;
+}
+
+/* ── Payment Ref No hyperlink ───────────────────────────────────── */
+.pmt-ref-link {
+    font-size: .82rem;
+    font-weight: 600;
+    color: #0d6efd;
+    text-decoration: none;
+}
+.pmt-ref-link:hover {
+    text-decoration: underline;
+}
+.pmt-ref-link--out {
+    color: #f57c00;
+}
+.pmt-ref-link--out:hover {
+    color: #e65100;
+}
+
+/* ── Payments Out view ──────────────────────────────────────────── */
+.pout-tab {
+    border-radius: 6px;
+    font-size: .82rem;
+    transition: background .15s;
+}
+.pout-tab.active {
+    background: #fff3e0;
+    color: #f57c00 !important;
+}
+.pout-tab:not(.active):hover {
+    background: #f5f5f5;
+}
+.pout-summary-card {
+    transition: box-shadow .15s;
+}
+.pout-summary-card:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,.10) !important;
+}

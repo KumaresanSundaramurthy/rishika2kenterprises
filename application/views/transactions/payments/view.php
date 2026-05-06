@@ -276,51 +276,14 @@
 
 <script type="text/javascript" src="/js/common/datefilter.js"></script>
 
-<style>
-.pmt-tab { border-radius: 6px; font-size: .82rem; transition: background .15s; }
-.pmt-tab.active { background: #f0f4ff; color: #0d6efd !important; }
-.pmt-tab:not(.active):hover { background: #f5f5f5; }
-.pmt-summary-card { transition: box-shadow .15s; }
-.pmt-summary-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.10) !important; }
-.pmt-mode-badge { font-size: .7rem; padding: 2px 8px; border-radius: 20px; }
-</style>
-
 <script>
-const PmtModuleId = <?php echo (int)$JwtData->ModuleUID; ?>;
+const PmtModuleId = <?php echo (int) $JwtData->ModuleUID; ?>;
 var PmtFilter  = {};
 var PmtPageNo  = 1;
 var PmtLimit   = 10;
 
 $(function () {
     'use strict';
-
-    function getPaymentsDetails(pageNo, append) {
-        pageNo = pageNo || 1;
-        PmtPageNo = pageNo;
-        $.ajax({
-            url    : '/payments/getPaymentsPageDetails/' + pageNo,
-            method : 'POST',
-            data   : { RowLimit: PmtLimit, Filter: PmtFilter, [CsrfName]: CsrfToken },
-            success: function (resp) {
-                if (!resp.Error) {
-                    $('#paymentsTableBody').html(resp.RecordHtmlData);
-                    $('#pmtPagination').html(
-                        '<span class="text-muted" style="font-size:.78rem;">Total: <strong id="pmtTotalCount">' +
-                        Number(resp.TotalCount).toLocaleString() + '</strong></span>' +
-                        (resp.Pagination || '')
-                    );
-                    if (resp.Totals) {
-                        var sym = '<?php echo addslashes($cur); ?>';
-                        var dec = <?php echo $dec; ?>;
-                        var fmt = function(v) { return sym + ' ' + parseFloat(v).toLocaleString('en-IN', {minimumFractionDigits: dec, maximumFractionDigits: dec}); };
-                        $('#pmtFooterReceived').text(fmt(resp.Totals.TotalReceived || 0));
-                        $('#pmtFooterPaid').text(fmt(resp.Totals.TotalPaid || 0));
-                        $('#pmtFooterNet').text(fmt((resp.Totals.TotalReceived || 0) - (resp.Totals.TotalPaid || 0)));
-                    }
-                }
-            }
-        });
-    }
 
     // Tab switch
     $(document).on('click', '.pmt-tab', function (e) {
@@ -399,106 +362,60 @@ $(function () {
         getPaymentsDetails(1);
     });
 
-    // View payment detail
+    // View payment detail — reads from data-* on the <tr>, zero AJAX
     $(document).on('click', '.viewPaymentDetail', function () {
-        var paymentUID = $(this).data('payment-uid');
-        var sym = '<?php echo addslashes($cur); ?>';
-        var dec = <?php echo $dec; ?>;
-        var fmt = function (v) {
+        var $row = $(this).closest('tr.pmt-row');
+        var sym  = '<?php echo addslashes($cur); ?>';
+        var dec  = <?php echo $dec; ?>;
+        var fmt  = function (v) {
             return sym + ' ' + parseFloat(v || 0).toLocaleString('en-IN', { minimumFractionDigits: dec, maximumFractionDigits: dec });
         };
 
-        $.ajax({
-            url   : '/payments/getPaymentDetail',
-            method: 'POST',
-            data  : { PaymentUID: paymentUID, [CsrfName]: CsrfToken },
-            success: function (resp) {
-                if (resp.Error) { Swal.fire('Error', resp.Message || 'Could not load payment.', 'error'); return; }
-                var d = resp.Data;
+        // Banner
+        $('#pdUniqueNumber').text($row.data('unique-number') || '—');
+        var dateStr = ($row.data('payment-date') || '').toString().slice(0, 10);
+        if (dateStr) {
+            var p = dateStr.split('-'), mo = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            dateStr = p[2] + ' ' + mo[parseInt(p[1], 10) - 1] + ' ' + p[0];
+        }
+        $('#pdDateLabel').text(dateStr || '—');
+        $('#pdAmount').text(fmt($row.data('raw-amount')));
 
-                // Banner
-                $('#pdUniqueNumber').text(d.UniqueNumber || ('Payment #' + d.PaymentUID));
-                var dateStr = d.PaymentDate || (d.CreatedOn ? d.CreatedOn.slice(0, 10) : '');
-                if (dateStr) {
-                    var parts = dateStr.split('-');
-                    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-                    dateStr = parts[2] + ' ' + months[parseInt(parts[1], 10) - 1] + ' ' + parts[0];
-                }
-                $('#pdDateLabel').text(dateStr || '—');
-                $('#pdAmount').text(fmt(d.Amount));
+        // Mode badge
+        var modeMap = { 'cash':'#e8f5e9|#2e7d32','upi':'#ede7f6|#4527a0','card':'#e3f2fd|#1565c0','net banking':'#fff8e1|#f57f17','cheque':'#fce4ec|#880e4f','emi':'#e0f7fa|#00695c','tds':'#f3e5f5|#6a1b9a' };
+        var modeKey = ($row.data('payment-type') || '').toLowerCase().trim();
+        var mc = modeMap[modeKey] ? modeMap[modeKey].split('|') : ['#f0f0f0','#555'];
+        $('#pdModeBadge').html('<span class="pmt-mode-badge" style="background:' + mc[0] + ';color:' + mc[1] + ';">' + ($row.data('payment-type') || '—') + '</span>');
 
-                // Mode badge
-                var modeMap = { 'cash': '#e8f5e9|#2e7d32', 'upi': '#ede7f6|#4527a0', 'card': '#e3f2fd|#1565c0', 'net banking': '#fff8e1|#f57f17', 'cheque': '#fce4ec|#880e4f', 'emi': '#e0f7fa|#00695c' };
-                var modeKey = (d.PaymentTypeName || '').toLowerCase().trim();
-                var mc = modeMap[modeKey] ? modeMap[modeKey].split('|') : ['#f0f0f0', '#555'];
-                $('#pdModeBadge').html('<span class="pmt-mode-badge" style="background:' + mc[0] + ';color:' + mc[1] + ';">' + (d.PaymentTypeName || '—') + '</span>');
+        // Party
+        var mobile = $row.data('party-mobile') || '';
+        $('#pdParty').text($row.data('party-name') || '—');
+        $('#pdPartyMobile').text(mobile).toggle(!!mobile);
+        $('#pdTransNumber').text($row.data('trans-number') || '—');
 
-                // Party
-                $('#pdParty').text(d.PartyName || '—');
-                $('#pdPartyMobile').text(d.PartyMobile || '').toggle(!!d.PartyMobile);
-                $('#pdTransNumber').text(d.TransNumber || '—');
+        // Bank
+        var bankName = $row.data('bank-name') || '';
+        if (bankName && !$row.data('is-cash')) {
+            var acctName = $row.data('account-name') || '';
+            $('#pdBankName').text(bankName + (acctName ? ' (' + acctName + ')' : ''));
+            $('#pdAccountNumber').text($row.data('account-number') || '—');
+            var ifsc = $row.data('ifsc') || '', branch = $row.data('branch') || '';
+            $('#pdIfsc').text(ifsc);   $('#pdIfscWrap').toggle(!!ifsc);
+            $('#pdBranch').text(branch); $('#pdBranchWrap').toggle(!!branch);
+            $('#pdBankSection').show();
+        } else {
+            $('#pdBankSection').hide();
+        }
 
-                // Bank
-                if (d.BankName) {
-                    var bankLabel = d.BankName + (d.AccountName ? ' (' + d.AccountName + ')' : '');
-                    $('#pdBankName').text(bankLabel);
-                    $('#pdAccountNumber').text(d.AccountNumber || '—');
-                    $('#pdIfsc').text(d.IFSC || '');
-                    $('#pdBranch').text(d.BranchName || '');
-                    $('#pdIfscWrap').toggle(!!d.IFSC);
-                    $('#pdBranchWrap').toggle(!!d.BranchName);
-                    $('#pdBankSection').show();
-                } else {
-                    $('#pdBankSection').hide();
-                }
+        // Reference / By / Notes
+        $('#pdReference').text($row.data('reference') || '—');
+        $('#pdCreatedBy').text($row.data('created-by') || '—');
+        var notes = $row.data('notes') || '';
+        $('#pdNotes').text(notes);
+        $('#pdNotesWrap').toggle(!!notes);
 
-                // Reference / By / Notes
-                $('#pdReference').text(d.ReferenceNo || '—');
-                $('#pdCreatedBy').text(d.CreatedByName || '—');
-                $('#pdNotes').text(d.Notes || '');
-                $('#pdNotesWrap').toggle(!!d.Notes);
-
-                $('#paymentDetailModal').modal('show');
-            },
-            error: function () {
-                Swal.fire('Error', 'Failed to load payment details.', 'error');
-            }
-        });
+        $('#paymentDetailModal').modal('show');
     });
-
-    // Shared helper: call deletePayment endpoint and handle response
-    function doPaymentRemove(paymentUID, $row) {
-        var sym = '<?php echo addslashes($cur); ?>';
-        var dec = <?php echo $dec; ?>;
-        var fmt = function (v) {
-            return sym + ' ' + parseFloat(v || 0).toLocaleString('en-IN', { minimumFractionDigits: dec, maximumFractionDigits: dec });
-        };
-        $.ajax({
-            url   : '/payments/deletePayment',
-            method: 'POST',
-            data  : { PaymentUID: paymentUID, [CsrfName]: CsrfToken },
-            success: function (resp) {
-                if (!resp.Error) {
-                    $row.fadeOut(300, function () { $(this).remove(); });
-                    if (resp.NewBalanceAmount !== undefined) {
-                        var statusColor = resp.NewStatus === 'Unpaid' ? 'secondary' : 'warning';
-                        Swal.fire({
-                            icon : 'success',
-                            title: 'Done',
-                            html : 'Transaction balance updated.<br>' +
-                                   '<strong>Remaining Balance:</strong> ' + fmt(resp.NewBalanceAmount) +
-                                   ' &nbsp;|&nbsp; Status: <span class="badge bg-label-' + statusColor + '">' +
-                                   resp.NewStatus + '</span>',
-                            timer: 3000,
-                            showConfirmButton: false,
-                        });
-                    }
-                } else {
-                    Swal.fire('Error', resp.Message, 'error');
-                }
-            }
-        });
-    }
 
     // Cancel payment
     $(document).on('click', '.cancelPayment', function () {
@@ -533,4 +450,65 @@ $(function () {
     });
 
 });
+function getPaymentsDetails(pageNo, append) {
+    pageNo = pageNo || 1;
+    PmtPageNo = pageNo;
+    $.ajax({
+        url    : '/payments/getPaymentsPageDetails/' + pageNo,
+        method : 'POST',
+        data   : { RowLimit: PmtLimit, Filter: PmtFilter, [CsrfName]: CsrfToken },
+        success: function (resp) {
+            if (!resp.Error) {
+                $('#paymentsTableBody').html(resp.RecordHtmlData);
+                $('#pmtPagination').html(
+                    '<span class="text-muted" style="font-size:.78rem;">Total: <strong id="pmtTotalCount">' +
+                    Number(resp.TotalCount).toLocaleString() + '</strong></span>' +
+                    (resp.Pagination || '')
+                );
+                if (resp.Totals) {
+                    var sym = '<?php echo addslashes($cur); ?>';
+                    var dec = <?php echo $dec; ?>;
+                    var fmt = function(v) { return sym + ' ' + parseFloat(v).toLocaleString('en-IN', {minimumFractionDigits: dec, maximumFractionDigits: dec}); };
+                    $('#pmtFooterReceived').text(fmt(resp.Totals.TotalReceived || 0));
+                    $('#pmtFooterPaid').text(fmt(resp.Totals.TotalPaid || 0));
+                    $('#pmtFooterNet').text(fmt((resp.Totals.TotalReceived || 0) - (resp.Totals.TotalPaid || 0)));
+                }
+            }
+        }
+    });
+}
+
+// Shared helper: call deletePayment endpoint and handle response
+function doPaymentRemove(paymentUID, $row) {
+    var sym = '<?php echo addslashes($cur); ?>';
+    var dec = <?php echo $dec; ?>;
+    var fmt = function (v) {
+        return sym + ' ' + parseFloat(v || 0).toLocaleString('en-IN', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+    };
+    $.ajax({
+        url   : '/payments/deletePayment',
+        method: 'POST',
+        data  : { PaymentUID: paymentUID, [CsrfName]: CsrfToken },
+        success: function (resp) {
+            if (!resp.Error) {
+                $row.fadeOut(300, function () { $(this).remove(); });
+                if (resp.NewBalanceAmount !== undefined) {
+                    var statusColor = resp.NewStatus === 'Unpaid' ? 'secondary' : 'warning';
+                    Swal.fire({
+                        icon : 'success',
+                        title: 'Done',
+                        html : 'Transaction balance updated.<br>' +
+                                '<strong>Remaining Balance:</strong> ' + fmt(resp.NewBalanceAmount) +
+                                ' &nbsp;|&nbsp; Status: <span class="badge bg-label-' + statusColor + '">' +
+                                resp.NewStatus + '</span>',
+                        timer: 3000,
+                        showConfirmButton: false,
+                    });
+                }
+            } else {
+                Swal.fire('Error', resp.Message, 'error');
+            }
+        }
+    });
+}
 </script>

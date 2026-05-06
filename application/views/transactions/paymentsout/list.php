@@ -44,14 +44,32 @@ function poutModeBadge($name, $modeColors) {
         $mobileNum     = trim($row->PartyMobile ?? '');
         $fullMobile    = $mobileNum ? ('+91 ' . $mobileNum) : '';
     ?>
-    <tr>
+    <tr class="pmt-row"
+        data-uid="<?php echo (int)$row->PaymentUID; ?>"
+        data-unique-number="<?php echo htmlspecialchars($row->PaymentUniqueNumber ?? ''); ?>"
+        data-amount="<?php echo number_format((float)$row->Amount, $dec, '.', ','); ?>"
+        data-raw-amount="<?php echo (float)$row->Amount; ?>"
+        data-payment-date="<?php echo htmlspecialchars($row->PaymentDate ?? $row->CreatedOn ?? ''); ?>"
+        data-payment-type="<?php echo htmlspecialchars($row->PaymentTypeName ?? ''); ?>"
+        data-is-cash="<?php echo (int)$row->IsCash; ?>"
+        data-party-name="<?php echo htmlspecialchars($row->PartyName ?? ''); ?>"
+        data-party-mobile="<?php echo htmlspecialchars($fullMobile); ?>"
+        data-trans-number="<?php echo htmlspecialchars($row->TransNumber ?? ''); ?>"
+        data-reference="<?php echo htmlspecialchars($row->ReferenceNo ?? ''); ?>"
+        data-created-by="<?php echo htmlspecialchars($row->CreatedByName ?? ''); ?>"
+        data-notes="<?php echo htmlspecialchars($row->Notes ?? ''); ?>"
+        data-bank-name="<?php echo htmlspecialchars($row->BankName ?? ''); ?>"
+        data-account-name="<?php echo htmlspecialchars($row->AccountName ?? ''); ?>"
+        data-account-number="<?php echo htmlspecialchars($row->AccountNumber ?? ''); ?>"
+        data-ifsc="<?php echo htmlspecialchars($row->IFSC ?? ''); ?>"
+        data-branch="<?php echo htmlspecialchars($row->BranchName ?? ''); ?>">
 
         <!-- Ref No -->
         <td class="ps-3">
             <?php if (!empty($row->PaymentUniqueNumber)): ?>
-                <span class="fw-semibold" style="font-size:.82rem;color:#f57c00;">
+                <a href="javascript:void(0);" class="trans-doc-number viewPaymentDetail">
                     <?php echo htmlspecialchars($row->PaymentUniqueNumber); ?>
-                </span>
+                </a>
             <?php else: ?>
                 <span class="text-muted">—</span>
             <?php endif; ?>
@@ -82,7 +100,7 @@ function poutModeBadge($name, $modeColors) {
         <!-- Linked Bill -->
         <td>
             <?php if (!empty($row->TransNumber)): ?>
-                <span class="fw-semibold text-primary" style="font-size:.82rem;"><?php echo htmlspecialchars($row->TransNumber); ?></span>
+                <span class="fw-semibold text-primary trans-doc-number" style="font-size:.82rem;"><?php echo htmlspecialchars($row->TransNumber); ?></span>
             <?php else: ?>
                 <span class="text-muted">—</span>
             <?php endif; ?>
@@ -122,8 +140,7 @@ function poutModeBadge($name, $modeColors) {
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:.82rem;min-width:160px;">
                     <li>
-                        <button class="dropdown-item viewPaymentDetail"
-                                data-payment-uid="<?php echo (int)$row->PaymentUID; ?>">
+                        <button class="dropdown-item viewPaymentDetail">
                             <i class="bx bx-show me-2 text-primary"></i>View Details
                         </button>
                     </li>

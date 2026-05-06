@@ -252,15 +252,6 @@
 
 <script type="text/javascript" src="/js/common/datefilter.js"></script>
 
-<style>
-.pout-tab { border-radius:6px; font-size:.82rem; transition:background .15s; }
-.pout-tab.active { background:#fff3e0; color:#f57c00 !important; }
-.pout-tab:not(.active):hover { background:#f5f5f5; }
-.pout-summary-card { transition: box-shadow .15s; }
-.pout-summary-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.10) !important; }
-.pmt-mode-badge { font-size:.7rem; padding:2px 8px; border-radius:20px; }
-</style>
-
 <script>
 var PoutFilter = {};
 var PoutPageNo = 1;
@@ -346,47 +337,57 @@ $(function () {
         }
     });
 
-    // View payment detail
+    // View payment detail — reads from data-* on the <tr>, zero AJAX
     $(document).on('click', '.viewPaymentDetail', function () {
-        var paymentUID = $(this).data('payment-uid');
-        $.ajax({
-            url   : '/payments/getPaymentDetail',
-            method: 'POST',
-            data  : { PaymentUID: paymentUID, [CsrfName]: CsrfToken },
-            success: function (resp) {
-                if (resp.Error) { Swal.fire('Error', resp.Message || 'Could not load payment.', 'error'); return; }
-                var d = resp.Data;
-                $('#pdUniqueNumber').text(d.UniqueNumber || ('Payment #' + d.PaymentUID));
-                var dateStr = d.PaymentDate || (d.CreatedOn ? d.CreatedOn.slice(0, 10) : '');
-                if (dateStr) {
-                    var p = dateStr.split('-'), mo = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-                    dateStr = p[2] + ' ' + mo[parseInt(p[1], 10) - 1] + ' ' + p[0];
-                }
-                $('#pdDateLabel').text(dateStr || '—');
-                $('#pdAmount').text(fmt(d.Amount));
-                var modeMap = { 'cash':'#e8f5e9|#2e7d32','upi':'#ede7f6|#4527a0','card':'#e3f2fd|#1565c0','net banking':'#fff8e1|#f57f17','cheque':'#fce4ec|#880e4f' };
-                var mk = (d.PaymentTypeName || '').toLowerCase().trim();
-                var mc = modeMap[mk] ? modeMap[mk].split('|') : ['#f0f0f0','#555'];
-                $('#pdModeBadge').html('<span class="pmt-mode-badge" style="background:' + mc[0] + ';color:' + mc[1] + ';">' + (d.PaymentTypeName || '—') + '</span>');
-                $('#pdParty').text(d.PartyName || '—');
-                $('#pdPartyMobile').text(d.PartyMobile || '').toggle(!!d.PartyMobile);
-                $('#pdTransNumber').text(d.TransNumber || '—');
-                if (d.BankName) {
-                    $('#pdBankName').text(d.BankName + (d.AccountName ? ' (' + d.AccountName + ')' : ''));
-                    $('#pdAccountNumber').text(d.AccountNumber || '—');
-                    $('#pdIfsc').text(d.IFSC || ''); $('#pdIfscWrap').toggle(!!d.IFSC);
-                    $('#pdBranch').text(d.BranchName || ''); $('#pdBranchWrap').toggle(!!d.BranchName);
-                    $('#pdBankSection').show();
-                } else {
-                    $('#pdBankSection').hide();
-                }
-                $('#pdReference').text(d.ReferenceNo || '—');
-                $('#pdCreatedBy').text(d.CreatedByName || '—');
-                $('#pdNotes').text(d.Notes || '');
-                $('#pdNotesWrap').toggle(!!d.Notes);
-                $('#paymentDetailModal').modal('show');
-            }
-        });
+        var $row = $(this).closest('tr.pmt-row');
+        var fmt  = function (v) {
+            return sym + ' ' + parseFloat(v || 0).toLocaleString('en-IN', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+        };
+
+        // Banner
+        $('#pdUniqueNumber').text($row.data('unique-number') || '—');
+        var dateStr = ($row.data('payment-date') || '').toString().slice(0, 10);
+        if (dateStr) {
+            var p = dateStr.split('-'), mo = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            dateStr = p[2] + ' ' + mo[parseInt(p[1], 10) - 1] + ' ' + p[0];
+        }
+        $('#pdDateLabel').text(dateStr || '—');
+        $('#pdAmount').text(fmt($row.data('raw-amount')));
+
+        // Mode badge
+        var modeMap = { 'cash':'#e8f5e9|#2e7d32','upi':'#ede7f6|#4527a0','card':'#e3f2fd|#1565c0','net banking':'#fff8e1|#f57f17','cheque':'#fce4ec|#880e4f','emi':'#e0f7fa|#00695c','tds':'#f3e5f5|#6a1b9a' };
+        var modeKey = ($row.data('payment-type') || '').toLowerCase().trim();
+        var mc = modeMap[modeKey] ? modeMap[modeKey].split('|') : ['#f0f0f0','#555'];
+        $('#pdModeBadge').html('<span class="pmt-mode-badge" style="background:' + mc[0] + ';color:' + mc[1] + ';">' + ($row.data('payment-type') || '—') + '</span>');
+
+        // Party
+        var mobile = $row.data('party-mobile') || '';
+        $('#pdParty').text($row.data('party-name') || '—');
+        $('#pdPartyMobile').text(mobile).toggle(!!mobile);
+        $('#pdTransNumber').text($row.data('trans-number') || '—');
+
+        // Bank
+        var bankName = $row.data('bank-name') || '';
+        if (bankName && !$row.data('is-cash')) {
+            var acctName = $row.data('account-name') || '';
+            $('#pdBankName').text(bankName + (acctName ? ' (' + acctName + ')' : ''));
+            $('#pdAccountNumber').text($row.data('account-number') || '—');
+            var ifsc = $row.data('ifsc') || '', branch = $row.data('branch') || '';
+            $('#pdIfsc').text(ifsc);   $('#pdIfscWrap').toggle(!!ifsc);
+            $('#pdBranch').text(branch); $('#pdBranchWrap').toggle(!!branch);
+            $('#pdBankSection').show();
+        } else {
+            $('#pdBankSection').hide();
+        }
+
+        // Reference / By / Notes
+        $('#pdReference').text($row.data('reference') || '—');
+        $('#pdCreatedBy').text($row.data('created-by') || '—');
+        var notes = $row.data('notes') || '';
+        $('#pdNotes').text(notes);
+        $('#pdNotesWrap').toggle(!!notes);
+
+        $('#paymentDetailModal').modal('show');
     });
 
     // Delete payment

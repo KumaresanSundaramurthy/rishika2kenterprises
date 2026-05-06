@@ -53,9 +53,17 @@ function pmtModeBadge($name, $modeColors) {
                         ? $countryCode . ' ' : '+91 ') . $mobileNum;
         if (empty($mobileNum)) $fullMobile = '';
     ?>
+    <?php
+        $transType   = ($row->PartyType === 'C') ? 'invoice' : 'purchase';
+        $transModule = ($row->PartyType === 'C') ? 103 : 105;
+    ?>
     <tr class="pmt-row"
         data-uid="<?php echo (int)$row->PaymentUID; ?>"
         data-unique-number="<?php echo htmlspecialchars($row->PaymentUniqueNumber ?? ''); ?>"
+        data-trans-uid="<?php echo (int)($row->TransUID ?? 0); ?>"
+        data-trans-module="<?php echo $transModule; ?>"
+        data-trans-type="<?php echo $transType; ?>"
+        data-trans-number="<?php echo htmlspecialchars($row->TransNumber ?? ''); ?>"
         data-amount="<?php echo number_format((float)$row->Amount, $dec, '.', ','); ?>"
         data-raw-amount="<?php echo (float)$row->Amount; ?>"
         data-payment-date="<?php echo htmlspecialchars($row->PaymentDate ?? $row->CreatedOn ?? ''); ?>"
@@ -108,7 +116,15 @@ function pmtModeBadge($name, $modeColors) {
         <!-- Linked Document -->
         <td>
             <?php if (!empty($row->TransNumber)): ?>
-                <span class="fw-semibold text-primary trans-doc-number" style="font-size:.82rem;"><?php echo htmlspecialchars($row->TransNumber); ?></span>
+                <a href="javascript:void(0);" class="trans-doc-number viewTransaction"
+                   data-uid="<?php echo (int)($row->TransUID ?? 0); ?>"
+                   data-module="<?php echo $transModule; ?>"
+                   data-type="<?php echo $transType; ?>"
+                   data-number="<?php echo htmlspecialchars($row->TransNumber); ?>"
+                   data-date=""
+                   data-status="">
+                    <?php echo htmlspecialchars($row->TransNumber); ?>
+                </a>
             <?php else: ?>
                 <span class="text-muted">—</span>
             <?php endif; ?>
@@ -153,10 +169,24 @@ function pmtModeBadge($name, $modeColors) {
                         data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="bx bx-dots-vertical-rounded fs-5"></i>
                 </button>
-                <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:.82rem;min-width:160px;">
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:.82rem;min-width:170px;">
                     <li>
-                        <button class="dropdown-item viewPaymentDetail">
-                            <i class="bx bx-show me-2 text-primary"></i>View Details
+                        <button class="dropdown-item pmtA4Print"
+                                data-payment-uid="<?php echo (int)$row->PaymentUID; ?>">
+                            <i class="bx bx-printer me-2 text-dark"></i>Print / Download
+                        </button>
+                    </li>
+                    <li>
+                        <button class="dropdown-item pmtDownloadPdf"
+                                data-payment-uid="<?php echo (int)$row->PaymentUID; ?>"
+                                data-num="<?php echo htmlspecialchars($row->PaymentUniqueNumber ?? ''); ?>">
+                            <i class="bx bx-download me-2 text-primary"></i>Download PDF
+                        </button>
+                    </li>
+                    <li>
+                        <button class="dropdown-item pmtThermalPrint"
+                                data-payment-uid="<?php echo (int)$row->PaymentUID; ?>">
+                            <i class="bx bx-receipt me-2 text-dark"></i>Thermal Print
                         </button>
                     </li>
                     <li><hr class="dropdown-divider my-1"></li>

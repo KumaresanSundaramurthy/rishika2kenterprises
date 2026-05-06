@@ -288,7 +288,7 @@ class Organisation_model extends CI_Model {
         try {
 
             $this->ReadDb->select(
-                'Org.Name, Org.BrandName, Org.GSTIN, Org.MobileNumber, Org.EmailAddress, ' .
+                'Org.Name, Org.BrandName, Org.Logo, Org.GSTIN, Org.MobileNumber, Org.EmailAddress, ' .
                 'Addr.Line1, Addr.Line2, Addr.CityText, Addr.StateText, Addr.Pincode'
             );
             $this->ReadDb->from('Organisation.OrganisationTbl AS Org');
@@ -517,14 +517,14 @@ class Organisation_model extends CI_Model {
 
     }
 
-    /** Get thermal print config for a specific transaction type. */
-    public function getThermalPrintConfigByType($orgUID, $transactionType) {
+    /** Get thermal print config for a specific module (by ModuleUID). */
+    public function getThermalPrintConfigByModule($orgUID, $moduleUID) {
 
         $this->EndReturnData = new stdClass();
         try {
 
             $this->ReadDb->from('Organisation.ThermalPrintConfigTbl');
-            $this->ReadDb->where(['OrgUID' => $orgUID, 'TransactionType' => $transactionType, 'IsDeleted' => 0]);
+            $this->ReadDb->where(['OrgUID' => $orgUID, 'ModuleUID' => (int)$moduleUID, 'IsDeleted' => 0]);
             $this->ReadDb->limit(1);
             $row = $this->ReadDb->get()->row();
 
@@ -596,15 +596,18 @@ class Organisation_model extends CI_Model {
 
     }
 
-    /** Get all thermal print configs for an org (one per transaction type). */
+    /** Get all thermal print configs for an org (one per module), joined with module name. */
     public function getThermalPrintConfigList($orgUID) {
 
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->ReadDb->from('Organisation.ThermalPrintConfigTbl');
-            $this->ReadDb->where(['OrgUID' => $orgUID, 'IsDeleted' => 0]);
-            $this->ReadDb->order_by('ThermalConfigUID', 'ASC');
+            $this->ReadDb->select(['TC.*', 'M.Name AS ModuleName', "CONCAT(U.FirstName, ' ', U.LastName) AS UpdatedByName"]);
+            $this->ReadDb->from('Organisation.ThermalPrintConfigTbl TC');
+            $this->ReadDb->join('Modules.ModuleTbl M', 'M.ModuleUID = TC.ModuleUID', 'left');
+            $this->ReadDb->join('Users.UserTbl U', 'U.UserUID = TC.UpdatedBy', 'left');
+            $this->ReadDb->where(['TC.OrgUID' => $orgUID, 'TC.IsDeleted' => 0]);
+            $this->ReadDb->order_by('TC.ThermalConfigUID', 'ASC');
             $rows = $this->ReadDb->get()->result();
 
             $this->EndReturnData->Error = FALSE;
@@ -617,6 +620,30 @@ class Organisation_model extends CI_Model {
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
 
+        }
+
+    }
+
+    /** Get all modules that support thermal print (IsThermalPrint = 1). */
+    public function getThermalPrintModules() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $this->ReadDb->select('ModuleUID, Name');
+            $this->ReadDb->from('Modules.ModuleTbl');
+            $this->ReadDb->where(['IsThermalPrint' => 1, 'IsActive' => 1, 'IsDeleted' => 0]);
+            $this->ReadDb->order_by('Sorting', 'ASC');
+            $rows = $this->ReadDb->get()->result();
+
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Data  = $rows;
+            return $this->EndReturnData;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+            throw new Exception($this->EndReturnData->Message);
         }
 
     }

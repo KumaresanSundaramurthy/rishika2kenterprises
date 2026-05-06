@@ -1,6 +1,5 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
-
-<?php $this->load->view('common/transactions/header'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed');
+$this->load->view('common/transactions/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
     <div class="layout-container">
@@ -366,12 +365,6 @@ function _buildQuotDetailHtml(resp) {
         hasPayments : false,
         validLabel  : 'Valid Until',
     });
-}
-
-
-function _esc(v) {
-    if (v === null || v === undefined) return '—';
-    return $('<span>').text(String(v)).html();
 }
 
 function _stripHtml(v) {

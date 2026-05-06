@@ -8,7 +8,7 @@ class Paymentsout extends CI_Controller {
 
     public function __construct() {
         parent::__construct();
-        $this->pageModuleUID = 110;
+        $this->pageModuleUID = 111;
     }
 
     public function index() {

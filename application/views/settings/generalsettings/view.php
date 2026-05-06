@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php $this->load->view('common/header'); ?>
 
@@ -443,7 +443,7 @@
                                 <div class="d-flex justify-content-between align-items-center px-3 py-3 border-bottom">
                                     <span class="badge bg-label-secondary d-inline-flex align-items-center gap-1" style="font-size:.78rem;font-weight:500;">
                                         <i class="bx bx-info-circle"></i>
-                                        One configuration per transaction type &nbsp;&bull;&nbsp; Max <?php echo count(['Quotation','Invoice','SalesOrder','PurchaseOrder','Purchase','SalesReturn','PurchaseReturn','CreditNote','DebitNote']); ?> records
+                                        One configuration per transaction type &nbsp;&bull;&nbsp; Max <?php echo $ThermalTypeCount; ?> records
                                     </span>
                                     <button class="btn btn-primary btn-sm px-3" id="btnAddThermalConfig">
                                         <i class="bx bx-plus me-1"></i>Add Config
@@ -523,10 +523,12 @@
 
                         <div class="modal-header py-3">
                             <div>
-                                <h5 class="modal-title mb-0" id="thermalModalTitle">Thermal Print Settings</h5>
+                                <h5 class="modal-title mb-0" id="thermalModalTitle"><i class="bx bx-printer me-2 text-primary"></i>Thermal Print Settings</h5>
                                 <small class="text-muted" id="thermalModalSubtitle">Add a new configuration</small>
                             </div>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            <button type="button" class="btn btn-sm btn-danger ms-auto" data-bs-dismiss="modal">
+                                <i class="bx bx-x me-1"></i>Close
+                            </button>
                         </div>
 
                         <div class="modal-body p-0 d-flex" style="min-height:540px;max-height:78vh;overflow:hidden;">
@@ -545,15 +547,6 @@
                                     <label class="form-label fw-semibold mb-1 small">Transaction Type <span class="text-danger">*</span></label>
                                     <select class="form-select form-select-sm" id="ThermalTransType">
                                         <option value="">-- Select Transaction Type --</option>
-                                        <option value="Quotation">Quotation</option>
-                                        <option value="Invoice">Invoice</option>
-                                        <option value="SalesOrder">Sales Order</option>
-                                        <option value="PurchaseOrder">Purchase Order</option>
-                                        <option value="Purchase">Purchase</option>
-                                        <option value="SalesReturn">Sales Return</option>
-                                        <option value="PurchaseReturn">Purchase Return</option>
-                                        <option value="CreditNote">Credit Note</option>
-                                        <option value="DebitNote">Debit Note</option>
                                     </select>
                                 </div>
 
@@ -563,65 +556,65 @@
 
                                     <div class="col-6 thermal-toggle-cell border-end border-bottom">
                                         <div class="d-flex justify-content-between align-items-start gap-2 p-3">
-                                            <div><div class="thermal-setting-label">Terms</div><div class="thermal-setting-desc">Print terms &amp; conditions on receipt.</div></div>
+                                            <div><div class="thermal-setting-label"><i class="bx bx-file-blank me-1 text-secondary"></i>Terms</div><div class="thermal-setting-desc">Print terms &amp; conditions on receipt.</div></div>
                                             <div class="form-check form-switch mb-0 mt-1 flex-shrink-0"><input class="form-check-input thermal-switch" type="checkbox" role="switch" id="ThermalShowTerms"></div>
                                         </div>
                                     </div>
                                     <div class="col-6 thermal-toggle-cell border-bottom">
                                         <div class="d-flex justify-content-between align-items-start gap-2 p-3">
-                                            <div><div class="thermal-setting-label">Company Details</div><div class="thermal-setting-desc">Include company's details on receipt.</div></div>
+                                            <div><div class="thermal-setting-label"><i class="bx bx-buildings me-1 text-secondary"></i>Company Details</div><div class="thermal-setting-desc">Include company's details on receipt.</div></div>
                                             <div class="form-check form-switch mb-0 mt-1 flex-shrink-0"><input class="form-check-input thermal-switch" type="checkbox" role="switch" id="ThermalShowCompanyDetails" checked></div>
                                         </div>
                                     </div>
 
-                                    <div class="col-6 thermal-toggle-cell border-end border-bottom">
+                                    <div class="col-6 thermal-toggle-cell border-end border-bottom" id="thermalItemDescCell">
                                         <div class="d-flex justify-content-between align-items-start gap-2 p-3">
-                                            <div><div class="thermal-setting-label">Item Description</div><div class="thermal-setting-desc">Print detailed product descriptions.</div></div>
+                                            <div><div class="thermal-setting-label"><i class="bx bx-list-ul me-1 text-secondary"></i>Item Description</div><div class="thermal-setting-desc">Print detailed product descriptions.</div></div>
                                             <div class="form-check form-switch mb-0 mt-1 flex-shrink-0"><input class="form-check-input thermal-switch" type="checkbox" role="switch" id="ThermalShowItemDescription"></div>
                                         </div>
                                     </div>
-                                    <div class="col-6 thermal-toggle-cell border-bottom">
+                                    <div class="col-6 thermal-toggle-cell border-bottom" id="thermalTaxableAmtCell">
                                         <div class="d-flex justify-content-between align-items-start gap-2 p-3">
-                                            <div><div class="thermal-setting-label">Taxable Amount</div><div class="thermal-setting-desc">Display taxable amount above tax line.</div></div>
+                                            <div><div class="thermal-setting-label"><i class="bx bx-calculator me-1 text-secondary"></i>Taxable Amount</div><div class="thermal-setting-desc">Display taxable amount above tax line.</div></div>
                                             <div class="form-check form-switch mb-0 mt-1 flex-shrink-0"><input class="form-check-input thermal-switch" type="checkbox" role="switch" id="ThermalShowTaxableAmount"></div>
                                         </div>
                                     </div>
 
-                                    <div class="col-6 thermal-toggle-cell border-end border-bottom">
+                                    <div class="col-6 thermal-toggle-cell border-end border-bottom" id="thermalHSNCell">
                                         <div class="d-flex justify-content-between align-items-start gap-2 p-3">
-                                            <div><div class="thermal-setting-label">Show Item HSN/SAC</div><div class="thermal-setting-desc">Show the HSN/SAC code on the receipt.</div></div>
+                                            <div><div class="thermal-setting-label"><i class="bx bx-barcode me-1 text-secondary"></i>Show Item HSN/SAC</div><div class="thermal-setting-desc">Show the HSN/SAC code on the receipt.</div></div>
                                             <div class="form-check form-switch mb-0 mt-1 flex-shrink-0"><input class="form-check-input thermal-switch" type="checkbox" role="switch" id="ThermalShowHSN" checked></div>
                                         </div>
                                     </div>
-                                    <div class="col-6 thermal-toggle-cell border-bottom">
+                                    <div class="col-6 thermal-toggle-cell border-bottom" id="thermalTaxBreakdownCell">
                                         <div class="d-flex justify-content-between align-items-start gap-2 p-3">
-                                            <div><div class="thermal-setting-label">Tax Breakdown</div><div class="thermal-setting-desc">Show CGST / SGST / IGST split.</div></div>
+                                            <div><div class="thermal-setting-label"><i class="bx bx-pie-chart-alt-2 me-1 text-secondary"></i>Tax Breakdown</div><div class="thermal-setting-desc">Show CGST / SGST / IGST split.</div></div>
                                             <div class="form-check form-switch mb-0 mt-1 flex-shrink-0"><input class="form-check-input thermal-switch" type="checkbox" role="switch" id="ThermalShowTaxBreakdown" checked></div>
                                         </div>
                                     </div>
 
                                     <div class="col-6 thermal-toggle-cell border-end border-bottom">
                                         <div class="d-flex justify-content-between align-items-start gap-2 p-3">
-                                            <div><div class="thermal-setting-label">Show GSTIN</div><div class="thermal-setting-desc">Display company GSTIN on receipt.</div></div>
+                                            <div><div class="thermal-setting-label"><i class="bx bx-id-card me-1 text-secondary"></i>Show GSTIN</div><div class="thermal-setting-desc">Display company GSTIN on receipt.</div></div>
                                             <div class="form-check form-switch mb-0 mt-1 flex-shrink-0"><input class="form-check-input thermal-switch" type="checkbox" role="switch" id="ThermalShowGSTIN" checked></div>
                                         </div>
                                     </div>
                                     <div class="col-6 thermal-toggle-cell border-bottom">
                                         <div class="d-flex justify-content-between align-items-start gap-2 p-3">
-                                            <div><div class="thermal-setting-label">Show Mobile</div><div class="thermal-setting-desc">Display company mobile on receipt.</div></div>
+                                            <div><div class="thermal-setting-label"><i class="bx bx-phone me-1 text-secondary"></i>Show Mobile</div><div class="thermal-setting-desc">Display company mobile on receipt.</div></div>
                                             <div class="form-check form-switch mb-0 mt-1 flex-shrink-0"><input class="form-check-input thermal-switch" type="checkbox" role="switch" id="ThermalShowMobile" checked></div>
                                         </div>
                                     </div>
 
                                     <div class="col-6 thermal-toggle-cell border-end">
                                         <div class="d-flex justify-content-between align-items-start gap-2 p-3">
-                                            <div><div class="thermal-setting-label">Show Cash Received</div><div class="thermal-setting-desc">Display amount received from customer.</div></div>
+                                            <div><div class="thermal-setting-label"><i class="bx bx-money me-1 text-secondary"></i>Show Cash Received</div><div class="thermal-setting-desc">Display amount received from customer.</div></div>
                                             <div class="form-check form-switch mb-0 mt-1 flex-shrink-0"><input class="form-check-input thermal-switch" type="checkbox" role="switch" id="ThermalShowCashReceived" checked></div>
                                         </div>
                                     </div>
                                     <div class="col-6 thermal-toggle-cell">
                                         <div class="d-flex justify-content-between align-items-start gap-2 p-3">
-                                            <div><div class="thermal-setting-label">Company Logo</div><div class="thermal-setting-desc">(B&amp;W recommended) Logo on receipt.</div></div>
+                                            <div><div class="thermal-setting-label"><i class="bx bx-image me-1 text-secondary"></i>Company Logo</div><div class="thermal-setting-desc">(B&amp;W recommended) Logo on receipt.</div></div>
                                             <div class="d-flex align-items-center gap-2 mt-1 flex-shrink-0">
                                                 <div class="form-check form-switch mb-0"><input class="form-check-input thermal-switch" type="checkbox" role="switch" id="ThermalShowLogo"></div>
                                                 <label class="thermal-upload-btn" for="ThermalLogoUpload" title="Upload logo"><i class="bx bx-upload"></i><input type="file" id="ThermalLogoUpload" accept="image/*" class="d-none"></label>
@@ -646,13 +639,13 @@
                                 <div class="row g-0 border-top border-bottom">
                                     <div class="col-6 thermal-toggle-cell border-end">
                                         <div class="d-flex justify-content-between align-items-start gap-2 p-3">
-                                            <div><div class="thermal-setting-label">Google Reviews QR</div><div class="thermal-setting-desc">Print Google Reviews QR for customer feedback.</div></div>
+                                            <div><div class="thermal-setting-label"><i class="bx bxl-google me-1 text-secondary"></i>Google Reviews QR</div><div class="thermal-setting-desc">Print Google Reviews QR for customer feedback.</div></div>
                                             <div class="form-check form-switch mb-0 mt-1 flex-shrink-0"><input class="form-check-input thermal-switch" type="checkbox" role="switch" id="ThermalShowGoogleReviewQR"></div>
                                         </div>
                                     </div>
                                     <div class="col-6 thermal-toggle-cell">
                                         <div class="d-flex justify-content-between align-items-start gap-2 p-3">
-                                            <div><div class="thermal-setting-label">Payment QR</div><div class="thermal-setting-desc">Show UPI/payment QR on thermal printout.</div></div>
+                                            <div><div class="thermal-setting-label"><i class="bx bx-qr me-1 text-secondary"></i>Payment QR</div><div class="thermal-setting-desc">Show UPI/payment QR on thermal printout.</div></div>
                                             <div class="form-check form-switch mb-0 mt-1 flex-shrink-0"><input class="form-check-input thermal-switch" type="checkbox" role="switch" id="ThermalShowPaymentQR" checked></div>
                                         </div>
                                     </div>
@@ -663,11 +656,11 @@
                                 <div class="row g-0 border-top">
                                     <div class="col-3 p-3 border-end">
                                         <label class="form-label small fw-semibold mb-1">Org Name Font Size</label>
-                                        <input type="number" class="form-control form-control-sm text-center" id="ThermalOrgNameFontSize" value="22" min="8" max="40" />
+                                        <input type="number" class="form-control form-control-sm text-center" id="ThermalOrgNameFontSize" value="16" min="8" max="40" />
                                     </div>
                                     <div class="col-3 p-3 border-end">
                                         <label class="form-label small fw-semibold mb-1">Address / Phone / GSTIN Font Size</label>
-                                        <input type="number" class="form-control form-control-sm text-center" id="ThermalCompanyNameFontSize" value="18" min="8" max="40" />
+                                        <input type="number" class="form-control form-control-sm text-center" id="ThermalCompanyNameFontSize" value="14" min="8" max="40" />
                                     </div>
                                     <div class="col-3 p-3 border-end">
                                         <label class="form-label small fw-semibold mb-1">Product Info Font Size</label>
@@ -703,7 +696,6 @@
                         </div><!-- /modal-body -->
 
                         <div class="modal-footer py-3">
-                            <button type="button" class="btn btn-label-secondary" data-bs-dismiss="modal">Cancel</button>
                             <button type="button" class="btn btn-primary" id="saveThermalConfigBtn">
                                 <i class="bx bx-save me-1"></i>Save Config
                             </button>
@@ -999,20 +991,39 @@ window.addEventListener('load', function() {
     });
 
     // ── Thermal Print Config ───────────────────────────────────────────────
-    var thermalUsedTypes = [];
-    var thermalLoaded    = false;
+    var thermalUsedTypes  = [];
+    var thermalAllTypes   = {}; // { ModuleUID: Name } from DB
+    var thermalLoaded     = false;
 
     function escHtml(s) {
         return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     }
+
+    // ── Show/hide payment-irrelevant fields based on ModuleUID ──────────────
+    var PAYMENT_MODULE_UIDS = [110, 111];
+
+    function togglePaymentFields(moduleUID) {
+        var isPayment = PAYMENT_MODULE_UIDS.indexOf(parseInt(moduleUID, 10)) !== -1;
+        $('#thermalItemDescCell, #thermalTaxableAmtCell, #thermalHSNCell, #thermalTaxBreakdownCell')
+            .toggle(!isPayment);
+        if (isPayment) {
+            $('#ThermalShowItemDescription, #ThermalShowTaxableAmount, #ThermalShowHSN, #ThermalShowTaxBreakdown')
+                .prop('checked', false);
+        }
+    }
+
+    $(document).on('change', '#ThermalTransType', function () {
+        togglePaymentFields($(this).val());
+        updateThermalPreview();
+    });
 
     // ── Live preview builder ───────────────────────────────────────────────
     function updateThermalPreview() {
         var transType    = $('#ThermalTransType option:selected').text().trim() || 'Transaction';
         var footerMsg    = $('#ThermalFooterMessage').val().trim() || 'Thank you for your business!';
         var paperWidth   = $('#ThermalPaperWidthSelect').val() || '80mm';
-        var orgFontSize  = Math.max(10, Math.min(28, parseInt($('#ThermalOrgNameFontSize').val()) || 22));
-        var coFontSize   = Math.max(9,  Math.min(22, parseInt($('#ThermalCompanyNameFontSize').val()) || 18));
+        var orgFontSize  = Math.max(10, Math.min(28, parseInt($('#ThermalOrgNameFontSize').val()) || 16));
+        var coFontSize   = Math.max(9,  Math.min(22, parseInt($('#ThermalCompanyNameFontSize').val()) || 14));
         var prodFontSize = Math.max(8,  Math.min(20, parseInt($('#ThermalProductInfoFontSize').val()) || 12));
 
         var showCo       = $('#ThermalShowCompanyDetails').is(':checked');
@@ -1146,9 +1157,15 @@ window.addEventListener('load', function() {
                 CsrfToken = resp.NewCsrfToken || CsrfToken;
                 if (!resp.Error) {
                     thermalUsedTypes = resp.UsedTypes || [];
+                    thermalAllTypes  = resp.TransTypes || {};
                     thermalLoaded    = true;
                     $('#ThermalConfigBody').html(resp.RecordHtmlData);
                     updateAddBtnState();
+                    // Rebuild dropdown options from DB — value = ModuleUID
+                    var $sel = $('#ThermalTransType').empty().append('<option value="">-- Select Transaction Type --</option>');
+                    $.each(thermalAllTypes, function(moduleUID, label) {
+                        $sel.append('<option value="' + moduleUID + '">' + escHtml(label) + '</option>');
+                    });
                     $('[data-bs-toggle="tooltip"]').each(function() {
                         var tt = bootstrap.Tooltip.getInstance(this); if (tt) tt.dispose();
                         new bootstrap.Tooltip(this);
@@ -1159,8 +1176,8 @@ window.addEventListener('load', function() {
     }
 
     function updateAddBtnState() {
-        var allTypes = ['Quotation','Invoice','SalesOrder','PurchaseOrder','Purchase','SalesReturn','PurchaseReturn','CreditNote','DebitNote'];
-        var allUsed  = allTypes.every(function(t) { return thermalUsedTypes.indexOf(t) !== -1; });
+        var allKeys = Object.keys(thermalAllTypes).map(Number);
+        var allUsed = allKeys.length > 0 && allKeys.every(function(uid) { return thermalUsedTypes.indexOf(uid) !== -1; });
         $('#btnAddThermalConfig').prop('disabled', allUsed).attr('title', allUsed ? 'All transaction types are already configured.' : '');
     }
 
@@ -1172,7 +1189,7 @@ window.addEventListener('load', function() {
     $('#btnAddThermalConfig').on('click', function() {
         resetThermalModal();
         $('#ThermalTransType option').each(function() {
-            var v = $(this).val();
+            var v = parseInt($(this).val(), 10);
             if (v && thermalUsedTypes.indexOf(v) !== -1) { $(this).prop('disabled', true); }
             else { $(this).prop('disabled', false); }
         });
@@ -1180,18 +1197,18 @@ window.addEventListener('load', function() {
     });
 
     // ── Edit ───────────────────────────────────────────────────────────────
-    var typeLabels = { Quotation:'Quotation', Invoice:'Invoice', SalesOrder:'Sales Order', PurchaseOrder:'Purchase Order',
-        Purchase:'Purchase', SalesReturn:'Sales Return', PurchaseReturn:'Purchase Return', CreditNote:'Credit Note', DebitNote:'Debit Note' };
+    var typeLabels = thermalAllTypes; // { ModuleUID: Name }
 
     $(document).on('click', '.EditThermalConfig', function() {
         var cfg = $(this).data('config');
         if (!cfg) return;
 
         resetThermalModal();
-        $('#thermalModalSubtitle').text('Editing: ' + (typeLabels[cfg.TransactionType] || cfg.TransactionType));
+        $('#thermalModalSubtitle').text('Editing: ' + (cfg.ModuleName || typeLabels[cfg.ModuleUID] || cfg.ModuleUID));
         $('#HThermalConfigUID').val(cfg.ThermalConfigUID);
-        $('#ThermalTransType').val(cfg.TransactionType).prop('disabled', true);
+        $('#ThermalTransType').val(cfg.ModuleUID).prop('disabled', true);
         $('#thermalTransTypeRow').hide();
+        togglePaymentFields(cfg.ModuleUID);
         $('#ThermalPaperWidthSelect').val(cfg.PaperWidth || '80mm');
         $('#ThermalFooterMessage').val(cfg.FooterMessage || '');
         $('#ThermalShowTerms').prop('checked',           cfg.ShowTerms           == 1);
@@ -1206,26 +1223,25 @@ window.addEventListener('load', function() {
         $('#ThermalShowLogo').prop('checked',            cfg.ShowLogo            == 1);
         $('#ThermalShowGoogleReviewQR').prop('checked',  cfg.ShowGoogleReviewQR  == 1);
         $('#ThermalShowPaymentQR').prop('checked',       cfg.ShowPaymentQR       == 1);
-        $('#ThermalOrgNameFontSize').val(cfg.OrgNameFontSize       || 22);
-        $('#ThermalCompanyNameFontSize').val(cfg.CompanyNameFontSize || 18);
+        $('#ThermalOrgNameFontSize').val(cfg.OrgNameFontSize       || 16);
+        $('#ThermalCompanyNameFontSize').val(cfg.CompanyNameFontSize || 14);
         $('#ThermalProductInfoFontSize').val(cfg.ProductInfoFontSize || 12);
         $('#thermalConfigModal').modal('show');
     });
 
     // ── Save ───────────────────────────────────────────────────────────────
     $('#saveThermalConfigBtn').on('click', function() {
-        var $btn = $(this), configUID = parseInt($('#HThermalConfigUID').val()) || 0, transType = $('#ThermalTransType').val();
-        if (!configUID && !transType) {
-            $('.thermalFormAlert .alert-message').text('Please select a transaction type.');
-            $('.thermalFormAlert').removeClass('d-none'); return;
+        var $btn = $(this), configUID = parseInt($('#HThermalConfigUID').val()) || 0, moduleUID = parseInt($('#ThermalTransType').val()) || 0;
+        if (!configUID && !moduleUID) {
+            showToastNotification('Please select a transaction type.', 'error');
+            return;
         }
         $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
-        $('.thermalFormAlert').addClass('d-none');
         $.ajax({
             url: '/settings/saveThermalConfig', method: 'POST',
             data: {
                 ThermalConfigUID    : configUID,
-                TransactionType     : transType,
+                ModuleUID           : moduleUID,
                 PaperWidth          : $('#ThermalPaperWidthSelect').val() || '80mm',
                 FooterMessage       : $('#ThermalFooterMessage').val(),
                 ShowTerms           : $('#ThermalShowTerms').is(':checked')           ? 1 : 0,
@@ -1240,8 +1256,8 @@ window.addEventListener('load', function() {
                 ShowLogo            : $('#ThermalShowLogo').is(':checked')            ? 1 : 0,
                 ShowGoogleReviewQR  : $('#ThermalShowGoogleReviewQR').is(':checked')  ? 1 : 0,
                 ShowPaymentQR       : $('#ThermalShowPaymentQR').is(':checked')       ? 1 : 0,
-                OrgNameFontSize     : $('#ThermalOrgNameFontSize').val()     || 22,
-                CompanyNameFontSize : $('#ThermalCompanyNameFontSize').val() || 18,
+                OrgNameFontSize     : $('#ThermalOrgNameFontSize').val()     || 16,
+                CompanyNameFontSize : $('#ThermalCompanyNameFontSize').val() || 14,
                 ProductInfoFontSize : $('#ThermalProductInfoFontSize').val() || 12,
                 [CsrfName]          : CsrfToken,
             },
@@ -1249,17 +1265,24 @@ window.addEventListener('load', function() {
                 CsrfToken = resp.NewCsrfToken || CsrfToken;
                 $btn.prop('disabled', false).html('<i class="bx bx-save me-1"></i>Save Config');
                 if (resp.Error) {
-                    $('.thermalFormAlert .alert-message').text(resp.Message);
-                    $('.thermalFormAlert').removeClass('d-none');
+                    showToastNotification(resp.Message, 'error');
                 } else {
                     $('#thermalConfigModal').modal('hide');
-                    thermalLoaded = false; loadThermalConfigList();
-                    Swal.fire({ icon:'success', title:'Saved', text:resp.Message, timer:1500, showConfirmButton:false });
+                    thermalUsedTypes = resp.UsedTypes || [];
+                    thermalAllTypes  = resp.TransTypes || thermalAllTypes;
+                    thermalLoaded    = true;
+                    $('#ThermalConfigBody').html(resp.RecordHtmlData);
+                    updateAddBtnState();
+                    var $sel = $('#ThermalTransType').empty().append('<option value="">-- Select Transaction Type --</option>');
+                    $.each(thermalAllTypes, function(moduleUID, label) {
+                        $sel.append('<option value="' + moduleUID + '">' + escHtml(label) + '</option>');
+                    });
+                    showToastNotification(resp.Message, 'success');
                 }
             },
             error: function() {
                 $btn.prop('disabled', false).html('<i class="bx bx-save me-1"></i>Save Config');
-                Swal.fire({ icon:'error', text:'Server error. Please try again.' });
+                showToastNotification('Server error. Please try again.', 'error');
             }
         });
     });
@@ -1292,14 +1315,15 @@ window.addEventListener('load', function() {
         $('#HThermalConfigUID').val('0');
         $('#ThermalTransType').val('').prop('disabled', false);
         $('#thermalTransTypeRow').show();
-        $('#thermalModalTitle').text('Thermal Print Settings');
+        togglePaymentFields(0);
+        $('#thermalModalTitle').html('<i class="bx bx-printer me-2 text-primary"></i>Thermal Print Settings');
         $('#thermalModalSubtitle').text('Add a new configuration');
         $('#ThermalPaperWidthSelect').val('80mm');
         $('#ThermalFooterMessage').val('');
         $('#ThermalShowTerms,#ThermalShowItemDescription,#ThermalShowTaxableAmount,#ThermalShowLogo,#ThermalShowGoogleReviewQR').prop('checked', false);
         $('#ThermalShowCompanyDetails,#ThermalShowHSN,#ThermalShowTaxBreakdown,#ThermalShowGSTIN,#ThermalShowMobile,#ThermalShowCashReceived,#ThermalShowPaymentQR').prop('checked', true);
-        $('#ThermalOrgNameFontSize').val(22);
-        $('#ThermalCompanyNameFontSize').val(18);
+        $('#ThermalOrgNameFontSize').val(16);
+        $('#ThermalCompanyNameFontSize').val(14);
         $('#ThermalProductInfoFontSize').val(12);
         $('.thermalFormAlert').addClass('d-none');
         updateThermalPreview();

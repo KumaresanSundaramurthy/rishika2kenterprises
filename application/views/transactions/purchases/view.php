@@ -1,6 +1,5 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
-
-<?php $this->load->view('common/transactions/header'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed');
+$this->load->view('common/transactions/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
     <div class="layout-container">
@@ -472,11 +471,6 @@ function _buildA4Html(resp, size, forPrint) {
         (h.TermsConditions ? '<p style="font-size:11px;color:#666"><strong>Terms & Conditions:</strong> ' + _esc(h.TermsConditions) + '</p>' : '') +
     '</div></body></html>';
     return forPrint ? html : '<iframe srcdoc="' + html.replace(/"/g, '&quot;') + '" style="width:100%;height:100%;border:0;min-height:75vh"></iframe>';
-}
-
-function _esc(v) {
-    if (v === null || v === undefined) return '—';
-    return $('<span>').text(String(v)).html();
 }
 
 // ── Record Payment Modal ──────────────────────────────────────────

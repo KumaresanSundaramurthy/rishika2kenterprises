@@ -55,10 +55,16 @@ $('#thermalPrintBtn').on('click', function () {
 });
 
 // ── Helpers ───────────────────────────────────────────────────────────────
-
 function _esc(v) {
-    if (v === null || v === undefined) return '—';
+    if (v === null || v === undefined) return '';
     return $('<span>').text(String(v)).html();
+}
+
+function _resolveLogoUrl(logo) {
+    if (!logo) return '';
+    if (/^https?:\/\//i.test(logo)) return logo;
+    var cdn = (typeof CDN_URL !== 'undefined' && CDN_URL) ? CDN_URL : '';
+    return cdn + logo;
 }
 
 function _stripHtml(v) {
@@ -106,8 +112,9 @@ function _buildThermalHtml(resp, type) {
     var html   = '';
 
     // Logo
-    if (showLogo) {
-        html += '<div style="text-align:center;margin-bottom:4px;"><img src="/images/logo/favicon_io/android-chrome-512x512-1.png" width="60px" height="60px" alt="Logo" /></div>';
+    if (showLogo && org.Logo) {
+        var logoUrl = _resolveLogoUrl(org.Logo);
+        html += '<div style="text-align:center;margin-bottom:4px;"><img src="' + _esc(logoUrl) + '" style="max-width:80px;max-height:60px;object-fit:contain;" alt="Logo" /></div>';
     }
 
     // Org name

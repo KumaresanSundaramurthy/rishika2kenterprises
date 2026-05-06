@@ -154,6 +154,105 @@ $rpDateId      = $rpDateId      ?? 'rpInvDate';
     </div>
 </div>
 
+<!-- ── Shared Payment Detail Modal ─────────────────────────────── -->
+<!--
+  Theme is driven by data-pdt-theme on the modal:
+    data-pdt-theme="in"  → blue  (payments received)
+    data-pdt-theme="out" → orange (payments out)
+  Set by calling view before loading this partial.
+-->
+<?php
+$pdtTheme       = $pdtTheme       ?? 'in';
+$pdtPartyLabel  = $pdtPartyLabel  ?? 'Party';
+$pdtLinkedLabel = $pdtLinkedLabel ?? 'Linked Document';
+?>
+<div class="modal fade" id="paymentDetailModal" tabindex="-1" aria-hidden="true"
+     data-pdt-theme="<?php echo htmlspecialchars($pdtTheme); ?>">
+    <div class="modal-dialog modal-dialog-centered pdt-dialog">
+        <div class="modal-content border-0 shadow position-relative">
+
+            <button type="button" class="btn-close pdt-close-btn" data-bs-dismiss="modal" aria-label="Close"></button>
+
+            <!-- Banner -->
+            <div class="pdt-banner">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="pdt-banner-icon">
+                        <i class="pdt-banner-icon-el bx <?php echo $pdtTheme === 'out' ? 'bx-money-withdraw' : 'bx-receipt'; ?> fs-4"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="fw-bold text-dark pdt-title" id="pdUniqueNumber">—</div>
+                        <div class="text-muted pdt-date" id="pdDateLabel">—</div>
+                    </div>
+                    <div class="text-end">
+                        <div class="fw-bold pdt-amount" id="pdAmount">—</div>
+                        <div id="pdModeBadge" class="mt-1"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-body px-4 py-3">
+
+                <!-- Party + Linked doc -->
+                <div class="pdt-section">
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <div class="pdt-label"><?php echo htmlspecialchars($pdtPartyLabel); ?></div>
+                            <div class="fw-semibold pdt-value" id="pdParty">—</div>
+                            <div class="pdt-sub" id="pdPartyMobile"></div>
+                        </div>
+                        <div class="col-6">
+                            <div class="pdt-label"><?php echo htmlspecialchars($pdtLinkedLabel); ?></div>
+                            <div class="fw-semibold text-primary pdt-value" id="pdTransNumber">—</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bank Details -->
+                <div id="pdBankSection" class="pdt-section" style="display:none;">
+                    <div class="pdt-label mb-2">
+                        <i class="bx bx-building-house me-1"></i>Bank Details
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-7">
+                            <div class="pdt-sub">Bank / Account Name</div>
+                            <div class="fw-semibold pdt-value" id="pdBankName">—</div>
+                        </div>
+                        <div class="col-5">
+                            <div class="pdt-sub">Account Number</div>
+                            <div class="fw-semibold pdt-value pdt-mono" id="pdAccountNumber">—</div>
+                        </div>
+                        <div class="col-6" id="pdIfscWrap" style="display:none;">
+                            <div class="pdt-sub">IFSC</div>
+                            <div class="fw-semibold pdt-value" id="pdIfsc">—</div>
+                        </div>
+                        <div class="col-6" id="pdBranchWrap" style="display:none;">
+                            <div class="pdt-sub">Branch</div>
+                            <div class="fw-semibold pdt-value" id="pdBranch">—</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reference / By / Notes -->
+                <div class="row g-3">
+                    <div class="col-6">
+                        <div class="pdt-label">Reference No</div>
+                        <div class="pdt-value" id="pdReference">—</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="pdt-label">Recorded By</div>
+                        <div class="pdt-value" id="pdCreatedBy">—</div>
+                    </div>
+                    <div class="col-12" id="pdNotesWrap" style="display:none;">
+                        <div class="pdt-label">Notes</div>
+                        <div class="pdt-notes" id="pdNotes"></div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Payment Details Panel -->
 <div id="payDetailPanel" class="pay-detail-panel">
     <div class="pay-detail-panel__header">

@@ -1,6 +1,5 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
-
-<?php $this->load->view('common/transactions/header'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed');
+$this->load->view('common/transactions/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
     <div class="layout-container">
@@ -208,6 +207,7 @@
 
 <?php $this->load->view('common/transactions/footer'); ?>
 
+<script src="/js/transactions/attachments.js"></script>
 <script src="/js/transactions/viewmodal.js"></script>
 <script src="/js/transactions/a4_print.js"></script>
 <script src="/js/transactions/invoices.js"></script>
@@ -384,13 +384,6 @@ function _buildInvDetailHtml(resp) {
         typeBg      : '#e8f0fe',
         hasPayments : true,
     });
-}
-
-
-
-function _esc(v) {
-    if (v === null || v === undefined) return '—';
-    return $('<span>').text(String(v)).html();
 }
 
 // ── Record Payment Modal ──────────────────────────────────────────
@@ -611,26 +604,6 @@ $(document).on('click', '.invAttachBtn', function () {
     });
 });
 
-function _openAttachPreview(encUrl, type, name) {
-    var url = decodeURIComponent(encUrl);
-    var safeName = $('<span>').text(name).html();
-    $('#attachPreviewTitle').text(name || 'Preview');
-    var body = '';
-    if (type === 'img') {
-        body = '<div class="text-center p-3"><img src="' + $('<span>').text(url).html() + '" class="img-fluid rounded" style="max-height:70vh;" alt="' + safeName + '"></div>';
-    } else if (type === 'pdf') {
-        body = '<iframe src="' + $('<span>').text(url).html() + '" style="width:100%;height:70vh;border:none;"></iframe>';
-    } else {
-        body = '<div class="text-center py-5">' +
-            '<i class="bx bx-file-blank text-secondary" style="font-size:4rem;display:block;margin-bottom:12px;"></i>' +
-            '<div style="font-size:.9rem;font-weight:600;margin-bottom:16px;">' + safeName + '</div>' +
-            '<button class="btn btn-primary px-4" onclick="(function(u,n){var a=document.createElement(\'a\');a.href=u;a.download=n;a.style.display=\'none\';document.body.appendChild(a);a.click();document.body.removeChild(a);})(decodeURIComponent(\'' + encUrl + '\'),\'' + safeName.replace(/'/g, "\\'") + '\'))"><i class="bx bx-download me-2"></i>Download File</button>' +
-            '</div>';
-    }
-    $('#attachPreviewBody').html(body);
-    var previewModal = new bootstrap.Modal(document.getElementById('attachPreviewModal'));
-    previewModal.show();
-}
 
 </script>
 
@@ -661,20 +634,4 @@ function _openAttachPreview(encUrl, type, name) {
     </div>
 </div>
 
-<!-- ── Attachment Preview Modal ──────────────────────────────────── -->
-<div class="modal fade" id="attachPreviewModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header py-2 px-3">
-                <h6 class="modal-title d-flex align-items-center gap-2 mb-0" style="font-size:.88rem;font-weight:700;max-width:90%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-                    <i class="bx bx-file text-primary"></i>
-                    <span id="attachPreviewTitle">Preview</span>
-                </h6>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body p-0" id="attachPreviewBody" style="min-height:200px;background:#1a1a2e;">
-                <div class="text-center py-5"><span class="spinner-border text-light"></span></div>
-            </div>
-        </div>
-    </div>
-</div>
+

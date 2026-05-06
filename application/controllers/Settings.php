@@ -5,18 +5,16 @@ class Settings extends CI_Controller {
     public  $pageData = [];
     private $EndReturnData;
 
-    /** All supported transaction types for thermal print config */
-    public static $THERMAL_TRANS_TYPES = [
-        'Quotation'      => 'Quotation',
-        'Invoice'        => 'Invoice',
-        'SalesOrder'     => 'Sales Order',
-        'PurchaseOrder'  => 'Purchase Order',
-        'Purchase'       => 'Purchase',
-        'SalesReturn'    => 'Sales Return',
-        'PurchaseReturn' => 'Purchase Return',
-        'CreditNote'     => 'Credit Note',
-        'DebitNote'      => 'Debit Note',
-    ];
+    /** Returns [ModuleUID => Name] map from Modules.ModuleTbl where IsThermalPrint = 1 */
+    private function getThermalTransTypes() {
+        $this->load->model('organisation_model');
+        $result = $this->organisation_model->getThermalPrintModules();
+        $types  = [];
+        foreach ($result->Data ?? [] as $row) {
+            $types[(int)$row->ModuleUID] = $row->Name;
+        }
+        return $types;
+    }
 
     public function __construct() {
         parent::__construct();
@@ -28,7 +26,8 @@ class Settings extends CI_Controller {
         try {
             $this->load->model('organisation_model');
             $orgUID = $this->pageData['JwtData']->User->OrgUID;
-            $this->pageData['OrgPreviewData'] = $this->organisation_model->getOrgForReceipt($orgUID)->Data;
+            $this->pageData['OrgPreviewData']     = $this->organisation_model->getOrgForReceipt($orgUID)->Data;
+            $this->pageData['ThermalTypeCount']   = count($this->getThermalTransTypes());
             $this->load->view('settings/generalsettings/view', $this->pageData);
         } catch (Exception $e) {
             redirect('dashboard', 'refresh');
@@ -48,19 +47,21 @@ class Settings extends CI_Controller {
             $this->load->model('organisation_model');
             $result = $this->organisation_model->getThermalPrintConfigList($orgUID);
             $rows   = $result->Error === FALSE ? $result->Data : [];
+            $transTypes = $this->getThermalTransTypes();
 
             $rowHtml = $this->load->view('settings/thermalconfig/list', [
                 'DataLists'    => $rows,
-                'TransTypes'   => self::$THERMAL_TRANS_TYPES,
+                'TransTypes'   => $transTypes,
                 'JwtData'      => $this->pageData['JwtData'],
             ], TRUE);
 
-            $usedTypes = array_map(fn($r) => $r->TransactionType, $rows);
+            $usedTypes = array_map(fn($r) => (int)$r->ModuleUID, $rows);
 
             $this->EndReturnData->Error          = FALSE;
             $this->EndReturnData->RecordHtmlData = $rowHtml;
             $this->EndReturnData->UsedTypes      = $usedTypes;
             $this->EndReturnData->TotalCount     = count($rows);
+            $this->EndReturnData->TransTypes     = $transTypes;
 
         } catch (Exception $e) {
             $this->EndReturnData->Error   = TRUE;
@@ -80,32 +81,40 @@ class Settings extends CI_Controller {
             $PostData    = $this->input->post();
             $orgUID      = $this->pageData['JwtData']->User->OrgUID;
             $userUID     = $this->pageData['JwtData']->User->UserUID;
-            $configUID   = (int) getPostValue($PostData, 'ThermalConfigUID');
-            $transType   = trim(getPostValue($PostData, 'TransactionType') ?: '');
+            $configUID = (int) getPostValue($PostData, 'ThermalConfigUID');
+            $moduleUID = (int) getPostValue($PostData, 'ModuleUID');
 
-            if (!array_key_exists($transType, self::$THERMAL_TRANS_TYPES)) {
-                throw new Exception('Invalid transaction type.');
+            if (!array_key_exists($moduleUID, $this->getThermalTransTypes())) {
+                throw new Exception('Invalid module / transaction type.');
             }
 
-            $paperWidth = in_array(getPostValue($PostData, 'PaperWidth'), ['58mm', '80mm'])
-                            ? getPostValue($PostData, 'PaperWidth') : '80mm';
-            $orgSize    = max(8, min(40, (int)(getPostValue($PostData, 'OrgNameFontSize') ?: 22)));
-            $coSize     = max(8, min(40, (int)(getPostValue($PostData, 'CompanyNameFontSize') ?: 18)));
+            // Duplicate check — only one config per module per org
+            if ($configUID <= 0) {
+                $this->load->model('organisation_model');
+                $existing = $this->organisation_model->getThermalPrintConfigByModule($orgUID, $moduleUID);
+                if (!empty($existing->Data)) {
+                    $typeName = $this->getThermalTransTypes()[$moduleUID] ?? $moduleUID;
+                    throw new Exception('A thermal config for "' . $typeName . '" already exists. Please edit it instead.');
+                }
+            }
+
+            $paperWidth = in_array(getPostValue($PostData, 'PaperWidth'), ['58mm', '80mm']) ? getPostValue($PostData, 'PaperWidth') : '80mm';
+            $orgSize    = max(8, min(40, (int)(getPostValue($PostData, 'OrgNameFontSize') ?: 16)));
+            $coSize     = max(8, min(40, (int)(getPostValue($PostData, 'CompanyNameFontSize') ?: 14)));
             $prodSize   = max(8, min(40, (int)(getPostValue($PostData, 'ProductInfoFontSize') ?: 12)));
 
             $configData = [
                 // Printer
                 'PaperWidth'            => $paperWidth,
-                // Header / Footer
-                'HeaderMessage'         => NULL,
+                // Footer
                 'FooterMessage'         => substr(getPostValue($PostData, 'FooterMessage') ?: '', 0, 500) ?: NULL,
                 // Receipt Elements
                 'ShowTerms'             => (int)(bool)getPostValue($PostData, 'ShowTerms'),
                 'ShowCompanyDetails'    => (int)(bool)getPostValue($PostData, 'ShowCompanyDetails'),
-                'ShowItemDescription'   => (int)(bool)getPostValue($PostData, 'ShowItemDescription'),
-                'ShowTaxableAmount'     => (int)(bool)getPostValue($PostData, 'ShowTaxableAmount'),
-                'ShowHSN'               => (int)(bool)getPostValue($PostData, 'ShowHSN'),
-                'ShowTaxBreakdown'      => (int)(bool)getPostValue($PostData, 'ShowTaxBreakdown'),
+                'ShowItemDescription'   => in_array($moduleUID, [110, 111]) ? 0 : (int)(bool)getPostValue($PostData, 'ShowItemDescription'),
+                'ShowTaxableAmount'     => in_array($moduleUID, [110, 111]) ? 0 : (int)(bool)getPostValue($PostData, 'ShowTaxableAmount'),
+                'ShowHSN'               => in_array($moduleUID, [110, 111]) ? 0 : (int)(bool)getPostValue($PostData, 'ShowHSN'),
+                'ShowTaxBreakdown'      => in_array($moduleUID, [110, 111]) ? 0 : (int)(bool)getPostValue($PostData, 'ShowTaxBreakdown'),
                 'ShowGSTIN'             => (int)(bool)getPostValue($PostData, 'ShowGSTIN'),
                 'ShowMobile'            => (int)(bool)getPostValue($PostData, 'ShowMobile'),
                 'ShowCashReceived'      => (int)(bool)getPostValue($PostData, 'ShowCashReceived'),
@@ -124,23 +133,34 @@ class Settings extends CI_Controller {
 
             if ($configUID > 0) {
                 // Update existing row
-                $this->dbwrite_model->updateData(
-                    'Organisation', 'ThermalPrintConfigTbl', $configData,
-                    ['ThermalConfigUID' => $configUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
-                );
+                $this->dbwrite_model->updateData('Organisation', 'ThermalPrintConfigTbl', $configData, ['ThermalConfigUID' => $configUID, 'OrgUID' => $orgUID,'IsDeleted' => 0]);
                 $this->EndReturnData->Message = 'Thermal print config updated.';
             } else {
-                // Insert new row — enforce no duplicate per type
+                // Insert new row
                 $configData['OrgUID']           = $orgUID;
-                $configData['TransactionType']  = $transType;
-                $configData['CreatedBy']        = $userUID;
-                $configData['IsActive']         = 1;
-                $configData['IsDeleted']        = 0;
-                $this->dbwrite_model->insertData('Organisation', 'ThermalPrintConfigTbl', $configData);
+                $configData['ModuleUID']         = $moduleUID;
+                $configData['TransactionType']   = $this->getThermalTransTypes()[$moduleUID] ?? 'Unknown';
+                $configData['CreatedBy']         = $userUID;
+                $configData['IsActive']          = 1;
+                $configData['IsDeleted']         = 0;
+                $resp = $this->dbwrite_model->insertData('Organisation', 'ThermalPrintConfigTbl', $configData);
                 $this->EndReturnData->Message = 'Thermal print config saved.';
             }
 
-            $this->EndReturnData->Error = FALSE;
+            // Return updated list inline — no second AJAX call needed
+            $updatedRows = $this->organisation_model->getThermalPrintConfigList($orgUID);
+            $updatedData = $updatedRows->Error === FALSE ? $updatedRows->Data : [];
+            $transTypes  = $this->getThermalTransTypes();
+
+            $this->EndReturnData->Error          = FALSE;
+            $this->EndReturnData->RecordHtmlData = $this->load->view('settings/thermalconfig/list', [
+                'DataLists'  => $updatedData,
+                'TransTypes' => $transTypes,
+                'JwtData'    => $this->pageData['JwtData'],
+            ], TRUE);
+            $this->EndReturnData->UsedTypes  = array_map(fn($r) => (int)$r->ModuleUID, $updatedData);
+            $this->EndReturnData->TransTypes = $transTypes;
+            $this->EndReturnData->TotalCount = count($updatedData);
 
         } catch (Exception $e) {
             $this->EndReturnData->Error   = TRUE;

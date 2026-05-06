@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
 <?php $this->load->view('common/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -180,103 +180,30 @@
             </div>
         </div>
 
+        <?php $this->load->view('common/transactions/print_modals'); ?>
+
     </div>
 </div>
 
-<!-- ── Payment Detail Modal ──────────────────────────────────── -->
-<div class="modal fade" id="paymentDetailModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" style="max-width:540px;">
-        <div class="modal-content border-0 shadow position-relative">
-
-            <!-- Close -->
-            <button type="button" class="btn-close position-absolute top-0 end-0 m-3 z-3" data-bs-dismiss="modal"
-                    style="background-color:#fff;border-radius:50%;padding:8px;box-shadow:0 2px 6px rgba(0,0,0,.15);"></button>
-
-            <!-- Banner -->
-            <div style="background:#e8f0fe;border-left:4px solid #0d6efd;border-radius:8px 8px 0 0;padding:16px 20px 14px;">
-                <div class="d-flex align-items-center gap-3">
-                    <div style="width:44px;height:44px;border-radius:10px;background:rgba(13,110,253,.12);display:flex;align-items:center;justify-content:center;">
-                        <i class="bx bx-receipt fs-4 text-primary"></i>
-                    </div>
-                    <div class="flex-grow-1">
-                        <div class="fw-bold text-dark" style="font-size:1rem;" id="pdUniqueNumber">—</div>
-                        <div class="text-muted" style="font-size:.78rem;" id="pdDateLabel">—</div>
-                    </div>
-                    <div class="text-end">
-                        <div class="fw-bold text-primary" style="font-size:1.2rem;" id="pdAmount">—</div>
-                        <div id="pdModeBadge" class="mt-1"></div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="modal-body px-4 py-3">
-
-                <!-- Party + Transaction -->
-                <div style="background:#f8f9fa;border-radius:8px;padding:12px 14px;margin-bottom:12px;">
-                    <div class="row g-2">
-                        <div class="col-6">
-                            <div class="text-muted" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;font-weight:600;">Party</div>
-                            <div class="fw-semibold" style="font-size:.85rem;" id="pdParty">—</div>
-                            <div class="text-muted" style="font-size:.72rem;" id="pdPartyMobile"></div>
-                        </div>
-                        <div class="col-6">
-                            <div class="text-muted" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;font-weight:600;">Linked Document</div>
-                            <div class="fw-semibold text-primary" style="font-size:.85rem;" id="pdTransNumber">—</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Bank Details (hidden when cash) -->
-                <div id="pdBankSection" style="display:none;background:#f8f9fa;border-radius:8px;padding:12px 14px;margin-bottom:12px;">
-                    <div class="text-muted mb-2" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;font-weight:600;">
-                        <i class="bx bx-building-house me-1"></i>Bank Details
-                    </div>
-                    <div class="row g-2">
-                        <div class="col-7">
-                            <div class="text-muted" style="font-size:.7rem;">Bank / Account Name</div>
-                            <div class="fw-semibold" style="font-size:.82rem;" id="pdBankName">—</div>
-                        </div>
-                        <div class="col-5">
-                            <div class="text-muted" style="font-size:.7rem;">Account Number</div>
-                            <div class="fw-semibold" style="font-size:.82rem;font-family:monospace;" id="pdAccountNumber">—</div>
-                        </div>
-                        <div class="col-6" id="pdIfscWrap" style="display:none;">
-                            <div class="text-muted" style="font-size:.7rem;">IFSC</div>
-                            <div class="fw-semibold" style="font-size:.82rem;" id="pdIfsc">—</div>
-                        </div>
-                        <div class="col-6" id="pdBranchWrap" style="display:none;">
-                            <div class="text-muted" style="font-size:.7rem;">Branch</div>
-                            <div class="fw-semibold" style="font-size:.82rem;" id="pdBranch">—</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Reference / Created By / Notes -->
-                <div class="row g-3">
-                    <div class="col-6">
-                        <div class="text-muted" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;font-weight:600;">Reference No</div>
-                        <div style="font-size:.85rem;" id="pdReference">—</div>
-                    </div>
-                    <div class="col-6">
-                        <div class="text-muted" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;font-weight:600;">Recorded By</div>
-                        <div style="font-size:.85rem;" id="pdCreatedBy">—</div>
-                    </div>
-                    <div class="col-12" id="pdNotesWrap" style="display:none;">
-                        <div class="text-muted" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;font-weight:600;">Notes</div>
-                        <div style="font-size:.85rem;color:#444;" id="pdNotes"></div>
-                    </div>
-                </div>
-
-            </div><!-- /modal-body -->
-        </div>
-    </div>
-</div>
+<?php
+$pdtTheme       = 'in';
+$pdtPartyLabel  = 'Party';
+$pdtLinkedLabel = 'Linked Document';
+$this->load->view('common/transactions/payment_modal');
+?>
 
 <?php $this->load->view('common/footer'); ?>
 
+<link rel="stylesheet" href="/assets/vendor/css/transactions.css">
+<link rel="stylesheet" href="/css/transactions-theme.css">
 <script type="text/javascript" src="/js/common/datefilter.js"></script>
+<script type="text/javascript" src="/js/transactions/attachments.js"></script>
+<script type="text/javascript" src="/js/transactions/viewmodal.js"></script>
+<script type="text/javascript" src="/js/transactions/a4_print.js"></script>
+<script type="text/javascript" src="/js/transactions/thermal_print.js"></script>
 
 <script>
+$('#viewTransEditBtn').data('hide-edit', true);
 const PmtModuleId = <?php echo (int) $JwtData->ModuleUID; ?>;
 var PmtFilter  = {};
 var PmtPageNo  = 1;
@@ -360,6 +287,83 @@ $(function () {
         $('.pmt-tab[data-tab="Success"]').addClass('active');
         PmtPageNo = 1;
         getPaymentsDetails(1);
+    });
+
+    // ── Payment A4 Print ─────────────────────────────────────────────────────
+    $(document).on('click', '.pmtA4Print', function () {
+        var paymentUID = $(this).data('payment-uid');
+        _pmtLoadPrintData(paymentUID, function (resp) {
+            _a4Html  = resp.PrintHtml;
+            _a4Title = resp.Payment.UniqueNumber || ('PMT-' + paymentUID);
+            _a4DownloadUid       = paymentUID;
+            _a4DownloadModuleUID = 0;
+            $('#a4ModalTitle').text('Payment Receipt — ' + _a4Title);
+            _a4SetLoading(false);
+            _a4ShowPreview();
+        });
+        _a4Html = null;
+        $('#a4PrintModal').modal('show');
+        _a4SetLoading(true);
+    });
+
+    // ── Payment Download PDF (direct) ────────────────────────────────────────
+    $(document).on('click', '.pmtDownloadPdf', function () {
+        var paymentUID = $(this).data('payment-uid');
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/payments/downloadPaymentPdf';
+        form.style.display = 'none';
+        var fields = { PaymentUID: paymentUID, PaperSize: 'A4', [CsrfName]: CsrfToken };
+        Object.keys(fields).forEach(function (k) {
+            var inp = document.createElement('input');
+            inp.type = 'hidden'; inp.name = k; inp.value = fields[k];
+            form.appendChild(inp);
+        });
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
+    });
+
+    // Override download button for payments (POST to payments/downloadPaymentPdf)
+    $('#a4DownloadBtn').off('click.pmt').on('click.pmt', function () {
+        if (!_a4Html || !_a4DownloadUid) return;
+        var size = $('input[name="a4PaperSize"]:checked').val() || 'A4';
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/payments/downloadPaymentPdf';
+        form.style.display = 'none';
+        var fields = { PaymentUID: _a4DownloadUid, PaperSize: size, [CsrfName]: CsrfToken };
+        Object.keys(fields).forEach(function (k) {
+            var inp = document.createElement('input');
+            inp.type = 'hidden'; inp.name = k; inp.value = fields[k];
+            form.appendChild(inp);
+        });
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
+    });
+
+    // ── Payment Thermal Print ────────────────────────────────────────────────
+    $(document).on('click', '.pmtThermalPrint', function () {
+        var paymentUID = $(this).data('payment-uid');
+        $('#thermalPrintBtn').addClass('d-none');
+        $('#thermalPrintBody').html('<div class="d-flex justify-content-center py-5"><div class="spinner-border text-primary"></div></div>');
+        new bootstrap.Modal(document.getElementById('thermalPrintModal')).show();
+        _pmtLoadPrintData(paymentUID, function (resp) {
+            $('#thermalPrintBody').html(_buildPmtThermalHtml(resp, 0));
+            $('#thermalPrintBtn').off('click.pmt').on('click.pmt', function () {
+                var html = _buildPmtThermalHtml(resp, 1);
+                var cfg  = resp.ThermalConfig || {};
+                var pw   = cfg.PaperWidth || '80mm';
+                var win  = window.open('', '_blank', 'width=400,height=600');
+                win.document.write('<!DOCTYPE html><html><head><title>Payment Receipt</title><style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:Arial,sans-serif;font-size:12px;width:' + pw + ';padding:4px;}.tp-hr{border:none;border-top:1px dashed #000;margin:4px 0;}@media print{@page{margin:0;size:' + pw + ' auto;}body{width:' + pw + ';padding:0 4px 20px 4px;}}</style></head><body>' + html + '</body></html>');
+                win.document.close();
+                win.focus();
+                win.addEventListener('afterprint', function () { win.close(); });
+                setTimeout(function () { win.print(); }, 300);
+            });
+            $('#thermalPrintBtn').removeClass('d-none');
+        });
     });
 
     // View payment detail — reads from data-* on the <tr>, zero AJAX
@@ -476,6 +480,108 @@ function getPaymentsDetails(pageNo, append) {
             }
         }
     });
+}
+
+// ── Shared payment print helpers ─────────────────────────────────────────────────────
+function _pmtLoadPrintData(paymentUID, cb) {
+    $.ajax({
+        url   : '/payments/getPaymentPrintDetail',
+        method: 'GET',
+        data  : { PaymentUID: paymentUID },
+        success: function (resp) {
+            AjaxLoading = 1;
+            if (resp.Error) {
+                Swal.fire({ icon: 'error', text: resp.Message });
+                return;
+            }
+            cb(resp);
+        },
+        error: function () {
+            AjaxLoading = 1;
+            Swal.fire({ icon: 'error', text: 'Failed to load payment data.' });
+        }
+    });
+    AjaxLoading = 0;
+}
+
+function _buildPmtThermalHtml(resp, forPrint) {
+    var p   = resp.Payment       || {};
+    var org = resp.OrgInfo       || {};
+    var cfg = resp.ThermalConfig || {};
+    var sym = (typeof genSettings !== 'undefined' && genSettings.CurrenySymbol) ? genSettings.CurrenySymbol : '₹';
+
+    var fmtAmt  = function (v) { return sym + ' ' + parseFloat(v || 0).toFixed(2); };
+    var fmtDate = function (v) {
+        if (!v) return '—';
+        var d = new Date(v);
+        return isNaN(d) ? v : ('0' + d.getDate()).slice(-2) + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + d.getFullYear();
+    };
+
+    // ── Same cfg flags as _buildThermalHtml ──────────────────────────────
+    var showLogo   = cfg.ShowLogo             !== undefined ? parseInt(cfg.ShowLogo)           : 0;
+    var showCo     = cfg.ShowCompanyDetails   !== undefined ? parseInt(cfg.ShowCompanyDetails) : 1;
+    var showMobile = cfg.ShowMobile           !== undefined ? parseInt(cfg.ShowMobile)         : 1;
+    var showGSTIN  = cfg.ShowGSTIN            !== undefined ? parseInt(cfg.ShowGSTIN)          : 1;
+
+    var orgFontSize  = Math.max(10, Math.min(40, parseInt(cfg.OrgNameFontSize)     || 22));
+    var coFontSize   = Math.max(8,  Math.min(40, parseInt(cfg.CompanyNameFontSize) || 18));
+    var prodFontSize = Math.max(8,  Math.min(40, parseInt(cfg.ProductInfoFontSize) || 12));
+
+    var line1  = org.BrandName || org.Name || '';
+    var line3  = [org.Line1, org.Line2, org.CityText, org.StateText, org.Pincode].filter(Boolean).join(', ');
+    var footer = cfg.FooterMessage || 'Thank you for your business!';
+
+    var direction  = (p.PartyType === 'C') ? 'Payment Received' : 'Payment Made';
+    var partyLabel = (p.PartyType === 'C') ? 'Customer'         : 'Vendor';
+
+    var html = '';
+
+    // Logo
+    if (showLogo && org.Logo) {
+        var logoUrl = (/^https?:\/\//i.test(org.Logo) ? '' : (typeof CDN_URL !== 'undefined' ? CDN_URL : '')) + org.Logo;
+        html += '<div style="text-align:center;margin-bottom:4px;"><img src="' + _esc(logoUrl) + '" style="max-width:80px;max-height:60px;object-fit:contain;" alt="Logo" /></div>';
+    }
+
+    // Org name
+    html += '<div style="text-align:center;font-weight:bold;font-size:' + orgFontSize + 'px;">' + _esc(line1) + '</div>';
+
+    // Address / phone / GSTIN
+    if (showCo) {
+        if (line3)                          html += '<div style="text-align:center;font-size:' + coFontSize + 'px;">' + _esc(line3) + '</div>';
+        if (showMobile && org.MobileNumber) html += '<div style="text-align:center;font-size:' + coFontSize + 'px;">Ph: ' + _esc(org.MobileNumber) + '</div>';
+        if (showGSTIN  && org.GSTIN)        html += '<div style="text-align:center;font-size:' + coFontSize + 'px;">GSTIN: ' + _esc(org.GSTIN) + '</div>';
+    }
+
+    html += '<hr class="tp-hr my-1">';
+
+    // Receipt header
+    html += '<div style="font-size:' + prodFontSize + 'px;">';
+    html += '<div style="display:flex;justify-content:space-between;"><span style="font-weight:bold;">' + _esc(direction) + ':</span><span style="font-weight:bold;">' + _esc(p.UniqueNumber || ('PMT-' + p.PaymentUID)) + '</span></div>';
+    html += '<div style="display:flex;justify-content:space-between;"><span>Date:</span><span>' + fmtDate(p.PaymentDate || p.CreatedOn) + '</span></div>';
+    html += '<div style="display:flex;justify-content:space-between;"><span>' + _esc(partyLabel) + ':</span><span style="text-align:right;max-width:60%;">' + _esc(p.PartyName || '—') + '</span></div>';
+    if (p.PartyMobile) html += '<div style="display:flex;justify-content:space-between;"><span>Phone:</span><span>' + _esc(p.PartyMobile) + '</span></div>';
+    html += '</div>';
+
+    html += '<hr class="tp-hr my-1">';
+
+    // Amount + payment details
+    html += '<div style="display:flex;justify-content:space-between;font-weight:bold;font-size:' + (prodFontSize + 2) + 'px;border-bottom:1px solid #000;padding-bottom:3px;margin-bottom:3px;"><span>Amount:</span><span>' + fmtAmt(p.Amount) + '</span></div>';
+    html += '<div style="font-size:' + prodFontSize + 'px;">';
+    html += '<div style="display:flex;justify-content:space-between;"><span>Mode:</span><span>' + _esc(p.PaymentTypeName || '—') + '</span></div>';
+    if (!p.IsCash && p.BankName) html += '<div style="display:flex;justify-content:space-between;"><span>Bank:</span><span>' + _esc(p.BankName) + '</span></div>';
+    if (p.ReferenceNo)           html += '<div style="display:flex;justify-content:space-between;"><span>Ref:</span><span>' + _esc(p.ReferenceNo) + '</span></div>';
+    if (p.TransNumber)           html += '<div style="display:flex;justify-content:space-between;"><span>Linked Doc:</span><span>' + _esc(p.TransNumber) + '</span></div>';
+    html += '</div>';
+
+    html += '<hr class="tp-hr my-1">';
+
+    // Footer
+    html += '<div style="text-align:center;font-size:' + prodFontSize + 'px;margin-top:6px;">' + _esc(footer) + '</div>';
+    html += '<div style="margin-bottom:24px"></div>';
+
+    return forPrint === 0
+        ? '<div style="font-family:\'Courier New\',Courier,monospace;font-size:13px;padding:8px;max-width:580px;margin:0 auto;">' + html + '</div>'
+        : html;
 }
 
 // Shared helper: call deletePayment endpoint and handle response

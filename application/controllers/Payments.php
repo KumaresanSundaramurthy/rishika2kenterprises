@@ -524,6 +524,187 @@ class Payments extends CI_Controller {
 
     }
 
+    public function getPaymentPrintDetail() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $paymentUID = (int) $this->input->get_post('PaymentUID');
+            $orgUID     = $this->pageData['JwtData']->User->OrgUID;
+
+            if ($paymentUID <= 0) throw new Exception('Invalid payment.');
+
+            $this->load->model('transactions_model');
+            $payment = $this->transactions_model->getPaymentDetailById($paymentUID, $orgUID);
+            if (!$payment) throw new Exception('Payment not found.');
+
+            $this->load->model('organisation_model');
+            $orgInfo      = $this->organisation_model->getOrgForReceipt($orgUID);
+            $org          = $orgInfo->Data ?? null;
+            $thermalCfg   = $this->organisation_model->getThermalPrintConfigByModule($orgUID, $this->pageModuleUID);
+            $printTheme   = $this->organisation_model->getPrintThemeByType($orgUID, 'Payment');
+
+            $this->EndReturnData->Error         = FALSE;
+            $this->EndReturnData->Payment       = $payment;
+            $this->EndReturnData->OrgInfo       = $org;
+            $this->EndReturnData->ThermalConfig = $thermalCfg->Data ?? null;
+            $this->EndReturnData->PrintTheme    = $printTheme->Data ?? null;
+            $this->EndReturnData->PrintHtml     = $this->_renderPaymentReceiptHtml($payment, $org, $printTheme->Data ?? null);
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    private function _renderPaymentReceiptHtml($p, $org, $theme) {
+        $org   = $org   ?? new stdClass();
+        $theme = $theme ?? new stdClass();
+        $e     = fn($v) => htmlspecialchars((string)($v ?? ''), ENT_QUOTES);
+        $fmt   = function($d) { if (!$d) return '—'; $dt = date_create($d); return $dt ? date_format($dt, 'd M Y') : $d; };
+        $cur   = $org->CurrenySymbol ?? '₹';
+        $dec   = 2;
+        $fmtAmt = fn($v) => $cur . ' ' . number_format((float)$v, $dec, '.', ',');
+
+        $primary = $theme->PrimaryColor ?? '#1a3c6e';
+        $accent  = $theme->AccentColor  ?? '#f59e0b';
+        $font    = $theme->FontFamily   ?? 'Arial';
+        $footer  = $theme->FooterText   ?? 'Thank you for your business!';
+
+        $direction = ($p->PartyType === 'C') ? 'Payment Received' : 'Payment Made';
+        $partyLabel = ($p->PartyType === 'C') ? 'Customer' : 'Vendor';
+
+        $orgName    = $e($org->BrandName ?? $org->Name ?? '');
+        $orgAddr    = implode(', ', array_filter([$org->Line1 ?? '', $org->Line2 ?? '', $org->CityText ?? '', $org->StateText ?? '', $org->Pincode ?? '']));
+        $orgPhone   = $e($org->MobileNumber ?? '');
+        $orgGstin   = $e($org->GSTIN ?? '');
+
+        $bankLine = '';
+        if (!$p->IsCash && !empty($p->BankName)) {
+            $bankLine = $e($p->BankName) . (!empty($p->AccountName) ? ' (' . $e($p->AccountName) . ')' : '');
+        }
+
+        $logoHtml = '';
+        if (!empty($org->Logo)) {
+            $logoHtml = '<img src="' . $e($org->Logo) . '" style="max-height:60px;max-width:120px;object-fit:contain;" alt="Logo">';
+        }
+
+        return '<!DOCTYPE html><html><head><meta charset="UTF-8">'
+            . '<style>'
+            . '@page{size:A4;margin:0;}'
+            . 'body{font-family:\'' . $e($font) . '\',Arial,sans-serif;font-size:11px;margin:0;padding:0;background:#fff;}'
+            . '.page{padding:12mm 14mm;}'
+            . '.header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid ' . $primary . ';padding-bottom:10px;margin-bottom:14px;}'
+            . '.org-name{font-size:16px;font-weight:700;color:' . $primary . ';}'
+            . '.org-sub{font-size:9px;color:#555;margin-top:3px;}'
+            . '.receipt-title{font-size:20px;font-weight:800;color:' . $primary . ';text-align:right;}'
+            . '.receipt-num{font-size:11px;color:#555;text-align:right;margin-top:4px;}'
+            . '.amount-box{background:' . $primary . ';color:#fff;border-radius:8px;padding:14px 20px;text-align:center;margin:16px 0;}'
+            . '.amount-label{font-size:10px;opacity:.85;text-transform:uppercase;letter-spacing:.5px;}'
+            . '.amount-val{font-size:26px;font-weight:800;margin-top:4px;}'
+            . '.info-grid{display:flex;gap:16px;margin-bottom:14px;}'
+            . '.info-card{flex:1;border:1px solid #e5e7eb;border-radius:6px;padding:10px 12px;}'
+            . '.info-card-label{font-size:9px;text-transform:uppercase;color:#888;letter-spacing:.4px;margin-bottom:6px;}'
+            . '.info-row{display:flex;justify-content:space-between;margin-bottom:4px;font-size:10px;}'
+            . '.info-key{color:#666;}'
+            . '.info-val{font-weight:600;color:#111;text-align:right;max-width:60%;}'
+            . '.mode-badge{display:inline-block;background:' . $accent . '22;color:' . $accent . ';border:1px solid ' . $accent . '44;border-radius:4px;padding:2px 8px;font-size:10px;font-weight:600;}'
+            . '.footer-bar{border-top:1px solid #e5e7eb;margin-top:20px;padding-top:10px;text-align:center;font-size:9px;color:#888;}'
+            . '@media print{body{background:#fff;}}'
+            . '</style></head><body><div class="page">'
+            . '<div class="header">'
+                . '<div>' . ($logoHtml ? $logoHtml . '<br>' : '') . '<div class="org-name">' . $orgName . '</div>'
+                . '<div class="org-sub">' . $e($orgAddr) . '</div>'
+                . (!empty($orgPhone) ? '<div class="org-sub">Ph: ' . $orgPhone . '</div>' : '')
+                . (!empty($orgGstin) ? '<div class="org-sub">GSTIN: ' . $orgGstin . '</div>' : '') . '</div>'
+                . '<div><div class="receipt-title">' . $e($direction) . '</div>'
+                . '<div class="receipt-num">' . $e($p->UniqueNumber ?? ('PMT-' . $p->PaymentUID)) . '</div>'
+                . '<div class="receipt-num">' . $fmt($p->PaymentDate ?? $p->CreatedOn) . '</div></div>'
+            . '</div>'
+            . '<div class="amount-box">'
+                . '<div class="amount-label">Amount ' . ($p->PartyType === 'C' ? 'Received' : 'Paid') . '</div>'
+                . '<div class="amount-val">' . $fmtAmt($p->Amount) . '</div>'
+            . '</div>'
+            . '<div class="info-grid">'
+                . '<div class="info-card">'
+                    . '<div class="info-card-label">' . $e($partyLabel) . ' Details</div>'
+                    . '<div class="info-row"><span class="info-key">' . $e($partyLabel) . '</span><span class="info-val">' . $e($p->PartyName ?? '—') . '</span></div>'
+                    . (!empty($p->PartyMobile) ? '<div class="info-row"><span class="info-key">Mobile</span><span class="info-val">' . $e($p->PartyMobile) . '</span></div>' : '')
+                    . (!empty($p->TransNumber) ? '<div class="info-row"><span class="info-key">Linked Doc</span><span class="info-val">' . $e($p->TransNumber) . '</span></div>' : '')
+                    . (!empty($p->BillAmount) ? '<div class="info-row"><span class="info-key">Bill Amount</span><span class="info-val">' . $fmtAmt($p->BillAmount) . '</span></div>' : '')
+                . '</div>'
+                . '<div class="info-card">'
+                    . '<div class="info-card-label">Payment Details</div>'
+                    . '<div class="info-row"><span class="info-key">Mode</span><span class="info-val"><span class="mode-badge">' . $e($p->PaymentTypeName ?? '—') . '</span></span></div>'
+                    . ($bankLine ? '<div class="info-row"><span class="info-key">Bank</span><span class="info-val">' . $bankLine . '</span></div>' : '')
+                    . (!empty($p->AccountNumber) ? '<div class="info-row"><span class="info-key">A/C No</span><span class="info-val">' . $e($p->AccountNumber) . '</span></div>' : '')
+                    . (!empty($p->ReferenceNo) ? '<div class="info-row"><span class="info-key">Reference</span><span class="info-val">' . $e($p->ReferenceNo) . '</span></div>' : '')
+                    . '<div class="info-row"><span class="info-key">Recorded By</span><span class="info-val">' . $e($p->CreatedByName ?? '—') . '</span></div>'
+                . '</div>'
+            . '</div>'
+            . (!empty($p->Notes) ? '<div style="border:1px solid #e5e7eb;border-radius:6px;padding:8px 12px;font-size:10px;color:#555;"><strong>Notes:</strong> ' . $e($p->Notes) . '</div>' : '')
+            . '<div class="footer-bar">' . $e($footer) . '</div>'
+            . '</div></body></html>';
+    }
+
+    public function downloadPaymentPdf() {
+
+        try {
+
+            $paymentUID = (int) $this->input->get_post('PaymentUID');
+            $paperSize  = strtoupper(trim($this->input->get_post('PaperSize') ?: 'A4'));
+            $orgUID     = $this->pageData['JwtData']->User->OrgUID;
+
+            if ($paymentUID <= 0) throw new Exception('Invalid payment.');
+
+            $this->load->model('transactions_model');
+            $payment = $this->transactions_model->getPaymentDetailById($paymentUID, $orgUID);
+            if (!$payment) throw new Exception('Payment not found.');
+
+            $this->load->model('organisation_model');
+            $orgInfo    = $this->organisation_model->getOrgForReceipt($orgUID);
+            $printTheme = $this->organisation_model->getPrintThemeByType($orgUID, 'Payment');
+            // Note: thermal config not needed for PDF download (uses A4 print theme)
+
+            $html = $this->_renderPaymentReceiptHtml($payment, $orgInfo->Data ?? null, $printTheme->Data ?? null);
+
+            // PDF-specific fixes
+            $html = preg_replace('/\bdisplay\s*:\s*flex\s*;?/i',          'display:block;', $html);
+            $html = preg_replace('/\bjustify-content\s*:[^;"}]+;?/i',     '', $html);
+            $html = preg_replace('/\balign-items\s*:[^;"}]+;?/i',         '', $html);
+            $html = preg_replace('/@page\s*\{[^}]*\}/', "@page{size:{$paperSize};margin:10mm 5mm;}", $html);
+
+            require_once FCPATH . 'vendor/autoload.php';
+            $options = new \Dompdf\Options();
+            $options->set('isHtml5ParserEnabled', true);
+            $options->set('isRemoteEnabled', true);
+            $options->set('defaultFont', 'Arial');
+            $options->set('chroot', FCPATH);
+
+            $dompdf = new \Dompdf\Dompdf($options);
+            $dompdf->loadHtml($html, 'UTF-8');
+            $dompdf->setPaper(strtolower($paperSize), 'portrait');
+            $dompdf->render();
+
+            $filename = preg_replace('/[^A-Za-z0-9_\-]/', '_', $payment->UniqueNumber ?? ('Payment_' . $paymentUID)) . '.pdf';
+
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: attachment; filename="' . $filename . '"');
+            header('Cache-Control: private, max-age=0, must-revalidate');
+            echo $dompdf->output();
+            exit;
+
+        } catch (Exception $e) {
+            header('Content-Type: application/json');
+            echo json_encode(['Error' => true, 'Message' => $e->getMessage()]);
+            exit;
+        }
+
+    }
+
     public function getBanksList() {
 
         $this->EndReturnData = new stdClass();

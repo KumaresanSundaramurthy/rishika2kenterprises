@@ -1,26 +1,107 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php
+$isEdit      = isset($SOData);
+$isDraftEdit = $isEdit && ($SOData->DocStatus === 'Draft');
+$transUID    = $isEdit ? (int)$SOData->TransUID : 0;
+$formId      = 'soForm';
+$formAction  = $isEdit ? 'salesorders/updateSalesOrder' : 'salesorders/addSalesOrder';
+
+if ($isEdit && !function_exists('buildSOPrefixSegment')) {
+    function buildSOPrefixSegment($cfg) {
+        if (!$cfg) return '';
+        $sep   = $cfg->Separator ?? '-';
+        $parts = [$cfg->Name];
+        if (!empty($cfg->IncludeShortName) && !empty($cfg->ShortName)) {
+            $parts[] = strtoupper($cfg->ShortName);
+        }
+        if (!empty($cfg->IncludeFiscalYear)) {
+            $m  = (int)date('m');
+            $yr = (int)date('Y');
+            $fy = $m >= 4 ? $yr : $yr - 1;
+            $parts[] = ($cfg->FiscalYearFormat ?? 'SHORT') === 'LONG'
+                ? $fy . '-' . ($fy + 1)
+                : str_pad($fy % 100, 2, '0', STR_PAD_LEFT) . '-' . str_pad(($fy + 1) % 100, 2, '0', STR_PAD_LEFT);
+        }
+        return implode($sep, $parts) . $sep;
+    }
+}
+
+$editPrefixConfig = null;
+if ($isEdit && !empty($PrefixData)) {
+    foreach ($PrefixData as $_pd) {
+        if ((int)$_pd->PrefixUID === (int)$SOData->PrefixUID) {
+            $editPrefixConfig = $_pd;
+            break;
+        }
+    }
+    if (!$editPrefixConfig) $editPrefixConfig = $PrefixData[0];
+}
+$editTransNumber = $isEdit ? ($isDraftEdit ? (int)($NextNumberMap[(int)($editPrefixConfig->PrefixUID ?? 0)] ?? 1) : (int)$SOData->TransNumber) : 0;
+$editPrefixSeg   = ($isEdit && $isDraftEdit) ? buildSOPrefixSegment($editPrefixConfig) : '';
+
+$_deliveryDate = '';
+if (!$isEdit && !empty($QuotationData->ValidityDate)) {
+    $_deliveryDate = htmlspecialchars(format_datedisplay($QuotationData->ValidityDate, 'Y-m-d'));
+} elseif ($isEdit && !empty($SOData->ValidityDate)) {
+    $_deliveryDate = htmlspecialchars(format_datedisplay($SOData->ValidityDate, 'Y-m-d'));
+}
+
+$_notesVal = '';
+$_termsVal = '';
+if (!$isEdit) {
+    $_notesVal = !empty($QuotationData->Notes) ? $QuotationData->Notes : '';
+    $_termsVal = !empty($QuotationData->TermsConditions) ? $QuotationData->TermsConditions : "1. Goods once sold will not be taken back or exchanged\n2. All disputes are subject to Gingee jurisdiction only";
+} else {
+    $_notesVal = $SOData->Notes ?? '';
+    $_termsVal = $SOData->TermsConditions ?? '';
+}
+
+$_addrLines = [];
+if (!empty($DispatchAddress)) {
+    $_addrLines = array_filter([
+        htmlspecialchars($DispatchAddress->Line1 ?? ''),
+        htmlspecialchars($DispatchAddress->Line2 ?? ''),
+    ]);
+    $_cityPin = trim(implode(' - ', array_filter([
+        htmlspecialchars($DispatchAddress->CityText ?? ''),
+        htmlspecialchars($DispatchAddress->Pincode  ?? ''),
+    ])));
+    if ($_cityPin) $_addrLines[] = $_cityPin;
+    if (!empty($DispatchAddress->StateText)) $_addrLines[] = htmlspecialchars($DispatchAddress->StateText);
+}
+?>
 
 <?php $this->load->view('common/transactions/header'); ?>
 
-<!-- Layout wrapper -->
 <div class="layout-wrapper layout-horizontal transactionPage layout-content-navbar">
     <div class="layout-container">
 
         <?php $this->load->view('common/menu_view'); ?>
 
-        <!-- Layout container -->
         <div class="layout-page">
             <div class="content-wrapper">
                 <div class="container-xxl flex-grow-1 container-p-y">
 
-            <?php $FormAttribute = ['id' => 'addSOForm', 'name' => 'addSOForm', 'autocomplete' => 'off', 'data-csrf' => $this->security->get_csrf_token_name(), 'data-csrf-value' => $this->security->get_csrf_hash()];
-                    echo form_open('salesorders/addSalesOrder', $FormAttribute); ?>
+                    <?php
+                    $FormAttribute = [
+                        'id'              => $formId,
+                        'name'            => $formId,
+                        'autocomplete'    => 'off',
+                        'data-csrf'       => $this->security->get_csrf_token_name(),
+                        'data-csrf-value' => $this->security->get_csrf_hash(),
+                    ];
+                    echo form_open($formAction, $FormAttribute);
+                    ?>
 
-                    <!-- Hidden: source quotation UID for conversion tracking -->
+                    <?php if ($isEdit): ?>
+                    <input type="hidden" name="TransUID" value="<?php echo $transUID; ?>" />
+                    <?php else: ?>
                     <input type="hidden" name="fromQuotationUID" id="fromQuotationUID" value="<?php echo (int)($FromQuotationUID ?? 0); ?>" />
+                    <?php endif; ?>
 
                     <div class="card mb-3">
 
+                        <?php if (!$isEdit): ?>
                         <div class="card-header bg-white border-bottom d-flex align-items-center justify-content-between px-3 py-2 trans-header-static trans-theme modal-header-center-sticky">
                             <div class="d-flex align-items-center gap-3" id="transHeaderInfo">
                                 <div class="trans-doc-icon bg-warning bg-opacity-10">
@@ -53,38 +134,84 @@
                                 <a href="/salesorders" class="btn btn-sm btn-outline-danger px-3"><i class="bx bx-x me-1"></i>Close</a>
                             </div>
                         </div>
+                        <?php else: ?>
+                        <div class="card-header bg-body-tertiary trans-header-static trans-theme modal-header-center-sticky d-flex justify-content-between align-items-center pb-3">
+                            <div class="d-flex flex-wrap align-items-center gap-3" id="transHeaderInfo">
+                                <h5 class="modal-title mb-0 ms-2"><?php echo $isDraftEdit ? '' : 'Edit'; ?> Sales Order</h5>
+                                <?php if (!$isDraftEdit && !empty($SOData->UniqueNumber)): ?>
+                                    <span class="trans-form-doc-number"><?php echo htmlspecialchars($SOData->UniqueNumber); ?></span>
+                                <?php endif; ?>
+                                <div class="d-flex align-items-center gap-1">
+                                    <div class="input-group w-auto <?php echo (!$isDraftEdit ? 'd-none' : ''); ?>">
+                                        <select id="transPrefixSelect" name="transPrefixSelect" class="select2 form-select form-select-sm" <?php echo (!$isDraftEdit ? 'disabled' : 'required'); ?>>
+                                            <?php try {
+                                                if (empty($PrefixData)) throw new Exception('Prefix data not loaded');
+                                                foreach ($PrefixData as $preData) {
+                                                    $isSelected = (int)$preData->PrefixUID === (int)$SOData->PrefixUID ? 'selected' : '';
+                                                ?>
+                                                <option value="<?php echo (int)$preData->PrefixUID; ?>"
+                                                    data-sep="<?php echo htmlspecialchars($preData->Separator ?? '-'); ?>"
+                                                    data-fiscal="<?php echo !empty($preData->IncludeFiscalYear) ? '1' : '0'; ?>"
+                                                    data-fiscal-format="<?php echo htmlspecialchars($preData->FiscalYearFormat ?? 'SHORT'); ?>"
+                                                    data-inc-short="<?php echo !empty($preData->IncludeShortName) ? '1' : '0'; ?>"
+                                                    data-short-name="<?php echo htmlspecialchars($preData->ShortName ?? ''); ?>"
+                                                    data-padding="<?php echo (int)($preData->NumberPadding ?? 3); ?>"
+                                                    data-next-number="<?php echo (int)($NextNumberMap[(int)$preData->PrefixUID] ?? 1); ?>"
+                                                    <?php echo $isSelected; ?>
+                                                ><?php echo htmlspecialchars($preData->Name); ?></option>
+                                            <?php }
+                                            } catch (Exception $e) { ?>
+                                                <option value="">Error loading prefixes</option>
+                                            <?php } ?>
+                                        </select>
+                                        <?php if ($isDraftEdit): ?>
+                                        <button type="button" class="btn btn-outline-secondary" id="addTransPrefixBtn" title="Configure Prefix"><i class="bx bx-cog"></i></button>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="input-group input-group-sm w-auto <?php echo (!$isDraftEdit ? 'd-none' : ''); ?>">
+                                        <span class="input-group-text cursor-pointer fw-semibold text-primary" id="appendPrefixVal"><?php echo htmlspecialchars($editPrefixSeg); ?></span>
+                                        <input type="number" id="transNumber" name="transNumber" class="form-control transAutoGenNumber stop-incre-indicator" maxLength="20"
+                                            onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))"
+                                            oninput="this.value=this.value.slice(0,this.maxLength)"
+                                            pattern="[0-9]*" value="<?php echo $editTransNumber; ?>"
+                                            <?php echo (!$isDraftEdit ? 'disabled' : 'required'); ?> />
+                                    </div>
+                                    <?php if (!$isDraftEdit): ?>
+                                    <input type="hidden" name="transPrefixSelect" value="<?php echo (int)$SOData->PrefixUID; ?>" />
+                                    <input type="hidden" name="transNumber" value="<?php echo (int)$SOData->TransNumber; ?>" />
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <button type="submit" name="action" value="save" class="btn btn-primary"><?php echo $isDraftEdit ? 'Save' : 'Update'; ?></button>
+                                <?php if ($isDraftEdit): ?>
+                                <button type="submit" name="action" value="draft" class="btn btn-outline-secondary">Save as Draft</button>
+                                <?php endif; ?>
+                                <a href="/salesorders" class="btn btn-label-danger">Close</a>
+                            </div>
+                        </div>
+                        <?php endif; ?>
 
                         <div class="card-body card-body-form-static p-4">
 
                             <div class="card-header modal-header-center-sticky p-1 mb-3">
                                 <h5 class="modal-title mb-0"><i class="bx bx-user me-1"></i> Customer Details</h5>
                             </div>
+
                             <div class="row">
                                 <div class="col-md-3 trans-right-border">
                                     <div class="mb-2">
                                         <label for="orderType" class="form-label small fw-semibold">Type <span style="color:red">*</span></label>
-                                        <select id="orderType" name="orderType" class="form-select form-select-sm" required>
-                                            <option value="Regular" selected>Regular</option>
-                                            <option value="Without_GST">Without GST</option>
+                                        <select id="orderType" name="orderType" class="form-select form-select-sm" <?php echo !$isEdit ? 'required' : ''; ?>>
+                                            <option value="Regular" <?php echo ($isEdit && ($SOData->QuotationType === 'Regular' || empty($SOData->QuotationType))) || !$isEdit ? 'selected' : ''; ?>>Regular</option>
+                                            <option value="Without_GST" <?php echo $isEdit && $SOData->QuotationType === 'Without_GST' ? 'selected' : ''; ?>>Without GST</option>
                                         </select>
                                     </div>
                                     <?php if (!empty($DispatchAddress)): ?>
-                                        <?php
-                                            $addrLines = array_filter([
-                                                htmlspecialchars($DispatchAddress->Line1  ?? ''),
-                                                htmlspecialchars($DispatchAddress->Line2  ?? ''),
-                                            ]);
-                                            $cityPin = trim(implode(' - ', array_filter([
-                                                htmlspecialchars($DispatchAddress->CityText ?? ''),
-                                                htmlspecialchars($DispatchAddress->Pincode  ?? ''),
-                                            ])));
-                                            if ($cityPin) $addrLines[] = $cityPin;
-                                            if (!empty($DispatchAddress->StateText)) $addrLines[] = htmlspecialchars($DispatchAddress->StateText);
-                                        ?>
                                     <div class="mb-2">
                                         <label class="form-label small fw-semibold">Dispatch From <span style="color:red">*</span></label>
                                         <select id="dispatchFrom" name="dispatchFrom" class="form-select form-select-sm" required>
-                                            <option value="<?php echo (int)$DispatchAddress->OrgAddressUID; ?>" selected><?php echo implode(', ', $addrLines); ?></option>
+                                            <option value="<?php echo (int)$DispatchAddress->OrgAddressUID; ?>" selected><?php echo implode(', ', $_addrLines); ?></option>
                                         </select>
                                     </div>
                                     <?php endif; ?>
@@ -93,7 +220,9 @@
                                     <div class="d-flex flex-wrap align-items-center gap-2">
                                         <div class="d-flex align-items-center gap-2">
                                             <label for="customerSearch" class="form-label small fw-semibold">Select Customer <span class="text-danger">*</span></label>
+                                            <?php if (!$isEdit): ?>
                                             <button type="button" id="addTransCustomer" class="btn btn-sm btn-outline-primary mt-1" aria-label="Add new customer"><i class="bx bx-plus-circle me-1"></i> Customer</button>
+                                            <?php endif; ?>
                                         </div>
                                         <div class="flex-grow-1">
                                             <select id="customerSearch" name="customerSearch" class="form-select form-select-sm"></select>
@@ -106,22 +235,24 @@
                                         <label for="transDate" class="form-label small fw-semibold">Order Date <span class="text-danger">*</span></label>
                                         <div class="input-group input-group-merge">
                                             <span class="input-group-text"><i class="icon-base bx bx-calendar"></i></span>
-                                            <input type="text" class="form-control form-control-sm" id="transDate" name="transDate" readonly="readonly" value="<?php echo format_datedisplay(time(), 'Y-m-d'); ?>" required />
+                                            <input type="text" class="form-control form-control-sm" id="transDate" name="transDate" readonly="readonly"
+                                                value="<?php echo $isEdit ? htmlspecialchars(format_datedisplay($SOData->TransDate, 'Y-m-d')) : format_datedisplay(time(), 'Y-m-d'); ?>"
+                                                required />
                                         </div>
                                     </div>
                                     <div class="mb-2">
                                         <label for="deliveryDate" class="form-label small fw-semibold">Expected Delivery Date</label>
                                         <div class="input-group input-group-merge">
                                             <span class="input-group-text"><i class="icon-base bx bx-calendar"></i></span>
-                                            <input type="text" class="form-control form-control-sm" id="deliveryDate" name="deliveryDate" readonly="readonly" />
+                                            <input type="text" class="form-control form-control-sm" id="deliveryDate" name="deliveryDate" readonly="readonly"
+                                                value="<?php echo $_deliveryDate; ?>" />
                                         </div>
                                     </div>
                                     <div>
                                         <label for="referenceDetails" class="form-label small fw-semibold">Reference</label>
-                                        <input type="text" id="referenceDetails" name="referenceDetails" class="form-control form-control-sm" placeholder="PO Number, Sales Person, Ref No..." maxlength="100"
-                                        <?php if (!empty($QuotationData)): ?>
-                                            value="<?php echo htmlspecialchars($QuotationData->Reference ?? ''); ?>"
-                                        <?php endif; ?> />
+                                        <input type="text" id="referenceDetails" name="referenceDetails" class="form-control form-control-sm"
+                                            placeholder="<?php echo $isEdit ? 'PO Number, Ref No...' : 'PO Number, Sales Person, Ref No...'; ?>" maxlength="100"
+                                            value="<?php echo $isEdit ? htmlspecialchars($SOData->Reference ?? '') : (!empty($QuotationData->Reference) ? htmlspecialchars($QuotationData->Reference) : ''); ?>" />
                                     </div>
                                 </div>
                             </div>
@@ -129,13 +260,13 @@
 
                             <?php $this->load->view('transactions/partials/form_products_add', [
                                 'transNotesPlaceholder' => 'Enter notes or anything else',
-                                'transNotesContent'     => !empty($QuotationData->Notes) ? $QuotationData->Notes : '',
-                                'transTermsContent'     => !empty($QuotationData->TermsConditions) ? $QuotationData->TermsConditions : "1. Goods once sold will not be taken back or exchanged\n2. All disputes are subject to Gingee jurisdiction only",
+                                'transNotesContent'     => $_notesVal,
+                                'transTermsContent'     => $_termsVal,
                                 'transShowDropzone'     => true,
                             ]); ?>
 
-                        </div> <!-- /card-body -->
-                    </div> <!-- /card -->
+                        </div>
+                    </div>
 
                     <?php echo form_close(); ?>
 
@@ -161,12 +292,48 @@
 <script src="/js/transactions/modaladdress.js"></script>
 <script src="/js/transactions/products.js"></script>
 <script src="/js/combinemodules/products.js"></script>
+<script src="/js/transactions/attachments.js"></script>
 
 <script>
-const StateInfo    = <?php echo json_encode($StateData); ?>;
-const CityInfo     = <?php echo json_encode($CityData); ?>;
+const StateInfo     = <?php echo json_encode($StateData); ?>;
+const CityInfo      = <?php echo json_encode($CityData); ?>;
 const EnableStorage = <?php echo $JwtData->GenSettings->EnableStorage; ?>;
-var _orgState      = '<?php echo addslashes($DispatchAddress->StateText ?? ''); ?>';
+var _isEdit    = <?php echo $isEdit ? 'true' : 'false'; ?>;
+var _orgState  = '<?php echo addslashes($DispatchAddress->StateText ?? ''); ?>';
+let imgData;
+
+<?php if ($isEdit): ?>
+var _custState = '<?php echo addslashes($CustAddr->StateText ?? ''); ?>';
+var _editItems = <?php echo json_encode(array_map(function($item) {
+    return [
+        'id'               => (int)  $item->ProductUID,
+        'text'             => $item->ProductName,
+        'itemName'         => $item->ProductName,
+        'unitPrice'        => (float)$item->UnitPrice,
+        'taxAmount'        => (float)$item->TaxAmount,
+        'sellingPrice'     => (float)$item->SellingPrice,
+        'purchasePrice'    => 0,
+        'availableQuantity'=> 0,
+        'hsnCode'          => '',
+        'categoryUID'      => $item->CategoryUID ? (int)$item->CategoryUID : null,
+        'storageUID'       => $item->StorageUID  ? (int)$item->StorageUID  : null,
+        'taxPercent'       => (float)$item->TaxPercentage,
+        'cgstPercent'      => (float)$item->CGST,
+        'sgstPercent'      => (float)$item->SGST,
+        'igstPercent'      => (float)$item->IGST,
+        'taxDetailsUID'    => (int)  $item->TaxDetailsUID,
+        'quantity'         => (float)$item->Quantity,
+        'partNumber'       => $item->PartNumber      ?? '',
+        'primaryUnit'      => $item->PrimaryUnitName ?? '',
+        'discount'         => (float)$item->Discount,
+        'discountType'     => 'Percentage',
+        'discountTypeUID'  => $item->DiscountTypeUID ? (int)$item->DiscountTypeUID : null,
+        'discount_amount'  => (float)$item->DiscountAmount,
+        'line_total'       => (float)$item->TaxableAmount,
+        'net_total'        => (float)$item->NetAmount,
+    ];
+}, $SOItems)); ?>;
+<?php else: ?>
 <?php if (!empty($QuotationData)): ?>
 var _fromQuotation = <?php echo json_encode(['uid' => (int)$FromQuotationUID, 'customer' => (int)$QuotationData->PartyUID, 'customerName' => $QuotationData->PartyName ?? '']); ?>;
 var _fromQuotItems = <?php echo json_encode(array_map(function($item) {
@@ -202,16 +369,46 @@ var _fromQuotItems = <?php echo json_encode(array_map(function($item) {
 var _fromQuotation = null;
 var _fromQuotItems = [];
 <?php endif; ?>
-let imgData;
+<?php endif; ?>
 
 $(function() {
     'use strict'
 
     searchCustomers('customerSearch');
     transDatePickr('#transDate', false, 'Y-m-d', false, true, true, true, 'd-m-Y');
-    transDatePickr('#deliveryDate', false, 'Y-m-d', false, false, true, true, 'd-m-Y', '#transDate');
+    transDatePickr('#deliveryDate', false, 'Y-m-d', false, false, <?php echo $isEdit ? 'false' : 'true'; ?>, true, 'd-m-Y', '#transDate');
 
-    // Pre-fill from quotation conversion
+    <?php if ($isEdit): ?>
+    initTransAttachments(<?php echo $transUID; ?>, '/salesorders/getAttachments');
+
+    <?php if (!empty($SOData->PartyUID)): ?>
+    $('#customerSearch').append(new Option(
+        '<?php echo addslashes($SOData->PartyName ?? ''); ?>',
+        <?php echo (int)$SOData->PartyUID; ?>, true, true
+    )).trigger('change');
+    <?php endif; ?>
+
+    $('#extraDiscount').val('<?php echo smartDecimal($SOData->ExtraDiscAmount ?? 0); ?>');
+    $('#extDiscountType').val('<?php echo addslashes($SOData->ExtraDiscType ?? ''); ?>').trigger('change');
+    $('#globalDiscount').val('<?php echo smartDecimal($SOData->GlobalDiscPercent ?? 0); ?>').trigger('input');
+
+    if (typeof billManager !== 'undefined' && _orgState && _custState) {
+        billManager.isInterState = (_custState.trim().toLowerCase() !== _orgState.trim().toLowerCase());
+    }
+
+    if (typeof billManager !== 'undefined' && typeof formationTableBillItems === 'function'
+            && Array.isArray(_editItems) && _editItems.length > 0) {
+        $('#billTableBody').empty();
+        _editItems.forEach(function(item) {
+            var added = billManager.addItem(item, item.quantity);
+            if (added !== false) {
+                formationTableBillItems(billManager.getItemById(item.id));
+            }
+        });
+        if (typeof updateItemTaxBreakdown === 'function') updateItemTaxBreakdown();
+        billManager.updateSummary();
+    }
+    <?php else: ?>
     if (_fromQuotation && _fromQuotation.uid > 0) {
         if (_fromQuotation.customer > 0) {
             $('#customerSearch').append(new Option(_fromQuotation.customerName, _fromQuotation.customer, true, true)).trigger('change');
@@ -229,9 +426,9 @@ $(function() {
             billManager.updateSummary();
         }
     }
+    <?php endif; ?>
 
-    // ── Add Sales Order form submit ───────────────────────
-    var $form = $('#addSOForm');
+    var $form = $('#<?php echo $formId; ?>');
     if ($form.length) {
 
         $form.on('submit', function(e) {
@@ -245,7 +442,7 @@ $(function() {
             var customerUID = parseInt($('#customerSearch').val(), 10);
             if (!customerUID || customerUID <= 0) return showFormError('Please select a customer.');
 
-            if (action !== 'draft') {
+            if (!_isEdit && action !== 'draft') {
                 var prefixUID = parseInt($('#transPrefixSelect').val(), 10);
                 if (!prefixUID || prefixUID <= 0) return showFormError('Please select a sales order prefix.');
 
@@ -259,22 +456,24 @@ $(function() {
             var items = typeof billManager !== 'undefined' ? billManager.getAllItems() : [];
             if (!items || items.length === 0) return showFormError('Please add at least one product.');
 
-            for (var i = 0; i < items.length; i++) {
-                var item = items[i];
-                var qty  = parseFloat(item.quantity);
-                if (!qty || qty <= 0) return showFormError('Row ' + (i + 1) + ': Quantity must be greater than 0.');
-                if (parseFloat(item.unitPrice) < 0) return showFormError('Row ' + (i + 1) + ': Price cannot be negative.');
+            if (!_isEdit) {
+                for (var i = 0; i < items.length; i++) {
+                    var item = items[i];
+                    var qty  = parseFloat(item.quantity);
+                    if (!qty || qty <= 0) return showFormError('Row ' + (i + 1) + ': Quantity must be greater than 0.');
+                    if (parseFloat(item.unitPrice) < 0) return showFormError('Row ' + (i + 1) + ': Price cannot be negative.');
+                }
             }
 
             var bm            = typeof billManager !== 'undefined' ? billManager : null;
             var summary       = bm ? bm.summary : {};
-            var netAmount     = summary.totals ? (summary.totals.grandTotal    || 0) : 0;
-            var subTotal      = summary.items  ? (summary.items.taxableAmount  || 0) : 0;
-            var discountAmt   = summary.items  ? (summary.items.discountTotal  || 0) : 0;
-            var taxAmt        = summary.taxTotals ? (summary.taxTotals.totalTax || 0) : 0;
-            var cgstAmt       = summary.taxTotals ? (summary.taxTotals.cgstTotal || 0) : 0;
-            var sgstAmt       = summary.taxTotals ? (summary.taxTotals.sgstTotal || 0) : 0;
-            var igstAmt       = summary.taxTotals ? (summary.taxTotals.igstTotal || 0) : 0;
+            var netAmount     = summary.totals    ? (summary.totals.grandTotal       || 0) : 0;
+            var subTotal      = summary.items     ? (summary.items.taxableAmount     || 0) : 0;
+            var discountAmt   = summary.items     ? (summary.items.discountTotal     || 0) : 0;
+            var taxAmt        = summary.taxTotals ? (summary.taxTotals.totalTax      || 0) : 0;
+            var cgstAmt       = summary.taxTotals ? (summary.taxTotals.cgstTotal     || 0) : 0;
+            var sgstAmt       = summary.taxTotals ? (summary.taxTotals.sgstTotal     || 0) : 0;
+            var igstAmt       = summary.taxTotals ? (summary.taxTotals.igstTotal     || 0) : 0;
             var addCharges    = (summary.additionalCharges && summary.additionalCharges.total) ? (summary.additionalCharges.total.grossAmount || 0) : 0;
             var globalDiscPct = bm ? (bm.globalDiscountPercent || 0) : 0;
             var roundOff      = summary.extra ? (summary.extra.roundOff || 0) : 0;
@@ -297,7 +496,6 @@ $(function() {
                 transDate              : transDate,
                 deliveryDate           : $.trim($('#deliveryDate').val()),
                 customerSearch         : customerUID,
-                fromQuotationUID       : parseInt($('#fromQuotationUID').val(), 10) || 0,
                 orderType              : $('#orderType').val() || '',
                 dispatchFrom           : $('#dispatchFrom').val() || '',
                 referenceDetails       : $.trim($('#referenceDetails').val()),
@@ -320,16 +518,25 @@ $(function() {
                 [csrfName]             : csrfVal,
             }, charges);
 
+            if (_isEdit) {
+                postData.TransUID = parseInt($('input[name="TransUID"]').val(), 10);
+            } else {
+                postData.fromQuotationUID = parseInt($('#fromQuotationUID').val(), 10) || 0;
+            }
+
             var formData = new FormData();
             $.each(postData, function(k, v) { formData.append(k, v); });
             if (typeof multiDropzone !== 'undefined' && multiDropzone.files.length > 0) {
                 multiDropzone.files.forEach(function(f) { formData.append('AttachFiles[]', f); });
             }
+            if (_isEdit) {
+                formData.append('RemovedAttachIDs', JSON.stringify(typeof _removedAttachIDs !== 'undefined' ? _removedAttachIDs : []));
+            }
 
-            setFormLoading('#addSOForm', true, action);
+            setFormLoading('#<?php echo $formId; ?>', true, action);
 
             $.ajax({
-                url         : '/salesorders/addSalesOrder',
+                url         : '/<?php echo $formAction; ?>',
                 method      : 'POST',
                 data        : formData,
                 processData : false,
@@ -337,13 +544,13 @@ $(function() {
                 cache       : false,
                 success: function(response) {
                     if (response.Error) {
-                        setFormLoading('#addSOForm', false);
+                        setFormLoading('#<?php echo $formId; ?>', false);
                         showFormError(response.Message);
                     } else {
                         Swal.fire({
                             icon             : 'success',
-                            title            : 'Sales Order Saved',
-                            text             : response.Message || 'Sales order created successfully.',
+                            title            : _isEdit ? 'Sales Order Updated' : 'Sales Order Saved',
+                            text             : response.Message || (_isEdit ? 'Sales order updated successfully.' : 'Sales order created successfully.'),
                             confirmButtonText: 'OK',
                             timer            : 3000,
                             timerProgressBar : true,
@@ -353,7 +560,7 @@ $(function() {
                     }
                 },
                 error: function() {
-                    setFormLoading('#addSOForm', false);
+                    setFormLoading('#<?php echo $formId; ?>', false);
                     showFormError('Server error. Please try again.');
                 }
             });

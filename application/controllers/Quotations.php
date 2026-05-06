@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
+<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Quotations extends CI_Controller {
 
@@ -803,7 +803,7 @@ class Quotations extends CI_Controller {
                 $this->pageData['fltStorageData'] = $this->storage_model->getStorageDetails([]) ?? [];
             }
 
-            $this->load->view('transactions/quotations/forms/add', $this->pageData);
+            $this->load->view('transactions/quotations/forms/form', $this->pageData);
 
         } catch (Exception $e) {
             redirect('dashboard', 'refresh');
@@ -892,7 +892,7 @@ class Quotations extends CI_Controller {
                 $this->pageData['fltStorageData'] = $this->storage_model->getStorageDetails([]) ?? [];
             }
 
-            $this->load->view('transactions/quotations/forms/edit', $this->pageData);
+            $this->load->view('transactions/quotations/forms/form', $this->pageData);
 
         } catch (Exception $e) {
             redirect('quotations', 'refresh');

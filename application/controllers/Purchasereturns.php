@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
+<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Purchasereturns extends CI_Controller {
 
@@ -667,7 +667,7 @@ class Purchasereturns extends CI_Controller {
             $this->load->model('products_model');
             $this->pageData['fltCategoryData'] = $this->products_model->getCategoriesDetails([]) ?? [];
 
-            $this->load->view('transactions/purchasereturns/forms/add', $this->pageData);
+            $this->load->view('transactions/purchasereturns/forms/form', $this->pageData);
         } catch (Exception $e) {
             redirect('purchasereturns', 'refresh');
         }
@@ -718,7 +718,7 @@ class Purchasereturns extends CI_Controller {
             $this->load->model('products_model');
             $this->pageData['fltCategoryData'] = $this->products_model->getCategoriesDetails([]) ?? [];
 
-            $this->load->view('transactions/purchasereturns/forms/edit', $this->pageData);
+            $this->load->view('transactions/purchasereturns/forms/form', $this->pageData);
         } catch (Exception $e) {
             redirect('purchasereturns', 'refresh');
         }

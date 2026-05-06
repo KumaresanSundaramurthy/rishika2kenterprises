@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
+<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Salesorders extends CI_Controller {
 
@@ -1003,7 +1003,7 @@ class Salesorders extends CI_Controller {
                 $this->pageData['fltStorageData'] = $this->storage_model->getStorageDetails([]) ?? [];
             }
 
-            $this->load->view('transactions/salesorders/forms/add', $this->pageData);
+            $this->load->view('transactions/salesorders/forms/form', $this->pageData);
 
         } catch (Exception $e) {
             redirect('salesorders', 'refresh');
@@ -1087,7 +1087,7 @@ class Salesorders extends CI_Controller {
                 $this->pageData['fltStorageData'] = $this->storage_model->getStorageDetails([]) ?? [];
             }
 
-            $this->load->view('transactions/salesorders/forms/edit', $this->pageData);
+            $this->load->view('transactions/salesorders/forms/form', $this->pageData);
 
         } catch (Exception $e) {
             redirect('salesorders', 'refresh');

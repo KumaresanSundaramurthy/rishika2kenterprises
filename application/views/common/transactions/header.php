@@ -1,6 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
-
-<!doctype html>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?><!doctype html>
 <html lang="en" class="layout-compact layout-menu-fixed layout-menu-collapsed" data-layout="horizontal" data-topbar="dark" data-sidebar-size="lg" data-sidebar="light" data-sidebar-image="none" data-preloader="disable" dir="ltr" data-skin="default" data-assets-path="/assets/" data-template="vertical-menu-template" data-bs-theme="light">
 <head>
 
@@ -8,6 +6,7 @@
     <title><?php echo getSiteConfiguration()->ShortName; ?></title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+    <link rel="icon" href="/images/logo/favicon_io/favicon.ico" type="image/x-icon">
     <link rel="shortcut icon" href="/images/logo/favicon_io/favicon-32x32.png" type="image/png">
 
     <!-- Fonts -->

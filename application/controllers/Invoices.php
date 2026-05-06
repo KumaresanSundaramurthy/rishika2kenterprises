@@ -1422,7 +1422,7 @@ class Invoices extends CI_Controller {
             $this->pageData['PaymentTypes']  = $this->transactions_model->getPaymentTypesList();
             $this->pageData['BankAccounts']  = $this->transactions_model->getOrgBankAccounts($orgUID);
 
-            $this->load->view('transactions/invoices/forms/add', $this->pageData);
+            $this->load->view('transactions/invoices/forms/form', $this->pageData);
 
         } catch (Exception $e) {
             redirect('invoices', 'refresh');
@@ -1501,7 +1501,7 @@ class Invoices extends CI_Controller {
             $this->pageData['PaymentTypes'] = $this->transactions_model->getPaymentTypesList();
             $this->pageData['BankAccounts'] = $this->transactions_model->getOrgBankAccounts($orgUID);
 
-            $this->load->view('transactions/invoices/forms/edit', $this->pageData);
+            $this->load->view('transactions/invoices/forms/form', $this->pageData);
 
         } catch (Exception $e) {
             redirect('invoices', 'refresh');

@@ -41,5 +41,3 @@ if (!function_exists('set_user_context')) {
         $CI->session->set_userdata($session_data);
     }
 }
-
-?>

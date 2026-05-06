@@ -1,4 +1,4 @@
-﻿<html>
+<html>
 <head>
     <title><?php echo getSiteConfiguration()->ShortName; ?></title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">

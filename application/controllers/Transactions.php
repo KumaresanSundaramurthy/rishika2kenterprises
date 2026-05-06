@@ -359,9 +359,11 @@ class Transactions extends CI_Controller {
             $payments  = $this->transactions_model->getTransactionPayments($transUID, $orgUID);
             $paidTotal = array_sum(array_map(function ($p) { return (float) $p->Amount; }, $payments));
 
+            $attachments = $this->transactions_model->getTransactionAttachments($transUID, $orgUID);
+
             $this->load->model('organisation_model');
             $orgInfo          = $this->organisation_model->getOrgForReceipt($orgUID);
-            $thermalCfgResult = $this->organisation_model->getThermalPrintConfigByType($orgUID, $header->TransType);
+            $thermalCfgResult = $this->organisation_model->getThermalPrintConfigByModule($orgUID, $moduleUID);
             $printThemeResult = $this->organisation_model->getPrintThemeByType($orgUID, $header->TransType);
             $printBankAccount = $this->transactions_model->getPrintBankAccount($orgUID);
 
@@ -370,6 +372,7 @@ class Transactions extends CI_Controller {
             $this->EndReturnData->Items         = $items;
             $this->EndReturnData->Payments      = $payments;
             $this->EndReturnData->PaidTotal     = $paidTotal;
+            $this->EndReturnData->Attachments   = $attachments;
             $this->EndReturnData->OrgInfo       = $orgInfo->Data ?? null;
             $this->EndReturnData->ThermalConfig = $thermalCfgResult->Data ?? null;
             $this->EndReturnData->PrintTheme    = $printThemeResult->Data ?? null;

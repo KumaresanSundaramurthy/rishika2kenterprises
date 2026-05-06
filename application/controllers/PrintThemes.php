@@ -10,7 +10,21 @@ class PrintThemes extends CI_Controller {
         'Invoice'       => 'Invoice',
         'SalesOrder'    => 'Sales Order',
         'PurchaseOrder' => 'Purchase Order',
+        'Purchase'      => 'Purchase',
+        'Payment'       => 'Payment (Received)',
+        'PaymentOut'    => 'Payment (Out)',
         'DeliveryNote'  => 'Delivery Note',
+    ];
+
+    private static $MODULE_IDS = [
+        'Quotation'     => 101,
+        'SalesOrder'    => 102,
+        'Invoice'       => 103,
+        'PurchaseOrder' => 104,
+        'Purchase'      => 105,
+        'Payment'       => 110,
+        'PaymentOut'    => 111,
+        'DeliveryNote'  => 0,
     ];
 
     public function __construct() {
@@ -180,6 +194,8 @@ class PrintThemes extends CI_Controller {
                 throw new Exception('Invalid transaction type.');
             }
 
+            $moduleUID = self::$MODULE_IDS[$transactionType] ?? 0;
+
             // Validate hex colors
             $primaryColor = trim(getPostValue($PostData, 'PrimaryColor') ?: '#1a3c6e');
             $accentColor  = trim(getPostValue($PostData, 'AccentColor')  ?: '#f59e0b');
@@ -203,6 +219,7 @@ class PrintThemes extends CI_Controller {
 
             $configData = [
                 'TransactionType'  => $transactionType,
+                'ModuleUID'        => $moduleUID,
                 'TemplateUID'      => $templateUID,
                 'ThemeKey'         => substr($themeKey, 0, 50),
                 'PrimaryColor'     => $primaryColor,

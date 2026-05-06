@@ -39,6 +39,7 @@ user_guide_src/cilexer/pycilexer.egg-info/*
 
 Thumbs.db
 .vscode/
+.claude/
 .idea/
 *.code-workspace
 

@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 /*
  * Partial view — customers modal form body.
  * Variables: $FormMode ('add'|'edit'|'clone'), $FormData (object|null),

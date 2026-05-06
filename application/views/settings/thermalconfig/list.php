@@ -11,8 +11,17 @@ if (empty($DataLists)) { ?>
 
 $idx = 1;
 foreach ($DataLists as $row):
-    $typeLabel = $TransTypes[$row->TransactionType] ?? $row->TransactionType;
-    $updatedOn = !empty($row->UpdatedOn) ? date('d M Y', strtotime($row->UpdatedOn)) : date('d M Y', strtotime($row->CreatedOn));
+    $typeLabel = $row->ModuleName ?? $row->TransactionType ?? 'Unknown';
+    $updatedTs  = !empty($row->UpdatedOn) ? strtotime($row->UpdatedOn) : strtotime($row->CreatedOn);
+    $updatedOn  = !empty($row->UpdatedOn) ? $row->UpdatedOn : $row->CreatedOn;
+    $diffSec    = time() - $updatedTs;
+    $agoText    = '';
+    if ($diffSec >= 0 && $diffSec < 86400) {
+        if ($diffSec < 60)       $agoText = 'just now';
+        elseif ($diffSec < 3600) $agoText = (int)($diffSec / 60) . ' min' . ((int)($diffSec / 60) > 1 ? 's' : '') . ' ago';
+        else                     $agoText = (int)($diffSec / 3600) . ' hr' . ((int)($diffSec / 3600) > 1 ? 's' : '') . ' ago';
+    }
+    $updatedByName = htmlspecialchars($row->UpdatedByName ?? '—');
 
     // Receipt element badges
     $badges = '';
@@ -23,8 +32,6 @@ foreach ($DataLists as $row):
     if (!empty($row->ShowTaxBreakdown))    $badges .= '<span class="badge bg-label-warning me-1 mb-1">Tax</span>';
     if (!empty($row->ShowTaxableAmount))   $badges .= '<span class="badge bg-label-warning me-1 mb-1">Taxable</span>';
     if (!empty($row->ShowCashReceived))    $badges .= '<span class="badge bg-label-success me-1 mb-1">Cash Rcvd</span>';
-    if (!empty($row->ShowTerms))           $badges .= '<span class="badge bg-label-secondary me-1 mb-1">Terms</span>';
-    if (!empty($row->ShowLogo))            $badges .= '<span class="badge bg-label-secondary me-1 mb-1">Logo</span>';
     if (!empty($row->ShowPaymentQR))       $badges .= '<span class="badge bg-label-danger me-1 mb-1">Pay QR</span>';
     if (!empty($row->ShowGoogleReviewQR))  $badges .= '<span class="badge bg-label-danger me-1 mb-1">Review QR</span>';
     if (!$badges)                          $badges  = '<span class="text-muted small">—</span>';
@@ -32,7 +39,8 @@ foreach ($DataLists as $row):
     // JSON for edit modal (all fields)
     $editData = htmlspecialchars(json_encode([
         'ThermalConfigUID'    => (int)$row->ThermalConfigUID,
-        'TransactionType'     => $row->TransactionType,
+        'ModuleUID'           => (int)$row->ModuleUID,
+        'ModuleName'          => $typeLabel,
         'PaperWidth'          => $row->PaperWidth          ?? '80mm',
         'FooterMessage'       => $row->FooterMessage       ?? '',
         'ShowTerms'           => (int)($row->ShowTerms           ?? 0),
@@ -62,11 +70,17 @@ foreach ($DataLists as $row):
     </td>
     <td class="align-middle" style="white-space:normal;max-width:220px;"><?php echo $badges; ?></td>
     <td class="align-middle text-nowrap">
-        <small class="text-muted">Org: </small><?php echo (int)($row->OrgNameFontSize ?? 22); ?>px &nbsp;
-        <small class="text-muted">Addr: </small><?php echo (int)($row->CompanyNameFontSize ?? 18); ?>px &nbsp;
+        <small class="text-muted">Org: </small><?php echo (int)($row->OrgNameFontSize ?? 16); ?>px &nbsp;
+        <small class="text-muted">Addr: </small><?php echo (int)($row->CompanyNameFontSize ?? 14); ?>px &nbsp;
         <small class="text-muted">Prod: </small><?php echo (int)($row->ProductInfoFontSize ?? 12); ?>px
     </td>
-    <td class="align-middle text-nowrap"><?php echo $updatedOn; ?></td>
+    <td class="align-middle">
+        <div style="font-size:.78rem;"><?php echo $updatedOn ? changeTimeZonefromDateTime($updatedOn, $JwtData->User->Timezone, 2) : '—'; ?></div>
+        <?php if ($agoText): ?>
+        <div style="font-size:.68rem;color:#0d6efd;font-weight:500;"><?php echo $agoText; ?></div>
+        <?php endif; ?>
+        <div class="text-muted" style="font-size:.7rem;">by <?php echo $updatedByName; ?></div>
+    </td>
     <td class="text-center align-middle text-nowrap">
         <a href="javascript:void(0);" class="btn btn-icon btn-sm text-warning EditThermalConfig"
             data-config='<?php echo $editData; ?>'

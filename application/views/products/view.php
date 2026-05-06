@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php $this->load->view('common/header'); ?>
 
@@ -1181,7 +1181,6 @@ $(document).on('click', '.catg-prod-count-btn', function () {
         data   : { CategoryUID: catgUID, [CsrfName]: CsrfToken },
         success: function (res) {
             AjaxLoading = 1;
-            function _esc(v) { return $('<span>').text(String(v || '')).html(); }
             function _amt(n) { return sym + ' ' + parseFloat(n || 0).toFixed(2); }
             function _infoCard(content, borderColor) {
                 return '<div style="background:#fafafa;border:1px solid #e9ecef;border-left:3px solid '

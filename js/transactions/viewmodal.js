@@ -7,12 +7,6 @@
     'use strict';
 
     // ── private helpers ────────────────────────────────────────────────────────
-
-    function _esc(v) {
-        if (v === null || v === undefined) return '';
-        return $('<span>').text(String(v)).html();
-    }
-
     function _escNl(v) {
         if (v === null || v === undefined) return '';
         return $('<span>').text(String(v)).html().replace(/\n/g, '<br>');
@@ -99,7 +93,8 @@
         }
 
         var editHref = $('#viewTransEditBtn').attr('href') || '#';
-        var editBtn  =
+        var hideEdit = $('#viewTransEditBtn').data('hide-edit');
+        var editBtn  = hideEdit ? '' :
             '<a href="' + editHref + '" class="vtm-edit-btn">' +
             '<i class="bx bx-edit"></i>Edit</a>';
 
@@ -486,17 +481,11 @@
         $modal.modal('show');
         AjaxLoading = 0;
 
-        var detailReq = $.ajax({
+        $.ajax({
             url   : '/transactions/getTransactionDetail',
             method: 'POST',
             data  : { TransUID: uid, ModuleUID: moduleUID, [CsrfName]: CsrfToken },
-        });
-
-        var attachReq = (type === 'invoice')
-            ? $.ajax({ url: '/invoices/getAttachments', method: 'POST', data: { TransUID: uid, [CsrfName]: CsrfToken } })
-            : null;
-
-        detailReq.done(function (resp) {
+        }).done(function (resp) {
             AjaxLoading = 1;
             if (resp.Error) {
                 $('#viewTransModalBody').html('<div class="alert alert-danger m-3">' + _esc(resp.Message || 'Error loading details.') + '</div>');
@@ -508,15 +497,15 @@
             $hdr.html(_buildBannerHtml(resp.Header || {}, cfg)).removeClass('d-none');
 
             // Populate body
-            $('#viewTransModalBody').html(_buildTransDetailHtml(resp, cfg));
+            var bodyHtml = _buildTransDetailHtml(resp, cfg);
 
-            if (attachReq) {
-                attachReq.done(function (aResp) {
-                    if (!aResp.Error && aResp.Attachments && aResp.Attachments.length > 0) {
-                        $('#viewTransModalBody > div').first().append(_buildAttachSectionHtml(aResp.Attachments));
-                    }
-                });
+            // Append attachments if present (already included in the same response)
+            if (resp.Attachments && resp.Attachments.length > 0) {
+                bodyHtml += _buildAttachSectionHtml(resp.Attachments);
             }
+
+            $('#viewTransModalBody').html(bodyHtml);
+
         }).fail(function () {
             AjaxLoading = 1;
             $('#viewTransModalBody').html('<div class="alert alert-danger m-3">Failed to load transaction details.</div>');

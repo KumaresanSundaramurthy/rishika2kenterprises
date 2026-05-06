@@ -39,6 +39,11 @@ function gumHoJa() {
     $("#alert").remove();
 }
 
+function _esc(v) {
+    if (v === null || v === undefined) return '—';
+    return $('<span>').text(String(v)).html();
+}
+
 jQuery.fn.center = function () {
     this.css("position", "absolute");
     this.css("top", Math.max(0, (($(window).height() - $(this).outerHeight()) / 2) +

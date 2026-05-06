@@ -850,7 +850,7 @@ class Purchaseorders extends CI_Controller {
             $this->load->model('products_model');
             $this->pageData['fltCategoryData'] = $this->products_model->getCategoriesDetails([]) ?? [];
 
-            $this->load->view('transactions/purchaseorders/forms/add', $this->pageData);
+            $this->load->view('transactions/purchaseorders/forms/form', $this->pageData);
 
         } catch (Exception $e) {
             redirect('purchaseorders', 'refresh');
@@ -921,7 +921,7 @@ class Purchaseorders extends CI_Controller {
             $this->load->model('products_model');
             $this->pageData['fltCategoryData'] = $this->products_model->getCategoriesDetails([]) ?? [];
 
-            $this->load->view('transactions/purchaseorders/forms/edit', $this->pageData);
+            $this->load->view('transactions/purchaseorders/forms/form', $this->pageData);
 
         } catch (Exception $e) {
             redirect('purchaseorders', 'refresh');

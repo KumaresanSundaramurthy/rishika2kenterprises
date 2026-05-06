@@ -68,10 +68,22 @@ function initTransAttachments(transUID, getUrl) {
 }
 
 function _openAttachPreview(encUrl, type, name) {
-    var url = decodeURIComponent(encUrl);
+    var url      = decodeURIComponent(encUrl);
+    var safeName = $('<span>').text(name).html();
+    $('#attachPreviewTitle').text(name || 'Preview');
+    var body = '';
     if (type === 'img') {
-        Swal.fire({ imageUrl: url, imageAlt: name, title: name, showConfirmButton: false, showCloseButton: true, width: '80%' });
+        body = '<div class="text-center p-3"><img src="' + $('<span>').text(url).html() + '" class="img-fluid rounded" style="max-height:70vh;" alt="' + safeName + '"></div>';
+    } else if (type === 'pdf') {
+        body = '<iframe src="' + $('<span>').text(url).html() + '" style="width:100%;height:70vh;border:none;"></iframe>';
     } else {
-        window.open(url, '_blank');
+        body = '<div class="text-center py-5">' +
+            '<i class="bx bx-file-blank text-secondary" style="font-size:4rem;display:block;margin-bottom:12px;"></i>' +
+            '<div style="font-size:.9rem;font-weight:600;margin-bottom:16px;">' + safeName + '</div>' +
+            '<a href="' + $('<span>').text(url).html() + '" download="' + safeName + '" class="btn btn-primary px-4"><i class="bx bx-download me-2"></i>Download File</a>' +
+            '</div>';
     }
+    $('#attachPreviewBody').html(body);
+    var previewModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('attachPreviewModal'));
+    previewModal.show();
 }

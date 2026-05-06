@@ -610,3 +610,82 @@ tr:hover .inv-row-action {
 .pout-summary-card:hover {
     box-shadow: 0 4px 16px rgba(0,0,0,.10) !important;
 }
+
+/* ── Shared Payment Detail Modal (pdt-*) ───────────────────────── */
+.pdt-dialog {
+    max-width: 540px;
+}
+.pdt-close-btn {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    z-index: 10;
+    background-color: #fff;
+    border-radius: 50%;
+    padding: 8px;
+    box-shadow: 0 2px 6px rgba(0,0,0,.15);
+}
+.pdt-banner {
+    border-radius: 8px 8px 0 0;
+    padding: 16px 20px 14px;
+    border-left: 4px solid;
+}
+.pdt-banner-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.pdt-title  { font-size: 1rem; }
+.pdt-date   { font-size: .78rem; }
+.pdt-amount { font-size: 1.2rem; }
+.pdt-section {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+}
+.pdt-label {
+    font-size: .7rem;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    font-weight: 600;
+    color: #6c757d;
+}
+.pdt-value  { font-size: .85rem; }
+.pdt-sub    { font-size: .72rem; color: #6c757d; }
+.pdt-mono   { font-family: monospace; font-size: .82rem; }
+.pdt-notes  { font-size: .85rem; color: #444; }
+
+/* theme="in" — blue (payments received) */
+#paymentDetailModal[data-pdt-theme="in"] .pdt-banner {
+    background: #e8f0fe;
+    border-left-color: #0d6efd;
+}
+#paymentDetailModal[data-pdt-theme="in"] .pdt-banner-icon {
+    background: rgba(13,110,253,.12);
+}
+#paymentDetailModal[data-pdt-theme="in"] .pdt-banner-icon-el {
+    color: #0d6efd;
+}
+#paymentDetailModal[data-pdt-theme="in"] .pdt-amount {
+    color: #0d6efd;
+}
+
+/* theme="out" — orange (payments out) */
+#paymentDetailModal[data-pdt-theme="out"] .pdt-banner {
+    background: #fff3e0;
+    border-left-color: #f57c00;
+}
+#paymentDetailModal[data-pdt-theme="out"] .pdt-banner-icon {
+    background: rgba(245,124,0,.12);
+}
+#paymentDetailModal[data-pdt-theme="out"] .pdt-banner-icon-el {
+    color: #f57c00;
+}
+#paymentDetailModal[data-pdt-theme="out"] .pdt-amount {
+    color: #dc3545;
+}

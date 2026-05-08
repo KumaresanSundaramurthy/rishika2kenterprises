@@ -432,6 +432,153 @@ class Settings extends CI_Controller {
 
     }
 
+    // ── Message Templates ────────────────────────────────────────────────────
+
+    private static $MSG_TOKENS = [
+        // Common
+        '{{PARTY_NAME}}'      => 'Customer / Vendor full name',
+        '{{DOC_NUMBER}}'      => 'Document number (e.g. INV-001)',
+        '{{DOC_DATE}}'        => 'Document date',
+        '{{DOC_TYPE}}'        => 'Document type (Invoice, Quotation…)',
+        '{{AMOUNT}}'          => 'Total amount with currency',
+        '{{CURRENCY}}'        => 'Currency symbol',
+        // Payment specific
+        '{{RECEIPT_NUMBER}}'  => 'Payment receipt number',
+        '{{PAYMENT_MODE}}'    => 'Payment mode (Cash, UPI…)',
+        '{{PAYMENT_STATUS}}'  => 'Payment status (Paid / Partially Paid)',
+        '{{RECEIPT_LINK}}'    => 'Public receipt link URL',
+        // Org
+        '{{ORG_NAME}}'        => 'Organisation / Brand name',
+        '{{ORG_PHONE}}'       => 'Organisation phone number',
+        '{{ORG_EMAIL}}'       => 'Organisation email address',
+        '{{ORG_ADDRESS}}'     => 'Organisation address',
+        '{{ORG_GSTIN}}'       => 'Organisation GSTIN',
+        // Validity
+        '{{VALID_UNTIL}}'     => 'Validity / due date',
+        '{{BALANCE_AMOUNT}}'  => 'Pending / balance amount',
+    ];
+
+    public function getMsgTemplateDetail() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID      = $this->pageData['JwtData']->User->OrgUID;
+            $templateUID = (int) $this->input->get_post('TemplateUID');
+            if ($templateUID <= 0) throw new Exception('Invalid template.');
+
+            $this->load->model('organisation_model');
+            $getData = $this->organisation_model->getMessageTemplateByUID($templateUID, $orgUID);
+            if ($getData->Error) throw new Exception('Template not found.');
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Data  = $getData->Data;
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    public function getMsgTemplateList() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID  = $this->pageData['JwtData']->User->OrgUID;
+            $this->load->model('organisation_model');
+            $result  = $this->organisation_model->getMessageTemplates($orgUID);
+            $rows    = $result->Error === FALSE ? $result->Data : [];
+            $modules = $this->getThermalTransTypes();
+
+            $rowHtml = $this->load->view('settings/msgtemplates/list', [
+                'DataLists' => $rows,
+                'Modules'   => $modules,
+                'JwtData'   => $this->pageData['JwtData'],
+            ], TRUE);
+
+            $this->EndReturnData->Error          = FALSE;
+            $this->EndReturnData->RecordHtmlData = $rowHtml;
+            $this->EndReturnData->TotalCount     = count($rows);
+            $this->EndReturnData->Modules        = $modules;
+            $this->EndReturnData->Tokens         = self::$MSG_TOKENS;
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    public function saveMsgTemplate() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $PostData    = $this->input->post();
+            $orgUID      = $this->pageData['JwtData']->User->OrgUID;
+            $userUID     = $this->pageData['JwtData']->User->UserUID;
+            $templateUID = (int) getPostValue($PostData, 'TemplateUID');
+            $moduleUID   = (int) getPostValue($PostData, 'ModuleUID');
+            $channel     = getPostValue($PostData, 'Channel');
+            $subject     = trim(getPostValue($PostData, 'Subject') ?: '') ?: NULL;
+            $body        = trim(getPostValue($PostData, 'Body') ?: '');
+
+            if (!in_array($channel, ['Email', 'WhatsApp', 'SMS'])) throw new Exception('Invalid channel.');
+            if (!$moduleUID) throw new Exception('Please select a transaction type.');
+            if (!$body)      throw new Exception('Template body is required.');
+
+            $this->load->model('dbwrite_model');
+            $data = [
+                'ModuleUID'  => $moduleUID,
+                'Channel'    => $channel,
+                'Subject'    => $subject,
+                'Body'       => $body,
+                'IsActive'   => 1,
+                'IsDeleted'  => 0,
+                'UpdatedBy'  => $userUID,
+            ];
+
+            if ($templateUID > 0) {
+                $this->dbwrite_model->updateData('Organisation', 'MessageTemplatesTbl', $data,
+                    ['TemplateUID' => $templateUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
+                $this->EndReturnData->Message = 'Template updated.';
+            } else {
+                $data['OrgUID']    = $orgUID;
+                $data['CreatedBy'] = $userUID;
+                $this->dbwrite_model->insertData('Organisation', 'MessageTemplatesTbl', $data);
+                $this->EndReturnData->Message = 'Template saved.';
+            }
+
+            $this->load->model('organisation_model');
+            $rows    = $this->organisation_model->getMessageTemplates($orgUID);
+            $modules = $this->getThermalTransTypes();
+            $this->EndReturnData->Error          = FALSE;
+            $this->EndReturnData->RecordHtmlData = $this->load->view('settings/msgtemplates/list', [
+                'DataLists' => $rows->Data ?? [],
+                'Modules'   => $modules,
+                'JwtData'   => $this->pageData['JwtData'],
+            ], TRUE);
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    public function deleteMsgTemplate() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $PostData    = $this->input->post();
+            $orgUID      = $this->pageData['JwtData']->User->OrgUID;
+            $userUID     = $this->pageData['JwtData']->User->UserUID;
+            $templateUID = (int) getPostValue($PostData, 'TemplateUID');
+            if ($templateUID <= 0) throw new Exception('Invalid template.');
+            $this->load->model('dbwrite_model');
+            $this->dbwrite_model->updateData('Organisation', 'MessageTemplatesTbl',
+                ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
+                ['TemplateUID' => $templateUID, 'OrgUID' => $orgUID]);
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Template deleted.';
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
     /** AJAX POST: soft-delete a thermal config row */
     public function deleteThermalConfig() {
 

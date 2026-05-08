@@ -668,13 +668,14 @@ class Vendors extends CI_Controller {
     public function sendCommunication() {
 
         $this->EndReturnData = new stdClass();
+        $tempFiles = [];
         try {
 
             $orgUID   = $this->pageData['JwtData']->User->OrgUID;
             $sentBy   = $this->pageData['JwtData']->User->UserUID;
             $commType = $this->input->post('CommType');
-            $message  = trim($this->input->post('Message'));
-            $subject  = trim($this->input->post('Subject') ?: '');
+            $message  = trim($this->input->post('Message', FALSE));
+            $subject  = trim($this->input->post('Subject', FALSE) ?: '');
             $uids     = $this->input->post('UIDs');
 
             if (!in_array($commType, ['SMS', 'Email'])) throw new Exception('Invalid communication type.');
@@ -684,12 +685,29 @@ class Vendors extends CI_Controller {
 
             $uids = array_map('intval', $uids);
 
+            // Save uploaded attachments to a temp dir
+            if ($commType === 'Email' && !empty($_FILES['Attachments']['name'][0])) {
+                $uploadDir = FCPATH . 'uploads/comm_tmp/';
+                if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
+                $files = $_FILES['Attachments'];
+                $count = is_array($files['name']) ? count($files['name']) : 0;
+                for ($i = 0; $i < min($count, 3); $i++) {
+                    if ($files['error'][$i] !== UPLOAD_ERR_OK) continue;
+                    $ext     = strtolower(pathinfo($files['name'][$i], PATHINFO_EXTENSION));
+                    if (!in_array($ext, ['pdf','jpg','jpeg','png'])) continue;
+                    $tmpPath = FCPATH . 'uploads/comm_tmp/' . uniqid('attach_', true) . '.' . $ext;
+                    if (move_uploaded_file($files['tmp_name'][$i], $tmpPath)) {
+                        $tempFiles[] = $tmpPath;
+                    }
+                }
+            }
+
             $this->load->library('communicationservice');
 
             if ($commType === 'SMS') {
                 $result = $this->communicationservice->sendSMS($orgUID, $sentBy, 'Vendor', $uids, $message);
             } else {
-                $result = $this->communicationservice->sendEmail($orgUID, $sentBy, 'Vendor', $uids, $subject, $message);
+                $result = $this->communicationservice->sendEmail($orgUID, $sentBy, 'Vendor', $uids, $subject, $message, $tempFiles);
             }
 
             if ($result->Error) throw new Exception($result->Message);
@@ -704,6 +722,7 @@ class Vendors extends CI_Controller {
             $this->EndReturnData->Message = $e->getMessage();
         }
 
+        foreach ($tempFiles as $f) { if (is_file($f)) unlink($f); }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
 
     }

@@ -77,9 +77,10 @@ class Communicationservice {
      * @param array  $uids          Array of recipient UIDs
      * @param string $subject       Email subject
      * @param string $htmlMessage   HTML message body (from Quill editor)
+     * @param array  $attachments   Optional: array of file paths to attach
      * @return stdClass { Error, Message, Sent, Failed }
      */
-    public function sendEmail($orgUID, $sentBy, $recipientType, array $uids, $subject, $htmlMessage) {
+    public function sendEmail($orgUID, $sentBy, $recipientType, array $uids, $subject, $htmlMessage, array $attachments = []) {
 
         $this->EndReturnData = new stdClass();
 
@@ -94,6 +95,11 @@ class Communicationservice {
 
             $fromEmail = getenv('MAIL_FROM_EMAIL') ?: getenv('MAIL_USERNAME');
             $fromName  = getenv('MAIL_FROM_NAME')  ?: 'R2K Enterprises';
+
+            // Wrap body in a full HTML document so email clients render it correctly.
+            // Quill outputs fragments like <p>text</p> — without <html><body> some
+            // SMTP relays (Brevo) treat the content as plain text, stripping all formatting.
+            $htmlBody = $this->_wrapHtmlEmail($htmlMessage);
 
             $this->CI->load->library('email');
             $this->CI->email->initialize([
@@ -117,7 +123,13 @@ class Communicationservice {
                 $this->CI->email->from($fromEmail, $fromName);
                 $this->CI->email->to($c->EmailAddress, $c->Name ?? '');
                 $this->CI->email->subject($subject);
-                $this->CI->email->message($htmlMessage);
+                $this->CI->email->message($htmlBody);
+
+                foreach ($attachments as $filePath) {
+                    if (is_file($filePath)) {
+                        $this->CI->email->attach($filePath);
+                    }
+                }
 
                 $ok     = $this->CI->email->send(false);
                 $status = $ok ? 'Sent' : 'Failed';
@@ -143,6 +155,28 @@ class Communicationservice {
         }
 
         return $this->EndReturnData;
+    }
+
+    private function _wrapHtmlEmail($html) {
+        // Already a full HTML document — use as-is
+        if (stripos($html, '<html') !== false) {
+            return $html;
+        }
+        // Quill fragment — wrap in a styled HTML document
+        return '<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+body { font-family: Arial, Helvetica, sans-serif; font-size: 14px; color: #333; line-height: 1.6; margin: 0; padding: 20px; }
+p { margin: 0 0 10px 0; }
+ul, ol { margin: 0 0 10px 20px; }
+a { color: #1565c0; }
+</style>
+</head>
+<body>' . $html . '</body>
+</html>';
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────

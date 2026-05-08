@@ -596,6 +596,56 @@ class Organisation_model extends CI_Model {
 
     }
 
+    /** Get all message templates for an org, joined with module name. */
+    public function getMessageTemplates($orgUID) {
+        $this->EndReturnData = new stdClass();
+        try {
+            $this->ReadDb->select(['T.*', 'M.Name AS ModuleName', "CONCAT(U.FirstName,' ',U.LastName) AS UpdatedByName"]);
+            $this->ReadDb->from('Organisation.MessageTemplatesTbl T');
+            $this->ReadDb->join('Modules.ModuleTbl M', 'M.ModuleUID = T.ModuleUID', 'left');
+            $this->ReadDb->join('Users.UserTbl U', 'U.UserUID = T.UpdatedBy', 'left');
+            $this->ReadDb->where(['T.OrgUID' => $orgUID, 'T.IsDeleted' => 0]);
+            $this->ReadDb->order_by('T.ModuleUID ASC, T.Channel ASC');
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Data  = $this->ReadDb->get()->result();
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        return $this->EndReturnData;
+    }
+
+    /** Get a single message template by org + module + channel. */
+    public function getMessageTemplate($orgUID, $moduleUID, $channel) {
+        $this->EndReturnData = new stdClass();
+        try {
+            $this->ReadDb->from('Organisation.MessageTemplatesTbl');
+            $this->ReadDb->where(['OrgUID' => $orgUID, 'ModuleUID' => (int)$moduleUID, 'Channel' => $channel, 'IsDeleted' => 0]);
+            $this->ReadDb->limit(1);
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Data  = $this->ReadDb->get()->row();
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        return $this->EndReturnData;
+    }
+
+    public function getMessageTemplateByUID($templateUID, $orgUID) {
+        $this->EndReturnData = new stdClass();
+        try {
+            $this->ReadDb->from('Organisation.MessageTemplatesTbl');
+            $this->ReadDb->where(['TemplateUID' => (int)$templateUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
+            $this->ReadDb->limit(1);
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Data  = $this->ReadDb->get()->row();
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        return $this->EndReturnData;
+    }
+
     /** Get all thermal print configs for an org (one per module), joined with module name. */
     public function getThermalPrintConfigList($orgUID) {
 

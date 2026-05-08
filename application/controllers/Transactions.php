@@ -344,9 +344,11 @@ class Transactions extends CI_Controller {
         $this->EndReturnData = new stdClass();
         try {
 
-            $transUID  = (int) $this->input->get_post('TransUID');
-            $moduleUID = (int) $this->input->get_post('ModuleUID');
-            $orgUID    = $this->pageData['JwtData']->User->OrgUID;
+            $transUID   = (int) $this->input->get_post('TransUID');
+            $moduleUID  = (int) $this->input->get_post('ModuleUID');
+            $printType  = $this->input->get_post('PrintType') ?: 'a4'; // 'thermal' | 'a4'
+            $orgUID     = $this->pageData['JwtData']->User->OrgUID;
+            $isThermal  = ($printType === 'thermal');
 
             if ($transUID  <= 0) throw new Exception('Invalid transaction.');
             if ($moduleUID <= 0) throw new Exception('ModuleUID is required.');
@@ -358,14 +360,11 @@ class Transactions extends CI_Controller {
             $items     = $this->transactions_model->getTransactionItems($transUID, $orgUID);
             $payments  = $this->transactions_model->getTransactionPayments($transUID, $orgUID);
             $paidTotal = array_sum(array_map(function ($p) { return (float) $p->Amount; }, $payments));
-
             $attachments = $this->transactions_model->getTransactionAttachments($transUID, $orgUID);
 
             $this->load->model('organisation_model');
             $orgInfo          = $this->organisation_model->getOrgForReceipt($orgUID);
             $thermalCfgResult = $this->organisation_model->getThermalPrintConfigByModule($orgUID, $moduleUID);
-            $printThemeResult = $this->organisation_model->getPrintThemeByType($orgUID, $header->TransType);
-            $printBankAccount = $this->transactions_model->getPrintBankAccount($orgUID);
 
             $this->EndReturnData->Error         = FALSE;
             $this->EndReturnData->Header        = $header;
@@ -375,13 +374,18 @@ class Transactions extends CI_Controller {
             $this->EndReturnData->Attachments   = $attachments;
             $this->EndReturnData->OrgInfo       = $orgInfo->Data ?? null;
             $this->EndReturnData->ThermalConfig = $thermalCfgResult->Data ?? null;
-            $this->EndReturnData->PrintTheme    = $printThemeResult->Data ?? null;
-            $this->EndReturnData->PrintHtml     = null;
-            try {
-                $this->EndReturnData->PrintHtml = $this->_renderA4Html($header, $items, $orgInfo->Data ?? null, $printThemeResult->Data ?? null, $printBankAccount);
-            } catch (Exception $renderEx) {
-                // Template rendering failed — preview unavailable but other data still returned
-                $this->EndReturnData->PrintHtml = '<div style="padding:20px;color:#c00;">Preview error: ' . htmlspecialchars($renderEx->getMessage()) . '</div>';
+
+            // PrintTheme and PrintHtml are only needed for A4/A5 preview — skip for thermal
+            if (!$isThermal) {
+                $printThemeResult = $this->organisation_model->getPrintThemeByType($orgUID, $header->TransType);
+                $printBankAccount = $this->transactions_model->getPrintBankAccount($orgUID);
+                $this->EndReturnData->PrintTheme = $printThemeResult->Data ?? null;
+                $this->EndReturnData->PrintHtml  = null;
+                try {
+                    $this->EndReturnData->PrintHtml = $this->transactions_model->_renderA4Html($moduleUID, $header, $items, $orgInfo->Data ?? null, $printThemeResult->Data ?? null, $printBankAccount);
+                } catch (Exception $renderEx) {
+                    $this->EndReturnData->PrintHtml = '<div style="padding:20px;color:#c00;">Preview error: ' . htmlspecialchars($renderEx->getMessage()) . '</div>';
+                }
             }
 
         } catch (Exception $e) {
@@ -390,268 +394,6 @@ class Transactions extends CI_Controller {
         }
 
         $this->globalservice->sendJsonResponse($this->EndReturnData);
-
-    }
-
-    // ----------------------------------------------------------------
-    // Server-side A4 HTML renderer
-    // Reads the template file, replaces {{}} tokens, returns HTML string
-    // ----------------------------------------------------------------
-    private function _renderA4Html($h, $items, $org, $theme, $bankAccount = null) {
-
-        $org   = $org   ?? new stdClass();
-        $theme = $theme ?? new stdClass();
-
-        // ── Load template ────────────────────────────────────────────
-        $tplHtml = $theme->TemplateHtmlContent ?? null;
-        if (!$tplHtml) {
-            // No template assigned — use built-in generic layout
-            return $this->_renderGenericA4Html($h, $items, $org);
-        }
-
-        // ── Helpers ──────────────────────────────────────────────────
-        $cur = '₹ ';
-        $dec = 2;
-        $e   = fn($v) => htmlspecialchars((string)($v ?? ''), ENT_QUOTES);
-        $fmt = function($date) {
-            if (!$date) return '—';
-            $d = date_create($date);
-            return $d ? date_format($d, 'd M Y') : $date;
-        };
-        $addr    = fn($l1,$l2,$city,$state,$pin) => implode(', ', array_filter([$l1,$l2,$city,$state,$pin]));
-        $addrHtml = fn($l1,$l2,$city,$state,$pin) => implode('<br>', array_filter(array_map('htmlspecialchars', array_filter([$l1,$l2,$city,$state,$pin]))));
-
-        // ── Items table ──────────────────────────────────────────────
-        $itemRows = '';
-        foreach ($items as $i => $item) {
-            $taxAmt = round((float)($item->CgstAmount ?? 0) + (float)($item->SgstAmount ?? 0) + (float)($item->IgstAmount ?? 0), $dec);
-            $itemRows .=
-                '<tr>' .
-                    '<td style="text-align:center">' . ($i + 1) . '</td>' .
-                    '<td>' . $e($item->ProductName) . '</td>' .
-                    '<td style="text-align:center">' . $e($item->HSNCode ?? '-') . '</td>' .
-                    '<td style="text-align:right">'  . number_format((float)($item->UnitPrice ?? 0), $dec) . '</td>' .
-                    '<td style="text-align:center">' . $e($item->Quantity) . ' ' . $e($item->PrimaryUnitName ?? '') . '</td>' .
-                    '<td style="text-align:right">'  . number_format((float)($item->UnitPrice ?? 0) * (float)($item->Quantity ?? 0), $dec) . '</td>' .
-                    '<td style="text-align:right">'  . ($taxAmt ? number_format($taxAmt, $dec) . ' (' . number_format((float)($item->TaxPercentage ?? 0), 0) . '%)' : '') . '</td>' .
-                    '<td style="text-align:right">'  . number_format((float)($item->NetAmount ?? 0), $dec) . '</td>' .
-                '</tr>';
-        }
-        $itemsTable =
-            '<table style="width:100%;border-collapse:collapse;font-size:8.5pt;margin-bottom:8px;">' .
-            '<thead><tr style="background:#f5f5f5;">' .
-            '<th style="border:1px solid #ddd;padding:5px;text-align:center;width:28px">#</th>' .
-            '<th style="border:1px solid #ddd;padding:5px;">Item</th>' .
-            '<th style="border:1px solid #ddd;padding:5px;">HSN/SAC</th>' .
-            '<th style="border:1px solid #ddd;padding:5px;text-align:right;">Rate</th>' .
-            '<th style="border:1px solid #ddd;padding:5px;text-align:center;">Qty</th>' .
-            '<th style="border:1px solid #ddd;padding:5px;text-align:right;">Taxable Value</th>' .
-            '<th style="border:1px solid #ddd;padding:5px;text-align:right;">Tax Amt</th>' .
-            '<th style="border:1px solid #ddd;padding:5px;text-align:right;">Amount</th>' .
-            '</tr></thead><tbody>' . $itemRows . '</tbody></table>';
-
-        // ── Totals ───────────────────────────────────────────────────
-        $totals =
-            '<table style="width:100%;border-collapse:collapse;font-size:8.5pt;margin-bottom:8px;">' .
-            '<tr><td style="border:1px solid #ddd;padding:5px;text-align:right;font-weight:600;">Sub Total</td>' .
-            '<td style="border:1px solid #ddd;padding:5px;text-align:right;width:120px;">' . $cur . number_format((float)($h->SubTotal ?? 0), $dec) . '</td></tr>' .
-            ((float)($h->DiscountAmount ?? 0) > 0 ? '<tr><td style="border:1px solid #ddd;padding:5px;text-align:right;color:#c00;">Discount</td><td style="border:1px solid #ddd;padding:5px;text-align:right;color:#c00;">- ' . $cur . number_format((float)$h->DiscountAmount, $dec) . '</td></tr>' : '') .
-            ((float)($h->TaxAmount ?? 0) > 0 ? '<tr><td style="border:1px solid #ddd;padding:5px;text-align:right;">Tax</td><td style="border:1px solid #ddd;padding:5px;text-align:right;">' . $cur . number_format((float)$h->TaxAmount, $dec) . '</td></tr>' : '') .
-            '<tr><td style="border:1px solid #ddd;padding:5px;text-align:right;font-weight:700;">Net Amount</td>' .
-            '<td style="border:1px solid #ddd;padding:5px;text-align:right;font-weight:700;">' . $cur . number_format((float)($h->NetAmount ?? 0), $dec) . '</td></tr>' .
-            '</table>';
-
-        // ── Customer Addresses ────────────────────────────────────────────────
-        $billAddr = $addr($h->BillLine1 ?? '', $h->BillLine2 ?? '', $h->BillCity ?? '', $h->BillState ?? '', $h->BillPincode ?? '') ?: '';
-        $shipAddr = $addr($h->ShipLine1 ?? '', $h->ShipLine2 ?? '', $h->ShipCity ?? '', $h->ShipState ?? '', $h->ShipPincode ?? '') ?: '';
-        // \u2500\u2500 Customer address (billing first, fallback to shipping) \u2500\u2500
-        $custAddrHtml = $addrHtml($h->BillLine1 ?? '', $h->BillLine2 ?? '', $h->BillCity ?? '', $h->BillState ?? '', $h->BillPincode ?? '');
-        if (empty($custAddrHtml)) {
-            $custAddrHtml = $addrHtml($h->ShipLine1 ?? '', $h->ShipLine2 ?? '', $h->ShipCity ?? '', $h->ShipState ?? '', $h->ShipPincode ?? '');
-        }
-
-        // ── Org logo ─────────────────────────────────────────────────
-        $logoHtml = '';
-        if(empty($org->Logo)) {
-            $logoHtml = '<img src="https://pub-bb40942a33344637936ade1f3800ff8b.r2.dev/Global/favicon_io/android-chrome-512x512-1.png" style="max-width:100px;max-height:100px;" alt="Logo">';
-        } else {
-            $logoHtml = '<img src="' . $e($org->Logo) . '" style="max-width:100px;max-height:100px;" alt="Logo">';
-        }
-
-        // ── Org address lines ────────────────────────────────────────
-        $orgAddr1     = $e($org->Line1 ?? '');
-        $orgAddr2     = $e($org->Line2 ?? '');
-        $orgCityState = implode(', ', array_filter([$org->CityText ?? '', $org->StateText ?? '']));
-        $orgGstinLine  = !empty($org->GSTIN) ? '<b>GSTIN:</b> ' . $e($org->GSTIN) : '';
-        $orgCityPin   = implode(' - ', array_filter([$e($orgCityState), $e($org->Pincode ?? '')]));
-        $orgInfoLines = implode('<br>', array_filter([$orgAddr1, $orgAddr2, $orgCityPin, $orgGstinLine]));
-
-        // ── Notes + Terms ────────────────────────────────────────────
-        $notesPart = !empty($h->Notes)           ? '<p style="font-size:8pt;margin-top:4px;"><strong>Notes:</strong> ' . nl2br($e($h->Notes)) . '</p>' : '';
-        $termsPart = !empty($h->TermsConditions) ? '<p style="font-size:8pt;margin-top:4px;"><strong>Terms:</strong> ' . nl2br($e($h->TermsConditions)) . '</p>' : '';
-
-        // ── Bank Account (for print templates) ───────────────────────
-        $bank        = $bankAccount ?? null;
-        $bankName    = $bank ? $e($bank->BankName      ?? '') : '';
-        $bankAccName = $bank ? $e($bank->AccountName   ?? '') : '';
-        $bankAccNo   = $bank ? $e($bank->AccountNumber ?? '') : '';
-        $bankIfsc    = $bank ? $e($bank->IFSC          ?? '') : '';
-        $bankBranch  = $bank ? $e($bank->BranchName    ?? '') : '';
-        $bankUpiId   = $bank ? $e($bank->UPIId         ?? '') : '';
-
-        // QR Code HTML: UPI deep-link QR with org logo overlaid at centre
-        // Fix 1: &am and &cu go INSIDE the upiStr (the QR payload), not as qrserver params.
-        // Fix 2: always show logo — use default CDN logo when org has no custom logo.
-        $bankQrHtml = '';
-        if ($bank && !empty($bank->UPIId)) {
-            $netAmt = number_format((float)($h->NetAmount ?? 0), 2, '.', ''); // no thousand-sep
-            $upiStr = 'upi://pay?pa=' . rawurlencode($bank->UPIId)
-                    . '&pn=' . rawurlencode($org->BrandName ?? $org->Name ?? '')
-                    . '&am=' . $netAmt
-                    . '&cu=INR';
-            $qrUrl  = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&ecc=H&data=' . rawurlencode($upiStr);
-            // Org logo: prefer custom logo, else fall back to default
-            $orgLogoSrc = !empty($org->Logo)
-                ? $e($org->Logo)
-                : 'https://pub-bb40942a33344637936ade1f3800ff8b.r2.dev/Global/favicon_io/android-chrome-512x512-1.png';
-            $bankQrHtml = '<div style="position:relative;display:inline-block;line-height:0;">'
-                . '<img src="' . $qrUrl . '" width="150" height="150">'
-                . '<div class="qr-logo-overlay" style="position:absolute;top:50%;left:50%;'
-                    . 'transform:translate(-50%,-50%);width:38px;height:38px;'
-                    . 'background:#fff;border-radius:4px;padding:3px;box-sizing:border-box;">'
-                . '<img src="' . $orgLogoSrc . '" style="width:100%;height:100%;object-fit:contain;">'
-                . '</div>'
-                . '</div>';
-        }
-
-        // Signature block: space for physical stamp/signature + label
-        $signatureSpaceHtml = '<div style="min-height:65px;"></div>';
-
-        // ── Summary totals — read directly from TransactionsTbl (no item-level summing) ──
-        $totalItemsCount = (int)($h->TotalItems    ?? count($items));
-        $totalQty        = (float)($h->TotalQuantity ?? 0);
-        $totalCgst       = (float)($h->CgstAmount    ?? 0);
-        $totalSgst       = (float)($h->SgstAmount    ?? 0);
-        $totalIgst       = (float)($h->IgstAmount    ?? 0);
-
-        // ── HSN summary totals — computed from item-level data (matches HSN loop rows) ──
-        $hsnTotalTaxable = array_sum(array_map(
-            fn($it) => round((float)($it->UnitPrice ?? 0) * (float)($it->Quantity ?? 0), 2),
-            $items
-        ));
-        $hsnTotalCgst    = array_sum(array_map(fn($it) => (float)($it->CgstAmount ?? 0), $items));
-        $hsnTotalSgst    = array_sum(array_map(fn($it) => (float)($it->SgstAmount ?? 0), $items));
-        $hsnTotalIgst    = array_sum(array_map(fn($it) => (float)($it->IgstAmount ?? 0), $items));
-        $hsnTotalTax     = round($hsnTotalCgst + $hsnTotalSgst + $hsnTotalIgst, 2);
-        $dec2 = 2;
-
-        // ── Token map ────────────────────────────────────────────────
-        $tokens = [
-            '{{PRIMARY_COLOR}}'        => $theme->PrimaryColor  ?? '#1a3c6e',
-            '{{ACCENT_COLOR}}'         => $theme->AccentColor   ?? '#f59e0b',
-            '{{FONT_FAMILY}}'          => $theme->FontFamily    ?? 'Arial',
-            '{{FONT_SIZE_PX}}'         => ($theme->FontSizePx   ?? 11) . 'px',
-            '{{FONT_SIZE}}'            => ($theme->FontSizePx   ?? 11) . 'px',
-            /** Organisation Details */
-            '{{ORG_LOGO}}'             => $logoHtml,
-            '{{ORG_NAME}}'             => $e($org->BrandName ?? $org->Name ?? ''),
-            '{{ORG_GSTIN}}'            => $e($org->GSTIN ?? ''),
-            '{{ORG_ADDRESS_1}}'        => $orgAddr1,
-            '{{ORG_ADDRESS_2}}'        => $orgAddr2,
-            '{{ORG_CITY_STATE}}'       => $e($orgCityState),
-            '{{ORG_PINCODE}}'          => $e($org->Pincode ?? ''),
-            '{{ORG_PHONE}}'            => $e($org->MobileNumber ?? ''),
-            '{{ORG_EMAIL}}'            => $e($org->EmailAddress ?? ''),
-            '{{ORG_BANK_NAME}}'        => $e($org->BankName ?? ''),
-            '{{ORG_ACCOUNT_NO}}'       => $e($org->AccountNo ?? ''),
-            '{{ORG_IFSC}}'             => $e($org->IFSC ?? ''),
-            '{{ORG_BRANCH}}'           => $e($org->Branch ?? ''),
-            '{{ORG_UPI_ID}}'           => $e($org->UpiId ?? ''),
-            '{{ORG_INFO_LINES}}'       => $orgInfoLines,
-            '{{PLACE_OF_SUPPLY}}'      => $e($h->PlaceOfSupply ?? $org->StateText ?? ''),
-            '{{BANK_DETAILS_LINES}}'   => implode('<br>', array_filter([$e($org->BankName ?? ''), !empty($org->AccountNo) ? 'A/C: ' . $e($org->AccountNo) : '', !empty($org->IFSC) ? 'IFSC: ' . $e($org->IFSC) : ''])),
-            '{{CURRENCY}}'             => $cur,
-            /** Customer Details */
-            '{{CUSTOMER_NAME}}'        => $e($h->PartyName ?? '—'),
-            '{{CUSTOMER_PHONE}}'       => $e($h->PartyMobile ?? ''),
-            '{{CUSTOMER_GSTIN}}'       => $e($h->PartyGSTIN ?? ''),
-            '{{BILLING_ADDRESS}}'      => $e($billAddr),
-            '{{SHIPPING_ADDRESS}}'     => $e($shipAddr),
-            '{{CUSTOMER_ADDRESS}}'     => $custAddrHtml,
-            '{{PARTY_GSTIN}}'          => $e($h->PartyGSTIN ?? ''),
-            '{{PARTY_PHONE}}'          => $e($h->PartyMobile ?? ''),
-            '{{CUSTOMER_PHONE_LINE}}'  => !empty($h->PartyMobile) ? 'Ph: ' . $e($h->PartyMobile) : '',
-            '{{PARTY_GSTIN_LINE}}'     => !empty($h->PartyGSTIN) ? 'GSTIN: ' . $e($h->PartyGSTIN) : '',
-            /** Transaction Type Details */
-            '{{DOC_TYPE}}'             => $e($h->TransType ?? 'Document'),
-            '{{DOC_NUMBER}}'           => $e($h->UniqueNumber ?? '—'),
-            '{{DOC_DATE}}'             => $fmt($h->TransDate ?? ''),
-            '{{DUE_DATE}}'             => $fmt($h->ValidityDate ?? ''),
-            '{{ITEMS_TABLE}}'          => $itemsTable,
-            '{{ITEMS_TABLE_ROWS}}'     => $itemRows,
-            '{{TOTALS_SECTION}}'       => $totals,
-            '{{TOTALS_BLOCK}}'         => $totals,
-            '{{NOTES_TERMS}}'          => $notesPart . $termsPart,
-            '{{FOOTER_TEXT}}'          => $e($theme->FooterText ?? 'Thank you for your business!'),
-            '{{TERMS_CONDITIONS}}'     => nl2br($e($h->TermsConditions ?? '')),
-            '{{HSN_TAX_TABLE}}'        => '',
-            /** Summary Totals */
-            '{{TOTAL_ITEMS_COUNT}}'    => $totalItemsCount,
-            '{{TOTAL_QTY}}'            => number_format($totalQty, 2),
-            '{{TOTAL_TAXABLE_AMOUNT}}' => number_format((float)($h->SubTotal ?? 0), $dec),
-            '{{TOTAL_CGST}}'           => number_format(round($totalCgst, $dec), $dec),
-            '{{TOTAL_SGST}}'           => number_format(round($totalSgst, $dec), $dec),
-            '{{TOTAL_IGST}}'           => number_format(round($totalIgst, $dec), $dec),
-            '{{TOTAL_TAX}}'            => number_format((float)($h->TaxAmount ?? 0), $dec),
-            '{{TOTAL_DISCOUNT}}'       => number_format((float)($h->DiscountAmount ?? 0), $dec),
-            '{{NET_AMOUNT}}'           => number_format((float)($h->NetAmount ?? 0), $dec),
-            '{{AMOUNT_IN_WORDS}}'      => $this->_numberToWords((float)($h->NetAmount ?? 0)),
-            '{{UPI_QR_CODE}}'          => $e($org->UpiId ?? ''),
-            /** Bank Account */
-            '{{BANK_NAME}}'            => $bankName,
-            '{{BANK_ACCOUNT_NAME}}'    => $bankAccName,
-            '{{BANK_ACCOUNT_NO}}'      => $bankAccNo,
-            '{{BANK_IFSC}}'            => $bankIfsc,
-            '{{BANK_BRANCH}}'          => $bankBranch,
-            '{{BANK_UPI_ID}}'          => $bankUpiId,
-            '{{BANK_QR_HTML}}'         => $bankQrHtml,
-            /** Signature */
-            '{{SIGNATURE_SPACE}}'      => $signatureSpaceHtml,
-            /** HSN Summary TOTAL row tokens (match the summed rows in the loop) */
-            '{{HSN_TOTAL_TAXABLE}}'    => number_format($hsnTotalTaxable, $dec2),
-            '{{HSN_TOTAL_CGST}}'       => number_format(round($hsnTotalCgst, $dec2), $dec2),
-            '{{HSN_TOTAL_SGST}}'       => number_format(round($hsnTotalSgst, $dec2), $dec2),
-            '{{HSN_TOTAL_IGST}}'       => number_format(round($hsnTotalIgst, $dec2), $dec2),
-            '{{HSN_TOTAL_TAX}}'        => number_format($hsnTotalTax, $dec2),
-        ];
-
-        $html = $this->_processLoops($tplHtml, $items);
-        $html = $this->_processHsnSummary($html, $items);
-        $html = $this->_processConditionals($html, $tokens);
-        $html = str_replace(array_keys($tokens), array_values($tokens), $html);
-
-        $systemFonts   = ['Arial', 'Helvetica', 'Verdana', 'Tahoma', 'Trebuchet MS', 'Times New Roman', 'Georgia', 'Palatino Linotype', 'Calibri'];
-        $fontFamily    = $theme->FontFamily ?? 'Arial';
-        $fontFamilyEsc = str_replace("'", "\\'", $fontFamily);
-        $fontSizePx    = (int) ($theme->FontSizePx ?? 11);
-
-        $headInject = '<style>'
-            . '@page{size:A4;margin:0;}'
-            . '@media print{body{background:#fff;}}'
-            . "body{padding:0 5mm;box-sizing:border-box;font-size:{$fontSizePx}px !important;}"
-            . '.invoice{width:100%!important;max-width:100%!important;box-sizing:border-box!important;margin:10px 0!important;}'
-            . "body,body *{font-family:'{$fontFamilyEsc}',Arial,Helvetica,sans-serif !important;}"
-            . '</style>';
-
-        // For Google Fonts: inject <link> tag — rendered via Blob URL so external requests load correctly
-        if (!in_array($fontFamily, $systemFonts)) {
-            $headInject .= '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family='
-                . str_replace(' ', '+', $fontFamily)
-                . ':wght@400;600;700&display=swap">';
-        }
-
-        $html = str_replace('</head>', $headInject . '</head>', $html);
-        return $html;
 
     }
 
@@ -730,178 +472,6 @@ class Transactions extends CI_Controller {
         return $result . ' Only';
     }
 
-    private function _processLoops($html, $items) {
-        $cur = '₹ ';
-        $dec = 2;
-        $e   = fn($v) => htmlspecialchars((string)($v ?? ''), ENT_QUOTES);
-
-        return preg_replace_callback(
-            '/\{\{FOREACH:ITEMS\}\}(.*?)\{\{\/FOREACH:ITEMS\}\}/s',
-            function ($m) use ($items, $cur, $dec, $e) {
-                $rowTpl = $m[1];
-                $rows   = '';
-                foreach ($items as $i => $item) {
-                    $taxPct      = (float)($item->TaxPercentage ?? 0);
-                    $taxAmt      = round(
-                        (float)($item->CgstAmount ?? 0) +
-                        (float)($item->SgstAmount ?? 0) +
-                        (float)($item->IgstAmount ?? 0), $dec
-                    );
-                    $unitPrice   = (float)($item->UnitPrice ?? 0);
-                    $qty         = (float)($item->Quantity ?? 0);
-                    $taxableVal  = round($unitPrice * $qty, $dec);
-
-                    $map = [
-                        '{{ITEM.SNO}}'          => $i + 1,
-                        '{{ITEM.PRODUCT_NAME}}' => $e($item->ProductName ?? ''),
-                        '{{ITEM.HSN_CODE}}'     => $e($item->HSNCode ?? $item->HSNSACCode ?? ''),
-                        '{{ITEM.UNIT_PRICE}}'   => $cur . number_format($unitPrice, $dec),
-                        '{{ITEM.QTY}}'          => $e($item->Quantity ?? ''),
-                        '{{ITEM.UNIT}}'         => $e($item->PrimaryUnitName ?? ''),
-                        '{{ITEM.TAXABLE_VALUE}}'=> $cur . number_format($taxableVal, $dec),
-                        '{{ITEM.TAX_PCT}}'      => number_format($taxPct, 2),
-                        '{{ITEM.TAX_AMT}}'      => $cur . number_format($taxAmt, $dec),
-                        '{{ITEM.NET_AMOUNT}}'   => $cur . number_format((float)($item->NetAmount ?? 0), $dec),
-                        '{{ITEM.DISCOUNT}}'     => $cur . number_format((float)($item->DiscountAmount ?? 0), $dec),
-                        '{{ITEM.PART_NUMBER}}'  => $e($item->PartNumber ?? ''),
-                    ];
-                    $rows .= str_replace(array_keys($map), array_values($map), $rowTpl);
-                }
-                return $rows;
-            },
-            $html
-        );
-    }
-
-    private function _processHsnSummary($html, $items) {
-        $cur = '₹ ';
-        $dec = 2;
-        $e   = fn($v) => htmlspecialchars((string)($v ?? ''), ENT_QUOTES);
-
-        return preg_replace_callback(
-            '/\{\{FOREACH:HSN_SUMMARY\}\}(.*?)\{\{\/FOREACH:HSN_SUMMARY\}\}/s',
-            function ($m) use ($items, $cur, $dec, $e) {
-                $rowTpl = $m[1];
-
-                // Group line items by HSN code + tax rate
-                $groups = [];
-                foreach ($items as $item) {
-                    $hsn    = (string)($item->HSNCode ?? $item->HSNSACCode ?? '');
-                    $taxPct = (float)($item->TaxPercentage ?? 0);
-                    $key    = $hsn . '||' . $taxPct;
-                    if (!isset($groups[$key])) {
-                        $groups[$key] = [
-                            'hsn'          => $hsn,
-                            'taxPct'       => $taxPct,
-                            'taxableValue' => 0.0,
-                            'cgstAmt'      => 0.0,
-                            'sgstAmt'      => 0.0,
-                            'igstAmt'      => 0.0,
-                        ];
-                    }
-                    $groups[$key]['taxableValue'] += round((float)($item->UnitPrice ?? 0) * (float)($item->Quantity ?? 0), $dec);
-                    $groups[$key]['cgstAmt']      += (float)($item->CgstAmount ?? 0);
-                    $groups[$key]['sgstAmt']      += (float)($item->SgstAmount ?? 0);
-                    $groups[$key]['igstAmt']      += (float)($item->IgstAmount ?? 0);
-                }
-
-                $rows = '';
-                $sno  = 1;
-                foreach ($groups as $g) {
-                    $cgstAmt  = round($g['cgstAmt'], $dec);
-                    $sgstAmt  = round($g['sgstAmt'], $dec);
-                    $igstAmt  = round($g['igstAmt'], $dec);
-                    $totalTax = round($cgstAmt + $sgstAmt + $igstAmt, $dec);
-                    // Split rate: CGST = SGST = half of total tax %
-                    $splitRate = $g['taxPct'] / 2;
-                    $map = [
-                        '{{HSN.SNO}}'           => $sno++,
-                        '{{HSN.CODE}}'          => $e($g['hsn']),
-                        '{{HSN.TAXABLE_VALUE}}' => number_format($g['taxableValue'], $dec),
-                        // Rate tokens — plain numbers, no % suffix (add % in template if needed)
-                        '{{HSN.TAX_RATE}}'      => number_format($g['taxPct'], 0),
-                        '{{HSN.CGST_RATE}}'     => number_format($splitRate, 0),
-                        '{{HSN.SGST_RATE}}'     => number_format($splitRate, 0),
-                        '{{HSN.IGST_RATE}}'     => number_format($g['taxPct'], 0),
-                        // Amount tokens
-                        '{{HSN.CGST_AMT}}'      => number_format($cgstAmt, $dec),
-                        '{{HSN.SGST_AMT}}'      => number_format($sgstAmt, $dec),
-                        '{{HSN.IGST_AMT}}'      => number_format($igstAmt, $dec),
-                        // Combined tax for this HSN row (CGST+SGST OR IGST — whichever applies)
-                        '{{HSN.TAX_AMT}}'       => number_format($totalTax, $dec),
-                        '{{HSN.TOTAL_TAX}}'     => number_format($totalTax, $dec),
-                    ];
-                    $rows .= str_replace(array_keys($map), array_values($map), $rowTpl);
-                }
-                return $rows;
-            },
-            $html
-        );
-    }
-
-    private function _processConditionals($html, $tokens) {
-        return preg_replace_callback(
-            '/\{\{IF:([A-Z0-9_]+)\}\}(.*?)\{\{\/IF:\1\}\}/s',
-            function ($m) use ($tokens) {
-                $value = trim($tokens['{{' . $m[1] . '}}'] ?? '');
-                return $value !== '' ? $m[2] : '';
-            },
-            $html
-        );
-    }
-
-    private function _renderGenericA4Html($h, $items, $org) {
-        $cur   = '₹ ';
-        $dec   = 2;
-        $e     = fn($v) => htmlspecialchars((string)($v ?? ''), ENT_QUOTES);
-        $fmt   = function($date) { if (!$date) return '—'; $d = date_create($date); return $d ? date_format($d, 'd M Y') : $date; };
-        $label = strtoupper($h->TransType ?? 'Document');
-        $partyLabel = in_array($label, ['PURCHASE ORDER', 'PURCHASE BILL']) ? 'Vendor' : 'Customer';
-
-        $rows = '';
-        foreach ($items as $i => $item) {
-            $rows .= '<tr>' .
-                '<td style="text-align:center">' . ($i + 1) . '</td>' .
-                '<td>' . $e($item->ProductName) . '</td>' .
-                '<td style="text-align:center">' . $e($item->Quantity) . ' ' . $e($item->PrimaryUnitName ?? '') . '</td>' .
-                '<td style="text-align:right">' . $cur . number_format((float)($item->UnitPrice ?? 0), $dec) . '</td>' .
-                '<td style="text-align:right">' . $cur . number_format((float)($item->NetAmount ?? 0), $dec) . '</td>' .
-                '</tr>';
-        }
-
-        return '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>' .
-            '@page{size:A4;margin:0;}' .
-            'body{font-family:Arial,sans-serif;font-size:12px;margin:0;padding:0;background:#fff;}' .
-            '.page{padding:15mm;}' .
-            'table{width:100%;border-collapse:collapse;}th,td{border:1px solid #ddd;padding:6px 8px;font-size:11px;}' .
-            'th{background:#f5f5f5;font-weight:bold;}' .
-            '@media print{body{background:#fff;}}' .
-            '</style></head><body><div class="page">' .
-            '<div style="display:flex;justify-content:space-between;margin-bottom:12px">' .
-                '<div><strong style="font-size:14px">' . $e($org->BrandName ?? $org->Name ?? '') . '</strong>' .
-                (!empty($org->GSTIN) ? '<br><span style="color:#666">GSTIN: ' . $e($org->GSTIN) . '</span>' : '') . '</div>' .
-                '<div style="text-align:right"><strong style="font-size:16px">' . $label . '</strong><br>' .
-                '<span style="color:#666">' . $e($h->UniqueNumber ?? '—') . '</span><br>' .
-                '<span style="color:#666">Date: ' . $fmt($h->TransDate ?? '') . '</span>' .
-                (!empty($h->ValidityDate) ? '<br><span style="color:#666">Valid Until: ' . $fmt($h->ValidityDate) . '</span>' : '') . '</div>' .
-            '</div>' .
-            '<div style="background:#f9f9f9;padding:8px;border-radius:4px;margin-bottom:12px">' .
-                '<strong>' . $partyLabel . ':</strong> ' . $e($h->PartyName ?? '—') . '</div>' .
-            '<table><thead><tr><th style="width:30px">#</th><th>Product</th>' .
-                '<th style="width:60px;text-align:center">Qty</th>' .
-                '<th style="width:90px;text-align:right">Unit Price</th>' .
-                '<th style="width:90px;text-align:right">Amount</th></tr></thead>' .
-            '<tbody>' . $rows . '</tbody><tfoot>' .
-                '<tr><td colspan="4" style="text-align:right;font-weight:bold">Sub Total</td><td style="text-align:right">' . $cur . number_format((float)($h->SubTotal ?? 0), $dec) . '</td></tr>' .
-                ((float)($h->DiscountAmount ?? 0) > 0 ? '<tr><td colspan="4" style="text-align:right;color:#c00">Discount</td><td style="text-align:right;color:#c00">- ' . $cur . number_format((float)$h->DiscountAmount, $dec) . '</td></tr>' : '') .
-                ((float)($h->TaxAmount ?? 0) > 0 ? '<tr><td colspan="4" style="text-align:right">Tax</td><td style="text-align:right">' . $cur . number_format((float)$h->TaxAmount, $dec) . '</td></tr>' : '') .
-                '<tr><td colspan="4" style="text-align:right;font-weight:bold">Net Amount</td><td style="text-align:right;font-weight:bold">' . $cur . number_format((float)($h->NetAmount ?? 0), $dec) . '</td></tr>' .
-            '</tfoot></table>' .
-            (!empty($h->Notes) ? '<p style="margin-top:12px;font-size:11px;color:#666"><strong>Notes:</strong> ' . $e($h->Notes) . '</p>' : '') .
-            (!empty($h->TermsConditions) ? '<p style="font-size:11px;color:#666"><strong>Terms:</strong> ' . $e($h->TermsConditions) . '</p>' : '') .
-        '</div></body></html>';
-    }
-
     // ----------------------------------------------------------------
     // POST /transactions/downloadA4Pdf
     // Renders the transaction as HTML, converts to PDF via DomPDF,
@@ -929,7 +499,7 @@ class Transactions extends CI_Controller {
             $printThemeResult = $this->organisation_model->getPrintThemeByType($orgUID, $header->TransType);
             $printBankAccount = $this->transactions_model->getPrintBankAccount($orgUID);
 
-            $html = $this->_renderA4Html($header, $items, $orgInfo->Data ?? null, $printThemeResult->Data ?? null, $printBankAccount);
+            $html = $this->transactions_model->_renderA4Html($moduleUID, $header, $items, $orgInfo->Data ?? null, $printThemeResult->Data ?? null, $printBankAccount);
 
             // ── PDF-specific HTML adjustments ────────────────────────
             $paperSize  = strtoupper(trim($this->input->get_post('PaperSize') ?: 'A4'));

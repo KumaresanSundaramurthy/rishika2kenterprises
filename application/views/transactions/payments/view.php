@@ -181,6 +181,7 @@
         </div>
 
         <?php $this->load->view('common/transactions/print_modals'); ?>
+        <?php $this->load->view('common/modals/send_communication'); ?>
 
     </div>
 </div>
@@ -201,6 +202,7 @@ $this->load->view('common/transactions/payment_modal');
 <script type="text/javascript" src="/js/transactions/viewmodal.js"></script>
 <script type="text/javascript" src="/js/transactions/a4_print.js"></script>
 <script type="text/javascript" src="/js/transactions/thermal_print.js"></script>
+<script type="text/javascript" src="/js/common/communication.js"></script>
 
 <script>
 $('#viewTransEditBtn').data('hide-edit', true);
@@ -272,11 +274,13 @@ $(function () {
         PmtPageNo = 1;
         getPaymentsDetails(1);
     });
+
     $('#pmtFilterPurchases').on('click', function () {
         PmtFilter.PartyType = 'V';
         PmtPageNo = 1;
         getPaymentsDetails(1);
     });
+
     $('#pmtClearFilter').on('click', function () {
         PmtFilter = {};
         $('#pmtSearch').val('');
@@ -292,7 +296,12 @@ $(function () {
     // ── Payment A4 Print ─────────────────────────────────────────────────────
     $(document).on('click', '.pmtA4Print', function () {
         var paymentUID = $(this).data('payment-uid');
-        _pmtLoadPrintData(paymentUID, function (resp) {
+        _pmtLoadPrintData(paymentUID, 'a4', function (resp) {
+            if (!resp.PrintHtml) {
+                $('#a4PrintModal').modal('hide');
+                showToastNotification('No print template is configured for Payments. Please set one up in Settings > Print Themes.', 'error');
+                return;
+            }
             _a4Html  = resp.PrintHtml;
             _a4Title = resp.Payment.UniqueNumber || ('PMT-' + paymentUID);
             _a4DownloadUid       = paymentUID;
@@ -343,28 +352,7 @@ $(function () {
         document.body.removeChild(form);
     });
 
-    // ── Payment Thermal Print ────────────────────────────────────────────────
-    $(document).on('click', '.pmtThermalPrint', function () {
-        var paymentUID = $(this).data('payment-uid');
-        $('#thermalPrintBtn').addClass('d-none');
-        $('#thermalPrintBody').html('<div class="d-flex justify-content-center py-5"><div class="spinner-border text-primary"></div></div>');
-        new bootstrap.Modal(document.getElementById('thermalPrintModal')).show();
-        _pmtLoadPrintData(paymentUID, function (resp) {
-            $('#thermalPrintBody').html(_buildPmtThermalHtml(resp, 0));
-            $('#thermalPrintBtn').off('click.pmt').on('click.pmt', function () {
-                var html = _buildPmtThermalHtml(resp, 1);
-                var cfg  = resp.ThermalConfig || {};
-                var pw   = cfg.PaperWidth || '80mm';
-                var win  = window.open('', '_blank', 'width=400,height=600');
-                win.document.write('<!DOCTYPE html><html><head><title>Payment Receipt</title><style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:Arial,sans-serif;font-size:12px;width:' + pw + ';padding:4px;}.tp-hr{border:none;border-top:1px dashed #000;margin:4px 0;}@media print{@page{margin:0;size:' + pw + ' auto;}body{width:' + pw + ';padding:0 4px 20px 4px;}}</style></head><body>' + html + '</body></html>');
-                win.document.close();
-                win.focus();
-                win.addEventListener('afterprint', function () { win.close(); });
-                setTimeout(function () { win.print(); }, 300);
-            });
-            $('#thermalPrintBtn').removeClass('d-none');
-        });
-    });
+    // ── Payment Thermal Print — handled by thermal_print.js ─────────────────
 
     // View payment detail — reads from data-* on the <tr>, zero AJAX
     $(document).on('click', '.viewPaymentDetail', function () {
@@ -454,6 +442,7 @@ $(function () {
     });
 
 });
+
 function getPaymentsDetails(pageNo, append) {
     pageNo = pageNo || 1;
     PmtPageNo = pageNo;
@@ -482,107 +471,14 @@ function getPaymentsDetails(pageNo, append) {
     });
 }
 
-// ── Shared payment print helpers ─────────────────────────────────────────────────────
-function _pmtLoadPrintData(paymentUID, cb) {
-    $.ajax({
-        url   : '/payments/getPaymentPrintDetail',
-        method: 'GET',
-        data  : { PaymentUID: paymentUID },
-        success: function (resp) {
-            AjaxLoading = 1;
-            if (resp.Error) {
-                Swal.fire({ icon: 'error', text: resp.Message });
-                return;
-            }
-            cb(resp);
-        },
-        error: function () {
-            AjaxLoading = 1;
-            Swal.fire({ icon: 'error', text: 'Failed to load payment data.' });
-        }
-    });
-    AjaxLoading = 0;
-}
-
-function _buildPmtThermalHtml(resp, forPrint) {
-    var p   = resp.Payment       || {};
-    var org = resp.OrgInfo       || {};
-    var cfg = resp.ThermalConfig || {};
-    var sym = (typeof genSettings !== 'undefined' && genSettings.CurrenySymbol) ? genSettings.CurrenySymbol : '₹';
-
-    var fmtAmt  = function (v) { return sym + ' ' + parseFloat(v || 0).toFixed(2); };
-    var fmtDate = function (v) {
-        if (!v) return '—';
-        var d = new Date(v);
-        return isNaN(d) ? v : ('0' + d.getDate()).slice(-2) + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + d.getFullYear();
-    };
-
-    // ── Same cfg flags as _buildThermalHtml ──────────────────────────────
-    var showLogo   = cfg.ShowLogo             !== undefined ? parseInt(cfg.ShowLogo)           : 0;
-    var showCo     = cfg.ShowCompanyDetails   !== undefined ? parseInt(cfg.ShowCompanyDetails) : 1;
-    var showMobile = cfg.ShowMobile           !== undefined ? parseInt(cfg.ShowMobile)         : 1;
-    var showGSTIN  = cfg.ShowGSTIN            !== undefined ? parseInt(cfg.ShowGSTIN)          : 1;
-
-    var orgFontSize  = Math.max(10, Math.min(40, parseInt(cfg.OrgNameFontSize)     || 22));
-    var coFontSize   = Math.max(8,  Math.min(40, parseInt(cfg.CompanyNameFontSize) || 18));
-    var prodFontSize = Math.max(8,  Math.min(40, parseInt(cfg.ProductInfoFontSize) || 12));
-
-    var line1  = org.BrandName || org.Name || '';
-    var line3  = [org.Line1, org.Line2, org.CityText, org.StateText, org.Pincode].filter(Boolean).join(', ');
-    var footer = cfg.FooterMessage || 'Thank you for your business!';
-
-    var direction  = (p.PartyType === 'C') ? 'Payment Received' : 'Payment Made';
-    var partyLabel = (p.PartyType === 'C') ? 'Customer'         : 'Vendor';
-
-    var html = '';
-
-    // Logo
-    if (showLogo && org.Logo) {
-        var logoUrl = (/^https?:\/\//i.test(org.Logo) ? '' : (typeof CDN_URL !== 'undefined' ? CDN_URL : '')) + org.Logo;
-        html += '<div style="text-align:center;margin-bottom:4px;"><img src="' + _esc(logoUrl) + '" style="max-width:80px;max-height:60px;object-fit:contain;" alt="Logo" /></div>';
-    }
-
-    // Org name
-    html += '<div style="text-align:center;font-weight:bold;font-size:' + orgFontSize + 'px;">' + _esc(line1) + '</div>';
-
-    // Address / phone / GSTIN
-    if (showCo) {
-        if (line3)                          html += '<div style="text-align:center;font-size:' + coFontSize + 'px;">' + _esc(line3) + '</div>';
-        if (showMobile && org.MobileNumber) html += '<div style="text-align:center;font-size:' + coFontSize + 'px;">Ph: ' + _esc(org.MobileNumber) + '</div>';
-        if (showGSTIN  && org.GSTIN)        html += '<div style="text-align:center;font-size:' + coFontSize + 'px;">GSTIN: ' + _esc(org.GSTIN) + '</div>';
-    }
-
-    html += '<hr class="tp-hr my-1">';
-
-    // Receipt header
-    html += '<div style="font-size:' + prodFontSize + 'px;">';
-    html += '<div style="display:flex;justify-content:space-between;"><span style="font-weight:bold;">' + _esc(direction) + ':</span><span style="font-weight:bold;">' + _esc(p.UniqueNumber || ('PMT-' + p.PaymentUID)) + '</span></div>';
-    html += '<div style="display:flex;justify-content:space-between;"><span>Date:</span><span>' + fmtDate(p.PaymentDate || p.CreatedOn) + '</span></div>';
-    html += '<div style="display:flex;justify-content:space-between;"><span>' + _esc(partyLabel) + ':</span><span style="text-align:right;max-width:60%;">' + _esc(p.PartyName || '—') + '</span></div>';
-    if (p.PartyMobile) html += '<div style="display:flex;justify-content:space-between;"><span>Phone:</span><span>' + _esc(p.PartyMobile) + '</span></div>';
-    html += '</div>';
-
-    html += '<hr class="tp-hr my-1">';
-
-    // Amount + payment details
-    html += '<div style="display:flex;justify-content:space-between;font-weight:bold;font-size:' + (prodFontSize + 2) + 'px;border-bottom:1px solid #000;padding-bottom:3px;margin-bottom:3px;"><span>Amount:</span><span>' + fmtAmt(p.Amount) + '</span></div>';
-    html += '<div style="font-size:' + prodFontSize + 'px;">';
-    html += '<div style="display:flex;justify-content:space-between;"><span>Mode:</span><span>' + _esc(p.PaymentTypeName || '—') + '</span></div>';
-    if (!p.IsCash && p.BankName) html += '<div style="display:flex;justify-content:space-between;"><span>Bank:</span><span>' + _esc(p.BankName) + '</span></div>';
-    if (p.ReferenceNo)           html += '<div style="display:flex;justify-content:space-between;"><span>Ref:</span><span>' + _esc(p.ReferenceNo) + '</span></div>';
-    if (p.TransNumber)           html += '<div style="display:flex;justify-content:space-between;"><span>Linked Doc:</span><span>' + _esc(p.TransNumber) + '</span></div>';
-    html += '</div>';
-
-    html += '<hr class="tp-hr my-1">';
-
-    // Footer
-    html += '<div style="text-align:center;font-size:' + prodFontSize + 'px;margin-top:6px;">' + _esc(footer) + '</div>';
-    html += '<div style="margin-bottom:24px"></div>';
-
-    return forPrint === 0
-        ? '<div style="font-family:\'Courier New\',Courier,monospace;font-size:13px;padding:8px;max-width:580px;margin:0 auto;">' + html + '</div>'
-        : html;
-}
+// ── WhatsApp: always open a fresh window to clear previous pre-filled text ──
+$(document).on('click', '.pmt-wa-link', function (e) {
+    e.preventDefault();
+    var url = $(this).data('wa-url');
+    if (!url) return;
+    var win = window.open('about:blank', '_blank');
+    win.location.href = url;
+});
 
 // Shared helper: call deletePayment endpoint and handle response
 function doPaymentRemove(paymentUID, $row) {

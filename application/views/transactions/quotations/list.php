@@ -59,6 +59,9 @@ if (!empty($DataLists)):
                     <?php echo htmlspecialchars($list->UniqueNumber); ?>
                 </a>
                 <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars(format_datedisplay($list->TransDate, 'd M Y')); ?></div>
+                <?php if (!empty($list->CreatedBy)): ?>
+                <div style="font-size:.68rem;color:#bbb;">by <?php echo htmlspecialchars($list->CreatedBy); ?></div>
+                <?php endif; ?>
             <?php endif; ?>
         </td>
 

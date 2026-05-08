@@ -29815,3 +29815,37 @@ body:not(.modal-open) .layout-content-navbar .layout-navbar {
 .vtm-pay-mode     { font-size: .72rem; }
 
 .preview-image:hover { opacity: 0.8; transition: 0.3s; }
+
+/* ── Send Communication Modal ────────────────────────────────────────────── */
+.comm-modal-content        { border: 0; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,.15); }
+.comm-modal-header         { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; border-bottom: 1px solid #e9ecef; background: #fff; }
+.comm-modal-title          { font-size: .95rem; font-weight: 700; color: #212529; }
+.comm-modal-subtitle       { font-size: .75rem; color: #6c757d; margin-top: 1px; }
+.comm-header-icon          { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: #e8f0fe; flex-shrink: 0; }
+.comm-header-icon-i        { font-size: 1.25rem; color: #0d6efd; }
+.comm-header-icon.sms      { background: #e8f0fe; }
+.comm-header-icon.email    { background: #e8f5e9; }
+.comm-header-icon.sms  .comm-header-icon-i  { color: #0d6efd; }
+.comm-header-icon.email .comm-header-icon-i { color: #198754; }
+.comm-close-btn            { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border: none; background: #f1f3f5; border-radius: 50%; cursor: pointer; color: #495057; font-size: 1.2rem; line-height: 1; padding: 0; flex-shrink: 0; transition: background .15s, color .15s; }
+.comm-close-btn:hover      { background: #e9ecef; color: #212529; }
+.comm-from-box             { background: #f0f4ff; border: 1px solid #d0dcff; border-radius: 10px; padding: 10px 14px; }
+.comm-to-box               { background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 10px; padding: 10px 14px; }
+.comm-field-label          { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #6c757d; margin-bottom: 2px; }
+.comm-from-name            { font-size: .85rem; font-weight: 600; color: #212529; }
+.comm-from-email           { font-size: .75rem; color: #6c757d; }
+.comm-to-name              { font-size: .85rem; font-weight: 600; color: #212529; }
+.comm-to-contact           { font-size: .75rem; color: #6c757d; }
+.comm-no-contact-badge     { font-size: .72rem; }
+.comm-type-tab             { border-radius: 20px; font-size: .8rem; }
+.comm-editor               { min-height: 130px; border: 1px solid #dee2e6; border-radius: 6px; font-size: .88rem; }
+.comm-email-editor         { min-height: 180px; }
+.comm-attach-dropzone      { border: 2px dashed #d0d5dd; border-radius: 8px; background: #fafafa; padding: 16px; text-align: center; cursor: pointer; transition: border-color .15s, background .15s; min-height: 80px; }
+.comm-attach-dropzone:hover,
+.comm-attach-dropzone.dz-drag-hover { border-color: #0d6efd; background: #f0f4ff; }
+.comm-attach-dropzone .dz-message   { margin: 0; }
+.comm-attach-icon          { font-size: 1.8rem; color: #adb5bd; display: block; margin-bottom: 4px; }
+.comm-attach-hint          { font-size: .82rem; color: #495057; }
+.comm-attach-sub           { font-size: .72rem; color: #adb5bd; margin-top: 2px; }
+.comm-attach-dropzone.dz-started .dz-message { display: none; }
+.min-w-0 { min-width: 0; }

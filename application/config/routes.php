@@ -53,6 +53,9 @@ $route['default_controller'] = 'login';
 $route['404_override'] = '';
 $route['translate_uri_dashes'] = FALSE;
 
+// Public receipt page (no login required)
+$route['receipt/(:any)'] = 'receipt/index/$1';
+
 // Login
 $route['portal'] = 'login/login';
 $route['logout'] = 'login/logout';
@@ -72,6 +75,10 @@ $route['settings/saveBankDetail']         = 'settings/saveBankDetail';
 $route['settings/deleteBankDetail']       = 'settings/deleteBankDetail';
 $route['settings/setDefaultBank']         = 'settings/setDefaultBank';
 $route['settings/transferFunds']          = 'settings/transferFunds';
+$route['settings/getMsgTemplateList']     = 'settings/getMsgTemplateList';
+$route['settings/getMsgTemplateDetail']   = 'settings/getMsgTemplateDetail';
+$route['settings/saveMsgTemplate']        = 'settings/saveMsgTemplate';
+$route['settings/deleteMsgTemplate']      = 'settings/deleteMsgTemplate';
 
 // Roles
 $route['settings/roles']                         = 'roles/index';
@@ -216,7 +223,7 @@ $route['customers/(:num)/clone'] = 'customers/clonecustomer/$1';
 $route['customers/modal/(:any)/(:num)'] = 'customers/loadModalForm/$1/$2';
 $route['customers/modal/(:any)']        = 'customers/loadModalForm/$1';
 $route['customers/getCustomerForModal/(:num)'] = 'customers/getCustomerForModal/$1';
-$route['vendors/getVendorForModal/(:num)'] = 'vendors/getVendorForModal/$1';
+$route['globally/getCommTemplate'] = 'globally/getCommTemplate';
 
 // Vendors
 $route['vendors/(:num)/edit'] = 'vendors/edit/$1';

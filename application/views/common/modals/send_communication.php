@@ -3,59 +3,65 @@
 <!-- ── Send Communication Modal ─────────────────────────────────────────── -->
 <div class="modal fade" id="SendCommModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg" style="border-radius:12px;overflow:hidden;">
+        <div class="modal-content comm-modal-content">
 
-            <!-- Header — common theme -->
-            <div class="d-flex align-items-center justify-content-between px-4 py-3 border-bottom bg-white">
+            <!-- Header -->
+            <div class="comm-modal-header">
                 <div class="d-flex align-items-center gap-3">
-                    <div id="CommHeaderIcon" style="width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:#e8f0fe;">
-                        <i class="bx bx-message-rounded fs-4 text-primary" id="CommHeaderIconI"></i>
+                    <div class="comm-header-icon" id="CommHeaderIcon">
+                        <i class="bx bx-message-rounded comm-header-icon-i" id="CommHeaderIconI"></i>
                     </div>
                     <div>
-                        <div class="fw-bold" style="font-size:.95rem;" id="SendCommModalTitle">Send SMS</div>
-                        <div class="text-muted" style="font-size:.75rem;">Compose and send your message</div>
+                        <div class="comm-modal-title" id="SendCommModalTitle">Send SMS</div>
+                        <div class="comm-modal-subtitle">Compose and send your message</div>
                     </div>
                 </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="comm-close-btn" data-bs-dismiss="modal" aria-label="Close">
+                    <i class="bx bx-x"></i>
+                </button>
             </div>
 
             <div class="modal-body px-4 py-3">
 
-                <!-- From -->
-                <div class="mb-3 p-3 rounded-3" style="background:#f0f4ff;border:1px solid #d0dcff;">
-                    <div class="d-flex align-items-center gap-2">
-                        <i class="bx bx-envelope-open text-primary fs-5"></i>
-                        <div>
-                            <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#6c757d;">From</div>
-                            <div class="fw-semibold" style="font-size:.85rem;"><?php echo htmlspecialchars(getenv('MAIL_FROM_NAME') ?: 'R2K Enterprises'); ?></div>
-                            <div class="text-muted" style="font-size:.75rem;"><?php echo htmlspecialchars(getenv('MAIL_FROM_EMAIL') ?: ''); ?></div>
+                <!-- From + To side by side -->
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <div class="comm-from-box h-100">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="bx bx-envelope-open text-primary fs-5 flex-shrink-0"></i>
+                                <div class="min-w-0">
+                                    <div class="comm-field-label">From</div>
+                                    <div class="comm-from-name text-truncate"><?php echo htmlspecialchars(getenv('MAIL_FROM_NAME') ?: 'R2K Enterprises'); ?></div>
+                                    <div class="comm-from-email text-truncate"><?php echo htmlspecialchars(getenv('MAIL_FROM_EMAIL') ?: ''); ?></div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
-
-                <!-- To -->
-                <div class="mb-3 p-3 rounded-3" style="background:#f8f9fa;border:1px solid #e9ecef;">
-                    <div class="d-flex align-items-center gap-2">
-                        <i class="bx bx-user-circle text-secondary fs-5"></i>
-                        <div class="flex-grow-1">
-                            <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#6c757d;">To</div>
-                            <div class="fw-semibold" style="font-size:.85rem;" id="CommToName">—</div>
-                            <div class="text-muted" style="font-size:.75rem;" id="CommToContact"></div>
-                        </div>
-                        <div id="CommNoContactWarning" class="d-none">
-                            <span class="badge bg-label-warning" style="font-size:.72rem;">
-                                <i class="bx bx-error-circle me-1"></i><span id="CommNoContactText"></span>
-                            </span>
+                    <div class="col-6">
+                        <div class="comm-to-box h-100">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="bx bx-user-circle text-secondary fs-5 flex-shrink-0"></i>
+                                <div class="flex-grow-1 min-w-0">
+                                    <div class="comm-field-label">To</div>
+                                    <div class="comm-to-name text-truncate" id="CommToName">—</div>
+                                    <div class="comm-to-contact text-truncate" id="CommToContact"></div>
+                                </div>
+                                <div id="CommNoContactWarning" class="d-none flex-shrink-0">
+                                    <span class="badge bg-label-warning comm-no-contact-badge">
+                                        <i class="bx bx-error-circle me-1"></i><span id="CommNoContactText"></span>
+                                    </span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Type toggle -->
                 <div class="d-flex gap-2 mb-3">
-                    <button type="button" class="btn btn-sm comm-type-tab active px-3" data-commtype="SMS" style="border-radius:20px;font-size:.8rem;">
+                    <button type="button" class="btn btn-sm comm-type-tab active px-3" data-commtype="SMS">
                         <i class="bx bx-message-rounded me-1"></i>SMS
                     </button>
-                    <button type="button" class="btn btn-sm comm-type-tab px-3" data-commtype="Email" style="border-radius:20px;font-size:.8rem;">
+                    <button type="button" class="btn btn-sm comm-type-tab px-3" data-commtype="Email">
                         <i class="bx bx-envelope me-1"></i>Email
                     </button>
                 </div>
@@ -63,7 +69,7 @@
                 <!-- SMS Fields -->
                 <div id="CommSmsFields">
                     <label class="form-label fw-semibold small">Message <span class="text-danger">*</span></label>
-                    <div id="CommSmsEditor" style="min-height:130px;border:1px solid #dee2e6;border-radius:6px;font-size:.88rem;"></div>
+                    <div id="CommSmsEditor" class="comm-editor"></div>
                     <input type="hidden" id="CommSmsMessage">
                     <div class="d-flex justify-content-between mt-1">
                         <small class="text-muted">
@@ -79,13 +85,31 @@
                 <!-- Email Fields -->
                 <div id="CommEmailFields" class="d-none">
                     <div class="mb-3">
-                        <label class="form-label fw-semibold small">Subject <span class="text-danger">*</span></label>
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <label class="form-label fw-semibold small mb-0">Subject <span class="text-danger">*</span></label>
+                            <button type="button" id="CommTokenToggleBtn" class="btn btn-xs btn-outline-secondary d-none" style="font-size:.72rem;padding:2px 8px;line-height:1.4;">
+                                <i class="bx bx-code-alt me-1"></i><span id="CommTokenToggleLabel">Show Tokens</span>
+                            </button>
+                        </div>
                         <input type="text" class="form-control form-control-sm" id="CommEmailSubject" placeholder="Enter email subject" maxlength="255" />
                     </div>
-                    <div class="mb-1">
+                    <div class="mb-3">
                         <label class="form-label fw-semibold small">Message <span class="text-danger">*</span></label>
-                        <div id="CommEmailEditor" style="min-height:180px;border:1px solid #dee2e6;border-radius:6px;font-size:.88rem;"></div>
+                        <div id="CommEmailEditor" class="comm-editor comm-email-editor"></div>
                         <input type="hidden" id="CommEmailMessage">
+                    </div>
+                    <!-- Attachments -->
+                    <div class="mb-1">
+                        <label class="form-label fw-semibold small">
+                            Attachments <span class="text-muted fw-normal">(max 3 files &bull; 3 MB each)</span>
+                        </label>
+                        <div id="CommAttachDropzone" class="comm-attach-dropzone dropzone needsclick dz-clickable">
+                            <div class="dz-message needsclick">
+                                <i class="bx bx-cloud-upload comm-attach-icon"></i>
+                                <div class="comm-attach-hint">Drag &amp; drop or <span class="text-primary">browse</span></div>
+                                <div class="comm-attach-sub">PDF, JPG, PNG &bull; Max 3 MB per file</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -106,3 +130,5 @@
 <input type="hidden" id="CommActiveType"    value="SMS">
 <input type="hidden" id="CommRecipientType" value="">
 <input type="hidden" id="CommRecipientUIDs" value="">
+<input type="hidden" id="CommModuleUID"     value="">
+<input type="hidden" id="CommRecordUID"     value="">

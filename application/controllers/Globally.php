@@ -424,6 +424,202 @@ class Globally extends CI_Controller {
 
 
     // ── GET /globally/fetchIfscDetails?ifsc=XXXX ─────────────────────────────
+    public function getCommTemplate() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID    = $this->pageData['JwtData']->User->OrgUID;
+            $moduleUID = (int) $this->input->post('ModuleUID');
+            $channel   = trim($this->input->post('Channel') ?: 'Email');
+            $recordUID = (int) $this->input->post('RecordUID');
+            if (!$moduleUID) throw new Exception('ModuleUID required.');
+
+            // Build context from live DB data based on module
+            $context = $this->_buildCommContext($moduleUID, $recordUID, $orgUID);
+
+            $this->load->model('organisation_model');
+            $result = $this->organisation_model->getMessageTemplate($orgUID, $moduleUID, $channel);
+            if ($result->Error || empty($result->Data)) {
+                $this->EndReturnData->Error      = FALSE;
+                $this->EndReturnData->Found      = FALSE;
+                $this->EndReturnData->Subject    = '';
+                $this->EndReturnData->Body       = '';
+                $this->EndReturnData->RawSubject = '';
+                $this->EndReturnData->RawBody    = '';
+                $this->globalservice->sendJsonResponse($this->EndReturnData);
+                return;
+            }
+
+            $tpl        = $result->Data;
+            $rawSubject = $tpl->Subject ?? '';
+            $rawBody    = $tpl->Body    ?? '';
+
+            $resolved = $this->_resolveCommTokens($moduleUID, $context, $rawSubject, $rawBody);
+
+            $this->EndReturnData->Error      = FALSE;
+            $this->EndReturnData->Found      = TRUE;
+            $this->EndReturnData->Subject    = $resolved['subject'];
+            $this->EndReturnData->Body       = $resolved['body'];
+            $this->EndReturnData->RawSubject = $rawSubject;
+            $this->EndReturnData->RawBody    = $rawBody;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    /**
+     * Builds the token context array from live DB data for a given module + record.
+     * Add a new case block here for each module that needs token replacement.
+     */
+    private function _buildCommContext($moduleUID, $recordUID, $orgUID) {
+        $context = [];
+        if ($recordUID <= 0) return $context;
+
+        // ── Org info (common to all modules) ─────────────────────────────────
+        $this->load->model('organisation_model');
+        $orgInfo = $this->organisation_model->getOrgForReceipt($orgUID);
+        $org     = $orgInfo->Data ?? null;
+        if ($org) {
+            $orgAddr = implode(', ', array_filter([
+                $org->Line1 ?? '', $org->Line2 ?? '',
+                $org->CityText ?? '', $org->StateText ?? '', $org->Pincode ?? '',
+            ]));
+            $context['OrgName']    = $org->BrandName ?? $org->Name ?? '';
+            $context['OrgPhone']   = $org->MobileNumber  ?? '';
+            $context['OrgEmail']   = $org->EmailAddress  ?? '';
+            $context['OrgGSTIN']   = $org->GSTIN         ?? '';
+            $context['OrgAddress'] = $orgAddr;
+        }
+
+        // ── Module 110: Payments ──────────────────────────────────────────────
+        if ((int)$moduleUID === 110) {
+            $this->load->model('transactions_model');
+            $payment = $this->transactions_model->getPaymentDetailById($recordUID, $orgUID);
+            if (!$payment) return $context;
+
+            $appUrl      = rtrim(getenv('HTTP_HOST_URL') ?: '', '/');
+            $receiptToken = trim($payment->ReceiptToken ?? '');
+
+            $payDate      = $payment->PaymentDate ?? $payment->CreatedOn ?? '';
+            $linkedDoc    = trim($payment->TransNumber ?? '');
+            $receiptDesc  = $linkedDoc
+                ? 'Amount received against the linked document ' . $linkedDoc
+                : 'Amount received';
+
+            $context += [
+                'PartyName'          => $payment->PartyName          ?? '',
+                'DocNumber'          => $linkedDoc,
+                'DocDate'            => $payDate ? date('d M Y', strtotime($payDate)) : '',
+                'Amount'             => (float)($payment->Amount      ?? 0),
+                'AmountInWords'      => print_number_to_words((float)($payment->Amount ?? 0)),
+                'ReceiptNumber'      => $payment->UniqueNumber        ?? '',
+                'PaymentMode'        => $payment->PaymentTypeName     ?? '',
+                'PaymentStatus'      => (int)($payment->IsFullyPaid ?? 0) ? 'Paid' : 'Partially Paid',
+                'ReceiptLink'        => $receiptToken ? $appUrl . '/receipt/' . $receiptToken : '',
+                'BalanceAmount'      => (float)($payment->BalanceAmount ?? 0),
+                'ReceiptDescription' => $receiptDesc,
+            ];
+        }
+
+        // ── Add more modules here as needed ───────────────────────────────────
+        // if ((int)$moduleUID === 103) { /* Sales Invoice */ }
+
+        return $context;
+    }
+
+    /**
+     * Common token replacement function.
+     * Replaces {{TOKEN}} placeholders in subject and body with real values.
+     * Common tokens apply to all modules; module-specific tokens are added per module.
+     *
+     * @param  int    $moduleUID
+     * @param  array  $context
+     * @param  string $subject
+     * @param  string $body
+     * @return array  ['subject' => string, 'body' => string]
+     */
+    private function _resolveCommTokens($moduleUID, $context, $subject, $body) {
+        $cur = $this->pageData['JwtData']->GenSettings->CurrenySymbol ?? '₹';
+        $dec = (int)($this->pageData['JwtData']->GenSettings->DecimalPoints ?? 2);
+
+        $orgName    = $context['OrgName']    ?? '';
+        $orgPhone   = $context['OrgPhone']   ?? '';
+        $orgEmail   = $context['OrgEmail']   ?? '';
+        $orgGstin   = $context['OrgGSTIN']   ?? '';
+        $orgAddress = $context['OrgAddress'] ?? '';
+
+        $fmtAmt = isset($context['Amount'])
+            ? $cur . ' ' . number_format((float)$context['Amount'], $dec)
+            : '';
+
+        // ── Common tokens — both UPPER_CASE and camelCase variants ────────────
+        $map = [
+            // UPPER_CASE (standard)
+            '{{PARTY_NAME}}'      => $context['PartyName']    ?? '',
+            '{{DOC_NUMBER}}'      => $context['DocNumber']     ?? '',
+            '{{DOC_DATE}}'        => $context['DocDate']       ?? '',
+            '{{DOC_TYPE}}'        => $context['DocType']       ?? '',
+            '{{AMOUNT}}'          => $fmtAmt,
+            '{{AMOUNT_IN_WORDS}}' => $context['AmountInWords'] ?? '',
+            '{{CURRENCY}}'        => $cur,
+            '{{VALID_UNTIL}}'     => $context['ValidUntil']    ?? '',
+            '{{ORG_NAME}}'        => $orgName,
+            '{{ORG_PHONE}}'       => $orgPhone,
+            '{{ORG_EMAIL}}'       => $orgEmail,
+            '{{ORG_GSTIN}}'       => $orgGstin,
+            '{{ORG_ADDRESS}}'     => $orgAddress,
+            // camelCase aliases used in message templates
+            '{{PartyName}}'       => $context['PartyName']    ?? '',
+            '{{DocNumber}}'       => $context['DocNumber']     ?? '',
+            '{{DocDate}}'         => $context['DocDate']       ?? '',
+            '{{Amount}}'          => $fmtAmt,
+            '{{AmountInWords}}'   => $context['AmountInWords'] ?? '',
+            '{{CompanyName}}'     => $orgName,
+            '{{CompanyMobile}}'   => $orgPhone,
+            '{{CompanyEmail}}'    => $orgEmail,
+            '{{CompanyGSTIN}}'    => $orgGstin,
+            '{{CompanyAddress}}'  => $orgAddress,
+        ];
+
+        // ── Module 110: Payments ──────────────────────────────────────────────
+        if ((int)$moduleUID === 110) {
+            $balFmt = isset($context['BalanceAmount'])
+                ? $cur . ' ' . number_format((float)$context['BalanceAmount'], $dec)
+                : '';
+
+            // UPPER_CASE
+            $map['{{RECEIPT_NUMBER}}']      = $context['ReceiptNumber']      ?? '';
+            $map['{{PAYMENT_MODE}}']        = $context['PaymentMode']        ?? '';
+            $map['{{PAYMENT_STATUS}}']      = $context['PaymentStatus']      ?? '';
+            $map['{{RECEIPT_LINK}}']        = $context['ReceiptLink']        ?? '';
+            $map['{{BALANCE_AMOUNT}}']      = $balFmt;
+            $map['{{RECEIPT_DESCRIPTION}}'] = $context['ReceiptDescription'] ?? '';
+            // camelCase aliases used in message templates
+            $map['{{ReceiptNo}}']           = $context['ReceiptNumber']      ?? '';
+            $map['{{ReceiptNumber}}']       = $context['ReceiptNumber']      ?? '';
+            $map['{{ReceiptDate}}']         = $context['DocDate']            ?? '';
+            $map['{{PaymentMode}}']         = $context['PaymentMode']        ?? '';
+            $map['{{PaymentStatus}}']       = $context['PaymentStatus']      ?? '';
+            // Plain number (no symbol) — templates that write "₹ {{AmountReceived}}" use this
+            $map['{{AmountReceived}}']      = isset($context['Amount']) ? number_format((float)$context['Amount'], $dec) : '';
+            $map['{{ReceiptLink}}']         = $context['ReceiptLink']        ?? '';
+            $map['{{BalanceAmount}}']       = $balFmt;
+            $map['{{ReceiptDescription}}']  = $context['ReceiptDescription'] ?? '';
+            $map['{{CustomerName}}']        = $context['PartyName']          ?? '';
+            $map['{{InvoiceNumber}}']       = $context['DocNumber']          ?? '';
+        }
+
+        // ── Add more module-specific token blocks here ─────────────────────────
+        // if ((int)$moduleUID === 103) { /* Sales Invoice tokens */ }
+
+        return [
+            'subject' => str_replace(array_keys($map), array_values($map), $subject),
+            'body'    => str_replace(array_keys($map), array_values($map), $body),
+        ];
+    }
+
     public function fetchIfscDetails() {
 
         $this->EndReturnData = new stdClass();

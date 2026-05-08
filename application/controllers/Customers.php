@@ -719,12 +719,14 @@ class Customers extends CI_Controller {
         $tempFiles = [];
         try {
 
-            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
-            $sentBy   = $this->pageData['JwtData']->User->UserUID;
-            $commType = $this->input->post('CommType');
-            $message  = trim($this->input->post('Message', FALSE));
-            $subject  = trim($this->input->post('Subject', FALSE) ?: '');
-            $uids     = $this->input->post('UIDs');
+            $orgUID    = $this->pageData['JwtData']->User->OrgUID;
+            $sentBy    = $this->pageData['JwtData']->User->UserUID;
+            $commType  = $this->input->post('CommType');
+            $message   = trim($this->input->post('Message', FALSE));
+            $subject   = trim($this->input->post('Subject', FALSE) ?: '');
+            $uids      = $this->input->post('UIDs');
+            $moduleUID = (int) $this->input->post('ModuleUID');
+            $recordUID = (int) $this->input->post('RecordUID');
 
             if (!in_array($commType, ['SMS', 'Email'])) throw new Exception('Invalid communication type.');
             if (empty($message))                         throw new Exception('Message cannot be empty.');
@@ -733,9 +735,10 @@ class Customers extends CI_Controller {
 
             $uids = array_map('intval', $uids);
 
+            $uploadDir = FCPATH . 'uploads/comm_tmp/';
+
             // Save uploaded attachments to a temp dir
             if ($commType === 'Email' && !empty($_FILES['Attachments']['name'][0])) {
-                $uploadDir = FCPATH . 'uploads/comm_tmp/';
                 if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
                 $files = $_FILES['Attachments'];
                 $count = is_array($files['name']) ? count($files['name']) : 0;

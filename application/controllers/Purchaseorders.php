@@ -190,6 +190,7 @@ class Purchaseorders extends CI_Controller {
                 'ExtraDiscType'         => getPostValue($PostData, 'extDiscountType') ?: NULL,
                 'NetAmount'             => $netAmount,
                 'DocStatus'             => $status,
+                'TransToken'            => $this->transactions_model->_uniqueTransToken(),
                 'IsActive'              => 1,
                 'IsDeleted'             => 0,
                 'CreatedBy'             => $userUID,

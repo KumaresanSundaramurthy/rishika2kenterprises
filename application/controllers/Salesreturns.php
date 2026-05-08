@@ -170,12 +170,12 @@ class Salesreturns extends CI_Controller {
                 'ExtraDiscType'     => getPostValue($PostData, 'extDiscountType') ?: NULL,
                 'NetAmount'         => $netAmount,
                 'DocStatus'         => $status,
+                'TransToken'        => $this->transactions_model->_uniqueTransToken(),
                 'IsActive'          => 1,
                 'IsDeleted'         => 0,
                 'CreatedBy'         => $userUID,
                 'UpdatedBy'         => $userUID,
             ];
-
             $insertResp = $this->dbwrite_model->insertData('Transaction', 'TransactionsTbl', $headerData);
             if ($insertResp->Error) throw new Exception($insertResp->Message);
             $transUID = $insertResp->ID;
@@ -347,6 +347,7 @@ class Salesreturns extends CI_Controller {
                     'PrefixUID'    => $prefixUID,
                     'TransNumber'  => $transNumber,
                     'UniqueNumber' => $uniqueNumber,
+                    'TransToken'   => $this->transactions_model->_uniqueTransToken(),
                     'IsActive'     => 1,
                     'IsDeleted'    => 0,
                     'CreatedBy'    => $userUID,

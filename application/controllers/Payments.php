@@ -39,8 +39,8 @@ class Payments extends CI_Controller {
             ], TRUE);
             $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/payments/getPaymentsPageDetails', $allDataCount, 1, $limit);
             $this->pageData['ModAllCount']   = $allDataCount;
-            $this->pageData['MethodSummary'] = $this->transactions_model->getPaymentMethodSummary($orgUID);
-            $this->pageData['Totals']        = $this->transactions_model->getPaymentsTotals($orgUID);
+            $this->pageData['MethodSummary'] = $this->transactions_model->getPaymentMethodSummary($orgUID, $filter);
+            $this->pageData['Totals']        = $this->transactions_model->getPaymentsTotals($orgUID, $filter);
             $this->pageData['BankAccounts']  = $this->transactions_model->getOrgBankAccounts($orgUID);
 
             $this->load->view('transactions/payments/view', $this->pageData);
@@ -93,27 +93,6 @@ class Payments extends CI_Controller {
 
     }
 
-    private function _generateReceiptToken() {
-        $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-        $token = '';
-        $bytes = random_bytes(10);
-        for ($i = 0; $i < 10; $i++) {
-            $token .= $chars[ord($bytes[$i]) % 62];
-        }
-        return $token;
-    }
-
-    private function _uniqueReceiptToken() {
-        $this->load->model('transactions_model');
-        do {
-            $token = $this->_generateReceiptToken();
-            $exists = $this->transactions_model->ReadDb
-                ->where('ReceiptToken', $token)
-                ->count_all_results('Transaction.PaymentsTbl');
-        } while ($exists > 0);
-        return $token;
-    }
-
     public function addPayment() {
 
         $this->EndReturnData = new stdClass();
@@ -144,6 +123,7 @@ class Payments extends CI_Controller {
 
             $excessAmount = $billTotal > 0 ? max(0, $amount - $billTotal) : 0;
 
+            $this->load->model('transactions_model');
             $paymentData = [
                 'OrgUID'            => $orgUID,
                 'TransUID'          => $transUID,
@@ -158,7 +138,7 @@ class Payments extends CI_Controller {
                 'IsFullyPaid'       => $isFullyPaid,
                 'ExcessAmount'      => $excessAmount,
                 'AppliedToTransUID' => NULL,
-                'ReceiptToken'      => $this->_uniqueReceiptToken(),
+                'ReceiptToken'      => $this->transactions_model->_generateReceiptToken(),
                 'IsActive'          => 1,
                 'IsDeleted'         => 0,
                 'CreatedBy'         => $userUID,
@@ -606,40 +586,18 @@ class Payments extends CI_Controller {
             if ($paymentUID <= 0) throw new Exception('Invalid payment.');
 
             $this->load->model('transactions_model');
-            $payment     = $this->transactions_model->getPaymentDetailById($paymentUID, $orgUID);
+            $payment = $this->transactions_model->getPaymentDetailById($paymentUID, $orgUID);
             if (!$payment) throw new Exception('Payment not found.');
-                        $this->load->model('organisation_model');
-            $orgInfo    = $this->organisation_model->getOrgForReceipt($orgUID);
-            $org        = $orgInfo->Data ?? null;
-            $printTheme = $this->organisation_model->getPrintThemeByType($orgUID, 'Payment');
-            $themeData  = $printTheme->Data ?? null;
 
-            $html = $this->transactions_model->_renderPaymentReceiptHtml($payment, $org, $themeData);
-
-            // PDF-specific fixes
-            $html = preg_replace('/\bdisplay\s*:\s*flex\s*;?/i',          'display:block;', $html);
-            $html = preg_replace('/\bjustify-content\s*:[^;"}]+;?/i',     '', $html);
-            $html = preg_replace('/\balign-items\s*:[^;"}]+;?/i',         '', $html);
-            $html = preg_replace('/@page\s*\{[^}]*\}/', "@page{size:{$paperSize};margin:10mm 5mm;}", $html);
-
-            require_once FCPATH . 'vendor/autoload.php';
-            $options = new \Dompdf\Options();
-            $options->set('isHtml5ParserEnabled', true);
-            $options->set('isRemoteEnabled', true);
-            $options->set('defaultFont', 'Arial');
-            $options->set('chroot', FCPATH);
-
-            $dompdf = new \Dompdf\Dompdf($options);
-            $dompdf->loadHtml($html, 'UTF-8');
-            $dompdf->setPaper(strtolower($paperSize), 'portrait');
-            $dompdf->render();
+            $pdfBytes = $this->transactions_model->generatePaymentReceiptPdfBytes($paymentUID, $orgUID, $paperSize);
+            if (!$pdfBytes) throw new Exception('Failed to generate PDF.');
 
             $filename = preg_replace('/[^A-Za-z0-9_\-]/', '_', $payment->UniqueNumber ?? ('Payment_' . $paymentUID)) . '.pdf';
 
             header('Content-Type: application/pdf');
             header('Content-Disposition: attachment; filename="' . $filename . '"');
             header('Cache-Control: private, max-age=0, must-revalidate');
-            echo $dompdf->output();
+            echo $pdfBytes;
             exit;
 
         } catch (Exception $e) {
@@ -661,6 +619,44 @@ class Payments extends CI_Controller {
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Data  = $accounts;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    /**
+     * Generate payment receipt PDF in memory and return as base64.
+     * Used for email attachment without writing to disk.
+     */
+    public function getPaymentPdfBase64() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $paymentUID = (int) $this->input->post('PaymentUID');
+            $paperSize  = strtoupper(trim($this->input->post('PaperSize') ?: 'A4'));
+            $orgUID     = $this->pageData['JwtData']->User->OrgUID;
+
+            if ($paymentUID <= 0) throw new Exception('Invalid payment.');
+
+            $this->load->model('transactions_model');
+            $payment = $this->transactions_model->getPaymentDetailById($paymentUID, $orgUID);
+            if (!$payment) throw new Exception('Payment not found.');
+
+            $pdfBytes = $this->transactions_model->generatePaymentReceiptPdfBytes($paymentUID, $orgUID, $paperSize);
+            if (!$pdfBytes) throw new Exception('Failed to generate PDF.');
+
+            $filename = preg_replace('/[^A-Za-z0-9_\-]/', '_', $payment->UniqueNumber ?? ('Receipt_' . $paymentUID)) . '.pdf';
+
+            $this->EndReturnData->Error    = FALSE;
+            $this->EndReturnData->Base64   = base64_encode($pdfBytes);
+            $this->EndReturnData->Filename = $filename;
+            $this->EndReturnData->Size     = strlen($pdfBytes);
 
         } catch (Exception $e) {
             $this->EndReturnData->Error   = TRUE;

@@ -2,6 +2,12 @@
 // Shared utilities (loadTransactionList, debounce, initTooltips) are in common.js
 // Date helpers (getDateRange, formatDate) are in /js/common/datefilter.js
 
+// ── WhatsApp link handler ─────────────────────────────────────────────────────
+$(document).on('click', '.inv-wa-link', function (e) {
+    e.preventDefault();
+    var url = $(this).data('wa-url');
+    if (url) window.open(url, '_blank');
+});
 function getInvoicesDetails(pageNo, rowLimit, filter) {
     loadTransactionList({
         url:            '/invoices/getInvoicesPageDetails/',

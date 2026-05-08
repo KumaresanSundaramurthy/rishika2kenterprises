@@ -20,6 +20,7 @@ class Transactions_model extends CI_Model {
             $this->ReadDb->select([
                 'Ts.TransUID AS TransUID',
                 'Ts.ModuleUID AS ModuleUID',
+                'Ts.PartyUID AS PartyUID',
                 'Ts.UniqueNumber AS UniqueNumber',
                 'Ts.TransNumber AS TransNumber',
                 'Ts.TransDate AS TransDate',
@@ -28,6 +29,7 @@ class Transactions_model extends CI_Model {
                 'COALESCE(Cust.Name, Vend.Name) AS PartyName',
                 'COALESCE(Cust.MobileNumber, Vend.MobileNumber) AS MobileNumber',
                 'COALESCE(Cust.CountryCode, Vend.CountryCode) AS CountryCode',
+                'COALESCE(Cust.EmailAddress, Vend.EmailAddress) AS EmailAddress',
                 'COALESCE(Cust.Image, Vend.Image) AS PartyImage',
                 'Td.ValidityDate AS ValidityDate',
                 'Ts.UpdatedOn AS UpdatedOn',
@@ -1016,11 +1018,15 @@ class Transactions_model extends CI_Model {
         try {
 
             $this->ReadDb->db_debug = FALSE;
+
+            // All non-aggregated columns must use aggregate functions to satisfy
+            // MySQL ONLY_FULL_GROUP_BY mode. MAX() is safe here because each
+            // BankAccountUID has exactly one AccountName/BankName.
             $this->ReadDb->select([
-                "IF(PT.IsCash = 1, 'Cash', COALESCE(BA.AccountName, 'Unknown')) AS AccountLabel",
-                "IF(PT.IsCash = 1, '', COALESCE(BA.BankName, '')) AS BankName",
+                "IF(MAX(PT.IsCash) = 1, 'Cash', COALESCE(MAX(BA.AccountName), 'Unknown')) AS AccountLabel",
+                "IF(MAX(PT.IsCash) = 1, '', COALESCE(MAX(BA.BankName), '')) AS BankName",
                 'MAX(PT.IsCash) AS IsCash',
-                "IF(PT.IsCash = 1, NULL, BA.BankAccountUID) AS BankAccountUID",
+                'MAX(BA.BankAccountUID) AS BankAccountUID',
                 "SUM(CASE WHEN P.PartyType = 'C' THEN P.Amount ELSE 0 END) AS TotalReceived",
                 "SUM(CASE WHEN P.PartyType = 'S' THEN P.Amount ELSE 0 END) AS TotalPaid",
                 "(SUM(CASE WHEN P.PartyType = 'C' THEN P.Amount ELSE 0 END) - SUM(CASE WHEN P.PartyType = 'S' THEN P.Amount ELSE 0 END)) AS NetBalance",
@@ -1035,9 +1041,9 @@ class Transactions_model extends CI_Model {
             if (!empty($filter['DateFrom']))         $this->ReadDb->where('DATE(P.CreatedOn) >=', $filter['DateFrom']);
             if (!empty($filter['DateTo']))           $this->ReadDb->where('DATE(P.CreatedOn) <=', $filter['DateTo']);
 
-            // Group cash into one row; each bank account gets its own row
-            $this->ReadDb->group_by('IF(PT.IsCash = 1, NULL, BA.BankAccountUID), PT.IsCash');
-            $this->ReadDb->order_by('PT.IsCash', 'DESC');
+            // Cash payments: BankAccountUID IS NULL → one group; each bank account gets its own row
+            $this->ReadDb->group_by('BA.BankAccountUID, PT.IsCash');
+            $this->ReadDb->order_by('MAX(PT.IsCash)', 'DESC');
             $this->ReadDb->order_by('SUM(P.Amount)', 'DESC');
             $query = $this->ReadDb->get();
             if (!$query) return [];
@@ -1628,81 +1634,176 @@ class Transactions_model extends CI_Model {
 
         $e = fn($v) => htmlspecialchars((string)($v ?? ''), ENT_QUOTES);
 
-        // Fallback: hardcoded receipt layout
         $primary = $theme->PrimaryColor ?? '#1a3c6e';
-        $accent  = $theme->AccentColor  ?? '#f59e0b';
         $font    = $theme->FontFamily   ?? 'Arial';
         $footer  = $theme->FooterText   ?? 'Thank you for your business!';
 
+        // Table-based layout — dompdf cannot render flex/grid reliably
         return '<!DOCTYPE html><html><head><meta charset="UTF-8">'
             . '<style>
-                @page{size:A4;margin:0;}
-                body{font-family:\'' . $e($font) . '\',Arial,sans-serif;font-size:11px;margin:0;background:#fff;}
-                .page{padding:12mm 14mm;}
-                .header{display:flex;justify-content:space-between;border-bottom:3px solid ' . $primary . ';padding-bottom:10px;margin-bottom:14px;}
+                @page{size:A4;margin:10mm 5mm;}
+                body{font-family:\'' . $e($font) . '\',Arial,sans-serif;font-size:11px;margin:0;padding:0;background:#fff;}
+                table{border-collapse:collapse;width:100%;}
+                .page{padding:6mm 8mm;}
                 .org-name{font-size:16px;font-weight:700;color:' . $primary . ';}
-                .receipt-title{font-size:20px;font-weight:800;color:' . $primary . ';text-align:right;}
-                .amount-box{background:' . $primary . ';color:#fff;border-radius:8px;padding:14px;text-align:center;margin:16px 0;}
-                .amount-val{font-size:26px;font-weight:800;}
-                .info-grid{display:flex;gap:16px;}
-                .info-card{flex:1;border:1px solid #e5e7eb;border-radius:6px;padding:10px;}
-                .footer{margin-top:20px;text-align:center;font-size:10px;color:#888;}
+                .receipt-title{font-size:20px;font-weight:800;color:' . $primary . ';}
+                .amount-box{background:' . $primary . ';color:#fff;border-radius:4px;padding:10px;text-align:center;margin:10px 0;}
+                .amount-val{font-size:24px;font-weight:800;}
+                .info-card{border:1px solid #e5e7eb;border-radius:4px;padding:8px;vertical-align:top;}
+                .footer-row{margin-top:14px;text-align:center;font-size:10px;color:#888;}
             </style></head><body>
-
             <div class="page">
 
-                <div class="header">
-                    <div>'
-                        . ($logoHtml ? $logoHtml . '<br>' : '') .
-                        '<div class="org-name">' . $e($org->BrandName ?? $org->Name ?? '') . '</div>
-                        <div>' . $e($orgAddr) . '</div>
-                    </div>
-
-                    <div>
-                        <div class="receipt-title">' . $e($direction) . '</div>
-                        <div>' . $e($p->UniqueNumber ?? '') . '</div>
-                        <div>' . $fmt($p->PaymentDate ?? $p->CreatedOn) . '</div>
-                    </div>
-                </div>
+                <table style="border-bottom:3px solid ' . $primary . ';padding-bottom:8px;margin-bottom:10px;">
+                    <tr>
+                        <td style="vertical-align:top;">'
+                            . ($logoHtml ? $logoHtml . '<br>' : '') .
+                            '<div class="org-name">' . $e($org->BrandName ?? $org->Name ?? '') . '</div>
+                            <div style="font-size:10px;">' . $e($orgAddr) . '</div>
+                        </td>
+                        <td style="text-align:right;vertical-align:top;">
+                            <div class="receipt-title">' . $e($direction) . '</div>
+                            <div>' . $e($p->UniqueNumber ?? '') . '</div>
+                            <div>' . $fmt($p->PaymentDate ?? $p->CreatedOn) . '</div>
+                        </td>
+                    </tr>
+                </table>
 
                 <div class="amount-box">
                     <div>Amount</div>
                     <div class="amount-val">' . $fmtAmt($p->Amount) . '</div>
                 </div>
 
-                <div class="info-grid">
+                <table style="margin-bottom:8px;">
+                    <tr>
+                        <td width="49%" class="info-card">
+                            <b>' . $e($partyLabel) . '</b><br>
+                            ' . $e($p->PartyName ?? '—') . '<br>'
+                            . (!empty($p->PartyMobile) ? 'Ph: ' . $e($p->PartyMobile) : '') . '
+                        </td>
+                        <td width="2%"></td>
+                        <td width="49%" class="info-card">
+                            <b>Payment</b><br>
+                            Mode: ' . $e($p->PaymentTypeName ?? '') . '<br>'
+                            . ($bankLine ? 'Bank: ' . $bankLine . '<br>' : '') . '
+                            Ref: ' . $e($p->ReferenceNo ?? '') . '
+                        </td>
+                    </tr>
+                </table>
 
-                    <div class="info-card">
-                        <b>' . $e($partyLabel) . '</b><br>
-                        ' . $e($p->PartyName ?? '—') . '<br>'
-                        . (!empty($p->PartyMobile) ? 'Ph: ' . $e($p->PartyMobile) : '') . '
-                    </div>
+                ' . (!empty($p->Notes) ? '<div style="margin-top:8px;"><b>Notes:</b> ' . $e($p->Notes) . '</div>' : '') . '
 
-                    <div class="info-card">
-                        <b>Payment</b><br>
-                        Mode: ' . $e($p->PaymentTypeName ?? '') . '<br>'
-                        . ($bankLine ? 'Bank: ' . $bankLine . '<br>' : '') . '
-                        Ref: ' . $e($p->ReferenceNo ?? '') . '
-                    </div>
+                <table style="margin-top:14px;">
+                    <tr>
+                        <td style="vertical-align:bottom;">' . $bankQrHtml . '</td>
+                        <td style="text-align:right;vertical-align:bottom;">
+                            For ' . $e($org->BrandName ?? $org->Name ?? '') . '<br><br>'
+                            . $signatureSpaceHtml . '
+                            Authorized Signatory
+                        </td>
+                    </tr>
+                </table>
 
-                </div>
-
-                ' . (!empty($p->Notes) ? '<div style="margin-top:10px;"><b>Notes:</b> ' . $e($p->Notes) . '</div>' : '') . '
-
-                <div style="margin-top:20px; display:flex; justify-content:space-between;">
-                    <div>' . $bankQrHtml . '</div>
-                    <div style="text-align:right;">
-                        For ' . $e($org->Name ?? '') . '<br><br>'
-                        . $signatureSpaceHtml . '
-                        Authorized Signatory
-                    </div>
-                </div>
-
-                <div class="footer">' . $e($footer) . '</div>
+                <div class="footer-row">' . $e($footer) . '</div>
 
             </div>
-
         </body></html>';
+    }
+
+    // ── Shared PDF generation ─────────────────────────────────────────────────
+    public function generatePaymentReceiptPdfBytes($paymentUID, $orgUID, $paperSize = 'A4') {
+
+        $payment = $this->getPaymentDetailById($paymentUID, $orgUID);
+        if (!$payment) return null;
+
+        $this->load->model('organisation_model');
+        $orgInfo    = $this->organisation_model->getOrgForReceipt($orgUID);
+        $org        = $orgInfo->Data ?? null;
+        $printTheme = $this->organisation_model->getPrintThemeByType($orgUID, 'Payment');
+        $themeData  = $printTheme->Data ?? null;
+
+        $html = $this->_renderPaymentReceiptHtml($payment, $org, $themeData);
+        $html = $this->_applyPaymentPdfCssFixes($html, strtoupper(trim($paperSize)));
+
+        require_once FCPATH . 'vendor/autoload.php';
+        $options = new \Dompdf\Options();
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isRemoteEnabled', true);
+        $options->set('defaultFont', 'Arial');
+        $options->set('chroot', FCPATH);
+
+        $dompdf = new \Dompdf\Dompdf($options);
+        $dompdf->loadHtml($html, 'UTF-8');
+        $dompdf->setPaper(strtolower($paperSize), 'portrait');
+        $dompdf->render();
+
+        return $dompdf->output();
+    }
+
+    private function _applyPaymentPdfCssFixes($html, $paperSize) {
+        // Strip Google Fonts — dompdf cannot load WOFF2/web fonts
+        $html = preg_replace('/<link[^>]*fonts\.googleapis\.com[^>]*>/i', '', $html);
+        // Override body padding — @page margin handles spacing in PDF
+        $html = str_replace('</head>',
+            '<style>body{padding:0!important;margin:0!important;}.page{margin:0!important;}</style></head>',
+            $html);
+        // Dompdf CSS compatibility
+        $html = preg_replace('/\bdisplay\s*:\s*flex\s*;?/i',                       'display:block;', $html);
+        $html = preg_replace('/\bflex-direction\s*:[^;"}]+;?/i',                   '', $html);
+        $html = preg_replace('/\bjustify-content\s*:[^;"}]+;?/i',                  '', $html);
+        $html = preg_replace('/\balign-items\s*:[^;"}]+;?/i',                      '', $html);
+        $html = preg_replace('/\bheight\s*:\s*100%\s*;?/i',                        '', $html);
+        $html = preg_replace('/\bposition\s*:\s*(absolute|relative|fixed)\s*;?/i', '', $html);
+        $html = preg_replace('/\btransform\s*:[^;"}]+;?/i',                        '', $html);
+        $html = preg_replace('/\btop\s*:\s*[^;"}]+;?/i',                           '', $html);
+        $html = preg_replace('/\bleft\s*:[^;"}]+;?/i',                             '', $html);
+        // Page size
+        $html = preg_replace('/@page\s*\{[^}]*\}/', "@page{size:{$paperSize};margin:10mm 5mm;}", $html);
+        return $html;
+    }
+
+    public function _generateReceiptToken() {
+
+        $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        do {
+
+            $token = '';
+            $bytes = random_bytes(10);
+
+            for ($i = 0; $i < 10; $i++) {
+                $token .= $chars[ord($bytes[$i]) % 62];
+            }
+
+            $exists = $this->ReadDb
+                ->where('ReceiptToken', $token)
+                ->count_all_results('Transaction.PaymentsTbl');
+
+        } while ($exists > 0);
+
+        return $token;
+
+    }
+
+    public function _uniqueTransToken() {
+
+        $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        do {
+
+            $token = '';
+            $bytes = random_bytes(10);
+
+            for ($i = 0; $i < 10; $i++) {
+                $token .= $chars[ord($bytes[$i]) % 62];
+            }
+
+            $exists = $this->ReadDb
+                ->where('TransToken', $token)
+                ->count_all_results('Transaction.TransactionsTbl');
+
+        } while ($exists > 0);
+
+        return $token;
+        
     }
 
 }

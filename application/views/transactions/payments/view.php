@@ -31,8 +31,7 @@
                         <?php if (!empty($summary)): ?>
                             <?php foreach ($summary as $row): ?>
                             <?php
-                                $balance  = (float)$row->NetBalance;
-                                $isPos    = $balance >= 0;
+                                $balance  = (float)($row->TotalReceived ?? 0);
                                 $label    = htmlspecialchars($row->AccountLabel ?? 'Cash');
                                 $bankName = htmlspecialchars($row->BankName ?? '');
                             ?>
@@ -45,12 +44,12 @@
                                             <i class="bx bx-building-house fs-5 text-primary"></i>
                                         <?php endif; ?>
                                         <span class="fw-semibold" style="font-size:.82rem;"><?php echo $label; ?></span>
-                                        <i class="bx <?php echo $isPos ? 'bx-up-arrow-alt text-success' : 'bx-down-arrow-alt text-danger'; ?> ms-auto fs-5"></i>
+                                        <i class="bx bx-up-arrow-alt text-success ms-auto fs-5"></i>
                                     </div>
                                     <?php if ($bankName): ?>
                                         <div class="text-muted" style="font-size:.72rem;"><?php echo $bankName; ?></div>
                                     <?php endif; ?>
-                                    <div class="fw-bold mt-1 <?php echo $isPos ? 'text-dark' : 'text-danger'; ?>" style="font-size:1.05rem;">
+                                    <div class="fw-bold mt-1 text-dark" style="font-size:1.05rem;">
                                         <?php echo pmtFmt($balance, $cur, $dec); ?>
                                     </div>
                                 </div>

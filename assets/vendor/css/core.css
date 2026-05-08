@@ -29844,8 +29844,20 @@ body:not(.modal-open) .layout-content-navbar .layout-navbar {
 .comm-attach-dropzone:hover,
 .comm-attach-dropzone.dz-drag-hover { border-color: #0d6efd; background: #f0f4ff; }
 .comm-attach-dropzone .dz-message   { margin: 0; }
-.comm-attach-icon          { font-size: 1.8rem; color: #adb5bd; display: block; margin-bottom: 4px; }
+.comm-attach-icon          { font-size: 1.8rem; color: #adb5bd; display: block; margin-bottom: 4px; text-align: center; }
 .comm-attach-hint          { font-size: .82rem; color: #495057; }
 .comm-attach-sub           { font-size: .72rem; color: #adb5bd; margin-top: 2px; }
 .comm-attach-dropzone.dz-started .dz-message { display: none; }
+
+/* ── Invoice list — contact icon strip (hover) ──────────────────────────── */
+.inv-party-td                          { position: relative; }
+.inv-contact-icons                     { display: none; position: absolute; right: 0; top: 0; bottom: 0; align-items: center; gap: 4px; padding: 0 8px; background: linear-gradient(to right, transparent, #f0f4ff 30%); }
+.inv-party-td:hover .inv-contact-icons { display: flex; }
+.inv-contact-icons a,
+.inv-contact-icons button              { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; font-size: 1.3rem; text-decoration: none; transition: transform .12s; flex-shrink: 0; border: none; cursor: pointer; background: transparent; padding: 0; }
+.inv-contact-icons a:hover,
+.inv-contact-icons button:hover        { transform: scale(1.18); }
+.inv-contact-icons .wa                 { color: #25d366; background: rgba(37,211,102,0.15); }
+.inv-contact-icons .sms                { color: #0097a7; background: rgba(0,151,167,0.15); }
+.inv-contact-icons .em                 { color: #1565c0; background: rgba(21,101,192,0.15); }
 .min-w-0 { min-width: 0; }

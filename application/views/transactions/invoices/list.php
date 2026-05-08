@@ -9,6 +9,7 @@ include(APPPATH . 'views/transactions/partials/status_config.php');
 $currency   = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
 $decimals   = $JwtData->GenSettings->DecimalPoints ?? 2;
 $showSerial = $JwtData->GenSettings->SerialNoDisplay == 1;
+$invModuleUID = 103;
 
 if (!empty($DataLists)):
     foreach ($DataLists as $list):
@@ -16,6 +17,13 @@ if (!empty($DataLists)):
         $status      = $list->Status ?? 'Draft';
         $isDraft     = $status === 'Draft';
         $isCancelled = $status === 'Cancelled';
+
+        $mobileNum   = trim($list->MobileNumber ?? '');
+        $countryCode = trim($list->CountryCode ?? '');
+        $partyEmail  = trim($list->EmailAddress ?? '');
+        $waNum       = $mobileNum ? preg_replace('/[^0-9]/', '', ($countryCode ?: '91') . $mobileNum) : '';
+        $hasMobile   = $mobileNum !== '';
+        $hasEmail    = $partyEmail !== '';
 
         $paidAmt    = (float)($list->PaidAmount ?? 0);
         $netAmt     = (float)($list->NetAmount  ?? 0);
@@ -147,24 +155,51 @@ if (!empty($DataLists)):
         </td>
 
         <!-- 5. Customer -->
-        <td>
+        <td class="inv-party-td">
             <div class="d-flex align-items-center gap-2">
                 <?php partyAvatar($list->PartyName, $list->PartyImage ?? null, $cdnUrl); ?>
                 <div>
                     <div class="trans-party-name"><?php echo htmlspecialchars($list->PartyName ?? '—'); ?></div>
-                    <?php if (!empty($list->MobileNumber)): ?>
-                    <div class="trans-party-mobile d-flex align-items-center gap-1 mt-1">
-                        <span class="copy-mobile cursor-pointer" data-mobile="<?php echo htmlspecialchars($list->MobileNumber); ?>" title="Click to copy">
-                            <?php echo ($list->CountryCode ? htmlspecialchars($list->CountryCode) . ' ' : '') . htmlspecialchars($list->MobileNumber); ?>
-                        </span>
-                        <a href="https://wa.me/<?php echo preg_replace('/[^0-9]/', '', ($list->CountryCode ?? '') . $list->MobileNumber); ?>?text=Hi"
-                           target="_blank" class="text-success" title="WhatsApp" style="line-height:1;">
-                            <i class="bx bxl-whatsapp fs-6"></i>
-                        </a>
+                    <?php if ($hasMobile): ?>
+                    <div class="trans-party-mobile" style="font-size:.72rem;color:#666;margin-top:1px;">
+                        <?php echo ($countryCode ? htmlspecialchars($countryCode) . ' ' : '') . htmlspecialchars($mobileNum); ?>
                     </div>
                     <?php endif; ?>
                 </div>
             </div>
+            <?php if ($hasMobile || $hasEmail): ?>
+            <div class="inv-contact-icons">
+                <?php if ($hasMobile): ?>
+                <a href="javascript:void(0)" class="wa inv-wa-link"
+                   data-wa-url="https://wa.me/<?php echo $waNum; ?>?text=Hi"
+                   title="WhatsApp">
+                    <i class="bx bxl-whatsapp"></i>
+                </a>
+                <button class="comm-send-single sms" title="Send SMS"
+                    data-commtype="SMS"
+                    data-recipienttype="Customer"
+                    data-uid="<?php echo (int)$list->PartyUID; ?>"
+                    data-name="<?php echo htmlspecialchars($list->PartyName ?? ''); ?>"
+                    data-mobile="<?php echo htmlspecialchars($mobileNum); ?>"
+                    data-email="<?php echo htmlspecialchars($partyEmail); ?>"
+                    data-module-uid="<?php echo $invModuleUID; ?>">
+                    <i class="bx bx-message-dots"></i>
+                </button>
+                <?php endif; ?>
+                <?php if ($hasEmail): ?>
+                <button class="comm-send-single em" title="Send Email"
+                    data-commtype="Email"
+                    data-recipienttype="Customer"
+                    data-uid="<?php echo (int)$list->PartyUID; ?>"
+                    data-name="<?php echo htmlspecialchars($list->PartyName ?? ''); ?>"
+                    data-mobile="<?php echo htmlspecialchars($mobileNum); ?>"
+                    data-email="<?php echo htmlspecialchars($partyEmail); ?>"
+                    data-module-uid="<?php echo $invModuleUID; ?>">
+                    <i class="bx bx-envelope"></i>
+                </button>
+                <?php endif; ?>
+            </div>
+            <?php endif; ?>
         </td>
 
         <!-- 6. Last Updated -->
@@ -252,6 +287,48 @@ if (!empty($DataLists)):
                                 <i class="bx bx-copy me-2 text-secondary"></i>Duplicate
                             </button>
                         </li>
+
+                        <?php if (!$isDraft && ($hasMobile || $hasEmail)): ?>
+                        <li><hr class="dropdown-divider my-1"></li>
+                        <?php if ($hasMobile): ?>
+                        <li>
+                            <a class="dropdown-item inv-wa-link"
+                               href="javascript:void(0)"
+                               data-wa-url="https://wa.me/<?php echo $waNum; ?>?text=Hi"
+                               style="color:#25d366;">
+                                <i class="bx bxl-whatsapp me-2"></i>Share via WhatsApp
+                            </a>
+                        </li>
+                        <li>
+                            <button class="dropdown-item comm-send-single"
+                                    data-commtype="SMS"
+                                    data-recipienttype="Customer"
+                                    data-uid="<?php echo (int)$list->PartyUID; ?>"
+                                    data-name="<?php echo htmlspecialchars($list->PartyName ?? ''); ?>"
+                                    data-mobile="<?php echo htmlspecialchars($mobileNum); ?>"
+                                    data-email="<?php echo htmlspecialchars($partyEmail); ?>"
+                                    data-module-uid="<?php echo $invModuleUID; ?>"
+                                    style="color:#0097a7;">
+                                <i class="bx bx-message-dots me-2"></i>Send SMS
+                            </button>
+                        </li>
+                        <?php endif; ?>
+                        <?php if ($hasEmail): ?>
+                        <li>
+                            <button class="dropdown-item comm-send-single"
+                                    data-commtype="Email"
+                                    data-recipienttype="Customer"
+                                    data-uid="<?php echo (int)$list->PartyUID; ?>"
+                                    data-name="<?php echo htmlspecialchars($list->PartyName ?? ''); ?>"
+                                    data-mobile="<?php echo htmlspecialchars($mobileNum); ?>"
+                                    data-email="<?php echo htmlspecialchars($partyEmail); ?>"
+                                    data-module-uid="<?php echo $invModuleUID; ?>"
+                                    style="color:#1565c0;">
+                                <i class="bx bx-envelope me-2"></i>Send Email
+                            </button>
+                        </li>
+                        <?php endif; ?>
+                        <?php endif; ?>
 
                         <?php if (!$isCancelled): ?>
                         <li><hr class="dropdown-divider my-1"></li>

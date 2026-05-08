@@ -27,6 +27,9 @@ var _commTpl = { rawSubject: '', rawBody: '', resolvedSubject: '', resolvedBody:
 // ── Pending template payload (set before modal show, applied after Quill ready)
 var _commPendingTpl = null;
 
+// ── Tracks whether the auto-PDF has been added to Dropzone for this modal open
+var _commPdfAutoAttached = false;
+
 function _initCommQuill() {
     if (!_commSmsQuill && document.getElementById('CommSmsEditor')) {
         _commSmsQuill = new Quill('#CommSmsEditor', {
@@ -189,6 +192,7 @@ function openCommModal(commType, recipientType, uids, names, mobiles, emails, op
 
     // Reset attachments
     if (_commDropzone) { _commDropzone.removeAllFiles(true); }
+    _commPdfAutoAttached = false;
 
     // Reset token toggle state
     _commTpl        = { rawSubject: '', rawBody: '', resolvedSubject: '', resolvedBody: '', showingRaw: false };
@@ -218,6 +222,60 @@ function _fetchCommTemplate(moduleUID, recordUID) {
                 // Quill not ready yet — store and apply once _initCommQuill runs
                 _commPendingTpl = resp;
             }
+        }
+    });
+}
+
+// ── PDF attachment fetch (Option B) ──────────────────────────────────────────
+// Fetches the receipt PDF as base64 from the server (in-memory, no disk write)
+// and programmatically adds it to Dropzone as a pre-attached file.
+// moduleUID is used to route to the correct endpoint per module.
+function _fetchCommPdfAttachment(moduleUID, recordUID) {
+    if (!moduleUID || !recordUID) return;
+
+    // Determine endpoint by module
+    var endpoint = null;
+    if (moduleUID === 110) { endpoint = '/payments/getPaymentPdfBase64'; }
+    // Add more modules: if (moduleUID === 103) { endpoint = '/sales/getInvoicePdfBase64'; }
+
+    if (!endpoint) return;
+
+    _commPdfAutoAttached = true; // mark before AJAX to prevent duplicate calls
+
+    // Show a small loading indicator inside the dropzone
+    var $dz = $('#CommAttachDropzone');
+    var $loader = $('<div id="CommPdfAttachLoader" class="text-center py-2" style="font-size:.78rem;color:#666;"><span class="spinner-border spinner-border-sm me-1"></span>Attaching receipt PDF...</div>');
+    $dz.append($loader);
+
+    $.ajax({
+        url   : endpoint,
+        method: 'POST',
+        data  : { PaymentUID: recordUID, PaperSize: 'A4', [CsrfName]: CsrfToken },
+        success: function (resp) {
+            $('#CommPdfAttachLoader').remove();
+            if (resp.Error || !resp.Base64) { _commPdfAutoAttached = false; return; }
+
+            // Ensure Dropzone is ready
+            _initCommDropzone();
+            if (!_commDropzone) { _commPdfAutoAttached = false; return; }
+
+            // Convert base64 → Blob → File and add to Dropzone
+            try {
+                var binary = atob(resp.Base64);
+                var bytes  = new Uint8Array(binary.length);
+                for (var i = 0; i < binary.length; i++) {
+                    bytes[i] = binary.charCodeAt(i);
+                }
+                var blob = new Blob([bytes], { type: 'application/pdf' });
+                var file = new File([blob], resp.Filename || 'receipt.pdf', { type: 'application/pdf' });
+                _commDropzone.addFile(file);
+            } catch (e) {
+                _commPdfAutoAttached = false; // allow retry on failure
+            }
+        },
+        error: function () {
+            $('#CommPdfAttachLoader').remove();
+            _commPdfAutoAttached = false;
         }
     });
 }
@@ -267,6 +325,9 @@ $(document).on('click', '.comm-type-tab', function () {
             _fetchCommTemplate(moduleUID, recordUID);
         }
         setTimeout(_initCommDropzone, 100);
+        if (!_commPdfAutoAttached && moduleUID === 110 && recordUID > 0) {
+            _fetchCommPdfAttachment(moduleUID, recordUID);
+        }
     }
 });
 
@@ -340,8 +401,10 @@ $(document).on('click', '#SendCommBtn', function () {
     fd.append('CommType',      type);
     fd.append('RecipientType', recipientType);
     uids.forEach(function (id) { fd.append('UIDs[]', id); });
-    fd.append('Message', message);
-    fd.append('Subject', subject);
+    fd.append('Message',   message);
+    fd.append('Subject',   subject);
+    fd.append('ModuleUID', $('#CommModuleUID').val() || 0);
+    fd.append('RecordUID', $('#CommRecordUID').val() || 0);
     fd.append(CsrfName, CsrfToken);
 
     if (type === 'Email' && _commDropzone && _commDropzone.files.length) {
@@ -381,6 +444,9 @@ $(document).on('shown.bs.modal', '#SendCommModal', function () {
         setTimeout(_initCommDropzone, 100);
         if (moduleUID) {
             _fetchCommTemplate(moduleUID, recordUID);
+        }
+        if (!_commPdfAutoAttached && moduleUID === 110 && recordUID > 0) {
+            _fetchCommPdfAttachment(moduleUID, recordUID);
         }
     }
 });

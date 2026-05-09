@@ -46,6 +46,9 @@ $rpDateId      = $rpDateId      ?? 'rpInvDate';
                     </div>
                 </div>
 
+                <!-- Scrollable body -->
+                <div class="rp-scroll-body">
+
                 <!-- Summary cards -->
                 <div class="rp-summary-section">
                     <div class="rp-section-header">
@@ -136,8 +139,24 @@ $rpDateId      = $rpDateId      ?? 'rpInvDate';
                                     placeholder="Add a payment note…" maxlength="255"></textarea>
                         </div>
 
+                        <!-- Attachments -->
+                        <div class="col-12">
+                            <label class="rp-field-label">
+                                Attachments <span class="fw-normal text-muted">(max 3 files &bull; 3 MB each)</span>
+                            </label>
+                            <div id="rpAttachDropzone" class="comm-attach-dropzone dropzone needsclick dz-clickable">
+                                <div class="dz-message needsclick">
+                                    <i class="bx bx-cloud-upload comm-attach-icon"></i>
+                                    <div class="comm-attach-hint">Drag &amp; drop or <span class="text-primary">browse</span></div>
+                                    <div class="comm-attach-sub">PDF, JPG, PNG &bull; Max 3 MB per file</div>
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
+
+                </div><!-- /.rp-scroll-body -->
 
                 <!-- Footer -->
                 <div class="rp-footer">

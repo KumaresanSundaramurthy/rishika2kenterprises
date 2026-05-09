@@ -484,6 +484,7 @@ function _buildA4Html(resp, size, forPrint) {
         return ['BankAccountUID' => (int)$b->BankAccountUID, 'BankName' => (string)$b->BankName, 'AccountName' => (string)$b->AccountName];
     }, $BankAccounts ?? [])); ?>;
     var _fpInstance = null;
+    var _rpDropzone  = null;
     var _currency   = '<?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>';
 
     (function () {
@@ -529,6 +530,28 @@ function _buildA4Html(resp, size, forPrint) {
         } else {
             _fpInstance.setDate(new Date(), false);
         }
+        if (!_rpDropzone && typeof Dropzone !== 'undefined') {
+            Dropzone.autoDiscover = false;
+            _rpDropzone = new Dropzone('#rpAttachDropzone', {
+                url              : '/purchases/uploadPaymentFile',
+                autoProcessQueue : false,
+                maxFiles         : 3,
+                maxFilesize      : 3,
+                addRemoveLinks   : true,
+                dictRemoveFile   : 'Remove',
+                acceptedFiles    : '.pdf,.jpg,.jpeg,.png',
+                parallelUploads  : 3,
+                init: function () {
+                    this.on('maxfilesexceeded', function (file) { this.removeFile(file); Swal.fire({ icon: 'warning', text: 'Maximum 3 attachments allowed.' }); });
+                    this.on('error', function (file, msg) {
+                        if (file.size > 3 * 1024 * 1024) {
+                            this.removeFile(file);
+                            Swal.fire({ icon: 'warning', text: 'Each file must be 3 MB or smaller.' });
+                        }
+                    });
+                }
+            });
+        }
     });
 
     $(document).on('click', '.purchReceivePayment', function () {
@@ -553,7 +576,8 @@ function _buildA4Html(resp, size, forPrint) {
         $('#rpNotes').val('');
         $('#rpBankAccount').val('');
 
-        renderPaymentTypes();
+           if (_rpDropzone) { _rpDropzone.removeAllFiles(true); }
+         renderPaymentTypes();
         $('#recordPaymentModal').modal('show');
     });
 
@@ -582,16 +606,24 @@ function _buildA4Html(resp, size, forPrint) {
 
         var $btn = $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Saving…');
 
+        var fd = new FormData();
+        fd.append('TransUID',       transUID);
+        fd.append('PaymentTypeUID', paymentTypeUID);
+        fd.append('Amount',         amount);
+        fd.append('PaymentDate',    paymentDate);
+        fd.append('BankAccountUID', bankAccountUID || '');
+        fd.append('ReferenceNo',    referenceNo);
+        fd.append('Notes',          notes);
+        fd.append(CsrfName,         CsrfToken);
+        if (_rpDropzone) { _rpDropzone.files.forEach(function(file) { fd.append('PaymentFiles[]', file); }); }
+
         $.ajax({
-            url   : '/purchases/recordPurchasePayment',
-            method: 'POST',
-            data  : {
-                TransUID       : transUID,
-                PaymentTypeUID : paymentTypeUID,
-                Amount         : amount,
-                PaymentDate    : paymentDate,
-                BankAccountUID : bankAccountUID || '',
-                ReferenceNo    : referenceNo,
+            url         : '/purchases/recordPurchasePayment',
+            method      : 'POST',
+            data        : fd,
+            processData : false,
+            contentType : false,
+            // (Notes and CsrfToken moved to FormData above)
                 Notes          : notes,
                 [CsrfName]     : CsrfToken,
             },

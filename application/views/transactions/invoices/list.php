@@ -130,23 +130,48 @@ if (!empty($DataLists)):
         <!-- 4. Payment Mode -->
         <td>
             <?php
-            $payCount  = (int)($list->PaymentCount ?? 0);
-            $payModes  = $payCount > 0 ? explode(',', $list->PaymentModes ?? '') : [];
-            $firstMode = isset($payModes[0]) ? htmlspecialchars(trim($payModes[0])) : '';
-            $extraCnt  = max(0, $payCount - 1);
+            $payCount      = (int)($list->PaymentCount ?? 0);
+            $payModes      = $payCount > 0 ? explode(',', $list->PaymentModes ?? '') : [];
+            $firstMode     = isset($payModes[0]) ? htmlspecialchars(trim($payModes[0])) : '';
+            $extraCnt      = max(0, $payCount - 1);
+            $payBankName   = htmlspecialchars(trim($list->PayBankName ?? ''));
+            $payAccNum     = htmlspecialchars(trim($list->PayAccountNumber ?? ''));
+            $isCashOnly    = $payCount > 0 && empty($payBankName);
+            $hasPayAttach  = !empty($list->PaymentAttachmentCount) && (int)$list->PaymentAttachmentCount > 0;
             ?>
             <?php if ($payCount > 0 && $firstMode): ?>
-                <div class="pay-mode-cell d-flex align-items-center gap-1 flex-wrap<?php echo $payCount > 1 ? ' pay-mode-clickable' : ''; ?>"
+                <div class="pay-mode-cell<?php echo $payCount > 1 ? ' pay-mode-clickable' : ''; ?>"
                      <?php if ($payCount > 1): ?>
                      data-trans-uid="<?php echo (int)$list->TransUID; ?>"
                      data-trans-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
                      style="cursor:pointer;"
                      <?php endif; ?>>
-                    <span class="badge bg-label-primary" style="font-size:.68rem;">
-                        <i class="bx bx-credit-card me-1"></i><?php echo $firstMode; ?>
-                    </span>
-                    <?php if ($extraCnt > 0): ?>
-                        <span class="badge bg-label-secondary" style="font-size:.68rem;">+<?php echo $extraCnt; ?></span>
+                    <div class="d-flex align-items-center gap-1 flex-wrap">
+                        <span class="badge bg-label-primary" style="font-size:.68rem;">
+                            <i class="bx bx-credit-card me-1"></i><?php echo $firstMode; ?>
+                        </span>
+                        <?php if ($extraCnt > 0): ?>
+                            <span class="badge bg-label-secondary" style="font-size:.68rem;">+<?php echo $extraCnt; ?></span>
+                        <?php endif; ?>
+                        <?php if ($hasPayAttach): ?>
+                        <button type="button" class="btn btn-link p-0 invPayAttachBtn"
+                                data-uid="<?php echo (int)$list->TransUID; ?>"
+                                data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
+                                title="<?php echo (int)$list->PaymentAttachmentCount; ?> payment attachment(s)"
+                                style="font-size:.82rem;line-height:1;color:#0d6efd;">
+                            <i class="bx bx-paperclip"></i>
+                        </button>
+                        <?php endif; ?>
+                    </div>
+                    <?php if (!$isCashOnly && ($payBankName || $payAccNum)): ?>
+                    <div style="font-size:.68rem;color:#6c757d;margin-top:3px;line-height:1.4;">
+                        <?php if ($payBankName): ?>
+                        <div><i class="bx bx-building-house me-1" style="font-size:.7rem;"></i><?php echo $payBankName; ?></div>
+                        <?php endif; ?>
+                        <?php if ($payAccNum): ?>
+                        <div style="font-family:monospace;letter-spacing:.03em;"><?php echo $payAccNum; ?></div>
+                        <?php endif; ?>
+                    </div>
                     <?php endif; ?>
                 </div>
             <?php else: ?>
@@ -236,18 +261,20 @@ if (!empty($DataLists)):
                         data-total="<?php echo $netAmt; ?>"
                         data-paid="<?php echo $paidAmt; ?>"
                         data-pending="<?php echo $pendingAmt; ?>"
+                        data-bs-toggle="tooltip"
+                        data-bs-trigger="hover"
                         title="Record Payment — <?php echo $currency . ' ' . smartDecimal($pendingAmt, $decimals, true); ?> pending">
                     <?php echo $currency; ?>
                 </button>
                 <?php endif; ?>
 
                 <!-- Edit (always visible on hover) -->
-                <a class="btn btn-icon btn-sm text-warning inv-row-action" href="/invoices/edit/<?php echo (int)$list->TransUID; ?>" title="Edit">
+                <a class="btn btn-icon btn-sm text-warning inv-row-action" href="/invoices/<?php echo htmlspecialchars($list->TransToken); ?>/edit" data-bs-toggle="tooltip" data-bs-trigger="hover" title="Edit">
                     <i class="bx bx-edit"></i>
                 </a>
 
                 <div class="dropdown">
-                    <button class="trans-actions-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <button class="trans-actions-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" data-bs-trigger="hover" title="More actions">
                         <i class="bx bx-dots-vertical-rounded fs-5"></i>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:.82rem;min-width:160px;">
@@ -340,9 +367,6 @@ if (!empty($DataLists)):
                                 <i class="bx bx-x-circle me-2"></i>Cancel Invoice
                             </button>
                         </li>
-                        <?php endif; ?>
-
-                        <li><hr class="dropdown-divider my-1"></li>
                         <li>
                             <button class="dropdown-item text-danger deleteInvoice"
                                     data-uid="<?php echo (int)$list->TransUID; ?>"
@@ -350,6 +374,7 @@ if (!empty($DataLists)):
                                 <i class="bx bx-trash me-2"></i>Delete
                             </button>
                         </li>
+                        <?php endif; ?>
 
                     </ul>
                 </div>

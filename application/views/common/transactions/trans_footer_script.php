@@ -199,15 +199,17 @@ $(function() {
                 });
                 this.on("maxfilesexceeded", function(file) {
                     this.removeFile(file);
-                    Swal.fire({icon: "error", title: "Oops...", text: "You can only upload up to 5 files."});
+                    Swal.fire({icon: "error", title: "Limit Reached", text: "You can only upload up to 5 files in total. Delete an existing file to upload a new one."});
                 });
             }
         });
         dzMultElement.addEventListener("click", function(e) {
-            if (multiDropzone.files.length >= 5) {
+            var existingCount = $('#existingAttachItems .existing-attach-item').length;
+            var newCount      = multiDropzone.files.length;
+            if (existingCount + newCount >= 5) {
                 e.preventDefault();
                 e.stopPropagation();
-                Swal.fire({icon: "error", title: "Oops...", text: "You can only upload up to 5 files."});
+                Swal.fire({icon: "error", title: "Limit Reached", text: "You can only upload up to 5 files in total. Delete an existing file to upload a new one."});
             }
         });
 

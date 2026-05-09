@@ -1857,18 +1857,48 @@ $(document).ready(function () {
 
     $(document).on('click', '.deleteBillItem', function(e) {
         e.preventDefault();
-        
-        const itemId = $(this).data('id');
-        const $row = $(this).closest('tr');
-        
-        const removed = billManager.removeItem(itemId);
-        if (removed) {
-            // Remove row from table
-            $row.remove();
-            
-            // Re-number the remaining rows if needed
-            renumberTableRows();
-        }
+
+        var itemId = $(this).data('id');
+        var $row   = $(this).closest('tr');
+        var item   = billManager.getItemById(itemId);
+        if (!item) return;
+
+        var cur      = genSettings.CurrenySymbol || '₹';
+        var dec      = genSettings.DecimalPoints || 2;
+        var name     = item.text || item.itemName || 'this item';
+        var qty      = smartDecimal(item.quantity, dec);
+        var unit     = item.primaryUnit || '';
+        var netAmt   = smartDecimal(item.net_total, dec, true);
+        var taxPct   = item.taxPercent || 0;
+
+        Swal.fire({
+            title             : 'Remove from Cart?',
+            html              :
+                '<div style="text-align:center;margin-bottom:8px;"><i class="bx bx-error-circle" style="font-size:2.5rem;color:#f59e0b;"></i></div>' +
+                '<div style="text-align:left;font-size:.88rem;">' +
+                    '<div style="background:#fff5f5;border:1px solid #fecaca;border-radius:8px;padding:12px 14px;margin-bottom:4px;">' +
+                        '<div style="font-weight:700;font-size:.95rem;color:#1e293b;margin-bottom:6px;">' + $('<span>').text(name).html() + '</div>' +
+                        '<div style="display:flex;gap:16px;flex-wrap:wrap;">' +
+                            '<div><span style="color:#64748b;font-size:.75rem;">QTY</span><br><span style="font-weight:600;">' + qty + (unit ? ' ' + $('<span>').text(unit).html() : '') + '</span></div>' +
+                            '<div><span style="color:#64748b;font-size:.75rem;">UNIT PRICE</span><br><span style="font-weight:600;">' + cur + ' ' + smartDecimal(item.unitPrice, dec, true) + '</span></div>' +
+                            '<div><span style="color:#64748b;font-size:.75rem;">TAX</span><br><span style="font-weight:600;">' + taxPct + '%</span></div>' +
+                            '<div><span style="color:#64748b;font-size:.75rem;">NET AMOUNT</span><br><span style="font-weight:600;color:#dc2626;">' + cur + ' ' + netAmt + '</span></div>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>',
+            showCancelButton  : true,
+            confirmButtonColor: '#dc2626',
+            confirmButtonText : '<i class="bx bx-trash me-1"></i> Yes, Remove',
+            cancelButtonText  : 'Cancel',
+            reverseButtons    : true,
+        }).then(function(result) {
+            if (!result.isConfirmed) return;
+            var removed = billManager.removeItem(itemId);
+            if (removed) {
+                $row.remove();
+                renumberTableRows();
+            }
+        });
     });
 
     $('#globalDiscount').on('input change', function() {
@@ -2233,10 +2263,19 @@ function _custBalanceHtml(balance, balanceType) {
 }
 
 function searchCustomers(key) {
-    $("#"+key).select2({
+    var $el    = $('#' + key);
+    var wrapId = 'customerGroup_' + key;
+
+    if (!$el.closest('.customer-search-group').length) {
+        $el.wrap('<div class="input-group input-group-sm input-group-merge customer-search-group" id="' + wrapId + '"></div>');
+        $('<span class="input-group-text p-2"><i class="icon-base bx bx-search"></i></span>').insertBefore($el);
+    }
+
+    $el.select2({
         placeholder: "Search Customer by Name, Email, Mobile, GSTIN, Company, Contact Person.",
         minimumInputLength: 0,
         allowClear: true,
+        dropdownParent: $('#' + wrapId),
         escapeMarkup: function (markup) { return markup; },
         templateResult: function (d) {
             if (d.loading || !d.name) return d.text;

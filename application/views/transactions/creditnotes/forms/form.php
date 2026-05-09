@@ -140,8 +140,8 @@ $editPrefixSeg = ($isEdit && $isDraftEdit) ? buildCNPrefixSegment($editPrefixCon
 
                             <div class="row">
                                 <div class="col-md-6 border-end pe-3">
-                                    <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
-                                        <label for="customerSearch" class="form-label small fw-semibold mb-0">Select Customer <span class="text-danger">*</span></label>
+                                    <div class="d-flex align-items-center gap-2 mb-1">
+                                        <label for="customerSearch" class="trans-field-label mb-0">Select Customer <span class="text-danger">*</span></label>
                                         <?php if (!$isEdit): ?>
                                         <button type="button" id="addTransCustomer" class="trans-add-btn btn btn-outline-primary btn-sm" style="white-space:nowrap;"><i class="bx bx-plus-circle me-1"></i>Add Customer</button>
                                         <?php endif; ?>

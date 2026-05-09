@@ -228,46 +228,82 @@ if ($isEdit) {
                             <!-- Row 1: Customer | Type | Dispatch From | Invoice Date | Due Date -->
                             <div class="row g-2 align-items-end">
                                 <div class="col-md-4">
-                                    <?php if (!$isEdit): ?>
-                                    <div class="d-flex align-items-center justify-content-between mb-1">
-                                        <label for="customerSearch" class="trans-field-label mb-0">Select Customer <span class="text-danger">*</span></label>
-                                        <button type="button" id="addTransCustomer" class="trans-add-btn btn btn-outline-primary" aria-label="Add new customer"><i class="bx bx-plus-circle me-1"></i> Customer</button>
-                                    </div>
-                                    <select id="customerSearch" name="customerSearch" class="form-select form-select-sm"></select>
+                                    <?php if ($isEdit && !$isDraftEdit): ?>
+                                        <label class="trans-field-label mb-1">Customer</label>
+                                        <div class="trans-vendor-card">
+                                            <div class="trans-vendor-card-name">
+                                                <i class="bx bx-user me-1"></i><?php echo htmlspecialchars($InvData->PartyName ?? '—'); ?>
+                                            </div>
+                                            <?php if (!empty($InvData->PartyMobile)): ?>
+                                            <div class="trans-vendor-card-meta"><i class="bx bx-phone me-1"></i><?php echo htmlspecialchars($InvData->PartyMobile); ?></div>
+                                            <?php endif; ?>
+                                            <?php if (!empty($InvData->PartyGSTIN)): ?>
+                                            <div class="trans-vendor-card-meta"><i class="bx bx-id-card me-1"></i><?php echo htmlspecialchars($InvData->PartyGSTIN); ?></div>
+                                            <?php endif; ?>
+                                            <?php
+                                                $_cParts = array_filter([
+                                                    $CustAddr->Line1     ?? '',
+                                                    $CustAddr->CityText  ?? '',
+                                                    $CustAddr->StateText ?? '',
+                                                ]);
+                                                if (!empty($_cParts)):
+                                            ?>
+                                            <div class="trans-vendor-card-meta"><i class="bx bx-map me-1"></i><?php echo htmlspecialchars(implode(', ', $_cParts)); ?></div>
+                                            <?php endif; ?>
+                                        </div>
+                                        <input type="hidden" id="customerSearch" name="customerSearch" value="<?php echo (int)$InvData->PartyUID; ?>" />
                                     <?php else: ?>
-                                    <label for="customerSearch" class="trans-field-label">Select Customer <span class="text-danger">*</span></label>
-                                    <select id="customerSearch" name="customerSearch" class="form-select form-select-sm">
-                                        <?php if (!empty($InvData->PartyUID)): ?>
-                                        <option value="<?php echo (int)$InvData->PartyUID; ?>" selected>
-                                            <?php echo htmlspecialchars($InvData->PartyName ?? ''); ?>
-                                        </option>
-                                        <?php endif; ?>
-                                    </select>
+                                        <div class="d-flex align-items-center gap-2 mb-1">
+                                            <label for="customerSearch" class="trans-field-label mb-0">Select Customer <span class="text-danger">*</span></label>
+                                            <button type="button" id="addTransCustomer" class="trans-add-btn btn btn-outline-primary btn-sm" aria-label="Add new customer" style="white-space:nowrap;"><i class="bx bx-plus-circle me-1"></i>Add Customer</button>
+                                        </div>
+                                        <select id="customerSearch" name="customerSearch" class="form-select form-select-sm"></select>
                                     <?php endif; ?>
                                 </div>
                                 <div class="col-md-2">
-                                    <label for="invoiceType" class="trans-field-label">Type <span class="text-danger">*</span></label>
-                                    <select id="invoiceType" name="invoiceType" class="form-select form-select-sm" <?php echo !$isEdit ? 'required' : ''; ?>>
-                                        <option value="Regular" <?php echo ($isEdit && ($InvData->QuotationType === 'Regular' || empty($InvData->QuotationType))) || !$isEdit ? 'selected' : ''; ?>>Regular</option>
-                                        <option value="Without_GST" <?php echo $isEdit && $InvData->QuotationType === 'Without_GST' ? 'selected' : ''; ?>>Without GST</option>
-                                    </select>
+                                    <label class="trans-field-label">Type</label>
+                                    <?php if ($isEdit && !$isDraftEdit): ?>
+                                        <?php $_invTypeLabel = ($InvData->QuotationType === 'Without_GST') ? 'Without GST' : 'Regular'; ?>
+                                        <input type="hidden" name="invoiceType" value="<?php echo htmlspecialchars($InvData->QuotationType ?: 'Regular'); ?>" />
+                                        <div class="form-control form-control-sm bg-light text-muted" style="cursor:default;" title="<?php echo $_invTypeLabel; ?>"><?php echo $_invTypeLabel; ?></div>
+                                    <?php else: ?>
+                                        <select id="invoiceType" name="invoiceType" class="form-select form-select-sm" required>
+                                            <option value="Regular" selected>Regular</option>
+                                            <option value="Without_GST">Without GST</option>
+                                        </select>
+                                    <?php endif; ?>
                                 </div>
                                 <?php if (!empty($DispatchAddress)): ?>
                                 <div class="col-md-2">
-                                    <label class="trans-field-label">Dispatch From <span class="text-danger">*</span></label>
-                                    <select id="dispatchFrom" name="dispatchFrom" class="form-select form-select-sm" required>
-                                        <option value="<?php echo (int)$DispatchAddress->OrgAddressUID; ?>" selected><?php echo implode(', ', $_addrLines); ?></option>
-                                    </select>
+                                    <label class="trans-field-label">Dispatch From</label>
+                                    <?php if ($isEdit && !$isDraftEdit): ?>
+                                        <?php $_dispLabel = implode(', ', $_addrLines); ?>
+                                        <input type="hidden" name="dispatchFrom" value="<?php echo (int)$DispatchAddress->OrgAddressUID; ?>" />
+                                        <div class="form-control form-control-sm bg-light text-muted text-truncate" style="cursor:default;"
+                                             data-bs-toggle="tooltip" data-bs-placement="top" title="<?php echo htmlspecialchars($_dispLabel); ?>"><?php echo htmlspecialchars($_dispLabel); ?></div>
+                                    <?php else: ?>
+                                        <select id="dispatchFrom" name="dispatchFrom" class="form-select form-select-sm" required>
+                                            <option value="<?php echo (int)$DispatchAddress->OrgAddressUID; ?>" selected><?php echo htmlspecialchars($_dispLabel ?? implode(', ', $_addrLines)); ?></option>
+                                        </select>
+                                    <?php endif; ?>
                                 </div>
                                 <?php endif; ?>
                                 <div class="col-md-2">
                                     <label for="transDate" class="trans-field-label">Invoice Date <span class="text-danger">*</span></label>
-                                    <div class="input-group input-group-sm input-group-merge">
-                                        <span class="input-group-text"><i class="icon-base bx bx-calendar"></i></span>
-                                        <input type="text" class="form-control form-control-sm" id="transDate" name="transDate" readonly="readonly"
-                                            value="<?php echo $isEdit ? htmlspecialchars(format_datedisplay($InvData->TransDate, 'Y-m-d')) : format_datedisplay(time(), 'Y-m-d'); ?>"
-                                            required />
-                                    </div>
+                                    <?php if ($isEdit && !$isDraftEdit): ?>
+                                        <input type="hidden" name="transDate" value="<?php echo htmlspecialchars(format_datedisplay($InvData->TransDate, 'Y-m-d')); ?>" />
+                                        <div class="input-group input-group-sm input-group-merge">
+                                            <span class="input-group-text"><i class="icon-base bx bx-calendar"></i></span>
+                                            <input type="text" class="form-control form-control-sm bg-light text-muted" style="cursor:default;"
+                                                value="<?php echo htmlspecialchars(format_datedisplay($InvData->TransDate, 'd-m-Y')); ?>" readonly tabindex="-1" />
+                                        </div>
+                                    <?php else: ?>
+                                        <div class="input-group input-group-sm input-group-merge">
+                                            <span class="input-group-text"><i class="icon-base bx bx-calendar"></i></span>
+                                            <input type="text" class="form-control form-control-sm" id="transDate" name="transDate" readonly="readonly"
+                                                value="<?php echo format_datedisplay(time(), 'Y-m-d'); ?>" required />
+                                        </div>
+                                    <?php endif; ?>
                                 </div>
                                 <div class="col-md-2">
                                     <label for="dueDate" class="trans-field-label">Due Date</label>
@@ -282,15 +318,7 @@ if ($isEdit) {
                             <!-- Row 2: Customer address + Reference -->
                             <div class="row g-2 mt-2">
                                 <div class="col-md-4">
-                                    <div id="customerAddressBox" class="p-2 border border-secondary trans-border-dotted rounded small <?php echo ($isEdit && isset($CustAddr) && !empty($CustAddr)) ? '' : 'd-none'; ?>">
-                                        <?php if ($isEdit && isset($CustAddr) && !empty($CustAddr)): ?>
-                                        <div><strong>Shipping Address:</strong></div>
-                                        <div><?php echo htmlspecialchars($CustAddr->Line1 ?? ''); ?></div>
-                                        <div><?php echo htmlspecialchars($CustAddr->Line2 ?? ''); ?></div>
-                                        <div><?php echo htmlspecialchars(trim(implode(' - ', array_filter([$CustAddr->CityText ?? '', $CustAddr->Pincode ?? ''])))); ?></div>
-                                        <div><?php echo htmlspecialchars($CustAddr->StateText ?? ''); ?></div>
-                                        <?php endif; ?>
-                                    </div>
+                                    <div id="customerAddressBox" class="p-2 border border-secondary trans-border-dotted rounded small d-none"></div>
                                 </div>
                                 <div class="col-md-4">
                                     <label for="referenceDetails" class="trans-field-label">Reference</label>
@@ -341,26 +369,6 @@ if ($isEdit) {
 
 <?php $this->load->view('common/transactions/footer'); ?>
 
-<?php if ($isEdit): ?>
-<!-- Edit-mode attachment preview modal (custom, separate from shared attachPreviewModal) -->
-<div class="modal fade" id="editAttachPreviewModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header py-2 px-3">
-                <h6 class="modal-title d-flex align-items-center gap-2 mb-0" style="font-size:.88rem;font-weight:700;max-width:90%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-                    <i class="bx bx-file text-primary"></i>
-                    <span id="editAttachPreviewTitle">Preview</span>
-                </h6>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body p-0" id="editAttachPreviewBody" style="min-height:200px;background:#1a1a2e;">
-                <div class="text-center py-5"><span class="spinner-border text-light"></span></div>
-            </div>
-        </div>
-    </div>
-</div>
-<?php endif; ?>
-
 <script src="/js/transactions/invoices.js"></script>
 <script src="/js/transactions/transactions.js"></script>
 <script src="/js/transactions/transprefix.js"></script>
@@ -370,6 +378,7 @@ if ($isEdit) {
 <?php if (!$isEdit): ?>
 <script src="/js/transactions/payment_section.js"></script>
 <?php endif; ?>
+<script src="/js/transactions/attachments.js"></script>
 
 <script>
 const StateInfo     = <?php echo json_encode($StateData); ?>;
@@ -487,34 +496,30 @@ var _fromQuotItems = [];
 $(function() {
     'use strict'
 
+    <?php if (!$isEdit || $isDraftEdit): ?>
     searchCustomers('customerSearch');
+    <?php endif; ?>
+    <?php if (!$isEdit || $isDraftEdit): ?>
     transDatePickr('#transDate', false, 'Y-m-d', false, true, true, true, 'd-m-Y');
-    transDatePickr('#dueDate', false, 'Y-m-d', false, false, <?php echo $isEdit ? 'false' : 'true'; ?>, true, 'd-m-Y', '#transDate');
+    <?php endif; ?>
+    transDatePickr('#dueDate', false, 'Y-m-d', false, false, <?php echo $isEdit ? 'false' : 'true'; ?>, true, 'd-m-Y', '<?php echo ($isEdit && !$isDraftEdit) ? '' : '#transDate'; ?>');
 
+    <?php if (!$isEdit): ?>
     var _dueDatePicker   = document.querySelector('#dueDate') ? document.querySelector('#dueDate')._flatpickr : null;
     var _transDatePicker = document.querySelector('#transDate') ? document.querySelector('#transDate')._flatpickr : null;
     if (_dueDatePicker && _transDatePicker) {
-        <?php if (!$isEdit): ?>
         _dueDatePicker.setDate(_transDatePicker.selectedDates[0], true);
         document.querySelector('#transDate').addEventListener('change', function() {
             if (_transDatePicker.selectedDates[0]) {
                 _dueDatePicker.setDate(_transDatePicker.selectedDates[0], true);
             }
         });
-        <?php else: ?>
-        if (!_dueDatePicker.selectedDates.length) {
-            _dueDatePicker.setDate(_transDatePicker.selectedDates[0], true);
-        }
-        document.querySelector('#transDate').addEventListener('change', function() {
-            if (_transDatePicker.selectedDates[0] && !$('#dueDate').data('manually-set')) {
-                _dueDatePicker.setDate(_transDatePicker.selectedDates[0], true);
-            }
-        });
-        $('#dueDate').on('change', function() { $(this).data('manually-set', true); });
-        <?php endif; ?>
     }
+    <?php endif; ?>
 
     <?php if ($isEdit): ?>
+    initTooltips();
+    renderTransAttachmentsFromData(<?php echo json_encode($InvAttachments ?? []); ?>);
     $('#extraDiscount').val('<?php echo smartDecimal($InvData->ExtraDiscAmount ?? 0); ?>');
     $('#extDiscountType').val('<?php echo addslashes($InvData->ExtraDiscType ?? ''); ?>').trigger('change');
     $('#globalDiscount').val('<?php echo smartDecimal($InvData->GlobalDiscPercent ?? 0); ?>').trigger('input');
@@ -536,50 +541,6 @@ $(function() {
         billManager.updateSummary();
     }
 
-    // Load existing attachments (custom implementation for invoices)
-    var _removedAttachIDs = [];
-    var _transUID = <?php echo $transUID; ?>;
-    if (_transUID > 0) {
-        $.ajax({
-            url   : '/invoices/getAttachments',
-            method: 'POST',
-            data  : { TransUID: _transUID, [CsrfName]: CsrfToken },
-            success: function(resp) {
-                if (resp.Error || !resp.Attachments || !resp.Attachments.length) return;
-                var cdnUrl = (typeof CDN_URL !== 'undefined' && CDN_URL) ? CDN_URL : '';
-                var $container = $('#existingAttachItems').empty();
-                resp.Attachments.forEach(function(a) {
-                    var uid      = a.AttachUID;
-                    var name     = a.FileName || '';
-                    var safeName = $('<span>').text(name).html();
-                    var fullUrl  = cdnUrl + (a.FilePath || '');
-                    var isImg    = /image\//i.test(a.FileType || '') || /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(name);
-                    var isPdf    = /pdf/i.test(a.FileType || '') || /\.pdf$/i.test(name);
-                    var iconCls  = isImg ? 'bx-image-alt text-success' : (isPdf ? 'bxs-file-pdf text-danger' : 'bx-file text-secondary');
-                    var encUrl   = encodeURIComponent(fullUrl);
-                    var $item = $('<div class="d-flex align-items-center gap-1 border rounded px-2 py-1 bg-light existing-attach-item" style="font-size:.78rem;max-width:220px;" data-uid="' + uid + '">' +
-                        '<i class="bx ' + iconCls + '" style="font-size:1rem;flex-shrink:0;cursor:pointer;" onclick="_openEditAttachPreview(\'' + encUrl + '\',\'' + (isImg?'img':(isPdf?'pdf':'file')) + '\',\'' + safeName.replace(/'/g,"\\'") + '\')"></i>' +
-                        '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;cursor:pointer;" title="' + safeName + '" onclick="_openEditAttachPreview(\'' + encUrl + '\',\'' + (isImg?'img':(isPdf?'pdf':'file')) + '\',\'' + safeName.replace(/'/g,"\\'") + '\')">' + safeName + '</span>' +
-                        '<button type="button" class="btn-close btn-close-sm ms-1 remove-attach-btn" style="font-size:.6rem;" title="Remove" data-uid="' + uid + '"></button>' +
-                    '</div>');
-                    $container.append($item);
-                });
-                $('#existingAttachList').removeClass('d-none');
-                $('#existingAttachCount').text(resp.Attachments.length).removeClass('d-none');
-                $('#accordionUploadFiles').addClass('show');
-
-                $(document).on('click', '.remove-attach-btn', function() {
-                    var attachUID = parseInt($(this).data('uid'), 10);
-                    $(this).closest('.existing-attach-item').remove();
-                    _removedAttachIDs.push(attachUID);
-                    var remaining = $('#existingAttachItems .existing-attach-item').length;
-                    if (remaining === 0) $('#existingAttachList').addClass('d-none');
-                    if (remaining > 0) $('#existingAttachCount').text(remaining);
-                    else $('#existingAttachCount').addClass('d-none');
-                });
-            }
-        });
-    }
     <?php else: ?>
     var _sourceData  = _fromSO || _fromQuotation;
     var _sourceItems = _fromSO ? _fromSOItems : _fromQuotItems;
@@ -625,7 +586,7 @@ $(function() {
                 if (!transNumber || parseInt(transNumber, 10) <= 0) return showFormError('Transaction number must be greater than 0.');
             }
 
-            var transDate = $.trim($('#transDate').val());
+            var transDate = $.trim($('[name="transDate"]').val());
             if (!transDate || !/^\d{4}-\d{2}-\d{2}$/.test(transDate)) return showFormError('Please enter a valid invoice date.');
 
             var items = typeof billManager !== 'undefined' ? billManager.getAllItems() : [];
@@ -681,8 +642,8 @@ $(function() {
                 fd.append('fromSalesOrderUID',  parseInt($('#fromSalesOrderUID').val(), 10) || 0);
                 fd.append('fromQuotationUID',   parseInt($('#fromQuotationUID').val(), 10) || 0);
             }
-            fd.append('invoiceType',            $('#invoiceType').val() || '');
-            fd.append('dispatchFrom',           $('#dispatchFrom').val() || '');
+            fd.append('invoiceType',            $('[name="invoiceType"]').val() || '');
+            fd.append('dispatchFrom',           $('[name="dispatchFrom"]').val() || '');
             fd.append('referenceDetails',       $.trim($('#referenceDetails').val()));
             fd.append('transNotes',             $.trim($('#transNotes').val()));
             fd.append('transTermsCond',         $.trim($('#transTermsCond').val()));
@@ -744,28 +705,6 @@ $(function() {
     }
 
 });
-
-<?php if ($isEdit): ?>
-function _openEditAttachPreview(encUrl, type, name) {
-    var url = decodeURIComponent(encUrl);
-    var safeName = $('<span>').text(name).html();
-    var body = '';
-    if (type === 'img') {
-        body = '<div class="text-center p-3"><img src="' + $('<span>').text(url).html() + '" class="img-fluid rounded" style="max-height:70vh;" alt="' + safeName + '"></div>';
-    } else if (type === 'pdf') {
-        body = '<iframe src="' + $('<span>').text(url).html() + '" style="width:100%;height:70vh;border:none;"></iframe>';
-    } else {
-        body = '<div class="text-center py-5">' +
-            '<i class="bx bx-file-blank text-secondary" style="font-size:4rem;display:block;margin-bottom:12px;"></i>' +
-            '<div style="font-size:.9rem;font-weight:600;margin-bottom:16px;">' + safeName + '</div>' +
-            '<button class="btn btn-primary px-4" onclick="(function(u,n){var a=document.createElement(\'a\');a.href=u;a.download=n;a.style.display=\'none\';document.body.appendChild(a);a.click();document.body.removeChild(a);})(decodeURIComponent(\'' + encUrl + '\'),\'' + safeName.replace(/'/g, "\\'") + '\')"><i class="bx bx-download me-2"></i>Download File</button>' +
-            '</div>';
-    }
-    $('#editAttachPreviewBody').html(body);
-    $('#editAttachPreviewTitle').text(name || 'Preview');
-    new bootstrap.Modal(document.getElementById('editAttachPreviewModal')).show();
-}
-<?php endif; ?>
 
 function _showSavedAndGo(title, msg) {
     Swal.fire({

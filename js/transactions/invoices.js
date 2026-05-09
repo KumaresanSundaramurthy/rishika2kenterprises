@@ -42,11 +42,14 @@ function getInvoicesDetails(pageNo, rowLimit, filter) {
         $panel.css({ top: top, left: left }).show();
         openUID = transUID;
 
+        AjaxLoading = 0;
+
         $.ajax({
             url     : '/payments/getPaymentsByTransaction',
             type    : 'GET',
             data    : { TransUID: transUID },
             success : function (resp) {
+                AjaxLoading = 1;
                 if (resp && !resp.Error && resp.Payments && resp.Payments.length) {
                     $body.html(buildPaymentHtml(resp.Payments));
                 } else {
@@ -54,6 +57,7 @@ function getInvoicesDetails(pageNo, rowLimit, filter) {
                 }
             },
             error   : function () {
+                AjaxLoading = 1;
                 $body.html('<p class="text-danger mb-0" style="font-size:.8rem;">Failed to load payments.</p>');
             }
         });
@@ -65,6 +69,8 @@ function getInvoicesDetails(pageNo, rowLimit, filter) {
     }
 
     $(document).on('click', '.pay-mode-clickable', function (e) {
+        // Ignore clicks that originated from the attachment icon inside this cell
+        if ($(e.target).closest('.invPayAttachBtn').length) return;
         e.stopPropagation();
         var transUID = $(this).data('trans-uid');
         if (openUID === transUID) { closePanel(); return; }

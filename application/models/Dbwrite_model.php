@@ -554,6 +554,40 @@ class Dbwrite_model extends CI_Model {
 
     }
 
+    /**
+     * Soft-delete specific product rows for a transaction by ProductUID.
+     * Only deletes rows that are currently active (IsDeleted = 0).
+     */
+    public function softDeleteTransactionItemsByProductUIDs($transUID, array $productUIDs, $userUID) {
+        if (empty($productUIDs)) return;
+        $this->WriteDB->db_debug = FALSE;
+        $placeholders = implode(',', array_fill(0, count($productUIDs), '?'));
+        $params = array_merge([(int)$userUID, (int)$transUID], array_map('intval', $productUIDs));
+        $ok = $this->WriteDB->query(
+            "UPDATE Transaction.TransProductsTbl
+                SET IsDeleted = 1, IsActive = 0, UpdatedBy = ?, UpdatedOn = NOW()
+              WHERE TransUID = ? AND ProductUID IN ({$placeholders}) AND IsDeleted = 0",
+            $params
+        );
+        if ($ok === false) {
+            $err = $this->WriteDB->error();
+            throw new Exception('Failed to soft-delete removed items: ' . ($err['message'] ?? 'unknown error'));
+        }
+    }
+
+    /**
+     * Update an existing active TransProductsTbl row by TransUID + ProductUID.
+     */
+    public function updateTransProductItem($transUID, $productUID, array $data) {
+        $this->WriteDB->db_debug = FALSE;
+        $this->WriteDB->where(['TransUID' => (int)$transUID, 'ProductUID' => (int)$productUID, 'IsDeleted' => 0]);
+        $ok = $this->WriteDB->update('Transaction.TransProductsTbl', $data);
+        if ($ok === false) {
+            $err = $this->WriteDB->error();
+            throw new Exception('Failed to update item (ProductUID=' . $productUID . '): ' . ($err['message'] ?? 'unknown error'));
+        }
+    }
+
     // ── Conversion Tracking ───────────────────────────────────────────────────
 
     /**

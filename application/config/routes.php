@@ -109,7 +109,7 @@ $route['salesorders/getSalesOrderDetail']                  = 'salesorders/getSal
 // Invoices
 $route['invoices']                                         = 'invoices/index';
 $route['invoices/create']                                  = 'invoices/create';
-$route['invoices/(:num)/edit']                             = 'invoices/edit/$1';
+$route['invoices/(:any)/edit']                             = 'invoices/edit/$1';
 $route['invoices/getInvoicesPageDetails/(:num)']           = 'invoices/getInvoicesPageDetails/$1';
 $route['invoices/getInvoicesPageDetails']                  = 'invoices/getInvoicesPageDetails';
 $route['invoices/addInvoice']                              = 'invoices/addInvoice';

@@ -19,6 +19,7 @@ class Transactions_model extends CI_Model {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select([
                 'Ts.TransUID AS TransUID',
+                'Ts.TransToken AS TransToken',
                 'Ts.ModuleUID AS ModuleUID',
                 'Ts.PartyUID AS PartyUID',
                 'Ts.UniqueNumber AS UniqueNumber',
@@ -38,6 +39,9 @@ class Transactions_model extends CI_Model {
                 "CONCAT(CreatedUser.FirstName, ' ', CreatedUser.LastName) AS CreatedBy",
                 'IFNULL(PayInfo.PaymentCount, 0) AS PaymentCount',
                 'PayInfo.PaymentModes AS PaymentModes',
+                'PayInfo.PayBankName AS PayBankName',
+                'PayInfo.PayAccountNumber AS PayAccountNumber',
+                'IFNULL(PayInfo.PaymentAttachmentCount, 0) AS PaymentAttachmentCount',
                 '(SELECT COUNT(*) FROM Transaction.TransAttachmentsTbl AT WHERE AT.TransUID = Ts.TransUID AND AT.IsDeleted = 0 AND AT.IsActive = 1) AS AttachmentCount',
             ]);
             $this->ReadDb->from('Transaction.TransactionsTbl as Ts');
@@ -52,7 +56,7 @@ class Transactions_model extends CI_Model {
                 'LEFT'
             );
             $this->ReadDb->join(
-                "(SELECT P.TransUID, COUNT(*) AS PaymentCount, GROUP_CONCAT(PT.Name ORDER BY P.PaymentUID ASC SEPARATOR ',') AS PaymentModes FROM Transaction.PaymentsTbl P JOIN Transaction.PaymentTypesTbl PT ON PT.PaymentTypeUID = P.PaymentTypeUID WHERE P.IsDeleted = 0 AND P.IsActive = 1 GROUP BY P.TransUID) AS PayInfo",
+                "(SELECT P.TransUID, COUNT(*) AS PaymentCount, GROUP_CONCAT(PT.Name ORDER BY P.PaymentUID ASC SEPARATOR ',') AS PaymentModes, MAX(CASE WHEN PT.IsCash = 0 THEN BA.BankName ELSE NULL END) AS PayBankName, MAX(CASE WHEN PT.IsCash = 0 THEN BA.AccountNumber ELSE NULL END) AS PayAccountNumber, (SELECT COUNT(*) FROM Transaction.PaymentAttachmentsTbl PA WHERE PA.PaymentUID IN (SELECT PaymentUID FROM Transaction.PaymentsTbl P2 WHERE P2.TransUID = P.TransUID AND P2.IsDeleted = 0 AND P2.IsActive = 1) AND PA.IsDeleted = 0 AND PA.IsActive = 1) AS PaymentAttachmentCount FROM Transaction.PaymentsTbl P JOIN Transaction.PaymentTypesTbl PT ON PT.PaymentTypeUID = P.PaymentTypeUID LEFT JOIN Transaction.OrgBankAccountsTbl BA ON BA.BankAccountUID = P.BankAccountUID WHERE P.IsDeleted = 0 AND P.IsActive = 1 GROUP BY P.TransUID) AS PayInfo",
                 'PayInfo.TransUID = Ts.TransUID',
                 'LEFT'
             );
@@ -190,9 +194,34 @@ class Transactions_model extends CI_Model {
 
     }
 
+    /** Full transaction header row by TransToken + OrgUID (token-based edit URL). */
+    public function getTransactionByToken($token, $orgUID, $moduleUID) {
+        $this->ReadDb->select([
+            'Ts.*',
+            'COALESCE(Cust.Name, Vend.Name) AS PartyName',
+            'COALESCE(Cust.CountryCode, Vend.CountryCode) AS PartyCountryCode',
+            'COALESCE(Cust.MobileNumber, Vend.MobileNumber) AS PartyMobile',
+            'COALESCE(Cust.GSTIN, Vend.GSTIN) AS PartyGSTIN',
+            'BillAddr.Line1 AS BillLine1', 'BillAddr.Line2 AS BillLine2',
+            'BillAddr.CityText AS BillCity', 'BillAddr.StateText AS BillState', 'BillAddr.Pincode AS BillPincode',
+            'ShipAddr.Line1 AS ShipLine1', 'ShipAddr.Line2 AS ShipLine2',
+            'ShipAddr.CityText AS ShipCity', 'ShipAddr.StateText AS ShipState', 'ShipAddr.Pincode AS ShipPincode',
+            'Td.ValidityDays', 'Td.ValidityDate', 'Td.Reference', 'Td.SupplierInvoiceNo',
+            'Td.Notes', 'Td.TermsConditions', 'Td.AdditionalCharges AS AdditionalChargesJson', 'Td.PlaceOfSupply',
+        ]);
+        $this->ReadDb->from('Transaction.TransactionsTbl AS Ts');
+        $this->ReadDb->join('Customers.CustomerTbl AS Cust', 'Cust.CustomerUID = Ts.PartyUID AND Ts.PartyType = \'C\'', 'LEFT');
+        $this->ReadDb->join('Vendors.VendorTbl AS Vend', 'Vend.VendorUID = Ts.PartyUID AND Ts.PartyType = \'S\'', 'LEFT');
+        $this->ReadDb->join('Transaction.TransDetailTbl AS Td', 'Td.TransUID = Ts.TransUID AND Td.FinancialYear = YEAR(Ts.TransDate)', 'LEFT');
+        $this->ReadDb->join('Customers.CustAddressTbl AS BillAddr', "BillAddr.CustomerUID = Ts.PartyUID AND BillAddr.AddressType = 'Billing' AND BillAddr.IsDeleted = 0 AND BillAddr.IsActive = 1", 'LEFT');
+        $this->ReadDb->join('Customers.CustAddressTbl AS ShipAddr', "ShipAddr.CustomerUID = Ts.PartyUID AND ShipAddr.AddressType = 'Shipping' AND ShipAddr.IsDeleted = 0 AND ShipAddr.IsActive = 1", 'LEFT');
+        $this->ReadDb->where(['Ts.TransToken' => $token, 'Ts.OrgUID' => $orgUID, 'Ts.ModuleUID' => $moduleUID, 'Ts.IsDeleted' => 0]);
+        $row = $this->ReadDb->get()->row();
+        return $row ?: null;
+    }
+
     /** Full transaction header row by TransUID + OrgUID. */
     public function getTransactionById($transUID, $orgUID, $moduleUID) {
-
         $this->ReadDb->select([
             'Ts.*',
             'COALESCE(Cust.Name, Vend.Name) AS PartyName',
@@ -874,6 +903,17 @@ class Transactions_model extends CI_Model {
         $this->ReadDb->select('AttachUID, FileName, FilePath, FileType, FileSize, CreatedOn');
         $this->ReadDb->from('Transaction.TransAttachmentsTbl');
         $this->ReadDb->where(['TransUID' => $transUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
+        $this->ReadDb->order_by('SortOrder', 'ASC');
+        $this->ReadDb->order_by('AttachUID', 'ASC');
+        $query = $this->ReadDb->get();
+        return ($query && $query->num_rows() > 0) ? $query->result() : [];
+    }
+
+    public function getPaymentAttachments($paymentUID, $orgUID) {
+        $this->ReadDb->db_debug = FALSE;
+        $this->ReadDb->select('AttachUID, FileName, FilePath, FileType, FileSize, CreatedOn');
+        $this->ReadDb->from('Transaction.PaymentAttachmentsTbl');
+        $this->ReadDb->where(['PaymentUID' => $paymentUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
         $this->ReadDb->order_by('SortOrder', 'ASC');
         $this->ReadDb->order_by('AttachUID', 'ASC');
         $query = $this->ReadDb->get();
@@ -1807,3 +1847,5 @@ class Transactions_model extends CI_Model {
     }
 
 }
+
+

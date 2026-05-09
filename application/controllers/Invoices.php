@@ -519,13 +519,83 @@ class Invoices extends CI_Controller {
                     ['FinancialYear' => $financialYear, 'TransUID' => $transUID]
                 );
 
-                $this->dbwrite_model->updateData(
-                    'Transaction', 'TransProductsTbl',
-                    ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
-                    ['TransUID' => $transUID, 'IsDeleted' => 0]
-                );
-                $seqOffset = $this->transactions_model->getMaxItemSequence($transUID);
-                $this->saveInvoiceItems($transUID, $financialYear, $orgUID, $userUID, $items, $seqOffset);
+                // ── Smart item diff: only soft-delete removed items ──────────
+                $existingItems = $this->transactions_model->getTransactionItems($transUID, $orgUID);
+                $existingByProduct = [];
+                foreach ($existingItems as $ei) {
+                    $existingByProduct[(int)$ei->ProductUID] = $ei;
+                }
+
+                $submittedProductUIDs = [];
+                foreach ($items as $item) {
+                    $pid = isset($item['id']) ? (int)$item['id'] : 0;
+                    if ($pid > 0) $submittedProductUIDs[] = $pid;
+                }
+
+                // Soft-delete only items removed from the cart
+                $removedProductUIDs = array_diff(array_keys($existingByProduct), $submittedProductUIDs);
+                if (!empty($removedProductUIDs)) {
+                    $this->dbwrite_model->softDeleteTransactionItemsByProductUIDs($transUID, array_values($removedProductUIDs), $userUID);
+                }
+
+                // Update existing items / insert new items
+                $newRows = [];
+                foreach ($items as $seq => $item) {
+                    $productUID = isset($item['id'])       ? (int)   $item['id']       : 0;
+                    $qty        = isset($item['quantity'])  ? (float) $item['quantity']  : 0;
+                    $unitPrice  = isset($item['unitPrice']) ? (float) $item['unitPrice'] : 0;
+                    if ($productUID <= 0 || $qty <= 0) continue;
+
+                    $rowData = [
+                        'ItemSequence'    => $seq + 1,
+                        'ProductName'     => substr(strip_tags($item['itemName'] ?? ''), 0, 100),
+                        'Description'     => isset($item['description'])    ? substr($item['description'], 0, 500) : NULL,
+                        'PartNumber'      => isset($item['partNumber'])     ? substr($item['partNumber'], 0, 50)   : NULL,
+                        'CategoryUID'     => isset($item['categoryUID'])    ? (int) $item['categoryUID']           : NULL,
+                        'StorageUID'      => isset($item['storageUID'])     ? (int) $item['storageUID']             : NULL,
+                        'Quantity'        => $qty,
+                        'PrimaryUnitName' => isset($item['primaryUnit'])    ? substr($item['primaryUnit'], 0, 20)   : NULL,
+                        'TaxDetailsUID'   => isset($item['taxDetailsUID'])  ? (int) $item['taxDetailsUID']          : 1,
+                        'TaxPercentage'   => (float) ($item['taxPercent']   ?? 0),
+                        'CGST'            => (float) ($item['cgstPercent']  ?? 0),
+                        'SGST'            => (float) ($item['sgstPercent']  ?? 0),
+                        'IGST'            => (float) ($item['igstPercent']  ?? 0),
+                        'DiscountTypeUID' => isset($item['discountTypeUID']) ? (int) $item['discountTypeUID'] : NULL,
+                        'Discount'        => (float) ($item['discount']       ?? 0),
+                        'UnitPrice'       => $unitPrice,
+                        'SellingPrice'    => (float) ($item['sellingPrice']   ?? $unitPrice),
+                        'TaxableAmount'   => (float) ($item['line_total']     ?? 0),
+                        'CgstAmount'      => (float) ($item['cgstAmount']     ?? 0),
+                        'SgstAmount'      => (float) ($item['sgstAmount']     ?? 0),
+                        'IgstAmount'      => (float) ($item['igstAmount']     ?? 0),
+                        'TaxAmount'       => (float) ($item['taxAmount']      ?? 0),
+                        'DiscountAmount'  => (float) ($item['discount_amount'] ?? 0),
+                        'NetAmount'       => (float) ($item['net_total']       ?? 0),
+                        'UpdatedBy'       => $userUID,
+                    ];
+
+                    if (isset($existingByProduct[$productUID])) {
+                        // Item exists — update in place
+                        $this->dbwrite_model->updateTransProductItem($transUID, $productUID, $rowData);
+                    } else {
+                        // New item — collect for batch insert
+                        $newRows[] = array_merge($rowData, [
+                            'OrgUID'            => $orgUID,
+                            'FinancialYear'     => $financialYear,
+                            'TransUID'          => $transUID,
+                            'ProductUID'        => $productUID,
+                            'QuantityConverted' => 0,
+                            'IsActive'          => 1,
+                            'IsDeleted'         => 0,
+                            'CreatedBy'         => $userUID,
+                        ]);
+                    }
+                }
+
+                if (!empty($newRows)) {
+                    $batchResp = $this->dbwrite_model->insertBatchInTransaction('Transaction', 'TransProductsTbl', $newRows);
+                    if ($batchResp->Error) throw new Exception($batchResp->Message);
+                }
 
                 if (!$isDraft) {
                     $this->dbwrite_model->saveStockMovements($transUID, $this->pageModuleUID, $orgUID, $userUID, $items);
@@ -701,13 +771,16 @@ class Invoices extends CI_Controller {
             $payPrefixUID   = $payPrefix ? (int) $payPrefix->PrefixUID : null;
             $paymentNumber  = $payPrefixUID ? $this->transactions_model->getNextPaymentNumber($payPrefixUID, $orgUID, $payTransYear) : 0;
             $payUniqueNum   = ($payPrefix && $paymentNumber > 0) ? $this->buildPaymentUniqueNumber($payPrefix, $paymentDate, $paymentNumber) : null;
+            $receiptToken   = $this->transactions_model->_generateReceiptToken();
 
             $paymentData = [
                 'OrgUID'         => $orgUID,
                 'PaymentDate'    => $paymentDate,
+                'PaymentModuleUID'    => 110,
                 'PrefixUID'      => $payPrefixUID,
                 'PaymentNumber'  => $paymentNumber,
                 'UniqueNumber'   => $payUniqueNum,
+                'ReceiptToken'   => $receiptToken,
                 'TransYear'      => $payTransYear,
                 'TransUID'       => $transUID,
                 'ModuleUID'      => $this->pageModuleUID,
@@ -755,6 +828,32 @@ class Invoices extends CI_Controller {
             $this->EndReturnData->Error      = FALSE;
             $this->EndReturnData->Message    = 'Payment of ' . $amount . ' recorded successfully.';
             $this->EndReturnData->IsFullyPaid = $isFullyPaid;
+
+            // Fetch complete page data to refresh the invoice list
+            $GeneralSettings = ($this->redis_cache->get('Redis_UserGenSettings')->Value) ?? new stdClass();
+            $limit = $GeneralSettings->RowLimit ?? 10;
+            $pageNo = (int) $this->input->post('CurrentPage') ?: 1;
+            $offset = ($pageNo - 1) * $limit;
+            $filter = $this->input->post('Filter') ?: [];
+            
+            $allData = $this->transactions_model->getTransactionPageList($limit, $offset, $this->pageModuleUID, $filter, 0);
+            $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, $filter);
+            $summaryStats = $this->transactions_model->getTransactionSummaryStats($this->pageModuleUID, $orgUID);
+            
+            $this->pageData['JwtData']->GenSettings = $GeneralSettings;
+            $rowHtml = $this->load->view('transactions/invoices/list', [
+                'DataLists'    => $allData,
+                'SerialNumber' => ($pageNo - 1) * $limit,
+                'JwtData'      => $this->pageData['JwtData'],
+            ], true);
+            
+            $this->EndReturnData->RecordHtmlData = $rowHtml;
+            $this->EndReturnData->Pagination = $this->globalservice->buildPagePaginationHtml('/invoices/getInvoicesPageDetails', $allDataCount, $pageNo, $limit);
+            $this->EndReturnData->TotalCount = $allDataCount;
+            $this->EndReturnData->SummaryStats = $summaryStats;
+
+            // Save any attached files
+            $this->_savePaymentAttachments($resp->ID);
 
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -972,7 +1071,7 @@ class Invoices extends CI_Controller {
             $this->EndReturnData->Error    = FALSE;
             $this->EndReturnData->Message  = 'Invoice duplicated as ' . $uniqueNumber . '.';
             $this->EndReturnData->TransUID = $newTransUID;
-            $this->EndReturnData->EditURL  = '/invoices/edit/' . $newTransUID;
+            $this->EndReturnData->EditURL  = '/invoices/' . $headerData['TransToken'] . '/edit';
 
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -1181,6 +1280,7 @@ class Invoices extends CI_Controller {
 
             $paymentNumber = $payPrefixUID ? $this->transactions_model->getNextPaymentNumber($payPrefixUID, $orgUID, $payTransYear) : 0;
             $payUniqueNum  = ($payPrefix && $paymentNumber > 0) ? $this->buildPaymentUniqueNumber($payPrefix, $paymentDate, $paymentNumber) : null;
+            $receiptToken  = $this->transactions_model->_generateReceiptToken();
 
             $paymentData = [
                 'OrgUID'            => $orgUID,
@@ -1188,9 +1288,10 @@ class Invoices extends CI_Controller {
                 'PrefixUID'         => $payPrefixUID,
                 'PaymentNumber'     => $paymentNumber,
                 'UniqueNumber'      => $payUniqueNum,
+                'ReceiptToken'      => $receiptToken,
                 'TransYear'         => $payTransYear,
                 'TransUID'          => (int) $transUID,
-                'ModuleUID'         => $this->pageModuleUID,
+                'ModuleUID'         => 110,
                 'PartyType'         => $partyType,
                 'PartyUID'          => $partyUID,
                 'PaymentTypeUID'    => $paymentTypeUID,
@@ -1333,6 +1434,81 @@ class Invoices extends CI_Controller {
 
     }
 
+    public function getPaymentAttachments() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $transUID = (int) $this->input->post('TransUID');
+            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            if ($transUID <= 0) throw new Exception('Invalid transaction.');
+
+            $this->load->model('transactions_model');
+            $payments = $this->transactions_model->getTransactionPayments($transUID, $orgUID);
+            
+            $attachments = [];
+            foreach ($payments as $payment) {
+                $paymentAttachments = $this->transactions_model->getPaymentAttachments($payment->PaymentUID, $orgUID);
+                foreach ($paymentAttachments as $attach) {
+                    $attach->PaymentTypeName = $payment->PaymentTypeName;
+                    $attach->PaymentAmount = $payment->Amount;
+                    $attach->PaymentUniqueNumber = $payment->UniqueNumber ?? null;
+                    $attachments[] = $attach;
+                }
+            }
+
+            $this->EndReturnData->Error       = FALSE;
+            $this->EndReturnData->Attachments = $attachments;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    private function _savePaymentAttachments($paymentUID) {
+        $files = $_FILES['PaymentFiles'] ?? null;
+        if (empty($files) || empty($files['name'][0])) return;
+
+        $userUID  = $this->pageData['JwtData']->User->UserUID;
+        $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+
+        $this->load->library('fileupload');
+        $this->load->model('dbwrite_model');
+
+        $allowed = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+        $count   = min(count($files['name']), 3);
+
+        for ($i = 0; $i < $count; $i++) {
+            if ($files['error'][$i] !== UPLOAD_ERR_OK || empty($files['name'][$i])) continue;
+            if ($files['size'][$i] > 3 * 1024 * 1024) continue;
+            if (!in_array($files['type'][$i], $allowed)) continue;
+
+            $origName    = basename($files['name'][$i]);
+            $safeName    = time() . '_' . $i . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $origName);
+            $storagePath = 'payments/' . $paymentUID . '/' . $safeName;
+
+            $uploadResult = $this->fileupload->fileUpload('file', $storagePath, $files['tmp_name'][$i]);
+            if ($uploadResult->Error) continue;
+
+            $this->dbwrite_model->insertData('Transaction', 'PaymentAttachmentsTbl', [
+                'OrgUID'     => $orgUID,
+                'PaymentUID' => $paymentUID,
+                'FileName'   => $origName,
+                'FilePath'   => '/' . ltrim($uploadResult->Path, '/'),
+                'FileType'   => $files['type'][$i],
+                'FileSize'   => $files['size'][$i],
+                'SortOrder'  => $i,
+                'IsActive'   => 1,
+                'IsDeleted'  => 0,
+                'CreatedBy'  => $userUID,
+            ]);
+        }
+    }
+
     private function buildAdditionalChargesJson($PostData) {
         $charges = [];
         $types   = ['shipping', 'handling', 'packing', 'other'];
@@ -1432,23 +1608,24 @@ class Invoices extends CI_Controller {
 
     }
 
-    public function edit($transUID = 0) {
+    public function edit($token = '') {
 
         try {
 
-            $transUID = (int) $transUID;
-            if ($transUID <= 0) redirect('invoices');
+            $token = trim((string) $token);
+            if (empty($token)) redirect('invoices');
+
+            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+
+            $this->load->model('transactions_model');
+            $invData = $this->transactions_model->getTransactionByToken($token, $orgUID, $this->pageModuleUID);
+            if (!$invData) redirect('invoices');
+
+            $transUID = (int) $invData->TransUID;
 
             $GeneralSettings = $this->redis_cache->get('Redis_UserGenSettings')->Value ?? NULL;
             $this->pageData['JwtData']->GenSettings = $GeneralSettings;
-
-            $orgUID = $this->pageData['JwtData']->User->OrgUID;
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
-
-            $this->load->model('transactions_model');
-
-            $invData  = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
-            if (!$invData) redirect('invoices');
 
             $invItems = $this->transactions_model->getTransactionItems($transUID, $orgUID);
 
@@ -1500,8 +1677,9 @@ class Invoices extends CI_Controller {
             $this->load->model('products_model');
             $this->pageData['fltCategoryData'] = $this->products_model->getCategoriesDetails([]) ?? [];
 
-            $this->pageData['PaymentTypes'] = $this->transactions_model->getPaymentTypesList();
-            $this->pageData['BankAccounts'] = $this->transactions_model->getOrgBankAccounts($orgUID);
+            $this->pageData['PaymentTypes']    = $this->transactions_model->getPaymentTypesList();
+            $this->pageData['BankAccounts']     = $this->transactions_model->getOrgBankAccounts($orgUID);
+            $this->pageData['InvAttachments']   = $this->transactions_model->getTransactionAttachments($transUID, $orgUID);
 
             $this->load->view('transactions/invoices/forms/form', $this->pageData);
 

@@ -222,6 +222,13 @@ const ModuleRow    = '.invCheck';
 $(function () {
     'use strict';
 
+    // Initialize Bootstrap tooltips — container:'body' prevents tooltip div from
+    // firing mouseleave on the icon, which caused the heartbeat flicker.
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl, { container: 'body' });
+    });
+
     Filter['Status'] = 'All';
 
     // ── Stat card click → filter by status ─────────────────
@@ -394,10 +401,11 @@ function _buildInvDetailHtml(resp) {
     var _payTypes  = <?php echo json_encode(array_map(function($t) {
         return ['PaymentTypeUID' => (int)$t->PaymentTypeUID, 'Name' => (string)$t->Name, 'IsCash' => (int)$t->IsCash];
     }, $PaymentTypes ?? [])); ?>;
-    var _bankAccts = <?php echo json_encode(array_map(function($b) {
-        return ['BankAccountUID' => (int)$b->BankAccountUID, 'BankName' => (string)$b->BankName, 'AccountName' => (string)$b->AccountName];
-    }, $BankAccounts ?? [])); ?>;
+    var _bankAccts = <?php echo json_encode(array_values(array_map(function($b) {
+        return ['BankAccountUID' => (int)$b->BankAccountUID, 'BankName' => (string)$b->BankName, 'AccountName' => (string)$b->AccountName, 'IsDefault' => (int)$b->IsDefault];
+    }, array_filter($BankAccounts ?? [], function($b) { return !(int)$b->IsCash; })))); ?>;
     var _fpInstance = null;
+    var _rpDropzone  = null;
     var _currency   = '<?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>';
 
     // Populate bank account select once from pre-loaded data
@@ -428,6 +436,10 @@ function _buildInvDetailHtml(resp) {
     function toggleBankRow() {
         var isCash = parseInt($('#rpIsCash').val(), 10);
         $('#rpBankRow').toggleClass('d-none', !!isCash);
+        if (!isCash && !$('#rpBankAccount').val()) {
+            var def = $.grep(_bankAccts, function(b) { return b.IsDefault === 1; });
+            if (def.length) { $('#rpBankAccount').val(def[0].BankAccountUID); }
+        }
     }
 
     // Init flatpickr once modal is fully visible; reset to today on each open
@@ -444,6 +456,27 @@ function _buildInvDetailHtml(resp) {
             });
         } else {
             _fpInstance.setDate(new Date(), false);
+        }
+        if (!_rpDropzone && typeof Dropzone !== 'undefined') {
+            Dropzone.autoDiscover = false;
+            _rpDropzone = new Dropzone('#rpAttachDropzone', {
+                url              : '#',
+                autoProcessQueue : false,
+                maxFiles         : 3,
+                maxFilesize      : 3,
+                acceptedFiles    : '.pdf,.jpg,.jpeg,.png',
+                parallelUploads  : 3,
+                previewTemplate  : '<div class="dz-preview dz-file-preview"><div class="dz-details"><div class="dz-filename"><span data-dz-name></span></div><div class="dz-size"><span data-dz-size></span></div></div><div class="dz-error-message"><span data-dz-errormessage></span></div><a class="dz-remove" href="javascript:undefined;" data-dz-remove>Remove</a></div>',
+                init: function () {
+                    this.on('maxfilesexceeded', function (file) { this.removeFile(file); Swal.fire({ icon: 'warning', text: 'Maximum 3 attachments allowed.' }); });
+                    this.on('error', function (file, msg) {
+                        if (file.size > 3 * 1024 * 1024) {
+                            this.removeFile(file);
+                            Swal.fire({ icon: 'warning', text: 'Each file must be 3 MB or smaller.' });
+                        }
+                    });
+                }
+            });
         }
     });
 
@@ -470,6 +503,7 @@ function _buildInvDetailHtml(resp) {
         $('#rpNotes').val('');
         $('#rpBankAccount').val('');
 
+        if (_rpDropzone) { _rpDropzone.removeAllFiles(true); }
         renderPaymentTypes();
         $('#recordPaymentModal').modal('show');
     });
@@ -501,38 +535,143 @@ function _buildInvDetailHtml(resp) {
 
         var $btn = $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Saving…');
 
+        var fd = new FormData();
+        fd.append('TransUID',       transUID);
+        fd.append('PaymentTypeUID', paymentTypeUID);
+        fd.append('Amount',         amount);
+        fd.append('PaymentDate',    paymentDate);
+        fd.append('BankAccountUID', bankAccountUID || '');
+        fd.append('ReferenceNo',    referenceNo);
+        fd.append('Notes',          notes);
+        fd.append('CurrentPage',    PageNo || 1);
+        fd.append('RowLimit',       RowLimit || 10);
+        fd.append('Filter',         JSON.stringify(Filter || {}));
+        fd.append(CsrfName,         CsrfToken);
+        if (_rpDropzone) { _rpDropzone.files.forEach(function(file) { fd.append('PaymentFiles[]', file); }); }
+
         $.ajax({
-            url   : '/invoices/recordInvoicePayment',
-            method: 'POST',
-            data  : {
-                TransUID       : transUID,
-                PaymentTypeUID : paymentTypeUID,
-                Amount         : amount,
-                PaymentDate    : paymentDate,
-                BankAccountUID : bankAccountUID || '',
-                ReferenceNo    : referenceNo,
-                Notes          : notes,
-                [CsrfName]     : CsrfToken,
-            },
+            url         : '/invoices/recordInvoicePayment',
+            method      : 'POST',
+            data        : fd,
+            processData : false,
+            contentType : false,
             success: function (resp) {
                 $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i> Record Payment');
                 if (resp.Error) {
-                    Swal.fire({ icon: 'error', title: 'Error', text: resp.Message });
+                    showToastNotification(resp.Message, 'error');
                 } else {
                     $('#recordPaymentModal').modal('hide');
-                    getInvoicesDetails();
-                    Swal.fire({ icon: 'success', text: resp.Message, timer: 1800, showConfirmButton: false });
+                    if (resp.RecordHtmlData) {
+                        $(ModuleTable + ' tbody').html(resp.RecordHtmlData);
+                        $(ModulePag).html(resp.Pagination || '');
+                        
+                        // Reinitialize tooltips for new content
+                        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                        tooltipTriggerList.map(function (tooltipTriggerEl) {
+                            return new bootstrap.Tooltip(tooltipTriggerEl, { container: 'body' });
+                        });
+                        
+                        if (resp.SummaryStats) {
+                            updateSummaryStats(resp.SummaryStats);
+                        }
+                    }
+                    showToastNotification(resp.Message, 'success');
                 }
             },
             error: function () {
                 $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i> Record Payment');
-                Swal.fire({ icon: 'error', text: 'Request failed. Try again.' });
+                showToastNotification('Request failed. Try again.', 'error');
             }
         });
     });
 
+    // Update summary stats cards
+    function updateSummaryStats(stats) {
+        var cur = (typeof CurrencySymbol !== 'undefined' && CurrencySymbol) ? CurrencySymbol : '₹';
+        var dec = 2;
+        
+        var cntAll = 0, amtAll = 0;
+        var cntIssued = 0, amtIssued = 0;
+        var cntPaid = 0, amtPaid = 0;
+        var cntDraft = 0;
+        
+        if (stats) {
+            for (var key in stats) {
+                if (stats.hasOwnProperty(key)) {
+                    cntAll += parseInt(stats[key].count || 0);
+                    amtAll += parseFloat(stats[key].amount || 0);
+                }
+            }
+            cntIssued = (stats.Issued ? parseInt(stats.Issued.count || 0) : 0) + 
+                        (stats.Sent ? parseInt(stats.Sent.count || 0) : 0) + 
+                        (stats.Partial ? parseInt(stats.Partial.count || 0) : 0);
+            amtIssued = (stats.Issued ? parseFloat(stats.Issued.amount || 0) : 0) + 
+                        (stats.Sent ? parseFloat(stats.Sent.amount || 0) : 0) + 
+                        (stats.Partial ? parseFloat(stats.Partial.amount || 0) : 0);
+            cntPaid = stats.Paid ? parseInt(stats.Paid.count || 0) : 0;
+            amtPaid = stats.Paid ? parseFloat(stats.Paid.amount || 0) : 0;
+            cntDraft = stats.Draft ? parseInt(stats.Draft.count || 0) : 0;
+        }
+        
+        function fmtAmt(val) {
+            return cur + ' ' + parseFloat(val).toLocaleString('en-IN', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+        }
+        
+        $('.stat-all .trans-stat-count').text(cntAll.toLocaleString());
+        $('.stat-all .trans-stat-amount').text(fmtAmt(amtAll));
+        
+        $('.stat-active .trans-stat-count').text(cntIssued.toLocaleString());
+        $('.stat-active .trans-stat-amount').text(fmtAmt(amtIssued));
+        
+        $('.stat-paid .trans-stat-count').text(cntPaid.toLocaleString());
+        $('.stat-paid .trans-stat-amount').text(fmtAmt(amtPaid));
+        
+        $('.stat-draft .trans-stat-count').text(cntDraft.toLocaleString());
+    }
+
 }());
 
+// Update invoice row after payment without full page reload
+function updateInvoiceRow(invoice, payments, paidTotal) {
+    var $row = $('tr[data-trans-uid="' + invoice.TransUID + '"]');
+    if (!$row.length) return;
+    
+    // Update paid amount
+    $row.find('.inv-paid-amt').text('₹' + parseFloat(paidTotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+    
+    // Update balance amount
+    var balance = parseFloat(invoice.BalanceAmount || 0);
+    $row.find('.inv-balance-amt').text('₹' + balance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+    
+    // Update status badge
+    var statusBadge = '';
+    if (invoice.DocStatus === 'Paid') {
+        statusBadge = '<span class="badge bg-label-success">Paid</span>';
+    } else if (invoice.DocStatus === 'Partial') {
+        statusBadge = '<span class="badge bg-label-warning">Partial</span>';
+    } else if (invoice.DocStatus === 'Issued') {
+        statusBadge = '<span class="badge bg-label-primary">Issued</span>';
+    } else if (invoice.DocStatus === 'Draft') {
+        statusBadge = '<span class="badge bg-label-secondary">Draft</span>';
+    }
+    $row.find('.inv-status-badge').html(statusBadge);
+    
+    // Update payment mode badges
+    var paymentHtml = '';
+    if (payments && payments.length > 0) {
+        payments.forEach(function(p) {
+            paymentHtml += '<span class="badge bg-label-info me-1">' + (p.PaymentTypeName || 'Payment') + '</span>';
+        });
+        var hasAttach = invoice.PaymentAttachmentCount > 0;
+        if (hasAttach) {
+            paymentHtml += '<button type="button" class="btn btn-icon btn-sm invPayAttachBtn" data-trans-uid="' + invoice.TransUID + '" data-inv-num="' + (invoice.UniqueNumber || '') + '" title="View Payment Attachments"><i class="bx bx-paperclip text-primary"></i></button>';
+        }
+    } else {
+        paymentHtml = '<span class="text-muted">—</span>';
+    }
+    $row.find('.inv-payment-mode').html(paymentHtml);
+
+}
 // ── Attachment Viewer ─────────────────────────────────────────────
 $(document).on('click', '.invAttachBtn', function () {
     var uid = $(this).data('uid');
@@ -604,6 +743,149 @@ $(document).on('click', '.invAttachBtn', function () {
     });
 });
 
+// ── Payment Attachment Viewer ─────────────────────────────────────
+$(document).on('click', '.invPayAttachBtn', function (e) {
+    e.stopPropagation();
+    var uid = $(this).data('uid');
+    var num = $(this).data('num') || ('Invoice #' + uid);
+    $('#invPayAttachModalTitle').text('Payment Attachments — ' + num);
+    $('#invPayAttachGallery').html('<div class="text-center py-4"><span class="spinner-border spinner-border-sm text-primary"></span></div>');
+    var modal = new bootstrap.Modal(document.getElementById('invPayAttachModal'));
+    modal.show();
+    AjaxLoading = 0;
+    $.ajax({
+        url    : '/invoices/getPaymentAttachments',
+        method : 'POST',
+        data   : { TransUID: uid, [CsrfName]: CsrfToken },
+        success: function (resp) {
+            AjaxLoading = 1;
+            if (resp.Error || !resp.Attachments || !resp.Attachments.length) {
+                $('#invPayAttachGallery').html('<div class="text-center py-5 text-muted"><i class="bx bx-paperclip fs-2 d-block mb-2"></i>No payment attachments found.</div>');
+                return;
+            }
+            
+            // Get unique payment numbers
+            var paymentNumbers = [];
+            var seen = {};
+            resp.Attachments.forEach(function(a) {
+                if (a.PaymentUniqueNumber && !seen[a.PaymentUniqueNumber]) {
+                    paymentNumbers.push(a.PaymentUniqueNumber);
+                    seen[a.PaymentUniqueNumber] = true;
+                }
+            });
+            
+            // Update modal title with payment numbers
+            var titleText = 'Payment Attachments — ' + num;
+            if (paymentNumbers.length > 0) {
+                titleText += ' | Payments: ' + paymentNumbers.join(', ');
+            }
+            $('#invPayAttachModalTitle').text(titleText);
+            
+            var cdnUrl = (typeof CDN_URL !== 'undefined' && CDN_URL) ? CDN_URL : '';
+            var html = '<div class="row g-2">';
+            resp.Attachments.forEach(function (a, idx) {
+                var fullUrl = cdnUrl + (a.FilePath || '');
+                var safeName = $('<span>').text(a.FileName || '').html();
+                var paymentNum = a.PaymentUniqueNumber ? '<div class=""badge bg-label-primary mb-2"" style=""font-size:.7rem;"">Payment: ' + $('<span>').text(a.PaymentUniqueNumber).html() + '</div>' : '';
+                var isImg = /image\//i.test(a.FileType || '') || /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(a.FileName || '');
+                var isPdf = /pdf/i.test(a.FileType || '') || /\.pdf$/i.test(a.FileName || '');
+                var isMedia = /^video\//i.test(a.FileType || '') || /\.(mp4|webm|ogg|mov)$/i.test(a.FileName || '');
+                var encUrl = encodeURIComponent(fullUrl);
+
+                if (isImg) {
+                    html += '<div class="col-6 col-md-4">' +
+                        paymentNum +
+                        '<div class="attach-thumb-wrap border rounded overflow-hidden" style="cursor:pointer;height:120px;background:#f8f9fa;" ' +
+                        'onclick="_openAttachPreview(\'' + encUrl + '\',\'img\',\'' + safeName + '\')">' +
+                        '<img src="' + $('<span>').text(fullUrl).html() + '" style="width:100%;height:100%;object-fit:cover;" loading="lazy" alt="' + safeName + '">' +
+                        '</div>' +
+                        '<div class="text-muted mt-1 d-flex align-items-center gap-1" style="font-size:.72rem;">' +
+                        '<i class="bx bx-image-alt"></i>' +
+                        '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + safeName + '">' + safeName + '</span></div>' +
+                        '</div>';
+                } else if (isPdf) {
+                    html += '<div class="col-6 col-md-4">' +
+                        paymentNum +
+                        '<div class="attach-thumb-wrap border rounded d-flex flex-column align-items-center justify-content-center gap-1" style="cursor:pointer;height:120px;background:#fff5f5;" ' +
+                        'onclick="_openAttachPreview(\'' + encUrl + '\',\'pdf\',\'' + safeName + '\')">' +
+                        '<i class="bx bxs-file-pdf text-danger" style="font-size:2.5rem;"></i>' +
+                        '<span style="font-size:.72rem;color:#dc3545;font-weight:600;">PDF</span>' +
+                        '</div>' +
+                        '<div class="text-muted mt-1 d-flex align-items-center gap-1" style="font-size:.72rem;">' +
+                        '<i class="bx bx-file-blank"></i>' +
+                        '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + safeName + '">' + safeName + '</span></div>' +
+                        '</div>';
+                } else {
+                    var icon = isMedia ? 'bxs-videos text-primary' : 'bx-file text-secondary';
+                    html += '<div class="col-6 col-md-4">' +
+                        paymentNum +
+                        '<div class="attach-thumb-wrap border rounded d-flex flex-column align-items-center justify-content-center gap-1" style="cursor:pointer;height:120px;background:#f8f9fa;" ' +
+                        'onclick="_openAttachPreview(\'' + encUrl + '\',\'file\',\'' + safeName + '\')">' +
+                        '<i class="bx ' + icon + '" style="font-size:2.5rem;"></i>' +
+                        '<span style="font-size:.72rem;color:#6c757d;font-weight:500;text-align:center;padding:0 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:90%;">' + safeName + '</span>' +
+                        '</div>' +
+                        '<div class="text-muted mt-1 d-flex align-items-center gap-1" style="font-size:.72rem;">' +
+                        '<i class="bx bx-file-blank"></i>' +
+                        '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + safeName + '">' + safeName + '</span></div>' +
+                        '</div>';
+                }
+            });
+            html += '</div>';
+            $('#invPayAttachGallery').html(html);
+        },
+        error: function () {
+            AjaxLoading = 1;
+            $('#invPayAttachGallery').html('<div class="text-center py-4 text-danger">Failed to load attachments.</div>');
+        }
+    });
+});
+
+var _attachPreviewOpener = null;
+
+function _openAttachPreview(encUrl, type, name) {
+    var url      = decodeURIComponent(encUrl);
+    var safeName = $('<span>').text(name).html();
+    $('#attachPreviewTitle').text(name || 'Preview');
+    var body = '';
+    if (type === 'img') {
+        body = '<div class="d-flex align-items-center justify-content-center" style="height:100%;padding:16px;">' +
+               '<img src="' + $('<span>').text(url).html() + '" class="img-fluid rounded" style="max-height:calc(92vh - 48px);object-fit:contain;" alt="' + safeName + '"></div>';
+    } else if (type === 'pdf') {
+        body = '<iframe src="' + $('<span>').text(url).html() + '" style="width:100%;height:calc(92vh - 48px);border:none;display:block;"></iframe>';
+    } else {
+        body = '<div class="d-flex flex-column align-items-center justify-content-center" style="height:calc(92vh - 48px);">' +
+               '<i class="bx bx-file-blank text-secondary" style="font-size:4rem;margin-bottom:12px;"></i>' +
+               '<div style="font-size:.9rem;font-weight:600;color:#fff;margin-bottom:16px;">' + safeName + '</div>' +
+               '<a href="' + $('<span>').text(url).html() + '" download="' + safeName + '" class="btn btn-primary px-4"><i class="bx bx-download me-2"></i>Download File</a>' +
+               '</div>';
+    }
+    $('#attachPreviewBody').html(body);
+
+    var payAttachEl  = document.getElementById('invPayAttachModal');
+    var previewEl    = document.getElementById('attachPreviewModal');
+    var previewModal = bootstrap.Modal.getOrCreateInstance(previewEl);
+
+    // If invPayAttachModal is currently open, hide it first then show preview
+    if (payAttachEl && payAttachEl.classList.contains('show')) {
+        _attachPreviewOpener = 'invPayAttach';
+        $(payAttachEl).one('hidden.bs.modal', function () {
+            previewModal.show();
+        });
+        bootstrap.Modal.getInstance(payAttachEl).hide();
+    } else {
+        previewModal.show();
+    }
+}
+
+// Reopen invPayAttachModal when the preview is closed (if that's where it came from)
+$(document).on('hidden.bs.modal', '#attachPreviewModal', function () {
+    if (_attachPreviewOpener === 'invPayAttach') {
+        _attachPreviewOpener = null;
+        var payAttachEl = document.getElementById('invPayAttachModal');
+        if (payAttachEl) bootstrap.Modal.getOrCreateInstance(payAttachEl).show();
+    }
+});
+
 
 </script>
 
@@ -629,6 +911,54 @@ $(document).on('click', '.invAttachBtn', function () {
                 <div style="padding:16px 20px;" id="invAttachGallery">
                     <div class="text-center py-4"><span class="spinner-border spinner-border-sm text-primary"></span></div>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+<!-- ── Payment Attachment Viewer Modal ────────────────────────────── -->
+<div class="modal fade" id="invPayAttachModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content" style="overflow:hidden;">
+            <button type="button" class="btn-close position-absolute" data-bs-dismiss="modal"
+                style="top:14px;right:16px;z-index:10;background-color:rgba(255,255,255,.85);border-radius:50%;padding:6px;box-shadow:0 1px 4px rgba(0,0,0,.15);"
+                aria-label="Close"></button>
+            <div class="modal-body p-0">
+                <div style="background:#e8f0fe;border-left:4px solid #0d6efd;padding:14px 20px;">
+                    <div class="d-flex align-items-center gap-3">
+                        <div style="background:#0d6efd22;border-radius:10px;padding:9px 11px;">
+                            <i class="bx bx-paperclip" style="font-size:1.7rem;color:#0d6efd;display:block;"></i>
+                        </div>
+                        <div>
+                            <div style="font-size:1rem;font-weight:800;color:#0d6efd;" id="invPayAttachModalTitle">Payment Attachments</div>
+                            <div style="font-size:.77rem;color:#6c757d;margin-top:3px;">Click any file to preview</div>
+                        </div>
+                    </div>
+                </div>
+                <div style="padding:16px 20px;" id="invPayAttachGallery">
+                    <div class="text-center py-4"><span class="spinner-border spinner-border-sm text-primary"></span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Attachment Preview Modal ──────────────────────────────────── -->
+<div class="modal fade" id="attachPreviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header py-2 px-3">
+                <h6 class="modal-title d-flex align-items-center gap-2 mb-0" style="font-size:.88rem;font-weight:700;max-width:90%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                    <i class="bx bx-file text-primary"></i>
+                    <span id="attachPreviewTitle">Preview</span>
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0" id="attachPreviewBody" style="min-height:200px;background:#1a1a2e;">
+                <div class="text-center py-5"><span class="spinner-border text-light"></span></div>
             </div>
         </div>
     </div>

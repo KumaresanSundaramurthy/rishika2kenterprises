@@ -81,21 +81,31 @@
     line-height: 1;
 }
 
-/* Vendor search: hide redundant select2 arrow, truncate text, position clear button */
-.vendor-search-group .select2-container--default .select2-selection--single {
+/* Vendor/Customer search: hide redundant select2 arrow, truncate text, position clear button */
+.vendor-search-group .select2-container,
+.customer-search-group .select2-container {
+    flex: 1 1 auto;
+    width: 1% !important;
+    min-width: 0;
+}
+.vendor-search-group .select2-container--default .select2-selection--single,
+.customer-search-group .select2-container--default .select2-selection--single {
     position: relative;
 }
-.vendor-search-group .select2-container--default .select2-selection--single .select2-selection__arrow {
+.vendor-search-group .select2-container--default .select2-selection--single .select2-selection__arrow,
+.customer-search-group .select2-container--default .select2-selection--single .select2-selection__arrow {
     display: none;
 }
-.vendor-search-group .select2-container--default .select2-selection--single .select2-selection__rendered {
+.vendor-search-group .select2-container--default .select2-selection--single .select2-selection__rendered,
+.customer-search-group .select2-container--default .select2-selection--single .select2-selection__rendered {
     display: block !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
     white-space: nowrap !important;
     padding-right: 26px !important;
 }
-.vendor-search-group .select2-container--default .select2-selection--single .select2-selection__clear {
+.vendor-search-group .select2-container--default .select2-selection--single .select2-selection__clear,
+.customer-search-group .select2-container--default .select2-selection--single .select2-selection__clear {
     float: none !important;
     position: absolute;
     right: 8px;
@@ -270,6 +280,8 @@ tr:hover .inv-row-action {
     opacity: 1;
     pointer-events: auto;
 }
+/* Prevent tooltip overlay from stealing tr:hover, which caused action icons to flicker */
+.tooltip { pointer-events: none; }
 
 /* ── Transaction form header utilities ─────────────────────────── */
 .trans-doc-icon {
@@ -399,7 +411,23 @@ tr:hover .inv-row-action {
 
 /* ── Shared Record Payment Modal ────────────────────────────────── */
 .rp-modal-content {
+    display: flex;
+    flex-direction: column;
+    max-height: 90vh;
     overflow: hidden;
+}
+.rp-modal-content .modal-body {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+    min-height: 0;
+    padding: 0;
+}
+.rp-scroll-body {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
 }
 .rp-close-btn {
     position: absolute;
@@ -414,6 +442,7 @@ tr:hover .inv-row-action {
 .rp-banner {
     border-left: 4px solid;
     padding: 14px 20px;
+    flex-shrink: 0;
 }
 .rp-banner-icon {
     border-radius: 10px;
@@ -510,6 +539,7 @@ tr:hover .inv-row-action {
     padding: .75rem 1.5rem;
     border-top: 1px solid #dee2e6;
     background: #f8f9fa;
+    flex-shrink: 0;
 }
 
 /* ── Payment Details floating panel ────────────────────────────── */

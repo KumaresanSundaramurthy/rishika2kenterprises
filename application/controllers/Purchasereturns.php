@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Purchasereturns extends CI_Controller {
 
@@ -372,9 +372,62 @@ class Purchasereturns extends CI_Controller {
                 );
                 if ($updateResp->Error) throw new Exception($updateResp->Message);
                 $this->dbwrite_model->updateData('Transaction', 'TransDetailTbl', $commonDetail, ['FinancialYear' => $financialYear, 'TransUID' => $transUID]);
-                $this->dbwrite_model->updateData('Transaction', 'TransProductsTbl', ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID], ['TransUID' => $transUID, 'IsDeleted' => 0]);
-                $seqOffset = $this->transactions_model->getMaxItemSequence($transUID);
-                $this->saveTransactionItems($transUID, $financialYear, $orgUID, $userUID, $items, $seqOffset);
+                                // Smart item diff: only soft-delete removed items, update existing, insert new
+                $existingItems = $this->transactions_model->getTransactionItems($transUID, $orgUID);
+                $existingByProduct = [];
+                foreach ($existingItems as $ei) { $existingByProduct[(int)$ei->ProductUID] = $ei; }
+                $submittedProductUIDs = [];
+                foreach ($items as $item) { $pid = isset($item['id']) ? (int)$item['id'] : 0; if ($pid > 0) $submittedProductUIDs[] = $pid; }
+                $removedProductUIDs = array_diff(array_keys($existingByProduct), $submittedProductUIDs);
+                if (!empty($removedProductUIDs)) {
+                    $this->dbwrite_model->softDeleteTransactionItemsByProductUIDs($transUID, array_values($removedProductUIDs), $userUID);
+                }
+                $newRows = [];
+                foreach ($items as $seq => $item) {
+                    $productUID = isset($item['id']) ? (int)$item['id'] : 0;
+                    $qty        = isset($item['quantity']) ? (float)$item['quantity'] : 0;
+                    $unitPrice  = isset($item['unitPrice']) ? (float)$item['unitPrice'] : 0;
+                    if ($productUID <= 0 || $qty <= 0) continue;
+                    $rowData = [
+                        'ItemSequence'    => $seq + 1,
+                        'ProductName'     => substr(strip_tags($item['itemName'] ?? ''), 0, 100),
+                        'PartNumber'      => isset($item['partNumber'])     ? substr($item['partNumber'], 0, 50)  : NULL,
+                        'CategoryUID'     => isset($item['categoryUID'])    ? (int)$item['categoryUID']           : NULL,
+                        'StorageUID'      => isset($item['storageUID'])     ? (int)$item['storageUID']             : NULL,
+                        'Quantity'        => $qty,
+                        'PrimaryUnitName' => isset($item['primaryUnit'])    ? substr($item['primaryUnit'], 0, 20)  : NULL,
+                        'TaxDetailsUID'   => isset($item['taxDetailsUID'])  ? (int)$item['taxDetailsUID']          : 1,
+                        'TaxPercentage'   => (float)($item['taxPercent']    ?? 0),
+                        'CGST'            => (float)($item['cgstPercent']   ?? 0),
+                        'SGST'            => (float)($item['sgstPercent']   ?? 0),
+                        'IGST'            => (float)($item['igstPercent']   ?? 0),
+                        'DiscountTypeUID' => isset($item['discountTypeUID']) ? (int)$item['discountTypeUID'] : NULL,
+                        'Discount'        => (float)($item['discount']        ?? 0),
+                        'UnitPrice'       => $unitPrice,
+                        'SellingPrice'    => (float)($item['sellingPrice']    ?? $unitPrice),
+                        'TaxableAmount'   => (float)($item['line_total']      ?? 0),
+                        'CgstAmount'      => (float)($item['cgstAmount']      ?? 0),
+                        'SgstAmount'      => (float)($item['sgstAmount']      ?? 0),
+                        'IgstAmount'      => (float)($item['igstAmount']      ?? 0),
+                        'TaxAmount'       => (float)($item['taxAmount']       ?? 0),
+                        'DiscountAmount'  => (float)($item['discount_amount']  ?? 0),
+                        'NetAmount'       => (float)($item['net_total']        ?? 0),
+                        'UpdatedBy'       => $userUID,
+                    ];
+                    if (isset($existingByProduct[$productUID])) {
+                        $this->dbwrite_model->updateTransProductItem($transUID, $productUID, $rowData);
+                    } else {
+                        $newRows[] = array_merge($rowData, [
+                            'OrgUID' => $orgUID, 'FinancialYear' => $financialYear,
+                            'TransUID' => $transUID, 'ProductUID' => $productUID,
+                            'QuantityConverted' => 0, 'IsActive' => 1, 'IsDeleted' => 0, 'CreatedBy' => $userUID,
+                        ]);
+                    }
+                }
+                if (!empty($newRows)) {
+                    $batchResp = $this->dbwrite_model->insertBatchInTransaction('Transaction', 'TransProductsTbl', $newRows);
+                    if ($batchResp->Error) throw new Exception($batchResp->Message);
+                }
                 if (!$isDraft) {
                     $this->dbwrite_model->saveStockMovements($transUID, $this->pageModuleUID, $orgUID, $userUID, $items);
                 }

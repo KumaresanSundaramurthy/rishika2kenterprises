@@ -217,16 +217,14 @@ if (!empty($DispatchAddress)) {
                                     <?php endif; ?>
                                 </div>
                                 <div class="col-md-6 border-end pe-3">
-                                    <div class="d-flex flex-wrap align-items-center gap-2">
-                                        <div class="d-flex align-items-center gap-2">
-                                            <label for="customerSearch" class="form-label small fw-semibold">Select Customer <span class="text-danger">*</span></label>
-                                            <?php if (!$isEdit): ?>
-                                            <button type="button" id="addTransCustomer" class="btn btn-sm btn-outline-primary mt-1" aria-label="Add new customer"><i class="bx bx-plus-circle me-1"></i> Customer</button>
-                                            <?php endif; ?>
-                                        </div>
-                                        <div class="flex-grow-1">
-                                            <select id="customerSearch" name="customerSearch" class="form-select form-select-sm"></select>
-                                        </div>
+                                    <div class="d-flex align-items-center gap-2 mb-1">
+                                        <label for="customerSearch" class="trans-field-label mb-0">Select Customer <span class="text-danger">*</span></label>
+                                        <?php if (!$isEdit): ?>
+                                        <button type="button" id="addTransCustomer" class="trans-add-btn btn btn-outline-primary btn-sm" aria-label="Add new customer" style="white-space:nowrap;"><i class="bx bx-plus-circle me-1"></i>Add Customer</button>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <select id="customerSearch" name="customerSearch" class="form-select form-select-sm"></select>
                                     </div>
                                     <div id="customerAddressBox" class="mt-2 p-2 border border-secondary trans-border-dotted rounded small d-none"></div>
                                 </div>

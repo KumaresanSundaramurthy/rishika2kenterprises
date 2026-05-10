@@ -32,10 +32,10 @@ $currSymbol       = $JwtData->GenSettings->CurrenySymbol ?? '₹';
         <table class="table table-sm mb-0" id="paymentRowsTable" style="background:transparent;">
             <thead>
                 <tr style="background:#dff0e2; border-bottom:1px solid #b8d4ba;">
-                    <th class="fw-semibold small text-secondary ps-3" style="width:38%;">Notes</th>
+                    <th class="fw-semibold small text-secondary ps-3" style="width:50%;">Notes</th>
                     <th class="fw-semibold small text-secondary" style="width:20%;">Amount</th>
-                    <th class="fw-semibold small text-secondary" style="width:34%;">Payment Mode</th>
-                    <th style="width:8%;"></th>
+                    <th class="fw-semibold small text-secondary" style="width:30%;">Payment Mode</th>
+                    <th style="width:0%;"></th>
                 </tr>
             </thead>
             <tbody id="paymentRowsBody">
@@ -77,6 +77,10 @@ $currSymbol       = $JwtData->GenSettings->CurrenySymbol ?? '₹';
 #paymentRowsTable td, #paymentRowsTable th { border: none; vertical-align: top; padding: 8px 8px; }
 #paymentRowsTable td { vertical-align: middle; }
 #paymentRowsTable tr + tr td { border-top: 1px solid #cfe5d0; }
+#paymentRowsTable td:nth-child(1) { width: 50%; }
+#paymentRowsTable td:nth-child(2) { width: 20%; }
+#paymentRowsTable td:nth-child(3) { width: 30%; }
+#paymentRowsTable td:nth-child(4) { width: 0%; }
 
 .pay-notes-inp {
     background: #fff;
@@ -124,8 +128,12 @@ $currSymbol       = $JwtData->GenSettings->CurrenySymbol ?? '₹';
     box-shadow: none;
     padding: 6px 8px;
     width: 100%;
+    max-width: 100%;
     cursor: pointer;
     color: #333;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 .pay-type-sel:focus {
     background: #fff;

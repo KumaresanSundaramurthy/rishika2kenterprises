@@ -2268,7 +2268,7 @@ function searchCustomers(key) {
 
     if (!$el.closest('.customer-search-group').length) {
         $el.wrap('<div class="input-group input-group-sm input-group-merge customer-search-group" id="' + wrapId + '"></div>');
-        $('<span class="input-group-text p-2"><i class="icon-base bx bx-search"></i></span>').insertBefore($el);
+        $('<span class="input-group-text p-2 cursor-pointer" id="openCustomerSearchModal"><i class="icon-base bx bx-search"></i></span>').insertBefore($el);
     }
 
     $el.select2({

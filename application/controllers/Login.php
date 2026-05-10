@@ -32,7 +32,7 @@ class Login extends CI_Controller {
             if(empty($ErrorInForm)) {
 
                 $this->load->model('user_model');
-                $UserData = $this->user_model->getUserByUserInfo(array('User.UserName' => $PostData['UserName']));
+                $UserData = $this->user_model->getUserByEmailOrUsername($PostData['UserName']);
 
                 if($UserData->Error === FALSE && count($UserData->Data) > 0 && sizeof($UserData->Data) == 1) {
 
@@ -43,6 +43,27 @@ class Login extends CI_Controller {
 
                     $UserPassword = base64_decode($UserData->Data[0]->UserPassword);
                     if($PostData['UserPassword'] === $UserPassword) {
+
+                        // Check subscription status
+                        $this->load->library('subscription');
+                        $subscriptionCheck = $this->subscription->checkSubscription($UserData->Data[0]->UserUID);
+                        
+                        // Log login attempt with subscription status
+                        $this->subscription->logLoginAttempt(
+                            $UserData->Data[0]->UserUID,
+                            $PostData['UserName'],
+                            $subscriptionCheck->isValid ? 'Success' : 'Blocked_Expired',
+                            $subscriptionCheck->status,
+                            $subscriptionCheck->isValid ? null : $subscriptionCheck->message
+                        );
+
+                        // Block login if subscription is invalid
+                        if (!$subscriptionCheck->isValid) {
+                            $this->session->set_flashdata('subscription_expired', true);
+                            $this->session->set_flashdata('subscription_message', $subscriptionCheck->message);
+                            $this->session->set_flashdata('subscription_status', $subscriptionCheck->status);
+                            throw new Exception($subscriptionCheck->message);
+                        }
 
                         $this->load->model('login_model');
                         $jwtPayload = $this->login_model->formatJWTPayload($UserData->Data[0]);

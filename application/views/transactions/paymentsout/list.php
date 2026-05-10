@@ -127,6 +127,11 @@ function poutModeBadge($name, $modeColors) {
                 </div>
                 <div>
                     <div style="font-size:.82rem;font-weight:600;"><?php echo htmlspecialchars($row->PartyName ?? '—'); ?></div>
+                    <?php if (!empty($row->PartyArea)): ?>
+                    <div style="font-size:.7rem;color:#888;margin-top:1px;">
+                        <i class="bx bx-map" style="font-size:.72rem;"></i> <?php echo htmlspecialchars($row->PartyArea); ?>
+                    </div>
+                    <?php endif; ?>
                     <?php if ($fullMobile): ?>
                         <span class="copy-mobile cursor-pointer" data-mobile="<?php echo htmlspecialchars($fullMobile); ?>"
                               style="font-size:.72rem;color:#666;"><?php echo htmlspecialchars($fullMobile); ?></span>

@@ -44,6 +44,67 @@ if (!empty($DataLists)):
             $payBadge  = '<span class="badge bg-label-info" style="font-size:.68rem;">Partially Paid</span>';
         }
 
+        // Build WhatsApp message from template
+        $waTemplate = !empty($WhatsAppTemplate) && is_object($WhatsAppTemplate) ? $WhatsAppTemplate->Body : (!empty($WhatsAppTemplate) && is_string($WhatsAppTemplate) ? $WhatsAppTemplate : null);
+
+        $orgName     = $JwtData->User->OrgName   ?? 'Our Company';
+        $orgMobile   = $JwtData->User->OrgMobile ?? '';
+        $partyName   = $list->PartyName   ?? 'Customer';
+        $invoiceNum  = $list->UniqueNumber ?? 'Draft';
+        $invoiceLink = (getenv('APP_URL') ?: 'http://localhost:8080') . '/invoice/' . ($list->TransToken ?? '');
+        $numericAmt  = smartDecimal($netAmt, $decimals, true);
+        $billAmount  = $currency . ' ' . $numericAmt;
+        $pendingFmt  = $currency . ' ' . smartDecimal($pendingAmt, $decimals, true);
+        $transDate   = !empty($list->TransDate) ? date('d M Y', strtotime($list->TransDate)) : '';
+
+        if (!empty($waTemplate)) {
+            // Templates use {{TOKEN}} double-brace format (matches the settings preview tokens).
+            // str_replace handles all tokens in one pass — no positional guessing, no regex issues.
+            $waMessage = str_replace(
+                [
+                    '{{PARTY_NAME}}',    '{{CUSTOMER_NAME}}',
+                    '{{DOC_NUMBER}}',    '{{INVOICE_NUMBER}}',
+                    '{{BILL_AMOUNT}}',   '{{AMOUNT}}',
+                    '{{BALANCE_AMOUNT}}','{{PENDING_AMOUNT}}',
+                    '{{CURRENCY}}',
+                    '{{PAYMENT_STATUS}}',
+                    '{{DOC_DATE}}',      '{{INVOICE_DATE}}',
+                    '{{DOC_TYPE}}',
+                    '{{RECEIPT_LINK}}',  '{{INVOICE_LINK}}',
+                    '{{ORG_NAME}}',
+                    '{{ORG_PHONE}}',     '{{ORG_MOBILE}}',
+                ],
+                [
+                    $partyName,   $partyName,
+                    $invoiceNum,  $invoiceNum,
+                    $billAmount,  $numericAmt,   // {{BILL_AMOUNT}} includes ₹, {{AMOUNT}} is number-only
+                    $pendingFmt,  $numericAmt,
+                    $currency,
+                    $payStatus,
+                    $transDate,   $transDate,
+                    'Invoice',
+                    $invoiceLink, $invoiceLink,
+                    $orgName,
+                    $orgMobile,   $orgMobile,
+                ],
+                $waTemplate
+            );
+        } else {
+            $waMessage  = "Hello *{$partyName}*,\n\n";
+            $waMessage .= "Thanks for your business!\n\n";
+            $waMessage .= "Invoice: *{$invoiceNum}*\n";
+            $waMessage .= "Bill Amount: *{$billAmount}*\n";
+            $waMessage .= "Payment Status: *{$payStatus}*\n";
+            if (!$isDraft) {
+                $waMessage .= "Link: {$invoiceLink}\n";
+            }
+            $waMessage .= "\nThanks\n*{$orgName}*";
+            if ($orgMobile) {
+                $waMessage .= "\n{$orgMobile}";
+            }
+        }
+        $waMessageEncoded = rawurlencode($waMessage);
+
         $showPending = !$isDraft && $pendingAmt > 0 && !in_array($status, ['Paid', 'Cancelled', 'Rejected']);
         $hasAttach   = !empty($list->AttachmentCount) && (int)$list->AttachmentCount > 0;
 ?>
@@ -185,6 +246,11 @@ if (!empty($DataLists)):
                 <?php partyAvatar($list->PartyName, $list->PartyImage ?? null, $cdnUrl); ?>
                 <div>
                     <div class="trans-party-name"><?php echo htmlspecialchars($list->PartyName ?? '—'); ?></div>
+                    <?php if (!empty($list->PartyArea)): ?>
+                    <div style="font-size:.7rem;color:#888;margin-top:1px;">
+                        <i class="bx bx-map" style="font-size:.72rem;"></i> <?php echo htmlspecialchars($list->PartyArea); ?>
+                    </div>
+                    <?php endif; ?>
                     <?php if ($hasMobile): ?>
                     <div class="trans-party-mobile" style="font-size:.72rem;color:#666;margin-top:1px;">
                         <?php echo ($countryCode ? htmlspecialchars($countryCode) . ' ' : '') . htmlspecialchars($mobileNum); ?>
@@ -196,30 +262,39 @@ if (!empty($DataLists)):
             <div class="inv-contact-icons">
                 <?php if ($hasMobile): ?>
                 <a href="javascript:void(0)" class="wa inv-wa-link"
-                   data-wa-url="https://wa.me/<?php echo $waNum; ?>?text=Hi"
+                   data-wa-url="https://wa.me/<?php echo $waNum; ?>?text=<?php echo $waMessageEncoded; ?>"
+                   data-bs-toggle="tooltip"
+                   data-bs-trigger="hover"
                    title="WhatsApp">
                     <i class="bx bxl-whatsapp"></i>
                 </a>
-                <button class="comm-send-single sms" title="Send SMS"
+                <button class="comm-send-single sms"
                     data-commtype="SMS"
                     data-recipienttype="Customer"
                     data-uid="<?php echo (int)$list->PartyUID; ?>"
                     data-name="<?php echo htmlspecialchars($list->PartyName ?? ''); ?>"
                     data-mobile="<?php echo htmlspecialchars($mobileNum); ?>"
                     data-email="<?php echo htmlspecialchars($partyEmail); ?>"
-                    data-module-uid="<?php echo $invModuleUID; ?>">
+                    data-module-uid="<?php echo $invModuleUID; ?>"
+                    data-bs-toggle="tooltip"
+                    data-bs-trigger="hover"
+                    title="Send SMS">
                     <i class="bx bx-message-dots"></i>
                 </button>
                 <?php endif; ?>
                 <?php if ($hasEmail): ?>
-                <button class="comm-send-single em" title="Send Email"
+                <button class="comm-send-single em"
                     data-commtype="Email"
                     data-recipienttype="Customer"
                     data-uid="<?php echo (int)$list->PartyUID; ?>"
+                    data-trans-uid="<?php echo (int)$list->TransUID; ?>"
                     data-name="<?php echo htmlspecialchars($list->PartyName ?? ''); ?>"
                     data-mobile="<?php echo htmlspecialchars($mobileNum); ?>"
                     data-email="<?php echo htmlspecialchars($partyEmail); ?>"
-                    data-module-uid="<?php echo $invModuleUID; ?>">
+                    data-module-uid="<?php echo $invModuleUID; ?>"
+                    data-bs-toggle="tooltip"
+                    data-bs-trigger="hover"
+                    title="Send Email">
                     <i class="bx bx-envelope"></i>
                 </button>
                 <?php endif; ?>
@@ -321,7 +396,7 @@ if (!empty($DataLists)):
                         <li>
                             <a class="dropdown-item inv-wa-link"
                                href="javascript:void(0)"
-                               data-wa-url="https://wa.me/<?php echo $waNum; ?>?text=Hi"
+                               data-wa-url="https://wa.me/<?php echo $waNum; ?>?text=<?php echo $waMessageEncoded; ?>"
                                style="color:#25d366;">
                                 <i class="bx bxl-whatsapp me-2"></i>Share via WhatsApp
                             </a>
@@ -346,6 +421,7 @@ if (!empty($DataLists)):
                                     data-commtype="Email"
                                     data-recipienttype="Customer"
                                     data-uid="<?php echo (int)$list->PartyUID; ?>"
+                                    data-trans-uid="<?php echo (int)$list->TransUID; ?>"
                                     data-name="<?php echo htmlspecialchars($list->PartyName ?? ''); ?>"
                                     data-mobile="<?php echo htmlspecialchars($mobileNum); ?>"
                                     data-email="<?php echo htmlspecialchars($partyEmail); ?>"

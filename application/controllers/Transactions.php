@@ -492,14 +492,13 @@ class Transactions extends CI_Controller {
             $header = $this->transactions_model->getTransactionById($transUID, $orgUID, $moduleUID);
             if (!$header) throw new Exception('Transaction not found.');
 
-            $items = $this->transactions_model->getTransactionItems($transUID, $orgUID);
-
             $this->load->model('organisation_model');
             $orgInfo          = $this->organisation_model->getOrgForReceipt($orgUID);
             $printThemeResult = $this->organisation_model->getPrintThemeByType($orgUID, $header->TransType);
             $printBankAccount = $this->transactions_model->getPrintBankAccount($orgUID);
 
-            $html = $this->transactions_model->_renderA4Html($moduleUID, $header, $items, $orgInfo->Data ?? null, $printThemeResult->Data ?? null, $printBankAccount);
+            $items = $this->transactions_model->getTransactionItems($transUID, $orgUID);
+            $html  = $this->transactions_model->_renderA4Html($moduleUID, $header, $items, $orgInfo->Data ?? null, $printThemeResult->Data ?? null, $printBankAccount);
 
             // ── PDF-specific HTML adjustments ────────────────────────
             $paperSize  = strtoupper(trim($this->input->get_post('PaperSize') ?: 'A4'));

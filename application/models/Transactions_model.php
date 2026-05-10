@@ -28,6 +28,7 @@ class Transactions_model extends CI_Model {
                 'Ts.DocStatus AS Status',
                 'Ts.NetAmount AS NetAmount',
                 'COALESCE(Cust.Name, Vend.Name) AS PartyName',
+                'COALESCE(Cust.Area, Vend.Area) AS PartyArea',
                 'COALESCE(Cust.MobileNumber, Vend.MobileNumber) AS MobileNumber',
                 'COALESCE(Cust.CountryCode, Vend.CountryCode) AS CountryCode',
                 'COALESCE(Cust.EmailAddress, Vend.EmailAddress) AS EmailAddress',
@@ -199,6 +200,7 @@ class Transactions_model extends CI_Model {
         $this->ReadDb->select([
             'Ts.*',
             'COALESCE(Cust.Name, Vend.Name) AS PartyName',
+            'COALESCE(Cust.Area, Vend.Area) AS PartyArea',
             'COALESCE(Cust.CountryCode, Vend.CountryCode) AS PartyCountryCode',
             'COALESCE(Cust.MobileNumber, Vend.MobileNumber) AS PartyMobile',
             'COALESCE(Cust.GSTIN, Vend.GSTIN) AS PartyGSTIN',
@@ -225,6 +227,7 @@ class Transactions_model extends CI_Model {
         $this->ReadDb->select([
             'Ts.*',
             'COALESCE(Cust.Name, Vend.Name) AS PartyName',
+            'COALESCE(Cust.Area, Vend.Area) AS PartyArea',
             'COALESCE(Cust.CountryCode, Vend.CountryCode) AS PartyCountryCode',
             'COALESCE(Cust.MobileNumber, Vend.MobileNumber) AS PartyMobile',
             'COALESCE(Cust.GSTIN, Vend.GSTIN) AS PartyGSTIN',
@@ -945,6 +948,7 @@ class Transactions_model extends CI_Model {
                 'T.TransDate',
                 'T.NetAmount AS BillAmount',
                 "CASE WHEN P.PartyType = 'C' THEN C.Name ELSE V.Name END AS PartyName",
+                "CASE WHEN P.PartyType = 'C' THEN C.Area ELSE V.Area END AS PartyArea",
                 "CASE WHEN P.PartyType = 'C' THEN C.MobileNumber ELSE V.MobileNumber END AS PartyMobile",
                 "CASE WHEN P.PartyType = 'C' THEN C.CountryCode ELSE V.CountryCode END AS PartyCountryCode",
                 "CASE WHEN P.PartyType = 'C' THEN C.EmailAddress ELSE V.EmailAddress END AS PartyEmail",
@@ -1780,6 +1784,102 @@ class Transactions_model extends CI_Model {
         return $dompdf->output();
     }
 
+    // ── Invoice PDF generation (used by getInvoicePdfBase64 for email attachment) ─
+    public function generateInvoicePdfBytes($transUID, $orgUID, $paperSize = 'A4') {
+
+        $paperSize = strtoupper(trim($paperSize));
+        $moduleUID = 103; // Sales Invoice
+
+        $header = $this->getTransactionById($transUID, $orgUID, $moduleUID);
+        if (!$header) return null;
+
+        $items = $this->getTransactionItems($transUID, $orgUID);
+
+        $this->load->model('organisation_model');
+        $orgInfo          = $this->organisation_model->getOrgForReceipt($orgUID);
+        $printThemeResult = $this->organisation_model->getPrintThemeByType($orgUID, $header->TransType);
+        $printBankAccount = $this->getPrintBankAccount($orgUID);
+
+        $html = $this->_renderA4Html($moduleUID, $header, $items, $orgInfo->Data ?? null, $printThemeResult->Data ?? null, $printBankAccount);
+
+        // Apply same CSS fixes as Transactions::downloadA4Pdf
+        $html = preg_replace('/<link[^>]*fonts\.googleapis\.com[^>]*>/i', '', $html);
+        $html = str_replace('</head>',
+            '<style>body{padding:0!important;margin:0!important;}.print-content{margin:0!important;}#trans-type-header td{border-left:none!important;border-right:none!important;}</style></head>',
+            $html);
+        $html = $this->_compositeQrForPdf($html);
+        $html = preg_replace('/\bdisplay\s*:\s*flex\s*;?/i',                       'display:block;', $html);
+        $html = preg_replace('/\bflex-direction\s*:[^;"}]+;?/i',                   '', $html);
+        $html = preg_replace('/\bjustify-content\s*:[^;"}]+;?/i',                  '', $html);
+        $html = preg_replace('/\balign-items\s*:[^;"}]+;?/i',                      '', $html);
+        $html = preg_replace('/\bheight\s*:\s*100%\s*;?/i',                        '', $html);
+        $html = preg_replace('/\bposition\s*:\s*(absolute|relative|fixed)\s*;?/i', '', $html);
+        $html = preg_replace('/\btransform\s*:[^;"}]+;?/i',                        '', $html);
+        $html = preg_replace('/\btop\s*:\s*[^;"}]+;?/i',                           '', $html);
+        $html = preg_replace('/\bleft\s*:\s*[^;"}]+;?/i',                          '', $html);
+        $html = preg_replace('/@page\s*\{[^}]*\}/', "@page{size:{$paperSize};margin:10mm 5mm;}", $html);
+
+        require_once FCPATH . 'vendor/autoload.php';
+        $options = new \Dompdf\Options();
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isRemoteEnabled', true);
+        $options->set('defaultFont', 'Arial');
+        $options->set('chroot', FCPATH);
+
+        $dompdf = new \Dompdf\Dompdf($options);
+        $dompdf->loadHtml($html, 'UTF-8');
+        $dompdf->setPaper(strtolower($paperSize), 'portrait');
+        $dompdf->render();
+
+        return $dompdf->output();
+    }
+
+    // Composites the QR code + logo overlay into a single base64 PNG so dompdf
+    // can render it without position:absolute support.
+    private function _compositeQrForPdf(string $html): string {
+        $pattern = '/<div[^>]*>\s*<img[^>]+src="(https:\/\/api\.qrserver\.com[^"]+)"[^>]*>\s*<div[^>]*class="qr-logo-overlay"[^>]*>\s*<img[^>]+src="([^"]+)"[^>]*>\s*<\/div>\s*<\/div>/is';
+
+        return preg_replace_callback($pattern, function ($m) {
+            $qrUrl   = $m[1];
+            $logoUrl = $m[2];
+
+            $qrData = @file_get_contents($qrUrl);
+            if (!$qrData) return '<img src="' . htmlspecialchars($qrUrl) . '" width="150" height="150">';
+
+            $qrImg = @imagecreatefromstring($qrData);
+            if (!$qrImg) return '<img src="' . htmlspecialchars($qrUrl) . '" width="150" height="150">';
+
+            $logoData = @file_get_contents($logoUrl);
+            if ($logoData) {
+                $logoImg = @imagecreatefromstring($logoData);
+                if ($logoImg) {
+                    $qrW         = imagesx($qrImg);
+                    $qrH         = imagesy($qrImg);
+                    $logoSize    = (int)($qrW * 0.25);
+                    $logoResized = imagecreatetruecolor($logoSize, $logoSize);
+                    imagefill($logoResized, 0, 0, imagecolorallocate($logoResized, 255, 255, 255));
+                    imagecopyresampled($logoResized, $logoImg, 0, 0, 0, 0, $logoSize, $logoSize, imagesx($logoImg), imagesy($logoImg));
+                    $x       = (int)(($qrW - $logoSize) / 2);
+                    $y       = (int)(($qrH - $logoSize) / 2);
+                    $padding = 4;
+                    $white   = imagecolorallocate($qrImg, 255, 255, 255);
+                    imagefilledrectangle($qrImg, $x - $padding, $y - $padding, $x + $logoSize + $padding, $y + $logoSize + $padding, $white);
+                    imagecopy($qrImg, $logoResized, $x, $y, 0, 0, $logoSize, $logoSize);
+                    imagedestroy($logoResized);
+                    imagedestroy($logoImg);
+                }
+            }
+
+            ob_start();
+            imagepng($qrImg);
+            $pngData = ob_get_clean();
+            imagedestroy($qrImg);
+
+            $b64 = base64_encode($pngData);
+            return '<img src="data:image/png;base64,' . $b64 . '" width="150" height="150">';
+        }, $html);
+    }
+
     private function _applyPaymentPdfCssFixes($html, $paperSize) {
         // Strip Google Fonts — dompdf cannot load WOFF2/web fonts
         $html = preg_replace('/<link[^>]*fonts\.googleapis\.com[^>]*>/i', '', $html);
@@ -1800,6 +1900,25 @@ class Transactions_model extends CI_Model {
         // Page size
         $html = preg_replace('/@page\s*\{[^}]*\}/', "@page{size:{$paperSize};margin:10mm 5mm;}", $html);
         return $html;
+    }
+
+    public function _generateUniqueToken($table, $column) {
+
+        $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        do {
+
+            $token = '';
+            $bytes = random_bytes(10);
+            for ($i = 0; $i < 10; $i++) {
+                $token .= $chars[ord($bytes[$i]) % 62];
+            }
+            $exists = $this->ReadDb
+                ->where($column, $token)
+                ->count_all_results($table);
+
+        } while ($exists > 0);
+        return $token;
+        
     }
 
     public function _generateReceiptToken() {

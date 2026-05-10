@@ -206,6 +206,8 @@ class Customers extends CI_Controller {
             'UpdatedBy'         => $this->pageData['JwtData']->User->UserUID,
         ];
         if ($isCreate) {
+            $this->load->model('transactions_model');
+            $data['CustToken'] = $this->transactions_model->_generateUniqueToken('Customers.CustomerTbl', 'CustToken');
             $data['CreatedBy'] = $this->pageData['JwtData']->User->UserUID;
         }
         return $data;
@@ -774,6 +776,44 @@ class Customers extends CI_Controller {
         }
 
         foreach ($tempFiles as $f) { if (is_file($f)) unlink($f); }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    public function getCustomerSearchList() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $pageNo = (int) $this->input->post('PageNo') ?: 1;
+            $limit  = (int) $this->input->post('RowLimit') ?: 10;
+            $search = trim($this->input->post('Search') ?? '');
+
+            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+            $offset = max(0, ($pageNo - 1) * $limit);
+
+            $filter = [];
+            if (!empty($search)) {
+                $filter['SearchAllData'] = $search;
+            }
+
+            $this->load->model('customers_model');
+            $result = $this->customers_model->getCustomerListPaginated($orgUID, $limit, $offset, $filter);
+
+            $this->EndReturnData->Error      = false;
+            $this->EndReturnData->Customers  = $result->rows ?? [];
+            $this->EndReturnData->Pagination = $this->globalservice->buildPagePaginationHtml(
+                '/customers/getCustomerSearchList',
+                $result->totalCount ?? 0,
+                $pageNo,
+                $limit
+            );
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
         $this->globalservice->sendJsonResponse($this->EndReturnData);
 
     }

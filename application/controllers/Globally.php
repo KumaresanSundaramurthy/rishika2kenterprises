@@ -523,8 +523,49 @@ class Globally extends CI_Controller {
             ];
         }
 
+        // ── Module 103: Sales Invoice ─────────────────────────────────────────
+        if ((int)$moduleUID === 103) {
+            $this->load->model('transactions_model');
+            $invoice = $this->transactions_model->getTransactionById($recordUID, $orgUID, 103);
+            if (!$invoice) return $context;
+
+            $appUrl       = rtrim(getenv('HTTP_HOST_URL') ?: '', '/');
+            $transToken   = trim($invoice->TransToken ?? '');
+            $invoiceDate  = $invoice->TransDate ?? $invoice->CreatedOn ?? '';
+            $dueDate      = $invoice->ValidityDate ?? '';
+            $paidAmount   = (float)($invoice->PaidAmount ?? 0);
+            $netAmount    = (float)($invoice->NetAmount ?? 0);
+            $balanceAmt   = max(0, $netAmount - $paidAmount);
+            
+            $paymentStatus = 'Pending';
+            if ($paidAmount > 0 && $balanceAmt <= 0.01) {
+                $paymentStatus = 'Paid';
+            } elseif ($paidAmount > 0) {
+                $paymentStatus = 'Partially Paid';
+            }
+
+            $context += [
+                'PartyName'      => $invoice->PartyName      ?? '',
+                'DocNumber'      => $invoice->UniqueNumber   ?? '',
+                'DocDate'        => $invoiceDate ? date('d M Y', strtotime($invoiceDate)) : '',
+                'DocType'        => 'Invoice',
+                'Amount'         => $netAmount,
+                'AmountInWords'  => print_number_to_words($netAmount),
+                'ValidUntil'     => $dueDate ? date('d M Y', strtotime($dueDate)) : '',
+                'InvoiceNumber'  => $invoice->UniqueNumber   ?? '',
+                'InvoiceDate'    => $invoiceDate ? date('d M Y', strtotime($invoiceDate)) : '',
+                'DueDate'        => $dueDate ? date('d M Y', strtotime($dueDate)) : '',
+                'PaymentStatus'  => $paymentStatus,
+                'PaidAmount'     => $paidAmount,
+                'BalanceAmount'  => $balanceAmt,
+                'InvoiceLink'    => $transToken ? $appUrl . '/invoice/' . $transToken : '',
+                'SubTotal'       => (float)($invoice->SubTotal ?? 0),
+                'TaxAmount'      => (float)($invoice->TaxAmount ?? 0),
+                'DiscountAmount' => (float)($invoice->DiscountAmount ?? 0),
+            ];
+        }
+
         // ── Add more modules here as needed ───────────────────────────────────
-        // if ((int)$moduleUID === 103) { /* Sales Invoice */ }
 
         return $context;
     }
@@ -611,8 +652,51 @@ class Globally extends CI_Controller {
             $map['{{InvoiceNumber}}']       = $context['DocNumber']          ?? '';
         }
 
+        // ── Module 103: Sales Invoice ───────────────────────────────────────────
+        if ((int)$moduleUID === 103) {
+            $balFmt = isset($context['BalanceAmount'])
+                ? $cur . ' ' . number_format((float)$context['BalanceAmount'], $dec)
+                : '';
+            $paidFmt = isset($context['PaidAmount'])
+                ? $cur . ' ' . number_format((float)$context['PaidAmount'], $dec)
+                : '';
+            $subTotalFmt = isset($context['SubTotal'])
+                ? $cur . ' ' . number_format((float)$context['SubTotal'], $dec)
+                : '';
+            $taxFmt = isset($context['TaxAmount'])
+                ? $cur . ' ' . number_format((float)$context['TaxAmount'], $dec)
+                : '';
+            $discountFmt = isset($context['DiscountAmount'])
+                ? $cur . ' ' . number_format((float)$context['DiscountAmount'], $dec)
+                : '';
+
+            // UPPER_CASE
+            $map['{{INVOICE_NUMBER}}']   = $context['InvoiceNumber']  ?? '';
+            $map['{{INVOICE_DATE}}']     = $context['InvoiceDate']    ?? '';
+            $map['{{DUE_DATE}}']         = $context['DueDate']        ?? '';
+            $map['{{PAYMENT_STATUS}}']   = $context['PaymentStatus']  ?? '';
+            $map['{{PAID_AMOUNT}}']      = $paidFmt;
+            $map['{{BALANCE_AMOUNT}}']   = $balFmt;
+            $map['{{INVOICE_LINK}}']     = $context['InvoiceLink']    ?? '';
+            $map['{{SUB_TOTAL}}']        = $subTotalFmt;
+            $map['{{TAX_AMOUNT}}']       = $taxFmt;
+            $map['{{DISCOUNT_AMOUNT}}']  = $discountFmt;
+            // camelCase aliases
+            $map['{{InvoiceNumber}}']    = $context['InvoiceNumber']  ?? '';
+            $map['{{InvoiceDate}}']      = $context['InvoiceDate']    ?? '';
+            $map['{{DueDate}}']          = $context['DueDate']        ?? '';
+            $map['{{PaymentStatus}}']    = $context['PaymentStatus']  ?? '';
+            $map['{{PaidAmount}}']       = $paidFmt;
+            $map['{{BalanceAmount}}']    = $balFmt;
+            $map['{{InvoiceLink}}']      = $context['InvoiceLink']    ?? '';
+            $map['{{SubTotal}}']         = $subTotalFmt;
+            $map['{{TaxAmount}}']        = $taxFmt;
+            $map['{{DiscountAmount}}']   = $discountFmt;
+            $map['{{CustomerName}}']     = $context['PartyName']      ?? '';
+            $map['{{BillAmount}}']       = $fmtAmt;
+        }
+
         // ── Add more module-specific token blocks here ─────────────────────────
-        // if ((int)$moduleUID === 103) { /* Sales Invoice tokens */ }
 
         return [
             'subject' => str_replace(array_keys($map), array_values($map), $subject),

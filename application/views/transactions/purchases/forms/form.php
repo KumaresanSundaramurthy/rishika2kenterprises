@@ -305,19 +305,13 @@ if (!empty($DispatchAddress)) {
                                 'transHideTerms'        => true,
                                 'transNotesContent'     => $isEdit ? $_userNotes : '',
                                 'transShowDropzone'     => true,
+                                'transPaymentVars'      => !$isEdit ? [
+                                    'PaymentTypes'     => $PaymentTypes ?? [],
+                                    'BankAccounts'     => $BankAccounts ?? [],
+                                    'JwtData'          => $JwtData,
+                                    'paymentPartyType' => 'V',
+                                ] : null,
                             ]); ?>
-
-                        <?php if (!$isEdit): ?>
-                        <?php
-                            $paymentPartyType = 'V';
-                            $this->load->view('transactions/partials/payment_section', [
-                                'PaymentTypes'     => $PaymentTypes ?? [],
-                                'BankAccounts'     => $BankAccounts ?? [],
-                                'JwtData'          => $JwtData,
-                                'paymentPartyType' => $paymentPartyType,
-                            ]);
-                        ?>
-                        <?php endif; ?>
 
                         </div> <!-- /card-body -->
                     </div> <!-- /card -->

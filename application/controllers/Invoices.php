@@ -27,12 +27,21 @@ class Invoices extends CI_Controller {
 
             $orgUID = $this->pageData['JwtData']->User->OrgUID;
 
+            $this->load->model('organisation_model');
+            $WhatsAppTemplate = $this->organisation_model->getMessageTemplate($orgUID, $this->pageModuleUID, 'WhatsApp');
+
             $this->load->model('transactions_model');
             $allData      = $this->transactions_model->getTransactionPageList($limit, 0, $this->pageModuleUID, [], 0);
             $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, []);
             $summaryStats = $this->transactions_model->getTransactionSummaryStats($this->pageModuleUID, $orgUID);
 
-            $this->pageData['ModRowData']      = $this->load->view('transactions/invoices/list', ['DataLists' => $allData, 'SerialNumber' => 0, 'JwtData' => $this->pageData['JwtData']], TRUE);
+            $this->pageData['ModRowData']      = $this->load->view('transactions/invoices/list', 
+                    [
+                        'DataLists' => $allData, 
+                        'SerialNumber' => 0,
+                        'JwtData' => $this->pageData['JwtData'],
+                        'WhatsAppTemplate' => $WhatsAppTemplate->Error === false ? $WhatsAppTemplate->Data : new stdClass(), 
+                    ], TRUE);
             $this->pageData['ModPagination']   = $this->globalservice->buildPagePaginationHtml('/invoices/getInvoicesPageDetails', $allDataCount, 1, $limit);
             $this->pageData['ModAllCount']     = $allDataCount;
             $this->pageData['SummaryStats']    = $summaryStats;
@@ -69,6 +78,7 @@ class Invoices extends CI_Controller {
                 'DataLists'    => $allData,
                 'SerialNumber' => ($pageNo - 1) * $limit,
                 'JwtData'      => $this->pageData['JwtData'],
+                'WhatsAppTemplate' => $this->getWhatsAppTemplate($this->pageData['JwtData']->User->OrgUID),
             ], true);
 
             $this->EndReturnData->Error           = FALSE;
@@ -1686,6 +1696,55 @@ class Invoices extends CI_Controller {
         } catch (Exception $e) {
             redirect('invoices', 'refresh');
         }
+
+    }
+
+    private function getWhatsAppTemplate($orgUID) {
+        $this->load->database('ReadDb', TRUE);
+        $this->ReadDb->select('Body');
+        $this->ReadDb->from('Organisation.MessageTemplatesTbl');
+        $this->ReadDb->where([
+            'OrgUID' => $orgUID,
+            'ModuleUID' => $this->pageModuleUID,
+            'Channel' => 'WhatsApp',
+            'IsActive' => 1,
+            'IsDeleted' => 0
+        ]);
+        $query = $this->ReadDb->get();
+        return ($query && $query->num_rows() > 0) ? $query->row() : null;
+    }
+
+    public function getInvoicePdfBase64() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $transUID  = (int) $this->input->post('TransUID');
+            $paperSize = strtoupper(trim($this->input->post('PaperSize') ?: 'A4'));
+            $orgUID    = $this->pageData['JwtData']->User->OrgUID;
+
+            if ($transUID <= 0) throw new Exception('Invalid invoice.');
+
+            $this->load->model('transactions_model');
+            $invoice = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
+            if (!$invoice) throw new Exception('Invoice not found.');
+
+            $pdfBytes = $this->transactions_model->generateInvoicePdfBytes($transUID, $orgUID, $paperSize);
+            if (!$pdfBytes) throw new Exception('Failed to generate PDF.');
+
+            $filename = preg_replace('/[^A-Za-z0-9_\-]/', '_', $invoice->UniqueNumber ?? ('Invoice_' . $transUID)) . '.pdf';
+
+            $this->EndReturnData->Error    = FALSE;
+            $this->EndReturnData->Base64   = base64_encode($pdfBytes);
+            $this->EndReturnData->Filename = $filename;
+            $this->EndReturnData->Size     = strlen($pdfBytes);
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
 
     }
 

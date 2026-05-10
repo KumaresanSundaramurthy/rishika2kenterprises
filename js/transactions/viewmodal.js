@@ -142,6 +142,12 @@
 
         var contactHtml = _cardLabel('bx-id-card', 'Contact') +
             '<div class="vtm-party-name">' + _esc(h.PartyName || '—') + '</div>';
+        if (h.PartyArea) {
+            contactHtml += '<div class="vtm-party-sub" style="margin-top:2px;">' +
+                '<i class="bx bx-map me-1 text-secondary"></i>' +
+                '<span>' + _esc(h.PartyArea) + '</span>' +
+                '</div>';
+        }
         if (h.PartyMobile) {
             var _phoneDisplay = (h.PartyCountryCode ? _esc(h.PartyCountryCode) + ' ' : '') + _esc(h.PartyMobile);
             var _phoneCopy    = (h.PartyCountryCode || '') + h.PartyMobile;

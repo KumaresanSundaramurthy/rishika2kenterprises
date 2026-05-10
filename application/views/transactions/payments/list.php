@@ -204,6 +204,11 @@ function pmtModeBadge($name, $modeColors) {
                 </div>
                 <div>
                     <div style="font-size:.82rem;font-weight:600;"><?php echo htmlspecialchars($row->PartyName ?? '—'); ?></div>
+                    <?php if (!empty($row->PartyArea)): ?>
+                    <div style="font-size:.7rem;color:#888;margin-top:1px;">
+                        <i class="bx bx-map" style="font-size:.72rem;"></i> <?php echo htmlspecialchars($row->PartyArea); ?>
+                    </div>
+                    <?php endif; ?>
                     <?php if ($fullMobile): ?>
                     <div style="font-size:.72rem;color:#666;margin-top:1px;"><?php echo htmlspecialchars($fullMobile); ?></div>
                     <?php endif; ?>

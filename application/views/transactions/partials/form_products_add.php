@@ -14,8 +14,9 @@ $_notesPh   = isset($transNotesPlaceholder)    ? $transNotesPlaceholder    : 'En
 $_termsPh   = isset($transTermsPlaceholder)    ? $transTermsPlaceholder    : 'Enter your business terms &amp; Condition';
 $_notesVal  = isset($transNotesContent)        ? htmlspecialchars($transNotesContent) : '';
 $_termsVal  = isset($transTermsContent)        ? htmlspecialchars($transTermsContent) : '';
-$_dropzone  = !empty($transShowDropzone);
-$_chargesBd = !empty($transShowChargesBreakdown);
+$_dropzone    = !empty($transShowDropzone);
+$_chargesBd   = !empty($transShowChargesBreakdown);
+$_paymentVars = isset($transPaymentVars) ? $transPaymentVars : null;
 ?>
 <div class="card-header modal-header-center-sticky p-1 mb-3">
     <div class="d-flex align-items-center gap-2">
@@ -183,12 +184,12 @@ $_chargesBd = !empty($transShowChargesBreakdown);
         <div class="accordion transAccordion" id="dropZoneAccordion">
             <div class="accordion-item">
                 <h2 class="accordion-header text-body d-flex justify-content-between">
-                    <button type="button" class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#accordionUploadFiles" aria-controls="accordionUploadFiles" aria-expanded="false">
+                    <button type="button" class="accordion-button" data-bs-toggle="collapse" data-bs-target="#accordionUploadFiles" aria-controls="accordionUploadFiles" aria-expanded="true">
                         <i class="icon-base bx bx-paperclip me-2"></i> Attach Files <span class="ms-2 text-muted">(Max 5, 3 MB each)</span>
                         <span id="existingAttachCount" class="badge bg-label-primary ms-2 d-none" style="font-size:.7rem;"></span>
                     </button>
                 </h2>
-                <div id="accordionUploadFiles" class="accordion-collapse collapse" data-bs-parent="#dropZoneAccordion">
+                <div id="accordionUploadFiles" class="accordion-collapse show" data-bs-parent="#dropZoneAccordion">
                     <div class="accordion-body">
                         <div id="existingAttachList" class="mb-3 d-none">
                             <div class="d-flex align-items-center gap-1 mb-2">
@@ -212,6 +213,7 @@ $_chargesBd = !empty($transShowChargesBreakdown);
     </div>
 
     <div class="col-md-6 p-2 trans-theme" style="align-self:flex-start;">
+        <!-- Summary Information Section -->
         <div class="row">
             <div class="col-md-6 tax-summary-section">
                 <div id="taxBreakupPanel" style="display:none;" class="tax-details-view p-2 bg-light rounded border">
@@ -348,6 +350,17 @@ $_chargesBd = !empty($transShowChargesBreakdown);
                 </div>
             </div>
         </div>
+
+        <!-- Payment Section (Below Summary on Right Side) -->
+        <?php if (!empty($_paymentVars)): ?>
+        <div class="mt-4">
+            <div class="card shadow-sm border-0" style="background: #f8f9fa;">
+                <div class="card-body p-3">
+                    <?php $this->load->view('transactions/partials/payment_section', $_paymentVars); ?>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
     </div>
 
 </div>

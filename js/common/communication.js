@@ -236,7 +236,8 @@ function _fetchCommPdfAttachment(moduleUID, recordUID) {
     // Determine endpoint by module
     var endpoint = null;
     if (moduleUID === 110) { endpoint = '/payments/getPaymentPdfBase64'; }
-    // Add more modules: if (moduleUID === 103) { endpoint = '/sales/getInvoicePdfBase64'; }
+    if (moduleUID === 103) { endpoint = '/invoices/getInvoicePdfBase64'; }
+    // Add more modules as needed
 
     if (!endpoint) return;
 
@@ -250,7 +251,12 @@ function _fetchCommPdfAttachment(moduleUID, recordUID) {
     $.ajax({
         url   : endpoint,
         method: 'POST',
-        data  : { PaymentUID: recordUID, PaperSize: 'A4', [CsrfName]: CsrfToken },
+        data  : { 
+            PaymentUID: moduleUID === 110 ? recordUID : 0,
+            TransUID: moduleUID === 103 ? recordUID : 0,
+            PaperSize: 'A4', 
+            [CsrfName]: CsrfToken 
+        },
         success: function (resp) {
             $('#CommPdfAttachLoader').remove();
             if (resp.Error || !resp.Base64) { _commPdfAutoAttached = false; return; }
@@ -325,7 +331,7 @@ $(document).on('click', '.comm-type-tab', function () {
             _fetchCommTemplate(moduleUID, recordUID);
         }
         setTimeout(_initCommDropzone, 100);
-        if (!_commPdfAutoAttached && moduleUID === 110 && recordUID > 0) {
+        if (!_commPdfAutoAttached && (moduleUID === 110 || moduleUID === 103) && recordUID > 0) {
             _fetchCommPdfAttachment(moduleUID, recordUID);
         }
     }
@@ -365,8 +371,8 @@ $(document).on('click', '.comm-send-single', function () {
     var mobile        = $btn.data('mobile') || '';
     var email         = $btn.data('email')  || '';
     var moduleUID     = parseInt($btn.data('module-uid') || $row.data('trans-module') || 0);
-    // recordUID = PaymentUID from the row — used server-side to fetch live DB data for tokens
-    var recordUID     = parseInt($row.data('uid') || 0);
+    // recordUID = TransUID/PaymentUID from button or row — used server-side to fetch live DB data for tokens
+    var recordUID     = parseInt($btn.data('trans-uid') || $row.data('uid') || 0);
 
     openCommModal(commType, recipientType, [uid], [name], [mobile], [email],
         { moduleUID: moduleUID, recordUID: recordUID }
@@ -445,7 +451,7 @@ $(document).on('shown.bs.modal', '#SendCommModal', function () {
         if (moduleUID) {
             _fetchCommTemplate(moduleUID, recordUID);
         }
-        if (!_commPdfAutoAttached && moduleUID === 110 && recordUID > 0) {
+        if (!_commPdfAutoAttached && (moduleUID === 110 || moduleUID === 103) && recordUID > 0) {
             _fetchCommPdfAttachment(moduleUID, recordUID);
         }
     }

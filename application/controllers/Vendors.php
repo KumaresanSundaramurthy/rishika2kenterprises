@@ -165,6 +165,8 @@ class Vendors extends CI_Controller {
             'UpdatedBy'         => $this->pageData['JwtData']->User->UserUID,
         ];
         if ($isCreate) {
+            $this->load->model('transactions_model');
+            $data['VendToken'] = $this->transactions_model->_generateUniqueToken('Vendors.VendorTbl', 'VendToken');
             $data['CreatedBy'] = $this->pageData['JwtData']->User->UserUID;
         }
         return $data;

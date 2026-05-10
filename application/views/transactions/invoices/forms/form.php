@@ -334,19 +334,13 @@ if ($isEdit) {
                                 'transNotesContent'     => $_notesVal,
                                 'transTermsContent'     => $_termsVal,
                                 'transShowDropzone'     => true,
-                            ]); ?>
-
-                            <?php if (!$isEdit): ?>
-                            <?php
-                                $paymentPartyType = 'C';
-                                $this->load->view('transactions/partials/payment_section', [
+                                'transPaymentVars'      => !$isEdit ? [
                                     'PaymentTypes'     => $PaymentTypes ?? [],
                                     'BankAccounts'     => $BankAccounts ?? [],
                                     'JwtData'          => $JwtData,
-                                    'paymentPartyType' => $paymentPartyType,
-                                ]);
-                            ?>
-                            <?php endif; ?>
+                                    'paymentPartyType' => 'C',
+                                ] : null,
+                            ]); ?>
 
                         </div>
                     </div>
@@ -358,6 +352,7 @@ if ($isEdit) {
 
             <?php $this->load->view('common/transactions/transprefix'); ?>
             <?php $this->load->view('transactions/modals/customer'); ?>
+            <?php $this->load->view('transactions/modals/customer_search'); ?>
             <?php $this->load->view('transactions/modals/taxdetails'); ?>
             <?php $this->load->view('products/modals/items'); ?>
             <?php $this->load->view('common/footer_desc'); ?>
@@ -371,6 +366,7 @@ if ($isEdit) {
 
 <script src="/js/transactions/invoices.js"></script>
 <script src="/js/transactions/transactions.js"></script>
+<script src="/js/transactions/customer_search.js"></script>
 <script src="/js/transactions/transprefix.js"></script>
 <script src="/js/transactions/modaladdress.js"></script>
 <script src="/js/transactions/products.js"></script>

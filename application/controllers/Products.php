@@ -112,6 +112,11 @@ class Products extends CI_Controller {
         }
         $offset = ($pageNo - 1) * $limit;
 
+        if (!isset($this->pageData['JwtData']->GenSettings)) {
+            $GeneralSettings = $this->redis_cache->get('Redis_UserGenSettings')->Value ?? NULL;
+            $this->pageData['JwtData']->GenSettings = $GeneralSettings;
+        }
+
         $result  = $this->products_model->getCategoryListPaginated($OrgUID, $limit, $offset);
         $rowHtml = $this->load->view('products/categories/list', [
             'DataLists' => $result->rows,
@@ -244,6 +249,8 @@ class Products extends CI_Controller {
             $data['StorageUID'] = getPostValue($postData, 'StorageUID');
         }
         if ($isCreate) {
+            $this->load->model('transactions_model');
+            $data['ProdToken'] = $this->transactions_model->_generateUniqueToken('Products.ProductTbl', 'ProdToken');
             $data['CreatedBy'] = $this->pageData['JwtData']->User->UserUID;
         }
 
@@ -1059,6 +1066,8 @@ class Products extends CI_Controller {
             'UpdatedBy'   => $this->pageData['JwtData']->User->UserUID,
         ];
         if ($isCreate) {
+            $this->load->model('transactions_model');
+            $data['CategToken'] = $this->transactions_model->_generateUniqueToken('Products.CategoryTbl', 'CategToken');
             $data['CreatedBy'] = $this->pageData['JwtData']->User->UserUID;
         }
         return $data;

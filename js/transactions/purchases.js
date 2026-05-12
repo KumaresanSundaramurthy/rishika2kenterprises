@@ -81,3 +81,133 @@ function searchVendors(key) {
         AjaxLoading = 1;
     });
 }
+
+// ── WhatsApp link handler ─────────────────────────────────────────────────────
+$(document).on('click', '.purch-wa-link', function (e) {
+    e.preventDefault();
+    var url = $(this).data('wa-url');
+    if (url) window.open(url, '_blank');
+});
+
+// ── Auto-attach purchase PDF when comm modal switches to Email tab ────────────
+$(document).on('comm:switchedToEmail', function (e, moduleUID, recordUID) {
+    if (moduleUID !== 105 || !recordUID || _commPdfAutoAttached) return;
+
+    _commPdfAutoAttached = true;
+
+    setTimeout(function () {
+        _initCommDropzone();
+
+        $.ajax({
+            url   : '/purchases/getPurchasePdfBase64',
+            method: 'POST',
+            data  : { TransUID: recordUID, PaperSize: 'A4', [CsrfName]: CsrfToken },
+            success: function (resp) {
+                if (resp.Error || !resp.Base64) { _commPdfAutoAttached = false; return; }
+                if (!_commDropzone) { _commPdfAutoAttached = false; return; }
+                try {
+                    var binary = atob(resp.Base64);
+                    var bytes  = new Uint8Array(binary.length);
+                    for (var i = 0; i < binary.length; i++) { bytes[i] = binary.charCodeAt(i); }
+                    var blob = new Blob([bytes], { type: 'application/pdf' });
+                    var file = new File([blob], resp.Filename || 'purchase.pdf', { type: 'application/pdf' });
+                    _commDropzone.addFile(file);
+                } catch (ex) {
+                    _commPdfAutoAttached = false;
+                }
+            },
+            error: function () { _commPdfAutoAttached = false; }
+        });
+    }, 150);
+});
+
+// ── Payment Details Panel ─────────────────────────────────────────────────────
+(function () {
+    var $panel  = $('#payDetailPanel');
+    var $body   = $('#payDetailBody');
+    var $title  = $('#payPanelTitle');
+    var openUID = null;
+
+    function openPanel($trigger) {
+        var transUID = $trigger.data('trans-uid');
+        var transNum = $trigger.data('trans-num') || '';
+
+        var rect   = $trigger[0].getBoundingClientRect();
+        var panelW = 290;
+        var left   = rect.left;
+        var top    = rect.bottom + 6;
+        if (left + panelW + 16 > window.innerWidth) left = window.innerWidth - panelW - 16;
+
+        $title.text(transNum ? 'Payments — ' + transNum : 'Payments');
+        $body.html('<div class="text-center py-3"><span class="spinner-border spinner-border-sm text-primary"></span></div>');
+        $panel.css({ top: top, left: left }).show();
+        openUID = transUID;
+        AjaxLoading = 0;
+
+        $.ajax({
+            url  : '/payments/getPaymentsByTransaction',
+            type : 'GET',
+            data : { TransUID: transUID },
+            success: function (resp) {
+                AjaxLoading = 1;
+                if (resp && !resp.Error && resp.Payments && resp.Payments.length) {
+                    $body.html(buildPaymentHtml(resp.Payments));
+                } else {
+                    $body.html('<p class="text-muted mb-0" style="font-size:.8rem;">No payments found.</p>');
+                }
+            },
+            error: function () {
+                AjaxLoading = 1;
+                $body.html('<p class="text-danger mb-0" style="font-size:.8rem;">Failed to load payments.</p>');
+            }
+        });
+    }
+
+    function closePanel() { $panel.hide(); openUID = null; }
+
+    $(document).on('click', '.pay-mode-clickable', function (e) {
+        if ($(e.target).closest('.purchPayAttachBtn').length) return;
+        e.stopPropagation();
+        var transUID = $(this).data('trans-uid');
+        if (openUID === transUID) { closePanel(); return; }
+        openPanel($(this));
+    });
+
+    $(document).on('click', '#payPanelClose', function (e) { e.stopPropagation(); closePanel(); });
+
+    $(document).on('click', function (e) {
+        if ($panel.is(':visible') && !$(e.target).closest('#payDetailPanel, .pay-mode-clickable').length) closePanel();
+    });
+
+    $(document).on('keydown', function (e) { if (e.key === 'Escape') closePanel(); });
+
+    function buildPaymentHtml(payments) {
+        var html = '';
+        payments.forEach(function (p, i) {
+            if (i > 0) html += '<hr style="margin:8px 0;border-color:#f0f0f0;">';
+            var amt  = parseFloat(p.Amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            var mode = p.PaymentTypeName || '—';
+            var ref  = p.ReferenceNo || '';
+            var date = '';
+            if (p.CreatedOn) {
+                var d = new Date(p.CreatedOn.replace(' ', 'T'));
+                date  = ('0' + d.getDate()).slice(-2) + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + d.getFullYear();
+            }
+            html += '<div class="d-flex justify-content-between align-items-start gap-2">';
+            html += '  <div style="min-width:0;">';
+            html += '    <div style="font-size:.83rem;font-weight:600;color:#6f42c1;">&#8377;' + amt + '</div>';
+            html += '    <div style="font-size:.75rem;color:#566a7f;">' + mode + '</div>';
+            if (date || ref) {
+                html += '  <div style="font-size:.72rem;color:#aaa;margin-top:1px;">';
+                if (date) html += date;
+                if (date && ref) html += '&nbsp;&nbsp;';
+                if (ref)  html += ref;
+                html += '  </div>';
+            }
+            html += '  </div>';
+            html += '  <a href="/payments" class="btn btn-icon btn-sm" style="color:#6f42c1;flex-shrink:0;" title="View Payments"><i class="bx bx-show fs-6"></i></a>';
+            html += '</div>';
+        });
+        return html;
+    }
+}());

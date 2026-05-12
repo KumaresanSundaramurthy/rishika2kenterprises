@@ -9,7 +9,6 @@ function _syncDropzoneLimit(existingCount) {
     if (typeof multiDropzone === 'undefined' || !multiDropzone) return;
     var remaining = Math.max(0, _MAX_ATTACH - existingCount);
     multiDropzone.options.maxFiles = remaining;
-    // If no slots left, visually disable the dropzone
     var $dz = $('#multipleDropzone');
     if (remaining === 0) {
         $dz.addClass('dz-max-files-reached').attr('title', 'Maximum ' + _MAX_ATTACH + ' files already uploaded.');
@@ -61,10 +60,8 @@ function _bindRemoveHandler() {
             cancelButtonText  : 'Cancel',
         }).then(function(result) {
             if (!result.isConfirmed) return;
-
             $item.remove();
             if (_removedAttachIDs.indexOf(attachUID) === -1) _removedAttachIDs.push(attachUID);
-
             var remaining = $('#existingAttachItems .existing-attach-item').length;
             if (remaining === 0) {
                 $('#existingAttachList').addClass('d-none');
@@ -72,7 +69,6 @@ function _bindRemoveHandler() {
             } else {
                 $('#existingAttachCount').text(remaining);
             }
-            // Free up a dropzone slot
             _syncDropzoneLimit(remaining);
         });
     });
@@ -111,6 +107,78 @@ function initTransAttachments(transUID, getUrl) {
     _bindRemoveHandler();
 }
 
+// ── Shared attachment gallery builder ─────────────────────────────────────────
+function _buildAttachGalleryHtml(attachments, cdnUrl) {
+    var html = '<div class="row g-2">';
+    attachments.forEach(function (a) {
+        var fullUrl  = (cdnUrl || '') + (a.FilePath || '');
+        var safeName = $('<span>').text(a.FileName || '').html();
+        var isImg    = /image\//i.test(a.FileType || '') || /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(a.FileName || '');
+        var isPdf    = /pdf/i.test(a.FileType || '')    || /\.pdf$/i.test(a.FileName || '');
+        var encUrl   = encodeURIComponent(fullUrl);
+        var thumb, icon;
+        if (isImg) {
+            thumb = '<div class="attach-thumb-wrap border rounded overflow-hidden" style="cursor:pointer;height:120px;background:#f8f9fa;" onclick="_openAttachPreview(\'' + encUrl + '\',\'img\',\'' + safeName.replace(/'/g, "\\'") + '\')">' +
+                    '<img src="' + $('<span>').text(fullUrl).html() + '" style="width:100%;height:100%;object-fit:cover;" loading="lazy" alt="' + safeName + '"></div>';
+            icon = '<i class="bx bx-image-alt"></i>';
+        } else if (isPdf) {
+            thumb = '<div class="attach-thumb-wrap border rounded d-flex flex-column align-items-center justify-content-center gap-1" style="cursor:pointer;height:120px;background:#fff5f5;" onclick="_openAttachPreview(\'' + encUrl + '\',\'pdf\',\'' + safeName.replace(/'/g, "\\'") + '\')">' +
+                    '<i class="bx bxs-file-pdf text-danger" style="font-size:2.5rem;"></i>' +
+                    '<span style="font-size:.72rem;color:#dc3545;font-weight:600;">PDF</span></div>';
+            icon = '<i class="bx bx-file-blank"></i>';
+        } else {
+            thumb = '<div class="attach-thumb-wrap border rounded d-flex flex-column align-items-center justify-content-center gap-1" style="cursor:pointer;height:120px;background:#f8f9fa;" onclick="_openAttachPreview(\'' + encUrl + '\',\'file\',\'' + safeName.replace(/'/g, "\\'") + '\')">' +
+                    '<i class="bx bx-file text-secondary" style="font-size:2.5rem;"></i>' +
+                    '<span style="font-size:.72rem;color:#6c757d;font-weight:500;text-align:center;padding:0 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:90%;">' + safeName + '</span></div>';
+            icon = '<i class="bx bx-file-blank"></i>';
+        }
+        html += '<div class="col-6 col-md-4">' + thumb +
+                '<div class="text-muted mt-1 d-flex align-items-center gap-1" style="font-size:.72rem;">' + icon +
+                '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + safeName + '">' + safeName + '</span></div></div>';
+    });
+    html += '</div>';
+    return html;
+}
+
+// ── Open transAttachModal ──────────────────────────────────────────────────────
+// uid        — TransUID
+// num        — display number e.g. 'INV-001'
+// fetchUrl   — AJAX endpoint
+// accentColor — e.g. '#0d6efd'
+// title      — optional title prefix, defaults to 'Attachments'
+function openTransAttachModal(uid, num, fetchUrl, accentColor, title) {
+    accentColor = accentColor || '#0d6efd';
+    title       = (title || 'Attachments') + ' — ' + (num || ('Ref #' + uid));
+    $('#transAttachModalTitle').text(title).css('color', accentColor);
+    $('#transAttachModalBanner').css({ 'background': accentColor + '18', 'border-left': '4px solid ' + accentColor });
+    $('#transAttachModalIconWrap').css('background', accentColor + '22');
+    $('#transAttachModalIconWrap i').css('color', accentColor);
+    $('#transAttachGallery').html('<div class="text-center py-4"><span class="spinner-border spinner-border-sm" style="color:' + accentColor + ';"></span></div>');
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('transAttachModal')).show();
+    AjaxLoading = 0;
+    $.ajax({
+        url    : fetchUrl,
+        method : 'POST',
+        data   : { TransUID: uid, [CsrfName]: CsrfToken },
+        success: function (resp) {
+            AjaxLoading = 1;
+            if (resp.Error || !resp.Attachments || !resp.Attachments.length) {
+                $('#transAttachGallery').html('<div class="text-center py-5 text-muted"><i class="bx bx-paperclip fs-2 d-block mb-2"></i>No attachments found.</div>');
+                return;
+            }
+            var cdnUrl = (typeof CDN_URL !== 'undefined' && CDN_URL) ? CDN_URL : '';
+            $('#transAttachGallery').html(_buildAttachGalleryHtml(resp.Attachments, cdnUrl));
+        },
+        error: function () {
+            AjaxLoading = 1;
+            $('#transAttachGallery').html('<div class="text-center py-4 text-danger">Failed to load attachments.</div>');
+        }
+    });
+}
+
+// ── Sequential swap: transAttachModal → attachPreviewModal → transAttachModal ──
+var _attachPreviewOpener = null;
+
 function _openAttachPreview(encUrl, type, name) {
     var url      = decodeURIComponent(encUrl);
     var safeName = $('<span>').text(name).html();
@@ -122,12 +190,40 @@ function _openAttachPreview(encUrl, type, name) {
         body = '<iframe src="' + $('<span>').text(url).html() + '" style="width:100%;height:calc(92vh - 48px);border:none;display:block;"></iframe>';
     } else {
         body = '<div class="d-flex flex-column align-items-center justify-content-center" style="height:calc(92vh - 48px);">' +
-            '<i class="bx bx-file-blank text-secondary" style="font-size:4rem;display:block;margin-bottom:12px;"></i>' +
-            '<div style="font-size:.9rem;font-weight:600;color:#fff;margin-bottom:16px;">' + safeName + '</div>' +
-            '<a href="' + $('<span>').text(url).html() + '" download="' + safeName + '" class="btn btn-primary px-4"><i class="bx bx-download me-2"></i>Download File</a>' +
-            '</div>';
+               '<i class="bx bx-file-blank text-secondary" style="font-size:4rem;display:block;margin-bottom:12px;"></i>' +
+               '<div style="font-size:.9rem;font-weight:600;color:#fff;margin-bottom:16px;">' + safeName + '</div>' +
+               '<a href="' + $('<span>').text(url).html() + '" download="' + safeName + '" class="btn btn-primary px-4"><i class="bx bx-download me-2"></i>Download File</a>' +
+               '</div>';
     }
-    $('#attachPreviewContent').html(body);
-    var previewModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('attachPreviewModal'));
-    previewModal.show();
+    $('#attachPreviewBody').html(body);
+
+    var previewEl     = document.getElementById('attachPreviewModal');
+    var transAttachEl = document.getElementById('transAttachModal');
+    var previewModal  = bootstrap.Modal.getOrCreateInstance(previewEl);
+
+    if (transAttachEl && transAttachEl.classList.contains('show')) {
+        _attachPreviewOpener = 'transAttach';
+        $(transAttachEl).one('hidden.bs.modal', function () { previewModal.show(); });
+        bootstrap.Modal.getInstance(transAttachEl).hide();
+    } else {
+        previewModal.show();
+    }
 }
+
+// Return to transAttachModal when preview is closed
+$(document).on('hidden.bs.modal', '#attachPreviewModal', function () {
+    if (_attachPreviewOpener === 'transAttach') {
+        _attachPreviewOpener = null;
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('transAttachModal')).show();
+    }
+});
+
+// ── Common attachment button handlers (used across all transaction pages) ────
+$(document).on('click', '.transAttachBtn', function () {
+    openTransAttachModal($(this).data('uid'), $(this).data('num'), $(this).data('url'), $(this).data('color') || '#0d6efd');
+});
+
+$(document).on('click', '.transPayAttachBtn', function (e) {
+    e.stopPropagation();
+    openTransAttachModal($(this).data('uid'), $(this).data('num'), $(this).data('url'), $(this).data('color') || '#0d6efd', 'Payment Attachments');
+});

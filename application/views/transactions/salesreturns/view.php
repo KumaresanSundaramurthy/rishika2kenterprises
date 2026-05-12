@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 $this->load->view('common/transactions/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -17,12 +17,13 @@ $this->load->view('common/transactions/header'); ?>
                     $dec         = $JwtData->GenSettings->DecimalPoints ?? 2;
 
                     $cntAll      = array_sum(array_column($stats, 'count'));
-                    $cntApproved = $stats['Approved']['count']   ?? 0;
-                    $cntCancelled= $stats['Cancelled']['count']  ?? 0;
+                    $cntPending  = ($stats['Approved']['count'] ?? 0) + ($stats['Partial']['count'] ?? 0);
+                    $cntPaid     = $stats['Paid']['count']       ?? 0;
                     $cntDraft    = $stats['Draft']['count']      ?? 0;
 
                     $amtAll      = array_sum(array_column($stats, 'amount'));
-                    $amtApproved = $stats['Approved']['amount']  ?? 0;
+                    $amtPending  = ($stats['Approved']['amount'] ?? 0) + ($stats['Partial']['amount'] ?? 0);
+                    $amtPaid     = $stats['Paid']['amount']       ?? 0;
 
                     function fmtAmt($val, $sym, $dec) {
                         return $sym . ' ' . number_format((float)$val, $dec, '.', ',');
@@ -40,17 +41,17 @@ $this->load->view('common/transactions/header'); ?>
                             </a>
                         </div>
                         <div class="col-6 col-md-3">
-                            <a href="javascript:void(0);" class="trans-stat-card stat-active" data-stat-filter="Approved">
-                                <div class="trans-stat-label">Approved</div>
-                                <div class="trans-stat-count"><?php echo number_format($cntApproved); ?></div>
-                                <div class="trans-stat-amount"><?php echo fmtAmt($amtApproved, $cur, $dec); ?></div>
+                            <a href="javascript:void(0);" class="trans-stat-card stat-active" data-stat-filter="SRPending">
+                                <div class="trans-stat-label">Pending</div>
+                                <div class="trans-stat-count"><?php echo number_format($cntPending); ?></div>
+                                <div class="trans-stat-amount"><?php echo fmtAmt($amtPending, $cur, $dec); ?></div>
                                 <i class="bx bx-check-circle trans-stat-icon"></i>
                             </a>
                         </div>
                         <div class="col-6 col-md-3">
-                            <a href="javascript:void(0);" class="trans-stat-card stat-overdue" data-stat-filter="Cancelled">
-                                <div class="trans-stat-label">Cancelled</div>
-                                <div class="trans-stat-count"><?php echo number_format($cntCancelled); ?></div>
+                            <a href="javascript:void(0);" class="trans-stat-card stat-paid" data-stat-filter="Paid">
+                                <div class="trans-stat-label">Paid</div>
+                                <div class="trans-stat-count"><?php echo number_format($cntPaid); ?></div>
                                 <div class="trans-stat-amount">&nbsp;</div>
                                 <i class="bx bx-x-circle trans-stat-icon"></i>
                             </a>
@@ -77,8 +78,13 @@ $this->load->view('common/transactions/header'); ?>
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link sr-status-tab" data-status="Approved" href="javascript:void(0);">
-                                        Approved <span class="trans-tab-count ms-1 d-none"></span>
+                                    <a class="nav-link sr-status-tab" data-status="SRPending" href="javascript:void(0);">
+                                        Pending <span class="trans-tab-count ms-1 d-none"></span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link sr-status-tab" data-status="Paid" href="javascript:void(0);">
+                                        Paid <span class="trans-tab-count ms-1 d-none"></span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
@@ -146,16 +152,14 @@ $this->load->view('common/transactions/header'); ?>
                                         </th>
                                         <th class="<?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?> table-serialno" style="width:44px">S.No</th>
                                         <th class="col-sortable cursor-pointer user-select-none" data-sort="Number">
-                                            Return # <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Number"></i>
+                                            # Bill / Return <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Number"></i>
                                         </th>
                                         <th class="col-sortable cursor-pointer user-select-none" data-sort="Amount">
                                             Amount <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Amount"></i>
                                         </th>
-                                        <th>Status</th>
+                                        <th>Payment Status</th>
+                                        <th>Payment Mode</th>
                                         <th>Customer</th>
-                                        <th class="col-sortable cursor-pointer user-select-none" data-sort="Date">
-                                            Return Date <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Date"></i>
-                                        </th>
                                         <th>Last Updated</th>
                                         <th style="width:50px"></th>
                                     </tr>
@@ -179,6 +183,19 @@ $this->load->view('common/transactions/header'); ?>
                 </div>
             </div>
 
+            <?php $this->load->view('common/imagepreview_modal'); ?>
+
+            <?php
+            $rpAccentColor = '#198754'; $rpAccentBg = '#e8f5e9';
+            $rpPartyIcon   = 'bx-user';  $rpDocLabel  = 'Sales Return';
+            $rpTotalIcon   = 'bx-undo';
+            $rpNumId       = 'rpInvNum'; $rpDateId    = 'rpInvDate';
+            $rpBtnLabel    = 'Refund Payment';
+            $this->load->view('common/transactions/payment_modal');
+            ?>
+
+            <?php $this->load->view('common/modals/send_communication'); ?>
+
             <?php $this->load->view('common/footer_desc'); ?>
         </div>
     </div>
@@ -186,6 +203,10 @@ $this->load->view('common/transactions/header'); ?>
 
 <?php $this->load->view('common/transactions/footer'); ?>
 
+<script src="/js/common/communication.js"></script>
+<script src="/js/transactions/attachments.js"></script>
+<script src="/js/transactions/viewmodal.js"></script>
+<script src="/js/transactions/a4_print.js"></script>
 <script src="/js/transactions/salesreturns.js"></script>
 
 <script>
@@ -199,6 +220,11 @@ $(function () {
     'use strict';
 
     Filter['Status'] = 'All';
+
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl, { container: 'body' });
+    });
 
     $(document).on('click', '[data-stat-filter]', function () {
         var status = $(this).data('stat-filter') || 'All';
@@ -296,5 +322,168 @@ $.ajax({
     });
 
     $(document).on('change', '.srHeaderCheck', function () { $('.srCheck').prop('checked', $(this).is(':checked')); });
-});
+
+    // ── Refund Payment (Sales Return) ──────────────────────
+    $(document).on('click', '.srReceivePayment', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var $el     = $(this);
+        var uid     = $el.data('uid')     || 0;
+        var num     = $el.data('num')     || '';
+        var date    = $el.data('date')    || '';
+        var party   = $el.data('party')   || '';
+        var total   = parseFloat($el.data('total'))   || 0;
+        var paid    = parseFloat($el.data('paid'))    || 0;
+        var pending = parseFloat($el.data('pending')) || 0;
+        var _cur    = '<?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>';
+
+        $('#rpTransUID').val(uid);
+        $('#rpInvNum').text(num || '—');
+        $('#rpInvDate').text(date || '—');
+        $('#rpPartyName').text(party || '—');
+        $('#rpTotalCard').text(_cur + ' ' + total.toFixed(2));
+        $('#rpPaidCard').text(_cur + ' ' + paid.toFixed(2));
+        $('#rpBalanceCard').text(_cur + ' ' + pending.toFixed(2));
+        $('#rpAmount').val(pending.toFixed(2)).attr('max', pending);
+        $('#rpCurrencySymbol').text(_cur);
+        $('#rpReferenceNo').val('');
+        $('#rpNotes').val('');
+        $('#rpBankAccount').val('');
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('recordPaymentModal')).show();
+    });
+
+        });
+
+// ── Detail HTML builder ─────────────────────────────────────────
+function _buildSrDetailHtml(resp) {
+    window._srLastPrintData = resp;
+    return _buildTransDetailHtml(resp, {
+        partyLabel  : 'Customer',
+        typeIcon    : 'bx-undo',
+        typeColor   : '#198754',
+        typeBg      : '#e8f5e9',
+        hasPayments : true,
+    });
+}
+
+// ── Payment Modal Init & Submit ──────────────────────────────────
+(function () {
+    'use strict';
+
+    var _payTypes  = <?php echo json_encode(array_map(function($t) {
+        return ['PaymentTypeUID' => (int)$t->PaymentTypeUID, 'Name' => (string)$t->Name, 'IsCash' => (int)$t->IsCash];
+    }, $PaymentTypes ?? [])); ?>;
+    var _bankAccts = <?php echo json_encode(array_values(array_map(function($b) {
+        return ['BankAccountUID' => (int)$b->BankAccountUID, 'BankName' => (string)$b->BankName, 'AccountName' => (string)$b->AccountName, 'IsDefault' => (int)$b->IsDefault];
+    }, array_filter($BankAccounts ?? [], function($b) { return !(int)$b->IsCash; })))); ?>;
+    var _fpInstance = null;
+    var _rpDropzone = null;
+    var _currency   = '<?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>';
+
+    (function () {
+        var $sel = $('#rpBankAccount').empty().append('<option value="">— Select bank account —</option>');
+        $.each(_bankAccts, function (i, b) {
+            $sel.append('<option value="' + b.BankAccountUID + '">' + _esc(b.BankName) + ' — ' + _esc(b.AccountName) + '</option>');
+        });
+    }());
+
+    function renderPaymentTypes() {
+        var $wrap = $('#rpPaymentTypes').empty();
+        $.each(_payTypes, function (i, t) {
+            var active = (i === 0) ? ' active' : '';
+            if (i === 0) { $('#rpPaymentTypeUID').val(t.PaymentTypeUID); $('#rpIsCash').val(t.IsCash); }
+            $wrap.append('<button type="button" class="rp-type-pill btn btn-sm btn-outline-secondary' + active + '" data-uid="' + t.PaymentTypeUID + '" data-iscash="' + t.IsCash + '">' + _esc(t.Name) + '</button>');
+        });
+        toggleBankRow();
+    }
+
+    function toggleBankRow() {
+        var isCash = parseInt($('#rpIsCash').val(), 10);
+        $('#rpBankRow').toggleClass('d-none', !!isCash);
+        if (!isCash && !$('#rpBankAccount').val()) {
+            var def = $.grep(_bankAccts, function(b) { return b.IsDefault === 1; });
+            if (def.length) { $('#rpBankAccount').val(def[0].BankAccountUID); }
+        }
+    }
+
+    $('#recordPaymentModal').on('shown.bs.modal', function () {
+        if (!_fpInstance) {
+            _fpInstance = flatpickr('#rpPaymentDate', {
+                dateFormat: 'Y-m-d', altInput: true, altFormat: 'd M Y',
+                maxDate: 'today', disableMobile: true, defaultDate: 'today',
+                appendTo: document.querySelector('#recordPaymentModal .modal-dialog'),
+            });
+        } else {
+            _fpInstance.setDate(new Date(), false);
+        }
+        if (!_rpDropzone && typeof Dropzone !== 'undefined') {
+            Dropzone.autoDiscover = false;
+            _rpDropzone = new Dropzone('#rpAttachDropzone', {
+                url: '#', autoProcessQueue: false, maxFiles: 3, maxFilesize: 3,
+                acceptedFiles: '.pdf,.jpg,.jpeg,.png', parallelUploads: 3, clickable: true,
+                previewTemplate: '<div class="dz-preview dz-file-preview"><div class="dz-details"><div class="dz-filename"><span data-dz-name></span></div><div class="dz-size"><span data-dz-size></span></div></div><div class="dz-error-message"><span data-dz-errormessage></span></div><a class="dz-remove" href="javascript:undefined;" data-dz-remove>Remove</a></div>',
+                init: function () {
+                    this.on('maxfilesexceeded', function (file) { this.removeFile(file); Swal.fire({ icon: 'warning', text: 'Maximum 3 attachments allowed.' }); });
+                }
+            });
+        }
+        renderPaymentTypes();
+    });
+
+    $(document).on('click', '.rp-type-pill', function () {
+        $('.rp-type-pill').removeClass('active btn-primary').addClass('btn-outline-secondary');
+        $(this).addClass('active btn-primary').removeClass('btn-outline-secondary');
+        $('#rpPaymentTypeUID').val($(this).data('uid'));
+        $('#rpIsCash').val($(this).data('iscash'));
+        toggleBankRow();
+    });
+
+    $('#btnSubmitPayment').on('click', function () {
+        var transUID       = parseInt($('#rpTransUID').val(), 10);
+        var paymentTypeUID = parseInt($('#rpPaymentTypeUID').val(), 10);
+        var amount         = parseFloat($('#rpAmount').val()) || 0;
+        var paymentDate    = $('#rpPaymentDate').val() || new Date().toISOString().split('T')[0];
+        var bankAccountUID = parseInt($('#rpBankAccount').val(), 10) || 0;
+        var referenceNo    = $.trim($('#rpReferenceNo').val());
+        var notes          = $.trim($('#rpNotes').val());
+
+        if (!transUID)       { Swal.fire({ icon: 'warning', text: 'Invalid sales return.' }); return; }
+        if (!paymentTypeUID) { Swal.fire({ icon: 'warning', text: 'Please select a payment type.' }); return; }
+        if (amount <= 0)     { Swal.fire({ icon: 'warning', text: 'Enter a valid amount.' }); return; }
+        var isCash = parseInt($('#rpIsCash').val(), 10);
+        if (!isCash && !bankAccountUID) { Swal.fire({ icon: 'warning', text: 'Please select a bank account.' }); return; }
+
+        var $btn = $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Saving…');
+        var fd = new FormData();
+        fd.append('TransUID',       transUID);
+        fd.append('PaymentTypeUID', paymentTypeUID);
+        fd.append('Amount',         amount);
+        fd.append('PaymentDate',    paymentDate);
+        fd.append('BankAccountUID', bankAccountUID || '');
+        fd.append('ReferenceNo',    referenceNo);
+        fd.append('Notes',          notes);
+        fd.append(CsrfName,         CsrfToken);
+        if (_rpDropzone) { _rpDropzone.files.forEach(function(file) { fd.append('PaymentFiles[]', file); }); }
+
+        $.ajax({
+            url: '/salesreturns/recordPayment', method: 'POST',
+            data: fd, processData: false, contentType: false,
+            success: function (resp) {
+                $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i> Refund Payment');
+                if (resp.Error) {
+                    showToastNotification(resp.Message, 'error');
+                } else {
+                    bootstrap.Modal.getInstance(document.getElementById('recordPaymentModal')).hide();
+                    getSalesReturnsDetails();
+                    showToastNotification(resp.Message, 'success');
+                }
+            },
+            error: function () {
+                $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i> Refund Payment');
+                showToastNotification('Request failed. Try again.', 'error');
+            }
+        });
+    });
+
+}());
 </script>

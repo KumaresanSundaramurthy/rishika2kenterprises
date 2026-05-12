@@ -386,6 +386,35 @@ $(function () {
         $('#paymentDetailModal').modal('show');
     });
 
+    // Cancel payment
+    $(document).on('click', '.cancelPaymentOut', function () {
+        var paymentUID = $(this).data('payment-uid');
+        var num        = $(this).data('num') || '';
+        var amount     = $(this).data('amount');
+        Swal.fire({
+            title: 'Cancel Payment?',
+            html : 'Cancel payment <strong>' + (num || '#' + paymentUID) + '</strong> of <strong>' + sym + ' ' + amount + '</strong>?<br>The sales return balance will be restored.',
+            icon : 'warning', showCancelButton: true,
+            confirmButtonText: 'Yes, Cancel It', confirmButtonColor: '#f59e0b',
+            cancelButtonText : 'No, Keep It',
+        }).then(function (r) {
+            if (!r.isConfirmed) return;
+            $.ajax({
+                url   : '/paymentsout/cancelPayment',
+                method: 'POST',
+                data  : { PaymentUID: paymentUID, [CsrfName]: CsrfToken },
+                success: function (resp) {
+                    if (!resp.Error) {
+                        getPaymentsOut(PoutPageNo);
+                        Swal.fire({ icon: 'success', text: resp.Message, timer: 1800, showConfirmButton: false });
+                    } else {
+                        Swal.fire('Error', resp.Message, 'error');
+                    }
+                }
+            });
+        });
+    });
+
     // Delete payment
     $(document).on('click', '.deletePaymentOut', function () {
         var paymentUID = $(this).data('payment-uid');

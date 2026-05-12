@@ -49,6 +49,29 @@
   border-bottom-left-radius: 0 !important;
 }
 
+/* Product search (#searchProductGroup): fix Select2 clear button overlapping selected text */
+#searchProductGroup .select2-container--default .select2-selection--single {
+    position: relative;
+}
+#searchProductGroup .select2-container--default .select2-selection--single .select2-selection__rendered {
+    display: block !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    padding-right: 42px !important;
+}
+#searchProductGroup .select2-container--default .select2-selection--single .select2-selection__clear {
+    float: none !important;
+    position: absolute;
+    right: 22px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #8592a3;
+    line-height: 1;
+}
+
 .input-group .select2-container {
     flex: 1 1 auto;
     width: 1% !important;
@@ -718,4 +741,46 @@ tr:hover .inv-row-action {
 }
 #paymentDetailModal[data-pdt-theme="out"] .pdt-amount {
     color: #dc3545;
+}
+
+/* ── Record Payment modal — attachment dropzone fixes ───────────── */
+/* Flex-centre the empty-state message; revert to block once files are added */
+#rpAttachDropzone {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 110px;
+}
+#rpAttachDropzone.dz-started {
+    display: block !important;
+    min-height: 0;
+}
+/* Reset vendor 8rem top-margin and use flex column instead */
+#rpAttachDropzone .dz-message {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 !important;
+    width: 100%;
+    text-align: center;
+}
+/* Hide the Dropzone vendor ::before SVG icon — we use our own <i> */
+#rpAttachDropzone .dz-message::before {
+    display: none !important;
+}
+/* Keep icon centered regardless of display context */
+#rpAttachDropzone .comm-attach-icon {
+    display: block !important;
+    margin: 0 auto 4px !important;
+    font-size: 1.8rem;
+}
+
+/* ── Record Payment modal — flatpickr calendar positioning ──────── */
+/* Allow the calendar to overflow the modal-dialog without clipping  */
+#recordPaymentModal .modal-dialog {
+    overflow: visible;
+}
+#recordPaymentModal .flatpickr-calendar {
+    z-index: 1080 !important;
 }

@@ -249,8 +249,11 @@ class Invoices extends CI_Controller {
 
             // Record payment DB rows inside the transaction; ledger entries applied after commit
             $paidAmountForLedger = 0;
+            $firstPaymentUID     = null;
             if (!$isDraft && (int) getPostValue($PostData, 'RecordPayment') === 1) {
-                $paidAmountForLedger = $this->savePaymentRecord($transUID, $orgUID, $userUID, 'C', $customerUID, $netAmount, $PostData, $transDate);
+                $payResult           = $this->savePaymentRecord($transUID, $orgUID, $userUID, 'C', $customerUID, $netAmount, $PostData, $transDate);
+                $paidAmountForLedger = $payResult['totalPaid'];
+                $firstPaymentUID     = $payResult['firstPaymentUID'];
                 if ($paidAmountForLedger > 0) {
                     $this->updateTransactionBalance($transUID, $netAmount, $paidAmountForLedger, $userUID);
                 }
@@ -304,6 +307,7 @@ class Invoices extends CI_Controller {
             $this->EndReturnData->Message  = 'Invoice created successfully.';
             $this->EndReturnData->TransUID = $transUID;
             $this->_saveAttachments($transUID);
+            if (!empty($firstPaymentUID)) $this->_savePaymentAttachments($firstPaymentUID);
 
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -614,8 +618,11 @@ class Invoices extends CI_Controller {
 
             // Record payment DB rows inside the transaction; ledger entries applied after commit
             $paidAmountForLedger = 0;
+            $firstPaymentUID     = null;
             if (!$isDraft && (int) getPostValue($PostData, 'RecordPayment') === 1) {
-                $paidAmountForLedger = $this->savePaymentRecord($activeTransUID, $orgUID, $userUID, 'C', $customerUID, $netAmount, $PostData, $transDate);
+                $payResult           = $this->savePaymentRecord($activeTransUID, $orgUID, $userUID, 'C', $customerUID, $netAmount, $PostData, $transDate);
+                $paidAmountForLedger = $payResult['totalPaid'];
+                $firstPaymentUID     = $payResult['firstPaymentUID'];
                 if ($paidAmountForLedger > 0) {
                     $this->updateTransactionBalance($activeTransUID, $netAmount, $paidAmountForLedger, $userUID);
                 }
@@ -656,6 +663,7 @@ class Invoices extends CI_Controller {
             $this->EndReturnData->Message = 'Invoice updated successfully.';
             $this->_saveAttachments($activeTransUID);
             $this->_softDeleteAttachments($this->input->post('RemovedAttachIDs') ?? '');
+            if (!empty($firstPaymentUID)) $this->_savePaymentAttachments($firstPaymentUID);
 
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -1260,9 +1268,9 @@ class Invoices extends CI_Controller {
         $rowsJson    = getPostValue($PostData, 'PaymentRows') ?: '';
         $isFullyPaid = (int) getPostValue($PostData, 'IsFullyPaid') === 1 ? 1 : 0;
 
-        if (empty($rowsJson)) return 0;
+        if (empty($rowsJson)) return ['totalPaid' => 0, 'firstPaymentUID' => null];
         $rows = json_decode($rowsJson, true);
-        if (!is_array($rows) || empty($rows)) return 0;
+        if (!is_array($rows) || empty($rows)) return ['totalPaid' => 0, 'firstPaymentUID' => null];
 
         $paymentDate = $transDate ?: date('Y-m-d');
         $totalPaid   = array_sum(array_column($rows, 'amount'));
@@ -1322,9 +1330,10 @@ class Invoices extends CI_Controller {
 
             $resp = $this->dbwrite_model->insertBatchInTransaction('Transaction', 'PaymentsTbl', [$paymentData]);
             if ($resp->Error) throw new Exception('Payment save failed: ' . $resp->Message);
+            if ($idx === 0) $firstPaymentUID = $resp->ID ?? null;
         }
 
-        return $totalPaid;
+        return ['totalPaid' => $totalPaid, 'firstPaymentUID' => $firstPaymentUID ?? null];
 
     }
 

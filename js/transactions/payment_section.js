@@ -229,4 +229,138 @@ $(function() {
     /* ── bank accounts are managed via Settings → Banks ─────────── */
     /* When the user adds/edits banks they are redirected to /settings/banks */
 
+    /* ── Payment Attachments ─────────────────────────────────────── */
+    var _paymentAttachments = [];
+    var _maxFiles = 3;
+    var _maxFileSize = 3 * 1024 * 1024; // 3MB in bytes
+
+    // Upload button click handler
+    $(document).on('click', '#uploadPaymentAttachmentBtn', function() {
+        if (_paymentAttachments.length >= _maxFiles) {
+            showToastNotification('You can upload a maximum of ' + _maxFiles + ' files. Please remove a file before adding a new one.', 'error');
+            return;
+        }
+        $('#paymentAttachmentInput').click();
+    });
+
+    // File input change handler
+    $(document).on('change', '#paymentAttachmentInput', function(e) {
+        var files = e.target.files;
+        if (!files || files.length === 0) return;
+
+        // Check total file count
+        if (_paymentAttachments.length + files.length > _maxFiles) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Too Many Files',
+                text: 'You can upload a maximum of ' + _maxFiles + ' files.'
+            });
+            $(this).val(''); // Clear input
+            return;
+        }
+
+        // Process each file
+        for (var i = 0; i < files.length; i++) {
+            var file = files[i];
+
+            // Check file size
+            if (file.size > _maxFileSize) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'File Too Large',
+                    text: file.name + ' is larger than 3MB. Please choose a smaller file.'
+                });
+                continue;
+            }
+
+            // Add to array
+            _paymentAttachments.push(file);
+            renderPaymentAttachment(file, _paymentAttachments.length - 1);
+        }
+
+        // Clear input so same file can be selected again
+        $(this).val('');
+        updatePaymentAttachmentsJson();
+    });
+
+    // Render attachment in the list
+    function renderPaymentAttachment(file, index) {
+        var fileExt = file.name.split('.').pop().toLowerCase();
+        var iconClass = 'file-default';
+        var iconName = 'bx-file';
+
+        if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'].indexOf(fileExt) !== -1) {
+            iconClass = 'file-image';
+            iconName = 'bx-image-alt';
+        } else if (fileExt === 'pdf') {
+            iconClass = 'file-pdf';
+            iconName = 'bxs-file-pdf';
+        } else if (['doc', 'docx'].indexOf(fileExt) !== -1) {
+            iconClass = 'file-doc';
+            iconName = 'bxs-file-doc';
+        } else if (['xls', 'xlsx'].indexOf(fileExt) !== -1) {
+            iconClass = 'file-xls';
+            iconName = 'bx-spreadsheet';
+        }
+
+        var fileSize = formatFileSize(file.size);
+
+        var html = '<div class="uploaded-file-item" data-index="' + index + '">' +
+            '<div class="file-info">' +
+                '<i class="bx ' + iconName + ' file-icon ' + iconClass + '"></i>' +
+                '<div class="file-details">' +
+                    '<div class="file-name" title="' + esc(file.name) + '">' + esc(file.name) + '</div>' +
+                    '<div class="file-size">' + fileSize + '</div>' +
+                '</div>' +
+            '</div>' +
+            '<button type="button" class="file-remove-btn" data-index="' + index + '">' +
+                '<i class="bx bx-trash"></i> Remove' +
+            '</button>' +
+        '</div>';
+
+        $('#paymentAttachmentsList').append(html);
+    }
+
+    // Remove attachment
+    $(document).on('click', '.file-remove-btn', function() {
+        var index = parseInt($(this).data('index'));
+        $(this).closest('.uploaded-file-item').remove();
+        _paymentAttachments.splice(index, 1);
+        
+        // Re-render all items with updated indices
+        $('#paymentAttachmentsList').empty();
+        _paymentAttachments.forEach(function(file, idx) {
+            renderPaymentAttachment(file, idx);
+        });
+        
+        updatePaymentAttachmentsJson();
+    });
+
+    // Format file size
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        var k = 1024;
+        var sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        var i = Math.floor(Math.log(bytes) / Math.log(k));
+        return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+    }
+
+    // Update hidden input with file data
+    function updatePaymentAttachmentsJson() {
+        // Store file metadata (names and sizes) in JSON
+        var metadata = _paymentAttachments.map(function(file) {
+            return {
+                name: file.name,
+                size: file.size,
+                type: file.type
+            };
+        });
+        $('#PaymentAttachmentsJson').val(JSON.stringify(metadata));
+    }
+
+    // Expose function to get files for form submission
+    window.getPaymentAttachmentFiles = function() {
+        return _paymentAttachments;
+    };
+
 });

@@ -164,10 +164,7 @@ $this->load->view('common/transactions/header'); ?>
                                         <th>Payment Status</th>
                                         <th>Payment Mode</th>
                                         <th>Vendor</th>
-                                        <th class="col-sortable cursor-pointer user-select-none" data-sort="Date">
-                                            Due Date <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Date"></i>
-                                        </th>
-                                        <th>Last Updated</th>
+                                                                                <th>Last Updated</th>
                                         <th style="width:110px"></th>
                                     </tr>
                                 </thead>
@@ -197,21 +194,25 @@ $this->load->view('common/transactions/header'); ?>
             $rpPartyIcon   = 'bx-store'; $rpDocLabel  = 'Bill';
             $rpTotalIcon   = 'bx-cart';
             $rpNumId       = 'rpBillNum'; $rpDateId    = 'rpBillDate';
+            $rpBtnLabel    = 'Issue Payment';
             $this->load->view('common/transactions/payment_modal');
             ?>
 
+            <?php $this->load->view('common/modals/send_communication'); ?>
+
             <?php $this->load->view('common/footer_desc'); ?>
-            
+
         </div>
     </div>
 </div>
 
 <?php $this->load->view('common/transactions/footer'); ?>
 
+<script src="/js/common/communication.js"></script>
+<script src="/js/transactions/attachments.js"></script>
 <script src="/js/transactions/viewmodal.js"></script>
 <script src="/js/transactions/a4_print.js"></script>
 <script src="/js/transactions/purchases.js"></script>
-<script src="/js/transactions/attachments.js"></script>
 
 <script>
 const ModuleId     = 105;
@@ -223,9 +224,14 @@ const ModuleRow    = '.purchCheck';
 $(function () {
     'use strict';
 
+    // Bootstrap tooltips
+    [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]')).map(function (el) {
+        return new bootstrap.Tooltip(el, { container: 'body' });
+    });
+
     Filter['Status'] = 'All';
 
-    // ── Stat card click → filter ────────────────────────────
+    // ── Stat card → filter ──────────────────────────────────────
     $(document).on('click', '[data-stat-filter]', function () {
         var status = $(this).data('stat-filter') || 'All';
         $('.trans-stat-card').removeClass('active-stat');
@@ -237,7 +243,7 @@ $(function () {
         getPurchasesDetails();
     });
 
-    // ── Status tabs ─────────────────────────────────────────
+    // ── Status tabs ─────────────────────────────────────────────
     $(document).on('click', '.purch-status-tab', function (e) {
         e.preventDefault();
         $('.purch-status-tab').removeClass('active');
@@ -250,20 +256,21 @@ $(function () {
         getPurchasesDetails();
     });
 
+    // ── Refresh ─────────────────────────────────────────────────
     $(document).on('click', '.pageRefresh', function (e) {
         e.preventDefault();
         PageNo = 1;
         getPurchasesDetails();
     });
 
-    // Search
+    // ── Search ──────────────────────────────────────────────────
     $('#searchTransactionData').on('keyup', debounce(function () {
         Filter.Name = $.trim($(this).val());
         PageNo = 1;
         getPurchasesDetails();
     }, 400));
 
-    // Date filter
+    // ── Date filter ─────────────────────────────────────────────
     $(document).on('click', '.date-option', function () {
         $('.date-option').removeClass('active');
         $(this).addClass('active');
@@ -276,7 +283,7 @@ $(function () {
         getPurchasesDetails();
     });
 
-    // Column sorting
+    // ── Column sort ─────────────────────────────────────────────
     $(document).on('click', '.col-sortable', function () {
         var col = $(this).data('sort');
         if (Filter.SortBy === col) {
@@ -292,72 +299,14 @@ $(function () {
         getPurchasesDetails();
     });
 
-    // Pagination
+    // ── Pagination ──────────────────────────────────────────────
     $(document).on('click', '.purchPagination .page-link', function (e) {
         e.preventDefault();
         var match = ($(this).attr('href') || '').match(/\/(\d+)$/);
         if (match) { PageNo = parseInt(match[1]); getPurchasesDetails(); }
     });
 
-    // ── Inline status update ────────────────────────────────
-    $(document).on('click', '.purch-status-update', function () {
-        var uid    = $(this).data('uid');
-        var status = $(this).data('status');
-                if ($(this).data('_confirmed')) { $(this).removeData('_confirmed'); return; }
-        if (status === 'Cancelled') {
-            var num = $(this).data('num') || '';
-            var lbl = num ? '<strong>' + $('<span>').text(num).html() + '</strong>' : 'this purchase';
-            var $btn = $(this);
-            Swal.fire({ title: 'Cancel Purchase?', html: 'Are you sure you want to cancel ' + lbl + '? This cannot be undone.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', cancelButtonColor: '#6c757d', confirmButtonText: 'Yes, Cancel It', cancelButtonText: 'No, Keep It' }).then(function (r) { if (!r.isConfirmed) return; $btn.data('_confirmed', true).trigger('click'); });
-            return;
-        }
-$.ajax({
-            url   : '/purchases/updatePurchaseStatus',
-            method: 'POST',
-            data  : { TransUID: uid, Status: status, [CsrfName]: CsrfToken },
-            success: function (resp) {
-                if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); }
-                else            { getPurchasesDetails(); }
-            }
-        });
-    });
-
-    // View modal — handled by /js/transactions/viewmodal.js (.viewTransaction)
-
-    // ── A4 Print ─────────────────────────────────────────────
-    $(document).on('click', '.a4PrintPurchase', function () {
-        var uid = $(this).data('uid');
-        $('#a4ModalTitle').text('Purchase Bill Preview');
-        $('#a4PrintModal').modal('show');
-        $("#a4PreviewStage").html('<div class="d-flex justify-content-center align-items-center w-100 h-100"><div class="spinner-border text-light"></div></div>');
-        $.ajax({
-            url   : '/purchases/getPurchaseDetail',
-            method: 'POST',
-            data  : { TransUID: uid, [CsrfName]: CsrfToken },
-            success: function (resp) {
-                if (resp.Error) {
-                    $("#a4PreviewStage").html('<div class="alert alert-danger m-3">' + resp.Message + '</div>');
-                } else {
-                    var size = $('input[name="a4PaperSize"]:checked').val() || 'A4';
-                    window._purchLastPrintData = resp;
-                    $("#a4PreviewStage").html(_buildA4Html(resp, size));
-                }
-            }
-        });
-    });
-    $('input[name="a4PaperSize"]').on('change', function () {
-        if (window._purchLastPrintData) $("#a4PreviewStage").html(_buildA4Html(window._purchLastPrintData, $(this).val()));
-    });
-    $('#a4PrintBtn').on('click', function () {
-        var frame = document.getElementById('a4PrintFrame');
-        if (!frame) { frame = document.createElement('iframe'); frame.id = 'a4PrintFrame'; frame.style.display = 'none'; document.body.appendChild(frame); }
-        var size    = $('input[name="a4PaperSize"]:checked').val() || 'A4';
-        var content = _buildA4Html(window._purchLastPrintData, size, true);
-        frame.contentDocument.open(); frame.contentDocument.write(content); frame.contentDocument.close();
-        frame.onload = function () { frame.contentWindow.print(); };
-    });
-
-    // ── Delete ───────────────────────────────────────────────
+    // ── Delete ──────────────────────────────────────────────────
     $(document).on('click', '.deletePurchase', function () {
         var uid = $(this).data('uid');
         var num = $(this).data('num') || '';
@@ -380,7 +329,31 @@ $.ajax({
         });
     });
 
-    // ── Duplicate ────────────────────────────────────────────
+    // ── Cancel ──────────────────────────────────────────────────
+    $(document).on('click', '.purch-status-update', function () {
+        var uid    = $(this).data('uid');
+        var num    = $(this).data('num') || '';
+        var status = $(this).data('status') || 'Cancelled';
+        Swal.fire({
+            title: 'Cancel Purchase Bill?',
+            html : num ? 'Cancel <strong>' + num + '</strong>? This cannot be undone.' : 'This cannot be undone.',
+            icon : 'warning', showCancelButton: true,
+            confirmButtonText: 'Yes, Cancel It', confirmButtonColor: '#fd7e14',
+        }).then(function (r) {
+            if (!r.isConfirmed) return;
+            $.ajax({
+                url   : '/purchases/updatePurchaseStatus',
+                method: 'POST',
+                data  : { TransUID: uid, Status: status, [CsrfName]: CsrfToken },
+                success: function (resp) {
+                    if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); }
+                    else { getPurchasesDetails(); Swal.fire({ icon: 'success', text: resp.Message, timer: 1500, showConfirmButton: false }); }
+                }
+            });
+        });
+    });
+
+    // ── Duplicate ───────────────────────────────────────────────
     $(document).on('click', '.duplicatePurchase', function () {
         var uid = $(this).data('uid');
         Swal.fire({
@@ -403,15 +376,9 @@ $.ajax({
             });
         });
     });
-
-    // Header checkbox
-    $(document).on('change', '.purchHeaderCheck', function () {
-        $('.purchCheck').prop('checked', $(this).is(':checked'));
-    });
-
 });
 
-// ── Detail view HTML builder ──────────────────────────────
+// ── Detail HTML builder ─────────────────────────────────────────
 function _buildPurchDetailHtml(resp) {
     window._purchLastPrintData = resp;
     return _buildTransDetailHtml(resp, {
@@ -420,71 +387,21 @@ function _buildPurchDetailHtml(resp) {
         typeColor   : '#6f42c1',
         typeBg      : '#f0ebff',
         hasPayments : true,
-        validLabel  : 'Bill Due',
     });
 }
 
-function _buildA4Html(resp, size, forPrint) {
-    if (!resp) return '';
-    window._purchLastPrintData = resp;
-    var w = size === 'A5' ? '148mm' : '210mm';
-    var h = resp.Header || {}, org = resp.OrgInfo || {};
-    var cur = (org.CurrenySymbol || '₹') + ' ', dec = 2;
-    var rows = '';
-    (resp.Items || []).forEach(function (item, i) {
-        rows += '<tr><td style="text-align:center">' + (i + 1) + '</td>' +
-            '<td>' + _esc(item.ProductName) + (item.PartNumber ? '<br><span style="font-size:.8em;color:#888">' + _esc(item.PartNumber) + '</span>' : '') + '</td>' +
-            '<td style="text-align:center">' + _esc(item.Quantity) + ' ' + (_esc(item.PrimaryUnitName) || '') + '</td>' +
-            '<td style="text-align:right">' + cur + parseFloat(item.UnitPrice || 0).toFixed(dec) + '</td>' +
-            '<td style="text-align:right">' + cur + parseFloat(item.NetAmount || 0).toFixed(dec) + '</td></tr>';
-    });
-    var ps = forPrint ? '@media print{body{margin:0}.page{box-shadow:none}}' : '';
-    var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>' +
-        'body{font-family:Arial,sans-serif;font-size:12px;background:#404040}' +
-        '.page{width:' + w + ';background:#fff;margin:0 auto;padding:20px;box-shadow:0 0 20px rgba(0,0,0,.5)}' +
-        'table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:6px 8px;font-size:11px}' +
-        'th{background:#f5f5f5;font-weight:bold}' + ps + '</style></head>' +
-        '<body><div class="page">' +
-        '<div style="display:flex;justify-content:space-between;margin-bottom:12px">' +
-            '<div><strong style="font-size:14px">' + _esc(org.OrgName || '') + '</strong>' +
-            (org.Address ? '<br><span style="color:#666">' + _esc(org.Address) + '</span>' : '') +
-            (org.GSTNumber ? '<br><span style="color:#666">GSTIN: ' + _esc(org.GSTNumber) + '</span>' : '') + '</div>' +
-            '<div style="text-align:right"><strong style="font-size:16px">PURCHASE BILL</strong><br>' +
-            '<span style="color:#666">' + _esc(h.UniqueNumber || '—') + '</span><br>' +
-            '<span style="color:#666">Date: ' + _esc(h.TransDate || '') + '</span>' +
-            (h.ValidityDate ? '<br><span style="color:#666">Due: ' + _esc(h.ValidityDate) + '</span>' : '') +
-            '</div>' +
-        '</div>' +
-        '<div style="background:#f9f9f9;padding:8px;border-radius:4px;margin-bottom:12px">' +
-            '<strong>Vendor:</strong> ' + _esc(h.PartyName || '—') +
-            (h.Reference ? ' &nbsp;|&nbsp; <strong>Ref:</strong> ' + _esc(h.Reference) : '') +
-        '</div>' +
-        '<table><thead class="r2k-thead"><tr><th style="width:30px">#</th><th>Product</th><th style="width:60px;text-align:center">Qty</th><th style="width:90px;text-align:right">Unit Price</th><th style="width:90px;text-align:right">Net Amount</th></tr></thead>' +
-        '<tbody class="r2k-tbody">' + rows + '</tbody>' +
-        '<tfoot>' +
-            '<tr><td colspan="4" style="text-align:right;font-weight:bold">Sub Total</td><td style="text-align:right">' + cur + parseFloat(h.SubTotal || 0).toFixed(dec) + '</td></tr>' +
-            (parseFloat(h.DiscountAmount) > 0 ? '<tr><td colspan="4" style="text-align:right;color:#c00">Discount</td><td style="text-align:right;color:#c00">- ' + cur + parseFloat(h.DiscountAmount).toFixed(dec) + '</td></tr>' : '') +
-            (parseFloat(h.TaxAmount) > 0 ? '<tr><td colspan="4" style="text-align:right">Tax</td><td style="text-align:right">' + cur + parseFloat(h.TaxAmount).toFixed(dec) + '</td></tr>' : '') +
-            '<tr><td colspan="4" style="text-align:right;font-weight:bold">Net Amount</td><td style="text-align:right;font-weight:bold">' + cur + parseFloat(h.NetAmount || 0).toFixed(dec) + '</td></tr>' +
-        '</tfoot></table>' +
-        (h.Notes ? '<p style="margin-top:12px;font-size:11px;color:#666"><strong>Notes:</strong> ' + _esc(h.Notes) + '</p>' : '') +
-        (h.TermsConditions ? '<p style="font-size:11px;color:#666"><strong>Terms & Conditions:</strong> ' + _esc(h.TermsConditions) + '</p>' : '') +
-    '</div></body></html>';
-    return forPrint ? html : '<iframe srcdoc="' + html.replace(/"/g, '&quot;') + '" style="width:100%;height:100%;border:0;min-height:75vh"></iframe>';
-}
-
-// ── Record Payment Modal ──────────────────────────────────────────
+// ── Record Payment Modal ────────────────────────────────────────
 (function () {
     'use strict';
 
     var _payTypes  = <?php echo json_encode(array_map(function($t) {
         return ['PaymentTypeUID' => (int)$t->PaymentTypeUID, 'Name' => (string)$t->Name, 'IsCash' => (int)$t->IsCash];
     }, $PaymentTypes ?? [])); ?>;
-    var _bankAccts = <?php echo json_encode(array_map(function($b) {
-        return ['BankAccountUID' => (int)$b->BankAccountUID, 'BankName' => (string)$b->BankName, 'AccountName' => (string)$b->AccountName];
-    }, $BankAccounts ?? [])); ?>;
+    var _bankAccts = <?php echo json_encode(array_values(array_map(function($b) {
+        return ['BankAccountUID' => (int)$b->BankAccountUID, 'BankName' => (string)$b->BankName, 'AccountName' => (string)$b->AccountName, 'IsDefault' => (int)$b->IsDefault];
+    }, array_filter($BankAccounts ?? [], function($b) { return !(int)$b->IsCash; })))); ?>;
     var _fpInstance = null;
-    var _rpDropzone  = null;
+    var _rpDropzone = null;
     var _currency   = '<?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>';
 
     (function () {
@@ -514,6 +431,10 @@ function _buildA4Html(resp, size, forPrint) {
     function toggleBankRow() {
         var isCash = parseInt($('#rpIsCash').val(), 10);
         $('#rpBankRow').toggleClass('d-none', !!isCash);
+        if (!isCash && !$('#rpBankAccount').val()) {
+            var def = $.grep(_bankAccts, function(b) { return b.IsDefault === 1; });
+            if (def.length) { $('#rpBankAccount').val(def[0].BankAccountUID); }
+        }
     }
 
     $('#recordPaymentModal').on('shown.bs.modal', function () {
@@ -525,7 +446,7 @@ function _buildA4Html(resp, size, forPrint) {
                 maxDate      : 'today',
                 disableMobile: true,
                 defaultDate  : 'today',
-                appendTo: document.querySelector('#recordPaymentModal .modal-body'),
+                appendTo: document.querySelector('#recordPaymentModal .modal-dialog'),
             });
         } else {
             _fpInstance.setDate(new Date(), false);
@@ -533,21 +454,18 @@ function _buildA4Html(resp, size, forPrint) {
         if (!_rpDropzone && typeof Dropzone !== 'undefined') {
             Dropzone.autoDiscover = false;
             _rpDropzone = new Dropzone('#rpAttachDropzone', {
-                url              : '/purchases/uploadPaymentFile',
+                url              : '#',
                 autoProcessQueue : false,
                 maxFiles         : 3,
                 maxFilesize      : 3,
-                addRemoveLinks   : true,
-                dictRemoveFile   : 'Remove',
                 acceptedFiles    : '.pdf,.jpg,.jpeg,.png',
                 parallelUploads  : 3,
+                clickable        : true,
+                previewTemplate  : '<div class="dz-preview dz-file-preview"><div class="dz-details"><div class="dz-filename"><span data-dz-name></span></div><div class="dz-size"><span data-dz-size></span></div></div><div class="dz-error-message"><span data-dz-errormessage></span></div><a class="dz-remove" href="javascript:undefined;" data-dz-remove>Remove</a></div>',
                 init: function () {
                     this.on('maxfilesexceeded', function (file) { this.removeFile(file); Swal.fire({ icon: 'warning', text: 'Maximum 3 attachments allowed.' }); });
                     this.on('error', function (file, msg) {
-                        if (file.size > 3 * 1024 * 1024) {
-                            this.removeFile(file);
-                            Swal.fire({ icon: 'warning', text: 'Each file must be 3 MB or smaller.' });
-                        }
+                        if (file.size > 3 * 1024 * 1024) { this.removeFile(file); Swal.fire({ icon: 'warning', text: 'Each file must be 3 MB or smaller.' }); }
                     });
                 }
             });
@@ -576,8 +494,8 @@ function _buildA4Html(resp, size, forPrint) {
         $('#rpNotes').val('');
         $('#rpBankAccount').val('');
 
-           if (_rpDropzone) { _rpDropzone.removeAllFiles(true); }
-         renderPaymentTypes();
+        if (_rpDropzone) { _rpDropzone.removeAllFiles(true); }
+        renderPaymentTypes();
         $('#recordPaymentModal').modal('show');
     });
 
@@ -598,7 +516,7 @@ function _buildA4Html(resp, size, forPrint) {
         var referenceNo    = $.trim($('#rpReferenceNo').val());
         var notes          = $.trim($('#rpNotes').val());
 
-        if (!transUID)       { Swal.fire({ icon: 'warning', text: 'Invalid purchase.' }); return; }
+        if (!transUID)       { Swal.fire({ icon: 'warning', text: 'Invalid purchase bill.' }); return; }
         if (!paymentTypeUID) { Swal.fire({ icon: 'warning', text: 'Please select a payment type.' }); return; }
         if (amount <= 0)     { Swal.fire({ icon: 'warning', text: 'Enter a valid amount.' }); return; }
         var isCash = parseInt($('#rpIsCash').val(), 10);
@@ -614,6 +532,9 @@ function _buildA4Html(resp, size, forPrint) {
         fd.append('BankAccountUID', bankAccountUID || '');
         fd.append('ReferenceNo',    referenceNo);
         fd.append('Notes',          notes);
+        fd.append('CurrentPage',    PageNo || 1);
+        fd.append('RowLimit',       RowLimit || 10);
+        fd.append('Filter',         JSON.stringify(Filter || {}));
         fd.append(CsrfName,         CsrfToken);
         if (_rpDropzone) { _rpDropzone.files.forEach(function(file) { fd.append('PaymentFiles[]', file); }); }
 
@@ -623,164 +544,54 @@ function _buildA4Html(resp, size, forPrint) {
             data        : fd,
             processData : false,
             contentType : false,
-            // (Notes and CsrfToken moved to FormData above)
-                Notes          : notes,
-                [CsrfName]     : CsrfToken,
-            },
             success: function (resp) {
-                $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i> Record Payment');
+                $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i> Issue Payment');
                 if (resp.Error) {
-                    Swal.fire({ icon: 'error', title: 'Error', text: resp.Message });
+                    showToastNotification(resp.Message, 'error');
                 } else {
                     $('#recordPaymentModal').modal('hide');
-                    getPurchasesDetails();
-                    Swal.fire({ icon: 'success', text: resp.Message, timer: 1800, showConfirmButton: false });
+                    if (resp.RecordHtmlData) {
+                        $(ModuleTable + ' tbody').html(resp.RecordHtmlData);
+                        $(ModulePag).html(resp.Pagination || '');
+                        [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]')).map(function (el) {
+                            return new bootstrap.Tooltip(el, { container: 'body' });
+                        });
+                        if (resp.SummaryStats) { updateSummaryStats(resp.SummaryStats); }
+                    }
+                    showToastNotification(resp.Message, 'success');
                 }
             },
             error: function () {
-                $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i> Record Payment');
-                Swal.fire({ icon: 'error', text: 'Request failed. Try again.' });
+                $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i> Issue Payment');
+                showToastNotification('Request failed. Try again.', 'error');
             }
         });
     });
 
-}());
-
-// ── Attachment Viewer ─────────────────────────────────────────────
-$(document).on('click', '.purchAttachBtn', function () {
-    var uid = $(this).data('uid');
-    var num = $(this).data('num') || ('Bill #' + uid);
-    $('#purchAttachModalTitle').text('Attachments — ' + num);
-    $('#purchAttachGallery').html('<div class="text-center py-4"><span class="spinner-border spinner-border-sm text-primary"></span></div>');
-    var modal = new bootstrap.Modal(document.getElementById('purchAttachModal'));
-    modal.show();
-    $.ajax({
-        url    : '/purchases/getAttachments',
-        method : 'POST',
-        data   : { TransUID: uid, [CsrfName]: CsrfToken },
-        success: function (resp) {
-            if (resp.Error || !resp.Attachments || !resp.Attachments.length) {
-                $('#purchAttachGallery').html('<div class="text-center py-5 text-muted"><i class="bx bx-paperclip fs-2 d-block mb-2"></i>No attachments found.</div>');
-                return;
+    function updateSummaryStats(stats) {
+        var cur = (typeof CurrencySymbol !== 'undefined' && CurrencySymbol) ? CurrencySymbol : '₹';
+        var dec = 2;
+        var cntAll = 0, amtAll = 0, cntPending = 0, amtPending = 0, cntPaid = 0, amtPaid = 0, cntDraft = 0;
+        if (stats) {
+            for (var key in stats) {
+                if (stats.hasOwnProperty(key)) { cntAll += parseInt(stats[key].count || 0); amtAll += parseFloat(stats[key].amount || 0); }
             }
-            var cdnUrl = (typeof CDN_URL !== 'undefined' && CDN_URL) ? CDN_URL : '';
-            var html = '<div class="row g-2">';
-            resp.Attachments.forEach(function (a) {
-                var fullUrl  = cdnUrl + (a.FilePath || '');
-                var safeName = $('<span>').text(a.FileName || '').html();
-                var isImg    = /image\//i.test(a.FileType || '') || /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(a.FileName || '');
-                var isPdf    = /pdf/i.test(a.FileType || '') || /\.pdf$/i.test(a.FileName || '');
-                var isMedia  = /^video\//i.test(a.FileType || '') || /\.(mp4|webm|ogg|mov)$/i.test(a.FileName || '');
-                var encUrl   = encodeURIComponent(fullUrl);
-
-                if (isImg) {
-                    html += '<div class="col-6 col-md-4">' +
-                        '<div class="attach-thumb-wrap border rounded overflow-hidden" style="cursor:pointer;height:120px;background:#f8f9fa;" ' +
-                        'onclick="_openAttachPreview(\'' + encUrl + '\',\'img\',\'' + safeName + '\')">' +
-                        '<img src="' + $('<span>').text(fullUrl).html() + '" style="width:100%;height:100%;object-fit:cover;" loading="lazy" alt="' + safeName + '">' +
-                        '</div>' +
-                        '<div class="text-muted mt-1 d-flex align-items-center gap-1" style="font-size:.72rem;">' +
-                        '<i class="bx bx-image-alt"></i>' +
-                        '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + safeName + '">' + safeName + '</span></div>' +
-                        '</div>';
-                } else if (isPdf) {
-                    html += '<div class="col-6 col-md-4">' +
-                        '<div class="attach-thumb-wrap border rounded d-flex flex-column align-items-center justify-content-center gap-1" style="cursor:pointer;height:120px;background:#fff5f5;" ' +
-                        'onclick="_openAttachPreview(\'' + encUrl + '\',\'pdf\',\'' + safeName + '\')">' +
-                        '<i class="bx bxs-file-pdf text-danger" style="font-size:2.5rem;"></i>' +
-                        '<span style="font-size:.72rem;color:#dc3545;font-weight:600;">PDF</span>' +
-                        '</div>' +
-                        '<div class="text-muted mt-1 d-flex align-items-center gap-1" style="font-size:.72rem;">' +
-                        '<i class="bx bx-file-blank"></i>' +
-                        '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + safeName + '">' + safeName + '</span></div>' +
-                        '</div>';
-                } else {
-                    var icon = isMedia ? 'bxs-videos text-primary' : 'bx-file text-secondary';
-                    html += '<div class="col-6 col-md-4">' +
-                        '<div class="attach-thumb-wrap border rounded d-flex flex-column align-items-center justify-content-center gap-1" style="cursor:pointer;height:120px;background:#f8f9fa;" ' +
-                        'onclick="_openAttachPreview(\'' + encUrl + '\',\'file\',\'' + safeName + '\')">' +
-                        '<i class="bx ' + icon + '" style="font-size:2.5rem;"></i>' +
-                        '<span style="font-size:.72rem;color:#6c757d;font-weight:500;text-align:center;padding:0 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:90%;">' + safeName + '</span>' +
-                        '</div>' +
-                        '<div class="text-muted mt-1 d-flex align-items-center gap-1" style="font-size:.72rem;">' +
-                        '<i class="bx bx-file-blank"></i>' +
-                        '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + safeName + '">' + safeName + '</span></div>' +
-                        '</div>';
-                }
-            });
-            html += '</div>';
-            $('#purchAttachGallery').html(html);
-        },
-        error: function () {
-            $('#purchAttachGallery').html('<div class="text-center py-4 text-danger">Failed to load attachments.</div>');
+            cntPending = (stats.Received ? parseInt(stats.Received.count || 0) : 0) + (stats.Partial ? parseInt(stats.Partial.count || 0) : 0);
+            amtPending = (stats.Received ? parseFloat(stats.Received.amount || 0) : 0) + (stats.Partial ? parseFloat(stats.Partial.amount || 0) : 0);
+            cntPaid  = stats.Paid  ? parseInt(stats.Paid.count   || 0) : 0;
+            amtPaid  = stats.Paid  ? parseFloat(stats.Paid.amount || 0) : 0;
+            cntDraft = stats.Draft ? parseInt(stats.Draft.count   || 0) : 0;
         }
-    });
-});
-
-function _openAttachPreview(encUrl, type, name) {
-    var url      = decodeURIComponent(encUrl);
-    var safeName = $('<span>').text(name).html();
-    $('#attachPreviewTitle').text(name || 'Preview');
-    var body = '';
-    if (type === 'img') {
-        body = '<div class="text-center p-3"><img src="' + $('<span>').text(url).html() + '" class="img-fluid rounded" style="max-height:70vh;" alt="' + safeName + '"></div>';
-    } else if (type === 'pdf') {
-        body = '<iframe src="' + $('<span>').text(url).html() + '" style="width:100%;height:70vh;border:none;"></iframe>';
-    } else {
-        body = '<div class="text-center py-5">' +
-            '<i class="bx bx-file-blank text-secondary" style="font-size:4rem;display:block;margin-bottom:12px;"></i>' +
-            '<div style="font-size:.9rem;font-weight:600;margin-bottom:16px;">' + safeName + '</div>' +
-            '<button class="btn btn-primary px-4" onclick="(function(u,n){var a=document.createElement(\'a\');a.href=u;a.download=n;a.style.display=\'none\';document.body.appendChild(a);a.click();document.body.removeChild(a);})(decodeURIComponent(\'' + encUrl + '\'),\'' + safeName.replace(/'/g, "\\'") + '\'))"><i class="bx bx-download me-2"></i>Download File</button>' +
-            '</div>';
+        function fmtAmt(val) {
+            return cur + ' ' + parseFloat(val).toLocaleString('en-IN', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+        }
+        $('.stat-all    .trans-stat-count').text(cntAll.toLocaleString());
+        $('.stat-all    .trans-stat-amount').text(fmtAmt(amtAll));
+        $('.stat-active .trans-stat-count').text(cntPending.toLocaleString());
+        $('.stat-active .trans-stat-amount').text(fmtAmt(amtPending));
+        $('.stat-paid   .trans-stat-count').text(cntPaid.toLocaleString());
+        $('.stat-paid   .trans-stat-amount').text(fmtAmt(amtPaid));
+        $('.stat-draft  .trans-stat-count').text(cntDraft.toLocaleString());
     }
-    $('#attachPreviewBody').html(body);
-    var previewModal = new bootstrap.Modal(document.getElementById('attachPreviewModal'));
-    previewModal.show();
-}
-
+}());
 </script>
-
-<!-- ── Purchase Attachment Viewer Modal ─────────────────────────── -->
-<div class="modal fade" id="purchAttachModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
-        <div class="modal-content" style="overflow:hidden;">
-            <button type="button" class="btn-close position-absolute" data-bs-dismiss="modal"
-                style="top:14px;right:16px;z-index:10;background-color:rgba(255,255,255,.85);border-radius:50%;padding:6px;box-shadow:0 1px 4px rgba(0,0,0,.15);"
-                aria-label="Close"></button>
-            <div class="modal-body p-0">
-                <div style="background:#f0ebff;border-left:4px solid #6f42c1;padding:14px 20px;">
-                    <div class="d-flex align-items-center gap-3">
-                        <div style="background:#6f42c122;border-radius:10px;padding:9px 11px;">
-                            <i class="bx bx-paperclip" style="font-size:1.7rem;color:#6f42c1;display:block;"></i>
-                        </div>
-                        <div>
-                            <div style="font-size:1rem;font-weight:800;color:#6f42c1;" id="purchAttachModalTitle">Attachments</div>
-                            <div style="font-size:.77rem;color:#6c757d;margin-top:3px;">Click any file to preview</div>
-                        </div>
-                    </div>
-                </div>
-                <div style="padding:16px 20px;" id="purchAttachGallery">
-                    <div class="text-center py-4"><span class="spinner-border spinner-border-sm text-primary"></span></div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- ── Attachment Preview Modal ──────────────────────────────────── -->
-<div class="modal fade" id="attachPreviewModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header py-2 px-3">
-                <h6 class="modal-title d-flex align-items-center gap-2 mb-0" style="font-size:.88rem;font-weight:700;max-width:90%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-                    <i class="bx bx-file text-primary"></i>
-                    <span id="attachPreviewTitle">Preview</span>
-                </h6>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body p-0" id="attachPreviewBody" style="min-height:200px;background:#1a1a2e;">
-                <div class="text-center py-5"><span class="spinner-border text-light"></span></div>
-            </div>
-        </div>
-    </div>
-</div>

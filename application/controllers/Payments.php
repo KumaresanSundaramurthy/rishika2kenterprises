@@ -23,7 +23,7 @@ class Payments extends CI_Controller {
 
             $orgUID = $this->pageData['JwtData']->User->OrgUID;
 
-            $filter = ['PartyType' => 'C', 'PaymentDirection' => 'In'];
+            $filter = ['ModuleUID' => 110, 'PaymentDirection' => 'In', 'PaymentSource' => 'Record'];
 
             $this->load->model('transactions_model');
             $allData      = $this->transactions_model->getPaymentsList($limit, 0, $orgUID, $filter);
@@ -62,6 +62,12 @@ class Payments extends CI_Controller {
             $limit  = (int) $this->input->post('RowLimit') ?: 10;
             $offset = ($pageNo - 1) * $limit;
             $filter = $this->input->post('Filter') ?: [];
+
+            // Always scope to Payments-In module
+            $filter['ModuleUID']        = 110;
+            $filter['PaymentDirection'] = 'In';
+            $filter['PaymentSource']    = 'Record';
+            unset($filter['PartyType']);
 
             $orgUID = $this->pageData['JwtData']->User->OrgUID;
             $this->pageData['JwtData']->GenSettings = ($this->redis_cache->get('Redis_UserGenSettings')->Value) ?? new stdClass();

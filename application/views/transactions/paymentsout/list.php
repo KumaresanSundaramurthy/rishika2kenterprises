@@ -177,6 +177,14 @@ function poutModeBadge($name, $modeColors) {
                     </li>
                     <li><hr class="dropdown-divider my-1"></li>
                     <li>
+                        <button class="dropdown-item cancelPaymentOut text-warning"
+                                data-payment-uid="<?php echo (int)$row->PaymentUID; ?>"
+                                data-num="<?php echo htmlspecialchars($row->PaymentUniqueNumber ?? ''); ?>"
+                                data-amount="<?php echo htmlspecialchars(number_format((float)$row->Amount, $dec)); ?>">
+                            <i class="bx bx-x-circle me-2"></i>Cancel
+                        </button>
+                    </li>
+                    <li>
                         <button class="dropdown-item deletePaymentOut text-danger"
                                 data-payment-uid="<?php echo (int)$row->PaymentUID; ?>"
                                 data-amount="<?php echo htmlspecialchars(number_format((float)$row->Amount, $dec)); ?>">

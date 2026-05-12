@@ -1,0 +1,1498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rishika2K Enterprises — Authorized Dealer | Rotavator · Baler · Agricultural Machinery</title>
+    <meta name="description" content="Rishika2K Enterprises — Authorized dealer for Rotoking Rotavators and Bharat Baler. Premium agricultural machinery, harvesting equipment and genuine spare parts." />
+
+    <link rel="icon" href="/images/logo/favicon_io/favicon.ico" type="image/x-icon">
+    <link rel="shortcut icon" href="/images/logo/favicon_io/favicon-32x32.png" type="image/png">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+    <style>
+        /* ── Reset & Base ──────────────────────────────────────── */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --clr-bg:       #0a0d14;
+            --clr-surface:  #111520;
+            --clr-card:     #161b2e;
+            --clr-border:   #1e2a45;
+            --clr-orange:   #f97316;
+            --clr-amber:    #fbbf24;
+            --clr-blue:     #3b82f6;
+            --clr-text:     #e2e8f0;
+            --clr-muted:    #8898aa;
+            --clr-white:    #ffffff;
+            --font-display: 'Rajdhani', sans-serif;
+            --font-body:    'Inter', sans-serif;
+        }
+        html { scroll-behavior: smooth; }
+        body {
+            background: var(--clr-bg);
+            color: var(--clr-text);
+            font-family: var(--font-body);
+            font-size: 16px;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* ── Scrollbar ─────────────────────────────────────────── */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--clr-bg); }
+        ::-webkit-scrollbar-thumb { background: var(--clr-orange); border-radius: 3px; }
+
+        /* ── Utility ───────────────────────────────────────────── */
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+        .section { padding: 100px 0; }
+        .section-tag {
+            display: inline-flex; align-items: center; gap: 8px;
+            font-size: .75rem; font-weight: 600; letter-spacing: 2px;
+            text-transform: uppercase; color: var(--clr-orange);
+            margin-bottom: 14px;
+        }
+        .section-tag::before {
+            content: ''; display: block; width: 28px; height: 2px;
+            background: var(--clr-orange); border-radius: 2px;
+        }
+        .section-title {
+            font-family: var(--font-display);
+            font-size: clamp(2rem, 5vw, 3rem);
+            font-weight: 700; line-height: 1.1;
+            color: var(--clr-white);
+        }
+        .section-title span { color: var(--clr-orange); }
+        .section-sub { color: var(--clr-muted); margin-top: 14px; max-width: 560px; font-size: .95rem; }
+        .btn {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 13px 28px; border-radius: 6px; font-weight: 600;
+            font-size: .9rem; cursor: pointer; border: none;
+            text-decoration: none; transition: all .25s;
+        }
+        .btn-primary {
+            background: var(--clr-orange);
+            color: #fff;
+            box-shadow: 0 0 24px rgba(249,115,22,.35);
+        }
+        .btn-primary:hover { background: #ea6305; transform: translateY(-2px); box-shadow: 0 8px 30px rgba(249,115,22,.45); }
+        .btn-outline {
+            background: transparent;
+            color: var(--clr-text);
+            border: 1.5px solid var(--clr-border);
+        }
+        .btn-outline:hover { border-color: var(--clr-orange); color: var(--clr-orange); transform: translateY(-2px); }
+
+        /* ── Noise texture overlay ─────────────────────────────── */
+        body::before {
+            content: '';
+            position: fixed; inset: 0; z-index: 0; pointer-events: none;
+            opacity: .025;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        }
+
+        /* ── NAVBAR ────────────────────────────────────────────── */
+        .navbar {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+            padding: 0 24px;
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            background: rgba(10,13,20,.82);
+            border-bottom: 1px solid rgba(255,255,255,.06);
+            transition: all .3s;
+        }
+        .navbar.scrolled { background: rgba(10,13,20,.96); }
+        .nav-inner {
+            max-width: 1200px; margin: 0 auto;
+            display: flex; align-items: center; justify-content: space-between;
+            height: 70px;
+        }
+        .logo {
+            display: flex; align-items: center; gap: 12px;
+            text-decoration: none;
+        }
+        .logo-icon {
+            width: 42px; height: 42px; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            overflow: hidden;
+        }
+        .logo-icon img { width: 42px; height: 42px; object-fit: cover; border-radius: 8px; }
+        .logo-icon svg { width: 24px; height: 24px; fill: #fff; }
+        .logo-text { font-family: var(--font-display); font-size: 1.15rem; font-weight: 700; color: var(--clr-white); line-height: 1.1; }
+        .logo-text span { display: block; font-size: .65rem; font-weight: 400; color: var(--clr-muted); letter-spacing: 1px; text-transform: uppercase; }
+        .nav-links { display: flex; align-items: center; gap: 32px; list-style: none; }
+        .nav-links a { text-decoration: none; color: var(--clr-muted); font-size: .88rem; font-weight: 500; transition: color .2s; position: relative; padding-bottom: 4px; }
+        .nav-links a::after { content: ''; position: absolute; bottom: -4px; left: 0; right: 0; height: 2px; background: var(--clr-orange); border-radius: 2px; transform: scaleX(0); transition: transform .25s; }
+        .nav-links a:hover { color: var(--clr-orange); }
+        .nav-links a:hover::after, .nav-links a.active::after { transform: scaleX(1); }
+        .nav-links a.active { color: var(--clr-orange); }
+        .nav-cta { display: flex; align-items: center; gap: 12px; }
+        .hamburger { display: none; flex-direction: column; gap: 5px; cursor: pointer; padding: 4px; }
+        .hamburger span { display: block; width: 22px; height: 2px; background: var(--clr-text); border-radius: 2px; transition: all .3s; }
+
+        /* ── HERO ──────────────────────────────────────────────── */
+        .hero {
+            min-height: 100vh; display: flex; align-items: center;
+            position: relative; overflow: hidden;
+            padding-top: 70px;
+        }
+        .hero-bg {
+            position: absolute; inset: 0; z-index: 0;
+            background:
+                radial-gradient(ellipse 80% 60% at 70% 50%, rgba(249,115,22,.08) 0%, transparent 70%),
+                radial-gradient(ellipse 60% 80% at 10% 80%, rgba(59,130,246,.06) 0%, transparent 60%),
+                linear-gradient(160deg, #0a0d14 0%, #101525 60%, #0a0d14 100%);
+        }
+        /* Animated grid lines */
+        .hero-grid {
+            position: absolute; inset: 0; z-index: 0; overflow: hidden;
+            background-image:
+                linear-gradient(rgba(249,115,22,.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(249,115,22,.04) 1px, transparent 1px);
+            background-size: 60px 60px;
+            mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black, transparent);
+        }
+        /* Speedometer decorative ring */
+        .hero-ring {
+            position: absolute; right: -80px; top: 50%; transform: translateY(-50%);
+            width: 680px; height: 680px; border-radius: 50%;
+            border: 1px solid rgba(249,115,22,.08);
+            animation: ringPulse 4s ease-in-out infinite;
+        }
+        .hero-ring::before {
+            content: ''; position: absolute; inset: 30px; border-radius: 50%;
+            border: 1px solid rgba(249,115,22,.12);
+        }
+        .hero-ring::after {
+            content: ''; position: absolute; inset: 90px; border-radius: 50%;
+            border: 2px solid rgba(249,115,22,.18);
+            box-shadow: inset 0 0 80px rgba(249,115,22,.06);
+        }
+        @keyframes ringPulse { 0%,100%{opacity:.6;transform:translateY(-50%) scale(1)} 50%{opacity:1;transform:translateY(-50%) scale(1.02)} }
+
+        /* Floating particles */
+        .particles { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+        .particle {
+            position: absolute; border-radius: 50%;
+            background: var(--clr-orange); opacity: 0;
+            animation: float linear infinite;
+        }
+        @keyframes float {
+            0%   { transform: translateY(100vh) scale(0); opacity: 0; }
+            10%  { opacity: .5; }
+            90%  { opacity: .2; }
+            100% { transform: translateY(-10vh) scale(1); opacity: 0; }
+        }
+
+        .hero-content { position: relative; z-index: 1; }
+        .hero-eyebrow {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: rgba(249,115,22,.1); border: 1px solid rgba(249,115,22,.25);
+            border-radius: 100px; padding: 6px 16px;
+            font-size: .75rem; font-weight: 600; color: var(--clr-orange);
+            letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 28px;
+        }
+        .hero-eyebrow::before { content: '●'; font-size: .5rem; animation: blink 1.5s ease-in-out infinite; }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
+        .hero-h1 {
+            font-family: var(--font-display);
+            font-size: clamp(2.8rem, 7vw, 5.2rem);
+            font-weight: 700; line-height: 1.0; color: var(--clr-white);
+            margin-bottom: 24px;
+        }
+        .hero-h1 .highlight {
+            position: relative; display: inline-block;
+            background: linear-gradient(135deg, var(--clr-orange), var(--clr-amber));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .hero-h1 .line2 { display: block; }
+        .hero-desc {
+            font-size: 1.05rem; color: var(--clr-muted); max-width: 520px;
+            margin-bottom: 36px; line-height: 1.75;
+        }
+        .hero-actions { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+        .hero-stats {
+            display: flex; gap: 40px; margin-top: 56px;
+            padding-top: 40px; border-top: 1px solid var(--clr-border);
+        }
+        .stat-item {}
+        .stat-number {
+            font-family: var(--font-display); font-size: 2rem; font-weight: 700;
+            color: var(--clr-white); line-height: 1;
+        }
+        .stat-number span { color: var(--clr-orange); }
+        .stat-label { font-size: .78rem; color: var(--clr-muted); margin-top: 4px; letter-spacing: .5px; }
+
+        /* scroll indicator */
+        .scroll-indicator {
+            position: absolute; bottom: 36px; left: 50%; transform: translateX(-50%);
+            display: flex; flex-direction: column; align-items: center; gap: 8px;
+            color: var(--clr-muted); font-size: .72rem; letter-spacing: 1px; z-index: 1;
+            animation: bounce 2s ease-in-out infinite;
+        }
+        .scroll-indicator svg { width: 18px; height: 18px; stroke: var(--clr-muted); }
+        @keyframes bounce { 0%,100%{transform:translateX(-50%) translateY(0)} 50%{transform:translateX(-50%) translateY(6px)} }
+
+        /* ── BRANDS STRIP ──────────────────────────────────────── */
+        .brands-strip {
+            padding: 28px 0;
+            border-top: 1px solid var(--clr-border);
+            border-bottom: 1px solid var(--clr-border);
+            background: var(--clr-surface);
+        }
+        .brands-inner {
+            max-width: 1200px; margin: 0 auto; padding: 0 24px;
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 32px; flex-wrap: wrap;
+        }
+        .brand-badge {
+            display: flex; align-items: center; gap: 12px;
+            color: var(--clr-muted); font-size: .82rem; font-weight: 600;
+            letter-spacing: .5px; text-transform: uppercase;
+        }
+        .brand-badge-icon {
+            width: 36px; height: 36px; border-radius: 6px;
+            background: linear-gradient(135deg, rgba(249,115,22,.15), rgba(249,115,22,.05));
+            border: 1px solid rgba(249,115,22,.2);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .brand-badge-icon svg { width: 20px; height: 20px; stroke: var(--clr-orange); fill: none; }
+        .brand-badge .auth { font-size: .65rem; color: var(--clr-orange); display: block; text-transform: uppercase; letter-spacing: 1px; }
+        .divider-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--clr-border); }
+
+        /* ── ABOUT ─────────────────────────────────────────────── */
+        .about-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 72px; align-items: center; }
+        .about-visual { position: relative; }
+        .about-img-wrap {
+            position: relative; border-radius: 16px; overflow: visible;
+            background: var(--clr-card); border: 1px solid var(--clr-border);
+            padding: 40px;
+            display: flex; align-items: center; justify-content: center;
+            min-height: 420px;
+        }
+        /* Decorative machinery SVG illustration placeholder */
+        .mach-illustration { width: 100%; max-width: 340px; }
+        .about-badge {
+            position: absolute; bottom: -20px; right: -20px;
+            background: linear-gradient(135deg, var(--clr-orange), #c2400a);
+            color: #fff; border-radius: 12px; padding: 18px 22px;
+            font-family: var(--font-display); font-size: 1.5rem; font-weight: 700;
+            box-shadow: 0 16px 40px rgba(249,115,22,.4); text-align: center; line-height: 1.1;
+        }
+        .about-badge span { display: block; font-size: .65rem; font-weight: 400; letter-spacing: 1px; opacity: .85; }
+        .about-features { margin-top: 32px; display: flex; flex-direction: column; gap: 16px; }
+        .about-feat {
+            display: flex; align-items: flex-start; gap: 14px;
+            padding: 16px; border-radius: 10px;
+            background: var(--clr-card); border: 1px solid var(--clr-border);
+            transition: border-color .2s;
+        }
+        .about-feat:hover { border-color: rgba(249,115,22,.3); }
+        .feat-icon {
+            width: 38px; height: 38px; border-radius: 8px; flex-shrink: 0;
+            background: rgba(249,115,22,.1); border: 1px solid rgba(249,115,22,.2);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .feat-icon svg { width: 18px; height: 18px; stroke: var(--clr-orange); fill: none; }
+        .feat-text strong { display: block; font-size: .9rem; color: var(--clr-white); margin-bottom: 3px; }
+        .feat-text p { font-size: .8rem; color: var(--clr-muted); }
+
+        /* ── PRODUCTS ──────────────────────────────────────────── */
+        .products-section { background: var(--clr-surface); }
+        .products-header { text-align: center; margin-bottom: 60px; }
+        .products-header .section-sub { margin: 14px auto 0; }
+        .products-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+        .product-card {
+            background: var(--clr-card); border: 1px solid var(--clr-border);
+            border-radius: 16px; overflow: hidden;
+            transition: transform .3s, border-color .3s, box-shadow .3s;
+            position: relative;
+        }
+        .product-card::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+            background: linear-gradient(90deg, var(--clr-orange), var(--clr-amber));
+            opacity: 0; transition: opacity .3s;
+        }
+        .product-card:hover { transform: translateY(-8px); border-color: rgba(249,115,22,.25); box-shadow: 0 24px 60px rgba(0,0,0,.4); }
+        .product-card:hover::before { opacity: 1; }
+        .product-img {
+            height: 220px; background: linear-gradient(135deg, #101a30, #1a2540);
+            display: flex; align-items: center; justify-content: center;
+            position: relative; overflow: hidden;
+        }
+        .product-img-bg {
+            position: absolute; inset: 0;
+            background-image: linear-gradient(rgba(249,115,22,.03) 1px, transparent 1px), linear-gradient(90deg, rgba(249,115,22,.03) 1px, transparent 1px);
+            background-size: 30px 30px;
+        }
+        .product-img svg { width: 100px; height: 100px; position: relative; z-index: 1; }
+        .product-badge {
+            position: absolute; top: 16px; right: 16px;
+            background: rgba(249,115,22,.15); border: 1px solid rgba(249,115,22,.3);
+            color: var(--clr-orange); font-size: .68rem; font-weight: 700;
+            letter-spacing: 1px; text-transform: uppercase;
+            padding: 4px 10px; border-radius: 4px;
+        }
+        .product-body { padding: 24px; }
+        .product-brand {
+            font-size: .7rem; font-weight: 600; letter-spacing: 1.5px;
+            text-transform: uppercase; color: var(--clr-orange); margin-bottom: 8px;
+        }
+        .product-name {
+            font-family: var(--font-display); font-size: 1.35rem; font-weight: 700;
+            color: var(--clr-white); margin-bottom: 10px;
+        }
+        .product-desc { font-size: .82rem; color: var(--clr-muted); line-height: 1.65; margin-bottom: 20px; }
+        .product-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+        .tag {
+            background: rgba(59,130,246,.08); border: 1px solid rgba(59,130,246,.15);
+            color: #93c5fd; font-size: .7rem; padding: 3px 10px; border-radius: 4px;
+        }
+
+        /* ── WHY CHOOSE US ─────────────────────────────────────── */
+        .why-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-top: 56px; }
+        .why-card {
+            background: var(--clr-card); border: 1px solid var(--clr-border);
+            border-radius: 14px; padding: 28px 22px; text-align: center;
+            transition: all .3s; position: relative; overflow: hidden;
+        }
+        .why-card::after {
+            content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px;
+            background: linear-gradient(90deg, var(--clr-orange), var(--clr-amber));
+            transform: scaleX(0); transition: transform .3s;
+        }
+        .why-card:hover { transform: translateY(-6px); box-shadow: 0 20px 50px rgba(0,0,0,.35); border-color: rgba(249,115,22,.2); }
+        .why-card:hover::after { transform: scaleX(1); }
+        .why-num {
+            font-family: var(--font-display); font-size: 3.5rem; font-weight: 700;
+            color: rgba(249,115,22,.08); line-height: 1; position: absolute;
+            top: 14px; right: 16px;
+        }
+        .why-icon {
+            width: 52px; height: 52px; border-radius: 12px; margin: 0 auto 18px;
+            background: rgba(249,115,22,.1); border: 1px solid rgba(249,115,22,.2);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .why-icon svg { width: 24px; height: 24px; stroke: var(--clr-orange); fill: none; }
+        .why-title { font-family: var(--font-display); font-size: 1.1rem; font-weight: 700; color: var(--clr-white); margin-bottom: 10px; }
+        .why-desc { font-size: .8rem; color: var(--clr-muted); line-height: 1.65; }
+
+        /* ── TESTIMONIALS ──────────────────────────────────────── */
+        .testi-section { background: var(--clr-surface); }
+        .testi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 56px; }
+        .testi-card {
+            background: var(--clr-card); border: 1px solid var(--clr-border);
+            border-radius: 14px; padding: 28px;
+            transition: all .25s;
+        }
+        .testi-card:hover { border-color: rgba(249,115,22,.25); transform: translateY(-4px); }
+        .testi-stars { color: var(--clr-amber); font-size: 1rem; margin-bottom: 14px; letter-spacing: 2px; }
+        .testi-text { font-size: .88rem; color: var(--clr-muted); line-height: 1.75; margin-bottom: 20px; font-style: italic; }
+        .testi-author { display: flex; align-items: center; gap: 12px; }
+        .testi-avatar {
+            width: 40px; height: 40px; border-radius: 50%;
+            background: linear-gradient(135deg, var(--clr-orange), #c2400a);
+            display: flex; align-items: center; justify-content: center;
+            font-family: var(--font-display); font-size: 1rem; font-weight: 700; color: #fff;
+        }
+        .testi-name { font-size: .88rem; font-weight: 600; color: var(--clr-white); }
+        .testi-role { font-size: .72rem; color: var(--clr-muted); }
+
+        /* ── SERVICES ──────────────────────────────────────────── */
+        .services-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 56px; }
+        .service-card {
+            padding: 28px; border-radius: 14px;
+            border: 1px solid var(--clr-border); background: var(--clr-card);
+            transition: all .25s; position: relative; overflow: hidden;
+        }
+        .service-card::before {
+            content: ''; position: absolute; top: -40px; right: -40px;
+            width: 100px; height: 100px; border-radius: 50%;
+            background: radial-gradient(circle, rgba(249,115,22,.08), transparent);
+        }
+        .service-card:hover { border-color: rgba(249,115,22,.3); transform: translateY(-4px); }
+        .service-num { font-family: var(--font-display); font-size: .75rem; font-weight: 700; color: var(--clr-orange); letter-spacing: 2px; margin-bottom: 14px; }
+        .service-title { font-family: var(--font-display); font-size: 1.2rem; font-weight: 700; color: var(--clr-white); margin-bottom: 10px; }
+        .service-desc { font-size: .82rem; color: var(--clr-muted); line-height: 1.7; }
+
+        /* ── CONTACT ───────────────────────────────────────────── */
+        .contact-section { background: var(--clr-surface); }
+        .contact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: start; }
+        .contact-info { display: flex; flex-direction: column; gap: 24px; margin-top: 32px; }
+        .contact-item {
+            display: flex; align-items: flex-start; gap: 16px;
+            padding: 20px; border-radius: 12px;
+            background: var(--clr-card); border: 1px solid var(--clr-border);
+        }
+        .contact-icon {
+            width: 44px; height: 44px; border-radius: 10px; flex-shrink: 0;
+            background: rgba(249,115,22,.1); border: 1px solid rgba(249,115,22,.2);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .contact-icon svg { width: 20px; height: 20px; stroke: var(--clr-orange); fill: none; }
+        .contact-item strong { display: block; font-size: .8rem; color: var(--clr-muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .5px; }
+        .contact-item p { font-size: .92rem; color: var(--clr-text); }
+        .contact-form { background: var(--clr-card); border: 1px solid var(--clr-border); border-radius: 16px; padding: 36px; }
+        .form-title { font-family: var(--font-display); font-size: 1.35rem; font-weight: 700; color: var(--clr-white); margin-bottom: 24px; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .form-group { margin-bottom: 18px; }
+        .form-group label { display: block; font-size: .8rem; font-weight: 600; color: var(--clr-muted); margin-bottom: 7px; text-transform: uppercase; letter-spacing: .5px; }
+        .form-control {
+            width: 100%; padding: 12px 16px;
+            background: rgba(255,255,255,.04); border: 1px solid var(--clr-border);
+            border-radius: 8px; color: var(--clr-text); font-size: .9rem;
+            outline: none; transition: border-color .2s, box-shadow .2s;
+            font-family: var(--font-body);
+        }
+        .form-control:focus { border-color: var(--clr-orange); box-shadow: 0 0 0 3px rgba(249,115,22,.12); }
+        .form-control::placeholder { color: rgba(136,152,170,.5); }
+        textarea.form-control { resize: vertical; min-height: 110px; }
+        select.form-control { cursor: pointer; }
+        select.form-control option { background: var(--clr-card); }
+
+        /* ── CTA BANNER ────────────────────────────────────────── */
+        .cta-banner {
+            padding: 80px 24px; text-align: center;
+            background: linear-gradient(135deg, rgba(249,115,22,.08) 0%, rgba(251,191,36,.04) 100%);
+            border-top: 1px solid var(--clr-border);
+            border-bottom: 1px solid var(--clr-border);
+            position: relative; overflow: hidden;
+        }
+        .cta-banner::before {
+            content: ''; position: absolute; top: -80px; left: 50%; transform: translateX(-50%);
+            width: 500px; height: 300px; border-radius: 50%;
+            background: radial-gradient(ellipse, rgba(249,115,22,.12), transparent);
+            pointer-events: none;
+        }
+        .cta-banner h2 { font-family: var(--font-display); font-size: clamp(2rem, 5vw, 3rem); font-weight: 700; color: var(--clr-white); margin-bottom: 14px; }
+        .cta-banner p { color: var(--clr-muted); max-width: 500px; margin: 0 auto 32px; }
+        .cta-actions { display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; }
+
+        /* ── FOOTER ────────────────────────────────────────────── */
+        .footer {
+            background: var(--clr-surface); border-top: 1px solid var(--clr-border);
+            padding: 64px 0 28px;
+        }
+        .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 40px; margin-bottom: 48px; }
+        .footer-about { max-width: 280px; }
+        .footer-about p { font-size: .84rem; color: var(--clr-muted); margin-top: 14px; line-height: 1.7; }
+        .footer-col h4 { font-family: var(--font-display); font-size: .95rem; font-weight: 700; color: var(--clr-white); margin-bottom: 16px; letter-spacing: .5px; }
+        .footer-links { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+        .footer-links a { text-decoration: none; font-size: .84rem; color: var(--clr-muted); transition: color .2s; }
+        .footer-links a:hover { color: var(--clr-orange); }
+        .footer-bottom {
+            border-top: 1px solid var(--clr-border); padding-top: 24px;
+            display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+        }
+        .footer-bottom p { font-size: .8rem; color: var(--clr-muted); }
+        .social-links { display: flex; gap: 10px; }
+        .social-link {
+            width: 34px; height: 34px; border-radius: 7px; border: 1px solid var(--clr-border);
+            display: flex; align-items: center; justify-content: center; transition: all .2s;
+        }
+        .social-link:hover { border-color: var(--clr-orange); background: rgba(249,115,22,.08); }
+        .social-link svg { width: 16px; height: 16px; stroke: var(--clr-muted); fill: none; }
+        .social-link:hover svg { stroke: var(--clr-orange); }
+
+        /* ── Animations ────────────────────────────────────────── */
+        .fade-up {
+            opacity: 0; transform: translateY(32px);
+            transition: opacity .65s ease, transform .65s ease;
+        }
+        .fade-up.visible { opacity: 1; transform: translateY(0); }
+        .fade-up:nth-child(2) { transition-delay: .1s; }
+        .fade-up:nth-child(3) { transition-delay: .2s; }
+        .fade-up:nth-child(4) { transition-delay: .3s; }
+
+        /* ── Responsive ────────────────────────────────────────── */
+        @media (max-width: 1024px) {
+            .products-grid, .services-grid { grid-template-columns: repeat(2, 1fr); }
+            .why-grid { grid-template-columns: repeat(2, 1fr); }
+            .about-grid, .contact-grid { grid-template-columns: 1fr; }
+            .footer-grid { grid-template-columns: 1fr 1fr; }
+            .testi-grid { grid-template-columns: 1fr 1fr; }
+            .hero-ring { display: none; }
+        }
+        @media (max-width: 768px) {
+            .nav-links, .nav-cta .btn { display: none; }
+            .hamburger { display: flex; }
+            .products-grid, .services-grid, .testi-grid, .why-grid { grid-template-columns: 1fr; }
+            .footer-grid { grid-template-columns: 1fr; }
+            .hero-stats { gap: 24px; flex-wrap: wrap; }
+            .form-row { grid-template-columns: 1fr; }
+        }
+
+        /* Toast Notifications */
+        #toast-container { position:fixed; bottom:28px; right:28px; z-index:9999; display:flex; flex-direction:column; gap:10px; }
+        .toast { min-width:280px; max-width:360px; padding:14px 18px; border-radius:10px; font-size:.88rem; font-weight:500; color:#fff; display:flex; align-items:flex-start; gap:12px; box-shadow:0 8px 30px rgba(0,0,0,.35); animation:toastIn .3s ease; }
+        @keyframes toastIn { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+        .toast.success { background:#16a34a; border-left:4px solid #4ade80; }
+        .toast.error   { background:#b91c1c; border-left:4px solid #f87171; }
+        .toast.warning { background:#b45309; border-left:4px solid #fbbf24; }
+        .toast-icon { font-size:1.1rem; flex-shrink:0; margin-top:1px; }
+        .toast-body { flex:1; }
+        .toast-title { font-weight:700; font-size:.9rem; margin-bottom:2px; }
+        .toast-msg   { font-size:.82rem; opacity:.9; }
+        .form-control.field-error { border-color:#f87171 !important; box-shadow:0 0 0 3px rgba(248,113,113,.15) !important; }
+    </style>
+</head>
+<body>
+
+<!-- ── NAVBAR ─────────────────────────────────────────────────────── -->
+<nav class="navbar" id="navbar">
+    <div class="nav-inner">
+        <a href="#" class="logo">
+            <div class="logo-icon">
+                <img src="https://pub-bb40942a33344637936ade1f3800ff8b.r2.dev/Global/favicon_io/android-chrome-512x512-1.png" alt="Rishika2K Enterprises Logo" />
+            </div>
+            <div class="logo-text">
+                Rishika2K Enterprises
+                <span>Authorized Dealer · Est. Since 2020</span>
+            </div>
+        </a>
+
+        <ul class="nav-links">
+            <li><a href="#about">About</a></li>
+            <li><a href="#products">Products</a></li>
+            <li><a href="#services">Services</a></li>
+            <li><a href="#why-us">Why Us</a></li>
+            <li><a href="#contact">Contact</a></li>
+        </ul>
+
+        <div class="nav-cta">
+            <a href="#contact" class="btn btn-primary">Get a Quote</a>
+        </div>
+
+        <div class="hamburger" id="hamburger" onclick="toggleMenu()">
+            <span></span><span></span><span></span>
+        </div>
+    </div>
+</nav>
+
+<!-- ── HERO ───────────────────────────────────────────────────────── -->
+<section class="hero" id="home">
+    <div class="hero-bg"></div>
+    <div class="hero-grid"></div>
+    <div class="hero-ring"></div>
+
+    <!-- Floating particles -->
+    <div class="particles" id="particles"></div>
+
+    <div class="container">
+        <div class="hero-content">
+            <div class="hero-eyebrow">Authorized Dealer — Rotoking &amp; Bharat Baler</div>
+
+            <h1 class="hero-h1">
+                <span class="highlight">Power Your</span>
+                <span class="line2">Fields. Drive</span>
+                <span class="line2">Your Growth.</span>
+            </h1>
+
+            <p class="hero-desc">
+                Premium agricultural machinery — Rotavators, Balers, Harvesters and genuine spare parts.
+                Serving retailers and wholesalers across the region with trusted dealership excellence.
+            </p>
+
+            <div class="hero-actions">
+                <a href="#products" class="btn btn-primary">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                        <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                    </svg>
+                    Explore Products
+                </a>
+                <a href="#contact" class="btn btn-outline">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.27h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.37a16 16 0 0 0 6.72 6.72l1.56-.94a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+                    </svg>
+                    Contact Us
+                </a>
+            </div>
+
+            <div class="hero-stats">
+                <div class="stat-item">
+                    <div class="stat-number">500<span>+</span></div>
+                    <div class="stat-label">Machines Sold</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">5<span>+</span></div>
+                    <div class="stat-label">Years Experience</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">200<span>+</span></div>
+                    <div class="stat-label">Happy Clients</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">2</div>
+                    <div class="stat-label">Authorized Brands</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="scroll-indicator">
+        <span>SCROLL</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+            <path d="M12 5v14M5 12l7 7 7-7"/>
+        </svg>
+    </div>
+</section>
+
+<!-- ── AUTHORIZED BRANDS STRIP ─────────────────────────────────────── -->
+<div class="brands-strip">
+    <div class="brands-inner">
+        <div class="brand-badge">
+            <div class="brand-badge-icon">
+                <svg viewBox="0 0 24 24" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07M8.46 8.46a5 5 0 0 0 0 7.07"/></svg>
+            </div>
+            <div>
+                <span class="auth">Authorized Dealer</span>
+                Rotoking Rotavator
+            </div>
+        </div>
+        <div class="divider-dot"></div>
+        <div class="brand-badge">
+            <div class="brand-badge-icon">
+                <svg viewBox="0 0 24 24" stroke-width="1.8"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+            </div>
+            <div>
+                <span class="auth">Authorized Dealer</span>
+                Bharat Baler
+            </div>
+        </div>
+        <div class="divider-dot"></div>
+        <div class="brand-badge">
+            <div class="brand-badge-icon">
+                <svg viewBox="0 0 24 24" stroke-width="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+            <div>
+                <span class="auth">Genuine Parts</span>
+                OEM Spare Parts
+            </div>
+        </div>
+        <div class="divider-dot"></div>
+        <div class="brand-badge">
+            <div class="brand-badge-icon">
+                <svg viewBox="0 0 24 24" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            </div>
+            <div>
+                <span class="auth">Premium Quality</span>
+                Harvesting Machines
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── ABOUT ────────────────────────────────────────────────────────── -->
+<section class="section" id="about">
+    <div class="container">
+        <div class="about-grid">
+
+            <div class="about-visual fade-up">
+                <div class="about-img-wrap">
+                    <!-- Machinery Illustration -->
+                    <svg class="mach-illustration" viewBox="0 0 400 320" xmlns="http://www.w3.org/2000/svg" fill="none">
+                        <!-- Rotavator schematic -->
+                        <g opacity="0.9">
+                            <!-- Main body -->
+                            <rect x="80" y="80" width="240" height="100" rx="12" fill="#1a2540" stroke="#f97316" stroke-width="1.5"/>
+                            <!-- Engine block -->
+                            <rect x="100" y="60" width="80" height="50" rx="6" fill="#111a2f" stroke="#f97316" stroke-width="1.2"/>
+                            <!-- Exhaust pipe -->
+                            <path d="M140 60 L140 30 Q140 20 155 20 L180 20" stroke="#f97316" stroke-width="2" stroke-linecap="round"/>
+                            <!-- Handle -->
+                            <path d="M300 100 L340 70 Q355 55 360 50" stroke="#fbbf24" stroke-width="2.5" stroke-linecap="round"/>
+                            <path d="M360 50 L375 50 M360 50 L370 38" stroke="#fbbf24" stroke-width="2.5" stroke-linecap="round"/>
+                            <!-- Rotor tines -->
+                            <line x1="110" y1="180" x2="100" y2="220" stroke="#f97316" stroke-width="2.5" stroke-linecap="round"/>
+                            <line x1="130" y1="180" x2="118" y2="225" stroke="#f97316" stroke-width="2.5" stroke-linecap="round"/>
+                            <line x1="150" y1="180" x2="148" y2="226" stroke="#f97316" stroke-width="2.5" stroke-linecap="round"/>
+                            <line x1="170" y1="180" x2="175" y2="224" stroke="#f97316" stroke-width="2.5" stroke-linecap="round"/>
+                            <line x1="190" y1="180" x2="200" y2="222" stroke="#f97316" stroke-width="2.5" stroke-linecap="round"/>
+                            <line x1="210" y1="180" x2="224" y2="218" stroke="#f97316" stroke-width="2.5" stroke-linecap="round"/>
+                            <line x1="230" y1="180" x2="244" y2="215" stroke="#f97316" stroke-width="2.5" stroke-linecap="round"/>
+                            <line x1="250" y1="180" x2="260" y2="218" stroke="#f97316" stroke-width="2.5" stroke-linecap="round"/>
+                            <line x1="270" y1="180" x2="278" y2="220" stroke="#f97316" stroke-width="2.5" stroke-linecap="round"/>
+                            <line x1="290" y1="180" x2="294" y2="222" stroke="#f97316" stroke-width="2.5" stroke-linecap="round"/>
+                            <!-- Ground line -->
+                            <path d="M60 234 L340 234" stroke="#2d3a55" stroke-width="2" stroke-dasharray="8 4"/>
+                            <!-- Wheel -->
+                            <circle cx="85" cy="185" r="22" fill="#111a2f" stroke="#3b82f6" stroke-width="1.5"/>
+                            <circle cx="85" cy="185" r="10" fill="#1a2540" stroke="#3b82f6" stroke-width="1"/>
+                            <!-- Decorative bolts -->
+                            <circle cx="115" cy="105" r="4" fill="#f97316" opacity="0.6"/>
+                            <circle cx="160" cy="105" r="4" fill="#f97316" opacity="0.6"/>
+                            <circle cx="205" cy="105" r="4" fill="#f97316" opacity="0.6"/>
+                            <circle cx="250" cy="105" r="4" fill="#f97316" opacity="0.6"/>
+                            <circle cx="295" cy="105" r="4" fill="#f97316" opacity="0.6"/>
+                            <!-- Power indicator glow -->
+                            <circle cx="165" cy="80" r="6" fill="#f97316" opacity="0.8">
+                                <animate attributeName="opacity" values="0.8;0.3;0.8" dur="2s" repeatCount="indefinite"/>
+                            </circle>
+                            <!-- Label text -->
+                            <text x="140" y="140" font-size="11" fill="#8898aa" font-family="monospace" letter-spacing="2">ROTAVATOR</text>
+                        </g>
+                        <!-- Ground soil effect -->
+                        <path d="M70 234 Q120 244 200 237 Q280 230 330 240" stroke="#2d3a55" stroke-width="1" fill="none" opacity="0.5"/>
+                    </svg>
+                    <div class="about-badge">
+                        5+<span>Years<br>Trusted Dealer</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="fade-up">
+                <div class="section-tag">About Us</div>
+                <h2 class="section-title">Powering Agriculture with <span>Precision Machinery</span></h2>
+                <p class="section-sub">
+                    Rishika2K Enterprises is an authorized dealership for premium agricultural machinery.
+                    We supply Rotoking Rotavators, Bharat Balers, harvesting machines, and genuine OEM
+                    spare parts to retailers and wholesalers across the region.
+                </p>
+
+                <div class="about-features">
+                    <div class="about-feat">
+                        <div class="feat-icon">
+                            <svg viewBox="0 0 24 24" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                        </div>
+                        <div class="feat-text">
+                            <strong>Authorized Dealership</strong>
+                            <p>Certified dealer for Rotoking and Bharat Baler — guaranteeing original, warranty-backed machinery.</p>
+                        </div>
+                    </div>
+                    <div class="about-feat">
+                        <div class="feat-icon">
+                            <svg viewBox="0 0 24 24" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                        </div>
+                        <div class="feat-text">
+                            <strong>Genuine Spare Parts</strong>
+                            <p>Fast availability of OEM spare parts to minimize machine downtime on your farm.</p>
+                        </div>
+                    </div>
+                    <div class="about-feat">
+                        <div class="feat-icon">
+                            <svg viewBox="0 0 24 24" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        </div>
+                        <div class="feat-text">
+                            <strong>Wholesale &amp; Retail Supply</strong>
+                            <p>Flexible purchasing options for retailers, wholesalers and bulk buyers with competitive pricing.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- ── PRODUCTS ──────────────────────────────────────────────────────── -->
+<section class="section products-section" id="products">
+    <div class="container">
+        <div class="products-header">
+            <div class="section-tag">Our Products</div>
+            <h2 class="section-title">Built for the <span>Toughest Fields</span></h2>
+            <p class="section-sub">From soil preparation to harvesting — we supply the complete range of premium agricultural machinery.</p>
+        </div>
+
+        <div class="products-grid">
+
+            <!-- Rotavator -->
+            <div class="product-card fade-up">
+                <div class="product-img">
+                    <div class="product-img-bg"></div>
+                    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" fill="none">
+                        <rect x="20" y="30" width="60" height="28" rx="5" fill="#1a2540" stroke="#f97316" stroke-width="1.5"/>
+                        <rect x="28" y="18" width="24" height="18" rx="3" fill="#111a2f" stroke="#f97316" stroke-width="1"/>
+                        <path d="M38 18 L38 8 Q38 4 44 4 L56 4" stroke="#f97316" stroke-width="1.5" stroke-linecap="round"/>
+                        <line x1="25" y1="58" x2="22" y2="78" stroke="#f97316" stroke-width="2" stroke-linecap="round"/>
+                        <line x1="35" y1="58" x2="30" y2="80" stroke="#f97316" stroke-width="2" stroke-linecap="round"/>
+                        <line x1="45" y1="58" x2="44" y2="81" stroke="#f97316" stroke-width="2" stroke-linecap="round"/>
+                        <line x1="55" y1="58" x2="58" y2="81" stroke="#f97316" stroke-width="2" stroke-linecap="round"/>
+                        <line x1="65" y1="58" x2="70" y2="79" stroke="#f97316" stroke-width="2" stroke-linecap="round"/>
+                        <line x1="75" y1="58" x2="78" y2="77" stroke="#f97316" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M75 36 L88 26 L92 24" stroke="#fbbf24" stroke-width="1.5" stroke-linecap="round"/>
+                        <circle cx="40" cy="43" r="3" fill="#f97316" opacity="0.7">
+                            <animate attributeName="opacity" values="0.7;0.2;0.7" dur="1.8s" repeatCount="indefinite"/>
+                        </circle>
+                    </svg>
+                    <div class="product-badge">Best Seller</div>
+                </div>
+                <div class="product-body">
+                    <div class="product-brand">Rotoking</div>
+                    <div class="product-name">Rotavator</div>
+                    <p class="product-desc">High-performance rotavators for perfect soil preparation. Multiple blade configurations for all soil types. Reduces tillage time by up to 60%.</p>
+                    <div class="product-tags">
+                        <span class="tag">Soil Tilling</span>
+                        <span class="tag">Multi-blade</span>
+                        <span class="tag">Tractor Mount</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Baler -->
+            <div class="product-card fade-up">
+                <div class="product-img">
+                    <div class="product-img-bg"></div>
+                    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" fill="none">
+                        <!-- Baler body -->
+                        <rect x="15" y="28" width="70" height="44" rx="6" fill="#1a2540" stroke="#f97316" stroke-width="1.5"/>
+                        <!-- Bale output -->
+                        <rect x="62" y="36" width="28" height="28" rx="4" fill="#111a2f" stroke="#fbbf24" stroke-width="1.2"/>
+                        <line x1="68" y1="36" x2="68" y2="64" stroke="#fbbf24" stroke-width="1" opacity="0.5"/>
+                        <line x1="74" y1="36" x2="74" y2="64" stroke="#fbbf24" stroke-width="1" opacity="0.5"/>
+                        <line x1="80" y1="36" x2="80" y2="64" stroke="#fbbf24" stroke-width="1" opacity="0.5"/>
+                        <line x1="62" y1="44" x2="90" y2="44" stroke="#fbbf24" stroke-width="1" opacity="0.5"/>
+                        <line x1="62" y1="56" x2="90" y2="56" stroke="#fbbf24" stroke-width="1" opacity="0.5"/>
+                        <!-- Intake chute -->
+                        <path d="M15 42 L2 38 L2 62 L15 58" fill="#111a2f" stroke="#f97316" stroke-width="1.2"/>
+                        <!-- Wheels -->
+                        <circle cx="28" cy="72" r="10" fill="#111a2f" stroke="#3b82f6" stroke-width="1.5"/>
+                        <circle cx="28" cy="72" r="4" fill="#1a2540" stroke="#3b82f6"/>
+                        <circle cx="58" cy="72" r="10" fill="#111a2f" stroke="#3b82f6" stroke-width="1.5"/>
+                        <circle cx="58" cy="72" r="4" fill="#1a2540" stroke="#3b82f6"/>
+                        <!-- Activity indicator -->
+                        <circle cx="38" cy="42" r="3" fill="#f97316" opacity="0.8">
+                            <animate attributeName="r" values="3;5;3" dur="2s" repeatCount="indefinite"/>
+                            <animate attributeName="opacity" values="0.8;0.3;0.8" dur="2s" repeatCount="indefinite"/>
+                        </circle>
+                    </svg>
+                </div>
+                <div class="product-body">
+                    <div class="product-brand">Bharat Baler</div>
+                    <div class="product-name">Baler Machine</div>
+                    <p class="product-desc">Efficient baling machines for straw, hay and crop residue. Compact square and round bale options for easy storage and transport.</p>
+                    <div class="product-tags">
+                        <span class="tag">Straw Baling</span>
+                        <span class="tag">Hay Baler</span>
+                        <span class="tag">High Output</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Harvester -->
+            <div class="product-card fade-up">
+                <div class="product-img">
+                    <div class="product-img-bg"></div>
+                    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" fill="none">
+                        <!-- Main cab -->
+                        <rect x="40" y="22" width="40" height="32" rx="4" fill="#1a2540" stroke="#f97316" stroke-width="1.5"/>
+                        <!-- Windshield -->
+                        <rect x="46" y="27" width="28" height="16" rx="2" fill="#0f1829" stroke="#3b82f6" stroke-width="1"/>
+                        <!-- Header/cutter bar -->
+                        <rect x="8" y="46" width="54" height="14" rx="3" fill="#111a2f" stroke="#f97316" stroke-width="1.2"/>
+                        <!-- Cutter teeth -->
+                        <path d="M12 60 L16 70 L20 60" fill="#f97316" opacity="0.7"/>
+                        <path d="M22 60 L26 70 L30 60" fill="#f97316" opacity="0.7"/>
+                        <path d="M32 60 L36 70 L40 60" fill="#f97316" opacity="0.7"/>
+                        <path d="M42 60 L46 70 L50 60" fill="#f97316" opacity="0.7"/>
+                        <!-- Large drive wheels -->
+                        <circle cx="68" cy="70" r="16" fill="#111a2f" stroke="#3b82f6" stroke-width="1.5"/>
+                        <circle cx="68" cy="70" r="7" fill="#1a2540" stroke="#3b82f6"/>
+                        <!-- Small front wheel -->
+                        <circle cx="22" cy="74" r="8" fill="#111a2f" stroke="#3b82f6" stroke-width="1.5"/>
+                        <circle cx="22" cy="74" r="3" fill="#1a2540" stroke="#3b82f6"/>
+                        <!-- Grain tank -->
+                        <rect x="56" y="14" width="24" height="16" rx="2" fill="#1a2f20" stroke="#22c55e" stroke-width="1"/>
+                        <!-- Exhaust -->
+                        <path d="M76 22 L76 8" stroke="#8898aa" stroke-width="2" stroke-linecap="round"/>
+                        <ellipse cx="76" cy="8" rx="4" ry="2" fill="#8898aa" opacity="0.4"/>
+                        <!-- Running light -->
+                        <circle cx="52" cy="38" r="2" fill="#fbbf24" opacity="0.9">
+                            <animate attributeName="opacity" values="0.9;0.3;0.9" dur="1.5s" repeatCount="indefinite"/>
+                        </circle>
+                    </svg>
+                    <div class="product-badge">Premium</div>
+                </div>
+                <div class="product-body">
+                    <div class="product-brand">Harvesting</div>
+                    <div class="product-name">Harvesting Machine</div>
+                    <p class="product-desc">Self-propelled and tractor-mounted harvesters for paddy, wheat and other crops. High throughput with minimal grain loss.</p>
+                    <div class="product-tags">
+                        <span class="tag">Paddy</span>
+                        <span class="tag">Wheat</span>
+                        <span class="tag">Self-Propelled</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Spare Parts -->
+            <div class="product-card fade-up">
+                <div class="product-img">
+                    <div class="product-img-bg"></div>
+                    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" fill="none">
+                        <!-- Gear 1 (large) -->
+                        <g transform="translate(35,50)">
+                            <circle r="18" fill="#1a2540" stroke="#f97316" stroke-width="1.5"/>
+                            <circle r="6" fill="#111a2f" stroke="#f97316" stroke-width="1"/>
+                            <rect x="-3" y="-22" width="6" height="8" rx="1" fill="#f97316" opacity="0.8"/>
+                            <rect x="-3" y="14" width="6" height="8" rx="1" fill="#f97316" opacity="0.8"/>
+                            <rect x="-22" y="-3" width="8" height="6" rx="1" fill="#f97316" opacity="0.8"/>
+                            <rect x="14" y="-3" width="8" height="6" rx="1" fill="#f97316" opacity="0.8"/>
+                            <rect x="-17" y="-17" width="6" height="6" rx="1" fill="#f97316" opacity="0.5" transform="rotate(45,-14,-14)"/>
+                            <rect x="11" y="-17" width="6" height="6" rx="1" fill="#f97316" opacity="0.5" transform="rotate(45,14,-14)"/>
+                            <rect x="-17" y="11" width="6" height="6" rx="1" fill="#f97316" opacity="0.5" transform="rotate(45,-14,14)"/>
+                            <rect x="11" y="11" width="6" height="6" rx="1" fill="#f97316" opacity="0.5" transform="rotate(45,14,14)"/>
+                            <animateTransform attributeName="transform" type="rotate" from="0 0 0" to="360 0 0" dur="6s" repeatCount="indefinite" additive="sum"/>
+                        </g>
+                        <!-- Gear 2 (small) -->
+                        <g transform="translate(68,32)">
+                            <circle r="11" fill="#1a2540" stroke="#3b82f6" stroke-width="1.2"/>
+                            <circle r="4" fill="#111a2f" stroke="#3b82f6" stroke-width="1"/>
+                            <rect x="-2" y="-14" width="4" height="6" rx="1" fill="#3b82f6" opacity="0.8"/>
+                            <rect x="-2" y="8" width="4" height="6" rx="1" fill="#3b82f6" opacity="0.8"/>
+                            <rect x="-14" y="-2" width="6" height="4" rx="1" fill="#3b82f6" opacity="0.8"/>
+                            <rect x="8" y="-2" width="6" height="4" rx="1" fill="#3b82f6" opacity="0.8"/>
+                            <animateTransform attributeName="transform" type="rotate" from="0 0 0" to="-360 0 0" dur="3.5s" repeatCount="indefinite" additive="sum"/>
+                        </g>
+                        <!-- Wrench -->
+                        <path d="M18 76 L45 49" stroke="#fbbf24" stroke-width="3" stroke-linecap="round"/>
+                        <circle cx="18" cy="76" r="7" fill="none" stroke="#fbbf24" stroke-width="2"/>
+                        <circle cx="15" cy="79" r="2" fill="#fbbf24"/>
+                    </svg>
+                </div>
+                <div class="product-body">
+                    <div class="product-brand">OEM Parts</div>
+                    <div class="product-name">Genuine Spare Parts</div>
+                    <p class="product-desc">Complete inventory of OEM spare parts for rotavators, balers and harvesters. Fast delivery, guaranteed compatibility, factory warranty.</p>
+                    <div class="product-tags">
+                        <span class="tag">OEM Certified</span>
+                        <span class="tag">Fast Delivery</span>
+                        <span class="tag">All Brands</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tractor Implements -->
+            <div class="product-card fade-up">
+                <div class="product-img">
+                    <div class="product-img-bg"></div>
+                    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" fill="none">
+                        <!-- Tractor body -->
+                        <rect x="30" y="35" width="50" height="30" rx="5" fill="#1a2540" stroke="#f97316" stroke-width="1.5"/>
+                        <!-- Cab -->
+                        <rect x="54" y="18" width="26" height="22" rx="3" fill="#111a2f" stroke="#f97316" stroke-width="1.2"/>
+                        <rect x="58" y="22" width="18" height="12" rx="2" fill="#0f1829" stroke="#3b82f6" stroke-width="1"/>
+                        <!-- Large rear wheel -->
+                        <circle cx="45" cy="72" r="18" fill="#111a2f" stroke="#3b82f6" stroke-width="1.5"/>
+                        <circle cx="45" cy="72" r="9" fill="#1a2540" stroke="#3b82f6"/>
+                        <circle cx="45" cy="72" r="3" fill="#3b82f6"/>
+                        <!-- Small front wheel -->
+                        <circle cx="75" cy="74" r="9" fill="#111a2f" stroke="#3b82f6" stroke-width="1.2"/>
+                        <circle cx="75" cy="74" r="4" fill="#1a2540" stroke="#3b82f6"/>
+                        <!-- Exhaust stack -->
+                        <path d="M60 18 L60 5" stroke="#8898aa" stroke-width="2.5" stroke-linecap="round"/>
+                        <!-- Hood -->
+                        <path d="M30 50 L20 50 L16 60 L30 60" fill="#1a2540" stroke="#f97316" stroke-width="1.2"/>
+                        <!-- Headlight -->
+                        <circle cx="16" cy="55" r="3" fill="#fbbf24" opacity="0.8">
+                            <animate attributeName="opacity" values="0.8;0.4;0.8" dur="2s" repeatCount="indefinite"/>
+                        </circle>
+                    </svg>
+                </div>
+                <div class="product-body">
+                    <div class="product-brand">Implements</div>
+                    <div class="product-name">Tractor Implements</div>
+                    <p class="product-desc">Wide range of tractor-compatible implements — ploughs, cultivators, disc harrows and seed drills for complete field operations.</p>
+                    <div class="product-tags">
+                        <span class="tag">Cultivators</span>
+                        <span class="tag">Ploughs</span>
+                        <span class="tag">Seed Drills</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- After Sales -->
+            <div class="product-card fade-up">
+                <div class="product-img">
+                    <div class="product-img-bg"></div>
+                    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" fill="none">
+                        <!-- Shield -->
+                        <path d="M50 8 L82 20 L82 50 Q82 75 50 90 Q18 75 18 50 L18 20 Z" fill="#1a2f20" stroke="#22c55e" stroke-width="1.5"/>
+                        <!-- Checkmark -->
+                        <polyline points="34,52 46,64 66,38" stroke="#22c55e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                        <!-- Stars around shield -->
+                        <circle cx="18" cy="22" r="2" fill="#fbbf24" opacity="0.7"/>
+                        <circle cx="82" cy="22" r="2" fill="#fbbf24" opacity="0.7"/>
+                        <circle cx="12" cy="50" r="1.5" fill="#fbbf24" opacity="0.5"/>
+                        <circle cx="88" cy="50" r="1.5" fill="#fbbf24" opacity="0.5"/>
+                        <!-- Glow -->
+                        <circle cx="50" cy="49" r="35" fill="none" stroke="#22c55e" stroke-width="0.5" opacity="0.3"/>
+                    </svg>
+                </div>
+                <div class="product-body">
+                    <div class="product-brand">After Sales</div>
+                    <div class="product-name">Service &amp; Warranty</div>
+                    <p class="product-desc">Comprehensive after-sales support with trained technicians, on-site servicing, annual maintenance contracts and full manufacturer warranty.</p>
+                    <div class="product-tags">
+                        <span class="tag">On-site Service</span>
+                        <span class="tag">AMC</span>
+                        <span class="tag">Warranty</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- ── WHY CHOOSE US ─────────────────────────────────────────────────── -->
+<section class="section" id="why-us">
+    <div class="container">
+        <div class="section-tag">Why Choose Us</div>
+        <h2 class="section-title">Your Trusted <span>Machinery Partner</span></h2>
+        <p class="section-sub">We go beyond selling — we build lasting partnerships with every farmer, retailer and wholesaler we serve.</p>
+
+        <div class="why-grid">
+            <div class="why-card fade-up">
+                <span class="why-num">01</span>
+                <div class="why-icon">
+                    <svg viewBox="0 0 24 24" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                </div>
+                <div class="why-title">Authorized Dealer</div>
+                <p class="why-desc">Official dealership for Rotoking and Bharat Baler — 100% genuine products with full manufacturer warranty.</p>
+            </div>
+
+            <div class="why-card fade-up">
+                <span class="why-num">02</span>
+                <div class="why-icon">
+                    <svg viewBox="0 0 24 24" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                </div>
+                <div class="why-title">Fast Delivery</div>
+                <p class="why-desc">Quick dispatch for both machinery and spare parts. Reliable logistics to get your equipment when you need it.</p>
+            </div>
+
+            <div class="why-card fade-up">
+                <span class="why-num">03</span>
+                <div class="why-icon">
+                    <svg viewBox="0 0 24 24" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                </div>
+                <div class="why-title">Competitive Pricing</div>
+                <p class="why-desc">Best-in-market pricing for retailers and wholesalers. Bulk discounts and flexible payment options available.</p>
+            </div>
+
+            <div class="why-card fade-up">
+                <span class="why-num">04</span>
+                <div class="why-icon">
+                    <svg viewBox="0 0 24 24" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                </div>
+                <div class="why-title">Expert Technicians</div>
+                <p class="why-desc">Factory-trained service technicians providing on-site repairs, preventive maintenance and operator training.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ── SERVICES ─────────────────────────────────────────────────────── -->
+<section class="section products-section" id="services">
+    <div class="container">
+        <div class="section-tag">Our Services</div>
+        <h2 class="section-title">Complete <span>Support Ecosystem</span></h2>
+
+        <div class="services-grid">
+            <div class="service-card fade-up">
+                <div class="service-num">01 — SALES</div>
+                <div class="service-title">Machine Sales &amp; Supply</div>
+                <p class="service-desc">Full range of agricultural machinery sales for retailers and wholesalers. Single-unit purchases and bulk supply orders both welcomed.</p>
+            </div>
+            <div class="service-card fade-up">
+                <div class="service-num">02 — PARTS</div>
+                <div class="service-title">Spare Parts Supply</div>
+                <p class="service-desc">Extensive inventory of OEM and compatible spare parts. Quick identification, sourcing and delivery to minimize machine downtime.</p>
+            </div>
+            <div class="service-card fade-up">
+                <div class="service-num">03 — SERVICE</div>
+                <div class="service-title">On-site Servicing</div>
+                <p class="service-desc">Doorstep mechanical service for all brands we deal. Scheduled maintenance, emergency repairs and performance tuning.</p>
+            </div>
+            <div class="service-card fade-up">
+                <div class="service-num">04 — DEMO</div>
+                <div class="service-title">Product Demonstrations</div>
+                <p class="service-desc">Live field demonstrations of rotavators, balers and harvesters before purchase. Operator training included with every machine.</p>
+            </div>
+            <div class="service-card fade-up">
+                <div class="service-num">05 — FINANCE</div>
+                <div class="service-title">Finance Assistance</div>
+                <p class="service-desc">Help with agricultural equipment loan documentation and liaison with banks and NBFCs for easy machinery financing.</p>
+            </div>
+            <div class="service-card fade-up">
+                <div class="service-num">06 — WARRANTY</div>
+                <div class="service-title">Warranty Management</div>
+                <p class="service-desc">Full manufacturer warranty support and claim management. Annual Maintenance Contracts for long-term peace of mind.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ── TESTIMONIALS ──────────────────────────────────────────────────── -->
+<section class="section" id="testimonials">
+    <div class="container">
+        <div class="section-tag">Testimonials</div>
+        <h2 class="section-title">What Our <span>Clients Say</span></h2>
+        <div class="testi-grid">
+
+            <div class="testi-card fade-up">
+                <div class="testi-stars">★★★★★</div>
+                <p class="testi-text">"Purchased a Rotoking Rotavator through Rishika2K Enterprises. The machine quality is excellent and their after-sales service is outstanding. Highly recommended for any serious farmer."</p>
+                <div class="testi-author">
+                    <div class="testi-avatar">RK</div>
+                    <div>
+                        <div class="testi-name">Rajkumar Patel</div>
+                        <div class="testi-role">Farmer, Gingee Region</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="testi-card fade-up">
+                <div class="testi-stars">★★★★★</div>
+                <p class="testi-text">"As a dealer myself, I source all my Bharat Baler machines from Rishika2K. Best wholesale pricing in the area, genuine parts and always on-time delivery."</p>
+                <div class="testi-author">
+                    <div class="testi-avatar">MS</div>
+                    <div>
+                        <div class="testi-name">Murugesan S.</div>
+                        <div class="testi-role">Machinery Retailer, Villupuram</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="testi-card fade-up">
+                <div class="testi-stars">★★★★★</div>
+                <p class="testi-text">"Quick spare parts delivery saved our harvest season. When our harvester broke down, they sent the part and a technician the very next morning. Lifesavers!"</p>
+                <div class="testi-author">
+                    <div class="testi-avatar">AK</div>
+                    <div>
+                        <div class="testi-name">Arumugam K.</div>
+                        <div class="testi-role">Agricultural Contractor, Tindivanam</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- ── CTA BANNER ───────────────────────────────────────────────────── -->
+<div class="cta-banner">
+    <h2>Ready to Power Your <span style="color:var(--clr-orange)">Fields?</span></h2>
+    <p>Get in touch today for pricing, demos and expert advice on the right machinery for your needs.</p>
+    <div class="cta-actions">
+        <a href="#contact" class="btn btn-primary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.27h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.37a16 16 0 0 0 6.72 6.72l1.56-.94a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+            </svg>
+            Call Us Now
+        </a>
+        <a href="mailto:rishika2kenterprises@gmail.com" class="btn btn-outline">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
+            </svg>
+            Send Enquiry
+        </a>
+    </div>
+</div>
+
+<!-- ── CONTACT ───────────────────────────────────────────────────────── -->
+<section class="section contact-section" id="contact">
+    <div class="container">
+        <div class="contact-grid">
+            <div>
+                <div class="section-tag">Contact Us</div>
+                <h2 class="section-title">Let's Talk <span>Machinery</span></h2>
+                <p class="section-sub">Reach out for product enquiries, pricing, demos or after-sales support. We're here to help.</p>
+
+                <div class="contact-info">
+                    <div class="contact-item">
+                        <div class="contact-icon">
+                            <svg viewBox="0 0 24 24" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.27h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.37a16 16 0 0 0 6.72 6.72l1.56-.94a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                        </div>
+                        <div>
+                            <strong>Phone / WhatsApp</strong>
+                            <p>+91 97908 31180</p>
+                        </div>
+                    </div>
+                    <div class="contact-item">
+                        <div class="contact-icon">
+                            <svg viewBox="0 0 24 24" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                        </div>
+                        <div>
+                            <strong>Email</strong>
+                            <p>rishika2kenterprises@gmail.com</p>
+                        </div>
+                    </div>
+                    <div class="contact-item">
+                        <div class="contact-icon">
+                            <svg viewBox="0 0 24 24" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                        </div>
+                        <div>
+                            <strong>Location</strong>
+                            <p>Gingee, Villupuram District, Tamil Nadu</p>
+                        </div>
+                    </div>
+                    <div class="contact-item">
+                        <div class="contact-icon">
+                            <svg viewBox="0 0 24 24" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        </div>
+                        <div>
+                            <strong>Business Hours</strong>
+                            <p>Mon – Sun: 9:00 AM – 6:00 PM</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="contact-form">
+                <div class="form-title">Send an Enquiry</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Full Name</label>
+                        <input type="text" name="name" id="enq-name" class="form-control" placeholder="Your name" />
+                    </div>
+                    <div class="form-group">
+                        <label>Phone Number</label>
+                        <input type="tel" name="phone" id="enq-phone" class="form-control" placeholder="+91 00000 00000" />
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" name="email" id="enq-email" class="form-control" placeholder="you@example.com" />
+                </div>
+                <div class="form-group">
+                    <label>Product Interest</label>
+                    <select name="product" id="enq-product" class="form-control">
+                        <option value="">— Select a Product —</option>
+                        <option>Rotoking Rotavator</option>
+                        <option>Bharat Baler</option>
+                        <option>Harvesting Machine</option>
+                        <option>Spare Parts</option>
+                        <option>Tractor Implements</option>
+                        <option>Service / Repair</option>
+                        <option>Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Message</label>
+                    <textarea name="message" id="enq-message" class="form-control" placeholder="Tell us about your requirement — quantity, location, budget, etc."></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                        <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                    </svg>
+                    Send Enquiry
+                </button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ── FOOTER ────────────────────────────────────────────────────────── -->
+<footer class="footer">
+    <div class="container">
+        <div class="footer-grid">
+            <div class="footer-about">
+                <a href="#" class="logo">
+                    <div class="logo-icon">
+                        <img src="https://pub-bb40942a33344637936ade1f3800ff8b.r2.dev/Global/favicon_io/android-chrome-512x512-1.png" alt="Rishika2K Enterprises Logo" />
+                    </div>
+                    <div class="logo-text" style="color:#fff;">
+                        Rishika2K Enterprises
+                        <span>Authorized Dealer</span>
+                    </div>
+                </a>
+                <p>Your trusted partner for premium agricultural machinery — Rotavators, Balers, Harvesters and genuine spare parts across Tamil Nadu.</p>
+            </div>
+
+            <div class="footer-col">
+                <h4>Products</h4>
+                <ul class="footer-links">
+                    <li><a href="#products">Rotoking Rotavator</a></li>
+                    <li><a href="#products">Bharat Baler</a></li>
+                    <li><a href="#products">Harvesting Machine</a></li>
+                    <li><a href="#products">Spare Parts</a></li>
+                    <li><a href="#products">Tractor Implements</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-col">
+                <h4>Services</h4>
+                <ul class="footer-links">
+                    <li><a href="#services">Machine Sales</a></li>
+                    <li><a href="#services">Spare Parts</a></li>
+                    <li><a href="#services">On-site Service</a></li>
+                    <li><a href="#services">Demo &amp; Training</a></li>
+                    <li><a href="#services">Finance Help</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-col">
+                <h4>Company</h4>
+                <ul class="footer-links">
+                    <li><a href="#about">About Us</a></li>
+                    <li><a href="#why-us">Why Choose Us</a></li>
+                    <li><a href="#testimonials">Testimonials</a></li>
+                    <li><a href="#contact">Contact</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            <p>© 2026 Rishika2K Enterprises. All rights reserved.</p>
+            <div class="social-links">
+                <!-- WhatsApp -->
+                <a href="#" class="social-link" title="WhatsApp">
+                    <svg viewBox="0 0 24 24" stroke-width="1.8"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+                </a>
+                <!-- Facebook -->
+                <a href="#" class="social-link" title="Facebook">
+                    <svg viewBox="0 0 24 24" stroke-width="1.8"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+                </a>
+                <!-- Instagram -->
+                <a href="#" class="social-link" title="Instagram">
+                    <svg viewBox="0 0 24 24" stroke-width="1.8"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+                </a>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<!-- ── SCRIPTS ───────────────────────────────────────────────────────── -->
+<script>
+    // ── Scroll spy for active nav
+    const sections = document.querySelectorAll('section[id], div[id]');
+    const navAnchors = document.querySelectorAll('.nav-links a');
+    window.addEventListener('scroll', () => {
+        let current = '';
+        sections.forEach(sec => {
+            if (window.scrollY >= sec.offsetTop - 100) current = sec.id;
+        });
+        navAnchors.forEach(a => {
+            a.classList.toggle('active', a.getAttribute('href') === '#' + current);
+        });
+    });
+
+    // ── Navbar scroll effect
+    const navbar = document.getElementById('navbar');
+    window.addEventListener('scroll', () => {
+        navbar.classList.toggle('scrolled', window.scrollY > 40);
+    });
+
+    // ── Hamburger
+    function toggleMenu() {
+        const nav = document.querySelector('.nav-links');
+        nav.style.display = nav.style.display === 'flex' ? 'none' : 'flex';
+        nav.style.flexDirection = 'column';
+        nav.style.position = 'absolute';
+        nav.style.top = '70px';
+        nav.style.left = '0';
+        nav.style.right = '0';
+        nav.style.background = 'rgba(10,13,20,.97)';
+        nav.style.padding = '20px 24px';
+        nav.style.borderBottom = '1px solid #1e2a45';
+        nav.style.zIndex = '999';
+    }
+
+    // ── Floating particles
+    (function spawnParticles() {
+        const container = document.getElementById('particles');
+        if (!container) return;
+        for (let i = 0; i < 20; i++) {
+            const p = document.createElement('div');
+            p.className = 'particle';
+            const size = Math.random() * 3 + 1;
+            p.style.cssText = `
+                width:${size}px; height:${size}px;
+                left:${Math.random() * 100}%;
+                animation-duration:${8 + Math.random() * 14}s;
+                animation-delay:${Math.random() * 10}s;
+            `;
+            container.appendChild(p);
+        }
+    })();
+
+    // ── Scroll fade-up observer
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(e => {
+            if (e.isIntersecting) {
+                e.target.classList.add('visible');
+                observer.unobserve(e.target);
+            }
+        });
+    }, { threshold: 0.12 });
+
+    document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+
+    // ── Smooth anchor scrolling offset for fixed navbar
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function(e) {
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+                e.preventDefault();
+                window.scrollTo({ top: target.offsetTop - 76, behavior: 'smooth' });
+            }
+        });
+    });
+
+    // Toast helper
+    function showToast(type, title, msg) {
+        var icons = { success: '&#10003;', error: '&#10007;', warning: '&#9888;' };
+        var tc = document.getElementById('toast-container');
+        var t  = document.createElement('div');
+        t.className = 'toast ' + type;
+        t.innerHTML = '<div class="toast-icon">' + (icons[type]||'') + '</div><div class="toast-body"><div class="toast-title">' + title + '</div><div class="toast-msg">' + msg + '</div></div>';
+        tc.appendChild(t);
+        setTimeout(function() { t.style.opacity='0'; t.style.transition='opacity .4s'; setTimeout(function(){t.remove();},400); }, 4000);
+    }
+
+    // Contact form submit
+    document.querySelector('.contact-form button[type="submit"]').addEventListener('click', function() {
+        var btn = this;
+        var fields = [
+            { id: 'enq-name',    label: 'Full Name' },
+            { id: 'enq-phone',   label: 'Phone Number' },
+            { id: 'enq-email',   label: 'Email Address' },
+            { id: 'enq-product', label: 'Product Interest' },
+            { id: 'enq-message', label: 'Message' }
+        ];
+        fields.forEach(function(f){ document.getElementById(f.id).classList.remove('field-error'); });
+        var firstError = null;
+        fields.forEach(function(f){
+            var el = document.getElementById(f.id);
+            if (!el.value.trim()) { el.classList.add('field-error'); if (!firstError) firstError = f.label; }
+        });
+        if (firstError) { showToast('error', 'Required Field', firstError + ' is required.'); return; }
+        btn.disabled = true;
+        btn.innerHTML = 'Sending...';
+        var formData = new FormData();
+        formData.append('name',    document.getElementById('enq-name').value.trim());
+        formData.append('phone',   document.getElementById('enq-phone').value.trim());
+        formData.append('email',   document.getElementById('enq-email').value.trim());
+        formData.append('product', document.getElementById('enq-product').value);
+        formData.append('message', document.getElementById('enq-message').value.trim());
+        fetch('/launch/sendEnquiry', { method: 'POST', body: formData })
+            .then(function(r){ return r.json(); })
+            .then(function(res){
+                btn.innerHTML = 'Send Enquiry';
+                btn.disabled = false;
+                if (res.Error) {
+                    showToast('error', 'Failed to Send', res.Message);
+                } else {
+                    fields.forEach(function(f){ document.getElementById(f.id).value = ''; });
+                    showToast('success', 'Enquiry Sent!', 'We will get back to you shortly.');
+                }
+            })
+            .catch(function(){
+                btn.innerHTML = 'Send Enquiry';
+                btn.disabled = false;
+                showToast('error', 'Network Error', 'Something went wrong. Please try again.');
+            });
+    });
+
+    ['enq-name','enq-phone','enq-email','enq-product','enq-message'].forEach(function(id){
+        document.getElementById(id).addEventListener('input', function(){ this.classList.remove('field-error'); });
+    });
+</script>
+
+<div id="toast-container"></div>
+</body>
+</html>

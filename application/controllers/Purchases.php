@@ -1493,7 +1493,7 @@ class Purchases extends CI_Controller {
             $newStatus    = $isFullyPaid ? 'Paid' : 'Partial';
 
             $payTransYear  = (int) date('Y', strtotime($paymentDate));
-            $payPrefixData = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.OrgUID' => $orgUID, 'Prefix.ModuleUID' => 110]);
+            $payPrefixData = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.OrgUID' => $orgUID, 'Prefix.ModuleUID' => 111]);
             $payPrefix     = !empty($payPrefixData->Data) ? $payPrefixData->Data[0] : null;
             $payPrefixUID  = $payPrefix ? (int) $payPrefix->PrefixUID : null;
             $paymentNumber = $payPrefixUID ? $this->transactions_model->getNextPaymentNumber($payPrefixUID, $orgUID, $payTransYear) : 0;
@@ -1509,8 +1509,8 @@ class Purchases extends CI_Controller {
                 'ReceiptToken'     => $receiptToken,
                 'TransYear'        => $payTransYear,
                 'TransUID'         => $transUID,
-                'ModuleUID'        => 110,
-                'PartyType'        => 'V',
+                'ModuleUID'        => 111,
+                'PartyType'        => 'S',
                 'PartyUID'         => $existing->PartyUID,
                 'PaymentTypeUID'   => $paymentTypeUID,
                 'Amount'           => $amount,
@@ -1538,9 +1538,47 @@ class Purchases extends CI_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
+            // Save payment file attachments immediately after commit
+            $this->_savePaymentAttachments($resp->ID);
+
+            // Debit vendor ledger — payment made reduces our payable to them
+            try {
+                $this->load->library('accountledger');
+                $this->accountledger->applyLedgerEntry($existing->PartyUID, 'Vendor', $amount, 'Debit', $transUID);
+                $this->accountledger->postPaymentJournal(
+                    'made', $transUID, $paymentDate, $payTransYear,
+                    $amount, $existing->PartyUID, 'Vendor', $userUID
+                );
+            } catch (Exception $ledgerEx) {
+                log_message('error', 'Ledger debit failed after purchase payment: ' . $ledgerEx->getMessage());
+            }
+
             $this->EndReturnData->Error      = FALSE;
             $this->EndReturnData->Message    = 'Payment of ' . $amount . ' recorded successfully.';
             $this->EndReturnData->IsFullyPaid = $isFullyPaid;
+
+            // Refresh the purchase list
+            $GeneralSettings = ($this->redis_cache->get('Redis_UserGenSettings')->Value) ?? new stdClass();
+            $limit  = $GeneralSettings->RowLimit ?? 10;
+            $pageNo = (int) $this->input->post('CurrentPage') ?: 1;
+            $offset = ($pageNo - 1) * $limit;
+            $filter = $this->input->post('Filter') ?: [];
+
+            $allData      = $this->transactions_model->getTransactionPageList($limit, $offset, $this->pageModuleUID, $filter, 0);
+            $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, $filter);
+            $summaryStats = $this->transactions_model->getTransactionSummaryStats($this->pageModuleUID, $orgUID);
+
+            $this->pageData['JwtData']->GenSettings = $GeneralSettings;
+            $rowHtml = $this->load->view('transactions/purchases/list', [
+                'DataLists'    => $allData,
+                'SerialNumber' => $offset,
+                'JwtData'      => $this->pageData['JwtData'],
+            ], true);
+
+            $this->EndReturnData->RecordHtmlData = $rowHtml;
+            $this->EndReturnData->Pagination     = $this->globalservice->buildPagePaginationHtml('/purchases/getPurchasesPageDetails', $allDataCount, $pageNo, $limit);
+            $this->EndReturnData->TotalCount     = $allDataCount;
+            $this->EndReturnData->SummaryStats   = $summaryStats;
 
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -1550,6 +1588,84 @@ class Purchases extends CI_Controller {
 
         $this->globalservice->sendJsonResponse($this->EndReturnData);
 
+    }
+
+    public function getPaymentAttachments() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $transUID = (int) $this->input->post('TransUID');
+            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            if ($transUID <= 0) throw new Exception('Invalid transaction.');
+
+            $this->load->model('transactions_model');
+            $payments = $this->transactions_model->getTransactionPayments($transUID, $orgUID);
+
+            $attachments = [];
+            foreach ($payments as $payment) {
+                $paymentAttachments = $this->transactions_model->getPaymentAttachments($payment->PaymentUID, $orgUID);
+                foreach ($paymentAttachments as $attach) {
+                    $attach->PaymentTypeName      = $payment->PaymentTypeName;
+                    $attach->PaymentAmount        = $payment->Amount;
+                    $attach->PaymentUniqueNumber  = $payment->UniqueNumber ?? null;
+                    $attachments[] = $attach;
+                }
+            }
+
+            $this->EndReturnData->Error       = FALSE;
+            $this->EndReturnData->Attachments = $attachments;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    private function _savePaymentAttachments($paymentUID) {
+        $files = $_FILES['PaymentFiles'] ?? null;
+        if (empty($files) || empty($files['name'][0])) return;
+
+        $userUID = $this->pageData['JwtData']->User->UserUID;
+        $orgUID  = $this->pageData['JwtData']->User->OrgUID;
+
+        $this->load->library('fileupload');
+        $this->load->model('dbwrite_model');
+
+        $allowed = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+        $count   = min(count($files['name']), 3);
+
+        for ($i = 0; $i < $count; $i++) {
+            if ($files['error'][$i] !== UPLOAD_ERR_OK || empty($files['name'][$i])) continue;
+            if ($files['size'][$i] > 3 * 1024 * 1024) continue;
+            if (!in_array($files['type'][$i], $allowed)) continue;
+
+            $origName    = basename($files['name'][$i]);
+            $safeName    = time() . '_' . $i . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $origName);
+            $storagePath = 'payments/' . $paymentUID . '/' . $safeName;
+
+            $uploadResult = $this->fileupload->fileUpload('file', $storagePath, $files['tmp_name'][$i]);
+            if ($uploadResult->Error) {
+                log_message('error', 'Purchase payment attachment upload failed: ' . $uploadResult->Message);
+                continue;
+            }
+
+            $this->dbwrite_model->insertData('Transaction', 'PaymentAttachmentsTbl', [
+                'OrgUID'     => $orgUID,
+                'PaymentUID' => $paymentUID,
+                'FileName'   => $origName,
+                'FilePath'   => '/' . ltrim($uploadResult->Path, '/'),
+                'FileType'   => $files['type'][$i],
+                'FileSize'   => $files['size'][$i],
+                'SortOrder'  => $i,
+                'IsActive'   => 1,
+                'IsDeleted'  => 0,
+                'CreatedBy'  => $userUID,
+            ]);
+        }
     }
 
 }

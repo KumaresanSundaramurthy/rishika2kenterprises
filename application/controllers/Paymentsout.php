@@ -22,7 +22,7 @@ class Paymentsout extends CI_Controller {
             $limit  = $GeneralSettings->RowLimit ?? 10;
             $orgUID = $this->pageData['JwtData']->User->OrgUID;
 
-            $filter = ['PartyType' => 'S', 'PaymentDirection' => 'Out'];
+            $filter = ['ModuleUID' => 111, 'PaymentDirection' => 'Out', 'PaymentSource' => 'Record'];
 
             $this->load->model('transactions_model');
             $allData      = $this->transactions_model->getPaymentsList($limit, 0, $orgUID, $filter);
@@ -36,7 +36,7 @@ class Paymentsout extends CI_Controller {
             $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/paymentsout/getPageDetails', $allDataCount, 1, $limit);
             $this->pageData['ModAllCount']   = $allDataCount;
             $this->pageData['Totals']        = $this->transactions_model->getPaymentsTotals($orgUID, $filter);
-            $this->pageData['MethodSummary'] = $this->transactions_model->getPaymentMethodSummary($orgUID, array_merge($filter, []));
+            $this->pageData['MethodSummary'] = $this->transactions_model->getPaymentMethodSummary($orgUID, $filter);
             $this->pageData['BankAccounts']  = $this->transactions_model->getOrgBankAccounts($orgUID);
 
             $this->load->view('transactions/paymentsout/view', $this->pageData);
@@ -44,6 +44,69 @@ class Paymentsout extends CI_Controller {
         } catch (Exception $e) {
             redirect('dashboard', 'refresh');
         }
+
+    }
+
+    public function cancelPayment() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $this->load->model('dbwrite_model');
+            $this->load->model('transactions_model');
+
+            $PostData   = $this->input->post();
+            $paymentUID = (int) getPostValue($PostData, 'PaymentUID');
+            $userUID    = $this->pageData['JwtData']->User->UserUID;
+            $orgUID     = $this->pageData['JwtData']->User->OrgUID;
+
+            if ($paymentUID <= 0) throw new Exception('Invalid payment record.');
+
+            $payment = $this->transactions_model->getPaymentRow($paymentUID, $orgUID);
+            if (!$payment) throw new Exception('Payment record not found or already cancelled.');
+
+            $transUID     = (int) $payment->TransUID;
+            $existingPaid = $transUID > 0
+                ? $this->transactions_model->getSumPaidForTransaction($transUID, $orgUID)
+                : 0;
+
+            $this->dbwrite_model->startTransaction();
+
+            // Soft-delete the payment (IsDeleted=1 = Cancelled tab)
+            $cancelData             = $this->globalservice->baseDeleteArrayDetails();
+            $cancelData['IsActive'] = 0;
+            $resp = $this->dbwrite_model->updateData(
+                'Transaction', 'PaymentsTbl', $cancelData,
+                ['PaymentUID' => $paymentUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
+            );
+            if ($resp->Error) throw new Exception($resp->Message);
+
+            // Recalculate linked Sales Return balance
+            if ($transUID > 0) {
+                $newTotalPaid  = max(0, round($existingPaid - (float) $payment->Amount, 2));
+                $trans         = $this->transactions_model->getTransactionBasicInfo($transUID, $orgUID);
+                if ($trans) {
+                    $netAmount     = (float) $trans->NetAmount;
+                    $balanceAmount = max(0, round($netAmount - $newTotalPaid, 2));
+                    $isFullyPaid   = ($netAmount > 0 && $balanceAmount <= 0) ? 1 : 0;
+                    $this->dbwrite_model->updateTransIsFullyPaid($transUID, $isFullyPaid, $newTotalPaid, $balanceAmount, $userUID);
+                    $newStatus = $newTotalPaid <= 0 ? 'Approved' : ($isFullyPaid ? 'Paid' : 'Partial');
+                    $this->dbwrite_model->updateTransDocStatus($transUID, $orgUID, $newStatus, $userUID);
+                }
+            }
+
+            $this->dbwrite_model->commitTransaction();
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Payment cancelled successfully.';
+
+        } catch (Exception $e) {
+            if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
 
     }
 
@@ -59,8 +122,11 @@ class Paymentsout extends CI_Controller {
             $offset = ($pageNo - 1) * $limit;
             $filter = $this->input->post('Filter') ?: [];
 
-            // Always scope to vendor (payment out) only
-            $filter['PartyType'] = 'S';
+            // Always scope to PaymentsOut module with outgoing direction
+            $filter['ModuleUID']        = 111;
+            $filter['PaymentDirection'] = 'Out';
+            $filter['PaymentSource']    = 'Record';
+            unset($filter['PartyType']);
 
             $orgUID = $this->pageData['JwtData']->User->OrgUID;
             $this->pageData['JwtData']->GenSettings = ($this->redis_cache->get('Redis_UserGenSettings')->Value) ?? new stdClass();

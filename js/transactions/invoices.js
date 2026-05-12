@@ -1,13 +1,47 @@
-// ── Invoices list — module-specific JS ───────────────────────────────────────
+// -- Invoices list — module-specific JS --------------------------------------
 // Shared utilities (loadTransactionList, debounce, initTooltips) are in common.js
 // Date helpers (getDateRange, formatDate) are in /js/common/datefilter.js
 
-// ── WhatsApp link handler ─────────────────────────────────────────────────────
+// -- WhatsApp link handler ---------------------------------------------------
 $(document).on('click', '.inv-wa-link', function (e) {
     e.preventDefault();
     var url = $(this).data('wa-url');
     if (url) window.open(url, '_blank');
 });
+
+// -- Auto-attach invoice PDF when comm modal switches to Email tab -----------
+// Uses setTimeout so #CommEmailFields is visible before Dropzone initialises
+$(document).on('comm:switchedToEmail', function (e, moduleUID, recordUID) {
+    if (moduleUID !== 103 || !recordUID || _commPdfAutoAttached) return;
+
+    _commPdfAutoAttached = true;
+
+    setTimeout(function () {
+        _initCommDropzone();
+
+        $.ajax({
+            url   : '/invoices/getInvoicePdfBase64',
+            method: 'POST',
+            data  : { TransUID: recordUID, PaperSize: 'A4', [CsrfName]: CsrfToken },
+            success: function (resp) {
+                if (resp.Error || !resp.Base64) { _commPdfAutoAttached = false; return; }
+                if (!_commDropzone) { _commPdfAutoAttached = false; return; }
+                try {
+                    var binary = atob(resp.Base64);
+                    var bytes  = new Uint8Array(binary.length);
+                    for (var i = 0; i < binary.length; i++) { bytes[i] = binary.charCodeAt(i); }
+                    var blob = new Blob([bytes], { type: 'application/pdf' });
+                    var file = new File([blob], resp.Filename || 'invoice.pdf', { type: 'application/pdf' });
+                    _commDropzone.addFile(file);
+                } catch (ex) {
+                    _commPdfAutoAttached = false;
+                }
+            },
+            error: function () { _commPdfAutoAttached = false; }
+        });
+    }, 150);
+});
+
 function getInvoicesDetails(pageNo, rowLimit, filter) {
     loadTransactionList({
         url:            '/invoices/getInvoicesPageDetails/',
@@ -17,7 +51,7 @@ function getInvoicesDetails(pageNo, rowLimit, filter) {
     }, pageNo, rowLimit, filter);
 }
 
-// ── Payment Details Panel ─────────────────────────────────────────────────────
+// -- Payment Details Panel ---------------------------------------------------
 (function () {
     var $panel      = $('#payDetailPanel');
     var $body       = $('#payDetailBody');
@@ -69,7 +103,6 @@ function getInvoicesDetails(pageNo, rowLimit, filter) {
     }
 
     $(document).on('click', '.pay-mode-clickable', function (e) {
-        // Ignore clicks that originated from the attachment icon inside this cell
         if ($(e.target).closest('.invPayAttachBtn').length) return;
         e.stopPropagation();
         var transUID = $(this).data('trans-uid');
@@ -110,7 +143,7 @@ function getInvoicesDetails(pageNo, rowLimit, filter) {
 
             html += '<div class="d-flex justify-content-between align-items-start gap-2">';
             html += '  <div style="min-width:0;">';
-            html += '    <div style="font-size:.83rem;font-weight:600;color:#696cff;">₹' + amt + '</div>';
+            html += '    <div style="font-size:.83rem;font-weight:600;color:#696cff;">&#8377;' + amt + '</div>';
             html += '    <div style="font-size:.75rem;color:#566a7f;">' + mode + '</div>';
             if (date || ref) {
                 html += '  <div style="font-size:.72rem;color:#aaa;margin-top:1px;">';

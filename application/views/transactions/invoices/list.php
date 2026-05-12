@@ -142,9 +142,10 @@ if (!empty($DataLists)):
                 <div class="d-flex align-items-center gap-2 mt-1">
                     <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars(format_datedisplay($list->TransDate, 'd M Y')); ?></div>
                     <?php if ($hasAttach): ?>
-                    <button type="button" class="btn btn-link p-0 invAttachBtn"
+                    <button type="button" class="btn btn-link p-0 transAttachBtn"
                             data-uid="<?php echo (int)$list->TransUID; ?>"
                             data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
+                            data-url="/invoices/getAttachments"
                             title="<?php echo (int)$list->AttachmentCount; ?> attachment(s)"
                             style="font-size:.82rem;line-height:1;color:#0d6efd;">
                         <i class="bx bx-paperclip"></i>
@@ -215,9 +216,10 @@ if (!empty($DataLists)):
                             <span class="badge bg-label-secondary" style="font-size:.68rem;">+<?php echo $extraCnt; ?></span>
                         <?php endif; ?>
                         <?php if ($hasPayAttach): ?>
-                        <button type="button" class="btn btn-link p-0 invPayAttachBtn"
+                        <button type="button" class="btn btn-link p-0 transPayAttachBtn"
                                 data-uid="<?php echo (int)$list->TransUID; ?>"
                                 data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
+                            data-url="/invoices/getPaymentAttachments"
                                 title="<?php echo (int)$list->PaymentAttachmentCount; ?> payment attachment(s)"
                                 style="font-size:.82rem;line-height:1;color:#0d6efd;">
                             <i class="bx bx-paperclip"></i>

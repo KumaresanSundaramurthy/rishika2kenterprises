@@ -292,6 +292,11 @@ class Customers_model extends CI_Model {
                 'IFNULL(COA.CurrentBalance, 0.00) AS ClosingBalance',
                 "IFNULL(COA.CurrentBalanceType, 'Debit') AS ClosingBalanceType",
                 'CT.TypeName AS CustomerTypeName',
+                'ShipAddr.Line1 AS ShipLine1',
+                'ShipAddr.Line2 AS ShipLine2',
+                'ShipAddr.CityText AS ShipCity',
+                'ShipAddr.StateText AS ShipState',
+                'ShipAddr.Pincode AS ShipPincode',
             ]);
             $this->ReadDb->from('Customers.CustomerTbl as Customers');
             $this->ReadDb->join('Users.UserTbl as User', 'User.UserUID = Customers.UpdatedBy', 'left');
@@ -308,6 +313,11 @@ class Customers_model extends CI_Model {
             $this->ReadDb->join(
                 'Customers.CustomerTypeTbl as CT',
                 'CT.CustomerTypeUID = Customers.CustomerTypeUID AND CT.IsDeleted = 0',
+                'left'
+            );
+            $this->ReadDb->join(
+                'Customers.CustAddressTbl as ShipAddr',
+                "ShipAddr.CustomerUID = Customers.CustomerUID AND ShipAddr.AddressType = 'Shipping' AND ShipAddr.IsDeleted = 0 AND ShipAddr.IsActive = 1",
                 'left'
             );
             $this->ReadDb->where($baseWhere);

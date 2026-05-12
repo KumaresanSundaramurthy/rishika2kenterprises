@@ -801,8 +801,28 @@ class Customers extends CI_Controller {
             $result = $this->customers_model->getCustomerListPaginated($orgUID, $limit, $offset, $filter);
 
             $this->EndReturnData->Error      = false;
-            $this->EndReturnData->Customers  = $result->rows ?? [];
-            $this->EndReturnData->Pagination = $this->globalservice->buildPagePaginationHtml(
+            $this->EndReturnData->Customers   = array_map(function($row) {
+                $cust = [
+                    'CustomerUID'  => $row->CustomerUID,
+                    'Name'         => $row->Name,
+                    'Area'         => $row->Area ?? '',
+                    'MobileNumber' => $row->MobileNumber ?? '',
+                    'Balance'      => $row->ClosingBalance ?? 0,
+                    'BalanceType'  => $row->ClosingBalanceType ?? 'Debit',
+                ];
+                if (!empty($row->ShipLine1) || !empty($row->ShipCity) || !empty($row->ShipState)) {
+                    $cust['address'] = [
+                        'Line1'   => $row->ShipLine1   ?? '',
+                        'Line2'   => $row->ShipLine2   ?? '',
+                        'City'    => $row->ShipCity    ?? '',
+                        'State'   => $row->ShipState   ?? '',
+                        'Pincode' => $row->ShipPincode ?? '',
+                    ];
+                }
+                return $cust;
+            }, $result->rows ?? []);
+            $this->EndReturnData->TotalCount  = $result->totalCount ?? 0;
+            $this->EndReturnData->Pagination  = $this->globalservice->buildPagePaginationHtml(
                 '/customers/getCustomerSearchList',
                 $result->totalCount ?? 0,
                 $pageNo,

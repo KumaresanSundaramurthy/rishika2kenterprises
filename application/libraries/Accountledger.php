@@ -307,27 +307,41 @@ Class Accountledger {
 
             /** ---------------- Opening Balance ---------------- */
             $newBalance = (float)($postData['DebitCreditAmount'] ?? 0);
-            $newType = $postData['DebitCreditCheck'] ?? 'Debit';
+            $newType    = $postData['DebitCreditCheck'] ?? 'Debit';
+            $oldBalance = (float)$entityLedger->OpeningBalance;
+            $oldType    = $entityLedger->OpeningBalanceType ?? 'Debit';
 
-            if (!$hasTransactions && ((float)$entityLedger->OpeningBalance !== $newBalance || $entityLedger->OpeningBalanceType !== $newType)) {
+            if ($oldBalance !== $newBalance || $oldType !== $newType) {
 
-                // Update opening
-                $ledgerUpdateData['OpeningBalance'] = $newBalance;
+                $ledgerUpdateData['OpeningBalance']     = $newBalance;
                 $ledgerUpdateData['OpeningBalanceType'] = $newType;
 
-                // Sync current balance
-                $ledgerUpdateData['CurrentBalance'] = $newBalance;
-                $ledgerUpdateData['CurrentBalanceType'] = $newType;
+                if (!$hasTransactions) {
+                    // No transactions yet — current balance mirrors opening balance
+                    $ledgerUpdateData['CurrentBalance']     = $newBalance;
+                    $ledgerUpdateData['CurrentBalanceType'] = $newType;
+                } else {
+                    // Transactions exist — shift current balance by the opening balance delta
+                    // Convert to signed numbers (Debit = +, Credit = -)
+                    $signOld = ($oldType === 'Debit') ?  $oldBalance : -$oldBalance;
+                    $signNew = ($newType === 'Debit') ?  $newBalance : -$newBalance;
+                    $curBal  = (float)$entityLedger->CurrentBalance;
+                    $curType = $entityLedger->CurrentBalanceType ?? 'Debit';
+                    $signCur = ($curType === 'Debit') ? $curBal : -$curBal;
+
+                    $signResult = $signCur + ($signNew - $signOld);
+                    $ledgerUpdateData['CurrentBalance']     = round(abs($signResult), 2);
+                    $ledgerUpdateData['CurrentBalanceType'] = ($signResult >= 0) ? 'Debit' : 'Credit';
+                }
 
                 $changes[] = [
-                    'field' => 'OpeningBalance',
-                    'old_value' => $entityLedger->OpeningBalance . ' ' . $entityLedger->OpeningBalanceType,
-                    'new_value' => $newBalance . ' ' . $newType
+                    'field'     => 'OpeningBalance',
+                    'old_value' => $oldBalance . ' ' . $oldType,
+                    'new_value' => $newBalance . ' ' . $newType,
                 ];
 
                 // Update yearly opening balance
                 $financialYear = $this->getFinancialYear();
-
                 $this->CI->dbwrite_model->updateData('Accounting', 'LedgerYearOpening', ['OpeningBalance' => $newBalance, 'OpeningBalanceType' => $newType], ['LedgerUID' => $ledgerUID, 'FinancialYear' => $financialYear]);
 
             }

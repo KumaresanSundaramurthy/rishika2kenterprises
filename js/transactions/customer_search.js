@@ -24,45 +24,68 @@
     $(document).on('input', '#custSearchInput', function() {
         clearTimeout(searchTimeout);
         searchTerm = $.trim($(this).val());
+        $('#custSearchClear').toggleClass('d-none', searchTerm === '');
+        // Clear pagination immediately on new search
+        $('#custSearchPagination').html('');
+        $('#custSearchPageInfo').text('');
+        $('#custSearchPaginationWrap').addClass('d-none');
         searchTimeout = setTimeout(function() {
             currentPage = 1;
             loadCustomers();
         }, 400);
     });
 
+    // Clear search
+    $(document).on('click', '#custSearchClear', function() {
+        $('#custSearchInput').val('').trigger('input');
+    });
+
     // Pagination click
     $(document).on('click', '#custSearchPagination .page-link', function(e) {
         e.preventDefault();
-        const href = $(this).attr('href');
-        if (!href) return;
-        
-        const match = href.match(/\/(\d+)$/);
-        if (match) {
-            currentPage = parseInt(match[1]);
-            loadCustomers();
-        }
+        var page = parseInt($(this).data('page'));
+        if (!page || page < 1) return;
+        currentPage = page;
+        loadCustomers();
     });
 
     // Customer selection
     $(document).on('click', '.cust-search-item', function() {
-        const custUID = $(this).data('uid');
+        const custUID  = $(this).data('uid');
         const custName = $(this).data('name');
-        
+        const address  = $(this).data('address');
+        const state    = $(this).data('state');
+
         if (custUID && custName) {
-            // Update Select2 dropdown
             const $select = $('#customerSearch');
-            
-            // Check if option exists, if not create it
+
             if ($select.find('option[value="' + custUID + '"]').length === 0) {
                 const newOption = new Option(custName, custUID, true, true);
                 $select.append(newOption);
             } else {
                 $select.val(custUID);
             }
-            
             $select.trigger('change');
-            
-            // Close modal
+
+            // Show address box — same logic as select2:select in transactions.js
+            if (address) {
+                var addrHtml = '<div><strong>Shipping Address:</strong></div>'
+                             + '<div>' + (address.Line1 || '') + '</div>'
+                             + '<div>' + (address.Line2 || '') + '</div>'
+                             + '<div>' + [address.City, address.State].filter(Boolean).join(', ') + (address.Pincode ? ' - ' + address.Pincode : '') + '</div>';
+                $('#customerAddressBox').html(addrHtml).removeClass('d-none');
+
+                if (typeof billManager !== 'undefined') {
+                    var custState = (state || address.State || '').trim().toLowerCase();
+                    var orgState  = (typeof _orgState !== 'undefined' ? _orgState : '').trim().toLowerCase();
+                    var interState = (custState !== '' && orgState !== '' && custState !== orgState);
+                    billManager.setInterState(interState);
+                }
+            } else {
+                $('#customerAddressBox').addClass('d-none').empty();
+                if (typeof billManager !== 'undefined') billManager.setInterState(false);
+            }
+
             $('#customerSearchModal').modal('hide');
         }
     });
@@ -70,8 +93,7 @@
     // Load customers function
     function loadCustomers() {
         const $results = $('#custSearchResults');
-        
-        // Show loading
+        AjaxLoading = 0;
         $results.html('<div class="text-center py-5"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>');
 
         $.ajax({
@@ -85,51 +107,92 @@
             },
             success: function(response) {
                 if (response.Error) {
+                    AjaxLoading = 1;
                     $results.html('<div class="text-center py-5 text-danger"><i class="bx bx-error-circle fs-3 d-block mb-2"></i>' + (response.Message || 'Error loading customers') + '</div>');
                     return;
                 }
 
                 if (!response.Customers || response.Customers.length === 0) {
+                    AjaxLoading = 1;
                     $results.html('<div class="text-center py-5 text-muted"><i class="bx bx-user-x fs-3 d-block mb-2"></i>No customers found</div>');
                     $('#custSearchPagination').html('');
+                    $('#custSearchPageInfo').text('');
+                    $('#custSearchPaginationWrap').addClass('d-none');
                     return;
                 }
 
                 // Build customer list HTML
                 let html = '';
-                response.Customers.forEach(function(cust) {
+                response.Customers.forEach(function(cust, index) {
                     const balance = parseFloat(cust.Balance || 0);
                     const balanceType = cust.BalanceType || 'Debit';
                     const balanceClass = balanceType === 'Debit' ? 'debit' : 'credit';
                     const balanceLabel = balanceType === 'Debit' ? 'Receivable' : 'Payable';
                     const currency = (typeof CurrencySymbol !== 'undefined' && CurrencySymbol) ? CurrencySymbol : '₹';
-                    
-                    html += '<div class="cust-search-item" data-uid="' + cust.CustomerUID + '" data-name="' + escapeHtml(cust.Name) + '">';
-                    html += '<div class="d-flex justify-content-between align-items-start">';
+                    const addrAttr  = cust.address ? ' data-address=\'' + JSON.stringify(cust.address).replace(/'/g, '&#39;') + '\'' : '';
+                    const stateAttr = cust.address ? ' data-state="' + escapeHtml(cust.address.State || '') + '"' : '';
+                    const serialNo  = ((currentPage - 1) * limit) + index + 1;
+
+                    html += '<div class="cust-search-item" data-uid="' + cust.CustomerUID + '" data-name="' + escapeHtml(cust.Name) + '"' + addrAttr + stateAttr + '>';
+                    html += '<div class="d-flex align-items-start gap-2">';
+                    html += '<div class="cust-serial">' + serialNo + '</div>';
                     html += '<div class="flex-grow-1">';
                     html += '<div class="cust-name">' + escapeHtml(cust.Name) + '</div>';
-                    
+
                     if (cust.Area) {
                         html += '<div class="cust-meta"><i class="bx bx-map me-1"></i>' + escapeHtml(cust.Area) + '</div>';
                     }
-                    
                     if (cust.MobileNumber) {
                         html += '<div class="cust-meta"><i class="bx bx-phone me-1"></i>' + escapeHtml(cust.MobileNumber) + '</div>';
                     }
+                    if (cust.address && (cust.address.Line1 || cust.address.City)) {
+                        var addrParts = [cust.address.Line1, cust.address.City, cust.address.State].filter(Boolean);
+                        html += '<div class="cust-meta"><i class="bx bx-buildings me-1"></i>' + escapeHtml(addrParts.join(', ')) + '</div>';
+                    }
                     
-                    html += '</div>';
-                    html += '<div class="text-end">';
+                    html += '</div>'; // flex-grow-1
+                    html += '<div class="text-end flex-shrink-0">';
                     html += '<div class="cust-balance ' + balanceClass + '">' + currency + ' ' + formatNumber(balance, 2) + '</div>';
                     html += '<div class="cust-meta">' + balanceLabel + '</div>';
                     html += '</div>';
-                    html += '</div>';
-                    html += '</div>';
+                    html += '</div>'; // d-flex
+                    html += '</div>'; // cust-search-item
                 });
 
                 $results.html(html);
-                $('#custSearchPagination').html(response.Pagination || '');
+
+                // Build pagination manually from TotalCount
+                var total = parseInt(response.TotalCount || 0);
+                var from  = ((currentPage - 1) * limit) + 1;
+                var to    = Math.min(currentPage * limit, total);
+                var totalPages = Math.ceil(total / limit);
+
+                $('#custSearchPageInfo').text(total > 0 ? 'Showing ' + from + ' – ' + to + ' of ' + total + ' Results' : '');
+
+                var paginHtml = '';
+                if (totalPages > 1) {
+                    var start = Math.max(1, currentPage - 2);
+                    var end   = Math.min(totalPages, start + 4);
+                    start = Math.max(1, end - 4);
+
+                    paginHtml += '<li class="page-item' + (currentPage <= 1 ? ' disabled' : '') + '">'
+                              +    '<a class="page-link" href="#" data-page="' + (currentPage - 1) + '">&lsaquo;</a>'
+                              + '</li>';
+                    for (var p = start; p <= end; p++) {
+                        paginHtml += '<li class="page-item' + (p === currentPage ? ' active' : '') + '">'
+                                  +    '<a class="page-link" href="#" data-page="' + p + '">' + p + '</a>'
+                                  + '</li>';
+                    }
+                    paginHtml += '<li class="page-item' + (currentPage >= totalPages ? ' disabled' : '') + '">'
+                              +    '<a class="page-link" href="#" data-page="' + (currentPage + 1) + '">&rsaquo;</a>'
+                              + '</li>';
+                }
+                $('#custSearchPagination').html(paginHtml);
+                $('#custSearchPaginationWrap').removeClass('d-none');
+                AjaxLoading = 1;
             },
             error: function() {
+                AjaxLoading = 1;
                 $results.html('<div class="text-center py-5 text-danger"><i class="bx bx-error-circle fs-3 d-block mb-2"></i>Failed to load customers</div>');
             }
         });

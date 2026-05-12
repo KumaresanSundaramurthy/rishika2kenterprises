@@ -623,6 +623,16 @@ $(function() {
             }
 
             if (!_isEdit && action !== 'draft') {
+                if (typeof getPaymentAttachmentFiles === 'function') {
+                    var _payFiles = getPaymentAttachmentFiles();
+                    if (_payFiles && _payFiles.length > 0) {
+                        var _totalPayAmt = 0;
+                        $('#paymentRowsBody tr').each(function() {
+                            _totalPayAmt += parseFloat($(this).find('.pay-amount-inp').val()) || 0;
+                        });
+                        if (_totalPayAmt <= 0) return showFormError('Payment attachments are added but no payment amount is entered. Please enter a payment amount or remove the attachments.');
+                    }
+                }
                 if (!serializePaymentRows()) return showFormError('Please enter a valid amount for every payment row.');
             }
 
@@ -665,6 +675,15 @@ $(function() {
                 fd.append('PaymentRows',   $('#PaymentRowsJson').val() || '');
                 fd.append('IsFullyPaid',   $('#isFullyPaid').is(':checked') ? 1 : 0);
                 fd.append('RecordPayment', action !== 'draft' ? 1 : 0);
+                // Append payment attachment files
+                if (typeof getPaymentAttachmentFiles === 'function') {
+                    var paymentFiles = getPaymentAttachmentFiles();
+                    if (paymentFiles && paymentFiles.length > 0) {
+                        paymentFiles.forEach(function(file) {
+                            fd.append('PaymentFiles[]', file);
+                        });
+                    }
+                }
             } else {
                 fd.append('RemovedAttachIDs', JSON.stringify(_removedAttachIDs || []));
             }

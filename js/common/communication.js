@@ -1,33 +1,14 @@
 /**
- * communication.js — shared Send SMS / Send Email modal logic
- *
- * Public API:
- *   openCommModal(commType, recipientType, uids, names, mobiles, emails, opts)
- *   sendSMS(options)
- *   sendEmail(options)
- *
- * opts = {
- *   moduleUID   : number   — module id (110 = Payments, etc.)
- *   recordUID   : number   — the specific record id (PaymentUID, etc.) for DB token resolution
- * }
+ * communication.js -- shared Send SMS / Send Email modal logic
  */
 
-// ── Quill instances ───────────────────────────────────────────────────────────
 var _commSmsQuill   = null;
 var _commEmailQuill = null;
 var _commDropzone   = null;
-
-// ── Store mobiles/emails for tab switching ────────────────────────────────────
-var _commMobiles = [];
-var _commEmails  = [];
-
-// ── Template raw/resolved store ──────────────────────────────────────────────
-var _commTpl = { rawSubject: '', rawBody: '', resolvedSubject: '', resolvedBody: '', showingRaw: false };
-
-// ── Pending template payload (set before modal show, applied after Quill ready)
+var _commMobiles    = [];
+var _commEmails     = [];
+var _commTpl        = { rawSubject: '', rawBody: '', resolvedSubject: '', resolvedBody: '', showingRaw: false };
 var _commPendingTpl = null;
-
-// ── Tracks whether the auto-PDF has been added to Dropzone for this modal open
 var _commPdfAutoAttached = false;
 
 function _initCommQuill() {
@@ -65,11 +46,9 @@ function _initCommQuill() {
         _commEmailQuill.on('text-change', function () {
             var html = _commEmailQuill.root.innerHTML;
             $('#CommEmailMessage').val(html);
-            // Keep resolvedBody in sync with manual edits (only when not viewing raw tokens)
             if (!_commTpl.showingRaw) { _commTpl.resolvedBody = html; }
         });
 
-        // If a template was fetched before Quill was ready, apply it now
         if (_commPendingTpl) {
             _applyCommTemplate(_commPendingTpl);
             _commPendingTpl = null;
@@ -83,14 +62,29 @@ function _initCommDropzone() {
     if (!el || typeof Dropzone === 'undefined') return;
 
     Dropzone.autoDiscover = false;
+
+    var previewTemplate =
+        '<div class="dz-preview dz-file-preview">' +
+            '<div class="dz-thumbnail">' +
+                '<img data-dz-thumbnail />' +
+                '<span class="dz-nopreview">No Preview</span>' +
+            '</div>' +
+            '<div class="dz-filename"><span data-dz-name></span></div>' +
+            '<div class="dz-size"><span data-dz-size></span></div>' +
+            '<div class="dz-progress"><span class="dz-upload" data-dz-uploadprogress></span></div>' +
+            '<div class="dz-error-message"><span data-dz-errormessage></span></div>' +
+            '<a class="dz-remove" href="javascript:undefined;" data-dz-remove>Remove</a>' +
+        '</div>';
+
     _commDropzone = new Dropzone(el, {
         url              : '#',
         autoProcessQueue : false,
         maxFiles         : 3,
         maxFilesize      : 3,
-        addRemoveLinks   : true,
+        addRemoveLinks   : false,
         acceptedFiles    : '.pdf,.jpg,.jpeg,.png',
         parallelUploads  : 3,
+        previewTemplate  : previewTemplate,
         init: function () {
             this.on('addedfile', function (file) {
                 if (this.files.length > 3) {
@@ -112,7 +106,6 @@ function _initCommDropzone() {
     });
 }
 
-// ── Apply a fetched template payload to the editor ───────────────────────────
 function _applyCommTemplate(resp) {
     _commTpl.rawSubject      = resp.RawSubject || '';
     _commTpl.rawBody         = resp.RawBody    || '';
@@ -127,7 +120,6 @@ function _applyCommTemplate(resp) {
         $('#CommEmailMessage').val(_commTpl.resolvedBody || '');
     }
 
-    // Show toggle button only when tokens were actually replaced
     if (_commTpl.rawSubject !== _commTpl.resolvedSubject || _commTpl.rawBody !== _commTpl.resolvedBody) {
         $('#CommTokenToggleBtn')
             .removeClass('d-none btn-outline-warning')
@@ -136,7 +128,6 @@ function _applyCommTemplate(resp) {
     }
 }
 
-// ── Public: sendSMS ───────────────────────────────────────────────────────────
 function sendSMS(options) {
     openCommModal('SMS', options.recipientType || 'Vendor',
         [options.uid], [options.name], [options.mobile || ''], [options.email || ''],
@@ -144,7 +135,6 @@ function sendSMS(options) {
     );
 }
 
-// ── Public: sendEmail ─────────────────────────────────────────────────────────
 function sendEmail(options) {
     openCommModal('Email', options.recipientType || 'Vendor',
         [options.uid], [options.name], [options.mobile || ''], [options.email || ''],
@@ -152,31 +142,40 @@ function sendEmail(options) {
     );
 }
 
-// ── Public: openCommModal ─────────────────────────────────────────────────────
 function openCommModal(commType, recipientType, uids, names, mobiles, emails, opts) {
     opts = opts || {};
 
     _commMobiles = mobiles || [];
     _commEmails  = emails  || [];
 
-    $('#CommActiveType').val(commType);
     $('#CommRecipientType').val(recipientType);
     $('#CommRecipientUIDs').val(JSON.stringify(uids));
     $('#CommModuleUID').val(opts.moduleUID || 0);
     $('#CommRecordUID').val(opts.recordUID || 0);
 
     // To info
-    $('#CommToName').text(names[0] || '—');
-    var toContact = commType === 'SMS' ? (_commMobiles[0] || '') : (_commEmails[0] || '');
-    $('#CommToContact').text(toContact);
+    $('#CommToName').text(names[0] || '\u2014');
+    // Set initial contact based on active type
+    var _initialContact = (activeType === 'SMS') ? String(_commMobiles[0] || '') : String(_commEmails[0] || '');
+    $('#CommToContact').text(_initialContact);
+
+    // Show/hide tabs based on available contact info
+    var hasMobile = !!(String(_commMobiles[0] || '').trim());
+    var hasEmail  = !!(String(_commEmails[0]  || '').trim());
+    $('#CommTabSMS').toggleClass('d-none', !hasMobile);
+    $('#CommTabEmail').toggleClass('d-none', !hasEmail);
+
+    // Decide active type: prefer requested, fallback to what's available
+    var activeType = commType;
+    if (activeType === 'SMS'   && !hasMobile && hasEmail)  activeType = 'Email';
+    if (activeType === 'Email' && !hasEmail  && hasMobile) activeType = 'SMS';
+    $('#CommActiveType').val(activeType);
 
     // No contact warning
-    var hasContact = commType === 'SMS'
-        ? !!(_commMobiles[0] && _commMobiles[0].trim())
-        : !!(_commEmails[0]  && _commEmails[0].trim());
+    var hasContact = activeType === 'SMS' ? hasMobile : hasEmail;
     if (!hasContact) {
         $('#CommNoContactWarning').removeClass('d-none');
-        $('#CommNoContactText').text('No ' + (commType === 'SMS' ? 'mobile number' : 'email address') + ' available');
+        $('#CommNoContactText').text('No ' + (activeType === 'SMS' ? 'mobile number' : 'email address') + ' available');
     } else {
         $('#CommNoContactWarning').addClass('d-none');
     }
@@ -194,19 +193,17 @@ function openCommModal(commType, recipientType, uids, names, mobiles, emails, op
     if (_commDropzone) { _commDropzone.removeAllFiles(true); }
     _commPdfAutoAttached = false;
 
-    // Reset token toggle state
+    // Reset token toggle
     _commTpl        = { rawSubject: '', rawBody: '', resolvedSubject: '', resolvedBody: '', showingRaw: false };
     _commPendingTpl = null;
     $('#CommTokenToggleBtn').addClass('d-none').removeClass('btn-outline-warning').addClass('btn-outline-secondary');
     $('#CommTokenToggleLabel').text('Show Tokens');
 
-    _switchCommTab(commType);
+    _switchCommTab(activeType);
     $('#SendCommModal').modal('show');
-    // Template fetch happens in shown.bs.modal after Quill is fully initialised
 }
 
-// ── Template fetch from server ────────────────────────────────────────────────
-// Passes ModuleUID + RecordUID so the server fetches live DB data for token replacement.
+// -- Template fetch ----------------------------------------------------------
 function _fetchCommTemplate(moduleUID, recordUID) {
     if (!moduleUID) return;
     $.ajax({
@@ -216,34 +213,24 @@ function _fetchCommTemplate(moduleUID, recordUID) {
         success: function (resp) {
             if (resp.Error || !resp.Found) return;
             if (_commEmailQuill) {
-                // Quill is ready — apply immediately
                 _applyCommTemplate(resp);
             } else {
-                // Quill not ready yet — store and apply once _initCommQuill runs
                 _commPendingTpl = resp;
             }
         }
     });
 }
 
-// ── PDF attachment fetch (Option B) ──────────────────────────────────────────
-// Fetches the receipt PDF as base64 from the server (in-memory, no disk write)
-// and programmatically adds it to Dropzone as a pre-attached file.
-// moduleUID is used to route to the correct endpoint per module.
+// -- PDF attachment fetch (module 110 Payments) ------------------------------
 function _fetchCommPdfAttachment(moduleUID, recordUID) {
     if (!moduleUID || !recordUID) return;
 
-    // Determine endpoint by module
     var endpoint = null;
     if (moduleUID === 110) { endpoint = '/payments/getPaymentPdfBase64'; }
-    if (moduleUID === 103) { endpoint = '/invoices/getInvoicePdfBase64'; }
-    // Add more modules as needed
-
     if (!endpoint) return;
 
-    _commPdfAutoAttached = true; // mark before AJAX to prevent duplicate calls
+    _commPdfAutoAttached = true;
 
-    // Show a small loading indicator inside the dropzone
     var $dz = $('#CommAttachDropzone');
     var $loader = $('<div id="CommPdfAttachLoader" class="text-center py-2" style="font-size:.78rem;color:#666;"><span class="spinner-border spinner-border-sm me-1"></span>Attaching receipt PDF...</div>');
     $dz.append($loader);
@@ -251,32 +238,21 @@ function _fetchCommPdfAttachment(moduleUID, recordUID) {
     $.ajax({
         url   : endpoint,
         method: 'POST',
-        data  : { 
-            PaymentUID: moduleUID === 110 ? recordUID : 0,
-            TransUID: moduleUID === 103 ? recordUID : 0,
-            PaperSize: 'A4', 
-            [CsrfName]: CsrfToken 
-        },
+        data  : { PaymentUID: recordUID, PaperSize: 'A4', [CsrfName]: CsrfToken },
         success: function (resp) {
             $('#CommPdfAttachLoader').remove();
             if (resp.Error || !resp.Base64) { _commPdfAutoAttached = false; return; }
-
-            // Ensure Dropzone is ready
             _initCommDropzone();
             if (!_commDropzone) { _commPdfAutoAttached = false; return; }
-
-            // Convert base64 → Blob → File and add to Dropzone
             try {
                 var binary = atob(resp.Base64);
                 var bytes  = new Uint8Array(binary.length);
-                for (var i = 0; i < binary.length; i++) {
-                    bytes[i] = binary.charCodeAt(i);
-                }
+                for (var i = 0; i < binary.length; i++) { bytes[i] = binary.charCodeAt(i); }
                 var blob = new Blob([bytes], { type: 'application/pdf' });
                 var file = new File([blob], resp.Filename || 'receipt.pdf', { type: 'application/pdf' });
                 _commDropzone.addFile(file);
             } catch (e) {
-                _commPdfAutoAttached = false; // allow retry on failure
+                _commPdfAutoAttached = false;
             }
         },
         error: function () {
@@ -286,7 +262,7 @@ function _fetchCommPdfAttachment(moduleUID, recordUID) {
     });
 }
 
-// ── Token toggle ──────────────────────────────────────────────────────────────
+// -- Token toggle ------------------------------------------------------------
 $(document).on('click', '#CommTokenToggleBtn', function () {
     _commTpl.showingRaw = !_commTpl.showingRaw;
 
@@ -303,19 +279,19 @@ $(document).on('click', '#CommTokenToggleBtn', function () {
     $(this).toggleClass('btn-outline-secondary btn-outline-warning');
 });
 
-// ── Tab switching ─────────────────────────────────────────────────────────────
+// -- Tab switching -----------------------------------------------------------
 $(document).on('click', '.comm-type-tab', function () {
     var type = $(this).data('commtype');
     _switchCommTab(type);
     $('#CommActiveType').val(type);
 
-    // Update To contact
+    // Update To contact display
     var toContact = type === 'SMS' ? (_commMobiles[0] || '') : (_commEmails[0] || '');
     $('#CommToContact').text(toContact);
 
     var hasContact = type === 'SMS'
-        ? !!(_commMobiles[0] && _commMobiles[0].trim())
-        : !!(_commEmails[0]  && _commEmails[0].trim());
+        ? !!(String(_commMobiles[0] || '').trim())
+        : !!(String(_commEmails[0]  || '').trim());
     if (!hasContact) {
         $('#CommNoContactWarning').removeClass('d-none');
         $('#CommNoContactText').text('No ' + (type === 'SMS' ? 'mobile number' : 'email address') + ' available');
@@ -323,17 +299,19 @@ $(document).on('click', '.comm-type-tab', function () {
         $('#CommNoContactWarning').addClass('d-none');
     }
 
-    // Auto-fetch template on switch to Email (only if not already loaded)
+    // Switching to Email: fetch template + trigger page-specific PDF fetch
     if (type === 'Email') {
         var moduleUID = parseInt($('#CommModuleUID').val()) || 0;
         var recordUID = parseInt($('#CommRecordUID').val()) || 0;
+        setTimeout(_initCommDropzone, 100);
         if (moduleUID && !$('#CommEmailSubject').val() && !_commTpl.resolvedSubject) {
             _fetchCommTemplate(moduleUID, recordUID);
         }
-        setTimeout(_initCommDropzone, 100);
-        if (!_commPdfAutoAttached && (moduleUID === 110 || moduleUID === 103) && recordUID > 0) {
+        if (!_commPdfAutoAttached && moduleUID === 110 && recordUID > 0) {
             _fetchCommPdfAttachment(moduleUID, recordUID);
         }
+        // Let page-specific handlers attach their PDF (e.g. invoices.js)
+        $(document).trigger('comm:switchedToEmail', [moduleUID, recordUID]);
     }
 });
 
@@ -342,36 +320,48 @@ function _switchCommTab(type) {
     $('.comm-type-tab').removeClass('active btn-primary btn-outline-secondary');
     $('.comm-type-tab[data-commtype="' + type + '"]').addClass('active btn-primary');
     $('.comm-type-tab[data-commtype!="' + type + '"]').addClass('btn-outline-secondary');
+
+    // Email: show From + To side by side (col-6 each)
+    // SMS:   hide From, To takes full width (col-12)
+    $('#CommFromSection').toggleClass('d-none', isSms);
+    $('#CommToSection').toggleClass('col-6', !isSms).toggleClass('col-12', isSms);
+
+    // SMS: show only To + message; Email: show email fields
     $('#CommSmsFields').toggleClass('d-none', !isSms);
     $('#CommEmailFields').toggleClass('d-none', isSms);
+
     $('#SendCommModalTitle').text('Send ' + type);
     $('#SendCommBtnLabel').text('Send ' + type);
 
-    var $icon  = $('#CommHeaderIcon');
+    // Update header banner colour
+    var $hdr = $('#CommModalHeader');
     var $iconI = $('#CommHeaderIconI');
     if (isSms) {
-        $icon.removeClass('email').addClass('sms');
         $iconI.attr('class', 'bx bx-message-rounded comm-header-icon-i');
+        $hdr[0].style.setProperty('--vtm-color', '#198754');
+        $hdr[0].style.setProperty('--vtm-bg',    '#e8f5ee');
+        $hdr[0].style.setProperty('--vtm-icon-bg', 'rgba(25,135,84,.13)');
     } else {
-        $icon.removeClass('sms').addClass('email');
         $iconI.attr('class', 'bx bx-envelope comm-header-icon-i');
+        $hdr[0].style.setProperty('--vtm-color', '#0d6efd');
+        $hdr[0].style.setProperty('--vtm-bg',    '#e8f0fe');
+        $hdr[0].style.setProperty('--vtm-icon-bg', 'rgba(13,110,253,.13)');
     }
 
     setTimeout(_initCommQuill, 100);
 }
 
-// ── comm-send-single click ────────────────────────────────────────────────────
+// -- comm-send-single click --------------------------------------------------
 $(document).on('click', '.comm-send-single', function () {
     var $btn          = $(this);
     var $row          = $btn.closest('tr');
     var commType      = $btn.data('commtype');
     var recipientType = $btn.data('recipienttype') || 'Vendor';
     var uid           = $btn.data('uid');
-    var name          = $btn.data('name')   || '—';
+    var name          = $btn.data('name')   || '\u2014';
     var mobile        = $btn.data('mobile') || '';
     var email         = $btn.data('email')  || '';
     var moduleUID     = parseInt($btn.data('module-uid') || $row.data('trans-module') || 0);
-    // recordUID = TransUID/PaymentUID from button or row — used server-side to fetch live DB data for tokens
     var recordUID     = parseInt($btn.data('trans-uid') || $row.data('uid') || 0);
 
     openCommModal(commType, recipientType, [uid], [name], [mobile], [email],
@@ -379,13 +369,12 @@ $(document).on('click', '.comm-send-single', function () {
     );
 });
 
-// ── Send button ───────────────────────────────────────────────────────────────
+// -- Send button -------------------------------------------------------------
 $(document).on('click', '#SendCommBtn', function () {
     var type          = $('#CommActiveType').val();
     var recipientType = $('#CommRecipientType').val();
     var uids          = JSON.parse($('#CommRecipientUIDs').val() || '[]');
 
-    // Always send resolved content — never raw tokens
     var subject, message;
     if (type === 'Email') {
         subject = _commTpl.resolvedSubject || $('#CommEmailSubject').val().trim();
@@ -439,7 +428,7 @@ $(document).on('click', '#SendCommBtn', function () {
     });
 });
 
-// ── Modal shown: init Quill + Dropzone, then fetch template ──────────────────
+// -- Modal shown: init Quill + Dropzone, fetch template + trigger PDF --------
 $(document).on('shown.bs.modal', '#SendCommModal', function () {
     _initCommQuill();
     var type      = $('#CommActiveType').val();
@@ -451,18 +440,22 @@ $(document).on('shown.bs.modal', '#SendCommModal', function () {
         if (moduleUID) {
             _fetchCommTemplate(moduleUID, recordUID);
         }
-        if (!_commPdfAutoAttached && (moduleUID === 110 || moduleUID === 103) && recordUID > 0) {
+        if (!_commPdfAutoAttached && moduleUID === 110 && recordUID > 0) {
             _fetchCommPdfAttachment(moduleUID, recordUID);
         }
+        // Let page-specific handlers attach their PDF (e.g. invoices.js)
+        $(document).trigger('comm:switchedToEmail', [moduleUID, recordUID]);
     }
+    // If opening on SMS tab, leave _commPdfAutoAttached = false so PDF fetch
+    // fires correctly when user switches to Email tab later
 });
 
-// ── Reset on modal close ──────────────────────────────────────────────────────
+// -- Reset on modal close ----------------------------------------------------
 $(document).on('hidden.bs.modal', '#SendCommModal', function () {
     if (_commDropzone) { _commDropzone.removeAllFiles(true); }
 });
 
-// ── Keep resolvedSubject in sync with manual subject edits ────────────────────
+// -- Keep resolvedSubject in sync with manual edits --------------------------
 $(document).on('input', '#CommEmailSubject', function () {
     if (!_commTpl.showingRaw) { _commTpl.resolvedSubject = $(this).val(); }
 });

@@ -82,21 +82,31 @@
     </div>
 </div>
 
-<!-- ── Attachment Preview Modal ──────────────────────────────────────────── -->
-<div class="modal fade" id="attachPreviewModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-centered" style="height:92vh;max-height:92vh;">
-        <div class="modal-content d-flex flex-column" style="height:100%;background:#1a1a2e;overflow:hidden;">
-            <div class="d-flex align-items-center gap-2 px-3 flex-shrink-0" style="background:rgba(0,0,0,.6);height:44px;">
-                <i class="bx bx-file text-white" style="font-size:1rem;flex-shrink:0;"></i>
-                <span id="attachPreviewTitle" style="font-size:.88rem;font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;">Preview</span>
-                <button type="button" data-bs-dismiss="modal" aria-label="Close"
-                    style="flex-shrink:0;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);border-radius:6px;color:#fff;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s;">
-                    <i class="bx bx-x" style="font-size:1.25rem;line-height:1;"></i>
-                </button>
-            </div>
-            <div id="attachPreviewBody" class="flex-grow-1 overflow-auto" style="background:#1a1a2e;">
-                <div class="text-center py-5"><span class="spinner-border text-light"></span></div>
+<!-- ── Transaction Attachment Viewer Modal ──────────────────────────────── -->
+<div class="modal fade" id="transAttachModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content" style="overflow:hidden;">
+            <button type="button" class="btn-close position-absolute" data-bs-dismiss="modal"
+                style="top:14px;right:16px;z-index:10;background-color:rgba(255,255,255,.85);border-radius:50%;padding:6px;box-shadow:0 1px 4px rgba(0,0,0,.15);"
+                aria-label="Close"></button>
+            <div class="modal-body p-0">
+                <div id="transAttachModalBanner" style="padding:14px 20px;">
+                    <div class="d-flex align-items-center gap-3">
+                        <div id="transAttachModalIconWrap" style="border-radius:10px;padding:9px 11px;">
+                            <i class="bx bx-paperclip" style="font-size:1.7rem;display:block;"></i>
+                        </div>
+                        <div>
+                            <div style="font-size:1rem;font-weight:800;" id="transAttachModalTitle">Attachments</div>
+                            <div style="font-size:.77rem;color:#6c757d;margin-top:3px;">Click any file to preview</div>
+                        </div>
+                    </div>
+                </div>
+                <div style="padding:16px 20px;" id="transAttachGallery">
+                    <div class="text-center py-4"><span class="spinner-border spinner-border-sm"></span></div>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+<?php $this->load->view('common/modals/attach_preview'); ?>

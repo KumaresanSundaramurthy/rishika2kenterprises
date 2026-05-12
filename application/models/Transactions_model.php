@@ -162,7 +162,13 @@ class Transactions_model extends CI_Model {
 
         $tab = $filter['Status'] ?? 'All';
 
-        if ($tab === 'Pending') {
+        if ($tab === 'InvPending') {
+            // Invoice Pending = Issued + Partial (not yet fully paid)
+            $this->ReadDb->where_in('Ts.DocStatus', ['Issued', 'Partial']);
+        } elseif ($tab === 'SRPending') {
+            // Sales Return Pending = Approved + Partial (refund not yet fully given)
+            $this->ReadDb->where_in('Ts.DocStatus', ['Approved', 'Partial']);
+        } elseif ($tab === 'Pending') {
             // Pending = Received + Partial (bills not yet fully paid)
             $this->ReadDb->where_in('Ts.DocStatus', ['Received', 'Partial']);
         } elseif ($tab === 'Received') {
@@ -980,6 +986,9 @@ class Transactions_model extends CI_Model {
             if (!empty($filter['ModuleUID'])) {
                 $this->ReadDb->where('P.ModuleUID', (int)$filter['ModuleUID']);
             }
+            if (!empty($filter['PaymentSource'])) {
+                $this->ReadDb->where('P.PaymentSource', $filter['PaymentSource']);
+            }
             if (!empty($filter['DateFrom'])) {
                 $this->ReadDb->where('DATE(P.CreatedOn) >=', $filter['DateFrom']);
             }
@@ -1030,6 +1039,9 @@ class Transactions_model extends CI_Model {
             }
             if (!empty($filter['ModuleUID'])) {
                 $this->ReadDb->where('P.ModuleUID', (int)$filter['ModuleUID']);
+            }
+            if (!empty($filter['PaymentSource'])) {
+                $this->ReadDb->where('P.PaymentSource', $filter['PaymentSource']);
             }
             if (!empty($filter['DateFrom'])) {
                 $this->ReadDb->where('DATE(P.CreatedOn) >=', $filter['DateFrom']);
@@ -1082,6 +1094,8 @@ class Transactions_model extends CI_Model {
 
             if (!empty($filter['PartyType']))        $this->ReadDb->where('P.PartyType', $filter['PartyType']);
             if (!empty($filter['PaymentDirection'])) $this->ReadDb->where('P.PaymentDirection', $filter['PaymentDirection']);
+            if (!empty($filter['ModuleUID']))         $this->ReadDb->where('P.ModuleUID', (int)$filter['ModuleUID']);
+            if (!empty($filter['PaymentSource']))     $this->ReadDb->where('P.PaymentSource', $filter['PaymentSource']);
             if (!empty($filter['DateFrom']))         $this->ReadDb->where('DATE(P.CreatedOn) >=', $filter['DateFrom']);
             if (!empty($filter['DateTo']))           $this->ReadDb->where('DATE(P.CreatedOn) <=', $filter['DateTo']);
 
@@ -1111,10 +1125,12 @@ class Transactions_model extends CI_Model {
             $this->ReadDb->from('Transaction.PaymentsTbl AS P');
             $this->ReadDb->where(['P.OrgUID' => $orgUID, 'P.IsDeleted' => 0, 'P.IsActive' => 1]);
 
-            if (!empty($filter['DateFrom'])) $this->ReadDb->where('DATE(P.CreatedOn) >=', $filter['DateFrom']);
-            if (!empty($filter['DateTo']))   $this->ReadDb->where('DATE(P.CreatedOn) <=', $filter['DateTo']);
+            if (!empty($filter['DateFrom']))         $this->ReadDb->where('DATE(P.CreatedOn) >=', $filter['DateFrom']);
+            if (!empty($filter['DateTo']))           $this->ReadDb->where('DATE(P.CreatedOn) <=', $filter['DateTo']);
             if (!empty($filter['PartyType']))        $this->ReadDb->where('P.PartyType', $filter['PartyType']);
             if (!empty($filter['PaymentDirection'])) $this->ReadDb->where('P.PaymentDirection', $filter['PaymentDirection']);
+            if (!empty($filter['ModuleUID']))         $this->ReadDb->where('P.ModuleUID', (int)$filter['ModuleUID']);
+            if (!empty($filter['PaymentSource']))     $this->ReadDb->where('P.PaymentSource', $filter['PaymentSource']);
 
             $query = $this->ReadDb->get();
             if (!$query) return (object)['TotalReceived' => 0, 'TotalPaid' => 0];

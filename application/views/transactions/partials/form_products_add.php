@@ -16,12 +16,15 @@ $_notesVal  = isset($transNotesContent)        ? htmlspecialchars($transNotesCon
 $_termsVal  = isset($transTermsContent)        ? htmlspecialchars($transTermsContent) : '';
 $_dropzone    = !empty($transShowDropzone);
 $_chargesBd   = !empty($transShowChargesBreakdown);
+$_hideAddProd = !empty($transHideAddProduct);
 $_paymentVars = isset($transPaymentVars) ? $transPaymentVars : null;
 ?>
 <div class="card-header modal-header-center-sticky p-1 mb-3">
     <div class="d-flex align-items-center gap-2">
         <h5 class="modal-title mb-0"><i class="bx bx-cart-add me-1"></i> <?php echo $_secTitle; ?></h5>
+        <?php if (!$_hideAddProd): ?>
         <button type="button" class="trans-add-btn btn btn-outline-primary" id="addTransProduct"><i class="bx bx-plus-circle me-1"></i> Product</button>
+        <?php endif; ?>
     </div>
 </div>
 <div class="row">
@@ -38,7 +41,7 @@ $_paymentVars = isset($transPaymentVars) ? $transPaymentVars : null;
             </div>
             <div style="width: 35%;">
                 <div class="input-group input-group-sm input-group-merge" id="searchProductGroup">
-                    <span class="input-group-text p-2"><i class="icon-base bx bx-search"></i></span>
+                    <span class="input-group-text p-2" style="background:#f0efff !important;border-color:#d9d8ff;color:#696cff;"><i class="icon-base bx bx-search"></i></span>
                     <select id="searchProductInfo" name="searchProductInfo" class="form-select form-select-sm">
                         <option label="-- Select Product --"></option>
                     </select>

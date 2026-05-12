@@ -18,6 +18,7 @@ $rpDocLabel    = $rpDocLabel    ?? 'Invoice';
 $rpTotalIcon   = $rpTotalIcon   ?? 'bx-receipt';
 $rpNumId       = $rpNumId       ?? 'rpInvNum';
 $rpDateId      = $rpDateId      ?? 'rpInvDate';
+$rpBtnLabel    = $rpBtnLabel    ?? 'Record Payment';
 ?>
 <div class="modal fade" id="recordPaymentModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
@@ -35,7 +36,7 @@ $rpDateId      = $rpDateId      ?? 'rpInvDate';
                         </div>
                         <div>
                             <div class="rp-banner-title" style="color:<?php echo $rpAccentColor; ?>;">
-                                Record Payment &mdash; <span id="<?php echo $rpNumId; ?>">—</span>
+                                <?php echo htmlspecialchars($rpBtnLabel); ?> &mdash; <span id="<?php echo $rpNumId; ?>">—</span>
                             </div>
                             <div class="rp-banner-meta">
                                 <i class="bx <?php echo $rpPartyIcon; ?> me-1"></i><span id="rpPartyName">—</span>
@@ -148,7 +149,7 @@ $rpDateId      = $rpDateId      ?? 'rpInvDate';
                                 <div class="dz-message needsclick">
                                     <i class="bx bx-cloud-upload comm-attach-icon"></i>
                                     <div class="comm-attach-hint">Drag &amp; drop or <span class="text-primary">browse</span></div>
-                                    <div class="comm-attach-sub">PDF, JPG, PNG &bull; Max 3 MB per file</div>
+                                    <div class="comm-attach-sub">PDF, JPG, PNG &bull; Max 3 files, 3 MB each</div>
                                 </div>
                             </div>
                         </div>
@@ -162,7 +163,7 @@ $rpDateId      = $rpDateId      ?? 'rpInvDate';
                 <div class="rp-footer">
                     <button type="button" class="btn btn-outline-secondary btn-sm px-3" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn-primary btn-sm px-4" id="btnSubmitPayment">
-                        <i class="bx bx-check me-1"></i> Record Payment
+                        <i class="bx bx-check me-1"></i> <?php echo htmlspecialchars($rpBtnLabel); ?>
                     </button>
                 </div>
 

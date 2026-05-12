@@ -28,6 +28,8 @@ class Salesreturns extends CI_Controller {
             $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/salesreturns/getSalesReturnsPageDetails', $allDataCount, 1, $limit);
             $this->pageData['ModAllCount']   = $allDataCount;
             $this->pageData['SummaryStats']  = $this->transactions_model->getTransactionSummaryStats($this->pageModuleUID, $this->pageData['JwtData']->User->OrgUID);
+            $this->pageData['PaymentTypes']  = $this->transactions_model->getPaymentTypesList();
+            $this->pageData['BankAccounts']  = $this->transactions_model->getOrgBankAccounts($this->pageData['JwtData']->User->OrgUID);
 
             $this->load->view('transactions/salesreturns/view', $this->pageData);
         } catch (Exception $e) {
@@ -60,6 +62,7 @@ class Salesreturns extends CI_Controller {
             $this->EndReturnData->RecordHtmlData = $rowHtml;
             $this->EndReturnData->Pagination     = $this->globalservice->buildPagePaginationHtml('/salesreturns/getSalesReturnsPageDetails', $allDataCount, $pageNo, $limit);
             $this->EndReturnData->TotalCount     = $allDataCount;
+            $this->EndReturnData->SummaryStats   = $this->transactions_model->getTransactionSummaryStats($this->pageModuleUID, $this->pageData['JwtData']->User->OrgUID);
         } catch (Exception $e) {
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -206,6 +209,21 @@ class Salesreturns extends CI_Controller {
             $this->dbwrite_model->commitTransaction();
 
             $this->_saveAttachments($transUID);
+
+            // ── Save payment if recorded on create ──────────────────
+            if (!$isDraft && (int) getPostValue($PostData, 'RecordPayment') === 1) {
+                $payResult = $this->_savePaymentRecord($transUID, $orgUID, $userUID, 'C', $customerUID, $netAmount, $PostData, $transDate);
+                if ($payResult['totalPaid'] > 0) {
+                    $isFullyPaid   = ($netAmount > 0 && round($netAmount - $payResult['totalPaid'], 4) <= 0) ? 1 : 0;
+                    $balanceAmount = max(0, round($netAmount - $payResult['totalPaid'], 2));
+                    $this->dbwrite_model->updateTransIsFullyPaid($transUID, $isFullyPaid, $payResult['totalPaid'], $balanceAmount, $userUID);
+                    $newStatus = $isFullyPaid ? 'Paid' : 'Partial';
+                    $this->dbwrite_model->updateTransDocStatus($transUID, $orgUID, $newStatus, $userUID);
+                }
+                if (!empty($payResult['firstPaymentUID'])) {
+                    $this->_savePaymentAttachments($payResult['firstPaymentUID']);
+                }
+            }
 
             $this->EndReturnData->Error    = FALSE;
             $this->EndReturnData->Message  = 'Sales Return created successfully.';
@@ -424,6 +442,7 @@ class Salesreturns extends CI_Controller {
                             'OrgUID' => $orgUID, 'FinancialYear' => $financialYear,
                             'TransUID' => $transUID, 'ProductUID' => $productUID,
                             'QuantityConverted' => 0, 'IsActive' => 1, 'IsDeleted' => 0, 'CreatedBy' => $userUID,
+                            'SourceTransProdUID'=> isset($item['sourceTransProdUID']) && $item['sourceTransProdUID'] > 0 ? (int)$item['sourceTransProdUID'] : NULL,
                         ]);
                     }
                 }
@@ -648,8 +667,42 @@ class Salesreturns extends CI_Controller {
             if (!in_array($newStatus, $validTransitions[$current] ?? [])) throw new Exception("Cannot change status from {$current} to {$newStatus}.");
 
             $this->dbwrite_model->startTransaction();
-            $resp = $this->dbwrite_model->updateData('Transaction', 'TransactionsTbl', ['DocStatus' => $newStatus, 'UpdatedBy' => $userUID, 'UpdatedOn' => date('Y-m-d H:i:s')], ['TransUID' => $transUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
+
+            // Update DocStatus
+            $resp = $this->dbwrite_model->updateData('Transaction', 'TransactionsTbl',
+                ['DocStatus' => $newStatus, 'UpdatedBy' => $userUID, 'UpdatedOn' => date('Y-m-d H:i:s')],
+                ['TransUID' => $transUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
+            );
             if ($resp->Error) throw new Exception($resp->Message);
+
+            // On cancellation — recalculate balance based on what was already refunded
+            if ($newStatus === 'Cancelled') {
+                $netAmount   = (float)($existing->NetAmount  ?? 0);
+                $paidAmount  = (float)($existing->PaidAmount ?? 0);
+                $amountToRecover = round($netAmount - $paidAmount, 2);
+
+                if ($amountToRecover > 0) {
+                    // Unpaid or partially paid — remaining amount must be recovered from customer
+                    // BalanceAmount becomes negative to indicate customer owes this back
+                    $this->dbwrite_model->updateTransIsFullyPaid(
+                        $transUID,
+                        0,                    // not fully paid
+                        $paidAmount,          // keep what was already refunded
+                        -$amountToRecover,    // negative = customer owes company
+                        $userUID
+                    );
+                } else {
+                    // Fully refunded — nothing to recover, balance is zero
+                    $this->dbwrite_model->updateTransIsFullyPaid(
+                        $transUID,
+                        1,           // fully settled
+                        $paidAmount,
+                        0,
+                        $userUID
+                    );
+                }
+            }
+
             $this->dbwrite_model->commitTransaction();
 
             $this->EndReturnData->Error     = FALSE;
@@ -685,6 +738,66 @@ class Salesreturns extends CI_Controller {
             $this->EndReturnData->PrintTheme    = $printThemeResult->Data ?? null;
         } catch (Exception $e) {
             $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    public function getInvoiceItems() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $transUID = (int) $this->input->post('TransUID');
+            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            if ($transUID <= 0) throw new Exception('Invalid invoice.');
+
+            $this->load->model('transactions_model');
+            $header = $this->transactions_model->getTransactionById($transUID, $orgUID, 103);
+            if (!$header) throw new Exception('Invoice not found.');
+            $items  = $this->transactions_model->getTransactionItems($transUID, $orgUID);
+
+            $this->EndReturnData->Error   = false;
+            $this->EndReturnData->Header  = $header;
+            $this->EndReturnData->Items   = $items;
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    public function getCustomerInvoices() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $customerUID = (int) $this->input->post('CustomerUID');
+            $orgUID      = $this->pageData['JwtData']->User->OrgUID;
+            if ($customerUID <= 0) throw new Exception('Invalid customer.');
+
+            $this->load->model('transactions_model');
+            $this->ReadDb = $this->load->database('ReadDB', TRUE);
+            $this->ReadDb->select([
+                'Ts.TransUID',
+                'Ts.UniqueNumber',
+                'Ts.TransDate',
+                'Ts.NetAmount',
+                'Ts.DocStatus',
+            ]);
+            $this->ReadDb->from('Transaction.TransactionsTbl AS Ts');
+            $this->ReadDb->where([
+                'Ts.PartyUID'  => $customerUID,
+                'Ts.PartyType' => 'C',
+                'Ts.ModuleUID' => 103,
+                'Ts.OrgUID'    => $orgUID,
+                'Ts.IsDeleted' => 0,
+                'Ts.IsActive'  => 1,
+            ]);
+            $this->ReadDb->where_not_in('Ts.DocStatus', ['Draft', 'Cancelled']);
+            $this->ReadDb->order_by('Ts.TransUID', 'DESC');
+            $query = $this->ReadDb->get();
+
+            $this->EndReturnData->Error    = false;
+            $this->EndReturnData->Invoices = $query->result();
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
@@ -729,6 +842,8 @@ class Salesreturns extends CI_Controller {
             $this->pageData['TaxDetInfo']      = $this->global_model->getTaxDetailsInfo()->Data ?? [];
             $this->load->model('products_model');
             $this->pageData['fltCategoryData'] = $this->products_model->getCategoriesDetails([]) ?? [];
+            $this->pageData['PaymentTypes']    = $this->transactions_model->getPaymentTypesList();
+            $this->pageData['BankAccounts']    = $this->transactions_model->getOrgBankAccounts($orgUID);
 
             $this->load->view('transactions/salesreturns/forms/form', $this->pageData);
         } catch (Exception $e) {
@@ -828,6 +943,7 @@ class Salesreturns extends CI_Controller {
                 'DiscountAmount'    => (float) ($item['discount_amount']  ?? 0),
                 'NetAmount'         => (float) ($item['net_total']        ?? 0),
                 'QuantityConverted' => 0,
+                'SourceTransProdUID'=> isset($item['sourceTransProdUID']) && $item['sourceTransProdUID'] > 0 ? (int)$item['sourceTransProdUID'] : NULL,
                 'IsActive'          => 1,
                 'IsDeleted'         => 0,
                 'CreatedBy'         => $userUID,
@@ -1000,6 +1116,269 @@ class Salesreturns extends CI_Controller {
 
         $this->globalservice->sendJsonResponse($this->EndReturnData);
 
+    }
+
+    public function getPaymentAttachments() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $transUID = (int) $this->input->post('TransUID');
+            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            if ($transUID <= 0) throw new Exception('Invalid transaction.');
+            $this->load->model('transactions_model');
+            $payments    = $this->transactions_model->getTransactionPayments($transUID, $orgUID);
+            $attachments = [];
+            foreach ($payments as $payment) {
+                $paymentAttachments = $this->transactions_model->getPaymentAttachments($payment->PaymentUID, $orgUID);
+                foreach ($paymentAttachments as $attach) {
+                    $attach->PaymentTypeName       = $payment->PaymentTypeName;
+                    $attach->PaymentAmount         = $payment->Amount;
+                    $attach->PaymentUniqueNumber   = $payment->UniqueNumber ?? null;
+                    $attachments[] = $attach;
+                }
+            }
+            $this->EndReturnData->Error       = FALSE;
+            $this->EndReturnData->Attachments = $attachments;
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    public function recordPayment() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $this->load->model('dbwrite_model');
+            $this->dbwrite_model->startTransaction();
+
+            $PostData       = $this->input->post();
+            $userUID        = $this->pageData['JwtData']->User->UserUID;
+            $orgUID         = $this->pageData['JwtData']->User->OrgUID;
+            $transUID       = (int)   getPostValue($PostData, 'TransUID');
+            $paymentTypeUID = (int)   getPostValue($PostData, 'PaymentTypeUID');
+            $amount         = (float) getPostValue($PostData, 'Amount', 'Array', 0);
+            $paymentDate    =         getPostValue($PostData, 'PaymentDate') ?: date('Y-m-d');
+            $bankAccountUID = (int)   getPostValue($PostData, 'BankAccountUID') ?: NULL;
+            $referenceNo    =         getPostValue($PostData, 'ReferenceNo') ?: NULL;
+            $notes          =         getPostValue($PostData, 'Notes') ?: NULL;
+
+            if ($transUID <= 0)       throw new Exception('Invalid transaction.');
+            if ($paymentTypeUID <= 0) throw new Exception('Please select a payment type.');
+            if ($amount <= 0)         throw new Exception('Amount must be greater than 0.');
+
+            $this->load->model('transactions_model');
+            $existing = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
+            if (!$existing) throw new Exception('Sales Return not found.');
+            if ($existing->DocStatus === 'Draft')                          throw new Exception('Cannot record payment for a Draft.');
+            if (in_array($existing->DocStatus, ['Cancelled', 'Rejected'])) throw new Exception('Sales Return is cancelled.');
+
+            $payments    = $this->transactions_model->getTransactionPayments($transUID, $orgUID);
+            $alreadyPaid = array_sum(array_column((array) $payments, 'Amount'));
+            $pending     = max(0, round((float)$existing->NetAmount - $alreadyPaid, 2));
+
+            if ($amount > $pending + 0.01) {
+                throw new Exception('Amount exceeds pending balance (' . $pending . ').');
+            }
+
+            $newTotalPaid = $alreadyPaid + $amount;
+            $isFullyPaid  = ($existing->NetAmount > 0 && round((float)$existing->NetAmount - $newTotalPaid, 4) <= 0) ? 1 : 0;
+            $newStatus    = $isFullyPaid ? 'Paid' : 'Partial';
+
+            $payTransYear  = (int) date('Y', strtotime($paymentDate));
+            $payPrefixData = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.OrgUID' => $orgUID, 'Prefix.ModuleUID' => 111]);
+            $payPrefix     = !empty($payPrefixData->Data) ? $payPrefixData->Data[0] : null;
+            $payPrefixUID  = $payPrefix ? (int) $payPrefix->PrefixUID : null;
+            $paymentNumber = $payPrefixUID ? $this->transactions_model->getNextPaymentNumber($payPrefixUID, $orgUID, $payTransYear) : 0;
+            $payUniqueNum  = null;
+            if ($payPrefix && $paymentNumber > 0) {
+                $sep   = $payPrefix->Separator ?? '-';
+                $parts = [strtoupper($payPrefix->Name)];
+                if (!empty($payPrefix->IncludeShortName) && !empty($payPrefix->ShortName)) $parts[] = strtoupper($payPrefix->ShortName);
+                if (!empty($payPrefix->IncludeFiscalYear)) {
+                    $m = (int) date('m', strtotime($paymentDate)); $yr = (int) date('Y', strtotime($paymentDate));
+                    $fy = $m >= 4 ? $yr : $yr - 1;
+                    $parts[] = ($payPrefix->FiscalYearFormat ?? 'SHORT') === 'LONG'
+                        ? $fy . '-' . ($fy + 1)
+                        : str_pad($fy % 100, 2, '0', STR_PAD_LEFT) . '-' . str_pad(($fy + 1) % 100, 2, '0', STR_PAD_LEFT);
+                }
+                $pad = (int)($payPrefix->NumberPadding ?? 1);
+                $parts[] = $pad > 1 ? str_pad($paymentNumber, $pad, '0', STR_PAD_LEFT) : (string) $paymentNumber;
+                $payUniqueNum = implode($sep, $parts);
+            }
+            $receiptToken = $this->transactions_model->_generateReceiptToken();
+
+            $paymentData = [
+                'OrgUID'           => $orgUID,
+                'PaymentDate'      => $paymentDate,
+                'PaymentModuleUID' => 111,
+                'PrefixUID'        => $payPrefixUID,
+                'PaymentNumber'    => $paymentNumber,
+                'UniqueNumber'     => $payUniqueNum,
+                'ReceiptToken'     => $receiptToken,
+                'TransYear'        => $payTransYear,
+                'TransUID'         => $transUID,
+                'ModuleUID'        => $this->pageModuleUID,
+                'PartyType'        => 'C',
+                'PartyUID'         => $existing->PartyUID,
+                'PaymentTypeUID'   => $paymentTypeUID,
+                'Amount'           => $amount,
+                'BankAccountUID'   => $bankAccountUID,
+                'ReferenceNo'      => $referenceNo,
+                'Notes'            => $notes,
+                'PaymentSource'    => 'Record',
+                'PaymentDirection' => 'Out',
+                'IsFullyPaid'      => $isFullyPaid,
+                'ExcessAmount'     => 0,
+                'IsActive'         => 1,
+                'IsDeleted'        => 0,
+                'CreatedBy'        => $userUID,
+                'UpdatedBy'        => $userUID,
+            ];
+
+            $resp = $this->dbwrite_model->insertData('Transaction', 'PaymentsTbl', $paymentData);
+            if ($resp->Error) throw new Exception($resp->Message);
+            $paymentUID = $resp->ID ?? null;
+
+            $balanceAmount = max(0, round((float)$existing->NetAmount - $newTotalPaid, 2));
+            $this->dbwrite_model->updateTransIsFullyPaid($transUID, $isFullyPaid, $newTotalPaid, $balanceAmount, $userUID);
+            $this->dbwrite_model->updateTransDocStatus($transUID, $orgUID, $newStatus, $userUID);
+
+            $this->dbwrite_model->commitTransaction();
+
+            if (!empty($paymentUID)) {
+                $this->_savePaymentAttachments($paymentUID);
+            }
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Payment of ' . $amount . ' recorded successfully.';
+
+        } catch (Exception $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    private function _savePaymentRecord($transUID, $orgUID, $userUID, $partyType, $partyUID, $billTotal, $PostData, $transDate = null) {
+        $rowsJson    = getPostValue($PostData, 'PaymentRows') ?: '';
+        $isFullyPaid = (int) getPostValue($PostData, 'IsFullyPaid') === 1 ? 1 : 0;
+        if (empty($rowsJson)) return ['totalPaid' => 0, 'firstPaymentUID' => null];
+        $rows = json_decode($rowsJson, true);
+        if (!is_array($rows) || empty($rows)) return ['totalPaid' => 0, 'firstPaymentUID' => null];
+
+        $paymentDate   = $transDate ?: date('Y-m-d');
+        $totalPaid     = array_sum(array_column($rows, 'amount'));
+        $payTransYear  = (int) date('Y', strtotime($paymentDate));
+        $payPrefixData = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.OrgUID' => $orgUID, 'Prefix.ModuleUID' => 111]);
+        $payPrefix     = !empty($payPrefixData->Data) ? $payPrefixData->Data[0] : null;
+        $payPrefixUID  = $payPrefix ? (int) $payPrefix->PrefixUID : null;
+        $firstPaymentUID = null;
+
+        foreach ($rows as $idx => $row) {
+            $paymentTypeUID = (int)   ($row['paymentTypeUID'] ?? 0);
+            $amount         = (float) ($row['amount']         ?? 0);
+            $bankAccountUID = !empty($row['bankAccountUID']) ? (int) $row['bankAccountUID'] : NULL;
+            $referenceNo    = !empty($row['referenceNo'])    ? $row['referenceNo'] : NULL;
+            $notes          = !empty($row['notes'])          ? $row['notes']       : NULL;
+            if ($paymentTypeUID <= 0 || $amount <= 0) continue;
+
+            $rowExcess = 0;
+            if ($idx === count($rows) - 1 && $billTotal > 0 && $totalPaid > $billTotal) {
+                $rowExcess = round($totalPaid - $billTotal, 4);
+            }
+
+            $paymentNumber = $payPrefixUID ? $this->transactions_model->getNextPaymentNumber($payPrefixUID, $orgUID, $payTransYear) : 0;
+            $payUniqueNum  = null;
+            if ($payPrefix && $paymentNumber > 0) {
+                $sep   = $payPrefix->Separator ?? '-';
+                $parts = [strtoupper($payPrefix->Name)];
+                if (!empty($payPrefix->IncludeShortName) && !empty($payPrefix->ShortName)) $parts[] = strtoupper($payPrefix->ShortName);
+                if (!empty($payPrefix->IncludeFiscalYear)) {
+                    $m  = (int) date('m', strtotime($paymentDate));
+                    $yr = (int) date('Y', strtotime($paymentDate));
+                    $fy = $m >= 4 ? $yr : $yr - 1;
+                    $parts[] = ($payPrefix->FiscalYearFormat ?? 'SHORT') === 'LONG'
+                        ? $fy . '-' . ($fy + 1)
+                        : str_pad($fy % 100, 2, '0', STR_PAD_LEFT) . '-' . str_pad(($fy + 1) % 100, 2, '0', STR_PAD_LEFT);
+                }
+                $pad = (int)($payPrefix->NumberPadding ?? 1);
+                $parts[] = $pad > 1 ? str_pad($paymentNumber, $pad, '0', STR_PAD_LEFT) : (string) $paymentNumber;
+                $payUniqueNum = implode($sep, $parts);
+            }
+            $receiptToken = $this->transactions_model->_generateReceiptToken();
+
+            $paymentData = [
+                'OrgUID'           => $orgUID,
+                'PaymentDate'      => $paymentDate,
+                'PaymentModuleUID' => 111,
+                'PrefixUID'        => $payPrefixUID,
+                'PaymentNumber'    => $paymentNumber,
+                'UniqueNumber'     => $payUniqueNum,
+                'ReceiptToken'     => $receiptToken,
+                'TransYear'        => $payTransYear,
+                'TransUID'         => (int) $transUID,
+                'ModuleUID'        => $this->pageModuleUID,
+                'PartyType'        => $partyType,
+                'PartyUID'         => $partyUID,
+                'PaymentTypeUID'   => $paymentTypeUID,
+                'Amount'           => $amount,
+                'BankAccountUID'   => $bankAccountUID,
+                'ReferenceNo'      => $referenceNo,
+                'Notes'            => $notes,
+                'PaymentSource'    => 'Create',
+                'PaymentDirection' => 'Out',
+                'IsFullyPaid'      => ($idx === count($rows) - 1) ? $isFullyPaid : 0,
+                'ExcessAmount'     => $rowExcess,
+                'IsActive'         => 1,
+                'IsDeleted'        => 0,
+                'CreatedBy'        => $userUID,
+                'UpdatedBy'        => $userUID,
+            ];
+
+            $resp = $this->dbwrite_model->insertData('Transaction', 'PaymentsTbl', $paymentData);
+            if ($resp->Error) throw new Exception('Payment save failed: ' . $resp->Message);
+            if ($idx === 0) $firstPaymentUID = $resp->ID ?? null;
+        }
+
+        return ['totalPaid' => $totalPaid, 'firstPaymentUID' => $firstPaymentUID];
+    }
+
+    private function _savePaymentAttachments($paymentUID) {
+        $files = $_FILES['PaymentFiles'] ?? null;
+        if (empty($files) || empty($files['name'][0])) return;
+        $userUID = $this->pageData['JwtData']->User->UserUID;
+        $orgUID  = $this->pageData['JwtData']->User->OrgUID;
+        $this->load->library('fileupload');
+        $this->load->model('dbwrite_model');
+        $allowed = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+        $count   = min(count($files['name']), 3);
+        for ($i = 0; $i < $count; $i++) {
+            if ($files['error'][$i] !== UPLOAD_ERR_OK || empty($files['name'][$i])) continue;
+            if ($files['size'][$i] > 3 * 1024 * 1024) continue;
+            if (!in_array($files['type'][$i], $allowed)) continue;
+            $origName    = basename($files['name'][$i]);
+            $safeName    = time() . '_' . $i . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $origName);
+            $storagePath = 'payments/' . $paymentUID . '/' . $safeName;
+            $uploadResult = $this->fileupload->fileUpload('file', $storagePath, $files['tmp_name'][$i]);
+            if ($uploadResult->Error) continue;
+            $this->dbwrite_model->insertData('Transaction', 'PaymentAttachmentsTbl', [
+                'OrgUID'     => $orgUID,
+                'PaymentUID' => $paymentUID,
+                'FileName'   => $origName,
+                'FilePath'   => '/' . ltrim($uploadResult->Path, '/'),
+                'FileType'   => $files['type'][$i],
+                'FileSize'   => $files['size'][$i],
+                'SortOrder'  => $i,
+                'IsActive'   => 1,
+                'IsDeleted'  => 0,
+                'CreatedBy'  => $userUID,
+            ]);
+        }
     }
 
 }

@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 $this->load->view('common/transactions/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -18,13 +18,13 @@ $this->load->view('common/transactions/header'); ?>
                     $dec         = $JwtData->GenSettings->DecimalPoints ?? 2;
 
                     $cntAll      = array_sum(array_column($stats, 'count'));
-                    $cntIssued   = ($stats['Issued']['count']   ?? 0) + ($stats['Sent']['count'] ?? 0) + ($stats['Partial']['count'] ?? 0);
+                    $cntPending  = ($stats['Issued']['count']   ?? 0) + ($stats['Sent']['count'] ?? 0) + ($stats['Partial']['count'] ?? 0);
                     $cntPaid     = $stats['Paid']['count']      ?? 0;
                     $cntDraft    = $stats['Draft']['count']     ?? 0;
                     $cntOverdue  = $stats['Overdue']['count']   ?? 0;
 
                     $amtAll      = array_sum(array_column($stats, 'amount'));
-                    $amtIssued   = ($stats['Issued']['amount']  ?? 0) + ($stats['Sent']['amount'] ?? 0) + ($stats['Partial']['amount'] ?? 0);
+                    $amtPending  = ($stats['Issued']['amount']  ?? 0) + ($stats['Sent']['amount'] ?? 0) + ($stats['Partial']['amount'] ?? 0);
                     $amtPaid     = $stats['Paid']['amount']     ?? 0;
 
                     function fmtAmt($val, $sym, $dec) {
@@ -43,10 +43,10 @@ $this->load->view('common/transactions/header'); ?>
                             </a>
                         </div>
                         <div class="col-6 col-md-3">
-                            <a href="javascript:void(0);" class="trans-stat-card stat-active" data-stat-filter="Issued">
-                                <div class="trans-stat-label">Outstanding</div>
-                                <div class="trans-stat-count"><?php echo number_format($cntIssued); ?></div>
-                                <div class="trans-stat-amount"><?php echo fmtAmt($amtIssued, $cur, $dec); ?></div>
+                            <a href="javascript:void(0);" class="trans-stat-card stat-active" data-stat-filter="InvPending">
+                                <div class="trans-stat-label">Pending</div>
+                                <div class="trans-stat-count"><?php echo number_format($cntPending); ?></div>
+                                <div class="trans-stat-amount"><?php echo fmtAmt($amtPending, $cur, $dec); ?></div>
                                 <i class="bx bx-time-five trans-stat-icon"></i>
                             </a>
                         </div>
@@ -82,8 +82,8 @@ $this->load->view('common/transactions/header'); ?>
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link inv-status-tab" data-status="Issued" href="javascript:void(0);">
-                                        Issued <span class="trans-tab-count ms-1 d-none"></span>
+                                    <a class="nav-link inv-status-tab" data-status="InvPending" href="javascript:void(0);">
+                                        Pending <span class="trans-tab-count ms-1 d-none"></span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
@@ -455,7 +455,7 @@ function _buildInvDetailHtml(resp) {
                 maxDate      : 'today',
                 disableMobile: true,
                 defaultDate  : 'today',
-                appendTo: document.querySelector('#recordPaymentModal .modal-body'),
+                appendTo: document.querySelector('#recordPaymentModal .modal-dialog'),
             });
         } else {
             _fpInstance.setDate(new Date(), false);
@@ -469,6 +469,7 @@ function _buildInvDetailHtml(resp) {
                 maxFilesize      : 3,
                 acceptedFiles    : '.pdf,.jpg,.jpeg,.png',
                 parallelUploads  : 3,
+                clickable        : true,
                 previewTemplate  : '<div class="dz-preview dz-file-preview"><div class="dz-details"><div class="dz-filename"><span data-dz-name></span></div><div class="dz-size"><span data-dz-size></span></div></div><div class="dz-error-message"><span data-dz-errormessage></span></div><a class="dz-remove" href="javascript:undefined;" data-dz-remove>Remove</a></div>',
                 init: function () {
                     this.on('maxfilesexceeded', function (file) { this.removeFile(file); Swal.fire({ icon: 'warning', text: 'Maximum 3 attachments allowed.' }); });
@@ -594,7 +595,7 @@ function _buildInvDetailHtml(resp) {
         var dec = 2;
         
         var cntAll = 0, amtAll = 0;
-        var cntIssued = 0, amtIssued = 0;
+        var cntPending = 0, amtPending = 0;
         var cntPaid = 0, amtPaid = 0;
         var cntDraft = 0;
         
@@ -667,7 +668,7 @@ function updateInvoiceRow(invoice, payments, paidTotal) {
         });
         var hasAttach = invoice.PaymentAttachmentCount > 0;
         if (hasAttach) {
-            paymentHtml += '<button type="button" class="btn btn-icon btn-sm invPayAttachBtn" data-trans-uid="' + invoice.TransUID + '" data-inv-num="' + (invoice.UniqueNumber || '') + '" title="View Payment Attachments"><i class="bx bx-paperclip text-primary"></i></button>';
+            paymentHtml += '<button type="button" class="btn btn-icon btn-sm transPayAttachBtn" data-uid="' + invoice.TransUID + '" data-num="' + (invoice.UniqueNumber || '') + '" data-url="/invoices/getPaymentAttachments" title="View Payment Attachments"><i class="bx bx-paperclip text-primary"></i></button>';
         }
     } else {
         paymentHtml = '<span class="text-muted">—</span>';
@@ -675,296 +676,4 @@ function updateInvoiceRow(invoice, payments, paidTotal) {
     $row.find('.inv-payment-mode').html(paymentHtml);
 
 }
-// ── Attachment Viewer ─────────────────────────────────────────────
-$(document).on('click', '.invAttachBtn', function () {
-    var uid = $(this).data('uid');
-    var num = $(this).data('num') || ('Invoice #' + uid);
-    $('#invAttachModalTitle').text('Attachments — ' + num);
-    $('#invAttachGallery').html('<div class="text-center py-4"><span class="spinner-border spinner-border-sm text-primary"></span></div>');
-    var modal = new bootstrap.Modal(document.getElementById('invAttachModal'));
-    modal.show();
-    $.ajax({
-        url    : '/invoices/getAttachments',
-        method : 'POST',
-        data   : { TransUID: uid, [CsrfName]: CsrfToken },
-        success: function (resp) {
-            if (resp.Error || !resp.Attachments || !resp.Attachments.length) {
-                $('#invAttachGallery').html('<div class="text-center py-5 text-muted"><i class="bx bx-paperclip fs-2 d-block mb-2"></i>No attachments found.</div>');
-                return;
-            }
-            var cdnUrl = (typeof CDN_URL !== 'undefined' && CDN_URL) ? CDN_URL : '';
-            var html = '<div class="row g-2">';
-            resp.Attachments.forEach(function (a, idx) {
-                var fullUrl = cdnUrl + (a.FilePath || '');
-                var safeName = $('<span>').text(a.FileName || '').html();
-                var isImg = /image\//i.test(a.FileType || '') || /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(a.FileName || '');
-                var isPdf = /pdf/i.test(a.FileType || '') || /\.pdf$/i.test(a.FileName || '');
-                var isMedia = /^video\//i.test(a.FileType || '') || /\.(mp4|webm|ogg|mov)$/i.test(a.FileName || '');
-                var encUrl = encodeURIComponent(fullUrl);
-
-                if (isImg) {
-                    html += '<div class="col-6 col-md-4">' +
-                        '<div class="attach-thumb-wrap border rounded overflow-hidden" style="cursor:pointer;height:120px;background:#f8f9fa;" ' +
-                        'onclick="_openAttachPreview(\'' + encUrl + '\',\'img\',\'' + safeName + '\')">' +
-                        '<img src="' + $('<span>').text(fullUrl).html() + '" style="width:100%;height:100%;object-fit:cover;" loading="lazy" alt="' + safeName + '">' +
-                        '</div>' +
-                        '<div class="text-muted mt-1 d-flex align-items-center gap-1" style="font-size:.72rem;">' +
-                        '<i class="bx bx-image-alt"></i>' +
-                        '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + safeName + '">' + safeName + '</span></div>' +
-                        '</div>';
-                } else if (isPdf) {
-                    html += '<div class="col-6 col-md-4">' +
-                        '<div class="attach-thumb-wrap border rounded d-flex flex-column align-items-center justify-content-center gap-1" style="cursor:pointer;height:120px;background:#fff5f5;" ' +
-                        'onclick="_openAttachPreview(\'' + encUrl + '\',\'pdf\',\'' + safeName + '\')">' +
-                        '<i class="bx bxs-file-pdf text-danger" style="font-size:2.5rem;"></i>' +
-                        '<span style="font-size:.72rem;color:#dc3545;font-weight:600;">PDF</span>' +
-                        '</div>' +
-                        '<div class="text-muted mt-1 d-flex align-items-center gap-1" style="font-size:.72rem;">' +
-                        '<i class="bx bx-file-blank"></i>' +
-                        '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + safeName + '">' + safeName + '</span></div>' +
-                        '</div>';
-                } else {
-                    var icon = isMedia ? 'bxs-videos text-primary' : 'bx-file text-secondary';
-                    html += '<div class="col-6 col-md-4">' +
-                        '<div class="attach-thumb-wrap border rounded d-flex flex-column align-items-center justify-content-center gap-1" style="cursor:pointer;height:120px;background:#f8f9fa;" ' +
-                        'onclick="_openAttachPreview(\'' + encUrl + '\',\'file\',\'' + safeName + '\')">' +
-                        '<i class="bx ' + icon + '" style="font-size:2.5rem;"></i>' +
-                        '<span style="font-size:.72rem;color:#6c757d;font-weight:500;text-align:center;padding:0 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:90%;">' + safeName + '</span>' +
-                        '</div>' +
-                        '<div class="text-muted mt-1 d-flex align-items-center gap-1" style="font-size:.72rem;">' +
-                        '<i class="bx bx-file-blank"></i>' +
-                        '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + safeName + '">' + safeName + '</span></div>' +
-                        '</div>';
-                }
-            });
-            html += '</div>';
-            $('#invAttachGallery').html(html);
-        },
-        error: function () {
-            $('#invAttachGallery').html('<div class="text-center py-4 text-danger">Failed to load attachments.</div>');
-        }
-    });
-});
-
-// ── Payment Attachment Viewer ─────────────────────────────────────
-$(document).on('click', '.invPayAttachBtn', function (e) {
-    e.stopPropagation();
-    var uid = $(this).data('uid');
-    var num = $(this).data('num') || ('Invoice #' + uid);
-    $('#invPayAttachModalTitle').text('Payment Attachments — ' + num);
-    $('#invPayAttachGallery').html('<div class="text-center py-4"><span class="spinner-border spinner-border-sm text-primary"></span></div>');
-    var modal = new bootstrap.Modal(document.getElementById('invPayAttachModal'));
-    modal.show();
-    AjaxLoading = 0;
-    $.ajax({
-        url    : '/invoices/getPaymentAttachments',
-        method : 'POST',
-        data   : { TransUID: uid, [CsrfName]: CsrfToken },
-        success: function (resp) {
-            AjaxLoading = 1;
-            if (resp.Error || !resp.Attachments || !resp.Attachments.length) {
-                $('#invPayAttachGallery').html('<div class="text-center py-5 text-muted"><i class="bx bx-paperclip fs-2 d-block mb-2"></i>No payment attachments found.</div>');
-                return;
-            }
-            
-            // Get unique payment numbers
-            var paymentNumbers = [];
-            var seen = {};
-            resp.Attachments.forEach(function(a) {
-                if (a.PaymentUniqueNumber && !seen[a.PaymentUniqueNumber]) {
-                    paymentNumbers.push(a.PaymentUniqueNumber);
-                    seen[a.PaymentUniqueNumber] = true;
-                }
-            });
-            
-            // Update modal title with payment numbers
-            var titleText = 'Payment Attachments — ' + num;
-            if (paymentNumbers.length > 0) {
-                titleText += ' | Payments: ' + paymentNumbers.join(', ');
-            }
-            $('#invPayAttachModalTitle').text(titleText);
-            
-            var cdnUrl = (typeof CDN_URL !== 'undefined' && CDN_URL) ? CDN_URL : '';
-            var html = '<div class="row g-2">';
-            resp.Attachments.forEach(function (a, idx) {
-                var fullUrl = cdnUrl + (a.FilePath || '');
-                var safeName = $('<span>').text(a.FileName || '').html();
-                var paymentNum = a.PaymentUniqueNumber ? '<div class=""badge bg-label-primary mb-2"" style=""font-size:.7rem;"">Payment: ' + $('<span>').text(a.PaymentUniqueNumber).html() + '</div>' : '';
-                var isImg = /image\//i.test(a.FileType || '') || /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(a.FileName || '');
-                var isPdf = /pdf/i.test(a.FileType || '') || /\.pdf$/i.test(a.FileName || '');
-                var isMedia = /^video\//i.test(a.FileType || '') || /\.(mp4|webm|ogg|mov)$/i.test(a.FileName || '');
-                var encUrl = encodeURIComponent(fullUrl);
-
-                if (isImg) {
-                    html += '<div class="col-6 col-md-4">' +
-                        paymentNum +
-                        '<div class="attach-thumb-wrap border rounded overflow-hidden" style="cursor:pointer;height:120px;background:#f8f9fa;" ' +
-                        'onclick="_openAttachPreview(\'' + encUrl + '\',\'img\',\'' + safeName + '\')">' +
-                        '<img src="' + $('<span>').text(fullUrl).html() + '" style="width:100%;height:100%;object-fit:cover;" loading="lazy" alt="' + safeName + '">' +
-                        '</div>' +
-                        '<div class="text-muted mt-1 d-flex align-items-center gap-1" style="font-size:.72rem;">' +
-                        '<i class="bx bx-image-alt"></i>' +
-                        '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + safeName + '">' + safeName + '</span></div>' +
-                        '</div>';
-                } else if (isPdf) {
-                    html += '<div class="col-6 col-md-4">' +
-                        paymentNum +
-                        '<div class="attach-thumb-wrap border rounded d-flex flex-column align-items-center justify-content-center gap-1" style="cursor:pointer;height:120px;background:#fff5f5;" ' +
-                        'onclick="_openAttachPreview(\'' + encUrl + '\',\'pdf\',\'' + safeName + '\')">' +
-                        '<i class="bx bxs-file-pdf text-danger" style="font-size:2.5rem;"></i>' +
-                        '<span style="font-size:.72rem;color:#dc3545;font-weight:600;">PDF</span>' +
-                        '</div>' +
-                        '<div class="text-muted mt-1 d-flex align-items-center gap-1" style="font-size:.72rem;">' +
-                        '<i class="bx bx-file-blank"></i>' +
-                        '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + safeName + '">' + safeName + '</span></div>' +
-                        '</div>';
-                } else {
-                    var icon = isMedia ? 'bxs-videos text-primary' : 'bx-file text-secondary';
-                    html += '<div class="col-6 col-md-4">' +
-                        paymentNum +
-                        '<div class="attach-thumb-wrap border rounded d-flex flex-column align-items-center justify-content-center gap-1" style="cursor:pointer;height:120px;background:#f8f9fa;" ' +
-                        'onclick="_openAttachPreview(\'' + encUrl + '\',\'file\',\'' + safeName + '\')">' +
-                        '<i class="bx ' + icon + '" style="font-size:2.5rem;"></i>' +
-                        '<span style="font-size:.72rem;color:#6c757d;font-weight:500;text-align:center;padding:0 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:90%;">' + safeName + '</span>' +
-                        '</div>' +
-                        '<div class="text-muted mt-1 d-flex align-items-center gap-1" style="font-size:.72rem;">' +
-                        '<i class="bx bx-file-blank"></i>' +
-                        '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + safeName + '">' + safeName + '</span></div>' +
-                        '</div>';
-                }
-            });
-            html += '</div>';
-            $('#invPayAttachGallery').html(html);
-        },
-        error: function () {
-            AjaxLoading = 1;
-            $('#invPayAttachGallery').html('<div class="text-center py-4 text-danger">Failed to load attachments.</div>');
-        }
-    });
-});
-
-var _attachPreviewOpener = null;
-
-function _openAttachPreview(encUrl, type, name) {
-    var url      = decodeURIComponent(encUrl);
-    var safeName = $('<span>').text(name).html();
-    $('#attachPreviewTitle').text(name || 'Preview');
-    var body = '';
-    if (type === 'img') {
-        body = '<div class="d-flex align-items-center justify-content-center" style="height:100%;padding:16px;">' +
-               '<img src="' + $('<span>').text(url).html() + '" class="img-fluid rounded" style="max-height:calc(92vh - 48px);object-fit:contain;" alt="' + safeName + '"></div>';
-    } else if (type === 'pdf') {
-        body = '<iframe src="' + $('<span>').text(url).html() + '" style="width:100%;height:calc(92vh - 48px);border:none;display:block;"></iframe>';
-    } else {
-        body = '<div class="d-flex flex-column align-items-center justify-content-center" style="height:calc(92vh - 48px);">' +
-               '<i class="bx bx-file-blank text-secondary" style="font-size:4rem;margin-bottom:12px;"></i>' +
-               '<div style="font-size:.9rem;font-weight:600;color:#fff;margin-bottom:16px;">' + safeName + '</div>' +
-               '<a href="' + $('<span>').text(url).html() + '" download="' + safeName + '" class="btn btn-primary px-4"><i class="bx bx-download me-2"></i>Download File</a>' +
-               '</div>';
-    }
-    $('#attachPreviewBody').html(body);
-
-    var payAttachEl  = document.getElementById('invPayAttachModal');
-    var previewEl    = document.getElementById('attachPreviewModal');
-    var previewModal = bootstrap.Modal.getOrCreateInstance(previewEl);
-
-    // If invPayAttachModal is currently open, hide it first then show preview
-    if (payAttachEl && payAttachEl.classList.contains('show')) {
-        _attachPreviewOpener = 'invPayAttach';
-        $(payAttachEl).one('hidden.bs.modal', function () {
-            previewModal.show();
-        });
-        bootstrap.Modal.getInstance(payAttachEl).hide();
-    } else {
-        previewModal.show();
-    }
-}
-
-// Reopen invPayAttachModal when the preview is closed (if that's where it came from)
-$(document).on('hidden.bs.modal', '#attachPreviewModal', function () {
-    if (_attachPreviewOpener === 'invPayAttach') {
-        _attachPreviewOpener = null;
-        var payAttachEl = document.getElementById('invPayAttachModal');
-        if (payAttachEl) bootstrap.Modal.getOrCreateInstance(payAttachEl).show();
-    }
-});
-
-
 </script>
-
-<!-- ── Invoice Attachment Viewer Modal ──────────────────────────── -->
-<div class="modal fade" id="invAttachModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
-        <div class="modal-content" style="overflow:hidden;">
-            <button type="button" class="btn-close position-absolute" data-bs-dismiss="modal"
-                style="top:14px;right:16px;z-index:10;background-color:rgba(255,255,255,.85);border-radius:50%;padding:6px;box-shadow:0 1px 4px rgba(0,0,0,.15);"
-                aria-label="Close"></button>
-            <div class="modal-body p-0">
-                <div style="background:#e8f0fe;border-left:4px solid #0d6efd;padding:14px 20px;">
-                    <div class="d-flex align-items-center gap-3">
-                        <div style="background:#0d6efd22;border-radius:10px;padding:9px 11px;">
-                            <i class="bx bx-paperclip" style="font-size:1.7rem;color:#0d6efd;display:block;"></i>
-                        </div>
-                        <div>
-                            <div style="font-size:1rem;font-weight:800;color:#0d6efd;" id="invAttachModalTitle">Attachments</div>
-                            <div style="font-size:.77rem;color:#6c757d;margin-top:3px;">Click any file to preview</div>
-                        </div>
-                    </div>
-                </div>
-                <div style="padding:16px 20px;" id="invAttachGallery">
-                    <div class="text-center py-4"><span class="spinner-border spinner-border-sm text-primary"></span></div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-
-
-
-<!-- ── Payment Attachment Viewer Modal ────────────────────────────── -->
-<div class="modal fade" id="invPayAttachModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
-        <div class="modal-content" style="overflow:hidden;">
-            <button type="button" class="btn-close position-absolute" data-bs-dismiss="modal"
-                style="top:14px;right:16px;z-index:10;background-color:rgba(255,255,255,.85);border-radius:50%;padding:6px;box-shadow:0 1px 4px rgba(0,0,0,.15);"
-                aria-label="Close"></button>
-            <div class="modal-body p-0">
-                <div style="background:#e8f0fe;border-left:4px solid #0d6efd;padding:14px 20px;">
-                    <div class="d-flex align-items-center gap-3">
-                        <div style="background:#0d6efd22;border-radius:10px;padding:9px 11px;">
-                            <i class="bx bx-paperclip" style="font-size:1.7rem;color:#0d6efd;display:block;"></i>
-                        </div>
-                        <div>
-                            <div style="font-size:1rem;font-weight:800;color:#0d6efd;" id="invPayAttachModalTitle">Payment Attachments</div>
-                            <div style="font-size:.77rem;color:#6c757d;margin-top:3px;">Click any file to preview</div>
-                        </div>
-                    </div>
-                </div>
-                <div style="padding:16px 20px;" id="invPayAttachGallery">
-                    <div class="text-center py-4"><span class="spinner-border spinner-border-sm text-primary"></span></div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- ── Attachment Preview Modal ──────────────────────────────────── -->
-<div class="modal fade" id="attachPreviewModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header py-2 px-3">
-                <h6 class="modal-title d-flex align-items-center gap-2 mb-0" style="font-size:.88rem;font-weight:700;max-width:90%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-                    <i class="bx bx-file text-primary"></i>
-                    <span id="attachPreviewTitle">Preview</span>
-                </h6>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body p-0" id="attachPreviewBody" style="min-height:200px;background:#1a1a2e;">
-                <div class="text-center py-5"><span class="spinner-border text-light"></span></div>
-            </div>
-        </div>
-    </div>
-</div>
-
-

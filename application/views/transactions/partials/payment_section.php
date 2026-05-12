@@ -59,10 +59,35 @@ $currSymbol       = $JwtData->GenSettings->CurrenySymbol ?? '₹';
         <span id="payExcessWrap" class="text-warning d-none">Excess: <span id="payExcess"><?php echo $currSymbol; ?> 0.00</span></span>
     </div>
 
+    <!-- Payment Attachments Section -->
+    <div class="payment-attachments-section mt-3 px-1">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+            <span class="fw-semibold text-dark" style="font-size:0.9rem;">
+                <i class="bx bx-paperclip me-1"></i>Payment Attachments
+                <span class="text-muted fw-normal small">(Max 3 files, 3MB each)</span>
+            </span>
+        </div>
+        
+        <!-- Upload Button -->
+        <div class="mb-2">
+            <input type="file" id="paymentAttachmentInput" class="d-none" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" multiple>
+            <button type="button" class="btn btn-sm btn-outline-primary" id="uploadPaymentAttachmentBtn">
+                <i class="bx bx-upload me-1"></i>Upload Files
+            </button>
+            <span class="text-muted small ms-2">Supported: Images, PDF, DOC, XLS</span>
+        </div>
+        
+        <!-- Uploaded Files List -->
+        <div id="paymentAttachmentsList" class="uploaded-files-list">
+            <!-- Files will be listed here -->
+        </div>
+    </div>
+
     <!-- Hidden: serialised payment rows sent with form -->
     <input type="hidden" id="PaymentRowsJson" name="PaymentRows" value="">
     <input type="hidden" id="PaymentIsFullyPaid" name="IsFullyPaid" value="0">
     <input type="hidden" name="RecordPayment" value="1">
+    <input type="hidden" id="PaymentAttachmentsJson" name="PaymentAttachments" value="">
 
 </div>
 
@@ -184,6 +209,87 @@ $currSymbol       = $JwtData->GenSettings->CurrenySymbol ?? '₹';
     padding: 2px 8px;
 }
 .pay-mode-sublabel { font-size: 0.75rem; color: #6c757d; margin-top: 4px; }
+
+/* Payment Attachments Styles */
+.uploaded-files-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.uploaded-file-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    background: #fff;
+    border: 1px solid #d4e9d7;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.uploaded-file-item:hover {
+    background: #f8fdf9;
+    border-color: #b8d4ba;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.file-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+    cursor: pointer;
+}
+
+.file-icon {
+    font-size: 24px;
+    flex-shrink: 0;
+}
+
+.file-icon.file-image { color: #0d6efd; }
+.file-icon.file-pdf { color: #dc3545; }
+.file-icon.file-doc { color: #0d6efd; }
+.file-icon.file-xls { color: #198754; }
+.file-icon.file-default { color: #6c757d; }
+
+.file-details {
+    flex: 1;
+    min-width: 0;
+}
+
+.file-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #333;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 2px;
+}
+
+.file-size {
+    font-size: 0.75rem;
+    color: #6c757d;
+}
+
+.file-remove-btn {
+    background: #fff;
+    border: 1px solid #dc3545;
+    color: #dc3545;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.file-remove-btn:hover {
+    background: #dc3545;
+    color: #fff;
+}
 </style>
 
 <script>

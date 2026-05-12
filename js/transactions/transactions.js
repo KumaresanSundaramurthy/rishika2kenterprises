@@ -1626,6 +1626,7 @@ class BillManager {
 }
 
 const billManager = new BillManager();
+let _descEditorQuill = null;
 
 $(document).ready(function () {
     'use strict'
@@ -2141,6 +2142,18 @@ $(document).ready(function () {
         }
     });
 
+    // Handle product description edit click
+    $(document).on('click', '.editable-description', function(e) {
+        e.preventDefault();
+        const itemId = $(this).data('id');
+        const item = billManager.getItemById(itemId);
+        
+        if (!item) return;
+        
+        // Show modal with editor
+        showDescriptionEditor(itemId, item.description || '', item.text || 'Product');
+    });
+
 });
 
 // Helper function to get display name for scope
@@ -2268,7 +2281,7 @@ function searchCustomers(key) {
 
     if (!$el.closest('.customer-search-group').length) {
         $el.wrap('<div class="input-group input-group-sm input-group-merge customer-search-group" id="' + wrapId + '"></div>');
-        $('<span class="input-group-text p-2 cursor-pointer" id="openCustomerSearchModal"><i class="icon-base bx bx-search"></i></span>').insertBefore($el);
+        $('<span class="input-group-text p-2 cursor-pointer" id="openCustomerSearchModal" style="background:#f0efff;border-color:#d9d8ff;color:#696cff;"><i class="icon-base bx bx-search"></i></span>').insertBefore($el);
     }
 
     $el.select2({
@@ -2605,8 +2618,27 @@ function formationTableBillItems(productRow) {
 
     let rowCount = $('#billTableBody tr[data-id]').length;
 
-    const hsnText  = productRow.hsnCode    ? `<div class="transtext-small text-muted">HSN: ${productRow.hsnCode}</div>` : '';
-    const descText = productRow.description ? `<div class="transtext-small text-muted" style="font-style:italic;">${productRow.description}</div>` : '';
+    const hsnText  = productRow.hsnCode    ? `<div class="transtext-small text-muted"><span style="font-weight:600;color:#495057;">HSN:</span> ${productRow.hsnCode}</div>` : '';
+    const _escapedDesc = (productRow.description || '').replace(/"/g, '&quot;');
+    const descText = productRow.description
+        ? `<div class="bill-desc-wrap d-flex align-items-start gap-1 mt-1">
+             <button type="button" class="btn p-0 editable-description" data-id="${productRow.id}"
+                     title="Edit description"
+                     style="flex-shrink:0;color:#8592a3;font-size:12px;line-height:1;margin-top:2px;">
+               <i class="bx bx-edit-alt"></i>
+             </button>
+             <span class="bill-desc-text transtext-small text-muted"
+                   style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-style:italic;line-height:1.4;word-break:break-word;"
+                   title="${_escapedDesc}">${productRow.description}</span>
+           </div>`
+        : `<div class="bill-desc-wrap d-flex align-items-start gap-1 mt-1">
+             <button type="button" class="btn p-0 editable-description" data-id="${productRow.id}"
+                     title="Add description"
+                     style="flex-shrink:0;color:#adb5bd;font-size:12px;line-height:1;margin-top:2px;">
+               <i class="bx bx-plus-circle"></i>
+             </button>
+             <span class="bill-desc-text transtext-small" style="color:#adb5bd;font-style:italic;">Add description</span>
+           </div>`;
 
     // const discTypeHtml = discTypeInfo.map(d => `<option value="${d.Name}">${d.Symbol}</option>` ).join('');
     const discTypeHtml = `
@@ -2632,10 +2664,10 @@ function formationTableBillItems(productRow) {
                     ${productRow.productType === 'Service'
                         ? '<span class="text-muted">Service</span>'
                         : productRow.availableQuantity < 0
-                            ? `Stock: <span class="text-danger fw-semibold">${smartDecimal(productRow.availableQuantity)}</span> ${productRow.primaryUnit}`
+                            ? `<span style="font-weight:600;color:#495057;">Stock:</span> <span class="text-danger fw-semibold">${smartDecimal(productRow.availableQuantity)}</span> <span style="font-weight:600;color:#495057;">${productRow.primaryUnit}</span>`
                             : productRow.availableQuantity === 0
-                                ? `Stock: <span class="text-warning fw-semibold">0</span> ${productRow.primaryUnit}`
-                                : `Stock: <span class="text-success fw-semibold">${smartDecimal(productRow.availableQuantity)}</span> ${productRow.primaryUnit}`
+                                ? `<span style="font-weight:600;color:#495057;">Stock:</span> <span class="text-warning fw-semibold">0</span> <span style="font-weight:600;color:#495057;">${productRow.primaryUnit}</span>`
+                                : `<span style="font-weight:600;color:#495057;">Stock:</span> <span class="text-success fw-semibold">${smartDecimal(productRow.availableQuantity)}</span> <span style="font-weight:600;color:#495057;">${productRow.primaryUnit}</span>`
                     }
                 </div>
                 ${descText}
@@ -3312,4 +3344,159 @@ function setFormLoading(formName, isLoading, action) {
         $btns.filter('[value="save"]').text('Save');
         $btns.filter('[value="draft"]').text('Save as Draft');
     }
+}
+
+// ── Description editor (Quill) ──────────────────────────────────────────────
+
+function _stripHtml(html) {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    return (tmp.textContent || tmp.innerText || '').trim();
+}
+
+function showDescriptionEditor(itemId, currentDescription, productName) {
+
+    if ($('#descriptionEditorModal').length === 0) {
+        $('body').append(`
+            <div class="modal fade" id="descriptionEditorModal" tabindex="-1">
+                <div class="modal-dialog modal-dialog-top modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title"><i class="bx bx-edit-alt me-2"></i>Edit Description</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body pb-2">
+                            <p class="mb-2 small">
+                                Product: <strong id="descEditorProductName" class="text-primary"></strong>
+                            </p>
+                            <div id="descEditorQuill" style="min-height:160px;"></div>
+                            <div class="form-text mt-1">This description will appear on the invoice line item.</div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-primary" id="saveDescriptionBtn">
+                                <i class="bx bx-save me-1"></i>Update
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `);
+
+        // Save handler — registered once
+        $(document).on('click', '#saveDescriptionBtn', function () {
+            const iid     = $('#descriptionEditorModal').data('item-id');
+            const newDesc = _descEditorQuill ? _descEditorQuill.getText().trim() : '';
+            const item    = billManager.getItemById(iid);
+            if (item) {
+                item.description = newDesc;
+                billManager.updateItemInStorage(iid, item);
+                updateDescriptionInTable(iid, newDesc);
+                showToastNotification('Description updated', 'success');
+            }
+            $('#descriptionEditorModal').modal('hide');
+        });
+
+        // Initialize Quill once when modal is visible, then load content on every open
+        $('#descriptionEditorModal').on('shown.bs.modal', function () {
+            if (!_descEditorQuill) {
+                _descEditorQuill = new Quill('#descEditorQuill', {
+                    theme      : 'snow',
+                    placeholder: 'Enter product description...',
+                    modules    : {
+                        toolbar: [
+                            ['bold', 'italic', 'underline'],
+                            [{ list: 'ordered' }, { list: 'bullet' }],
+                            ['clean']
+                        ]
+                    }
+                });
+            }
+            // Strip HTML and load plain text into editor
+            const rawDesc = $('#descriptionEditorModal').data('pending-desc') || '';
+            _descEditorQuill.setText(_stripHtml(rawDesc));
+            _descEditorQuill.focus();
+        });
+    }
+
+    // Store context before show — shown.bs.modal reads pending-desc
+    $('#descriptionEditorModal')
+        .data('item-id', itemId)
+        .data('pending-desc', currentDescription);
+    $('#descEditorProductName').text(productName);
+    $('#descriptionEditorModal').modal('show');
+}
+
+// Update description display in the bill table row
+function updateDescriptionInTable(itemId, newDescription) {
+    const $btn      = $(`.editable-description[data-id="${itemId}"]`);
+    const $textSpan = $btn.siblings('.bill-desc-text');
+    const $icon     = $btn.find('i');
+
+    if (newDescription && newDescription.trim() !== '') {
+        $icon.attr('class', 'bx bx-edit-alt');
+        $btn.attr('title', 'Edit description').css('color', '#8592a3');
+        $textSpan
+            .text(newDescription)
+            .attr('class', 'bill-desc-text transtext-small text-muted')
+            .attr('title', newDescription)
+            .css({
+                'display'            : '-webkit-box',
+                '-webkit-line-clamp' : '2',
+                '-webkit-box-orient' : 'vertical',
+                'overflow'           : 'hidden',
+                'font-style'         : 'italic',
+                'line-height'        : '1.4',
+                'color'              : '',
+                'word-break'         : 'break-word'
+            });
+    } else {
+        $icon.attr('class', 'bx bx-plus-circle');
+        $btn.attr('title', 'Add description').css('color', '#adb5bd');
+        $textSpan
+            .text('Add description')
+            .attr('class', 'bill-desc-text transtext-small')
+            .removeAttr('title')
+            .css({
+                'display'            : '',
+                '-webkit-line-clamp' : '',
+                '-webkit-box-orient' : '',
+                'overflow'           : '',
+                'font-style'         : 'italic',
+                'line-height'        : '',
+                'color'              : '#adb5bd',
+                'word-break'         : ''
+            });
+    }
+}
+
+// Toast notification helper
+function showToastNotification(message, type = 'success') {
+    const bgColor = type === 'success' ? '#28a745' : type === 'error' ? '#dc3545' : '#ffc107';
+    const icon = type === 'success' ? 'bx-check-circle' : type === 'error' ? 'bx-error-circle' : 'bx-info-circle';
+    
+    const toast = `
+        <div class="toast-notification" style="position:fixed;top:20px;right:20px;z-index:99999;background:${bgColor};color:white;padding:15px 20px;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);display:flex;align-items:center;gap:10px;animation:slideInRight 0.3s ease;">
+            <i class="bx ${icon}" style="font-size:24px;"></i>
+            <span>${message}</span>
+        </div>
+        <style>
+            @keyframes slideInRight {
+                from { transform: translateX(400px); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOutRight {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(400px); opacity: 0; }
+            }
+        </style>
+    `;
+    
+    const $toast = $(toast);
+    $('body').append($toast);
+    
+    setTimeout(() => {
+        $toast.css('animation', 'slideOutRight 0.3s ease');
+        setTimeout(() => $toast.remove(), 300);
+    }, 3000);
 }

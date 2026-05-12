@@ -2,32 +2,49 @@
 
 <!-- Customer Search Modal -->
 <div class="modal fade" id="customerSearchModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title"><i class="bx bx-search me-2"></i>Search Customers</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body p-0">
-                <!-- Search Bar -->
-                <div class="p-3 border-bottom">
-                    <div class="input-group">
-                        <span class="input-group-text"><i class="bx bx-search"></i></span>
-                        <input type="text" id="custSearchInput" class="form-control" placeholder="Search by name, mobile, area..." />
+    <div class="modal-dialog modal-lg modal-dialog-scrollable" style="height:90vh;max-height:90vh;">
+        <div class="modal-content" style="height:100%;">
+
+            <!-- Header — vtm-banner style -->
+            <div class="vtm-banner flex-shrink-0" style="--vtm-color:#696cff;--vtm-bg:#f0efff;--vtm-icon-bg:rgba(105,108,255,.13);">
+                <div class="vtm-banner-inner">
+                    <div class="vtm-banner-left">
+                        <div class="vtm-banner-icon">
+                            <i class="bx bx-search" style="font-size:1.7rem;color:var(--vtm-color);display:block;"></i>
+                        </div>
+                        <div>
+                            <div style="font-size:.95rem;font-weight:700;color:var(--vtm-color);">Search Customers</div>
+                            <div style="font-size:.75rem;color:#6c757d;margin-top:2px;">Select a customer to apply</div>
+                        </div>
+                    </div>
+                    <div class="vtm-banner-right">
+                        <div class="input-group input-group-sm" style="width:240px;">
+                            <span class="input-group-text"><i class="bx bx-search"></i></span>
+                            <input type="text" id="custSearchInput" class="form-control" placeholder="Name, mobile, area..." />
+                            <button type="button" id="custSearchClear" class="btn btn-outline-secondary d-none" tabindex="-1"><i class="bx bx-x"></i></button>
+                        </div>
+                        <button type="button" class="vtm-close-btn" data-bs-dismiss="modal" aria-label="Close">
+                            <i class="bx bx-x"></i>
+                        </button>
                     </div>
                 </div>
+            </div>
 
+            <div class="modal-body p-0" style="flex:1;overflow-y:auto;">
                 <!-- Customer List -->
-                <div id="custSearchResults" style="min-height:300px;max-height:400px;overflow-y:auto;">
+                <div id="custSearchResults">
                     <div class="text-center py-5">
                         <div class="spinner-border text-primary" role="status">
                             <span class="visually-hidden">Loading...</span>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <!-- Pagination -->
-                <div class="border-top p-2" id="custSearchPagination"></div>
+            <!-- Pagination — pinned at bottom -->
+            <div class="border-top px-3 py-2 d-flex align-items-center justify-content-between flex-shrink-0 d-none" id="custSearchPaginationWrap" style="background:var(--vtm-bg,#f0efff);">
+                <small style="color:var(--vtm-color,#696cff);font-weight:600;" id="custSearchPageInfo"></small>
+                <nav><ul class="pagination pagination-sm mb-0" id="custSearchPagination"></ul></nav>
             </div>
         </div>
     </div>
@@ -45,6 +62,20 @@
 }
 .cust-search-item:last-child {
     border-bottom: none;
+}
+.cust-serial {
+    min-width: 26px;
+    height: 26px;
+    background: #f0efff;
+    color: #696cff;
+    border-radius: 50%;
+    font-size: .72rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
 }
 .cust-name {
     font-size: 0.9rem;

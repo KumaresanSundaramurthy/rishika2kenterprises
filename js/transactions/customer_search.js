@@ -81,6 +81,9 @@
                     var interState = (custState !== '' && orgState !== '' && custState !== orgState);
                     billManager.setInterState(interState);
                 }
+                if (typeof window._onCustStateSelected === 'function') {
+                    window._onCustStateSelected((state || (address && address.State) || '').trim());
+                }
             } else {
                 $('#customerAddressBox').addClass('d-none').empty();
                 if (typeof billManager !== 'undefined') billManager.setInterState(false);

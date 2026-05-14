@@ -199,87 +199,81 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
                                 <h5 class="modal-title mb-0"><i class="bx bx-user me-1"></i> Customer Details</h5>
                             </div>
 
-                            <div class="row">
-                                <div class="col-md-3 trans-right-border">
-                                    <div class="mb-2">
-                                        <label for="quotationType" class="form-label small fw-semibold">Type <span style="color:red">*</span></label>
-                                        <select id="quotationType" name="quotationType" class="form-select form-select-sm" <?php echo !$isEdit ? 'required' : ''; ?>>
-                                            <option value="Regular" <?php echo ($isEdit && ($QuotData->QuotationType === 'Regular' || empty($QuotData->QuotationType))) || !$isEdit ? 'selected' : ''; ?>>Regular</option>
-                                            <option value="Without_GST" <?php echo $isEdit && $QuotData->QuotationType === 'Without_GST' ? 'selected' : ''; ?>>Without GST</option>
-                                        </select>
+                            <!-- Row 1: Customer | Type | Dispatch From | Quotation Date | Validity (Days) -->
+                            <div class="row g-2 align-items-end">
+                                <div class="col-md-4">
+                                    <div class="d-flex align-items-center gap-2 mb-1">
+                                        <label for="customerSearch" class="trans-field-label mb-0">Select Customer <span class="text-danger">*</span></label>
+                                        <button type="button" id="addTransCustomer" class="trans-add-btn btn btn-outline-primary btn-sm" aria-label="Add new customer" style="white-space:nowrap;"><i class="bx bx-plus-circle me-1"></i>Add Customer</button>
                                     </div>
-                                    <?php if (!empty($DispatchAddress)): ?>
-                                    <div class="mb-2">
-                                        <label class="form-label small fw-semibold">Dispatch From <span style="color:red">*</span></label>
-                                        <select id="dispatchFrom" name="dispatchFrom" class="form-select form-select-sm" required>
-                                            <option value="<?php echo (int)$DispatchAddress->OrgAddressUID; ?>" selected><?php echo implode(', ', $_addrLines); ?></option>
-                                        </select>
-                                    </div>
-                                    <?php endif; ?>
+                                    <select id="customerSearch" name="customerSearch" class="form-select form-select-sm">
+                                        <?php if ($isEdit && !empty($QuotData->PartyUID)): ?>
+                                        <option value="<?php echo (int)$QuotData->PartyUID; ?>" selected><?php echo htmlspecialchars($QuotData->PartyName ?? ''); ?></option>
+                                        <?php endif; ?>
+                                    </select>
                                 </div>
-                                <div class="col-md-6 border-end pe-3">
-                                    <div class="d-flex align-items-center gap-2">
-                                        <div class="d-flex align-items-center gap-2 mb-1">
-                                            <label for="customerSearch" class="trans-field-label mb-0">Select Customer <span class="text-danger">*</span></label>
-                                            <button type="button" id="addTransCustomer" class="trans-add-btn btn btn-outline-primary btn-sm" aria-label="Add new customer" style="white-space:nowrap;"><i class="bx bx-plus-circle me-1"></i>Add Customer</button>
-                                        </div>
+                                <div class="col-md-2">
+                                    <label class="trans-field-label">Type</label>
+                                    <select id="quotationType" name="quotationType" class="form-select form-select-sm" required>
+                                        <option value="Regular" <?php echo ($isEdit && ($QuotData->QuotationType === 'Regular' || empty($QuotData->QuotationType))) || !$isEdit ? 'selected' : ''; ?>>Regular</option>
+                                        <option value="Without_GST" <?php echo $isEdit && $QuotData->QuotationType === 'Without_GST' ? 'selected' : ''; ?>>Without GST</option>
+                                    </select>
+                                </div>
+                                <?php if (!empty($DispatchAddress)): ?>
+                                <div class="col-md-2">
+                                    <label class="trans-field-label">Dispatch From</label>
+                                    <select id="dispatchFrom" name="dispatchFrom" class="form-select form-select-sm" required>
+                                        <option value="<?php echo (int)$DispatchAddress->OrgAddressUID; ?>" selected><?php echo htmlspecialchars(implode(', ', $_addrLines)); ?></option>
+                                    </select>
+                                </div>
+                                <?php endif; ?>
+                                <div class="col-md-2">
+                                    <label for="transDate" class="trans-field-label">Quotation Date <span class="text-danger">*</span></label>
+                                    <div class="input-group input-group-sm input-group-merge">
+                                        <span class="input-group-text"><i class="icon-base bx bx-calendar"></i></span>
+                                        <input type="text" class="form-control form-control-sm" id="transDate" name="transDate" readonly="readonly"
+                                            value="<?php echo $isEdit ? htmlspecialchars($QuotData->TransDate ?? '') : format_datedisplay(time(), 'Y-m-d'); ?>"
+                                            required />
                                     </div>
-                                    <div class="flex-grow-1">
-                                        <select id="customerSearch" name="customerSearch" class="form-select form-select-sm">
-                                                <?php if ($isEdit && !empty($QuotData->PartyUID)): ?>
-                                                <option value="<?php echo (int)$QuotData->PartyUID; ?>" selected>
-                                                    <?php echo htmlspecialchars($QuotData->PartyName ?? ''); ?>
-                                                </option>
-                                                <?php endif; ?>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div id="customerAddressBox" class="mt-2 p-2 border border-secondary trans-border-dotted rounded small <?php echo ($isEdit && isset($CustAddr) && !empty($CustAddr)) ? '' : 'd-none'; ?>">
-                                    <?php if ($isEdit && isset($CustAddr) && !empty($CustAddr)): ?>
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="validityDays" class="trans-field-label">Validity (Days)</label>
+                                    <input type="number" id="validityDays" name="validityDays" class="form-control form-control-sm" min="0" step="1"
+                                        oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                                        value="<?php echo $isEdit ? (int)($QuotData->ValidityDays ?? 7) : 7; ?>" />
+                                </div>
+                            </div>
+
+                            <!-- Row 2: Customer address | Validity Date | Reference -->
+                            <div class="row g-2 mt-2">
+                                <div class="col-md-4">
+                                    <div id="customerAddressBox" class="p-2 border border-secondary trans-border-dotted rounded small <?php echo ($isEdit && isset($CustAddr) && !empty($CustAddr)) ? '' : 'd-none'; ?>">
+                                        <?php if ($isEdit && isset($CustAddr) && !empty($CustAddr)): ?>
                                         <div><strong>Shipping Address:</strong></div>
                                         <div><?php echo htmlspecialchars($CustAddr->Line1 ?? ''); ?></div>
                                         <div><?php echo htmlspecialchars($CustAddr->Line2 ?? ''); ?></div>
                                         <div><?php echo trim(implode(' - ', array_filter([htmlspecialchars($CustAddr->CityText ?? ''), htmlspecialchars($CustAddr->Pincode ?? '')]))); ?></div>
                                         <div><?php echo htmlspecialchars($CustAddr->StateText ?? ''); ?></div>
-                                    <?php endif; ?>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
-                                <div class="col-md-3">
-                                    <div class="d-flex gap-2 mb-2">
-                                        <div class="flex-fill">
-                                            <label for="transDate" class="form-label small fw-semibold">Quotation Date <span class="text-danger">*</span></label>
-                                            <div class="input-group input-group-merge">
-                                                <span class="input-group-text"><i class="icon-base bx bx-calendar"></i></span>
-                                                <input type="text" class="form-control form-control-sm" id="transDate" name="transDate" readonly="readonly"
-                                                    value="<?php echo $isEdit ? htmlspecialchars($QuotData->TransDate ?? '') : format_datedisplay(time(), 'Y-m-d'); ?>"
-                                                    required />
-                                            </div>
-                                        </div>
-                                        <div class="flex-fill">
-                                            <label for="validityDays" class="form-label small fw-semibold">Validity (Days)</label>
-                                            <input type="number" id="validityDays" name="validityDays" class="form-control form-control-sm" min="0" step="1"
-                                                oninput="this.value = this.value.replace(/[^0-9]/g, '')"
-                                                value="<?php echo $isEdit ? (int)($QuotData->ValidityDays ?? 7) : 7; ?>" />
-                                        </div>
+                                <div class="col-md-4">
+                                    <label for="validityDate" class="trans-field-label">Validity Date</label>
+                                    <div class="input-group input-group-sm input-group-merge">
+                                        <span class="input-group-text"><i class="icon-base bx bx-calendar"></i></span>
+                                        <input type="text" class="form-control form-control-sm" id="validityDate" name="validityDate" readonly="readonly"
+                                            value="<?php echo $isEdit ? htmlspecialchars($QuotData->ValidityDate ?? '') : format_datedisplay(time(), 'Y-m-d', '', null, '+7'); ?>"
+                                            required />
                                     </div>
-                                    <div class="mb-2">
-                                        <label for="validityDate" class="form-label small fw-semibold">Validity Date</label>
-                                        <div class="input-group input-group-merge">
-                                            <span class="input-group-text"><i class="icon-base bx bx-calendar"></i></span>
-                                            <input type="text" class="form-control form-control-sm" id="validityDate" name="validityDate" readonly="readonly"
-                                                value="<?php echo $isEdit ? htmlspecialchars($QuotData->ValidityDate ?? '') : format_datedisplay(time(), 'Y-m-d', '', null, '+7'); ?>"
-                                                required />
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label for="referenceDetails" class="form-label small fw-semibold">Reference</label>
-                                        <input type="text" id="referenceDetails" name="referenceDetails" class="form-control form-control-sm"
-                                            placeholder="Reference, e.g. PO Number, Sales Person, Shipment No..." maxlength="100"
-                                            value="<?php echo $isEdit ? htmlspecialchars($QuotData->Reference ?? '') : (!empty($CloneData->Reference) ? htmlspecialchars($CloneData->Reference) : ''); ?>" />
-                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="referenceDetails" class="trans-field-label">Reference</label>
+                                    <input type="text" id="referenceDetails" name="referenceDetails" class="form-control form-control-sm"
+                                        placeholder="PO Number, Sales Person, Ref No..." maxlength="100"
+                                        value="<?php echo $isEdit ? htmlspecialchars($QuotData->Reference ?? '') : (!empty($CloneData->Reference) ? htmlspecialchars($CloneData->Reference) : ''); ?>" />
                                 </div>
                             </div>
-                            <hr/>
+                            <hr class="mt-3"/>
 
                             <?php $this->load->view('transactions/partials/form_products_add', [
                                 'transNotesPlaceholder'     => 'Enter notes or anything else',
@@ -333,13 +327,15 @@ var _editItems = <?php echo json_encode(array_map(function($item) {
         'id'               => (int)  $item->ProductUID,
         'text'             => $item->ProductName,
         'itemName'         => $item->ProductName,
+        'description'      => $item->Description   ?? '',
         'unitPrice'        => (float)$item->UnitPrice,
         'taxAmount'        => (float)$item->TaxAmount,
         'sellingPrice'     => (float)$item->SellingPrice,
-        'purchasePrice'    => 0,
+        'purchasePrice'    => (float)($item->PurchasePrice ?? 0),
         'availableQuantity'=> 0,
         'hsnCode'          => '',
         'categoryUID'      => $item->CategoryUID ? (int)$item->CategoryUID : null,
+        'categoryName'     => $item->CategoryName  ?? '',
         'storageUID'       => $item->StorageUID  ? (int)$item->StorageUID  : null,
         'taxPercent'       => (float)$item->TaxPercentage,
         'cgstPercent'      => (float)$item->CGST,
@@ -495,7 +491,7 @@ $(function() {
                 var item = items[i];
                 if (!_isEdit) {
                     var qty = parseFloat(item.quantity);
-                    if (!qty || qty <= 0 || !Number.isInteger(qty)) return showFormError('Row ' + (i + 1) + ': Quantity must be a positive whole number.');
+                    if (!qty || qty <= 0) return showFormError('Row ' + (i + 1) + ': Quantity must be greater than zero.');
                 }
                 if (parseFloat(item.unitPrice) < 0) return showFormError('Row ' + (i + 1) + ': Selling price cannot be negative.');
                 var tax = parseFloat(item.taxPercent || 0);

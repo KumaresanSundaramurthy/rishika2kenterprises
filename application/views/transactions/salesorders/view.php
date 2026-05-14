@@ -28,30 +28,45 @@ $this->load->view('common/transactions/header'); ?>
                     }
                     ?>
 
+                    <!-- ── Page Header ──────────────────────────────────────── -->
+                    <div class="trans-page-header">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="trans-ph-icon" style="background:#cffafe;">
+                                <i class="bx bx-package" style="color:#06b6d4;"></i>
+                            </div>
+                            <h5 class="trans-ph-title">Sales Orders</h5>
+                        </div>
+                        <a href="/salesorders/create" class="btn btn-primary">
+                            <i class="bx bx-plus me-1"></i>New Sales Order
+                        </a>
+                    </div>
+
                     <!-- ── Stat Cards ────────────────────────────────────── -->
-                    <div class="row g-3 mb-4">
-                        <div class="col-6 col-md-3">
+                    <div class="trans-stats-section">
+                        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
                             <a href="javascript:void(0);" class="trans-stat-card stat-all active-stat" data-stat-filter="All">
-                                <div class="trans-stat-label">All Orders</div>
-                                <div class="trans-stat-count"><?php echo number_format($cntAll); ?></div>
-                                <div class="trans-stat-amount"><?php echo fmtAmt($amtAll, $cur, $dec); ?></div>
-                                <i class="bx bx-cart trans-stat-icon"></i>
+                                <div class="tsc-icon-wrap"><i class="bx bx-cart"></i></div>
+                                <div class="tsc-body">
+                                    <div class="trans-stat-label">All Orders</div>
+                                    <div class="trans-stat-count"><?php echo number_format($cntAll); ?></div>
+                                    <div class="trans-stat-amount"><?php echo fmtAmt($amtAll, $cur, $dec); ?></div>
+                                </div>
                             </a>
-                        </div>
-                        <div class="col-6 col-md-3">
                             <a href="javascript:void(0);" class="trans-stat-card stat-active" data-stat-filter="Pending">
-                                <div class="trans-stat-label">Pending</div>
-                                <div class="trans-stat-count"><?php echo number_format($cntConfirmed); ?></div>
-                                <div class="trans-stat-amount"><?php echo fmtAmt($amtConfirmed, $cur, $dec); ?></div>
-                                <i class="bx bx-time trans-stat-icon"></i>
+                                <div class="tsc-icon-wrap"><i class="bx bx-time"></i></div>
+                                <div class="tsc-body">
+                                    <div class="trans-stat-label">Pending</div>
+                                    <div class="trans-stat-count"><?php echo number_format($cntConfirmed); ?></div>
+                                    <div class="trans-stat-amount"><?php echo fmtAmt($amtConfirmed, $cur, $dec); ?></div>
+                                </div>
                             </a>
-                        </div>
-                        <div class="col-6 col-md-3">
                             <a href="javascript:void(0);" class="trans-stat-card stat-draft" data-stat-filter="Draft">
-                                <div class="trans-stat-label">Drafts</div>
-                                <div class="trans-stat-count"><?php echo number_format($cntDraft); ?></div>
-                                <div class="trans-stat-amount">&nbsp;</div>
-                                <i class="bx bx-pencil trans-stat-icon"></i>
+                                <div class="tsc-icon-wrap"><i class="bx bx-pencil"></i></div>
+                                <div class="tsc-body">
+                                    <div class="trans-stat-label">Drafts</div>
+                                    <div class="trans-stat-count"><?php echo number_format($cntDraft); ?></div>
+                                    <div class="trans-stat-amount">&nbsp;</div>
+                                </div>
                             </a>
                         </div>
                     </div>
@@ -119,9 +134,6 @@ $this->load->view('common/transactions/header'); ?>
                                         </a></li>
                                     </ul>
                                 </div>
-                                <a href="/salesorders/create" class="btn btn-primary btn-sm px-3">
-                                    <i class="bx bx-plus me-1"></i>Create
-                                </a>
                             </div>
                         </div>
 
@@ -383,27 +395,6 @@ $(function () {
         });
     });
 
-    // ── Duplicate ────────────────────────────────────────────
-    $(document).on('click', '.duplicateSalesOrder', function () {
-        var uid = $(this).data('uid');
-        Swal.fire({ title: 'Duplicate Sales Order?', text: 'A new draft copy will be created.', icon: 'question', showCancelButton: true, confirmButtonText: 'Duplicate' })
-            .then(function (r) {
-                if (!r.isConfirmed) return;
-                $.ajax({
-                    url   : '/salesorders/duplicateSalesOrder',
-                    method: 'POST',
-                    data  : { TransUID: uid, [CsrfName]: CsrfToken },
-                    success: function (resp) {
-                        if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); }
-                        else {
-                            getSalesOrdersDetails();
-                            Swal.fire({ icon: 'success', text: resp.Message, showCancelButton: true, confirmButtonText: 'Edit Now', cancelButtonText: 'Stay Here' })
-                                .then(function (r2) { if (r2.isConfirmed && resp.EditURL) window.location.href = resp.EditURL; });
-                        }
-                    }
-                });
-            });
-    });
 
     $(document).on('change', '.soHeaderCheck', function () {
         $('.soCheck').prop('checked', $(this).is(':checked'));

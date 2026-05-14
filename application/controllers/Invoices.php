@@ -85,6 +85,7 @@ class Invoices extends CI_Controller {
             $this->EndReturnData->RecordHtmlData  = $rowHtml;
             $this->EndReturnData->Pagination      = $this->globalservice->buildPagePaginationHtml('/invoices/getInvoicesPageDetails', $allDataCount, $pageNo, $limit);
             $this->EndReturnData->TotalCount      = $allDataCount;
+            $this->EndReturnData->SummaryStats    = $this->transactions_model->getTransactionSummaryStats($this->pageModuleUID, $this->pageData['JwtData']->User->OrgUID);
 
         } catch (Exception $e) {
             $this->EndReturnData->Error   = TRUE;
@@ -224,7 +225,7 @@ class Invoices extends CI_Controller {
             $isInterState          = $igstAmount > 0 ? 1 : ($cgstAmount > 0 || $sgstAmount > 0 ? 0 : NULL);
             $_cc                   = $this->transactions_model->getCustomerCountryCode($customerUID);
             $isForeignCustomer     = $_cc !== NULL ? ($_cc === 'IN' ? 0 : 1) : NULL;
-            $placeOfSupply         = $this->transactions_model->getCustomerBillingState($customerUID);
+            $placeOfSupply         = getPostValue($PostData, 'placeOfSupply') ?: $this->transactions_model->getCustomerBillingState($customerUID);
             $detailData = [
                 'FinancialYear'     => $financialYear,
                 'TransUID'          => $transUID,
@@ -278,6 +279,9 @@ class Invoices extends CI_Controller {
             }
 
             $this->dbwrite_model->commitTransaction();
+
+            try { $this->dbwrite_model->saveFormData($orgUID, $transUID, $this->pageModuleUID, $isDraft ? 'draft' : 'create', json_encode($PostData), $userUID); } catch (Exception $fdEx) { log_message('error', 'saveFormData failed: ' . $fdEx->getMessage()); }
+            try { $this->load->library('auditlog'); $this->auditlog->log($orgUID, $userUID, 'CREATE_INVOICE', 'Invoice', $transUID, $uniqueNumber ?? 'Draft', ['status' => $status, 'netAmount' => $netAmount, 'customerUID' => $customerUID]); } catch (Exception $auditEx) { log_message('error', 'Audit log failed: ' . $auditEx->getMessage()); }
 
             // Apply ledger entries after commit so ReadDb sees the committed invoice write
             if (!$isDraft) {
@@ -457,7 +461,7 @@ class Invoices extends CI_Controller {
             $isInterState          = $igstAmount > 0 ? 1 : ($cgstAmount > 0 || $sgstAmount > 0 ? 0 : NULL);
             $_cc                   = $this->transactions_model->getCustomerCountryCode($customerUID);
             $isForeignCustomer     = $_cc !== NULL ? ($_cc === 'IN' ? 0 : 1) : NULL;
-            $placeOfSupply         = $this->transactions_model->getCustomerBillingState($customerUID);
+            $placeOfSupply         = getPostValue($PostData, 'placeOfSupply') ?: $this->transactions_model->getCustomerBillingState($customerUID);
             $commonDetail = [
                 'ValidityDays'      => NULL,
                 'ValidityDate'      => $dueDate ?: NULL,
@@ -563,9 +567,10 @@ class Invoices extends CI_Controller {
                     $rowData = [
                         'ItemSequence'    => $seq + 1,
                         'ProductName'     => substr(strip_tags($item['itemName'] ?? ''), 0, 100),
-                        'Description'     => isset($item['description'])    ? substr($item['description'], 0, 500) : NULL,
-                        'PartNumber'      => isset($item['partNumber'])     ? substr($item['partNumber'], 0, 50)   : NULL,
-                        'CategoryUID'     => isset($item['categoryUID'])    ? (int) $item['categoryUID']           : NULL,
+                        'Description'     => !empty($item['description'])   ? substr($item['description'], 0, 500) : NULL,
+                        'PartNumber'      => !empty($item['partNumber'])    ? substr($item['partNumber'], 0, 50)   : NULL,
+                        'CategoryUID'     => !empty($item['categoryUID'])   ? (int) $item['categoryUID']           : NULL,
+                        'CategoryName'    => !empty($item['categoryName'])  ? substr($item['categoryName'], 0, 100) : NULL,
                         'StorageUID'      => isset($item['storageUID'])     ? (int) $item['storageUID']             : NULL,
                         'Quantity'        => $qty,
                         'PrimaryUnitName' => isset($item['primaryUnit'])    ? substr($item['primaryUnit'], 0, 20)   : NULL,
@@ -578,6 +583,7 @@ class Invoices extends CI_Controller {
                         'Discount'        => (float) ($item['discount']       ?? 0),
                         'UnitPrice'       => $unitPrice,
                         'SellingPrice'    => (float) ($item['sellingPrice']   ?? $unitPrice),
+                        'PurchasePrice'   => (float) ($item['purchasePrice']  ?? 0),
                         'TaxableAmount'   => (float) ($item['line_total']     ?? 0),
                         'CgstAmount'      => (float) ($item['cgstAmount']     ?? 0),
                         'SgstAmount'      => (float) ($item['sgstAmount']     ?? 0),
@@ -629,6 +635,9 @@ class Invoices extends CI_Controller {
             }
 
             $this->dbwrite_model->commitTransaction();
+
+            try { $this->dbwrite_model->saveFormData($orgUID, $activeTransUID, $this->pageModuleUID, $isDraft ? 'draft_update' : 'update', json_encode($PostData), $userUID); } catch (Exception $fdEx) { log_message('error', 'saveFormData failed: ' . $fdEx->getMessage()); }
+            try { $this->load->library('auditlog'); $this->auditlog->log($orgUID, $userUID, 'UPDATE_INVOICE', 'Invoice', $activeTransUID, $uniqueNumber ?? ($existing->UniqueNumber ?? 'Draft'), ['status' => $computedStatus, 'netAmount' => $netAmount, 'customerUID' => $customerUID]); } catch (Exception $auditEx) { log_message('error', 'Audit log failed: ' . $auditEx->getMessage()); }
 
             // Apply ledger entries after commit so each ReadDb read sees the prior committed write
             if (!$isDraft) {
@@ -937,6 +946,7 @@ class Invoices extends CI_Controller {
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Invoice deleted successfully.';
+            try { $this->load->library('auditlog'); $this->auditlog->log($orgUID, $userUID, 'DELETE_INVOICE', 'Invoice', $transUID, $existing->UniqueNumber ?? '', ['status' => $existing->DocStatus, 'netAmount' => $existing->NetAmount]); } catch (Exception $auditEx) { log_message('error', 'Audit log failed: ' . $auditEx->getMessage()); }
 
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -1142,8 +1152,18 @@ class Invoices extends CI_Controller {
             $this->dbwrite_model->commitTransaction();
 
             $this->EndReturnData->Error     = FALSE;
-            $this->EndReturnData->Message   = 'Status updated.';
+            $this->EndReturnData->Message   = 'Invoice cancelled successfully.';
             $this->EndReturnData->NewStatus = $newStatus;
+
+            try { $this->load->library('auditlog'); $this->auditlog->log($orgUID, $userUID, strtoupper($newStatus) . '_INVOICE', 'Invoice', $transUID, $existing->UniqueNumber ?? '', ['fromStatus' => $current, 'toStatus' => $newStatus]); } catch (Exception $auditEx) { log_message('error', 'Audit log failed: ' . $auditEx->getMessage()); }
+
+            if ($newStatus === 'Cancelled' && $existing->PartyType === 'C') {
+                $balResult = $this->_recalcCustomerBalance($orgUID, (int)$existing->PartyUID, $userUID);
+                if ($balResult) {
+                    $this->EndReturnData->CustomerBalance     = $balResult['balance'];
+                    $this->EndReturnData->CustomerBalanceType = $balResult['type'];
+                }
+            }
 
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -1217,9 +1237,10 @@ class Invoices extends CI_Controller {
                 'ItemSequence'      => $seqOffset + $seq + 1,
                 'ProductUID'        => $productUID,
                 'ProductName'       => substr(strip_tags($item['itemName'] ?? ''), 0, 100),
-                'Description'       => isset($item['description'])   ? substr($item['description'], 0, 500) : NULL,
-                'PartNumber'        => isset($item['partNumber'])    ? substr($item['partNumber'], 0, 50) : NULL,
-                'CategoryUID'       => isset($item['categoryUID'])   ? (int) $item['categoryUID']          : NULL,
+                'Description'       => !empty($item['description'])  ? substr($item['description'], 0, 500) : NULL,
+                'PartNumber'        => !empty($item['partNumber'])   ? substr($item['partNumber'], 0, 50)  : NULL,
+                'CategoryUID'       => !empty($item['categoryUID'])  ? (int) $item['categoryUID']          : NULL,
+                'CategoryName'      => !empty($item['categoryName']) ? substr($item['categoryName'], 0, 100) : NULL,
                 'StorageUID'        => isset($item['storageUID'])    ? (int) $item['storageUID']            : NULL,
                 'Quantity'          => $qty,
                 'PrimaryUnitName'   => isset($item['primaryUnit'])   ? substr($item['primaryUnit'], 0, 20)  : NULL,
@@ -1232,6 +1253,7 @@ class Invoices extends CI_Controller {
                 'Discount'          => (float) ($item['discount']       ?? 0),
                 'UnitPrice'         => $unitPrice,
                 'SellingPrice'      => (float) ($item['sellingPrice']   ?? $unitPrice),
+                'PurchasePrice'     => (float) ($item['purchasePrice']  ?? 0),
                 'TaxableAmount'     => (float) ($item['line_total']     ?? 0),
                 'CgstAmount'        => (float) ($item['cgstAmount']     ?? 0),
                 'SgstAmount'        => (float) ($item['sgstAmount']     ?? 0),
@@ -1709,17 +1731,17 @@ class Invoices extends CI_Controller {
     }
 
     private function getWhatsAppTemplate($orgUID) {
-        $this->load->database('ReadDb', TRUE);
-        $this->ReadDb->select('Body');
-        $this->ReadDb->from('Organisation.MessageTemplatesTbl');
-        $this->ReadDb->where([
+        $db = $this->load->database('ReadDB', TRUE);
+        $db->select('Body');
+        $db->from('Organisation.MessageTemplatesTbl');
+        $db->where([
             'OrgUID' => $orgUID,
             'ModuleUID' => $this->pageModuleUID,
             'Channel' => 'WhatsApp',
             'IsActive' => 1,
             'IsDeleted' => 0
         ]);
-        $query = $this->ReadDb->get();
+        $query = $db->get();
         return ($query && $query->num_rows() > 0) ? $query->row() : null;
     }
 
@@ -1755,6 +1777,26 @@ class Invoices extends CI_Controller {
 
         $this->globalservice->sendJsonResponse($this->EndReturnData);
 
+    }
+
+    private function _recalcCustomerBalance($orgUID, $custUID, $userUID) {
+        $this->load->model('customers_model');
+        $custRows = $this->customers_model->getCustomersWithLedgerForBalance($orgUID, $custUID);
+        if (empty($custRows)) return null;
+        $cust          = $custRows[0];
+        $totalInvoiced = $this->customers_model->getCustomerTotalInvoiced($orgUID, $custUID);
+        $totalReceived = $this->customers_model->getCustomerTotalReceived($orgUID, $custUID);
+        $totalReturned = $this->customers_model->getCustomerTotalReturned($orgUID, $custUID);
+        $signedOpening = ($cust->OpeningBalType === 'Debit')
+            ? (float)$cust->OpeningBalance : -(float)$cust->OpeningBalance;
+        $signedBalance = round($signedOpening + $totalInvoiced - $totalReceived - $totalReturned, 2);
+        $newBalance    = abs($signedBalance);
+        $newBalType    = ($signedBalance >= 0) ? 'Debit' : 'Credit';
+        if (!empty($cust->LedgerUID)) {
+            $this->customers_model->updateCustomerBalanceInLedger($cust->LedgerUID, $newBalance, $newBalType, $userUID);
+        }
+        $this->customers_model->updateCustomerPendingBalance($orgUID, $custUID, $newBalance, $newBalType, $userUID);
+        return ['balance' => $newBalance, 'type' => $newBalType];
     }
 
 }

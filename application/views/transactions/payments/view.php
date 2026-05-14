@@ -25,8 +25,18 @@
                     }
                     ?>
 
-                    <!-- ── Balance Summary Cards ──────────────────────────── -->
-                    <div class="d-flex gap-3 mb-4 flex-wrap" id="pmtSummaryCards">
+                    <!-- ── Page Header ──────────────────────────────────────── -->
+                    <div class="trans-page-header">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="trans-ph-icon" style="background:#dcfce7;">
+                                <i class="bx bx-credit-card-alt" style="color:#22c55e;"></i>
+                            </div>
+                            <h5 class="trans-ph-title">Payments In</h5>
+                        </div>
+                    </div>
+                    <!-- ── Balance Summary ─────────────────────────────────── -->
+                    <div class="trans-stats-section mb-4">
+                        <div class="d-flex gap-3 flex-wrap" id="pmtSummaryCards">
 
                         <?php if (!empty($summary)): ?>
                             <?php foreach ($summary as $row): ?>
@@ -83,6 +93,7 @@
                             <?php endforeach; ?>
                         <?php endif; ?>
 
+                    </div>
                     </div>
 
                     <!-- ── Main Card ──────────────────────────────────────── -->

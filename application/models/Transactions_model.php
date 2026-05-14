@@ -142,7 +142,7 @@ class Transactions_model extends CI_Model {
     private function applyFilters($filter) {
 
         if (empty($filter)) {
-            $this->ReadDb->where_not_in('Ts.DocStatus', ['Draft', 'Rejected']);
+            $this->ReadDb->where_not_in('Ts.DocStatus', ['Draft', 'Rejected', 'Cancelled']);
             return;
         }
 
@@ -165,8 +165,8 @@ class Transactions_model extends CI_Model {
         if ($tab === 'InvPending') {
             // Invoice Pending = Issued + Partial (not yet fully paid)
             $this->ReadDb->where_in('Ts.DocStatus', ['Issued', 'Partial']);
-        } elseif ($tab === 'SRPending') {
-            // Sales Return Pending = Approved + Partial (refund not yet fully given)
+        } elseif ($tab === 'SRPending' || $tab === 'PRPending') {
+            // Sales/Purchase Return Pending = Approved + Partial (refund not yet settled)
             $this->ReadDb->where_in('Ts.DocStatus', ['Approved', 'Partial']);
         } elseif ($tab === 'Pending') {
             // Pending = Received + Partial (bills not yet fully paid)
@@ -188,8 +188,8 @@ class Transactions_model extends CI_Model {
         } elseif ($tab === 'Draft') {
             $this->ReadDb->where('Ts.DocStatus', 'Draft');
         } else {
-            // All — exclude Draft only
-            $this->ReadDb->where_not_in('Ts.DocStatus', ['Draft']);
+            // All — exclude Draft and Cancelled
+            $this->ReadDb->where_not_in('Ts.DocStatus', ['Draft', 'Cancelled']);
         }
 
         if (!empty($filter['MinAmount'])) {
@@ -644,6 +644,7 @@ class Transactions_model extends CI_Model {
                 'product.DiscountTypeUID AS DiscountTypeUID',
                 'discountType.Name AS DiscountTypeName',
                 'primaryUnit.ShortName AS priUnitShortName',
+                'product.PartNumber AS PartNumber',
                 'product.Description AS Description',
                 'product.IsComboItem AS IsComboItem',
                 '(SELECT COUNT(*) FROM Products.ProductBOMTbl pc WHERE pc.ParentProductUID = product.ProductUID AND pc.IsDeleted = 0 AND pc.IsActive = 1) AS ComboItemCount',
@@ -984,7 +985,7 @@ class Transactions_model extends CI_Model {
                 $this->ReadDb->where('P.PartyType', $filter['PartyType']);
             }
             if (!empty($filter['ModuleUID'])) {
-                $this->ReadDb->where('P.ModuleUID', (int)$filter['ModuleUID']);
+                $this->ReadDb->where('P.PaymentModuleUID', (int)$filter['ModuleUID']);
             }
             if (!empty($filter['PaymentSource'])) {
                 $this->ReadDb->where('P.PaymentSource', $filter['PaymentSource']);
@@ -1008,7 +1009,7 @@ class Transactions_model extends CI_Model {
             if ($limit > 0) {
                 $this->ReadDb->limit($limit, $offset);
             }
-            $query = $this->ReadDb->get();            
+            $query = $this->ReadDb->get();
             if (!$query) return [];
             return $query->result();
 
@@ -1038,7 +1039,7 @@ class Transactions_model extends CI_Model {
                 $this->ReadDb->where('P.PartyType', $filter['PartyType']);
             }
             if (!empty($filter['ModuleUID'])) {
-                $this->ReadDb->where('P.ModuleUID', (int)$filter['ModuleUID']);
+                $this->ReadDb->where('P.PaymentModuleUID', (int)$filter['ModuleUID']);
             }
             if (!empty($filter['PaymentSource'])) {
                 $this->ReadDb->where('P.PaymentSource', $filter['PaymentSource']);
@@ -1094,7 +1095,7 @@ class Transactions_model extends CI_Model {
 
             if (!empty($filter['PartyType']))        $this->ReadDb->where('P.PartyType', $filter['PartyType']);
             if (!empty($filter['PaymentDirection'])) $this->ReadDb->where('P.PaymentDirection', $filter['PaymentDirection']);
-            if (!empty($filter['ModuleUID']))         $this->ReadDb->where('P.ModuleUID', (int)$filter['ModuleUID']);
+            if (!empty($filter['ModuleUID']))         $this->ReadDb->where('P.PaymentModuleUID', (int)$filter['ModuleUID']);
             if (!empty($filter['PaymentSource']))     $this->ReadDb->where('P.PaymentSource', $filter['PaymentSource']);
             if (!empty($filter['DateFrom']))         $this->ReadDb->where('DATE(P.CreatedOn) >=', $filter['DateFrom']);
             if (!empty($filter['DateTo']))           $this->ReadDb->where('DATE(P.CreatedOn) <=', $filter['DateTo']);
@@ -1129,7 +1130,7 @@ class Transactions_model extends CI_Model {
             if (!empty($filter['DateTo']))           $this->ReadDb->where('DATE(P.CreatedOn) <=', $filter['DateTo']);
             if (!empty($filter['PartyType']))        $this->ReadDb->where('P.PartyType', $filter['PartyType']);
             if (!empty($filter['PaymentDirection'])) $this->ReadDb->where('P.PaymentDirection', $filter['PaymentDirection']);
-            if (!empty($filter['ModuleUID']))         $this->ReadDb->where('P.ModuleUID', (int)$filter['ModuleUID']);
+            if (!empty($filter['ModuleUID']))         $this->ReadDb->where('P.PaymentModuleUID', (int)$filter['ModuleUID']);
             if (!empty($filter['PaymentSource']))     $this->ReadDb->where('P.PaymentSource', $filter['PaymentSource']);
 
             $query = $this->ReadDb->get();

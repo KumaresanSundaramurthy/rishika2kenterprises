@@ -49,46 +49,61 @@ $this->load->view('common/transactions/header'); ?>
                     }
                     ?>
 
+                    <!-- ── Page Header ──────────────────────────────────────── -->
+                    <div class="trans-page-header">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="trans-ph-icon" style="background:#fef3c7;">
+                                <i class="bx bx-file-blank" style="color:#f59e0b;"></i>
+                            </div>
+                            <h5 class="trans-ph-title">Quotations</h5>
+                        </div>
+                        <a href="/quotations/create" class="btn btn-primary">
+                            <i class="bx bx-plus me-1"></i>New Quotation
+                        </a>
+                    </div>
+
                     <!-- ── Stat Cards ────────────────────────────────────── -->
-                    <div class="row g-3 mb-2">
-                        <div class="col-6 col-md">
+                    <div class="trans-stats-section">
+                        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;">
                             <a href="javascript:void(0);" class="trans-stat-card stat-all active-stat" data-stat-filter="All">
-                                <div class="trans-stat-label">All Quotations</div>
-                                <div class="trans-stat-count"><?php echo number_format($cntAll); ?></div>
-                                <div class="trans-stat-amount"><?php echo fmtAmt($amtAll, $cur, $dec); ?></div>
-                                <i class="bx bx-file trans-stat-icon"></i>
+                                <div class="tsc-icon-wrap"><i class="bx bx-file"></i></div>
+                                <div class="tsc-body">
+                                    <div class="trans-stat-label">All Quotations</div>
+                                    <div class="trans-stat-count"><?php echo number_format($cntAll); ?></div>
+                                    <div class="trans-stat-amount"><?php echo fmtAmt($amtAll, $cur, $dec); ?></div>
+                                </div>
                             </a>
-                        </div>
-                        <div class="col-6 col-md">
                             <a href="javascript:void(0);" class="trans-stat-card stat-active" data-stat-filter="Open">
-                                <div class="trans-stat-label">Open</div>
-                                <div class="trans-stat-count"><?php echo number_format($cntOpen); ?></div>
-                                <div class="trans-stat-amount"><?php echo fmtAmt($amtOpen, $cur, $dec); ?></div>
-                                <i class="bx bx-send trans-stat-icon"></i>
+                                <div class="tsc-icon-wrap"><i class="bx bx-send"></i></div>
+                                <div class="tsc-body">
+                                    <div class="trans-stat-label">Open</div>
+                                    <div class="trans-stat-count"><?php echo number_format($cntOpen); ?></div>
+                                    <div class="trans-stat-amount"><?php echo fmtAmt($amtOpen, $cur, $dec); ?></div>
+                                </div>
                             </a>
-                        </div>
-                        <div class="col-6 col-md">
                             <a href="javascript:void(0);" class="trans-stat-card stat-paid" data-stat-filter="Accepted">
-                                <div class="trans-stat-label">Accepted</div>
-                                <div class="trans-stat-count"><?php echo number_format($cntAccepted); ?></div>
-                                <div class="trans-stat-amount"><?php echo fmtAmt($amtAccepted, $cur, $dec); ?></div>
-                                <i class="bx bx-check-circle trans-stat-icon"></i>
+                                <div class="tsc-icon-wrap"><i class="bx bx-check-circle"></i></div>
+                                <div class="tsc-body">
+                                    <div class="trans-stat-label">Accepted</div>
+                                    <div class="trans-stat-count"><?php echo number_format($cntAccepted); ?></div>
+                                    <div class="trans-stat-amount"><?php echo fmtAmt($amtAccepted, $cur, $dec); ?></div>
+                                </div>
                             </a>
-                        </div>
-                        <div class="col-6 col-md">
                             <a href="javascript:void(0);" class="trans-stat-card stat-converted" data-stat-filter="Converted">
-                                <div class="trans-stat-label">Converted</div>
-                                <div class="trans-stat-count"><?php echo number_format($cntConverted); ?></div>
-                                <div class="trans-stat-amount"><?php echo fmtAmt($amtConverted, $cur, $dec); ?></div>
-                                <i class="bx bx-transfer-alt trans-stat-icon"></i>
+                                <div class="tsc-icon-wrap"><i class="bx bx-transfer-alt"></i></div>
+                                <div class="tsc-body">
+                                    <div class="trans-stat-label">Converted</div>
+                                    <div class="trans-stat-count"><?php echo number_format($cntConverted); ?></div>
+                                    <div class="trans-stat-amount"><?php echo fmtAmt($amtConverted, $cur, $dec); ?></div>
+                                </div>
                             </a>
-                        </div>
-                        <div class="col-6 col-md">
                             <a href="javascript:void(0);" class="trans-stat-card stat-draft" data-stat-filter="Draft">
-                                <div class="trans-stat-label">Drafts</div>
-                                <div class="trans-stat-count"><?php echo number_format($cntDraft); ?></div>
-                                <div class="trans-stat-amount">&nbsp;</div>
-                                <i class="bx bx-pencil trans-stat-icon"></i>
+                                <div class="tsc-icon-wrap"><i class="bx bx-pencil"></i></div>
+                                <div class="tsc-body">
+                                    <div class="trans-stat-label">Drafts</div>
+                                    <div class="trans-stat-count"><?php echo number_format($cntDraft); ?></div>
+                                    <div class="trans-stat-amount">&nbsp;</div>
+                                </div>
                             </a>
                         </div>
                     </div>
@@ -122,7 +137,6 @@ $this->load->view('common/transactions/header'); ?>
                                     <ul class="dropdown-menu dropdown-menu-end shadow" id="dateFilterMenu" style="width:240px;max-height:420px;overflow-y:auto;font-size:.82rem;z-index:9999;">
                                     </ul>
                                 </div>
-                                <a href="/quotations/create" class="r2k-create-btn"><i class="bx bx-plus"></i> Create</a>
                             </div>
                         </div>
 

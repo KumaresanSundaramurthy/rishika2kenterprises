@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
+<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Salesorders extends CI_Controller {
 
@@ -451,9 +451,11 @@ class Salesorders extends CI_Controller {
                     $rowData = [
                         'ItemSequence'    => $seq + 1,
                         'ProductName'     => substr(strip_tags($item['itemName'] ?? ''), 0, 100),
-                        'PartNumber'      => isset($item['partNumber'])     ? substr($item['partNumber'], 0, 50)  : NULL,
-                        'CategoryUID'     => isset($item['categoryUID'])    ? (int)$item['categoryUID']           : NULL,
-                        'StorageUID'      => isset($item['storageUID'])     ? (int)$item['storageUID']             : NULL,
+                        'Description'     => !empty($item['description'])  ? substr($item['description'], 0, 500) : NULL,
+                        'PartNumber'      => !empty($item['partNumber'])   ? substr($item['partNumber'], 0, 50)   : NULL,
+                        'CategoryUID'     => !empty($item['categoryUID'])  ? (int)$item['categoryUID']            : NULL,
+                        'CategoryName'    => !empty($item['categoryName']) ? substr($item['categoryName'], 0, 100) : NULL,
+                        'StorageUID'      => isset($item['storageUID'])    ? (int)$item['storageUID']              : NULL,
                         'Quantity'        => $qty,
                         'PrimaryUnitName' => isset($item['primaryUnit'])    ? substr($item['primaryUnit'], 0, 20)  : NULL,
                         'TaxDetailsUID'   => isset($item['taxDetailsUID'])  ? (int)$item['taxDetailsUID']          : 1,
@@ -465,6 +467,7 @@ class Salesorders extends CI_Controller {
                         'Discount'        => (float)($item['discount']        ?? 0),
                         'UnitPrice'       => $unitPrice,
                         'SellingPrice'    => (float)($item['sellingPrice']    ?? $unitPrice),
+                        'PurchasePrice'   => (float)($item['purchasePrice']   ?? 0),
                         'TaxableAmount'   => (float)($item['line_total']      ?? 0),
                         'CgstAmount'      => (float)($item['cgstAmount']      ?? 0),
                         'SgstAmount'      => (float)($item['sgstAmount']      ?? 0),
@@ -934,9 +937,11 @@ class Salesorders extends CI_Controller {
                 'ItemSequence'      => $seqOffset + $seq + 1,
                 'ProductUID'        => $productUID,
                 'ProductName'       => substr(strip_tags($item['itemName'] ?? ''), 0, 100),
-                'PartNumber'        => isset($item['partNumber'])    ? substr($item['partNumber'], 0, 50) : NULL,
-                'CategoryUID'       => isset($item['categoryUID'])   ? (int) $item['categoryUID']          : NULL,
-                'StorageUID'        => isset($item['storageUID'])    ? (int) $item['storageUID']            : NULL,
+                'Description'       => !empty($item['description'])  ? substr($item['description'], 0, 500) : NULL,
+                'PartNumber'        => !empty($item['partNumber'])   ? substr($item['partNumber'], 0, 50)  : NULL,
+                'CategoryUID'       => !empty($item['categoryUID'])  ? (int) $item['categoryUID']           : NULL,
+                'CategoryName'      => !empty($item['categoryName']) ? substr($item['categoryName'], 0, 100) : NULL,
+                'StorageUID'        => isset($item['storageUID'])    ? (int) $item['storageUID']             : NULL,
                 'Quantity'          => $qty,
                 'PrimaryUnitName'   => isset($item['primaryUnit'])   ? substr($item['primaryUnit'], 0, 20)  : NULL,
                 'TaxDetailsUID'     => isset($item['taxDetailsUID']) ? (int) $item['taxDetailsUID']          : 1,
@@ -948,6 +953,7 @@ class Salesorders extends CI_Controller {
                 'Discount'          => (float) ($item['discount']       ?? 0),
                 'UnitPrice'         => $unitPrice,
                 'SellingPrice'      => (float) ($item['sellingPrice']   ?? $unitPrice),
+                'PurchasePrice'     => (float) ($item['purchasePrice']  ?? 0),
                 'TaxableAmount'     => (float) ($item['line_total']     ?? 0),
                 'CgstAmount'        => (float) ($item['cgstAmount']     ?? 0),
                 'SgstAmount'        => (float) ($item['sgstAmount']     ?? 0),

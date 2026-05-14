@@ -16,6 +16,16 @@
 
                 <div class="container-xxl flex-grow-1 container-p-y">
 
+                    <!-- ── Page Header ── -->
+                    <div class="trans-page-header">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="trans-ph-icon ph-icon-products">
+                                <i class="bx bx-package"></i>
+                            </div>
+                            <h5 class="trans-ph-title">Products</h5>
+                        </div>
+                    </div>
+
                     <!-- ── Product Stats ── -->
                     <?php $s = $ProductStats ?? null; ?>
                     <div class="row g-3 mb-3">
@@ -309,6 +319,13 @@
 
                                 </div>
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- Sticky pagination (products page — one bar, content swaps per active tab) -->
+                    <div class="card mb-0 cust-sticky-pag" id="prodStickyPagination" style="display:none;">
+                        <div class="card-body p-0">
+                            <div class="row mx-3 my-2 justify-content-between align-items-center" id="prodStickyPagInner"></div>
                         </div>
                     </div>
 
@@ -786,6 +803,28 @@ $(function() {
     basePaginationFunc(ProdPag, getProductDetails);
     baseRefreshPageFunc('.PageRefresh', showProductPageDetails);
     basePageHeaderFunc(ProdHeader, ProdTable, ProdRow);
+
+    // ── Sticky pagination (products) ──
+    var $prodStickyPag = $('#prodStickyPagination');
+    var $prodStickyInner = $('#prodStickyPagInner');
+    function _getActiveProdPagEl() {
+        if (ActiveTabId === 'Item')       return $('#ProductsPagination');
+        if (ActiveTabId === 'Categories') return $('#CategoriesPagination');
+        if (ActiveTabId === 'Sizes')      return $('#SizesPagination');
+        if (ActiveTabId === 'Brands')     return $('#BrandsPagination');
+        return $('#ProductsPagination');
+    }
+    function _syncProdSticky() { $prodStickyInner.html(_getActiveProdPagEl().html()); }
+    function _toggleProdSticky() {
+        var $el = _getActiveProdPagEl();
+        if (!$el.length) return;
+        var r = $el[0].getBoundingClientRect();
+        var visible = r.top < $(window).height() && r.bottom > 0;
+        if (visible) { $prodStickyPag.stop(true,true).fadeOut(150); }
+        else { _syncProdSticky(); $prodStickyPag.stop(true,true).fadeIn(150); }
+    }
+    $(window).on('scroll resize', _toggleProdSticky);
+    _toggleProdSticky();
 
     $(document).on('click', ProdRow, function() {
         onClickOfCheckbox($(this), ProdTable, ProdHeader, ProdRow);

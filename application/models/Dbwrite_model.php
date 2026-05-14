@@ -369,7 +369,7 @@ class Dbwrite_model extends CI_Model {
     /**
      * Stock movement direction by ModuleUID.
      *   IN  = stock increases: Purchases(105), Sales Returns(106), Credit Notes(107)
-     *   OUT = stock decreases: Invoices(103), Purchase Returns(108), Debit Notes(109)
+     *   OUT = stock decreases: Invoices(103), Purchase Returns(108)
      */
     private static $stockMovementMap = [
         103 => 'OUT',   // Invoices
@@ -377,7 +377,6 @@ class Dbwrite_model extends CI_Model {
         106 => 'IN',    // Sales Returns
         107 => 'IN',    // Credit Notes
         108 => 'OUT',   // Purchase Returns
-        109 => 'OUT',   // Debit Notes
     ];
 
     /**
@@ -619,6 +618,23 @@ class Dbwrite_model extends CI_Model {
               WHERE TransUID = ?",
             [(int) $isFullyPaid, (float) $paidAmount, (float) $balanceAmount, (int) $userUID, (int) $transUID]
         );
+    }
+
+    public function saveFormData($orgUID, $transUID, $moduleUID, $action, $formDataJson, $userUID) {
+        $this->WriteDB->db_debug = FALSE;
+        $this->WriteDB->insert('Transaction.TransFormDataTbl', [
+            'OrgUID'       => (int) $orgUID,
+            'TransUID'     => (int) $transUID,
+            'ModuleUID'    => (int) $moduleUID,
+            'Action'       => substr($action, 0, 30),
+            'FormDataJson' => $formDataJson,
+            'CreatedBy'    => (int) $userUID,
+        ]);
+    }
+
+    public function insertAuditLog(array $data) {
+        $this->WriteDB->db_debug = FALSE;
+        $this->WriteDB->insert('Security.UserAuditLogTbl', $data);
     }
 
     public function insertConversionRecord($orgUID, $sourceUID, $sourceModuleUID, $targetUID, $targetModuleUID, $conversionType, $userUID) {

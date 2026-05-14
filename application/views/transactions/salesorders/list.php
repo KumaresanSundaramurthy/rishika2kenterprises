@@ -159,12 +159,6 @@ if (!empty($DataLists)):
                         <li><hr class="dropdown-divider my-1"></li>
                         <?php endif; ?>
 
-                        <li>
-                            <button class="dropdown-item duplicateSalesOrder" data-uid="<?php echo (int)$list->TransUID; ?>">
-                                <i class="bx bx-copy me-2 text-secondary"></i>Duplicate
-                            </button>
-                        </li>
-
                         <?php if ($status === 'Pending'): ?>
                         <li><hr class="dropdown-divider my-1"></li>
                         <li>

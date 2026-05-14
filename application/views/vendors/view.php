@@ -16,6 +16,19 @@
 
                 <div class="container-xxl flex-grow-1 container-p-y">
 
+                    <!-- ── Page Header ── -->
+                    <div class="trans-page-header">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="trans-ph-icon ph-icon-vendors">
+                                <i class="bx bxs-store"></i>
+                            </div>
+                            <h5 class="trans-ph-title">Vendors</h5>
+                        </div>
+                        <a href="javascript:void(0);" class="btn btn-primary" id="btnCreateVendorHeader">
+                            <i class="bx bx-plus me-1"></i>New Vendor
+                        </a>
+                    </div>
+
                     <!-- ── Stat Cards ── -->
                     <?php $s = $VendStats ?? null; ?>
                     <div class="row g-3 mb-3">
@@ -151,6 +164,13 @@
 
                     </div>
 
+                    <!-- Sticky pagination -->
+                    <div class="card mb-0 cust-sticky-pag" id="vendStickyPagination" style="display:none;">
+                        <div class="card-body p-0">
+                            <div class="row mx-3 my-2 justify-content-between align-items-center VendorsPagination"></div>
+                        </div>
+                    </div>
+
                 </div>
 
             </div>
@@ -246,6 +266,22 @@ $(function() {
     basePaginationFunc(ModulePag, getVendorsDetails);
     baseRefreshPageFunc('.PageRefresh', getVendorsDetails);
     basePageHeaderFunc(ModuleHeader, ModuleTable, ModuleRow);
+
+    $(document).on('click', '#btnCreateVendorHeader', function () { openVendorModal('add'); });
+
+    // ── Sticky pagination ──
+    var $vStaticPag = $('#VendorsPagination');
+    var $vStickyPag = $('#vendStickyPagination');
+    function _syncVendSticky() { $vStickyPag.find('.VendorsPagination').html($vStaticPag.html()); }
+    function _toggleVendSticky() {
+        if (!$vStaticPag.length) return;
+        var r = $vStaticPag[0].getBoundingClientRect();
+        var visible = r.top < $(window).height() && r.bottom > 0;
+        if (visible) { $vStickyPag.stop(true,true).fadeOut(150); }
+        else { _syncVendSticky(); $vStickyPag.stop(true,true).fadeIn(150); }
+    }
+    $(window).on('scroll resize', _toggleVendSticky);
+    _toggleVendSticky();
 
     // ── Status tabs ──
     $(document).on('click', '.vend-tab', function (e) {

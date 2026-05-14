@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 $this->load->view('common/transactions/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -16,52 +16,72 @@ $this->load->view('common/transactions/header'); ?>
                     $cur         = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
                     $dec         = $JwtData->GenSettings->DecimalPoints ?? 2;
 
-                    $cntAll      = array_sum(array_column($stats, 'count'));
-                    $cntPending  = ($stats['Approved']['count'] ?? 0) + ($stats['Partial']['count'] ?? 0);
-                    $cntPaid     = $stats['Paid']['count']       ?? 0;
-                    $cntDraft    = $stats['Draft']['count']      ?? 0;
+                    // All = active returns only (Approved + Partial + Paid) — excludes Draft, Cancelled, Rejected
+                    $activeStatuses = ['Approved', 'Partial', 'Paid'];
+                    $cntAll      = array_sum(array_map(fn($s) => $stats[$s]['count']  ?? 0, $activeStatuses));
+                    $amtAll      = array_sum(array_map(fn($s) => $stats[$s]['amount'] ?? 0, $activeStatuses));
 
-                    $amtAll      = array_sum(array_column($stats, 'amount'));
+                    $cntPending  = ($stats['Approved']['count']  ?? 0) + ($stats['Partial']['count']  ?? 0);
                     $amtPending  = ($stats['Approved']['amount'] ?? 0) + ($stats['Partial']['amount'] ?? 0);
-                    $amtPaid     = $stats['Paid']['amount']       ?? 0;
+
+                    $cntPaid     = $stats['Paid']['count']  ?? 0;
+                    $amtPaid     = $stats['Paid']['amount'] ?? 0;
+
+                    $cntDraft    = $stats['Draft']['count']  ?? 0;
+                    $amtDraft    = $stats['Draft']['amount'] ?? 0;
 
                     function fmtAmt($val, $sym, $dec) {
                         return $sym . ' ' . number_format((float)$val, $dec, '.', ',');
                     }
                     ?>
 
+                    <!-- ── Page Header ──────────────────────────────────────── -->
+                    <div class="trans-page-header">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="trans-ph-icon" style="background:#d1fae5;">
+                                <i class="bx bx-undo" style="color:#10b981;"></i>
+                            </div>
+                            <h5 class="trans-ph-title">Sales Returns</h5>
+                        </div>
+                        <a href="/salesreturns/create" class="btn btn-primary">
+                            <i class="bx bx-plus me-1"></i>New Sales Return
+                        </a>
+                    </div>
+
                     <!-- ── Stat Cards ────────────────────────────────────── -->
-                    <div class="row g-3 mb-4">
-                        <div class="col-6 col-md-3">
+                    <div class="trans-stats-section">
+                        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
                             <a href="javascript:void(0);" class="trans-stat-card stat-all active-stat" data-stat-filter="All">
-                                <div class="trans-stat-label">All Returns</div>
-                                <div class="trans-stat-count"><?php echo number_format($cntAll); ?></div>
-                                <div class="trans-stat-amount"><?php echo fmtAmt($amtAll, $cur, $dec); ?></div>
-                                <i class="bx bx-undo trans-stat-icon"></i>
+                                <div class="tsc-icon-wrap"><i class="bx bx-undo"></i></div>
+                                <div class="tsc-body">
+                                    <div class="trans-stat-label">All Returns</div>
+                                    <div class="trans-stat-count"><?php echo number_format($cntAll); ?></div>
+                                    <div class="trans-stat-amount"><?php echo fmtAmt($amtAll, $cur, $dec); ?></div>
+                                </div>
                             </a>
-                        </div>
-                        <div class="col-6 col-md-3">
                             <a href="javascript:void(0);" class="trans-stat-card stat-active" data-stat-filter="SRPending">
-                                <div class="trans-stat-label">Pending</div>
-                                <div class="trans-stat-count"><?php echo number_format($cntPending); ?></div>
-                                <div class="trans-stat-amount"><?php echo fmtAmt($amtPending, $cur, $dec); ?></div>
-                                <i class="bx bx-check-circle trans-stat-icon"></i>
+                                <div class="tsc-icon-wrap"><i class="bx bx-check-circle"></i></div>
+                                <div class="tsc-body">
+                                    <div class="trans-stat-label">Pending</div>
+                                    <div class="trans-stat-count"><?php echo number_format($cntPending); ?></div>
+                                    <div class="trans-stat-amount"><?php echo fmtAmt($amtPending, $cur, $dec); ?></div>
+                                </div>
                             </a>
-                        </div>
-                        <div class="col-6 col-md-3">
                             <a href="javascript:void(0);" class="trans-stat-card stat-paid" data-stat-filter="Paid">
-                                <div class="trans-stat-label">Paid</div>
-                                <div class="trans-stat-count"><?php echo number_format($cntPaid); ?></div>
-                                <div class="trans-stat-amount">&nbsp;</div>
-                                <i class="bx bx-x-circle trans-stat-icon"></i>
+                                <div class="tsc-icon-wrap"><i class="bx bx-x-circle"></i></div>
+                                <div class="tsc-body">
+                                    <div class="trans-stat-label">Paid</div>
+                                    <div class="trans-stat-count"><?php echo number_format($cntPaid); ?></div>
+                                    <div class="trans-stat-amount"><?php echo fmtAmt($amtPaid, $cur, $dec); ?></div>
+                                </div>
                             </a>
-                        </div>
-                        <div class="col-6 col-md-3">
                             <a href="javascript:void(0);" class="trans-stat-card stat-draft" data-stat-filter="Draft">
-                                <div class="trans-stat-label">Drafts</div>
-                                <div class="trans-stat-count"><?php echo number_format($cntDraft); ?></div>
-                                <div class="trans-stat-amount">&nbsp;</div>
-                                <i class="bx bx-pencil trans-stat-icon"></i>
+                                <div class="tsc-icon-wrap"><i class="bx bx-pencil"></i></div>
+                                <div class="tsc-body">
+                                    <div class="trans-stat-label">Drafts</div>
+                                    <div class="trans-stat-count"><?php echo number_format($cntDraft); ?></div>
+                                    <div class="trans-stat-amount"><?php echo fmtAmt($amtDraft, $cur, $dec); ?></div>
+                                </div>
                             </a>
                         </div>
                     </div>
@@ -134,9 +154,6 @@ $this->load->view('common/transactions/header'); ?>
                                         </a></li>
                                     </ul>
                                 </div>
-                                <a href="/salesreturns/create" class="btn btn-primary btn-sm px-3">
-                                    <i class="bx bx-plus me-1"></i>Create
-                                </a>
                             </div>
                         </div>
 
@@ -194,6 +211,92 @@ $this->load->view('common/transactions/header'); ?>
             $this->load->view('common/transactions/payment_modal');
             ?>
 
+            <!-- Apply Credit to Invoice Modal -->
+            <div class="modal fade" id="applyCreditModal" tabindex="-1" aria-hidden="true" aria-labelledby="applyCreditModalLabel">
+                <div class="modal-dialog modal-dialog-centered" style="max-width:480px">
+                    <div class="modal-content">
+                        <div class="modal-header py-3" style="background:#e3f2fd;border-bottom:1px solid #bbdefb;">
+                            <div>
+                                <h6 class="modal-title fw-semibold mb-0" style="color:#1565c0;" id="applyCreditModalLabel">
+                                    <i class="bx bx-credit-card me-2"></i>Apply Credit to Invoice
+                                </h6>
+                                <div class="text-muted" style="font-size:.78rem;margin-top:2px;">
+                                    Sales Return: <strong id="acSrNum">—</strong>
+                                </div>
+                            </div>
+                            <button type="button" class="btn-close ms-2" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body p-3">
+                            <input type="hidden" id="acSalesReturnUID">
+
+                            <div class="row g-2 mb-3">
+                                <div class="col-6">
+                                    <div class="p-2 rounded text-center" style="background:#e8f5e9;border:1px solid #c8e6c9;">
+                                        <div class="text-muted" style="font-size:.7rem;">Customer</div>
+                                        <div class="fw-semibold text-truncate" style="font-size:.82rem;" id="acPartyName">—</div>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="p-2 rounded text-center" style="background:#fff3e0;border:1px solid #ffe0b2;">
+                                        <div class="text-muted" style="font-size:.7rem;">Available Credit</div>
+                                        <div class="fw-semibold" style="font-size:.88rem;color:#e65100;" id="acCreditBalance">—</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label" style="font-size:.82rem;font-weight:500;">Select Invoice <span class="text-danger">*</span></label>
+                                <select id="acInvoiceUID" class="form-select form-select-sm">
+                                    <option value="">— Select Invoice —</option>
+                                </select>
+                            </div>
+
+                            <div id="acInvoiceInfo" class="d-none mb-3">
+                                <div class="row g-2">
+                                    <div class="col-4">
+                                        <div class="p-2 rounded text-center" style="background:#f3e5f5;border:1px solid #e1bee7;">
+                                            <div class="text-muted" style="font-size:.68rem;">Invoice Total</div>
+                                            <div class="fw-semibold" style="font-size:.82rem;" id="acInvTotal">—</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="p-2 rounded text-center" style="background:#e8eaf6;border:1px solid #c5cae9;">
+                                            <div class="text-muted" style="font-size:.68rem;">Paid</div>
+                                            <div class="fw-semibold" style="font-size:.82rem;" id="acInvPaid">—</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="p-2 rounded text-center" style="background:#e3f2fd;border:1px solid #bbdefb;">
+                                            <div class="text-muted" style="font-size:.68rem;">Pending</div>
+                                            <div class="fw-semibold" style="font-size:.82rem;color:#1565c0;" id="acInvBalance">—</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label" style="font-size:.82rem;font-weight:500;">Amount to Apply <span class="text-danger">*</span></label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text" id="acCurrencySymbol">₹</span>
+                                    <input type="number" class="form-control" id="acAmount" min="0.01" step="0.01" placeholder="0.00">
+                                </div>
+                            </div>
+
+                            <div class="mb-0">
+                                <label class="form-label" style="font-size:.82rem;font-weight:500;">Notes</label>
+                                <input type="text" class="form-control form-control-sm" id="acNotes" placeholder="Optional note">
+                            </div>
+                        </div>
+                        <div class="modal-footer py-2">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-sm btn-primary" id="btnSubmitApplyCredit">
+                                <i class="bx bx-check me-1"></i>Apply Credit
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <?php $this->load->view('common/modals/send_communication'); ?>
 
             <?php $this->load->view('common/footer_desc'); ?>
@@ -202,6 +305,7 @@ $this->load->view('common/transactions/header'); ?>
 </div>
 
 <?php $this->load->view('common/transactions/footer'); ?>
+
 
 <script src="/js/common/communication.js"></script>
 <script src="/js/transactions/attachments.js"></script>
@@ -212,6 +316,34 @@ $this->load->view('common/transactions/header'); ?>
 <script>
 const ModuleId     = 106;
 const ModuleTable  = '#srTable';
+
+function showProcessing(label) { showUIBlock(label); }
+function hideProcessing()       { hideUIBlock(); }
+
+function updateSummaryStats(stats) {
+    var cur = '<?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? "₹"); ?>';
+    var dec = <?php echo (int)($JwtData->GenSettings->DecimalPoints ?? 2); ?>;
+    function fmt(v) { return cur + ' ' + parseFloat(v).toLocaleString('en-IN', { minimumFractionDigits: dec, maximumFractionDigits: dec }); }
+    function cnt(s) { return stats[s] ? parseInt(stats[s].count  || 0) : 0; }
+    function amt(s) { return stats[s] ? parseFloat(stats[s].amount || 0) : 0; }
+
+    // All = active only (excludes Draft, Cancelled, Rejected)
+    var cntAll = cnt('Approved') + cnt('Partial') + cnt('Paid');
+    var amtAll = amt('Approved') + amt('Partial') + amt('Paid');
+
+    var cntPending = cnt('Approved') + cnt('Partial');
+    var amtPending = amt('Approved') + amt('Partial');
+
+    var cntPaid = cnt('Paid'), amtPaid = amt('Paid');
+    var cntDraft = cnt('Draft'), amtDraft = amt('Draft');
+
+    $('.stat-all    .trans-stat-count').text(cntAll.toLocaleString());
+    $('.stat-all    .trans-stat-amount').text(fmt(amtAll));
+    $('.stat-active .trans-stat-count').text(cntPending.toLocaleString());
+    $('.stat-active .trans-stat-amount').text(fmt(amtPending));
+    $('.stat-paid   .trans-stat-count').text(cntPaid.toLocaleString());
+    $('.stat-draft  .trans-stat-count').text(cntDraft.toLocaleString());
+}
 const ModulePag    = '.srPagination';
 const ModuleHeader = '.srHeaderCheck';
 const ModuleRow    = '.srCheck';
@@ -280,18 +412,46 @@ $(function () {
 
     $(document).on('click', '.sr-status-update', function () {
         var uid = $(this).data('uid'), status = $(this).data('status');
-                if ($(this).data('_confirmed')) { $(this).removeData('_confirmed'); return; }
-        if (status === 'Cancelled') {
+        if ($(this).data('_confirmed')) {
+            $(this).removeData('_confirmed');
+        } else if (status === 'Cancelled') {
             var num = $(this).data('num') || '';
             var lbl = num ? '<strong>' + $('<span>').text(num).html() + '</strong>' : 'this sales return';
             var $btn = $(this);
             Swal.fire({ title: 'Cancel Sales Return?', html: 'Are you sure you want to cancel ' + lbl + '? This cannot be undone.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', cancelButtonColor: '#6c757d', confirmButtonText: 'Yes, Cancel It', cancelButtonText: 'No, Keep It' }).then(function (r) { if (!r.isConfirmed) return; $btn.data('_confirmed', true).trigger('click'); });
             return;
         }
-$.ajax({
+        var procMsg = status === 'Cancelled' ? 'Cancelling Sales Return…' : 'Updating Status…';
+        showProcessing(procMsg);
+        $.ajax({
             url: '/salesreturns/updateSalesReturnStatus', method: 'POST',
             data: { TransUID: uid, Status: status, [CsrfName]: CsrfToken },
-            success: function (resp) { if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); } else { getSalesReturnsDetails(); } }
+            success: function (resp) {
+                hideProcessing();
+                if (resp.Error) {
+                    Swal.fire({ icon: 'error', text: resp.Message });
+                } else {
+                    getSalesReturnsDetails();
+                    if (status === 'Cancelled' && resp.CustomerBalance !== undefined) {
+                        var sym = '<?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? "₹"); ?>';
+                        var bal = parseFloat(resp.CustomerBalance).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                        var typ = resp.CustomerBalanceType === 'Debit' ? 'receivable <small>(customer owes you)</small>' : 'advance <small>(you owe customer)</small>';
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Sales Return Cancelled',
+                            html: 'Sales return cancelled successfully.<br><br>'
+                                + '<div style="background:#f8f9fa;border-radius:10px;padding:14px 20px;margin-top:4px;display:inline-block;min-width:220px;">'
+                                + '<div style="font-size:12px;color:#6c757d;margin-bottom:4px;">Updated Customer Balance</div>'
+                                + '<div style="font-size:22px;font-weight:700;color:' + (resp.CustomerBalanceType === 'Debit' ? '#dc3545' : '#198754') + ';">'
+                                + sym + bal + '</div>'
+                                + '<div style="font-size:11px;color:#6c757d;margin-top:2px;">' + typ + '</div>'
+                                + '</div>',
+                            confirmButtonColor: '#0d6efd'
+                        });
+                    }
+                }
+            },
+            error: function () { hideProcessing(); Swal.fire({ icon: 'error', text: 'Request failed. Try again.' }); }
         });
     });
 
@@ -301,25 +461,17 @@ $.ajax({
             icon: 'warning', showCancelButton: true, confirmButtonText: 'Delete', confirmButtonColor: '#d33' })
             .then(function (r) {
                 if (!r.isConfirmed) return;
+                showProcessing('Deleting Sales Return…');
                 $.ajax({ url: '/salesreturns/deleteSalesReturn', method: 'POST', data: { TransUID: uid, [CsrfName]: CsrfToken },
-                    success: function (resp) { if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); } else { getSalesReturnsDetails(); Swal.fire({ icon: 'success', text: resp.Message, timer: 1500, showConfirmButton: false }); } }
+                    success: function (resp) {
+                        hideProcessing();
+                        if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); } else { getSalesReturnsDetails(); Swal.fire({ icon: 'success', text: resp.Message, timer: 1500, showConfirmButton: false }); }
+                    },
+                    error: function () { hideProcessing(); Swal.fire({ icon: 'error', text: 'Request failed. Try again.' }); }
                 });
             });
     });
 
-    $(document).on('click', '.duplicateSalesReturn', function () {
-        var uid = $(this).data('uid');
-        Swal.fire({ title: 'Duplicate Sales Return?', text: 'A new draft copy will be created.', icon: 'question', showCancelButton: true, confirmButtonText: 'Duplicate' })
-            .then(function (r) {
-                if (!r.isConfirmed) return;
-                $.ajax({ url: '/salesreturns/duplicateSalesReturn', method: 'POST', data: { TransUID: uid, [CsrfName]: CsrfToken },
-                    success: function (resp) {
-                        if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); }
-                        else { getSalesReturnsDetails(); Swal.fire({ icon: 'success', text: resp.Message, showCancelButton: true, confirmButtonText: 'Edit Now', cancelButtonText: 'Stay Here' }).then(function (r2) { if (r2.isConfirmed && resp.EditURL) window.location.href = resp.EditURL; }); }
-                    }
-                });
-            });
-    });
 
     $(document).on('change', '.srHeaderCheck', function () { $('.srCheck').prop('checked', $(this).is(':checked')); });
 
@@ -352,7 +504,7 @@ $.ajax({
         bootstrap.Modal.getOrCreateInstance(document.getElementById('recordPaymentModal')).show();
     });
 
-        });
+});
 
 // ── Detail HTML builder ─────────────────────────────────────────
 function _buildSrDetailHtml(resp) {
@@ -483,6 +635,117 @@ function _buildSrDetailHtml(resp) {
                 showToastNotification('Request failed. Try again.', 'error');
             }
         });
+    });
+
+}());
+
+// ── Apply Credit to Invoice ──────────────────────────────────────
+(function () {
+    'use strict';
+    var _acCur     = '<?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>';
+    var _acDec     = <?php echo (int)($JwtData->GenSettings->DecimalPoints ?? 2); ?>;
+    var _acBalance = 0;
+    var _acSelect2 = null;
+
+    $(document).on('click', '.srApplyCredit', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var $el     = $(this);
+        var srUID   = $el.data('uid')     || 0;
+        var num     = $el.data('num')     || '—';
+        var party   = $el.data('party')   || '—';
+        var balance = parseFloat($el.data('balance')) || 0;
+
+        _acBalance = balance;
+        $('#acSalesReturnUID').val(srUID);
+        $('#acSrNum').text(num);
+        $('#acPartyName').text(party);
+        $('#acCreditBalance').text(_acCur + ' ' + balance.toFixed(_acDec));
+        $('#acCurrencySymbol').text(_acCur);
+        $('#acAmount').val(balance.toFixed(_acDec)).attr('max', balance);
+        $('#acNotes').val('');
+        $('#acInvoiceInfo').addClass('d-none');
+
+        var $sel = $('#acInvoiceUID').empty().append('<option value="">— Loading… —</option>');
+        if (_acSelect2) { try { _acSelect2.destroy(); } catch(ex){} _acSelect2 = null; }
+
+        $.ajax({
+            url: '/salesreturns/getPendingInvoices', method: 'POST',
+            data: { SalesReturnUID: srUID, [CsrfName]: CsrfToken },
+            success: function (resp) {
+                $sel.empty().append('<option value="">— Select Invoice —</option>');
+                if (!resp.Error && resp.Invoices && resp.Invoices.length) {
+                    $.each(resp.Invoices, function (i, inv) {
+                        var bal = parseFloat(inv.BalanceAmount) || 0;
+                        $sel.append('<option value="' + inv.TransUID
+                            + '" data-total="'   + inv.NetAmount
+                            + '" data-paid="'    + inv.PaidAmount
+                            + '" data-balance="' + bal + '">'
+                            + _esc(inv.UniqueNumber) + ' — ' + _acCur + ' ' + bal.toFixed(_acDec) + ' pending'
+                            + '</option>');
+                    });
+                } else {
+                    $sel.append('<option value="" disabled>No pending invoices found</option>');
+                }
+                if (typeof $.fn.select2 !== 'undefined') {
+                    _acSelect2 = $sel.select2({ dropdownParent: $('#applyCreditModal'), placeholder: '— Select Invoice —' });
+                }
+            }
+        });
+
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('applyCreditModal')).show();
+    });
+
+    $(document).on('change', '#acInvoiceUID', function () {
+        var $opt    = $(this).find('option:selected');
+        var invUID  = parseInt($(this).val(), 10) || 0;
+        if (!invUID) { $('#acInvoiceInfo').addClass('d-none'); return; }
+        var total   = parseFloat($opt.data('total'))   || 0;
+        var paid    = parseFloat($opt.data('paid'))    || 0;
+        var balance = parseFloat($opt.data('balance')) || 0;
+        $('#acInvTotal').text(_acCur + ' ' + total.toFixed(_acDec));
+        $('#acInvPaid').text(_acCur + ' ' + paid.toFixed(_acDec));
+        $('#acInvBalance').text(_acCur + ' ' + balance.toFixed(_acDec));
+        $('#acInvoiceInfo').removeClass('d-none');
+        var maxApply = Math.min(_acBalance, balance);
+        $('#acAmount').val(maxApply.toFixed(_acDec)).attr('max', maxApply);
+    });
+
+    $('#btnSubmitApplyCredit').on('click', function () {
+        var srUID      = parseInt($('#acSalesReturnUID').val(), 10) || 0;
+        var invoiceUID = parseInt($('#acInvoiceUID').val(), 10) || 0;
+        var amount     = parseFloat($('#acAmount').val()) || 0;
+        var notes      = $.trim($('#acNotes').val());
+
+        if (!srUID)      { Swal.fire({ icon: 'warning', text: 'Invalid sales return.' }); return; }
+        if (!invoiceUID) { Swal.fire({ icon: 'warning', text: 'Please select an invoice.' }); return; }
+        if (amount <= 0) { Swal.fire({ icon: 'warning', text: 'Enter a valid amount.' }); return; }
+
+        var $btn = $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Applying…');
+        $.ajax({
+            url: '/salesreturns/applyCredit', method: 'POST',
+            data: { SalesReturnUID: srUID, InvoiceUID: invoiceUID, Amount: amount, Notes: notes, [CsrfName]: CsrfToken },
+            success: function (resp) {
+                $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i> Apply Credit');
+                if (resp.Error) {
+                    Swal.fire({ icon: 'error', text: resp.Message });
+                } else {
+                    bootstrap.Modal.getInstance(document.getElementById('applyCreditModal')).hide();
+                    getSalesReturnsDetails();
+                    showToastNotification(resp.Message, 'success');
+                }
+            },
+            error: function () {
+                $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i> Apply Credit');
+                showToastNotification('Request failed. Try again.', 'error');
+            }
+        });
+    });
+
+    $('#applyCreditModal').on('hidden.bs.modal', function () {
+        if (_acSelect2) { try { _acSelect2.destroy(); } catch(ex){} _acSelect2 = null; }
+        $('#acInvoiceUID').empty().append('<option value="">— Select Invoice —</option>');
+        $('#acInvoiceInfo').addClass('d-none');
     });
 
 }());

@@ -326,6 +326,19 @@ if ($isEdit) {
                                         placeholder="PO Number, <?php echo $isEdit ? 'Ref No...' : 'Sales Person, Ref No...'; ?>" maxlength="100"
                                         value="<?php echo $isEdit ? htmlspecialchars($InvData->Reference ?? '') : (!empty($SalesOrderData->Reference) ? htmlspecialchars($SalesOrderData->Reference) : (!empty($QuotationData->Reference) ? htmlspecialchars($QuotationData->Reference) : '')); ?>" />
                                 </div>
+                                <?php
+                                $_posOptions = ['01 - Jammu & Kashmir','02 - Himachal Pradesh','03 - Punjab','04 - Chandigarh','05 - Uttarakhand','06 - Haryana','07 - Delhi','08 - Rajasthan','09 - Uttar Pradesh','10 - Bihar','11 - Sikkim','12 - Arunachal Pradesh','13 - Nagaland','14 - Manipur','15 - Mizoram','16 - Tripura','17 - Meghalaya','18 - Assam','19 - West Bengal','20 - Jharkhand','21 - Odisha','22 - Chhattisgarh','23 - Madhya Pradesh','24 - Gujarat','25 - Daman & Diu','26 - Dadra & Nagar Haveli','27 - Maharashtra','29 - Karnataka','30 - Goa','31 - Lakshadweep','32 - Kerala','33 - Tamil Nadu','34 - Puducherry','35 - Andaman & Nicobar Islands','36 - Telangana','37 - Andhra Pradesh','97 - Other Territory','96 - Foreign Country'];
+                                $_savedPos = $isEdit ? ($InvData->PlaceOfSupply ?? '') : '';
+                                ?>
+                                <div class="col-md-4">
+                                    <label for="placeOfSupply" class="trans-field-label">Place of Supply</label>
+                                    <select id="placeOfSupply" name="placeOfSupply" class="form-select form-select-sm">
+                                        <option value="">— Select State —</option>
+                                        <?php foreach ($_posOptions as $_posOpt): ?>
+                                        <option value="<?php echo htmlspecialchars($_posOpt); ?>"<?php echo ($_savedPos === $_posOpt) ? ' selected' : ''; ?>><?php echo htmlspecialchars($_posOpt); ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
                             </div>
                             <hr class="mt-3"/>
 
@@ -395,10 +408,11 @@ var _editItems = <?php echo json_encode(array_map(function($item) {
         'unitPrice'        => (float)$item->UnitPrice,
         'taxAmount'        => (float)$item->TaxAmount,
         'sellingPrice'     => (float)$item->SellingPrice,
-        'purchasePrice'    => 0,
+        'purchasePrice'    => (float)($item->PurchasePrice ?? 0),
         'availableQuantity'=> 0,
         'hsnCode'          => '',
         'categoryUID'      => $item->CategoryUID ? (int)$item->CategoryUID : null,
+        'categoryName'     => $item->CategoryName  ?? '',
         'storageUID'       => $item->StorageUID  ? (int)$item->StorageUID  : null,
         'taxPercent'       => (float)$item->TaxPercentage,
         'cgstPercent'      => (float)$item->CGST,
@@ -427,10 +441,11 @@ var _fromSOItems = <?php echo json_encode(array_map(function($item) {
         'unitPrice'        => (float) $item->UnitPrice,
         'sellingPrice'     => (float) $item->SellingPrice,
         'taxAmount'        => (float) $item->TaxAmount,
-        'purchasePrice'    => 0,
+        'purchasePrice'    => (float) ($item->PurchasePrice ?? 0),
         'availableQuantity'=> 0,
         'hsnCode'          => '',
         'categoryUID'      => $item->CategoryUID ? (int)$item->CategoryUID : null,
+        'categoryName'     => $item->CategoryName  ?? '',
         'storageUID'       => $item->StorageUID  ? (int)$item->StorageUID  : null,
         'taxPercent'       => (float) $item->TaxPercentage,
         'cgstPercent'      => (float) $item->CGST,
@@ -462,10 +477,11 @@ var _fromQuotItems = <?php echo json_encode(array_map(function($item) {
         'unitPrice'        => (float) $item->UnitPrice,
         'sellingPrice'     => (float) $item->SellingPrice,
         'taxAmount'        => (float) $item->TaxAmount,
-        'purchasePrice'    => 0,
+        'purchasePrice'    => (float) ($item->PurchasePrice ?? 0),
         'availableQuantity'=> 0,
         'hsnCode'          => '',
         'categoryUID'      => $item->CategoryUID ? (int)$item->CategoryUID : null,
+        'categoryName'     => $item->CategoryName  ?? '',
         'storageUID'       => $item->StorageUID  ? (int)$item->StorageUID  : null,
         'taxPercent'       => (float) $item->TaxPercentage,
         'cgstPercent'      => (float) $item->CGST,
@@ -650,6 +666,7 @@ $(function() {
             }
             fd.append('invoiceType',            $('[name="invoiceType"]').val() || '');
             fd.append('dispatchFrom',           $('[name="dispatchFrom"]').val() || '');
+            fd.append('placeOfSupply',          $('#placeOfSupply').val() || '');
             fd.append('referenceDetails',       $.trim($('#referenceDetails').val()));
             fd.append('transNotes',             $.trim($('#transNotes').val()));
             fd.append('transTermsCond',         $.trim($('#transTermsCond').val()));
@@ -719,7 +736,33 @@ $(function() {
 
     }
 
+    // Auto-fill Place of Supply from Select2 customer selection
+    $('#customerSearch').on('select2:select', function(e) {
+        var state = (e.params.data.address && e.params.data.address.State) ? e.params.data.address.State : '';
+        _autoFillPlaceOfSupply(state);
+    });
+
+    // Hook for customer search modal selection (called from customer_search.js)
+    window._onCustStateSelected = function(stateText) {
+        _autoFillPlaceOfSupply(stateText);
+    };
+
 });
+
+function _autoFillPlaceOfSupply(stateText) {
+    if (!stateText || !$('#placeOfSupply').length) return;
+    var st = stateText.trim().toLowerCase();
+    var matched = false;
+    $('#placeOfSupply option').each(function() {
+        var label = $(this).text().replace(/^\d+\s*-\s*/, '').trim().toLowerCase();
+        if (label && label === st) {
+            $('#placeOfSupply').val($(this).val());
+            matched = true;
+            return false;
+        }
+    });
+    if (!matched) $('#placeOfSupply').val('');
+}
 
 function _showSavedAndGo(title, msg) {
     Swal.fire({

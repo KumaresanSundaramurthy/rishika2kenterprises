@@ -30,38 +30,53 @@ $this->load->view('common/transactions/header'); ?>
                     }
                     ?>
 
+                    <!-- ── Page Header ──────────────────────────────────────── -->
+                    <div class="trans-page-header">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="trans-ph-icon" style="background:#ede9fe;">
+                                <i class="bx bx-store" style="color:#8b5cf6;"></i>
+                            </div>
+                            <h5 class="trans-ph-title">Purchases</h5>
+                        </div>
+                        <a href="/purchases/create" class="btn btn-primary">
+                            <i class="bx bx-plus me-1"></i>New Purchase Bill
+                        </a>
+                    </div>
+
                     <!-- ── Stat Cards ────────────────────────────────────── -->
-                    <div class="row g-3 mb-4">
-                        <div class="col-6 col-md-3">
+                    <div class="trans-stats-section">
+                        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
                             <a href="javascript:void(0);" class="trans-stat-card stat-all active-stat" data-stat-filter="All">
-                                <div class="trans-stat-label">All Purchases</div>
-                                <div class="trans-stat-count"><?php echo number_format($cntAll); ?></div>
-                                <div class="trans-stat-amount"><?php echo fmtAmt($amtAll, $cur, $dec); ?></div>
-                                <i class="bx bx-package trans-stat-icon"></i>
+                                <div class="tsc-icon-wrap"><i class="bx bx-package"></i></div>
+                                <div class="tsc-body">
+                                    <div class="trans-stat-label">All Purchases</div>
+                                    <div class="trans-stat-count"><?php echo number_format($cntAll); ?></div>
+                                    <div class="trans-stat-amount"><?php echo fmtAmt($amtAll, $cur, $dec); ?></div>
+                                </div>
                             </a>
-                        </div>
-                        <div class="col-6 col-md-3">
                             <a href="javascript:void(0);" class="trans-stat-card stat-active" data-stat-filter="Pending">
-                                <div class="trans-stat-label">Pending Payment</div>
-                                <div class="trans-stat-count"><?php echo number_format($cntPending); ?></div>
-                                <div class="trans-stat-amount"><?php echo fmtAmt($amtPending, $cur, $dec); ?></div>
-                                <i class="bx bx-time-five trans-stat-icon"></i>
+                                <div class="tsc-icon-wrap"><i class="bx bx-time-five"></i></div>
+                                <div class="tsc-body">
+                                    <div class="trans-stat-label">Pending Payment</div>
+                                    <div class="trans-stat-count"><?php echo number_format($cntPending); ?></div>
+                                    <div class="trans-stat-amount"><?php echo fmtAmt($amtPending, $cur, $dec); ?></div>
+                                </div>
                             </a>
-                        </div>
-                        <div class="col-6 col-md-3">
                             <a href="javascript:void(0);" class="trans-stat-card stat-paid" data-stat-filter="Paid">
-                                <div class="trans-stat-label">Paid</div>
-                                <div class="trans-stat-count"><?php echo number_format($cntPaid); ?></div>
-                                <div class="trans-stat-amount"><?php echo fmtAmt($amtPaid, $cur, $dec); ?></div>
-                                <i class="bx bx-check-circle trans-stat-icon"></i>
+                                <div class="tsc-icon-wrap"><i class="bx bx-check-circle"></i></div>
+                                <div class="tsc-body">
+                                    <div class="trans-stat-label">Paid</div>
+                                    <div class="trans-stat-count"><?php echo number_format($cntPaid); ?></div>
+                                    <div class="trans-stat-amount"><?php echo fmtAmt($amtPaid, $cur, $dec); ?></div>
+                                </div>
                             </a>
-                        </div>
-                        <div class="col-6 col-md-3">
                             <a href="javascript:void(0);" class="trans-stat-card stat-draft" data-stat-filter="Draft">
-                                <div class="trans-stat-label">Drafts</div>
-                                <div class="trans-stat-count"><?php echo number_format($cntDraft); ?></div>
-                                <div class="trans-stat-amount">&nbsp;</div>
-                                <i class="bx bx-pencil trans-stat-icon"></i>
+                                <div class="tsc-icon-wrap"><i class="bx bx-pencil"></i></div>
+                                <div class="tsc-body">
+                                    <div class="trans-stat-label">Drafts</div>
+                                    <div class="trans-stat-count"><?php echo number_format($cntDraft); ?></div>
+                                    <div class="trans-stat-amount">&nbsp;</div>
+                                </div>
                             </a>
                         </div>
                     </div>
@@ -138,9 +153,6 @@ $this->load->view('common/transactions/header'); ?>
                                         </a></li>
                                     </ul>
                                 </div>
-                                <a href="/purchases/create" class="btn btn-primary btn-sm px-3">
-                                    <i class="bx bx-plus me-1"></i>Record Bill
-                                </a>
                             </div>
                         </div>
 
@@ -353,29 +365,6 @@ $(function () {
         });
     });
 
-    // ── Duplicate ───────────────────────────────────────────────
-    $(document).on('click', '.duplicatePurchase', function () {
-        var uid = $(this).data('uid');
-        Swal.fire({
-            title: 'Duplicate Purchase Bill?', text: 'A new draft copy will be created.',
-            icon : 'question', showCancelButton: true, confirmButtonText: 'Duplicate',
-        }).then(function (r) {
-            if (!r.isConfirmed) return;
-            $.ajax({
-                url   : '/purchases/duplicatePurchase',
-                method: 'POST',
-                data  : { TransUID: uid, [CsrfName]: CsrfToken },
-                success: function (resp) {
-                    if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); }
-                    else {
-                        getPurchasesDetails();
-                        Swal.fire({ icon: 'success', text: resp.Message, showCancelButton: true, confirmButtonText: 'Edit Now', cancelButtonText: 'Stay Here' })
-                            .then(function (r2) { if (r2.isConfirmed && resp.EditURL) window.location.href = resp.EditURL; });
-                    }
-                }
-            });
-        });
-    });
 });
 
 // ── Detail HTML builder ─────────────────────────────────────────

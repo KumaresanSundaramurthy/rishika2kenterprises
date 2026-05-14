@@ -10,7 +10,7 @@ $_moduleNames = [
     105 => 'Delivery Note',
     106 => 'Receipt',
     107 => 'Credit Note',
-    108 => 'Debit Note',
+    108 => 'Purchase Return',
 ];
 $_transType = $_moduleNames[$JwtData->ModuleUID] ?? 'Transaction';
 

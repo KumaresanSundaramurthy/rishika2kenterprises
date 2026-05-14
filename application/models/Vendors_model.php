@@ -427,4 +427,301 @@ class Vendors_model extends CI_Model {
         }
     }
 
+    // ── VendOpeningBalanceTbl (one row per vendor, no year) ───────────────────
+
+    public function getVendorOpeningBalance($orgUID, $vendorUID) {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select([
+                'VendBalUID', 'OpeningBalance', 'OpeningBalType',
+                'PendingBalance', 'PendingBalType', 'Notes',
+            ]);
+            $this->ReadDb->from('Vendors.VendOpeningBalanceTbl');
+            $this->ReadDb->where([
+                'OrgUID'    => (int)$orgUID,
+                'VendorUID' => (int)$vendorUID,
+                'IsDeleted' => 0,
+            ]);
+            $this->ReadDb->limit(1);
+            $query = $this->ReadDb->get();
+            if (!$query) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
+            return $query->row();
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+    }
+
+    public function saveVendorOpeningBalance($orgUID, $vendorUID, $openingBalance, $openingBalType, $notes, $userUID) {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('VendBalUID');
+            $this->ReadDb->from('Vendors.VendOpeningBalanceTbl');
+            $this->ReadDb->where(['OrgUID' => (int)$orgUID, 'VendorUID' => (int)$vendorUID, 'IsDeleted' => 0]);
+            $existing = $this->ReadDb->get()->row();
+
+            if ($existing) {
+                $this->ReadDb->where('VendBalUID', (int)$existing->VendBalUID);
+                $this->ReadDb->update('Vendors.VendOpeningBalanceTbl', [
+                    'OpeningBalance' => (float)$openingBalance,
+                    'OpeningBalType' => $openingBalType,
+                    'Notes'          => $notes ?: NULL,
+                    'UpdatedBy'      => (int)$userUID,
+                ]);
+                return (int)$existing->VendBalUID;
+            }
+
+            $this->ReadDb->insert('Vendors.VendOpeningBalanceTbl', [
+                'OrgUID'         => (int)$orgUID,
+                'VendorUID'      => (int)$vendorUID,
+                'OpeningBalance' => (float)$openingBalance,
+                'OpeningBalType' => $openingBalType,
+                'PendingBalance' => (float)$openingBalance,
+                'PendingBalType' => $openingBalType,
+                'Notes'          => $notes ?: NULL,
+                'IsActive'       => 1,
+                'IsDeleted'      => 0,
+                'CreatedBy'      => (int)$userUID,
+                'UpdatedBy'      => (int)$userUID,
+            ]);
+            return (int)$this->ReadDb->insert_id();
+
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+    }
+
+    public function updateVendorPendingBalance($orgUID, $vendorUID, $pendingBalance, $pendingBalType, $userUID) {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->where(['OrgUID' => (int)$orgUID, 'VendorUID' => (int)$vendorUID, 'IsDeleted' => 0]);
+            $this->ReadDb->update('Vendors.VendOpeningBalanceTbl', [
+                'PendingBalance' => (float)$pendingBalance,
+                'PendingBalType' => $pendingBalType,
+                'UpdatedBy'      => (int)$userUID,
+            ]);
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+    }
+
+    // Returns opening balance as signed float: Credit=+, Debit=-.
+    public function getVendorOpeningBalanceSigned($orgUID, $vendorUID) {
+        $row = $this->getVendorOpeningBalance($orgUID, $vendorUID);
+        if (!$row) return 0.0;
+        $amt = (float)$row->OpeningBalance;
+        return ($row->OpeningBalType === 'Credit') ? $amt : -$amt;
+    }
+
+    public function getVendorDebitCreditRaw($vendorUID) {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select(['DebitCreditAmount', 'DebitCreditType']);
+            $this->ReadDb->from('Vendors.VendorTbl');
+            $this->ReadDb->where(['VendorUID' => (int)$vendorUID, 'IsDeleted' => 0]);
+            $this->ReadDb->limit(1);
+            return $this->ReadDb->get()->row();
+        } catch (Exception $e) {
+            return null;
+        }
+    }
+
+    // Applies a signed numeric delta (+/-) to the vendor running opening balance.
+    // Returns ['balance' => float, 'type' => 'Debit'|'Credit'].
+    public function applyVendorOpeningBalanceDelta($orgUID, $vendorUID, $delta, $userUID) {
+        $row           = $this->getVendorOpeningBalance($orgUID, $vendorUID);
+        $currentSigned = 0.0;
+        if ($row) {
+            $currentSigned = ($row->OpeningBalType === 'Credit') ? (float)$row->OpeningBalance : -(float)$row->OpeningBalance;
+        }
+        $newSigned  = round($currentSigned + $delta, 2);
+        $newBalance = abs($newSigned);
+        $newType    = ($newSigned >= 0) ? 'Credit' : 'Debit';
+        $this->saveVendorOpeningBalance($orgUID, $vendorUID, $newBalance, $newType, null, $userUID);
+        return ['balance' => $newBalance, 'type' => $newType];
+    }
+
+    // ── VendYearOpeningBalanceTbl (year-wise opening balance snapshot) ─────────
+
+    // $onlyIfNew=true: insert-only, preserving the year-start snapshot.
+    public function saveVendorYearOpening($orgUID, $vendorUID, $financialYear, $openingBalance, $openingBalType, $userUID, $onlyIfNew = false) {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('YearBalUID');
+            $this->ReadDb->from('Vendors.VendYearOpeningBalanceTbl');
+            $this->ReadDb->where([
+                'OrgUID'        => (int)$orgUID,
+                'VendorUID'     => (int)$vendorUID,
+                'FinancialYear' => (int)$financialYear,
+                'IsDeleted'     => 0,
+            ]);
+            $existing = $this->ReadDb->get()->row();
+
+            if ($existing) {
+                if ($onlyIfNew) return (int)$existing->YearBalUID;
+                $this->ReadDb->where('YearBalUID', (int)$existing->YearBalUID);
+                $this->ReadDb->update('Vendors.VendYearOpeningBalanceTbl', [
+                    'OpeningBalance' => (float)$openingBalance,
+                    'OpeningBalType' => $openingBalType,
+                    'UpdatedBy'      => (int)$userUID,
+                ]);
+                return (int)$existing->YearBalUID;
+            }
+
+            $this->ReadDb->insert('Vendors.VendYearOpeningBalanceTbl', [
+                'OrgUID'         => (int)$orgUID,
+                'VendorUID'      => (int)$vendorUID,
+                'FinancialYear'  => (int)$financialYear,
+                'OpeningBalance' => (float)$openingBalance,
+                'OpeningBalType' => $openingBalType,
+                'IsActive'       => 1,
+                'IsDeleted'      => 0,
+                'CreatedBy'      => (int)$userUID,
+                'UpdatedBy'      => (int)$userUID,
+            ]);
+            return (int)$this->ReadDb->insert_id();
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+    }
+
+    public function getVendorYearOpening($orgUID, $vendorUID, $financialYear) {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select(['YearBalUID', 'FinancialYear', 'OpeningBalance', 'OpeningBalType']);
+            $this->ReadDb->from('Vendors.VendYearOpeningBalanceTbl');
+            $this->ReadDb->where([
+                'OrgUID'        => (int)$orgUID,
+                'VendorUID'     => (int)$vendorUID,
+                'FinancialYear' => (int)$financialYear,
+                'IsDeleted'     => 0,
+            ]);
+            $this->ReadDb->limit(1);
+            $query = $this->ReadDb->get();
+            if (!$query) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
+            return $query->row();
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+    }
+
+    // ── Balance recalculation helpers ─────────────────────────────────────────
+
+    public function getVendorsWithLedgerForBalance($orgUID, $vendorUID = 0) {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select([
+                'V.VendorUID',
+                'IFNULL(VOB.OpeningBalance, 0.00)    AS OpeningBalance',
+                "IFNULL(VOB.OpeningBalType, 'Credit') AS OpeningBalType",
+                'ELM.LedgerUID',
+                'COA.CurrentBalance     AS LedgerCurrentBalance',
+                'COA.CurrentBalanceType AS LedgerCurrentType',
+            ]);
+            $this->ReadDb->from('Vendors.VendorTbl V');
+            $this->ReadDb->join(
+                'Vendors.VendOpeningBalanceTbl VOB',
+                'VOB.VendorUID = V.VendorUID AND VOB.IsDeleted = 0',
+                'left'
+            );
+            $this->ReadDb->join(
+                'Accounting.EntityLedgerMap ELM',
+                "ELM.VendorUID = V.VendorUID AND ELM.EntityType = 'Vendor' AND ELM.IsDeleted = 0",
+                'left'
+            );
+            $this->ReadDb->join(
+                'Accounting.ChartOfAccounts COA',
+                'COA.LedgerUID = ELM.LedgerUID AND COA.IsDeleted = 0',
+                'left'
+            );
+            $this->ReadDb->where(['V.OrgUID' => (int)$orgUID, 'V.IsDeleted' => 0, 'V.IsActive' => 1]);
+            if ($vendorUID > 0) {
+                $this->ReadDb->where('V.VendorUID', (int)$vendorUID);
+            }
+            $query = $this->ReadDb->get();
+            if (!$query) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
+            return $query->result();
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+    }
+
+    // Total net amount billed by vendor (Purchases, ModuleUID=105).
+    public function getVendorTotalPurchased($orgUID, $vendorUID) {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('COALESCE(SUM(NetAmount), 0) AS total');
+            $this->ReadDb->from('`Transaction`.TransactionsTbl');
+            $this->ReadDb->where([
+                'OrgUID'    => (int)$orgUID,
+                'PartyUID'  => (int)$vendorUID,
+                'PartyType' => 'V',
+                'ModuleUID' => 105,
+                'IsDeleted' => 0,
+            ]);
+            $this->ReadDb->where_not_in('DocStatus', ['Cancelled', 'Rejected']);
+            $query = $this->ReadDb->get();
+            if (!$query) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
+            return (float) $query->row()->total;
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+    }
+
+    // Total amount paid out to vendor.
+    public function getVendorTotalPaid($orgUID, $vendorUID) {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('COALESCE(SUM(Amount), 0) AS total');
+            $this->ReadDb->from('`Transaction`.PaymentsTbl');
+            $this->ReadDb->where([
+                'OrgUID'    => (int)$orgUID,
+                'PartyUID'  => (int)$vendorUID,
+                'PartyType' => 'V',
+                'IsDeleted' => 0,
+            ]);
+            $query = $this->ReadDb->get();
+            if (!$query) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
+            return (float) $query->row()->total;
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+    }
+
+    // Total net amount returned to vendor (Purchase Returns=108, Debit Notes=109).
+    public function getVendorTotalReturned($orgUID, $vendorUID) {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('COALESCE(SUM(NetAmount), 0) AS total');
+            $this->ReadDb->from('`Transaction`.TransactionsTbl');
+            $this->ReadDb->where([
+                'OrgUID'    => (int)$orgUID,
+                'PartyUID'  => (int)$vendorUID,
+                'PartyType' => 'V',
+                'IsDeleted' => 0,
+            ]);
+            $this->ReadDb->where_in('ModuleUID', [108, 109]);
+            $this->ReadDb->where_not_in('DocStatus', ['Cancelled', 'Rejected']);
+            $query = $this->ReadDb->get();
+            if (!$query) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
+            return (float) $query->row()->total;
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+    }
+
+    public function updateVendorBalanceInLedger($ledgerUID, $balance, $balanceType, $userUID) {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->where('LedgerUID', (int)$ledgerUID);
+            $this->ReadDb->update('Accounting.ChartOfAccounts', [
+                'CurrentBalance'     => $balance,
+                'CurrentBalanceType' => $balanceType,
+                'UpdatedBy'          => (int)$userUID,
+            ]);
+            if ($this->ReadDb->affected_rows() === false) throw new Exception('Ledger update failed.');
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+    }
+
 }

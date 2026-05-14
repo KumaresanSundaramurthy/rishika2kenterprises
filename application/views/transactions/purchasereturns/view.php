@@ -17,50 +17,65 @@ $this->load->view('common/transactions/header'); ?>
                     $dec         = $JwtData->GenSettings->DecimalPoints ?? 2;
 
                     $cntAll      = array_sum(array_column($stats, 'count'));
-                    $cntApproved = $stats['Approved']['count']   ?? 0;
-                    $cntCancelled= $stats['Cancelled']['count']  ?? 0;
-                    $cntDraft    = $stats['Draft']['count']      ?? 0;
+                    $cntPending  = ($stats['Approved']['count'] ?? 0) + ($stats['Partial']['count'] ?? 0);
+                    $cntPaid     = $stats['Paid']['count']      ?? 0;
+                    $cntDraft    = $stats['Draft']['count']     ?? 0;
 
                     $amtAll      = array_sum(array_column($stats, 'amount'));
-                    $amtApproved = $stats['Approved']['amount']  ?? 0;
+                    $amtPending  = ($stats['Approved']['amount'] ?? 0) + ($stats['Partial']['amount'] ?? 0);
 
                     function fmtAmt($val, $sym, $dec) {
                         return $sym . ' ' . number_format((float)$val, $dec, '.', ',');
                     }
                     ?>
 
-                    <!-- ── Stat Cards ───────────────────────────────────���── -->
-                    <div class="row g-3 mb-4">
-                        <div class="col-6 col-md-3">
+                    <!-- ── Page Header ──────────────────────────────────────── -->
+                    <div class="trans-page-header">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="trans-ph-icon" style="background:#f3e8ff;">
+                                <i class="bx bx-undo" style="color:#a855f7;"></i>
+                            </div>
+                            <h5 class="trans-ph-title">Purchase Returns</h5>
+                        </div>
+                        <a href="/purchasereturns/create" class="btn btn-primary">
+                            <i class="bx bx-plus me-1"></i>New Purchase Return
+                        </a>
+                    </div>
+
+                    <!-- ── Stat Cards ─────────────────────────────────────── -->
+                    <div class="trans-stats-section">
+                        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
                             <a href="javascript:void(0);" class="trans-stat-card stat-all active-stat" data-stat-filter="All">
-                                <div class="trans-stat-label">All Returns</div>
-                                <div class="trans-stat-count"><?php echo number_format($cntAll); ?></div>
-                                <div class="trans-stat-amount"><?php echo fmtAmt($amtAll, $cur, $dec); ?></div>
-                                <i class="bx bx-undo trans-stat-icon"></i>
+                                <div class="tsc-icon-wrap"><i class="bx bx-undo"></i></div>
+                                <div class="tsc-body">
+                                    <div class="trans-stat-label">All Returns</div>
+                                    <div class="trans-stat-count"><?php echo number_format($cntAll); ?></div>
+                                    <div class="trans-stat-amount"><?php echo fmtAmt($amtAll, $cur, $dec); ?></div>
+                                </div>
                             </a>
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <a href="javascript:void(0);" class="trans-stat-card stat-active" data-stat-filter="Approved">
-                                <div class="trans-stat-label">Approved</div>
-                                <div class="trans-stat-count"><?php echo number_format($cntApproved); ?></div>
-                                <div class="trans-stat-amount"><?php echo fmtAmt($amtApproved, $cur, $dec); ?></div>
-                                <i class="bx bx-check-circle trans-stat-icon"></i>
+                            <a href="javascript:void(0);" class="trans-stat-card stat-active" data-stat-filter="PRPending">
+                                <div class="tsc-icon-wrap"><i class="bx bx-time"></i></div>
+                                <div class="tsc-body">
+                                    <div class="trans-stat-label">Pending Refund</div>
+                                    <div class="trans-stat-count"><?php echo number_format($cntPending); ?></div>
+                                    <div class="trans-stat-amount"><?php echo fmtAmt($amtPending, $cur, $dec); ?></div>
+                                </div>
                             </a>
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <a href="javascript:void(0);" class="trans-stat-card stat-overdue" data-stat-filter="Cancelled">
-                                <div class="trans-stat-label">Cancelled</div>
-                                <div class="trans-stat-count"><?php echo number_format($cntCancelled); ?></div>
-                                <div class="trans-stat-amount">&nbsp;</div>
-                                <i class="bx bx-x-circle trans-stat-icon"></i>
+                            <a href="javascript:void(0);" class="trans-stat-card stat-paid" data-stat-filter="Paid">
+                                <div class="tsc-icon-wrap"><i class="bx bx-check-circle"></i></div>
+                                <div class="tsc-body">
+                                    <div class="trans-stat-label">Settled</div>
+                                    <div class="trans-stat-count"><?php echo number_format($cntPaid); ?></div>
+                                    <div class="trans-stat-amount">&nbsp;</div>
+                                </div>
                             </a>
-                        </div>
-                        <div class="col-6 col-md-3">
                             <a href="javascript:void(0);" class="trans-stat-card stat-draft" data-stat-filter="Draft">
-                                <div class="trans-stat-label">Drafts</div>
-                                <div class="trans-stat-count"><?php echo number_format($cntDraft); ?></div>
-                                <div class="trans-stat-amount">&nbsp;</div>
-                                <i class="bx bx-pencil trans-stat-icon"></i>
+                                <div class="tsc-icon-wrap"><i class="bx bx-pencil"></i></div>
+                                <div class="tsc-body">
+                                    <div class="trans-stat-label">Drafts</div>
+                                    <div class="trans-stat-count"><?php echo number_format($cntDraft); ?></div>
+                                    <div class="trans-stat-amount">&nbsp;</div>
+                                </div>
                             </a>
                         </div>
                     </div>
@@ -77,8 +92,13 @@ $this->load->view('common/transactions/header'); ?>
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link pr-status-tab" data-status="Approved" href="javascript:void(0);">
-                                        Approved <span class="trans-tab-count ms-1 d-none"></span>
+                                    <a class="nav-link pr-status-tab" data-status="PRPending" href="javascript:void(0);">
+                                        Pending <span class="trans-tab-count ms-1 d-none"></span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link pr-status-tab" data-status="Paid" href="javascript:void(0);">
+                                        Settled <span class="trans-tab-count ms-1 d-none"></span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
@@ -125,9 +145,6 @@ $this->load->view('common/transactions/header'); ?>
                                         </a></li>
                                     </ul>
                                 </div>
-                                <a href="/purchasereturns/create" class="btn btn-primary btn-sm px-3">
-                                    <i class="bx bx-plus me-1"></i>Create
-                                </a>
                             </div>
                         </div>
 
@@ -148,13 +165,14 @@ $this->load->view('common/transactions/header'); ?>
                                         <th class="col-sortable cursor-pointer user-select-none" data-sort="Amount">
                                             Amount <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Amount"></i>
                                         </th>
+                                        <th>Refund Status</th>
                                         <th>Status</th>
                                         <th>Vendor</th>
                                         <th class="col-sortable cursor-pointer user-select-none" data-sort="Date">
                                             Return Date <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Date"></i>
                                         </th>
                                         <th>Last Updated</th>
-                                        <th style="width:50px"></th>
+                                        <th style="width:110px"></th>
                                     </tr>
                                 </thead>
                                 <tbody class="r2k-tbody table-border-bottom-0">
@@ -176,6 +194,103 @@ $this->load->view('common/transactions/header'); ?>
                 </div>
             </div>
 
+            <?php $this->load->view('common/imagepreview_modal'); ?>
+
+            <?php
+            $rpAccentColor = '#6610f2'; $rpAccentBg = '#f0ebff';
+            $rpPartyIcon   = 'bx-store'; $rpDocLabel = 'Purchase Return';
+            $rpTotalIcon   = 'bx-undo';
+            $rpNumId       = 'rpInvNum'; $rpDateId   = 'rpInvDate';
+            $rpBtnLabel    = 'Record Refund';
+            $this->load->view('common/transactions/payment_modal');
+            ?>
+
+            <!-- Apply Debit to Purchase Modal -->
+            <div class="modal fade" id="applyDebitModal" tabindex="-1" aria-hidden="true" aria-labelledby="applyDebitModalLabel">
+                <div class="modal-dialog modal-dialog-centered" style="max-width:480px">
+                    <div class="modal-content">
+                        <div class="modal-header py-3" style="background:#fff3e0;border-bottom:1px solid #ffe0b2;">
+                            <div>
+                                <h6 class="modal-title fw-semibold mb-0" style="color:#e65100;" id="applyDebitModalLabel">
+                                    <i class="bx bx-credit-card me-2"></i>Apply Debit to Purchase
+                                </h6>
+                                <div class="text-muted" style="font-size:.78rem;margin-top:2px;">
+                                    Purchase Return: <strong id="adPrNum">—</strong>
+                                </div>
+                            </div>
+                            <button type="button" class="btn-close ms-2" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body p-3">
+                            <input type="hidden" id="adPurchaseReturnUID">
+
+                            <div class="row g-2 mb-3">
+                                <div class="col-6">
+                                    <div class="p-2 rounded text-center" style="background:#e8f5e9;border:1px solid #c8e6c9;">
+                                        <div class="text-muted" style="font-size:.7rem;">Vendor</div>
+                                        <div class="fw-semibold text-truncate" style="font-size:.82rem;" id="adPartyName">—</div>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="p-2 rounded text-center" style="background:#fff3e0;border:1px solid #ffe0b2;">
+                                        <div class="text-muted" style="font-size:.7rem;">Available Debit</div>
+                                        <div class="fw-semibold" style="font-size:.88rem;color:#e65100;" id="adDebitBalance">—</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label" style="font-size:.82rem;font-weight:500;">Select Purchase <span class="text-danger">*</span></label>
+                                <select id="adPurchaseUID" class="form-select form-select-sm">
+                                    <option value="">— Select Purchase —</option>
+                                </select>
+                            </div>
+
+                            <div id="adPurchaseInfo" class="d-none mb-3">
+                                <div class="row g-2">
+                                    <div class="col-4">
+                                        <div class="p-2 rounded text-center" style="background:#f3e5f5;border:1px solid #e1bee7;">
+                                            <div class="text-muted" style="font-size:.68rem;">Purchase Total</div>
+                                            <div class="fw-semibold" style="font-size:.82rem;" id="adPurchTotal">—</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="p-2 rounded text-center" style="background:#e8eaf6;border:1px solid #c5cae9;">
+                                            <div class="text-muted" style="font-size:.68rem;">Paid</div>
+                                            <div class="fw-semibold" style="font-size:.82rem;" id="adPurchPaid">—</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="p-2 rounded text-center" style="background:#fff3e0;border:1px solid #ffe0b2;">
+                                            <div class="text-muted" style="font-size:.68rem;">Pending</div>
+                                            <div class="fw-semibold" style="font-size:.82rem;color:#e65100;" id="adPurchBalance">—</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label" style="font-size:.82rem;font-weight:500;">Amount to Apply <span class="text-danger">*</span></label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text" id="adCurrencySymbol">₹</span>
+                                    <input type="number" class="form-control" id="adAmount" min="0.01" step="0.01" placeholder="0.00">
+                                </div>
+                            </div>
+
+                            <div class="mb-0">
+                                <label class="form-label" style="font-size:.82rem;font-weight:500;">Notes</label>
+                                <input type="text" class="form-control form-control-sm" id="adNotes" placeholder="Optional note">
+                            </div>
+                        </div>
+                        <div class="modal-footer py-2">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-sm btn-warning" id="btnSubmitApplyDebit">
+                                <i class="bx bx-check me-1"></i>Apply Debit
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <?php $this->load->view('common/footer_desc'); ?>
         </div>
     </div>
@@ -183,6 +298,9 @@ $this->load->view('common/transactions/header'); ?>
 
 <?php $this->load->view('common/transactions/footer'); ?>
 
+<script src="/js/transactions/attachments.js"></script>
+<script src="/js/transactions/viewmodal.js"></script>
+<script src="/js/transactions/a4_print.js"></script>
 <script src="/js/transactions/purchasereturns.js"></script>
 
 <script>
@@ -196,6 +314,11 @@ $(function () {
     'use strict';
 
     Filter['Status'] = 'All';
+
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl, { container: 'body' });
+    });
 
     $(document).on('click', '[data-stat-filter]', function () {
         var status = $(this).data('stat-filter') || 'All';
@@ -245,7 +368,7 @@ $(function () {
 
     $(document).on('click', '.pr-status-update', function () {
         var uid = $(this).data('uid'), status = $(this).data('status');
-                if ($(this).data('_confirmed')) { $(this).removeData('_confirmed'); return; }
+        if ($(this).data('_confirmed')) { $(this).removeData('_confirmed'); return; }
         if (status === 'Cancelled') {
             var num = $(this).data('num') || '';
             var lbl = num ? '<strong>' + $('<span>').text(num).html() + '</strong>' : 'this purchase return';
@@ -253,7 +376,7 @@ $(function () {
             Swal.fire({ title: 'Cancel Purchase Return?', html: 'Are you sure you want to cancel ' + lbl + '? This cannot be undone.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', cancelButtonColor: '#6c757d', confirmButtonText: 'Yes, Cancel It', cancelButtonText: 'No, Keep It' }).then(function (r) { if (!r.isConfirmed) return; $btn.data('_confirmed', true).trigger('click'); });
             return;
         }
-$.ajax({ url: '/purchasereturns/updatePurchaseReturnStatus', method: 'POST', data: { TransUID: uid, Status: status, [CsrfName]: CsrfToken },
+        $.ajax({ url: '/purchasereturns/updatePurchaseReturnStatus', method: 'POST', data: { TransUID: uid, Status: status, [CsrfName]: CsrfToken },
             success: function (resp) { if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); } else { getPurchaseReturnsDetails(); } }
         });
     });
@@ -270,20 +393,269 @@ $.ajax({ url: '/purchasereturns/updatePurchaseReturnStatus', method: 'POST', dat
             });
     });
 
-    $(document).on('click', '.duplicatePurchaseReturn', function () {
-        var uid = $(this).data('uid');
-        Swal.fire({ title: 'Duplicate Purchase Return?', text: 'A new draft copy will be created.', icon: 'question', showCancelButton: true, confirmButtonText: 'Duplicate' })
-            .then(function (r) {
-                if (!r.isConfirmed) return;
-                $.ajax({ url: '/purchasereturns/duplicatePurchaseReturn', method: 'POST', data: { TransUID: uid, [CsrfName]: CsrfToken },
-                    success: function (resp) {
-                        if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); }
-                        else { getPurchaseReturnsDetails(); Swal.fire({ icon: 'success', text: resp.Message, showCancelButton: true, confirmButtonText: 'Edit Now', cancelButtonText: 'Stay Here' }).then(function (r2) { if (r2.isConfirmed && resp.EditURL) window.location.href = resp.EditURL; }); }
-                    }
-                });
-            });
-    });
 
     $(document).on('change', '.prHeaderCheck', function () { $('.prCheck').prop('checked', $(this).is(':checked')); });
+
+    // ── Record Refund (Purchase Return) ────────────────────────────
+    $(document).on('click', '.prReceivePayment', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var $el     = $(this);
+        var uid     = $el.data('uid')     || 0;
+        var num     = $el.data('num')     || '';
+        var date    = $el.data('date')    || '';
+        var party   = $el.data('party')   || '';
+        var total   = parseFloat($el.data('total'))   || 0;
+        var paid    = parseFloat($el.data('paid'))    || 0;
+        var pending = parseFloat($el.data('pending')) || 0;
+        var _cur    = '<?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>';
+
+        $('#rpTransUID').val(uid);
+        $('#rpInvNum').text(num || '—');
+        $('#rpInvDate').text(date || '—');
+        $('#rpPartyName').text(party || '—');
+        $('#rpTotalCard').text(_cur + ' ' + total.toFixed(2));
+        $('#rpPaidCard').text(_cur + ' ' + paid.toFixed(2));
+        $('#rpBalanceCard').text(_cur + ' ' + pending.toFixed(2));
+        $('#rpAmount').val(pending.toFixed(2)).attr('max', pending);
+        $('#rpCurrencySymbol').text(_cur);
+        $('#rpReferenceNo').val('');
+        $('#rpNotes').val('');
+        $('#rpBankAccount').val('');
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('recordPaymentModal')).show();
+    });
+
 });
+
+// ── Payment Modal Init & Submit ──────────────────────────────────
+(function () {
+    'use strict';
+
+    var _payTypes  = <?php echo json_encode(array_map(function($t) {
+        return ['PaymentTypeUID' => (int)$t->PaymentTypeUID, 'Name' => (string)$t->Name, 'IsCash' => (int)$t->IsCash];
+    }, $PaymentTypes ?? [])); ?>;
+    var _bankAccts = <?php echo json_encode(array_values(array_map(function($b) {
+        return ['BankAccountUID' => (int)$b->BankAccountUID, 'BankName' => (string)$b->BankName, 'AccountName' => (string)$b->AccountName, 'IsDefault' => (int)$b->IsDefault];
+    }, array_filter($BankAccounts ?? [], function($b) { return !(int)$b->IsCash; })))); ?>;
+    var _fpInstance = null;
+    var _rpDropzone = null;
+    var _currency   = '<?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>';
+
+    (function () {
+        var $sel = $('#rpBankAccount').empty().append('<option value="">— Select bank account —</option>');
+        $.each(_bankAccts, function (i, b) {
+            $sel.append('<option value="' + b.BankAccountUID + '">' + _esc(b.BankName) + ' — ' + _esc(b.AccountName) + '</option>');
+        });
+    }());
+
+    function renderPaymentTypes() {
+        var $wrap = $('#rpPaymentTypes').empty();
+        $.each(_payTypes, function (i, t) {
+            var active = (i === 0) ? ' active' : '';
+            if (i === 0) { $('#rpPaymentTypeUID').val(t.PaymentTypeUID); $('#rpIsCash').val(t.IsCash); }
+            $wrap.append('<button type="button" class="rp-type-pill btn btn-sm btn-outline-secondary' + active + '" data-uid="' + t.PaymentTypeUID + '" data-iscash="' + t.IsCash + '">' + _esc(t.Name) + '</button>');
+        });
+        toggleBankRow();
+    }
+
+    function toggleBankRow() {
+        var isCash = parseInt($('#rpIsCash').val(), 10);
+        $('#rpBankRow').toggleClass('d-none', !!isCash);
+        if (!isCash && !$('#rpBankAccount').val()) {
+            var def = $.grep(_bankAccts, function(b) { return b.IsDefault === 1; });
+            if (def.length) { $('#rpBankAccount').val(def[0].BankAccountUID); }
+        }
+    }
+
+    $('#recordPaymentModal').on('shown.bs.modal', function () {
+        if (!_fpInstance) {
+            _fpInstance = flatpickr('#rpPaymentDate', {
+                dateFormat: 'Y-m-d', altInput: true, altFormat: 'd M Y',
+                maxDate: 'today', disableMobile: true, defaultDate: 'today',
+                appendTo: document.querySelector('#recordPaymentModal .modal-dialog'),
+            });
+        } else {
+            _fpInstance.setDate(new Date(), false);
+        }
+        if (!_rpDropzone && typeof Dropzone !== 'undefined') {
+            Dropzone.autoDiscover = false;
+            _rpDropzone = new Dropzone('#rpAttachDropzone', {
+                url: '#', autoProcessQueue: false, maxFiles: 3, maxFilesize: 3,
+                acceptedFiles: '.pdf,.jpg,.jpeg,.png', parallelUploads: 3, clickable: true,
+                previewTemplate: '<div class="dz-preview dz-file-preview"><div class="dz-details"><div class="dz-filename"><span data-dz-name></span></div><div class="dz-size"><span data-dz-size></span></div></div><div class="dz-error-message"><span data-dz-errormessage></span></div><a class="dz-remove" href="javascript:undefined;" data-dz-remove>Remove</a></div>',
+                init: function () {
+                    this.on('maxfilesexceeded', function (file) { this.removeFile(file); Swal.fire({ icon: 'warning', text: 'Maximum 3 attachments allowed.' }); });
+                }
+            });
+        }
+        renderPaymentTypes();
+    });
+
+    $(document).on('click', '.rp-type-pill', function () {
+        $('.rp-type-pill').removeClass('active btn-primary').addClass('btn-outline-secondary');
+        $(this).addClass('active btn-primary').removeClass('btn-outline-secondary');
+        $('#rpPaymentTypeUID').val($(this).data('uid'));
+        $('#rpIsCash').val($(this).data('iscash'));
+        toggleBankRow();
+    });
+
+    $('#btnSubmitPayment').on('click', function () {
+        var transUID       = parseInt($('#rpTransUID').val(), 10);
+        var paymentTypeUID = parseInt($('#rpPaymentTypeUID').val(), 10);
+        var amount         = parseFloat($('#rpAmount').val()) || 0;
+        var paymentDate    = $('#rpPaymentDate').val() || new Date().toISOString().split('T')[0];
+        var bankAccountUID = parseInt($('#rpBankAccount').val(), 10) || 0;
+        var referenceNo    = $.trim($('#rpReferenceNo').val());
+        var notes          = $.trim($('#rpNotes').val());
+
+        if (!transUID)       { Swal.fire({ icon: 'warning', text: 'Invalid purchase return.' }); return; }
+        if (!paymentTypeUID) { Swal.fire({ icon: 'warning', text: 'Please select a payment type.' }); return; }
+        if (amount <= 0)     { Swal.fire({ icon: 'warning', text: 'Enter a valid amount.' }); return; }
+        var isCash = parseInt($('#rpIsCash').val(), 10);
+        if (!isCash && !bankAccountUID) { Swal.fire({ icon: 'warning', text: 'Please select a bank account.' }); return; }
+
+        var $btn = $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Saving…');
+        var fd = new FormData();
+        fd.append('TransUID',       transUID);
+        fd.append('PaymentTypeUID', paymentTypeUID);
+        fd.append('Amount',         amount);
+        fd.append('PaymentDate',    paymentDate);
+        fd.append('BankAccountUID', bankAccountUID || '');
+        fd.append('ReferenceNo',    referenceNo);
+        fd.append('Notes',          notes);
+        fd.append(CsrfName,         CsrfToken);
+        if (_rpDropzone) { _rpDropzone.files.forEach(function(file) { fd.append('PaymentFiles[]', file); }); }
+
+        $.ajax({
+            url: '/purchasereturns/recordPayment', method: 'POST',
+            data: fd, processData: false, contentType: false,
+            success: function (resp) {
+                $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i> Record Refund');
+                if (resp.Error) {
+                    showToastNotification(resp.Message, 'error');
+                } else {
+                    bootstrap.Modal.getInstance(document.getElementById('recordPaymentModal')).hide();
+                    getPurchaseReturnsDetails();
+                    showToastNotification(resp.Message, 'success');
+                }
+            },
+            error: function () {
+                $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i> Record Refund');
+                showToastNotification('Request failed. Try again.', 'error');
+            }
+        });
+    });
+
+}());
+
+// ── Apply Debit to Purchase ──────────────────────────────────────
+(function () {
+    'use strict';
+    var _adCur     = '<?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>';
+    var _adDec     = <?php echo (int)($JwtData->GenSettings->DecimalPoints ?? 2); ?>;
+    var _adBalance = 0;
+    var _adSelect2 = null;
+
+    $(document).on('click', '.prApplyDebit', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var $el     = $(this);
+        var prUID   = $el.data('uid')     || 0;
+        var num     = $el.data('num')     || '—';
+        var party   = $el.data('party')   || '—';
+        var balance = parseFloat($el.data('balance')) || 0;
+
+        _adBalance = balance;
+        $('#adPurchaseReturnUID').val(prUID);
+        $('#adPrNum').text(num);
+        $('#adPartyName').text(party);
+        $('#adDebitBalance').text(_adCur + ' ' + balance.toFixed(_adDec));
+        $('#adCurrencySymbol').text(_adCur);
+        $('#adAmount').val(balance.toFixed(_adDec)).attr('max', balance);
+        $('#adNotes').val('');
+        $('#adPurchaseInfo').addClass('d-none');
+
+        var $sel = $('#adPurchaseUID').empty().append('<option value="">— Loading… —</option>');
+        if (_adSelect2) { try { _adSelect2.destroy(); } catch(ex){} _adSelect2 = null; }
+
+        $.ajax({
+            url: '/purchasereturns/getPendingPurchases', method: 'POST',
+            data: { PurchaseReturnUID: prUID, [CsrfName]: CsrfToken },
+            success: function (resp) {
+                $sel.empty().append('<option value="">— Select Purchase —</option>');
+                if (!resp.Error && resp.Purchases && resp.Purchases.length) {
+                    $.each(resp.Purchases, function (i, p) {
+                        var bal = parseFloat(p.BalanceAmount) || 0;
+                        $sel.append('<option value="' + p.TransUID
+                            + '" data-total="'   + p.NetAmount
+                            + '" data-paid="'    + p.PaidAmount
+                            + '" data-balance="' + bal + '">'
+                            + _esc(p.UniqueNumber) + ' — ' + _adCur + ' ' + bal.toFixed(_adDec) + ' pending'
+                            + '</option>');
+                    });
+                } else {
+                    $sel.append('<option value="" disabled>No pending purchases found</option>');
+                }
+                if (typeof $.fn.select2 !== 'undefined') {
+                    _adSelect2 = $sel.select2({ dropdownParent: $('#applyDebitModal'), placeholder: '— Select Purchase —' });
+                }
+            }
+        });
+
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('applyDebitModal')).show();
+    });
+
+    $(document).on('change', '#adPurchaseUID', function () {
+        var $opt    = $(this).find('option:selected');
+        var pUID    = parseInt($(this).val(), 10) || 0;
+        if (!pUID) { $('#adPurchaseInfo').addClass('d-none'); return; }
+        var total   = parseFloat($opt.data('total'))   || 0;
+        var paid    = parseFloat($opt.data('paid'))    || 0;
+        var balance = parseFloat($opt.data('balance')) || 0;
+        $('#adPurchTotal').text(_adCur + ' ' + total.toFixed(_adDec));
+        $('#adPurchPaid').text(_adCur + ' ' + paid.toFixed(_adDec));
+        $('#adPurchBalance').text(_adCur + ' ' + balance.toFixed(_adDec));
+        $('#adPurchaseInfo').removeClass('d-none');
+        var maxApply = Math.min(_adBalance, balance);
+        $('#adAmount').val(maxApply.toFixed(_adDec)).attr('max', maxApply);
+    });
+
+    $('#btnSubmitApplyDebit').on('click', function () {
+        var prUID      = parseInt($('#adPurchaseReturnUID').val(), 10) || 0;
+        var purchaseUID = parseInt($('#adPurchaseUID').val(), 10) || 0;
+        var amount     = parseFloat($('#adAmount').val()) || 0;
+        var notes      = $.trim($('#adNotes').val());
+
+        if (!prUID)       { Swal.fire({ icon: 'warning', text: 'Invalid purchase return.' }); return; }
+        if (!purchaseUID) { Swal.fire({ icon: 'warning', text: 'Please select a purchase.' }); return; }
+        if (amount <= 0)  { Swal.fire({ icon: 'warning', text: 'Enter a valid amount.' }); return; }
+
+        var $btn = $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Applying…');
+        $.ajax({
+            url: '/purchasereturns/applyDebit', method: 'POST',
+            data: { PurchaseReturnUID: prUID, PurchaseUID: purchaseUID, Amount: amount, Notes: notes, [CsrfName]: CsrfToken },
+            success: function (resp) {
+                $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i> Apply Debit');
+                if (resp.Error) {
+                    Swal.fire({ icon: 'error', text: resp.Message });
+                } else {
+                    bootstrap.Modal.getInstance(document.getElementById('applyDebitModal')).hide();
+                    getPurchaseReturnsDetails();
+                    showToastNotification(resp.Message, 'success');
+                }
+            },
+            error: function () {
+                $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i> Apply Debit');
+                showToastNotification('Request failed. Try again.', 'error');
+            }
+        });
+    });
+
+    $('#applyDebitModal').on('hidden.bs.modal', function () {
+        if (_adSelect2) { try { _adSelect2.destroy(); } catch(ex){} _adSelect2 = null; }
+        $('#adPurchaseUID').empty().append('<option value="">— Select Purchase —</option>');
+        $('#adPurchaseInfo').addClass('d-none');
+    });
+
+}());
 </script>

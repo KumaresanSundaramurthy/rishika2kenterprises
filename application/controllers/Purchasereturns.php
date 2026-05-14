@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
+<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Purchasereturns extends CI_Controller {
 
@@ -24,10 +24,14 @@ class Purchasereturns extends CI_Controller {
             $allData      = $this->transactions_model->getTransactionPageList($limit, 0, $this->pageModuleUID, [], 0);
             $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, []);
 
+            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+
             $this->pageData['ModRowData']    = $this->load->view('transactions/purchasereturns/list', ['DataLists' => $allData, 'SerialNumber' => 0, 'JwtData' => $this->pageData['JwtData']], TRUE);
             $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/purchasereturns/getPurchaseReturnsPageDetails', $allDataCount, 1, $limit);
             $this->pageData['ModAllCount']   = $allDataCount;
-            $this->pageData['SummaryStats']  = $this->transactions_model->getTransactionSummaryStats($this->pageModuleUID, $this->pageData['JwtData']->User->OrgUID);
+            $this->pageData['SummaryStats']  = $this->transactions_model->getTransactionSummaryStats($this->pageModuleUID, $orgUID);
+            $this->pageData['PaymentTypes']  = $this->transactions_model->getPaymentTypesList();
+            $this->pageData['BankAccounts']  = $this->transactions_model->getOrgBankAccounts($orgUID);
 
             $this->load->view('transactions/purchasereturns/view', $this->pageData);
         } catch (Exception $e) {
@@ -391,9 +395,11 @@ class Purchasereturns extends CI_Controller {
                     $rowData = [
                         'ItemSequence'    => $seq + 1,
                         'ProductName'     => substr(strip_tags($item['itemName'] ?? ''), 0, 100),
-                        'PartNumber'      => isset($item['partNumber'])     ? substr($item['partNumber'], 0, 50)  : NULL,
-                        'CategoryUID'     => isset($item['categoryUID'])    ? (int)$item['categoryUID']           : NULL,
-                        'StorageUID'      => isset($item['storageUID'])     ? (int)$item['storageUID']             : NULL,
+                        'Description'     => !empty($item['description'])  ? substr($item['description'], 0, 500) : NULL,
+                        'PartNumber'      => !empty($item['partNumber'])   ? substr($item['partNumber'], 0, 50)   : NULL,
+                        'CategoryUID'     => !empty($item['categoryUID'])  ? (int)$item['categoryUID']            : NULL,
+                        'CategoryName'    => !empty($item['categoryName']) ? substr($item['categoryName'], 0, 100) : NULL,
+                        'StorageUID'      => isset($item['storageUID'])    ? (int)$item['storageUID']              : NULL,
                         'Quantity'        => $qty,
                         'PrimaryUnitName' => isset($item['primaryUnit'])    ? substr($item['primaryUnit'], 0, 20)  : NULL,
                         'TaxDetailsUID'   => isset($item['taxDetailsUID'])  ? (int)$item['taxDetailsUID']          : 1,
@@ -405,6 +411,7 @@ class Purchasereturns extends CI_Controller {
                         'Discount'        => (float)($item['discount']        ?? 0),
                         'UnitPrice'       => $unitPrice,
                         'SellingPrice'    => (float)($item['sellingPrice']    ?? $unitPrice),
+                        'PurchasePrice'   => (float)($item['purchasePrice']   ?? 0),
                         'TaxableAmount'   => (float)($item['line_total']      ?? 0),
                         'CgstAmount'      => (float)($item['cgstAmount']      ?? 0),
                         'SgstAmount'      => (float)($item['sgstAmount']      ?? 0),
@@ -779,6 +786,338 @@ class Purchasereturns extends CI_Controller {
         }
     }
 
+    public function recordPayment() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $this->load->model('dbwrite_model');
+            $this->dbwrite_model->startTransaction();
+
+            $PostData       = $this->input->post();
+            $userUID        = $this->pageData['JwtData']->User->UserUID;
+            $orgUID         = $this->pageData['JwtData']->User->OrgUID;
+            $transUID       = (int)   getPostValue($PostData, 'TransUID');
+            $paymentTypeUID = (int)   getPostValue($PostData, 'PaymentTypeUID');
+            $amount         = (float) getPostValue($PostData, 'Amount', 'Array', 0);
+            $paymentDate    =         getPostValue($PostData, 'PaymentDate') ?: date('Y-m-d');
+            $bankAccountUID = (int)   getPostValue($PostData, 'BankAccountUID') ?: NULL;
+            $referenceNo    =         getPostValue($PostData, 'ReferenceNo') ?: NULL;
+            $notes          =         getPostValue($PostData, 'Notes') ?: NULL;
+
+            if ($transUID <= 0)       throw new Exception('Invalid transaction.');
+            if ($paymentTypeUID <= 0) throw new Exception('Please select a payment type.');
+            if ($amount <= 0)         throw new Exception('Amount must be greater than 0.');
+
+            $this->load->model('transactions_model');
+            $existing = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
+            if (!$existing) throw new Exception('Purchase Return not found.');
+            if ($existing->DocStatus === 'Draft')                          throw new Exception('Cannot record payment for a Draft.');
+            if (in_array($existing->DocStatus, ['Cancelled', 'Rejected'])) throw new Exception('Purchase Return is cancelled.');
+
+            $payments    = $this->transactions_model->getTransactionPayments($transUID, $orgUID);
+            $alreadyPaid = array_sum(array_column((array) $payments, 'Amount'));
+            $pending     = max(0, round((float)$existing->NetAmount - $alreadyPaid, 2));
+
+            if ($amount > $pending + 0.01) {
+                throw new Exception('Amount exceeds pending balance (' . number_format($pending, 2) . ').');
+            }
+
+            $newTotalPaid = $alreadyPaid + $amount;
+            $isFullyPaid  = ($existing->NetAmount > 0 && round((float)$existing->NetAmount - $newTotalPaid, 4) <= 0) ? 1 : 0;
+            $newStatus    = $isFullyPaid ? 'Paid' : 'Partial';
+
+            $payTransYear  = (int) date('Y', strtotime($paymentDate));
+            $payPrefixData = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.OrgUID' => $orgUID, 'Prefix.ModuleUID' => 111]);
+            $payPrefix     = !empty($payPrefixData->Data) ? $payPrefixData->Data[0] : null;
+            $payPrefixUID  = $payPrefix ? (int) $payPrefix->PrefixUID : null;
+            $paymentNumber = $payPrefixUID ? $this->transactions_model->getNextPaymentNumber($payPrefixUID, $orgUID, $payTransYear) : 0;
+            $payUniqueNum  = null;
+            if ($payPrefix && $paymentNumber > 0) {
+                $sep   = $payPrefix->Separator ?? '-';
+                $parts = [strtoupper($payPrefix->Name)];
+                if (!empty($payPrefix->IncludeShortName) && !empty($payPrefix->ShortName)) $parts[] = strtoupper($payPrefix->ShortName);
+                if (!empty($payPrefix->IncludeFiscalYear)) {
+                    $m  = (int) date('m', strtotime($paymentDate));
+                    $yr = (int) date('Y', strtotime($paymentDate));
+                    $fy = $m >= 4 ? $yr : $yr - 1;
+                    $parts[] = ($payPrefix->FiscalYearFormat ?? 'SHORT') === 'LONG'
+                        ? $fy . '-' . ($fy + 1)
+                        : str_pad($fy % 100, 2, '0', STR_PAD_LEFT) . '-' . str_pad(($fy + 1) % 100, 2, '0', STR_PAD_LEFT);
+                }
+                $pad = (int)($payPrefix->NumberPadding ?? 1);
+                $parts[] = $pad > 1 ? str_pad($paymentNumber, $pad, '0', STR_PAD_LEFT) : (string) $paymentNumber;
+                $payUniqueNum = implode($sep, $parts);
+            }
+            $receiptToken = $this->transactions_model->_generateReceiptToken();
+
+            $paymentData = [
+                'OrgUID'           => $orgUID,
+                'PaymentDate'      => $paymentDate,
+                'PaymentModuleUID' => 111,
+                'PrefixUID'        => $payPrefixUID,
+                'PaymentNumber'    => $paymentNumber,
+                'UniqueNumber'     => $payUniqueNum,
+                'ReceiptToken'     => $receiptToken,
+                'TransYear'        => $payTransYear,
+                'TransUID'         => $transUID,
+                'ModuleUID'        => $this->pageModuleUID,
+                'PartyType'        => 'S',
+                'PartyUID'         => $existing->PartyUID,
+                'PaymentTypeUID'   => $paymentTypeUID,
+                'Amount'           => $amount,
+                'BankAccountUID'   => $bankAccountUID,
+                'ReferenceNo'      => $referenceNo,
+                'Notes'            => $notes,
+                'PaymentSource'    => 'Record',
+                'PaymentDirection' => 'In',
+                'IsFullyPaid'      => $isFullyPaid,
+                'ExcessAmount'     => 0,
+                'IsActive'         => 1,
+                'IsDeleted'        => 0,
+                'CreatedBy'        => $userUID,
+                'UpdatedBy'        => $userUID,
+            ];
+
+            $resp = $this->dbwrite_model->insertData('Transaction', 'PaymentsTbl', $paymentData);
+            if ($resp->Error) throw new Exception($resp->Message);
+            $paymentUID = $resp->ID ?? null;
+
+            $balanceAmount = max(0, round((float)$existing->NetAmount - $newTotalPaid, 2));
+            $this->dbwrite_model->updateTransIsFullyPaid($transUID, $isFullyPaid, $newTotalPaid, $balanceAmount, $userUID);
+            $this->dbwrite_model->updateTransDocStatus($transUID, $orgUID, $newStatus, $userUID);
+
+            $this->dbwrite_model->commitTransaction();
+
+            if (!empty($paymentUID)) {
+                $this->_savePaymentAttachments($paymentUID);
+            }
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Refund of ' . number_format($amount, 2) . ' recorded successfully.';
+
+        } catch (Exception $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    public function getPendingPurchases() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $prUID  = (int) $this->input->post('PurchaseReturnUID');
+            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+            if ($prUID <= 0) throw new Exception('Invalid purchase return.');
+
+            $this->load->model('transactions_model');
+            $pr = $this->transactions_model->getTransactionById($prUID, $orgUID, $this->pageModuleUID);
+            if (!$pr) throw new Exception('Purchase Return not found.');
+
+            $vendorUID = (int) $pr->PartyUID;
+
+            $this->ReadDb = $this->load->database('ReadDB', TRUE);
+            $this->ReadDb->select([
+                'Ts.TransUID',
+                'Ts.UniqueNumber',
+                'Ts.TransDate',
+                'Ts.NetAmount',
+                'COALESCE(Ts.PaidAmount, 0) AS PaidAmount',
+                'COALESCE(Ts.BalanceAmount, 0) AS BalanceAmount',
+            ]);
+            $this->ReadDb->from('Transaction.TransactionsTbl AS Ts');
+            $this->ReadDb->where([
+                'Ts.PartyUID'  => $vendorUID,
+                'Ts.PartyType' => 'S',
+                'Ts.ModuleUID' => 105,
+                'Ts.OrgUID'    => $orgUID,
+                'Ts.IsDeleted' => 0,
+                'Ts.IsActive'  => 1,
+            ]);
+            $this->ReadDb->where_not_in('Ts.DocStatus', ['Draft', 'Cancelled', 'Paid']);
+            $this->ReadDb->where('COALESCE(Ts.BalanceAmount, Ts.NetAmount) >', 0);
+            $this->ReadDb->order_by('Ts.TransUID', 'DESC');
+            $query = $this->ReadDb->get();
+
+            $this->EndReturnData->Error     = false;
+            $this->EndReturnData->Purchases = $query->result();
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    public function applyDebit() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $this->load->model('dbwrite_model');
+            $this->load->model('transactions_model');
+
+            $PostData   = $this->input->post();
+            $userUID    = $this->pageData['JwtData']->User->UserUID;
+            $orgUID     = $this->pageData['JwtData']->User->OrgUID;
+            $prUID      = (int)   getPostValue($PostData, 'PurchaseReturnUID');
+            $purchUID   = (int)   getPostValue($PostData, 'PurchaseUID');
+            $amount     = (float) getPostValue($PostData, 'Amount', 'Array', 0);
+            $notes      = getPostValue($PostData, 'Notes') ?: NULL;
+
+            if ($prUID <= 0)    throw new Exception('Invalid purchase return.');
+            if ($purchUID <= 0) throw new Exception('Please select a purchase.');
+            if ($amount <= 0)   throw new Exception('Amount must be greater than 0.');
+
+            $pr = $this->transactions_model->getTransactionById($prUID, $orgUID, $this->pageModuleUID);
+            if (!$pr) throw new Exception('Purchase Return not found.');
+            if (in_array($pr->DocStatus, ['Draft', 'Cancelled', 'Rejected'])) {
+                throw new Exception('Cannot apply debit for this Purchase Return.');
+            }
+
+            $prPaid    = (float)($pr->PaidAmount    ?? 0);
+            $prBalance = max(0, round((float)$pr->NetAmount - $prPaid, 2));
+            if ($prBalance <= 0) throw new Exception('No debit balance available on this Purchase Return.');
+
+            $purchase = $this->transactions_model->getTransactionById($purchUID, $orgUID, 105);
+            if (!$purchase) throw new Exception('Purchase not found.');
+            if ($purchase->PartyUID != $pr->PartyUID) throw new Exception('Purchase does not belong to the same vendor.');
+            if (in_array($purchase->DocStatus, ['Draft', 'Cancelled', 'Paid'])) {
+                throw new Exception('This purchase cannot receive a debit adjustment.');
+            }
+
+            $purchPaid    = (float)($purchase->PaidAmount    ?? 0);
+            $purchBalance = max(0, round((float)$purchase->NetAmount - $purchPaid, 2));
+            if ($purchBalance <= 0) throw new Exception('Purchase has no pending balance.');
+
+            $maxAmount = min($prBalance, $purchBalance);
+            if ($amount > $maxAmount + 0.01) {
+                throw new Exception('Amount exceeds available debit (' . number_format($maxAmount, 2) . ').');
+            }
+            $amount = min($amount, $maxAmount);
+
+            $this->dbwrite_model->startTransaction();
+
+            $payPrefixData = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.OrgUID' => $orgUID, 'Prefix.ModuleUID' => 111]);
+            $payPrefix     = !empty($payPrefixData->Data) ? $payPrefixData->Data[0] : null;
+            $payPrefixUID  = $payPrefix ? (int) $payPrefix->PrefixUID : null;
+            $today         = date('Y-m-d');
+            $payTransYear  = (int) date('Y');
+            $paymentNumber = $payPrefixUID ? $this->transactions_model->getNextPaymentNumber($payPrefixUID, $orgUID, $payTransYear) : 0;
+            $payUniqueNum  = null;
+            if ($payPrefix && $paymentNumber > 0) {
+                $sep   = $payPrefix->Separator ?? '-';
+                $parts = [strtoupper($payPrefix->Name)];
+                if (!empty($payPrefix->IncludeShortName) && !empty($payPrefix->ShortName)) $parts[] = strtoupper($payPrefix->ShortName);
+                if (!empty($payPrefix->IncludeFiscalYear)) {
+                    $m  = (int) date('m'); $yr = (int) date('Y');
+                    $fy = $m >= 4 ? $yr : $yr - 1;
+                    $parts[] = ($payPrefix->FiscalYearFormat ?? 'SHORT') === 'LONG'
+                        ? $fy . '-' . ($fy + 1)
+                        : str_pad($fy % 100, 2, '0', STR_PAD_LEFT) . '-' . str_pad(($fy + 1) % 100, 2, '0', STR_PAD_LEFT);
+                }
+                $pad = (int)($payPrefix->NumberPadding ?? 1);
+                $parts[] = $pad > 1 ? str_pad($paymentNumber, $pad, '0', STR_PAD_LEFT) : (string) $paymentNumber;
+                $payUniqueNum = implode($sep, $parts);
+            }
+            $receiptToken = $this->transactions_model->_generateReceiptToken();
+
+            // Record the debit adjustment against the purchase (PaymentTypeUID=0 = debit adjustment)
+            $paymentData = [
+                'OrgUID'           => $orgUID,
+                'PaymentDate'      => $today,
+                'PaymentModuleUID' => 111,
+                'PrefixUID'        => $payPrefixUID,
+                'PaymentNumber'    => $paymentNumber,
+                'UniqueNumber'     => $payUniqueNum,
+                'ReceiptToken'     => $receiptToken,
+                'TransYear'        => $payTransYear,
+                'TransUID'         => $purchUID,
+                'ModuleUID'        => 105,
+                'PartyType'        => 'S',
+                'PartyUID'         => $purchase->PartyUID,
+                'PaymentTypeUID'   => 0,
+                'Amount'           => $amount,
+                'BankAccountUID'   => NULL,
+                'ReferenceNo'      => $pr->UniqueNumber,
+                'Notes'            => $notes,
+                'PaymentSource'    => 'Record',
+                'PaymentDirection' => 'Out',
+                'IsFullyPaid'      => 0,
+                'ExcessAmount'     => 0,
+                'IsActive'         => 1,
+                'IsDeleted'        => 0,
+                'CreatedBy'        => $userUID,
+                'UpdatedBy'        => $userUID,
+            ];
+
+            $resp = $this->dbwrite_model->insertData('Transaction', 'PaymentsTbl', $paymentData);
+            if ($resp->Error) throw new Exception($resp->Message);
+
+            // Update Purchase
+            $newPurchPaid    = round($purchPaid + $amount, 2);
+            $newPurchBalance = max(0, round((float)$purchase->NetAmount - $newPurchPaid, 2));
+            $purchFullyPaid  = ($purchase->NetAmount > 0 && $newPurchBalance <= 0) ? 1 : 0;
+            $purchStatus     = $purchFullyPaid ? 'Paid' : 'Partial';
+            $this->dbwrite_model->updateTransIsFullyPaid($purchUID, $purchFullyPaid, $newPurchPaid, $newPurchBalance, $userUID);
+            $this->dbwrite_model->updateTransDocStatus($purchUID, $orgUID, $purchStatus, $userUID);
+
+            // Update Purchase Return
+            $newPrPaid    = round($prPaid + $amount, 2);
+            $newPrBalance = max(0, round((float)$pr->NetAmount - $newPrPaid, 2));
+            $prFullyPaid  = ($pr->NetAmount > 0 && $newPrBalance <= 0) ? 1 : 0;
+            $prNewStatus  = $prFullyPaid ? 'Paid' : ($newPrPaid > 0 ? 'Partial' : $pr->DocStatus);
+            $this->dbwrite_model->updateTransIsFullyPaid($prUID, $prFullyPaid, $newPrPaid, $newPrBalance, $userUID);
+            if ($prNewStatus !== $pr->DocStatus) {
+                $this->dbwrite_model->updateTransDocStatus($prUID, $orgUID, $prNewStatus, $userUID);
+            }
+
+            $this->dbwrite_model->commitTransaction();
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Debit of ' . number_format($amount, 2) . ' applied to purchase ' . ($purchase->UniqueNumber ?? '#' . $purchUID) . '.';
+
+        } catch (Exception $e) {
+            if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    private function _savePaymentAttachments($paymentUID) {
+        $files = $_FILES['PaymentFiles'] ?? null;
+        if (empty($files) || empty($files['name'][0])) return;
+        $userUID = $this->pageData['JwtData']->User->UserUID;
+        $orgUID  = $this->pageData['JwtData']->User->OrgUID;
+        $this->load->library('fileupload');
+        $this->load->model('dbwrite_model');
+        $allowed = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+        $count   = min(count($files['name']), 3);
+        for ($i = 0; $i < $count; $i++) {
+            if ($files['error'][$i] !== UPLOAD_ERR_OK || empty($files['name'][$i])) continue;
+            if ($files['size'][$i] > 3 * 1024 * 1024) continue;
+            if (!in_array($files['type'][$i], $allowed)) continue;
+            $origName    = basename($files['name'][$i]);
+            $safeName    = time() . '_' . $i . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $origName);
+            $storagePath = 'payments/' . $paymentUID . '/' . $safeName;
+            $uploadResult = $this->fileupload->fileUpload('file', $storagePath, $files['tmp_name'][$i]);
+            if ($uploadResult->Error) continue;
+            $this->dbwrite_model->insertData('Transaction', 'PaymentAttachmentsTbl', [
+                'OrgUID'     => $orgUID,
+                'PaymentUID' => $paymentUID,
+                'FileName'   => $origName,
+                'FilePath'   => '/' . ltrim($uploadResult->Path, '/'),
+                'FileType'   => $files['type'][$i],
+                'FileSize'   => $files['size'][$i],
+                'SortOrder'  => $i,
+                'IsActive'   => 1,
+                'IsDeleted'  => 0,
+                'CreatedBy'  => $userUID,
+            ]);
+        }
+    }
+
     private function saveTransactionItems($transUID, $financialYear, $orgUID, $userUID, array $items, $seqOffset = 0) {
         $this->load->model('dbwrite_model');
         $rows = [];
@@ -794,9 +1133,11 @@ class Purchasereturns extends CI_Controller {
                 'ItemSequence'      => $seqOffset + $seq + 1,
                 'ProductUID'        => $productUID,
                 'ProductName'       => substr(strip_tags($item['itemName'] ?? ''), 0, 100),
-                'PartNumber'        => isset($item['partNumber'])     ? substr($item['partNumber'], 0, 50) : NULL,
-                'CategoryUID'       => isset($item['categoryUID'])    ? (int) $item['categoryUID']          : NULL,
-                'StorageUID'        => isset($item['storageUID'])     ? (int) $item['storageUID']            : NULL,
+                'Description'       => !empty($item['description'])  ? substr($item['description'], 0, 500) : NULL,
+                'PartNumber'        => !empty($item['partNumber'])   ? substr($item['partNumber'], 0, 50)  : NULL,
+                'CategoryUID'       => !empty($item['categoryUID'])  ? (int) $item['categoryUID']           : NULL,
+                'CategoryName'      => !empty($item['categoryName']) ? substr($item['categoryName'], 0, 100) : NULL,
+                'StorageUID'        => isset($item['storageUID'])    ? (int) $item['storageUID']             : NULL,
                 'Quantity'          => $qty,
                 'PrimaryUnitName'   => isset($item['primaryUnit'])    ? substr($item['primaryUnit'], 0, 20)  : NULL,
                 'TaxDetailsUID'     => isset($item['taxDetailsUID'])  ? (int) $item['taxDetailsUID']          : 1,
@@ -808,6 +1149,7 @@ class Purchasereturns extends CI_Controller {
                 'Discount'          => (float) ($item['discount']        ?? 0),
                 'UnitPrice'         => $unitPrice,
                 'SellingPrice'      => (float) ($item['sellingPrice']    ?? $unitPrice),
+                'PurchasePrice'     => (float) ($item['purchasePrice']   ?? 0),
                 'TaxableAmount'     => (float) ($item['line_total']      ?? 0),
                 'CgstAmount'        => (float) ($item['cgstAmount']      ?? 0),
                 'SgstAmount'        => (float) ($item['sgstAmount']      ?? 0),

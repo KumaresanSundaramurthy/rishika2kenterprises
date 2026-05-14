@@ -11,6 +11,19 @@ $this->load->view('common/transactions/header'); ?>
             <div class="content-wrapper">
                 <div class="container-xxl flex-grow-1 container-p-y">
 
+                    <!-- ── Page Header ──────────────────────────────────────── -->
+                    <div class="trans-page-header">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="trans-ph-icon" style="background:#ffedd5;">
+                                <i class="bx bx-cart" style="color:#f97316;"></i>
+                            </div>
+                            <h5 class="trans-ph-title">Purchase Orders</h5>
+                        </div>
+                        <a href="/purchaseorders/create" class="btn btn-primary">
+                            <i class="bx bx-plus me-1"></i>New Purchase Order
+                        </a>
+                    </div>
+
                     <div class="card">
 
                         <!-- ── Toolbar ─────────────────────────────── -->
@@ -82,7 +95,7 @@ $this->load->view('common/transactions/header'); ?>
                                     </ul>
                                 </div>
 
-                                <a href="/purchaseorders/create" class="btn btn-primary btn-sm px-3">Create</a>
+
                             </div>
                         </div>
 
@@ -320,42 +333,6 @@ $.ajax({
         });
     });
 
-    // ── Duplicate ────────────────────────────────────────
-    $(document).on('click', '.duplicatePO', function () {
-        var uid = $(this).data('uid');
-        Swal.fire({
-            title            : 'Duplicate Purchase Order?',
-            text             : 'A new draft copy will be created.',
-            icon             : 'question',
-            showCancelButton : true,
-            confirmButtonText: 'Duplicate',
-        }).then(function (result) {
-            if (!result.isConfirmed) return;
-            $.ajax({
-                url   : '/purchaseorders/duplicatePurchaseOrder',
-                method: 'POST',
-                data  : { TransUID: uid, [CsrfName]: CsrfToken },
-                success: function (resp) {
-                    if (resp.Error) {
-                        Swal.fire({ icon: 'error', text: resp.Message });
-                    } else {
-                        getPurchaseOrdersDetails();
-                        Swal.fire({
-                            icon : 'success',
-                            text : resp.Message,
-                            showCancelButton : true,
-                            confirmButtonText: 'Edit Now',
-                            cancelButtonText : 'Stay Here',
-                        }).then(function (r) {
-                            if (r.isConfirmed && resp.EditURL) {
-                                window.location.href = resp.EditURL;
-                            }
-                        });
-                    }
-                }
-            });
-        });
-    });
 
 });
 

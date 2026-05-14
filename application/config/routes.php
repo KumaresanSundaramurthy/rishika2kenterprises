@@ -161,18 +161,6 @@ $route['salesreturns/duplicateSalesReturn']                        = 'salesretur
 $route['salesreturns/updateSalesReturnStatus']                     = 'salesreturns/updateSalesReturnStatus';
 $route['salesreturns/getSalesReturnDetail']                        = 'salesreturns/getSalesReturnDetail';
 
-// Credit Notes
-$route['creditnotes']                                              = 'creditnotes/index';
-$route['creditnotes/create']                                       = 'creditnotes/create';
-$route['creditnotes/(:num)/edit']                                  = 'creditnotes/edit/$1';
-$route['creditnotes/getCreditNotesPageDetails']                    = 'creditnotes/getCreditNotesPageDetails';
-$route['creditnotes/addCreditNote']                                = 'creditnotes/addCreditNote';
-$route['creditnotes/updateCreditNote']                             = 'creditnotes/updateCreditNote';
-$route['creditnotes/deleteCreditNote']                             = 'creditnotes/deleteCreditNote';
-$route['creditnotes/duplicateCreditNote']                          = 'creditnotes/duplicateCreditNote';
-$route['creditnotes/updateCreditNoteStatus']                       = 'creditnotes/updateCreditNoteStatus';
-$route['creditnotes/getCreditNoteDetail']                          = 'creditnotes/getCreditNoteDetail';
-
 // Purchase Returns
 $route['purchasereturns']                                          = 'purchasereturns/index';
 $route['purchasereturns/create']                                   = 'purchasereturns/create';
@@ -184,18 +172,9 @@ $route['purchasereturns/deletePurchaseReturn']                     = 'purchasere
 $route['purchasereturns/duplicatePurchaseReturn']                  = 'purchasereturns/duplicatePurchaseReturn';
 $route['purchasereturns/updatePurchaseReturnStatus']               = 'purchasereturns/updatePurchaseReturnStatus';
 $route['purchasereturns/getPurchaseReturnDetail']                  = 'purchasereturns/getPurchaseReturnDetail';
-
-// Debit Notes
-$route['debitnotes']                                               = 'debitnotes/index';
-$route['debitnotes/create']                                        = 'debitnotes/create';
-$route['debitnotes/(:num)/edit']                                   = 'debitnotes/edit/$1';
-$route['debitnotes/getDebitNotesPageDetails']                      = 'debitnotes/getDebitNotesPageDetails';
-$route['debitnotes/addDebitNote']                                  = 'debitnotes/addDebitNote';
-$route['debitnotes/updateDebitNote']                               = 'debitnotes/updateDebitNote';
-$route['debitnotes/deleteDebitNote']                               = 'debitnotes/deleteDebitNote';
-$route['debitnotes/duplicateDebitNote']                            = 'debitnotes/duplicateDebitNote';
-$route['debitnotes/updateDebitNoteStatus']                         = 'debitnotes/updateDebitNoteStatus';
-$route['debitnotes/getDebitNoteDetail']                            = 'debitnotes/getDebitNoteDetail';
+$route['purchasereturns/recordPayment']                            = 'purchasereturns/recordPayment';
+$route['purchasereturns/getPendingPurchases']                      = 'purchasereturns/getPendingPurchases';
+$route['purchasereturns/applyDebit']                               = 'purchasereturns/applyDebit';
 
 // Payments
 $route['payments']                                     = 'payments/index';
@@ -224,6 +203,8 @@ $route['customers/(:num)/clone'] = 'customers/clonecustomer/$1';
 $route['customers/modal/(:any)/(:num)'] = 'customers/loadModalForm/$1/$2';
 $route['customers/modal/(:any)']        = 'customers/loadModalForm/$1';
 $route['customers/getCustomerForModal/(:num)'] = 'customers/getCustomerForModal/$1';
+$route['customers/getCustomerBalance']    = 'customers/getCustomerBalance';
+$route['customers/updateCustomerBalance'] = 'customers/updateCustomerBalance';
 $route['globally/getCommTemplate'] = 'globally/getCommTemplate';
 
 // Vendors
@@ -231,6 +212,9 @@ $route['vendors/(:num)/edit'] = 'vendors/edit/$1';
 $route['vendors/(:num)/clone'] = 'vendors/clonevendor/$1';
 $route['vendors/modal/(:any)/(:num)'] = 'vendors/loadModalForm/$1/$2';
 $route['vendors/modal/(:any)']        = 'vendors/loadModalForm/$1';
+$route['vendors/saveVendorOpeningBalance'] = 'vendors/saveVendorOpeningBalance';
+$route['vendors/getVendorOpeningBalance']  = 'vendors/getVendorOpeningBalance';
+$route['vendors/updateVendorBalance']      = 'vendors/updateVendorBalance';
 
 // Products
 $route['products/(:num)/edit'] = 'products/edit/$1';

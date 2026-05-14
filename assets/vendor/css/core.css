@@ -29215,7 +29215,8 @@ body:not(.modal-open) .layout-content-navbar .layout-navbar {
 .trans-stat-card {
     border-radius: var(--stat-card-radius);
     border: 1px solid #e9ecef;
-    padding: 14px 18px;
+    /* padding: 14px 18px; */
+    padding: 5px 18px;
     background: #fff;
     cursor: pointer;
     text-decoration: none;

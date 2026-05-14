@@ -386,12 +386,6 @@ if (!empty($DataLists)):
                         <li><hr class="dropdown-divider my-1"></li>
                         <?php endif; ?>
 
-                        <li>
-                            <button class="dropdown-item duplicateInvoice" data-uid="<?php echo (int)$list->TransUID; ?>">
-                                <i class="bx bx-copy me-2 text-secondary"></i>Duplicate
-                            </button>
-                        </li>
-
                         <?php if (!$isDraft && ($hasMobile || $hasEmail)): ?>
                         <li><hr class="dropdown-divider my-1"></li>
                         <?php if ($hasMobile): ?>
@@ -438,10 +432,9 @@ if (!empty($DataLists)):
                         <?php if (!$isCancelled): ?>
                         <li><hr class="dropdown-divider my-1"></li>
                         <li>
-                            <button class="dropdown-item text-warning inv-status-update"
+                            <button class="dropdown-item text-warning cancelInvoice"
                                     data-uid="<?php echo (int)$list->TransUID; ?>"
-                                    data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? 'Draft'); ?>"
-                                    data-status="Cancelled">
+                                    data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? 'Draft'); ?>">
                                 <i class="bx bx-x-circle me-2"></i>Cancel Invoice
                             </button>
                         </li>

@@ -215,6 +215,22 @@ class Vendors extends CI_Controller {
                 'Vendor'
             );
 
+            $initAmt  = (float) getPostValue($PostData, 'DebitCreditAmount', '', 0);
+            $initType = getPostValue($PostData, 'DebitCreditCheck', '', 'Credit');
+            if ($initAmt > 0) {
+                $this->vendors_model->saveVendorOpeningBalance(
+                    $this->pageData['JwtData']->User->OrgUID, $VendorUID,
+                    $initAmt, $initType, null,
+                    $this->pageData['JwtData']->User->UserUID
+                );
+                $this->vendors_model->saveVendorYearOpening(
+                    $this->pageData['JwtData']->User->OrgUID, $VendorUID,
+                    $this->_currentFinancialYear(),
+                    $initAmt, $initType,
+                    $this->pageData['JwtData']->User->UserUID
+                );
+            }
+
             $linkCustomer = $PostData['CustomerLinkingCheck'] ?? null;
             if (!empty($linkCustomer) && (string) $linkCustomer === 'NewCustomer') {
                 $insCustDataResp = $this->dbwrite_model->insertData('Customers', 'CustomerTbl', $vendorFormData);
@@ -426,7 +442,11 @@ class Vendors extends CI_Controller {
             $ErrorInForm = $this->formvalidation_model->vendorValidateForm($PostData);
             if (!empty($ErrorInForm)) throw new InvalidArgumentException('VALIDATION_ERROR');
 
-            $VendorUID      = getPostValue($PostData, 'VendorUID', 0);
+            $VendorUID   = getPostValue($PostData, 'VendorUID', 0);
+            $oldDCRow    = $this->vendors_model->getVendorDebitCreditRaw((int)$VendorUID);
+            $oldDCAmount = $oldDCRow ? (float)$oldDCRow->DebitCreditAmount : 0.0;
+            $oldDCType   = $oldDCRow ? $oldDCRow->DebitCreditType : 'Credit';
+
             $vendorFormData = $this->buildVendorFormData($PostData, false);
             if (!empty($PostData['ImageRemoved'])) $vendorFormData['Image'] = NULL;
 
@@ -462,6 +482,72 @@ class Vendors extends CI_Controller {
                 ],
                 'Vendor'
             );
+
+            $newDCAmount = (float) getPostValue($PostData, 'DebitCreditAmount', '', 0);
+            $newDCType   = getPostValue($PostData, 'DebitCreditCheck', '', 'Credit');
+            $oldSigned   = ($oldDCType === 'Credit') ? $oldDCAmount : -$oldDCAmount;
+            $newSigned   = ($newDCType === 'Credit') ? $newDCAmount : -$newDCAmount;
+            $delta       = round($newSigned - $oldSigned, 2);
+
+            $orgUID  = $this->pageData['JwtData']->User->OrgUID;
+            $userUID = $this->pageData['JwtData']->User->UserUID;
+
+            // Read current balance via ReadDb (no lock conflict)
+            $obRow         = $this->vendors_model->getVendorOpeningBalance($orgUID, (int)$VendorUID);
+            $currentSigned = 0.0;
+            if ($obRow) {
+                $currentSigned = ($obRow->OpeningBalType === 'Credit')
+                    ? (float)$obRow->OpeningBalance : -(float)$obRow->OpeningBalance;
+            }
+
+            if ($delta != 0.0) {
+                $balanceSigned = round($currentSigned + $delta, 2);
+                $newBalance    = abs($balanceSigned);
+                $newType       = ($balanceSigned >= 0) ? 'Credit' : 'Debit';
+
+                // Write via dbwrite_model (C1 — same connection as this transaction, no FK deadlock)
+                if ($obRow) {
+                    $this->dbwrite_model->updateData('Vendors', 'VendOpeningBalanceTbl', [
+                        'OpeningBalance' => $newBalance,
+                        'OpeningBalType' => $newType,
+                        'UpdatedBy'      => (int)$userUID,
+                    ], ['VendBalUID' => (int)$obRow->VendBalUID]);
+                } else {
+                    $this->dbwrite_model->insertData('Vendors', 'VendOpeningBalanceTbl', [
+                        'OrgUID'         => (int)$orgUID,
+                        'VendorUID'      => (int)$VendorUID,
+                        'OpeningBalance' => $newBalance,
+                        'OpeningBalType' => $newType,
+                        'PendingBalance' => $newBalance,
+                        'PendingBalType' => $newType,
+                        'IsActive'       => 1,
+                        'IsDeleted'      => 0,
+                        'CreatedBy'      => (int)$userUID,
+                        'UpdatedBy'      => (int)$userUID,
+                    ]);
+                }
+                $snapshotAmt  = $newBalance;
+                $snapshotType = $newType;
+            } else {
+                $snapshotAmt  = $obRow ? (float)$obRow->OpeningBalance : abs($newSigned);
+                $snapshotType = $obRow ? $obRow->OpeningBalType : (($newSigned >= 0) ? 'Credit' : 'Debit');
+            }
+
+            // Seed year-opening snapshot only if this financial year has no record yet
+            $yrRow = $this->vendors_model->getVendorYearOpening($orgUID, (int)$VendorUID, $this->_currentFinancialYear());
+            if (!$yrRow) {
+                $this->dbwrite_model->insertData('Vendors', 'VendYearOpeningBalanceTbl', [
+                    'OrgUID'         => (int)$orgUID,
+                    'VendorUID'      => (int)$VendorUID,
+                    'FinancialYear'  => (int)$this->_currentFinancialYear(),
+                    'OpeningBalance' => $snapshotAmt,
+                    'OpeningBalType' => $snapshotType,
+                    'IsActive'       => 1,
+                    'IsDeleted'      => 0,
+                    'CreatedBy'      => (int)$userUID,
+                    'UpdatedBy'      => (int)$userUID,
+                ]);
+            }
 
             $this->dbwrite_model->commitTransaction();
 
@@ -666,6 +752,10 @@ class Vendors extends CI_Controller {
         }
     }
 
+    private function _currentFinancialYear() {
+        return (date('n') >= 4) ? (int)date('Y') : (int)date('Y') - 1;
+    }
+
     // ── Send SMS / Email ─────────────────────────────────────────────────────
     public function sendCommunication() {
 
@@ -728,6 +818,161 @@ class Vendors extends CI_Controller {
         }
 
         foreach ($tempFiles as $f) { if (is_file($f)) unlink($f); }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    // ── Vendor Opening Balance ────────────────────────────────────────────────
+
+    public function saveVendorOpeningBalance() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $orgUID        = $this->pageData['JwtData']->User->OrgUID;
+            $userUID       = $this->pageData['JwtData']->User->UserUID;
+            $vendorUID     = (int)   $this->input->post('VendorUID');
+            $balance       = (float) $this->input->post('OpeningBalance');
+            $balanceType   = trim($this->input->post('BalanceType'));
+            $notes         = trim($this->input->post('Notes') ?? '');
+            $financialYear = (int)   $this->input->post('FinancialYear');
+
+            if ($vendorUID <= 0)                              throw new Exception('Invalid vendor.');
+            if ($balance < 0)                                 throw new Exception('Opening balance cannot be negative.');
+            if (!in_array($balanceType, ['Debit', 'Credit'])) throw new Exception('BalanceType must be Debit or Credit.');
+            if ($financialYear <= 0) {
+                $financialYear = $this->_currentFinancialYear();
+            }
+
+            $this->load->model('vendors_model');
+            $id = $this->vendors_model->saveVendorOpeningBalance(
+                $orgUID, $vendorUID, $balance, $balanceType, $notes, $userUID
+            );
+            $this->vendors_model->saveVendorYearOpening(
+                $orgUID, $vendorUID, $financialYear, $balance, $balanceType, $userUID
+            );
+
+            $this->EndReturnData->Error         = FALSE;
+            $this->EndReturnData->Message       = 'Opening balance saved successfully.';
+            $this->EndReturnData->VendBalUID    = $id;
+            $this->EndReturnData->FinancialYear = $financialYear;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    public function getVendorOpeningBalance() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $orgUID        = $this->pageData['JwtData']->User->OrgUID;
+            $vendorUID     = (int) $this->input->get_post('VendorUID');
+            $financialYear = (int) $this->input->get_post('FinancialYear');
+
+            if ($vendorUID <= 0) throw new Exception('Invalid vendor.');
+            if ($financialYear <= 0) {
+                $financialYear = $this->_currentFinancialYear();
+            }
+
+            $this->load->model('vendors_model');
+            $current = $this->vendors_model->getVendorOpeningBalance($orgUID, $vendorUID);
+            $yearRow = $this->vendors_model->getVendorYearOpening($orgUID, $vendorUID, $financialYear);
+
+            $this->EndReturnData->Error         = FALSE;
+            $this->EndReturnData->Data          = $current;
+            $this->EndReturnData->YearData      = $yearRow;
+            $this->EndReturnData->FinancialYear = $financialYear;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    public function updateVendorBalance() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $orgUID    = $this->pageData['JwtData']->User->OrgUID;
+            $userUID   = $this->pageData['JwtData']->User->UserUID;
+            $filterUID = (int) $this->input->post('VendorUID');
+
+            $this->load->model('vendors_model');
+
+            // Step 1: Fetch all vendors (or a single one) with their ledger info
+            $vendors = $this->vendors_model->getVendorsWithLedgerForBalance($orgUID, $filterUID);
+
+            if (empty($vendors)) {
+                throw new Exception('No vendors found to update.');
+            }
+
+            $updated = 0;
+            $skipped = 0;
+            $errors  = [];
+
+            foreach ($vendors as $vend) {
+                try {
+
+                    $vendUID = (int) $vend->VendorUID;
+
+                    // Step 2: Fetch transaction totals
+                    $totalPurchased = $this->vendors_model->getVendorTotalPurchased($orgUID, $vendUID);
+                    $totalPaid      = $this->vendors_model->getVendorTotalPaid($orgUID, $vendUID);
+                    $totalReturned  = $this->vendors_model->getVendorTotalReturned($orgUID, $vendUID);
+
+                    // Step 3: Compute net balance
+                    // Opening balance from VendOpeningBalanceTbl (Credit=+, Debit=-)
+                    $signedOpening = ($vend->OpeningBalType === 'Credit')
+                        ? (float)$vend->OpeningBalance
+                        : -(float)$vend->OpeningBalance;
+
+                    // net = opening + purchased - paid - returned
+                    $signedBalance  = round($signedOpening + $totalPurchased - $totalPaid - $totalReturned, 2);
+                    $newBalance     = abs($signedBalance);
+                    $newBalanceType = ($signedBalance >= 0) ? 'Credit' : 'Debit';
+
+                    // Step 4: Persist — update ledger current balance + VendOpeningBalanceTbl pending balance.
+                    if (!empty($vend->LedgerUID)) {
+                        $this->vendors_model->updateVendorBalanceInLedger(
+                            $vend->LedgerUID, $newBalance, $newBalanceType, $userUID
+                        );
+                    }
+
+                    $this->vendors_model->updateVendorPendingBalance(
+                        $orgUID, $vendUID, $newBalance, $newBalanceType, $userUID
+                    );
+
+                    $updated++;
+
+                } catch (Exception $innerEx) {
+                    $errors[] = 'VendorUID ' . $vend->VendorUID . ': ' . $innerEx->getMessage();
+                    $skipped++;
+                }
+            }
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = "Balance recalculated: {$updated} updated, {$skipped} skipped.";
+            $this->EndReturnData->Updated = $updated;
+            $this->EndReturnData->Skipped = $skipped;
+            if (!empty($errors)) {
+                $this->EndReturnData->Errors = $errors;
+            }
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
         $this->globalservice->sendJsonResponse($this->EndReturnData);
 
     }

@@ -15,6 +15,16 @@
             <div class="content-wrapper">
                 <div class="container-xxl flex-grow-1 container-p-y">
 
+                    <!-- ── Page Header ── -->
+                    <div class="trans-page-header">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="trans-ph-icon ph-icon-storage">
+                                <i class="bx bx-server"></i>
+                            </div>
+                            <h5 class="trans-ph-title">Storage</h5>
+                        </div>
+                    </div>
+
                     <div class="card">
                         <div class="row">
                             <div class="col-md-12">
@@ -85,6 +95,13 @@
                         </div>
                     </div>
 
+                    <!-- Sticky pagination -->
+                    <div class="card mb-0 cust-sticky-pag" id="storageStickyPagination" style="display:none;">
+                        <div class="card-body p-0">
+                            <div class="row mx-3 my-2 justify-content-between align-items-center StoragePagination"></div>
+                        </div>
+                    </div>
+
                     <?php $this->load->view('storage/modals/storage'); ?>
 
                 </div>
@@ -124,6 +141,20 @@ $(function() {
     basePaginationFunc(ModulePag, getStorageDetails);
     baseRefreshPageFunc('.PageRefresh', getStorageDetails);
     basePageHeaderFunc(ModuleHeader, ModuleTable, ModuleRow);
+
+    // ── Sticky pagination ──
+    var $sStaticPag = $('#StoragePagination');
+    var $sStickyPag = $('#storageStickyPagination');
+    function _syncStorageSticky() { $sStickyPag.find('.StoragePagination').html($sStaticPag.html()); }
+    function _toggleStorageSticky() {
+        if (!$sStaticPag.length) return;
+        var r = $sStaticPag[0].getBoundingClientRect();
+        var visible = r.top < $(window).height() && r.bottom > 0;
+        if (visible) { $sStickyPag.stop(true,true).fadeOut(150); }
+        else { _syncStorageSticky(); $sStickyPag.stop(true,true).fadeIn(150); }
+    }
+    $(window).on('scroll resize', _toggleStorageSticky);
+    _toggleStorageSticky();
 
     $(document).on('click', ModuleRow, function() {
         onClickOfCheckbox($(this), ModuleTable, ModuleHeader, ModuleRow);

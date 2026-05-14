@@ -333,14 +333,18 @@ if (!empty($DataLists)):
                                 <i class="bx bx-transfer me-2 text-success"></i>Refund Payment
                             </button>
                         </li>
-                        <li><hr class="dropdown-divider my-1"></li>
-                        <?php endif; ?>
-
                         <li>
-                            <button class="dropdown-item duplicateSalesReturn" data-uid="<?php echo (int)$list->TransUID; ?>">
-                                <i class="bx bx-copy me-2 text-secondary"></i>Duplicate
+                            <button class="dropdown-item srApplyCredit"
+                                    data-uid="<?php echo (int)$list->TransUID; ?>"
+                                    data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
+                                    data-party="<?php echo htmlspecialchars($list->PartyName ?? ''); ?>"
+                                    data-partyuid="<?php echo (int)$list->PartyUID; ?>"
+                                    data-balance="<?php echo $pendingAmt; ?>">
+                                <i class="bx bx-credit-card me-2 text-primary"></i>Apply Credit to Invoice
                             </button>
                         </li>
+                        <li><hr class="dropdown-divider my-1"></li>
+                        <?php endif; ?>
 
                         <?php if (!$isDraft && ($hasMobile || $hasEmail)): ?>
                         <li><hr class="dropdown-divider my-1"></li>

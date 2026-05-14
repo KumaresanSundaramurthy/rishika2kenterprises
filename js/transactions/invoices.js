@@ -48,6 +48,7 @@ function getInvoicesDetails(pageNo, rowLimit, filter) {
         tabCountClass:  '.inv-tab-count',
         statusTabClass: '.inv-status-tab',
         errorMessage:   'Failed to load invoices.',
+        onSuccess:      function (resp) { if (typeof updateSummaryStats === 'function' && resp.SummaryStats) updateSummaryStats(resp.SummaryStats); },
     }, pageNo, rowLimit, filter);
 }
 

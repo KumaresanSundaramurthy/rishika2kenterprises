@@ -23,8 +23,18 @@
                     }
                     ?>
 
-                    <!-- ── Balance Summary Cards ──────────────────────────── -->
-                    <div class="d-flex gap-3 mb-4 flex-wrap" id="poutSummaryCards">
+                    <!-- ── Page Header ──────────────────────────────────────── -->
+                    <div class="trans-page-header">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="trans-ph-icon" style="background:#fee2e2;">
+                                <i class="bx bx-credit-card-front" style="color:#ef4444;"></i>
+                            </div>
+                            <h5 class="trans-ph-title">Payments Out</h5>
+                        </div>
+                    </div>
+                    <!-- ── Balance Summary ─────────────────────────────────── -->
+                    <div class="trans-stats-section mb-4">
+                        <div class="d-flex gap-3 flex-wrap" id="poutSummaryCards">
 
                         <?php if (!empty($summary)): ?>
                             <?php foreach ($summary as $row): ?>
@@ -82,6 +92,7 @@
                             <?php endforeach; ?>
                         <?php endif; ?>
 
+                    </div>
                     </div>
 
                     <!-- ── Main Card ──────────────────────────────────────── -->

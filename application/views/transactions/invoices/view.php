@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 $this->load->view('common/transactions/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -17,53 +17,68 @@ $this->load->view('common/transactions/header'); ?>
                     $cur         = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
                     $dec         = $JwtData->GenSettings->DecimalPoints ?? 2;
 
-                    $cntAll      = array_sum(array_column($stats, 'count'));
-                    $cntPending  = ($stats['Issued']['count']   ?? 0) + ($stats['Sent']['count'] ?? 0) + ($stats['Partial']['count'] ?? 0);
+                    $activeInvStatuses = ['Issued', 'Partial', 'Paid'];
+                    $cntAll      = array_sum(array_map(fn($s) => $stats[$s]['count']  ?? 0, $activeInvStatuses));
+                    $amtAll      = array_sum(array_map(fn($s) => $stats[$s]['amount'] ?? 0, $activeInvStatuses));
+                    $cntPending  = ($stats['Issued']['count']   ?? 0) + ($stats['Partial']['count'] ?? 0);
+                    $amtPending  = ($stats['Issued']['amount']  ?? 0) + ($stats['Partial']['amount'] ?? 0);
                     $cntPaid     = $stats['Paid']['count']      ?? 0;
+                    $amtPaid     = $stats['Paid']['amount']     ?? 0;
                     $cntDraft    = $stats['Draft']['count']     ?? 0;
                     $cntOverdue  = $stats['Overdue']['count']   ?? 0;
-
-                    $amtAll      = array_sum(array_column($stats, 'amount'));
-                    $amtPending  = ($stats['Issued']['amount']  ?? 0) + ($stats['Sent']['amount'] ?? 0) + ($stats['Partial']['amount'] ?? 0);
-                    $amtPaid     = $stats['Paid']['amount']     ?? 0;
 
                     function fmtAmt($val, $sym, $dec) {
                         return $sym . ' ' . number_format((float)$val, $dec, '.', ',');
                     }
                     ?>
 
+                    <!-- ── Page Header ──────────────────────────────────────── -->
+                    <div class="trans-page-header">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="trans-ph-icon" style="background:#dbeafe;">
+                                <i class="bx bx-receipt" style="color:#3b82f6;"></i>
+                            </div>
+                            <h5 class="trans-ph-title">Invoices</h5>
+                        </div>
+                        <a href="/invoices/create" class="btn btn-primary">
+                            <i class="bx bx-plus me-1"></i>New Invoice
+                        </a>
+                    </div>
+
                     <!-- ── Stat Cards ──────────────────────────────────────── -->
-                    <div class="row g-3 mb-4">
-                        <div class="col-6 col-md-3">
+                    <div class="trans-stats-section">
+                        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
                             <a href="javascript:void(0);" class="trans-stat-card stat-all active-stat" data-stat-filter="All">
-                                <div class="trans-stat-label">All Invoices</div>
-                                <div class="trans-stat-count"><?php echo number_format($cntAll); ?></div>
-                                <div class="trans-stat-amount"><?php echo fmtAmt($amtAll, $cur, $dec); ?></div>
-                                <i class="bx bx-receipt trans-stat-icon"></i>
+                                <div class="tsc-icon-wrap"><i class="bx bx-receipt"></i></div>
+                                <div class="tsc-body">
+                                    <div class="trans-stat-label">All Invoices</div>
+                                    <div class="trans-stat-count"><?php echo number_format($cntAll); ?></div>
+                                    <div class="trans-stat-amount"><?php echo fmtAmt($amtAll, $cur, $dec); ?></div>
+                                </div>
                             </a>
-                        </div>
-                        <div class="col-6 col-md-3">
                             <a href="javascript:void(0);" class="trans-stat-card stat-active" data-stat-filter="InvPending">
-                                <div class="trans-stat-label">Pending</div>
-                                <div class="trans-stat-count"><?php echo number_format($cntPending); ?></div>
-                                <div class="trans-stat-amount"><?php echo fmtAmt($amtPending, $cur, $dec); ?></div>
-                                <i class="bx bx-time-five trans-stat-icon"></i>
+                                <div class="tsc-icon-wrap"><i class="bx bx-time-five"></i></div>
+                                <div class="tsc-body">
+                                    <div class="trans-stat-label">Pending</div>
+                                    <div class="trans-stat-count"><?php echo number_format($cntPending); ?></div>
+                                    <div class="trans-stat-amount"><?php echo fmtAmt($amtPending, $cur, $dec); ?></div>
+                                </div>
                             </a>
-                        </div>
-                        <div class="col-6 col-md-3">
                             <a href="javascript:void(0);" class="trans-stat-card stat-paid" data-stat-filter="Paid">
-                                <div class="trans-stat-label">Paid</div>
-                                <div class="trans-stat-count"><?php echo number_format($cntPaid); ?></div>
-                                <div class="trans-stat-amount"><?php echo fmtAmt($amtPaid, $cur, $dec); ?></div>
-                                <i class="bx bx-check-circle trans-stat-icon"></i>
+                                <div class="tsc-icon-wrap"><i class="bx bx-check-circle"></i></div>
+                                <div class="tsc-body">
+                                    <div class="trans-stat-label">Paid</div>
+                                    <div class="trans-stat-count"><?php echo number_format($cntPaid); ?></div>
+                                    <div class="trans-stat-amount"><?php echo fmtAmt($amtPaid, $cur, $dec); ?></div>
+                                </div>
                             </a>
-                        </div>
-                        <div class="col-6 col-md-3">
                             <a href="javascript:void(0);" class="trans-stat-card stat-draft" data-stat-filter="Draft">
-                                <div class="trans-stat-label">Drafts</div>
-                                <div class="trans-stat-count"><?php echo number_format($cntDraft); ?></div>
-                                <div class="trans-stat-amount">&nbsp;</div>
-                                <i class="bx bx-pencil trans-stat-icon"></i>
+                                <div class="tsc-icon-wrap"><i class="bx bx-pencil"></i></div>
+                                <div class="tsc-body">
+                                    <div class="trans-stat-label">Drafts</div>
+                                    <div class="trans-stat-count"><?php echo number_format($cntDraft); ?></div>
+                                    <div class="trans-stat-amount">&nbsp;</div>
+                                </div>
                             </a>
                         </div>
                     </div>
@@ -78,27 +93,27 @@ $this->load->view('common/transactions/header'); ?>
                             <ul class="nav trans-status-tabs gap-1" id="invStatusTabs" role="tablist">
                                 <li class="nav-item">
                                     <a class="nav-link active inv-status-tab" data-status="All" href="javascript:void(0);">
-                                        All <span class="trans-tab-count ms-1"><?php echo $ModAllCount; ?></span>
+                                        All <span class="inv-tab-count ms-1"><?php echo $ModAllCount; ?></span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a class="nav-link inv-status-tab" data-status="InvPending" href="javascript:void(0);">
-                                        Pending <span class="trans-tab-count ms-1 d-none"></span>
+                                        Pending <span class="inv-tab-count ms-1 d-none"></span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a class="nav-link inv-status-tab" data-status="Paid" href="javascript:void(0);">
-                                        Paid <span class="trans-tab-count ms-1 d-none"></span>
+                                        Paid <span class="inv-tab-count ms-1 d-none"></span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a class="nav-link inv-status-tab" data-status="Cancelled" href="javascript:void(0);">
-                                        Cancelled <span class="trans-tab-count ms-1 d-none"></span>
+                                        Cancelled <span class="inv-tab-count ms-1 d-none"></span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a class="nav-link inv-status-tab" data-status="Draft" href="javascript:void(0);">
-                                        Drafts <span class="trans-tab-count ms-1 d-none"></span>
+                                        Drafts <span class="inv-tab-count ms-1 d-none"></span>
                                     </a>
                                 </li>
                             </ul>
@@ -140,9 +155,6 @@ $this->load->view('common/transactions/header'); ?>
                                         </a></li>
                                     </ul>
                                 </div>
-                                <a href="/invoices/create" class="btn btn-primary btn-sm px-3">
-                                    <i class="bx bx-plus me-1"></i>Create
-                                </a>
                             </div>
                         </div>
 
@@ -352,37 +364,53 @@ $(function () {
                 method: 'POST',
                 data  : { TransUID: uid, Status: 'Cancelled', [CsrfName]: CsrfToken },
                 success: function (resp) {
-                    if (resp.Error) { Swal.fire({ icon:'error', text: resp.Message }); }
-                    else { getInvoicesDetails(); Swal.fire({ icon:'success', text: resp.Message, timer:1500, showConfirmButton:false }); }
+                    if (resp.Error) {
+                        Swal.fire({ icon: 'error', text: resp.Message });
+                    } else {
+                        getInvoicesDetails();
+                        var msg = resp.Message || 'Invoice cancelled.';
+                        if (resp.CustomerBalance !== undefined) {
+                            msg += '<br><small class="text-muted mt-1 d-block">Customer Balance: <strong>' +
+                                   resp.CustomerBalanceType + ' &#8377;' +
+                                   parseFloat(resp.CustomerBalance).toLocaleString('en-IN', { minimumFractionDigits: 2 }) +
+                                   '</strong></small>';
+                        }
+                        Swal.fire({ icon: 'success', html: msg, timer: 2500, showConfirmButton: false });
+                    }
+                },
+                error: function () {
+                    Swal.fire({ icon: 'error', text: 'Request failed. Please try again.' });
                 }
             });
         });
     });
 
-    // ── Duplicate ───────────────────────────────────────────
-    $(document).on('click', '.duplicateInvoice', function () {
-        var uid = $(this).data('uid');
-        Swal.fire({
-            title: 'Duplicate Invoice?', text: 'A new draft copy will be created.',
-            icon : 'question', showCancelButton: true, confirmButtonText: 'Duplicate',
-        }).then(function (r) {
-            if (!r.isConfirmed) return;
-            $.ajax({
-                url   : '/invoices/duplicateInvoice',
-                method: 'POST',
-                data  : { TransUID: uid, [CsrfName]: CsrfToken },
-                success: function (resp) {
-                    if (resp.Error) { Swal.fire({ icon:'error', text:resp.Message }); }
-                    else {
-                        getInvoicesDetails();
-                        Swal.fire({ icon:'success', text:resp.Message, showCancelButton:true, confirmButtonText:'Edit Now', cancelButtonText:'Stay Here' })
-                            .then(function (r2) { if (r2.isConfirmed && resp.EditURL) window.location.href = resp.EditURL; });
-                    }
-                }
-            });
-        });
-    });
 });
+
+function updateSummaryStats(stats) {
+    if (!stats) return;
+    var cur = '<?php echo addslashes(htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹')); ?>';
+    var dec = <?php echo (int)($JwtData->GenSettings->DecimalPoints ?? 2); ?>;
+    function cnt(s) { return (stats[s] && stats[s].count)  ? parseInt(stats[s].count)   : 0; }
+    function amt(s) { return (stats[s] && stats[s].amount) ? parseFloat(stats[s].amount) : 0; }
+    function fmtAmt(v) {
+        return cur + ' ' + parseFloat(v).toLocaleString('en-IN', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+    }
+    var cntAll     = cnt('Issued') + cnt('Partial') + cnt('Paid');
+    var amtAll     = amt('Issued') + amt('Partial') + amt('Paid');
+    var cntPending = cnt('Issued') + cnt('Partial');
+    var amtPending = amt('Issued') + amt('Partial');
+    var cntPaid    = cnt('Paid'),  amtPaid  = amt('Paid');
+    var cntDraft   = cnt('Draft');
+
+    $('.stat-all    .trans-stat-count').text(cntAll.toLocaleString());
+    $('.stat-all    .trans-stat-amount').text(fmtAmt(amtAll));
+    $('.stat-active .trans-stat-count').text(cntPending.toLocaleString());
+    $('.stat-active .trans-stat-amount').text(fmtAmt(amtPending));
+    $('.stat-paid   .trans-stat-count').text(cntPaid.toLocaleString());
+    $('.stat-paid   .trans-stat-amount').text(fmtAmt(amtPaid));
+    $('.stat-draft  .trans-stat-count').text(cntDraft.toLocaleString());
+}
 
 // ── Detail HTML builder ─────────────────────────────────────────
 function _buildInvDetailHtml(resp) {

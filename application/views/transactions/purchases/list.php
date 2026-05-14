@@ -373,13 +373,7 @@ if (!empty($DataLists)):
                         <?php endif; ?>
 
                         <!-- Duplicate -->
-                        <li>
-                            <button class="dropdown-item duplicatePurchase" data-uid="<?php echo (int)$list->TransUID; ?>">
-                                <i class="bx bx-copy me-2 text-secondary"></i>Duplicate
-                            </button>
-                        </li>
-
-                        <!-- Communication -->
+                        <?php if (!$isCancelled): ?>
                         <?php if (!$isDraft && ($hasMobile || $hasEmail)): ?>
                         <li><hr class="dropdown-divider my-1"></li>
                         <?php if ($hasMobile): ?>

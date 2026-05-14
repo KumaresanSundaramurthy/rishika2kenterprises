@@ -15,10 +15,27 @@ if (!empty($DataLists)):
         $SerialNumber++;
         $status      = $list->Status ?? 'Draft';
         $isDraft     = $status === 'Draft';
-        $isTerminal  = in_array($status, $terminalStatuses);
+        $isCancelled = $status === 'Cancelled';
+        $isTerminal  = in_array($status, ['Paid', 'Cancelled']);
         $badgeClass  = $statusBadgeClass[$status]  ?? 'trans-badge-Draft';
         $icon        = $statusIcon[$status]         ?? 'bx-circle';
         $transitions = $moduleTransitions[$status]  ?? [];
+
+        $netAmt     = (float)($list->NetAmount  ?? 0);
+        $paidAmt    = (float)($list->PaidAmount ?? 0);
+        $pendingAmt = max(0, round($netAmt - $paidAmt, 2));
+
+        if ($isDraft) {
+            $refundBadge = '';
+        } elseif ($paidAmt <= 0) {
+            $refundBadge = '<span class="badge bg-label-warning" style="font-size:.68rem;">Pending</span>';
+        } elseif ($pendingAmt <= 0.01) {
+            $refundBadge = '<span class="badge bg-label-success" style="font-size:.68rem;">Settled</span>';
+        } else {
+            $refundBadge = '<span class="badge bg-label-info" style="font-size:.68rem;">Partial</span>';
+        }
+
+        $showPending = !$isDraft && $pendingAmt > 0 && !in_array($status, ['Cancelled', 'Rejected']);
 ?>
     <tr>
 
@@ -49,12 +66,18 @@ if (!empty($DataLists)):
 
         <!-- Amount -->
         <td>
-            <?php if ($isDraft && (float)$list->NetAmount == 0): ?>
+            <?php if ($isDraft && $netAmt == 0): ?>
                 <span class="text-muted">—</span>
             <?php else: ?>
-                <div class="trans-amount-main"><?php echo $currency . ' ' . smartDecimal($list->NetAmount, $decimals, true); ?></div>
+                <div class="trans-amount-main"><?php echo $currency . ' ' . smartDecimal($netAmt, $decimals, true); ?></div>
+                <?php if (!$isDraft && $pendingAmt > 0 && $pendingAmt < $netAmt): ?>
+                <div class="text-muted" style="font-size:.7rem;">Pending: <?php echo $currency . ' ' . smartDecimal($pendingAmt, $decimals, true); ?></div>
+                <?php endif; ?>
             <?php endif; ?>
         </td>
+
+        <!-- Refund Status -->
+        <td><?php echo $refundBadge; ?></td>
 
         <!-- Status -->
         <td>
@@ -137,11 +160,28 @@ if (!empty($DataLists)):
         </td>
 
         <!-- Actions -->
-        <td style="width:50px">
+        <td style="width:110px">
             <div class="d-flex align-items-center justify-content-end gap-1">
 
+                <?php if ($showPending): ?>
+                <button type="button"
+                        class="btn inv-pay-quick-btn prReceivePayment"
+                        data-uid="<?php echo (int)$list->TransUID; ?>"
+                        data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
+                        data-date="<?php echo htmlspecialchars(format_datedisplay($list->TransDate ?? '', 'd M Y')); ?>"
+                        data-party="<?php echo htmlspecialchars($list->PartyName ?? ''); ?>"
+                        data-total="<?php echo $netAmt; ?>"
+                        data-paid="<?php echo $paidAmt; ?>"
+                        data-pending="<?php echo $pendingAmt; ?>"
+                        title="Record Refund — <?php echo $currency . ' ' . smartDecimal($pendingAmt, $decimals, true); ?> pending">
+                    <?php echo $currency; ?>
+                </button>
+                <?php endif; ?>
+
                 <?php if (!$isTerminal): ?>
-                <a class="btn btn-icon btn-sm text-warning" href="/purchasereturns/edit/<?php echo (int)$list->TransUID; ?>" title="Edit">
+                <a class="btn btn-icon btn-sm text-warning inv-row-action"
+                   href="/purchasereturns/edit/<?php echo (int)$list->TransUID; ?>"
+                   data-bs-toggle="tooltip" data-bs-trigger="hover" title="Edit">
                     <i class="bx bx-edit"></i>
                 </a>
                 <?php endif; ?>
@@ -150,7 +190,7 @@ if (!empty($DataLists)):
                     <button class="trans-actions-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="bx bx-dots-vertical-rounded fs-5"></i>
                     </button>
-                    <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:.82rem;min-width:160px;">
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:.82rem;min-width:170px;">
 
                         <?php if (!$isDraft): ?>
                         <li>
@@ -158,16 +198,41 @@ if (!empty($DataLists)):
                                 <i class="bx bx-receipt me-2 text-dark"></i>Thermal Print
                             </button>
                         </li>
+                        <li>
+                            <button class="dropdown-item a4PrintTransaction" data-uid="<?php echo (int)$list->TransUID; ?>" data-module="<?php echo (int)$list->ModuleUID; ?>">
+                                <i class="bx bx-printer me-2 text-primary"></i>Print / Download
+                            </button>
+                        </li>
                         <li><hr class="dropdown-divider my-1"></li>
                         <?php endif; ?>
 
+                        <?php if ($showPending): ?>
                         <li>
-                            <button class="dropdown-item duplicatePurchaseReturn" data-uid="<?php echo (int)$list->TransUID; ?>">
-                                <i class="bx bx-copy me-2 text-secondary"></i>Duplicate
+                            <button class="dropdown-item prReceivePayment"
+                                    data-uid="<?php echo (int)$list->TransUID; ?>"
+                                    data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
+                                    data-date="<?php echo htmlspecialchars(format_datedisplay($list->TransDate ?? '', 'd M Y')); ?>"
+                                    data-party="<?php echo htmlspecialchars($list->PartyName ?? ''); ?>"
+                                    data-total="<?php echo $netAmt; ?>"
+                                    data-paid="<?php echo $paidAmt; ?>"
+                                    data-pending="<?php echo $pendingAmt; ?>">
+                                <i class="bx bx-transfer me-2 text-success"></i>Record Refund
                             </button>
                         </li>
+                        <li>
+                            <button class="dropdown-item prApplyDebit"
+                                    data-uid="<?php echo (int)$list->TransUID; ?>"
+                                    data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
+                                    data-party="<?php echo htmlspecialchars($list->PartyName ?? ''); ?>"
+                                    data-partyuid="<?php echo (int)$list->PartyUID; ?>"
+                                    data-balance="<?php echo $pendingAmt; ?>">
+                                <i class="bx bx-credit-card me-2 text-primary"></i>Apply Debit to Purchase
+                            </button>
+                        </li>
+                        <li><hr class="dropdown-divider my-1"></li>
+                        <?php endif; ?>
 
-                        <?php if (!$isTerminal): ?>
+                        <?php if (!$isCancelled): ?>
                         <li><hr class="dropdown-divider my-1"></li>
                         <?php if (!$isDraft): ?>
                         <li>
@@ -199,7 +264,7 @@ if (!empty($DataLists)):
 else:
 ?>
     <tr>
-        <td colspan="9">
+        <td colspan="10">
             <div class="d-flex flex-column align-items-center py-5">
                 <img src="/assets/img/elements/no-record-found.png" alt="No Records" class="img-fluid mb-3" style="max-height:150px;object-fit:contain;">
                 <span class="text-muted mb-3" style="font-size:.9rem;">No purchase returns found</span>

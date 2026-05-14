@@ -152,6 +152,75 @@
 .vtm-pay-pill-due          { background: #f8d7da; border: 1px solid #f1aeb5; }
 .vtm-pay-pill-due i,
 .vtm-pay-pill-due span     { color: #842029; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PAGE HEADER v2  —  icon pill + bold title + New button
+   ═══════════════════════════════════════════════════════════════════════════ */
+.trans-page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    background: #ffffff;
+    border-radius: 12px;
+    /* padding: 14px 20px; */
+    padding: 5px 5px;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 8px rgba(0,0,0,.07);
+    border: 1px solid #eaecf0;
+}
+.trans-ph-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.trans-ph-icon i { font-size: 1.5rem; }
+.trans-ph-title {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #1a2232;
+    letter-spacing: .8px;
+    text-transform: uppercase;
+    margin: 0;
+    line-height: 1.2;
+}
+
+/* ─── Stats section wrapper ─── */
+.trans-stats-section {
+    background: #f4f5f8;
+    border-radius: 12px;
+    /* padding: 14px 16px; */
+    margin-bottom: 16px;
+}
+
+/* ─── Stat card v2: flex with icon circle ─── */
+.trans-stat-card { display: flex !important; align-items: center; gap: 14px; height: 100%; }
+.trans-stat-icon { display: none !important; }
+
+.tsc-icon-wrap {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.tsc-icon-wrap i { font-size: 1.3rem; color: var(--stat-accent, #696cff); }
+.tsc-body { flex: 1; min-width: 0; }
+
+.stat-all       .tsc-icon-wrap { background: rgba(105,108,255,.13); }
+.stat-active    .tsc-icon-wrap { background: rgba(13,110,253,.13); }
+.stat-paid      .tsc-icon-wrap { background: rgba(25,135,84,.13); }
+.stat-draft     .tsc-icon-wrap { background: rgba(108,117,125,.13); }
+.stat-overdue   .tsc-icon-wrap { background: rgba(220,53,69,.13); }
+.stat-cancelled .tsc-icon-wrap { background: rgba(173,181,189,.13); }
+.stat-partial   .tsc-icon-wrap { background: rgba(253,126,20,.13); }
+.stat-converted .tsc-icon-wrap { background: rgba(111,66,193,.13); }
 .vtm-pay-thead tr          { background: #f3eeff; }
 .vtm-pay-table             { font-size: .8rem; }
 .vtm-attach-card           { cursor: pointer; border-radius: 6px; overflow: hidden; }

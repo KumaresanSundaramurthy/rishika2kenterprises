@@ -3,11 +3,13 @@
 class Customers_model extends CI_Model {
     
     private $ReadDb;
+    private $WriteDb;
 
 	function __construct() {
         parent::__construct();
         
-        $this->ReadDb = $this->load->database('ReadDB', TRUE);
+        $this->ReadDb  = $this->load->database('ReadDB',  TRUE);
+        $this->WriteDb = $this->load->database('WriteDB', TRUE);
 
     }
 
@@ -410,6 +412,401 @@ class Customers_model extends CI_Model {
                 }
             }
             return array_keys($tags);
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+    }
+
+    // ── Balance recalculation queries ─────────────────────────────────────────
+
+    public function getCustomersWithLedgerForBalance($orgUID, $customerUID = 0) {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select([
+                'C.CustomerUID',
+                'IFNULL(COB.OpeningBalance, 0.00)   AS OpeningBalance',
+                "IFNULL(COB.OpeningBalType, 'Debit') AS OpeningBalType",
+                'ELM.LedgerUID',
+                'COA.CurrentBalance     AS LedgerCurrentBalance',
+                'COA.CurrentBalanceType AS LedgerCurrentType',
+            ]);
+            $this->ReadDb->from('Customers.CustomerTbl C');
+            $this->ReadDb->join(
+                'Customers.CustOpeningBalanceTbl COB',
+                'COB.CustomerUID = C.CustomerUID AND COB.IsDeleted = 0',
+                'left'
+            );
+            $this->ReadDb->join(
+                'Accounting.EntityLedgerMap ELM',
+                "ELM.CustomerUID = C.CustomerUID AND ELM.EntityType = 'Customer' AND ELM.IsDeleted = 0",
+                'left'
+            );
+            $this->ReadDb->join(
+                'Accounting.ChartOfAccounts COA',
+                'COA.LedgerUID = ELM.LedgerUID AND COA.IsDeleted = 0',
+                'left'
+            );
+            $this->ReadDb->where(['C.OrgUID' => (int)$orgUID, 'C.IsDeleted' => 0, 'C.IsActive' => 1]);
+            if ($customerUID > 0) {
+                $this->ReadDb->where('C.CustomerUID', (int)$customerUID);
+            }
+            $query = $this->ReadDb->get();
+            if (!$query) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
+            return $query->result();
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+    }
+
+    public function getCustomerTotalInvoiced($orgUID, $customerUID) {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('COALESCE(SUM(NetAmount), 0) AS total');
+            $this->ReadDb->from('`Transaction`.TransactionsTbl');
+            $this->ReadDb->where([
+                'OrgUID'    => (int)$orgUID,
+                'PartyUID'  => (int)$customerUID,
+                'PartyType' => 'C',
+                'ModuleUID' => 103,
+                'IsDeleted' => 0,
+            ]);
+            $this->ReadDb->where_not_in('DocStatus', ['Cancelled', 'Rejected']);
+            $query = $this->ReadDb->get();
+            if (!$query) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
+            return (float) $query->row()->total;
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+    }
+
+    public function getCustomerTotalReceived($orgUID, $customerUID) {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('COALESCE(SUM(Amount), 0) AS total');
+            $this->ReadDb->from('`Transaction`.PaymentsTbl');
+            $this->ReadDb->where([
+                'OrgUID'           => (int)$orgUID,
+                'PartyUID'         => (int)$customerUID,
+                'PartyType'        => 'C',
+                'PaymentDirection' => 'In',
+                'IsDeleted'        => 0,
+            ]);
+            $query = $this->ReadDb->get();
+            if (!$query) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
+            return (float) $query->row()->total;
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+    }
+
+    public function getCustomerTotalReturned($orgUID, $customerUID) {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            // Use BalanceAmount (outstanding after partial refunds) so that paying back 100 of a 500
+            // return correctly reduces the outstanding liability to 400, not the full 500.
+            $this->ReadDb->select('COALESCE(SUM(COALESCE(BalanceAmount, NetAmount)), 0) AS total');
+            $this->ReadDb->from('`Transaction`.TransactionsTbl');
+            $this->ReadDb->where([
+                'OrgUID'    => (int)$orgUID,
+                'PartyUID'  => (int)$customerUID,
+                'PartyType' => 'C',
+                'IsDeleted' => 0,
+            ]);
+            $this->ReadDb->where_in('ModuleUID', [106, 107]);
+            $this->ReadDb->where_not_in('DocStatus', ['Cancelled', 'Rejected']);
+            $query = $this->ReadDb->get();
+            if (!$query) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
+            return (float) $query->row()->total;
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+    }
+
+    public function updateCustomerBalanceInLedger($ledgerUID, $balance, $balanceType, $userUID) {
+        try {
+            $this->WriteDb->db_debug = FALSE;
+            $this->WriteDb->where('LedgerUID', (int)$ledgerUID);
+            $res = $this->WriteDb->update('Accounting.ChartOfAccounts', [
+                'CurrentBalance'     => $balance,
+                'CurrentBalanceType' => $balanceType,
+                'UpdatedBy'          => (int)$userUID,
+            ]);
+            if ($res === false) throw new Exception('Ledger update failed.');
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+    }
+
+    public function updateCustomerBalanceInCustomerTbl($customerUID, $balance, $balanceType, $userUID) {
+        try {
+            $this->WriteDb->db_debug = FALSE;
+            $this->WriteDb->where('CustomerUID', (int)$customerUID);
+            $res = $this->WriteDb->update('Customers.CustomerTbl', [
+                'DebitCreditAmount' => $balance,
+                'DebitCreditType'   => $balanceType,
+                'UpdatedBy'         => (int)$userUID,
+            ]);
+            if ($res === false) throw new Exception('Customer balance update failed.');
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+    }
+
+
+    // â”€â”€ CustOpeningBalanceTbl (one row per customer, no year) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+    public function getCustomerOpeningBalance($orgUID, $customerUID) {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select([
+                'OpeningBalUID', 'OpeningBalance', 'OpeningBalType',
+                'PendingBalance', 'PendingBalType', 'Notes',
+            ]);
+            $this->ReadDb->from('Customers.CustOpeningBalanceTbl');
+            $this->ReadDb->where([
+                'OrgUID'      => (int)$orgUID,
+                'CustomerUID' => (int)$customerUID,
+                'IsDeleted'   => 0,
+            ]);
+            $this->ReadDb->limit(1);
+            $query = $this->ReadDb->get();
+            if (!$query) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
+            return $query->row();
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+    }
+
+    public function saveCustomerOpeningBalance($orgUID, $customerUID, $openingBalance, $openingBalType, $notes, $userUID) {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('OpeningBalUID');
+            $this->ReadDb->from('Customers.CustOpeningBalanceTbl');
+            $this->ReadDb->where(['OrgUID' => (int)$orgUID, 'CustomerUID' => (int)$customerUID, 'IsDeleted' => 0]);
+            $existing = $this->ReadDb->get()->row();
+
+            if ($existing) {
+                $this->WriteDb->db_debug = FALSE;
+                $this->WriteDb->where('OpeningBalUID', (int)$existing->OpeningBalUID);
+                $this->WriteDb->update('Customers.CustOpeningBalanceTbl', [
+                    'OpeningBalance' => (float)$openingBalance,
+                    'OpeningBalType' => $openingBalType,
+                    'Notes'          => $notes ?: NULL,
+                    'UpdatedBy'      => (int)$userUID,
+                ]);
+                return (int)$existing->OpeningBalUID;
+            }
+
+            $this->WriteDb->db_debug = FALSE;
+            $this->WriteDb->insert('Customers.CustOpeningBalanceTbl', [
+                'OrgUID'         => (int)$orgUID,
+                'CustomerUID'    => (int)$customerUID,
+                'OpeningBalance' => (float)$openingBalance,
+                'OpeningBalType' => $openingBalType,
+                'PendingBalance' => (float)$openingBalance,
+                'PendingBalType' => $openingBalType,
+                'Notes'          => $notes ?: NULL,
+                'IsActive'       => 1,
+                'IsDeleted'      => 0,
+                'CreatedBy'      => (int)$userUID,
+                'UpdatedBy'      => (int)$userUID,
+            ]);
+            return (int)$this->WriteDb->insert_id();
+
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+    }
+
+    public function updateCustomerPendingBalance($orgUID, $customerUID, $pendingBalance, $pendingBalType, $userUID) {
+        try {
+            $this->WriteDb->db_debug = FALSE;
+            $this->WriteDb->where(['OrgUID' => (int)$orgUID, 'CustomerUID' => (int)$customerUID, 'IsDeleted' => 0]);
+            $this->WriteDb->update('Customers.CustOpeningBalanceTbl', [
+                'PendingBalance' => (float)$pendingBalance,
+                'PendingBalType' => $pendingBalType,
+                'UpdatedBy'      => (int)$userUID,
+            ]);
+            // If no row existed, seed one so the pending balance is visible on the customer page
+            if ($this->WriteDb->affected_rows() === 0) {
+                $this->WriteDb->insert('Customers.CustOpeningBalanceTbl', [
+                    'OrgUID'         => (int)$orgUID,
+                    'CustomerUID'    => (int)$customerUID,
+                    'OpeningBalance' => 0.00,
+                    'OpeningBalType' => 'Debit',
+                    'PendingBalance' => (float)$pendingBalance,
+                    'PendingBalType' => $pendingBalType,
+                    'IsActive'       => 1,
+                    'IsDeleted'      => 0,
+                    'CreatedBy'      => (int)$userUID,
+                    'UpdatedBy'      => (int)$userUID,
+                ]);
+            }
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+    }
+
+    public function getCustomerOpeningBalanceSigned($orgUID, $customerUID) {
+        // Returns opening balance as signed float: Debit=+, Credit=-
+        $row = $this->getCustomerOpeningBalance($orgUID, $customerUID);
+        if (!$row) return 0.0;
+        $amt = (float)$row->OpeningBalance;
+        return ($row->OpeningBalType === 'Debit') ? $amt : -$amt;
+    }
+
+    public function getCustomerDebitCreditRaw($customerUID) {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select(['Name', 'DebitCreditAmount', 'DebitCreditType']);
+            $this->ReadDb->from('Customers.CustomerTbl');
+            $this->ReadDb->where(['CustomerUID' => (int)$customerUID, 'IsDeleted' => 0]);
+            $this->ReadDb->limit(1);
+            return $this->ReadDb->get()->row();
+        } catch (Exception $e) {
+            return null;
+        }
+    }
+
+    // Applies a signed numeric delta (+/-) to the customer running opening balance.
+    // Returns ['balance' => float, 'type' => 'Debit'|'Credit'].
+    public function applyOpeningBalanceDelta($orgUID, $customerUID, $delta, $userUID) {
+        $row           = $this->getCustomerOpeningBalance($orgUID, $customerUID);
+        $currentSigned = 0.0;
+        if ($row) {
+            $currentSigned = ($row->OpeningBalType === 'Debit') ? (float)$row->OpeningBalance : -(float)$row->OpeningBalance;
+        }
+        $newSigned  = round($currentSigned + $delta, 2);
+        $newBalance = abs($newSigned);
+        $newType    = ($newSigned >= 0) ? 'Debit' : 'Credit';
+        $this->saveCustomerOpeningBalance($orgUID, $customerUID, $newBalance, $newType, null, $userUID);
+        return ['balance' => $newBalance, 'type' => $newType];
+    }
+
+    // ── CustYearOpeningBalanceTbl (year-wise opening balance snapshot) ─────────
+
+    // $onlyIfNew=true: insert-only, preserving the year-start snapshot.
+    public function saveCustomerYearOpening($orgUID, $customerUID, $financialYear, $openingBalance, $openingBalType, $userUID, $onlyIfNew = false) {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('YearBalUID');
+            $this->ReadDb->from('Customers.CustYearOpeningBalanceTbl');
+            $this->ReadDb->where([
+                'OrgUID'        => (int)$orgUID,
+                'CustomerUID'   => (int)$customerUID,
+                'FinancialYear' => (int)$financialYear,
+                'IsDeleted'     => 0,
+            ]);
+            $existing = $this->ReadDb->get()->row();
+
+            if ($existing) {
+                if ($onlyIfNew) return (int)$existing->YearBalUID;
+                $this->WriteDb->db_debug = FALSE;
+                $this->WriteDb->where('YearBalUID', (int)$existing->YearBalUID);
+                $this->WriteDb->update('Customers.CustYearOpeningBalanceTbl', [
+                    'OpeningBalance' => (float)$openingBalance,
+                    'OpeningBalType' => $openingBalType,
+                    'UpdatedBy'      => (int)$userUID,
+                ]);
+                return (int)$existing->YearBalUID;
+            }
+
+            $this->WriteDb->db_debug = FALSE;
+            $this->WriteDb->insert('Customers.CustYearOpeningBalanceTbl', [
+                'OrgUID'         => (int)$orgUID,
+                'CustomerUID'    => (int)$customerUID,
+                'FinancialYear'  => (int)$financialYear,
+                'OpeningBalance' => (float)$openingBalance,
+                'OpeningBalType' => $openingBalType,
+                'IsActive'       => 1,
+                'IsDeleted'      => 0,
+                'CreatedBy'      => (int)$userUID,
+                'UpdatedBy'      => (int)$userUID,
+            ]);
+            return (int)$this->WriteDb->insert_id();
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+    }
+
+    public function getCustomerYearOpening($orgUID, $customerUID, $financialYear) {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select(['YearBalUID', 'FinancialYear', 'OpeningBalance', 'OpeningBalType']);
+            $this->ReadDb->from('Customers.CustYearOpeningBalanceTbl');
+            $this->ReadDb->where([
+                'OrgUID'        => (int)$orgUID,
+                'CustomerUID'   => (int)$customerUID,
+                'FinancialYear' => (int)$financialYear,
+                'IsDeleted'     => 0,
+            ]);
+            $this->ReadDb->limit(1);
+            $query = $this->ReadDb->get();
+            if (!$query) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
+            return $query->row();
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+    }
+
+    // â”€â”€ CustBalanceHistoryTbl (year-wise snapshots) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+    public function getCustomerBalanceHistory($orgUID, $customerUID) {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select([
+                'BalHistoryUID', 'FinancialYear',
+                'OpeningBalance', 'OpeningBalType',
+                'TotalInvoiced',  'TotalReceived', 'TotalReturned',
+                'ClosingBalance', 'ClosingBalType',
+                'SnapshotOn',
+            ]);
+            $this->ReadDb->from('Customers.CustBalanceHistoryTbl');
+            $this->ReadDb->where(['OrgUID' => (int)$orgUID, 'CustomerUID' => (int)$customerUID]);
+            $this->ReadDb->order_by('FinancialYear', 'DESC');
+            $query = $this->ReadDb->get();
+            if (!$query) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
+            return $query->result();
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+    }
+
+    public function saveCustomerBalanceHistory($orgUID, $customerUID, $financialYear, $openingBalance, $openingBalType, $totalInvoiced, $totalReceived, $totalReturned, $closingBalance, $closingBalType, $userUID) {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('BalHistoryUID');
+            $this->ReadDb->from('Customers.CustBalanceHistoryTbl');
+            $this->ReadDb->where(['OrgUID' => (int)$orgUID, 'CustomerUID' => (int)$customerUID, 'FinancialYear' => (int)$financialYear]);
+            $existing = $this->ReadDb->get()->row();
+
+            $data = [
+                'OpeningBalance' => (float)$openingBalance,
+                'OpeningBalType' => $openingBalType,
+                'TotalInvoiced'  => (float)$totalInvoiced,
+                'TotalReceived'  => (float)$totalReceived,
+                'TotalReturned'  => (float)$totalReturned,
+                'ClosingBalance' => (float)$closingBalance,
+                'ClosingBalType' => $closingBalType,
+                'SnapshotOn'     => date('Y-m-d H:i:s'),
+                'UpdatedBy'      => (int)$userUID,
+            ];
+
+            $this->WriteDb->db_debug = FALSE;
+            if ($existing) {
+                $this->WriteDb->where('BalHistoryUID', (int)$existing->BalHistoryUID);
+                $this->WriteDb->update('Customers.CustBalanceHistoryTbl', $data);
+                return (int)$existing->BalHistoryUID;
+            }
+
+            $this->WriteDb->insert('Customers.CustBalanceHistoryTbl', array_merge($data, [
+                'OrgUID'        => (int)$orgUID,
+                'CustomerUID'   => (int)$customerUID,
+                'FinancialYear' => (int)$financialYear,
+                'CreatedBy'     => (int)$userUID,
+            ]));
+            return (int)$this->WriteDb->insert_id();
+
         } catch (Exception $e) {
             throw new Exception($e->getMessage());
         }

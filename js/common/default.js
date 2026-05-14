@@ -359,39 +359,61 @@ function isDate(currVal) {
 
 function showUIBlock() {
 
-    $.blockUI({
-        message: `
-            <div class="d-flex flex-column justify-content-center align-items-center" style="height: 100vh;">
-                <div class="spinner-border text-info" role="status" style="width: 4rem; height: 4rem;">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-                <h4 class="mt-3 text-white animate__animated animate__infinite">Processing... Please wait</h4>
-            </div>
-        `,
-        css: {
-            border: 'none',
-            padding: 0,
-            backgroundColor: 'transparent',
-            width: '100%',
-            top: '0',
-            left: '0',
-            position: 'fixed',
-            zIndex: 2000,
-            textAlign: 'center'
-        },
-        overlayCSS: {
-            backgroundColor: '#111',
-            opacity: 0.7,
-            backdropFilter: 'blur(4px)',  // Blurred effect
-            zIndex: 1999,
-            cursor: 'wait'
-        }
-    });
+    if (!document.getElementById('globalProcOverlay')) {
 
+        var d = document.createElement('div');
+
+        d.id = 'globalProcOverlay';
+
+        d.innerHTML = ''
+
+            + '<div class="gpo-wrap">'
+
+                + '<div class="gpo-orbit">'
+                    + '<span class="gpo-particle gpo-p1"></span>'
+                    + '<span class="gpo-particle gpo-p2"></span>'
+                    + '<span class="gpo-particle gpo-p3"></span>'
+                + '</div>'
+                + '<div class="gpo-logo-wrap">'
+                    + '<div class="gpo-glow"></div>'
+                    + '<div class="gpo-ring"></div>'
+                    // + '<img class="gpo-logo" src="https://pub-bb40942a33344637936ade1f3800ff8b.r2.dev/Global/favicon_io/android-chrome-512x512-1.png">'
+                    + '<img class="gpo-logo" src="/images/logo/favicon_io/android-chrome-512x512-1.png">'
+                + '</div>'
+
+                // + '<div class="gpo-brand">YourApp</div>'
+
+                + '<div class="gpo-label text-warning" id="globalProcLabel">'
+                    + ('Processing... Plesae wait...')
+                + '</div>'
+
+                // + '<div class="gpo-loader"></div>'
+
+            + '</div>';
+
+        document.body.appendChild(d);
+    }
+
+    // var lbl = document.getElementById('globalProcLabel');
+
+    // if (lbl) {
+    //     lbl.textContent = label || 'PROCESSING';
+    // }
+
+    document.getElementById('globalProcOverlay')
+        .classList.add('proc-on');
 }
 
+
+/* HIDE FUNCTION */
 function hideUIBlock() {
-    $.unblockUI();
+
+    var overlay = document.getElementById('globalProcOverlay');
+
+    if (overlay) {
+        overlay.classList.remove('proc-on');
+    }
+
 }
 
 jQuery(document).ajaxStart(function () {

@@ -15,7 +15,16 @@ class Customers extends CI_Controller {
 
         $controllerName = strtolower($this->router->fetch_class());
         $getModuleInfo  = $this->redis_cache->get('Redis_UserModuleInfo')->Value ?? [];
-        $ModuleInfo     = array_values(array_filter($getModuleInfo, fn($m) => $m->ControllerName === $controllerName));
+
+        // Cache miss — fall back to ModuleInfo embedded in the JWT payload
+        if (empty($getModuleInfo)) {
+            $getModuleInfo = $this->pageData['JwtData']->ModuleInfo ?? [];
+            if (!empty($getModuleInfo)) {
+                $this->redis_cache->set('Redis_UserModuleInfo', $getModuleInfo, getenv('LOGIN_EXPIRE_SECS') ?: 3600);
+            }
+        }
+
+        $ModuleInfo = array_values(array_filter((array)$getModuleInfo, fn($m) => $m->ControllerName === $controllerName));
         if (empty($ModuleInfo)) {
             throw new Exception("Module information not found for controller: {$controllerName}");
         }
@@ -214,6 +223,7 @@ class Customers extends CI_Controller {
     }
 
     public function addCustomerData() {
+        
         $this->EndReturnData = new stdClass();
         $ErrorInForm = '';
         try {
@@ -255,6 +265,22 @@ class Customers extends CI_Controller {
                 ],
                 'Customer'
             );
+
+            $initAmt  = (float) getPostValue($PostData, 'DebitCreditAmount', '', 0);
+            $initType = getPostValue($PostData, 'DebitCreditCheck', '', 'Debit');
+            if ($initAmt > 0) {
+                $this->customers_model->saveCustomerOpeningBalance(
+                    $this->pageData['JwtData']->User->OrgUID, $CustomerUID,
+                    $initAmt, $initType, null,
+                    $this->pageData['JwtData']->User->UserUID
+                );
+                $this->customers_model->saveCustomerYearOpening(
+                    $this->pageData['JwtData']->User->OrgUID, $CustomerUID,
+                    $this->_currentFinancialYear(),
+                    $initAmt, $initType,
+                    $this->pageData['JwtData']->User->UserUID
+                );
+            }
 
             if (getPostValue($PostData, 'transCustomer') == 1) {
                 $this->load->model('transactions_model');
@@ -471,6 +497,20 @@ class Customers extends CI_Controller {
             $customerFormData = $this->buildCustomerFormData($PostData, false);
             if (!empty($PostData['ImageRemoved'])) $customerFormData['Image'] = NULL;
 
+            // Capture old DebitCredit values BEFORE the row is overwritten
+            $this->load->model('customers_model');
+            $oldDCRow    = $this->customers_model->getCustomerDebitCreditRaw((int)$CustomerUID);
+            $oldDCAmount = $oldDCRow ? (float)($oldDCRow->DebitCreditAmount ?? 0) : 0.0;
+            $oldDCType   = $oldDCRow ? ($oldDCRow->DebitCreditType ?? 'Debit') : 'Debit';
+
+            // Compute delta once — used to gate both the ledger update and the opening balance update
+            $newAmt  = (float) getPostValue($PostData, 'DebitCreditAmount', '', 0);
+            $newType = getPostValue($PostData, 'DebitCreditCheck', '', 'Debit');
+            $newName = getPostValue($PostData, 'Name');
+            $oldSgn  = ($oldDCType === 'Debit') ?  $oldDCAmount : -$oldDCAmount;
+            $newSgn  = ($newType   === 'Debit') ?  $newAmt      : -$newAmt;
+            $delta   = round($newSgn - $oldSgn, 2);
+
             $UpdateDataResp = $this->dbwrite_model->updateData('Customers', 'CustomerTbl', $customerFormData, ['CustomerUID' => $CustomerUID]);
             if ($UpdateDataResp->Error) throw new Exception($UpdateDataResp->Message);
 
@@ -493,16 +533,75 @@ class Customers extends CI_Controller {
                 $this->globalservice->saveAddressInfo($PostData, $CustomerUID, $prefix, $type, 'Customers', 'CustAddressTbl', 'CustAddressUID', 'CustomerUID');
             }
 
-            $this->load->library('accountledger');
-            $this->accountledger->updateEntityLedgerInfo(
-                $CustomerUID,
-                [
-                    'DebitCreditAmount' => getPostValue($PostData, 'DebitCreditAmount', '', 0),
-                    'DebitCreditCheck'  => getPostValue($PostData, 'DebitCreditCheck', '', 'Debit'),
-                    'Name'              => getPostValue($PostData, 'Name'),
-                ],
-                'Customer',
-            );
+            // Only call ledger update when name or balance actually changed
+            $nameChanged    = ($newName !== ($oldDCRow->Name ?? $newName));
+            $balanceChanged = ($delta != 0.0);
+            if ($nameChanged || $balanceChanged) {
+                $this->load->library('accountledger');
+                $this->accountledger->updateEntityLedgerInfo(
+                    $CustomerUID,
+                    [
+                        'DebitCreditAmount' => $newAmt,
+                        'DebitCreditCheck'  => $newType,
+                        'Name'              => $newName,
+                    ],
+                    'Customer'
+                );
+            }
+
+            if ($balanceChanged) {
+                $orgUID  = $this->pageData['JwtData']->User->OrgUID;
+                $userUID = $this->pageData['JwtData']->User->UserUID;
+
+                // Read current balance via ReadDb (no lock conflict)
+                $obRow         = $this->customers_model->getCustomerOpeningBalance($orgUID, (int)$CustomerUID);
+                $currentSigned = 0.0;
+                if ($obRow) {
+                    $currentSigned = ($obRow->OpeningBalType === 'Debit')
+                        ? (float)$obRow->OpeningBalance : -(float)$obRow->OpeningBalance;
+                }
+                $newSigned  = round($currentSigned + $delta, 2);
+                $newBalance = abs($newSigned);
+                $newType    = ($newSigned >= 0) ? 'Debit' : 'Credit';
+
+                // Write via dbwrite_model (C1 — same connection as this transaction, no FK deadlock)
+                if ($obRow) {
+                    $this->dbwrite_model->updateData('Customers', 'CustOpeningBalanceTbl', [
+                        'OpeningBalance' => $newBalance,
+                        'OpeningBalType' => $newType,
+                        'UpdatedBy'      => (int)$userUID,
+                    ], ['OpeningBalUID' => (int)$obRow->OpeningBalUID]);
+                } else {
+                    $this->dbwrite_model->insertData('Customers', 'CustOpeningBalanceTbl', [
+                        'OrgUID'         => (int)$orgUID,
+                        'CustomerUID'    => (int)$CustomerUID,
+                        'OpeningBalance' => $newBalance,
+                        'OpeningBalType' => $newType,
+                        'PendingBalance' => $newBalance,
+                        'PendingBalType' => $newType,
+                        'IsActive'       => 1,
+                        'IsDeleted'      => 0,
+                        'CreatedBy'      => (int)$userUID,
+                        'UpdatedBy'      => (int)$userUID,
+                    ]);
+                }
+
+                // Seed year-opening snapshot only if this financial year has no record yet
+                $yrRow = $this->customers_model->getCustomerYearOpening($orgUID, (int)$CustomerUID, $this->_currentFinancialYear());
+                if (!$yrRow) {
+                    $this->dbwrite_model->insertData('Customers', 'CustYearOpeningBalanceTbl', [
+                        'OrgUID'         => (int)$orgUID,
+                        'CustomerUID'    => (int)$CustomerUID,
+                        'FinancialYear'  => (int)$this->_currentFinancialYear(),
+                        'OpeningBalance' => $newBalance,
+                        'OpeningBalType' => $newType,
+                        'IsActive'       => 1,
+                        'IsDeleted'      => 0,
+                        'CreatedBy'      => (int)$userUID,
+                        'UpdatedBy'      => (int)$userUID,
+                    ]);
+                }
+            }
 
             $this->dbwrite_model->commitTransaction();
 
@@ -651,6 +750,10 @@ class Customers extends CI_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
+    private function _currentFinancialYear() {
+        return (date('n') >= 4) ? (int)date('Y') : (int)date('Y') - 1;
+    }
+
     private function customerHasTransactions($customerId) {
         try {
             $this->load->model('transactions_model');
@@ -776,6 +879,207 @@ class Customers extends CI_Controller {
         }
 
         foreach ($tempFiles as $f) { if (is_file($f)) unlink($f); }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    public function saveCustomerOpeningBalance() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $orgUID        = $this->pageData['JwtData']->User->OrgUID;
+            $userUID       = $this->pageData['JwtData']->User->UserUID;
+            $customerUID   = (int)   $this->input->post('CustomerUID');
+            $balance       = (float) $this->input->post('OpeningBalance');
+            $balanceType   = trim($this->input->post('BalanceType'));
+            $notes         = trim($this->input->post('Notes') ?? '');
+            $financialYear = (int)   $this->input->post('FinancialYear');
+
+            if ($customerUID <= 0)                              throw new Exception('Invalid customer.');
+            if ($balance < 0)                                   throw new Exception('Opening balance cannot be negative.');
+            if (!in_array($balanceType, ['Debit', 'Credit']))   throw new Exception('BalanceType must be Debit or Credit.');
+            if ($financialYear <= 0) {
+                $financialYear = (date('n') >= 4) ? (int)date('Y') : (int)date('Y') - 1;
+            }
+
+            $this->load->model('customers_model');
+            $id = $this->customers_model->saveCustomerOpeningBalance(
+                $orgUID, $customerUID, $balance, $balanceType, $notes, $userUID
+            );
+            $this->customers_model->saveCustomerYearOpening(
+                $orgUID, $customerUID, $financialYear, $balance, $balanceType, $userUID
+            );
+
+            $this->EndReturnData->Error          = FALSE;
+            $this->EndReturnData->Message        = 'Opening balance saved successfully.';
+            $this->EndReturnData->OpeningBalUID  = $id;
+            $this->EndReturnData->FinancialYear  = $financialYear;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    public function getCustomerOpeningBalance() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $orgUID        = $this->pageData['JwtData']->User->OrgUID;
+            $customerUID   = (int) $this->input->get_post('CustomerUID');
+            $financialYear = (int) $this->input->get_post('FinancialYear');
+
+            if ($customerUID <= 0) throw new Exception('Invalid customer.');
+            if ($financialYear <= 0) {
+                $financialYear = $this->_currentFinancialYear();
+            }
+
+            $this->load->model('customers_model');
+            $current = $this->customers_model->getCustomerOpeningBalance($orgUID, $customerUID);
+            $yearRow = $this->customers_model->getCustomerYearOpening($orgUID, $customerUID, $financialYear);
+
+            $this->EndReturnData->Error         = FALSE;
+            $this->EndReturnData->Data          = $current;
+            $this->EndReturnData->YearData      = $yearRow;
+            $this->EndReturnData->FinancialYear = $financialYear;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    public function updateCustomerBalance() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $orgUID     = $this->pageData['JwtData']->User->OrgUID;
+            $userUID    = $this->pageData['JwtData']->User->UserUID;
+            $filterUID  = (int) $this->input->post('CustomerUID');
+
+            $this->load->model('customers_model');
+
+            // Step 1: Fetch all customers (or a single one) with their ledger info
+            $customers = $this->customers_model->getCustomersWithLedgerForBalance($orgUID, $filterUID);
+
+            if (empty($customers)) {
+                throw new Exception('No customers found to update.');
+            }
+
+            $updated = 0;
+            $skipped = 0;
+            $errors  = [];
+
+            foreach ($customers as $cust) {
+                try {
+
+                    $custUID = (int) $cust->CustomerUID;
+
+                    // Step 2: Fetch transaction totals via model
+                    $totalInvoiced = $this->customers_model->getCustomerTotalInvoiced($orgUID, $custUID);
+                    $totalReceived = $this->customers_model->getCustomerTotalReceived($orgUID, $custUID);
+                    $totalReturned = $this->customers_model->getCustomerTotalReturned($orgUID, $custUID);
+
+                    // Step 3: Compute net balance
+                    // Opening balance from CustOpeningBalanceTbl (one row per customer, no year)
+                    $signedOpening = ($cust->OpeningBalType === 'Debit')
+                        ? (float)$cust->OpeningBalance
+                        : -(float)$cust->OpeningBalance;
+
+                    // net = opening + invoiced - received - returned
+                    $signedBalance  = round($signedOpening + $totalInvoiced - $totalReceived - $totalReturned, 2);
+                    $newBalance     = abs($signedBalance);
+                    $newBalanceType = ($signedBalance >= 0) ? 'Debit' : 'Credit';
+
+                    // Step 4: Persist — update ledger current balance + CustOpeningBalanceTbl pending balance.
+                    // DebitCreditAmount in CustomerTbl is the adjustment-delta field; do NOT overwrite it here.
+                    if (!empty($cust->LedgerUID)) {
+                        $this->customers_model->updateCustomerBalanceInLedger(
+                            $cust->LedgerUID, $newBalance, $newBalanceType, $userUID
+                        );
+                    }
+
+                    $this->customers_model->updateCustomerPendingBalance(
+                        $orgUID, $custUID, $newBalance, $newBalanceType, $userUID
+                    );
+
+                    $updated++;
+
+                } catch (Exception $innerEx) {
+                    $errors[] = 'CustomerUID ' . $cust->CustomerUID . ': ' . $innerEx->getMessage();
+                    $skipped++;
+                }
+            }
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = "Balance recalculated: {$updated} updated, {$skipped} skipped.";
+            $this->EndReturnData->Updated = $updated;
+            $this->EndReturnData->Skipped = $skipped;
+            if (!empty($errors)) {
+                $this->EndReturnData->Errors = $errors;
+            }
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    public function getCustomerBalance() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $orgUID      = $this->pageData['JwtData']->User->OrgUID;
+            $customerUID = (int) $this->input->get_post('CustomerUID');
+            if ($customerUID <= 0) throw new Exception('Invalid customer.');
+
+            $this->load->model('customers_model');
+
+            $custRows = $this->customers_model->getCustomersWithLedgerForBalance($orgUID, $customerUID);
+            if (empty($custRows)) throw new Exception('Customer not found.');
+
+            $cust          = $custRows[0];
+            $totalInvoiced = $this->customers_model->getCustomerTotalInvoiced($orgUID, $customerUID);
+            $totalReceived = $this->customers_model->getCustomerTotalReceived($orgUID, $customerUID);
+            $totalReturned = $this->customers_model->getCustomerTotalReturned($orgUID, $customerUID);
+
+            $signedOpening  = ($cust->OpeningBalType === 'Debit')
+                ? (float)$cust->OpeningBalance
+                : -(float)$cust->OpeningBalance;
+            $signedBalance  = round($signedOpening + $totalInvoiced - $totalReceived - $totalReturned, 2);
+            $balance        = abs($signedBalance);
+            $balanceType    = ($signedBalance >= 0) ? 'Debit' : 'Credit';
+
+            $this->EndReturnData->Error          = FALSE;
+            $this->EndReturnData->CustomerUID    = $customerUID;
+            $this->EndReturnData->Balance        = $balance;
+            $this->EndReturnData->BalanceType    = $balanceType;
+            $this->EndReturnData->Breakdown      = [
+                'OpeningBalance' => (float)$cust->OpeningBalance,
+                'OpeningBalType' => $cust->OpeningBalType,
+                'TotalInvoiced'  => $totalInvoiced,
+                'TotalReceived'  => $totalReceived,
+                'TotalReturned'  => $totalReturned,
+            ];
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
         $this->globalservice->sendJsonResponse($this->EndReturnData);
 
     }

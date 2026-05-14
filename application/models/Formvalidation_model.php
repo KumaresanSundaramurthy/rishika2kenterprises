@@ -455,10 +455,11 @@ class Formvalidation_model extends CI_Model {
             // Item name
             if (empty(trim($item['itemName'] ?? ''))) return "Row {$row}: Item name is required.";
 
-            // Quantity — must be positive integer
+            // Quantity — must be a positive number (decimals like 0.25 are allowed)
             $qty = $item['quantity'] ?? '';
-            if (!ctype_digit((string) $qty) || (int) $qty <= 0) {
-                return "Row {$row}: Quantity must be a positive whole number.";
+            $qtyVal = is_numeric($qty) ? (float) $qty : null;
+            if ($qtyVal === null || $qtyVal <= 0) {
+                return "Row {$row}: Quantity must be greater than zero.";
             }
 
             // Unit price (SellingPrice) — must be >= 0
@@ -476,7 +477,7 @@ class Formvalidation_model extends CI_Model {
             if ($taxPct < 0 || $taxPct > 100) {
                 return "Row {$row}: Tax percentage must be between 0 and 100.";
             }
-            if (!in_array($taxPercent, $validTaxPercents, true)) {
+            if (!in_array($taxPct, $validTaxPercents)) {
                 return "Row {$row}: Tax percentage {$taxPct}% is not a valid GST slab.";
             }
 

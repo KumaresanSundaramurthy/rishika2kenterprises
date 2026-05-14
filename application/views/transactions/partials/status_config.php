@@ -4,7 +4,7 @@
  * Include in every module's list.php partial.
  *
  * Expects: $moduleContext (string) = 'invoice' | 'purchase' | 'quotation' |
- *          'salesorder' | 'salesreturn' | 'creditnote' | 'purchasereturn' | 'debitnote'
+ *          'salesorder' | 'salesreturn' | 'purchasereturn'
  */
 
 $moduleContext = $moduleContext ?? 'invoice';
@@ -91,17 +91,9 @@ $statusTransitions = [
         'Draft'    => [['db' => 'Approved',  'label' => 'Approve Return']],
         'Approved' => [['db' => 'Cancelled', 'label' => 'Cancel']],
     ],
-    'creditnote'    => [
-        'Draft'  => [['db' => 'Issued',    'label' => 'Issue Credit Note']],
-        'Issued' => [['db' => 'Cancelled', 'label' => 'Cancel']],
-    ],
     'purchasereturn'=> [
         'Draft'    => [['db' => 'Approved',  'label' => 'Approve Return']],
         'Approved' => [['db' => 'Cancelled', 'label' => 'Cancel']],
-    ],
-    'debitnote'     => [
-        'Draft'  => [['db' => 'Issued',    'label' => 'Issue Debit Note']],
-        'Issued' => [['db' => 'Cancelled', 'label' => 'Cancel']],
     ],
 ];
 

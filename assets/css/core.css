@@ -269,3 +269,346 @@
 #categoryModalDialog.modal-md #DropzoneTwoBasic {
   max-height: 140px;
 }
+
+/* ── Global processing overlay (showUIBlock / hideUIBlock) ───────────────── */
+#globalProcOverlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 999999;
+  background: rgba(10, 15, 30, .18);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+#globalProcOverlay.proc-on {
+  display: flex;
+  animation: gpoFade .25s ease;
+}
+
+@keyframes gpoFade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.gpo-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  transform: translateY(-10px);
+}
+
+.gpo-orbit {
+  position: absolute;
+  width: 260px;
+  height: 260px;
+  border-radius: 50%;
+  animation: gpoRotate 8s linear infinite;
+  opacity: .9;
+}
+
+@keyframes gpoRotate {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.gpo-orbit::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1.5px solid transparent;
+  border-top: 1.5px solid rgba(255, 166, 0, .85);
+  border-right: 1.5px solid rgba(168, 85, 247, .75);
+  border-bottom: 1.5px solid rgba(59, 130, 246, .75);
+}
+
+.gpo-particle {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  box-shadow: 0 0 18px currentColor;
+}
+
+.gpo-p1 {
+  top: 18px;
+  left: 50%;
+  margin-left: -7px;
+  background: #ffb020;
+  color: #ffb020;
+}
+
+.gpo-p2 {
+  bottom: 40px;
+  left: 25px;
+  background: #a855f7;
+  color: #a855f7;
+}
+
+.gpo-p3 {
+  bottom: 28px;
+  right: 30px;
+  background: #3b82f6;
+  color: #3b82f6;
+}
+
+.gpo-logo-wrap{
+    position:relative;
+    width:110px;
+    height:110px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    /* margin-top:60px; */
+}
+
+.gpo-logo{
+    position:relative;
+    z-index:2;
+    width:86px;
+    height:86px;
+    object-fit:contain;
+    animation:gpoFloat 3s ease-in-out infinite;
+    filter:drop-shadow(0 0 14px rgba(249,115,22,.35));
+}
+
+@keyframes gpoFloat {
+  0%, 100% { transform: translateY(0px) scale(1); }
+  50%       { transform: translateY(-7px) scale(1.04); }
+}
+
+.gpo-logo-wrap::before {
+  content: "";
+  position: absolute;
+  inset: -18px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 166, 0, .16) 0%, rgba(168, 85, 247, .10) 35%, rgba(59, 130, 246, .08) 60%, transparent 75%);
+  animation: gpoPulse 2.8s ease-in-out infinite;
+}
+
+@keyframes gpoPulse {
+  0%, 100% { transform: scale(1);    opacity: .55; }
+  50%       { transform: scale(1.18); opacity: 1; }
+}
+.gpo-glow{
+    position:absolute;
+    inset:-16px;
+    border-radius:50%;
+    background:radial-gradient(circle,
+        rgba(249,115,22,.18) 0%,
+        rgba(168,85,247,.10) 40%,
+        transparent 72%);
+    animation:gpoGlow 2.2s ease-in-out infinite;
+}
+
+@keyframes gpoGlow{
+    0%,100%{
+        transform:scale(1);
+        opacity:.55;
+    }
+    50%{
+        transform:scale(1.18);
+        opacity:1;
+    }
+}
+.gpo-brand {
+  font-size: 3rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, .92);
+  letter-spacing: -0.03em;
+  line-height: 1;
+  /* margin-top: 8px; */
+  font-family: Inter, sans-serif;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, .12);
+}
+
+.gpo-ring{
+    position:absolute;
+    inset:-6px;
+    border-radius:50%;
+    background:conic-gradient(
+        from 0deg,
+        #f97316 0%,
+        #ef4444 22%,
+        #a855f7 45%,
+        #3b82f6 70%,
+        #10b981 88%,
+        #f97316 100%
+    );
+    animation:gpoSpin 2.2s linear infinite;
+}
+
+.gpo-ring::after{
+    content:'';
+    position:absolute;
+    inset:4px;
+    border-radius:50%;
+    background:rgba(10,15,30,.92);
+}
+
+.gpo-label {
+  font-size: .88rem;
+  font-weight: 500;
+  letter-spacing: .45em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, .58);
+  margin-top: -2px;
+  font-family: Inter, sans-serif;
+}
+
+.gpo-loader {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, .15);
+  border-top-color: #ff9f43;
+  animation: gpoSpin 1s linear infinite;
+  /* margin-top: 8px; */
+}
+
+@keyframes gpoSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Sticky pagination bar (Customer list page) ─────────────────────── */
+
+/* Shared violet-tint token used by both the sticky pagination and page header */
+:root {
+  --r2k-violet-bg:     #f8f7ff;
+  --r2k-violet-border: #d4d0f5;
+  --r2k-violet-accent: #6366f1;
+  --r2k-violet-text:   #5b5ea6;
+}
+
+.cust-sticky-pag {
+  position: sticky;
+  bottom: 0;
+  z-index: 1030;
+  background: var(--r2k-violet-bg);
+  border: 1px solid var(--r2k-violet-border);
+  border-radius: 10px;
+  box-shadow: 0 -2px 10px rgba(99, 102, 241, .12);
+  margin-top: 6px;
+}
+
+/* Tighten the inner row so the bar stays slim */
+.cust-sticky-pag .row {
+  margin-top: 5px !important;
+  margin-bottom: 5px !important;
+}
+
+/* Compact pagination links inside the sticky bar */
+.cust-sticky-pag .pagination {
+  margin-bottom: 0;
+  gap: 2px;
+}
+.cust-sticky-pag .page-item .page-link {
+  padding: 3px 9px;
+  font-size: .78rem;
+  line-height: 1.4;
+  border-radius: 6px !important;
+  color: var(--r2k-violet-text);
+  border-color: var(--r2k-violet-border);
+  background: #fff;
+}
+.cust-sticky-pag .page-item.active .page-link {
+  background: var(--r2k-violet-accent);
+  border-color: var(--r2k-violet-accent);
+  color: #fff;
+}
+.cust-sticky-pag .page-item.disabled .page-link {
+  color: #b0aed8;
+  border-color: #e8e7f8;
+  background: #f3f2fc;
+}
+.cust-sticky-pag .page-item .page-link:hover:not(.active) {
+  background: #ede9fe;
+  border-color: #a5b4fc;
+  color: #4338ca;
+}
+
+/* Result count text inside the sticky bar */
+.cust-sticky-pag .col-sm-6:first-child {
+  font-size: .78rem;
+  color: var(--r2k-violet-accent);
+  font-weight: 500;
+}
+
+/* ── Page header (shared list pages — Customers, Vendors, etc.) ──────────── */
+.trans-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: var(--r2k-violet-bg);
+  border-radius: 12px;
+  padding: 5px 5px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 8px rgba(0, 0, 0, .07);
+  border: 1px solid var(--r2k-violet-border);
+}
+
+.trans-ph-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.trans-ph-icon i { font-size: 1.5rem; }
+
+.trans-ph-title {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #1a2232;
+  letter-spacing: .8px;
+  text-transform: uppercase;
+  margin: 0;
+  line-height: 1.2;
+}
+
+/* Page header icon — module-specific colour helpers */
+.ph-icon-customers {
+  background: rgba(99, 102, 241, .13);
+}
+.ph-icon-customers i {
+  color: var(--r2k-violet-accent);
+}
+
+.ph-icon-vendors {
+  background: rgba(245, 158, 11, .13);
+}
+.ph-icon-vendors i {
+  color: #f59e0b;
+}
+
+.ph-icon-products {
+  background: rgba(16, 185, 129, .13);
+}
+.ph-icon-products i {
+  color: #10b981;
+}
+
+.ph-icon-storage {
+  background: rgba(14, 165, 233, .13);
+}
+.ph-icon-storage i {
+  color: #0ea5e9;
+}
+
+.ph-icon-users {
+  background: rgba(139, 92, 246, .13);
+}
+.ph-icon-users i {
+  color: #8b5cf6;
+}

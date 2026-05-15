@@ -162,9 +162,9 @@ class Launch extends CI_Controller {
 
             $sent = $this->email->send(false);
             if (!$sent) {
-                $smtpLog = $this->email->print_debugger(['headers', 'subject', 'body']);
-                log_message('error', '[Enquiry] SMTP failure — ' . $smtpLog);
-                throw new Exception('Failed to send email. Please try again.');
+                $smtpLog = $this->email->print_debugger();
+                error_log('[Enquiry SMTP ERROR] ' . $smtpLog);
+                throw new Exception('[DEBUG] ' . substr(strip_tags($smtpLog), 0, 500));
             }
 
             $response->Error   = false;

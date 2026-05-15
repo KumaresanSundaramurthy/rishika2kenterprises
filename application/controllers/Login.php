@@ -433,31 +433,15 @@ class Login extends CI_Controller {
 </table>
 </body></html>';
 
-            $this->load->library('email');
-            $this->email->initialize([
-                'protocol'    => 'smtp',
-                'smtp_host'   => getenv('MAIL_HOST')     ?: 'smtp-relay.brevo.com',
-                'smtp_port'   => (int)(getenv('MAIL_PORT') ?: 587),
-                'smtp_user'   => getenv('MAIL_USERNAME')  ?: '',
-                'smtp_pass'   => getenv('MAIL_PASSWORD')  ?: '',
-                'smtp_crypto' => 'tls',
-                'mailtype'    => 'html',
-                'charset'     => 'utf-8',
-                'newline'     => "\r\n",
-            ]);
-
-            $this->email->clear();
-            $this->email->from(
-                getenv('MAIL_FROM_EMAIL') ?: 'noreply@rishika2kenterprises.com',
-                getenv('MAIL_FROM_NAME')  ?: 'Rishika 2K Enterprises'
+            $this->_sendViaBrevoApi(
+                $user->EmailAddress,
+                $user->FirstName ?? 'User',
+                'Password Reset — Rishika 2K Enterprises',
+                $body
             );
-            $this->email->to($user->EmailAddress);
-            $this->email->subject('Password Reset — Rishika 2K Enterprises');
-            $this->email->message($body);
-            $this->email->send(false);
 
         } catch (Exception $e) {
-            log_message('error', '[ForgotPassword] Email send failed: ' . $e->getMessage());
+            error_log('[ForgotPassword] Email send failed: ' . $e->getMessage());
         }
     }
 
@@ -515,31 +499,54 @@ class Login extends CI_Controller {
 </table>
 </body></html>';
 
-            $this->load->library('email');
-            $this->email->initialize([
-                'protocol'    => 'smtp',
-                'smtp_host'   => getenv('MAIL_HOST')     ?: 'smtp-relay.brevo.com',
-                'smtp_port'   => (int)(getenv('MAIL_PORT') ?: 587),
-                'smtp_user'   => getenv('MAIL_USERNAME')  ?: '',
-                'smtp_pass'   => getenv('MAIL_PASSWORD')  ?: '',
-                'smtp_crypto' => 'tls',
-                'mailtype'    => 'html',
-                'charset'     => 'utf-8',
-                'newline'     => "\r\n",
-            ]);
-
-            $this->email->clear();
-            $this->email->from(
-                getenv('MAIL_FROM_EMAIL') ?: 'noreply@rishika2kenterprises.com',
-                getenv('MAIL_FROM_NAME')  ?: 'Rishika 2K Enterprises'
+            $this->_sendViaBrevoApi(
+                $email,
+                $tokenInfo->FirstName ?? 'User',
+                'Your Password Has Been Changed — Rishika 2K Enterprises',
+                $body
             );
-            $this->email->to($email);
-            $this->email->subject('Your Password Has Been Changed — Rishika 2K Enterprises');
-            $this->email->message($body);
-            $this->email->send(false);
 
         } catch (Exception $e) {
-            log_message('error', '[PasswordChanged] Email send failed: ' . $e->getMessage());
+            error_log('[PasswordChanged] Email send failed: ' . $e->getMessage());
+        }
+    }
+
+    private function _sendViaBrevoApi(string $toEmail, string $toName, string $subject, string $htmlBody): void {
+        $apiKey    = getenv('BREVO_API_KEY');
+        $fromEmail = getenv('MAIL_FROM_EMAIL') ?: 'noreply@rishika2kenterprises.com';
+        $fromName  = getenv('MAIL_FROM_NAME')  ?: 'Rishika 2K Enterprises';
+
+        $payload = json_encode([
+            'sender'      => ['name' => $fromName, 'email' => $fromEmail],
+            'to'          => [['email' => $toEmail, 'name' => $toName]],
+            'subject'     => $subject,
+            'htmlContent' => $htmlBody,
+        ]);
+
+        $ch = curl_init('https://api.brevo.com/v3/smtp/email');
+        curl_setopt_array($ch, [
+            CURLOPT_POST           => true,
+            CURLOPT_POSTFIELDS     => $payload,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => 15,
+            CURLOPT_HTTPHEADER     => [
+                'api-key: ' . $apiKey,
+                'Content-Type: application/json',
+                'Accept: application/json',
+            ],
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlErr  = curl_error($ch);
+        curl_close($ch);
+
+        if ($curlErr) {
+            throw new Exception('Email delivery failed: ' . $curlErr);
+        }
+        if ($httpCode < 200 || $httpCode >= 300) {
+            error_log('[Brevo API Error] HTTP ' . $httpCode . ': ' . $response);
+            throw new Exception('Email delivery failed (HTTP ' . $httpCode . ').');
         }
     }
 

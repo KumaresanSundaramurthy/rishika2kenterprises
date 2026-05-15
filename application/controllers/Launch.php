@@ -141,31 +141,7 @@ class Launch extends CI_Controller {
 </body>
 </html>';
 
-            $this->load->library('email');
-            $this->email->initialize([
-                'protocol'    => 'smtp',
-                'smtp_host'   => getenv('MAIL_HOST')     ?: 'smtp-relay.brevo.com',
-                'smtp_port'   => (int)(getenv('MAIL_PORT') ?: 587),
-                'smtp_user'   => getenv('MAIL_USERNAME')  ?: '',
-                'smtp_pass'   => getenv('MAIL_PASSWORD')  ?: '',
-                'smtp_crypto' => 'tls',
-                'mailtype'    => 'html',
-                'charset'     => 'utf-8',
-                'newline'     => "\r\n",
-            ]);
-
-            $this->email->clear();
-            $this->email->from(getenv('MAIL_FROM_EMAIL'), getenv('MAIL_FROM_NAME') ?: 'Rishika2K Enterprises');
-            $this->email->to('rishika2kenterprises@gmail.com');
-            $this->email->subject($subject);
-            $this->email->message($htmlBody);
-
-            $sent = $this->email->send(false);
-            if (!$sent) {
-                $smtpLog = $this->email->print_debugger();
-                error_log('[Enquiry SMTP ERROR] ' . $smtpLog);
-                throw new Exception('[DEBUG] ' . substr(strip_tags($smtpLog), 0, 500));
-            }
+            $this->_sendViaBrevoApi('rishika2kenterprises@gmail.com', 'Rishika 2K Enterprises', $subject, $htmlBody);
 
             $response->Error   = false;
             $response->Message = 'Enquiry sent successfully!';
@@ -182,6 +158,45 @@ class Launch extends CI_Controller {
             ->_display();
         exit;
 
+    }
+
+    private function _sendViaBrevoApi(string $toEmail, string $toName, string $subject, string $htmlBody): void {
+        $apiKey    = getenv('BREVO_API_KEY');
+        $fromEmail = getenv('MAIL_FROM_EMAIL') ?: 'noreply@rishika2kenterprises.com';
+        $fromName  = getenv('MAIL_FROM_NAME')  ?: 'Rishika 2K Enterprises';
+
+        $payload = json_encode([
+            'sender'      => ['name' => $fromName, 'email' => $fromEmail],
+            'to'          => [['email' => $toEmail, 'name' => $toName]],
+            'subject'     => $subject,
+            'htmlContent' => $htmlBody,
+        ]);
+
+        $ch = curl_init('https://api.brevo.com/v3/smtp/email');
+        curl_setopt_array($ch, [
+            CURLOPT_POST           => true,
+            CURLOPT_POSTFIELDS     => $payload,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => 15,
+            CURLOPT_HTTPHEADER     => [
+                'api-key: ' . $apiKey,
+                'Content-Type: application/json',
+                'Accept: application/json',
+            ],
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlErr  = curl_error($ch);
+        curl_close($ch);
+
+        if ($curlErr) {
+            throw new Exception('Email delivery failed: ' . $curlErr);
+        }
+        if ($httpCode < 200 || $httpCode >= 300) {
+            error_log('[Brevo API Error] HTTP ' . $httpCode . ': ' . $response);
+            throw new Exception('Email delivery failed (HTTP ' . $httpCode . ').');
+        }
     }
 
 }

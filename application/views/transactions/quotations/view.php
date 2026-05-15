@@ -116,9 +116,6 @@ $this->load->view('common/transactions/header'); ?>
                             <div class="trans-toolbar-tabs">
                                 <ul class="nav trans-status-tabs" id="quotStatusTabs" role="tablist">
                                     <li class="nav-item"><a class="nav-link active quot-status-tab" data-status="All" href="javascript:void(0);">All <span class="trans-tab-count"><?php echo $ModAllCount; ?></span></a></li>
-                                    <li class="nav-item"><a class="nav-link quot-status-tab" data-status="Open" href="javascript:void(0);">Open <span class="trans-tab-count d-none"></span></a></li>
-                                    <li class="nav-item"><a class="nav-link quot-status-tab" data-status="Accepted" href="javascript:void(0);">Accepted <span class="trans-tab-count d-none"></span></a></li>
-                                    <li class="nav-item"><a class="nav-link quot-status-tab" data-status="Converted" href="javascript:void(0);">Converted <span class="trans-tab-count d-none"></span></a></li>
                                     <li class="nav-item"><a class="nav-link quot-status-tab" data-status="Cancelled" href="javascript:void(0);">Cancelled <?php if ($cntCancelled > 0): ?><span class="trans-tab-count"><?php echo $cntCancelled; ?></span><?php else: ?><span class="trans-tab-count d-none"></span><?php endif; ?></a></li>
                                     <li class="nav-item"><a class="nav-link quot-status-tab" data-status="Draft" href="javascript:void(0);">Draft <span class="trans-tab-count d-none"></span></a></li>
                                 </ul>
@@ -157,7 +154,10 @@ $this->load->view('common/transactions/header'); ?>
                                         <th class="col-sortable cursor-pointer user-select-none" data-sort="Amount">
                                             Amount <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Amount"></i>
                                         </th>
-                                        <th>Status</th>
+                                        <th>
+                                            Status
+                                            <a href="javascript:void(0);" id="quotStatusFilter" class="text-body ms-1" onclick="toggleQuotStatusFilter(); event.stopPropagation();" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by Status"><i class="bx bx-filter-alt fs-6 align-middle"></i></a>
+                                        </th>
                                         <th>Customer</th>
                                         <th class="col-sortable cursor-pointer user-select-none" data-sort="Date">
                                             Valid Until <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Date"></i>
@@ -174,7 +174,7 @@ $this->load->view('common/transactions/header'); ?>
 
                         <!-- Pagination -->
                         <hr class="my-0">
-                        <div class="row mx-3 my-2 justify-content-between align-items-center quotPagination" id="quotPagination">
+                        <div class="row mx-3 my-1 justify-content-between align-items-center quotPagination" id="quotPagination">
                             <?php echo $ModPagination ?: ''; ?>
                         </div>
 
@@ -182,16 +182,43 @@ $this->load->view('common/transactions/header'); ?>
 
                     <?php $this->load->view('common/transactions/print_modals'); ?>
 
+                    <!-- Sticky pagination -->
+                    <div class="card mb-0 cust-sticky-pag" id="quotStickyPagination" style="display:none;">
+                        <div class="card-body p-0">
+                            <div class="row mx-3 my-1 justify-content-between align-items-center quotPagination"></div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
+
+            <?php $this->load->view('common/modals/send_communication'); ?>
 
             <?php $this->load->view('common/footer_desc'); ?>
         </div>
     </div>
 </div>
 
+<!-- Quotation Status Filter Box (body-level to avoid overflow clipping) -->
+<div id="quotStatusFilterBox" class="card mp-filterbox" style="min-width:200px;z-index:9999;display:none;position:fixed;">
+    <div class="catg-filter-header">
+        <span class="catg-filter-title"><i class="bx bx-transfer me-1"></i> Status</span>
+        <button type="button" class="catg-filter-close-btn" onclick="closeQuotStatusFilter()" title="Close">&times;</button>
+    </div>
+    <div id="quotStatusList" class="catg-list" style="max-height:200px;">
+        <label class="catg-list-item"><input class="form-check-input quot-status-chk" type="checkbox" value="Pending"> <span>Pending</span></label>
+        <label class="catg-list-item"><input class="form-check-input quot-status-chk" type="checkbox" value="Accepted"> <span>Accepted</span></label>
+        <label class="catg-list-item"><input class="form-check-input quot-status-chk" type="checkbox" value="Converted"> <span>Converted</span></label>
+    </div>
+    <div class="catg-filter-footer">
+        <button type="button" class="btn btn-primary" onclick="applyQuotStatusFilter()"><i class="bx bx-check me-1"></i>Apply</button>
+        <button type="button" class="btn btn-outline-secondary" onclick="resetQuotStatusFilter()"><i class="bx bx-reset me-1"></i>Reset</button>
+    </div>
+</div>
+
 <?php $this->load->view('common/transactions/footer'); ?>
 
+<script src="/js/common/communication.js"></script>
 <script src="/js/transactions/viewmodal.js"></script>
 <script src="/js/transactions/a4_print.js"></script>
 <script src="/js/transactions/quotations.js"></script>
@@ -208,14 +235,52 @@ $(function () {
 
     Filter['Status'] = 'All';
 
+    // ── Sticky pagination ──
+    var $quotStaticPag = $('#quotPagination');
+    var $quotStickyPag = $('#quotStickyPagination');
+    function _syncQuotSticky() { $quotStickyPag.find('.quotPagination').html($quotStaticPag.html()); }
+    function _toggleQuotSticky() {
+        if (!$quotStaticPag.length) return;
+        var r = $quotStaticPag[0].getBoundingClientRect();
+        var visible = r.top < $(window).height() && r.bottom > 0;
+        if (visible) { $quotStickyPag.stop(true,true).fadeOut(150); }
+        else { _syncQuotSticky(); $quotStickyPag.stop(true,true).fadeIn(150); }
+    }
+    $(window).on('scroll resize', _toggleQuotSticky);
+    _toggleQuotSticky();
+
     // ── Stat card click ─────────────────────────────────────
     $(document).on('click', '[data-stat-filter]', function () {
-        var status = $(this).data('stat-filter') || 'All';
+        var statFilter = $(this).data('stat-filter') || 'All';
         $('.trans-stat-card').removeClass('active-stat');
         $(this).addClass('active-stat');
-        $('.quot-status-tab').removeClass('active');
-        $('.quot-status-tab[data-status="' + status + '"]').addClass('active');
-        Filter.Status = status;
+        // Always clear column status filter UI when clicking a stat card
+        $('.quot-status-chk').prop('checked', false);
+        $('#quotStatusFilter').removeClass('text-primary');
+        delete Filter['StatusList'];
+        if (statFilter === 'Cancelled' || statFilter === 'Draft') {
+            Filter.Status = statFilter;
+            $('.quot-status-tab').removeClass('active');
+            $('.quot-status-tab[data-status="' + statFilter + '"]').addClass('active');
+        } else if (statFilter === 'Open') {
+            Filter.Status = 'All';
+            Filter['StatusList'] = ['Pending'];
+            $('.quot-status-chk[value="Pending"]').prop('checked', true);
+            $('#quotStatusFilter').addClass('text-primary');
+            $('.quot-status-tab').removeClass('active');
+            $('.quot-status-tab[data-status="All"]').addClass('active');
+        } else if (statFilter === 'Accepted' || statFilter === 'Converted') {
+            Filter.Status = 'All';
+            Filter['StatusList'] = [statFilter];
+            $('.quot-status-chk[value="' + statFilter + '"]').prop('checked', true);
+            $('#quotStatusFilter').addClass('text-primary');
+            $('.quot-status-tab').removeClass('active');
+            $('.quot-status-tab[data-status="All"]').addClass('active');
+        } else {
+            Filter.Status = 'All';
+            $('.quot-status-tab').removeClass('active');
+            $('.quot-status-tab[data-status="All"]').addClass('active');
+        }
         PageNo = 1;
         getQuotationsDetails();
     });
@@ -229,6 +294,10 @@ $(function () {
         var status = $(this).data('status') || 'All';
         $('[data-stat-filter="' + status + '"]').addClass('active-stat');
         Filter.Status = status;
+        // Clear column status filter when switching tabs
+        delete Filter['StatusList'];
+        $('.quot-status-chk').prop('checked', false);
+        $('#quotStatusFilter').removeClass('text-primary');
         PageNo = 1;
         getQuotationsDetails();
     });
@@ -365,6 +434,34 @@ $(function () {
 
     $(document).on('change', '.quotHeaderCheck', function () {
         $('.quotationCheck').prop('checked', $(this).is(':checked'));
+    });
+
+    // ── Status column filter ─────────────────────────────────
+    window.toggleQuotStatusFilter = function () {
+        var $box = $('#quotStatusFilterBox');
+        if ($box.is(':visible')) { $box.hide(); return; }
+        var rect = document.getElementById('quotStatusFilter').getBoundingClientRect();
+        $box.css({ top: (rect.bottom + 4) + 'px', left: rect.left + 'px' }).show();
+    };
+    window.closeQuotStatusFilter = function () { $('#quotStatusFilterBox').hide(); };
+    window.applyQuotStatusFilter = function () {
+        var selected = $('.quot-status-chk:checked').map(function () { return $(this).val(); }).get();
+        if (selected.length) Filter['StatusList'] = selected; else delete Filter['StatusList'];
+        $('#quotStatusFilterBox').hide();
+        $('#quotStatusFilter').toggleClass('text-primary', !!selected.length);
+        PageNo = 1;
+        getQuotationsDetails();
+    };
+    window.resetQuotStatusFilter = function () {
+        $('.quot-status-chk').prop('checked', false);
+        delete Filter['StatusList'];
+        $('#quotStatusFilterBox').hide();
+        $('#quotStatusFilter').removeClass('text-primary');
+        PageNo = 1;
+        getQuotationsDetails();
+    };
+    $(document).on('click', function (e) {
+        if (!$(e.target).closest('#quotStatusFilterBox, #quotStatusFilter').length) $('#quotStatusFilterBox').hide();
     });
 
 });

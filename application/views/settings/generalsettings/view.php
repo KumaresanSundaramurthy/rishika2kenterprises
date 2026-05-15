@@ -16,6 +16,16 @@
 
                 <div class="container-xxl flex-grow-1 container-p-y">
 
+                    <!-- ── Page Header ── -->
+                    <div class="trans-page-header">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="trans-ph-icon" style="background:#e0f2fe;">
+                                <i class="bx bx-cog" style="color:#0284c7;"></i>
+                            </div>
+                            <h5 class="trans-ph-title">Settings</h5>
+                        </div>
+                    </div>
+
                     <div class="card">
 
                         <!-- ============================================================

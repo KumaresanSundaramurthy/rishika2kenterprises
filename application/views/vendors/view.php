@@ -231,6 +231,9 @@
     </div>
 </div>
 
+<!-- Filter boxes (body-level to avoid overflow clipping) -->
+<div id="vendTagFilterBox" class="card mp-filterbox" style="min-width:220px;z-index:9999;display:none;position:fixed;"><?php $this->load->view('vendors/tagfilter', ['Tags' => $Tags]); ?></div>
+
 <?php $this->load->view('common/footer'); ?>
 
 <script src="/js/vendors.js"></script>
@@ -403,7 +406,9 @@ $(function() {
     // ── Tag filter ──
     window.toggleVendTagFilter = function () {
         var $box = $('#vendTagFilterBox');
-        $box.toggle();
+        if ($box.is(':visible')) { $box.hide(); return; }
+        var rect = document.getElementById('vendTagFilter').getBoundingClientRect();
+        $box.css({ top: (rect.bottom + 4) + 'px', left: rect.left + 'px' }).show();
     };
     window.closeVendTagFilter = function () { $('#vendTagFilterBox').hide(); };
     window.toggleAllVendTags = function (el) {

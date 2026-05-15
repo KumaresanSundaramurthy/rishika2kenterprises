@@ -254,7 +254,7 @@ class Globally extends CI_Controller {
                     $this->pageData['List'] = $DataResp->DataLists;
                     $this->pageData['previewName'] = isset($_GET['previewName']) ? $_GET['previewName'] : 'Details';
 
-                    $this->pageData['JwtData']->GenSettings = ($this->redis_cache->get('Redis_UserGenSettings')->Value) ?? new stdClass();
+                    $this->pageData['JwtData']->GenSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
 
                     $this->EndReturnData->Error = FALSE;
                     $this->EndReturnData->HtmlData = $this->load->view('common/print/printpreview', $this->pageData, TRUE);
@@ -308,7 +308,7 @@ class Globally extends CI_Controller {
                         $FileName = isset($_GET['FileName']) ? $_GET['FileName'] : 'NewFile';
                         $SheetName = isset($_GET['SheetName']) ? $_GET['SheetName'] : 'NewSheet';
 
-                        $GeneralSettings = ($this->redis_cache->get('Redis_UserGenSettings')->Value) ?? new stdClass();
+                        $GeneralSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
                         $this->pageData['JwtData']->GenSettings = $GeneralSettings;
                         
                         if($Type == 'CSV') {

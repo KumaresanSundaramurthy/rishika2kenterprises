@@ -180,7 +180,9 @@ $(document).ready(function () {
         if (!target) return;
         var $target = $(target);
         $('.mp-filterbox').not($target).hide();
-        $target.toggle();
+        if ($target.is(':visible')) { $target.hide(); return; }
+        var rect = this.getBoundingClientRect();
+        $target.css({ top: (rect.bottom + 4) + 'px', left: rect.left + 'px' }).show();
     });
 
     $(document).on('click', '.mp-filterbox', function(e) {
@@ -1370,3 +1372,19 @@ function toastSuccess(msg) {
 function toastError(msg) {
     Swal.fire({ toast: true, position: 'top-end', icon: 'error', title: msg, showConfirmButton: false, timer: 3000 });
 }
+
+// ── Auto-dropup for 3-dot actions menus ──────────────────────────────────
+// When the dropdown would overflow the bottom of the viewport, flip it upward.
+$(document).on('show.bs.dropdown', '.dropdown', function () {
+    var $toggle = $(this).find('.trans-actions-btn');
+    if (!$toggle.length) return;
+    var $menu   = $(this).find('.dropdown-menu');
+    var rect    = $toggle[0].getBoundingClientRect();
+    var menuH   = $menu.outerHeight(true) || 260;
+    var spaceBelow = window.innerHeight - rect.bottom;
+    if (spaceBelow < menuH) {
+        $(this).addClass('dropup');
+    } else {
+        $(this).removeClass('dropup');
+    }
+});

@@ -12,6 +12,16 @@
             <div class="content-wrapper">
                 <div class="container-xxl flex-grow-1 container-p-y">
 
+                    <!-- ── Page Header ── -->
+                    <div class="trans-page-header">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="trans-ph-icon ph-icon-users">
+                                <i class="bx bx-shield-alt-2"></i>
+                            </div>
+                            <h5 class="trans-ph-title">Roles &amp; Permissions</h5>
+                        </div>
+                    </div>
+
                     <div class="row g-3">
 
                         <!-- ── Left panel: role list ────────────────────────────── -->

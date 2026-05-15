@@ -21,13 +21,18 @@
 
                     <input type="hidden" name="userUid" id="HuserUid" value="<?php echo isset($userInfo->UserUID) ? $userInfo->UserUID : ''; ?>" />
 
-                    <div class="card mb-3">
-                        <div class="card-header modal-header-center-sticky d-flex justify-content-between align-items-center mb-3">
-                            <h5 class="modal-title">Profile Details</h5>
-                            <div class="d-flex align-items-center gap-2" id="mainActionBar">
-                                <button type="submit" class="btn btn-primary me-2">Update</button>
+                    <!-- ── Page Header ── -->
+                    <div class="trans-page-header">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="trans-ph-icon ph-icon-users">
+                                <i class="bx bx-user-circle"></i>
                             </div>
+                            <h5 class="trans-ph-title">Profile</h5>
                         </div>
+                        <button type="submit" class="btn btn-primary"><i class="bx bx-save me-1"></i>Update</button>
+                    </div>
+
+                    <div class="card mb-3">
                         <div class="card-body">
                             <div class="row">
                                 <div class="col-md-3 d-flex justify-content-center align-items-center">

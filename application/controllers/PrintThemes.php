@@ -98,7 +98,7 @@ class PrintThemes extends CI_Controller {
 
         try {
 
-            $GeneralSettings = $this->redis_cache->get('Redis_UserGenSettings')->Value ?? NULL;
+            $GeneralSettings = $this->redisservice->getUserCache('settings') ?? NULL;
             $this->pageData['JwtData']->GenSettings = $GeneralSettings;
 
             $activeTab = $this->sanitizeTabInput($this->input->get('tab', TRUE));

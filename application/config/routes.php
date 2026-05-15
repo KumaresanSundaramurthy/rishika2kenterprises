@@ -56,6 +56,12 @@ $route['translate_uri_dashes'] = FALSE;
 // Public receipt page (no login required)
 $route['receipt/(:any)'] = 'receipt/index/$1';
 
+// Cache API (authenticated)
+$route['cache/get']     = 'cache/get';
+$route['cache/set']     = 'cache/set';
+$route['cache/delete']  = 'cache/delete';
+$route['cache/refresh'] = 'cache/refresh';
+
 // Login
 $route['portal'] = 'login/login';
 $route['logout'] = 'login/logout';

@@ -14,13 +14,13 @@ class Customers extends CI_Controller {
         if (isset($this->pageData['ModuleId'])) return;
 
         $controllerName = strtolower($this->router->fetch_class());
-        $getModuleInfo  = $this->redis_cache->get('Redis_UserModuleInfo')->Value ?? [];
+        $getModuleInfo  = $this->redisservice->getUserCache('modules') ?? [];
 
         // Cache miss — fall back to ModuleInfo embedded in the JWT payload
         if (empty($getModuleInfo)) {
             $getModuleInfo = $this->pageData['JwtData']->ModuleInfo ?? [];
             if (!empty($getModuleInfo)) {
-                $this->redis_cache->set('Redis_UserModuleInfo', $getModuleInfo, getenv('LOGIN_EXPIRE_SECS') ?: 3600);
+                $this->redisservice->setUserCache('modules', $this->pageData['JwtData']->User->UserUID, $getModuleInfo, (int)(getenv('LOGIN_EXPIRE_SECS') ?: 3600));
             }
         }
 
@@ -33,7 +33,7 @@ class Customers extends CI_Controller {
         $this->pageData['ModColumnData']         = $ModuleInfo[0]->DispViewColumns ?? [];
         $this->pageData['DispSettColumnDetails'] = $ModuleInfo[0]->DispSettingsViewColumns ?? [];
 
-        $GeneralSettings = ($this->redis_cache->get('Redis_UserGenSettings')->Value) ?? new stdClass();
+        $GeneralSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
         $this->pageData['JwtData']->GenSettings = $GeneralSettings;
         $this->pageData['Limit'] = $GeneralSettings->RowLimit ?? 10;
     }

@@ -60,7 +60,7 @@ class Organisation extends CI_Controller {
             $TimezoneInfo = $this->global_model->getTimezoneDetails([]);
             $this->pageData['TimezoneInfo'] = $TimezoneInfo->Error === FALSE ? $TimezoneInfo->Data : [];
             
-            $GeneralSettings = $this->redis_cache->get('Redis_UserGenSettings')->Value ?? new stdClass();
+            $GeneralSettings = $this->redisservice->getUserCache('settings') ?? new stdClass();
             $this->pageData['JwtData']->GenSettings = $GeneralSettings;
             $this->load->view('organisation/view', $this->pageData);
 

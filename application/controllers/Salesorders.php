@@ -20,7 +20,7 @@ class Salesorders extends CI_Controller {
 
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
 
-            $GeneralSettings = ($this->redis_cache->get('Redis_UserGenSettings')->Value) ?? new stdClass();
+            $GeneralSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
             $limit = $GeneralSettings->RowLimit ?? 10;
             $this->pageData['JwtData']->GenSettings = $GeneralSettings;
             $this->pageData['DiscTypeInfo'] = [];
@@ -60,7 +60,7 @@ class Salesorders extends CI_Controller {
             $allData = $this->transactions_model->getTransactionPageList($limit, $offset, $this->pageModuleUID, $filter, 0);
             $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, $filter);
 
-            $this->pageData['JwtData']->GenSettings = ($this->redis_cache->get('Redis_UserGenSettings')->Value) ?? new stdClass();
+            $this->pageData['JwtData']->GenSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
 
             $rowHtml = $this->load->view('transactions/salesorders/list', [
                 'DataLists'    => $allData,
@@ -181,6 +181,7 @@ class Salesorders extends CI_Controller {
                 'TotalItems'            => count($items),
                 'GrossAmount'           => $subTotal + $discountAmount,
                 'SubTotal'              => $subTotal,
+                'TaxableAmount'         => $subTotal,
                 'DiscountAmount'        => $discountAmount,
                 'AdditionalCharges'     => $additionalChargesTotal,
                 'TaxAmount'             => $taxAmount,
@@ -349,6 +350,7 @@ class Salesorders extends CI_Controller {
                 'QuotationType'     => getPostValue($PostData, 'orderType') ?: NULL,
                 'GrossAmount'       => $subTotal + $discountAmount,
                 'SubTotal'          => $subTotal,
+                'TaxableAmount'     => $subTotal,
                 'DiscountAmount'    => $discountAmount,
                 'AdditionalCharges' => $additionalChargesTotal,
                 'TaxAmount'         => $taxAmount,
@@ -557,7 +559,7 @@ class Salesorders extends CI_Controller {
             $filter  = $this->input->post('Filter') ?: [];
             $offset  = ($pageNo - 1) * $limit;
 
-            $this->pageData['JwtData']->GenSettings = ($this->redis_cache->get('Redis_UserGenSettings')->Value) ?? new stdClass();
+            $this->pageData['JwtData']->GenSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
             $allData      = $this->transactions_model->getTransactionPageList($limit, $offset, $this->pageModuleUID, $filter, 0);
             $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, $filter);
 
@@ -859,7 +861,7 @@ class Salesorders extends CI_Controller {
             $filter  = $this->input->post('Filter') ?: [];
             $offset  = ($pageNo - 1) * $limit;
 
-            $this->pageData['JwtData']->GenSettings = ($this->redis_cache->get('Redis_UserGenSettings')->Value) ?? new stdClass();
+            $this->pageData['JwtData']->GenSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
             $allData      = $this->transactions_model->getTransactionPageList($limit, $offset, $this->pageModuleUID, $filter, 0);
             $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, $filter);
 
@@ -993,7 +995,7 @@ class Salesorders extends CI_Controller {
 
         try {
 
-            $GeneralSettings = $this->redis_cache->get('Redis_UserGenSettings')->Value ?? NULL;
+            $GeneralSettings = $this->redisservice->getUserCache('settings') ?? NULL;
             $this->pageData['JwtData']->GenSettings = $GeneralSettings;
 
             $orgUID = $this->pageData['JwtData']->User->OrgUID;
@@ -1075,7 +1077,7 @@ class Salesorders extends CI_Controller {
             $transUID = (int) $transUID;
             if ($transUID <= 0) redirect('salesorders', 'refresh');
 
-            $GeneralSettings = $this->redis_cache->get('Redis_UserGenSettings')->Value ?? NULL;
+            $GeneralSettings = $this->redisservice->getUserCache('settings') ?? NULL;
             $this->pageData['JwtData']->GenSettings = $GeneralSettings;
 
             $orgUID = $this->pageData['JwtData']->User->OrgUID;

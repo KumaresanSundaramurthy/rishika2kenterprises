@@ -75,13 +75,11 @@ $statusTransitions = [
         ],
         'Pending'  => [
             ['db' => 'Accepted',  'label' => 'Mark as Accepted'],
-            ['db' => 'Cancelled', 'label' => 'Cancel Quotation'],
         ],
         'Accepted' => [
             ['db' => 'Converted', 'label' => 'Convert to Invoice',     'target' => 'Invoice'],
             ['db' => 'Converted', 'label' => 'Convert to Sales Order', 'target' => 'SalesOrder'],
             ['db' => 'Pending',   'label' => 'Revert to Open',         'target' => ''],
-            ['db' => 'Cancelled', 'label' => 'Cancel Quotation',       'target' => ''],
         ],
         'Converted'=> [],
         'Cancelled'=> [],

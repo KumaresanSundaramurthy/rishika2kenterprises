@@ -20,7 +20,7 @@ class Invoices extends CI_Controller {
 
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
 
-            $GeneralSettings = ($this->redis_cache->get('Redis_UserGenSettings')->Value) ?? new stdClass();
+            $GeneralSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
             $limit = $GeneralSettings->RowLimit ?? 10;
             $this->pageData['JwtData']->GenSettings = $GeneralSettings;
             $this->pageData['DiscTypeInfo'] = [];
@@ -29,6 +29,7 @@ class Invoices extends CI_Controller {
 
             $this->load->model('organisation_model');
             $WhatsAppTemplate = $this->organisation_model->getMessageTemplate($orgUID, $this->pageModuleUID, 'WhatsApp');
+            $this->_injectOrgInfo($orgUID);
 
             $this->load->model('transactions_model');
             $allData      = $this->transactions_model->getTransactionPageList($limit, 0, $this->pageModuleUID, [], 0);
@@ -72,7 +73,8 @@ class Invoices extends CI_Controller {
             $allData      = $this->transactions_model->getTransactionPageList($limit, $offset, $this->pageModuleUID, $filter, 0);
             $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, $filter);
 
-            $this->pageData['JwtData']->GenSettings = ($this->redis_cache->get('Redis_UserGenSettings')->Value) ?? new stdClass();
+            $this->pageData['JwtData']->GenSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
+            $this->_injectOrgInfo($this->pageData['JwtData']->User->OrgUID);
 
             $rowHtml = $this->load->view('transactions/invoices/list', [
                 'DataLists'    => $allData,
@@ -194,6 +196,7 @@ class Invoices extends CI_Controller {
                 'TotalItems'            => count($items),
                 'GrossAmount'           => $subTotal + $discountAmount,
                 'SubTotal'              => $subTotal,
+                'TaxableAmount'         => $subTotal,
                 'DiscountAmount'        => $discountAmount,
                 'AdditionalCharges'     => $additionalChargesTotal,
                 'TaxAmount'             => $taxAmount,
@@ -206,7 +209,6 @@ class Invoices extends CI_Controller {
                 'ExtraDiscAmount'       => $extraDiscount,
                 'ExtraDiscType'         => getPostValue($PostData, 'extDiscountType') ?: NULL,
                 'NetAmount'             => $netAmount,
-                'TaxableAmount'         => $subTotal,
                 'PaidAmount'            => 0,
                 'BalanceAmount'         => $netAmount,
                 'DocStatus'             => $status,
@@ -439,6 +441,7 @@ class Invoices extends CI_Controller {
                 'QuotationType'     => getPostValue($PostData, 'invoiceType') ?: NULL,
                 'GrossAmount'       => $subTotal + $discountAmount,
                 'SubTotal'          => $subTotal,
+                'TaxableAmount'     => $subTotal,
                 'DiscountAmount'    => $discountAmount,
                 'AdditionalCharges' => $additionalChargesTotal,
                 'TaxAmount'         => $taxAmount,
@@ -451,7 +454,6 @@ class Invoices extends CI_Controller {
                 'ExtraDiscAmount'   => $extraDiscount,
                 'ExtraDiscType'     => getPostValue($PostData, 'extDiscountType') ?: NULL,
                 'NetAmount'         => $netAmount,
-                'TaxableAmount'     => $subTotal,
                 'BalanceAmount'     => $newBalance,
                 'IsFullyPaid'       => $newIsFullyPaid,
                 'DocStatus'         => $computedStatus,
@@ -857,7 +859,7 @@ class Invoices extends CI_Controller {
             $this->EndReturnData->IsFullyPaid = $isFullyPaid;
 
             // Fetch complete page data to refresh the invoice list
-            $GeneralSettings = ($this->redis_cache->get('Redis_UserGenSettings')->Value) ?? new stdClass();
+            $GeneralSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
             $limit = $GeneralSettings->RowLimit ?? 10;
             $pageNo = (int) $this->input->post('CurrentPage') ?: 1;
             $offset = ($pageNo - 1) * $limit;
@@ -1567,7 +1569,7 @@ class Invoices extends CI_Controller {
 
         try {
 
-            $GeneralSettings = $this->redis_cache->get('Redis_UserGenSettings')->Value ?? NULL;
+            $GeneralSettings = $this->redisservice->getUserCache('settings') ?? NULL;
             $this->pageData['JwtData']->GenSettings = $GeneralSettings;
 
             $orgUID = $this->pageData['JwtData']->User->OrgUID;
@@ -1664,7 +1666,7 @@ class Invoices extends CI_Controller {
 
             $transUID = (int) $invData->TransUID;
 
-            $GeneralSettings = $this->redis_cache->get('Redis_UserGenSettings')->Value ?? NULL;
+            $GeneralSettings = $this->redisservice->getUserCache('settings') ?? NULL;
             $this->pageData['JwtData']->GenSettings = $GeneralSettings;
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
 
@@ -1743,6 +1745,16 @@ class Invoices extends CI_Controller {
         ]);
         $query = $db->get();
         return ($query && $query->num_rows() > 0) ? $query->row() : null;
+    }
+
+    private function _injectOrgInfo($orgUID) {
+        $this->load->model('organisation_model');
+        $result = $this->organisation_model->getOrganisationDetails(['Org.OrgUID' => $orgUID]);
+        if (!$result->Error && !empty($result->Data)) {
+            $org = $result->Data[0];
+            $this->pageData['JwtData']->User->OrgName   = !empty($org->BrandName) ? $org->BrandName : $org->Name;
+            $this->pageData['JwtData']->User->OrgMobile = $org->MobileNumber ?? '';
+        }
     }
 
     public function getInvoicePdfBase64() {

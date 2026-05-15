@@ -33,10 +33,13 @@
             <div class="content-wrapper">
                 <div class="container-xxl flex-grow-1 container-p-y">
 
-                    <div class="d-flex align-items-center justify-content-between mb-3">
-                        <div>
-                            <h5 class="mb-0 fw-bold"><i class="bx bx-barcode me-2 text-primary"></i>Barcode &amp; QR Code Config</h5>
-                            <div class="text-muted bc-page-subtitle">Configure how barcodes and QR codes are generated and printed for your products.</div>
+                    <!-- ── Page Header ── -->
+                    <div class="trans-page-header">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="trans-ph-icon" style="background:#e8f0fe;">
+                                <i class="bx bx-barcode" style="color:#3b82f6;"></i>
+                            </div>
+                            <h5 class="trans-ph-title">Barcode &amp; QR Code Config</h5>
                         </div>
                         <a href="/products" class="btn btn-outline-secondary btn-sm"><i class="bx bx-package me-1"></i>Products</a>
                     </div>

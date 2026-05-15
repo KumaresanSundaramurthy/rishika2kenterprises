@@ -2,6 +2,45 @@
 // Shared utilities (loadTransactionList, debounce, initTooltips) are in common.js
 // Date helpers (getDateRange, formatDate) are in /js/common/datefilter.js
 
+// -- WhatsApp link handler ---------------------------------------------------
+$(document).on('click', '.inv-wa-link', function (e) {
+    e.preventDefault();
+    var url = $(this).data('wa-url');
+    if (url) window.open(url, '_blank');
+});
+
+// -- Auto-attach quotation PDF when comm modal switches to Email tab ---------
+$(document).on('comm:switchedToEmail', function (e, moduleUID, recordUID) {
+    if (moduleUID !== 101 || !recordUID || _commPdfAutoAttached) return;
+
+    _commPdfAutoAttached = true;
+
+    setTimeout(function () {
+        _initCommDropzone();
+
+        $.ajax({
+            url   : '/quotations/getQuotationPdfBase64',
+            method: 'POST',
+            data  : { TransUID: recordUID, PaperSize: 'A4', [CsrfName]: CsrfToken },
+            success: function (resp) {
+                if (resp.Error || !resp.Base64) { _commPdfAutoAttached = false; return; }
+                if (!_commDropzone) { _commPdfAutoAttached = false; return; }
+                try {
+                    var binary = atob(resp.Base64);
+                    var bytes  = new Uint8Array(binary.length);
+                    for (var i = 0; i < binary.length; i++) { bytes[i] = binary.charCodeAt(i); }
+                    var blob = new Blob([bytes], { type: 'application/pdf' });
+                    var file = new File([blob], resp.Filename || 'quotation.pdf', { type: 'application/pdf' });
+                    _commDropzone.addFile(file);
+                } catch (ex) {
+                    _commPdfAutoAttached = false;
+                }
+            },
+            error: function () { _commPdfAutoAttached = false; }
+        });
+    }, 150);
+});
+
 var _quotConfig = {
     url:            '/quotations/getQuotationsPageDetails/',
     tabCountClass:  '.quot-tab-count',

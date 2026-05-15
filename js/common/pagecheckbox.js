@@ -97,6 +97,10 @@ function executeTablePagnCommonFunc(response, tableinfo = false) {
         $(ModulePag).html(response.Pagination);
         $(ModuleTable + ' tbody').html(response.List);
     }
+    $(window).trigger('scroll');
+    headerCheckboxTrueFalse(ModuleTable, ModuleHeader, ModuleRow);
+    MultipleDeleteOption();
+}
     headerCheckboxTrueFalse(ModuleTable, ModuleHeader, ModuleRow);
     MultipleDeleteOption();
 }

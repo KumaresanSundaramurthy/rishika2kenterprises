@@ -179,6 +179,13 @@ $this->load->view('common/transactions/header'); ?>
 
                     <?php $this->load->view('common/transactions/print_modals'); ?>
 
+                    <!-- Sticky pagination -->
+                    <div class="card mb-0 cust-sticky-pag" id="soStickyPagination" style="display:none;">
+                        <div class="card-body p-0">
+                            <div class="row mx-3 my-2 justify-content-between align-items-center soPagination"></div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
 
@@ -204,6 +211,20 @@ $(function () {
     'use strict';
 
     Filter['Status'] = 'All';
+
+    // ── Sticky pagination ──
+    var $soStaticPag = $('#soPagination');
+    var $soStickyPag = $('#soStickyPagination');
+    function _syncSoSticky() { $soStickyPag.find('.soPagination').html($soStaticPag.html()); }
+    function _toggleSoSticky() {
+        if (!$soStaticPag.length) return;
+        var r = $soStaticPag[0].getBoundingClientRect();
+        var visible = r.top < $(window).height() && r.bottom > 0;
+        if (visible) { $soStickyPag.stop(true,true).fadeOut(150); }
+        else { _syncSoSticky(); $soStickyPag.stop(true,true).fadeIn(150); }
+    }
+    $(window).on('scroll resize', _toggleSoSticky);
+    _toggleSoSticky();
 
     // ── Stat card click ─────────────────────────────────────
     $(document).on('click', '[data-stat-filter]', function () {

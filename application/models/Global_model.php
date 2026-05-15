@@ -72,7 +72,7 @@ class Global_model extends CI_Model {
         try {
             
             $GCKey = $this->GlbCountryKey;
-            $GCGet_Data = $this->redis_cache->get($GCKey);
+            $GCGet_Data = $this->redisservice->getCache($GCKey);
             if ($GCGet_Data->Error) {
 
                 $this->load->library('curlservice');
@@ -86,7 +86,7 @@ class Global_model extends CI_Model {
 
                 $this->EndReturnData->Data = $Countries;
 
-                $this->redis_cache->set($GCKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
+                $this->redisservice->setCache($GCKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
 
             } else {
                 $this->EndReturnData->Data = $GCGet_Data->Value;
@@ -110,7 +110,7 @@ class Global_model extends CI_Model {
         try {
 
             $GlbStateKey = getSiteConfiguration()->RedisName.getenv('REDIS_STATICKEY')."-Glb_StateInfo-".$CountryCode;
-            $StateInfo = $this->redis_cache->get($GlbStateKey);
+            $StateInfo = $this->redisservice->getCache($GlbStateKey);
             if ($StateInfo->Error) {
 
                 $this->load->library('curlservice');
@@ -122,7 +122,7 @@ class Global_model extends CI_Model {
                     throw new Exception($StateResp->Message);
                 }
 
-                $this->redis_cache->set($GlbStateKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
+                $this->redisservice->setCache($GlbStateKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
 
             } else {
                 $this->EndReturnData->Data = $StateInfo->Value;
@@ -146,7 +146,7 @@ class Global_model extends CI_Model {
         try {
 
             $GlbCityKey = getSiteConfiguration()->RedisName.getenv('REDIS_STATICKEY')."Glb_CityInfo-".$CountryCode;
-            $CityInfo = $this->redis_cache->get($GlbCityKey);
+            $CityInfo = $this->redisservice->getCache($GlbCityKey);
             if ($CityInfo->Error) {
 
                 $CityResp = $this->curlservice->retrieve(getenv('COUNTRY_API_URL') . '/countries/' . $CountryCode . '/cities', 'GET', [], array('X-CSCAPI-KEY: ' . getenv('COUNTRY_API_KEY')));
@@ -156,7 +156,7 @@ class Global_model extends CI_Model {
                     throw new Exception($CityResp->Message);
                 }
 
-                $this->redis_cache->set($GlbCityKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
+                $this->redisservice->setCache($GlbCityKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
 
             } else {
                 $this->EndReturnData->Data = $CityInfo->Value;
@@ -178,7 +178,7 @@ class Global_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
             $cacheKey = getSiteConfiguration()->RedisName . getenv('REDIS_STATICKEY') . "Glb_CityOfState-{$countryISO2}-{$stateISO2}";
-            $cached   = $this->redis_cache->get($cacheKey);
+            $cached   = $this->redisservice->getCache($cacheKey);
             if ($cached->Error) {
                 $this->load->library('curlservice');
                 $resp = $this->curlservice->retrieve(
@@ -190,7 +190,7 @@ class Global_model extends CI_Model {
                 } else {
                     $this->EndReturnData->Data = [];
                 }
-                $this->redis_cache->set($cacheKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
+                $this->redisservice->setCache($cacheKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
             } else {
                 $this->EndReturnData->Data = $cached->Value;
             }
@@ -209,7 +209,7 @@ class Global_model extends CI_Model {
         try {
             
             $PUIKey = $this->PrimUnitKey;
-            $PUIGet_Data = $this->redis_cache->get($PUIKey);
+            $PUIGet_Data = $this->redisservice->getCache($PUIKey);
             if ($PUIGet_Data->Error) {
 
                 $this->ReadDb->db_debug = FALSE;
@@ -231,7 +231,7 @@ class Global_model extends CI_Model {
                 
                 $this->EndReturnData->Data = $query->result();
 
-                $this->redis_cache->set($PUIKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
+                $this->redisservice->setCache($PUIKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
 
             } else {
                 $this->EndReturnData->Data = $PUIGet_Data->Value;
@@ -255,7 +255,7 @@ class Global_model extends CI_Model {
         try {
 
             $DTIKey = $this->DiscTypeKey;
-            $DTIGet_Data = $this->redis_cache->get($DTIKey);
+            $DTIGet_Data = $this->redisservice->getCache($DTIKey);
             if ($DTIGet_Data->Error) {
 
                 $this->ReadDb->db_debug = FALSE;
@@ -277,7 +277,7 @@ class Global_model extends CI_Model {
                 
                 $this->EndReturnData->Data = $query->result();
 
-                $this->redis_cache->set($DTIKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
+                $this->redisservice->setCache($DTIKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
 
             } else {
                 $this->EndReturnData->Data = $DTIGet_Data->Value;
@@ -301,7 +301,7 @@ class Global_model extends CI_Model {
         try {
             
             $PTIKey = $this->ProdTypeKey;
-            $PTIGet_Data = $this->redis_cache->get($PTIKey);
+            $PTIGet_Data = $this->redisservice->getCache($PTIKey);
             if ($PTIGet_Data->Error) {
 
                 $this->ReadDb->db_debug = FALSE;
@@ -321,7 +321,7 @@ class Global_model extends CI_Model {
                 
                 $this->EndReturnData->Data = $query->result();
 
-                $this->redis_cache->set($PTIKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
+                $this->redisservice->setCache($PTIKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
 
             } else {
                 $this->EndReturnData->Data = $PTIGet_Data->Value;
@@ -345,7 +345,7 @@ class Global_model extends CI_Model {
         try {
 
             $PTIKey = $this->ProdTaxKey;
-            $PTIGet_Data = $this->redis_cache->get($PTIKey);
+            $PTIGet_Data = $this->redisservice->getCache($PTIKey);
             if ($PTIGet_Data->Error) {
 
                 $this->ReadDb->db_debug = FALSE;
@@ -365,7 +365,7 @@ class Global_model extends CI_Model {
                 
                 $this->EndReturnData->Data = $query->result();
 
-                $this->redis_cache->set($PTIKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
+                $this->redisservice->setCache($PTIKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
 
             } else {
                 $this->EndReturnData->Data = $PTIGet_Data->Value;
@@ -389,7 +389,7 @@ class Global_model extends CI_Model {
         try {
             
             $TDIKey = $this->ProdDetKey;
-            $TDIGet_Data = $this->redis_cache->get($TDIKey);
+            $TDIGet_Data = $this->redisservice->getCache($TDIKey);
             if ($TDIGet_Data->Error) {
 
                 $this->ReadDb->db_debug = FALSE;
@@ -413,7 +413,7 @@ class Global_model extends CI_Model {
                 
                 $this->EndReturnData->Data = $query->result();
 
-                $this->redis_cache->set($TDIKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
+                $this->redisservice->setCache($TDIKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
 
             } else {
                 $this->EndReturnData->Data = $TDIGet_Data->Value;
@@ -437,7 +437,7 @@ class Global_model extends CI_Model {
         try {
             
             $TPDIKey = $this->TaxPerDetKey;
-            $TPDIGet_Data = $this->redis_cache->get($TPDIKey);
+            $TPDIGet_Data = $this->redisservice->getCache($TPDIKey);
             if ($TPDIGet_Data->Error) {
 
                 $this->ReadDb->db_debug = FALSE;
@@ -464,7 +464,7 @@ class Global_model extends CI_Model {
 
                 $this->EndReturnData->Data = $query->result();
 
-                $this->redis_cache->set($TPDIKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
+                $this->redisservice->setCache($TPDIKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
 
             } else {
                 $this->EndReturnData->Data = $TPDIGet_Data->Value;
@@ -488,7 +488,7 @@ class Global_model extends CI_Model {
         try {
             
             $STRDEKey = $this->StrgTypeKey;
-            $STRDEGet_Data = $this->redis_cache->get($STRDEKey);
+            $STRDEGet_Data = $this->redisservice->getCache($STRDEKey);
             if ($STRDEGet_Data->Error) {
 
                 $this->ReadDb->db_debug = FALSE;
@@ -509,7 +509,7 @@ class Global_model extends CI_Model {
 
                 $this->EndReturnData->Data = $query->result();
 
-                $this->redis_cache->set($STRDEKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
+                $this->redisservice->setCache($STRDEKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
 
             } else {
                 $this->EndReturnData->Data = $STRDEGet_Data->Value;
@@ -533,7 +533,7 @@ class Global_model extends CI_Model {
 
             $params_hash = md5(json_encode(['WC' => $WhereCond, 'WIC' => $whereInCondition]));
             $RedisName = getSiteConfiguration()->RedisName.'-getModuleDetails'.$params_hash;
-            $ModDataRedis = $this->cacheservice->get($RedisName);
+            $ModDataRedis = $this->redisservice->getCache($RedisName);
             if ($ModDataRedis->Error) {
 
                 $this->ReadDb->db_debug = FALSE;
@@ -573,7 +573,7 @@ class Global_model extends CI_Model {
                 }
 
                 $this->EndReturnData->Data = $query->result();
-                $this->cacheservice->set($RedisName, $this->EndReturnData->Data, getenv('ONEMONTH_EXPIRE_SECS'));
+                $this->redisservice->setCache($RedisName, $this->EndReturnData->Data, getenv('ONEMONTH_EXPIRE_SECS'));
 
                 return $this->EndReturnData->Data;
 
@@ -597,7 +597,7 @@ class Global_model extends CI_Model {
 
             // $params_hash = md5(json_encode(['WAC' => $WhereArrayCondition, 'SRT' => $Sorting, 'SRTCLMN' => $SortingColumn]));
             // $RedisName = getSiteConfiguration()->RedisName.'-getModuleViewColumnDetails'.$params_hash;
-            // $ModColumnDataRedis = $this->cacheservice->get($RedisName);
+            // $ModColumnDataRedis = $this->redisservice->getCache($RedisName);
             // if ($ModColumnDataRedis->Error) {
 
                 $this->ReadDb->db_debug = FALSE;
@@ -651,7 +651,7 @@ class Global_model extends CI_Model {
                 }
 
                 $this->EndReturnData->Data = $query->result();
-                // $this->cacheservice->set($RedisName, $this->EndReturnData->Data, getenv('ONEMONTH_EXPIRE_SECS'));
+                // $this->redisservice->setCache($RedisName, $this->EndReturnData->Data, getenv('ONEMONTH_EXPIRE_SECS'));
 
                 return $this->EndReturnData->Data;
 
@@ -674,8 +674,8 @@ class Global_model extends CI_Model {
         try {
 
             $RedisName = getSiteConfiguration()->RedisName.'-'.base64_encode(json_encode(['WC' => $WhereArrayCondition, 'Sort' => $Sorting, 'SortCol' => $SortingColumn])).'-getModuleViewJoinColumnDetails';
-            $this->cacheservice->delete($RedisName);
-            $ModViewJoinColRedis = $this->cacheservice->get($RedisName);
+            $this->redisservice->deleteCache($RedisName);
+            $ModViewJoinColRedis = $this->redisservice->getCache($RedisName);
             if ($ModViewJoinColRedis->Error) {
 
                 $this->ReadDb->db_debug = FALSE;
@@ -722,7 +722,7 @@ class Global_model extends CI_Model {
 
                 $this->EndReturnData->Data = $query->result();
 
-                $this->cacheservice->set($RedisName, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
+                $this->redisservice->setCache($RedisName, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
 
                 return $this->EndReturnData->Data;
 

@@ -18,6 +18,11 @@ class Login extends CI_Controller {
     }
 
     public function login() {
+        $this->load->helper('auth');
+        if (is_authenticated()) {
+            redirect('dashboard', 'refresh');
+            return;
+        }
         $this->load->view('login/view');
     }
 
@@ -77,18 +82,38 @@ class Login extends CI_Controller {
                             $auditId = $this->logLoginSuccess($UserData->Data[0]);
                             $jwtPayload->JWTData['User']['auditId'] = $auditId ?? 0;
 
+                            // Single-session token — embedded in JWT payload so every request can validate it
+                            $sessionToken = bin2hex(random_bytes(32));
+                            $jwtPayload->JWTData['User']['SessionToken'] = $sessionToken;
+
                             $JwtReturnData = $this->login_model->setJwtToken($UserData->Data[0], $jwtPayload);
                             if(!$JwtReturnData->Error) {
 
                                 $this->load->model('dbwrite_model');
-                                $this->dbwrite_model->updateData('Users', 'UserTbl', ['LastLogin' => date('Y-m-d H:i:s')], array('UserUID' => $UserData->Data[0]->UserUID));
+                                $deviceInfo = $this->getDeviceInfo();
+                                $this->dbwrite_model->updateData('Users', 'UserTbl', [
+                                    'LastLogin'           => date('Y-m-d H:i:s'),
+                                    'CurrentSessionToken' => $sessionToken,
+                                    'LastLoginOn'         => date('Y-m-d H:i:s'),
+                                    'LastLoginIP'         => $this->input->ip_address(),
+                                    'LastLoginDevice'     => $deviceInfo['browser'] . ' / ' . $deviceInfo['os'] . ' (' . $deviceInfo['device_type'] . ')',
+                                ], ['UserUID' => $UserData->Data[0]->UserUID]);
 
-                                $this->redis_cache->set('Redis_UserMainModule',   $newPayload->JWTData['UserMainModule'] ?? [], getenv('LOGIN_EXPIRE_SECS'));
-                                $this->redis_cache->set('Redis_UserSubModule',    $newPayload->JWTData['UserSubModule']  ?? [], getenv('LOGIN_EXPIRE_SECS'));
-                                $this->redis_cache->set('Redis_UserModuleInfo',   $newPayload->JWTData['ModuleInfo']     ?? [], getenv('LOGIN_EXPIRE_SECS'));
-                                $this->redis_cache->set('Redis_UserPermissions',  $newPayload->JWTData['Permissions']    ?? [], getenv('LOGIN_EXPIRE_SECS'));
-                                $this->redis_cache->set('Redis_UserGenSettings',  $newPayload->JWTData['GenSettings']    ?? [], getenv('LOGIN_EXPIRE_SECS'));
-                                $this->redis_cache->set('Redis_UserInfo',         $UserData->Data[0], getenv('LOGIN_EXPIRE_SECS'));
+                                // User-keyed Redis entry — new login overwrites old, invalidating previous session
+                                $this->redisservice->setCache(
+                                    'UserActiveSession_' . $UserData->Data[0]->UserUID,
+                                    $sessionToken,
+                                    (int) getenv('LOGIN_EXPIRE_SECS')
+                                );
+
+                                $loginExpiry = (int) getenv('LOGIN_EXPIRE_SECS');
+                                $userUID     = $UserData->Data[0]->UserUID;
+                                $this->redisservice->setUserCache('menus',       $userUID, $newPayload->JWTData['UserMainModule'] ?? [], $loginExpiry);
+                                $this->redisservice->setUserCache('submenus',    $userUID, $newPayload->JWTData['UserSubModule']  ?? [], $loginExpiry);
+                                $this->redisservice->setUserCache('modules',     $userUID, $newPayload->JWTData['ModuleInfo']     ?? [], $loginExpiry);
+                                $this->redisservice->setUserCache('permissions', $userUID, $newPayload->JWTData['Permissions']    ?? [], $loginExpiry);
+                                $this->redisservice->setUserCache('settings',    $userUID, $newPayload->JWTData['GenSettings']    ?? [], $loginExpiry);
+                                $this->redisservice->setUserCache('userinfo',    $userUID, $UserData->Data[0],                         $loginExpiry);
                                 
                                 redirect('dashboard', 'refresh');
 
@@ -289,38 +314,46 @@ class Login extends CI_Controller {
         $JwtEncoded = get_cookie(getenv('JWT_COOKIE_NAME'));
         if(isset($JwtEncoded)) {
 
-			$JwtData = JWT::decode($JwtEncoded, new Key(getenv('JWT_KEY'), 'HS256'));
+            try {
+                $JwtData = JWT::decode($JwtEncoded, new Key(getenv('JWT_KEY'), 'HS256'));
+            } catch (Exception $e) {
+                $JwtData = null;
+            }
+
 			if(isset($JwtData->key) && !empty($JwtData->key)) {
 
-                $getAuditInfo = $this->cacheservice->get($JwtData->key);
+                $getAuditInfo = $this->redisservice->getCache($JwtData->key);
                 if($getAuditInfo->Error === false) {
-                    $auditId = $getAuditInfo->Value->User->auditId;
-                    if ($auditId) {
 
+                    // Update audit log
+                    $auditId = $getAuditInfo->Value->User->auditId ?? null;
+                    if ($auditId) {
                         $this->load->model('login_model');
                         $UserData = $this->login_model->getUserAuditInfo(array('ula.AuditID' => $auditId));
                         if(isset($UserData) && count($UserData) > 0) {
-
                             $userData = $UserData[0];
                             $this->load->model('dbwrite_model');
                             $this->dbwrite_model->updateData('Security', 'UserLoginAudit', ['LogoutTime' => date('Y-m-d H:i:s'), 'SessionDuration' => time() - strtotime($userData->LoginTime)], ['AuditID' => $auditId]);
-
                         }
+                    }
 
+                    // Clear single-session token so the user-keyed entry is revoked
+                    $userUID = $getAuditInfo->Value->User->UserUID ?? null;
+                    if ($userUID) {
+                        $this->redisservice->deleteCache('UserActiveSession_' . $userUID);
+                        $this->load->model('dbwrite_model');
+                        $this->dbwrite_model->updateData('Users', 'UserTbl', ['CurrentSessionToken' => null], ['UserUID' => $userUID]);
                     }
 
                 }
 
-				$this->cacheservice->delete($JwtData->key);
+				$this->redisservice->deleteCache($JwtData->key);
 
 			}
 
-            $this->redis_cache->delete('Redis_UserMainModule');
-            $this->redis_cache->delete('Redis_UserSubModule');
-            $this->redis_cache->delete('Redis_UserModuleInfo');
-            $this->redis_cache->delete('Redis_UserPermissions');
-            $this->redis_cache->delete('Redis_UserGenSettings');
-            $this->redis_cache->delete('Redis_UserInfo');
+            if ($userUID) {
+                $this->redisservice->deleteAllUserCache($userUID);
+            }
 
 			delete_cookie(getenv('JWT_COOKIE_NAME'));
 

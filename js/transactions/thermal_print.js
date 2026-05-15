@@ -3,12 +3,50 @@
 var _thermalData    = null;
 var _thermalPmtData = null;
 
+// ── Type config (mirrors viewmodal.js) ───────────────────────────────────
+var _thermalTypeConfig = {
+    103: { icon: 'bx-receipt',           color: '#0d6efd', bg: '#e8f0fe', label: 'Invoice'        },
+    101: { icon: 'bx-file-blank',        color: '#0891b2', bg: '#e0f5fb', label: 'Quotation'       },
+    102: { icon: 'bx-store-alt',         color: '#d97706', bg: '#fff8e1', label: 'Sales Order'     },
+    104: { icon: 'bx-cart',              color: '#6f42c1', bg: '#f0ebff', label: 'Purchase Bill'   },
+    105: { icon: 'bx-purchase-tag-alt',  color: '#0f766e', bg: '#e0f5f2', label: 'Purchase Order'  },
+    110: { icon: 'bx-wallet',            color: '#198754', bg: '#e8f5ee', label: 'Payment'         },
+};
+
+function _thermalSetBanner(icon, color, bg, title, meta, status) {
+    var $hdr = $('#thermalPrintHeader');
+    $hdr[0].style.setProperty('--vtm-color', color);
+    $hdr[0].style.setProperty('--vtm-bg',    bg);
+    $hdr[0].style.setProperty('--vtm-icon-bg', color + '22');
+    $('#thermalPrintHeaderIcon').attr('class', 'bx ' + icon).css('color', color);
+    $('#thermalPrintHeaderTitle').text(title);
+    $('#thermalPrintHeaderMeta').html(meta || '');
+    // Status badge
+    var badgeHtml = '';
+    if (status) {
+        var s = String(status).toLowerCase();
+        var cls = s === 'paid' || s === 'approved' ? 'bg-success'
+                : s === 'partial'                  ? 'bg-warning text-dark'
+                : s === 'draft'                    ? 'bg-secondary'
+                : s === 'cancelled'                ? 'bg-danger'
+                : s === 'issued' || s === 'sent'   ? 'bg-primary'
+                : 'bg-secondary';
+        badgeHtml = '<span class="badge ' + cls + ' px-2 py-1">' + _esc(status) + '</span>';
+    }
+    $('#thermalPrintHeaderBadge').html(badgeHtml);
+}
+
 // ── TRANSACTION pages: .thermalPrintTransaction ───────────────────────────
 $(document).on('click', '.thermalPrintTransaction', function () {
     var uid       = $(this).data('uid');
-    var moduleUID = $(this).data('module');
+    var moduleUID = parseInt($(this).data('module'), 10);
+    var cfg       = _thermalTypeConfig[moduleUID] || { icon: 'bx-receipt', color: '#696cff', bg: '#e8f0fe', label: 'Receipt' };
     _thermalData    = null;
     _thermalPmtData = null;
+
+    // Set banner immediately with module info
+    _thermalSetBanner(cfg.icon, cfg.color, cfg.bg, cfg.label + ' — Thermal Print', '<i class="bx bx-loader-alt bx-spin me-1"></i>Loading...', '');
+
     $('#thermalPrintBtn').addClass('d-none').off('click.thermal').on('click.thermal', function () {
         if (!_thermalData) return;
         _openThermalPrintWindow(_buildThermalHtml(_thermalData, 1), _thermalData.ThermalConfig);
@@ -24,15 +62,26 @@ $(document).on('click', '.thermalPrintTransaction', function () {
             AjaxLoading = 1;
             if (resp.Error) {
                 $('#thermalPrintBody').html('<div class="alert alert-danger m-2">' + _esc(resp.Message) + '</div>');
+                _thermalSetBanner(cfg.icon, cfg.color, cfg.bg, cfg.label + ' — Thermal Print', '<span class="text-danger">Failed to load</span>', '');
                 return;
             }
             _thermalData = resp;
+            var h = resp.Header || {};
+            var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            var meta = '';
+            if (h.UniqueNumber) meta += '<i class="bx bx-hash me-1"></i>' + _esc(h.UniqueNumber);
+            if (h.TransDate) {
+                var p = String(h.TransDate).split(/[-T ]/);
+                if (p.length >= 3) meta += (meta ? ' &nbsp;&middot;&nbsp; ' : '') + '<i class="bx bx-calendar me-1"></i>' + parseInt(p[2],10) + ' ' + (months[parseInt(p[1],10)-1]||'') + ' ' + p[0];
+            }
+            _thermalSetBanner(cfg.icon, cfg.color, cfg.bg, cfg.label + ' — Thermal Print', meta, h.DocStatus || '');
             $('#thermalPrintBody').html(_buildThermalHtml(resp, 0));
             $('#thermalPrintBtn').removeClass('d-none');
         },
         error: function () {
             AjaxLoading = 1;
             $('#thermalPrintBody').html('<div class="alert alert-danger m-2">Failed to load receipt.</div>');
+            _thermalSetBanner(cfg.icon, cfg.color, cfg.bg, cfg.label + ' — Thermal Print', '<span class="text-danger">Failed to load</span>', '');
         }
     });
 });
@@ -40,8 +89,12 @@ $(document).on('click', '.thermalPrintTransaction', function () {
 // ── PAYMENT pages: .pmtThermalPrint ──────────────────────────────────────
 $(document).on('click', '.pmtThermalPrint', function () {
     var paymentUID  = $(this).data('payment-uid');
+    var cfg         = _thermalTypeConfig[110];
     _thermalData    = null;
     _thermalPmtData = null;
+
+    _thermalSetBanner(cfg.icon, cfg.color, cfg.bg, 'Payment Receipt — Thermal Print', '<i class="bx bx-loader-alt bx-spin me-1"></i>Loading...', '');
+
     $('#thermalPrintBtn').addClass('d-none').off('click.thermal').on('click.thermal', function () {
         if (!_thermalPmtData) return;
         _openThermalPrintWindow(_buildPmtThermalHtml(_thermalPmtData, 1), _thermalPmtData.ThermalConfig);
@@ -57,15 +110,26 @@ $(document).on('click', '.pmtThermalPrint', function () {
             AjaxLoading = 1;
             if (resp.Error) {
                 $('#thermalPrintBody').html('<div class="alert alert-danger m-2">' + _esc(resp.Message) + '</div>');
+                _thermalSetBanner(cfg.icon, cfg.color, cfg.bg, 'Payment Receipt — Thermal Print', '<span class="text-danger">Failed to load</span>', '');
                 return;
             }
             _thermalPmtData = resp;
+            var p = resp.Payment || {};
+            var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            var meta = '';
+            if (p.UniqueNumber) meta += '<i class="bx bx-hash me-1"></i>' + _esc(p.UniqueNumber);
+            if (p.PaymentDate || p.CreatedOn) {
+                var dt = String(p.PaymentDate || p.CreatedOn).split(/[-T ]/);
+                if (dt.length >= 3) meta += (meta ? ' &nbsp;&middot;&nbsp; ' : '') + '<i class="bx bx-calendar me-1"></i>' + parseInt(dt[2],10) + ' ' + (months[parseInt(dt[1],10)-1]||'') + ' ' + dt[0];
+            }
+            _thermalSetBanner(cfg.icon, cfg.color, cfg.bg, 'Payment Receipt — Thermal Print', meta, '');
             $('#thermalPrintBody').html(_buildPmtThermalHtml(resp, 0));
             $('#thermalPrintBtn').removeClass('d-none');
         },
         error: function () {
             AjaxLoading = 1;
             $('#thermalPrintBody').html('<div class="alert alert-danger m-2">Failed to load payment receipt.</div>');
+            _thermalSetBanner(cfg.icon, cfg.color, cfg.bg, 'Payment Receipt — Thermal Print', '<span class="text-danger">Failed to load</span>', '');
         }
     });
 });

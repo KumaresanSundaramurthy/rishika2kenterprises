@@ -15,7 +15,7 @@ class Vendors extends CI_Controller {
         if (isset($this->pageData['ModuleId'])) return;
 
         $controllerName = strtolower($this->router->fetch_class());
-        $getModuleInfo  = $this->redis_cache->get('Redis_UserModuleInfo')->Value ?? [];
+        $getModuleInfo  = $this->redisservice->getUserCache('modules') ?? [];
         $ModuleInfo     = array_values(array_filter($getModuleInfo, fn($m) => $m->ControllerName === $controllerName));
         if (empty($ModuleInfo)) {
             throw new Exception("Module information not found for controller: {$controllerName}");
@@ -25,7 +25,7 @@ class Vendors extends CI_Controller {
         $this->pageData['ModColumnData']         = $ModuleInfo[0]->DispViewColumns ?? [];
         $this->pageData['DispSettColumnDetails'] = $ModuleInfo[0]->DispSettingsViewColumns ?? [];
 
-        $GeneralSettings = ($this->redis_cache->get('Redis_UserGenSettings')->Value) ?? new stdClass();
+        $GeneralSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
         $this->pageData['JwtData']->GenSettings = $GeneralSettings;
         $this->pageData['Limit'] = $GeneralSettings->RowLimit ?? 10;
     }

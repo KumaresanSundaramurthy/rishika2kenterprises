@@ -1179,8 +1179,13 @@ function toggleCategoryFilter() {
     const $target = $('#categoryFilterBox');
     $('.mp-filterbox').not($target).hide();
     var opening = !$target.is(':visible');
-    $target.toggle();
-    if (opening && $target.find('.category-checkbox').length === 0) {
+    if (!opening) { $target.hide(); return; }
+    var rect = document.getElementById('categoryFilter').getBoundingClientRect();
+    $target.css({ top: (rect.bottom + 4) + 'px', left: rect.left + 'px' }).show();
+    if ($target.find('.category-checkbox').length === 0) {
+        refreshSearchCateg();
+    }
+}
         refreshSearchCateg();
     }
 }

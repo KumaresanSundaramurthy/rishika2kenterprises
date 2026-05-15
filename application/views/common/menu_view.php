@@ -10,8 +10,8 @@
 
     $currentSettingsController = $isSettingsPage ? ucfirst($secondSeg) : null;
 
-    $UserMainModule = $this->redis_cache->get('Redis_UserMainModule')->Value ?? [];
-    $UserSubModule = $this->redis_cache->get('Redis_UserSubModule')->Value ?? [];
+    $UserMainModule = $this->redisservice->getUserCache('menus') ?? [];
+    $UserSubModule = $this->redisservice->getUserCache('submenus') ?? [];
 ?>
 
 <!-- Menu -->

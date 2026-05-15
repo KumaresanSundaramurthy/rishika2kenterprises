@@ -189,7 +189,14 @@ class Transactions_model extends CI_Model {
             $this->ReadDb->where('Ts.DocStatus', 'Draft');
         } else {
             // All — exclude Draft and Cancelled
-            $this->ReadDb->where_not_in('Ts.DocStatus', ['Draft', 'Cancelled']);
+            $this->ReadDb->where_not_in('Ts.DocStatus', ['Draft', 'Cancelled', 'Rejected']);
+        }
+
+        if (!empty($filter['StatusList']) && is_array($filter['StatusList'])) {
+            $allowed = array_intersect($filter['StatusList'], ['Pending', 'Accepted', 'Converted', 'Draft', 'Cancelled', 'Rejected']);
+            if (!empty($allowed)) {
+                $this->ReadDb->where_in('Ts.DocStatus', array_values($allowed));
+            }
         }
 
         if (!empty($filter['MinAmount'])) {
@@ -281,7 +288,6 @@ class Transactions_model extends CI_Model {
         $this->ReadDb->select([
             'Tprod.*',
             'Product.HSNSACCode AS HSNCode',
-            'Product.Description AS Description',
         ]);
         $this->ReadDb->from('Transaction.TransProductsTbl as Tprod');
         $this->ReadDb->join('Products.ProductTbl AS Product', 'Product.ProductUID = Tprod.ProductUID', 'LEFT');
@@ -1807,6 +1813,14 @@ class Transactions_model extends CI_Model {
         $paperSize = strtoupper(trim($paperSize));
         $moduleUID = 103; // Sales Invoice
 
+        return $this->generateTransactionPdfBytes($transUID, $orgUID, $moduleUID, $paperSize);
+    }
+
+    // ── Generic transaction PDF generation (works for any moduleUID) ──────────
+    public function generateTransactionPdfBytes($transUID, $orgUID, $moduleUID, $paperSize = 'A4') {
+
+        $paperSize = strtoupper(trim($paperSize));
+
         $header = $this->getTransactionById($transUID, $orgUID, $moduleUID);
         if (!$header) return null;
 
@@ -1819,7 +1833,6 @@ class Transactions_model extends CI_Model {
 
         $html = $this->_renderA4Html($moduleUID, $header, $items, $orgInfo->Data ?? null, $printThemeResult->Data ?? null, $printBankAccount);
 
-        // Apply same CSS fixes as Transactions::downloadA4Pdf
         $html = preg_replace('/<link[^>]*fonts\.googleapis\.com[^>]*>/i', '', $html);
         $html = str_replace('</head>',
             '<style>body{padding:0!important;margin:0!important;}.print-content{margin:0!important;}#trans-type-header td{border-left:none!important;border-right:none!important;}</style></head>',

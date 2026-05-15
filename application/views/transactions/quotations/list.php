@@ -6,11 +6,12 @@ include_once(APPPATH . 'views/transactions/partials/party_avatar.php');
 $moduleContext = 'quotation';
 include(APPPATH . 'views/transactions/partials/status_config.php');
 
-$currency   = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-$decimals   = $JwtData->GenSettings->DecimalPoints ?? 2;
-$showSerial = $JwtData->GenSettings->SerialNoDisplay == 1;
-$today      = time();
-$soonDays   = 3;
+$currency      = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
+$decimals      = $JwtData->GenSettings->DecimalPoints ?? 2;
+$showSerial    = $JwtData->GenSettings->SerialNoDisplay == 1;
+$quotModuleUID = 101;
+$today         = time();
+$soonDays      = 3;
 
 if (!empty($DataLists)):
     foreach ($DataLists as $list):
@@ -22,18 +23,101 @@ if (!empty($DataLists)):
         $icon        = $statusIcon[$status]         ?? 'bx-circle';
         $transitions = $moduleTransitions[$status]  ?? [];
 
+        $mobileNum   = trim($list->MobileNumber ?? '');
+        $countryCode = trim($list->CountryCode ?? '');
+        $partyEmail  = trim($list->EmailAddress ?? '');
+        $waNum       = $mobileNum ? preg_replace('/[^0-9]/', '', ($countryCode ?: '91') . $mobileNum) : '';
+        $hasMobile   = $mobileNum !== '';
+        $hasEmail    = $partyEmail !== '';
+
         $dueClass = 'trans-due-normal';
-        $dueTag   = '';
-        if (!$isDraft && !$isTerminal && !empty($list->ValidityDate)) {
-            $dueTs = strtotime($list->ValidityDate);
-            if ($dueTs < $today) {
-                $dueClass = 'trans-due-overdue';
-                $dueTag   = '<br><span style="font-size:.68rem;">Expired</span>';
-            } elseif ($dueTs <= strtotime("+{$soonDays} days")) {
-                $dueClass = 'trans-due-soon';
+        $validityHtml = '';
+        $showValidity = in_array($status, ['Pending', 'Accepted']) && !empty($list->ValidityDate);
+        if ($showValidity) {
+            $dueTs    = strtotime($list->ValidityDate);
+            $todayTs  = strtotime(date('Y-m-d'));
+            $diffDays = (int) round(($dueTs - $todayTs) / 86400);
+
+            // Row 1: validity date
+            $validityHtml .= '<div style="font-size:.68rem;color:#6c757d;">Due: ' . format_datedisplay($list->ValidityDate, 'd M Y') . '</div>';
+
+            // Row 2: since / in N days
+            if ($diffDays < 0) {
+                $dueClass      = 'trans-due-overdue';
+                $absDays       = abs($diffDays);
+                $validityHtml .= '<div style="font-size:.68rem;color:#e67e22;font-weight:600;margin-top:3px;"><i class="bx bx-time-five" style="font-size:.72rem;"></i> since ' . $absDays . ' day' . ($absDays !== 1 ? 's' : '') . '</div>';
+                // Row 3: Expired badge
+                $validityHtml .= '<div style="margin-top:2px;"><span class="badge bg-label-danger" style="font-size:.65rem;">Expired</span></div>';
+            } elseif ($diffDays === 0) {
+                $dueClass      = 'trans-due-soon';
+                $validityHtml .= '<div style="font-size:.68rem;color:#e67e22;font-weight:600;margin-top:3px;"><i class="bx bx-time-five" style="font-size:.72rem;"></i> expires today</div>';
+            } elseif ($diffDays <= 7) {
+                $dueClass      = 'trans-due-soon';
+                $validityHtml .= '<div style="font-size:.68rem;color:#e67e22;font-weight:600;margin-top:3px;"><i class="bx bx-time-five" style="font-size:.72rem;"></i> in ' . $diffDays . ' day' . ($diffDays !== 1 ? 's' : '') . '</div>';
+            } else {
+                $validityHtml .= '<div style="font-size:.68rem;color:#6c757d;margin-top:3px;"><i class="bx bx-time-five" style="font-size:.72rem;"></i> in ' . $diffDays . ' days</div>';
             }
         }
         $isOverdueRow = ($dueClass === 'trans-due-overdue');
+
+        // Build WhatsApp message
+        $waTemplate = !empty($WhatsAppTemplate) && is_object($WhatsAppTemplate) ? $WhatsAppTemplate->Body : (!empty($WhatsAppTemplate) && is_string($WhatsAppTemplate) ? $WhatsAppTemplate : null);
+
+        $orgName    = $JwtData->User->OrgName   ?? 'Our Company';
+        $orgMobile  = $JwtData->User->OrgMobile ?? '';
+        $partyName  = $list->PartyName   ?? 'Customer';
+        $quotNum    = $list->UniqueNumber ?? 'Draft';
+        $quotLink   = (getenv('APP_URL') ?: 'http://localhost:8080') . '/quotation/' . ($list->TransToken ?? '');
+        $netAmt     = (float)($list->NetAmount ?? 0);
+        $numericAmt = smartDecimal($netAmt, $decimals, true);
+        $billAmount = $currency . ' ' . $numericAmt;
+        $transDate  = !empty($list->TransDate) ? date('d M Y', strtotime($list->TransDate)) : '';
+        $quotStatus = $list->Status ?? '';
+
+        if (!empty($waTemplate)) {
+            $waMessage = str_replace(
+                [
+                    '{{PARTY_NAME}}',    '{{CUSTOMER_NAME}}',
+                    '{{DOC_NUMBER}}',    '{{INVOICE_NUMBER}}',
+                    '{{BILL_AMOUNT}}',   '{{AMOUNT}}',
+                    '{{BALANCE_AMOUNT}}','{{PENDING_AMOUNT}}',
+                    '{{CURRENCY}}',
+                    '{{PAYMENT_STATUS}}',
+                    '{{DOC_DATE}}',      '{{INVOICE_DATE}}',
+                    '{{DOC_TYPE}}',
+                    '{{RECEIPT_LINK}}',  '{{INVOICE_LINK}}',
+                    '{{ORG_NAME}}',
+                    '{{ORG_PHONE}}',     '{{ORG_MOBILE}}',
+                ],
+                [
+                    $partyName,   $partyName,
+                    $quotNum,     $quotNum,
+                    $billAmount,  $numericAmt,
+                    $billAmount,  $numericAmt,
+                    $currency,
+                    $quotStatus,
+                    $transDate,   $transDate,
+                    'Quotation',
+                    $quotLink,    $quotLink,
+                    $orgName,
+                    $orgMobile,   $orgMobile,
+                ],
+                $waTemplate
+            );
+        } else {
+            $waMessage  = "Hello *{$partyName}*,\n\n";
+            $waMessage .= "Please find the quotation from *{$orgName}*.\n\n";
+            $waMessage .= "Quotation: *{$quotNum}*\n";
+            $waMessage .= "Amount: *{$billAmount}*\n";
+            if (!$isDraft) {
+                $waMessage .= "Link: {$quotLink}\n";
+            }
+            $waMessage .= "\nThanks\n*{$orgName}*";
+            if ($orgMobile) {
+                $waMessage .= "\n{$orgMobile}";
+            }
+        }
+        $waMessageEncoded = rawurlencode($waMessage);
 ?>
     <tr class="<?php echo $isOverdueRow ? 'trans-row-overdue' : ''; ?>">
 
@@ -55,7 +139,13 @@ if (!empty($DataLists)):
                     <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars(format_datedisplay($list->TransDate, 'd M Y')); ?></div>
                 <?php endif; ?>
             <?php else: ?>
-                <a href="javascript:void(0)" class="trans-doc-number viewTransaction" data-uid="<?php echo (int)$list->TransUID; ?>" data-module="<?php echo (int)$list->ModuleUID; ?>" data-type="quotation" data-number="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>" data-date="<?php echo htmlspecialchars($list->TransDate ?? ''); ?>" data-status="<?php echo htmlspecialchars($list->Status ?? ''); ?>">
+                <a href="javascript:void(0)" class="trans-doc-number viewTransaction"
+                   data-uid="<?php echo (int)$list->TransUID; ?>"
+                   data-module="<?php echo (int)$list->ModuleUID; ?>"
+                   data-type="quotation"
+                   data-number="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
+                   data-date="<?php echo htmlspecialchars($list->TransDate ?? ''); ?>"
+                   data-status="<?php echo htmlspecialchars($list->Status ?? ''); ?>">
                     <?php echo htmlspecialchars($list->UniqueNumber); ?>
                 </a>
                 <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars(format_datedisplay($list->TransDate, 'd M Y')); ?></div>
@@ -67,10 +157,10 @@ if (!empty($DataLists)):
 
         <!-- Amount -->
         <td>
-            <?php if ($isDraft && (float)$list->NetAmount == 0): ?>
+            <?php if ($isDraft && $netAmt == 0): ?>
                 <span class="text-muted">—</span>
             <?php else: ?>
-                <div class="trans-amount-main"><?php echo $currency . ' ' . smartDecimal($list->NetAmount, $decimals, true); ?></div>
+                <div class="trans-amount-main"><?php echo $currency . ' ' . smartDecimal($netAmt, $decimals, true); ?></div>
             <?php endif; ?>
         </td>
 
@@ -107,33 +197,75 @@ if (!empty($DataLists)):
         </td>
 
         <!-- Customer -->
-        <td>
+        <td class="inv-party-td">
             <div class="d-flex align-items-center gap-2">
                 <?php partyAvatar($list->PartyName, $list->PartyImage ?? null, $cdnUrl); ?>
                 <div>
                     <div class="trans-party-name"><?php echo htmlspecialchars($list->PartyName ?? '—'); ?></div>
-                    <?php if (!empty($list->MobileNumber)): ?>
-                    <div class="trans-party-mobile d-flex align-items-center gap-1 mt-1">
-                        <span class="copy-mobile cursor-pointer" data-mobile="<?php echo htmlspecialchars($list->MobileNumber); ?>" title="Click to copy">
-                            <?php echo ($list->CountryCode ? htmlspecialchars($list->CountryCode) . ' ' : '') . htmlspecialchars($list->MobileNumber); ?>
-                        </span>
-                        <a href="https://wa.me/<?php echo preg_replace('/[^0-9]/', '', ($list->CountryCode ?? '') . $list->MobileNumber); ?>?text=Hi"
-                           target="_blank" class="text-success" title="WhatsApp" style="line-height:1;">
-                            <i class="bx bxl-whatsapp fs-6"></i>
-                        </a>
+                    <?php if (!empty($list->PartyArea)): ?>
+                    <div style="font-size:.7rem;color:#888;margin-top:1px;">
+                        <i class="bx bx-map" style="font-size:.72rem;"></i> <?php echo htmlspecialchars($list->PartyArea); ?>
+                    </div>
+                    <?php endif; ?>
+                    <?php if ($hasMobile): ?>
+                    <div class="trans-party-mobile" style="font-size:.72rem;color:#666;margin-top:1px;">
+                        <?php echo ($countryCode ? htmlspecialchars($countryCode) . ' ' : '') . htmlspecialchars($mobileNum); ?>
                     </div>
                     <?php endif; ?>
                 </div>
             </div>
+            <?php if ($hasMobile || $hasEmail): ?>
+            <div class="inv-contact-icons">
+                <?php if ($hasMobile): ?>
+                <a href="javascript:void(0)" class="wa inv-wa-link"
+                   data-wa-url="https://wa.me/<?php echo $waNum; ?>?text=<?php echo $waMessageEncoded; ?>"
+                   data-bs-toggle="tooltip"
+                   data-bs-trigger="hover"
+                   title="WhatsApp">
+                    <i class="bx bxl-whatsapp"></i>
+                </a>
+                <button class="comm-send-single sms"
+                    data-commtype="SMS"
+                    data-recipienttype="Customer"
+                    data-uid="<?php echo (int)$list->PartyUID; ?>"
+                    data-name="<?php echo htmlspecialchars($list->PartyName ?? ''); ?>"
+                    data-mobile="<?php echo htmlspecialchars($mobileNum); ?>"
+                    data-email="<?php echo htmlspecialchars($partyEmail); ?>"
+                    data-module-uid="<?php echo $quotModuleUID; ?>"
+                    data-bs-toggle="tooltip"
+                    data-bs-trigger="hover"
+                    title="Send SMS">
+                    <i class="bx bx-message-dots"></i>
+                </button>
+                <?php endif; ?>
+                <?php if ($hasEmail): ?>
+                <button class="comm-send-single em"
+                    data-commtype="Email"
+                    data-recipienttype="Customer"
+                    data-uid="<?php echo (int)$list->PartyUID; ?>"
+                    data-trans-uid="<?php echo (int)$list->TransUID; ?>"
+                    data-name="<?php echo htmlspecialchars($list->PartyName ?? ''); ?>"
+                    data-mobile="<?php echo htmlspecialchars($mobileNum); ?>"
+                    data-email="<?php echo htmlspecialchars($partyEmail); ?>"
+                    data-module-uid="<?php echo $quotModuleUID; ?>"
+                    data-bs-toggle="tooltip"
+                    data-bs-trigger="hover"
+                    title="Send Email">
+                    <i class="bx bx-envelope"></i>
+                </button>
+                <?php endif; ?>
+            </div>
+            <?php endif; ?>
         </td>
 
         <!-- Valid Until -->
-        <td class="<?php echo $dueClass; ?>">
-            <?php if (!$isDraft && !empty($list->ValidityDate)): ?>
-                <?php echo format_datedisplay($list->ValidityDate, 'd M Y'); ?>
-                <?php echo $dueTag; ?>
+        <td>
+            <?php if ($showValidity): ?>
+                <?php echo $validityHtml; ?>
+            <?php elseif (!$isDraft && !empty($list->ValidityDate)): ?>
+                <div style="font-size:.68rem;color:#6c757d;">Due: <?php echo format_datedisplay($list->ValidityDate, 'd M Y'); ?></div>
             <?php else: ?>
-                <span class="text-muted">—</span>
+                <span class="text-muted">&mdash;</span>
             <?php endif; ?>
         </td>
 
@@ -191,27 +323,75 @@ if (!empty($DataLists)):
                                 <i class="bx bx-receipt me-2 text-dark"></i>Thermal Print
                             </button>
                         </li>
-            <?php if (!empty($list->MobileNumber)): ?>
-            <div class="trans-party-mobile d-flex align-items-center gap-1 mt-1">
-                <span class="copy-mobile cursor-pointer" data-mobile="<?php echo htmlspecialchars($list->MobileNumber); ?>" title="Click to copy">
-                    <?php echo ($list->CountryCode ? htmlspecialchars($list->CountryCode) . ' ' : '') . htmlspecialchars($list->MobileNumber); ?>
-                </span>
-                <a href="https://wa.me/<?php echo preg_replace('/[^0-9]/', '', ($list->CountryCode ?? '') . $list->MobileNumber); ?>?text=Hi"
-                   target="_blank" class="text-success" title="WhatsApp" style="line-height:1;">
-                    <i class="bx bxl-whatsapp fs-6"></i>
-                </a>
-            </div>
-            <?php endif; ?>
                         <li><hr class="dropdown-divider my-1"></li>
                         <?php endif; ?>
 
+                        <?php if (!$isDraft && ($hasMobile || $hasEmail)): ?>
+                        <?php if ($hasMobile): ?>
                         <li>
-                            <a class="dropdown-item" href="/quotations/create?fromQuotation=<?php echo (int)$list->TransUID; ?>">
-                                <i class="bx bx-copy me-2 text-secondary"></i>Clone
+                            <a class="dropdown-item inv-wa-link"
+                               href="javascript:void(0)"
+                               data-wa-url="https://wa.me/<?php echo $waNum; ?>?text=<?php echo $waMessageEncoded; ?>"
+                               style="color:#25d366;">
+                                <i class="bx bxl-whatsapp me-2"></i>Share via WhatsApp
                             </a>
                         </li>
+                        <li>
+                            <button class="dropdown-item comm-send-single"
+                                    data-commtype="SMS"
+                                    data-recipienttype="Customer"
+                                    data-uid="<?php echo (int)$list->PartyUID; ?>"
+                                    data-name="<?php echo htmlspecialchars($list->PartyName ?? ''); ?>"
+                                    data-mobile="<?php echo htmlspecialchars($mobileNum); ?>"
+                                    data-email="<?php echo htmlspecialchars($partyEmail); ?>"
+                                    data-module-uid="<?php echo $quotModuleUID; ?>"
+                                    style="color:#0097a7;">
+                                <i class="bx bx-message-dots me-2"></i>Send SMS
+                            </button>
+                        </li>
+                        <?php endif; ?>
+                        <?php if ($hasEmail): ?>
+                        <li>
+                            <button class="dropdown-item comm-send-single"
+                                    data-commtype="Email"
+                                    data-recipienttype="Customer"
+                                    data-uid="<?php echo (int)$list->PartyUID; ?>"
+                                    data-trans-uid="<?php echo (int)$list->TransUID; ?>"
+                                    data-name="<?php echo htmlspecialchars($list->PartyName ?? ''); ?>"
+                                    data-mobile="<?php echo htmlspecialchars($mobileNum); ?>"
+                                    data-email="<?php echo htmlspecialchars($partyEmail); ?>"
+                                    data-module-uid="<?php echo $quotModuleUID; ?>"
+                                    style="color:#1565c0;">
+                                <i class="bx bx-envelope me-2"></i>Send Email
+                            </button>
+                        </li>
+                        <?php endif; ?>
+                        <li><hr class="dropdown-divider my-1"></li>
+                        <?php endif; ?>
 
-                        <?php if (!$isTerminal && !$isDraft): ?>
+                        <?php if (!$isTerminal): ?>
+                        <?php if (!$isDraft): ?>
+                        <?php if (in_array($status, ['Pending', 'Accepted'])): ?>
+                        <li>
+                            <button class="dropdown-item quot-status-update"
+                                    data-uid="<?php echo (int)$list->TransUID; ?>"
+                                    data-status="Converted"
+                                    data-target="Invoice"
+                                    style="color:#0891b2;">
+                                <i class="bx bx-transfer-alt me-2"></i>Convert to Invoice
+                            </button>
+                        </li>
+                        <li>
+                            <button class="dropdown-item quot-status-update"
+                                    data-uid="<?php echo (int)$list->TransUID; ?>"
+                                    data-status="Converted"
+                                    data-target="SalesOrder"
+                                    style="color:#7c3aed;">
+                                <i class="bx bx-transfer-alt me-2"></i>Convert to Sales Order
+                            </button>
+                        </li>
+                        <li><hr class="dropdown-divider my-1"></li>
+                        <?php endif; ?>
                         <li>
                             <button class="dropdown-item quot-status-update text-warning"
                                     data-uid="<?php echo (int)$list->TransUID; ?>"
@@ -220,9 +400,6 @@ if (!empty($DataLists)):
                             </button>
                         </li>
                         <?php endif; ?>
-
-                        <?php if (!$isTerminal): ?>
-                        <li><hr class="dropdown-divider my-1"></li>
                         <li>
                             <button class="dropdown-item text-danger deleteQuotation"
                                     data-uid="<?php echo (int)$list->TransUID; ?>"

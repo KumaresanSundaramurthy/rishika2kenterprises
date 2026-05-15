@@ -4,11 +4,25 @@
 <div class="modal fade" id="thermalPrintModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-top" style="max-width:600px">
         <div class="modal-content">
-            <div class="modal-header p-3">
-                <h6 class="modal-title text-primary fw-bold fs-6 mb-0">
-                    <i class="bx bx-printer me-1"></i>Thermal Receipt Preview
-                </h6>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            <!-- Banner header — same vtm-banner pattern as viewTransModal -->
+            <div id="thermalPrintHeader" class="vtm-banner flex-shrink-0" style="--vtm-color:#696cff;--vtm-bg:#e8f0fe;--vtm-icon-bg:rgba(105,108,255,.13);">
+                <div class="vtm-banner-inner">
+                    <div class="vtm-banner-left">
+                        <div class="vtm-banner-icon">
+                            <i class="bx bx-printer" id="thermalPrintHeaderIcon" style="font-size:1.7rem;color:var(--vtm-color);display:block;"></i>
+                        </div>
+                        <div>
+                            <div style="font-size:.95rem;font-weight:700;color:var(--vtm-color);" id="thermalPrintHeaderTitle">Thermal Receipt Preview</div>
+                            <div style="font-size:.75rem;color:#6c757d;margin-top:2px;" id="thermalPrintHeaderMeta"></div>
+                        </div>
+                    </div>
+                    <div class="vtm-banner-right">
+                        <span id="thermalPrintHeaderBadge"></span>
+                        <button type="button" class="vtm-close-btn" data-bs-dismiss="modal" aria-label="Close">
+                            <i class="bx bx-x"></i>
+                        </button>
+                    </div>
+                </div>
             </div>
             <div class="modal-body p-2 bg-white" id="thermalPrintBody">
                 <div class="d-flex justify-content-center py-5">

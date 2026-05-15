@@ -32,12 +32,10 @@ if (!function_exists('getUserPermission')) {
         ];
 
         try {
-            $permCache = $CI->redis_cache->get('Redis_UserPermissions');
-            if ($permCache->Error !== false || empty($permCache->Value)) {
+            $permissions = (array)($CI->redisservice->getUserCache('permissions') ?? []);
+            if (empty($permissions)) {
                 return $default;
             }
-
-            $permissions = (array)$permCache->Value;
             $key = strtolower($controllerName);
 
             foreach ($permissions as $ctrl => $perm) {

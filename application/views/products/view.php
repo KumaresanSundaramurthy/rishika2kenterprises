@@ -175,12 +175,10 @@
                                                         <th class="name-sortable position-relative" id="sortName" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">
                                                             <span class="sort-label cursor-pointer">Item <i class="bx bx-sort sort-icon ms-1"></i></span>
                                                             <a href="javascript:void(0);" id="productTypeFilter" class="text-body ms-1" onclick="toggleProductTypeFilter(); event.stopPropagation();" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by Product Type"><i class="bx bx-filter-alt fs-6 align-middle"></i></a>
-                                                            <div id="productTypeFilterBox" class="card mp-filterbox position-absolute" style="min-width:200px; z-index:1056; display:none; top:100%; left:0;"><?php $this->load->view('products/items/ptypefilter'); ?></div>
                                                         </th>
                                                         <th class="col-sortable cursor-pointer position-relative" data-filterkey="StatusSorting" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">
                                                             Status <i class="bx bx-sort sort-icon ms-1"></i>
                                                             <a href="javascript:void(0);" id="statusFilter" class="text-body ms-1" onclick="toggleStatusFilter(); event.stopPropagation();" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by Status"><i class="bx bx-filter-alt fs-6 align-middle"></i></a>
-                                                            <div id="statusFilterBox" class="card mp-filterbox position-absolute" style="min-width:200px; z-index:1056; display:none; top:100%; left:0;"><?php $this->load->view('products/items/statusfilter'); ?></div>
                                                         </th>
                                                         <th class="col-sortable cursor-pointer position-relative" data-filterkey="CategorySorting" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">
                                                             Category <i class="bx bx-sort sort-icon ms-1"></i>
@@ -188,7 +186,7 @@
                                                                 <a href="javascript:void(0);" id="categoryFilter" class="text-body ms-1" onclick="toggleCategoryFilter(); event.stopPropagation();" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by Category">
                                                                     <i class="bx bx-filter-alt fs-6 align-middle"></i>
                                                                 </a>
-                                                                <div id="categoryFilterBox" class="card mp-filterbox position-absolute" style="min-width:260px; z-index:1055; display:none;"></div>
+                                                                <div id="categoryFilterBox" class="card mp-filterbox" style="min-width:260px;z-index:9999;display:none;position:fixed;"></div>
                                                             </span>
                                                         </th>
                                                         <th class="col-sortable cursor-pointer" data-filterkey="QtySorting" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">Qty <i class="bx bx-sort sort-icon ms-1"></i></th>
@@ -368,6 +366,10 @@
 
     </div>
 </div>
+
+<!-- Filter boxes (body-level to avoid overflow clipping) -->
+<div id="productTypeFilterBox" class="card mp-filterbox" style="min-width:200px;z-index:9999;display:none;position:fixed;"><?php $this->load->view('products/items/ptypefilter'); ?></div>
+<div id="statusFilterBox" class="card mp-filterbox" style="min-width:200px;z-index:9999;display:none;position:fixed;"><?php $this->load->view('products/items/statusfilter'); ?></div>
 
 <?php $this->load->view('common/footer'); ?>
 
@@ -691,9 +693,11 @@ $(function() {
 
     /** ProductType filter functions */
     window.toggleProductTypeFilter = function() {
-        const $target = $('#productTypeFilterBox');
+        var $target = $('#productTypeFilterBox');
+        if ($target.is(':visible')) { $target.hide(); return; }
         $('.mp-filterbox').not($target).hide();
-        $target.toggle();
+        var rect = document.getElementById('productTypeFilter').getBoundingClientRect();
+        $target.css({ top: (rect.bottom + 4) + 'px', left: rect.left + 'px' }).show();
     };
     window.closeProductTypeFilter = function() {
         $('#productTypeFilterBox').hide();
@@ -721,9 +725,11 @@ $(function() {
 
     /** Status filter functions */
     window.toggleStatusFilter = function() {
-        const $target = $('#statusFilterBox');
+        var $target = $('#statusFilterBox');
+        if ($target.is(':visible')) { $target.hide(); return; }
         $('.mp-filterbox').not($target).hide();
-        $target.toggle();
+        var rect = document.getElementById('statusFilter').getBoundingClientRect();
+        $target.css({ top: (rect.bottom + 4) + 'px', left: rect.left + 'px' }).show();
     };
     window.closeStatusFilter = function() {
         $('#statusFilterBox').hide();

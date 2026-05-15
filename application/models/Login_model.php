@@ -34,6 +34,8 @@ class Login_model extends CI_Model {
             $JwtUserData['OrgCCode'] = $UserData->UserOrgCCode;
             $JwtUserData['OrgCISO2'] = $UserData->UserOrgCISO2;
             $JwtUserData['OrgLogo'] = $UserData->UserOrgLogo;
+            $JwtUserData['OrgName'] = !empty($UserData->UserOrgBrandName) ? $UserData->UserOrgBrandName : ($UserData->UserOrgName ?? '');
+            $JwtUserData['OrgMobile'] = $UserData->UserOrgMobile ?? '';
             $JwtUserData['RoleUID'] = $UserData->UserRoleUID;
             $JwtUserData['RoleName'] = $UserData->UserRoleName;
             $JwtUserData['Timezone'] = $UserData->Timezone;
@@ -92,7 +94,7 @@ class Login_model extends CI_Model {
             
             unset($jwtPayload->JWTData['GenSettings']);
 
-            $this->cacheservice->set($RedisKey, $jwtPayload->JWTData, $Expiry);
+            $this->redisservice->setCache($RedisKey, $jwtPayload->JWTData, $Expiry);
 
             $jwtData['key'] = $RedisKey;
             $jwtData['iss'] = getenv('HTTP_HOST');

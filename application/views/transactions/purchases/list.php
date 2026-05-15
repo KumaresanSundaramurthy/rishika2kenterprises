@@ -417,6 +417,7 @@ if (!empty($DataLists)):
                         </li>
                         <?php endif; ?>
                         <?php endif; ?>
+                        <?php endif; ?>
 
                         <!-- Cancel & Delete — separate section -->
                         <?php if (!$isCancelled): ?>

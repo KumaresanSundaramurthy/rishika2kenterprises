@@ -21,6 +21,7 @@ function getCustomersDetails(PageNo, RowLimit, Filter) {
                 $(ModuleTable + ' tbody').html(response.RecordHtmlData);
                 // Keep sticky pagination in sync with the updated static one
                 $('#custStickyPagination .CustomersPagination').html(response.Pagination);
+                $(window).trigger('scroll');
             }
             executeTablePagnCommonFunc(response, false);
         },

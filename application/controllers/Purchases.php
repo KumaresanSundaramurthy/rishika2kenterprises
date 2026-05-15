@@ -20,7 +20,7 @@ class Purchases extends CI_Controller {
 
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
 
-            $GeneralSettings = ($this->redis_cache->get('Redis_UserGenSettings')->Value) ?? new stdClass();
+            $GeneralSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
             $limit = $GeneralSettings->RowLimit ?? 10;
             $this->pageData['JwtData']->GenSettings = $GeneralSettings;
             $this->pageData['DiscTypeInfo'] = [];
@@ -62,7 +62,7 @@ class Purchases extends CI_Controller {
             $allData      = $this->transactions_model->getTransactionPageList($limit, $offset, $this->pageModuleUID, $filter, 0);
             $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, $filter);
 
-            $this->pageData['JwtData']->GenSettings = ($this->redis_cache->get('Redis_UserGenSettings')->Value) ?? new stdClass();
+            $this->pageData['JwtData']->GenSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
 
             $rowHtml = $this->load->view('transactions/purchases/list', [
                 'DataLists'    => $allData,
@@ -90,7 +90,7 @@ class Purchases extends CI_Controller {
 
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
 
-            $GeneralSettings = ($this->redis_cache->get('Redis_UserGenSettings')->Value) ?? new stdClass();
+            $GeneralSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
             $this->pageData['JwtData']->GenSettings = $GeneralSettings;
             $limit  = $GeneralSettings->RowLimit ?? 10;
             $orgUID = $this->pageData['JwtData']->User->OrgUID;
@@ -135,7 +135,7 @@ class Purchases extends CI_Controller {
             $filter['ModuleUID'] = $this->pageModuleUID;
 
             $orgUID = $this->pageData['JwtData']->User->OrgUID;
-            $this->pageData['JwtData']->GenSettings = ($this->redis_cache->get('Redis_UserGenSettings')->Value) ?? new stdClass();
+            $this->pageData['JwtData']->GenSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
 
             $this->load->model('transactions_model');
             $allData      = $this->transactions_model->getPaymentsList($limit, $offset, $orgUID, $filter);
@@ -260,6 +260,7 @@ class Purchases extends CI_Controller {
                 'TotalItems'            => count($items),
                 'GrossAmount'           => $subTotal + $discountAmount,
                 'SubTotal'              => $subTotal,
+                'TaxableAmount'         => $subTotal,
                 'DiscountAmount'        => $discountAmount,
                 'AdditionalCharges'     => $additionalChargesTotal,
                 'TaxAmount'             => $taxAmount,
@@ -272,7 +273,6 @@ class Purchases extends CI_Controller {
                 'ExtraDiscAmount'       => $extraDiscount,
                 'ExtraDiscType'         => getPostValue($PostData, 'extDiscountType') ?: NULL,
                 'NetAmount'             => $netAmount,
-                'TaxableAmount'         => $subTotal,
                 'PaidAmount'            => 0,
                 'BalanceAmount'         => $netAmount,
                 'IsFullyPaid'           => 0,
@@ -460,6 +460,7 @@ class Purchases extends CI_Controller {
                 'DispatchFrom'      => getPostValue($PostData, 'dispatchTo') ?: NULL,
                 'GrossAmount'       => $subTotal + $discountAmount,
                 'SubTotal'          => $subTotal,
+                'TaxableAmount'     => $subTotal,
                 'DiscountAmount'    => $discountAmount,
                 'AdditionalCharges' => $additionalChargesTotal,
                 'TaxAmount'         => $taxAmount,
@@ -472,7 +473,6 @@ class Purchases extends CI_Controller {
                 'ExtraDiscAmount'   => $extraDiscount,
                 'ExtraDiscType'     => getPostValue($PostData, 'extDiscountType') ?: NULL,
                 'NetAmount'         => $netAmount,
-                'TaxableAmount'     => $subTotal,
                 'BalanceAmount'     => max(0, round($netAmount - (float)($existing->PaidAmount ?? 0), 2)),
                 'DocStatus'         => $status,
                 'UpdatedBy'         => $userUID,
@@ -1153,7 +1153,7 @@ class Purchases extends CI_Controller {
 
         try {
 
-            $GeneralSettings = $this->redis_cache->get('Redis_UserGenSettings')->Value ?? NULL;
+            $GeneralSettings = $this->redisservice->getUserCache('settings') ?? NULL;
             $this->pageData['JwtData']->GenSettings = $GeneralSettings;
 
             $orgUID = $this->pageData['JwtData']->User->OrgUID;
@@ -1230,7 +1230,7 @@ class Purchases extends CI_Controller {
             $transUID = (int) $transUID;
             if ($transUID <= 0) redirect('purchases');
 
-            $GeneralSettings = $this->redis_cache->get('Redis_UserGenSettings')->Value ?? NULL;
+            $GeneralSettings = $this->redisservice->getUserCache('settings') ?? NULL;
             $this->pageData['JwtData']->GenSettings = $GeneralSettings;
 
             $orgUID = $this->pageData['JwtData']->User->OrgUID;
@@ -1564,7 +1564,7 @@ class Purchases extends CI_Controller {
             $this->EndReturnData->IsFullyPaid = $isFullyPaid;
 
             // Refresh the purchase list
-            $GeneralSettings = ($this->redis_cache->get('Redis_UserGenSettings')->Value) ?? new stdClass();
+            $GeneralSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
             $limit  = $GeneralSettings->RowLimit ?? 10;
             $pageNo = (int) $this->input->post('CurrentPage') ?: 1;
             $offset = ($pageNo - 1) * $limit;

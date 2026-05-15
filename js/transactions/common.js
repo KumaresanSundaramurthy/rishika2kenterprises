@@ -56,6 +56,7 @@ function loadTransactionList(config, pageNo, rowLimit, filter) {
                 var $active = $(config.statusTabClass + '.active');
                 $active.find(config.tabCountClass).text(count > 0 ? count : '').removeClass('d-none');
                 initTooltips();
+                $(window).trigger('scroll');
                 if (config.onSuccess) config.onSuccess(response);
             }
         },

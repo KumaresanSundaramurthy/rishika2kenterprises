@@ -23,7 +23,7 @@ Class Globalservice {
     }
 
     public function refreshUserCache() {
-        $GetRedisDetails = $this->CI->cacheservice->get($this->CI->pageData['JwtUserKey']);
+        $GetRedisDetails = $this->CI->redisservice->getCache($this->CI->pageData['JwtUserKey']);
         if ($GetRedisDetails->Error === FALSE) {
             $this->CI->load->model('user_model');
             $UserData = $this->CI->user_model->getUserByUserInfo(['User.UserUID' => $this->CI->pageData['JwtData']->User->UserUID]);
@@ -33,7 +33,12 @@ Class Globalservice {
                 $jwtPayload = $this->CI->login_model->formatJWTPayload($UserData->Data[0]);
 
                 if ($jwtPayload->Error === FALSE) {
-                    $this->CI->cacheservice->set($GetRedisDetails->Key, json_encode($jwtPayload->JWTData), $GetRedisDetails->TTL);
+                    // Preserve the session token so single-session enforcement is not broken by a cache refresh
+                    $existingToken = $GetRedisDetails->Value->User->SessionToken ?? null;
+                    if ($existingToken) {
+                        $jwtPayload->JWTData['User']['SessionToken'] = $existingToken;
+                    }
+                    $this->CI->redisservice->setCache($GetRedisDetails->Key, $jwtPayload->JWTData, $GetRedisDetails->TTL);
                 }
             }
         }
@@ -292,7 +297,7 @@ Class Globalservice {
                         'DataLists' => $DataLists,
                         'SerialNumber' => $Offset * $Limit,
                         'DispViewColumns' => $DispViewColumns,
-                        'GenSettings' => $this->CI->redis_cache->get('Redis_UserGenSettings')->Value ?? new stdClass(),
+                        'GenSettings' => $this->CI->redisservice->getUserCache('settings') ?? new stdClass(),
                         'JwtData' => $this->CI->pageData['JwtData'],
                     ];
                     if($ModuleInfoData->EditOnPage == 1) {
@@ -954,7 +959,7 @@ Class Globalservice {
         $Filter = $this->CI->input->post('Filter') ?? [];
         $ModuleId = $this->CI->input->post('ModuleId');
 
-        $GeneralSettings = ($this->CI->redis_cache->get('Redis_UserGenSettings')->Value) ?? new stdClass();
+        $GeneralSettings = ($this->CI->redisservice->getUserCache('settings')) ?? new stdClass();
         $this->CI->pageData['JwtData']->GenSettings = $GeneralSettings;
 
         $ReturnResponse = $this->getBaseMainPageTablePagination($ModuleId, $pageNo, $limit, $offset, $Filter, [], 'Pagination');

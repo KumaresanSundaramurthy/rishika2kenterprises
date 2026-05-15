@@ -63,14 +63,6 @@
                                                                     <i class="bx bx-filter-alt fs-5 align-middle"></i>
                                                                 </a>
 
-                                                                <div id="storageTypeFilterBox" class="card shadow mp-filterbox position-absolute p-3">
-
-                                                                <?php if (sizeof($StorageTypeInfo) > 0) {
-                                                                    echo $this->load->view('storage/storagetypefilter', ['StorageTypeInfo' => $StorageTypeInfo], TRUE);
-                                                                } ?>
-                                                                
-                                                                </div>
-
                                                             <?php } ?>
 
                                                             </th>
@@ -113,6 +105,13 @@
 
         </div>
     </div>
+</div>
+
+<!-- Filter boxes (body-level to avoid overflow clipping) -->
+<div id="storageTypeFilterBox" class="card shadow mp-filterbox p-3" style="z-index:9999;display:none;position:fixed;">
+    <?php if (sizeof($StorageTypeInfo) > 0) {
+        echo $this->load->view('storage/storagetypefilter', ['StorageTypeInfo' => $StorageTypeInfo], TRUE);
+    } ?>
 </div>
 
 <?php $this->load->view('common/footer'); ?>

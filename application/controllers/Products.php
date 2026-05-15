@@ -22,7 +22,7 @@ class Products extends CI_Controller {
 
     private function getModuleInfo($controllerName) {
 
-        $getModuleInfo = $this->redis_cache->get('Redis_UserModuleInfo')->Value ?? [];
+        $getModuleInfo = $this->redisservice->getUserCache('modules') ?? [];
         $ModuleInfo = array_values(array_filter($getModuleInfo, fn($m) => $m->ControllerName === $controllerName));
         
         if (empty($ModuleInfo)) {
@@ -113,7 +113,7 @@ class Products extends CI_Controller {
         $offset = ($pageNo - 1) * $limit;
 
         if (!isset($this->pageData['JwtData']->GenSettings)) {
-            $GeneralSettings = $this->redis_cache->get('Redis_UserGenSettings')->Value ?? NULL;
+            $GeneralSettings = $this->redisservice->getUserCache('settings') ?? NULL;
             $this->pageData['JwtData']->GenSettings = $GeneralSettings;
         }
 
@@ -136,7 +136,7 @@ class Products extends CI_Controller {
         try {
 
             $activeTab = $this->sanitizeTabInput($this->input->get('tab', TRUE));
-            $GeneralSettings = $this->redis_cache->get('Redis_UserGenSettings')->Value ?? NULL;
+            $GeneralSettings = $this->redisservice->getUserCache('settings') ?? NULL;
             $this->pageData['JwtData']->GenSettings = $GeneralSettings;
 
             $limit = (int) ($GeneralSettings->RowLimit ?? 10);
@@ -356,7 +356,7 @@ class Products extends CI_Controller {
 
             $result  = $this->products_model->getProductListPaginated($OrgUID, $limit, $offset, $filterResult->SearchDirectQuery, $filterResult->sortOperation);
 
-            $GeneralSettings = $this->redis_cache->get('Redis_UserGenSettings')->Value ?? NULL;
+            $GeneralSettings = $this->redisservice->getUserCache('settings') ?? NULL;
             $this->pageData['JwtData']->GenSettings = $GeneralSettings;
             
             $rowHtml = $this->load->view('products/items/list', [
@@ -389,7 +389,7 @@ class Products extends CI_Controller {
             $this->load->model('dbwrite_model');
             $this->dbwrite_model->startTransaction();
             
-            $GeneralSettings = ($this->redis_cache->get('Redis_UserGenSettings')->Value) ?? new stdClass();
+            $GeneralSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
             $this->pageData['JwtData']->GenSettings = $GeneralSettings;
 
             $PostData = $this->input->post();
@@ -499,7 +499,7 @@ class Products extends CI_Controller {
             $this->load->model('dbwrite_model');
             $this->dbwrite_model->startTransaction();
             
-            $GeneralSettings = ($this->redis_cache->get('Redis_UserGenSettings')->Value) ?? new stdClass();
+            $GeneralSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
             $this->pageData['JwtData']->GenSettings = $GeneralSettings;
 
             $PostData = $this->input->post();
@@ -687,7 +687,7 @@ class Products extends CI_Controller {
             $this->load->model('dbwrite_model');
             $this->dbwrite_model->startTransaction();
 
-            $GeneralSettings = ($this->redis_cache->get('Redis_UserGenSettings')->Value) ?? new stdClass();
+            $GeneralSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
             $this->pageData['JwtData']->GenSettings = $GeneralSettings;
 
             $PostData = $this->input->post();
@@ -783,7 +783,7 @@ class Products extends CI_Controller {
             $this->load->model('dbwrite_model');
             $this->dbwrite_model->startTransaction();
 
-            $GeneralSettings = ($this->redis_cache->get('Redis_UserGenSettings')->Value) ?? new stdClass();
+            $GeneralSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
             $this->pageData['JwtData']->GenSettings = $GeneralSettings;
 
             $PostData = $this->input->post();
@@ -955,7 +955,7 @@ class Products extends CI_Controller {
             );
             if ($resp->Error) throw new Exception($resp->Message);
 
-            $GeneralSettings = ($this->redis_cache->get('Redis_UserGenSettings')->Value) ?? new stdClass();
+            $GeneralSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
             $this->pageData['JwtData']->GenSettings = $GeneralSettings;
 
             $pageNo  = (int) $this->input->post('PageNo') ?: 1;
@@ -993,7 +993,7 @@ class Products extends CI_Controller {
 
             $result  = $this->products_model->getCategoryListPaginated($OrgUID, $limit, $offset, $filterResult->SearchDirectQuery, $filterResult->sortOperation);
 
-            $GeneralSettings = $this->redis_cache->get('Redis_UserGenSettings')->Value ?? NULL;
+            $GeneralSettings = $this->redisservice->getUserCache('settings') ?? NULL;
             $this->pageData['JwtData']->GenSettings = $GeneralSettings;
 
             $rowHtml = $this->load->view('products/categories/list', [

@@ -20,7 +20,7 @@ class Quotations extends CI_Controller {
 
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
 
-            $GeneralSettings = ($this->redis_cache->get('Redis_UserGenSettings')->Value) ?? new stdClass();
+            $GeneralSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
             $limit = $GeneralSettings->RowLimit ?? 10;
             $this->pageData['JwtData']->GenSettings = $GeneralSettings;
             $this->pageData['DiscTypeInfo'] = [];
@@ -28,8 +28,12 @@ class Quotations extends CI_Controller {
             $this->load->model('transactions_model');
             $allData = $this->transactions_model->getTransactionPageList($limit, 0, $this->pageModuleUID, [], 0);
             $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, []);
-            
-            $this->pageData['ModRowData'] = $this->load->view('transactions/quotations/list', ['DataLists' => $allData, 'SerialNumber' => 0, 'JwtData'   => $this->pageData['JwtData']], TRUE);
+
+            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+            $whatsAppTemplate = $this->getWhatsAppTemplate($orgUID);
+            $this->_injectOrgInfo($orgUID);
+
+            $this->pageData['ModRowData'] = $this->load->view('transactions/quotations/list', ['DataLists' => $allData, 'SerialNumber' => 0, 'JwtData' => $this->pageData['JwtData'], 'WhatsAppTemplate' => $whatsAppTemplate], TRUE);
             $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/quotations/getQuotationsPageDetails', $allDataCount, 1, $limit);
             $this->pageData['ModAllCount'] = $allDataCount;
             $this->pageData['SummaryStats'] = $this->transactions_model->getTransactionSummaryStats($this->pageModuleUID, $this->pageData['JwtData']->User->OrgUID);
@@ -60,12 +64,17 @@ class Quotations extends CI_Controller {
             $allData = $this->transactions_model->getTransactionPageList($limit, $offset, $this->pageModuleUID, $filter, 0);
             $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, $filter);
 
-            $this->pageData['JwtData']->GenSettings = ($this->redis_cache->get('Redis_UserGenSettings')->Value) ?? new stdClass();
-            
+            $this->pageData['JwtData']->GenSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
+
+            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+            $whatsAppTemplate = $this->getWhatsAppTemplate($orgUID);
+            $this->_injectOrgInfo($orgUID);
+
             $rowHtml = $this->load->view('transactions/quotations/list', [
-                'DataLists'    => $allData,
-                'SerialNumber' => ($pageNo - 1) * $limit,
-                'JwtData'      => $this->pageData['JwtData'],
+                'DataLists'       => $allData,
+                'SerialNumber'    => ($pageNo - 1) * $limit,
+                'JwtData'         => $this->pageData['JwtData'],
+                'WhatsAppTemplate' => $whatsAppTemplate,
             ], true);
             
             $this->EndReturnData->Error = FALSE;
@@ -176,6 +185,7 @@ class Quotations extends CI_Controller {
                 'TotalItems'            => count($items),
                 'GrossAmount'           => $subTotal + $discountAmount,
                 'SubTotal'              => $subTotal,
+                'TaxableAmount'         => $subTotal,
                 'DiscountAmount'        => $discountAmount,
                 'AdditionalCharges'     => $additionalChargesTotal,
                 'TaxAmount'             => $taxAmount,
@@ -339,6 +349,7 @@ class Quotations extends CI_Controller {
                 'QuotationType'     => getPostValue($PostData, 'quotationType') ?: NULL,
                 'GrossAmount'       => $subTotal + $discountAmount,
                 'SubTotal'          => $subTotal,
+                'TaxableAmount'     => $subTotal,
                 'DiscountAmount'    => $discountAmount,
                 'AdditionalCharges' => $additionalChargesTotal,
                 'TaxAmount'         => $taxAmount,
@@ -794,7 +805,7 @@ class Quotations extends CI_Controller {
 
         try {
 
-            $GeneralSettings = $this->redis_cache->get('Redis_UserGenSettings')->Value ?? NULL;
+            $GeneralSettings = $this->redisservice->getUserCache('settings') ?? NULL;
             $this->pageData['JwtData']->GenSettings = $GeneralSettings;
 
             $orgUID = $this->pageData['JwtData']->User->OrgUID;
@@ -875,7 +886,7 @@ class Quotations extends CI_Controller {
             $transUID = (int) $transUID;
             if ($transUID <= 0) redirect('quotations', 'refresh');
 
-            $GeneralSettings = $this->redis_cache->get('Redis_UserGenSettings')->Value ?? NULL;
+            $GeneralSettings = $this->redisservice->getUserCache('settings') ?? NULL;
             $this->pageData['JwtData']->GenSettings = $GeneralSettings;
 
             $orgUID = $this->pageData['JwtData']->User->OrgUID;
@@ -998,6 +1009,22 @@ class Quotations extends CI_Controller {
         }
     }
 
+    private function getWhatsAppTemplate($orgUID) {
+        $this->load->model('organisation_model');
+        $result = $this->organisation_model->getMessageTemplate($orgUID, $this->pageModuleUID, 'WhatsApp');
+        return $result->Error === false ? $result->Data : new stdClass();
+    }
+
+    private function _injectOrgInfo($orgUID) {
+        $this->load->model('organisation_model');
+        $result = $this->organisation_model->getOrganisationDetails(['Org.OrgUID' => $orgUID]);
+        if (!$result->Error && !empty($result->Data)) {
+            $org = $result->Data[0];
+            $this->pageData['JwtData']->User->OrgName   = !empty($org->BrandName) ? $org->BrandName : $org->Name;
+            $this->pageData['JwtData']->User->OrgMobile = $org->MobileNumber ?? '';
+        }
+    }
+
     private function _softDeleteAttachments($removedJson) {
         if (empty($removedJson)) return;
         $uids = json_decode($removedJson, true);
@@ -1016,6 +1043,40 @@ class Quotations extends CI_Controller {
                 ['AttachUID' => $attachUID, 'OrgUID' => $orgUID]
             );
         }
+    }
+
+    public function getQuotationPdfBase64() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $transUID  = (int) $this->input->post('TransUID');
+            $paperSize = strtoupper(trim($this->input->post('PaperSize') ?: 'A4'));
+            $orgUID    = $this->pageData['JwtData']->User->OrgUID;
+
+            if ($transUID <= 0) throw new Exception('Invalid quotation.');
+
+            $this->load->model('transactions_model');
+            $quotation = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
+            if (!$quotation) throw new Exception('Quotation not found.');
+
+            $pdfBytes = $this->transactions_model->generateTransactionPdfBytes($transUID, $orgUID, $this->pageModuleUID, $paperSize);
+            if (!$pdfBytes) throw new Exception('Failed to generate PDF.');
+
+            $filename = preg_replace('/[^A-Za-z0-9_\-]/', '_', $quotation->UniqueNumber ?? ('Quotation_' . $transUID)) . '.pdf';
+
+            $this->EndReturnData->Error    = FALSE;
+            $this->EndReturnData->Base64   = base64_encode($pdfBytes);
+            $this->EndReturnData->Filename = $filename;
+            $this->EndReturnData->Size     = strlen($pdfBytes);
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
     }
 
     public function uploadAttachments() {

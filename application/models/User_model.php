@@ -33,6 +33,9 @@ class User_model extends CI_Model {
                 'Org.Logo as UserOrgLogo',
                 'Org.CountryCode as UserOrgCCode',
                 'Org.CountryISO2 as UserOrgCISO2',
+                'Org.Name as UserOrgName',
+                'Org.BrandName as UserOrgBrandName',
+                'Org.MobileNumber as UserOrgMobile',
                 'Timezone.Timezone',
                 'User.CountryCode as UserCountryCode',
                 'User.CountryISO2 as UserCountryISO2',
@@ -71,6 +74,28 @@ class User_model extends CI_Model {
 
     }
 
+    public function getCurrentSessionToken($userUID) {
+
+        try {
+
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('User.CurrentSessionToken');
+            $this->ReadDb->from('Users.UserTbl as User');
+            $this->ReadDb->where('User.UserUID', (int) $userUID);
+            $this->ReadDb->where('User.IsActive', 1);
+            $this->ReadDb->where('User.IsDeleted', 0);
+            $this->ReadDb->limit(1);
+            $query = $this->ReadDb->get();
+            if (!$query) return null;
+            $row = $query->row();
+            return $row ? $row->CurrentSessionToken : null;
+
+        } catch (Exception $e) {
+            return null;
+        }
+
+    }
+
     public function getUserByUserInfo($FilterArray = []) {
 
         $this->EndReturnData = new stdClass();
@@ -92,6 +117,9 @@ class User_model extends CI_Model {
                 'Org.Logo as UserOrgLogo',
                 'Org.CountryCode as UserOrgCCode',
                 'Org.CountryISO2 as UserOrgCISO2',
+                'Org.Name as UserOrgName',
+                'Org.BrandName as UserOrgBrandName',
+                'Org.MobileNumber as UserOrgMobile',
                 'Timezone.Timezone',
                 'User.CountryCode as UserCountryCode',
                 'User.CountryISO2 as UserCountryISO2',

@@ -15,7 +15,7 @@ class Salesreturns extends CI_Controller {
     public function index() {
         try {
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
-            $GeneralSettings = ($this->redis_cache->get('Redis_UserGenSettings')->Value) ?? new stdClass();
+            $GeneralSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
             $limit = $GeneralSettings->RowLimit ?? 10;
             $this->pageData['JwtData']->GenSettings = $GeneralSettings;
             $this->pageData['DiscTypeInfo'] = [];
@@ -50,7 +50,7 @@ class Salesreturns extends CI_Controller {
             $allData      = $this->transactions_model->getTransactionPageList($limit, $offset, $this->pageModuleUID, $filter, 0);
             $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, $filter);
 
-            $this->pageData['JwtData']->GenSettings = ($this->redis_cache->get('Redis_UserGenSettings')->Value) ?? new stdClass();
+            $this->pageData['JwtData']->GenSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
 
             $rowHtml = $this->load->view('transactions/salesreturns/list', [
                 'DataLists'    => $allData,
@@ -160,6 +160,7 @@ class Salesreturns extends CI_Controller {
                 'TotalItems'        => count($items),
                 'GrossAmount'       => $subTotal + $discountAmount,
                 'SubTotal'          => $subTotal,
+                'TaxableAmount'     => $subTotal,
                 'DiscountAmount'    => $discountAmount,
                 'AdditionalCharges' => $additionalChargesTotal,
                 'TaxAmount'         => $taxAmount,
@@ -332,6 +333,7 @@ class Salesreturns extends CI_Controller {
                 'TotalItems'        => count($items),
                 'GrossAmount'       => $subTotal + $discountAmount,
                 'SubTotal'          => $subTotal,
+                'TaxableAmount'     => $subTotal,
                 'DiscountAmount'    => $discountAmount,
                 'AdditionalCharges' => $additionalChargesTotal,
                 'TaxAmount'         => $taxAmount,
@@ -823,7 +825,7 @@ class Salesreturns extends CI_Controller {
 
     public function create() {
         try {
-            $GeneralSettings = $this->redis_cache->get('Redis_UserGenSettings')->Value ?? NULL;
+            $GeneralSettings = $this->redisservice->getUserCache('settings') ?? NULL;
             $this->pageData['JwtData']->GenSettings = $GeneralSettings;
             $orgUID = $this->pageData['JwtData']->User->OrgUID;
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
@@ -874,7 +876,7 @@ class Salesreturns extends CI_Controller {
             $transUID = (int) $transUID;
             if ($transUID <= 0) redirect('salesreturns');
 
-            $GeneralSettings = $this->redis_cache->get('Redis_UserGenSettings')->Value ?? NULL;
+            $GeneralSettings = $this->redisservice->getUserCache('settings') ?? NULL;
             $this->pageData['JwtData']->GenSettings = $GeneralSettings;
             $orgUID = $this->pageData['JwtData']->User->OrgUID;
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;

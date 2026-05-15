@@ -84,7 +84,7 @@ class Organisation_model extends CI_Model {
         try {
 
             $OBTKey = $this->OrgBusTypeKey;
-            $OBTGet_Data = $this->redis_cache->get($OBTKey);
+            $OBTGet_Data = $this->redisservice->getCache($OBTKey);
             if ($OBTGet_Data->Error) {
 
                 $this->ReadDb->select('BusinessType.OrgBussTypeUID as OrgBussTypeUID, BusinessType.Name as Name');
@@ -99,7 +99,7 @@ class Organisation_model extends CI_Model {
                     $this->EndReturnData->Data = $query->result();
                 }
                 
-                $this->redis_cache->set($OBTKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
+                $this->redisservice->setCache($OBTKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
                 
             } else {
                 $this->EndReturnData->Data = $OBTGet_Data->Value;
@@ -126,7 +126,7 @@ class Organisation_model extends CI_Model {
         try {
 
             $OITKey = $this->OrgIndTypeKey;
-            $OITGet_Data = $this->redis_cache->get($OITKey);
+            $OITGet_Data = $this->redisservice->getCache($OITKey);
             if ($OITGet_Data->Error) {
 
                 $this->ReadDb->select('IndustryType.OrgIndTypeUID as OrgIndTypeUID, IndustryType.Name as Name');
@@ -141,7 +141,7 @@ class Organisation_model extends CI_Model {
                     $this->EndReturnData->Data = $query->result();
                 }
 
-                $this->redis_cache->set($OITKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
+                $this->redisservice->setCache($OITKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
 
             } else {
                 $this->EndReturnData->Data = $OITGet_Data->Value;
@@ -168,7 +168,7 @@ class Organisation_model extends CI_Model {
         try {
             
             $OBRTKey = $this->OrgBusRegTypeKey;
-            $OBRTGet_Data = $this->redis_cache->get($OBRTKey);
+            $OBRTGet_Data = $this->redisservice->getCache($OBRTKey);
             if ($OBRTGet_Data->Error) {
 
                 $this->ReadDb->select('BusRegType.OrgBusRegTypeUID as OrgBusRegTypeUID, BusRegType.Name as Name');
@@ -183,7 +183,7 @@ class Organisation_model extends CI_Model {
                     $this->EndReturnData->Data = $query->result();
                 }
 
-                $this->redis_cache->set($OBRTKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
+                $this->redisservice->setCache($OBRTKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
 
             } else {
                 $this->EndReturnData->Data = $OBRTGet_Data->Value;

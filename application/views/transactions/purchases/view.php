@@ -196,6 +196,13 @@ $this->load->view('common/transactions/header'); ?>
 
                     <?php $this->load->view('common/transactions/print_modals'); ?>
 
+                    <!-- Sticky pagination -->
+                    <div class="card mb-0 cust-sticky-pag" id="purchStickyPagination" style="display:none;">
+                        <div class="card-body p-0">
+                            <div class="row mx-3 my-2 justify-content-between align-items-center purchPagination"></div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
 
@@ -242,6 +249,20 @@ $(function () {
     });
 
     Filter['Status'] = 'All';
+
+    // ── Sticky pagination ──
+    var $purchStaticPag = $('#purchPagination');
+    var $purchStickyPag = $('#purchStickyPagination');
+    function _syncPurchSticky() { $purchStickyPag.find('.purchPagination').html($purchStaticPag.html()); }
+    function _togglePurchSticky() {
+        if (!$purchStaticPag.length) return;
+        var r = $purchStaticPag[0].getBoundingClientRect();
+        var visible = r.top < $(window).height() && r.bottom > 0;
+        if (visible) { $purchStickyPag.stop(true,true).fadeOut(150); }
+        else { _syncPurchSticky(); $purchStickyPag.stop(true,true).fadeIn(150); }
+    }
+    $(window).on('scroll resize', _togglePurchSticky);
+    _togglePurchSticky();
 
     // ── Stat card → filter ──────────────────────────────────────
     $(document).on('click', '[data-stat-filter]', function () {

@@ -7,6 +7,17 @@
         <div class="layout-page">
             <div class="content-wrapper">
                 <div class="container-xxl flex-grow-1 container-p-y">
+
+                    <!-- ── Page Header ── -->
+                    <div class="trans-page-header">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="trans-ph-icon" style="background:#fef3c7;">
+                                <i class="bx bx-palette" style="color:#f59e0b;"></i>
+                            </div>
+                            <h5 class="trans-ph-title">Print Themes</h5>
+                        </div>
+                    </div>
+
                     <div class="card">
                         <div class="row">
                             <div class="col-md-12">

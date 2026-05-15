@@ -164,19 +164,19 @@ class Communicationservice {
         }
         // Quill fragment — wrap in a styled HTML document
         return '<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<style>
-body { font-family: Arial, Helvetica, sans-serif; font-size: 14px; color: #333; line-height: 1.6; margin: 0; padding: 20px; }
-p { margin: 0 0 10px 0; }
-ul, ol { margin: 0 0 10px 20px; }
-a { color: #1565c0; }
-</style>
-</head>
-<body>' . $html . '</body>
-</html>';
+                <html>
+                    <head>
+                        <meta charset="UTF-8">
+                        <meta name="viewport" content="width=device-width,initial-scale=1">
+                        <style>
+                            body { font-family: Arial, Helvetica, sans-serif; font-size: 14px; color: #333; line-height: 1.6; margin: 0; padding: 20px; }
+                            p { margin: 0 0 10px 0; }
+                            ul, ol { margin: 0 0 10px 20px; }
+                            a { color: #1565c0; }
+                        </style>
+                        </head>
+                    <body>' . $html . '</body>
+                </html>';
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────

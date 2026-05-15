@@ -25,7 +25,7 @@ class Location_model extends CI_Model {
 
             $iso2     = strtoupper(trim($countryISO2));
             $cacheKey = $this->_statesCacheKey($iso2);
-            $cached   = $this->redis_cache->get($cacheKey);
+            $cached   = $this->redisservice->getCache($cacheKey);
 
             if ($cached->Error) {
 
@@ -42,7 +42,7 @@ class Location_model extends CI_Model {
                 }
 
                 $this->EndReturnData->Data = $query->result();
-                $this->redis_cache->set($cacheKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
+                $this->redisservice->setCache($cacheKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
 
             } else {
                 $this->EndReturnData->Data = $cached->Value;
@@ -67,7 +67,7 @@ class Location_model extends CI_Model {
             $cISO2    = strtoupper(trim($countryISO2));
             $sISO2    = strtoupper(trim($stateISO2));
             $cacheKey = $this->_citiesOfStateCacheKey($cISO2, $sISO2);
-            $cached   = $this->redis_cache->get($cacheKey);
+            $cached   = $this->redisservice->getCache($cacheKey);
 
             if ($cached->Error) {
 
@@ -84,7 +84,7 @@ class Location_model extends CI_Model {
                 }
 
                 $this->EndReturnData->Data = $query->result();
-                $this->redis_cache->set($cacheKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
+                $this->redisservice->setCache($cacheKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
 
             } else {
                 $this->EndReturnData->Data = $cached->Value;

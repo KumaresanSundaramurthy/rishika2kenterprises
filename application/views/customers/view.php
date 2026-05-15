@@ -136,7 +136,6 @@
                                         <th class="cust-name-sortable position-relative cursor-pointer" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">
                                             <span class="sort-label">Customer <i class="bx bx-sort sort-icon ms-1"></i></span>
                                             <a href="javascript:void(0);" id="custTagFilter" class="text-body ms-1" onclick="toggleCustTagFilter(); event.stopPropagation();" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by Tag"><i class="bx bx-filter-alt fs-6 align-middle"></i></a>
-                                            <div id="custTagFilterBox" class="card mp-filterbox position-absolute" style="min-width:220px;z-index:1056;display:none;top:100%;left:0;"><?php $this->load->view('customers/tagfilter', ['Tags' => $Tags]); ?></div>
                                         </th>
                                         <th class="cust-area-sortable cursor-pointer" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">Area <i class="bx bx-sort sort-icon ms-1"></i></th>
                                         <th>Mobile</th>
@@ -145,7 +144,6 @@
                                         <th class="position-relative">
                                             Customer Type
                                             <a href="javascript:void(0);" id="custTypeFilter" class="text-body ms-1" onclick="toggleCustTypeFilter(); event.stopPropagation();" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by Customer Type"><i class="bx bx-filter-alt fs-6 align-middle"></i></a>
-                                            <div id="custTypeFilterBox" class="card mp-filterbox position-absolute" style="min-width:220px;z-index:1056;display:none;top:100%;left:0;"><?php $this->load->view('customers/typefilter', ['CustomerTypeList' => $CustomerTypeList]); ?></div>
                                         </th>
                                         <th>Last Updated</th>
                                         <th class="th-act" style="width:80px">Actions</th>
@@ -229,6 +227,10 @@
 
     </div>
 </div>
+
+<!-- Filter boxes (body-level to avoid overflow clipping) -->
+<div id="custTagFilterBox" class="card mp-filterbox" style="min-width:220px;z-index:9999;display:none;position:fixed;"><?php $this->load->view('customers/tagfilter', ['Tags' => $Tags]); ?></div>
+<div id="custTypeFilterBox" class="card mp-filterbox" style="min-width:220px;z-index:9999;display:none;position:fixed;"><?php $this->load->view('customers/typefilter', ['CustomerTypeList' => $CustomerTypeList]); ?></div>
 
 <?php $this->load->view('common/footer'); ?>
 
@@ -464,8 +466,10 @@ $(function () {
     // ── Tag filter ──
     window.toggleCustTagFilter = function () {
         var $box = $('#custTagFilterBox');
+        if ($box.is(':visible')) { $box.hide(); return; }
         $('#custTypeFilterBox').hide();
-        $box.toggle();
+        var rect = document.getElementById('custTagFilter').getBoundingClientRect();
+        $box.css({ top: (rect.bottom + 4) + 'px', left: rect.left + 'px' }).show();
     };
     window.closeCustTagFilter = function () { $('#custTagFilterBox').hide(); };
     window.toggleAllCustTags = function (el) {
@@ -504,8 +508,10 @@ $(function () {
     // ── Customer Type filter ──
     window.toggleCustTypeFilter = function () {
         var $box = $('#custTypeFilterBox');
+        if ($box.is(':visible')) { $box.hide(); return; }
         $('#custTagFilterBox').hide();
-        $box.toggle();
+        var rect = document.getElementById('custTypeFilter').getBoundingClientRect();
+        $box.css({ top: (rect.bottom + 4) + 'px', left: rect.left + 'px' }).show();
     };
     window.closeCustTypeFilter = function () { $('#custTypeFilterBox').hide(); };
     window.toggleAllCustTypes = function (el) {

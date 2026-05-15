@@ -20,6 +20,7 @@ function getVendorsDetails(PageNo, RowLimit, Filter) {
                 $(ModulePag).html(response.Pagination);
                 $(ModuleTable + ' tbody').html(response.RecordHtmlData);
                 $('#vendStickyPagination .VendorsPagination').html(response.Pagination);
+                $(window).trigger('scroll');
             }
         },
     });

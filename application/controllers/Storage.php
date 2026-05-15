@@ -14,14 +14,14 @@ class Storage extends CI_Controller {
 
         try {
 
-            $GeneralSettings = $this->redis_cache->get('Redis_UserGenSettings')->Value ?? new stdClass();
+            $GeneralSettings = $this->redisservice->getUserCache('settings') ?? new stdClass();
             if($GeneralSettings->EnableStorage != 1) {
                 redirect('dashboard', 'refresh');
                 return;
             }
 
             $controllerName = strtolower($this->router->fetch_class());
-            $getModuleInfo = $this->redis_cache->get('Redis_UserModuleInfo')->Value ?? [];
+            $getModuleInfo = $this->redisservice->getUserCache('modules') ?? [];
             $ModuleInfo = array_values(array_filter($getModuleInfo, fn($m) => $m->ControllerName === $controllerName));
             if (empty($ModuleInfo)) {
                 throw new Exception("Module information not found for controller: {$controllerName}");
@@ -97,7 +97,7 @@ class Storage extends CI_Controller {
         $this->EndReturnData = new stdClass();
 		try {
 
-            $GeneralSettings = ($this->redis_cache->get('Redis_UserGenSettings')->Value) ?? new stdClass();
+            $GeneralSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
             $this->pageData['JwtData']->GenSettings = $GeneralSettings;
 
             $postData = $this->input->post();
@@ -144,7 +144,7 @@ class Storage extends CI_Controller {
         $this->EndReturnData = new stdClass();
 		try {
 
-            $GeneralSettings = ($this->redis_cache->get('Redis_UserGenSettings')->Value) ?? new stdClass();
+            $GeneralSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
             $this->pageData['JwtData']->GenSettings = $GeneralSettings;
 
             $postData = $this->input->post();

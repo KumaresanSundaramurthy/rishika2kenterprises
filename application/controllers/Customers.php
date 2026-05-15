@@ -454,24 +454,43 @@ class Customers extends CI_Controller {
             $uid = (int) $uid;
             if ($uid <= 0) throw new Exception('Invalid customer ID.');
 
-            $this->load->model('customers_model');
-            $getCustData = $this->customers_model->getCustomers(['Customers.CustomerUID' => $uid]);
-            if (empty($getCustData)) throw new Exception('Customer not found.');
+            // Cache-Aside READ
+            $cacheKey = Upstashservice::keyCustomer($uid);
+            $cached   = $this->upstashservice->get($cacheKey);
 
-            $bankDetails = $this->customers_model->getCustomerBankInfo(['CustBankDetails.CustomerUID' => $uid]);
-            $addrInfo    = $this->customers_model->getCustomerAddress(['CustAddress.CustomerUID' => $uid]);
+            if ($cached !== null) {
+                $this->EndReturnData->Error        = FALSE;
+                $this->EndReturnData->Data         = (object)$cached['Data'];
+                $this->EndReturnData->BankDetails  = $cached['BankDetails'] ?? [];
+                $this->EndReturnData->BillingAddr  = isset($cached['BillingAddr'])  ? (object)$cached['BillingAddr']  : null;
+                $this->EndReturnData->ShippingAddr = isset($cached['ShippingAddr']) ? (object)$cached['ShippingAddr'] : null;
+            } else {
+                $this->load->model('customers_model');
+                $getCustData = $this->customers_model->getCustomers(['Customers.CustomerUID' => $uid]);
+                if (empty($getCustData)) throw new Exception('Customer not found.');
 
-            $billingAddr = null; $shippingAddr = null;
-            foreach ($addrInfo as $addr) {
-                if ($addr->AddressType === 'Billing')  $billingAddr  = $addr;
-                if ($addr->AddressType === 'Shipping') $shippingAddr = $addr;
+                $bankDetails = $this->customers_model->getCustomerBankInfo(['CustBankDetails.CustomerUID' => $uid]);
+                $addrInfo    = $this->customers_model->getCustomerAddress(['CustAddress.CustomerUID' => $uid]);
+
+                $billingAddr = null; $shippingAddr = null;
+                foreach ($addrInfo as $addr) {
+                    if ($addr->AddressType === 'Billing')  $billingAddr  = $addr;
+                    if ($addr->AddressType === 'Shipping') $shippingAddr = $addr;
+                }
+
+                $this->EndReturnData->Error        = FALSE;
+                $this->EndReturnData->Data         = $getCustData[0];
+                $this->EndReturnData->BankDetails  = $bankDetails;
+                $this->EndReturnData->BillingAddr  = $billingAddr;
+                $this->EndReturnData->ShippingAddr = $shippingAddr;
+
+                $this->upstashservice->set($cacheKey, [
+                    'Data'         => $getCustData[0],
+                    'BankDetails'  => $bankDetails,
+                    'BillingAddr'  => $billingAddr,
+                    'ShippingAddr' => $shippingAddr,
+                ], Upstashservice::TTL_CUSTOMER);
             }
-
-            $this->EndReturnData->Error        = FALSE;
-            $this->EndReturnData->Data         = $getCustData[0];
-            $this->EndReturnData->BankDetails  = $bankDetails;
-            $this->EndReturnData->BillingAddr  = $billingAddr;
-            $this->EndReturnData->ShippingAddr = $shippingAddr;
 
         } catch (Exception $e) {
             $this->EndReturnData->Error   = TRUE;
@@ -605,6 +624,9 @@ class Customers extends CI_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
+            // Invalidate stale customer cache
+            $this->upstashservice->del(Upstashservice::keyCustomer((int)$CustomerUID));
+
             $pageNo = (int) ($this->input->post('PageNo') ?: 1);
             $this->_initModule();
             $pageData = $this->_fetchTableData($pageNo, $this->pageData['Limit']);
@@ -657,6 +679,9 @@ class Customers extends CI_Controller {
             }
 
             $this->dbwrite_model->commitTransaction();
+
+            // Invalidate deleted customer cache
+            $this->upstashservice->del(Upstashservice::keyCustomer($CustomerUID));
 
             $pageNo   = (int) ($this->input->post('PageNo') ?: 1);
             $this->_initModule();
@@ -797,6 +822,13 @@ class Customers extends CI_Controller {
             if ($UpdateResp->Error) throw new Exception($UpdateResp->Message);
 
             $this->dbwrite_model->commitTransaction();
+
+            // Invalidate each deleted customer cache key
+            $custKeys = array_map(
+                fn($id) => Upstashservice::keyCustomer($id),
+                $CustomerUIDs
+            );
+            $this->upstashservice->delMany($custKeys);
 
             $pageNo   = (int) ($this->input->post('PageNo') ?: 1);
             $this->_initModule();

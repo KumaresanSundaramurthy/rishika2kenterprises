@@ -8,7 +8,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <link rel="icon" href="/images/logo/favicon_io/favicon.ico" type="image/x-icon">
-    <link rel="shortcut icon" href="/images/logo/favicon_io/favicon-32x32.png" type="image/png">
+    <link rel="shortcut icon" href="/images/logo/favicon_io/android-chrome-512x512-1.png" type="image/png">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />

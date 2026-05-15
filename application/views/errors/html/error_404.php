@@ -10,7 +10,7 @@
 	<meta name="description" content="" />
 
 	<!-- Favicon -->
-	<link rel="shortcut icon" href="/images/logo/favicon_io/favicon-32x32.png" type="image/png">
+	<link rel="shortcut icon" href="/images/logo/favicon_io/android-chrome-512x512-1.png" type="image/png">
 
 	<!-- Fonts -->
 	<link rel="preconnect" href="https://fonts.googleapis.com" />

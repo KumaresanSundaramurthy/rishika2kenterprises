@@ -67,6 +67,12 @@ $route['portal'] = 'login/login';
 $route['logout'] = 'login/logout';
 $route['launch/sendEnquiry'] = 'launch/sendEnquiry';
 
+// Forgot / Reset password (public)
+$route['forgot-password']          = 'login/forgotPassword';
+$route['forgot-password/send']     = 'login/sendResetLink';
+$route['reset-password/update']    = 'login/doForgotReset';
+$route['reset-password/(:any)']    = 'login/showResetForm/$1';
+
 // Settings
 $route['settings/profile']           = 'profile';
 $route['settings/organisation']      = 'organisation';

@@ -425,6 +425,9 @@ class Products extends CI_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
+            // Invalidate products list — new product must appear on next fetch
+            $this->upstashservice->del(Upstashservice::keyProductsAll());
+
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Message = 'Created Successfully';
 
@@ -470,16 +473,34 @@ class Products extends CI_Controller {
                 throw new Exception('Invalid Product Information');
             }
 
-            $this->load->model('products_model');
-            $GetProductData = $this->products_model->getProductsDetails(['Products.ProductUID' => $ProductUID]);
-            if(count($GetProductData) != 1) {
-                throw new Exception('Product not found');
-            }
+            // Cache-Aside READ — check Upstash before hitting the database
+            $cacheKey = Upstashservice::keyProduct($ProductUID);
+            $cached   = $this->upstashservice->get($cacheKey);
 
-            $this->EndReturnData->Error = FALSE;
-            $this->EndReturnData->Message = 'Retrieved Successfully';
-            $this->EndReturnData->Data = $GetProductData[0];
-            $this->EndReturnData->CustomerPricing = $this->products_model->getCustomerTypePricing($ProductUID);
+            if ($cached !== null) {
+                $this->EndReturnData->Error          = FALSE;
+                $this->EndReturnData->Message        = 'Retrieved Successfully';
+                $this->EndReturnData->Data           = (object)$cached['Data'];
+                $this->EndReturnData->CustomerPricing = $cached['CustomerPricing'] ?? [];
+            } else {
+                $this->load->model('products_model');
+                $GetProductData = $this->products_model->getProductsDetails(['Products.ProductUID' => $ProductUID]);
+                if (count($GetProductData) != 1) {
+                    throw new Exception('Product not found');
+                }
+                $customerPricing = $this->products_model->getCustomerTypePricing($ProductUID);
+
+                $this->EndReturnData->Error          = FALSE;
+                $this->EndReturnData->Message        = 'Retrieved Successfully';
+                $this->EndReturnData->Data           = $GetProductData[0];
+                $this->EndReturnData->CustomerPricing = $customerPricing;
+
+                // Populate cache for next request
+                $this->upstashservice->set($cacheKey, [
+                    'Data'            => $GetProductData[0],
+                    'CustomerPricing' => $customerPricing,
+                ], Upstashservice::TTL_PRODUCT);
+            }
 
         } catch (Exception $e) {
             $this->EndReturnData->Error = TRUE;
@@ -536,6 +557,12 @@ class Products extends CI_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
+            // Invalidate stale product cache and products list
+            $this->upstashservice->del(
+                Upstashservice::keyProduct($ProductUID),
+                Upstashservice::keyProductsAll()
+            );
+
             $pageNo  = (int) $this->input->post('PageNo');
             $getResp = $this->fetchProductTableData($pageNo);
 
@@ -583,6 +610,12 @@ class Products extends CI_Controller {
             if($UpdateResp->Error) {
                 throw new Exception($UpdateResp->Message);
             }
+
+            // Invalidate deleted product cache and products list
+            $this->upstashservice->del(
+                Upstashservice::keyProduct($ProductUID),
+                Upstashservice::keyProductsAll()
+            );
 
             $pageNo  = (int) $this->input->post('PageNo') ?: 1;
             $getResp = $this->fetchProductTableData($pageNo);
@@ -637,6 +670,14 @@ class Products extends CI_Controller {
             if($UpdateResp->Error) {
                 throw new Exception($UpdateResp->Message);
             }
+
+            // Invalidate each deleted product + products list
+            $keysToDelete = array_map(
+                fn($id) => Upstashservice::keyProduct($id),
+                $ProductUIDs
+            );
+            $keysToDelete[] = Upstashservice::keyProductsAll();
+            $this->upstashservice->delMany($keysToDelete);
 
             $pageNo  = (int) $this->input->post('PageNo') ?: 1;
             $getResp = $this->fetchProductTableData($pageNo);
@@ -1109,6 +1150,9 @@ class Products extends CI_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
+            // Invalidate categories list — new category must appear on next fetch
+            $this->upstashservice->del(Upstashservice::keyCategoriesAll());
+
             $pageNo  = (int) $this->input->post('PageNo');
             $getResp = $this->fetchCategoryTableData($pageNo);
 
@@ -1147,15 +1191,26 @@ class Products extends CI_Controller {
                 throw new Exception('Invalid Category ID');
             }
 
-            $this->load->model('products_model');
-            $GetCatgData = $this->products_model->getCategoriesDetails(['Category.CategoryUID' => $CategoryUID]);
-            if(count($GetCatgData) != 1) {
-                throw new Exception('Category not found');
-            }
+            // Cache-Aside READ
+            $cacheKey = Upstashservice::keyCategory($CategoryUID);
+            $cached   = $this->upstashservice->get($cacheKey);
 
-            $this->EndReturnData->Error = FALSE;
-            $this->EndReturnData->Message = 'Retrieved Successfully';
-            $this->EndReturnData->Data = $GetCatgData[0];
+            if ($cached !== null) {
+                $this->EndReturnData->Error   = FALSE;
+                $this->EndReturnData->Message = 'Retrieved Successfully';
+                $this->EndReturnData->Data    = (object)$cached['Data'];
+            } else {
+                $this->load->model('products_model');
+                $GetCatgData = $this->products_model->getCategoriesDetails(['Category.CategoryUID' => $CategoryUID]);
+                if (count($GetCatgData) != 1) {
+                    throw new Exception('Category not found');
+                }
+                $this->EndReturnData->Error   = FALSE;
+                $this->EndReturnData->Message = 'Retrieved Successfully';
+                $this->EndReturnData->Data    = $GetCatgData[0];
+
+                $this->upstashservice->set($cacheKey, ['Data' => $GetCatgData[0]], Upstashservice::TTL_CATEGORY);
+            }
 
         } catch (Exception $e) {
             $this->EndReturnData->Error = TRUE;
@@ -1205,6 +1260,12 @@ class Products extends CI_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
+            // Invalidate stale category entry and categories list
+            $this->upstashservice->del(
+                Upstashservice::keyCategory($CategoryUID),
+                Upstashservice::keyCategoriesAll()
+            );
+
             $pageNo  = (int) $this->input->post('PageNo');
             $getResp = $this->fetchCategoryTableData($pageNo);
 
@@ -1253,6 +1314,12 @@ class Products extends CI_Controller {
             if($UpdateResp->Error) {
                 throw new Exception($UpdateResp->Message);
             }
+
+            // Invalidate deleted category and categories list
+            $this->upstashservice->del(
+                Upstashservice::keyCategory($CategoryUID),
+                Upstashservice::keyCategoriesAll()
+            );
 
             $pageNo  = (int) $this->input->post('PageNo') ?: 1;
             $getResp = $this->fetchCategoryTableData($pageNo);
@@ -1306,6 +1373,14 @@ class Products extends CI_Controller {
             if($UpdateResp->Error) {
                 throw new Exception($UpdateResp->Message);
             }
+
+            // Invalidate each deleted category + categories list
+            $catgKeys = array_map(
+                fn($id) => Upstashservice::keyCategory($id),
+                $CategoryUIDs
+            );
+            $catgKeys[] = Upstashservice::keyCategoriesAll();
+            $this->upstashservice->delMany($catgKeys);
 
             $pageNo  = (int) $this->input->post('PageNo') ?: 1;
             $getResp = $this->fetchCategoryTableData($pageNo);

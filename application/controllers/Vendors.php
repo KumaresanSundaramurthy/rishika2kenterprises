@@ -402,24 +402,43 @@ class Vendors extends CI_Controller {
             $uid = (int) $uid;
             if ($uid <= 0) throw new Exception('Invalid vendor ID.');
 
-            $this->load->model('vendors_model');
-            $getVendData = $this->vendors_model->getVendors(['Vendors.VendorUID' => $uid]);
-            if (empty($getVendData)) throw new Exception('Vendor not found.');
+            // Cache-Aside READ
+            $cacheKey = Upstashservice::keyVendor($uid);
+            $cached   = $this->upstashservice->get($cacheKey);
 
-            $bankDetails = $this->vendors_model->getVendorBankInfo(['VendBankDetails.VendorUID' => $uid]);
-            $addrInfo    = $this->vendors_model->getVendorAddress(['VendAddress.VendorUID' => $uid]);
+            if ($cached !== null) {
+                $this->EndReturnData->Error        = FALSE;
+                $this->EndReturnData->Data         = (object)$cached['Data'];
+                $this->EndReturnData->BankDetails  = $cached['BankDetails'] ?? [];
+                $this->EndReturnData->BillingAddr  = isset($cached['BillingAddr'])  ? (object)$cached['BillingAddr']  : null;
+                $this->EndReturnData->ShippingAddr = isset($cached['ShippingAddr']) ? (object)$cached['ShippingAddr'] : null;
+            } else {
+                $this->load->model('vendors_model');
+                $getVendData = $this->vendors_model->getVendors(['Vendors.VendorUID' => $uid]);
+                if (empty($getVendData)) throw new Exception('Vendor not found.');
 
-            $billingAddr = null; $shippingAddr = null;
-            foreach ($addrInfo as $addr) {
-                if ($addr->AddressType === 'Billing')  $billingAddr  = $addr;
-                if ($addr->AddressType === 'Shipping') $shippingAddr = $addr;
+                $bankDetails = $this->vendors_model->getVendorBankInfo(['VendBankDetails.VendorUID' => $uid]);
+                $addrInfo    = $this->vendors_model->getVendorAddress(['VendAddress.VendorUID' => $uid]);
+
+                $billingAddr = null; $shippingAddr = null;
+                foreach ($addrInfo as $addr) {
+                    if ($addr->AddressType === 'Billing')  $billingAddr  = $addr;
+                    if ($addr->AddressType === 'Shipping') $shippingAddr = $addr;
+                }
+
+                $this->EndReturnData->Error        = FALSE;
+                $this->EndReturnData->Data         = $getVendData[0];
+                $this->EndReturnData->BankDetails  = $bankDetails;
+                $this->EndReturnData->BillingAddr  = $billingAddr;
+                $this->EndReturnData->ShippingAddr = $shippingAddr;
+
+                $this->upstashservice->set($cacheKey, [
+                    'Data'         => $getVendData[0],
+                    'BankDetails'  => $bankDetails,
+                    'BillingAddr'  => $billingAddr,
+                    'ShippingAddr' => $shippingAddr,
+                ], Upstashservice::TTL_VENDOR);
             }
-
-            $this->EndReturnData->Error        = FALSE;
-            $this->EndReturnData->Data         = $getVendData[0];
-            $this->EndReturnData->BankDetails  = $bankDetails;
-            $this->EndReturnData->BillingAddr  = $billingAddr;
-            $this->EndReturnData->ShippingAddr = $shippingAddr;
 
         } catch (Exception $e) {
             $this->EndReturnData->Error   = TRUE;
@@ -551,6 +570,12 @@ class Vendors extends CI_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
+            // Invalidate stale vendor cache and vendor-products cache
+            $this->upstashservice->del(
+                Upstashservice::keyVendor((int)$VendorUID),
+                Upstashservice::keyVendorProducts((int)$VendorUID)
+            );
+
             $pageNo = (int) ($this->input->post('PageNo') ?: 1);
             $this->_initModule();
             $pageData = $this->_fetchTableData($pageNo, $this->pageData['Limit']);
@@ -670,6 +695,12 @@ class Vendors extends CI_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
+            // Invalidate deleted vendor cache and vendor-products cache
+            $this->upstashservice->del(
+                Upstashservice::keyVendor($VendorUID),
+                Upstashservice::keyVendorProducts($VendorUID)
+            );
+
             $pageNo   = (int) ($this->input->post('PageNo') ?: 1);
             $this->_initModule();
             $pageData = $this->_fetchTableData($pageNo, $this->pageData['Limit']);
@@ -723,6 +754,14 @@ class Vendors extends CI_Controller {
             if ($UpdateResp->Error) throw new Exception($UpdateResp->Message);
 
             $this->dbwrite_model->commitTransaction();
+
+            // Invalidate vendor cache + vendor-products cache for each deleted vendor
+            $vendKeys = [];
+            foreach ($VendorUIDs as $vid) {
+                $vendKeys[] = Upstashservice::keyVendor($vid);
+                $vendKeys[] = Upstashservice::keyVendorProducts($vid);
+            }
+            $this->upstashservice->delMany($vendKeys);
 
             $pageNo   = (int) ($this->input->post('PageNo') ?: 1);
             $this->_initModule();

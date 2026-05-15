@@ -259,6 +259,292 @@ class Login extends CI_Controller {
         return $deviceInfo;
     }
 
+    // ── Forgot / Reset password (public, unauthenticated) ────────────────────
+
+    public function forgotPassword() {
+        $this->load->helper('auth');
+        if (is_authenticated()) { redirect('dashboard', 'refresh'); return; }
+        $this->load->view('login/forgot_password');
+    }
+
+    public function sendResetLink() {
+        try {
+            $this->load->helper('auth');
+            if (is_authenticated()) { redirect('dashboard', 'refresh'); return; }
+
+            $email = trim((string)$this->input->post('EmailAddress'));
+            if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $this->session->set_flashdata('danger', 'Please enter a valid email address.');
+                redirect('forgot-password', 'refresh');
+                return;
+            }
+
+            $this->load->model('passwordreset_model');
+            $user = $this->passwordreset_model->getUserByEmail($email);
+
+            if (!$user) {
+                $this->session->set_flashdata('danger', 'This email address is not registered with us. Please check and try again.');
+                redirect('forgot-password', 'refresh');
+                return;
+            }
+
+            $token   = bin2hex(random_bytes(32));
+            $expires = date('Y-m-d H:i:s', strtotime('+15 minutes'));
+
+            $this->load->model('dbwrite_model');
+            $this->dbwrite_model->insertData('Users', 'PasswordResetTbl', [
+                'UserUID'   => $user->UserUID,
+                'Token'     => $token,
+                'ExpiresAt' => $expires,
+                'IPAddress' => $this->input->ip_address(),
+            ]);
+
+            $this->_sendResetEmail($user, base_url('reset-password/' . $token));
+
+            $this->session->set_flashdata('success', 'A password reset link has been sent to <strong>' . htmlspecialchars($email, ENT_QUOTES, 'UTF-8') . '</strong>. It expires in 15 minutes.');
+            redirect('forgot-password', 'refresh');
+
+        } catch (Exception $e) {
+            $this->session->set_flashdata('danger', 'Something went wrong. Please try again.');
+            redirect('forgot-password', 'refresh');
+        }
+    }
+
+    public function showResetForm($token = null) {
+        $this->load->helper('auth');
+        if (is_authenticated()) { redirect('dashboard', 'refresh'); return; }
+        if (empty($token)) { redirect('forgot-password', 'refresh'); return; }
+
+        $this->load->model('passwordreset_model');
+        $tokenInfo = $this->passwordreset_model->getValidToken($token);
+
+        if (!$tokenInfo) {
+            $existing = $this->passwordreset_model->tokenExists($token);
+            $this->session->set_flashdata('token_error', $existing ? 'expired' : 'invalid');
+            redirect('forgot-password', 'refresh');
+            return;
+        }
+
+        $this->PageData['token']        = $token;
+        $this->PageData['remainingSecs'] = max(0, strtotime($tokenInfo->ExpiresAt) - time());
+        $this->load->view('login/reset_password', $this->PageData);
+    }
+
+    public function doForgotReset() {
+        $token = trim((string)$this->input->post('ResetToken'));
+        try {
+            $this->load->helper('auth');
+            if (is_authenticated()) { redirect('dashboard', 'refresh'); return; }
+
+            $password = (string)$this->input->post('NewPassword');
+            $confirm  = (string)$this->input->post('ConfirmPassword');
+
+            if (empty($token) || empty($password) || empty($confirm)) {
+                $this->session->set_flashdata('danger', 'All fields are required.');
+                redirect('reset-password/' . $token, 'refresh');
+                return;
+            }
+
+            if ($password !== $confirm) {
+                $this->session->set_flashdata('danger', 'Passwords do not match.');
+                redirect('reset-password/' . $token, 'refresh');
+                return;
+            }
+
+            if (strlen($password) < 6) {
+                $this->session->set_flashdata('danger', 'Password must be at least 6 characters.');
+                redirect('reset-password/' . $token, 'refresh');
+                return;
+            }
+
+            $this->load->model('passwordreset_model');
+            $tokenInfo = $this->passwordreset_model->getValidToken($token);
+
+            if (!$tokenInfo) {
+                $this->session->set_flashdata('token_error', 'expired');
+                redirect('forgot-password', 'refresh');
+                return;
+            }
+
+            $this->load->model('dbwrite_model');
+
+            $this->dbwrite_model->updateData('Users', 'UserTbl',
+                ['Password' => base64_encode($password)],
+                ['UserUID'  => $tokenInfo->UserUID]
+            );
+
+            $this->dbwrite_model->updateData('Users', 'PasswordResetTbl',
+                ['IsUsed' => 1],
+                ['Token'  => $token]
+            );
+
+            $this->_sendPasswordChangedEmail($tokenInfo);
+
+            $this->session->set_flashdata('success', 'Password updated successfully. You can now sign in.');
+            redirect('portal', 'refresh');
+
+        } catch (Exception $e) {
+            $this->session->set_flashdata('danger', 'Something went wrong. Please try again.');
+            if (!empty($token)) {
+                redirect('reset-password/' . $token, 'refresh');
+            } else {
+                redirect('forgot-password', 'refresh');
+            }
+        }
+    }
+
+    private function _sendResetEmail($user, string $resetLink): void {
+        try {
+            $firstName = htmlspecialchars($user->FirstName ?? 'User', ENT_QUOTES, 'UTF-8');
+
+            $body = '<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#040b18;font-family:\'Segoe UI\',Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#040b18;padding:40px 16px;">
+  <tr><td align="center">
+    <table width="560" cellpadding="0" cellspacing="0" style="background:#060e20;border-radius:16px;overflow:hidden;border:1px solid rgba(245,158,11,0.22);max-width:560px;width:100%;">
+      <tr><td style="padding:30px 40px 24px;border-bottom:1px solid rgba(245,158,11,0.12);">
+        <span style="font-size:20px;font-weight:800;color:#f59e0b;letter-spacing:-0.3px;">RISHIKA 2K</span>
+        <span style="font-size:20px;font-weight:300;color:#e2e8f0;"> ENTERPRISES</span>
+        <p style="margin:5px 0 0;font-size:11px;color:#475569;text-transform:uppercase;letter-spacing:1.5px;">Billing Management System</p>
+      </td></tr>
+      <tr><td style="background:linear-gradient(90deg,#f59e0b,#d97706);padding:8px 40px;">
+        <span style="font-size:12px;font-weight:700;color:#040b18;letter-spacing:1px;">PASSWORD RESET REQUEST</span>
+      </td></tr>
+      <tr><td style="padding:32px 40px;">
+        <p style="margin:0 0 6px;font-size:15px;font-weight:600;color:#f1f5f9;">Hi ' . $firstName . ',</p>
+        <p style="margin:0 0 24px;font-size:14px;color:#94a3b8;line-height:1.7;">We received a request to reset your account password. Click the button below — this link is valid for <strong style="color:#f59e0b;">15 minutes only</strong> and can be used once.</p>
+        <table cellpadding="0" cellspacing="0" style="margin:0 0 28px;">
+          <tr><td>
+            <a href="' . $resetLink . '" style="display:inline-block;padding:13px 30px;background:linear-gradient(135deg,#f59e0b,#d97706);color:#040b18;font-size:14px;font-weight:700;text-decoration:none;border-radius:10px;">Reset My Password</a>
+          </td></tr>
+        </table>
+        <p style="margin:0 0 6px;font-size:12px;color:#64748b;">Button not working? Copy this link into your browser:</p>
+        <p style="margin:0 0 24px;font-size:12px;color:#f59e0b;word-break:break-all;">' . $resetLink . '</p>
+        <div style="border-top:1px solid rgba(255,255,255,0.06);padding-top:18px;">
+          <p style="margin:0;font-size:12px;color:#475569;line-height:1.6;">If you did not request this, ignore this email — your password will not change. For security, this link can only be used once.</p>
+        </div>
+      </td></tr>
+      <tr><td style="padding:16px 40px;border-top:1px solid rgba(245,158,11,0.1);background:rgba(245,158,11,0.03);">
+        <p style="margin:0;font-size:11px;color:#334155;text-align:center;">&copy; ' . date('Y') . ' Rishika 2K Enterprises &middot; Agricultural Machinery &middot; Tamil Nadu</p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+</body></html>';
+
+            $this->load->library('email');
+            $this->email->initialize([
+                'protocol'    => 'smtp',
+                'smtp_host'   => getenv('MAIL_HOST')     ?: 'smtp-relay.brevo.com',
+                'smtp_port'   => (int)(getenv('MAIL_PORT') ?: 587),
+                'smtp_user'   => getenv('MAIL_USERNAME')  ?: '',
+                'smtp_pass'   => getenv('MAIL_PASSWORD')  ?: '',
+                'smtp_crypto' => 'tls',
+                'mailtype'    => 'html',
+                'charset'     => 'utf-8',
+                'newline'     => "\r\n",
+            ]);
+
+            $this->email->clear();
+            $this->email->from(
+                getenv('MAIL_FROM_EMAIL') ?: 'noreply@rishika2kenterprises.com',
+                getenv('MAIL_FROM_NAME')  ?: 'Rishika 2K Enterprises'
+            );
+            $this->email->to($user->EmailAddress);
+            $this->email->subject('Password Reset — Rishika 2K Enterprises');
+            $this->email->message($body);
+            $this->email->send(false);
+
+        } catch (Exception $e) {
+            log_message('error', '[ForgotPassword] Email send failed: ' . $e->getMessage());
+        }
+    }
+
+    private function _sendPasswordChangedEmail($tokenInfo): void {
+        try {
+            $firstName = htmlspecialchars($tokenInfo->FirstName ?? 'User', ENT_QUOTES, 'UTF-8');
+            $email     = $tokenInfo->EmailAddress;
+            $changedAt = date('d M Y, h:i A');
+            $loginUrl  = base_url('portal');
+
+            $body = '<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#040b18;font-family:\'Segoe UI\',Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#040b18;padding:40px 16px;">
+  <tr><td align="center">
+    <table width="560" cellpadding="0" cellspacing="0" style="background:#060e20;border-radius:16px;overflow:hidden;border:1px solid rgba(16,185,129,0.22);max-width:560px;width:100%;">
+
+      <tr><td style="padding:30px 40px 24px;border-bottom:1px solid rgba(16,185,129,0.12);">
+        <span style="font-size:20px;font-weight:800;color:#f59e0b;letter-spacing:-0.3px;">RISHIKA 2K</span>
+        <span style="font-size:20px;font-weight:300;color:#e2e8f0;"> ENTERPRISES</span>
+        <p style="margin:5px 0 0;font-size:11px;color:#475569;text-transform:uppercase;letter-spacing:1.5px;">Billing Management System</p>
+      </td></tr>
+
+      <tr><td style="background:linear-gradient(90deg,#10b981,#059669);padding:8px 40px;">
+        <span style="font-size:12px;font-weight:700;color:#ffffff;letter-spacing:1px;">&#10003;&nbsp; PASSWORD CHANGED SUCCESSFULLY</span>
+      </td></tr>
+
+      <tr><td style="padding:32px 40px;">
+        <p style="margin:0 0 6px;font-size:15px;font-weight:600;color:#f1f5f9;">Hi ' . $firstName . ',</p>
+        <p style="margin:0 0 24px;font-size:14px;color:#94a3b8;line-height:1.7;">
+          Your account password was successfully changed on <strong style="color:#f1f5f9;">' . $changedAt . '</strong>.<br>
+          You can now sign in with your new password.
+        </p>
+
+        <table cellpadding="0" cellspacing="0" style="margin:0 0 28px;">
+          <tr><td>
+            <a href="' . $loginUrl . '" style="display:inline-block;padding:13px 30px;background:linear-gradient(135deg,#10b981,#059669);color:#ffffff;font-size:14px;font-weight:700;text-decoration:none;border-radius:10px;">Sign In Now</a>
+          </td></tr>
+        </table>
+
+        <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:10px;padding:16px 20px;">
+          <p style="margin:0 0 6px;font-size:13px;font-weight:600;color:#fca5a5;">&#9888;&nbsp; Did not make this change?</p>
+          <p style="margin:0;font-size:13px;color:#94a3b8;line-height:1.6;">
+            If you did not reset your password, your account may be at risk. Please contact your administrator immediately or request another password reset.
+          </p>
+        </div>
+      </td></tr>
+
+      <tr><td style="padding:16px 40px;border-top:1px solid rgba(16,185,129,0.1);background:rgba(16,185,129,0.03);">
+        <p style="margin:0;font-size:11px;color:#334155;text-align:center;">&copy; ' . date('Y') . ' Rishika 2K Enterprises &middot; Agricultural Machinery &middot; Tamil Nadu</p>
+      </td></tr>
+
+    </table>
+  </td></tr>
+</table>
+</body></html>';
+
+            $this->load->library('email');
+            $this->email->initialize([
+                'protocol'    => 'smtp',
+                'smtp_host'   => getenv('MAIL_HOST')     ?: 'smtp-relay.brevo.com',
+                'smtp_port'   => (int)(getenv('MAIL_PORT') ?: 587),
+                'smtp_user'   => getenv('MAIL_USERNAME')  ?: '',
+                'smtp_pass'   => getenv('MAIL_PASSWORD')  ?: '',
+                'smtp_crypto' => 'tls',
+                'mailtype'    => 'html',
+                'charset'     => 'utf-8',
+                'newline'     => "\r\n",
+            ]);
+
+            $this->email->clear();
+            $this->email->from(
+                getenv('MAIL_FROM_EMAIL') ?: 'noreply@rishika2kenterprises.com',
+                getenv('MAIL_FROM_NAME')  ?: 'Rishika 2K Enterprises'
+            );
+            $this->email->to($email);
+            $this->email->subject('Your Password Has Been Changed — Rishika 2K Enterprises');
+            $this->email->message($body);
+            $this->email->send(false);
+
+        } catch (Exception $e) {
+            log_message('error', '[PasswordChanged] Email send failed: ' . $e->getMessage());
+        }
+    }
+
+    // ── In-app password change (authenticated user) ───────────────────────────
+
     public function resetPassword() {
 
         $this->EndReturnData = new stdClass();

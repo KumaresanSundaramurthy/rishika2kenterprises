@@ -324,6 +324,9 @@ class Purchases extends CI_Controller {
                 $paidAmountForLedger = $this->savePaymentRecord($transUID, $orgUID, $userUID, 'S', $vendorUID, $netAmount, $PostData, $transDate);
                 if ($paidAmountForLedger > 0) {
                     $this->updateTransactionBalance($transUID, $netAmount, $paidAmountForLedger, $userUID);
+                    $isFullyPaid = $netAmount > 0 && round($netAmount - $paidAmountForLedger, 4) <= 0;
+                    $newStatus   = $isFullyPaid ? 'Paid' : 'Partial';
+                    $this->dbwrite_model->updateTransDocStatus($transUID, $orgUID, $newStatus, $userUID);
                 }
             }
 
@@ -628,7 +631,13 @@ class Purchases extends CI_Controller {
 
             // Save optional payment records
             if (!$isDraft && (int) getPostValue($PostData, 'RecordPayment') === 1) {
-                $this->savePaymentRecord($transUID, $orgUID, $userUID, 'S', $vendorUID, $netAmount, $PostData, $transDate);
+                $paidAmountForUpdate = $this->savePaymentRecord($transUID, $orgUID, $userUID, 'S', $vendorUID, $netAmount, $PostData, $transDate);
+                if ($paidAmountForUpdate > 0) {
+                    $this->updateTransactionBalance($activeTransUID, $netAmount, $paidAmountForUpdate, $userUID);
+                    $isFullyPaid = $netAmount > 0 && round($netAmount - $paidAmountForUpdate, 4) <= 0;
+                    $newStatus   = $isFullyPaid ? 'Paid' : 'Partial';
+                    $this->dbwrite_model->updateTransDocStatus($activeTransUID, $orgUID, $newStatus, $userUID);
+                }
             }
 
             // Apply vendor ledger + post journal after commit

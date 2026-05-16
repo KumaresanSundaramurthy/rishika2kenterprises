@@ -16,14 +16,14 @@ $this->load->view('common/transactions/header'); ?>
                     $cur         = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
                     $dec         = $JwtData->GenSettings->DecimalPoints ?? 2;
 
-                    $cntAll      = array_sum(array_column($stats, 'count'));
-                    $cntPending  = ($stats['Received']['count'] ?? 0) + ($stats['Partial']['count'] ?? 0);
-                    $cntPaid     = $stats['Paid']['count']    ?? 0;
-                    $cntDraft    = $stats['Draft']['count']   ?? 0;
-
-                    $amtAll      = array_sum(array_column($stats, 'amount'));
+                    $activePurchStatuses = ['Received', 'Partial', 'Paid'];
+                    $cntAll      = array_sum(array_map(fn($s) => $stats[$s]['count']  ?? 0, $activePurchStatuses));
+                    $amtAll      = array_sum(array_map(fn($s) => $stats[$s]['amount'] ?? 0, $activePurchStatuses));
+                    $cntPending  = ($stats['Received']['count']  ?? 0) + ($stats['Partial']['count']  ?? 0);
                     $amtPending  = ($stats['Received']['amount'] ?? 0) + ($stats['Partial']['amount'] ?? 0);
-                    $amtPaid     = $stats['Paid']['amount']   ?? 0;
+                    $cntPaid     = $stats['Paid']['count']   ?? 0;
+                    $amtPaid     = $stats['Paid']['amount']  ?? 0;
+                    $cntDraft    = $stats['Draft']['count']  ?? 0;
 
                     function fmtAmt($val, $sym, $dec) {
                         return $sym . ' ' . number_format((float)$val, $dec, '.', ',');
@@ -168,7 +168,7 @@ $this->load->view('common/transactions/header'); ?>
                                         </th>
                                         <th class="<?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?> table-serialno" style="width:44px">S.No</th>
                                         <th class="col-sortable cursor-pointer user-select-none" data-sort="Number">
-                                            Bill # <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Number"></i>
+                                            # Bill <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Number"></i>
                                         </th>
                                         <th class="col-sortable cursor-pointer user-select-none" data-sort="Amount">
                                             Amount <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Amount"></i>
@@ -176,8 +176,8 @@ $this->load->view('common/transactions/header'); ?>
                                         <th>Payment Status</th>
                                         <th>Payment Mode</th>
                                         <th>Vendor</th>
-                                                                                <th>Last Updated</th>
-                                        <th style="width:110px"></th>
+                                        <th>Last Updated</th>
+                                        <th style="width:50px"></th>
                                     </tr>
                                 </thead>
                                 <tbody class="r2k-tbody table-border-bottom-0">

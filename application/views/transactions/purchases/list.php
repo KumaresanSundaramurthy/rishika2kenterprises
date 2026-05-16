@@ -6,7 +6,7 @@ include_once(APPPATH . 'views/transactions/partials/party_avatar.php');
 $moduleContext = 'purchase';
 include(APPPATH . 'views/transactions/partials/status_config.php');
 // For purchases, Received is a mid-state (Draft→Received→Paid/Cancelled), not terminal
-$terminalStatuses = ['Paid', 'Cancelled'];
+$terminalStatuses = ['Cancelled'];
 
 $currency      = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
 $decimals      = $JwtData->GenSettings->DecimalPoints ?? 2;

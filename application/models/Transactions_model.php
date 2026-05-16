@@ -100,18 +100,34 @@ class Transactions_model extends CI_Model {
         try {
             $this->ReadDb->db_debug = FALSE;
 
-            // Regular status counts
-            $this->ReadDb->select('Ts.DocStatus, COUNT(*) AS TotalCount, SUM(Ts.NetAmount) AS TotalAmount');
-            $this->ReadDb->from('Transaction.TransactionsTbl AS Ts');
-            $this->ReadDb->join('Transaction.TransDetailTbl AS Td', 'Td.TransUID = Ts.TransUID AND Td.FinancialYear = YEAR(Ts.TransDate)', 'LEFT');
-            $this->ReadDb->where(['Ts.ModuleUID' => $moduleUID, 'Ts.OrgUID' => $orgUID, 'Ts.IsDeleted' => 0]);
-            $this->ReadDb->group_by('Ts.DocStatus');
-            $query = $this->ReadDb->get();
+            // Compute payment status from actual PaymentsTbl amounts so stats
+            // match the list-view badges (which also use PaidAmount vs NetAmount).
+            $sql = "
+                SELECT
+                    CASE
+                        WHEN Ts.DocStatus IN ('Draft', 'Cancelled', 'Rejected') THEN Ts.DocStatus
+                        WHEN IFNULL(PaidSum.PaidAmount, 0) >= Ts.NetAmount AND Ts.NetAmount > 0 THEN 'Paid'
+                        WHEN IFNULL(PaidSum.PaidAmount, 0) > 0                                  THEN 'Partial'
+                        ELSE Ts.DocStatus
+                    END AS ComputedStatus,
+                    COUNT(*)          AS TotalCount,
+                    SUM(Ts.NetAmount) AS TotalAmount
+                FROM Transaction.TransactionsTbl AS Ts
+                LEFT JOIN (
+                    SELECT TransUID, SUM(Amount) AS PaidAmount
+                    FROM   Transaction.PaymentsTbl
+                    WHERE  IsDeleted = 0 AND IsActive = 1
+                    GROUP  BY TransUID
+                ) AS PaidSum ON PaidSum.TransUID = Ts.TransUID
+                WHERE Ts.ModuleUID = ? AND Ts.OrgUID = ? AND Ts.IsDeleted = 0
+                GROUP BY ComputedStatus
+            ";
+            $query = $this->ReadDb->query($sql, [(int) $moduleUID, (int) $orgUID]);
             if (!$query) return [];
 
             $out = [];
             foreach ($query->result() as $r) {
-                $out[$r->DocStatus] = ['count' => (int)$r->TotalCount, 'amount' => (float)$r->TotalAmount];
+                $out[$r->ComputedStatus] = ['count' => (int)$r->TotalCount, 'amount' => (float)$r->TotalAmount];
             }
 
             // Expired count: Pending + ValidityDate < today

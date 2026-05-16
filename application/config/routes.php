@@ -56,6 +56,12 @@ $route['translate_uri_dashes'] = FALSE;
 // Public receipt page (no login required)
 $route['receipt/(:any)'] = 'receipt/index/$1';
 
+// Public document viewer — Invoice, Purchase, PO, SO, SR, PR, Quotation, etc.
+// PDF must be listed before the generic wildcard so doc/pdf/TOKEN routes correctly.
+$route['doc/pdf/(:any)'] = 'doc/pdf/$1';
+$route['doc/(:any)']     = 'doc/view/$1';
+$route['invoice/(:any)'] = 'doc/view/$1';   // alias — matches email share links
+
 // Cache API (authenticated)
 $route['cache/get']     = 'cache/get';
 $route['cache/set']     = 'cache/set';

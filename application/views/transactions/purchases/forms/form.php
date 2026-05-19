@@ -305,6 +305,7 @@ if (!empty($DispatchAddress)) {
                                 'transHideTerms'        => true,
                                 'transNotesContent'     => $isEdit ? $_userNotes : '',
                                 'transShowDropzone'     => true,
+                                'transSignatureUID'     => $isEdit ? (int)($PurchData->SignatureUID ?? 0) : 0,
                                 'transPaymentVars'      => !$isEdit ? [
                                     'PaymentTypes'     => $PaymentTypes ?? [],
                                     'BankAccounts'     => $BankAccounts ?? [],

@@ -541,8 +541,6 @@ class Global_model extends CI_Model {
                     'Modules.ModuleUID AS ModuleUID',
                     'Modules.Name AS Name',
                     'Modules.OrgUID AS OrgUID',
-                    'Modules.MainMenuUID AS MainMenuUID',
-                    'Modules.SubMenuUID AS SubMenuUID',
                     'Modules.ControllerName AS ControllerName',
                     'Modules.ModelName AS ModelName',
                     'Modules.FilterFunctionName AS FilterFunctionName',

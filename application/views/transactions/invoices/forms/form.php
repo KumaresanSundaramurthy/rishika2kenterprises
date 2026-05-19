@@ -347,6 +347,7 @@ if ($isEdit) {
                                 'transNotesContent'     => $_notesVal,
                                 'transTermsContent'     => $_termsVal,
                                 'transShowDropzone'     => true,
+                                'transSignatureUID'     => $isEdit ? (int)($InvData->SignatureUID ?? 0) : 0,
                                 'transPaymentVars'      => !$isEdit ? [
                                     'PaymentTypes'     => $PaymentTypes ?? [],
                                     'BankAccounts'     => $BankAccounts ?? [],

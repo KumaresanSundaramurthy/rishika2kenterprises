@@ -596,6 +596,48 @@ class Organisation_model extends CI_Model {
 
     }
 
+    /** Calculate current balance for a single bank/cash account. */
+    public function getBankBalance($bankUID, $orgUID) {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $sql = "
+                SELECT
+                    BA.OpeningBalance,
+                    COALESCE(SUM(CASE WHEN P.PartyType = 'C' AND P.IsDeleted = 0 AND P.IsActive = 1 THEN P.Amount ELSE 0 END), 0) AS TotalIn,
+                    COALESCE(SUM(CASE WHEN P.PartyType = 'S' AND P.IsDeleted = 0 AND P.IsActive = 1 THEN P.Amount ELSE 0 END), 0) AS TotalOut,
+                    COALESCE((SELECT SUM(FT.Amount) FROM `Transaction`.`FundTransfersTbl` FT WHERE FT.ToBankUID   = BA.BankAccountUID AND FT.IsDeleted = 0), 0) AS TransferIn,
+                    COALESCE((SELECT SUM(FT.Amount) FROM `Transaction`.`FundTransfersTbl` FT WHERE FT.FromBankUID = BA.BankAccountUID AND FT.IsDeleted = 0), 0) AS TransferOut
+                FROM `Transaction`.`OrgBankAccountsTbl` BA
+                LEFT JOIN `Transaction`.`PaymentsTbl` P ON P.BankAccountUID = BA.BankAccountUID
+                WHERE BA.BankAccountUID = ? AND BA.OrgUID = ? AND BA.IsDeleted = 0
+                GROUP BY BA.BankAccountUID, BA.OpeningBalance
+            ";
+
+            $row = $this->ReadDb->query($sql, [(int)$bankUID, (int)$orgUID])->row();
+
+            $balance = 0;
+            if ($row) {
+                $balance = (float)$row->OpeningBalance
+                         + (float)$row->TotalIn
+                         - (float)$row->TotalOut
+                         + (float)$row->TransferIn
+                         - (float)$row->TransferOut;
+            }
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Balance = round($balance, 2);
+            return $this->EndReturnData;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+            throw new Exception($this->EndReturnData->Message);
+        }
+
+    }
+
     /** Get all message templates for an org, joined with module name. */
     public function getMessageTemplates($orgUID) {
         $this->EndReturnData = new stdClass();

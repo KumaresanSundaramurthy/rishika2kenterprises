@@ -24,11 +24,37 @@ class Settings extends CI_Controller {
 
     public function generalsettings() {
         try {
+            $this->load->view('settings/generalsettings/view', $this->pageData);
+        } catch (Exception $e) {
+            redirect('dashboard', 'refresh');
+        }
+    }
+
+    // ── Separate settings pages ──────────────────────────────────────────────
+
+    public function thermalconfig() {
+        try {
             $this->load->model('organisation_model');
             $orgUID = $this->pageData['JwtData']->User->OrgUID;
-            $this->pageData['OrgPreviewData']     = $this->organisation_model->getOrgForReceipt($orgUID)->Data;
-            $this->pageData['ThermalTypeCount']   = count($this->getThermalTransTypes());
-            $this->load->view('settings/generalsettings/view', $this->pageData);
+            $this->pageData['OrgPreviewData']   = $this->organisation_model->getOrgForReceipt($orgUID)->Data;
+            $this->pageData['ThermalTypeCount'] = count($this->getThermalTransTypes());
+            $this->load->view('settings/thermalconfig/view', $this->pageData);
+        } catch (Exception $e) {
+            redirect('dashboard', 'refresh');
+        }
+    }
+
+    public function banks() {
+        try {
+            $this->load->view('settings/banks/view', $this->pageData);
+        } catch (Exception $e) {
+            redirect('dashboard', 'refresh');
+        }
+    }
+
+    public function msgtemplates() {
+        try {
+            $this->load->view('settings/msgtemplates/view', $this->pageData);
         } catch (Exception $e) {
             redirect('dashboard', 'refresh');
         }
@@ -192,6 +218,33 @@ class Settings extends CI_Controller {
             $this->EndReturnData->Error          = FALSE;
             $this->EndReturnData->RecordHtmlData = $rowHtml;
             $this->EndReturnData->TotalCount     = count($rows);
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    /** AJAX POST: return calculated current balance for a bank account */
+    public function getBankBalance() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $PostData = $this->input->post();
+            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $bankUID  = (int) getPostValue($PostData, 'BankAccountUID');
+
+            if ($bankUID <= 0) throw new Exception('Invalid bank account ID.');
+
+            $this->load->model('organisation_model');
+            $result = $this->organisation_model->getBankBalance($bankUID, $orgUID);
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Balance = $result->Balance;
 
         } catch (Exception $e) {
             $this->EndReturnData->Error   = TRUE;

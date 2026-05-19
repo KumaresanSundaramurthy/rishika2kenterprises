@@ -178,7 +178,7 @@
                     </li>
                     <?php } ?>
                     <li>
-                        <a class="dropdown-item" id="ChangePasswordBtn" href="javascript:void(0);">
+                        <a class="dropdown-item ChangePasswordBtn" href="javascript:void(0);">
                             <i class="bx bx-lock me-2"></i><span class="align-middle">Change Password</span>
                         </a>
                     </li>

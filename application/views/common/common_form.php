@@ -3,9 +3,24 @@
 <div class="modal fade" id="ChangePasswordModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="ChangePasswordLabel">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="ChangePasswordLabel">Change Password</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+
+            <div class="vtm-banner" style="--vtm-color:#696cff;--vtm-bg:#eff0ff;--vtm-icon-bg:rgba(105,108,255,.13);">
+                <div class="vtm-banner-inner">
+                    <div class="vtm-banner-left">
+                        <div class="vtm-banner-icon">
+                            <i class="bx bx-lock-alt"></i>
+                        </div>
+                        <div>
+                            <div class="vtm-doc-number">Change Password</div>
+                            <div class="vtm-doc-meta">Update your account password securely</div>
+                        </div>
+                    </div>
+                    <div class="vtm-banner-right">
+                        <button type="button" class="vtm-close-btn" data-bs-dismiss="modal" aria-label="Close">
+                            <i class="bx bx-x"></i>
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <?php $FormAttribute = array('id' => 'ResetPasswordForm', 'name' => 'ResetPasswordForm', 'class' => 'd-flex flex-column justify-content-end h-100', 'autocomplete' => 'off');

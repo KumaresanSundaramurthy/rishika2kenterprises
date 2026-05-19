@@ -236,6 +236,7 @@ class Invoices extends CI_Controller {
                 'Reference'         => getPostValue($PostData, 'referenceDetails') ?: NULL,
                 'Notes'             => getPostValue($PostData, 'transNotes') ?: NULL,
                 'TermsConditions'   => getPostValue($PostData, 'transTermsCond') ?: NULL,
+                'SignatureUID'      => (int)getPostValue($PostData, 'SignatureUID') ?: NULL,
                 'AdditionalCharges' => $additionalChargesJson,
                 'PlaceOfSupply'     => $placeOfSupply,
                 'IsInterState'      => $isInterState,
@@ -470,6 +471,7 @@ class Invoices extends CI_Controller {
                 'Reference'         => getPostValue($PostData, 'referenceDetails') ?: NULL,
                 'Notes'             => getPostValue($PostData, 'transNotes') ?: NULL,
                 'TermsConditions'   => getPostValue($PostData, 'transTermsCond') ?: NULL,
+                'SignatureUID'      => (int)getPostValue($PostData, 'SignatureUID') ?: NULL,
                 'AdditionalCharges' => $additionalChargesJson,
                 'PlaceOfSupply'     => $placeOfSupply,
                 'IsInterState'      => $isInterState,
@@ -1050,6 +1052,7 @@ class Invoices extends CI_Controller {
                 'Reference'         => $src->Reference       ?? NULL,
                 'Notes'             => $src->Notes           ?? NULL,
                 'TermsConditions'   => $src->TermsConditions ?? NULL,
+                'SignatureUID'      => $src->SignatureUID     ?? NULL,
                 'AdditionalCharges' => $src->AdditionalChargesJson ?? NULL,
                 'IsInterState'      => ($src->IgstAmount ?? 0) > 0 ? 1 : (($src->CgstAmount ?? 0) > 0 || ($src->SgstAmount ?? 0) > 0 ? 0 : NULL),
                 'IsForeignCustomer' => $_srcCC !== NULL ? ($_srcCC === 'IN' ? 0 : 1) : NULL,
@@ -1610,6 +1613,18 @@ class Invoices extends CI_Controller {
                 $quotItems = $quotData ? $this->transactions_model->getTransactionItems($fromQuotationUID, $orgUID) : [];
                 $this->pageData['QuotationData']  = $quotData;
                 $this->pageData['QuotationItems'] = $quotItems;
+            }
+
+            // Pre-fill from Pro Forma Invoice if converting
+            $fromProFormaUID = (int) $this->input->get('fromProForma');
+            $this->pageData['FromProFormaUID'] = $fromProFormaUID;
+            $this->pageData['ProFormaData']    = null;
+            $this->pageData['ProFormaItems']   = [];
+            if ($fromProFormaUID > 0) {
+                $pfData  = $this->transactions_model->getTransactionById($fromProFormaUID, $orgUID, 113);
+                $pfItems = $pfData ? $this->transactions_model->getTransactionItems($fromProFormaUID, $orgUID) : [];
+                $this->pageData['ProFormaData']  = $pfData;
+                $this->pageData['ProFormaItems'] = $pfItems;
             }
 
             $this->load->model('organisation_model');

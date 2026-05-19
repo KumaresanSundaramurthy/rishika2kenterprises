@@ -11,7 +11,9 @@ $moduleContext = $moduleContext ?? 'invoice';
 
 // ── Badge CSS class per status ──────────────────────────────────
 $statusBadgeClass = [
-    'Draft'     => 'trans-badge-Draft',
+    'Draft'      => 'trans-badge-Draft',
+    'Dispatched' => 'trans-badge-Pending',
+    'Delivered'  => 'trans-badge-Confirmed',
     'Issued'    => 'trans-badge-Issued',
     'Sent'      => 'trans-badge-Sent',
     'Paid'      => 'trans-badge-Paid',
@@ -31,7 +33,9 @@ $statusBadgeClass = [
 
 // ── Boxicon per status ──────────────────────────────────────────
 $statusIcon = [
-    'Draft'     => 'bx-pencil',
+    'Draft'      => 'bx-pencil',
+    'Dispatched' => 'bx-package',
+    'Delivered'  => 'bx-check-circle',
     'Issued'    => 'bx-send',
     'Sent'      => 'bx-send',
     'Paid'      => 'bx-check-circle',
@@ -50,7 +54,7 @@ $statusIcon = [
 ];
 
 // ── Terminal states (no more transitions) ───────────────────────
-$terminalStatuses = ['Paid', 'Cancelled', 'Converted', 'Fulfilled', 'Rejected', 'Received'];
+$terminalStatuses = ['Paid', 'Cancelled', 'Converted', 'Fulfilled', 'Rejected', 'Received', 'Delivered'];
 
 // ── Status transitions per module ───────────────────────────────
 $statusTransitions = [
@@ -84,7 +88,17 @@ $statusTransitions = [
         'Converted'=> [],
         'Cancelled'=> [],
     ],
-    'salesorder' => [],
+    'salesorder'       => [],
+    'deliverychallan'  => [],
+    'proformainvoice'  => [
+        'Draft'   => [['db' => 'Sent',      'label' => 'Send Pro Forma']],
+        'Sent'    => [
+            ['db' => 'Converted', 'label' => 'Convert to Invoice'],
+            ['db' => 'Expired',   'label' => 'Mark as Expired'],
+            ['db' => 'Cancelled', 'label' => 'Cancel'],
+        ],
+        'Expired' => [['db' => 'Sent', 'label' => 'Reactivate']],
+    ],
     'salesreturn'   => [
         'Draft'    => [['db' => 'Approved',  'label' => 'Approve Return']],
         'Approved' => [['db' => 'Cancelled', 'label' => 'Cancel']],

@@ -66,20 +66,13 @@
                                 <div class="mb-3 col-md-6 mt-2">
                                     <label class="form-label" for="MobileNumber">Mobile Number <span style="color:red">*</span></label>
                                     <div class="d-flex gap-2">
-                                        <select id="CountryCode" name="CountryCode" class="select2 form-select">
-                                            <option label="-- Select Country Code --"></option>
-                                            <?php if (sizeof($CountryInfo) > 0) {
-                                                foreach ($CountryInfo as $Country) { ?>
-                                                    <option
-                                                        value="<?php echo $Country->phone[0]; ?>"
-                                                        data-region="<?php echo $Country->region; ?>"
-                                                        data-ccode="<?php echo $Country->iso->{'alpha-2'}; ?>"
-                                                        <?php echo ($EditOrgData->CountryCode == $Country->phone[0]) ? 'selected' : ''; ?>>
-                                                        <?php echo '(' . $Country->phone[0] . ') ' . $Country->name; ?>
-                                                    </option>
-                                            <?php }
-                                            } ?>
-                                        </select>
+                                        <!-- Country is fixed to India — not changeable -->
+                                        <input type="hidden" name="CountryCode" id="CountryCode" value="+91" />
+                                        <input type="hidden" name="CountryISO2" value="IN" />
+                                        <div class="org-country-frozen" title="Country is fixed and cannot be changed">
+                                            <span class="org-country-code">🇮🇳 +91</span>
+                                            <i class="bx bx-lock-alt org-country-lock"></i>
+                                        </div>
                                         <input type="number" id="MobileNumber" name="MobileNumber" class="form-control" placeholder="9790 000 0000" value="<?php echo isset($EditOrgData->MobileNumber) ? $EditOrgData->MobileNumber : ''; ?>" maxLength="20" onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))" oninput="this.value=this.value.slice(0,this.maxLength)" pattern="[0-9]*" />
                                     </div>
                                 </div>
@@ -106,7 +99,7 @@
                                     <label class="form-label" for="OrgBussTypeUID">Business Type <span style="color:red">*</span></label>
                                     <select id="OrgBussTypeUID" name="OrgBussTypeUID" class="select2 form-select" required>
                                         <option label="-- Select Business Type --"></option>
-                                        <?php if (sizeof($OrgBussType) > 0) {
+                                        <?php if (is_array($OrgBussType) && count($OrgBussType) > 0) {
                                             foreach ($OrgBussType as $BusType) { ?>
                                                 <option value="<?php echo $BusType->OrgBussTypeUID; ?>" <?php echo $BusType->OrgBussTypeUID == (isset($EditOrgData->OrgBussTypeUID) ? $EditOrgData->OrgBussTypeUID : '') ? 'selected' : ''; ?>><?php echo $BusType->Name; ?></option>
                                         <?php }
@@ -118,7 +111,7 @@
                                     <label class="form-label" for="OrgIndusTypeUID">Industry Type </label>
                                     <select id="OrgIndusTypeUID" name="OrgIndusTypeUID" class="select2 form-select">
                                         <option label="-- Select Industry Type --"></option>
-                                        <?php if (sizeof($OrgIndusType) > 0) {
+                                        <?php if (is_array($OrgIndusType) && count($OrgIndusType) > 0) {
                                             foreach ($OrgIndusType as $IndType) { ?>
                                                 <option value="<?php echo $IndType->OrgIndTypeUID; ?>" <?php echo $IndType->OrgIndTypeUID == (isset($EditOrgData->OrgIndTypeUID) ? $EditOrgData->OrgIndTypeUID : '') ? 'selected' : ''; ?>><?php echo $IndType->Name; ?></option>
                                         <?php }
@@ -130,7 +123,7 @@
                                     <label class="form-label" for="OrgBusRegTypeUID">Business Registration Type </label>
                                     <select id="OrgBusRegTypeUID" name="OrgBusRegTypeUID" class="select2 form-select">
                                         <option label="-- Select Business Type --"></option>
-                                        <?php if (sizeof($OrgBusRegType) > 0) {
+                                        <?php if (is_array($OrgBusRegType) && count($OrgBusRegType) > 0) {
                                             foreach ($OrgBusRegType as $BusRegType) { ?>
                                                 <option value="<?php echo $BusRegType->OrgBusRegTypeUID; ?>" <?php echo $BusRegType->OrgBusRegTypeUID == (isset($EditOrgData->OrgBusRegTypeUID) ? $EditOrgData->OrgBusRegTypeUID : '') ? 'selected' : ''; ?>><?php echo $BusRegType->Name; ?></option>
                                         <?php }
@@ -142,7 +135,7 @@
                                     <label for="TimezoneUID" class="form-label">Timezone</label>
                                     <select class="select2 form-select" id="TimezoneUID" name="TimezoneUID">
                                         <option label="-- Select Timezone --"></option>
-                                        <?php if (sizeof($TimezoneInfo) > 0) {
+                                        <?php if (is_array($TimezoneInfo) && count($TimezoneInfo) > 0) {
                                             foreach ($TimezoneInfo as $Tzinfo) { ?>
 
                                                 <option value="<?php echo $Tzinfo->TimezoneUID; ?>" data-ccode="<?php echo $Tzinfo->CountryCode; ?>" <?php echo isset($EditOrgData->TimezoneUID) && ($EditOrgData->TimezoneUID == $Tzinfo->TimezoneUID) ? 'selected' : ''; ?>><?php echo '(' . $Tzinfo->GmtOffset . ') ' . $Tzinfo->Timezone; ?></option>
@@ -188,7 +181,7 @@
                                             <label for="BillAddrState" class="form-label">State</label>
                                             <select class="select2 form-select" id="BillAddrState" name="BillAddrState">
                                                 <option label="-- Select State --"></option>
-                                                <?php if (sizeof($StateData) > 0) {
+                                                <?php if (is_array($StateData) && count($StateData) > 0) {
                                                     foreach ($StateData as $StData) { ?>
 
                                                         <option value="<?php echo $StData->id; ?>" data-iso2="<?php echo $StData->iso2; ?>" <?php echo isset($BillOrgAddrData->State) && ($BillOrgAddrData->State == $StData->id) ? 'selected' : ''; ?>><?php echo $StData->name; ?></option>
@@ -201,7 +194,7 @@
                                             <label for="BillAddrCity" class="form-label">City</label>
                                             <select class="select2 form-select" id="BillAddrCity" name="BillAddrCity">
                                                 <option label="-- Select City --"></option>
-                                                <?php if (sizeof($CityData) > 0) {
+                                                <?php if (is_array($CityData) && count($CityData) > 0) {
                                                     foreach ($CityData as $CtyData) { ?>
 
                                                         <option value="<?php echo $CtyData->id; ?>" <?php echo isset($BillOrgAddrData->City) && ($BillOrgAddrData->City == $CtyData->id) ? 'selected' : ''; ?>><?php echo $CtyData->name; ?></option>
@@ -241,7 +234,7 @@
                                             <label for="ShipAddrState" class="form-label">State</label>
                                             <select class="select2 form-select" id="ShipAddrState" name="ShipAddrState">
                                                 <option label="-- Select State --"></option>
-                                                <?php if (sizeof($StateData) > 0) {
+                                                <?php if (is_array($StateData) && count($StateData) > 0) {
                                                     foreach ($StateData as $StData) { ?>
                                                         <option value="<?php echo $StData->id; ?>" data-iso2="<?php echo $StData->iso2; ?>" <?php echo isset($ShipOrgAddrData->State) && ($ShipOrgAddrData->State == $StData->id) ? 'selected' : ''; ?>><?php echo $StData->name; ?></option>
                                                 <?php }
@@ -252,7 +245,7 @@
                                             <label for="ShipAddrCity" class="form-label">City</label>
                                             <select class="select2 form-select" id="ShipAddrCity" name="ShipAddrCity">
                                                 <option label="-- Select City --"></option>
-                                                <?php if (sizeof($CityData) > 0) {
+                                                <?php if (is_array($CityData) && count($CityData) > 0) {
                                                     foreach ($CityData as $CtyData) { ?>
                                                         <option value="<?php echo $CtyData->id; ?>" <?php echo isset($ShipOrgAddrData->City) && ($ShipOrgAddrData->City == $CtyData->id) ? 'selected' : ''; ?>><?php echo $CtyData->name; ?></option>
                                                 <?php }
@@ -302,11 +295,34 @@
 
 <?php $this->load->view('common/footer'); ?>
 
+<script>
+/* Suppress Pickr error on this page — pickr.js loads after template-customizer.js window.onload */
+if (typeof Pickr === 'undefined') { window.Pickr = function() { return { on: function() { return this; } }; }; }
+</script>
+
+<style>
+.org-country-frozen {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 12px;
+    height: 38px;
+    background: #f0f0f0;
+    border: 1px solid #d0d0d0;
+    border-radius: 6px;
+    white-space: nowrap;
+    cursor: not-allowed;
+    user-select: none;
+    flex-shrink: 0;
+}
+.org-country-code { font-size: 0.875rem; font-weight: 600; color: #555; letter-spacing: 0.02em; }
+.org-country-lock { font-size: 0.8rem; color: #999; }
+</style>
+
 <script src="/js/organisation.js"></script>
 
 <script>
 var imageChange = 0;
-let countryChange = 0;
 var defaultImg = '<?php echo isset($EditOrgData->Logo) ? $EditOrgData->Logo : ''; ?>';
 $(function() {
     'use strict'
@@ -316,19 +332,11 @@ $(function() {
         commonSetDropzoneImageOne(ImageUrl);
     }
     
-    loadCountrySelect2Field('#CountryCode', 'Select Country');
     loadSelect2Field('#TimezoneUID', '-- Select Timezone --');
     loadSelect2Field('#BillAddrState', '-- Select State --');
     loadSelect2Field('#ShipAddrState', '-- Select State --');
     loadSelect2Field('#BillAddrCity', '-- Select City --');
     loadSelect2Field('#ShipAddrCity', '-- Select City --');
-
-    $('#CountryCode').change(function(e) {
-        e.preventDefault();
-        countryChange = 1;
-        $('#BillAddrState,#ShipAddrState,#BillAddrCity,#ShipAddrCity').val(null).trigger('change');
-        getStateCityOfCountry($(this).find('option:selected').data('ccode'));
-    });
 
     $('#CopyToShipping').click(function(e) {
         e.preventDefault();
@@ -353,19 +361,9 @@ $(function() {
     $('#OrganisationForm').submit(function(e) {
         e.preventDefault();
 
-        var Ccode = $('#CountryCode').find('option:selected').data('ccode');
-        var MobNum = $('#MobileNumber').val();
-        var Status = validateMobileNumber(Ccode, MobNum);
-        if (Status === false) {
-            $('.updateFormAlert').removeClass('d-none');
-            inlineMessageAlert('.updateFormAlert', 'danger', 'Enter valid Phone Number', false, false);
-            return false;
-        }
         $('.updateFormAlert').addClass('d-none');
         var formData = new FormData($('#OrganisationForm')[0]);
-        formData.append('CountryISO2', $('#CountryCode').find('option:selected').data('ccode'));
         formData.append('imageChange', imageChange);
-        formData.append('countryChange', countryChange);
 
         var BillState = $('#BillAddrState').find('option:selected').val();
         formData.append('BillAddrStateText', (BillState && BillState.trim() !== "") ? $('#BillAddrState').find('option:selected').data('iso2') : null);

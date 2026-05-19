@@ -39,7 +39,7 @@ const emptyTableTrInfo = `<tr class="text-center text-muted">
 $(function() {
 	'use strict'
 
-    $('#ChangePasswordBtn').click(function(e) {
+    $('.ChangePasswordBtn').click(function(e) {
         e.preventDefault();
         $('#ChangePasswordModal').modal('show');
         $('#ChangePasswordModal #ResetPasswordForm').trigger('reset');

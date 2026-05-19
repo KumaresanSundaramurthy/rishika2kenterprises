@@ -249,6 +249,7 @@ if ($isEdit) {
                                 'transHideAddProduct'      => true,
                                 'transNotesContent'        => $isEdit ? ($SRData->Notes ?? '') : '',
                                 'transTermsContent'        => $isEdit ? ($SRData->TermsConditions ?? '') : '',
+                                'transSignatureUID'        => $isEdit ? (int)($SRData->SignatureUID ?? 0) : 0,
                                 'transPaymentVars'         => !$isEdit ? [
                                     'PaymentTypes'     => $PaymentTypes ?? [],
                                     'BankAccounts'     => $BankAccounts ?? [],

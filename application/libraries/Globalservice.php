@@ -63,8 +63,8 @@ Class Globalservice {
                 return $sm->ParentSubMenuUID == $subMenu->SubMenuUID;
             });
 
-            $iconHtml = !empty($subMenu->Icons)
-                ? '<i class="menu-icon tf-icons ' . htmlspecialchars($subMenu->Icons) . '"></i>'
+            $iconHtml = !empty($subMenu->SubMenuIcon)
+                ? '<i class="menu-icon tf-icons ' . htmlspecialchars($subMenu->SubMenuIcon) . '"></i>'
                 : '';
 
             if (count($childMenus) > 0) {
@@ -74,13 +74,14 @@ Class Globalservice {
                 echo '<div data-i18n="' . htmlspecialchars($subMenu->SubMenuName) . '">' . htmlspecialchars($subMenu->SubMenuName) . '</div>';
                 echo '</a>';
                 echo '<ul class="menu-sub">';
-                $this->renderSubMenu($ControllerName, $allSubMenus, $subMenu->SubMenuUID); // Recursive call
+                $this->renderSubMenu($ControllerName, $allSubMenus, $subMenu->SubMenuUID);
                 echo '</ul>';
                 echo '</li>';
             } else {
                 $isActive = (strtolower($ControllerName) == strtolower($subMenu->ControllerName));
                 $activeClass = $isActive ? 'active' : '';
-                $href = $isActive ? 'javascript: void(0);' : '/' . htmlspecialchars($subMenu->ControllerName);
+                $urlPath = '/' . ltrim($subMenu->UrlPath ?? $subMenu->ControllerName, '/');
+                $href = $isActive ? 'javascript: void(0);' : htmlspecialchars($urlPath);
                 echo '<li class="menu-item ' . $activeClass . '">';
                 echo '<a href="' . $href . '" class="menu-link">';
                 echo $iconHtml;

@@ -215,6 +215,7 @@ $editPrefixSeg = ($isEdit && $isDraftEdit) ? buildPOPrefixSegment($editPrefixCon
                                 'transNotesContent'     => $isEdit ? ($POData->Notes ?? '') : '',
                                 'transTermsContent'     => $isEdit ? ($POData->TermsConditions ?? '') : '',
                                 'transShowDropzone'     => true,
+                                'transSignatureUID'     => $isEdit ? (int)($POData->SignatureUID ?? 0) : 0,
                             ]); ?>
 
                         </div>

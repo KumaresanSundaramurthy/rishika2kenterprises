@@ -94,7 +94,7 @@
             </a>
             <ul id="ProfileDropdownMenu">
                 <li><a class="dropdown-item" href="/settings/profile"><i class="bx bx-user"></i> My Profile</a></li>
-                <li><a class="dropdown-item" id="ChangePasswordBtn" href="javascript:void(0);"><i class="bx bx-lock"></i> Change Password</a></li>
+                <li><a class="dropdown-item ChangePasswordBtn" href="javascript:void(0);"><i class="bx bx-lock"></i> Change Password</a></li>
                 <li><hr class="dropdown-divider"></li>
                 <li><a class="dropdown-item" href="/logout"><i class="bx bx-power-off"></i> Log Out</a></li>
             </ul>
@@ -117,13 +117,15 @@
         }
 
         foreach($SubMenuData as $SubKey => $SubVal) {
-            $isActive = ($isSettingsPage && strtolower($SubVal->ControllerName) === $secondSeg);
+            $subUrlPath = ltrim($SubVal->UrlPath ?? ('settings/' . $SubVal->ControllerName), '/');
+            $currentPath = trim($firstSeg . ($secondSeg ? '/' . $secondSeg : ''), '/');
+            $isActive = ($isSettingsPage && $subUrlPath === $currentPath);
         ?>
 
         <li class="menu-item <?php echo $isActive ? 'active' : ''; ?>">
-            <a href="/settings/<?php echo $SubVal->ControllerName; ?>" class="menu-link">
-                <i class="menu-icon tf-icons <?php echo $SubVal->Icons; ?>"></i>
-                <div><?php echo $SubVal->SubMenuName; ?></div>
+            <a href="/<?php echo htmlspecialchars($subUrlPath); ?>" class="menu-link">
+                <i class="menu-icon tf-icons <?php echo htmlspecialchars($SubVal->SubMenuIcon ?? ''); ?>"></i>
+                <div><?php echo htmlspecialchars($SubVal->SubMenuName); ?></div>
             </a>
         </li>
 

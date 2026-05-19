@@ -201,8 +201,6 @@ function _buildMatrix(mainPerms, subPerms) {
     .perm-table .sm-row td:first-child { padding-left:2.6rem; border-left:4px solid transparent; }
     .perm-table .sm-row.sm-enabled td:first-child { border-left-color:#26a69a; }
     .perm-table .sm-row.sm-hidden { display:none; }
-    .perm-table .sm-row td:first-child .sm-dot { display:inline-block; width:6px; height:6px; border-radius:50%; background:#adb5bd; margin-right:5px; vertical-align:middle; }
-    .perm-table .sm-row.sm-enabled td:first-child .sm-dot { background:#26a69a; }
     .perm-table .sm-row .td-sm-enable { background:#f1f8f5; }
     .sm-enable-toggle { accent-color:#26a69a; width:1.8rem !important; height:.95rem !important; cursor:pointer; }
 
@@ -241,7 +239,7 @@ function _buildMatrix(mainPerms, subPerms) {
         html += `
         <tr class="mm-row" data-mmuid="${mm.MainMenuUID}">
             <td>
-                <i class="${mm.Icons || 'bx bx-menu'} me-1" style="color:#696cff;font-size:.95rem;"></i>
+                <i class="${mm.Icon || 'bx bx-menu'} me-1" style="color:#696cff;font-size:.95rem;"></i>
                 <strong>${mm.Name}</strong>
                 <span class="badge ms-1" style="font-size:.6rem;background:#e0e3ff;color:#696cff;">${subs.length}</span>
             </td>
@@ -270,8 +268,7 @@ function _buildMatrix(mainPerms, subPerms) {
             html += `
             <tr class="sm-row ${smEnabledCls} ${mmOn ? '' : 'sm-hidden'}" data-mmuid="${mm.MainMenuUID}" data-smuid="${sm.SubMenuUID}">
                 <td>
-                    <span class="sm-dot"></span>
-                    <i class="${sm.Icons || 'bx bx-right-arrow-alt'} me-1 text-secondary" style="font-size:.8rem;"></i>
+                    <i class="${sm.Icon || 'bx bx-circle'} me-1" style="font-size:.85rem;color:#26a69a;"></i>
                     ${sm.Name}
                 </td>
                 <td class="text-center" style="background:#f4f0ff;"></td>
@@ -518,7 +515,7 @@ $(function() {
     // Save Role
     $('#saveRoleBtn').click(function() {
         const name = $.trim($('#RoleName').val());
-        if (!name) { toastError('Role name is required.'); return; }
+        if (!name) { showToastNotification('Role name is required.', 'error'); return; }
 
         $('#saveRoleSpinner').removeClass('d-none');
         $(this).prop('disabled', true);
@@ -538,17 +535,17 @@ $(function() {
                 $('#saveRoleSpinner').addClass('d-none');
                 $('#saveRoleBtn').prop('disabled', false);
                 if (res.Error === false) {
-                    toastSuccess(res.Message);
+                    showToastNotification(res.Message, 'success');
                     $('#roleModal').modal('hide');
                     setTimeout(() => location.reload(), 800);
                 } else {
-                    toastError(res.Message);
+                    showToastNotification(res.Message, 'error');
                 }
             },
             error: function() {
                 $('#saveRoleSpinner').addClass('d-none');
                 $('#saveRoleBtn').prop('disabled', false);
-                toastError('Request failed.');
+                showToastNotification('Request failed.', 'error');
             }
         });
     });
@@ -578,15 +575,15 @@ $(function() {
                 $('#savePrmSpinner').addClass('d-none');
                 $('#btnSavePermissions').prop('disabled', false);
                 if (res.Error === false) {
-                    toastSuccess(res.Message);
+                    showToastNotification(res.Message, 'success');
                 } else {
-                    toastError(res.Message);
+                    showToastNotification(res.Message, 'error');
                 }
             },
             error: function() {
                 $('#savePrmSpinner').addClass('d-none');
                 $('#btnSavePermissions').prop('disabled', false);
-                toastError('Request failed.');
+                showToastNotification('Request failed.', 'error');
             }
         });
     });
@@ -617,13 +614,13 @@ $(function() {
                 processData: false,
                 success: function(res) {
                     if (res.Error === false) {
-                        toastSuccess(res.Message);
+                        showToastNotification(res.Message, 'success');
                         setTimeout(() => location.reload(), 800);
                     } else {
-                        toastError(res.Message);
+                        showToastNotification(res.Message, 'error');
                     }
                 },
-                error: function() { toastError('Request failed.'); }
+                error: function() { showToastNotification('Request failed.', 'error'); }
             });
         });
     });

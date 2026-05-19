@@ -59,7 +59,7 @@ $(function() {
         }
     });
 
-    $('#ChangePasswordBtn').click(function(e) {
+    $('.ChangePasswordBtn').click(function(e) {
         e.preventDefault();
         $('#ChangePasswordModal').modal('show');
         $('#ChangePasswordModal #ResetPasswordForm').trigger('reset');

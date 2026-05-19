@@ -80,15 +80,25 @@ $route['reset-password/update']    = 'login/doForgotReset';
 $route['reset-password/(:any)']    = 'login/showResetForm/$1';
 
 // Settings
-$route['settings/profile']           = 'profile';
+$route['settings/profile']                     = 'profile';
+$route['settings/profile/getSignaturesJson']    = 'profile/getSignaturesJson';
+$route['settings/profile/getSignatureList']     = 'profile/getSignatureList';
+$route['settings/profile/saveSignature']        = 'profile/saveSignature';
+$route['settings/profile/updateSignature']      = 'profile/updateSignature';
+$route['settings/profile/deleteSignature']      = 'profile/deleteSignature';
+$route['settings/profile/setDefaultSignature']  = 'profile/setDefaultSignature';
 $route['settings/organisation']      = 'organisation';
 $route['settings/users']             = 'users';
 $route['settings/users/saveUser']    = 'users/saveUser';
 $route['settings/generalsettings']        = 'settings/generalsettings';
+$route['settings/thermalconfig']          = 'settings/thermalconfig';
+$route['settings/banks']                  = 'settings/banks';
+$route['settings/msgtemplates']           = 'settings/msgtemplates';
 $route['settings/getThermalConfigList']   = 'settings/getThermalConfigList';
 $route['settings/saveThermalConfig']      = 'settings/saveThermalConfig';
 $route['settings/deleteThermalConfig']    = 'settings/deleteThermalConfig';
 $route['settings/getBankList']            = 'settings/getBankList';
+$route['settings/getBankBalance']         = 'settings/getBankBalance';
 $route['settings/getBankDetail']          = 'settings/getBankDetail';
 $route['settings/saveBankDetail']         = 'settings/saveBankDetail';
 $route['settings/deleteBankDetail']       = 'settings/deleteBankDetail';
@@ -106,6 +116,35 @@ $route['settings/roles/getRolePermissions']      = 'roles/getRolePermissions';
 $route['settings/roles/saveRole']                = 'roles/saveRole';
 $route['settings/roles/saveRolePermissions']     = 'roles/saveRolePermissions';
 $route['settings/roles/deleteRole']              = 'roles/deleteRole';
+
+// Pro Forma Invoices
+$route['proforma']                                                 = 'proformainvoices/index';
+$route['proforma/create']                                          = 'proformainvoices/create';
+$route['proforma/(:num)/edit']                                     = 'proformainvoices/edit/$1';
+$route['proforma/getPageDetails/(:num)']                           = 'proformainvoices/getPageDetails/$1';
+$route['proforma/getPageDetails']                                  = 'proformainvoices/getPageDetails';
+$route['proforma/addProFormaInvoice']                              = 'proformainvoices/addProFormaInvoice';
+$route['proforma/updateProFormaInvoice']                           = 'proformainvoices/updateProFormaInvoice';
+$route['proforma/deleteProFormaInvoice']                           = 'proformainvoices/deleteProFormaInvoice';
+$route['proforma/duplicateProFormaInvoice']                        = 'proformainvoices/duplicateProFormaInvoice';
+$route['proforma/updateProFormaStatus']                            = 'proformainvoices/updateProFormaStatus';
+$route['proforma/convertProFormaToInvoice']                        = 'proformainvoices/convertProFormaToInvoice';
+$route['proforma/getProFormaDetail']                               = 'proformainvoices/getProFormaDetail';
+
+// Delivery Challans
+$route['deliverychallan']                                          = 'deliverychallans/index';
+$route['deliverychallan/create']                                   = 'deliverychallans/create';
+$route['deliverychallan/(:num)/edit']                              = 'deliverychallans/edit/$1';
+$route['deliverychallan/getPageDetails/(:num)']                    = 'deliverychallans/getPageDetails/$1';
+$route['deliverychallan/getPageDetails']                           = 'deliverychallans/getPageDetails';
+$route['deliverychallan/addDeliveryChallan']                       = 'deliverychallans/addDeliveryChallan';
+$route['deliverychallan/updateDeliveryChallan']                    = 'deliverychallans/updateDeliveryChallan';
+$route['deliverychallan/deleteDeliveryChallan']                    = 'deliverychallans/deleteDeliveryChallan';
+$route['deliverychallan/duplicateDeliveryChallan']                 = 'deliverychallans/duplicateDeliveryChallan';
+$route['deliverychallan/updateDeliveryChallanStatus']              = 'deliverychallans/updateDeliveryChallanStatus';
+$route['deliverychallan/getChallanDetail']                         = 'deliverychallans/getChallanDetail';
+$route['deliverychallan/convertChallanToInvoice']                  = 'deliverychallans/convertChallanToInvoice';
+$route['deliverychallan/packingList/(:num)']                       = 'deliverychallans/packingList/$1';
 
 // Sales Orders
 $route['salesorders']                                      = 'salesorders/index';

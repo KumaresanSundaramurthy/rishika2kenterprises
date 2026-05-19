@@ -11,12 +11,21 @@ class Organisation extends CI_Controller {
     }
 
     public function index() {
-        
+
+        // Ensure view-required keys always exist so footer_script.php never crashes
+        $this->pageData['OrgBussType']    = [];
+        $this->pageData['OrgIndusType']   = [];
+        $this->pageData['OrgBusRegType']  = [];
+        $this->pageData['EditOrgData']    = null;
+        $this->pageData['BillOrgAddrData'] = null;
+        $this->pageData['ShipOrgAddrData'] = null;
+        $this->pageData['StateData']      = [];
+        $this->pageData['CityData']       = [];
+        $this->pageData['TimezoneInfo']   = [];
+
         try {
 
             $this->load->model('global_model');
-            $GetCountryInfo = $this->global_model->getCountryInfo();
-            $this->pageData['CountryInfo'] = $GetCountryInfo->Error === FALSE ? $GetCountryInfo->Data : [];
             
             $this->load->model('organisation_model');
             $OrgBussTypeData = $this->organisation_model->getOrgBusinessTypeDetails();
@@ -27,45 +36,36 @@ class Organisation extends CI_Controller {
             
             $OrgBusRegData = $this->organisation_model->getOrgBusRegTypeDetails();
             $this->pageData['OrgBusRegType'] = $OrgBusRegData->Error === FALSE ? $OrgBusRegData->Data : [];
-            
-            $this->pageData['EditOrgData'] = null;
-            $this->pageData['BillOrgAddrData'] = null;
-            $this->pageData['ShipOrgAddrData'] = null;
-
-            $this->pageData['StateData'] = [];
-            $this->pageData['CityData'] = [];
 
             $OrganisationData = $this->organisation_model->getAllOrganisationAddressDetails(['Org.OrgUID' => $this->pageData['JwtData']->User->OrgUID]);
             if ($OrganisationData->Error === FALSE && !empty($OrganisationData->Data)) {
 
                 $orgRow = $OrganisationData->Data[0];
 
-                $this->pageData['EditOrgData'] = $orgRow;
+                $this->pageData['EditOrgData']    = $orgRow;
                 $this->pageData['BillOrgAddrData'] = $this->mapOrganisationAddress($orgRow, 'B', 'Billing') ?? null;
                 $this->pageData['ShipOrgAddrData'] = $this->mapOrganisationAddress($orgRow, 'S', 'Shipping') ?? null;
 
-                if(!empty($orgRow->CountryISO2)) {
+                if (!empty($orgRow->CountryISO2)) {
                     $StateInfo = $this->global_model->getStateofCountry($orgRow->CountryISO2);
-                    if($StateInfo->Error === FALSE) {
-                        $this->pageData['StateData'] = $StateInfo->Data;
-                    }
-                    $CityInfo = $this->global_model->getCityofCountry($orgRow->CountryISO2);
-                    if($CityInfo->Error === FALSE) {
-                        $this->pageData['CityData'] = $CityInfo->Data;
-                    }
-                }
+                    if ($StateInfo->Error === FALSE) $this->pageData['StateData'] = $StateInfo->Data;
 
+                    $CityInfo = $this->global_model->getCityofCountry($orgRow->CountryISO2);
+                    if ($CityInfo->Error === FALSE) $this->pageData['CityData'] = $CityInfo->Data;
+                }
             }
 
             $TimezoneInfo = $this->global_model->getTimezoneDetails([]);
             $this->pageData['TimezoneInfo'] = $TimezoneInfo->Error === FALSE ? $TimezoneInfo->Data : [];
-            
+
             $GeneralSettings = $this->redisservice->getUserCache('settings') ?? new stdClass();
             $this->pageData['JwtData']->GenSettings = $GeneralSettings;
+
             $this->load->view('organisation/view', $this->pageData);
 
         } catch (Exception $e) {
-            redirect('dashboard', 'refresh');
+            log_message('error', 'Organisation::index() — ' . $e->getMessage());
+            $this->load->view('organisation/view', $this->pageData);
         }
 
     }
@@ -110,8 +110,8 @@ class Organisation extends CI_Controller {
                 'Name'              => getPostValue($PostData, 'Name'),
                 'ShortDescription'  => getPostValue($PostData, 'Description', 'Array', NULL, false),
                 'BrandName'         => getPostValue($PostData, 'BrandName'),
-                'CountryCode'       => getPostValue($PostData, 'CountryCode'),
-                'CountryISO2'       => getPostValue($PostData, 'CountryISO2'),
+                'CountryCode'       => '+91',
+                'CountryISO2'       => 'IN',
                 'MobileNumber'      => getPostValue($PostData, 'MobileNumber', 'Array', NULL, false),
                 'GSTIN'             => getPostValue($PostData, 'GSTIN', 'Array', NULL, false),
                 'OrgBussTypeUID'    => getPostValue($PostData, 'OrgBussTypeUID'),
@@ -141,7 +141,7 @@ class Organisation extends CI_Controller {
             $PostData['BillOrgAddressUID'] = $this->handleAddress($PostData, 'Billing', $userUID, $now);
             $PostData['ShipOrgAddressUID'] = $this->handleAddress($PostData, 'Shipping', $userUID, $now);
 
-            if (!empty($PostData['imageChange']) || !empty($PostData['countryChange'])) {
+            if (!empty($PostData['imageChange'])) {
                 $this->globalservice->refreshUserCache();
             }
             

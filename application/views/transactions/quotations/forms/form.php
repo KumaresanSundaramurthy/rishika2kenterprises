@@ -281,6 +281,7 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
                                 'transTermsContent'         => $_termsVal,
                                 'transShowDropzone'         => true,
                                 'transShowChargesBreakdown' => true,
+                                'transSignatureUID'         => $isEdit ? (int)($QuotData->SignatureUID ?? 0) : 0,
                             ]); ?>
 
                         </div>

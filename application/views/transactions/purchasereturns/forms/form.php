@@ -173,6 +173,7 @@ $editPrefixSeg = ($isEdit && $isDraftEdit) ? buildPRPrefixSegment($editPrefixCon
                                 'transNotesContent'        => $isEdit ? ($PRData->Notes ?? '') : '',
                                 'transTermsContent'        => $isEdit ? ($PRData->TermsConditions ?? '') : '',
                                 'transShowDropzone'        => true,
+                                'transSignatureUID'        => $isEdit ? (int)($PRData->SignatureUID ?? 0) : 0,
                             ]); ?>
 
                         </div>

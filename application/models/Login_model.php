@@ -126,7 +126,7 @@ class Login_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->ReadDb->select('RMM.RoleMainMenuUID, RMM.MainMenuUID, MainMenu.Name as MainMenuName, MainMenu.Icons as MainMenuIcons, RMM.Sorting, RMM.CanView, RMM.CanCreate, RMM.CanEdit, RMM.CanDelete');
+            $this->ReadDb->select('RMM.RoleMainMenuUID, RMM.MainMenuUID, MainMenu.Name as MainMenuName, MainMenu.Icon as MainMenuIcons, RMM.Sorting, RMM.CanView, RMM.CanCreate, RMM.CanEdit, RMM.CanDelete');
             $this->ReadDb->from('UserRole.RoleMainMenusTbl as RMM');
             $this->ReadDb->join('Modules.MainMenusTbl as MainMenu', 'MainMenu.MainMenuUID = RMM.MainMenuUID', 'left');
             $this->ReadDb->where('RMM.RoleUID', $RoleUID);
@@ -157,9 +157,10 @@ class Login_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->ReadDb->select('RSM.RoleSubMenuUID, SubMenu.MainMenuUID, RSM.SubMenuUID, SubMenu.Name as SubMenuName, SubMenu.ControllerName, SubMenu.ParentSubMenuUID, SubMenu.Icons, RSM.Sorting, RSM.CanView, RSM.CanCreate, RSM.CanEdit, RSM.CanDelete');
+            $this->ReadDb->select("RSM.RoleSubMenuUID, Sub.MainMenuUID, RSM.SubMenuUID, Sub.Name as SubMenuName, Sub.UrlPath, Sub.ParentSubMenuUID, Sub.Icon as SubMenuIcon, COALESCE(Mod.ControllerName, '') as ControllerName, RSM.Sorting, RSM.CanView, RSM.CanCreate, RSM.CanEdit, RSM.CanDelete");
             $this->ReadDb->from('UserRole.RoleSubMenusTbl as RSM');
-            $this->ReadDb->join('Modules.SubMenusTbl as SubMenu', 'SubMenu.SubMenuUID = RSM.SubMenuUID', 'left');
+            $this->ReadDb->join('Modules.SubMenusTbl Sub', 'Sub.SubMenuUID = RSM.SubMenuUID AND Sub.IsDeleted = 0');
+            $this->ReadDb->join('Modules.ModuleTbl Mod', 'Mod.ModuleUID = Sub.ModuleUID AND Mod.IsDeleted = 0', 'left');
             $this->ReadDb->where('RSM.RoleUID', $RoleUID);
             $this->ReadDb->where('RSM.IsActive', 1);
             $this->ReadDb->where('RSM.IsDeleted', 0);
@@ -215,7 +216,7 @@ class Login_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->ReadDb->select('Module.ModuleUID as ModuleUID, Module.Name as Name, Module.OrgUID as OrgUID, Module.MainMenuUID as MainMenuUID, Module.SubMenuUID as SubMenuUID, Module.ControllerName as ControllerName, Module.DatabaseName as DatabaseName, Module.MasterTableName as MasterTableName, Module.ParentModuleUID as ParentModuleUID, Module.IsMainModule as IsMainModule, Module.IsModuleEnabled as IsModuleEnabled, Module.EditOnPage as EditOnPage');
+            $this->ReadDb->select('Module.ModuleUID as ModuleUID, Module.Name as Name, Module.OrgUID as OrgUID, Module.ControllerName as ControllerName, Module.DatabaseName as DatabaseName, Module.MasterTableName as MasterTableName, Module.ParentModuleUID as ParentModuleUID, Module.IsMainModule as IsMainModule, Module.IsModuleEnabled as IsModuleEnabled, Module.EditOnPage as EditOnPage');
             $this->ReadDb->from('Modules.ModuleTbl as Module');
             $this->ReadDb->where('Module.OrgUID', $OrgUID);
             $this->ReadDb->where('Module.IsDeleted', 0);

@@ -38,12 +38,29 @@ $(function() {
         $('#ModulesMenuBar').removeClass('d-none');
     });
 
+    // Settings sidebar accordion — handle nested menu-toggle clicks independently
+    // stopPropagation prevents Sneat Menu.js (bound on #layout-menu) from double-toggling
+    $('#SettingsMenuBar').on('click', '.menu-link.menu-toggle', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var $li = $(this).closest('li.menu-item');
+        var $sub = $li.children('ul.menu-sub');
+        if (!$sub.length) return;
+        if ($li.hasClass('open')) {
+            $li.removeClass('open');
+        } else {
+            $li.siblings('li.menu-item.open').removeClass('open');
+            $li.addClass('open');
+        }
+    });
+
     // Profile dropdown toggle
-    $(document).on('click', '#ProfileDropdownToggle', function(e) {
+    $('#ProfileDropdownMenu, #ProfileDropdownMenuSettings').hide();
+    $(document).on('click', '#ProfileDropdownToggle, #ProfileDropdownToggleSettings', function(e) {
         e.preventDefault();
         e.stopPropagation();
         var $li   = $(this).closest('.user-profile-item');
-        var $menu = $('#ProfileDropdownMenu');
+        var $menu = $li.find('ul').first();
         if ($li.hasClass('profile-open')) {
             $menu.slideUp(160);
             $li.removeClass('profile-open');
@@ -54,7 +71,7 @@ $(function() {
     });
     $(document).on('click', function(e) {
         if (!$(e.target).closest('.user-profile-item').length) {
-            $('#ProfileDropdownMenu').slideUp(160);
+            $('#ProfileDropdownMenu, #ProfileDropdownMenuSettings').slideUp(160);
             $('.user-profile-item').removeClass('profile-open');
         }
     });

@@ -50,7 +50,7 @@ $initialNextNumber = ($defaultPrefixConfig && isset($NextNumberMap[(int)$default
             <option value="">No prefixes configured</option>
         <?php } ?>
         </select>
-        <button type="button" class="btn btn-outline-secondary" id="addTransPrefixBtn" title="Configure Prefix"><i class="bx bx-cog"></i></button>
+        <a href="<?php echo base_url('settings/prefixconfig'); ?>" class="btn btn-outline-secondary" title="Manage Prefix Configuration" target="_blank"><i class="bx bx-cog"></i></a>
     </div>
     <div class="input-group input-group-sm w-auto">
         <span class="input-group-text cursor-pointer fw-semibold text-primary" id="appendPrefixVal"><?php echo htmlspecialchars($initialPrefixSeg); ?></span>

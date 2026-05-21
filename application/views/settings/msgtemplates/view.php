@@ -18,11 +18,7 @@
                                 <i class="bx bx-message-square-edit" style="color:#9333ea;"></i>
                             </div>
                             <div>
-                                <div class="text-muted small mb-1">
-                                    <a href="<?php echo base_url('settings/generalsettings'); ?>" class="text-muted text-decoration-none">Settings</a>
-                                    <i class="bx bx-chevron-right"></i>
-                                </div>
-                                <h5 class="trans-ph-title">Message Templates</h5>
+                                <h5 class="trans-ph-title"><?php echo htmlspecialchars($PageTitle ?? 'Message Templates'); ?></h5>
                             </div>
                         </div>
                     </div>

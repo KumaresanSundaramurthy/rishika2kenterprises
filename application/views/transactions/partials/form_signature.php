@@ -192,16 +192,18 @@ $_savedSigUID = isset($transSignatureUID) ? (int)$transSignatureUID : 0;
     document.addEventListener('DOMContentLoaded', function () {
         var CsrfName  = typeof window.CsrfName  !== 'undefined' ? window.CsrfName  : '';
         var CsrfToken = typeof window.CsrfToken !== 'undefined' ? window.CsrfToken : '';
-
+        ajaxLoading(0);
         $.ajax({
             url: '/settings/profile/getSignaturesJson',
             method: 'POST',
             data: { [CsrfName]: CsrfToken },
             success: function (resp) {
+                ajaxLoading(1);
                 if (window.CsrfToken !== undefined && resp.NewCsrfToken) window.CsrfToken = resp.NewCsrfToken;
                 _populateSigSelect(resp.Error ? [] : resp.Data);
             },
             error: function () {
+                ajaxLoading(1);
                 $('#transSigLoading').addClass('d-none');
             }
         });

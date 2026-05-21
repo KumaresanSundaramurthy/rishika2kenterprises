@@ -31,7 +31,7 @@
                             <div class="trans-ph-icon" style="background:#dcfce7;">
                                 <i class="bx bx-credit-card-alt" style="color:#22c55e;"></i>
                             </div>
-                            <h5 class="trans-ph-title">Payments In</h5>
+                            <h5 class="trans-ph-title"><?php echo htmlspecialchars($PageTitle ?? 'Payments In'); ?></h5>
                         </div>
                     </div>
                     <!-- ── Balance Summary ─────────────────────────────────── -->

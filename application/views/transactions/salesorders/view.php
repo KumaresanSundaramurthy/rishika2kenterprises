@@ -34,7 +34,7 @@ $this->load->view('common/transactions/header'); ?>
                             <div class="trans-ph-icon" style="background:#cffafe;">
                                 <i class="bx bx-package" style="color:#06b6d4;"></i>
                             </div>
-                            <h5 class="trans-ph-title">Sales Orders</h5>
+                            <h5 class="trans-ph-title"><?php echo htmlspecialchars($PageTitle ?? 'Sales Orders'); ?></h5>
                         </div>
                         <a href="/salesorders/create" class="btn btn-primary">
                             <i class="bx bx-plus me-1"></i>New Sales Order

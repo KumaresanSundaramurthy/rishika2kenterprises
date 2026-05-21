@@ -22,7 +22,7 @@
                             <div class="trans-ph-icon ph-icon-products">
                                 <i class="bx bx-package"></i>
                             </div>
-                            <h5 class="trans-ph-title">Products</h5>
+                            <h5 class="trans-ph-title"><?php echo htmlspecialchars($PageTitle ?? 'Products'); ?></h5>
                         </div>
                     </div>
 

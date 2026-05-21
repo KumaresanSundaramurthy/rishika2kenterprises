@@ -784,3 +784,41 @@ tr:hover .inv-row-action {
 #recordPaymentModal .flatpickr-calendar {
     z-index: 1080 !important;
 }
+
+/* ── Expenses modal — attachment dropzone (modal card context) ───── */
+#expAttachDropzone {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 180px;
+}
+#expAttachDropzone.dz-started {
+    display: block !important;
+    min-height: 0;
+}
+/* Reset vendor 8rem top-margin; use flex column to centre message    */
+#expAttachDropzone .dz-message {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 !important;
+    width: 100%;
+    text-align: center;
+    padding-top: 3rem;
+}
+/* Reposition the vendor SVG upload icon relative to the flex parent  */
+#expAttachDropzone .dz-message::before {
+    position: static !important;
+    display: block !important;
+    margin: 0 auto .75rem !important;
+    inset-block-start: unset !important;
+}
+
+/* ── Expenses modal — flatpickr calendar positioning ────────────── */
+#expenseModal .modal-dialog {
+    overflow: visible;
+}
+#expenseModal .flatpickr-calendar {
+    z-index: 1080 !important;
+}

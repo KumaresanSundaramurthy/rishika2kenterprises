@@ -1,7 +1,7 @@
 <?php
 defined('BASEPATH') or exit('No direct script access allowed');
 
-class Barcodeconfig extends CI_Controller {
+class Barcodeconfig extends MY_Controller {
 
     private $EndReturnData;
 
@@ -12,6 +12,11 @@ class Barcodeconfig extends CI_Controller {
 
     /* ── Page load ──────────────────────────────────────────────────────── */
     public function index() {
+
+        if (!$this->_loadPageTitle()) {
+            $this->load->view('common/module_error', $this->pageData);
+            return;
+        }
 
         $OrgUID = (int) $this->pageData['JwtData']->User->OrgUID;
 

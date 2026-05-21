@@ -35,7 +35,7 @@ $this->load->view('common/transactions/header'); ?>
                             <div class="trans-ph-icon" style="background:#f3e8ff;">
                                 <i class="bx bx-undo" style="color:#a855f7;"></i>
                             </div>
-                            <h5 class="trans-ph-title">Purchase Returns</h5>
+                            <h5 class="trans-ph-title"><?php echo htmlspecialchars($PageTitle ?? 'Purchase Returns'); ?></h5>
                         </div>
                         <a href="/purchasereturns/create" class="btn btn-primary">
                             <i class="bx bx-plus me-1"></i>New Purchase Return

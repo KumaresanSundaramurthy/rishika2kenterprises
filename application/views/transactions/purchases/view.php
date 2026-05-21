@@ -36,9 +36,9 @@ $this->load->view('common/transactions/header'); ?>
                             <div class="trans-ph-icon" style="background:#ede9fe;">
                                 <i class="bx bx-store" style="color:#8b5cf6;"></i>
                             </div>
-                            <h5 class="trans-ph-title">Purchases</h5>
+                            <h5 class="trans-ph-title"><?php echo htmlspecialchars($PageTitle ?? 'Purchases'); ?></h5>
                         </div>
-                        <a href="/purchases/create" class="btn btn-primary">
+                        <a href="/purchases/create" class="btn btn-primary me-1">
                             <i class="bx bx-plus me-1"></i>New Purchase Bill
                         </a>
                     </div>

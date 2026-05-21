@@ -39,7 +39,7 @@
                             <div class="trans-ph-icon" style="background:#e8f0fe;">
                                 <i class="bx bx-barcode" style="color:#3b82f6;"></i>
                             </div>
-                            <h5 class="trans-ph-title">Barcode &amp; QR Code Config</h5>
+                            <h5 class="trans-ph-title"><?php echo htmlspecialchars($PageTitle ?? 'Barcode &amp; QR Code Config'); ?></h5>
                         </div>
                         <a href="/products" class="btn btn-outline-secondary btn-sm"><i class="bx bx-package me-1"></i>Products</a>
                     </div>

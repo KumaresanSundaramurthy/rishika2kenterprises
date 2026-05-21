@@ -21,7 +21,7 @@
                             <div class="trans-ph-icon ph-icon-storage">
                                 <i class="bx bx-server"></i>
                             </div>
-                            <h5 class="trans-ph-title">Storage</h5>
+                            <h5 class="trans-ph-title"><?php echo htmlspecialchars($PageTitle ?? 'Storage'); ?></h5>
                         </div>
                     </div>
 

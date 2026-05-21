@@ -1,6 +1,6 @@
 <?php defined('BASEPATH') OR exit('No direct script access allowed');
 
-class Paymentsout extends CI_Controller {
+class Paymentsout extends MY_Controller {
 
     public $pageData = array();
     private $EndReturnData;
@@ -12,6 +12,11 @@ class Paymentsout extends CI_Controller {
     }
 
     public function index() {
+
+        if (!$this->_loadPageTitle($this->pageModuleUID)) {
+            $this->load->view('common/module_error', $this->pageData);
+            return;
+        }
 
         try {
 

@@ -55,7 +55,7 @@ class Roles_model extends CI_Model {
             $mainMenus = $mainQuery->result();
 
             // Sub menus
-            $this->ReadDb->select('SM.SubMenuUID, SM.MainMenuUID, SM.ParentSubMenuUID, SM.Name, SM.UrlPath as ControllerName, SM.Icon, SM.Sorting');
+            $this->ReadDb->select('SM.SubMenuUID, SM.MainMenuUID, SM.ParentSubMenuUID, SM.IsParent, SM.Name, SM.UrlPath as ControllerName, SM.Icon, SM.Sorting');
             $this->ReadDb->from('Modules.SubMenusTbl AS SM');
             $this->ReadDb->where('SM.OrgUID', $OrgUID);
             $this->ReadDb->where('SM.IsDeleted', 0);

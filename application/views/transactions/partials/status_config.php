@@ -107,6 +107,18 @@ $statusTransitions = [
         'Draft'    => [['db' => 'Approved',  'label' => 'Approve Return']],
         'Approved' => [['db' => 'Cancelled', 'label' => 'Cancel']],
     ],
+    'expense' => [
+        'Pending' => [
+            ['db' => 'Paid',      'label' => 'Mark as Paid'],
+            ['db' => 'Cancelled', 'label' => 'Cancel Expense'],
+        ],
+    ],
+    'indirectincome' => [
+        'Pending' => [
+            ['db' => 'Received',  'label' => 'Mark as Received'],
+            ['db' => 'Cancelled', 'label' => 'Cancel Income'],
+        ],
+    ],
 ];
 
 $moduleTransitions = $statusTransitions[$moduleContext] ?? [];

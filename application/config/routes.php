@@ -146,6 +146,30 @@ $route['deliverychallan/getChallanDetail']                         = 'deliverych
 $route['deliverychallan/convertChallanToInvoice']                  = 'deliverychallans/convertChallanToInvoice';
 $route['deliverychallan/packingList/(:num)']                       = 'deliverychallans/packingList/$1';
 
+// Expenses
+$route['expenses']                                                 = 'expenses/index';
+$route['expenses/getPageDetails/(:num)']                           = 'expenses/getPageDetails/$1';
+$route['expenses/getPageDetails']                                  = 'expenses/getPageDetails';
+$route['expenses/addExpense']                                      = 'expenses/addExpense';
+$route['expenses/updateExpense']                                   = 'expenses/updateExpense';
+$route['expenses/deleteExpense']                                   = 'expenses/deleteExpense';
+$route['expenses/updateExpenseStatus']                             = 'expenses/updateExpenseStatus';
+$route['expenses/getExpenseDetail']                                = 'expenses/getExpenseDetail';
+$route['expenses/getCategories']                                   = 'expenses/getCategories';
+$route['expenses/addCategory']                                     = 'expenses/addCategory';
+
+// Indirect Income
+$route['indirectincome']                                           = 'indirectincome/index';
+$route['indirectincome/getPageDetails/(:num)']                     = 'indirectincome/getPageDetails/$1';
+$route['indirectincome/getPageDetails']                            = 'indirectincome/getPageDetails';
+$route['indirectincome/addIncome']                                 = 'indirectincome/addIncome';
+$route['indirectincome/updateIncome']                              = 'indirectincome/updateIncome';
+$route['indirectincome/deleteIncome']                              = 'indirectincome/deleteIncome';
+$route['indirectincome/updateIncomeStatus']                        = 'indirectincome/updateIncomeStatus';
+$route['indirectincome/getIncomeDetail']                           = 'indirectincome/getIncomeDetail';
+$route['indirectincome/getCategories']                             = 'indirectincome/getCategories';
+$route['indirectincome/addCategory']                               = 'indirectincome/addCategory';
+
 // Sales Orders
 $route['salesorders']                                      = 'salesorders/index';
 $route['salesorders/create']                               = 'salesorders/create';

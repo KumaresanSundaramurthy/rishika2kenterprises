@@ -35,7 +35,7 @@ $this->load->view('common/transactions/header'); ?>
                             <div class="trans-ph-icon" style="background:#dcfce7;">
                                 <i class="bx bx-package" style="color:#16a34a;"></i>
                             </div>
-                            <h5 class="trans-ph-title">Delivery Challans</h5>
+                            <h5 class="trans-ph-title"><?php echo htmlspecialchars($PageTitle ?? 'Delivery Challans'); ?></h5>
                         </div>
                         <a href="/deliverychallan/create" class="btn btn-primary">
                             <i class="bx bx-plus me-1"></i>New Delivery Challan

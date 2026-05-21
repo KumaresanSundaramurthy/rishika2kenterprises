@@ -1,6 +1,6 @@
 <?php defined('BASEPATH') OR exit('No direct script access allowed');
 
-class Settings extends CI_Controller {
+class Settings extends MY_Controller {
 
     public  $pageData = [];
     private $EndReturnData;
@@ -16,6 +16,17 @@ class Settings extends CI_Controller {
         return $types;
     }
 
+    /** Returns [ModuleUID => Name] map from Modules.ModuleTbl where IsPrefix = 1 */
+    private function getPrefixModulesList() {
+        $this->load->model('organisation_model');
+        $result = $this->organisation_model->getPrefixModules();
+        $types  = [];
+        foreach ($result->Data ?? [] as $row) {
+            $types[(int)$row->ModuleUID] = $row->Name;
+        }
+        return $types;
+    }
+
     public function __construct() {
         parent::__construct();
     }
@@ -23,6 +34,8 @@ class Settings extends CI_Controller {
     // ── General Settings page ────────────────────────────────────────────────
 
     public function generalsettings() {
+        $this->_loadPageTitle();
+        if (empty($this->pageData['PageTitle'])) $this->pageData['PageTitle'] = 'Settings';
         try {
             $this->load->view('settings/generalsettings/view', $this->pageData);
         } catch (Exception $e) {
@@ -33,6 +46,7 @@ class Settings extends CI_Controller {
     // ── Separate settings pages ──────────────────────────────────────────────
 
     public function thermalconfig() {
+        $this->pageData['PageTitle'] = 'Thermal Print Config';
         try {
             $this->load->model('organisation_model');
             $orgUID = $this->pageData['JwtData']->User->OrgUID;
@@ -45,6 +59,7 @@ class Settings extends CI_Controller {
     }
 
     public function banks() {
+        $this->pageData['PageTitle'] = 'Bank Accounts';
         try {
             $this->load->view('settings/banks/view', $this->pageData);
         } catch (Exception $e) {
@@ -53,6 +68,7 @@ class Settings extends CI_Controller {
     }
 
     public function msgtemplates() {
+        $this->pageData['PageTitle'] = 'Message Templates';
         try {
             $this->load->view('settings/msgtemplates/view', $this->pageData);
         } catch (Exception $e) {
@@ -625,6 +641,195 @@ class Settings extends CI_Controller {
                 ['TemplateUID' => $templateUID, 'OrgUID' => $orgUID]);
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Template deleted.';
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    // ── Prefix Configuration page ────────────────────────────────────────────
+
+    public function prefixconfig() {
+        $this->pageData['PageTitle'] = 'Prefix Configuration';
+        try {
+            $this->load->model('organisation_model');
+            $this->pageData['PrefixModuleCount'] = count($this->getPrefixModulesList());
+            $this->load->view('settings/prefixconfig/view', $this->pageData);
+        } catch (Exception $e) {
+            redirect('dashboard', 'refresh');
+        }
+    }
+
+    /** AJAX POST: return prefix list HTML + module map */
+    public function getPrefixConfigList() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID  = $this->pageData['JwtData']->User->OrgUID;
+            $this->load->model('organisation_model');
+            $result  = $this->organisation_model->getPrefixConfigList($orgUID);
+            $rows    = $result->Error === FALSE ? $result->Data : [];
+            $modules = $this->getPrefixModulesList();
+
+            $this->EndReturnData->Error          = FALSE;
+            $this->EndReturnData->RecordHtmlData = $this->load->view('settings/prefixconfig/list', [
+                'DataLists' => $rows,
+                'Modules'   => $modules,
+                'JwtData'   => $this->pageData['JwtData'],
+            ], TRUE);
+            $this->EndReturnData->TotalCount = count($rows);
+            $this->EndReturnData->Modules    = $modules;
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    /** AJAX POST: create or update a prefix configuration */
+    public function savePrefixConfig() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $PostData  = $this->input->post();
+            $orgUID    = $this->pageData['JwtData']->User->OrgUID;
+            $userUID   = $this->pageData['JwtData']->User->UserUID;
+            $prefixUID = (int) getPostValue($PostData, 'prePrefixUID');
+            $moduleUID = (int) getPostValue($PostData, 'preModuleUID');
+            $name      = strtoupper(trim(getPostValue($PostData, 'transPrefixName') ?: ''));
+
+            if (!$name || strlen($name) < 2 || strlen($name) > 7 || !preg_match('/^[A-Z0-9]+$/', $name)) {
+                throw new Exception('Prefix name must be 2–7 alphanumeric characters.');
+            }
+            if ($prefixUID <= 0 && !$moduleUID) {
+                throw new Exception('Please select a module.');
+            }
+
+            $validSeps = ['-', '/', '|', '_', '.'];
+            $sep = getPostValue($PostData, 'prefixSeparator') ?: '-';
+            if (!in_array($sep, $validSeps)) $sep = '-';
+
+            $validPads = ['1', '3', '5'];
+            $pad = (string)(getPostValue($PostData, 'numberPadding') ?: '3');
+            if (!in_array($pad, $validPads)) $pad = '3';
+
+            $incFiscal = getPostValue($PostData, 'includeFiscalYear') ? 1 : 0;
+            $fiscalFmt = in_array(getPostValue($PostData, 'fiscalYearFormat'), ['SHORT','LONG'])
+                         ? getPostValue($PostData, 'fiscalYearFormat') : 'SHORT';
+            $incShort  = getPostValue($PostData, 'includeShortName') ? 1 : 0;
+            $shortName = strtoupper(substr(getPostValue($PostData, 'companyShortName') ?? '', 0, 20));
+            if ($incShort && !$shortName) {
+                throw new Exception('Company short name is required when enabled.');
+            }
+
+            $this->load->model('dbwrite_model');
+
+            $data = [
+                'Name'              => $name,
+                'IncludeFiscalYear' => $incFiscal,
+                'FiscalYearFormat'  => $fiscalFmt,
+                'IncludeShortName'  => $incShort,
+                'ShortName'         => $incShort ? $shortName : '',
+                'Separator'         => $sep,
+                'NumberPadding'     => (int)$pad,
+                'UpdatedBy'         => $userUID,
+            ];
+
+            if ($prefixUID > 0) {
+                $resp = $this->dbwrite_model->updateData(
+                    'Transaction', 'TransactionPrefixTbl', $data,
+                    ['PrefixUID' => $prefixUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
+                );
+                if ($resp->Error) throw new Exception($resp->Message);
+                $this->EndReturnData->Message = 'Prefix updated successfully.';
+            } else {
+                $data['OrgUID']    = $orgUID;
+                $data['ModuleUID'] = $moduleUID ?: null;
+                $data['IsDefault'] = 0;
+                $data['IsActive']  = 1;
+                $data['IsDeleted'] = 0;
+                $data['CreatedBy'] = $userUID;
+                $resp = $this->dbwrite_model->insertData('Transaction', 'TransactionPrefixTbl', $data);
+                if ($resp->Error) throw new Exception($resp->Message);
+                $this->EndReturnData->Message = 'Prefix added successfully.';
+            }
+
+            $this->load->model('organisation_model');
+            $result  = $this->organisation_model->getPrefixConfigList($orgUID);
+            $rows    = $result->Error === FALSE ? $result->Data : [];
+            $modules = $this->getPrefixModulesList();
+
+            $this->EndReturnData->Error          = FALSE;
+            $this->EndReturnData->RecordHtmlData = $this->load->view('settings/prefixconfig/list', [
+                'DataLists' => $rows,
+                'Modules'   => $modules,
+                'JwtData'   => $this->pageData['JwtData'],
+            ], TRUE);
+            $this->EndReturnData->TotalCount = count($rows);
+            $this->EndReturnData->Modules    = $modules;
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    /** AJAX POST: soft-delete a prefix (default prefix is protected) */
+    public function deletePrefixConfig() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $PostData  = $this->input->post();
+            $orgUID    = $this->pageData['JwtData']->User->OrgUID;
+            $userUID   = $this->pageData['JwtData']->User->UserUID;
+            $prefixUID = (int) getPostValue($PostData, 'prePrefixUID');
+            if ($prefixUID <= 0) throw new Exception('Invalid prefix ID.');
+
+            $this->load->model('organisation_model');
+            $row = $this->organisation_model->getPrefixByUID($prefixUID, $orgUID);
+            if (!$row->Data) throw new Exception('Prefix not found.');
+            if ($row->Data->IsDefault) throw new Exception('Cannot delete the default prefix. Set another prefix as default first.');
+
+            $this->load->model('dbwrite_model');
+            $resp = $this->dbwrite_model->updateData(
+                'Transaction', 'TransactionPrefixTbl',
+                ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID, 'UpdatedOn' => time()],
+                ['PrefixUID' => $prefixUID, 'OrgUID' => $orgUID]
+            );
+            if ($resp->Error) throw new Exception($resp->Message);
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Prefix deleted successfully.';
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    /** AJAX POST: promote a prefix to the org-wide default */
+    public function setDefaultPrefixConfig() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $PostData  = $this->input->post();
+            $orgUID    = $this->pageData['JwtData']->User->OrgUID;
+            $userUID   = $this->pageData['JwtData']->User->UserUID;
+            $prefixUID = (int) getPostValue($PostData, 'prePrefixUID');
+            if ($prefixUID <= 0) throw new Exception('Invalid prefix ID.');
+
+            $this->load->model('dbwrite_model');
+            $this->dbwrite_model->updateData(
+                'Transaction', 'TransactionPrefixTbl',
+                ['IsDefault' => 0, 'UpdatedBy' => $userUID, 'UpdatedOn' => time()],
+                ['OrgUID' => $orgUID, 'IsDeleted' => 0]
+            );
+            $resp = $this->dbwrite_model->updateData(
+                'Transaction', 'TransactionPrefixTbl',
+                ['IsDefault' => 1, 'UpdatedBy' => $userUID, 'UpdatedOn' => time()],
+                ['PrefixUID' => $prefixUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
+            );
+            if ($resp->Error) throw new Exception($resp->Message);
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Default prefix updated.';
         } catch (Exception $e) {
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();

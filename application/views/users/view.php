@@ -22,7 +22,7 @@
                             <div class="trans-ph-icon ph-icon-users">
                                 <i class="bx bx-user"></i>
                             </div>
-                            <h5 class="trans-ph-title">Users</h5>
+                            <h5 class="trans-ph-title"><?php echo htmlspecialchars($PageTitle ?? 'Users'); ?></h5>
                         </div>
                     </div>
 

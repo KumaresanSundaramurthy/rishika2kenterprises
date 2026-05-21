@@ -1,6 +1,6 @@
 <?php defined('BASEPATH') OR exit('No direct script access allowed');
 
-class Proformainvoices extends CI_Controller {
+class Proformainvoices extends MY_Controller {
 
     public $pageData = array();
     private $EndReturnData;
@@ -14,6 +14,10 @@ class Proformainvoices extends CI_Controller {
 
     // ── List page ────────────────────────────────────────────────
     public function index() {
+        if (!$this->_loadPageTitle($this->pageModuleUID)) {
+            $this->load->view('common/module_error', $this->pageData);
+            return;
+        }
         try {
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
             $GeneralSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();

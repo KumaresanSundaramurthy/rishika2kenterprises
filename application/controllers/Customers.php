@@ -1,6 +1,6 @@
 <?php defined('BASEPATH') OR exit('No direct script access allowed');
 
-class Customers extends CI_Controller {
+class Customers extends MY_Controller {
 
     public $pageData = array();
     private $EndReturnData;
@@ -64,6 +64,10 @@ class Customers extends CI_Controller {
 
     // ── Page routes ───────────────────────────────────────────────────────────
     public function index() {
+        if (!$this->_loadPageTitle()) {
+            $this->load->view('common/module_error', $this->pageData);
+            return;
+        }
         try {
 
             $this->_initModule();

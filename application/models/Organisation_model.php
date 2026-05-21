@@ -740,4 +740,66 @@ class Organisation_model extends CI_Model {
 
     }
 
+    // ── Prefix Configuration ─────────────────────────────────────────────────
+
+    /** Get all modules that support prefix numbering (IsPrefix = 1). */
+    public function getPrefixModules() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $this->ReadDb->select('ModuleUID, Name');
+            $this->ReadDb->from('Modules.ModuleTbl');
+            $this->ReadDb->where(['IsPrefix' => 1, 'IsActive' => 1, 'IsDeleted' => 0]);
+            $this->ReadDb->order_by('Sorting', 'ASC');
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Data  = $this->ReadDb->get()->result();
+        } catch (Exception $e) {
+            log_message('error', 'Organisation_model::getPrefixModules — ' . $e->getMessage());
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        return $this->EndReturnData;
+    }
+
+    /** Get all prefix configurations for an org, joined with module name and updated-by user. */
+    public function getPrefixConfigList($orgUID) {
+        $this->EndReturnData = new stdClass();
+        try {
+            $this->ReadDb->select([
+                'P.*',
+                'M.Name AS ModuleName',
+                "CONCAT(U.FirstName, ' ', IFNULL(U.LastName,'')) AS UpdatedByName",
+            ]);
+            $this->ReadDb->from('Transaction.TransactionPrefixTbl P');
+            $this->ReadDb->join('Modules.ModuleTbl M',  'M.ModuleUID = P.ModuleUID AND M.IsDeleted = 0', 'left');
+            $this->ReadDb->join('Users.UserTbl U',       'U.UserUID = P.UpdatedBy',                      'left');
+            $this->ReadDb->where(['P.OrgUID' => $orgUID, 'P.IsDeleted' => 0]);
+            $this->ReadDb->order_by('P.IsDefault DESC, M.Sorting ASC, P.PrefixUID ASC');
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Data  = $this->ReadDb->get()->result();
+        } catch (Exception $e) {
+            log_message('error', 'Organisation_model::getPrefixConfigList — ' . $e->getMessage());
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        return $this->EndReturnData;
+    }
+
+    /** Get a single prefix row by PrefixUID (for validation before delete). */
+    public function getPrefixByUID($prefixUID, $orgUID) {
+        $this->EndReturnData = new stdClass();
+        try {
+            $this->ReadDb->select('P.*, M.Name AS ModuleName');
+            $this->ReadDb->from('Transaction.TransactionPrefixTbl P');
+            $this->ReadDb->join('Modules.ModuleTbl M', 'M.ModuleUID = P.ModuleUID AND M.IsDeleted = 0', 'left');
+            $this->ReadDb->where(['P.PrefixUID' => $prefixUID, 'P.OrgUID' => $orgUID, 'P.IsDeleted' => 0]);
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Data  = $this->ReadDb->get()->row();
+        } catch (Exception $e) {
+            log_message('error', 'Organisation_model::getPrefixByUID — ' . $e->getMessage());
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        return $this->EndReturnData;
+    }
+
 }

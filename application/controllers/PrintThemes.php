@@ -1,6 +1,6 @@
 <?php defined('BASEPATH') OR exit('No direct script access allowed');
 
-class PrintThemes extends CI_Controller {
+class PrintThemes extends MY_Controller {
 
     public  $pageData = [];
     private $EndReturnData;
@@ -95,6 +95,11 @@ class PrintThemes extends CI_Controller {
     // ── Main page ────────────────────────────────────────────────────────────
 
     public function index() {
+
+        if (!$this->_loadPageTitle()) {
+            $this->load->view('common/module_error', $this->pageData);
+            return;
+        }
 
         try {
 

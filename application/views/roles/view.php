@@ -18,7 +18,7 @@
                             <div class="trans-ph-icon ph-icon-users">
                                 <i class="bx bx-shield-alt-2"></i>
                             </div>
-                            <h5 class="trans-ph-title">Roles &amp; Permissions</h5>
+                            <h5 class="trans-ph-title"><?php echo htmlspecialchars($PageTitle ?? 'Roles &amp; Permissions'); ?></h5>
                         </div>
                     </div>
 
@@ -31,9 +31,16 @@
                                     <span class="fw-semibold" style="font-size:.85rem;">
                                         <i class="bx bx-shield-alt-2 me-1 text-primary"></i>Roles
                                     </span>
-                                    <button class="btn btn-primary btn-sm px-2 py-1" id="btnAddRole" style="font-size:.75rem;">
-                                        <i class="bx bx-plus me-1"></i>Add Role
-                                    </button>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <button class="btn btn-outline-secondary btn-sm px-2 py-1" id="btnRefreshTokens"
+                                            title="Refresh the Tokens" data-bs-toggle="tooltip" data-bs-placement="top"
+                                            style="font-size:.75rem;">
+                                            <i class="bx bx-refresh"></i>
+                                        </button>
+                                        <button class="btn btn-primary btn-sm px-2 py-1" id="btnAddRole" style="font-size:.75rem;">
+                                            <i class="bx bx-plus me-1"></i>Add Role
+                                        </button>
+                                    </div>
                                 </div>
                                 <div class="card-body p-0">
                                     <ul class="list-group list-group-flush" id="roleListUL">
@@ -177,6 +184,53 @@ function _buildMatrix(mainPerms, subPerms) {
     const smMap = {};
     subPerms.forEach(p => smMap[p.SubMenuUID] = p);
 
+    // Recursive renderer — every item gets full controls; IsParent items also render children below
+    function _renderSubs(mmUID, parentUID, mmOn, depth) {
+        let rows = '';
+        const indent = 2.6 + (depth * 1.6);
+        const items  = _allSubMenus
+            .filter(s => parentUID ? s.ParentSubMenuUID == parentUID : (s.MainMenuUID == mmUID && !s.ParentSubMenuUID))
+            .sort((a, b) => (a.Sorting || 0) - (b.Sorting || 0));
+
+        items.forEach(sm => {
+            const sp        = smMap[sm.SubMenuUID] || {};
+            const smOn      = mmOn && !!(sp.CanView || sp.CanCreate || sp.CanEdit || sp.CanDelete);
+            const smAllChk  = smOn && _allChecked4(sp);
+            const spdis     = smOn ? '' : 'perm-disabled';
+            const smEnabled = smOn ? 'sm-enabled' : '';
+            const nameHtml  = sm.IsParent
+                ? `<strong style="color:#3a3b6e;">${sm.Name}</strong>`
+                : sm.Name;
+            const rowBg     = sm.IsParent ? 'background:#f4f4fb;' : '';
+
+            rows += `
+            <tr class="sm-row ${smEnabled} ${mmOn ? '' : 'sm-hidden'}" data-mmuid="${mmUID}" data-smuid="${sm.SubMenuUID}">
+                <td style="padding-left:${indent}rem; border-left:4px solid ${smOn ? '#26a69a' : 'transparent'}; ${rowBg}">
+                    <i class="${sm.Icon || 'bx bx-circle'} me-1" style="font-size:.85rem;color:#26a69a;"></i>
+                    ${nameHtml}
+                </td>
+                <td class="text-center" style="background:#f4f0ff; ${rowBg}"></td>
+                <td class="text-center td-sm-enable" style="${rowBg}">
+                    <div class="form-check form-switch d-flex justify-content-center m-0">
+                        <input class="form-check-input sm-enable-toggle" type="checkbox"
+                            data-smuid="${sm.SubMenuUID}" data-mmuid="${mmUID}" ${smOn ? 'checked' : ''}>
+                    </div>
+                </td>
+                <td class="text-center td-row-all" style="${rowBg}">${_rowAllChk(sm.SubMenuUID, smAllChk)}</td>
+                <td class="text-center ${spdis}" style="${rowBg}">${_chk(sm.SubMenuUID, 'CanView',   sp.CanView,   !smOn)}</td>
+                <td class="text-center ${spdis}" style="${rowBg}">${_chk(sm.SubMenuUID, 'CanCreate', sp.CanCreate, !smOn)}</td>
+                <td class="text-center ${spdis}" style="${rowBg}">${_chk(sm.SubMenuUID, 'CanEdit',   sp.CanEdit,   !smOn)}</td>
+                <td class="text-center ${spdis}" style="${rowBg}">${_chk(sm.SubMenuUID, 'CanDelete', sp.CanDelete, !smOn)}</td>
+            </tr>`;
+
+            // Render children below this item (indented one level deeper)
+            if (sm.IsParent) {
+                rows += _renderSubs(mmUID, sm.SubMenuUID, mmOn, depth + 1);
+            }
+        });
+        return rows;
+    }
+
     let html = `
     <style>
     /* ── Table base ── */
@@ -189,17 +243,16 @@ function _buildMatrix(mainPerms, subPerms) {
     .perm-table thead th.th-enable-mm { background:#ede9ff; color:#5e35b1; }
     .perm-table thead th.th-enable-sm { background:#e8f5e9; color:#2e7d32; }
 
-    /* ── Main-menu rows — purple accent, enable toggle only ── */
+    /* ── Main-menu rows ── */
     .perm-table .mm-row td { background:#eef1fb; font-weight:600; color:#2c3575; border-top:2px solid #c5cff7; }
-    .perm-table .mm-row td:first-child { border-left:4px solid #696cff; }
+    .perm-table .mm-row td:first-child { border-left:4px solid #696cff; padding-left:1rem; }
     .perm-table .mm-row .td-mm-enable { background:#ede9ff; }
     .mm-enable-toggle { accent-color:#696cff; width:2.2rem !important; height:1.1rem !important; cursor:pointer; }
     .mm-access-note { font-size:.71rem; color:#888; font-weight:400; font-style:italic; }
 
-    /* ── Sub-menu / page rows — teal accent, indented ── */
+    /* ── Sub-menu rows ── */
     .perm-table .sm-row td { background:#fafafa; color:#444; }
-    .perm-table .sm-row td:first-child { padding-left:2.6rem; border-left:4px solid transparent; }
-    .perm-table .sm-row.sm-enabled td:first-child { border-left-color:#26a69a; }
+    .perm-table .sm-row.sm-enabled td:first-child { }
     .perm-table .sm-row.sm-hidden { display:none; }
     .perm-table .sm-row .td-sm-enable { background:#f1f8f5; }
     .sm-enable-toggle { accent-color:#26a69a; width:1.8rem !important; height:.95rem !important; cursor:pointer; }
@@ -231,17 +284,16 @@ function _buildMatrix(mainPerms, subPerms) {
     <tbody>`;
 
     _allMainMenus.forEach(mm => {
-        const mp   = mmMap[mm.MainMenuUID] || {};
-        const mmOn = !!(mp.CanView || mp.CanCreate || mp.CanEdit || mp.CanDelete);
-        const subs = _allSubMenus.filter(s => s.MainMenuUID == mm.MainMenuUID && !s.ParentSubMenuUID);
+        const mp      = mmMap[mm.MainMenuUID] || {};
+        const mmOn    = !!(mp.CanView || mp.CanCreate || mp.CanEdit || mp.CanDelete);
+        const topSubs = _allSubMenus.filter(s => s.MainMenuUID == mm.MainMenuUID && !s.ParentSubMenuUID);
 
-        // ── Main-menu row — enable/disable toggle only, no granular perms ──
         html += `
         <tr class="mm-row" data-mmuid="${mm.MainMenuUID}">
             <td>
                 <i class="${mm.Icon || 'bx bx-menu'} me-1" style="color:#696cff;font-size:.95rem;"></i>
                 <strong>${mm.Name}</strong>
-                <span class="badge ms-1" style="font-size:.6rem;background:#e0e3ff;color:#696cff;">${subs.length}</span>
+                <span class="badge ms-1" style="font-size:.6rem;background:#e0e3ff;color:#696cff;">${topSubs.length}</span>
             </td>
             <td class="text-center td-mm-enable">
                 <div class="form-check form-switch d-flex justify-content-center m-0">
@@ -257,36 +309,7 @@ function _buildMatrix(mainPerms, subPerms) {
             </td>
         </tr>`;
 
-        // ── Sub-menu / page rows ─────────────────────────────────────
-        subs.forEach(sm => {
-            const sp       = smMap[sm.SubMenuUID] || {};
-            const smOn     = mmOn && !!(sp.CanView || sp.CanCreate || sp.CanEdit || sp.CanDelete);
-            const smAllChk = smOn && _allChecked4(sp);
-            const spdis    = smOn ? '' : 'perm-disabled';
-            const smEnabledCls = smOn ? 'sm-enabled' : '';
-
-            html += `
-            <tr class="sm-row ${smEnabledCls} ${mmOn ? '' : 'sm-hidden'}" data-mmuid="${mm.MainMenuUID}" data-smuid="${sm.SubMenuUID}">
-                <td>
-                    <i class="${sm.Icon || 'bx bx-circle'} me-1" style="font-size:.85rem;color:#26a69a;"></i>
-                    ${sm.Name}
-                </td>
-                <td class="text-center" style="background:#f4f0ff;"></td>
-                <td class="text-center td-sm-enable">
-                    <div class="form-check form-switch d-flex justify-content-center m-0">
-                        <input class="form-check-input sm-enable-toggle" type="checkbox"
-                            data-smuid="${sm.SubMenuUID}" data-mmuid="${mm.MainMenuUID}" ${smOn ? 'checked' : ''}>
-                    </div>
-                </td>
-                <td class="text-center td-row-all">
-                    ${_rowAllChk(sm.SubMenuUID, smAllChk)}
-                </td>
-                <td class="text-center ${spdis}">${_chk(sm.SubMenuUID, 'CanView',   sp.CanView,   !smOn)}</td>
-                <td class="text-center ${spdis}">${_chk(sm.SubMenuUID, 'CanCreate', sp.CanCreate, !smOn)}</td>
-                <td class="text-center ${spdis}">${_chk(sm.SubMenuUID, 'CanEdit',   sp.CanEdit,   !smOn)}</td>
-                <td class="text-center ${spdis}">${_chk(sm.SubMenuUID, 'CanDelete', sp.CanDelete, !smOn)}</td>
-            </tr>`;
-        });
+        html += _renderSubs(mm.MainMenuUID, null, mmOn, 0);
     });
 
     html += '</tbody></table></div>';
@@ -356,7 +379,7 @@ function _bindMatrixEvents() {
         _syncHeaderCheckboxes();
     });
 
-    // 3. Main-menu Enable toggle — show/hide page rows, update note label
+    // 3. Main-menu Enable toggle — show/hide all sub-menu rows, update note label
     $(document).off('change', '.mm-enable-toggle').on('change', '.mm-enable-toggle', function() {
         const mmUID    = $(this).data('mmuid');
         const enabled  = $(this).is(':checked');
@@ -480,6 +503,32 @@ function _collectPermissions() {
 /* ── jQuery ready ────────────────────────────────────────────────────── */
 $(function() {
     'use strict';
+
+    // Refresh Tokens button
+    $('#btnRefreshTokens').on('click', function() {
+        var $btn = $(this).prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin"></i>');
+        var fd = new FormData();
+        fd.append(CsrfName, CsrfToken);
+        $.ajax({
+            url: '/settings/roles/refreshTokens',
+            type: 'POST',
+            data: fd,
+            contentType: false,
+            processData: false,
+            success: function(res) {
+                $btn.prop('disabled', false).html('<i class="bx bx-refresh"></i>');
+                if (res.Error === false) {
+                    showToastNotification(res.Message, 'success');
+                } else {
+                    showToastNotification(res.Message, 'error');
+                }
+            },
+            error: function() {
+                $btn.prop('disabled', false).html('<i class="bx bx-refresh"></i>');
+                showToastNotification('Refresh failed. Please try again.', 'error');
+            }
+        });
+    });
 
     // Bind all delegated matrix events once
     _bindMatrixEvents();

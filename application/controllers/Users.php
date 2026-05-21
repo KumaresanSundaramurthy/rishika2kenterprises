@@ -1,6 +1,6 @@
 <?php defined('BASEPATH') OR exit('No direct script access allowed');
 
-class Users extends CI_Controller {
+class Users extends MY_Controller {
 
     public $pageData = array();
     private $EndReturnData;
@@ -11,6 +11,11 @@ class Users extends CI_Controller {
     }
 
     public function index() {
+
+        if (!$this->_loadPageTitle()) {
+            $this->load->view('common/module_error', $this->pageData);
+            return;
+        }
 
         try {
 

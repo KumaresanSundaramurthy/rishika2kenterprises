@@ -1,6 +1,6 @@
 <?php defined('BASEPATH') OR exit('No direct script access allowed');
 
-class Products extends CI_Controller {
+class Products extends MY_Controller {
 
     public $pageData = array();
     private $EndReturnData;
@@ -132,6 +132,11 @@ class Products extends CI_Controller {
     }
 
     public function index() {
+
+        if (!$this->_loadPageTitle()) {
+            $this->load->view('common/module_error', $this->pageData);
+            return;
+        }
 
         try {
 

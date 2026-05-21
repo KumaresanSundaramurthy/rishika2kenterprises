@@ -1186,9 +1186,6 @@ function toggleCategoryFilter() {
         refreshSearchCateg();
     }
 }
-        refreshSearchCateg();
-    }
-}
 
 function closeCategoryFilter() {
     $('#categoryFilterBox').hide();

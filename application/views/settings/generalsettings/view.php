@@ -22,7 +22,7 @@
                             <div class="trans-ph-icon" style="background:#e0f2fe;">
                                 <i class="bx bx-cog" style="color:#0284c7;"></i>
                             </div>
-                            <h5 class="trans-ph-title">Settings</h5>
+                            <h5 class="trans-ph-title"><?php echo htmlspecialchars($PageTitle ?? 'Settings'); ?></h5>
                         </div>
                     </div>
 

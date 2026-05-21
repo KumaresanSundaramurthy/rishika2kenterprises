@@ -29,7 +29,7 @@
                             <div class="trans-ph-icon" style="background:#fee2e2;">
                                 <i class="bx bx-credit-card-front" style="color:#ef4444;"></i>
                             </div>
-                            <h5 class="trans-ph-title">Payments Out</h5>
+                            <h5 class="trans-ph-title"><?php echo htmlspecialchars($PageTitle ?? 'Payments Out'); ?></h5>
                         </div>
                     </div>
                     <!-- ── Balance Summary ─────────────────────────────────── -->

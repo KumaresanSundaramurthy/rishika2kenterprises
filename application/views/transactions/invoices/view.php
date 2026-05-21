@@ -38,9 +38,9 @@ $this->load->view('common/transactions/header'); ?>
                             <div class="trans-ph-icon" style="background:#dbeafe;">
                                 <i class="bx bx-receipt" style="color:#3b82f6;"></i>
                             </div>
-                            <h5 class="trans-ph-title">Invoices</h5>
+                            <h5 class="trans-ph-title"><?php echo htmlspecialchars($PageTitle ?? 'Invoices'); ?></h5>
                         </div>
-                        <a href="/invoices/create" class="btn btn-primary">
+                        <a href="/invoices/create" class="btn btn-primary me-1">
                             <i class="bx bx-plus me-1"></i>New Invoice
                         </a>
                     </div>

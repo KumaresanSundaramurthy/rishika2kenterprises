@@ -22,7 +22,7 @@
                             <div class="trans-ph-icon ph-icon-vendors">
                                 <i class="bx bxs-store"></i>
                             </div>
-                            <h5 class="trans-ph-title">Vendors</h5>
+                            <h5 class="trans-ph-title"><?php echo htmlspecialchars($PageTitle ?? 'Vendors'); ?></h5>
                         </div>
                         <a href="javascript:void(0);" class="btn btn-primary" id="btnCreateVendorHeader">
                             <i class="bx bx-plus me-1"></i>New Vendor

@@ -18,11 +18,7 @@
                                 <i class="bx bx-printer" style="color:#16a34a;"></i>
                             </div>
                             <div>
-                                <div class="text-muted small mb-1">
-                                    <a href="<?php echo base_url('settings/generalsettings'); ?>" class="text-muted text-decoration-none">Settings</a>
-                                    <i class="bx bx-chevron-right"></i>
-                                </div>
-                                <h5 class="trans-ph-title">Thermal Print Config</h5>
+                                <h5 class="trans-ph-title"><?php echo htmlspecialchars($PageTitle ?? 'Thermal Print Config'); ?></h5>
                             </div>
                         </div>
                     </div>

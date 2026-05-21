@@ -22,9 +22,9 @@
                             <div class="trans-ph-icon ph-icon-users">
                                 <i class="bx bx-user-circle"></i>
                             </div>
-                            <h5 class="trans-ph-title">Profile</h5>
+                            <h5 class="trans-ph-title"><?php echo htmlspecialchars($PageTitle ?? 'Profile'); ?></h5>
                         </div>
-                        <div id="profileHeaderActions">
+                        <div id="profileHeaderActions" class="me-1">
                             <button type="button" class="btn btn-primary" id="btnUpdateProfile">
                                 <i class="bx bx-save me-1"></i>Update
                             </button>
@@ -390,12 +390,21 @@ $(function() {
 
     // ── Signatures: Load list ─────────────────────────────────────────────
     function loadSignatureList() {
+        ajaxLoading(0);
         $('#signaturesContainer').html(
             '<div class="text-center py-5 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Loading signatures...</div>'
         );
-        $.post('/settings/profile/getSignatureList', { [CsrfName]: CsrfToken }, function(html) {
+        $.post('/settings/profile/getSignatureList', {
+            [CsrfName]: CsrfToken
+        }).done(function(html) {
             CsrfToken = getNewCsrfFromHtml(html) || CsrfToken;
             $('#signaturesContainer').html(html);
+        }).fail(function(xhr, status, error) {
+            $('#signaturesContainer').html(
+                '<div class="text-danger text-center py-5">Unable to load signatures.</div>'
+            );
+        }).always(function() {
+            ajaxLoading(1);
         });
     }
 

@@ -41,9 +41,9 @@ $this->load->view('common/transactions/header'); ?>
                             <div class="trans-ph-icon" style="background:#d1fae5;">
                                 <i class="bx bx-undo" style="color:#10b981;"></i>
                             </div>
-                            <h5 class="trans-ph-title">Sales Returns</h5>
+                            <h5 class="trans-ph-title"><?php echo htmlspecialchars($PageTitle ?? 'Sales Returns'); ?></h5>
                         </div>
-                        <a href="/salesreturns/create" class="btn btn-primary">
+                        <a href="/salesreturns/create" class="btn btn-primary me-1">
                             <i class="bx bx-plus me-1"></i>New Sales Return
                         </a>
                     </div>

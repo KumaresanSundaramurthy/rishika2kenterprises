@@ -101,9 +101,6 @@ function executeTablePagnCommonFunc(response, tableinfo = false) {
     headerCheckboxTrueFalse(ModuleTable, ModuleHeader, ModuleRow);
     MultipleDeleteOption();
 }
-    headerCheckboxTrueFalse(ModuleTable, ModuleHeader, ModuleRow);
-    MultipleDeleteOption();
-}
 
 function tableCheckboxTrueFalse(SelectedId, TableName, FieldName) {
     $(TableName + ' tbody ' + FieldName).each(function () {

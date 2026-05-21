@@ -18,11 +18,7 @@
                                 <i class="bx bx-buildings" style="color:#2563eb;"></i>
                             </div>
                             <div>
-                                <div class="text-muted small mb-1">
-                                    <a href="<?php echo base_url('settings/generalsettings'); ?>" class="text-muted text-decoration-none">Settings</a>
-                                    <i class="bx bx-chevron-right"></i>
-                                </div>
-                                <h5 class="trans-ph-title">Bank Accounts</h5>
+                                <h5 class="trans-ph-title"><?php echo htmlspecialchars($PageTitle ?? 'Bank Accounts'); ?></h5>
                             </div>
                         </div>
                     </div>

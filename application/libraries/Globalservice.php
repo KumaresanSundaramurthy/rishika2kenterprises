@@ -44,7 +44,7 @@ Class Globalservice {
         }
     }
 
-    public function renderSubMenu($ControllerName, $allSubMenus, $parentUID = null) {
+    public function renderSubMenu($ControllerName, $allSubMenus, $parentUID = null, $currentUrlPath = null) {
 
         // Filter only menus under current parent
         $filteredMenus = array_filter($allSubMenus, function($sm) use ($parentUID) {
@@ -67,20 +67,29 @@ Class Globalservice {
                 ? '<i class="menu-icon tf-icons ' . htmlspecialchars($subMenu->SubMenuIcon) . '"></i>'
                 : '';
 
-            if (count($childMenus) > 0) {
-                echo '<li class="menu-item">';
+            if (!empty($subMenu->IsParent)) {
+                // Group item — check if any descendant is active to open the group
+                $hasActiveChild = $this->_hasActiveDescendant($allSubMenus, $subMenu->SubMenuUID, $ControllerName, $currentUrlPath);
+                $openClass = $hasActiveChild ? ' open active' : '';
+                echo '<li class="menu-item' . $openClass . '">';
                 echo '<a href="javascript:void(0);" class="menu-link menu-toggle">';
                 echo $iconHtml;
                 echo '<div data-i18n="' . htmlspecialchars($subMenu->SubMenuName) . '">' . htmlspecialchars($subMenu->SubMenuName) . '</div>';
                 echo '</a>';
                 echo '<ul class="menu-sub">';
-                $this->renderSubMenu($ControllerName, $allSubMenus, $subMenu->SubMenuUID);
+                $this->renderSubMenu($ControllerName, $allSubMenus, $subMenu->SubMenuUID, $currentUrlPath);
                 echo '</ul>';
                 echo '</li>';
             } else {
-                $isActive = (strtolower($ControllerName) == strtolower($subMenu->ControllerName));
-                $activeClass = $isActive ? 'active' : '';
                 $urlPath = '/' . ltrim($subMenu->UrlPath ?? $subMenu->ControllerName, '/');
+                if ($currentUrlPath !== null) {
+                    // URL-based active check (used for settings pages where multiple items share the same ControllerName)
+                    $itemPath = ltrim($subMenu->UrlPath ?? $subMenu->ControllerName, '/');
+                    $isActive = ($itemPath === ltrim($currentUrlPath, '/'));
+                } else {
+                    $isActive = (strtolower($ControllerName) == strtolower($subMenu->ControllerName));
+                }
+                $activeClass = $isActive ? 'active' : '';
                 $href = $isActive ? 'javascript: void(0);' : htmlspecialchars($urlPath);
                 echo '<li class="menu-item ' . $activeClass . '">';
                 echo '<a href="' . $href . '" class="menu-link">';
@@ -90,7 +99,28 @@ Class Globalservice {
                 echo '</li>';
             }
         }
-        
+
+    }
+
+    public function hasActiveDescendant($allSubMenus, $parentUID, $ControllerName, $currentUrlPath = null) {
+        return $this->_hasActiveDescendant($allSubMenus, $parentUID, $ControllerName, $currentUrlPath);
+    }
+
+    private function _hasActiveDescendant($allSubMenus, $parentUID, $ControllerName, $currentUrlPath = null) {
+        foreach ($allSubMenus as $sm) {
+            if ($sm->ParentSubMenuUID != $parentUID) continue;
+            if (!empty($sm->IsParent)) {
+                if ($this->_hasActiveDescendant($allSubMenus, $sm->SubMenuUID, $ControllerName, $currentUrlPath)) return true;
+            } else {
+                if ($currentUrlPath !== null) {
+                    $itemPath = ltrim($sm->UrlPath ?? $sm->ControllerName, '/');
+                    if ($itemPath === ltrim($currentUrlPath, '/')) return true;
+                } else {
+                    if (strtolower($ControllerName) == strtolower($sm->ControllerName)) return true;
+                }
+            }
+        }
+        return false;
     }
 
     public function buildPagePaginationHtml($pageUrl, $totalCount, $pageNo, $limit) {

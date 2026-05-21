@@ -1,6 +1,6 @@
 <?php defined('BASEPATH') OR exit('No direct script access allowed');
 
-class Salesreturns extends CI_Controller {
+class Salesreturns extends MY_Controller {
 
     public $pageData = array();
     private $EndReturnData;
@@ -13,6 +13,10 @@ class Salesreturns extends CI_Controller {
     }
 
     public function index() {
+        if (!$this->_loadPageTitle($this->pageModuleUID)) {
+            $this->load->view('common/module_error', $this->pageData);
+            return;
+        }
         try {
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
             $GeneralSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();

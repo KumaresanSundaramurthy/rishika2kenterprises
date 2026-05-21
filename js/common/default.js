@@ -18,6 +18,14 @@ function inputDelay(callback, ms) {
     };
 }
 
+function ajaxLoading(state) {
+    if(state) {
+        AjaxLoading = 1;
+    } else{
+        AjaxLoading = 0;
+    }
+}
+
 function alertPopup(msg, delay = 8000, colour = 'yellow') {
     if ($("#alert").length) {
         $("#alert").remove();
@@ -125,22 +133,14 @@ $(document).ready(function () {
 
     $('#SettingsMenuBarBtn').on('click', function(e) {
         e.preventDefault();
-        // $('#ModulesMenuBar').addClass('d-none');
-        // $('#SettingsMenuBar').removeClass('d-none');
-        let currentUrl = window.location.href;
-        if(currentUrl.indexOf("/settings") === -1) {
-            localStorage.setItem("previousUrl", currentUrl);
-        }
-        window.location.href = '/settings/profile';
+        $('#ModulesMenuBar').addClass('d-none');
+        $('#SettingsMenuBar').removeClass('d-none');
     });
 
     $('#SettingsBackMenuBarBtn').on('click', function(e) {
         e.preventDefault();
-        let previousUrl = localStorage.getItem("previousUrl");
-        console.log(previousUrl)
-        window.location.href = previousUrl ? previousUrl : '/dashboard';
-        // $('#SettingsMenuBar').addClass('d-none');
-        // $('#ModulesMenuBar').removeClass('d-none');
+        $('#SettingsMenuBar').addClass('d-none');
+        $('#ModulesMenuBar').removeClass('d-none');
     });
 
     document.addEventListener('show.bs.modal', function (event) {

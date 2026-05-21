@@ -39,7 +39,7 @@ $this->load->view('common/transactions/header'); ?>
                             <div class="trans-ph-icon" style="background:#ede9fe;">
                                 <i class="bx bx-file-blank" style="color:#7c3aed;"></i>
                             </div>
-                            <h5 class="trans-ph-title">Pro Forma Invoices</h5>
+                            <h5 class="trans-ph-title"><?php echo htmlspecialchars($PageTitle ?? 'Pro Forma Invoices'); ?></h5>
                         </div>
                         <a href="/proforma/create" class="btn btn-primary">
                             <i class="bx bx-plus me-1"></i>New Pro Forma

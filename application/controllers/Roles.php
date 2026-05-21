@@ -1,6 +1,6 @@
 <?php defined('BASEPATH') OR exit('No direct script access allowed');
 
-class Roles extends CI_Controller {
+class Roles extends MY_Controller {
 
     public $pageData = array();
     private $EndReturnData;
@@ -12,6 +12,11 @@ class Roles extends CI_Controller {
     // ── Page ─────────────────────────────────────────────────────────
 
     public function index() {
+
+        if (!$this->_loadPageTitle()) {
+            $this->load->view('common/module_error', $this->pageData);
+            return;
+        }
 
         try {
             $this->load->model('roles_model');
@@ -32,6 +37,61 @@ class Roles extends CI_Controller {
             redirect('dashboard', 'refresh');
         }
 
+    }
+
+    // ── AJAX: refresh Redis cache (menus, permissions, settings) ────
+
+    public function refreshTokens() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+            $JwtData    = $this->pageData['JwtData'];
+            $userUID    = $JwtData->User->UserUID;
+            $orgUID     = $JwtData->User->OrgUID;
+            $roleUID    = $JwtData->User->RoleUID;
+            $loginExpiry = (int) getenv('LOGIN_EXPIRE_SECS');
+
+            $this->load->model('login_model');
+            $this->load->model('user_model');
+
+            $menus       = $this->login_model->getRoleMainMenus($roleUID)->Data;
+            $submenus    = $this->login_model->getRoleSubMenus($roleUID)->Data;
+            $modules     = $this->login_model->getModuleDetails($orgUID)->Data;
+            $settings    = $this->login_model->getOrgGeneralSettings($orgUID)->Data[0] ?? null;
+            $userInfoRes = $this->user_model->getUserByUserInfo(['User.UserUID' => $userUID]);
+            $userInfo    = ($userInfoRes->Error === FALSE && !empty($userInfoRes->Data)) ? $userInfoRes->Data[0] : null;
+
+            // Build permissions map same as login
+            $permissions = [];
+            foreach ($submenus as $sm) {
+                if (!empty($sm->ControllerName)) {
+                    $permissions[$sm->ControllerName] = [
+                        'CanView'   => (int)$sm->CanView,
+                        'CanCreate' => (int)$sm->CanCreate,
+                        'CanEdit'   => (int)$sm->CanEdit,
+                        'CanDelete' => (int)$sm->CanDelete,
+                    ];
+                }
+            }
+
+            $this->redisservice->setUserCache('menus',       $userUID, $menus,       $loginExpiry);
+            $this->redisservice->setUserCache('submenus',    $userUID, $submenus,    $loginExpiry);
+            $this->redisservice->setUserCache('modules',     $userUID, $modules,     $loginExpiry);
+            $this->redisservice->setUserCache('permissions', $userUID, $permissions, $loginExpiry);
+            $this->redisservice->setUserCache('settings',    $userUID, $settings,    $loginExpiry);
+            if ($userInfo) {
+                $this->redisservice->setUserCache('userinfo', $userUID, $userInfo, $loginExpiry);
+            }
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Cache refreshed successfully. Changes will reflect on next page load.';
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
     // ── AJAX: list roles ─────────────────────────────────────────────

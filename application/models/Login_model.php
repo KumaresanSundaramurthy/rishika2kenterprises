@@ -157,7 +157,7 @@ class Login_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->ReadDb->select("RSM.RoleSubMenuUID, Sub.MainMenuUID, RSM.SubMenuUID, Sub.Name as SubMenuName, Sub.UrlPath, Sub.ParentSubMenuUID, Sub.Icon as SubMenuIcon, COALESCE(Mod.ControllerName, '') as ControllerName, RSM.Sorting, RSM.CanView, RSM.CanCreate, RSM.CanEdit, RSM.CanDelete");
+            $this->ReadDb->select("RSM.RoleSubMenuUID, Sub.MainMenuUID, RSM.SubMenuUID, Sub.Name as SubMenuName, Sub.UrlPath, Sub.ParentSubMenuUID, Sub.IsParent, Sub.Icon as SubMenuIcon, COALESCE(Mod.ControllerName, '') as ControllerName, RSM.Sorting, RSM.CanView, RSM.CanCreate, RSM.CanEdit, RSM.CanDelete");
             $this->ReadDb->from('UserRole.RoleSubMenusTbl as RSM');
             $this->ReadDb->join('Modules.SubMenusTbl Sub', 'Sub.SubMenuUID = RSM.SubMenuUID AND Sub.IsDeleted = 0');
             $this->ReadDb->join('Modules.ModuleTbl Mod', 'Mod.ModuleUID = Sub.ModuleUID AND Mod.IsDeleted = 0', 'left');
@@ -166,7 +166,7 @@ class Login_model extends CI_Model {
             $this->ReadDb->where('RSM.IsDeleted', 0);
             $this->ReadDb->where('RSM.CanView', 1);
             $this->ReadDb->order_by('RSM.Sorting', 'ASC');
-            $query = $this->ReadDb->get();
+            $query = $this->ReadDb->get();            
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Success';
@@ -216,7 +216,7 @@ class Login_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->ReadDb->select('Module.ModuleUID as ModuleUID, Module.Name as Name, Module.OrgUID as OrgUID, Module.ControllerName as ControllerName, Module.DatabaseName as DatabaseName, Module.MasterTableName as MasterTableName, Module.ParentModuleUID as ParentModuleUID, Module.IsMainModule as IsMainModule, Module.IsModuleEnabled as IsModuleEnabled, Module.EditOnPage as EditOnPage');
+            $this->ReadDb->select('Module.ModuleUID as ModuleUID, Module.Name as Name, Module.DisplayName as DisplayName, Module.Icon as Icon, Module.OrgUID as OrgUID, Module.ControllerName as ControllerName, Module.DatabaseName as DatabaseName, Module.MasterTableName as MasterTableName, Module.ParentModuleUID as ParentModuleUID, Module.IsMainModule as IsMainModule, Module.IsModuleEnabled as IsModuleEnabled, Module.EditOnPage as EditOnPage');
             $this->ReadDb->from('Modules.ModuleTbl as Module');
             $this->ReadDb->where('Module.OrgUID', $OrgUID);
             $this->ReadDb->where('Module.IsDeleted', 0);

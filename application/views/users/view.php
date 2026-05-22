@@ -1,340 +1,398 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php
+if (!isset($ModAllCount))  { $ModAllCount  = 0; }
+if (!isset($ModRowData))   { $ModRowData   = ''; }
+if (!isset($ModPagination)){ $ModPagination = ''; }
+?>
 
 <?php $this->load->view('common/header'); ?>
 
-<!-- Layout wrapper -->
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
     <div class="layout-container">
 
         <?php $this->load->view('common/menu_view'); ?>
 
-        <!-- Layout container -->
         <div class="layout-page">
-
-            <!-- Content wrapper -->
             <div class="content-wrapper">
-
                 <div class="container-xxl flex-grow-1 container-p-y">
 
                     <!-- ── Page Header ── -->
                     <div class="trans-page-header">
                         <div class="d-flex align-items-center gap-3">
-                            <div class="trans-ph-icon ph-icon-users">
-                                <i class="bx bx-user"></i>
+                            <div class="trans-ph-icon" style="background:#ede9fe;">
+                                <i class="bx bx-user" style="color:#7c3aed;"></i>
                             </div>
                             <h5 class="trans-ph-title"><?php echo htmlspecialchars($PageTitle ?? 'Users'); ?></h5>
                         </div>
+                        <button type="button" class="btn btn-primary me-1" id="addUserBtn">
+                            <i class="bx bx-plus me-1"></i>Create User
+                        </button>
                     </div>
 
+                    <!-- ── Main Card ── -->
                     <div class="card">
-                        <div class="row">
-                            <div class="col-md-12">
-                                <div class="d-flex flex-column flex-md-row justify-content-between align-items-center p-3">
-                                    <ul class="nav nav-pills nav nav-pills flex-row" role="tablist">
-                                        <li class="nav-item">
-                                            <a class="nav-link active" role="tab" data-bs-toggle="tab" data-bs-target="#NavAccountPage" aria-controls="NavAccountPage" aria-selected="true" href="javascript: void(0);"><i class="bx bx-user me-1"></i> Users</a>
-                                        </li>
-                                    </ul>
-                                <?php echo $this->load->view('common/view/action_details', ['redirectUrl' => 'javascript: void(0);', 'addActionName' => 'Create Users'], TRUE); ?>
-                                </div>
-                                <div class="tab-content p-0">
 
-                                    <div class="tab-pane fade show active" id="NavAccountPage" role="tabpanel">
+                        <!-- Toolbar -->
+                        <div class="trans-toolbar">
+                            <ul class="nav trans-status-tabs gap-1" role="tablist">
+                                <li class="nav-item"><a class="nav-link active usr-status-tab" data-status="All"      href="javascript:void(0);">All      <span class="trans-tab-count ms-1"><?php echo $ModAllCount; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link usr-status-tab"        data-status="Active"   href="javascript:void(0);">Active   <span class="usr-tab-count trans-tab-count ms-1 d-none"></span></a></li>
+                                <li class="nav-item"><a class="nav-link usr-status-tab"        data-status="Inactive" href="javascript:void(0);">Inactive <span class="usr-tab-count trans-tab-count ms-1 d-none"></span></a></li>
+                            </ul>
 
-                                        <div class="table-responsive text-nowrap h-100 tablecard">
-                                            <table class="table table-hover" id="CustomersTable">
-                                                <thead class="bg-body-tertiary">
-                                                    <tr>
-                                                        <th class="table-checkbox">
-                                                            <div class="form-check">
-                                                                <input class="form-check-input table-chkbox customerHeaderCheck" type="checkbox">
-                                                            </div>
-                                                        </th>
-                                                        <th class="table-serialno <?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>">S.No</th>
-                                                        <?php foreach (array_column($ModColumnData, 'DisplayName') as $ItemKey => $ItemVal) { ?>
-                                                            <th <?php echo $ModColumnData[$ItemKey]->MainPageColumnAddon; ?>><?php echo $ItemVal; ?> <?php if ($ModColumnData[$ItemKey]->MPSortApplicable == 1) {
-                                                                    echo '<i class="bx bx-sort-alt-2 ms-1 cursor-pointer"></i>';
-                                                                } ?></th>
-                                                        <?php } ?>
-                                                        <th class="text-center">Actions</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody class="table-border-bottom-0">
-                                                    <?php echo $ModRowData; ?>
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                        <hr class="my-0" />
-                                        <div class="row mx-3 justify-content-between CustomersPagination" id="CustomersPagination">
-                                            <?php echo $ModPagination; ?>
-                                        </div>
-
-                                    </div>
-
+                            <div class="d-flex align-items-center gap-2">
+                                <a href="javascript:void(0);" class="btn btn-sm btn-outline-secondary p-1 pageRefresh" title="Refresh">
+                                    <i class="bx bx-refresh fs-5"></i>
+                                </a>
+                                <div class="input-group input-group-sm" style="width:210px">
+                                    <span class="input-group-text bg-transparent border-end-0"><i class="bx bx-search text-muted"></i></span>
+                                    <input type="text" class="form-control border-start-0" id="searchUserData" placeholder="Name, email or username...">
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Table -->
+                        <div class="table-responsive">
+                            <table class="table trans-table table-hover MainviewTable mb-0" id="usersTable">
+                                <thead class="r2k-thead">
+                                    <tr>
+                                        <th style="width:36px">
+                                            <div class="form-check mb-0">
+                                                <input class="form-check-input table-chkbox userHeaderCheck" type="checkbox">
+                                            </div>
+                                        </th>
+                                        <th class="table-serialno <?php echo ($JwtData->GenSettings->SerialNoDisplay ?? 0) == 1 ? '' : 'd-none'; ?>" style="width:44px">S.No</th>
+                                        <th>Name</th>
+                                        <th>Email / Mobile</th>
+                                        <th>Role</th>
+                                        <th>Status</th>
+                                        <th>Last Updated</th>
+                                        <th style="width:60px"></th>
+                                    </tr>
+                                </thead>
+                                <tbody class="r2k-tbody table-border-bottom-0">
+                                    <?php echo $ModRowData; ?>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <hr class="my-0">
+                        <div class="row mx-3 my-2 justify-content-between align-items-center usersPagination" id="usersPagination">
+                            <?php echo $ModPagination ?: ''; ?>
+                        </div>
+
                     </div>
 
                     <!-- Sticky pagination -->
                     <div class="card mb-0 cust-sticky-pag" id="usersStickyPagination" style="display:none;">
                         <div class="card-body p-0">
-                            <div class="row mx-3 my-2 justify-content-between align-items-center CustomersPagination"></div>
+                            <div class="row mx-3 my-2 justify-content-between align-items-center usersPagination"></div>
                         </div>
                     </div>
 
                 </div>
-
             </div>
-            <!-- Content wrapper -->
 
             <?php $this->load->view('common/settings_modal'); ?>
             <?php $this->load->view('common/footer_desc'); ?>
             <?php $this->load->view('users/modals/user'); ?>
+            <?php $this->load->view('common/form/address_form'); ?>
 
         </div>
-
     </div>
 </div>
 
 <?php $this->load->view('common/footer'); ?>
 
-<script src="/js/customers.js"></script>
-<script src="/js/common/pagecheckbox.js"></script>
-
+<script src="/js/common/address.js"></script>
 <script>
-let ModuleId = <?php echo $ModuleId; ?>;
-const ModuleTable = '#CustomersTable';
-const ModulePag = '.CustomersPagination';
-const ModuleHeader = '.customerHeaderCheck';
-const ModuleRow = '.customerCheck';
-const ModuleFileName = 'Customer_Data';
-const ModuleSheetName = 'Customer';
-const previewName = 'Customer Details';
-let sortState = 0;
+var CsrfName        = '<?php echo $this->security->get_csrf_token_name(); ?>';
+var CsrfToken       = '<?php echo $this->security->get_csrf_hash(); ?>';
+var PageNo          = 1;
+var RowLimit        = <?php echo (int)($JwtData->GenSettings->RowLimit ?? 10); ?>;
+var Filter          = { Status: 'All' };
+var OrgCountryISO2  = <?php echo json_encode($JwtData->User->OrgCISO2 ?? 'IN'); ?>;
 
-/* ── User Modal helpers ───────────────────────────────────────────────── */
-function openUserModal(uid, data) {
-    if (uid > 0) {
-        $('#userModalTitle').html('<i class="bx bx-edit me-1"></i>Edit User');
-        $('#UserModalUID').val(uid);
-        $('#UserFirstName').val(data.FirstName || '');
-        $('#UserLastName').val(data.LastName || '');
-        $('#UserUsername').val(data.UserName || '');
-        $('#UserEmail').val(data.EmailAddress || '');
-        $('#UserMobile').val(data.MobileNumber || '');
-        $('#UserRoleUID').val(data.RoleUID || '');
-        $('#passwordGroup, #confirmPasswordGroup').addClass('d-none');
-        $('#userStatusRow').removeClass('d-none');
-        $('#UserIsActive').prop('checked', data.IsActive == 1);
-    } else {
-        $('#userModalTitle').html('<i class="bx bx-user me-1"></i>Add User');
-        $('#userModal').find('input[type=text], input[type=email], input[type=password]').val('');
+// Override address modal title labels for user form context
+var _origOpenAddressModal = openAddressModal;
+openAddressModal = function (addrType) {
+    _origOpenAddressModal(addrType);
+    $('#addrModalTitle').text(addrType == 1 ? 'Current Address' : 'Permanent Address');
+};
+
+$(function () {
+    'use strict';
+
+    // ── Sticky pagination ──────────────────────────────────────────────
+    var $staticPag = $('#usersPagination');
+    var $stickyPag = $('#usersStickyPagination');
+
+    function _syncSticky() { $stickyPag.find('.usersPagination').html($staticPag.html()); }
+    function _toggleSticky() {
+        if (!$staticPag.length) return;
+        var r = $staticPag[0].getBoundingClientRect();
+        var visible = r.top < $(window).height() && r.bottom > 0;
+        if (visible) $stickyPag.stop(true,true).fadeOut(150);
+        else { _syncSticky(); $stickyPag.stop(true,true).fadeIn(150); }
+    }
+    $(window).on('scroll resize', _toggleSticky);
+    _toggleSticky();
+
+    // ── List refresh ───────────────────────────────────────────────────
+    function _renderList(resp) {
+        $('#usersTable tbody').html(resp.RecordHtmlData);
+        $('.usersPagination').html(resp.Pagination);
+        var count = resp.TotalCount || 0;
+        $('.usr-status-tab.active .trans-tab-count').text(count > 0 ? count : '').removeClass('d-none');
+        _syncSticky();
+    }
+
+    function _loadUsers() {
+        $.ajax({
+            url: '/settings/users/getPageDetails/' + PageNo,
+            method: 'POST',
+            data: { RowLimit: RowLimit, PageNo: PageNo, Filter: Filter, [CsrfName]: CsrfToken },
+            success: function (resp) {
+                CsrfToken = resp.NewCsrfToken || CsrfToken;
+                if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
+                _renderList(resp);
+            }
+        });
+    }
+
+    // ── Status tabs ────────────────────────────────────────────────────
+    $(document).on('click', '.usr-status-tab', function (e) {
+        e.preventDefault();
+        $('.usr-status-tab').removeClass('active');
+        $(this).addClass('active');
+        Filter.Status = $(this).data('status') || 'All';
+        PageNo = 1; _loadUsers();
+    });
+
+    // ── Refresh ────────────────────────────────────────────────────────
+    $(document).on('click', '.pageRefresh', function (e) {
+        e.preventDefault(); PageNo = 1; _loadUsers();
+    });
+
+    // ── Search ────────────────────────────────────────────────────────
+    var _debounceTimer;
+    $('#searchUserData').on('keyup', function () {
+        clearTimeout(_debounceTimer);
+        var val = $.trim($(this).val());
+        _debounceTimer = setTimeout(function () {
+            Filter.Name = val; PageNo = 1; _loadUsers();
+        }, 400);
+    });
+
+    // ── Pagination ─────────────────────────────────────────────────────
+    $(document).on('click', '.usersPagination .page-link', function (e) {
+        e.preventDefault();
+        var match = ($(this).attr('href') || '').match(/\/(\d+)$/);
+        if (match) { PageNo = parseInt(match[1]); _loadUsers(); }
+    });
+
+    // ── Header checkbox ────────────────────────────────────────────────
+    $(document).on('change', '.userHeaderCheck', function () {
+        $('.userCheck').prop('checked', $(this).is(':checked'));
+    });
+
+    // ── Status toggle ──────────────────────────────────────────────────
+    $(document).on('click', '.usr-status-toggle', function () {
+        var uid       = $(this).data('uid');
+        var newStatus = $(this).data('newstatus');
+        $.ajax({
+            url: '/settings/users/toggleStatus', method: 'POST',
+            data: { UserUID: uid, IsActive: newStatus, Filter: JSON.stringify(Filter), RowLimit: RowLimit, [CsrfName]: CsrfToken },
+            success: function (resp) {
+                CsrfToken = resp.NewCsrfToken || CsrfToken;
+                if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
+                _renderList(resp);
+                showToastNotification(resp.Message, 'success');
+            },
+            error: function () { showToastNotification('Request failed. Please try again.', 'error'); }
+        });
+    });
+
+    // ── Reset modal to blank Add state ─────────────────────────────────
+    function _resetModal() {
+        $('#userModal').find('input[type=text], input[type=email]').val('').prop('readonly', false);
         $('#UserModalUID').val(0);
         $('#UserRoleUID').val('');
-        $('#passwordGroup, #confirmPasswordGroup').removeClass('d-none');
-        $('#userStatusRow').addClass('d-none');
+        // Restore defaults cleared by blanket .val('')
+        $('#UserCountryCode').val('+91');
+        $('#UserCountryISO2').val('IN');
+        // Switches
+        $('#UserIsActive').prop('checked', true);
+        $('#UserIsLocked').prop('checked', false);
+        // Address popups
+        if (typeof resetAddrData === 'function') resetAddrData();
+        // Create-only vs edit-only sections
+        $('#pwdSetupInfo').removeClass('d-none');
+        $('#userCodeWrap').addClass('d-none');
+        $('#userLockedRow').addClass('d-none');
+        $('#lastLoginCard').addClass('d-none');
     }
-    $('#userModal').modal('show');
-}
 
-$(function() {
-    'use strict'
+    // ── Open Add modal ──────────────────────────────────────────────────
+    function _openAddModal() {
+        _resetModal();
+        $('#userModalTitle').text('Add User');
+        $('#userModal').modal('show');
+    }
 
-    $('#SearchDetails').val('');
-    $(ModuleRow).prop('checked', false).trigger('change');
+    $(document).on('click', '#addUserBtn, #addUserBtnEmpty', _openAddModal);
 
-    // Open Add User modal from the top bar button
-    $(document).on('click', '#AddNewRecord', function(e) {
-        e.preventDefault();
-        openUserModal(0, {});
-    });
-
-    // Toggle password visibility
-    $('#togglePwd').click(function() {
-        const pwd = $('#UserPassword');
-        const isHidden = pwd.attr('type') === 'password';
-        pwd.attr('type', isHidden ? 'text' : 'password');
-        $(this).find('i').toggleClass('bx-hide bx-show');
-    });
-
-    // Save User
-    $('#saveUserBtn').click(function() {
-        const uid       = parseInt($('#UserModalUID').val()) || 0;
-        const firstName = $.trim($('#UserFirstName').val());
-        const username  = $.trim($('#UserUsername').val());
-        const email     = $.trim($('#UserEmail').val());
-        const roleUID   = $('#UserRoleUID').val();
-        const pwd       = $('#UserPassword').val();
-        const cpwd      = $('#UserConfirmPassword').val();
-
-        if (!firstName) { _toastErr('First name is required.'); return; }
-        if (!username)  { _toastErr('Username is required.'); return; }
-        if (!email)     { _toastErr('Email address is required.'); return; }
-        if (!roleUID)   { _toastErr('Please select a role.'); return; }
-        if (uid === 0) {
-            if (!pwd)       { _toastErr('Password is required.'); return; }
-            if (pwd !== cpwd) { _toastErr('Passwords do not match.'); return; }
-        }
-
-        $('#saveUserSpinner').removeClass('d-none');
-        $('#saveUserBtn').prop('disabled', true);
-
-        var fd = new FormData();
-        fd.append('UserUID',    uid);
-        fd.append('FirstName',  firstName);
-        fd.append('LastName',   $.trim($('#UserLastName').val()));
-        fd.append('UserName',   username);
-        fd.append('Email',      email);
-        fd.append('Mobile',     $.trim($('#UserMobile').val()));
-        fd.append('RoleUID',    roleUID);
-        if (uid === 0) fd.append('Password', pwd);
-        fd.append('IsActive',   $('#UserIsActive').is(':checked') ? 1 : 0);
-        fd.append([CsrfName], CsrfToken);
-
+    // ── Open Edit modal ─────────────────────────────────────────────────
+    $(document).on('click', '.userEditBtn', function () {
+        var uid = $(this).data('uid');
         $.ajax({
-            url: '/settings/users/saveUser',
-            type: 'POST',
-            data: fd,
-            contentType: false,
-            processData: false,
-            success: function(res) {
-                $('#saveUserSpinner').addClass('d-none');
-                $('#saveUserBtn').prop('disabled', false);
-                if (res.Error === false) {
-                    _toastOk(res.Message);
-                    $('#userModal').modal('hide');
-                    getCustomersDetails(PageNo, RowLimit, Filter);
-                } else {
-                    _toastErr(res.Message);
+            url: '/settings/users/getUserDetail', method: 'POST',
+            data: { UserUID: uid, [CsrfName]: CsrfToken },
+            success: function (resp) {
+                CsrfToken = resp.NewCsrfToken || CsrfToken;
+                if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
+                _resetModal();
+                var d    = resp.Data;
+                var curr = (d.Addresses && d.Addresses.Current)   || {};
+                var perm = (d.Addresses && d.Addresses.Permanent) || {};
+
+                $('#userModalTitle').text('Edit User');
+                $('#UserModalUID').val(d.UserUID);
+
+                // Personal fields
+                $('#UserFirstName').val(d.FirstName   || '');
+                $('#UserLastName').val(d.LastName     || '');
+                $('#UserUsername').val(d.UserName     || '');
+                $('#UserEmail').val(d.EmailAddress    || '');
+                $('#UserMobile').val(d.MobileNumber   || '');
+                $('#UserCountryCode').val(d.CountryCode || '+91');
+                $('#UserCountryISO2').val(d.CountryISO2 || 'IN');
+
+                // Account settings
+                $('#UserRoleUID').val(d.RoleUID || '');
+                $('#UserIsActive').prop('checked', parseInt(d.IsActive) === 1);
+
+                // Edit-only elements
+                $('#userCodeWrap').removeClass('d-none');
+                $('#UserCodeDisplay').val(d.UserCode || '');
+                $('#userLockedRow').removeClass('d-none');
+                $('#UserIsLocked').prop('checked', parseInt(d.IsLocked) === 1);
+                $('#lastLoginCard').removeClass('d-none');
+                $('#lastLoginDisplay').text(d.LastLoginOn || '—');
+                $('#pwdSetupInfo').addClass('d-none');
+
+                // Lock username & email on edit — prevent accidental changes
+                $('#UserUsername').prop('readonly', true);
+                $('#UserEmail').prop('readonly', true);
+
+                // Current address — populate popup summary card
+                if (curr.AddressLine1 || curr.City || curr.State || curr.PinCode) {
+                    billingAddrData = {
+                        UID: curr.AddressUID || 0,
+                        Line1: curr.AddressLine1 || '', Line2: curr.AddressLine2 || '',
+                        Pincode: curr.PinCode || '',
+                        StateId: '', StateName: curr.State || '', StateISO2: '',
+                        CityId: '', CityName: curr.City || ''
+                    };
+                    renderAddrSummary(1, billingAddrData);
                 }
-            },
-            error: function() {
-                $('#saveUserSpinner').addClass('d-none');
-                $('#saveUserBtn').prop('disabled', false);
-                _toastErr('Request failed.');
+
+                // Permanent address — populate popup summary card
+                if (perm.AddressLine1 || perm.City || perm.State || perm.PinCode) {
+                    shippingAddrData = {
+                        UID: perm.AddressUID || 0,
+                        Line1: perm.AddressLine1 || '', Line2: perm.AddressLine2 || '',
+                        Pincode: perm.PinCode || '',
+                        StateId: '', StateName: perm.State || '', StateISO2: '',
+                        CityId: '', CityName: perm.City || ''
+                    };
+                    renderAddrSummary(2, shippingAddrData);
+                }
+
+                $('#userModal').modal('show');
             }
         });
     });
 
-    function _toastOk(msg)  { Swal.fire({ toast:true, position:'top-end', icon:'success', title:msg, showConfirmButton:false, timer:2500, timerProgressBar:true }); }
-    function _toastErr(msg) { Swal.fire({ toast:true, position:'top-end', icon:'error',   title:msg, showConfirmButton:false, timer:3000 }); }
+    // ── Save user ───────────────────────────────────────────────────────
+    $(document).on('click', '#saveUserBtn', function () {
+        var uid       = parseInt($('#UserModalUID').val()) || 0;
+        var isEdit    = uid > 0;
+        var firstName = $.trim($('#UserFirstName').val());
+        var username  = $.trim($('#UserUsername').val());
+        var email     = $.trim($('#UserEmail').val());
+        var roleUID   = $('#UserRoleUID').val();
 
-    baseExportFunctions();
-    basePaginationFunc(ModulePag, getCustomersDetails);
-    baseRefreshPageFunc('.PageRefresh', getCustomersDetails);
-    basePageHeaderFunc(ModuleHeader, ModuleTable, ModuleRow);
-    
-    $(document).on('click', ModuleRow, function() {
-        onClickOfCheckbox($(this), ModuleTable, ModuleHeader, ModuleRow);
-        $('#CloneOption').addClass('d-none');
-        if (SelectedUIDs.length == 1) {
-            $('#CloneOption').removeClass('d-none');
+        if (!firstName) { showToastNotification('First name is required.', 'error'); return; }
+        if (!isEdit && !username) { showToastNotification('Username is required.', 'error'); return; }
+        if (!isEdit && !email)    { showToastNotification('Email address is required.', 'error'); return; }
+        if (!roleUID)   { showToastNotification('Please select a role.', 'error'); return; }
+
+        var $btn = $(this).prop('disabled', true);
+        $('#saveUserSpinner').removeClass('d-none');
+        $('#saveUserIcon').addClass('d-none');
+
+        var fd = new FormData();
+        fd.append('UserUID',     uid);
+        fd.append('FirstName',   firstName);
+        fd.append('LastName',    $.trim($('#UserLastName').val()));
+        // Username & Email are readonly on edit — only send for new users
+        if (!isEdit) {
+            fd.append('UserName', username);
+            fd.append('Email',    email);
         }
-        MultipleDeleteOption();
-    });
-
-    $('#btnClone').click(function(e) {
-        e.preventDefault();
-        if (SelectedUIDs.length == 1) {
-            window.location.href = '/customers/' + SelectedUIDs[0] + '/clone';
+        fd.append('Mobile',      $.trim($('#UserMobile').val()));
+        fd.append('RoleUID',     roleUID);
+        fd.append('IsActive',    $('#UserIsActive').is(':checked') ? 1 : 0);
+        fd.append('IsLocked',    $('#UserIsLocked').is(':checked') ? 1 : 0);
+        fd.append('CountryCode', $.trim($('#UserCountryCode').val()) || '+91');
+        fd.append('CountryISO2', $('#UserCountryISO2').val() || 'IN');
+        // Current address from popup
+        if (billingAddrData) {
+            fd.append('CurrAddressLine1', billingAddrData.Line1    || '');
+            fd.append('CurrAddressLine2', billingAddrData.Line2    || '');
+            fd.append('CurrPinCode',      billingAddrData.Pincode  || '');
+            fd.append('CurrState',        billingAddrData.StateName|| '');
+            fd.append('CurrCity',         billingAddrData.CityName || '');
         }
-    });
+        // Permanent address from popup
+        if (shippingAddrData) {
+            fd.append('PermAddressLine1', shippingAddrData.Line1    || '');
+            fd.append('PermAddressLine2', shippingAddrData.Line2    || '');
+            fd.append('PermPinCode',      shippingAddrData.Pincode  || '');
+            fd.append('PermState',        shippingAddrData.StateName|| '');
+            fd.append('PermCity',         shippingAddrData.CityName || '');
+        }
+        // Send deleted address UIDs for soft-delete
+        if (typeof delAddrData !== 'undefined' && delAddrData.length > 0) {
+            fd.append('DelAddrUIDs', delAddrData.join(','));
+        }
+        fd.append('Filter',   JSON.stringify(Filter));
+        fd.append('RowLimit', RowLimit);
+        fd.append(CsrfName, CsrfToken);
 
-    $('.SearchDetails').keyup(inputDelay(function(e) {
-        PageNo = 0;
-        let searchText = $('#SearchDetails').val();
-        if (searchText.length >= 3) {
-            SelectedUIDs = [];
-            delete Filter['SearchAllData'];
-            $('#clearSearch').removeClass('d-none');
-            if (searchText) {
-                Filter['SearchAllData'] = searchText;
+        $.ajax({
+            url: '/settings/users/saveUser', method: 'POST',
+            data: fd, processData: false, contentType: false,
+            success: function (resp) {
+                CsrfToken = resp.NewCsrfToken || CsrfToken;
+                $btn.prop('disabled', false);
+                $('#saveUserSpinner').addClass('d-none');
+                $('#saveUserIcon').removeClass('d-none');
+                if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
+                $('#userModal').modal('hide');
+                _renderList(resp);
+                showToastNotification(resp.Message, 'success');
+            },
+            error: function () {
+                $btn.prop('disabled', false);
+                $('#saveUserSpinner').addClass('d-none');
+                $('#saveUserIcon').removeClass('d-none');
+                showToastNotification('Request failed. Please try again.', 'error');
             }
-            $('#SearchDetails').blur();
-            getCustomersDetails(PageNo, RowLimit, Filter);
-        }
-    }, 500));
-
-    $('#clearSearch').click(function(e) {
-        e.preventDefault();
-        var searchText = $('#SearchDetails').val();
-        $('#SearchDetails').val('');
-        $('#clearSearch').addClass('d-none');
-        if ($.trim(searchText) != '') {
-            PageNo = 0;
-            SelectedUIDs = [];
-            delete Filter['SearchAllData'];
-            $('#SearchDetails').blur();
-            getCustomersDetails(PageNo, RowLimit, Filter);
-        }
+        });
     });
 
-    $(document).on('click', '.DeleteCustomer', function(e) {
-        e.preventDefault();
-        var GetId = $(this).data('customeruid');
-        if (GetId) {
-            Swal.fire({
-                title: "Do you want to delete the customer?",
-                text: "You won't be able to revert this!",
-                icon: "info",
-                showCancelButton: true,
-                confirmButtonColor: "#d33",
-                confirmButtonText: "Yes, delete it!",
-                cancelButtonColor: "#3085d6",
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    deleteCustomer(GetId);
-                }
-            });
-        }
-    });
-
-    $('#btnDelete').click(function(e) {
-        e.preventDefault();
-        if (SelectedUIDs.length > 0) {
-            let DeleteContent = 'Do you want to delete all the selected customers?';
-            Swal.fire({
-                title: DeleteContent,
-                text: "You won't be able to revert this!",
-                icon: "info",
-                showCancelButton: true,
-                confirmButtonColor: "#d33",
-                confirmButtonText: "Yes, delete it!",
-                cancelButtonColor: "#3085d6",
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    deleteMultipleCustomers();
-                }
-            });
-        }
-    });
-
-    /** sorting opeartions */
-    $(document).on('click', '.name-sortable', function(e) {
-        e.preventDefault();
-        sortState = (sortState + 1) % 3;
-        const icon = $(this).find('i');
-        icon.removeClass('bx-sort-alt-2 bx-up-arrow-alt bx-down-arrow-alt text-primary');
-        $('#sortName').removeClass('text-primary');
-        if (sortState == 1) {
-            icon.addClass('bx-up-arrow-alt text-primary');
-            $('#sortName').addClass('text-primary');
-            $(this).attr('title', 'Click sorting descending');
-            Filter['NameSorting'] = 1;
-        } else if (sortState === 2) {
-            icon.addClass('bx-down-arrow-alt text-primary');
-            $('#sortName').addClass('text-primary');
-            $(this).attr('title', 'Remove sorting');
-            Filter['NameSorting'] = 2;
-        } else {
-            icon.addClass('bx-sort-alt-2');
-            $(this).attr('title', 'Click sorting ascending');
-            delete Filter['NameSorting'];
-        }
-        $(this).tooltip('dispose').tooltip();
-        getCustomersDetails(PageNo, RowLimit, Filter);
-    });
 
 });
 </script>

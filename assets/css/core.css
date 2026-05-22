@@ -4,6 +4,12 @@
    No inline styles. All custom CSS lives here.
    ============================================================================= */
 
+/* ── Hide template customizer & buy-now widgets ───────────────────────────── */
+.template-customizer,
+.buy-now,
+#buy-now,
+.template-customizer-open { display: none !important; }
+
 /* ── Select2 — Global styling to match Bootstrap 5 form controls ─────────── */
 
 /* Base selection box */

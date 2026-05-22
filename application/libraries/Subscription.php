@@ -1,53 +1,41 @@
 <?php defined('BASEPATH') OR exit('No direct script access allowed');
 
-/**
- * Subscription Library
- * Handles subscription validation, expiry checks, and notifications
- */
 class Subscription {
 
     protected $CI;
 
     public function __construct() {
         $this->CI =& get_instance();
-        $this->CI->load->database();
+        $this->CI->load->model('subscription_model');
+        $this->CI->load->model('dbwrite_model');
     }
 
-    /**
-     * Check if user subscription is valid
-     * @param int $userUID
-     * @return object {isValid: bool, status: string, message: string, daysRemaining: int}
-     */
+    // ── Check if user subscription is valid ───────────────────────────────────
     public function checkSubscription($userUID) {
         $result = new stdClass();
-        $result->isValid = false;
-        $result->status = 'Unknown';
-        $result->message = '';
+        $result->isValid       = false;
+        $result->status        = 'Unknown';
+        $result->message       = '';
         $result->daysRemaining = 0;
         $result->inGracePeriod = false;
 
         try {
-            $this->CI->db->select('UserUID, SubscriptionStatus, SubscriptionEndDate, GracePeriodDays, SubscriptionPlan');
-            $this->CI->db->from('Users.UserTbl');
-            $this->CI->db->where('UserUID', $userUID);
-            $query = $this->CI->db->get();
-
-            if ($query->num_rows() === 0) {
+            $userResult = $this->CI->subscription_model->getUserSubscription($userUID);
+            if ($userResult->Error || !$userResult->Data) {
                 $result->message = 'User not found';
                 return $result;
             }
 
-            $user = $query->row();
-            $result->status = $user->SubscriptionStatus;
-            $result->plan = $user->SubscriptionPlan;
+            $user            = $userResult->Data;
+            $result->status  = $user->SubscriptionStatus;
+            $result->plan    = $user->SubscriptionPlan;
+            $daysRemaining   = 0;
 
-            // Check if subscription is active or in trial
             if (in_array($user->SubscriptionStatus, ['Active', 'Trial'])) {
                 if ($user->SubscriptionEndDate) {
                     $endDate = new DateTime($user->SubscriptionEndDate);
-                    $now = new DateTime('now', new DateTimeZone('UTC'));
-                    $interval = $now->diff($endDate);
-                    $daysRemaining = (int)$interval->format('%r%a');
+                    $now     = new DateTime('now', new DateTimeZone('UTC'));
+                    $daysRemaining = (int)$now->diff($endDate)->format('%r%a');
 
                     $result->daysRemaining = $daysRemaining;
 
@@ -55,16 +43,15 @@ class Subscription {
                         $result->isValid = true;
                         $result->message = "Subscription active. {$daysRemaining} days remaining.";
                     } else {
-                        // Check grace period
                         $gracePeriodDays = (int)$user->GracePeriodDays;
-                        $gracePeriodEnd = clone $endDate;
+                        $gracePeriodEnd  = clone $endDate;
                         $gracePeriodEnd->modify("+{$gracePeriodDays} days");
 
                         if ($now <= $gracePeriodEnd) {
-                            $result->isValid = true;
+                            $result->isValid       = true;
                             $result->inGracePeriod = true;
-                            $graceRemaining = (int)$now->diff($gracePeriodEnd)->format('%a');
-                            $result->message = "Subscription expired but in grace period. {$graceRemaining} days remaining.";
+                            $graceRemaining        = (int)$now->diff($gracePeriodEnd)->format('%a');
+                            $result->message       = "Subscription expired but in grace period. {$graceRemaining} days remaining.";
                             $result->daysRemaining = -abs($daysRemaining);
                         } else {
                             $result->isValid = false;
@@ -76,18 +63,17 @@ class Subscription {
                     $result->isValid = false;
                     $result->message = 'No subscription end date set.';
                 }
-            } else if ($user->SubscriptionStatus === 'Expired') {
+            } elseif ($user->SubscriptionStatus === 'Expired') {
                 $result->isValid = false;
                 $result->message = 'Your subscription has expired. Please renew to continue using the service.';
-            } else if ($user->SubscriptionStatus === 'Suspended') {
+            } elseif ($user->SubscriptionStatus === 'Suspended') {
                 $result->isValid = false;
                 $result->message = 'Your account has been suspended. Please contact support.';
-            } else if ($user->SubscriptionStatus === 'Cancelled') {
+            } elseif ($user->SubscriptionStatus === 'Cancelled') {
                 $result->isValid = false;
                 $result->message = 'Your subscription has been cancelled.';
             }
 
-            // Send notifications if needed
             if ($result->isValid && $daysRemaining > 0 && $daysRemaining <= 7) {
                 $this->sendExpiryWarning($userUID, $daysRemaining);
             }
@@ -99,69 +85,60 @@ class Subscription {
         return $result;
     }
 
-    /**
-     * Update subscription status
-     */
+    // ── Update subscription status ────────────────────────────────────────────
     public function updateSubscriptionStatus($userUID, $status) {
         try {
-            $this->CI->db->where('UserUID', $userUID);
-            $this->CI->db->update('Users.UserTbl', [
-                'SubscriptionStatus' => $status,
-                'UpdatedOn' => date('Y-m-d H:i:s')
-            ]);
-            return true;
+            $updateResult = $this->CI->dbwrite_model->updateData(
+                'Users', 'UserTbl',
+                ['SubscriptionStatus' => $status, 'UpdatedOn' => date('Y-m-d H:i:s')],
+                ['UserUID' => (int)$userUID]
+            );
+            return $updateResult->Error === FALSE;
         } catch (Exception $e) {
-            log_message('error', 'Failed to update subscription status: ' . $e->getMessage());
+            log_message('error', 'Subscription::updateSubscriptionStatus — ' . $e->getMessage());
             return false;
         }
     }
 
-    /**
-     * Extend subscription
-     */
+    // ── Extend subscription by N days ─────────────────────────────────────────
     public function extendSubscription($userUID, $days, $planCode = null) {
         try {
-            $this->CI->db->select('SubscriptionEndDate, SubscriptionStatus');
-            $this->CI->db->from('Users.UserTbl');
-            $this->CI->db->where('UserUID', $userUID);
-            $query = $this->CI->db->get();
-
-            if ($query->num_rows() === 0) {
+            $userResult = $this->CI->subscription_model->getUserSubscription($userUID);
+            if ($userResult->Error || !$userResult->Data) {
                 return ['success' => false, 'message' => 'User not found'];
             }
 
-            $user = $query->row();
+            $user           = $userResult->Data;
             $currentEndDate = $user->SubscriptionEndDate ? new DateTime($user->SubscriptionEndDate) : new DateTime();
-            $now = new DateTime('now', new DateTimeZone('UTC'));
+            $now            = new DateTime('now', new DateTimeZone('UTC'));
 
-            // If expired, start from now, otherwise extend from current end date
-            if ($user->SubscriptionStatus === 'Expired' || $currentEndDate < $now) {
-                $newEndDate = clone $now;
-            } else {
-                $newEndDate = clone $currentEndDate;
-            }
+            $newEndDate = ($user->SubscriptionStatus === 'Expired' || $currentEndDate < $now)
+                ? clone $now
+                : clone $currentEndDate;
             $newEndDate->modify("+{$days} days");
 
             $updateData = [
-                'SubscriptionStatus' => 'Active',
+                'SubscriptionStatus'  => 'Active',
                 'SubscriptionEndDate' => $newEndDate->format('Y-m-d H:i:s'),
-                'UpdatedOn' => date('Y-m-d H:i:s')
+                'UpdatedOn'           => date('Y-m-d H:i:s'),
             ];
-
             if ($planCode) {
                 $updateData['SubscriptionPlan'] = $planCode;
             }
 
-            $this->CI->db->where('UserUID', $userUID);
-            $this->CI->db->update('Users.UserTbl', $updateData);
+            $updateResult = $this->CI->dbwrite_model->updateData(
+                'Users', 'UserTbl', $updateData, ['UserUID' => (int)$userUID]
+            );
+            if ($updateResult->Error) {
+                return ['success' => false, 'message' => $updateResult->Message];
+            }
 
-            // Log to history
-            $this->logSubscriptionHistory($userUID, 'Renewed', $days);
+            $this->_logSubscriptionHistory($userUID, 'Renewed', $days);
 
             return [
-                'success' => true,
-                'message' => "Subscription extended by {$days} days",
-                'newEndDate' => $newEndDate->format('Y-m-d H:i:s')
+                'success'    => true,
+                'message'    => "Subscription extended by {$days} days",
+                'newEndDate' => $newEndDate->format('Y-m-d H:i:s'),
             ];
 
         } catch (Exception $e) {
@@ -169,79 +146,57 @@ class Subscription {
         }
     }
 
-    /**
-     * Log subscription history
-     */
-    private function logSubscriptionHistory($userUID, $status, $days = 0) {
+    // ── Log subscription history ──────────────────────────────────────────────
+    private function _logSubscriptionHistory($userUID, $status, $days = 0) {
         try {
-            $this->CI->db->select('OrgUID, SubscriptionStartDate, SubscriptionEndDate');
-            $this->CI->db->from('Users.UserTbl');
-            $this->CI->db->where('UserUID', $userUID);
-            $query = $this->CI->db->get();
+            // Re-read after the update so StartDate/EndDate reflect the new values
+            $userResult = $this->CI->subscription_model->getUserSubscription($userUID);
+            if ($userResult->Error || !$userResult->Data) return;
 
-            if ($query->num_rows() > 0) {
-                $user = $query->row();
-                $this->CI->db->insert('Users.SubscriptionHistoryTbl', [
-                    'UserUID' => $userUID,
-                    'OrgUID' => $user->OrgUID,
-                    'SubscriptionStatus' => $status,
-                    'StartDate' => $user->SubscriptionStartDate,
-                    'EndDate' => $user->SubscriptionEndDate,
-                    'ActualEndDate' => date('Y-m-d H:i:s'),
-                    'Notes' => "Extended by {$days} days",
-                    'CreatedOn' => date('Y-m-d H:i:s')
-                ]);
-            }
+            $user = $userResult->Data;
+            $this->CI->dbwrite_model->insertData('Users', 'SubscriptionHistoryTbl', [
+                'UserUID'            => (int)$userUID,
+                'OrgUID'             => $user->OrgUID,
+                'SubscriptionStatus' => $status,
+                'StartDate'          => $user->SubscriptionStartDate,
+                'EndDate'            => $user->SubscriptionEndDate,
+                'ActualEndDate'      => date('Y-m-d H:i:s'),
+                'Notes'              => "Extended by {$days} days",
+                'CreatedOn'          => date('Y-m-d H:i:s'),
+            ]);
         } catch (Exception $e) {
-            log_message('error', 'Failed to log subscription history: ' . $e->getMessage());
+            log_message('error', 'Subscription::_logSubscriptionHistory — ' . $e->getMessage());
         }
     }
 
-    /**
-     * Send expiry warning notification
-     */
+    // ── Send expiry warning notification ──────────────────────────────────────
     private function sendExpiryWarning($userUID, $daysRemaining) {
         try {
-            if (!in_array($daysRemaining, [7, 3, 1])) {
-                return;
-            }
+            if (!in_array($daysRemaining, [7, 3, 1])) return;
 
             $notificationType = 'Expiry_Warning_' . $daysRemaining . 'Days';
             $today            = date('Y-m-d');
 
-            // Skip if already sent today — use date range, not DATE() function
-            $this->CI->db->select('NotificationUID');
-            $this->CI->db->from('Users.SubscriptionNotificationTbl');
-            $this->CI->db->where('UserUID', $userUID);
-            $this->CI->db->where('NotificationType', $notificationType);
-            $this->CI->db->where('SentOn >=', $today . ' 00:00:00');
-            $this->CI->db->where('SentOn <=', $today . ' 23:59:59');
-            if ($this->CI->db->get()->num_rows() > 0) {
-                return;
-            }
+            // Skip if already sent today
+            $notifCheck = $this->CI->subscription_model->isNotificationSentToday($userUID, $notificationType, $today);
+            if ($notifCheck->Error === FALSE && $notifCheck->AlreadySent) return;
 
-            // Get user details
-            $this->CI->db->select('EmailAddress, FirstName, LastName');
-            $this->CI->db->from('Users.UserTbl');
-            $this->CI->db->where('UserUID', $userUID);
-            $userQuery = $this->CI->db->get();
-            if ($userQuery->num_rows() === 0) {
-                return;
-            }
+            // Get user contact details
+            $emailResult = $this->CI->subscription_model->getUserEmailInfo($userUID);
+            if ($emailResult->Error || !$emailResult->Data) return;
 
-            $user     = $userQuery->row();
+            $user     = $emailResult->Data;
             $fullName = trim(($user->FirstName ?? '') . ' ' . ($user->LastName ?? ''));
 
-            // Insert with NotificationData bypassing CI escaping to prevent JSON double-escaping
-            $this->CI->db->set([
-                'UserUID'          => $userUID,
+            // Insert notification record
+            $notifResult = $this->CI->dbwrite_model->insertData('Users', 'SubscriptionNotificationTbl', [
+                'UserUID'          => (int)$userUID,
                 'NotificationType' => $notificationType,
+                'NotificationData' => json_encode(['daysRemaining' => (int)$daysRemaining]),
                 'SentOn'           => date('Y-m-d H:i:s'),
                 'EmailSent'        => 0,
             ]);
-            $this->CI->db->set('NotificationData', json_encode(['daysRemaining' => (int)$daysRemaining]), FALSE);
-            $this->CI->db->insert('Users.SubscriptionNotificationTbl');
-            $notifUID = (int)$this->CI->db->insert_id();
+            $notifUID = ($notifResult->Error === FALSE) ? (int)$notifResult->ID : 0;
 
             // Send email and mark row on success
             if (!empty($user->EmailAddress) && $notifUID > 0) {
@@ -252,21 +207,105 @@ class Subscription {
                     log_message('error', '[Subscription] Email send failed: ' . $e->getMessage());
                 }
                 if ($sent) {
-                    $this->CI->db->where('NotificationUID', $notifUID);
-                    $this->CI->db->update('Users.SubscriptionNotificationTbl', ['EmailSent' => 1]);
+                    $this->CI->dbwrite_model->updateData(
+                        'Users', 'SubscriptionNotificationTbl',
+                        ['EmailSent' => 1],
+                        ['NotificationUID' => $notifUID]
+                    );
                 }
             }
 
             log_message('info', "Expiry warning ({$daysRemaining} days) processed for user {$userUID}");
 
         } catch (Throwable $e) {
-            log_message('error', 'Failed to send expiry warning: ' . $e->getMessage());
+            log_message('error', 'Subscription::sendExpiryWarning — ' . $e->getMessage());
         }
     }
 
-    /**
-     * Send expiry warning email via Brevo HTTP REST API
-     */
+    // ── Log login attempt ─────────────────────────────────────────────────────
+    public function logLoginAttempt($userUID, $username, $status, $subscriptionStatus, $errorMessage = null) {
+        try {
+            $this->CI->dbwrite_model->insertData('Users', 'LoginAttemptLogTbl', [
+                'UserUID'            => $userUID,
+                'Username'           => $username,
+                'AttemptStatus'      => $status,
+                'SubscriptionStatus' => $subscriptionStatus,
+                'IPAddress'          => $this->CI->input->ip_address(),
+                'UserAgent'          => $this->CI->input->user_agent(),
+                'AttemptTime'        => date('Y-m-d H:i:s'),
+                'ErrorMessage'       => $errorMessage,
+            ]);
+        } catch (Exception $e) {
+            log_message('error', 'Subscription::logLoginAttempt — ' . $e->getMessage());
+        }
+    }
+
+    // ── Get subscription plans ────────────────────────────────────────────────
+    public function getSubscriptionPlans($activeOnly = true) {
+        $result = $this->CI->subscription_model->getSubscriptionPlans($activeOnly);
+        return ($result->Error === FALSE) ? $result->Data : [];
+    }
+
+    // ── Activate subscription with plan ──────────────────────────────────────
+    public function activateSubscription($userUID, $planCode, $paymentData = []) {
+        try {
+            $planResult = $this->CI->subscription_model->getPlanByCode($planCode);
+            if ($planResult->Error || !$planResult->Data) {
+                return ['success' => false, 'message' => 'Invalid plan'];
+            }
+            $plan = $planResult->Data;
+
+            $now     = new DateTime('now', new DateTimeZone('UTC'));
+            $endDate = clone $now;
+            $endDate->modify("+{$plan->DurationDays} days");
+
+            // Update user subscription
+            $updateResult = $this->CI->dbwrite_model->updateData(
+                'Users', 'UserTbl',
+                [
+                    'SubscriptionStatus'    => 'Active',
+                    'SubscriptionStartDate' => $now->format('Y-m-d H:i:s'),
+                    'SubscriptionEndDate'   => $endDate->format('Y-m-d H:i:s'),
+                    'SubscriptionPlan'      => $plan->PlanName,
+                    'UpdatedOn'             => date('Y-m-d H:i:s'),
+                ],
+                ['UserUID' => (int)$userUID]
+            );
+            if ($updateResult->Error) {
+                return ['success' => false, 'message' => $updateResult->Message];
+            }
+
+            // Get OrgUID for history record
+            $userResult = $this->CI->subscription_model->getUserSubscription($userUID);
+            $orgUID     = ($userResult->Error === FALSE && $userResult->Data) ? $userResult->Data->OrgUID : null;
+
+            // Insert subscription history
+            $this->CI->dbwrite_model->insertData('Users', 'SubscriptionHistoryTbl', [
+                'UserUID'            => (int)$userUID,
+                'OrgUID'             => $orgUID,
+                'PlanUID'            => $plan->PlanUID,
+                'SubscriptionStatus' => 'Active',
+                'StartDate'          => $now->format('Y-m-d H:i:s'),
+                'EndDate'            => $endDate->format('Y-m-d H:i:s'),
+                'Amount'             => $plan->Price,
+                'PaymentStatus'      => $paymentData['status']      ?? 'Paid',
+                'PaymentMethod'      => $paymentData['method']      ?? null,
+                'TransactionID'      => $paymentData['transactionId'] ?? null,
+                'CreatedOn'          => date('Y-m-d H:i:s'),
+            ]);
+
+            return [
+                'success' => true,
+                'message' => 'Subscription activated successfully',
+                'endDate' => $endDate->format('Y-m-d H:i:s'),
+            ];
+
+        } catch (Exception $e) {
+            return ['success' => false, 'message' => $e->getMessage()];
+        }
+    }
+
+    // ── Send expiry warning email via Brevo REST API ──────────────────────────
     private function _sendExpiryEmail(string $toEmail, string $toName, int $daysRemaining): bool {
         $apiKey    = getenv('BREVO_API_KEY');
         $fromEmail = getenv('MAIL_FROM_EMAIL') ?: 'noreply@rishika2kenterprises.com';
@@ -318,13 +357,11 @@ class Subscription {
         return true;
     }
 
-    /**
-     * Build HTML body for expiry warning email
-     */
+    // ── Build HTML body for expiry warning email ──────────────────────────────
     private function _buildExpiryEmailHtml(string $name, int $days): string {
-        $dayText   = $days === 1 ? '1 day' : "{$days} days";
-        $fromName  = getenv('MAIL_FROM_NAME') ?: 'Rishika 2K Enterprises';
-        $accent    = $days === 1 ? '#dc2626' : ($days <= 3 ? '#d97706' : '#2563eb');
+        $dayText  = $days === 1 ? '1 day' : "{$days} days";
+        $fromName = getenv('MAIL_FROM_NAME') ?: 'Rishika 2K Enterprises';
+        $accent   = $days === 1 ? '#dc2626' : ($days <= 3 ? '#d97706' : '#2563eb');
 
         return <<<HTML
 <!DOCTYPE html>
@@ -368,108 +405,5 @@ class Subscription {
 </body>
 </html>
 HTML;
-    }
-
-    /**
-     * Log login attempt
-     */
-    public function logLoginAttempt($userUID, $username, $status, $subscriptionStatus, $errorMessage = null) {
-        try {
-            $this->CI->db->insert('Users.LoginAttemptLogTbl', [
-                'UserUID' => $userUID,
-                'Username' => $username,
-                'AttemptStatus' => $status,
-                'SubscriptionStatus' => $subscriptionStatus,
-                'IPAddress' => $this->CI->input->ip_address(),
-                'UserAgent' => $this->CI->input->user_agent(),
-                'AttemptTime' => date('Y-m-d H:i:s'),
-                'ErrorMessage' => $errorMessage
-            ]);
-        } catch (Exception $e) {
-            log_message('error', 'Failed to log login attempt: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * Get subscription plans
-     */
-    public function getSubscriptionPlans($activeOnly = true) {
-        try {
-            $this->CI->db->select('*');
-            $this->CI->db->from('Users.SubscriptionPlanTbl');
-            if ($activeOnly) {
-                $this->CI->db->where('IsActive', 1);
-            }
-            $this->CI->db->order_by('Price', 'ASC');
-            $query = $this->CI->db->get();
-            return $query->result();
-        } catch (Exception $e) {
-            log_message('error', 'Failed to get subscription plans: ' . $e->getMessage());
-            return [];
-        }
-    }
-
-    /**
-     * Activate subscription with plan
-     */
-    public function activateSubscription($userUID, $planCode, $paymentData = []) {
-        try {
-            // Get plan details
-            $this->CI->db->select('*');
-            $this->CI->db->from('Users.SubscriptionPlanTbl');
-            $this->CI->db->where('PlanCode', $planCode);
-            $this->CI->db->where('IsActive', 1);
-            $query = $this->CI->db->get();
-
-            if ($query->num_rows() === 0) {
-                return ['success' => false, 'message' => 'Invalid plan'];
-            }
-
-            $plan = $query->row();
-            $now = new DateTime('now', new DateTimeZone('UTC'));
-            $endDate = clone $now;
-            $endDate->modify("+{$plan->DurationDays} days");
-
-            // Update user subscription
-            $this->CI->db->where('UserUID', $userUID);
-            $this->CI->db->update('Users.UserTbl', [
-                'SubscriptionStatus' => 'Active',
-                'SubscriptionStartDate' => $now->format('Y-m-d H:i:s'),
-                'SubscriptionEndDate' => $endDate->format('Y-m-d H:i:s'),
-                'SubscriptionPlan' => $plan->PlanName,
-                'UpdatedOn' => date('Y-m-d H:i:s')
-            ]);
-
-            // Get user org
-            $this->CI->db->select('OrgUID');
-            $this->CI->db->from('Users.UserTbl');
-            $this->CI->db->where('UserUID', $userUID);
-            $userQuery = $this->CI->db->get();
-            $user = $userQuery->row();
-
-            // Log to history
-            $this->CI->db->insert('Users.SubscriptionHistoryTbl', [
-                'UserUID' => $userUID,
-                'OrgUID' => $user->OrgUID,
-                'PlanUID' => $plan->PlanUID,
-                'SubscriptionStatus' => 'Active',
-                'StartDate' => $now->format('Y-m-d H:i:s'),
-                'EndDate' => $endDate->format('Y-m-d H:i:s'),
-                'Amount' => $plan->Price,
-                'PaymentStatus' => isset($paymentData['status']) ? $paymentData['status'] : 'Paid',
-                'PaymentMethod' => isset($paymentData['method']) ? $paymentData['method'] : null,
-                'TransactionID' => isset($paymentData['transactionId']) ? $paymentData['transactionId'] : null,
-                'CreatedOn' => date('Y-m-d H:i:s')
-            ]);
-
-            return [
-                'success' => true,
-                'message' => 'Subscription activated successfully',
-                'endDate' => $endDate->format('Y-m-d H:i:s')
-            ];
-
-        } catch (Exception $e) {
-            return ['success' => false, 'message' => $e->getMessage()];
-        }
     }
 }

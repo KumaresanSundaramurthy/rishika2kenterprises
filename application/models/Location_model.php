@@ -59,6 +59,44 @@ class Location_model extends CI_Model {
         return $this->EndReturnData;
     }
 
+    // All cities for a country in one query — used by geodata.js endpoint
+    public function getAllCitiesOfCountryFromDB($countryISO2) {
+        $this->EndReturnData = new stdClass();
+        try {
+            $cISO2    = strtoupper(trim($countryISO2));
+            $cacheKey = getSiteConfiguration()->RedisName . getenv('REDIS_STATICKEY') . '-Loc_AllCities-' . $cISO2;
+            $cached   = $this->redisservice->getCache($cacheKey);
+
+            if ($cached->Error) {
+                $this->ReadDb->db_debug = FALSE;
+                $this->ReadDb->select(['Ct.id', 'Ct.name', 'Ct.state_code']);
+                $this->ReadDb->from('Global.CitiesTbl as Ct');
+                $this->ReadDb->where(['Ct.country_code' => $cISO2, 'Ct.flag' => 1]);
+                $this->ReadDb->order_by('Ct.name', 'ASC');
+                $query = $this->ReadDb->get();
+
+                if (!$query) {
+                    $error = $this->ReadDb->error();
+                    throw new Exception($error['message']);
+                }
+
+                $this->EndReturnData->Data = $query->result();
+                $this->redisservice->setCache($cacheKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
+            } else {
+                $this->EndReturnData->Data = $cached->Value;
+            }
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Data Retrieved Successfully';
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        return $this->EndReturnData;
+    }
+
     public function getCitiesOfStateFromDB($countryISO2, $stateISO2) {
 
         $this->EndReturnData = new stdClass();

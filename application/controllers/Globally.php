@@ -43,6 +43,39 @@ class Globally extends CI_Controller {
 
     }
 
+    // ── GET /globally/geodata — all India states + cities as JSON ────────────
+    // address.js calls this once and stores the result in localStorage (24h TTL).
+    // Subsequent page loads read from localStorage — no AJAX, no server call.
+    public function geodata() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $this->load->model('location_model');
+
+            $statesResult = $this->location_model->getStatesFromDB('IN');
+            $states       = ($statesResult->Error === FALSE) ? $statesResult->Data : [];
+
+            $citiesResult = $this->location_model->getAllCitiesOfCountryFromDB('IN');
+            $allCities    = ($citiesResult->Error === FALSE) ? $citiesResult->Data : [];
+
+            // Group cities by state ISO2 — mirrors window._cityCache key format
+            $citiesByState = [];
+            foreach ($allCities as $city) {
+                $iso2 = strtoupper($city->state_code);
+                $citiesByState[$iso2][] = ['id' => $city->id, 'name' => $city->name];
+            }
+
+            $this->EndReturnData->Error  = FALSE;
+            $this->EndReturnData->States = $states;
+            $this->EndReturnData->Cities = $citiesByState;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
     public function getStateCityOfCountry() {
 
         $this->EndReturnData = new stdClass();

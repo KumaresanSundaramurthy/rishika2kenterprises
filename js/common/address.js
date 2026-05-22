@@ -2,6 +2,47 @@
 window._stateCache = window._stateCache || {};
 window._cityCache  = window._cityCache  || {};
 
+// ── localStorage geo cache — JS equivalent of PHP redisservice->getCache() ───
+// Check localStorage first (cache hit → populate in-memory caches, no AJAX).
+// Cache miss or expired → fetch /globally/geodata once, store with timestamp.
+(function () {
+    var LS_KEY = 'r2k_geo_IN';
+    var TTL_MS = 86400 * 1000; // 24 hours
+
+    function _applyGeoData(states, cities) {
+        window._stateCache['IN'] = states;
+        for (var k in cities) window._cityCache[k] = cities[k];
+    }
+
+    try {
+        var raw = localStorage.getItem(LS_KEY);
+        if (raw) {
+            var cached = JSON.parse(raw);
+            if (cached && cached.ts && (Date.now() - cached.ts) < TTL_MS) {
+                _applyGeoData(cached.states, cached.cities); // Cache hit — done
+                return;
+            }
+            localStorage.removeItem(LS_KEY); // Expired — remove and re-fetch
+        }
+    } catch (e) {}
+
+    // Cache miss — fetch from server (same Redis source as PHP side)
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', '/globally/geodata', true);
+    xhr.onload = function () {
+        if (xhr.status !== 200) return;
+        try {
+            var resp = JSON.parse(xhr.responseText);
+            if (resp.Error) return;
+            _applyGeoData(resp.States, resp.Cities);
+            localStorage.setItem(LS_KEY, JSON.stringify({
+                ts: Date.now(), states: resp.States, cities: resp.Cities
+            }));
+        } catch (e) {}
+    };
+    xhr.send();
+}());
+
 // ── Address data variables (reset per customer/vendor modal session) ───────
 var billingAddrData  = null;
 var shippingAddrData = null;
@@ -36,7 +77,7 @@ function csc_loadStates(selectId, countryISO2, selectedVal, onDone) {
         if ($sel.hasClass('select2'))
             $sel.select2({
                 width: '100%',
-                dropdownParent: $('#AddEditAddressForm .modal-body'),
+                dropdownParent: $('#addEditAddressModal .modal-content'),
             });
         if (selectedVal) $sel.val(String(selectedVal));
         if (typeof onDone === 'function') onDone();
@@ -55,14 +96,14 @@ function csc_loadStates(selectId, countryISO2, selectedVal, onDone) {
 }
 
 // ── Populate city dropdown per state (cached by state ISO2) ───────────────
-function csc_loadCities(selectId, countryISO2, stateISO2, selectedVal) {
+function csc_loadCities(selectId, countryISO2, stateISO2, selectedVal, selectedName) {
     var $sel = $('#' + selectId);
     if (!stateISO2) {
         $sel.empty().append('<option value="">-- Select City --</option>');
         if ($sel.hasClass('select2'))
             $sel.select2({
                 width: '100%',
-                dropdownParent: $('#AddEditAddressForm .modal-body'),
+                dropdownParent: $('#addEditAddressModal .modal-content'),
             });
         return;
     }
@@ -77,9 +118,20 @@ function csc_loadCities(selectId, countryISO2, stateISO2, selectedVal) {
         if ($sel.hasClass('select2'))
             $sel.select2({
                 width: '100%',
-                dropdownParent: $('#AddEditAddressForm .modal-body'),
+                dropdownParent: $('#addEditAddressModal .modal-content'),
             });
-        if (selectedVal) $sel.val(String(selectedVal));
+        if (selectedVal) {
+            $sel.val(String(selectedVal));
+        } else if (selectedName) {
+            var lower = $.trim(selectedName).toLowerCase();
+            $sel.find('option').each(function () {
+                if ($.trim($(this).text()).toLowerCase() === lower) {
+                    $sel.val($(this).val());
+                    if ($sel.hasClass('select2')) $sel.trigger('change.select2');
+                    return false;
+                }
+            });
+        }
     }
 
     if (window._cityCache[sISO2] !== undefined) { _render(window._cityCache[sISO2]); return; }
@@ -88,7 +140,7 @@ function csc_loadCities(selectId, countryISO2, stateISO2, selectedVal) {
     if ($sel.hasClass('select2'))
         $sel.select2({
             width: '100%',
-            dropdownParent: $('#AddEditAddressForm .modal-body'),
+            dropdownParent: $('#addEditAddressModal .modal-content'),
         });
 
     $.ajax({
@@ -124,9 +176,20 @@ function openAddressModal(addrType) {
         $('#ModalAddrPincode').val(existing.Pincode || '');
 
         csc_loadStates('ModalAddrState', iso2, existing.StateId || '', function () {
+            // Name-based fallback when no StateId was stored (existing data)
+            if ((!existing.StateId || !$('#ModalAddrState').val()) && existing.StateName) {
+                var sLower = $.trim(existing.StateName).toLowerCase();
+                $('#ModalAddrState option').each(function () {
+                    if ($.trim($(this).text()).toLowerCase() === sLower) {
+                        $('#ModalAddrState').val($(this).val());
+                        if ($('#ModalAddrState').hasClass('select2')) $('#ModalAddrState').trigger('change.select2');
+                        return false;
+                    }
+                });
+            }
             var stateISO2 = existing.StateISO2 || $('#ModalAddrState').find('option:selected').data('iso2') || '';
             if (stateISO2) {
-                csc_loadCities('ModalAddrCity', iso2, stateISO2, existing.CityId || '');
+                csc_loadCities('ModalAddrCity', iso2, stateISO2, existing.CityId || '', existing.CityName || '');
             }
         });
     } else {
@@ -170,10 +233,8 @@ $(document).on('change', '#ModalAddrState', function () {
     csc_loadCities('ModalAddrCity', iso2, stateISO2, '');
 });
 
-// ── Address modal form submit ─────────────────────────────────────────────
-$(document).on('submit', '#AddEditAddressForm', function (e) {
-    e.preventDefault();
-
+// ── Address modal save button click ──────────────────────────────────────
+$(document).on('click', '#AddrSaveBtn', function () {
     var line1 = $.trim($('#ModalAddrLine1').val());
     if (!line1) { showAlertMessageSwal('error', '', 'Address Line 1 is required.'); return; }
 

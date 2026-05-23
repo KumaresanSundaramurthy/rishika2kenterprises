@@ -18,17 +18,18 @@ class Indirectincome_model extends CI_Model {
                  i.TaxApplicable, i.TaxAmount,
                  i.CategoryUID, ic.CategoryName,
                  i.Notes, i.DocStatus, i.IsReceived,
-                 i.PaymentTypeUID, pt.PaymentTypeName,
-                 i.BankAccountUID, ba.AccountName AS BankAccountName,
-                 i.PaymentDate,
+                 py.PaymentUID, py.PaymentTypeUID, pt.Name AS PaymentTypeName,
+                 py.BankAccountUID, ba.AccountName AS BankAccountName, ba.BankName, ba.AccountNumber,
+                 py.PaymentDate,
                  i.UpdatedOn,
                  CONCAT(IFNULL(u.FirstName,\'\'), \' \', IFNULL(u.LastName,\'\')) AS UpdatedBy'
             );
             $this->ReadDb->from('Transaction.IndirectIncomeTbl i');
-            $this->ReadDb->join('Transaction.IndirectIncomeCategoryTbl ic', 'ic.CategoryUID = i.CategoryUID AND ic.IsDeleted = 0', 'left');
-            $this->ReadDb->join('Transaction.PaymentTypesTbl pt',           'pt.PaymentTypeUID = i.PaymentTypeUID',              'left');
-            $this->ReadDb->join('Transaction.OrgBankAccountsTbl ba',        'ba.BankAccountUID = i.BankAccountUID AND ba.IsDeleted = 0', 'left');
-            $this->ReadDb->join('Users.UserTbl u',                          'u.UserUID = i.UpdatedBy',                          'left');
+            $this->ReadDb->join('Transaction.IndirectIncomeCategoryTbl ic', 'ic.CategoryUID = i.CategoryUID AND ic.IsDeleted = 0',                                    'left');
+            $this->ReadDb->join('Transaction.PaymentsTbl py',               'py.TransUID = i.IncomeUID AND py.SourceType = \'IndirectIncome\' AND py.IsDeleted = 0', 'left');
+            $this->ReadDb->join('Transaction.PaymentTypesTbl pt',           'pt.PaymentTypeUID = py.PaymentTypeUID',                                                   'left');
+            $this->ReadDb->join('Transaction.OrgBankAccountsTbl ba',        'ba.BankAccountUID = py.BankAccountUID AND ba.IsDeleted = 0',                             'left');
+            $this->ReadDb->join('Users.UserTbl u',                          'u.UserUID = i.UpdatedBy',                                                                'left');
             $this->ReadDb->where('i.OrgUID',    $orgUID);
             $this->ReadDb->where('i.IsDeleted', 0);
             $this->_applyFilters($filter);
@@ -70,17 +71,18 @@ class Indirectincome_model extends CI_Model {
                  i.TaxApplicable, i.TaxPercentage, i.TaxAmount,
                  i.CategoryUID, ic.CategoryName,
                  i.Notes, i.DocStatus, i.IsReceived,
-                 i.PaymentTypeUID, pt.PaymentTypeName,
-                 i.BankAccountUID, ba.AccountName AS BankAccountName,
-                 i.PaymentDate, i.PaymentNotes,
+                 py.PaymentUID, py.PaymentTypeUID, pt.Name AS PaymentTypeName,
+                 py.BankAccountUID, ba.AccountName AS BankAccountName, ba.BankName, ba.AccountNumber,
+                 py.PaymentDate, py.UniqueNumber AS PaymentReference, py.Notes AS PaymentNotes,
                  i.CreatedOn, i.UpdatedOn,
                  CONCAT(u.FirstName, \' \', IFNULL(u.LastName, \'\')) AS UpdatedByName'
             );
             $this->ReadDb->from('Transaction.IndirectIncomeTbl i');
-            $this->ReadDb->join('Transaction.IndirectIncomeCategoryTbl ic', 'ic.CategoryUID = i.CategoryUID AND ic.IsDeleted = 0', 'left');
-            $this->ReadDb->join('Transaction.PaymentTypesTbl pt',           'pt.PaymentTypeUID = i.PaymentTypeUID',              'left');
-            $this->ReadDb->join('Transaction.OrgBankAccountsTbl ba',        'ba.BankAccountUID = i.BankAccountUID AND ba.IsDeleted = 0', 'left');
-            $this->ReadDb->join('Users.UserTbl u',                          'u.UserUID = i.UpdatedBy',                          'left');
+            $this->ReadDb->join('Transaction.IndirectIncomeCategoryTbl ic', 'ic.CategoryUID = i.CategoryUID AND ic.IsDeleted = 0',                                    'left');
+            $this->ReadDb->join('Transaction.PaymentsTbl py',               'py.TransUID = i.IncomeUID AND py.SourceType = \'IndirectIncome\' AND py.IsDeleted = 0', 'left');
+            $this->ReadDb->join('Transaction.PaymentTypesTbl pt',           'pt.PaymentTypeUID = py.PaymentTypeUID',                                                   'left');
+            $this->ReadDb->join('Transaction.OrgBankAccountsTbl ba',        'ba.BankAccountUID = py.BankAccountUID AND ba.IsDeleted = 0',                             'left');
+            $this->ReadDb->join('Users.UserTbl u',                          'u.UserUID = i.UpdatedBy',                                                                'left');
             $this->ReadDb->where('i.IncomeUID', $incomeUID);
             $this->ReadDb->where('i.OrgUID',    $orgUID);
             $this->ReadDb->where('i.IsDeleted', 0);
@@ -139,10 +141,10 @@ class Indirectincome_model extends CI_Model {
     public function getPaymentTypes() {
         try {
             $this->ReadDb->db_debug = FALSE;
-            $this->ReadDb->select('PaymentTypeUID, PaymentTypeName');
+            $this->ReadDb->select('PaymentTypeUID, Name AS PaymentTypeName, IsCash');
             $this->ReadDb->from('Transaction.PaymentTypesTbl');
             $this->ReadDb->where('IsActive', 1);
-            $this->ReadDb->order_by('SortOrder', 'ASC');
+            $this->ReadDb->order_by('PaymentTypeUID', 'ASC');
             $query = $this->ReadDb->get();
             return $query ? $query->result() : [];
         } catch (Exception $e) {
@@ -185,6 +187,74 @@ class Indirectincome_model extends CI_Model {
         } catch (Exception $e) {
             log_message('error', 'Indirectincome_model::getCashAccount — ' . $e->getMessage());
             return null;
+        }
+    }
+
+    // ── Category list (paginated, for manager modal) ─────────────────────────
+    public function getCategoryList($orgUID, $search, $limit, $offset) {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('CategoryUID, CategoryName, OrgUID, IsDefault');
+            $this->ReadDb->from('Transaction.IndirectIncomeCategoryTbl');
+            $this->ReadDb->where('IsDeleted', 0);
+            $this->ReadDb->where('IsActive',  1);
+            $this->ReadDb->group_start();
+            $this->ReadDb->where('OrgUID', $orgUID);
+            $this->ReadDb->or_where('OrgUID IS NULL');
+            $this->ReadDb->group_end();
+            if (!empty($search)) {
+                $this->ReadDb->like('CategoryName', $this->ReadDb->escape_like_str($search), 'both');
+            }
+            $this->ReadDb->order_by('IsDefault', 'DESC');
+            $this->ReadDb->order_by('CategoryName', 'ASC');
+            $this->ReadDb->limit($limit, $offset);
+            $query = $this->ReadDb->get();
+            return $query ? $query->result() : [];
+        } catch (Exception $e) {
+            log_message('error', 'Indirectincome_model::getCategoryList — ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    // ── Category count ───────────────────────────────────────────────────────
+    public function getCategoryCount($orgUID, $search) {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('COUNT(*) AS cnt');
+            $this->ReadDb->from('Transaction.IndirectIncomeCategoryTbl');
+            $this->ReadDb->where('IsDeleted', 0);
+            $this->ReadDb->where('IsActive',  1);
+            $this->ReadDb->group_start();
+            $this->ReadDb->where('OrgUID', $orgUID);
+            $this->ReadDb->or_where('OrgUID IS NULL');
+            $this->ReadDb->group_end();
+            if (!empty($search)) {
+                $this->ReadDb->like('CategoryName', $this->ReadDb->escape_like_str($search), 'both');
+            }
+            $query = $this->ReadDb->get();
+            $row   = $query ? $query->row() : null;
+            return $row ? (int)$row->cnt : 0;
+        } catch (Exception $e) {
+            log_message('error', 'Indirectincome_model::getCategoryCount — ' . $e->getMessage());
+            return 0;
+        }
+    }
+
+    // ── Check if category is in use ──────────────────────────────────────────
+    public function isCategoryLinked($categoryUID, $orgUID) {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('COUNT(*) AS cnt');
+            $this->ReadDb->from('Transaction.IndirectIncomeTbl');
+            $this->ReadDb->where('CategoryUID', $categoryUID);
+            $this->ReadDb->where('OrgUID',      $orgUID);
+            $this->ReadDb->where('IsDeleted',   0);
+            $query = $this->ReadDb->get();
+            $row   = $query ? $query->row() : null;
+            return $row && (int)$row->cnt > 0;
+        } catch (Exception $e) {
+            log_message('error', 'Indirectincome_model::isCategoryLinked — ' . $e->getMessage());
+            return true;
         }
     }
 

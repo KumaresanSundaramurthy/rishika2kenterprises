@@ -319,4 +319,48 @@ if (file_exists($composerAutoload)) {
     require_once $composerAutoload;
 }
 
+// ── Infrastructure error handler ─────────────────────────────────────────────
+// Catches Redis / session driver warnings before CI renders them.
+// Developer sees:  [R2K-INFRA-001] in the server error log.
+// User sees:       A clean "maintenance" page with no technical details.
+set_error_handler(function ($errno, $errstr, $errfile, $errline) {
+    $isInfra = stripos($errfile, 'redis')      !== false
+            || stripos($errfile, 'Session')    !== false
+            || stripos($errstr,  'getaddrinfo') !== false
+            || stripos($errstr,  'redis')       !== false;
+
+    if ($isInfra && in_array($errno, [E_WARNING, E_USER_WARNING, E_NOTICE, E_USER_NOTICE], true)) {
+        error_log('[R2K-INFRA-001] Service layer unreachable — '
+            . $errstr . ' (' . basename($errfile) . ':' . $errline . ')');
+
+        if (!headers_sent()) {
+            ob_clean();
+            http_response_code(503);
+            echo '<!DOCTYPE html><html lang="en"><head>'
+               . '<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+               . '<title>Service Unavailable</title>'
+               . '<style>'
+               . '*{box-sizing:border-box;margin:0;padding:0}'
+               . 'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;'
+               .      'background:#f8fafc;display:flex;align-items:center;justify-content:center;'
+               .      'min-height:100vh;padding:20px}'
+               . '.wrap{max-width:400px;text-align:center}'
+               . 'h1{font-size:1.35rem;font-weight:700;color:#1e293b;margin-bottom:.5rem}'
+               . 'p{color:#64748b;font-size:.92rem;line-height:1.6;margin-bottom:1.5rem}'
+               . '.badge{display:inline-block;padding:5px 12px;background:#f1f5f9;border-radius:6px;'
+               .        'font-size:.72rem;color:#94a3b8;letter-spacing:.5px;font-family:monospace}'
+               . '</style></head><body>'
+               . '<div class="wrap">'
+               . '<p style="font-size:2.5rem;margin-bottom:1rem">🔧</p>'
+               . '<h1>We\'ll be back shortly</h1>'
+               . '<p>Our system is undergoing a quick maintenance update.<br>Please try again in a few minutes.</p>'
+               . '<div class="badge">ERR-SVC-503</div>'
+               . '</div></body></html>';
+            exit(1);
+        }
+        return true; // suppress output if headers already sent
+    }
+    return false; // all other errors: let CI handle normally
+});
+
 require_once BASEPATH.'core/CodeIgniter.php';

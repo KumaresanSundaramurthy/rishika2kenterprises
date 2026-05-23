@@ -40,9 +40,14 @@ $this->load->view('common/transactions/header'); ?>
                             </div>
                             <h5 class="trans-ph-title"><?php echo htmlspecialchars($PageTitle ?? 'Expenses'); ?></h5>
                         </div>
-                        <button type="button" class="btn btn-primary addExpenseBtn me-1">
-                            <i class="bx bx-plus me-1"></i>Add Expense
-                        </button>
+                        <div class="d-flex align-items-center gap-2">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="expManageCatBtn">
+                                <i class="bx bx-category me-1"></i>Categories
+                            </button>
+                            <button type="button" class="btn btn-primary addExpenseBtn">
+                                <i class="bx bx-plus me-1"></i>Add Expense
+                            </button>
+                        </div>
                     </div>
 
                     <!-- ── Stat Cards ─────────────────────────────────────── -->
@@ -137,10 +142,9 @@ $this->load->view('common/transactions/header'); ?>
                                         <th class="<?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?> table-serialno" style="width:44px">S.No</th>
                                         <th class="col-sortable cursor-pointer user-select-none" data-sort="Number">Expense # <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Number"></i></th>
                                         <th class="col-sortable cursor-pointer user-select-none" data-sort="Amount">Amount <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Amount"></i></th>
-                                        <th>Category</th>
+                                        <th class="position-relative">Category / Notes <a href="javascript:void(0);" id="expCatFilterBtn" class="text-body ms-1" onclick="toggleExpCatFilter(); event.stopPropagation();" title="Filter by Category"><i class="bx bx-filter-alt fs-6 align-middle"></i></a></th>
                                         <th>Status</th>
                                         <th>Mode</th>
-                                        <th class="col-sortable cursor-pointer user-select-none" data-sort="Date">Date <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Date"></i></th>
                                         <th>Last Updated</th>
                                         <th style="width:50px"></th>
                                     </tr>
@@ -203,7 +207,7 @@ $this->load->view('common/transactions/header'); ?>
                 <div class="row g-3">
 
                     <!-- ── Left Column ──────────────────────────────────── -->
-                    <div class="col-lg-8">
+                    <div class="col-lg-8" id="emFormColumn">
 
                         <!-- Basic Details -->
                         <div class="card mb-3">
@@ -364,9 +368,108 @@ $this->load->view('common/transactions/header'); ?>
     </div>
 </div>
 
+<!-- ══════════════════════════════════════════════════════════════════════════
+     Expense Detail View Modal
+══════════════════════════════════════════════════════════════════════════ -->
+<div class="modal fade" id="expDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-white border-bottom d-flex align-items-center justify-content-between px-3 py-2 modal-header-center-sticky trans-theme">
+                <div class="d-flex align-items-center gap-3 flex-wrap flex-grow-1 me-2">
+                    <div class="modal-doc-icon" style="background:#fef3c7;">
+                        <i class="bx bx-receipt modal-doc-icon-inner" style="color:#d97706;"></i>
+                    </div>
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <span class="fw-bold" id="edDocNumber" style="font-size:.95rem;"></span>
+                        <span class="text-muted" style="font-size:.82rem;" id="edDocDate"></span>
+                        <span class="fw-semibold" style="font-size:.9rem;" id="edDocAmount"></span>
+                        <span id="edDocBadge"></span>
+                        <span class="text-muted" style="font-size:.8rem;" id="edDocPmt"></span>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0" id="edBody">
+                <div class="text-center py-5"><span class="spinner-border text-warning"></span></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Category Manager Modal -->
+<div class="modal fade" id="expCatManagerModal" tabindex="-1" aria-hidden="true"
+     style="backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);">
+    <div class="modal-dialog modal-dialog-scrollable" style="max-width:480px;">
+        <div class="modal-content">
+            <div class="modal-header bg-white border-bottom d-flex align-items-center justify-content-between px-3 py-2 trans-theme">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="modal-doc-icon" style="background:#dcfce7;">
+                        <i class="bx bx-category modal-doc-icon-inner" style="color:#16a34a;"></i>
+                    </div>
+                    <h6 class="modal-title mb-0">Manage Categories</h6>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="expAddNewCatFromMgr">
+                        <i class="bx bx-plus me-1"></i>Add New
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-danger" data-bs-dismiss="modal">
+                        <i class="bx bx-x me-1"></i>Close
+                    </button>
+                </div>
+            </div>
+            <div class="modal-body p-0">
+                <div class="px-3 pt-3 pb-2">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text"><i class="bx bx-search"></i></span>
+                        <input type="text" id="catMgrSearch" class="form-control" placeholder="Search categories...">
+                    </div>
+                </div>
+                <ul class="list-group list-group-flush" id="catMgrList" style="min-height:150px;max-height:380px;overflow-y:auto;">
+                    <li class="list-group-item text-center py-4">
+                        <span class="spinner-border spinner-border-sm text-success"></span>
+                    </li>
+                </ul>
+                <div class="d-flex justify-content-center py-2" id="catMgrPagination"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <?php $this->load->view('transactions/expenses/partials/_add_category_modal'); ?>
 
+<?php
+$rpAccentColor = '#d97706'; $rpAccentBg = '#fef3c7';
+$rpPartyIcon   = 'bx-receipt'; $rpDocLabel = 'Expense';
+$rpTotalIcon   = 'bx-receipt'; $rpBtnLabel = 'Mark as Paid';
+$this->load->view('common/transactions/payment_modal');
+?>
+
 <?php $this->load->view('common/transactions/footer'); ?>
+
+<div id="expCatFilterBox" class="card mp-filterbox" style="min-width:230px;z-index:9999;display:none;position:fixed;">
+    <div class="catg-filter-header">
+        <span class="catg-filter-title"><i class="bx bx-category me-1"></i> Category</span>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-primary" id="expCatFilterCount" style="display:none;"></span>
+            <button type="button" class="catg-filter-close-btn" onclick="closeExpCatFilter()" title="Close">&times;</button>
+        </div>
+    </div>
+    <div class="catg-filter-search-wrap">
+        <div class="input-group input-group-sm">
+            <span class="input-group-text"><i class="bx bx-search"></i></span>
+            <input type="text" id="expCatFilterSearch" class="form-control" placeholder="Search categories...">
+        </div>
+    </div>
+    <div class="catg-select-all-wrap">
+        <input type="checkbox" class="form-check-input" id="expCatSelectAll" onchange="toggleAllExpCats(this)">
+        <label class="small fw-semibold mb-0" for="expCatSelectAll" id="expCatSelectAllLabel">Select All</label>
+    </div>
+    <div id="expCatList" class="catg-list" style="max-height:180px;overflow-y:auto;"></div>
+    <div class="catg-filter-footer">
+        <button type="button" class="btn btn-primary btn-sm" onclick="applyExpCatFilter()"><i class="bx bx-check me-1"></i>Apply</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="resetExpCatFilter()"><i class="bx bx-reset me-1"></i>Reset</button>
+    </div>
+</div>
 
 <script src="/js/transactions/expenses.js"></script>
 
@@ -382,6 +485,82 @@ $(function () {
 
     Filter['Status'] = 'All';
 
+    // ── Expense Category Filter ──────────────────────────────────────────────
+    var _expCatData = <?php echo json_encode(array_map(function($c) {
+        return ['uid' => (int)$c->CategoryUID, 'name' => $c->CategoryName];
+    }, $categories)); ?>;
+
+    function _buildExpCatList(cats) {
+        if (!cats.length) {
+            $('#expCatList').html('<div class="text-muted text-center py-3" style="font-size:.8rem;">No categories</div>');
+            return;
+        }
+        var html = '';
+        cats.forEach(function (c) {
+            html += '<label class="catg-list-item">' +
+                        '<input class="form-check-input exp-cat-chk" type="checkbox" value="' + c.uid + '">' +
+                        '<span>' + $('<span>').text(c.name).html() + '</span>' +
+                    '</label>';
+        });
+        $('#expCatList').html(html);
+    }
+
+    function _rebuildExpCatFilter() {
+        var checked = $('.exp-cat-chk:checked').map(function () { return $(this).val(); }).get();
+        _buildExpCatList(_expCatData);
+        checked.forEach(function (v) { $('.exp-cat-chk[value="' + v + '"]').prop('checked', true); });
+        var total = $('.exp-cat-chk').length, chkd = $('.exp-cat-chk:checked').length;
+        $('#expCatSelectAll').prop('checked', total > 0 && total === chkd);
+        $('#expCatSelectAllLabel').text(total > 0 && total === chkd ? 'Deselect All' : 'Select All');
+    }
+
+    window.toggleExpCatFilter = function () {
+        var $box = $('#expCatFilterBox');
+        if ($box.is(':visible')) { $box.hide(); return; }
+        var rect = document.getElementById('expCatFilterBtn').getBoundingClientRect();
+        $box.css({ top: (rect.bottom + 4) + 'px', left: Math.max(4, rect.right - 230) + 'px' }).show();
+    };
+    window.closeExpCatFilter = function () { $('#expCatFilterBox').hide(); };
+    window.toggleAllExpCats  = function (el) {
+        var checked = $(el).is(':checked');
+        $('#expCatList .exp-cat-chk').prop('checked', checked);
+        $('#expCatSelectAllLabel').text(checked ? 'Deselect All' : 'Select All');
+    };
+    window.applyExpCatFilter = function () {
+        var sel = $('.exp-cat-chk:checked').map(function () { return $(this).val(); }).get();
+        if (sel.length) Filter['CategoryUIDs'] = sel; else delete Filter['CategoryUIDs'];
+        $('#expCatFilterBox').hide();
+        $('#expCatFilterBtn').toggleClass('text-primary', !!sel.length);
+        PageNo = 1; getExpensesDetails();
+    };
+    window.resetExpCatFilter = function () {
+        $('.exp-cat-chk').prop('checked', false);
+        $('#expCatSelectAll').prop('checked', false);
+        $('#expCatSelectAllLabel').text('Select All');
+        delete Filter['CategoryUIDs'];
+        $('#expCatFilterBox').hide();
+        $('#expCatFilterBtn').removeClass('text-primary');
+        PageNo = 1; getExpensesDetails();
+    };
+
+    $(document).on('input', '#expCatFilterSearch', function () {
+        var term = $(this).val().toLowerCase();
+        $('#expCatList .catg-list-item').each(function () {
+            $(this).toggle($(this).text().toLowerCase().includes(term));
+        });
+    });
+    $(document).on('change', '.exp-cat-chk', function () {
+        var total = $('.exp-cat-chk').length, chkd = $('.exp-cat-chk:checked').length;
+        $('#expCatSelectAll').prop('checked', total > 0 && total === chkd);
+        $('#expCatSelectAllLabel').text(total > 0 && total === chkd ? 'Deselect All' : 'Select All');
+    });
+    $(document).on('click', function (e) {
+        if (!$(e.target).closest('#expCatFilterBox, #expCatFilterBtn').length) $('#expCatFilterBox').hide();
+    });
+
+    _buildExpCatList(_expCatData);
+    // ────────────────────────────────────────────────────────────────────────
+
     var expCurSymbol    = '<?php echo addslashes($cur); ?>';
     var expDecPoints    = <?php echo (int)$dec; ?>;
     var expDropzone     = null;
@@ -390,6 +569,21 @@ $(function () {
     var fpExpDate       = null;
     var fpExpPmtDate    = null;
     var _expPickersInit = false;
+
+    // Init shared payment modal
+    initRecordPaymentModal(
+        <?php echo json_encode(array_map(function($t) {
+            return ['PaymentTypeUID' => (int)$t->PaymentTypeUID, 'Name' => (string)$t->PaymentTypeName, 'IsCash' => (int)$t->IsCash];
+        }, $paymentTypes)); ?>,
+        <?php echo json_encode(array_values(array_map(function($b) {
+            return ['BankAccountUID' => (int)$b->BankAccountUID, 'BankName' => (string)$b->BankName, 'AccountName' => (string)$b->AccountName, 'IsDefault' => (int)$b->IsDefault];
+        }, $bankAccounts))); ?>,
+        expCurSymbol
+    );
+    window.rpAfterSuccess = function (resp) {
+        if (resp.SummaryStats) _updateStatCards(resp.SummaryStats);
+        _syncSticky();
+    };
 
     // ── Sticky pagination ────────────────────────────────────
     var $staticPag = $('#expPagination');
@@ -512,14 +706,19 @@ $(function () {
 
     // ── Row actions ──────────────────────────────────────────
     $(document).on('click', '.expMarkPaid', function () {
-        var uid = $(this).data('uid'), num = $(this).data('num') || '';
-        Swal.fire({
-            title: 'Mark as Paid?',
-            html: num ? 'Mark <strong>' + $('<span>').text(num).html() + '</strong> as paid?' : 'Mark this expense as paid?',
-            icon: 'question', showCancelButton: true,
-            confirmButtonColor: '#198754', cancelButtonColor: '#6c757d',
-            confirmButtonText: 'Yes, Mark Paid'
-        }).then(function (r) { if (r.isConfirmed) _postStatusUpdate(uid, 'Paid'); });
+        var uid    = $(this).data('uid');
+        var num    = $(this).data('num')    || '';
+        var date   = $(this).data('date')   || '';
+        var amount = parseFloat($(this).data('amount')) || 0;
+        window.rpOpenModal({
+            transUID  : uid,
+            submitUrl : '/expenses/recordPayment',
+            docNum    : num,
+            docDate   : date,
+            total     : amount,
+            paid      : 0,
+            pending   : amount,
+        });
     });
 
     $(document).on('click', '.expCancel', function () {
@@ -550,6 +749,142 @@ $(function () {
                     showToastNotification(resp.Message || 'Expense deleted.', 'success');
                 }
             });
+        });
+    });
+
+    // ── View Detail (expense number click) ───────────────────
+    $(document).on('click', '.expViewDetail', function () {
+        var $el    = $(this);
+        var uid    = $el.data('uid');
+        var num    = $el.data('num')    || '';
+        var date   = $el.data('date')   || '';
+        var amount = $el.data('amount') || '';
+        var status = $el.data('status') || '';
+        var badge  = $el.data('badge')  || '';
+        var icon   = $el.data('icon')   || 'bx-circle';
+        var pmt    = $el.data('pmt')    || '';
+
+        $('#edDocNumber').text(num);
+        $('#edDocDate').text(date);
+        $('#edDocAmount').text(amount);
+        $('#edDocBadge').html('<span class="trans-badge ' + badge + '"><i class="bx ' + icon + '" style="font-size:.8rem;"></i> ' + status + '</span>');
+        $('#edDocPmt').text(pmt ? '· ' + pmt : '');
+
+        $('#edBody').html('<div class="text-center py-5"><span class="spinner-border text-warning"></span></div>');
+        new bootstrap.Modal(document.getElementById('expDetailModal')).show();
+
+        $.ajax({
+            url: '/expenses/getExpenseDetail', method: 'POST',
+            data: { ExpenseUID: uid, [CsrfName]: CsrfToken },
+            success: function (resp) {
+                if (resp.Error) {
+                    $('#edBody').html('<div class="alert alert-danger m-3">' + resp.Message + '</div>');
+                    return;
+                }
+                var d = resp.Data;
+
+                function fmtDate(val) {
+                    if (!val) return 'N/A';
+                    var dt = new Date(val);
+                    return isNaN(dt.getTime()) ? val : dt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+                }
+                function esc(v) { return $('<span>').text(v || '').html(); }
+
+                var pmtHtml = '';
+                if (d.PaymentTypeName) {
+                    pmtHtml += '<div class="mb-2"><span class="badge bg-label-primary" style="font-size:.75rem;padding:3px 10px;"><i class="bx bx-credit-card me-1"></i>' + esc(d.PaymentTypeName) + '</span></div>';
+                }
+                var pmtRows = [];
+                if (d.PaymentDate)      pmtRows.push('<i class="bx bx-calendar me-1" style="color:#94a3b8;"></i>' + esc(fmtDate(d.PaymentDate)));
+                if (d.BankName)         pmtRows.push('<i class="bx bx-building-house me-1" style="color:#94a3b8;font-size:.7rem;"></i>' + esc(d.BankName));
+                if (d.BankAccountName)  pmtRows.push('<span style="padding-left:14px;">' + esc(d.BankAccountName) + '</span>');
+                if (d.AccountNumber)    pmtRows.push('<span style="padding-left:14px;font-family:monospace;letter-spacing:.05em;">' + esc(d.AccountNumber) + '</span>');
+                if (d.PaymentReference) pmtRows.push('<i class="bx bx-hash me-1" style="color:#94a3b8;"></i>Ref: <span style="font-weight:600;">' + esc(d.PaymentReference) + '</span>');
+                if (pmtRows.length) pmtHtml += '<div style="font-size:.78rem;color:#475569;line-height:2.1;">' + pmtRows.join('<br>') + '</div>';
+
+                var taxHtml = '';
+                if (parseInt(d.TaxApplicable))  taxHtml += ' <span class="badge bg-label-info" style="font-size:.65rem;">Tax ' + esc(d.TaxPercentage) + '%</span>';
+                if (parseInt(d.TDSApplicable))  taxHtml += ' <span class="badge bg-label-warning" style="font-size:.65rem;">TDS ' + esc(d.TDSPercentage) + '%</span>';
+
+                var boxS = 'background:#f8fafc;border:1px solid #e9ecef;border-radius:8px;padding:12px 14px;height:100%;';
+                var lb   = 'font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:#94a3b8;margin-bottom:6px;';
+                var valS = 'font-size:.93rem;font-weight:600;color:#1e293b;line-height:1.3;';
+
+                function field(label, content, extraValStyle) {
+                    return '<div class="col-sm-6"><div style="' + boxS + '">' +
+                               '<div style="' + lb + '">' + label + '</div>' +
+                               '<div style="' + valS + (extraValStyle || '') + '">' + content + '</div>' +
+                           '</div></div>';
+                }
+                function field12(label, content) {
+                    return '<div class="col-12"><div style="' + boxS + '">' +
+                               '<div style="' + lb + '">' + label + '</div>' +
+                               '<div style="font-size:.88rem;color:#374151;line-height:1.6;">' + content + '</div>' +
+                           '</div></div>';
+                }
+
+                var html = '<div class="p-3"><div class="row g-2">';
+                html += field('Expense Date', esc(fmtDate(d.ExpenseDate)));
+                html += field('Amount', expCurSymbol + ' ' + parseFloat(d.Amount || 0).toFixed(expDecPoints) + taxHtml, 'font-size:1.05rem;');
+                html += field('Category', d.CategoryName
+                    ? '<span class="badge text-bg-light border" style="font-size:.78rem;font-weight:600;padding:5px 10px;">' + esc(d.CategoryName) + '</span>'
+                    : '<span class="text-muted" style="font-size:.85rem;font-weight:400;">Not set</span>');
+                html += field('Created On', esc(fmtDate(d.CreatedOn)));
+                if (pmtHtml) {
+                    html += '<div class="col-12"><div style="' + boxS + 'border-left:3px solid #6366f1;">' +
+                                '<div style="' + lb + '">Payment Details</div>' + pmtHtml +
+                            '</div></div>';
+                } else {
+                    html += field('Payment', '<span class="text-muted" style="font-weight:400;font-size:.85rem;">No payment recorded</span>');
+                }
+                if (d.Notes)        html += field12('Notes', esc(d.Notes));
+                if (d.PaymentNotes) html += field12('Payment Notes', esc(d.PaymentNotes));
+                html += '<div class="col-12"><div style="font-size:.75rem;color:#94a3b8;padding:8px 2px 0;border-top:1px solid #f1f5f9;">' +
+                            'Last updated' +
+                            (d.UpdatedByName ? ' by <span style="color:#475569;font-weight:600;">' + esc(d.UpdatedByName) + '</span>' : '') +
+                            (d.UpdatedOn ? ' &middot; ' + esc(fmtDate(d.UpdatedOn)) : '') +
+                        '</div></div>';
+                html += '</div></div>';
+                $('#edBody').html(html);
+            },
+            error: function () {
+                $('#edBody').html('<div class="alert alert-danger m-3">Failed to load expense details.</div>');
+            }
+        });
+    });
+
+    // ── Mark as Cancelled (from Paid dropdown) ───────────────
+    $(document).on('click', '.expMarkCancelled', function () {
+        var uid = $(this).data('uid'), num = $(this).data('num') || '';
+        Swal.fire({
+            title: 'Mark as Cancelled?',
+            html: num ? 'Cancel <strong>' + $('<span>').text(num).html() + '</strong>? This cannot be undone.' : 'This cannot be undone.',
+            icon: 'warning', showCancelButton: true,
+            confirmButtonColor: '#d33', confirmButtonText: 'Yes, Cancel'
+        }).then(function (r) { if (r.isConfirmed) _postStatusUpdate(uid, 'Cancelled'); });
+    });
+
+    // ── Clone expense ────────────────────────────────────────
+    $(document).on('click', '.expClone', function () {
+        var uid = $(this).data('uid');
+        $.ajax({
+            url: '/expenses/getExpenseDetail', method: 'POST',
+            data: { ExpenseUID: uid, [CsrfName]: CsrfToken },
+            success: function (resp) {
+                if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
+                var d = resp.Data;
+                _resetExpModal();
+                initExpDropzone();
+                $('#expModalTitle').text('Clone Expense');
+                $('#emAmount').val(d.Amount || '');
+                if (fpExpDate) fpExpDate.setDate(new Date().toISOString().slice(0, 10), false);
+                else $('#emDate').val(new Date().toISOString().slice(0, 10));
+                $('#emCategory').val(d.CategoryUID || '');
+                if ($.fn.select2 && $('#emCategory').data('select2')) $('#emCategory').trigger('change');
+                $('#emNotes').val(d.Notes || '');
+                new bootstrap.Modal(document.getElementById('expenseModal')).show();
+                setTimeout(function () { $('#emAmount').focus(); }, 400);
+            }
         });
     });
 
@@ -627,6 +962,7 @@ $(function () {
         $('#emAmountAddWrap').show();
         $('#emAmountEditWrap').hide();
         $('#emAmountDisplay').text('');
+        $('#emFormColumn').removeClass('col-12').addClass('col-lg-8');
         $('#emPaymentColumn').show();
         $('#emAmount').val('');
         if (fpExpDate) fpExpDate.setDate(_todayStr(), false); else $('#emDate').val(_todayStr());
@@ -660,6 +996,7 @@ $(function () {
         });
         $('#emAmountDisplay').text(expCurSymbol + ' ' + fmt);
         $('#emAmount').val(d.Amount || ''); // kept for FormData submission
+        $('#emFormColumn').removeClass('col-lg-8').addClass('col-12');
         $('#emPaymentColumn').hide();
 
         if (fpExpDate) fpExpDate.setDate(d.ExpenseDate || _todayStr(), false); else $('#emDate').val(d.ExpenseDate || _todayStr());
@@ -751,20 +1088,108 @@ $(function () {
         var name = $.trim($('#newCategoryName').val());
         if (!name) { $('#newCategoryName').addClass('is-invalid'); return; }
         $('#newCategoryName').removeClass('is-invalid');
-        var $btn = $(this).prop('disabled', true).text('Adding…');
+        var uid    = parseInt($('#catModalUID').val()) || 0;
+        var isEdit = uid > 0;
+        var $btn   = $(this).prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i>' + (isEdit ? 'Saving…' : 'Adding…'));
 
         $.ajax({
-            url: '/expenses/addCategory', method: 'POST',
-            data: { CategoryName: name, [CsrfName]: CsrfToken },
+            url: isEdit ? '/expenses/updateCategory' : '/expenses/addCategory',
+            method: 'POST',
+            data: { CategoryUID: uid, CategoryName: name, [CsrfName]: CsrfToken },
             success: function (resp) {
-                $btn.prop('disabled', false).text('Add');
+                $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i><span id="catSaveBtnLabel">' + (isEdit ? 'Save' : 'Add') + '</span>');
                 if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
                 var $sel = $('#emCategory');
-                $sel.append(new Option(resp.CategoryName, resp.CategoryUID, true, true));
-                if ($.fn.select2 && $sel.data('select2')) $sel.trigger('change');
+                if (isEdit) {
+                    $sel.find('option[value="' + uid + '"]').text(resp.CategoryName);
+                    if ($.fn.select2 && $sel.data('select2')) $sel.trigger('change.select2');
+                    _expCatData = _expCatData.map(function (c) { return c.uid === uid ? { uid: uid, name: resp.CategoryName } : c; });
+                } else {
+                    $sel.append(new Option(resp.CategoryName, resp.CategoryUID, true, true));
+                    if ($.fn.select2 && $sel.data('select2')) $sel.trigger('change');
+                    _expCatData.push({ uid: parseInt(resp.CategoryUID), name: resp.CategoryName });
+                }
+                _expCatData.sort(function (a, b) { return a.name.localeCompare(b.name); });
+                _rebuildExpCatFilter();
+                var $mgr = document.getElementById('expCatManagerModal');
+                if ($mgr && bootstrap.Modal.getInstance($mgr)) _loadCatMgr(1);
                 bootstrap.Modal.getInstance(document.getElementById('addCategoryModal')).hide();
-                showToastNotification('Category "' + resp.CategoryName + '" added.', 'success');
+                showToastNotification(resp.Message || (isEdit ? 'Category updated.' : 'Category added.'), 'success');
             }
+        });
+    });
+
+    // ── Category Manager ─────────────────────────────────────
+    function _loadCatMgr(pageNo) {
+        $.ajax({
+            url: '/expenses/getCategoryList', method: 'POST',
+            data: { PageNo: pageNo || 1, Search: $.trim($('#catMgrSearch').val()), [CsrfName]: CsrfToken },
+            success: function (resp) {
+                if (resp.Error) {
+                    $('#catMgrList').html('<li class="list-group-item text-danger py-3 text-center">' + resp.Message + '</li>');
+                    return;
+                }
+                $('#catMgrList').html(resp.RecordHtmlData);
+                $('#catMgrPagination').html(resp.Pagination || '');
+            }
+        });
+    }
+
+    $('#expManageCatBtn').on('click', function () {
+        $('#catMgrSearch').val('');
+        new bootstrap.Modal(document.getElementById('expCatManagerModal')).show();
+        _loadCatMgr(1);
+    });
+
+    $('#expAddNewCatFromMgr').on('click', function () {
+        $('#catModalTitle').text('Add Category');
+        $('#catSaveBtnLabel').text('Add');
+        $('#catModalUID').val('0');
+        $('#newCategoryName').val('').removeClass('is-invalid');
+        new bootstrap.Modal(document.getElementById('addCategoryModal')).show();
+        setTimeout(function () { $('#newCategoryName').focus(); }, 350);
+    });
+
+    $('#catMgrSearch').on('keyup', debounce(function () { _loadCatMgr(1); }, 350));
+
+    $(document).on('click', '#catMgrPagination .page-link', function (e) {
+        e.preventDefault();
+        var match = ($(this).attr('href') || '').match(/\/(\d+)$/);
+        if (match) _loadCatMgr(parseInt(match[1]));
+    });
+
+    $(document).on('click', '.catEditBtn', function () {
+        $('#catModalTitle').text('Edit Category');
+        $('#catSaveBtnLabel').text('Save');
+        $('#catModalUID').val($(this).data('uid'));
+        $('#newCategoryName').val($(this).data('name')).removeClass('is-invalid');
+        new bootstrap.Modal(document.getElementById('addCategoryModal')).show();
+        setTimeout(function () { $('#newCategoryName').focus(); }, 350);
+    });
+
+    $(document).on('click', '.catDeleteBtn', function () {
+        var uid  = parseInt($(this).data('uid'));
+        var name = $(this).data('name');
+        Swal.fire({
+            title: 'Delete Category?',
+            html: 'Delete <strong>' + $('<span>').text(name).html() + '</strong>? This cannot be undone.',
+            icon: 'warning', showCancelButton: true,
+            confirmButtonColor: '#d33', confirmButtonText: 'Delete'
+        }).then(function (r) {
+            if (!r.isConfirmed) return;
+            $.ajax({
+                url: '/expenses/deleteCategory', method: 'POST',
+                data: { CategoryUID: uid, [CsrfName]: CsrfToken },
+                success: function (resp) {
+                    if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
+                    _expCatData = _expCatData.filter(function (c) { return c.uid !== uid; });
+                    _rebuildExpCatFilter();
+                    var $opt = $('#emCategory option[value="' + uid + '"]');
+                    if ($opt.length) { $opt.remove(); if ($.fn.select2 && $('#emCategory').data('select2')) $('#emCategory').trigger('change'); }
+                    _loadCatMgr(1);
+                    showToastNotification(resp.Message || 'Category deleted.', 'success');
+                }
+            });
         });
     });
 

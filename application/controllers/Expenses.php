@@ -8,8 +8,10 @@ class Expenses extends MY_Controller {
 
     public function __construct() {
         parent::__construct();
+        $this->load->helper('transaction');
         $this->load->model('expenses_model');
         $this->load->model('dbwrite_model');
+        $this->load->model('transactions_model');
     }
 
     // ── List page ────────────────────────────────────────────────────────────
@@ -111,34 +113,8 @@ class Expenses extends MY_Controller {
                 ['ExpenseUID' => $expenseUID, 'OrgUID' => $orgUID]
             );
 
-            // Debit the bank / cash account when expense is paid
             if ($data['IsPaid']) {
-                $ledgerBankUID = $data['BankAccountUID'];
-                if (!$ledgerBankUID) {
-                    $cashAcc = $this->expenses_model->getCashAccount($orgUID);
-                    $ledgerBankUID = $cashAcc ? (int)$cashAcc->BankAccountUID : null;
-                }
-                if ($ledgerBankUID) {
-                    $ledgerResp = $this->dbwrite_model->insertData('Transaction', 'AccountLedgerTbl', [
-                        'OrgUID'         => $orgUID,
-                        'BankAccountUID' => $ledgerBankUID,
-                        'EntryDate'      => $data['PaymentDate'] ?: $data['ExpenseDate'],
-                        'EntryType'      => 'DR',
-                        'Amount'         => $data['NetAmount'],
-                        'SourceType'     => 'Expense',
-                        'SourceUID'      => $expenseUID,
-                        'ModuleUID'      => $this->pageModuleUID,
-                        'ReferenceNo'    => null,
-                        'Narration'      => 'Expense paid — ' . $expenseNumber,
-                        'IsActive'       => 1,
-                        'IsDeleted'      => 0,
-                        'CreatedBy'      => $userUID,
-                        'UpdatedBy'      => $userUID,
-                        'CreatedOn'      => date('Y-m-d H:i:s'),
-                        'UpdatedOn'      => date('Y-m-d H:i:s'),
-                    ]);
-                    if ($ledgerResp->Error) throw new Exception('Ledger entry failed: ' . $ledgerResp->Message);
-                }
+                $this->_insertExpensePayment($PostData, $orgUID, $userUID, $expenseUID, $expenseNumber, $data['NetAmount'], $data['ExpenseDate']);
             }
 
             $this->dbwrite_model->commitTransaction();
@@ -148,13 +124,16 @@ class Expenses extends MY_Controller {
             $this->EndReturnData->ExpenseUID    = $expenseUID;
             $this->EndReturnData->ExpenseNumber = $expenseNumber;
 
-            $this->_appendListResponse($orgUID);
-
         } catch (Throwable $e) {
             $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
+
+        if (!$this->EndReturnData->Error) {
+            $this->_appendListResponse($orgUID);
+        }
+
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
@@ -171,10 +150,16 @@ class Expenses extends MY_Controller {
 
             $existing = $this->expenses_model->getExpenseById($expenseUID, $orgUID);
             if (!$existing) throw new Exception('Expense not found.');
-            if (in_array($existing->DocStatus, ['Paid', 'Cancelled'])) throw new Exception('This expense cannot be edited.');
+            if ($existing->DocStatus === 'Cancelled') throw new Exception('This expense cannot be edited.');
 
             $data = $this->_buildExpenseData($PostData, $userUID, $orgUID, false);
             unset($data['CreatedBy'], $data['CreatedOn'], $data['OrgUID'], $data['ModuleUID']);
+
+            // Preserve DocStatus/IsPaid for Paid expenses — only edit allowed, not payment reversal
+            if ($existing->DocStatus === 'Paid') {
+                $data['DocStatus'] = 'Paid';
+                $data['IsPaid']    = 1;
+            }
 
             $resp = $this->dbwrite_model->updateData(
                 'Transaction', 'ExpensesTbl', $data,
@@ -185,12 +170,15 @@ class Expenses extends MY_Controller {
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Expense updated successfully.';
 
-            $this->_appendListResponse($orgUID);
-
         } catch (Throwable $e) {
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
+
+        if (!$this->EndReturnData->Error) {
+            $this->_appendListResponse($orgUID);
+        }
+
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
@@ -207,7 +195,7 @@ class Expenses extends MY_Controller {
 
             $existing = $this->expenses_model->getExpenseById($expenseUID, $orgUID);
             if (!$existing) throw new Exception('Expense not found.');
-            if ($existing->DocStatus === 'Paid') throw new Exception('Paid expenses cannot be deleted.');
+            if ($existing->DocStatus === 'Cancelled') throw new Exception('Cancelled expenses cannot be deleted.');
 
             $deleteData = $this->globalservice->baseDeleteArrayDetails();
             $deleteData['IsActive'] = 0;
@@ -218,19 +206,207 @@ class Expenses extends MY_Controller {
             );
             if ($resp->Error) throw new Exception($resp->Message);
 
+            // Soft-delete the linked payment record (if any)
+            if (!empty($existing->PaymentUID)) {
+                $this->dbwrite_model->updateData(
+                    'Transaction', 'PaymentsTbl',
+                    ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID, 'UpdatedOn' => date('Y-m-d H:i:s')],
+                    ['PaymentUID' => (int)$existing->PaymentUID, 'OrgUID' => $orgUID]
+                );
+            }
+
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Expense deleted.';
-
-            $this->_appendListResponse($orgUID);
 
         } catch (Throwable $e) {
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
+
+        if (!$this->EndReturnData->Error) {
+            $this->_appendListResponse($orgUID);
+        }
+
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    // ── Update status (Pending → Paid / Cancelled) ───────────────────────────
+    // ── Duplicate expense (creates a Pending copy dated today) ───────────────
+    public function duplicateExpense() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $PostData   = $this->input->post();
+            $expenseUID = (int)getPostValue($PostData, 'ExpenseUID');
+            $userUID    = $this->pageData['JwtData']->User->UserUID;
+            $orgUID     = $this->pageData['JwtData']->User->OrgUID;
+
+            if ($expenseUID <= 0) throw new Exception('Invalid expense record.');
+
+            $src = $this->expenses_model->getExpenseById($expenseUID, $orgUID);
+            if (!$src) throw new Exception('Expense not found.');
+
+            $data = [
+                'OrgUID'        => $orgUID,
+                'ModuleUID'     => $this->pageModuleUID,
+                'ExpenseDate'   => date('Y-m-d'),
+                'Amount'        => $src->Amount,
+                'TaxApplicable' => $src->TaxApplicable,
+                'TaxPercentage' => $src->TaxPercentage ?? 0,
+                'TaxAmount'     => $src->TaxAmount,
+                'TDSApplicable' => $src->TDSApplicable,
+                'TDSPercentage' => $src->TDSPercentage ?? 0,
+                'TDSAmount'     => $src->TDSAmount,
+                'NetAmount'     => $src->NetAmount,
+                'CategoryUID'   => $src->CategoryUID,
+                'Notes'         => $src->Notes,
+                'DocStatus'     => 'Pending',
+                'IsPaid'        => 0,
+                'IsActive'      => 1,
+                'IsDeleted'     => 0,
+                'CreatedBy'     => $userUID,
+                'UpdatedBy'     => $userUID,
+                'CreatedOn'     => date('Y-m-d H:i:s'),
+                'UpdatedOn'     => date('Y-m-d H:i:s'),
+            ];
+
+            $resp = $this->dbwrite_model->insertData('Transaction', 'ExpensesTbl', $data);
+            if ($resp->Error) throw new Exception($resp->Message);
+
+            $newUID    = (int)$resp->ID;
+            $newNumber = 'EXP-' . str_pad($newUID, 4, '0', STR_PAD_LEFT);
+            $this->dbwrite_model->updateData(
+                'Transaction', 'ExpensesTbl',
+                ['ExpenseNumber' => $newNumber],
+                ['ExpenseUID' => $newUID, 'OrgUID' => $orgUID]
+            );
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = $newNumber . ' created as a duplicate.';
+
+        } catch (Throwable $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        if (!$this->EndReturnData->Error) {
+            $this->_appendListResponse($orgUID);
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    // ── Record payment via shared modal ─────────────────────────────────────────
+    public function recordPayment() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $PostData   = $this->input->post();
+            $expenseUID = (int)getPostValue($PostData, 'TransUID');
+            $userUID    = $this->pageData['JwtData']->User->UserUID;
+            $orgUID     = $this->pageData['JwtData']->User->OrgUID;
+
+            if ($expenseUID <= 0) throw new Exception('Invalid expense record.');
+
+            $existing = $this->expenses_model->getExpenseById($expenseUID, $orgUID);
+            if (!$existing) throw new Exception('Expense not found.');
+            if ($existing->DocStatus !== 'Pending') throw new Exception('Only pending expenses can be marked as paid.');
+
+            $paymentTypeUID = (int)getPostValue($PostData, 'PaymentTypeUID') ?: NULL;
+            $bankAccountUID = (int)getPostValue($PostData, 'BankAccountUID') ?: NULL;
+            $paymentDate    = getPostValue($PostData, 'PaymentDate') ?: $existing->ExpenseDate;
+            $referenceNo    = getPostValue($PostData, 'ReferenceNo') ?: NULL;
+            $notes          = getPostValue($PostData, 'Notes')       ?: NULL;
+
+            if (!$paymentTypeUID) throw new Exception('Please select a payment type.');
+
+            $this->dbwrite_model->startTransaction();
+
+            $resp = $this->dbwrite_model->updateData(
+                'Transaction', 'ExpensesTbl',
+                ['DocStatus' => 'Paid', 'IsPaid' => 1, 'UpdatedBy' => $userUID, 'UpdatedOn' => date('Y-m-d H:i:s')],
+                ['ExpenseUID' => $expenseUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
+            );
+            if ($resp->Error) throw new Exception($resp->Message);
+
+            $payTransYear  = (int)date('Y', strtotime($paymentDate));
+            $payPrefixData = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.OrgUID' => $orgUID, 'Prefix.ModuleUID' => $this->pageModuleUID]);
+            $payPrefix     = !empty($payPrefixData->Data) ? $payPrefixData->Data[0] : null;
+            $payPrefixUID  = $payPrefix ? (int)$payPrefix->PrefixUID : null;
+            $paymentNumber = $payPrefixUID ? (int)$this->transactions_model->getNextPaymentNumber($payPrefixUID, $orgUID, $payTransYear) : 0;
+            $token         = $this->transactions_model->_generateReceiptToken();
+
+            $pmtResp = $this->dbwrite_model->insertData('Transaction', 'PaymentsTbl', [
+                'OrgUID'           => $orgUID,
+                'PaymentDate'      => $paymentDate,
+                'PaymentModuleUID' => 111,
+                'PrefixUID'        => $payPrefixUID,
+                'PaymentNumber'    => $paymentNumber,
+                'UniqueNumber'     => $existing->ExpenseNumber,
+                'ReceiptToken'     => $token,
+                'TransYear'        => $payTransYear,
+                'TransUID'         => $expenseUID,
+                'ModuleUID'        => $this->pageModuleUID,
+                'SourceType'       => 'Expense',
+                'PartyType'        => NULL,
+                'PartyUID'         => NULL,
+                'PaymentTypeUID'   => $paymentTypeUID,
+                'Amount'           => $existing->NetAmount,
+                'BankAccountUID'   => $bankAccountUID ?: NULL,
+                'Notes'            => $notes,
+                'PaymentSource'    => 'Create',
+                'PaymentDirection' => 'Out',
+                'IsFullyPaid'      => 1,
+                'ExcessAmount'     => 0,
+                'IsActive'         => 1,
+                'IsDeleted'        => 0,
+                'CreatedBy'        => $userUID,
+                'UpdatedBy'        => $userUID,
+            ]);
+            if ($pmtResp->Error) throw new Exception('Payment record failed: ' . $pmtResp->Message);
+
+            $ledgerBankUID = $bankAccountUID;
+            if (!$ledgerBankUID) {
+                $cashAcc = $this->expenses_model->getCashAccount($orgUID);
+                $ledgerBankUID = $cashAcc ? (int)$cashAcc->BankAccountUID : null;
+            }
+            if ($ledgerBankUID) {
+                $ledgerResp = $this->dbwrite_model->insertData('Transaction', 'AccountLedgerTbl', [
+                    'OrgUID'         => $orgUID,
+                    'BankAccountUID' => $ledgerBankUID,
+                    'EntryDate'      => $paymentDate,
+                    'EntryType'      => 'DR',
+                    'Amount'         => $existing->NetAmount,
+                    'SourceType'     => 'Expense',
+                    'SourceUID'      => $expenseUID,
+                    'ModuleUID'      => $this->pageModuleUID,
+                    'ReferenceNo'    => $referenceNo,
+                    'Narration'      => 'Expense paid — ' . $existing->ExpenseNumber,
+                    'IsActive'       => 1,
+                    'IsDeleted'      => 0,
+                    'CreatedBy'      => $userUID,
+                    'UpdatedBy'      => $userUID,
+                    'CreatedOn'      => date('Y-m-d H:i:s'),
+                    'UpdatedOn'      => date('Y-m-d H:i:s'),
+                ]);
+                if ($ledgerResp->Error) throw new Exception('Ledger entry failed: ' . $ledgerResp->Message);
+            }
+
+            $this->dbwrite_model->commitTransaction();
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Expense marked as paid.';
+
+        } catch (Throwable $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        if (!$this->EndReturnData->Error) {
+            $this->_appendListResponse($orgUID);
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    // ── Update status (Pending → Paid / Cancelled, Paid → Cancelled) ─────────
     public function updateExpenseStatus() {
         $this->EndReturnData = new stdClass();
         try {
@@ -246,15 +422,20 @@ class Expenses extends MY_Controller {
             $existing = $this->expenses_model->getExpenseById($expenseUID, $orgUID);
             if (!$existing) throw new Exception('Expense not found.');
 
-            $allowed = ['Pending' => ['Paid', 'Cancelled']];
+            $allowed = [
+                'Pending' => ['Paid', 'Cancelled'],
+                'Paid'    => ['Cancelled'],
+            ];
 
             if (!isset($allowed[$existing->DocStatus]) || !in_array($newStatus, $allowed[$existing->DocStatus])) {
                 throw new Exception('Invalid status transition.');
             }
 
+            $this->dbwrite_model->startTransaction();
+
             $updateData = [
                 'DocStatus' => $newStatus,
-                'IsPaid'    => ($newStatus === 'Paid') ? 1 : $existing->IsPaid,
+                'IsPaid'    => ($newStatus === 'Paid') ? 1 : 0,
                 'UpdatedBy' => $userUID,
                 'UpdatedOn' => date('Y-m-d H:i:s'),
             ];
@@ -265,15 +446,37 @@ class Expenses extends MY_Controller {
             );
             if ($resp->Error) throw new Exception($resp->Message);
 
+            if ($newStatus === 'Paid') {
+                // Payment details come from the "Mark as Paid" modal in the list
+                $this->_insertExpensePayment(
+                    $PostData, $orgUID, $userUID,
+                    $expenseUID, $existing->ExpenseNumber,
+                    $existing->NetAmount, $existing->ExpenseDate
+                );
+            } elseif ($newStatus === 'Cancelled' && !empty($existing->PaymentUID)) {
+                // Void the linked payment record
+                $this->dbwrite_model->updateData(
+                    'Transaction', 'PaymentsTbl',
+                    ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID, 'UpdatedOn' => date('Y-m-d H:i:s')],
+                    ['PaymentUID' => (int)$existing->PaymentUID, 'OrgUID' => $orgUID]
+                );
+            }
+
+            $this->dbwrite_model->commitTransaction();
+
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Status updated to ' . $newStatus . '.';
 
-            $this->_appendListResponse($orgUID);
-
         } catch (Throwable $e) {
+            $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
+
+        if (!$this->EndReturnData->Error) {
+            $this->_appendListResponse($orgUID);
+        }
+
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
@@ -342,7 +545,95 @@ class Expenses extends MY_Controller {
             $this->EndReturnData->Message      = 'Category added.';
             $this->EndReturnData->CategoryUID  = $resp->ID;
             $this->EndReturnData->CategoryName = $categoryName;
+            $this->_appendCategoryListResponse($orgUID);
 
+        } catch (Throwable $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    // ── Category list (paginated, for manager modal) ─────────────────────────
+    public function getCategoryList() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+            $pageNo = max(1, (int)($this->input->post('PageNo') ?: 1));
+            $limit  = 30;
+            $search = trim($this->input->post('Search') ?: '');
+            $list   = $this->expenses_model->getCategoryList($orgUID, $search, $limit, ($pageNo - 1) * $limit);
+            $total  = $this->expenses_model->getCategoryCount($orgUID, $search);
+
+            $this->EndReturnData->Error          = FALSE;
+            $this->EndReturnData->RecordHtmlData = $this->_buildCategoryListHtml($list);
+            $this->EndReturnData->Pagination     = $this->globalservice->buildPagePaginationHtml('/expenses/getCategoryList', $total, $pageNo, $limit);
+            $this->EndReturnData->TotalCount     = $total;
+        } catch (Throwable $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    // ── Update category name ──────────────────────────────────────────────────
+    public function updateCategory() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $PostData    = $this->input->post();
+            $categoryUID = (int)getPostValue($PostData, 'CategoryUID');
+            $orgUID      = $this->pageData['JwtData']->User->OrgUID;
+            $userUID     = $this->pageData['JwtData']->User->UserUID;
+            $name        = trim(getPostValue($PostData, 'CategoryName'));
+
+            if ($categoryUID <= 0) throw new Exception('Invalid category.');
+            if (empty($name))      throw new Exception('Category name is required.');
+
+            $resp = $this->dbwrite_model->updateData(
+                'Transaction', 'ExpenseCategoryTbl',
+                ['CategoryName' => $name, 'UpdatedBy' => $userUID, 'UpdatedOn' => date('Y-m-d H:i:s')],
+                ['CategoryUID' => $categoryUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
+            );
+            if ($resp->Error) throw new Exception($resp->Message);
+
+            $this->EndReturnData->Error        = FALSE;
+            $this->EndReturnData->Message      = 'Category updated.';
+            $this->EndReturnData->CategoryUID  = $categoryUID;
+            $this->EndReturnData->CategoryName = $name;
+            $this->_appendCategoryListResponse($orgUID);
+        } catch (Throwable $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    // ── Delete category ───────────────────────────────────────────────────────
+    public function deleteCategory() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $PostData    = $this->input->post();
+            $categoryUID = (int)getPostValue($PostData, 'CategoryUID');
+            $orgUID      = $this->pageData['JwtData']->User->OrgUID;
+            $userUID     = $this->pageData['JwtData']->User->UserUID;
+
+            if ($categoryUID <= 0) throw new Exception('Invalid category.');
+
+            if ($this->expenses_model->isCategoryLinked($categoryUID, $orgUID)) {
+                throw new Exception('This category is linked to one or more expenses and cannot be deleted. Please reassign those expenses first.');
+            }
+
+            $resp = $this->dbwrite_model->updateData(
+                'Transaction', 'ExpenseCategoryTbl',
+                ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID, 'UpdatedOn' => date('Y-m-d H:i:s')],
+                ['CategoryUID' => $categoryUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
+            );
+            if ($resp->Error) throw new Exception($resp->Message);
+
+            $this->EndReturnData->Error       = FALSE;
+            $this->EndReturnData->Message     = 'Category deleted.';
+            $this->EndReturnData->CategoryUID = $categoryUID;
+            $this->_appendCategoryListResponse($orgUID);
         } catch (Throwable $e) {
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -359,8 +650,8 @@ class Expenses extends MY_Controller {
         $GeneralSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
         $this->pageData['JwtData']->GenSettings = $GeneralSettings;
 
-        $filterJson = $this->input->post('Filter');
-        $filter = ($filterJson && ($decoded = json_decode($filterJson, true))) ? $decoded : ['Status' => 'All'];
+        $filterRaw = $this->input->post('Filter');
+        $filter = is_array($filterRaw) ? $filterRaw : (($filterRaw && ($decoded = json_decode($filterRaw, true))) ? $decoded : ['Status' => 'All']);
         $limit  = (int)($this->input->post('RowLimit') ?: ($GeneralSettings->RowLimit ?? 10));
 
         $allData  = $this->expenses_model->getExpenseList($orgUID, $filter, $limit, 0);
@@ -378,46 +669,88 @@ class Expenses extends MY_Controller {
         $this->EndReturnData->SummaryStats   = $this->expenses_model->getExpenseSummaryStats($orgUID);
     }
 
-    // Validates POST, computes amounts, returns data array for insert/update
-    private function _buildExpenseData($PostData, $userUID, $orgUID, $isCreate) {
-        $amount         = (float) getPostValue($PostData, 'Amount');
-        $isPaid         = (int)   getPostValue($PostData, 'IsPaid')        === 1 ? 1 : 0;
-        $categoryUID    = (int)   getPostValue($PostData, 'CategoryUID')   ?: NULL;
-        $paymentTypeUID = (int)   getPostValue($PostData, 'PaymentTypeUID') ?: NULL;
-        $bankAccountUID = (int)   getPostValue($PostData, 'BankAccountUID') ?: NULL;
-        $expenseDate    =         getPostValue($PostData, 'ExpenseDate')   ?: date('Y-m-d');
-        $paymentDate    =         getPostValue($PostData, 'PaymentDate')   ?: NULL;
-        $notes          =         getPostValue($PostData, 'Notes')         ?: NULL;
-        $paymentNotes   =         getPostValue($PostData, 'PaymentNotes')  ?: NULL;
+    // Rebuilds category list HTML and appends to EndReturnData
+    private function _appendCategoryListResponse($orgUID) {
+        $pageNo = max(1, (int)($this->input->post('PageNo') ?: 1));
+        $limit  = 30;
+        $search = trim($this->input->post('Search') ?: '');
+        $list   = $this->expenses_model->getCategoryList($orgUID, $search, $limit, ($pageNo - 1) * $limit);
+        $total  = $this->expenses_model->getCategoryCount($orgUID, $search);
 
-        if ($amount <= 0)                throw new Exception('Expense amount must be greater than 0.');
-        if (empty($expenseDate))         throw new Exception('Expense date is required.');
-        if ($isPaid && !$paymentTypeUID) throw new Exception('Please select a payment type.');
+        if (empty($list) && $pageNo > 1) {
+            $pageNo--;
+            $list = $this->expenses_model->getCategoryList($orgUID, $search, $limit, ($pageNo - 1) * $limit);
+        }
+
+        $this->EndReturnData->CatRecordHtmlData = $this->_buildCategoryListHtml($list);
+        $this->EndReturnData->CatPagination     = $this->globalservice->buildPagePaginationHtml('/expenses/getCategoryList', $total, $pageNo, $limit);
+        $this->EndReturnData->CatTotalCount     = $total;
+    }
+
+    // Renders category rows as list-group HTML
+    private function _buildCategoryListHtml($list) {
+        if (empty($list)) {
+            return '<div class="text-center py-5 text-muted" style="font-size:.88rem;">No categories found.</div>';
+        }
+        $html = '';
+        foreach ($list as $cat) {
+            $isSystem = is_null($cat->OrgUID) || $cat->OrgUID === '';
+            $eName    = htmlspecialchars($cat->CategoryName);
+            $uid      = (int)$cat->CategoryUID;
+            $html .= '<li class="list-group-item d-flex align-items-center justify-content-between px-3 py-2">';
+            $html .= '<div class="d-flex align-items-center gap-2">';
+            $html .= '<span class="fw-medium" style="font-size:.88rem;">' . $eName . '</span>';
+            if ($isSystem || (int)$cat->IsDefault) {
+                $html .= '<span class="badge bg-label-secondary" style="font-size:.65rem;">System</span>';
+            }
+            $html .= '</div>';
+            $html .= '<div class="d-flex align-items-center gap-1">';
+            if (!$isSystem) {
+                $html .= '<button class="btn btn-icon btn-sm text-primary catEditBtn" data-uid="' . $uid . '" data-name="' . $eName . '" title="Edit"><i class="bx bx-edit" style="font-size:1rem;"></i></button>';
+                $html .= '<button class="btn btn-icon btn-sm text-danger catDeleteBtn" data-uid="' . $uid . '" data-name="' . $eName . '" title="Delete"><i class="bx bx-trash" style="font-size:1rem;"></i></button>';
+            } else {
+                $html .= '<span class="text-muted px-2" title="System category — cannot be modified"><i class="bx bx-lock-alt" style="font-size:.85rem;"></i></span>';
+            }
+            $html .= '</div>';
+            $html .= '</li>';
+        }
+        return $html;
+    }
+
+    // Validates POST, computes amounts, returns data array for ExpensesTbl only
+    private function _buildExpenseData($PostData, $userUID, $orgUID, $isCreate) {
+        $amount      = (float) getPostValue($PostData, 'Amount');
+        $isPaid      = (int)   getPostValue($PostData, 'IsPaid') === 1 ? 1 : 0;
+        $categoryUID = (int)   getPostValue($PostData, 'CategoryUID') ?: NULL;
+        $expenseDate =         getPostValue($PostData, 'ExpenseDate') ?: date('Y-m-d');
+        $notes       =         getPostValue($PostData, 'Notes') ?: NULL;
+
+        if ($amount <= 0)        throw new Exception('Expense amount must be greater than 0.');
+        if (empty($expenseDate)) throw new Exception('Expense date is required.');
+        if ($isPaid && !(int)getPostValue($PostData, 'PaymentTypeUID')) {
+            throw new Exception('Please select a payment type.');
+        }
 
         $data = [
-            'OrgUID'         => $orgUID,
-            'ModuleUID'      => $this->pageModuleUID,
-            'ExpenseDate'    => $expenseDate,
-            'Amount'         => $amount,
-            'TaxApplicable'  => 0,
-            'TaxPercentage'  => 0,
-            'TaxAmount'      => 0,
-            'TDSApplicable'  => 0,
-            'TDSPercentage'  => 0,
-            'TDSAmount'      => 0,
-            'NetAmount'      => $amount,
-            'CategoryUID'    => $categoryUID,
-            'Notes'          => $notes,
-            'DocStatus'      => $isPaid ? 'Paid' : 'Pending',
-            'IsPaid'         => $isPaid,
-            'PaymentTypeUID' => $isPaid ? $paymentTypeUID : NULL,
-            'BankAccountUID' => ($isPaid && $bankAccountUID) ? $bankAccountUID : NULL,
-            'PaymentDate'    => $isPaid ? ($paymentDate ?: $expenseDate) : NULL,
-            'PaymentNotes'   => $isPaid ? $paymentNotes : NULL,
-            'IsActive'       => 1,
-            'IsDeleted'      => 0,
-            'UpdatedBy'      => $userUID,
-            'UpdatedOn'      => date('Y-m-d H:i:s'),
+            'OrgUID'        => $orgUID,
+            'ModuleUID'     => $this->pageModuleUID,
+            'ExpenseDate'   => $expenseDate,
+            'Amount'        => $amount,
+            'TaxApplicable' => 0,
+            'TaxPercentage' => 0,
+            'TaxAmount'     => 0,
+            'TDSApplicable' => 0,
+            'TDSPercentage' => 0,
+            'TDSAmount'     => 0,
+            'NetAmount'     => $amount,
+            'CategoryUID'   => $categoryUID,
+            'Notes'         => $notes,
+            'DocStatus'     => $isPaid ? 'Paid' : 'Pending',
+            'IsPaid'        => $isPaid,
+            'IsActive'      => 1,
+            'IsDeleted'     => 0,
+            'UpdatedBy'     => $userUID,
+            'UpdatedOn'     => date('Y-m-d H:i:s'),
         ];
 
         if ($isCreate) {
@@ -426,5 +759,79 @@ class Expenses extends MY_Controller {
         }
 
         return $data;
+    }
+
+    // Inserts a PaymentsTbl record + AccountLedgerTbl debit for a paid expense
+    private function _insertExpensePayment($PostData, $orgUID, $userUID, $expenseUID, $expenseNumber, $netAmount, $fallbackDate) {
+        $paymentTypeUID = (int)getPostValue($PostData, 'PaymentTypeUID') ?: NULL;
+        $bankAccountUID = (int)getPostValue($PostData, 'BankAccountUID') ?: NULL;
+        $paymentDate    = getPostValue($PostData, 'PaymentDate') ?: $fallbackDate;
+        $paymentNotes   = getPostValue($PostData, 'PaymentNotes') ?: NULL;
+
+        if (!$paymentTypeUID) throw new Exception('Please select a payment type.');
+
+        $payTransYear  = (int)date('Y', strtotime($paymentDate));
+        $payPrefixData = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.OrgUID' => $orgUID, 'Prefix.ModuleUID' => $this->pageModuleUID]);
+        $payPrefix     = !empty($payPrefixData->Data) ? $payPrefixData->Data[0] : null;
+        $payPrefixUID  = $payPrefix ? (int)$payPrefix->PrefixUID : null;
+        $paymentNumber = $payPrefixUID ? (int)$this->transactions_model->getNextPaymentNumber($payPrefixUID, $orgUID, $payTransYear) : 0;
+        $token         = $this->transactions_model->_generateReceiptToken();
+
+        $pmtResp = $this->dbwrite_model->insertData('Transaction', 'PaymentsTbl', [
+            'OrgUID'           => $orgUID,
+            'PaymentDate'      => $paymentDate,
+            'PaymentModuleUID' => 111,
+            'PrefixUID'        => $payPrefixUID,
+            'PaymentNumber'    => $paymentNumber,
+            'UniqueNumber'     => $expenseNumber,
+            'ReceiptToken'     => $token,
+            'TransYear'        => $payTransYear,
+            'TransUID'         => $expenseUID,
+            'ModuleUID'        => $this->pageModuleUID,
+            'SourceType'       => 'Expense',
+            'PartyType'        => NULL,
+            'PartyUID'         => NULL,
+            'PaymentTypeUID'   => $paymentTypeUID,
+            'Amount'           => $netAmount,
+            'BankAccountUID'   => $bankAccountUID ?: NULL,
+            'Notes'            => $paymentNotes,
+            'PaymentSource'    => 'Create',
+            'PaymentDirection' => 'Out',
+            'IsFullyPaid'      => 1,
+            'ExcessAmount'     => 0,
+            'IsActive'         => 1,
+            'IsDeleted'        => 0,
+            'CreatedBy'        => $userUID,
+            'UpdatedBy'        => $userUID,
+        ]);
+        if ($pmtResp->Error) throw new Exception('Payment record failed: ' . $pmtResp->Message);
+
+        // Ledger debit entry
+        $ledgerBankUID = $bankAccountUID;
+        if (!$ledgerBankUID) {
+            $cashAcc = $this->expenses_model->getCashAccount($orgUID);
+            $ledgerBankUID = $cashAcc ? (int)$cashAcc->BankAccountUID : null;
+        }
+        if ($ledgerBankUID) {
+            $ledgerResp = $this->dbwrite_model->insertData('Transaction', 'AccountLedgerTbl', [
+                'OrgUID'         => $orgUID,
+                'BankAccountUID' => $ledgerBankUID,
+                'EntryDate'      => $paymentDate,
+                'EntryType'      => 'DR',
+                'Amount'         => $netAmount,
+                'SourceType'     => 'Expense',
+                'SourceUID'      => $expenseUID,
+                'ModuleUID'      => $this->pageModuleUID,
+                'ReferenceNo'    => null,
+                'Narration'      => 'Expense paid — ' . $expenseNumber,
+                'IsActive'       => 1,
+                'IsDeleted'      => 0,
+                'CreatedBy'      => $userUID,
+                'UpdatedBy'      => $userUID,
+                'CreatedOn'      => date('Y-m-d H:i:s'),
+                'UpdatedOn'      => date('Y-m-d H:i:s'),
+            ]);
+            if ($ledgerResp->Error) throw new Exception('Ledger entry failed: ' . $ledgerResp->Message);
+        }
     }
 }

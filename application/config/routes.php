@@ -165,6 +165,12 @@ $route['expenses/updateExpenseStatus']                             = 'expenses/u
 $route['expenses/getExpenseDetail']                                = 'expenses/getExpenseDetail';
 $route['expenses/getCategories']                                   = 'expenses/getCategories';
 $route['expenses/addCategory']                                     = 'expenses/addCategory';
+$route['expenses/getCategoryList']                                 = 'expenses/getCategoryList';
+$route['expenses/getCategoryList/(:num)']                          = 'expenses/getCategoryList/$1';
+$route['expenses/updateCategory']                                  = 'expenses/updateCategory';
+$route['expenses/deleteCategory']                                  = 'expenses/deleteCategory';
+$route['expenses/duplicateExpense']                                = 'expenses/duplicateExpense';
+$route['expenses/recordPayment']                                   = 'expenses/recordPayment';
 
 // Indirect Income
 $route['indirectincome']                                           = 'indirectincome/index';
@@ -177,6 +183,12 @@ $route['indirectincome/updateIncomeStatus']                        = 'indirectin
 $route['indirectincome/getIncomeDetail']                           = 'indirectincome/getIncomeDetail';
 $route['indirectincome/getCategories']                             = 'indirectincome/getCategories';
 $route['indirectincome/addCategory']                               = 'indirectincome/addCategory';
+$route['indirectincome/getCategoryList']                           = 'indirectincome/getCategoryList';
+$route['indirectincome/getCategoryList/(:num)']                    = 'indirectincome/getCategoryList/$1';
+$route['indirectincome/updateCategory']                            = 'indirectincome/updateCategory';
+$route['indirectincome/deleteCategory']                            = 'indirectincome/deleteCategory';
+$route['indirectincome/duplicateIncome']                           = 'indirectincome/duplicateIncome';
+$route['indirectincome/recordPayment']                             = 'indirectincome/recordPayment';
 
 // Sales Orders
 $route['salesorders']                                      = 'salesorders/index';

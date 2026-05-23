@@ -40,9 +40,14 @@ $this->load->view('common/transactions/header'); ?>
                             </div>
                             <h5 class="trans-ph-title"><?php echo htmlspecialchars($PageTitle ?? 'Indirect Income'); ?></h5>
                         </div>
-                        <button type="button" class="btn btn-primary" id="addIncomeBtn">
-                            <i class="bx bx-plus me-1"></i>Add Income
-                        </button>
+                        <div class="d-flex align-items-center gap-2">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="incManageCatBtn">
+                                <i class="bx bx-category me-1"></i>Categories
+                            </button>
+                            <button type="button" class="btn btn-primary" id="addIncomeBtn">
+                                <i class="bx bx-plus me-1"></i>Add Income
+                            </button>
+                        </div>
                     </div>
 
                     <!-- ── Stat Cards ─────────────────────────────────────── -->
@@ -140,7 +145,6 @@ $this->load->view('common/transactions/header'); ?>
                                         <th>Category</th>
                                         <th>Status</th>
                                         <th>Mode</th>
-                                        <th class="col-sortable cursor-pointer user-select-none" data-sort="Date">Date <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Date"></i></th>
                                         <th>Last Updated</th>
                                         <th style="width:50px"></th>
                                     </tr>
@@ -203,7 +207,7 @@ $this->load->view('common/transactions/header'); ?>
                 <div class="row g-3">
 
                     <!-- ── Left Column ──────────────────────────────────── -->
-                    <div class="col-lg-8">
+                    <div class="col-lg-8" id="imFormColumn">
 
                         <!-- Basic Details -->
                         <div class="card mb-3">
@@ -361,9 +365,86 @@ $this->load->view('common/transactions/header'); ?>
     </div>
 </div>
 
+<!-- Income Category Manager Modal -->
+<div class="modal fade" id="incCatManagerModal" tabindex="-1" aria-hidden="true"
+     style="backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);">
+    <div class="modal-dialog modal-dialog-scrollable" style="max-width:480px;">
+        <div class="modal-content">
+            <div class="modal-header bg-white border-bottom d-flex align-items-center justify-content-between px-3 py-2 trans-theme">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="modal-doc-icon" style="background:#dcfce7;">
+                        <i class="bx bx-category modal-doc-icon-inner" style="color:#059669;"></i>
+                    </div>
+                    <h6 class="modal-title mb-0">Manage Categories</h6>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="incAddNewCatFromMgr">
+                        <i class="bx bx-plus me-1"></i>Add New
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-danger" data-bs-dismiss="modal">
+                        <i class="bx bx-x me-1"></i>Close
+                    </button>
+                </div>
+            </div>
+            <div class="modal-body p-0">
+                <div class="px-3 pt-3 pb-2">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text"><i class="bx bx-search"></i></span>
+                        <input type="text" id="incCatMgrSearch" class="form-control" placeholder="Search categories...">
+                    </div>
+                </div>
+                <ul class="list-group list-group-flush" id="incCatMgrList" style="min-height:150px;max-height:380px;overflow-y:auto;">
+                    <li class="list-group-item text-center py-4">
+                        <span class="spinner-border spinner-border-sm text-success"></span>
+                    </li>
+                </ul>
+                <div class="d-flex justify-content-center py-2" id="incCatMgrPagination"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <?php $this->load->view('transactions/indirectincome/partials/_add_category_modal'); ?>
 
+<?php
+$rpAccentColor = '#059669'; $rpAccentBg = '#d1fae5';
+$rpPartyIcon   = 'bx-trending-up'; $rpDocLabel = 'Income';
+$rpTotalIcon   = 'bx-trending-up'; $rpBtnLabel = 'Mark as Received';
+$this->load->view('common/transactions/payment_modal');
+?>
+
 <?php $this->load->view('common/transactions/footer'); ?>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     Income Detail View Modal
+══════════════════════════════════════════════════════════════════════════ -->
+<div class="modal fade" id="incDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable modal-lg">
+        <div class="modal-content">
+
+            <div class="modal-header border-bottom px-3 py-2" id="incDetailHeader" style="background:#f0fdf4;">
+                <div class="d-flex align-items-center gap-3 flex-grow-1">
+                    <div class="modal-doc-icon" style="background:#dcfce7;">
+                        <i class="bx bx-trending-up modal-doc-icon-inner" style="color:#059669;"></i>
+                    </div>
+                    <div>
+                        <div class="fw-semibold" id="incDetailNum" style="font-size:1rem;color:#111;letter-spacing:.2px;"></div>
+                        <div style="font-size:.72rem;color:#6b7280;" id="incDetailDate"></div>
+                    </div>
+                    <span class="trans-badge ms-1" id="incDetailBadge"></span>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body p-0" id="incDetailBody">
+                <div class="d-flex justify-content-center align-items-center py-5">
+                    <div class="spinner-border spinner-border-sm text-success"></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
 
 <script src="/js/transactions/indirectincome.js"></script>
 
@@ -387,6 +468,21 @@ $(function () {
     var fpIncDate       = null;
     var fpIncPmtDate    = null;
     var _incPickersInit = false;
+
+    // Init shared payment modal
+    initRecordPaymentModal(
+        <?php echo json_encode(array_map(function($t) {
+            return ['PaymentTypeUID' => (int)$t->PaymentTypeUID, 'Name' => (string)$t->PaymentTypeName, 'IsCash' => (int)$t->IsCash];
+        }, $paymentTypes)); ?>,
+        <?php echo json_encode(array_values(array_map(function($b) {
+            return ['BankAccountUID' => (int)$b->BankAccountUID, 'BankName' => (string)$b->BankName, 'AccountName' => (string)$b->AccountName, 'IsDefault' => (int)$b->IsDefault];
+        }, $bankAccounts))); ?>,
+        incCurSymbol
+    );
+    window.rpAfterSuccess = function (resp) {
+        if (resp.SummaryStats) _updateStatCards(resp.SummaryStats);
+        _syncSticky();
+    };
 
     // ── Sticky pagination ────────────────────────────────────
     var $staticPag = $('#incPagination');
@@ -509,14 +605,19 @@ $(function () {
 
     // ── Row actions ──────────────────────────────────────────
     $(document).on('click', '.incMarkReceived', function () {
-        var uid = $(this).data('uid'), num = $(this).data('num') || '';
-        Swal.fire({
-            title: 'Mark as Received?',
-            html: num ? 'Mark <strong>' + $('<span>').text(num).html() + '</strong> as received?' : 'Mark this income as received?',
-            icon: 'question', showCancelButton: true,
-            confirmButtonColor: '#198754', cancelButtonColor: '#6c757d',
-            confirmButtonText: 'Yes, Mark Received'
-        }).then(function (r) { if (r.isConfirmed) _postStatusUpdate(uid, 'Received'); });
+        var uid    = $(this).data('uid');
+        var num    = $(this).data('num')    || '';
+        var date   = $(this).data('date')   || '';
+        var amount = parseFloat($(this).data('amount')) || 0;
+        window.rpOpenModal({
+            transUID  : uid,
+            submitUrl : '/indirectincome/recordPayment',
+            docNum    : num,
+            docDate   : date,
+            total     : amount,
+            paid      : 0,
+            pending   : amount,
+        });
     });
 
     $(document).on('click', '.incCancel', function () {
@@ -734,29 +835,127 @@ $(function () {
         setTimeout(function () { $('#newIncomeCategoryName').focus(); }, 350);
     });
 
+    var _incCatData = <?php echo json_encode(array_map(function($c) {
+        return ['uid' => (int)$c->CategoryUID, 'name' => $c->CategoryName];
+    }, $categories)); ?>;
+
     $('#saveIncomeCategoryBtn').on('click', function () {
         var name = $.trim($('#newIncomeCategoryName').val());
         if (!name) { $('#newIncomeCategoryName').addClass('is-invalid'); return; }
         $('#newIncomeCategoryName').removeClass('is-invalid');
-        var $btn = $(this).prop('disabled', true).text('Adding…');
+        var uid    = parseInt($('#incCatModalUID').val()) || 0;
+        var isEdit = uid > 0;
+        var $btn   = $(this).prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i>' + (isEdit ? 'Saving…' : 'Adding…'));
 
         $.ajax({
-            url: '/indirectincome/addCategory', method: 'POST',
-            data: { CategoryName: name, [CsrfName]: CsrfToken },
+            url: isEdit ? '/indirectincome/updateCategory' : '/indirectincome/addCategory',
+            method: 'POST',
+            data: { CategoryUID: uid, CategoryName: name, [CsrfName]: CsrfToken },
             success: function (resp) {
-                $btn.prop('disabled', false).text('Add');
-                if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
+                $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i><span id="incCatSaveBtnLabel">' + (isEdit ? 'Save' : 'Add') + '</span>');
+                if (resp.Error) {
+                    $('#incCatSaveError').text(resp.Message).show();
+                    return;
+                }
+                $('#incCatSaveError').hide();
                 var $sel = $('#imCategory');
-                $sel.append(new Option(resp.CategoryName, resp.CategoryUID, true, true));
-                if ($.fn.select2 && $sel.data('select2')) $sel.trigger('change');
+                if (isEdit) {
+                    $sel.find('option[value="' + uid + '"]').text(resp.CategoryName);
+                    if ($.fn.select2 && $sel.data('select2')) $sel.trigger('change.select2');
+                    _incCatData = _incCatData.map(function (c) { return c.uid === uid ? { uid: uid, name: resp.CategoryName } : c; });
+                } else {
+                    $sel.append(new Option(resp.CategoryName, resp.CategoryUID, true, true));
+                    if ($.fn.select2 && $sel.data('select2')) $sel.trigger('change');
+                    _incCatData.push({ uid: parseInt(resp.CategoryUID), name: resp.CategoryName });
+                }
+                _incCatData.sort(function (a, b) { return a.name.localeCompare(b.name); });
+                var $mgr = document.getElementById('incCatManagerModal');
+                if ($mgr && bootstrap.Modal.getInstance($mgr)) _loadIncCatMgr(1);
                 bootstrap.Modal.getInstance(document.getElementById('addIncomeCategoryModal')).hide();
-                showToastNotification('Category "' + resp.CategoryName + '" added.', 'success');
+                showToastNotification(resp.Message || (isEdit ? 'Category updated.' : 'Category added.'), 'success');
             }
+        });
+    });
+
+    // ── Income Category Manager ──────────────────────────────
+    function _loadIncCatMgr(pageNo) {
+        $.ajax({
+            url: '/indirectincome/getCategoryList', method: 'POST',
+            data: { PageNo: pageNo || 1, Search: $.trim($('#incCatMgrSearch').val()), [CsrfName]: CsrfToken },
+            success: function (resp) {
+                if (resp.Error) {
+                    $('#incCatMgrList').html('<li class="list-group-item text-danger py-3 text-center">' + resp.Message + '</li>');
+                    return;
+                }
+                $('#incCatMgrList').html(resp.RecordHtmlData);
+                $('#incCatMgrPagination').html(resp.Pagination || '');
+            }
+        });
+    }
+
+    $('#incManageCatBtn').on('click', function () {
+        $('#incCatMgrSearch').val('');
+        new bootstrap.Modal(document.getElementById('incCatManagerModal')).show();
+        _loadIncCatMgr(1);
+    });
+
+    $('#incAddNewCatFromMgr').on('click', function () {
+        $('#incCatModalTitle').text('Add Category');
+        $('#incCatSaveBtnLabel').text('Add');
+        $('#incCatModalUID').val('0');
+        $('#newIncomeCategoryName').val('').removeClass('is-invalid');
+        $('#incCatSaveError').hide();
+        new bootstrap.Modal(document.getElementById('addIncomeCategoryModal')).show();
+        setTimeout(function () { $('#newIncomeCategoryName').focus(); }, 350);
+    });
+
+    $('#incCatMgrSearch').on('keyup', debounce(function () { _loadIncCatMgr(1); }, 350));
+
+    $(document).on('click', '#incCatMgrPagination .page-link', function (e) {
+        e.preventDefault();
+        var match = ($(this).attr('href') || '').match(/\/(\d+)$/);
+        if (match) _loadIncCatMgr(parseInt(match[1]));
+    });
+
+    $(document).on('click', '.incCatEditBtn', function () {
+        $('#incCatModalTitle').text('Edit Category');
+        $('#incCatSaveBtnLabel').text('Save');
+        $('#incCatModalUID').val($(this).data('uid'));
+        $('#newIncomeCategoryName').val($(this).data('name')).removeClass('is-invalid');
+        $('#incCatSaveError').hide();
+        new bootstrap.Modal(document.getElementById('addIncomeCategoryModal')).show();
+        setTimeout(function () { $('#newIncomeCategoryName').focus(); }, 350);
+    });
+
+    $(document).on('click', '.incCatDeleteBtn', function () {
+        var uid  = parseInt($(this).data('uid'));
+        var name = $(this).data('name');
+        Swal.fire({
+            title: 'Delete Category?',
+            html: 'Delete <strong>' + $('<span>').text(name).html() + '</strong>? This cannot be undone.',
+            icon: 'warning', showCancelButton: true,
+            confirmButtonColor: '#d33', confirmButtonText: 'Delete'
+        }).then(function (r) {
+            if (!r.isConfirmed) return;
+            $.ajax({
+                url: '/indirectincome/deleteCategory', method: 'POST',
+                data: { CategoryUID: uid, [CsrfName]: CsrfToken },
+                success: function (resp) {
+                    if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
+                    _incCatData = _incCatData.filter(function (c) { return c.uid !== uid; });
+                    var $opt = $('#imCategory option[value="' + uid + '"]');
+                    if ($opt.length) { $opt.remove(); if ($.fn.select2 && $('#imCategory').data('select2')) $('#imCategory').trigger('change'); }
+                    _loadIncCatMgr(1);
+                    showToastNotification(resp.Message || 'Category deleted.', 'success');
+                }
+            });
         });
     });
 
     // ── Save income ──────────────────────────────────────────
     $('#incSaveBtn').on('click', function () {
+        var $btn = $(this);
+
         var amount = parseFloat($('#imAmount').val()) || 0;
         if (amount <= 0) {
             showToastNotification('Income amount must be greater than 0.', 'error');
@@ -768,7 +967,7 @@ $(function () {
             showToastNotification('Please select a payment type.', 'error'); return;
         }
 
-        var $btn = $(this).prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i>Saving…');
+        $btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i>Saving…');
         var url  = _incIsEdit ? '/indirectincome/updateIncome' : '/indirectincome/addIncome';
 
         var fd = new FormData();
@@ -815,6 +1014,125 @@ $(function () {
             width: '100%',
         });
     }
+
+    // ── Income Detail View Modal ──────────────────────────────
+    var _incDetailBadgeMap = {
+        'Pending':   'trans-badge-Pending',
+        'Received':  'trans-badge-Paid',
+        'Cancelled': 'trans-badge-Cancelled'
+    };
+    var _incDetailIconMap = {
+        'Pending':   'bx-time',
+        'Received':  'bx-check-circle',
+        'Cancelled': 'bx-x-circle'
+    };
+
+    function _buildIncDetailBody(d) {
+        function fmtDate(val) {
+            if (!val) return 'N/A';
+            var dt = new Date(val);
+            return isNaN(dt.getTime()) ? val : dt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+        }
+        function esc(s) { return $('<span>').text(s || '').html(); }
+
+        var pmtHtml = '';
+        if (d.PaymentTypeName) {
+            pmtHtml += '<div class="mb-2"><span class="badge bg-label-success" style="font-size:.75rem;padding:3px 10px;"><i class="bx bx-credit-card me-1"></i>' + esc(d.PaymentTypeName) + '</span></div>';
+        }
+        var pmtRows = [];
+        if (d.PaymentDate)      pmtRows.push('<i class="bx bx-calendar me-1" style="color:#94a3b8;"></i>' + esc(fmtDate(d.PaymentDate)));
+        if (d.BankName)         pmtRows.push('<i class="bx bx-building-house me-1" style="color:#94a3b8;font-size:.7rem;"></i>' + esc(d.BankName));
+        if (d.BankAccountName)  pmtRows.push('<span style="padding-left:14px;">' + esc(d.BankAccountName) + '</span>');
+        if (d.AccountNumber)    pmtRows.push('<span style="padding-left:14px;font-family:monospace;letter-spacing:.05em;">' + esc(d.AccountNumber) + '</span>');
+        if (d.PaymentReference) pmtRows.push('<i class="bx bx-hash me-1" style="color:#94a3b8;"></i>Ref: <span style="font-weight:600;">' + esc(d.PaymentReference) + '</span>');
+        if (pmtRows.length) pmtHtml += '<div style="font-size:.78rem;color:#475569;line-height:2.1;">' + pmtRows.join('<br>') + '</div>';
+
+        var taxHtml = '';
+        if (parseInt(d.TaxApplicable) && parseFloat(d.TaxAmount) > 0) {
+            taxHtml += ' <span class="badge bg-label-info" style="font-size:.65rem;">Tax ' + esc(d.TaxPercentage) + '%</span>';
+        }
+
+        var boxS = 'background:#f8fafc;border:1px solid #e9ecef;border-radius:8px;padding:12px 14px;height:100%;';
+        var lb   = 'font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:#94a3b8;margin-bottom:6px;';
+        var valS = 'font-size:.93rem;font-weight:600;color:#1e293b;line-height:1.3;';
+
+        function field(label, content, extraValStyle) {
+            return '<div class="col-sm-6"><div style="' + boxS + '">' +
+                       '<div style="' + lb + '">' + label + '</div>' +
+                       '<div style="' + valS + (extraValStyle || '') + '">' + content + '</div>' +
+                   '</div></div>';
+        }
+        function field12(label, content) {
+            return '<div class="col-12"><div style="' + boxS + '">' +
+                       '<div style="' + lb + '">' + label + '</div>' +
+                       '<div style="font-size:.88rem;color:#374151;line-height:1.6;">' + content + '</div>' +
+                   '</div></div>';
+        }
+
+        var html = '<div class="p-3"><div class="row g-2">';
+        html += field('Income Date', esc(fmtDate(d.IncomeDate)));
+        html += field('Amount', incCurSymbol + ' ' + parseFloat(d.Amount || 0).toFixed(incDecPoints) + taxHtml, 'font-size:1.05rem;');
+        html += field('Category', d.CategoryName
+            ? '<span class="badge text-bg-light border" style="font-size:.78rem;font-weight:600;padding:5px 10px;">' + esc(d.CategoryName) + '</span>'
+            : '<span class="text-muted" style="font-size:.85rem;font-weight:400;">Not set</span>');
+        html += field('Created On', esc(fmtDate(d.CreatedOn)));
+        if (pmtHtml) {
+            html += '<div class="col-12"><div style="' + boxS + 'border-left:3px solid #059669;">' +
+                        '<div style="' + lb + '">Payment Details</div>' + pmtHtml +
+                    '</div></div>';
+        } else {
+            html += field('Payment', '<span class="text-muted" style="font-weight:400;font-size:.85rem;">No payment recorded</span>');
+        }
+        if (d.Notes)        html += field12('Notes', esc(d.Notes));
+        if (d.PaymentNotes) html += field12('Payment Notes', esc(d.PaymentNotes));
+        html += '<div class="col-12"><div style="font-size:.75rem;color:#94a3b8;padding:8px 2px 0;border-top:1px solid #f1f5f9;">' +
+                    'Last updated' +
+                    (d.UpdatedByName ? ' by <span style="color:#475569;font-weight:600;">' + esc(d.UpdatedByName) + '</span>' : '') +
+                    (d.UpdatedOn ? ' &middot; ' + esc(fmtDate(d.UpdatedOn)) : '') +
+                '</div></div>';
+        html += '</div></div>';
+        return html;
+    }
+
+    $(document).on('click', '.incViewDetail', function () {
+        var uid = $(this).data('uid');
+        var $modal = $('#incDetailModal');
+
+        $('#incDetailNum').text('Loading…');
+        $('#incDetailDate').text('');
+        $('#incDetailBadge').attr('class', 'trans-badge ms-1').text('');
+        $('#incDetailBody').html('<div class="d-flex justify-content-center align-items-center py-5"><div class="spinner-border spinner-border-sm text-success"></div></div>');
+
+        new bootstrap.Modal($modal[0]).show();
+
+        $.ajax({
+            url: '/indirectincome/getIncomeDetail', method: 'POST',
+            data: { IncomeUID: uid, [CsrfName]: CsrfToken },
+            success: function (resp) {
+                if (resp.Error) {
+                    $('#incDetailBody').html('<div class="text-danger text-center py-4">' + resp.Message + '</div>');
+                    return;
+                }
+                var d = resp.Data;
+                var status = d.DocStatus || 'Pending';
+                var badgeClass = _incDetailBadgeMap[status] || 'trans-badge-Draft';
+                var icon = _incDetailIconMap[status] || 'bx-circle';
+
+                $('#incDetailNum').text(d.IncomeNumber || '—');
+                if (d.IncomeDate) {
+                    var dt = new Date(d.IncomeDate);
+                    $('#incDetailDate').text(dt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }));
+                }
+                $('#incDetailBadge').attr('class', 'trans-badge ms-1 ' + badgeClass)
+                    .html('<i class="bx ' + icon + '" style="font-size:.8rem;"></i> ' + status);
+
+                $('#incDetailBody').html(_buildIncDetailBody(d));
+            },
+            error: function () {
+                $('#incDetailBody').html('<div class="text-danger text-center py-4">Failed to load income details.</div>');
+            }
+        });
+    });
 
 });
 </script>

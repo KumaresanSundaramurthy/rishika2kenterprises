@@ -16,8 +16,6 @@ $rpAccentBg    = $rpAccentBg    ?? '#e8f0fe';
 $rpPartyIcon   = $rpPartyIcon   ?? 'bx-user';
 $rpDocLabel    = $rpDocLabel    ?? 'Invoice';
 $rpTotalIcon   = $rpTotalIcon   ?? 'bx-receipt';
-$rpNumId       = $rpNumId       ?? 'rpInvNum';
-$rpDateId      = $rpDateId      ?? 'rpInvDate';
 $rpBtnLabel    = $rpBtnLabel    ?? 'Record Payment';
 ?>
 <div class="modal fade" id="recordPaymentModal" tabindex="-1" aria-hidden="true">
@@ -36,12 +34,11 @@ $rpBtnLabel    = $rpBtnLabel    ?? 'Record Payment';
                         </div>
                         <div>
                             <div class="rp-banner-title" style="color:<?php echo $rpAccentColor; ?>;">
-                                <?php echo htmlspecialchars($rpBtnLabel); ?> &mdash; <span id="<?php echo $rpNumId; ?>">—</span>
+                                <?php echo htmlspecialchars($rpBtnLabel); ?> &mdash; <span id="rpDocNum">—</span>
                             </div>
                             <div class="rp-banner-meta">
-                                <i class="bx <?php echo $rpPartyIcon; ?> me-1"></i><span id="rpPartyName">—</span>
-                                <span class="rp-meta-sep">|</span>
-                                <i class="bx bx-calendar me-1"></i><span id="<?php echo $rpDateId; ?>">—</span>
+                                <span id="rpPartyRow"><i class="bx <?php echo $rpPartyIcon; ?> me-1"></i><span id="rpPartyName">—</span><span class="rp-meta-sep">|</span></span>
+                                <i class="bx bx-calendar me-1"></i><span id="rpDocDate">—</span>
                             </div>
                         </div>
                     </div>
@@ -167,7 +164,8 @@ $rpBtnLabel    = $rpBtnLabel    ?? 'Record Payment';
                     </button>
                 </div>
 
-                <input type="hidden" id="rpTransUID" value="">
+                <input type="hidden" id="rpTransUID"  value="">
+                <input type="hidden" id="rpSubmitUrl" value="">
 
             </div>
         </div>
@@ -288,3 +286,223 @@ $pdtLinkedLabel = $pdtLinkedLabel ?? 'Linked Document';
     </div>
     <div id="payDetailBody" class="pay-detail-panel__body"></div>
 </div>
+
+<script>
+(function () {
+    'use strict';
+
+    var _payTypes   = [];
+    var _bankAccts  = [];
+    var _fpInstance = null;
+    var _rpDropzone = null;
+    var _currency   = '₹';
+
+    function _rpEsc(s) { return $('<span>').text(s || '').html(); }
+
+    window.initRecordPaymentModal = function (payTypes, bankAccts, currency) {
+        _payTypes  = payTypes  || [];
+        _bankAccts = bankAccts || [];
+        _currency  = currency  || '₹';
+        var $sel = $('#rpBankAccount').empty().append('<option value="">— Select bank account —</option>');
+        $.each(_bankAccts, function (i, b) {
+            $sel.append('<option value="' + b.BankAccountUID + '">' + _rpEsc(b.BankName) + ' — ' + _rpEsc(b.AccountName) + '</option>');
+        });
+    };
+
+    function _renderPaymentTypes() {
+        var $wrap = $('#rpPaymentTypes').empty();
+        if (!_payTypes.length) {
+            $wrap.html('<div class="text-muted" style="font-size:.8rem;"><i class="bx bx-loader-alt bx-spin"></i> Loading…</div>');
+            return;
+        }
+        $.each(_payTypes, function (i, t) {
+            var active = (i === 0) ? ' active' : '';
+            if (i === 0) { $('#rpPaymentTypeUID').val(t.PaymentTypeUID); $('#rpIsCash').val(t.IsCash); }
+            $wrap.append(
+                '<button type="button" class="rp-type-pill btn btn-sm btn-outline-secondary' + active + '" ' +
+                'data-uid="' + t.PaymentTypeUID + '" data-iscash="' + t.IsCash + '">' + _rpEsc(t.Name) + '</button>'
+            );
+        });
+        _toggleBankRow();
+    }
+
+    function _toggleBankRow() {
+        var isCash = parseInt($('#rpIsCash').val(), 10);
+        $('#rpBankRow').toggleClass('d-none', !!isCash);
+        if (!isCash && !$('#rpBankAccount').val()) {
+            var def = $.grep(_bankAccts, function (b) { return b.IsDefault === 1; });
+            if (def.length) { $('#rpBankAccount').val(def[0].BankAccountUID); }
+        }
+    }
+
+    // Expose open-modal helper for all modules
+    window.rpOpenModal = function (cfg) {
+        $('#rpTransUID').val(cfg.transUID || 0);
+        $('#rpSubmitUrl').val(cfg.submitUrl || '');
+        $('#rpDocNum').text(cfg.docNum || '—');
+        $('#rpDocDate').text(cfg.docDate || '—');
+        if (cfg.partyName) {
+            $('#rpPartyName').text(cfg.partyName);
+            $('#rpPartyRow').show();
+        } else {
+            $('#rpPartyRow').hide();
+        }
+
+        var cur = _currency;
+        var dec = 2;
+        var fmt = function (v) { return cur + ' ' + parseFloat(v || 0).toFixed(dec); };
+        $('#rpTotalCard').text(fmt(cfg.total));
+        $('#rpPaidCard').text(fmt(cfg.paid));
+        $('#rpBalanceCard').text(fmt(cfg.pending));
+        $('#rpAmount').val(parseFloat(cfg.pending || 0).toFixed(dec)).attr('max', cfg.pending || 0);
+        $('#rpCurrencySymbol').text(cur);
+        $('#rpReferenceNo').val('');
+        $('#rpNotes').val('');
+        $('#rpBankAccount').val('');
+
+        if (_rpDropzone) { _rpDropzone.removeAllFiles(true); }
+        _renderPaymentTypes();
+        new bootstrap.Modal(document.getElementById('recordPaymentModal')).show();
+    };
+
+    // All jQuery-dependent event bindings are deferred until DOMContentLoaded
+    // because jQuery is loaded in the footer (after this script runs).
+    document.addEventListener('DOMContentLoaded', function () {
+
+        // Init flatpickr and dropzone when modal first opens; reset date on each open
+        $('#recordPaymentModal').on('shown.bs.modal', function () {
+            if (!_fpInstance) {
+                _fpInstance = flatpickr('#rpPaymentDate', {
+                    dateFormat   : 'Y-m-d',
+                    altInput     : true,
+                    altFormat    : 'd M Y',
+                    maxDate      : 'today',
+                    disableMobile: true,
+                    defaultDate  : 'today',
+                    appendTo     : document.querySelector('#recordPaymentModal .modal-dialog'),
+                });
+            } else {
+                _fpInstance.setDate(new Date(), false);
+            }
+            if (!_rpDropzone && typeof Dropzone !== 'undefined') {
+                Dropzone.autoDiscover = false;
+                _rpDropzone = new Dropzone('#rpAttachDropzone', {
+                    url              : '#',
+                    autoProcessQueue : false,
+                    maxFiles         : 3,
+                    maxFilesize      : 3,
+                    acceptedFiles    : '.pdf,.jpg,.jpeg,.png',
+                    parallelUploads  : 3,
+                    clickable        : true,
+                    previewTemplate  : '<div class="dz-preview dz-file-preview"><div class="dz-details"><div class="dz-filename"><span data-dz-name></span></div><div class="dz-size"><span data-dz-size></span></div></div><div class="dz-error-message"><span data-dz-errormessage></span></div><a class="dz-remove" href="javascript:undefined;" data-dz-remove>Remove</a></div>',
+                    init: function () {
+                        this.on('maxfilesexceeded', function (file) {
+                            this.removeFile(file);
+                            Swal.fire({ icon: 'warning', text: 'Maximum 3 attachments allowed.' });
+                        });
+                        this.on('error', function (file) {
+                            if (file.size > 3 * 1024 * 1024) {
+                                this.removeFile(file);
+                                Swal.fire({ icon: 'warning', text: 'Each file must be 3 MB or smaller.' });
+                            }
+                        });
+                    }
+                });
+            }
+        });
+
+        // Payment type pill toggle
+        // Cap amount at pending balance on every keystroke
+        $(document).on('input', '#rpAmount', function () {
+            var max = parseFloat($(this).attr('max')) || 0;
+            var val = parseFloat($(this).val())       || 0;
+            if (max > 0 && val > max) {
+                $(this).val(max.toFixed(2));
+            }
+        });
+
+        $(document).on('click', '.rp-type-pill', function () {
+            $('.rp-type-pill').removeClass('active btn-primary').addClass('btn-outline-secondary');
+            $(this).addClass('active btn-primary').removeClass('btn-outline-secondary');
+            $('#rpPaymentTypeUID').val($(this).data('uid'));
+            $('#rpIsCash').val($(this).data('iscash'));
+            _toggleBankRow();
+        });
+
+        // Generic submit handler — URL comes from #rpSubmitUrl
+        $('#btnSubmitPayment').on('click', function () {
+            var transUID       = parseInt($('#rpTransUID').val(), 10);
+            var paymentTypeUID = parseInt($('#rpPaymentTypeUID').val(), 10);
+            var amount         = parseFloat($('#rpAmount').val()) || 0;
+            var paymentDate    = $('#rpPaymentDate').val() || new Date().toISOString().split('T')[0];
+            var bankAccountUID = parseInt($('#rpBankAccount').val(), 10) || 0;
+            var referenceNo    = $.trim($('#rpReferenceNo').val());
+            var notes          = $.trim($('#rpNotes').val());
+            var submitUrl      = $('#rpSubmitUrl').val();
+
+            var maxAmount = parseFloat($('#rpAmount').attr('max')) || 0;
+
+            if (!transUID)       { Swal.fire({ icon: 'warning', text: 'Invalid record.' }); return; }
+            if (!paymentTypeUID) { Swal.fire({ icon: 'warning', text: 'Please select a payment type.' }); return; }
+            if (amount <= 0)     { Swal.fire({ icon: 'warning', text: 'Enter a valid amount.' }); return; }
+            if (maxAmount > 0 && amount > maxAmount) {
+                Swal.fire({ icon: 'warning', text: 'Amount cannot exceed the balance due (' + _currency + ' ' + maxAmount.toFixed(2) + ').' });
+                $('#rpAmount').val(maxAmount.toFixed(2)).focus();
+                return;
+            }
+            var isCash = parseInt($('#rpIsCash').val(), 10);
+            if (!isCash && !bankAccountUID) { Swal.fire({ icon: 'warning', text: 'Please select a bank account.' }); return; }
+            if (!submitUrl) { Swal.fire({ icon: 'warning', text: 'Configuration error — please refresh.' }); return; }
+
+            var $btn = $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Saving…');
+
+            var fd = new FormData();
+            fd.append('TransUID',       transUID);
+            fd.append('PaymentTypeUID', paymentTypeUID);
+            fd.append('Amount',         amount);
+            fd.append('PaymentDate',    paymentDate);
+            fd.append('BankAccountUID', bankAccountUID || '');
+            fd.append('ReferenceNo',    referenceNo);
+            fd.append('Notes',          notes);
+            fd.append('CurrentPage',    typeof PageNo    !== 'undefined' ? PageNo    : 1);
+            fd.append('RowLimit',       typeof RowLimit  !== 'undefined' ? RowLimit  : 10);
+            fd.append('Filter',         typeof Filter    !== 'undefined' ? JSON.stringify(Filter) : '{}');
+            fd.append(CsrfName,         CsrfToken);
+            if (_rpDropzone) { _rpDropzone.files.forEach(function (f) { fd.append('PaymentFiles[]', f); }); }
+
+            $.ajax({
+                url         : submitUrl,
+                method      : 'POST',
+                data        : fd,
+                processData : false,
+                contentType : false,
+                success: function (resp) {
+                    $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i> Record Payment');
+                    if (resp.Error) {
+                        showToastNotification(resp.Message, 'error');
+                    } else {
+                        var _rpModalInst = bootstrap.Modal.getInstance(document.getElementById('recordPaymentModal'));
+                        if (_rpModalInst) _rpModalInst.hide();
+                        if (_rpDropzone) { _rpDropzone.removeAllFiles(true); }
+                        if (resp.RecordHtmlData) {
+                            $(ModuleTable + ' tbody').html(resp.RecordHtmlData);
+                            $(ModulePag).html(resp.Pagination || '');
+                            $('[data-bs-toggle="tooltip"]').each(function () {
+                                try { new bootstrap.Tooltip(this, { container: 'body' }); } catch (e) {}
+                            });
+                        }
+                        if (typeof window.rpAfterSuccess === 'function') window.rpAfterSuccess(resp);
+                        showToastNotification(resp.Message, 'success');
+                    }
+                },
+                error: function () {
+                    $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i> Record Payment');
+                    showToastNotification('Request failed. Try again.', 'error');
+                }
+            });
+        });
+
+    }); // end DOMContentLoaded
+
+}());
+</script>

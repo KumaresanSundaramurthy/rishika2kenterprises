@@ -35,7 +35,18 @@ if (!empty($DataLists)):
             <?php if (empty($list->ExpenseNumber)): ?>
                 <span class="trans-doc-draft"><i class="bx bx-pencil me-1" style="font-size:.8rem;"></i>—</span>
             <?php else: ?>
-                <span class="trans-doc-number fw-semibold"><?php echo htmlspecialchars($list->ExpenseNumber); ?></span>
+                <a href="javascript:void(0);" class="trans-doc-number fw-semibold expViewDetail"
+                   data-uid="<?php echo (int)$list->ExpenseUID; ?>"
+                   data-num="<?php echo htmlspecialchars($list->ExpenseNumber); ?>"
+                   data-date="<?php echo htmlspecialchars(format_datedisplay($list->ExpenseDate, 'd M Y')); ?>"
+                   data-amount="<?php echo $currency . ' ' . smartDecimal($list->Amount, $decimals, true); ?>"
+                   data-status="<?php echo htmlspecialchars($status); ?>"
+                   data-badge="<?php echo htmlspecialchars($badgeClass); ?>"
+                   data-icon="<?php echo htmlspecialchars($icon); ?>"
+                   data-category="<?php echo htmlspecialchars($list->CategoryName ?? ''); ?>"
+                   data-pmt="<?php echo htmlspecialchars($list->PaymentTypeName ?? ''); ?>">
+                    <?php echo htmlspecialchars($list->ExpenseNumber); ?>
+                </a>
             <?php endif; ?>
             <?php if (!empty($list->ExpenseDate)): ?>
                 <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars(format_datedisplay($list->ExpenseDate, 'd M Y')); ?></div>
@@ -47,7 +58,7 @@ if (!empty($DataLists)):
             <div class="trans-amount-main"><?php echo $currency . ' ' . smartDecimal($list->Amount, $decimals, true); ?></div>
         </td>
 
-        <!-- Category -->
+        <!-- Category / Notes -->
         <td>
             <?php if (!empty($list->CategoryName)): ?>
                 <span class="badge text-bg-light border" style="font-size:.72rem;font-weight:500;">
@@ -55,6 +66,9 @@ if (!empty($DataLists)):
                 </span>
             <?php else: ?>
                 <span class="text-muted">—</span>
+            <?php endif; ?>
+            <?php if (!empty($list->Notes)): ?>
+                <div class="text-muted" style="font-size:.72rem;margin-top:3px;"><?php echo htmlspecialchars($list->Notes); ?></div>
             <?php endif; ?>
         </td>
 
@@ -68,20 +82,31 @@ if (!empty($DataLists)):
 
         <!-- Payment Mode -->
         <td>
-            <?php if (!empty($list->PaymentTypeName)): ?>
-                <span style="font-size:.82rem;"><?php echo htmlspecialchars($list->PaymentTypeName); ?></span>
-                <?php if (!empty($list->BankAccountName)): ?>
-                    <div class="text-muted" style="font-size:.7rem;"><?php echo htmlspecialchars($list->BankAccountName); ?></div>
+            <?php
+                $pmtName  = $list->PaymentTypeName  ?? '';
+                $bankName = htmlspecialchars(trim($list->BankName        ?? ''));
+                $acctName = htmlspecialchars(trim($list->BankAccountName ?? ''));
+                $acctNum  = htmlspecialchars(trim($list->AccountNumber   ?? ''));
+            ?>
+            <?php if (!empty($pmtName)): ?>
+                <div>
+                    <span class="badge bg-label-primary" style="font-size:.68rem;">
+                        <i class="bx bx-credit-card me-1"></i><?php echo htmlspecialchars($pmtName); ?>
+                    </span>
+                </div>
+                <?php if ($bankName || $acctName || $acctNum): ?>
+                <div style="font-size:.68rem;color:#6c757d;margin-top:3px;line-height:1.4;">
+                    <?php if ($bankName): ?>
+                    <div><i class="bx bx-building-house me-1" style="font-size:.7rem;"></i><?php echo $bankName; ?></div>
+                    <?php endif; ?>
+                    <?php if ($acctName): ?>
+                    <div><?php echo $acctName; ?></div>
+                    <?php endif; ?>
+                    <?php if ($acctNum): ?>
+                    <div style="font-family:monospace;letter-spacing:.03em;"><?php echo $acctNum; ?></div>
+                    <?php endif; ?>
+                </div>
                 <?php endif; ?>
-            <?php else: ?>
-                <span class="text-muted">—</span>
-            <?php endif; ?>
-        </td>
-
-        <!-- Date -->
-        <td>
-            <?php if (!empty($list->ExpenseDate)): ?>
-                <?php echo htmlspecialchars(format_datedisplay($list->ExpenseDate, 'd M Y')); ?>
             <?php else: ?>
                 <span class="text-muted">—</span>
             <?php endif; ?>
@@ -111,7 +136,18 @@ if (!empty($DataLists)):
         <td style="width:50px">
             <div class="d-flex align-items-center justify-content-end gap-1">
 
-                <?php if (!$isTerminal): ?>
+                <?php if ($status === 'Pending'): ?>
+                <button class="btn btn-icon btn-sm text-success expMarkPaid"
+                        data-uid="<?php echo (int)$list->ExpenseUID; ?>"
+                        data-num="<?php echo htmlspecialchars($list->ExpenseNumber ?? ''); ?>"
+                        data-date="<?php echo htmlspecialchars(format_datedisplay($list->ExpenseDate, 'd M Y')); ?>"
+                        data-amount="<?php echo htmlspecialchars($list->Amount ?? '0'); ?>"
+                        title="Record Payment">
+                    <span style="font-size:.9rem;font-weight:700;line-height:1;"><?php echo $currency; ?></span>
+                </button>
+                <?php endif; ?>
+
+                <?php if ($status !== 'Cancelled'): ?>
                 <button class="btn btn-icon btn-sm text-warning expEdit"
                         data-uid="<?php echo (int)$list->ExpenseUID; ?>"
                         title="Edit">
@@ -123,13 +159,15 @@ if (!empty($DataLists)):
                     <button class="trans-actions-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="bx bx-dots-vertical-rounded fs-5"></i>
                     </button>
-                    <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:.82rem;min-width:175px;">
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:.82rem;min-width:180px;">
 
                         <?php if ($status === 'Pending'): ?>
                         <li>
                             <button class="dropdown-item expMarkPaid"
                                     data-uid="<?php echo (int)$list->ExpenseUID; ?>"
-                                    data-num="<?php echo htmlspecialchars($list->ExpenseNumber ?? ''); ?>">
+                                    data-num="<?php echo htmlspecialchars($list->ExpenseNumber ?? ''); ?>"
+                                    data-date="<?php echo htmlspecialchars(format_datedisplay($list->ExpenseDate, 'd M Y')); ?>"
+                                    data-amount="<?php echo htmlspecialchars($list->Amount ?? '0'); ?>">
                                 <i class="bx bx-check-circle me-2 text-success"></i>Mark as Paid
                             </button>
                         </li>
@@ -141,9 +179,6 @@ if (!empty($DataLists)):
                             </button>
                         </li>
                         <li><hr class="dropdown-divider my-1"></li>
-                        <?php endif; ?>
-
-                        <?php if (!$isTerminal): ?>
                         <li>
                             <button class="dropdown-item text-danger expDelete"
                                     data-uid="<?php echo (int)$list->ExpenseUID; ?>"
@@ -153,10 +188,35 @@ if (!empty($DataLists)):
                         </li>
                         <?php endif; ?>
 
-                        <?php if ($isTerminal && $status === 'Paid'): ?>
+                        <?php if ($status === 'Paid'): ?>
+                        <li>
+                            <button class="dropdown-item expClone"
+                                    data-uid="<?php echo (int)$list->ExpenseUID; ?>"
+                                    data-num="<?php echo htmlspecialchars($list->ExpenseNumber ?? ''); ?>">
+                                <i class="bx bx-git-branch me-2 text-info"></i>Clone
+                            </button>
+                        </li>
+                        <li><hr class="dropdown-divider my-1"></li>
+                        <li>
+                            <button class="dropdown-item text-warning expMarkCancelled"
+                                    data-uid="<?php echo (int)$list->ExpenseUID; ?>"
+                                    data-num="<?php echo htmlspecialchars($list->ExpenseNumber ?? ''); ?>">
+                                <i class="bx bx-x-circle me-2"></i>Mark as Cancelled
+                            </button>
+                        </li>
+                        <li>
+                            <button class="dropdown-item text-danger expDelete"
+                                    data-uid="<?php echo (int)$list->ExpenseUID; ?>"
+                                    data-num="<?php echo htmlspecialchars($list->ExpenseNumber ?? 'this expense'); ?>">
+                                <i class="bx bx-trash me-2"></i>Delete
+                            </button>
+                        </li>
+                        <?php endif; ?>
+
+                        <?php if ($status === 'Cancelled'): ?>
                         <li>
                             <button class="dropdown-item text-muted" disabled>
-                                <i class="bx bx-lock-alt me-2"></i>Paid — No Actions
+                                <i class="bx bx-lock-alt me-2"></i>Cancelled — No Actions
                             </button>
                         </li>
                         <?php endif; ?>
@@ -172,7 +232,7 @@ if (!empty($DataLists)):
 else:
 ?>
     <tr>
-        <td colspan="10">
+        <td colspan="9">
             <div class="d-flex flex-column align-items-center py-5">
                 <img src="/assets/img/elements/no-record-found.png" alt="No Records" class="img-fluid mb-3" style="max-height:150px;object-fit:contain;">
                 <span class="text-muted mb-3" style="font-size:.9rem;">No expenses found</span>

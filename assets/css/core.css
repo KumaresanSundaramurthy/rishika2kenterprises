@@ -5,10 +5,11 @@
    ============================================================================= */
 
 /* ── Hide template customizer & buy-now widgets ───────────────────────────── */
+#template-customizer,
 .template-customizer,
 .buy-now,
 #buy-now,
-.template-customizer-open { display: none !important; }
+.template-customizer-open-btn { display: none !important; }
 
 /* ── Select2 — Global styling to match Bootstrap 5 form controls ─────────── */
 

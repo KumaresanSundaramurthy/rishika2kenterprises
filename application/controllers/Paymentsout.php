@@ -27,7 +27,7 @@ class Paymentsout extends MY_Controller {
             $limit  = $GeneralSettings->RowLimit ?? 10;
             $orgUID = $this->pageData['JwtData']->User->OrgUID;
 
-            $filter = ['ModuleUID' => 111, 'PaymentDirection' => 'Out', 'PaymentSource' => 'Record'];
+            $filter = ['ModuleUID' => 111, 'PaymentDirection' => 'Out'];
 
             $this->load->model('transactions_model');
             $allData      = $this->transactions_model->getPaymentsList($limit, 0, $orgUID, $filter);
@@ -130,7 +130,6 @@ class Paymentsout extends MY_Controller {
             // Always scope to PaymentsOut module with outgoing direction
             $filter['ModuleUID']        = 111;
             $filter['PaymentDirection'] = 'Out';
-            $filter['PaymentSource']    = 'Record';
             unset($filter['PartyType']);
 
             $orgUID = $this->pageData['JwtData']->User->OrgUID;

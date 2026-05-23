@@ -28,7 +28,7 @@ class Payments extends MY_Controller {
 
             $orgUID = $this->pageData['JwtData']->User->OrgUID;
 
-            $filter = ['ModuleUID' => 110, 'PaymentDirection' => 'In', 'PaymentSource' => 'Record'];
+            $filter = ['ModuleUID' => 110, 'PaymentDirection' => 'In'];
 
             $this->load->model('transactions_model');
             $allData      = $this->transactions_model->getPaymentsList($limit, 0, $orgUID, $filter);
@@ -71,7 +71,6 @@ class Payments extends MY_Controller {
             // Always scope to Payments-In module
             $filter['ModuleUID']        = 110;
             $filter['PaymentDirection'] = 'In';
-            $filter['PaymentSource']    = 'Record';
             unset($filter['PartyType']);
 
             $orgUID = $this->pageData['JwtData']->User->OrgUID;

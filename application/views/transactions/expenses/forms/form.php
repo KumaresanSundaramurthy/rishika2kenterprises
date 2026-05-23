@@ -86,10 +86,15 @@ $noBankTypes  = ['Cash'];
                                                 </label>
                                                 <div class="input-group">
                                                     <span class="input-group-text"><?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?></span>
-                                                    <input type="number" class="form-control form-control-lg no-spinner" id="expAmount"
-                                                           name="Amount" min="0.01" step="0.01"
+                                                    <input type="text" class="form-control form-control-lg" id="expAmount"
+                                                           name="Amount" placeholder="Enter Expense Amount"
                                                            value="<?php echo $amount ?: ''; ?>"
-                                                           placeholder="Enter amount" required>
+                                                           maxlength="12" pattern="^\d{1,12}(\.\d{0,2})?$"
+                                                           onkeydown="return handleDotOnly(event)"
+                                                           oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, 12, 2)"
+                                                           onpaste="handlePricePaste(event, 12, 2)"
+                                                           ondrop="handlePriceDrop(event, 12, 2)"
+                                                           autocomplete="off" required>
                                                 </div>
                                             </div>
 

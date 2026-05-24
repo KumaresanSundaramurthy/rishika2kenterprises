@@ -243,6 +243,7 @@ class Products extends MY_Controller {
             'DiscountTypeUID'            => (int) getPostValue($postData, 'DiscountOption', '', 0),
             'LowStockAlertAt'            => (int) getPostValue($postData, 'LowStockAlert', '', 0),
             'NotForSale'                 => (!empty($postData['NotForSale']) && $postData['NotForSale'] == 1) ? 'Yes' : 'No',
+            'IsRentable'                 => (!empty($postData['IsRentable'])  && $postData['IsRentable']  == 1) ? 1 : 0,
             'IsSizeApplicable'           => (!empty($postData['IsSizeApplicable']) && $postData['IsSizeApplicable'] == 1) ? 1 : 0,
             'IsComboItem'                => 0,
             'IsComposite'                => 0,
@@ -345,6 +346,63 @@ class Products extends MY_Controller {
 
     }
 
+    private function _saveRentalConfig($ProductUID, $PostData) {
+
+        $isRentable = (!empty($PostData['IsRentable']) && $PostData['IsRentable'] == 1) ? 1 : 0;
+        if (!$isRentable) return;
+
+        $userUID = (int) $this->pageData['JwtData']->User->UserUID;
+        $orgUID  = (int) $this->pageData['JwtData']->User->OrgUID;
+
+        $configData = [
+            'SecurityDeposit'         => (float) getPostValue($PostData, 'rc_SecurityDeposit',   '', 0),
+            'HourlyRate'              => (float) getPostValue($PostData, 'rc_HourlyRate',         '', 0),
+            'HalfDayRate'             => (float) getPostValue($PostData, 'rc_HalfDayRate',        '', 0),
+            'FullDayRate'             => (float) getPostValue($PostData, 'rc_FullDayRate',        '', 0),
+            'FixedPackageRate'        => (float) getPostValue($PostData, 'rc_FixedPackageRate',   '', 0),
+            'ExtraHourRate'           => (float) getPostValue($PostData, 'rc_ExtraHourRate',      '', 0),
+            'LateReturnChargePerHour' => (float) getPostValue($PostData, 'rc_LateReturnCharge',  '', 0),
+            'DamagePenaltyRate'       => (float) getPostValue($PostData, 'rc_DamagePenaltyRate', '', 0),
+            'MinRentalHours'          => max(1, (int) getPostValue($PostData, 'rc_MinRentalHours', '', 1)),
+            'UpdatedBy'               => $userUID,
+        ];
+
+        $existing = $this->products_model->getRentalConfig($ProductUID, $orgUID);
+        if ($existing) {
+            $this->dbwrite_model->updateData('Products', 'ProductRentalConfigTbl', $configData, [
+                'ProductUID' => (int) $ProductUID,
+                'OrgUID'     => $orgUID,
+                'IsDeleted'  => 0,
+            ]);
+        } else {
+            $configData['ProductUID'] = (int) $ProductUID;
+            $configData['OrgUID']     = $orgUID;
+            $configData['IsActive']   = 1;
+            $configData['IsDeleted']  = 0;
+            $configData['CreatedBy']  = $userUID;
+            $this->dbwrite_model->insertData('Products', 'ProductRentalConfigTbl', $configData);
+        }
+
+    }
+
+    public function getRentalConfig() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+            $ProductUID = (int) $this->input->post('ProductUID');
+            $orgUID     = (int) $this->pageData['JwtData']->User->OrgUID;
+            if (!$ProductUID) throw new Exception('Invalid product');
+            $config = $this->products_model->getRentalConfig($ProductUID, $orgUID);
+            $this->EndReturnData->Error  = false;
+            $this->EndReturnData->Config = $config ?: null;
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
     /** Product List (AJAX pagination) — dedicated query */
     public function getProductList() {
 
@@ -428,6 +486,9 @@ class Products extends MY_Controller {
             // Customer type pricing
             $this->saveCustomerTypePricing($ProductUID, $PostData);
 
+            // Rental configuration (only when IsRentable = 1)
+            $this->_saveRentalConfig($ProductUID, $PostData);
+
             $this->dbwrite_model->commitTransaction();
 
             // Invalidate products list — new product must appear on next fetch
@@ -483,10 +544,11 @@ class Products extends MY_Controller {
             $cached   = $this->upstashservice->get($cacheKey);
 
             if ($cached !== null) {
-                $this->EndReturnData->Error          = FALSE;
-                $this->EndReturnData->Message        = 'Retrieved Successfully';
-                $this->EndReturnData->Data           = (object)$cached['Data'];
+                $this->EndReturnData->Error           = FALSE;
+                $this->EndReturnData->Message         = 'Retrieved Successfully';
+                $this->EndReturnData->Data            = (object)$cached['Data'];
                 $this->EndReturnData->CustomerPricing = $cached['CustomerPricing'] ?? [];
+                $this->EndReturnData->RentalConfig    = isset($cached['RentalConfig']) ? (object)$cached['RentalConfig'] : null;
             } else {
                 $this->load->model('products_model');
                 $GetProductData = $this->products_model->getProductsDetails(['Products.ProductUID' => $ProductUID]);
@@ -494,16 +556,20 @@ class Products extends MY_Controller {
                     throw new Exception('Product not found');
                 }
                 $customerPricing = $this->products_model->getCustomerTypePricing($ProductUID);
+                $orgUID          = (int) $this->pageData['JwtData']->User->OrgUID;
+                $rentalConfig    = $this->products_model->getRentalConfig($ProductUID, $orgUID);
 
-                $this->EndReturnData->Error          = FALSE;
-                $this->EndReturnData->Message        = 'Retrieved Successfully';
-                $this->EndReturnData->Data           = $GetProductData[0];
+                $this->EndReturnData->Error           = FALSE;
+                $this->EndReturnData->Message         = 'Retrieved Successfully';
+                $this->EndReturnData->Data            = $GetProductData[0];
                 $this->EndReturnData->CustomerPricing = $customerPricing;
+                $this->EndReturnData->RentalConfig    = $rentalConfig;
 
                 // Populate cache for next request
                 $this->upstashservice->set($cacheKey, [
                     'Data'            => $GetProductData[0],
                     'CustomerPricing' => $customerPricing,
+                    'RentalConfig'    => $rentalConfig,
                 ], Upstashservice::TTL_PRODUCT);
             }
 
@@ -559,6 +625,9 @@ class Products extends MY_Controller {
 
             // Customer type pricing
             $this->saveCustomerTypePricing($ProductUID, $PostData);
+
+            // Rental configuration (only when IsRentable = 1)
+            $this->_saveRentalConfig($ProductUID, $PostData);
 
             $this->dbwrite_model->commitTransaction();
 

@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php $this->load->view('common/header'); ?>
 
@@ -18,7 +18,10 @@
                                 <i class="bx bx-printer" style="color:#16a34a;"></i>
                             </div>
                             <div>
-                                <h5 class="trans-ph-title"><?php echo htmlspecialchars($PageTitle ?? 'Thermal Print Config'); ?></h5>
+                                <h5 class="trans-ph-title mb-0"><?php echo htmlspecialchars($PageTitle ?? 'Thermal Print Config'); ?></h5>
+                                <?php if (!empty($PageDescription)): ?>
+                                <div class="text-muted" style="font-size:.76rem;"><?php echo htmlspecialchars($PageDescription); ?></div>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>

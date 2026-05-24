@@ -9,6 +9,22 @@ class Users_model extends CI_Model {
         $this->ReadDb = $this->load->database('ReadDB', TRUE);
     }
 
+    // ── Org users list for cache (user filter across all pages) ──────────────
+    public function getOrgUsersForCache($orgUID) {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select("UserUID, FirstName, LastName, CONCAT(FirstName, ' ', LastName) AS FullName");
+            $this->ReadDb->from('Users.UserTbl');
+            $this->ReadDb->where(['OrgUID' => (int)$orgUID, 'IsDeleted' => 0, 'IsActive' => 1]);
+            $this->ReadDb->order_by('FirstName', 'ASC');
+            $query = $this->ReadDb->get();
+            return $query ? $query->result() : [];
+        } catch (Exception $e) {
+            log_message('error', 'Users_model::getOrgUsersForCache — ' . $e->getMessage());
+            return [];
+        }
+    }
+
     // ── Paginated list ────────────────────────────────────────────────────────
     public function getUsersList($orgUID, $filter, $limit, $offset) {
         try {

@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 /**
  * Public document viewer — no authentication required.
@@ -59,7 +59,7 @@ class Doc extends CI_Controller {
 
         $header      = $this->transactions_model->getTransactionById($stub->TransUID, $stub->OrgUID, $stub->ModuleUID);
         $items       = $this->transactions_model->getTransactionItems($stub->TransUID, $stub->OrgUID);
-        $orgInfo     = $this->organisation_model->getOrgForReceipt($stub->OrgUID);
+        $orgInfo     = $this->organisation_model->getOrgInfoCached($stub->OrgUID);
         $themeResult = $this->organisation_model->getPrintThemeByType($stub->OrgUID, $stub->TransType);
         $bankAccount = $this->transactions_model->getPrintBankAccount($stub->OrgUID);
 

@@ -16,6 +16,17 @@ $(document).ready(function () {
     });
 
     // ──────────────────────────────────────────────
+    // Is Rentable toggle
+    // ──────────────────────────────────────────────
+    $('#IsRentable').on('change', function () {
+        if ($(this).is(':checked')) {
+            $('#rentalConfigSection').removeClass('d-none');
+        } else {
+            $('#rentalConfigSection').addClass('d-none');
+        }
+    });
+
+    // ──────────────────────────────────────────────
     // Is Size Applicable toggle
     // ──────────────────────────────────────────────
     $('#IsSizeApplicable').on('change', function () {
@@ -167,6 +178,18 @@ $(document).ready(function () {
         formData.append('IsBrandApplicable', $('#IsBrandApplicable').is(':checked') ? 1 : 0);
         formData.append('IsSerialTracked',   $('#IsSerialTracked').is(':checked')   ? 1 : 0);
         formData.append('NotForSale',        $('#NotForSale').is(':checked')        ? 1 : 0);
+        formData.append('IsRentable',        $('#IsRentable').is(':checked')        ? 1 : 0);
+        if ($('#IsRentable').is(':checked')) {
+            formData.append('rc_SecurityDeposit',   $('#rc_SecurityDeposit').val()   || 0);
+            formData.append('rc_HourlyRate',        $('#rc_HourlyRate').val()        || 0);
+            formData.append('rc_HalfDayRate',       $('#rc_HalfDayRate').val()       || 0);
+            formData.append('rc_FullDayRate',       $('#rc_FullDayRate').val()       || 0);
+            formData.append('rc_FixedPackageRate',  $('#rc_FixedPackageRate').val()  || 0);
+            formData.append('rc_ExtraHourRate',     $('#rc_ExtraHourRate').val()     || 0);
+            formData.append('rc_LateReturnCharge',  $('#rc_LateReturnCharge').val()  || 0);
+            formData.append('rc_DamagePenaltyRate', $('#rc_DamagePenaltyRate').val() || 0);
+            formData.append('rc_MinRentalHours',    $('#rc_MinRentalHours').val()    || 1);
+        }
         formData.append('getTableDetails', 1);
 
         updateCustomerPricingData();

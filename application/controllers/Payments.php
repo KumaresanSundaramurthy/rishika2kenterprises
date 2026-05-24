@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Payments extends MY_Controller {
 
@@ -39,7 +39,7 @@ class Payments extends MY_Controller {
                 'DataLists'    => $allData,
                 'SerialNumber' => 0,
                 'JwtData'      => $this->pageData['JwtData'],
-                'OrgInfo'      => $this->organisation_model->getOrgForReceipt($orgUID)->Data ?? null,
+                'OrgInfo'      => $this->organisation_model->getOrgInfoCached($orgUID)->Data ?? null,
                 'PmtModuleUID' => (int)($this->pageData['JwtData']->ModuleUID ?? 0),
             ], TRUE);
             $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/payments/getPaymentsPageDetails', $allDataCount, 1, $limit);
@@ -84,7 +84,7 @@ class Payments extends MY_Controller {
                 'DataLists'    => $allData,
                 'SerialNumber' => ($pageNo - 1) * $limit,
                 'JwtData'      => $this->pageData['JwtData'],
-                'OrgInfo'      => $this->organisation_model->getOrgForReceipt($orgUID)->Data ?? null,
+                'OrgInfo'      => $this->organisation_model->getOrgInfoCached($orgUID)->Data ?? null,
                 'PmtModuleUID' => (int)($this->pageData['JwtData']->ModuleUID ?? 0),
             ], true);
 
@@ -557,7 +557,7 @@ class Payments extends MY_Controller {
             $payment     = $this->transactions_model->getPaymentDetailById($paymentUID, $orgUID);
             if (!$payment) throw new Exception('Payment not found.');
                         $this->load->model('organisation_model');
-            $orgInfo    = $this->organisation_model->getOrgForReceipt($orgUID);
+            $orgInfo    = $this->organisation_model->getOrgInfoCached($orgUID);
             $org        = $orgInfo->Data ?? null;
 
             $this->EndReturnData->Error         = FALSE;

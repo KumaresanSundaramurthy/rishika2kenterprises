@@ -383,13 +383,30 @@ $config['encryption_key'] = '';
 | except for 'cookie_prefix' and 'cookie_httponly', which are ignored here.
 |
 */
-$config['sess_driver'] = 'redis';
 $config['sess_cookie_name'] = 'ci_session';
 $config['sess_samesite'] = 'Lax';
 $config['sess_expiration'] = 7200;
-// $config['sess_save_path'] = 'tcp://redis-13443.crce182.ap-south-1-1.ec2.redns.redis-cloud.com:13443?auth=YvwDRuLu1MGM8SBqaeiwvezPA8fhatBF&username=default&database=0&timeout=0.0';
-$config['sess_save_path'] = getenv('REDIS_PROTOCOL').'://'.getenv('REDIS_HOST').':'.getenv('REDIS_PORT').'?auth='.getenv('REDIS_PASSWORD').'&username='.getenv('REDIS_USERNAME').'&database='.getenv('REDIS_DATABASE').'&timeout=0.0';
 $config['sess_match_ip'] = FALSE;
+
+$_sess_redis_host = getenv('REDIS_HOST');
+if (!empty($_sess_redis_host)) {
+    $_sess_protocol = getenv('REDIS_PROTOCOL') ?: 'tcp';
+    $_sess_port     = getenv('REDIS_PORT')     ?: '6379';
+    $_sess_password = getenv('REDIS_PASSWORD') ?: '';
+    $_sess_username = getenv('REDIS_USERNAME') ?: '';
+    $_sess_database = getenv('REDIS_DATABASE') ?: '0';
+
+    $config['sess_driver']    = 'redis';
+    $config['sess_save_path'] = $_sess_protocol . '://' . $_sess_redis_host . ':' . $_sess_port
+        . '?auth='     . $_sess_password
+        . '&username=' . $_sess_username
+        . '&database=' . $_sess_database
+        . '&timeout=0.0';
+} else {
+    $config['sess_driver']    = 'files';
+    $config['sess_save_path'] = sys_get_temp_dir();
+}
+unset($_sess_redis_host, $_sess_protocol, $_sess_port, $_sess_password, $_sess_username, $_sess_database);
 $config['sess_time_to_update'] = 300;
 $config['sess_regenerate_destroy'] = FALSE;
 

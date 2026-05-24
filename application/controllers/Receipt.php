@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Receipt extends CI_Controller {
 
@@ -51,7 +51,7 @@ class Receipt extends CI_Controller {
         }
 
         // Fetch org info
-        $orgInfo = $this->organisation_model->getOrgForReceipt($payment->OrgUID);
+        $orgInfo = $this->organisation_model->getOrgInfoCached($payment->OrgUID);
         $org     = $orgInfo->Data ?? null;
 
         $this->load->view('receipt/payment', [

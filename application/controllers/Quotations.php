@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Quotations extends MY_Controller {
 
@@ -216,7 +216,7 @@ class Quotations extends MY_Controller {
 
             $transUID = $insertResp->ID;
 
-            // --- Insert detail row (TransDetailTbl â€” notes, terms, validity, charges) ---
+            // --- Insert detail row (TransDetailTbl - notes, terms, validity, charges) ---
             $additionalChargesJson = $this->buildAdditionalChargesJson($PostData);
             $isInterState          = $igstAmount > 0 ? 1 : ($cgstAmount > 0 || $sgstAmount > 0 ? 0 : NULL);
             $_cc                   = $this->transactions_model->getCustomerCountryCode($customerUID);
@@ -318,12 +318,12 @@ class Quotations extends MY_Controller {
 
             $financialYear = (int) date('Y', strtotime($transDate));
 
-            // Load existing row to check current DocStatus (needed for draftâ†’pending promotion)
+            // Load existing row to check current DocStatus (needed for draft → pending promotion)
             $this->load->model('transactions_model');
             $existing = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
             if (!$existing) throw new Exception('Quotation not found.');
 
-            // --- Build UniqueNumber when promoting Draft â†’ Pending ---
+            // --- Build UniqueNumber when promoting Draft → Pending ---
             $uniqueNumber = NULL;
             if ($existing->DocStatus === 'Draft' && !$isDraft) {
                 if ($prefixUID <= 0) throw new Exception('Please select a prefix to finalize this quotation.');
@@ -421,7 +421,7 @@ class Quotations extends MY_Controller {
                 );
                 $this->saveQuotationItems($newTransUID, $financialYear, $orgUID, $userUID, $items);
 
-                // Hard-delete old draft header and its detail â€” only TransactionsTbl drives list order
+                // Hard-delete old draft header and its detail — only TransactionsTbl drives list order
                 $this->dbwrite_model->deleteInTransaction('Transaction', 'TransactionsTbl', ['TransUID' => $transUID]);
                 $this->dbwrite_model->deleteInTransaction('Transaction', 'TransDetailTbl',  ['TransUID' => $transUID]);
 
@@ -687,7 +687,7 @@ class Quotations extends MY_Controller {
             $items = $this->transactions_model->getTransactionItems($transUID, $orgUID);
 
             $this->load->model('organisation_model');
-            $orgInfo          = $this->organisation_model->getOrgForReceipt($orgUID);
+            $orgInfo          = $this->organisation_model->getOrgInfoCached($orgUID);
             $thermalCfgResult = $this->organisation_model->getThermalPrintConfigByType($orgUID, $header->TransType);
             $printThemeResult = $this->organisation_model->getPrintThemeByType($orgUID, $header->TransType);
 
@@ -710,11 +710,11 @@ class Quotations extends MY_Controller {
     /**
      * Insert line items into TransProductsTbl.
      *
-     * Key JSâ†’PHP field name mappings:
-     *   JS item.quantity        â†’ PHP $qty          (BillManager uses 'quantity', not 'qty')
-     *   JS item.discount_amount â†’ PHP $discountAmount (underscore, not camel)
-     *   JS item.line_total      â†’ PHP $lineTaxable   (unit_priceÃ—qty, BEFORE tax)
-     *   JS item.net_total       â†’ PHP $netAmount      (selling_priceÃ—qty, WITH tax)
+     * Key JS→PHP field name mappings:
+     *   JS item.quantity        → PHP $qty          (BillManager uses 'quantity', not 'qty')
+     *   JS item.discount_amount → PHP $discountAmount (underscore, not camel)
+     *   JS item.line_total      → PHP $lineTaxable   (unit_price×qty, BEFORE tax)
+     *   JS item.net_total       → PHP $netAmount      (selling_price×qty, WITH tax)
      */
     private function saveQuotationItems($transUID, $financialYear, $orgUID, $userUID, array $items, $seqOffset = 0) {
 
@@ -770,7 +770,7 @@ class Quotations extends MY_Controller {
 
         if (empty($rows)) return;
 
-        // Single batch INSERT instead of one query per item â€” much faster for large carts
+        // Single batch INSERT instead of one query per item — much faster for large carts
         $batchResp = $this->dbwrite_model->insertBatchInTransaction('Transaction', 'TransProductsTbl', $rows);
         if ($batchResp->Error) throw new Exception($batchResp->Message);
 

@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php
 if (!isset($ModAllCount))  { $ModAllCount  = 0; }
 if (!isset($ModRowData))   { $ModRowData   = ''; }
@@ -22,7 +22,12 @@ if (!isset($ModPagination)){ $ModPagination = ''; }
                             <div class="trans-ph-icon" style="background:#ede9fe;">
                                 <i class="bx bx-user" style="color:#7c3aed;"></i>
                             </div>
-                            <h5 class="trans-ph-title"><?php echo htmlspecialchars($PageTitle ?? 'Users'); ?></h5>
+                            <div>
+                                <h5 class="trans-ph-title mb-0"><?php echo htmlspecialchars($PageTitle ?? 'Users'); ?></h5>
+                                <?php if (!empty($PageDescription)): ?>
+                                <div class="text-muted" style="font-size:.76rem;"><?php echo htmlspecialchars($PageDescription); ?></div>
+                                <?php endif; ?>
+                            </div>
                         </div>
                         <button type="button" class="btn btn-primary me-1" id="addUserBtn">
                             <i class="bx bx-plus me-1"></i>Create User

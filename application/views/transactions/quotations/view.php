@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 $this->load->view('common/transactions/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -55,7 +55,12 @@ $this->load->view('common/transactions/header'); ?>
                             <div class="trans-ph-icon" style="background:#fef3c7;">
                                 <i class="bx bx-file-blank" style="color:#f59e0b;"></i>
                             </div>
-                            <h5 class="trans-ph-title"><?php echo htmlspecialchars($PageTitle ?? 'Quotations'); ?></h5>
+                            <div>
+                                <h5 class="trans-ph-title mb-0"><?php echo htmlspecialchars($PageTitle ?? 'Quotations'); ?></h5>
+                                <?php if (!empty($PageDescription)): ?>
+                                <div class="text-muted" style="font-size:.76rem;"><?php echo htmlspecialchars($PageDescription); ?></div>
+                                <?php endif; ?>
+                            </div>
                         </div>
                         <a href="/quotations/create" class="btn btn-primary">
                             <i class="bx bx-plus me-1"></i>New Quotation

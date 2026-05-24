@@ -515,7 +515,9 @@
 
         <div class="lr-brand-content">
             <div class="lr-brand-logo">
-                <img src="https://pub-bb40942a33344637936ade1f3800ff8b.r2.dev/Global/favicon_io/android-chrome-512x512-1.png" alt="<?php echo getSiteConfiguration()->ShortName; ?>">
+                <?php if (!empty($OrgLogo)): ?>
+                <img src="<?php echo htmlspecialchars($OrgLogo); ?>" alt="<?php echo getSiteConfiguration()->ShortName; ?>">
+                <?php endif; ?>
             </div>
 
             <div class="lr-brand-name">
@@ -562,7 +564,9 @@
 
             <!-- Mobile-only logo -->
             <div class="lr-mobile-logo">
-                <img src="https://pub-bb40942a33344637936ade1f3800ff8b.r2.dev/Global/favicon_io/android-chrome-512x512-1.png" alt="logo">
+                <?php if (!empty($OrgLogo)): ?>
+                <img src="<?php echo htmlspecialchars($OrgLogo); ?>" alt="logo">
+                <?php endif; ?>
                 <h2><span>RISHIKA 2K</span> ENTERPRISES</h2>
             </div>
 

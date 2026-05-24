@@ -75,16 +75,16 @@ if (!function_exists('print_build_qr_html')) {
                 . '&am=' . $netAmt
                 . '&cu=INR';
         $qrUrl   = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&ecc=H&data=' . rawurlencode($upiStr);
-        $logoSrc = !empty($orgLogo)
-            ? $e($orgLogo)
-            : 'https://pub-bb40942a33344637936ade1f3800ff8b.r2.dev/Global/favicon_io/android-chrome-512x512-1.png';
-        return '<div style="position:relative;display:inline-block;line-height:0;">'
-            . '<img src="' . $qrUrl . '" width="150" height="150">'
-            . '<div class="qr-logo-overlay" style="position:absolute;top:50%;left:50%;'
+        $logoOverlay = !empty($orgLogo)
+            ? '<div class="qr-logo-overlay" style="position:absolute;top:50%;left:50%;'
                 . 'transform:translate(-50%,-50%);width:38px;height:38px;'
                 . 'background:#fff;border-radius:4px;padding:3px;box-sizing:border-box;">'
-            . '<img src="' . $logoSrc . '" style="width:100%;height:100%;object-fit:contain;">'
-            . '</div>'
+              . '<img src="' . $e($orgLogo) . '" style="width:100%;height:100%;object-fit:contain;">'
+              . '</div>'
+            : '';
+        return '<div style="position:relative;display:inline-block;line-height:0;">'
+            . '<img src="' . $qrUrl . '" width="150" height="150">'
+            . $logoOverlay
             . '</div>';
     }
 }

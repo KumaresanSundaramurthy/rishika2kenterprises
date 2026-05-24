@@ -1,51 +1,12 @@
-// ── In-memory cache — per country for states, per state ISO2 for cities ──────
-window._stateCache = window._stateCache || {};
-window._cityCache  = window._cityCache  || {};
+// ── Session-level in-memory cache ────────────────────────────────────────────
+// Keyed by UPPER ISO2 for states, by "{country_lower}-{state_lower}" for cities.
+// Prevents repeat Upstash calls for the same country/state within one page load.
+var _stateSessionCache = {};
+var _citySessionCache  = {};
 
-// ── localStorage geo cache — JS equivalent of PHP redisservice->getCache() ───
-// Check localStorage first (cache hit → populate in-memory caches, no AJAX).
-// Cache miss or expired → fetch /globally/geodata once, store with timestamp.
-(function () {
-    var LS_KEY = 'r2k_geo_IN';
-    var TTL_MS = 86400 * 1000; // 24 hours
-
-    function _applyGeoData(states, cities) {
-        window._stateCache['IN'] = states;
-        for (var k in cities) window._cityCache[k] = cities[k];
-    }
-
-    try {
-        var raw = localStorage.getItem(LS_KEY);
-        if (raw) {
-            var cached = JSON.parse(raw);
-            if (cached && cached.ts && (Date.now() - cached.ts) < TTL_MS) {
-                _applyGeoData(cached.states, cached.cities); // Cache hit — done
-                return;
-            }
-            localStorage.removeItem(LS_KEY); // Expired — remove and re-fetch
-        }
-    } catch (e) {}
-
-    // Cache miss — fetch from server (same Redis source as PHP side)
-    var xhr = new XMLHttpRequest();
-    xhr.open('GET', '/globally/geodata', true);
-    xhr.onload = function () {
-        if (xhr.status !== 200) return;
-        try {
-            var resp = JSON.parse(xhr.responseText);
-            if (resp.Error) return;
-            _applyGeoData(resp.States, resp.Cities);
-            localStorage.setItem(LS_KEY, JSON.stringify({
-                ts: Date.now(), states: resp.States, cities: resp.Cities
-            }));
-        } catch (e) {}
-    };
-    xhr.send();
-}());
-
-// ── Address data variables (reset per customer/vendor modal session) ───────
-var billingAddrData  = null;
-var shippingAddrData = null;
+// ── Address data variables (reset per customer/vendor modal session) ─────────
+var billingAddrData   = null;
+var shippingAddrData  = null;
 var delAddrDetailFlag = 0;
 var delAddrData       = [];
 
@@ -62,7 +23,8 @@ function resetAddrData() {
     $('#copyToBillingBtn').addClass('d-none');
 }
 
-// ── Populate state dropdown ───────────────────────────────────────────────
+// ── Populate state dropdown ───────────────────────────────────────────────────
+// Flow: session cache → Upstash (loc-states map) → AJAX (PHP stores in Upstash)
 function csc_loadStates(selectId, countryISO2, selectedVal, onDone) {
     var iso2 = (countryISO2 || 'IN').toUpperCase();
 
@@ -75,40 +37,53 @@ function csc_loadStates(selectId, countryISO2, selectedVal, onDone) {
             );
         });
         if ($sel.hasClass('select2'))
-            $sel.select2({
-                width: '100%',
-                dropdownParent: $('#addEditAddressModal .modal-content'),
-            });
+            $sel.select2({ width: '100%', dropdownParent: $('#addEditAddressModal .modal-content') });
         if (selectedVal) $sel.val(String(selectedVal));
         if (typeof onDone === 'function') onDone();
     }
 
-    if (window._stateCache[iso2]) { _render(window._stateCache[iso2]); return; }
+    function _ajaxFallback() {
+        $.ajax({
+            url: '/globally/getStateCityOfCountry', method: 'POST', data: { CountryCode: iso2 },
+            success: function (resp) {
+                _stateSessionCache[iso2] = (!resp.Error && resp.StateInfo) ? resp.StateInfo : [];
+                _render(_stateSessionCache[iso2]);
+            },
+            error: function () { _stateSessionCache[iso2] = []; _render([]); }
+        });
+    }
 
-    $.ajax({
-        url: '/globally/getStateCityOfCountry', method: 'POST', data: { CountryCode: iso2 },
-        success: function (resp) {
-            window._stateCache[iso2] = (!resp.Error && resp.StateInfo) ? resp.StateInfo : [];
-            _render(window._stateCache[iso2]);
-        },
-        error: function () { window._stateCache[iso2] = []; _render([]); }
+    // 1. Session cache hit
+    if (_stateSessionCache[iso2] !== undefined) { _render(_stateSessionCache[iso2]); return; }
+
+    // 2. Check Upstash — the map key is lowercase ISO2
+    if (!UpstashService.isEnabled()) { _ajaxFallback(); return; }
+
+    UpstashService.get(UpstashService.orgKey('loc-states')).then(function (allStates) {
+        var liso2 = iso2.toLowerCase();
+        if (allStates && allStates[liso2]) {
+            _stateSessionCache[iso2] = allStates[liso2];
+            _render(_stateSessionCache[iso2]);
+        } else {
+            // 3. Upstash miss — AJAX; PHP will query DB and store in Upstash
+            _ajaxFallback();
+        }
     });
 }
 
-// ── Populate city dropdown per state (cached by state ISO2) ───────────────
+// ── Populate city dropdown per state ─────────────────────────────────────────
+// Flow: session cache → Upstash (loc-cities-by-state map) → AJAX (PHP stores in Upstash)
 function csc_loadCities(selectId, countryISO2, stateISO2, selectedVal, selectedName) {
     var $sel = $('#' + selectId);
     if (!stateISO2) {
         $sel.empty().append('<option value="">-- Select City --</option>');
         if ($sel.hasClass('select2'))
-            $sel.select2({
-                width: '100%',
-                dropdownParent: $('#addEditAddressModal .modal-content'),
-            });
+            $sel.select2({ width: '100%', dropdownParent: $('#addEditAddressModal .modal-content') });
         return;
     }
-    var cISO2 = (countryISO2 || 'IN').toUpperCase();
-    var sISO2 = stateISO2.toUpperCase();
+    var cISO2  = (countryISO2 || 'IN').toUpperCase();
+    var sISO2  = stateISO2.toUpperCase();
+    var subKey = cISO2.toLowerCase() + '-' + sISO2.toLowerCase();
 
     function _render(cities) {
         $sel.empty().append('<option value="">-- Select City --</option>');
@@ -116,10 +91,7 @@ function csc_loadCities(selectId, countryISO2, stateISO2, selectedVal, selectedN
             $sel.append($('<option></option>').val(c.id).text(c.name));
         });
         if ($sel.hasClass('select2'))
-            $sel.select2({
-                width: '100%',
-                dropdownParent: $('#addEditAddressModal .modal-content'),
-            });
+            $sel.select2({ width: '100%', dropdownParent: $('#addEditAddressModal .modal-content') });
         if (selectedVal) {
             $sel.val(String(selectedVal));
         } else if (selectedName) {
@@ -134,29 +106,45 @@ function csc_loadCities(selectId, countryISO2, stateISO2, selectedVal, selectedN
         }
     }
 
-    if (window._cityCache[sISO2] !== undefined) { _render(window._cityCache[sISO2]); return; }
+    function _ajaxFallback() {
+        $sel.empty().append('<option value="">Loading cities...</option>');
+        if ($sel.hasClass('select2'))
+            $sel.select2({ width: '100%', dropdownParent: $('#addEditAddressModal .modal-content') });
+        $.ajax({
+            url: '/globally/getCitiesOfState', method: 'POST',
+            data: { CountryISO2: cISO2, StateISO2: sISO2 },
+            success: function (resp) {
+                _citySessionCache[subKey] = (!resp.Error && resp.Data) ? resp.Data : [];
+                _render(_citySessionCache[subKey]);
+            },
+            error: function () { _citySessionCache[subKey] = []; _render([]); }
+        });
+    }
+
+    // 1. Session cache hit
+    if (_citySessionCache[subKey] !== undefined) { _render(_citySessionCache[subKey]); return; }
+
+    // 2. Check Upstash — sub-key is "{country_lower}-{state_lower}"
+    if (!UpstashService.isEnabled()) { _ajaxFallback(); return; }
 
     $sel.empty().append('<option value="">Loading cities...</option>');
     if ($sel.hasClass('select2'))
-        $sel.select2({
-            width: '100%',
-            dropdownParent: $('#addEditAddressModal .modal-content'),
-        });
+        $sel.select2({ width: '100%', dropdownParent: $('#addEditAddressModal .modal-content') });
 
-    $.ajax({
-        url: '/globally/getCitiesOfState', method: 'POST',
-        data: { CountryISO2: cISO2, StateISO2: sISO2 },
-        success: function (resp) {
-            window._cityCache[sISO2] = (!resp.Error && resp.Data) ? resp.Data : [];
-            _render(window._cityCache[sISO2]);
-        },
-        error: function () { window._cityCache[sISO2] = []; _render([]); }
+    UpstashService.get(UpstashService.orgKey('loc-cities-by-state')).then(function (allCities) {
+        if (allCities && allCities[subKey]) {
+            _citySessionCache[subKey] = allCities[subKey];
+            _render(_citySessionCache[subKey]);
+        } else {
+            // 3. Upstash miss — AJAX; PHP will query DB and store in Upstash
+            _ajaxFallback();
+        }
     });
 }
 
-// ── Open address modal ────────────────────────────────────────────────────
+// ── Open address modal ────────────────────────────────────────────────────────
 function openAddressModal(addrType) {
-    var iso2     = typeof OrgCountryISO2 !== 'undefined' ? OrgCountryISO2 : 'IN';
+    var iso2      = typeof OrgCountryISO2 !== 'undefined' ? OrgCountryISO2 : 'IN';
     var isBilling = (addrType == 1);
     var existing  = isBilling ? billingAddrData : shippingAddrData;
 
@@ -176,7 +164,6 @@ function openAddressModal(addrType) {
         $('#ModalAddrPincode').val(existing.Pincode || '');
 
         csc_loadStates('ModalAddrState', iso2, existing.StateId || '', function () {
-            // Name-based fallback when no StateId was stored (existing data)
             if ((!existing.StateId || !$('#ModalAddrState').val()) && existing.StateName) {
                 var sLower = $.trim(existing.StateName).toLowerCase();
                 $('#ModalAddrState option').each(function () {
@@ -199,7 +186,7 @@ function openAddressModal(addrType) {
     $('#addEditAddressModal').modal('show');
 }
 
-// ── Render address summary card ───────────────────────────────────────────
+// ── Render address summary card ───────────────────────────────────────────────
 function renderAddrSummary(addrType, data) {
     var divId    = addrType == 1 ? 'appendBillingAddress'  : 'appendShippingAddress';
     var addBtnId = addrType == 1 ? 'addBillingAddress'     : 'addShippingAddress';
@@ -226,14 +213,14 @@ function renderAddrSummary(addrType, data) {
     $('#' + addBtnId).addClass('d-none');
 }
 
-// ── Modal state change → load cities ─────────────────────────────────────
+// ── Modal state change → load cities ─────────────────────────────────────────
 $(document).on('change', '#ModalAddrState', function () {
     var iso2      = typeof OrgCountryISO2 !== 'undefined' ? OrgCountryISO2 : 'IN';
     var stateISO2 = $(this).find('option:selected').data('iso2') || '';
     csc_loadCities('ModalAddrCity', iso2, stateISO2, '');
 });
 
-// ── Address modal save button click ──────────────────────────────────────
+// ── Address modal save button click ──────────────────────────────────────────
 $(document).on('click', '#AddrSaveBtn', function () {
     var line1 = $.trim($('#ModalAddrLine1').val());
     if (!line1) { showAlertMessageSwal('error', '', 'Address Line 1 is required.'); return; }
@@ -266,12 +253,12 @@ $(document).on('click', '#AddrSaveBtn', function () {
     $('#addEditAddressModal').modal('hide');
 });
 
-// ── Edit button in summary card ───────────────────────────────────────────
+// ── Edit button in summary card ───────────────────────────────────────────────
 $(document).on('click', '.editAddrBtn', function () {
     openAddressModal(parseInt($(this).data('addrtype')));
 });
 
-// ── Delete button in summary card ─────────────────────────────────────────
+// ── Delete button in summary card ─────────────────────────────────────────────
 $(document).on('click', '.deleteAddrBtn', function () {
     var addrType  = parseInt($(this).data('addrtype'));
     var existing  = addrType === 1 ? billingAddrData : shippingAddrData;
@@ -290,23 +277,20 @@ $(document).on('click', '.deleteAddrBtn', function () {
     _updateCopyButtons();
 });
 
-// ── Copy button visibility ───────────────────────────────────────────────
+// ── Copy button visibility ────────────────────────────────────────────────────
 function _updateCopyButtons() {
     var hasBill = billingAddrData  !== null;
     var hasShip = shippingAddrData !== null;
-    // Both present — hide both copy buttons
     if (hasBill && hasShip) {
         $('#copyToShippingBtn').addClass('d-none');
         $('#copyToBillingBtn').addClass('d-none');
     } else {
-        // Billing added, shipping not — show "Copy to Shipping" on billing side
         $('#copyToShippingBtn').toggleClass('d-none', !hasBill);
-        // Shipping added, billing not — show "Copy to Billing" on shipping side
         $('#copyToBillingBtn').toggleClass('d-none', !hasShip);
     }
 }
 
-// ── Copy to Shipping ──────────────────────────────────────────────────────
+// ── Copy to Shipping ──────────────────────────────────────────────────────────
 $(document).on('click', '#copyToShippingBtn', function () {
     if (!billingAddrData) return;
     shippingAddrData = $.extend({}, billingAddrData, { UID: 0 });
@@ -314,7 +298,7 @@ $(document).on('click', '#copyToShippingBtn', function () {
     _updateCopyButtons();
 });
 
-// ── Copy to Billing ───────────────────────────────────────────────────────
+// ── Copy to Billing ───────────────────────────────────────────────────────────
 $(document).on('click', '#copyToBillingBtn', function () {
     if (!shippingAddrData) return;
     billingAddrData = $.extend({}, shippingAddrData, { UID: 0 });
@@ -322,6 +306,6 @@ $(document).on('click', '#copyToBillingBtn', function () {
     _updateCopyButtons();
 });
 
-// ── Add button click — open modal ─────────────────────────────────────────
+// ── Add button click — open modal ─────────────────────────────────────────────
 $(document).on('click', '#addBillingAddress',  function (e) { e.preventDefault(); openAddressModal(1); });
 $(document).on('click', '#addShippingAddress', function (e) { e.preventDefault(); openAddressModal(2); });

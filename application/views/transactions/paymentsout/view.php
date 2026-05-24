@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
 <?php $this->load->view('common/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -29,7 +29,12 @@
                             <div class="trans-ph-icon" style="background:#fee2e2;">
                                 <i class="bx bx-credit-card-front" style="color:#ef4444;"></i>
                             </div>
-                            <h5 class="trans-ph-title"><?php echo htmlspecialchars($PageTitle ?? 'Payments Out'); ?></h5>
+                            <div>
+                                <h5 class="trans-ph-title mb-0"><?php echo htmlspecialchars($PageTitle ?? 'Payments Out'); ?></h5>
+                                <?php if (!empty($PageDescription)): ?>
+                                <div class="text-muted" style="font-size:.76rem;"><?php echo htmlspecialchars($PageDescription); ?></div>
+                                <?php endif; ?>
+                            </div>
                         </div>
                     </div>
                     <!-- ── Balance Summary ─────────────────────────────────── -->

@@ -48,7 +48,12 @@ $noBankTypes  = ['Cash'];
                             <div class="trans-ph-icon" style="background:#fef3c7;">
                                 <i class="bx bx-receipt" style="color:#d97706;"></i>
                             </div>
-                            <h5 class="trans-ph-title mb-0"><?php echo $pageTitle; ?></h5>
+                            <div>
+                                <h5 class="trans-ph-title mb-0"><?php echo $pageTitle; ?></h5>
+                                <?php if (!empty($PageDescription)): ?>
+                                <div class="text-muted" style="font-size:.76rem;"><?php echo htmlspecialchars($PageDescription); ?></div>
+                                <?php endif; ?>
+                            </div>
                         </div>
                     </div>
 

@@ -18,7 +18,12 @@
                             <div class="trans-ph-icon ph-icon-customers">
                                 <i class="bx bxs-group"></i>
                             </div>
-                            <h5 class="trans-ph-title"><?php echo htmlspecialchars($PageTitle ?? 'Customers'); ?></h5>
+                            <div>
+                                <h5 class="trans-ph-title mb-0"><?php echo htmlspecialchars($PageTitle ?? 'Customers'); ?></h5>
+                                <?php if (!empty($PageDescription)): ?>
+                                <div class="text-muted" style="font-size:.76rem;"><?php echo htmlspecialchars($PageDescription); ?></div>
+                                <?php endif; ?>
+                            </div>
                         </div>
                         <a href="javascript:void(0);" class="btn btn-primary" id="btnCreateCustomerHeader">
                             <i class="bx bx-plus me-1"></i>New Customer

@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php $this->load->view('common/header'); ?>
 
@@ -22,7 +22,12 @@
                             <div class="trans-ph-icon ph-icon-vendors">
                                 <i class="bx bxs-store"></i>
                             </div>
-                            <h5 class="trans-ph-title"><?php echo htmlspecialchars($PageTitle ?? 'Vendors'); ?></h5>
+                            <div>
+                                <h5 class="trans-ph-title mb-0"><?php echo htmlspecialchars($PageTitle ?? 'Vendors'); ?></h5>
+                                <?php if (!empty($PageDescription)): ?>
+                                <div class="text-muted" style="font-size:.76rem;"><?php echo htmlspecialchars($PageDescription); ?></div>
+                                <?php endif; ?>
+                            </div>
                         </div>
                         <a href="javascript:void(0);" class="btn btn-primary" id="btnCreateVendorHeader">
                             <i class="bx bx-plus me-1"></i>New Vendor

@@ -162,6 +162,21 @@ function retrieveProductDetails(ItemUID, CloneFlag = false) {
                 if (response.Data.NotForSale == 'Yes') {
                     $('#NotForSale').prop('checked', true);
                 }
+                if (response.Data.IsRentable == 1) {
+                    $('#IsRentable').prop('checked', true).trigger('change');
+                    if (response.RentalConfig) {
+                        var rc = response.RentalConfig;
+                        $('#rc_SecurityDeposit').val(smartDecimal(rc.SecurityDeposit));
+                        $('#rc_HourlyRate').val(smartDecimal(rc.HourlyRate));
+                        $('#rc_HalfDayRate').val(smartDecimal(rc.HalfDayRate));
+                        $('#rc_FullDayRate').val(smartDecimal(rc.FullDayRate));
+                        $('#rc_FixedPackageRate').val(smartDecimal(rc.FixedPackageRate));
+                        $('#rc_ExtraHourRate').val(smartDecimal(rc.ExtraHourRate));
+                        $('#rc_LateReturnCharge').val(smartDecimal(rc.LateReturnChargePerHour));
+                        $('#rc_DamagePenaltyRate').val(smartDecimal(rc.DamagePenaltyRate));
+                        $('#rc_MinRentalHours').val(rc.MinRentalHours || 1);
+                    }
+                }
 
             }
         },
@@ -1035,8 +1050,8 @@ function clearItemValues() {
     $('#ProductType').val('Product').trigger('change');
     $('#SellingTaxOption,#PurchaseTaxOption,#DiscountOption').val(1).trigger('change');
     $('#TaxPercentage,#PrimaryUnit,#Category,#StorageUID,#BrandUID,#PSizeUID').val(null).trigger('change');
-    $('#IsSizeApplicable,#IsBrandApplicable,#IsSerialTracked,#NotForSale').prop('checked', false).trigger('change');
-    $('#SizeDiv').addClass('d-none');
+    $('#IsSizeApplicable,#IsBrandApplicable,#IsSerialTracked,#NotForSale,#IsRentable').prop('checked', false).trigger('change');
+    $('#SizeDiv,#rentalConfigSection').addClass('d-none');
     myOneDropzone.removeAllFiles(true);
     quill.setContents([]);
     // Reset customer pricing

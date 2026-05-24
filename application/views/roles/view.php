@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php $this->load->view('common/header'); ?>
 
@@ -18,7 +18,12 @@
                             <div class="trans-ph-icon ph-icon-users">
                                 <i class="bx bx-shield-alt-2"></i>
                             </div>
-                            <h5 class="trans-ph-title"><?php echo htmlspecialchars($PageTitle ?? 'Roles &amp; Permissions'); ?></h5>
+                            <div>
+                                <h5 class="trans-ph-title mb-0"><?php echo htmlspecialchars($PageTitle ?? 'Roles &amp; Permissions'); ?></h5>
+                                <?php if (!empty($PageDescription)): ?>
+                                <div class="text-muted" style="font-size:.76rem;"><?php echo htmlspecialchars($PageDescription); ?></div>
+                                <?php endif; ?>
+                            </div>
                         </div>
                     </div>
 
@@ -516,10 +521,11 @@ $(function() {
             contentType: false,
             processData: false,
             success: function(res) {
-                $btn.prop('disabled', false).html('<i class="bx bx-refresh"></i>');
                 if (res.Error === false) {
                     showToastNotification(res.Message, 'success');
+                    setTimeout(function() { location.reload(); }, 800);
                 } else {
+                    $btn.prop('disabled', false).html('<i class="bx bx-refresh"></i>');
                     showToastNotification(res.Message, 'error');
                 }
             },

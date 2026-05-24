@@ -467,6 +467,25 @@ class Dbwrite_model extends CI_Model {
     }
 
     /**
+     * Write one manual stock adjustment row to StockLedgerTbl and update AvailableQuantity.
+     * Called after the StockAdjustmentTbl row is already inserted (AdjUID is known).
+     *
+     * @param int    $adjUID      AdjUID from StockAdjustmentTbl
+     * @param int    $orgUID
+     * @param int    $userUID
+     * @param int    $productUID
+     * @param float  $qty
+     * @param float  $unitCost    Price entered in the form (used as UnitCost in ledger)
+     * @param string $adjType     'IN' or 'OUT'
+     */
+    public function applyManualStockAdjustment($adjUID, $orgUID, $userUID, $productUID, $qty, $unitCost, $adjType) {
+
+        $movementType = ($adjType === 'IN') ? 'IN' : 'OUT';
+        $this->_applyStockMovement((int)$adjUID, 118, (int)$orgUID, (int)$userUID, (int)$productUID, (float)$qty, (float)$unitCost, $movementType);
+
+    }
+
+    /**
      * Reverse all stock movements for a transaction (used on edit of non-draft or on delete).
      * Soft-deletes the ledger rows and adds back / subtracts the quantities.
      * Safe to call on draft transactions — finds no ledger rows and does nothing.

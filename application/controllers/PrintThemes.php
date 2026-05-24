@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class PrintThemes extends MY_Controller {
 
@@ -131,7 +131,7 @@ class PrintThemes extends MY_Controller {
             $this->pageData['UsedTypes'] = array_map(fn($c) => $c->TransactionType, $configs);
 
             // Org data for preview
-            $orgData = $this->organisation_model->getOrgForReceipt($orgUID)->Data;
+            $orgData = $this->organisation_model->getOrgInfoCached($orgUID)->Data;
             $this->pageData['OrgPreviewData'] = $orgData;
 
             $this->load->view('printthemes/view', $this->pageData);

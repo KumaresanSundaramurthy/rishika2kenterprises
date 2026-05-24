@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Transactions extends CI_Controller {
 
@@ -363,7 +363,7 @@ class Transactions extends CI_Controller {
             $attachments = $this->transactions_model->getTransactionAttachments($transUID, $orgUID);
 
             $this->load->model('organisation_model');
-            $orgInfo          = $this->organisation_model->getOrgForReceipt($orgUID);
+            $orgInfo          = $this->organisation_model->getOrgInfoCached($orgUID);
             $thermalCfgResult = $this->organisation_model->getThermalPrintConfigByModule($orgUID, $moduleUID);
 
             $this->EndReturnData->Error         = FALSE;
@@ -493,7 +493,7 @@ class Transactions extends CI_Controller {
             if (!$header) throw new Exception('Transaction not found.');
 
             $this->load->model('organisation_model');
-            $orgInfo          = $this->organisation_model->getOrgForReceipt($orgUID);
+            $orgInfo          = $this->organisation_model->getOrgInfoCached($orgUID);
             $printThemeResult = $this->organisation_model->getPrintThemeByType($orgUID, $header->TransType);
             $printBankAccount = $this->transactions_model->getPrintBankAccount($orgUID);
 

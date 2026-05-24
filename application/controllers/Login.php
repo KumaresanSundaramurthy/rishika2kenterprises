@@ -23,7 +23,7 @@ class Login extends CI_Controller {
             redirect('dashboard', 'refresh');
             return;
         }
-        $this->load->view('login/view');
+        $this->load->view('login/view', ['OrgLogo' => $this->_getDefaultOrgLogo()]);
     }
 
     public function doLoginForm() {
@@ -77,7 +77,9 @@ class Login extends CI_Controller {
                             $this->session->set_flashdata('danger', 'Oops! '.$jwtPayload->Message);
                         } else {
 
-                            $newPayload = clone $jwtPayload;
+                            $newPayload   = clone $jwtPayload;
+                            $orgShortCode = $newPayload->JWTData['User']['OrgShortCode'] ?? '';
+                            $orgToken     = $newPayload->JWTData['User']['OrgToken']     ?? '';
 
                             $auditId = $this->logLoginSuccess($UserData->Data[0]);
                             $jwtPayload->JWTData['User']['auditId'] = $auditId ?? 0;
@@ -108,13 +110,24 @@ class Login extends CI_Controller {
 
                                 $loginExpiry = (int) getenv('LOGIN_EXPIRE_SECS');
                                 $userUID     = $UserData->Data[0]->UserUID;
-                                $this->redisservice->setUserCache('menus',       $userUID, $newPayload->JWTData['UserMainModule'] ?? [], $loginExpiry);
-                                $this->redisservice->setUserCache('submenus',    $userUID, $newPayload->JWTData['UserSubModule']  ?? [], $loginExpiry);
-                                $this->redisservice->setUserCache('modules',     $userUID, $newPayload->JWTData['ModuleInfo']     ?? [], $loginExpiry);
-                                $this->redisservice->setUserCache('permissions', $userUID, $newPayload->JWTData['Permissions']    ?? [], $loginExpiry);
-                                $this->redisservice->setUserCache('settings',    $userUID, $newPayload->JWTData['GenSettings']    ?? [], $loginExpiry);
-                                $this->redisservice->setUserCache('userinfo',    $userUID, $UserData->Data[0],                         $loginExpiry);
-                                
+                                $this->redisservice->setUserCache('menus',       $userUID, $newPayload->JWTData['UserMainModule'] ?? [], $loginExpiry, $orgShortCode, $orgToken);
+                                $this->redisservice->setUserCache('submenus',    $userUID, $newPayload->JWTData['UserSubModule']  ?? [], $loginExpiry, $orgShortCode, $orgToken);
+                                $this->redisservice->setUserCache('modules',     $userUID, $newPayload->JWTData['ModuleInfo']     ?? [], $loginExpiry, $orgShortCode, $orgToken);
+                                $this->redisservice->setUserCache('permissions', $userUID, $newPayload->JWTData['Permissions']    ?? [], $loginExpiry, $orgShortCode, $orgToken);
+                                $this->redisservice->setUserCache('settings',    $userUID, $newPayload->JWTData['GenSettings']    ?? [], $loginExpiry, $orgShortCode, $orgToken);
+                                $this->redisservice->setUserCache('userinfo',    $userUID, $UserData->Data[0],                         $loginExpiry, $orgShortCode, $orgToken);
+
+                                $orgUID = $UserData->Data[0]->UserOrgUID ?? null;
+                                if ($orgUID) {
+                                    $this->load->model('users_model');
+                                    $orgUsers = $this->users_model->getOrgUsersForCache((int)$orgUID);
+                                    $this->redisservice->setCache($this->redisservice->orgKey('org_users', $orgShortCode, $orgToken), $orgUsers, $loginExpiry);
+
+                                    // Pre-warm org info cache (full CDN-resolved URL stored)
+                                    $this->load->model('organisation_model');
+                                    $this->organisation_model->getOrgInfoCached((int)$orgUID, $orgShortCode, $orgToken);
+                                }
+
                                 redirect('dashboard', 'refresh');
 
                             } else {
@@ -264,7 +277,7 @@ class Login extends CI_Controller {
     public function forgotPassword() {
         $this->load->helper('auth');
         if (is_authenticated()) { redirect('dashboard', 'refresh'); return; }
-        $this->load->view('login/forgot_password');
+        $this->load->view('login/forgot_password', ['OrgLogo' => $this->_getDefaultOrgLogo()]);
     }
 
     public function sendResetLink() {
@@ -325,8 +338,9 @@ class Login extends CI_Controller {
             return;
         }
 
-        $this->PageData['token']        = $token;
-        $this->PageData['remainingSecs'] = max(0, strtotime($tokenInfo->ExpiresAt) - time());
+        $this->PageData['token']         = $token;
+        $this->PageData['remainingSecs']  = max(0, strtotime($tokenInfo->ExpiresAt) - time());
+        $this->PageData['OrgLogo']        = $this->_getDefaultOrgLogo();
         $this->load->view('login/reset_password', $this->PageData);
     }
 
@@ -644,8 +658,15 @@ class Login extends CI_Controller {
 
 			}
 
+            $logoutShortCode = $getAuditInfo->Value->User->OrgShortCode ?? '';
+            $logoutOrgToken  = $getAuditInfo->Value->User->OrgToken     ?? '';
             if ($userUID) {
-                $this->redisservice->deleteAllUserCache($userUID);
+                $this->redisservice->deleteAllUserCache($userUID, $logoutShortCode, $logoutOrgToken);
+            }
+
+            $orgUID = $getAuditInfo->Value->User->OrgUID ?? null;
+            if ($orgUID) {
+                $this->redisservice->deleteCache($this->redisservice->orgKey('org_users', $logoutShortCode, $logoutOrgToken));
             }
 
 			delete_cookie(getenv('JWT_COOKIE_NAME'));
@@ -654,6 +675,15 @@ class Login extends CI_Controller {
 
 		redirect('portal', 'refresh');
 
+    }
+
+    private function _getDefaultOrgLogo() {
+        try {
+            $this->load->model('organisation_model');
+            return $this->organisation_model->getDefaultOrgLogo();
+        } catch (Exception $e) {
+            return '';
+        }
     }
 
 }

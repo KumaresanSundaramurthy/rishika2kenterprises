@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Globally extends CI_Controller {
 
@@ -512,7 +512,7 @@ class Globally extends CI_Controller {
 
         // ── Org info (common to all modules) ─────────────────────────────────
         $this->load->model('organisation_model');
-        $orgInfo = $this->organisation_model->getOrgForReceipt($orgUID);
+        $orgInfo = $this->organisation_model->getOrgInfoCached($orgUID);
         $org     = $orgInfo->Data ?? null;
         if ($org) {
             $orgAddr = implode(', ', array_filter([

@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Invoices extends MY_Controller {
 
@@ -849,7 +849,7 @@ class Invoices extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
-            // Credit customer ledger â€” runs after commit, cannot poison the transaction
+            // Credit customer ledger — runs after commit, cannot poison the transaction
             try {
                 $this->load->library('accountledger');
                 $this->accountledger->applyLedgerEntry($existing->PartyUID, 'Customer', $amount, 'Credit', $transUID);
@@ -929,7 +929,7 @@ class Invoices extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
-            // Reverse customer ledger AFTER commit â€” runs in auto-commit mode so
+            // Reverse customer ledger AFTER commit — runs in auto-commit mode so
             // any audit-log failure cannot roll back the already-committed delete.
             if ($existing->DocStatus !== 'Draft' && $existing->PartyType === 'C' && $existing->PartyUID > 0) {
                 $netAmount = (float) $existing->NetAmount;
@@ -1202,7 +1202,7 @@ class Invoices extends MY_Controller {
             $items = $this->transactions_model->getTransactionItems($transUID, $orgUID);
 
             $this->load->model('organisation_model');
-            $orgInfo          = $this->organisation_model->getOrgForReceipt($orgUID);
+            $orgInfo          = $this->organisation_model->getOrgInfoCached($orgUID);
             $thermalCfgResult = $this->organisation_model->getThermalPrintConfig($orgUID);
             $printThemeResult = $this->organisation_model->getPrintThemeByType($orgUID, 'Invoice');
 

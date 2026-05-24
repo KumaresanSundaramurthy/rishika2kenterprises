@@ -4,18 +4,10 @@ class Organisation_model extends CI_Model {
     
     private $EndReturnData;
     private $ReadDb;
-    private $OrgBusTypeKey;
-    private $OrgIndTypeKey;
-    private $OrgBusRegTypeKey;
 
 	function __construct() {
         parent::__construct();
-        
-        $this->OrgBusTypeKey = getSiteConfiguration()->RedisName . '-orgbustypeinfo';
-        $this->OrgIndTypeKey = getSiteConfiguration()->RedisName . '-orgindustypeinfo';
-        $this->OrgBusRegTypeKey = getSiteConfiguration()->RedisName . '-orgbusregtypeinfo';
         $this->ReadDb = $this->load->database('ReadDB', TRUE);
-
     }
 
     public function getOrganisationDetails($FilterArray) {
@@ -83,7 +75,7 @@ class Organisation_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $OBTKey = $this->OrgBusTypeKey;
+            $OBTKey = $this->redisservice->orgKey('orgbustypeinfo');
             $OBTGet_Data = $this->redisservice->getCache($OBTKey);
             if ($OBTGet_Data->Error) {
 
@@ -125,7 +117,7 @@ class Organisation_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $OITKey = $this->OrgIndTypeKey;
+            $OITKey = $this->redisservice->orgKey('orgindustypeinfo');
             $OITGet_Data = $this->redisservice->getCache($OITKey);
             if ($OITGet_Data->Error) {
 
@@ -167,7 +159,7 @@ class Organisation_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
             
-            $OBRTKey = $this->OrgBusRegTypeKey;
+            $OBRTKey = $this->redisservice->orgKey('orgbusregtypeinfo');
             $OBRTGet_Data = $this->redisservice->getCache($OBRTKey);
             if ($OBRTGet_Data->Error) {
 
@@ -288,7 +280,8 @@ class Organisation_model extends CI_Model {
         try {
 
             $this->ReadDb->select(
-                'Org.Name, Org.BrandName, Org.Logo, Org.GSTIN, Org.MobileNumber, Org.EmailAddress, ' .
+                'Org.Name, Org.BrandName, Org.Logo, Org.GSTIN, Org.MobileNumber, Org.EmailAddress, Org.DevPassword, ' .
+                'Org.ShortCode, Org.OrgToken, ' .
                 'Addr.Line1, Addr.Line2, Addr.CityText, Addr.StateText, Addr.Pincode'
             );
             $this->ReadDb->from('Organisation.OrganisationTbl AS Org');
@@ -314,6 +307,72 @@ class Organisation_model extends CI_Model {
 
         }
 
+    }
+
+    public function getDevPassword($orgUID) {
+        try {
+            $this->ReadDb->select('DevPassword');
+            $this->ReadDb->from('Organisation.OrganisationTbl');
+            $this->ReadDb->where('OrgUID', (int)$orgUID);
+            $this->ReadDb->where('IsDeleted', 0);
+            $this->ReadDb->where('IsActive', 1);
+            $row = $this->ReadDb->get()->row();
+            return ($row && !empty($row->DevPassword)) ? $row->DevPassword : '';
+        } catch (Exception $e) {
+            return '';
+        }
+    }
+
+    public function getDefaultOrgLogo() {
+        try {
+            $this->ReadDb->select('Logo');
+            $this->ReadDb->from('Organisation.OrganisationTbl');
+            $this->ReadDb->where('IsDeleted', 0);
+            $this->ReadDb->where('IsActive', 1);
+            $this->ReadDb->limit(1);
+            $row = $this->ReadDb->get()->row();
+            return ($row && !empty($row->Logo)) ? resolveCdnUrl($row->Logo) : '';
+        } catch (Exception $e) {
+            return '';
+        }
+    }
+
+    /**
+     * Returns org receipt info from Redis cache.
+     * Key format: {ShortCode}:{OrgToken}:{env}:org_info  (falls back to org_info:{OrgUID})
+     * On cache miss, fetches from DB, resolves the Logo to a full CDN URL,
+     * stores in Redis, and returns. Return type matches getOrgForReceipt().
+     */
+    public function getOrgInfoCached($orgUID, $shortCode = '', $token = '') {
+        $this->EndReturnData = new stdClass();
+        try {
+            $CI       =& get_instance();
+            $cacheKey = $CI->redisservice->orgKey('org_info', $shortCode, $token);
+            if ($cacheKey === 'org_info') {
+                $cacheKey = 'org_info:' . (int)$orgUID;
+            }
+            $cached   = $CI->redisservice->getCache($cacheKey);
+
+            if ($cached->Error === FALSE && !empty($cached->Value)) {
+                $this->EndReturnData->Error = FALSE;
+                $this->EndReturnData->Data  = $cached->Value;
+                return $this->EndReturnData;
+            }
+
+            // Cache miss — fetch from DB
+            $result = $this->getOrgForReceipt($orgUID);
+            if ($result->Error === FALSE && !empty($result->Data)) {
+                $result->Data->Logo = resolveCdnUrl($result->Data->Logo ?? '');
+                $expiry = (int)(getenv('LOGIN_EXPIRE_SECS') ?: 86400);
+                $CI->redisservice->setCache($cacheKey, $result->Data, $expiry);
+            }
+            return $result;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+            return $this->EndReturnData;
+        }
     }
 
     /** Get all print theme configs for an org. */

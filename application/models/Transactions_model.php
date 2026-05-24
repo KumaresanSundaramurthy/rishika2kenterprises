@@ -1243,12 +1243,9 @@ class Transactions_model extends CI_Model {
         }
 
         // ── Org logo ─────────────────────────────────────────────────
-        $logoHtml = '';
-        if(empty($org->Logo)) {
-            $logoHtml = '<img src="https://pub-bb40942a33344637936ade1f3800ff8b.r2.dev/Global/favicon_io/android-chrome-512x512-1.png" style="max-width:100px;max-height:100px;" alt="Logo">';
-        } else {
-            $logoHtml = '<img src="' . $e($org->Logo) . '" style="max-width:100px;max-height:100px;" alt="Logo">';
-        }
+        $logoHtml = !empty($org->Logo)
+            ? '<img src="' . $e($org->Logo) . '" style="max-width:100px;max-height:100px;" alt="Logo">'
+            : '';
 
         // ── Org address lines ────────────────────────────────────────
         $orgAddr1     = $e($org->Line1 ?? '');
@@ -1596,12 +1593,9 @@ class Transactions_model extends CI_Model {
             : '';
         
         // ── Org logo ─────────────────────────────────────────────────
-        $logoHtml = '';
-        if(empty($org->Logo)) {
-            $logoHtml = '<img src="https://pub-bb40942a33344637936ade1f3800ff8b.r2.dev/Global/favicon_io/android-chrome-512x512-1.png" style="max-width:100px;max-height:100px;" alt="Logo">';
-        } else {
-            $logoHtml = '<img src="' . $e($org->Logo) . '" style="max-width:100px;max-height:100px;" alt="Logo">';
-        }
+        $logoHtml = !empty($org->Logo)
+            ? '<img src="' . $e($org->Logo) . '" style="max-width:100px;max-height:100px;" alt="Logo">'
+            : '';
 
         $orgAddr1     = $e($org->Line1    ?? '');
         $orgAddr2     = $e($org->Line2    ?? '');
@@ -1800,7 +1794,7 @@ class Transactions_model extends CI_Model {
         if (!$payment) return null;
 
         $this->load->model('organisation_model');
-        $orgInfo    = $this->organisation_model->getOrgForReceipt($orgUID);
+        $orgInfo    = $this->organisation_model->getOrgInfoCached($orgUID);
         $org        = $orgInfo->Data ?? null;
         $printTheme = $this->organisation_model->getPrintThemeByType($orgUID, 'Payment');
         $themeData  = $printTheme->Data ?? null;
@@ -1843,7 +1837,7 @@ class Transactions_model extends CI_Model {
         $items = $this->getTransactionItems($transUID, $orgUID);
 
         $this->load->model('organisation_model');
-        $orgInfo          = $this->organisation_model->getOrgForReceipt($orgUID);
+        $orgInfo          = $this->organisation_model->getOrgInfoCached($orgUID);
         $printThemeResult = $this->organisation_model->getPrintThemeByType($orgUID, $header->TransType);
         $printBankAccount = $this->getPrintBankAccount($orgUID);
 

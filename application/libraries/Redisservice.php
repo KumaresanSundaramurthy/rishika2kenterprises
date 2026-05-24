@@ -68,6 +68,31 @@ class RedisService {
 
     // ─── Key resolution ──────────────────────────────────────────────────────
 
+    /** Maps CI_ENV value to a short environment tag used in Redis keys. */
+    private function envShort() {
+        $env = defined('ENVIRONMENT') ? ENVIRONMENT : (getenv('CI_ENV') ?: 'production');
+        $map = ['development' => 'dev', 'staging' => 'stg', 'production' => 'prod'];
+        return $map[$env] ?? $env;
+    }
+
+    /**
+     * Build the org-level key prefix: {SHORTCODE}:{OrgToken}:{env}
+     * Auto-resolves ShortCode/OrgToken from JWT when not supplied explicitly.
+     * Returns '' when neither is available (callers fall back to bare key names).
+     */
+    private function buildOrgPrefix($shortCode = '', $token = '') {
+        if (empty($shortCode) || empty($token)) {
+            try {
+                $CI        = &get_instance();
+                $user      = $CI->pageData['JwtData']->User;
+                $shortCode = $shortCode ?: ($user->OrgShortCode ?? '');
+                $token     = $token     ?: ($user->OrgToken     ?? '');
+            } catch (Exception $e) {}
+        }
+        if (empty($shortCode) || empty($token)) return '';
+        return strtolower($shortCode) . ':' . strtolower($token) . ':' . $this->envShort();
+    }
+
     /**
      * Translates legacy flat key names to new user-scoped keys when a valid
      * authenticated session is present. Unknown keys are returned unchanged.
@@ -82,12 +107,25 @@ class RedisService {
             $CI  = &get_instance();
             $uid = $CI->pageData['JwtData']->User->UserUID ?? 'global';
         } catch (Exception $e) {}
-        return "{$prefix}:{$uid}";
+        return $this->userScopedKey($prefix, $uid);
     }
 
-    /** Build a user-scoped key directly (used at write-time when UID is explicit). */
-    private function userScopedKey($type, $uid) {
-        return "{$type}:{$uid}";
+    /**
+     * Build a user-scoped key: {ShortCode}:{OrgToken}:{env}:{type}:{uid}
+     * Falls back to {type}:{uid} when the org prefix is unavailable.
+     */
+    private function userScopedKey($type, $uid, $shortCode = '', $token = '') {
+        $prefix = $this->buildOrgPrefix($shortCode, $token);
+        return ($prefix !== '') ? "{$prefix}:{$type}:{$uid}" : "{$type}:{$uid}";
+    }
+
+    /**
+     * Build an org-level key (no UID): {ShortCode}:{OrgToken}:{env}:{type}
+     * Falls back to {type} when the org prefix is unavailable.
+     */
+    public function orgKey($type, $shortCode = '', $token = '') {
+        $prefix = $this->buildOrgPrefix($shortCode, $token);
+        return ($prefix !== '') ? "{$prefix}:{$type}" : $type;
     }
 
     // ─── Core cache methods ──────────────────────────────────────────────────
@@ -207,9 +245,9 @@ class RedisService {
      * Store user-scoped cache. $type is the semantic name:
      *   menus, submenus, modules, permissions, settings, userinfo
      */
-    public function setUserCache($type, $userUID, $value, $ttl = 0) {
+    public function setUserCache($type, $userUID, $value, $ttl = 0, $shortCode = '', $token = '') {
         $ttl = $ttl ?: (int)(getenv('LOGIN_EXPIRE_SECS') ?: 7200);
-        return $this->setCache($this->userScopedKey($type, $userUID), $value, $ttl);
+        return $this->setCache($this->userScopedKey($type, $userUID, $shortCode, $token), $value, $ttl);
     }
 
     /**
@@ -233,9 +271,68 @@ class RedisService {
     }
 
     /** Delete ALL six standard user-scoped keys for a given user at once. */
-    public function deleteAllUserCache($userUID) {
+    public function deleteAllUserCache($userUID, $shortCode = '', $token = '') {
         foreach (array_values(self::$keyAliases) as $type) {
-            $this->deleteCache($this->userScopedKey($type, $userUID));
+            $this->deleteCache($this->userScopedKey($type, $userUID, $shortCode, $token));
+        }
+    }
+
+    // ─── Dev / Monitor helpers ───────────────────────────────────────────────
+
+    /**
+     * Scan every key in the DB and return key name, type, TTL, and decoded value.
+     * Used by the cache monitor page only.
+     */
+    public function getAllKeysData($pattern = '*') {
+        $result = [];
+        $cursor = null;
+        try {
+            if (!$this->connected) $this->connect();
+            do {
+                $scan   = $this->client->scan($cursor, ['match' => $pattern, 'count' => 200]);
+                $cursor = $scan[0];
+                $keys   = $scan[1];
+                foreach ($keys as $key) {
+                    try {
+                        $type = $this->client->type($key)->getPayload();
+                        $ttl  = (int)$this->client->ttl($key);
+                        $raw  = ($type === 'string') ? $this->client->get($key) : null;
+                        $val  = null;
+                        if ($raw !== null) {
+                            $dec = json_decode($raw);
+                            $val = (json_last_error() === JSON_ERROR_NONE) ? $dec : $raw;
+                        }
+                        // Memory usage in bytes (MEMORY USAGE includes key+value+overhead)
+                        $size = 0;
+                        try {
+                            $mem  = $this->client->executeRaw(['MEMORY', 'USAGE', $key, 'SAMPLES', '0']);
+                            $size = (int)$mem;
+                        } catch (Exception $me) {
+                            $size = $raw !== null ? strlen($raw) : 0;
+                        }
+                        $result[] = ['key' => $key, 'type' => $type, 'ttl' => $ttl, 'size' => $size, 'value' => $val];
+                    } catch (Exception $e) {
+                        $result[] = ['key' => $key, 'type' => 'unknown', 'ttl' => -1, 'size' => 0, 'value' => null];
+                    }
+                }
+            } while ($cursor !== '0');
+            usort($result, fn($a, $b) => strcmp($a['key'], $b['key']));
+        } catch (Exception $e) {
+            $this->log('ERROR', 'getAllKeysData: ' . $e->getMessage());
+        }
+        return $result;
+    }
+
+    /** Delete a key by its exact name — skips alias resolution. Used by cache monitor. */
+    public function deleteExactKey($key) {
+        try {
+            if (!$this->connected) $this->connect();
+            $deleted = (int)$this->client->del($key);
+            $this->log('DEL', $key . ' (exact)');
+            return (bool)$deleted;
+        } catch (Exception $e) {
+            $this->log('ERROR', "DEL {$key} (exact): " . $e->getMessage());
+            return false;
         }
     }
 

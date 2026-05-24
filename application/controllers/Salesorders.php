@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Salesorders extends MY_Controller {
 
@@ -233,7 +233,7 @@ class Salesorders extends MY_Controller {
 
             $this->saveSalesOrderItems($transUID, $financialYear, $orgUID, $userUID, $items);
 
-            // Conversion tracking: Quotation â†’ SalesOrder
+            // Conversion tracking: Quotation -> SalesOrder
             $fromQuotationUID = (int) getPostValue($PostData, 'fromQuotationUID');
             if ($fromQuotationUID > 0 && !$isDraft) {
                 $this->dbwrite_model->updateTransDocStatus($fromQuotationUID, $orgUID, 'Converted', $userUID);
@@ -907,7 +907,7 @@ class Salesorders extends MY_Controller {
             $items = $this->transactions_model->getTransactionItems($transUID, $orgUID);
 
             $this->load->model('organisation_model');
-            $orgInfo          = $this->organisation_model->getOrgForReceipt($orgUID);
+            $orgInfo          = $this->organisation_model->getOrgInfoCached($orgUID);
             $thermalCfgResult = $this->organisation_model->getThermalPrintConfig($orgUID);
             $printThemeResult = $this->organisation_model->getPrintThemeByType($orgUID, 'SalesOrder');
 

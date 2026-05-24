@@ -83,6 +83,14 @@ class Roles extends MY_Controller {
                 $this->redisservice->setUserCache('userinfo', $userUID, $userInfo, $loginExpiry);
             }
 
+            // Rebuild JWT payload (User + Permissions) in Redis
+            $this->globalservice->refreshUserCache();
+
+            // Rebuild org info cache with fresh DB data + resolved CDN URL
+            $this->redisservice->deleteCache($this->redisservice->orgKey('org_info'));
+            $this->load->model('organisation_model');
+            $this->organisation_model->getOrgInfoCached($orgUID);
+
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Cache refreshed successfully. Changes will reflect on next page load.';
 

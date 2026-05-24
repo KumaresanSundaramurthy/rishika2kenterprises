@@ -122,7 +122,6 @@ class Organisation extends CI_Controller {
                 'PANNumber'         => getPostValue($PostData, 'PANNumber', 'Array', NULL, false),
                 'TimezoneUID'       => getPostValue($PostData, 'TimezoneUID', 'Array', NULL, false),
                 'UpdatedBy'         => $userUID,
-                'UpdatedOn'         => $now,
             ];
 
             $this->load->model('dbwrite_model');
@@ -141,10 +140,15 @@ class Organisation extends CI_Controller {
             $PostData['BillOrgAddressUID'] = $this->handleAddress($PostData, 'Billing', $userUID, $now);
             $PostData['ShipOrgAddressUID'] = $this->handleAddress($PostData, 'Shipping', $userUID, $now);
 
-            if (!empty($PostData['imageChange'])) {
-                $this->globalservice->refreshUserCache();
-            }
-            
+            // Rebuild org info Redis cache with fresh DB data + resolved CDN URL
+            $orgUID = (int)$PostData['OrgUID'];
+            $this->redisservice->deleteCache($this->redisservice->orgKey('org_info'));
+            $this->load->model('organisation_model');
+            $this->organisation_model->getOrgInfoCached($orgUID);
+
+            // Refresh JWT payload so OrgLogo / OrgName / OrgMobile are up-to-date
+            $this->globalservice->refreshUserCache();
+
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Message = 'Updated Successfully';
             $this->EndReturnData->BillOrgAddressUID = $PostData['BillOrgAddressUID'];
@@ -178,7 +182,6 @@ class Organisation extends CI_Controller {
             'State'     => getPostValue($PostData, $prefix.'State'),
             'StateText' => getPostValue($PostData, $prefix.'StateText'),
             'UpdatedBy' => $userUID,
-            'UpdatedOn' => $now,
         ];
 
         if (empty($PostData[$addrUIDField])) {

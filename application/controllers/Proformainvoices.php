@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Proformainvoices extends MY_Controller {
 
@@ -852,7 +852,7 @@ class Proformainvoices extends MY_Controller {
             $items = $this->transactions_model->getTransactionItems($transUID, $orgUID);
 
             $this->load->model('organisation_model');
-            $orgInfo          = $this->organisation_model->getOrgForReceipt($orgUID);
+            $orgInfo          = $this->organisation_model->getOrgInfoCached($orgUID);
             $thermalCfgResult = $this->organisation_model->getThermalPrintConfig($orgUID);
             $printThemeResult = $this->organisation_model->getPrintThemeByType($orgUID, 'ProFormaInvoice');
 

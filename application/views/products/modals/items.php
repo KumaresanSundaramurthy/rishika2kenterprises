@@ -253,7 +253,94 @@
                                 </span>
                             </label>
                         </div>
+                        <div class="mb-3 col-md-4">
+                            <label for="IsRentable" class="form-label d-block">Is Rentable
+                                <span class="badge bg-label-warning ms-1" style="font-size:.68rem;">Rental</span>
+                            </label>
+                            <label class="switch switch-warning switch-lg">
+                                <input type="checkbox" id="IsRentable" name="IsRentable" class="switch-input">
+                                <span class="switch-toggle-slider">
+                                    <span class="switch-on"><i class="icon-base bx bx-check"></i></span>
+                                    <span class="switch-off"><i class="icon-base bx bx-x"></i></span>
+                                </span>
+                            </label>
+                        </div>
                     </div>
+
+                    <!-- ── Rental Configuration (shown only when IsRentable = ON) ── -->
+                    <div id="rentalConfigSection" class="d-none">
+                        <hr>
+                        <div class="card-header modal-header-border-bottom p-1 mb-3">
+                            <h5 class="modal-title mb-0">
+                                <i class="bx bx-time-five me-1 text-warning"></i>
+                                Rental Configuration
+                                <span class="text-muted small">(Rates auto-filled when creating a rental)</span>
+                            </h5>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label fw-semibold">Security Deposit</label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span>
+                                    <input type="number" class="form-control" id="rc_SecurityDeposit" name="rc_SecurityDeposit" min="0" step="0.01" placeholder="0.00" value="0">
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-semibold">Hourly Rate</label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span>
+                                    <input type="number" class="form-control" id="rc_HourlyRate" name="rc_HourlyRate" min="0" step="0.01" placeholder="0.00" value="0">
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-semibold">Half Day Rate <small class="text-muted">(4 hrs)</small></label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span>
+                                    <input type="number" class="form-control" id="rc_HalfDayRate" name="rc_HalfDayRate" min="0" step="0.01" placeholder="0.00" value="0">
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-semibold">Full Day Rate <small class="text-muted">(8 hrs)</small></label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span>
+                                    <input type="number" class="form-control" id="rc_FullDayRate" name="rc_FullDayRate" min="0" step="0.01" placeholder="0.00" value="0">
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-semibold">Fixed Package Rate</label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span>
+                                    <input type="number" class="form-control" id="rc_FixedPackageRate" name="rc_FixedPackageRate" min="0" step="0.01" placeholder="0.00" value="0">
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-semibold">Extra Hour Rate</label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span>
+                                    <input type="number" class="form-control" id="rc_ExtraHourRate" name="rc_ExtraHourRate" min="0" step="0.01" placeholder="0.00" value="0">
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-semibold">Late Return / Hour</label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span>
+                                    <input type="number" class="form-control" id="rc_LateReturnCharge" name="rc_LateReturnCharge" min="0" step="0.01" placeholder="0.00" value="0">
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-semibold">Damage Penalty</label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span>
+                                    <input type="number" class="form-control" id="rc_DamagePenaltyRate" name="rc_DamagePenaltyRate" min="0" step="0.01" placeholder="0.00" value="0">
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-semibold">Min Rental Hours</label>
+                                <input type="number" class="form-control form-control-sm" id="rc_MinRentalHours" name="rc_MinRentalHours" min="1" step="1" placeholder="1" value="1">
+                            </div>
+                        </div>
+                    </div>
+
                     <hr>
 
                     <!-- Customer Type Pricing -->

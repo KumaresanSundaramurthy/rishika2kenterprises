@@ -36,8 +36,9 @@ class MY_Controller extends CI_Controller {
 
         if (!$found) return false;
 
-        $this->pageData['PageTitle'] = !empty($found->DisplayName) ? $found->DisplayName : ($found->Name ?? '');
-        $this->pageData['PageIcon']  = $found->Icon ?? '';
+        $this->pageData['PageTitle']       = !empty($found->DisplayName) ? $found->DisplayName : ($found->Name ?? '');
+        $this->pageData['PageIcon']        = $found->Icon ?? '';
+        $this->pageData['PageDescription'] = $found->Description ?? '';
         return true;
     }
 

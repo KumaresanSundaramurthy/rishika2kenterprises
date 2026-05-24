@@ -128,6 +128,7 @@ class Products_model extends CI_Model {
                 'Products.DiscountTypeUID AS DiscountTypeUID',
                 'Products.LowStockAlertAt AS LowStockAlertAt',
                 'Products.NotForSale AS NotForSale',
+                'Products.IsRentable AS IsRentable',
                 'Products.IsSizeApplicable AS IsSizeApplicable',
                 'Products.IsComboItem AS IsComboItem',
                 'Products.IsComposite AS IsComposite',
@@ -700,6 +701,25 @@ class Products_model extends CI_Model {
         } catch (Exception $e) {
             throw new Exception($e->getMessage());
         }
+
+    }
+
+    public function getRentalConfig($productUID, $orgUID) {
+
+        $this->ReadDb->db_debug = FALSE;
+        $this->ReadDb->select('*');
+        $this->ReadDb->from('Products.ProductRentalConfigTbl');
+        $this->ReadDb->where([
+            'ProductUID' => (int) $productUID,
+            'OrgUID'     => (int) $orgUID,
+            'IsDeleted'  => 0,
+        ]);
+        $this->ReadDb->limit(1);
+        $query = $this->ReadDb->get();
+        $error = $this->ReadDb->error();
+        if ($error['code']) throw new Exception($error['message']);
+        $rows = $query->result();
+        return !empty($rows) ? $rows[0] : null;
 
     }
 

@@ -257,9 +257,8 @@ function _buildThermalHtml(resp, type) {
     var html   = '';
 
     // Logo
-    if (showLogo) {
-        var logoUrl = org.Logo ? _resolveLogoUrl(org.Logo) : 'https://pub-bb40942a33344637936ade1f3800ff8b.r2.dev/Global/favicon_io/android-chrome-512x512-1.png';
-        html += '<div style="text-align:center;margin-bottom:4px;"><img src="' + _esc(logoUrl) + '" style="max-width:80px;max-height:60px;object-fit:contain;" alt="Logo" /></div>';
+    if (showLogo && org.Logo) {
+        html += '<div style="text-align:center;margin-bottom:4px;"><img src="' + _esc(_resolveLogoUrl(org.Logo)) + '" style="max-width:80px;max-height:60px;object-fit:contain;" alt="Logo" /></div>';
     }
 
     // Org name
@@ -409,9 +408,8 @@ function _buildPmtThermalHtml(resp, forPrint) {
     var html = '';
 
     // Logo
-    if (showLogo) {
-        var logoUrl = org.Logo ? _resolveLogoUrl(org.Logo) : 'https://pub-bb40942a33344637936ade1f3800ff8b.r2.dev/Global/favicon_io/android-chrome-512x512-1.png';
-        html += '<div style="text-align:center;margin-bottom:4px;"><img src="' + _esc(logoUrl) + '" style="max-width:80px;max-height:60px;object-fit:contain;" alt="Logo" /></div>';
+    if (showLogo && org.Logo) {
+        html += '<div style="text-align:center;margin-bottom:4px;"><img src="' + _esc(_resolveLogoUrl(org.Logo)) + '" style="max-width:80px;max-height:60px;object-fit:contain;" alt="Logo" /></div>';
     }
 
     // Org name

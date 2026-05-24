@@ -4,29 +4,10 @@ class Global_model extends CI_Model {
 
     private $EndReturnData;
     private $ReadDb;
-    private $GlbCountryKey;
-    private $PrimUnitKey;
-    private $DiscTypeKey;
-    private $ProdTypeKey;
-    private $ProdTaxKey;
-    private $ProdDetKey;
-    private $TaxPerDetKey;
-    private $StrgTypeKey;
 
     function __construct() {
         parent::__construct();
-
         $this->ReadDb = $this->load->database('ReadDB', TRUE);
-
-        $this->GlbCountryKey = getSiteConfiguration()->RedisName.getenv('REDIS_STATICKEY').'-Glb_CountryInfo';
-        $this->PrimUnitKey = getSiteConfiguration()->RedisName.getenv('REDIS_STATICKEY').'-primaryunitinfo';
-        $this->DiscTypeKey = getSiteConfiguration()->RedisName .getenv('REDIS_STATICKEY'). '-disctypeinfo';
-        $this->ProdTypeKey = getSiteConfiguration()->RedisName .getenv('REDIS_STATICKEY'). '-prodtypeinfo';
-        $this->ProdTaxKey = getSiteConfiguration()->RedisName .getenv('REDIS_STATICKEY'). '-prodtaxinfo';
-        $this->ProdDetKey = getSiteConfiguration()->RedisName .getenv('REDIS_STATICKEY'). '-taxdetailsinfo';
-        $this->TaxPerDetKey = getSiteConfiguration()->RedisName .getenv('REDIS_STATICKEY'). '-taxperdetinfo';
-        $this->StrgTypeKey = getSiteConfiguration()->RedisName .getenv('REDIS_STATICKEY'). '-storagetypeinfo';
-        
     }
 
     public function getTimezoneDetails($FilterArray) {
@@ -34,6 +15,17 @@ class Global_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
+            $filterHash = empty($FilterArray) ? 'all' : md5(json_encode($FilterArray));
+            $key        = $this->redisservice->orgKey('loc-timezone-' . $filterHash);
+            $cached     = $this->upstashservice->get($key);
+            if ($cached !== null) {
+                $this->EndReturnData->Error   = FALSE;
+                $this->EndReturnData->Message = 'Success';
+                $this->EndReturnData->Data    = $cached;
+                return $this->EndReturnData;
+            }
+
+            $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select([
                 'Tzone.TimezoneUID as TimezoneUID',
                 'Tzone.CountryCode as CountryCode',
@@ -53,9 +45,12 @@ class Global_model extends CI_Model {
                 throw new Exception($error['message']);
             }
 
-            $this->EndReturnData->Error = FALSE;
+            $data = $query->result_array();
+            $this->upstashservice->set($key, $data, 0);
+
+            $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Success';
-            $this->EndReturnData->Data = $query->result();
+            $this->EndReturnData->Data    = $data;
 
         } catch (Exception $e) {
             $this->EndReturnData->Error = TRUE;
@@ -67,140 +62,23 @@ class Global_model extends CI_Model {
     }
 
     public function getCountryInfo() {
-
-        $this->EndReturnData = new stdClass();
-        try {
-            
-            $GCKey = $this->GlbCountryKey;
-            $GCGet_Data = $this->redisservice->getCache($GCKey);
-            if ($GCGet_Data->Error) {
-
-                $this->load->library('curlservice');
-
-                $CountryResp = $this->curlservice->retrieve(getenv('CFLARE_R2_CDN') . '/Global/countrydetails.json', 'GET', []);
-                
-                $Countries = $CountryResp->Data;
-                usort($Countries, function ($a, $b) {
-                    return strcmp($a['name'], $b['name']);
-                });
-
-                $this->EndReturnData->Data = $Countries;
-
-                $this->redisservice->setCache($GCKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
-
-            } else {
-                $this->EndReturnData->Data = $GCGet_Data->Value;
-            }
-
-            $this->EndReturnData->Error = FALSE;
-            $this->EndReturnData->Message = 'Data Retrieved Successfully';
-
-        } catch (Exception $e) {
-            $this->EndReturnData->Error = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-        }
-
-        return $this->EndReturnData;
-
+        $this->load->model('location_model');
+        return $this->location_model->getCountriesFromDB();
     }
 
     public function getStateofCountry($CountryCode) {
-
-        $this->EndReturnData = new stdClass();
-        try {
-
-            $GlbStateKey = getSiteConfiguration()->RedisName.getenv('REDIS_STATICKEY')."-Glb_StateInfo-".$CountryCode;
-            $StateInfo = $this->redisservice->getCache($GlbStateKey);
-            if ($StateInfo->Error) {
-
-                $this->load->library('curlservice');
-
-                $StateResp = $this->curlservice->retrieve(getenv('COUNTRY_API_URL') . '/countries/' . $CountryCode . '/states', 'GET', [], array('X-CSCAPI-KEY: ' . getenv('COUNTRY_API_KEY')));
-                if ($StateResp->Error === false && sizeof($StateResp->Data) > 0) {
-                    $this->EndReturnData->Data = $StateResp->Data;
-                } else {
-                    throw new Exception($StateResp->Message);
-                }
-
-                $this->redisservice->setCache($GlbStateKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
-
-            } else {
-                $this->EndReturnData->Data = $StateInfo->Value;
-            }
-
-            $this->EndReturnData->Error = FALSE;
-            $this->EndReturnData->Message = 'Data Retrieved Successfully';
-
-        } catch (Exception $e) {
-            $this->EndReturnData->Error = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-        }
-
-        return $this->EndReturnData;
-
+        $this->load->model('location_model');
+        return $this->location_model->getStatesFromDB($CountryCode);
     }
 
     public function getCityofCountry($CountryCode) {
-
-        $this->EndReturnData = new stdClass();
-        try {
-
-            $GlbCityKey = getSiteConfiguration()->RedisName.getenv('REDIS_STATICKEY')."Glb_CityInfo-".$CountryCode;
-            $CityInfo = $this->redisservice->getCache($GlbCityKey);
-            if ($CityInfo->Error) {
-
-                $CityResp = $this->curlservice->retrieve(getenv('COUNTRY_API_URL') . '/countries/' . $CountryCode . '/cities', 'GET', [], array('X-CSCAPI-KEY: ' . getenv('COUNTRY_API_KEY')));
-                if ($CityResp->Error === false && sizeof($CityResp->Data) > 0) {
-                    $this->EndReturnData->Data = $CityResp->Data;
-                } else {
-                    throw new Exception($CityResp->Message);
-                }
-
-                $this->redisservice->setCache($GlbCityKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
-
-            } else {
-                $this->EndReturnData->Data = $CityInfo->Value;
-            }
-
-            $this->EndReturnData->Error = FALSE;
-            $this->EndReturnData->Message = 'Data Retrieved Successfully';
-
-        } catch (Exception $e) {
-            $this->EndReturnData->Error = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-        }
-
-        return $this->EndReturnData;
-
+        $this->load->model('location_model');
+        return $this->location_model->getAllCitiesOfCountryFromDB($CountryCode);
     }
 
     public function getCitiesOfState($countryISO2, $stateISO2) {
-        $this->EndReturnData = new stdClass();
-        try {
-            $cacheKey = getSiteConfiguration()->RedisName . getenv('REDIS_STATICKEY') . "Glb_CityOfState-{$countryISO2}-{$stateISO2}";
-            $cached   = $this->redisservice->getCache($cacheKey);
-            if ($cached->Error) {
-                $this->load->library('curlservice');
-                $resp = $this->curlservice->retrieve(
-                    getenv('COUNTRY_API_URL') . '/countries/' . $countryISO2 . '/states/' . $stateISO2 . '/cities',
-                    'GET', [], ['X-CSCAPI-KEY: ' . getenv('COUNTRY_API_KEY')]
-                );
-                if ($resp->Error === false && sizeof($resp->Data) > 0) {
-                    $this->EndReturnData->Data = $resp->Data;
-                } else {
-                    $this->EndReturnData->Data = [];
-                }
-                $this->redisservice->setCache($cacheKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
-            } else {
-                $this->EndReturnData->Data = $cached->Value;
-            }
-            $this->EndReturnData->Error   = FALSE;
-            $this->EndReturnData->Message = 'Data Retrieved Successfully';
-        } catch (Exception $e) {
-            $this->EndReturnData->Error   = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-        }
-        return $this->EndReturnData;
+        $this->load->model('location_model');
+        return $this->location_model->getCitiesOfStateFromDB($countryISO2, $stateISO2);
     }
 
     public function getPrimaryUnitInfo() {
@@ -208,7 +86,7 @@ class Global_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
             
-            $PUIKey = $this->PrimUnitKey;
+            $PUIKey = $this->redisservice->orgKey('primary-unit');
             $PUIGet_Data = $this->redisservice->getCache($PUIKey);
             if ($PUIGet_Data->Error) {
 
@@ -254,7 +132,7 @@ class Global_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $DTIKey = $this->DiscTypeKey;
+            $DTIKey = $this->redisservice->orgKey('disc-type');
             $DTIGet_Data = $this->redisservice->getCache($DTIKey);
             if ($DTIGet_Data->Error) {
 
@@ -300,7 +178,7 @@ class Global_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
             
-            $PTIKey = $this->ProdTypeKey;
+            $PTIKey = $this->redisservice->orgKey('prod-type');
             $PTIGet_Data = $this->redisservice->getCache($PTIKey);
             if ($PTIGet_Data->Error) {
 
@@ -344,7 +222,7 @@ class Global_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $PTIKey = $this->ProdTaxKey;
+            $PTIKey = $this->redisservice->orgKey('prod-tax');
             $PTIGet_Data = $this->redisservice->getCache($PTIKey);
             if ($PTIGet_Data->Error) {
 
@@ -388,7 +266,7 @@ class Global_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
             
-            $TDIKey = $this->ProdDetKey;
+            $TDIKey = $this->redisservice->orgKey('tax-details');
             $TDIGet_Data = $this->redisservice->getCache($TDIKey);
             if ($TDIGet_Data->Error) {
 
@@ -436,7 +314,7 @@ class Global_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
             
-            $TPDIKey = $this->TaxPerDetKey;
+            $TPDIKey = $this->redisservice->orgKey('tax-per-detail');
             $TPDIGet_Data = $this->redisservice->getCache($TPDIKey);
             if ($TPDIGet_Data->Error) {
 
@@ -487,7 +365,7 @@ class Global_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
             
-            $STRDEKey = $this->StrgTypeKey;
+            $STRDEKey = $this->redisservice->orgKey('storage-type');
             $STRDEGet_Data = $this->redisservice->getCache($STRDEKey);
             if ($STRDEGet_Data->Error) {
 
@@ -532,7 +410,7 @@ class Global_model extends CI_Model {
         try {
 
             $params_hash = md5(json_encode(['WC' => $WhereCond, 'WIC' => $whereInCondition]));
-            $RedisName = getSiteConfiguration()->RedisName.'-getModuleDetails'.$params_hash;
+            $RedisName = $this->redisservice->orgKey('module-details-' . $params_hash);
             $ModDataRedis = $this->redisservice->getCache($RedisName);
             if ($ModDataRedis->Error) {
 
@@ -671,7 +549,7 @@ class Global_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $RedisName = getSiteConfiguration()->RedisName.'-'.base64_encode(json_encode(['WC' => $WhereArrayCondition, 'Sort' => $Sorting, 'SortCol' => $SortingColumn])).'-getModuleViewJoinColumnDetails';
+            $RedisName = $this->redisservice->orgKey('module-view-join-' . md5(json_encode(['WC' => $WhereArrayCondition, 'Sort' => $Sorting, 'SortCol' => $SortingColumn])));
             $this->redisservice->deleteCache($RedisName);
             $ModViewJoinColRedis = $this->redisservice->getCache($RedisName);
             if ($ModViewJoinColRedis->Error) {

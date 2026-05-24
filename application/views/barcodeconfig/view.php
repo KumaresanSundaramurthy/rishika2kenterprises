@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php $this->load->view('common/header'); ?>
 
 <style>
@@ -39,7 +39,12 @@
                             <div class="trans-ph-icon" style="background:#e8f0fe;">
                                 <i class="bx bx-barcode" style="color:#3b82f6;"></i>
                             </div>
-                            <h5 class="trans-ph-title"><?php echo htmlspecialchars($PageTitle ?? 'Barcode &amp; QR Code Config'); ?></h5>
+                            <div>
+                                <h5 class="trans-ph-title mb-0"><?php echo htmlspecialchars($PageTitle ?? 'Barcode &amp; QR Code Config'); ?></h5>
+                                <?php if (!empty($PageDescription)): ?>
+                                <div class="text-muted" style="font-size:.76rem;"><?php echo htmlspecialchars($PageDescription); ?></div>
+                                <?php endif; ?>
+                            </div>
                         </div>
                         <a href="/products" class="btn btn-outline-secondary btn-sm"><i class="bx bx-package me-1"></i>Products</a>
                     </div>
@@ -334,6 +339,7 @@ function renderQRPreview() {
 }
 
 function _overlayLogoOnQR(containerEl, logoUrl) {
+    if (!logoUrl) return;
     var canvas = containerEl.querySelector('canvas');
     var visImg = containerEl.querySelector('img');
     if (!canvas) return;
@@ -357,12 +363,11 @@ function _overlayLogoOnQR(containerEl, logoUrl) {
 }
 
 function _getOrgLogoUrl() {
-    var DEFAULT = 'https://pub-bb40942a33344637936ade1f3800ff8b.r2.dev/Global/favicon_io/android-chrome-512x512-1.png';
     try {
         var logo = JwtData && JwtData.User && JwtData.User.OrgLogo;
         if (logo) return (CDN_URL || '') + logo;
     } catch (e) {}
-    return DEFAULT;
+    return '';
 }
 
 function _loadLabelFieldConfig() {

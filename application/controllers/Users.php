@@ -261,6 +261,16 @@ class Users extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
+            $orgUID = $JwtData->User->OrgUID;
+            $this->load->model('users_model');
+            $orgUsers = $this->users_model->getOrgUsersForCache($orgUID);
+            $this->redisservice->setCache($this->redisservice->orgKey('org_users'), $orgUsers, 86400);
+
+            // If the saved user is the currently logged-in user, refresh JWT cache
+            if ($UserUID > 0 && $UserUID === (int)$JwtData->User->UserUID) {
+                $this->globalservice->refreshUserCache();
+            }
+
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = $msg;
             $this->EndReturnData->UID     = $UserUID;
@@ -337,5 +347,21 @@ class Users extends MY_Controller {
         $this->EndReturnData->RecordHtmlData = $rowHtml;
         $this->EndReturnData->TotalCount     = $allCount;
         $this->EndReturnData->Pagination     = $this->globalservice->buildPagePaginationHtml('/settings/users/getPageDetails', $allCount, 1, $limit);
+    }
+
+    // ── Org user list for caching (shared across all pages) ──────────────────
+    public function getOrgUsers() {
+        $orgUID   = (int)$this->pageData['JwtData']->User->OrgUID;
+        $cacheKey = $this->redisservice->orgKey('org_users');
+        $users    = $this->redisservice->getCache($cacheKey);
+        if (empty($users)) {
+            $this->load->model('users_model');
+            $users = $this->users_model->getOrgUsersForCache($orgUID);
+            $this->redisservice->setCache($cacheKey, $users, 86400);
+        }
+        $this->EndReturnData = new stdClass();
+        $this->EndReturnData->Error = false;
+        $this->EndReturnData->Users = $users;
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 }

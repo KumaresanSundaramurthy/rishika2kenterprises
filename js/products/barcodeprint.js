@@ -22,7 +22,7 @@ var _bcData    = {};
 var _bcLayout  = BC_LAYOUTS[0];
 var _bcSvgHtml = '';   // cached barcode SVG outerHTML (preview height)
 var _bcQRSrc   = '';   // cached QR canvas dataURL with logo
-var _DEFAULT_LOGO = 'https://pub-bb40942a33344637936ade1f3800ff8b.r2.dev/Global/favicon_io/android-chrome-512x512-1.png';
+var _DEFAULT_LOGO = '';
 
 /* ── Field metadata ─────────────────────────────────────────────────── */
 var _BC_FIELD_LABELS = {
@@ -68,12 +68,11 @@ function _getFieldValue(key) {
 }
 
 function _getOrgLogoUrl() {
-    var DEF = 'https://pub-bb40942a33344637936ade1f3800ff8b.r2.dev/Global/favicon_io/android-chrome-512x512-1.png';
     try {
         var logo = JwtData && JwtData.User && JwtData.User.OrgLogo;
         if (logo) return (CDN_URL || '') + logo;
     } catch (e) {}
-    return DEF;
+    return '';
 }
 
 function _bcEsc(s) {
@@ -337,6 +336,7 @@ function _overlayLogoOnQR(containerEl, logoUrl, done) {
     var canvas = containerEl.querySelector('canvas');
     var visImg = containerEl.querySelector('img');
     if (!canvas) { if (done) done(visImg ? visImg.src : ''); return; }
+    if (!logoUrl) { if (done) done(canvas.toDataURL('image/png')); return; }
 
     var ctx   = canvas.getContext('2d');
     var cw    = canvas.width, ch = canvas.height;
@@ -355,6 +355,6 @@ function _overlayLogoOnQR(containerEl, logoUrl, done) {
         if (visImg) visImg.src = dataUrl;
         if (done) done(dataUrl);
     };
-    logo.onerror = function () { if (done) done(visImg ? visImg.src : ''); };
+    logo.onerror = function () { if (done) done(canvas.toDataURL('image/png')); };
     logo.src = logoUrl;
 }

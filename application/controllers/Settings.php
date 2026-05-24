@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Settings extends MY_Controller {
 
@@ -50,7 +50,7 @@ class Settings extends MY_Controller {
         try {
             $this->load->model('organisation_model');
             $orgUID = $this->pageData['JwtData']->User->OrgUID;
-            $this->pageData['OrgPreviewData']   = $this->organisation_model->getOrgForReceipt($orgUID)->Data;
+            $this->pageData['OrgPreviewData']   = $this->organisation_model->getOrgInfoCached($orgUID)->Data;
             $this->pageData['ThermalTypeCount'] = count($this->getThermalTransTypes());
             $this->load->view('settings/thermalconfig/view', $this->pageData);
         } catch (Exception $e) {

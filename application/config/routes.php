@@ -68,6 +68,14 @@ $route['cache/set']     = 'cache/set';
 $route['cache/delete']  = 'cache/delete';
 $route['cache/refresh'] = 'cache/refresh';
 
+// Cache Monitor — super admin + dev password only
+$route['dev/cache']                    = 'cachemonitor/index';
+$route['dev/cache/verifyPassword']     = 'cachemonitor/verifyPassword';
+$route['dev/cache/getRedisData']       = 'cachemonitor/getRedisData';
+$route['dev/cache/getUpstashData']     = 'cachemonitor/getUpstashData';
+$route['dev/cache/deleteRedisKey']     = 'cachemonitor/deleteRedisKey';
+$route['dev/cache/deleteUpstashKey']   = 'cachemonitor/deleteUpstashKey';
+
 // Login
 $route['portal'] = 'login/login';
 $route['logout'] = 'login/logout';
@@ -98,6 +106,7 @@ $route['settings/users/getPageDetails']               = 'users/getPageDetails';
 $route['settings/users/getUserDetail']                = 'users/getUserDetail';
 $route['settings/users/toggleStatus']                 = 'users/toggleStatus';
 $route['settings/users/saveUser']                     = 'users/saveUser';
+$route['users/getOrgUsers']                           = 'users/getOrgUsers';
 $route['settings/generalsettings']        = 'settings/generalsettings';
 $route['settings/thermalconfig']          = 'settings/thermalconfig';
 $route['settings/banks']                  = 'settings/banks';
@@ -124,6 +133,7 @@ $route['settings/roles/getRolePermissions']      = 'roles/getRolePermissions';
 $route['settings/roles/saveRole']                = 'roles/saveRole';
 $route['settings/roles/saveRolePermissions']     = 'roles/saveRolePermissions';
 $route['settings/roles/deleteRole']              = 'roles/deleteRole';
+$route['settings/roles/refreshTokens']           = 'roles/refreshTokens';
 
 // Pro Forma Invoices
 $route['proforma']                                                 = 'proformainvoices/index';
@@ -320,6 +330,31 @@ $route['vendors/updateVendorBalance']      = 'vendors/updateVendorBalance';
 // Products
 $route['products/(:num)/edit'] = 'products/edit/$1';
 $route['products/(:num)/clone'] = 'products/clone/$1';
+
+// Inventory
+$route['inventory']                              = 'inventory/index';
+$route['inventory/getPageDetails']               = 'inventory/getPageDetails';
+$route['inventory/getPageDetails/(:num)']        = 'inventory/getPageDetails/$1';
+$route['inventory/stockIn']                      = 'inventory/stockIn';
+$route['inventory/stockOut']                     = 'inventory/stockOut';
+$route['inventory/getTimeline']                  = 'inventory/getTimeline';
+$route['inventory/getStats']                     = 'inventory/getStats';
+$route['inventory/timeline']                     = 'inventory/timelinePage';
+$route['inventory/timeline/getPageDetails/(:num)'] = 'inventory/getTimelinePageDetails/$1';
+$route['inventory/searchProducts']               = 'inventory/searchProducts';
+$route['inventory/export']                       = 'inventory/export';
+$route['inventory/exportTimeline']               = 'inventory/exportTimeline';
+
+// Machine Rental
+$route['rental']                                     = 'rental/index';
+$route['rental/getPageDetails/(:num)']               = 'rental/getPageDetails/$1';
+$route['rental/getPageDetails']                      = 'rental/getPageDetails';
+$route['rental/createRental']                        = 'rental/createRental';
+$route['rental/getRentalDetail']                     = 'rental/getRentalDetail';
+$route['rental/processReturn']                       = 'rental/processReturn';
+$route['rental/recordPayment']                       = 'rental/recordPayment';
+$route['rental/cancelRental']                        = 'rental/cancelRental';
+$route['rental/searchRentableProducts']              = 'rental/searchRentableProducts';
 
 // Barcode & QR Code Config
 $route['settings/barcodeconfig'] = 'barcodeconfig/index';

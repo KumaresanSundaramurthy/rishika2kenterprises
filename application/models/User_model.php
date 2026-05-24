@@ -40,7 +40,9 @@ class User_model extends CI_Model {
                 'User.CountryCode as UserCountryCode',
                 'User.CountryISO2 as UserCountryISO2',
                 'User.MobileNumber as UserMobileNumber',
-                'User.Image as UserImage'
+                'User.Image as UserImage',
+                'Org.ShortCode as OrgShortCode',
+                'Org.OrgToken as OrgToken'
             ]);
             $this->ReadDb->from('Users.UserTbl as User');
             $this->ReadDb->join('UserRole.RolesTbl as Roles', 'Roles.RoleUID = User.RoleUID', 'left');
@@ -124,7 +126,9 @@ class User_model extends CI_Model {
                 'User.CountryCode as UserCountryCode',
                 'User.CountryISO2 as UserCountryISO2',
                 'User.MobileNumber as UserMobileNumber',
-                'User.Image as UserImage'
+                'User.Image as UserImage',
+                'Org.ShortCode as OrgShortCode',
+                'Org.OrgToken as OrgToken'
             ]);
             $this->ReadDb->from('Users.UserTbl as User');
             $this->ReadDb->join('UserRole.RolesTbl as Roles', 'Roles.RoleUID = User.RoleUID', 'left');

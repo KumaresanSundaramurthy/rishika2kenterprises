@@ -1,5 +1,19 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed');
 
+/**
+ * Converts a relative file path stored in DB to a full CDN URL.
+ * Picks CDN_URL (Amazon S3) or CFLARE_R2_CDN (Cloudflare R2) based on FILE_UPLOAD env.
+ * Returns '' when $path is empty. Returns $path unchanged when it is already a full URL.
+ */
+function resolveCdnUrl($path) {
+    if (empty($path)) return '';
+    if (preg_match('/^https?:\/\//i', $path)) return $path;
+    $cdn = getenv('FILE_UPLOAD') === 'amazonaws'
+         ? getenv('CDN_URL')
+         : getenv('CFLARE_R2_CDN');
+    return rtrim((string)$cdn, '/') . '/' . ltrim($path, '/');
+}
+
 function getSiteConfiguration() {
 
 	$EndReturnData = new stdClass();

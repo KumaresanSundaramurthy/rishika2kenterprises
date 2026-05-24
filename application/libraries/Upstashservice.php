@@ -122,6 +122,57 @@ class Upstashservice {
     public static function keyCategory(int $id): string        { return "category:{$id}"; }
     public static function keyCategoriesAll(): string          { return 'categories:all'; }
 
+    // ── Dev / Monitor helpers ─────────────────────────────────────────────────
+
+    /**
+     * Scan every key in Upstash and return key name, type, TTL, and decoded value.
+     * Used by the cache monitor page only.
+     */
+    public function getAllKeysData(): array {
+        if (!$this->enabled) return [];
+        try {
+            $allKeys = [];
+            $cursor  = '0';
+            do {
+                $scan = $this->cmd(['SCAN', $cursor, 'COUNT', '200']);
+                if (!is_array($scan) || count($scan) < 2) break;
+                $cursor  = (string)$scan[0];
+                $keys    = $scan[1];
+                if (!empty($keys)) $allKeys = array_merge($allKeys, $keys);
+            } while ($cursor !== '0');
+
+            $result = [];
+            foreach ($allKeys as $key) {
+                try {
+                    $type = $this->cmd(['TYPE', $key]);
+                    $ttl  = (int)$this->cmd(['TTL', $key]);
+                    $raw  = ($type === 'string') ? $this->cmd(['GET', $key]) : null;
+                    $val  = null;
+                    if ($raw !== null) {
+                        $dec = json_decode($raw, true);
+                        $val = (json_last_error() === JSON_ERROR_NONE) ? $dec : $raw;
+                    }
+                    // Size: use MEMORY USAGE (bytes including overhead)
+                    $size = 0;
+                    try {
+                        $mem  = $this->cmd(['MEMORY', 'USAGE', $key, 'SAMPLES', '0']);
+                        $size = (int)$mem;
+                    } catch (Exception $me) {
+                        $size = $raw !== null ? strlen($raw) : 0;
+                    }
+                    $result[] = ['key' => $key, 'type' => $type ?? 'string', 'ttl' => $ttl, 'size' => $size, 'value' => $val];
+                } catch (Exception $e) {
+                    $result[] = ['key' => $key, 'type' => 'unknown', 'ttl' => -1, 'size' => 0, 'value' => null];
+                }
+            }
+            usort($result, fn($a, $b) => strcmp($a['key'], $b['key']));
+            return $result;
+        } catch (Exception $e) {
+            $this->log('getAllKeysData', $e->getMessage());
+            return [];
+        }
+    }
+
     // ── Internal ──────────────────────────────────────────────────────────────
 
     /**

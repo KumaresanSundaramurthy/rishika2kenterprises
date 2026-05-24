@@ -12,6 +12,14 @@ $(document).ready(function () {
         }
     });
 
+    $('#IsRentable').on('change', function () {
+        if ($(this).is(':checked')) {
+            $('#rentalConfigSection').removeClass('d-none');
+        } else {
+            $('#rentalConfigSection').addClass('d-none');
+        }
+    });
+
     $('#IsSizeApplicable').on('change', function () {
         $('#SizeDiv').addClass('d-none');
         $('#PSizeUID').removeAttr('required').val('').trigger('change');
@@ -98,7 +106,19 @@ $(document).ready(function () {
             formData.append('Filter', JSON.stringify(Filter));
         }
         formData.append('IsSizeApplicable', $('#IsSizeApplicable').is(':checked') ? 1 : 0);
-        formData.append('NotForSale', $('#NotForSale').is(':checked') ? 1 : 0);
+        formData.append('NotForSale',       $('#NotForSale').is(':checked')       ? 1 : 0);
+        formData.append('IsRentable',       $('#IsRentable').is(':checked')       ? 1 : 0);
+        if ($('#IsRentable').is(':checked')) {
+            formData.append('rc_SecurityDeposit',   $('#rc_SecurityDeposit').val()   || 0);
+            formData.append('rc_HourlyRate',        $('#rc_HourlyRate').val()        || 0);
+            formData.append('rc_HalfDayRate',       $('#rc_HalfDayRate').val()       || 0);
+            formData.append('rc_FullDayRate',       $('#rc_FullDayRate').val()       || 0);
+            formData.append('rc_FixedPackageRate',  $('#rc_FixedPackageRate').val()  || 0);
+            formData.append('rc_ExtraHourRate',     $('#rc_ExtraHourRate').val()     || 0);
+            formData.append('rc_LateReturnCharge',  $('#rc_LateReturnCharge').val()  || 0);
+            formData.append('rc_DamagePenaltyRate', $('#rc_DamagePenaltyRate').val() || 0);
+            formData.append('rc_MinRentalHours',    $('#rc_MinRentalHours').val()    || 1);
+        }
         formData.append('getTableDetails', 0);
         
         if (getProdHiddenId == 0) {
@@ -119,8 +139,8 @@ function prodOpenCloseDefActions() {
     $('#ProductType').val('Product').trigger('change');
     $('#SellingTaxOption,#PurchaseTaxOption,#DiscountOption').val(1).trigger('change');
     $('#TaxPercentage,#PrimaryUnit,#Category,#StorageUID,#BrandUID,#PSizeUID').val(null).trigger('change');
-    $('#IsSizeApplicable,#NotForSale').prop('checked', false).trigger('change');
-    $('#SizeDiv').addClass('d-none');
+    $('#IsSizeApplicable,#NotForSale,#IsRentable').prop('checked', false).trigger('change');
+    $('#SizeDiv,#rentalConfigSection').addClass('d-none');
     myOneDropzone.removeAllFiles(true);
     quill.setContents([]);
 }
@@ -252,6 +272,21 @@ function retrieveProductDetails(ItemUID, CloneFlag = false) {
                 $('#LowStockAlert').val(smartDecimal(response.Data.LowStockAlertAt));
                 if (response.Data.NotForSale == 'Yes') {
                     $('#NotForSale').prop('checked', true);
+                }
+                if (response.Data.IsRentable == 1) {
+                    $('#IsRentable').prop('checked', true).trigger('change');
+                    if (response.RentalConfig) {
+                        var rc = response.RentalConfig;
+                        $('#rc_SecurityDeposit').val(smartDecimal(rc.SecurityDeposit));
+                        $('#rc_HourlyRate').val(smartDecimal(rc.HourlyRate));
+                        $('#rc_HalfDayRate').val(smartDecimal(rc.HalfDayRate));
+                        $('#rc_FullDayRate').val(smartDecimal(rc.FullDayRate));
+                        $('#rc_FixedPackageRate').val(smartDecimal(rc.FixedPackageRate));
+                        $('#rc_ExtraHourRate').val(smartDecimal(rc.ExtraHourRate));
+                        $('#rc_LateReturnCharge').val(smartDecimal(rc.LateReturnChargePerHour));
+                        $('#rc_DamagePenaltyRate').val(smartDecimal(rc.DamagePenaltyRate));
+                        $('#rc_MinRentalHours').val(rc.MinRentalHours || 1);
+                    }
                 }
 
             }

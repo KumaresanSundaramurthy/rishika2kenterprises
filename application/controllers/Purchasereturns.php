@@ -37,6 +37,10 @@ class Purchasereturns extends MY_Controller {
             $this->pageData['PaymentTypes']  = $this->transactions_model->getPaymentTypesList();
             $this->pageData['BankAccounts']  = $this->transactions_model->getOrgBankAccounts($orgUID);
 
+            $this->pageData['UpstashReadUrl']   = getenv('UPSTASH_REDIS_REST_URL') ?: '';
+            $this->pageData['UpstashReadToken'] = getenv('UPSTASH_REDIS_REST_READONLY_TOKEN') ?: '';
+            $this->pageData['VendorCacheKey']   = $this->redisservice->orgKey('vendors');
+
             $this->load->view('transactions/purchasereturns/view', $this->pageData);
         } catch (Exception $e) {
             redirect('dashboard', 'refresh');
@@ -215,6 +219,7 @@ class Purchasereturns extends MY_Controller {
             $this->dbwrite_model->commitTransaction();
 
             $this->_saveAttachments($transUID);
+            $this->_touchVendorCache($vendorUID);
 
             $this->EndReturnData->Error    = FALSE;
             $this->EndReturnData->Message  = 'Purchase Return created successfully.';
@@ -451,6 +456,7 @@ class Purchasereturns extends MY_Controller {
             $this->dbwrite_model->commitTransaction();
             $this->_saveAttachments($transUID);
             $this->_softDeleteAttachments($this->input->post('RemovedAttachIDs') ?? '');
+            $this->_touchVendorCache($vendorUID);
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Purchase Return updated successfully.';
         } catch (Exception $e) {
@@ -1186,6 +1192,10 @@ class Purchasereturns extends MY_Controller {
             if ($amt > 0) $charges[] = ['type' => $type, 'amount' => $amt, 'tax' => $tax];
         }
         return !empty($charges) ? json_encode($charges) : NULL;
+    }
+
+    private function _touchVendorCache($vendorUID) {
+        $this->cachehelper->touchVendor($vendorUID);
     }
 
     private function _saveAttachments($transUID) {

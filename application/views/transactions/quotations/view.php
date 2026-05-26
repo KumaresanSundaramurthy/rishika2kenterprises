@@ -62,7 +62,7 @@ $this->load->view('common/transactions/header'); ?>
                                 <?php endif; ?>
                             </div>
                         </div>
-                        <a href="/quotations/create" class="btn btn-primary">
+                        <a href="/quotations/create" class="btn btn-primary me-1">
                             <i class="bx bx-plus me-1"></i>New Quotation
                         </a>
                     </div>

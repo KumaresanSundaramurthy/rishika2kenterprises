@@ -268,6 +268,7 @@ class Vendors extends MY_Controller {
             }
 
             $this->dbwrite_model->commitTransaction();
+            $this->cachehelper->upsertVendor($VendorUID);
 
             $this->_initModule();
             $pageData = $this->_fetchTableData(1, $this->pageData['Limit']);
@@ -409,6 +410,83 @@ class Vendors extends MY_Controller {
             $this->EndReturnData->Message = $e->getMessage();
         }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    public function syncVendorsCache() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+
+            $this->load->model('vendors_model');
+
+            // Fetch all active vendors
+            $vendors = $this->vendors_model->getVendors(['Vendors.OrgUID' => $orgUID]);
+            if (empty($vendors)) throw new Exception('No vendors found.');
+
+            // GET existing map first to preserve any keys not in this batch
+            $cacheKey = $this->redisservice->orgKey('vendors');
+            $existing = $this->upstashservice->get($cacheKey);
+            $cacheMap = is_array($existing) ? $existing : [];
+
+            foreach ($vendors as $vend) {
+                $uid = (int)$vend->VendorUID;
+
+                // Fetch address
+                $addrInfo    = $this->vendors_model->getVendorAddress(['VendAddress.VendorUID' => $uid]);
+                $addressList = [];
+                foreach ($addrInfo as $addr) {
+                    $addressList[] = [
+                        'AddressType' => $addr->AddressType,
+                        'Line1'       => $addr->Line1     ?? '',
+                        'Line2'       => $addr->Line2     ?? '',
+                        'Pincode'     => $addr->Pincode   ?? '',
+                        'CityText'    => $addr->CityText  ?? '',
+                        'StateText'   => $addr->StateText ?? '',
+                    ];
+                }
+
+                // Fetch current opening balance
+                $obRow          = $this->vendors_model->getVendorOpeningBalance($orgUID, $uid);
+                $openingBalance = $obRow ? (float)$obRow->OpeningBalance : 0.0;
+                $openingBalType = $obRow ? $obRow->OpeningBalType        : 'Credit';
+
+                // Add or overwrite by UID
+                $cacheMap[(string)$uid] = [
+                    'VendorUID'       => $uid,
+                    'Name'            => $vend->Name          ?? '',
+                    'CompanyName'     => $vend->CompanyName   ?? '',
+                    'ContactPerson'   => $vend->ContactPerson ?? '',
+                    'MobileNumber'    => $vend->MobileNumber  ?? '',
+                    'CountryCode'     => $vend->CountryCode   ?? '',
+                    'CountryISO2'     => $vend->CountryISO2   ?? '',
+                    'EmailAddress'    => $vend->EmailAddress  ?? '',
+                    'GSTIN'           => $vend->GSTIN         ?? '',
+                    'PANNumber'       => $vend->PANNumber     ?? '',
+                    'OpeningBalance'  => $openingBalance,
+                    'OpeningBalType'  => $openingBalType,
+                    'Area'            => $vend->Area          ?? '',
+                    'Notes'           => $vend->Notes         ?? '',
+                    'Image'           => $vend->Image         ?? '',
+                    'Address'         => $addressList,
+                ];
+            }
+
+            // Store back — TTL 0 = no expiry
+            $this->upstashservice->set($cacheKey, $cacheMap, 0);
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = count($vendors) . ' vendor(s) synced to cache.';
+            $this->EndReturnData->Count   = count($vendors);
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
     }
 
     public function getVendorForModal($uid = 0) {
@@ -585,11 +663,10 @@ class Vendors extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
-            // Invalidate stale vendor cache and vendor-products cache
-            $this->upstashservice->del(
-                Upstashservice::keyVendor((int)$VendorUID),
-                Upstashservice::keyVendorProducts((int)$VendorUID)
-            );
+            // Refresh vendor in bulk search cache with live data
+            $this->cachehelper->upsertVendor((int)$VendorUID);
+            // Still invalidate vendor-products cache (separate key, separate data)
+            $this->upstashservice->del(Upstashservice::keyVendorProducts((int)$VendorUID));
 
             $pageNo = (int) ($this->input->post('PageNo') ?: 1);
             $this->_initModule();
@@ -723,6 +800,7 @@ class Vendors extends MY_Controller {
                 ['VendorUID' => $VendorUID]
             );
             if ($resp->Error) throw new Exception($resp->Message);
+            $this->cachehelper->upsertVendor($VendorUID);
 
             $pageNo = (int) ($this->input->post('PageNo') ?: 1);
             $this->_initModule();
@@ -769,11 +847,8 @@ class Vendors extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
-            // Invalidate deleted vendor cache and vendor-products cache
-            $this->upstashservice->del(
-                Upstashservice::keyVendor($VendorUID),
-                Upstashservice::keyVendorProducts($VendorUID)
-            );
+            // Remove deleted vendor from bulk search cache
+            $this->cachehelper->removeVendor($VendorUID);
 
             $pageNo   = (int) ($this->input->post('PageNo') ?: 1);
             $this->_initModule();
@@ -829,13 +904,10 @@ class Vendors extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
-            // Invalidate vendor cache + vendor-products cache for each deleted vendor
-            $vendKeys = [];
+            // Remove each deleted vendor from bulk search cache
             foreach ($VendorUIDs as $vid) {
-                $vendKeys[] = Upstashservice::keyVendor($vid);
-                $vendKeys[] = Upstashservice::keyVendorProducts($vid);
+                $this->cachehelper->removeVendor($vid);
             }
-            $this->upstashservice->delMany($vendKeys);
 
             $pageNo   = (int) ($this->input->post('PageNo') ?: 1);
             $this->_initModule();
@@ -964,6 +1036,8 @@ class Vendors extends MY_Controller {
             $this->vendors_model->saveVendorYearOpening(
                 $orgUID, $vendorUID, $financialYear, $balance, $balanceType, $userUID
             );
+
+            $this->cachehelper->upsertVendor($vendorUID);
 
             $this->EndReturnData->Error         = FALSE;
             $this->EndReturnData->Message       = 'Opening balance saved successfully.';

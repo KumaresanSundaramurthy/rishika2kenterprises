@@ -108,6 +108,7 @@
                             </div>
                             <div class="trans-toolbar-actions">
                                 <a href="javascript:void(0);" class="r2k-icon-btn PageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
+                                <a href="javascript:void(0);" class="r2k-icon-btn" id="btnSyncVendorsCache" title="⊙"><i class="bx bx-planet"></i></a>
                                 <!-- <a href="javascript:void(0);" id="btnPageSettings" class="r2k-icon-btn" title="Column Settings"><i class="bx bx-cog"></i></a> -->
                                 <div class="r2k-search-wrap">
                                     <i class="bx bx-search r2k-si"></i>
@@ -287,6 +288,31 @@ $(function() {
 
     basePaginationFunc(ModulePag, getVendorsDetails);
     baseRefreshPageFunc('.PageRefresh', getVendorsDetails);
+
+    // ── Sync vendors to Upstash cache ───────────────────────────────────────
+    $(document).on('click', '#btnSyncVendorsCache', function () {
+        var $btn = $(this);
+        $btn.find('i').removeClass('bx-planet').addClass('bx-loader-alt bx-spin');
+        $.ajax({
+            url    : '/vendors/syncVendorsCache',
+            method : 'POST',
+            data   : { [CsrfName]: CsrfToken },
+            success: function (resp) {
+                CsrfToken = resp.NewCsrfToken || CsrfToken;
+                $btn.find('i').removeClass('bx-loader-alt bx-spin').addClass('bx-planet');
+                if (resp.Error) {
+                    showToastNotification(resp.Message, 'error');
+                } else {
+                    showToastNotification(resp.Message, 'success');
+                }
+            },
+            error: function () {
+                $btn.find('i').removeClass('bx-loader-alt bx-spin').addClass('bx-planet');
+                showToastNotification('Sync failed. Please try again.', 'error');
+            }
+        });
+    });
+    // ────────────────────────────────────────────────────────────────────────
     basePageHeaderFunc(ModuleHeader, ModuleTable, ModuleRow);
 
     $(document).on('click', '#btnCreateVendorHeader', function () { openVendorModal('add'); });

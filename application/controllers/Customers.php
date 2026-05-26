@@ -321,6 +321,7 @@ class Customers extends MY_Controller {
             }
 
             $this->dbwrite_model->commitTransaction();
+            $this->cachehelper->upsertCustomer($CustomerUID);
 
             $this->_initModule();
             $pageData = $this->_fetchTableData(1, $this->pageData['Limit']);
@@ -462,6 +463,90 @@ class Customers extends MY_Controller {
             $this->EndReturnData->Message = $e->getMessage();
         }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    public function syncCustomersCache() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $orgUID  = $this->pageData['JwtData']->User->OrgUID;
+            $userUID = $this->pageData['JwtData']->User->UserUID;
+
+            $this->load->model('customers_model');
+
+            // Fetch all active customers
+            $customers = $this->customers_model->getCustomers(['Customers.OrgUID' => $orgUID]);
+            if (empty($customers)) throw new Exception('No customers found.');
+
+            // Build the cache map — GET existing first to preserve any keys not in this batch
+            $cacheKey  = $this->redisservice->orgKey('customers');
+            $existing  = $this->upstashservice->get($cacheKey);
+            $cacheMap  = is_array($existing) ? $existing : [];
+
+            foreach ($customers as $cust) {
+                $uid = (int)$cust->CustomerUID;
+
+                // Fetch address
+                $addrInfo     = $this->customers_model->getCustomerAddress(['CustAddress.CustomerUID' => $uid]);
+                $addressList  = [];
+                foreach ($addrInfo as $addr) {
+                    $addressList[] = [
+                        'AddressType' => $addr->AddressType,
+                        'Line1'       => $addr->Line1       ?? '',
+                        'Line2'       => $addr->Line2       ?? '',
+                        'Pincode'     => $addr->Pincode     ?? '',
+                        'CityText'    => $addr->CityText    ?? '',
+                        'StateText'   => $addr->StateText   ?? '',
+                    ];
+                }
+
+                // Fetch current opening balance
+                $obRow          = $this->customers_model->getCustomerOpeningBalance($orgUID, $uid);
+                $openingBalance = $obRow ? (float)$obRow->OpeningBalance : 0.0;
+                $openingBalType = $obRow ? $obRow->OpeningBalType        : 'Debit';
+
+                // Build customer entry — add or overwrite by UID
+                $cacheMap[(string)$uid] = [
+                    'CustomerUID'     => $uid,
+                    'Name'            => $cust->Name            ?? '',
+                    'CompanyName'     => $cust->CompanyName     ?? '',
+                    'ContactPerson'   => $cust->ContactPerson   ?? '',
+                    'MobileNumber'    => $cust->MobileNumber    ?? '',
+                    'CountryCode'     => $cust->CountryCode     ?? '',
+                    'CountryISO2'     => $cust->CountryISO2     ?? '',
+                    'EmailAddress'    => $cust->EmailAddress    ?? '',
+                    'CCEmails'        => $cust->CCEmails        ?? '',
+                    'GSTIN'           => $cust->GSTIN           ?? '',
+                    'PANNumber'       => $cust->PANNumber       ?? '',
+                    'CustomerTypeUID' => (int)($cust->CustomerTypeUID ?? 0),
+                    'DiscountPercent' => (float)($cust->DiscountPercent ?? 0),
+                    'CreditPeriod'    => (int)($cust->CreditPeriod     ?? 0),
+                    'CreditLimit'     => (float)($cust->CreditLimit    ?? 0),
+                    'OpeningBalance'  => $openingBalance,
+                    'OpeningBalType'  => $openingBalType,
+                    'Area'            => $cust->Area   ?? '',
+                    'Tags'            => $cust->Tags   ?? '',
+                    'Notes'           => $cust->Notes  ?? '',
+                    'Image'           => $cust->Image  ?? '',
+                    'Address'         => $addressList,
+                ];
+            }
+
+            // Store back — TTL 0 = no expiry
+            $this->upstashservice->set($cacheKey, $cacheMap, 0);
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = count($customers) . ' customer(s) synced to cache.';
+            $this->EndReturnData->Count   = count($customers);
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
     }
 
     public function getCustomerForModal($uid = 0) {
@@ -640,8 +725,8 @@ class Customers extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
-            // Invalidate stale customer cache
-            $this->upstashservice->del(Upstashservice::keyCustomer((int)$CustomerUID));
+            // Refresh customer in bulk search cache with live data
+            $this->cachehelper->upsertCustomer((int)$CustomerUID);
 
             $pageNo = (int) ($this->input->post('PageNo') ?: 1);
             $this->_initModule();
@@ -696,8 +781,8 @@ class Customers extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
-            // Invalidate deleted customer cache
-            $this->upstashservice->del(Upstashservice::keyCustomer($CustomerUID));
+            // Remove deleted customer from bulk search cache
+            $this->cachehelper->removeCustomer($CustomerUID);
 
             $pageNo   = (int) ($this->input->post('PageNo') ?: 1);
             $this->_initModule();
@@ -819,6 +904,7 @@ class Customers extends MY_Controller {
                 ['CustomerUID' => $CustomerUID]
             );
             if ($resp->Error) throw new Exception($resp->Message);
+            $this->cachehelper->upsertCustomer($CustomerUID);
 
             $pageNo = (int) ($this->input->post('PageNo') ?: 1);
             $this->_initModule();
@@ -883,12 +969,10 @@ class Customers extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
-            // Invalidate each deleted customer cache key
-            $custKeys = array_map(
-                fn($id) => Upstashservice::keyCustomer($id),
-                $CustomerUIDs
-            );
-            $this->upstashservice->delMany($custKeys);
+            // Remove each deleted customer from bulk search cache
+            foreach ($CustomerUIDs as $cid) {
+                $this->cachehelper->removeCustomer($cid);
+            }
 
             $pageNo   = (int) ($this->input->post('PageNo') ?: 1);
             $this->_initModule();
@@ -1002,6 +1086,8 @@ class Customers extends MY_Controller {
             $this->customers_model->saveCustomerYearOpening(
                 $orgUID, $customerUID, $financialYear, $balance, $balanceType, $userUID
             );
+
+            $this->cachehelper->upsertCustomer($customerUID);
 
             $this->EndReturnData->Error          = FALSE;
             $this->EndReturnData->Message        = 'Opening balance saved successfully.';

@@ -330,6 +330,9 @@ const CityInfo      = <?php echo json_encode($CityData); ?>;
 const EnableStorage = <?php echo $JwtData->GenSettings->EnableStorage; ?>;
 var _isEdit    = <?php echo $isEdit ? 'true' : 'false'; ?>;
 var _orgState  = '<?php echo addslashes($DispatchAddress->StateText ?? ''); ?>';
+var _upstashUrl       = '<?php echo addslashes($UpstashReadUrl   ?? ''); ?>';
+var _upstashReadToken = '<?php echo addslashes($UpstashReadToken ?? ''); ?>';
+var _custCacheKey     = '<?php echo addslashes($CustomerCacheKey ?? ''); ?>';
 let imgData;
 
 <?php if ($isEdit): ?>

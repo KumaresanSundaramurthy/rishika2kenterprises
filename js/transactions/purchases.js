@@ -12,8 +12,9 @@ function getPurchasesDetails(pageNo, rowLimit, filter) {
 }
 
 function searchVendors(key) {
-    var $el    = $('#' + key);
-    var wrapId = 'vendorGroup_' + key;
+    var $el         = $('#' + key);
+    var wrapId      = 'vendorGroup_' + key;
+    var vendorCache = null; // local — freed after vendor is selected
 
     if (!$el.closest('.vendor-search-group').length) {
         $el.wrap('<div class="input-group input-group-sm input-group-merge vendor-search-group" id="' + wrapId + '"></div>');
@@ -28,33 +29,21 @@ function searchVendors(key) {
         escapeMarkup: function (markup) { return markup; },
         templateResult: function (d) {
             if (d.loading || !d.name) return d.text;
-
-            // Balance HTML (right side)
-            var balHtml = '';
-            if (d.balance !== undefined && d.balance !== null) {
-                var isZero   = (d.balance === 0 || d.balance === '0');
-                var isCredit = !isZero && (d.balanceType === 'Credit');
-                var balColor = isZero ? '#6c757d' : (isCredit ? '#dc3545' : '#198754');
-                var balLabel = isZero ? 'No Balance' : (isCredit ? 'To Pay' : 'To Collect');
-                var balAmt   = parseFloat(d.balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                balHtml = '<div style="text-align:right;white-space:nowrap;flex-shrink:0;">' +
-                    '<div style="font-weight:600;color:' + balColor + ';font-size:.85rem;">' + (genSettings.CurrenySymbol || '₹') + ' ' + balAmt + '</div>' +
-                    '<div style="font-size:.72rem;color:' + balColor + ';">' + balLabel + '</div>' +
-                '</div>';
-            }
-
-            // Left side: name + optional company name
-            var companyHtml = d.companyName
-                ? '<div style="font-size:.75rem;color:#6c757d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + d.companyName + '</div>'
-                : '';
-
+            var nameHtml   = d.name + (d.mobile ? ' <span style="color:#6c757d;font-weight:400;font-size:.85rem;">(' + d.mobile + ')</span>' : '');
+            var balHtml    = _custBalanceHtml(d.balance, d.balanceType);
+            var line2Parts = [];
+            if (d.area)    line2Parts.push('<span style="color:#8a8d93;font-style:italic;font-size:.78rem;">'         + d.area        + '</span>');
+            if (d.company) line2Parts.push('<span style="color:#696cff;font-style:italic;font-size:.78rem;">(' + d.company + ')</span>');
+            var line2Html  = line2Parts.length
+                ? line2Parts.join(' ')
+                : '<span style="font-size:.78rem;">&nbsp;</span>';
             return $(
-                '<div style="display:flex;align-items:center;gap:8px;">' +
+                '<div style="display:flex;align-items:flex-start;gap:6px;">' +
                     '<div style="flex:1;min-width:0;">' +
-                        '<div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + d.name + '</div>' +
-                        companyHtml +
+                        '<div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + nameHtml + '</div>' +
+                        '<div style="margin-top:2px;">' + line2Html + '</div>' +
                     '</div>' +
-                    balHtml +
+                    '<div style="text-align:right;white-space:nowrap;flex-shrink:0;padding-top:1px;">' + balHtml + '</div>' +
                 '</div>'
             );
         },
@@ -64,19 +53,97 @@ function searchVendors(key) {
             return d.text;
         },
         ajax: {
-            url: '/transactions/searchVendors',
-            dataType: 'json',
+            transport: function (params, success, failure) {
+                var term     = ((params.data && params.data.term) || '').toLowerCase().trim();
+                var page     = (params.data && params.data.page) || 1;
+                var pageSize = 15;
+
+                function _paginate(list) {
+                    var filtered = term
+                        ? list.filter(function (v) {
+                            return (v.name    && v.name.toLowerCase().includes(term))    ||
+                                   (v.area    && v.area.toLowerCase().includes(term))    ||
+                                   (v.mobile  && v.mobile.toLowerCase().includes(term))  ||
+                                   (v.gstin   && v.gstin.toLowerCase().includes(term))   ||
+                                   (v.company && v.company.toLowerCase().includes(term));
+                          })
+                        : list;
+                    var start = (page - 1) * pageSize;
+                    AjaxLoading = 1;
+                    success({ Lists: filtered.slice(start, start + pageSize), more: (start + pageSize) < filtered.length });
+                }
+
+                // Already loaded — paginate instantly
+                if (vendorCache) { _paginate(vendorCache); return; }
+
+                // Upstash direct (pages that inject _upstashUrl / _vendorCacheKey)
+                if (typeof _upstashUrl !== 'undefined' && _upstashUrl && typeof _vendorCacheKey !== 'undefined' && _vendorCacheKey) {
+                    $.ajax({
+                        url: _upstashUrl + '/get/' + encodeURIComponent(_vendorCacheKey),
+                        headers: { 'Authorization': 'Bearer ' + _upstashReadToken },
+                        dataType: 'json',
+                        success: function (resp) {
+                            var raw = resp.result;
+                            var map = typeof raw === 'string' ? JSON.parse(raw) : (raw || {});
+                            vendorCache = Object.keys(map).map(function (uid) {
+                                var v = map[uid];
+                                return {
+                                    id:          parseInt(v.VendorUID || uid, 10),
+                                    text:        v.Area ? (v.Name + ' (' + v.Area + ')') : (v.Name || ''),
+                                    name:        v.Name             || '',
+                                    area:        v.Area             || '',
+                                    mobile:      v.MobileNumber     || '',
+                                    gstin:       v.GSTIN            || '',
+                                    company:     v.CompanyName      || '',
+                                    balance:     parseFloat(v.OpeningBalance || 0),
+                                    balanceType: v.OpeningBalType   || 'Debit',
+                                    lastTxAt:    v.LastTransactionAt || '',
+                                };
+                            });
+                            // Recent vendors first (newest → oldest), then rest A–Z
+                            vendorCache.sort(function (a, b) {
+                                if (a.lastTxAt && b.lastTxAt) return new Date(b.lastTxAt) - new Date(a.lastTxAt);
+                                if (a.lastTxAt) return -1;
+                                if (b.lastTxAt) return 1;
+                                return a.name.localeCompare(b.name);
+                            });
+                            _paginate(vendorCache);
+                        },
+                        error: function () {
+                            // Upstash failed — fall back to DB search
+                            $.ajax({
+                                url: '/transactions/searchVendors',
+                                dataType: 'json',
+                                data: { term: (params.data && params.data.term) || '', type: 'public' },
+                                success: function (data) { AjaxLoading = 1; success(data); },
+                                error: function () { AjaxLoading = 1; failure(); }
+                            });
+                        }
+                    });
+                } else {
+                    // Fallback for pages not yet migrated — original server search
+                    $.ajax({
+                        url: '/transactions/searchVendors',
+                        dataType: 'json',
+                        data: { term: (params.data && params.data.term) || '', type: 'public' },
+                        success: function (data) { AjaxLoading = 1; success(data); },
+                        error: function () { AjaxLoading = 1; failure(); }
+                    });
+                }
+            },
             delay: 250,
             data: function (params) {
                 AjaxLoading = 0;
-                return { term: params.term, type: 'public' };
+                return { term: params.term, page: params.page || 1 };
             },
             processResults: function (data) {
                 AjaxLoading = 1;
-                return { results: data.Lists };
+                return { results: data.Lists, pagination: { more: data.more || false } };
             },
-            cache: true
+            cache: false
         }
+    }).on('select2:select', function () {
+        vendorCache = null; // free memory — no longer needed after selection
     }).on('select2:close', function () {
         AjaxLoading = 1;
     });

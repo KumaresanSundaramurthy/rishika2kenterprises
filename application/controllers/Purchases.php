@@ -43,6 +43,10 @@ class Purchases extends MY_Controller {
             $this->pageData['PaymentTypes']  = $this->transactions_model->getPaymentTypesList();
             $this->pageData['BankAccounts']  = $this->transactions_model->getOrgBankAccounts($orgUID);
 
+            $this->pageData['UpstashReadUrl']   = getenv('UPSTASH_REDIS_REST_URL') ?: '';
+            $this->pageData['UpstashReadToken'] = getenv('UPSTASH_REDIS_REST_READONLY_TOKEN') ?: '';
+            $this->pageData['VendorCacheKey']   = $this->redisservice->orgKey('vendors');
+
             $this->load->view('transactions/purchases/view', $this->pageData);
 
         } catch (Exception $e) {
@@ -357,6 +361,7 @@ class Purchases extends MY_Controller {
             }
 
             $this->_saveAttachments($transUID);
+            $this->_touchVendorCache($vendorUID);
 
             $this->EndReturnData->Error    = FALSE;
             $this->EndReturnData->Message  = 'Purchase bill recorded successfully.';
@@ -671,6 +676,7 @@ class Purchases extends MY_Controller {
             $this->_softDeleteAttachments($this->input->post('RemovedAttachIDs') ?? '');
 
             $this->dbwrite_model->commitTransaction();
+            $this->_touchVendorCache($vendorUID);
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Purchase bill updated successfully.';
@@ -1317,6 +1323,10 @@ class Purchases extends MY_Controller {
             redirect('purchases', 'refresh');
         }
 
+    }
+
+    private function _touchVendorCache($vendorUID) {
+        $this->cachehelper->touchVendor($vendorUID);
     }
 
     private function _saveAttachments($transUID) {

@@ -70,13 +70,17 @@ if (!empty($DataLists)):
             <?php endif; ?>
         </td>
 
-        <!-- Category -->
+        <!-- Category / Notes -->
         <td>
             <?php if (!empty($list->CategoryName)): ?>
                 <span class="badge text-bg-light border" style="font-size:.72rem;font-weight:500;">
                     <?php echo htmlspecialchars($list->CategoryName); ?>
                 </span>
-            <?php else: ?>
+            <?php endif; ?>
+            <?php if (!empty($list->Notes)): ?>
+                <div class="text-muted" style="font-size:.75rem;margin-top:3px;line-height:1.4;"><?php echo htmlspecialchars($list->Notes); ?></div>
+            <?php endif; ?>
+            <?php if (empty($list->CategoryName) && empty($list->Notes)): ?>
                 <span class="text-muted">—</span>
             <?php endif; ?>
         </td>

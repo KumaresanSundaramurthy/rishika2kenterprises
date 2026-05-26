@@ -299,6 +299,9 @@ const CityInfo      = <?php echo json_encode($CityData); ?>;
 const EnableStorage = <?php echo $JwtData->GenSettings->EnableStorage; ?>;
 
 var _isEdit = <?php echo $isEdit ? 'true' : 'false'; ?>;
+var _upstashUrl       = '<?php echo addslashes($UpstashReadUrl   ?? ''); ?>';
+var _upstashReadToken = '<?php echo addslashes($UpstashReadToken ?? ''); ?>';
+var _custCacheKey     = '<?php echo addslashes($CustomerCacheKey ?? ''); ?>';
 
 <?php if ($isEdit): ?>
 var _editItems = <?php echo json_encode(array_map(function($item) {

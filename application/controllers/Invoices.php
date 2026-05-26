@@ -54,6 +54,10 @@ class Invoices extends MY_Controller {
             $this->pageData['PaymentTypes']    = $this->transactions_model->getPaymentTypesList();
             $this->pageData['BankAccounts']    = $this->transactions_model->getOrgBankAccounts($orgUID);
 
+            $this->pageData['UpstashReadUrl']   = getenv('UPSTASH_REDIS_REST_URL') ?: '';
+            $this->pageData['UpstashReadToken'] = getenv('UPSTASH_REDIS_REST_READONLY_TOKEN') ?: '';
+            $this->pageData['CustomerCacheKey'] = $this->redisservice->orgKey('customers');
+
             $this->load->view('transactions/invoices/view', $this->pageData);
 
         } catch (Exception $e) {
@@ -320,6 +324,7 @@ class Invoices extends MY_Controller {
             $this->EndReturnData->TransUID = $transUID;
             $this->_saveAttachments($transUID);
             if (!empty($firstPaymentUID)) $this->_savePaymentAttachments($firstPaymentUID);
+            $this->_touchCustomerCache($customerUID);
 
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -682,6 +687,7 @@ class Invoices extends MY_Controller {
             $this->_saveAttachments($activeTransUID);
             $this->_softDeleteAttachments($this->input->post('RemovedAttachIDs') ?? '');
             if (!empty($firstPaymentUID)) $this->_savePaymentAttachments($firstPaymentUID);
+            $this->_touchCustomerCache($customerUID);
 
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -691,6 +697,10 @@ class Invoices extends MY_Controller {
 
         $this->globalservice->sendJsonResponse($this->EndReturnData);
 
+    }
+
+    private function _touchCustomerCache($customerUID) {
+        $this->cachehelper->touchCustomer($customerUID);
     }
 
     private function _saveAttachments($transUID) {

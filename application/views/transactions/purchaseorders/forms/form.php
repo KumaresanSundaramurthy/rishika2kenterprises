@@ -254,6 +254,9 @@ var _orgState       = '';
 var _isEdit         = <?php echo $isEdit ? 'true' : 'false'; ?>;
 var _transUID       = <?php echo $transUID; ?>;
 var _vendorState    = '<?php echo $isEdit && isset($VendorAddr) ? addslashes($VendorAddr->StateText ?? '') : ''; ?>';
+var _upstashUrl       = '<?php echo addslashes($UpstashReadUrl  ?? ''); ?>';
+var _upstashReadToken = '<?php echo addslashes($UpstashReadToken ?? ''); ?>';
+var _vendorCacheKey   = '<?php echo addslashes($VendorCacheKey  ?? ''); ?>';
 
 <?php if ($isEdit): ?>
 var _editItems = <?php echo json_encode(array_map(function($item) {

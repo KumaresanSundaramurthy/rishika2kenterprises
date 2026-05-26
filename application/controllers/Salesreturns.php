@@ -35,6 +35,10 @@ class Salesreturns extends MY_Controller {
             $this->pageData['PaymentTypes']  = $this->transactions_model->getPaymentTypesList();
             $this->pageData['BankAccounts']  = $this->transactions_model->getOrgBankAccounts($this->pageData['JwtData']->User->OrgUID);
 
+            $this->pageData['UpstashReadUrl']   = getenv('UPSTASH_REDIS_REST_URL') ?: '';
+            $this->pageData['UpstashReadToken'] = getenv('UPSTASH_REDIS_REST_READONLY_TOKEN') ?: '';
+            $this->pageData['CustomerCacheKey'] = $this->redisservice->orgKey('customers');
+
             $this->load->view('transactions/salesreturns/view', $this->pageData);
         } catch (Exception $e) {
             redirect('dashboard', 'refresh');
@@ -215,6 +219,7 @@ class Salesreturns extends MY_Controller {
             $this->dbwrite_model->commitTransaction();
 
             $this->_saveAttachments($transUID);
+            $this->_touchCustomerCache($customerUID);
 
             // ── Save payment if recorded on create ──────────────────
             if (!$isDraft && (int) getPostValue($PostData, 'RecordPayment') === 1) {
@@ -477,6 +482,7 @@ class Salesreturns extends MY_Controller {
             $this->dbwrite_model->commitTransaction();
             $this->_saveAttachments($transUID);
             $this->_softDeleteAttachments($this->input->post('RemovedAttachIDs') ?? '');
+            $this->_touchCustomerCache($customerUID);
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Sales Return updated successfully.';
         } catch (Exception $e) {
@@ -993,6 +999,10 @@ class Salesreturns extends MY_Controller {
             if ($amt > 0) $charges[] = ['type' => $type, 'amount' => $amt, 'tax' => $tax];
         }
         return !empty($charges) ? json_encode($charges) : NULL;
+    }
+
+    private function _touchCustomerCache($customerUID) {
+        $this->cachehelper->touchCustomer($customerUID);
     }
 
     private function _saveAttachments($transUID) {

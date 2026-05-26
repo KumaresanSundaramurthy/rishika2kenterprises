@@ -2276,8 +2276,9 @@ function _custBalanceHtml(balance, balanceType) {
 }
 
 function searchCustomers(key) {
-    var $el    = $('#' + key);
-    var wrapId = 'customerGroup_' + key;
+    var $el      = $('#' + key);
+    var wrapId   = 'customerGroup_' + key;
+    var custCache = null; // local — freed after customer is selected
 
     if (!$el.closest('.customer-search-group').length) {
         $el.wrap('<div class="input-group input-group-sm input-group-merge customer-search-group" id="' + wrapId + '"></div>');
@@ -2292,15 +2293,21 @@ function searchCustomers(key) {
         escapeMarkup: function (markup) { return markup; },
         templateResult: function (d) {
             if (d.loading || !d.name) return d.text;
-            var area    = d.area ? '<span style="color:#6c757d;font-size:.78rem;">' + d.area + '</span>' : '<span style="color:transparent;font-size:.78rem;">-</span>';
-            var balHtml = _custBalanceHtml(d.balance, d.balanceType);
+            var nameHtml   = d.name + (d.mobile ? ' <span style="color:#6c757d;font-weight:400;font-size:.85rem;">(' + d.mobile + ')</span>' : '');
+            var balHtml    = _custBalanceHtml(d.balance, d.balanceType);
+            var line2Parts = [];
+            if (d.area)    line2Parts.push('<span style="color:#8a8d93;font-style:italic;font-size:.78rem;">'         + d.area                  + '</span>');
+            if (d.company) line2Parts.push('<span style="color:#696cff;font-style:italic;font-size:.78rem;">(' + d.company + ')</span>');
+            var line2Html  = line2Parts.length
+                ? line2Parts.join(' ')
+                : '<span style="font-size:.78rem;">&nbsp;</span>';
             return $(
-                '<div style="display:flex;align-items:center;gap:6px;">' +
+                '<div style="display:flex;align-items:flex-start;gap:6px;">' +
                     '<div style="flex:1;min-width:0;">' +
-                        '<div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + d.name + '</div>' +
-                        '<div>' + area + '</div>' +
+                        '<div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + nameHtml + '</div>' +
+                        '<div style="margin-top:2px;">' + line2Html + '</div>' +
                     '</div>' +
-                    '<div style="text-align:right;white-space:nowrap;flex-shrink:0;">' + balHtml + '</div>' +
+                    '<div style="text-align:right;white-space:nowrap;flex-shrink:0;padding-top:1px;">' + balHtml + '</div>' +
                 '</div>'
             );
         },
@@ -2310,20 +2317,115 @@ function searchCustomers(key) {
             return d.text;
         },
         ajax: {
-            url: '/transactions/searchCustomers',
-            dataType: 'json',
+            transport: function (params, success, failure) {
+                var term     = ((params.data && params.data.term) || '').toLowerCase().trim();
+                var page     = (params.data && params.data.page) || 1;
+                var pageSize = 15;
+
+                function _paginate(list) {
+                    var filtered = term
+                        ? list.filter(function (c) {
+                            return (c.name    && c.name.toLowerCase().includes(term))    ||
+                                   (c.area    && c.area.toLowerCase().includes(term))    ||
+                                   (c.mobile  && c.mobile.toLowerCase().includes(term))  ||
+                                   (c.email   && c.email.toLowerCase().includes(term))   ||
+                                   (c.gstin   && c.gstin.toLowerCase().includes(term))   ||
+                                   (c.company && c.company.toLowerCase().includes(term)) ||
+                                   (c.contact && c.contact.toLowerCase().includes(term));
+                          })
+                        : list;
+                    var start = (page - 1) * pageSize;
+                    AjaxLoading = 1;
+                    success({ Lists: filtered.slice(start, start + pageSize), more: (start + pageSize) < filtered.length });
+                }
+
+                // Already loaded — paginate instantly
+                if (custCache) { _paginate(custCache); return; }
+
+                // Upstash direct (pages that inject _upstashUrl / _custCacheKey)
+                if (typeof _upstashUrl !== 'undefined' && _upstashUrl && typeof _custCacheKey !== 'undefined' && _custCacheKey) {
+                    $.ajax({
+                        url: _upstashUrl + '/get/' + encodeURIComponent(_custCacheKey),
+                        headers: { 'Authorization': 'Bearer ' + _upstashReadToken },
+                        dataType: 'json',
+                        success: function (resp) {
+                            var raw = resp.result;
+                            var map = typeof raw === 'string' ? JSON.parse(raw) : (raw || {});
+                            custCache = Object.keys(map).map(function (uid) {
+                                var c = map[uid];
+                                var entry = {
+                                    id:          parseInt(c.CustomerUID || uid, 10),
+                                    text:        c.Area ? (c.Name + ' (' + c.Area + ')') : (c.Name || ''),
+                                    name:        c.Name             || '',
+                                    area:        c.Area             || '',
+                                    mobile:      c.MobileNumber     || '',
+                                    email:       c.EmailAddress     || '',
+                                    gstin:       c.GSTIN            || '',
+                                    company:     c.CompanyName      || '',
+                                    contact:     c.ContactPerson    || '',
+                                    balance:     parseFloat(c.OpeningBalance || 0),
+                                    balanceType: c.OpeningBalType   || 'Debit',
+                                    lastTxAt:    c.LastTransactionAt || '',
+                                };
+                                if (c.Address && c.Address.length) {
+                                    var addr = c.Address[0];
+                                    c.Address.forEach(function (a) {
+                                        if (a.AddressType === 'Billing') addr = a;
+                                    });
+                                    entry.address = {
+                                        Line1:   addr.Line1     || '',
+                                        Line2:   addr.Line2     || '',
+                                        Pincode: addr.Pincode   || '',
+                                        City:    addr.CityText  || '',
+                                        State:   addr.StateText || '',
+                                    };
+                                }
+                                return entry;
+                            });
+                            // Recent customers first (newest → oldest), then rest A–Z
+                            custCache.sort(function (a, b) {
+                                if (a.lastTxAt && b.lastTxAt) return new Date(b.lastTxAt) - new Date(a.lastTxAt);
+                                if (a.lastTxAt) return -1;
+                                if (b.lastTxAt) return 1;
+                                return a.name.localeCompare(b.name);
+                            });
+                            _paginate(custCache);
+                        },
+                        error: function () {
+                            // Upstash failed — fall back to DB search
+                            $.ajax({
+                                url: '/transactions/searchCustomers',
+                                dataType: 'json',
+                                data: { term: (params.data && params.data.term) || '', type: 'public' },
+                                success: function (data) { AjaxLoading = 1; success(data); },
+                                error: function () { AjaxLoading = 1; failure(); }
+                            });
+                        }
+                    });
+                } else {
+                    // Fallback for pages not yet migrated — original server search
+                    $.ajax({
+                        url: '/transactions/searchCustomers',
+                        dataType: 'json',
+                        data: { term: (params.data && params.data.term) || '', type: 'public' },
+                        success: function (data) { AjaxLoading = 1; success(data); },
+                        error: function () { AjaxLoading = 1; failure(); }
+                    });
+                }
+            },
             delay: 250,
             data: function (params) {
                 AjaxLoading = 0;
-                return { term: params.term, type: 'public' };
+                return { term: params.term, page: params.page || 1 };
             },
             processResults: function (data) {
                 AjaxLoading = 1;
-                return { results: data.Lists };
+                return { results: data.Lists, pagination: { more: data.more || false } };
             },
-            cache: true
+            cache: false
         }
     }).on('select2:select', function (e) {
+        custCache = null; // free memory — no longer needed after selection
         var data = e.params.data;
         if (data.address) {
             var addrHtml = `

@@ -331,7 +331,7 @@ class Transactions extends CI_Controller {
         }
 
         $this->globalservice->sendJsonResponse($this->EndReturnData);
-        
+
     }
 
     // ----------------------------------------------------------------

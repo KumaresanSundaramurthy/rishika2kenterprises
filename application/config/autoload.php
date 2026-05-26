@@ -58,7 +58,7 @@ $autoload['packages'] = array();
 |
 |	$autoload['libraries'] = array('user_agent' => 'ua');
 */
-$autoload['libraries'] = array('session', 'redisservice', 'upstashservice', 'pagination', 'globalservice');
+$autoload['libraries'] = array('session', 'redisservice', 'upstashservice', 'cachehelper', 'pagination', 'globalservice');
 
 /*
 | -------------------------------------------------------------------

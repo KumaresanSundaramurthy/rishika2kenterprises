@@ -39,6 +39,10 @@ class Salesorders extends MY_Controller {
             $this->pageData['ModAllCount'] = $allDataCount;
             $this->pageData['SummaryStats'] = $this->transactions_model->getTransactionSummaryStats($this->pageModuleUID, $this->pageData['JwtData']->User->OrgUID);
 
+            $this->pageData['UpstashReadUrl']   = getenv('UPSTASH_REDIS_REST_URL') ?: '';
+            $this->pageData['UpstashReadToken'] = getenv('UPSTASH_REDIS_REST_READONLY_TOKEN') ?: '';
+            $this->pageData['CustomerCacheKey'] = $this->redisservice->orgKey('customers');
+
             $this->load->view('transactions/salesorders/view', $this->pageData);
 
         } catch (Exception $e) {
@@ -245,6 +249,7 @@ class Salesorders extends MY_Controller {
             $this->dbwrite_model->commitTransaction();
 
             $this->_saveAttachments($transUID);
+            $this->_touchCustomerCache($customerUID);
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Sales order created successfully.';
@@ -506,6 +511,7 @@ class Salesorders extends MY_Controller {
 
             $this->_saveAttachments($transUID);
             $this->_softDeleteAttachments($this->input->post('RemovedAttachIDs') ?? '');
+            $this->_touchCustomerCache($customerUID);
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Sales order updated successfully.';
@@ -1160,6 +1166,10 @@ class Salesorders extends MY_Controller {
             redirect('salesorders', 'refresh');
         }
 
+    }
+
+    private function _touchCustomerCache($customerUID) {
+        $this->cachehelper->touchCustomer($customerUID);
     }
 
     private function _saveAttachments($transUID) {

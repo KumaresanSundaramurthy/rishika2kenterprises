@@ -42,7 +42,7 @@ class Quotations extends MY_Controller {
             $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/quotations/getQuotationsPageDetails', $allDataCount, 1, $limit);
             $this->pageData['ModAllCount'] = $allDataCount;
             $this->pageData['SummaryStats'] = $this->transactions_model->getTransactionSummaryStats($this->pageModuleUID, $this->pageData['JwtData']->User->OrgUID);
-            
+
             $this->load->view('transactions/quotations/view', $this->pageData);
 
         } catch (Exception $e) {
@@ -242,6 +242,7 @@ class Quotations extends MY_Controller {
             $this->dbwrite_model->commitTransaction();
 
             $this->_saveAttachments($transUID);
+            $this->_touchCustomerCache($customerUID);
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Quotation created successfully.';
@@ -514,6 +515,7 @@ class Quotations extends MY_Controller {
 
             $this->_saveAttachments($transUID);
             $this->_softDeleteAttachments($this->input->post('RemovedAttachIDs') ?? '');
+            $this->_touchCustomerCache($customerUID);
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Quotation updated successfully.';
@@ -878,6 +880,10 @@ class Quotations extends MY_Controller {
                 $this->pageData['fltStorageData'] = $this->storage_model->getStorageDetails([]) ?? [];
             }
 
+            $this->pageData['UpstashReadUrl']   = getenv('UPSTASH_REDIS_REST_URL') ?: '';
+            $this->pageData['UpstashReadToken'] = getenv('UPSTASH_REDIS_REST_READONLY_TOKEN') ?: '';
+            $this->pageData['CustomerCacheKey'] = $this->redisservice->orgKey('customers');
+
             $this->load->view('transactions/quotations/forms/form', $this->pageData);
 
         } catch (Exception $e) {
@@ -973,6 +979,10 @@ class Quotations extends MY_Controller {
             redirect('quotations', 'refresh');
         }
 
+    }
+
+    private function _touchCustomerCache($customerUID) {
+        $this->cachehelper->touchCustomer($customerUID);
     }
 
     private function _saveAttachments($transUID) {

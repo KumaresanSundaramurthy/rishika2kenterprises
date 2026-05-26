@@ -38,6 +38,10 @@ class Purchaseorders extends MY_Controller {
             $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/purchaseorders/getPurchaseOrdersPageDetails', $allDataCount, 1, $limit);
             $this->pageData['ModAllCount']   = $allDataCount;
 
+            $this->pageData['UpstashReadUrl']   = getenv('UPSTASH_REDIS_REST_URL') ?: '';
+            $this->pageData['UpstashReadToken'] = getenv('UPSTASH_REDIS_REST_READONLY_TOKEN') ?: '';
+            $this->pageData['VendorCacheKey']   = $this->redisservice->orgKey('vendors');
+
             $this->load->view('transactions/purchaseorders/view', $this->pageData);
 
         } catch (Exception $e) {
@@ -230,6 +234,7 @@ class Purchaseorders extends MY_Controller {
             $this->dbwrite_model->commitTransaction();
 
             $this->_saveAttachments($transUID);
+            $this->_touchVendorCache($vendorUID);
 
             $this->EndReturnData->Error    = FALSE;
             $this->EndReturnData->Message  = 'Purchase order created successfully.';
@@ -488,6 +493,7 @@ class Purchaseorders extends MY_Controller {
 
             $this->_saveAttachments($transUID);
             $this->_softDeleteAttachments($this->input->post('RemovedAttachIDs') ?? '');
+            $this->_touchVendorCache($vendorUID);
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Purchase order updated successfully.';
@@ -993,6 +999,10 @@ class Purchaseorders extends MY_Controller {
             redirect('purchaseorders', 'refresh');
         }
 
+    }
+
+    private function _touchVendorCache($vendorUID) {
+        $this->cachehelper->touchVendor($vendorUID);
     }
 
     private function _saveAttachments($transUID) {

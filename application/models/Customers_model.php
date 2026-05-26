@@ -344,6 +344,10 @@ class Customers_model extends CI_Model {
                 $typeUIDs = array_filter(array_map('intval', (array)$filter['CustomerTypeUIDs']));
                 if (!empty($typeUIDs)) $this->ReadDb->where_in('Customers.CustomerTypeUID', $typeUIDs);
             }
+            if (!empty($filter['UpdatedByUIDs'])) {
+                $uids = array_filter(array_map('intval', (array)$filter['UpdatedByUIDs']));
+                if (!empty($uids)) $this->ReadDb->where_in('Customers.UpdatedBy', $uids);
+            }
             if (!empty($filter['NameSorting'])) {
                 $this->ReadDb->order_by('Customers.Name', (int)$filter['NameSorting'] === 1 ? 'ASC' : 'DESC');
             } elseif (!empty($filter['AreaSorting'])) {
@@ -353,7 +357,9 @@ class Customers_model extends CI_Model {
             } else {
                 $this->ReadDb->order_by('Customers.CustomerUID', 'DESC');
             }
-            $this->ReadDb->limit($limit, $offset);
+            if ($limit > 0) {
+                $this->ReadDb->limit($limit, $offset);
+            }
             $dataQuery = $this->ReadDb->get();
             if (!$dataQuery) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
 

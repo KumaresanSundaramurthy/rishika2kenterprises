@@ -24,8 +24,8 @@
                         </div>
                     </div>
 
-                    <!-- ── Password Gate ─────────────────────────────────── -->
-                    <div id="cm-password-gate">
+                    <!-- ── Password Gate (skipped in development environment) ── -->
+                    <div id="cm-password-gate" <?php if ($IsDevEnv): ?>class="d-none"<?php endif; ?>>
                         <div class="row justify-content-center">
                             <div class="col-md-5 col-lg-4">
                                 <div class="card shadow-sm border-0">
@@ -57,8 +57,8 @@
                         </div>
                     </div>
 
-                    <!-- ── Cache Tabs (hidden until unlocked) ────────────── -->
-                    <div id="cm-cache-panel" class="d-none">
+                    <!-- ── Cache Tabs ────────────────────────────────────── -->
+                    <div id="cm-cache-panel" <?php if (!$IsDevEnv): ?>class="d-none"<?php endif; ?>>
 
                         <!-- Stats bar -->
                         <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
@@ -225,10 +225,16 @@
     const BASE = '<?php echo base_url(); ?>';
     const CSRF_NAME  = '<?php echo $this->security->get_csrf_token_name(); ?>';
     const CSRF_HASH  = '<?php echo $this->security->get_csrf_hash(); ?>';
+    const IS_DEV_ENV = <?php echo $IsDevEnv ? 'true' : 'false'; ?>;
 
     let _redisData   = [];
     let _upstashData = [];
     let _upstashLoaded = false;
+
+    // In development, skip the password gate and load immediately
+    if (IS_DEV_ENV) {
+        loadRedis();
+    }
 
     // ── Password gate ─────────────────────────────────────────────────────────
 

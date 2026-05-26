@@ -188,6 +188,21 @@ class Globally extends CI_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
+    public function getTimezones() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $this->load->model('global_model');
+            $result = $this->global_model->getTimezoneDetails([]);
+            $this->EndReturnData->Error = $result->Error;
+            $this->EndReturnData->Data  = ($result->Error === FALSE) ? $result->Data : [];
+            if ($result->Error) $this->EndReturnData->Message = $result->Message;
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
     public function getStorageTypeInfo() {
 
         $this->EndReturnData = new stdClass();

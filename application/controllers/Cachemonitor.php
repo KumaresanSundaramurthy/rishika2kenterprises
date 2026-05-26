@@ -17,6 +17,7 @@ class Cachemonitor extends MY_Controller {
             return;
         }
         $this->pageData['PageTitle'] = 'Cache Monitor';
+        $this->pageData['IsDevEnv']  = (ENVIRONMENT === 'development');
         $this->load->view('cachemonitor/view', $this->pageData);
     }
 

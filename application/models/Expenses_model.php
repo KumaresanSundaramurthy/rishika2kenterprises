@@ -15,21 +15,42 @@ class Expenses_model extends CI_Model {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select(
                 'e.ExpenseUID, e.ExpenseNumber, e.ExpenseDate, e.Amount, e.NetAmount,
+                 e.PaidAmount, e.BalanceAmount,
                  e.TaxApplicable, e.TaxAmount, e.TDSApplicable, e.TDSAmount,
                  e.CategoryUID, ec.CategoryName,
                  e.Notes, e.DocStatus, e.IsPaid,
-                 py.PaymentUID, py.PaymentTypeUID, pt.Name AS PaymentTypeName,
-                 py.BankAccountUID, ba.AccountName AS BankAccountName, ba.BankName, ba.AccountNumber,
-                 py.PaymentDate,
                  e.UpdatedOn,
-                 CONCAT(IFNULL(u.FirstName,\'\'), \' \', IFNULL(u.LastName,\'\')) AS UpdatedBy'
+                 CONCAT(IFNULL(u.FirstName,\'\'), \' \', IFNULL(u.LastName,\'\')) AS UpdatedBy,
+                 CONCAT(IFNULL(uc.FirstName,\'\'), \' \', IFNULL(uc.LastName,\'\')) AS CreatedByName,
+                 (SELECT COUNT(*) FROM Transaction.ExpenseIncomeAttachmentsTbl a WHERE a.SourceUID = e.ExpenseUID AND a.SourceType = \'Expense\' AND a.IsDeleted = 0) AS AttachCount,
+                 IFNULL(PayInfo.PaymentCount, 0) AS PaymentCount,
+                 PayInfo.PaymentModes,
+                 PayInfo.PayBankName,
+                 PayInfo.PayAccountNumber,
+                 IFNULL(PayInfo.PaymentAttachmentCount, 0) AS PaymentAttachmentCount',
+                FALSE
             );
             $this->ReadDb->from('Transaction.ExpensesTbl e');
-            $this->ReadDb->join('Transaction.ExpenseCategoryTbl ec', 'ec.CategoryUID = e.CategoryUID AND ec.IsDeleted = 0',                            'left');
-            $this->ReadDb->join('Transaction.PaymentsTbl py',        'py.TransUID = e.ExpenseUID AND py.SourceType = \'Expense\' AND py.IsDeleted = 0', 'left');
-            $this->ReadDb->join('Transaction.PaymentTypesTbl pt',    'pt.PaymentTypeUID = py.PaymentTypeUID',                                           'left');
-            $this->ReadDb->join('Transaction.OrgBankAccountsTbl ba', 'ba.BankAccountUID = py.BankAccountUID AND ba.IsDeleted = 0',                      'left');
-            $this->ReadDb->join('Users.UserTbl u',                   'u.UserUID = e.UpdatedBy',                                                         'left');
+            $this->ReadDb->join('Transaction.ExpenseCategoryTbl ec', 'ec.CategoryUID = e.CategoryUID AND ec.IsDeleted = 0', 'left');
+            $this->ReadDb->join('Users.UserTbl u',                   'u.UserUID = e.UpdatedBy',                            'left');
+            $this->ReadDb->join('Users.UserTbl uc',                  'uc.UserUID = e.CreatedBy',                           'left');
+            $this->ReadDb->join(
+                "(SELECT P.TransUID,
+                    COUNT(*) AS PaymentCount,
+                    GROUP_CONCAT(PT.Name ORDER BY P.PaymentUID ASC SEPARATOR ',') AS PaymentModes,
+                    MAX(CASE WHEN PT.IsCash = 0 THEN BA.BankName ELSE NULL END) AS PayBankName,
+                    MAX(CASE WHEN PT.IsCash = 0 THEN BA.AccountNumber ELSE NULL END) AS PayAccountNumber,
+                    (SELECT COUNT(*) FROM Transaction.PaymentAttachmentsTbl PA
+                     WHERE PA.PaymentUID IN (SELECT PaymentUID FROM Transaction.PaymentsTbl P2 WHERE P2.TransUID = P.TransUID AND P2.SourceType = 'Expense' AND P2.IsDeleted = 0 AND P2.IsActive = 1)
+                     AND PA.IsDeleted = 0 AND PA.IsActive = 1) AS PaymentAttachmentCount
+                 FROM Transaction.PaymentsTbl P
+                 JOIN Transaction.PaymentTypesTbl PT ON PT.PaymentTypeUID = P.PaymentTypeUID
+                 LEFT JOIN Transaction.OrgBankAccountsTbl BA ON BA.BankAccountUID = P.BankAccountUID
+                 WHERE P.IsDeleted = 0 AND P.IsActive = 1 AND P.SourceType = 'Expense'
+                 GROUP BY P.TransUID) AS PayInfo",
+                'PayInfo.TransUID = e.ExpenseUID',
+                'left'
+            );
             $this->ReadDb->where('e.OrgUID',    $orgUID);
             $this->ReadDb->where('e.IsDeleted', 0);
             $this->_applyFilters($filter);
@@ -68,6 +89,7 @@ class Expenses_model extends CI_Model {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select(
                 'e.ExpenseUID, e.ExpenseNumber, e.ExpenseDate, e.Amount, e.NetAmount,
+                 e.PaidAmount, e.BalanceAmount,
                  e.TaxApplicable, e.TaxPercentage, e.TaxAmount,
                  e.TDSApplicable, e.TDSPercentage, e.TDSAmount,
                  e.CategoryUID, ec.CategoryName,
@@ -242,6 +264,45 @@ class Expenses_model extends CI_Model {
         }
     }
 
+    // ── Attachments for a single expense ────────────────────────────────────
+    public function getExpenseAttachments($expenseUID, $orgUID) {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('AttachUID, FileName, FilePath, FileType, FileSize, SortOrder');
+            $this->ReadDb->from('Transaction.ExpenseIncomeAttachmentsTbl');
+            $this->ReadDb->where('SourceUID',  $expenseUID);
+            $this->ReadDb->where('SourceType', 'Expense');
+            $this->ReadDb->where('OrgUID',     $orgUID);
+            $this->ReadDb->where('IsDeleted',  0);
+            $this->ReadDb->where('IsActive',   1);
+            $this->ReadDb->order_by('SortOrder', 'ASC');
+            $query = $this->ReadDb->get();
+            return $query ? $query->result() : [];
+        } catch (Exception $e) {
+            log_message('error', 'Expenses_model::getExpenseAttachments — ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    // ── Count existing payment rows for an expense (for UniqueNumber suffix) ───
+    public function getPaymentCount($transUID, $sourceType, $orgUID) {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('COUNT(*) AS cnt');
+            $this->ReadDb->from('Transaction.PaymentsTbl');
+            $this->ReadDb->where('TransUID',   $transUID);
+            $this->ReadDb->where('SourceType', $sourceType);
+            $this->ReadDb->where('OrgUID',     $orgUID);
+            $this->ReadDb->where('IsDeleted',  0);
+            $query = $this->ReadDb->get();
+            $row   = $query ? $query->row() : null;
+            return $row ? (int)$row->cnt : 0;
+        } catch (Exception $e) {
+            log_message('error', 'Expenses_model::getPaymentCount — ' . $e->getMessage());
+            return 0;
+        }
+    }
+
     // ── Check if any active expense uses this category ────────────────────────
     public function isCategoryLinked($categoryUID, $orgUID) {
         try {
@@ -262,12 +323,19 @@ class Expenses_model extends CI_Model {
 
     // ── Private filter helper ────────────────────────────────────────────────
     private function _applyFilters($filter) {
-        $status = $filter['Status'] ?? 'All';
-        if ($status && $status !== 'All') {
-            $this->ReadDb->where('e.DocStatus', $status);
+        // StatusList (multi-select) overrides single Status tab
+        $statusList = (!empty($filter['StatusList']) && is_array($filter['StatusList']))
+            ? array_values(array_filter($filter['StatusList'], function($s) { return !empty(trim($s)); }))
+            : [];
+        if (!empty($statusList)) {
+            $this->ReadDb->where_in('e.DocStatus', $statusList);
         } else {
-            // All tab excludes Cancelled — those only show on the Cancelled tab
-            $this->ReadDb->where('e.DocStatus !=', 'Cancelled');
+            $status = $filter['Status'] ?? 'All';
+            if ($status && $status !== 'All') {
+                $this->ReadDb->where('e.DocStatus', $status);
+            } else {
+                $this->ReadDb->where('e.DocStatus !=', 'Cancelled');
+            }
         }
         if (!empty($filter['DateFrom'])) {
             $this->ReadDb->where('e.ExpenseDate >=', $filter['DateFrom']);
@@ -287,6 +355,19 @@ class Expenses_model extends CI_Model {
             $uids = array_values(array_filter(array_map('intval', (array)$filter['CategoryUIDs']), function($u) { return $u > 0; }));
             if (!empty($uids)) {
                 $this->ReadDb->where_in('e.CategoryUID', $uids);
+            }
+        }
+        if (!empty($filter['PaymentTypeUIDs'])) {
+            $uids = array_values(array_filter(array_map('intval', (array)$filter['PaymentTypeUIDs']), function($u) { return $u > 0; }));
+            if (!empty($uids)) {
+                $in = implode(',', $uids);
+                $this->ReadDb->where("EXISTS (SELECT 1 FROM Transaction.PaymentsTbl _py WHERE _py.TransUID = e.ExpenseUID AND _py.SourceType = 'Expense' AND _py.IsDeleted = 0 AND _py.PaymentTypeUID IN ($in))", NULL, FALSE);
+            }
+        }
+        if (!empty($filter['UpdatedByUIDs'])) {
+            $uids = array_values(array_filter(array_map('intval', (array)$filter['UpdatedByUIDs']), function($u) { return $u > 0; }));
+            if (!empty($uids)) {
+                $this->ReadDb->where_in('e.UpdatedBy', $uids);
             }
         }
     }

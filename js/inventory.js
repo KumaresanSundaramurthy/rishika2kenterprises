@@ -233,11 +233,14 @@ function invOpenTimeline(uid, name) {
 
     new bootstrap.Modal(document.getElementById('timelineModal')).show();
 
+    ajaxLoading(0);
+
     $.ajax({
         url: '/inventory/getTimeline',
         method: 'POST',
         data: { ProductUID: uid, [CsrfName]: CsrfToken },
         success: function (r) {
+            ajaxLoading(1);
             $('#tlLoading').addClass('d-none');
             if (r.Error || !r.Timeline || !r.Timeline.length) {
                 $('#tlEmpty').removeClass('d-none');
@@ -247,6 +250,7 @@ function invOpenTimeline(uid, name) {
             invRenderTimeline(r.Timeline);
         },
         error: function () {
+            ajaxLoading(1);
             $('#tlLoading').addClass('d-none');
             $('#tlEmpty').removeClass('d-none');
         }
@@ -266,12 +270,13 @@ function invRenderTimeline(rows) {
         var moduleMeta = INV_MODULE_LABELS[moduleUID] || { label: 'Unknown', color: '#64748b' };
         var sourceLabel = '<span style="color:' + moduleMeta.color + ';font-weight:600;">' + moduleMeta.label + '</span>';
 
-        // Reference: transaction number or manual category
+        // Reference: full formatted number or manual adjustment category
         var ref = '—';
         if (moduleUID === 118) {
-            // Manual adjustment
-            var catLabel = row.AdjCategory || 'Manual';
-            ref = '<span class="badge text-bg-light border" style="font-size:.7rem;">' + escHtml(catLabel) + '</span>';
+            var adjLabel = row.AdjUID ? 'ADJ-' + row.AdjUID : (row.AdjCategory || 'Manual');
+            ref = '<span class="badge text-bg-light border" style="font-size:.7rem;">' + escHtml(adjLabel) + '</span>';
+        } else if (row.UniqueNumber) {
+            ref = escHtml(row.UniqueNumber);
         } else if (row.TransNumber) {
             ref = '#' + row.TransNumber;
         }
@@ -286,8 +291,8 @@ function invRenderTimeline(rows) {
             dateStr = invFormatDate(row.MovementDate);
         }
 
-        // Notes
-        var notes = (moduleUID === 118 && row.AdjNotes) ? escHtml(row.AdjNotes) : '—';
+        // Notes — from StockLedgerTbl.Remarks (all modules), fallback sa.Notes already handled server-side
+        var notes = row.Remarks ? escHtml(row.Remarks) : '—';
 
         // Unit cost
         var cost = parseFloat(row.UnitCost || 0);

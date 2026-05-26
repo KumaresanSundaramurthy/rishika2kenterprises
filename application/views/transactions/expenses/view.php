@@ -15,8 +15,8 @@ $this->load->view('common/transactions/header'); ?>
                     $cur     = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
                     $dec     = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
 
-                    $cntPending   = $stats['Pending']['count']   ?? 0;
-                    $amtPending   = $stats['Pending']['amount']  ?? 0;
+                    $cntPending   = ($stats['Pending']['count']  ?? 0) + ($stats['Partial']['count']  ?? 0);
+                    $amtPending   = ($stats['Pending']['amount'] ?? 0) + ($stats['Partial']['amount'] ?? 0);
                     $cntPaid      = $stats['Paid']['count']      ?? 0;
                     $amtPaid      = $stats['Paid']['amount']     ?? 0;
                     $cntCancelled = $stats['Cancelled']['count'] ?? 0;
@@ -148,9 +148,9 @@ $this->load->view('common/transactions/header'); ?>
                                         <th class="col-sortable cursor-pointer user-select-none" data-sort="Number">Expense # <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Number"></i></th>
                                         <th class="col-sortable cursor-pointer user-select-none" data-sort="Amount">Amount <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Amount"></i></th>
                                         <th class="position-relative">Category / Notes <a href="javascript:void(0);" id="expCatFilterBtn" class="text-body ms-1" onclick="toggleExpCatFilter(); event.stopPropagation();" title="Filter by Category"><i class="bx bx-filter-alt fs-6 align-middle"></i></a></th>
-                                        <th>Status</th>
-                                        <th>Mode</th>
-                                        <th>Last Updated</th>
+                                        <th class="position-relative">Status <a href="javascript:void(0);" id="expStatusFilterBtn" class="text-body ms-1" onclick="toggleExpStatusFilter();event.stopPropagation();" title="Filter by Status"><i class="bx bx-filter-alt fs-6 align-middle"></i></a></th>
+                                        <th class="position-relative">Mode <a href="javascript:void(0);" id="expModeFilterBtn" class="text-body ms-1" onclick="toggleExpModeFilter();event.stopPropagation();" title="Filter by Mode"><i class="bx bx-filter-alt fs-6 align-middle"></i></a></th>
+                                        <th class="position-relative">Last Updated <?php if (count($OrgUsers ?? []) > 1): ?><a href="javascript:void(0);" id="expUserFilterBtn" class="text-body ms-1" onclick="toggleExpUserFilter();event.stopPropagation();" title="Filter by User"><i class="bx bx-filter-alt fs-6 align-middle"></i></a><?php endif; ?></th>
                                         <th style="width:50px"></th>
                                     </tr>
                                 </thead>
@@ -275,15 +275,11 @@ $this->load->view('common/transactions/header'); ?>
                                     <i class="bx bx-paperclip me-1 text-muted"></i>Attach Files
                                     <small class="text-muted fw-normal ms-1">(Max 3, 3 MB each)</small>
                                 </h6>
-                                <div class="dropzone needsclick dz-clickable w-100" id="expAttachDropzone">
-                                    <div class="col-md-3 d-flex justify-content-center align-items-center">
-                                        <div class="dropzone dropzone-main-form needsclick p-3 dz-clickable w-100">
-                                            <div class="dz-message needsclick text-center">
-                                                <i class="upload-icon mb-3"></i>
-                                                <p class="h5 needsclick mb-2">Drag and drop product here</p>
-                                                <p class="h4 text-body-secondary fw-normal mb-0">JPG, GIF or PNG of 1 MB</p>
-                                            </div>
-                                        </div>
+                                <div class="dropzone needsclick p-3 dz-clickable w-100" id="expAttachDropzone">
+                                    <div class="dz-message needsclick text-center">
+                                        <i class="upload-icon mb-3"></i>
+                                        <p class="h5 needsclick mb-2">Drag and drop files here</p>
+                                        <p class="h4 text-body-secondary fw-normal mb-0">or click to browse (max 3 MB per file)</p>
                                     </div>
                                 </div>
                             </div>
@@ -476,6 +472,73 @@ $this->load->view('common/transactions/payment_modal');
     </div>
 </div>
 
+<!-- ── Status Filter Box ─────────────────────────────────────────────────── -->
+<div id="expStatusFilterBox" class="card mp-filterbox" style="min-width:200px;z-index:9999;display:none;position:fixed;">
+    <div class="catg-filter-header">
+        <span class="catg-filter-title"><i class="bx bx-check-circle me-1"></i> Status</span>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-primary" id="expStatusFilterCount" style="display:none;"></span>
+            <button type="button" class="catg-filter-close-btn" onclick="closeExpStatusFilter()" title="Close">&times;</button>
+        </div>
+    </div>
+    <div class="catg-select-all-wrap">
+        <input type="checkbox" class="form-check-input" id="expStatusSelectAll" onchange="toggleAllExpStatuses(this)">
+        <label class="small fw-semibold mb-0" for="expStatusSelectAll" id="expStatusSelectAllLabel">Select All</label>
+    </div>
+    <div id="expStatusList" class="catg-list" style="max-height:160px;overflow-y:auto;">
+        <label class="catg-list-item"><input class="form-check-input exp-sf-chk" type="checkbox" value="Pending"><span>Pending</span></label>
+        <label class="catg-list-item"><input class="form-check-input exp-sf-chk" type="checkbox" value="Partial"><span>Partial</span></label>
+        <label class="catg-list-item"><input class="form-check-input exp-sf-chk" type="checkbox" value="Paid"><span>Paid</span></label>
+        <label class="catg-list-item"><input class="form-check-input exp-sf-chk" type="checkbox" value="Cancelled"><span>Cancelled</span></label>
+    </div>
+    <div class="catg-filter-footer">
+        <button type="button" class="btn btn-primary btn-sm" onclick="applyExpStatusFilter()"><i class="bx bx-check me-1"></i>Apply</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="resetExpStatusFilter()"><i class="bx bx-reset me-1"></i>Reset</button>
+    </div>
+</div>
+
+<!-- ── Mode Filter Box ───────────────────────────────────────────────────── -->
+<div id="expModeFilterBox" class="card mp-filterbox" style="min-width:200px;z-index:9999;display:none;position:fixed;">
+    <div class="catg-filter-header">
+        <span class="catg-filter-title"><i class="bx bx-credit-card me-1"></i> Mode</span>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-primary" id="expModeFilterCount" style="display:none;"></span>
+            <button type="button" class="catg-filter-close-btn" onclick="closeExpModeFilter()" title="Close">&times;</button>
+        </div>
+    </div>
+    <div class="catg-select-all-wrap">
+        <input type="checkbox" class="form-check-input" id="expModeSelectAll" onchange="toggleAllExpModes(this)">
+        <label class="small fw-semibold mb-0" for="expModeSelectAll" id="expModeSelectAllLabel">Select All</label>
+    </div>
+    <div id="expModeList" class="catg-list" style="max-height:180px;overflow-y:auto;"></div>
+    <div class="catg-filter-footer">
+        <button type="button" class="btn btn-primary btn-sm" onclick="applyExpModeFilter()"><i class="bx bx-check me-1"></i>Apply</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="resetExpModeFilter()"><i class="bx bx-reset me-1"></i>Reset</button>
+    </div>
+</div>
+
+<!-- ── User Filter Box ───────────────────────────────────────────────────── -->
+<?php if (count($OrgUsers ?? []) > 1): ?>
+<div id="expUserFilterBox" class="card mp-filterbox" style="min-width:200px;z-index:9999;display:none;position:fixed;">
+    <div class="catg-filter-header">
+        <span class="catg-filter-title"><i class="bx bx-user me-1"></i> User</span>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-primary" id="expUserFilterCount" style="display:none;"></span>
+            <button type="button" class="catg-filter-close-btn" onclick="closeExpUserFilter()" title="Close">&times;</button>
+        </div>
+    </div>
+    <div class="catg-select-all-wrap">
+        <input type="checkbox" class="form-check-input" id="expUserSelectAll" onchange="toggleAllExpUsers(this)">
+        <label class="small fw-semibold mb-0" for="expUserSelectAll" id="expUserSelectAllLabel">Select All</label>
+    </div>
+    <div id="expUserList" class="catg-list" style="max-height:180px;overflow-y:auto;"></div>
+    <div class="catg-filter-footer">
+        <button type="button" class="btn btn-primary btn-sm" onclick="applyExpUserFilter()"><i class="bx bx-check me-1"></i>Apply</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="resetExpUserFilter()"><i class="bx bx-reset me-1"></i>Reset</button>
+    </div>
+</div>
+<?php endif; ?>
+
 <script src="/js/transactions/expenses.js"></script>
 
 <script>
@@ -566,6 +629,168 @@ $(function () {
     _buildExpCatList(_expCatData);
     // ────────────────────────────────────────────────────────────────────────
 
+    // ── Expense Status Filter ────────────────────────────────────────────────
+    window.toggleExpStatusFilter = function () {
+        var $box = $('#expStatusFilterBox');
+        if ($box.is(':visible')) { $box.hide(); return; }
+        var rect = document.getElementById('expStatusFilterBtn').getBoundingClientRect();
+        $box.css({ top: (rect.bottom + 4) + 'px', left: Math.max(4, rect.right - 200) + 'px' }).show();
+    };
+    window.closeExpStatusFilter = function () { $('#expStatusFilterBox').hide(); };
+    window.toggleAllExpStatuses = function (el) {
+        var checked = $(el).is(':checked');
+        $('.exp-sf-chk').prop('checked', checked);
+        $('#expStatusSelectAllLabel').text(checked ? 'Deselect All' : 'Select All');
+    };
+    window.applyExpStatusFilter = function () {
+        var sel = $('.exp-sf-chk:checked').map(function () { return $(this).val(); }).get();
+        if (sel.length) { Filter['StatusList'] = sel; } else { delete Filter['StatusList']; }
+        $('#expStatusFilterBox').hide();
+        var active = sel.length > 0;
+        $('#expStatusFilterBtn').toggleClass('text-primary', active);
+        $('#expStatusFilterCount').text(sel.length).toggle(active);
+        PageNo = 1; getExpensesDetails();
+    };
+    window.resetExpStatusFilter = function () {
+        $('.exp-sf-chk').prop('checked', false);
+        $('#expStatusSelectAll').prop('checked', false);
+        $('#expStatusSelectAllLabel').text('Select All');
+        delete Filter['StatusList'];
+        $('#expStatusFilterBox').hide();
+        $('#expStatusFilterBtn').removeClass('text-primary');
+        $('#expStatusFilterCount').hide().text('');
+        PageNo = 1; getExpensesDetails();
+    };
+    $(document).on('change', '.exp-sf-chk', function () {
+        var total = $('.exp-sf-chk').length, chkd = $('.exp-sf-chk:checked').length;
+        $('#expStatusSelectAll').prop('checked', total > 0 && total === chkd);
+        $('#expStatusSelectAllLabel').text(total > 0 && total === chkd ? 'Deselect All' : 'Select All');
+    });
+    $(document).on('click', function (e) {
+        if (!$(e.target).closest('#expStatusFilterBox, #expStatusFilterBtn').length) $('#expStatusFilterBox').hide();
+    });
+    // ────────────────────────────────────────────────────────────────────────
+
+    // ── Expense Mode Filter ──────────────────────────────────────────────────
+    var _expModeData = <?php echo json_encode(array_map(function($t) {
+        return ['uid' => (int)$t->PaymentTypeUID, 'name' => (string)$t->PaymentTypeName];
+    }, $paymentTypes ?? [])); ?>;
+
+    (function () {
+        if (!_expModeData.length) {
+            $('#expModeList').html('<div class="text-muted text-center py-3" style="font-size:.8rem;">No data</div>');
+            return;
+        }
+        var html = '';
+        _expModeData.forEach(function (m) {
+            html += '<label class="catg-list-item">' +
+                        '<input class="form-check-input exp-mf-chk" type="checkbox" value="' + m.uid + '">' +
+                        '<span>' + $('<span>').text(m.name).html() + '</span>' +
+                    '</label>';
+        });
+        $('#expModeList').html(html);
+    })();
+
+    window.toggleExpModeFilter = function () {
+        var $box = $('#expModeFilterBox');
+        if ($box.is(':visible')) { $box.hide(); return; }
+        var rect = document.getElementById('expModeFilterBtn').getBoundingClientRect();
+        $box.css({ top: (rect.bottom + 4) + 'px', left: Math.max(4, rect.right - 200) + 'px' }).show();
+    };
+    window.closeExpModeFilter = function () { $('#expModeFilterBox').hide(); };
+    window.toggleAllExpModes  = function (el) {
+        var checked = $(el).is(':checked');
+        $('.exp-mf-chk').prop('checked', checked);
+        $('#expModeSelectAllLabel').text(checked ? 'Deselect All' : 'Select All');
+    };
+    window.applyExpModeFilter = function () {
+        var sel = $('.exp-mf-chk:checked').map(function () { return $(this).val(); }).get();
+        if (sel.length) { Filter['PaymentTypeUIDs'] = sel; } else { delete Filter['PaymentTypeUIDs']; }
+        $('#expModeFilterBox').hide();
+        var active = sel.length > 0;
+        $('#expModeFilterBtn').toggleClass('text-primary', active);
+        $('#expModeFilterCount').text(sel.length).toggle(active);
+        PageNo = 1; getExpensesDetails();
+    };
+    window.resetExpModeFilter = function () {
+        $('.exp-mf-chk').prop('checked', false);
+        $('#expModeSelectAll').prop('checked', false);
+        $('#expModeSelectAllLabel').text('Select All');
+        delete Filter['PaymentTypeUIDs'];
+        $('#expModeFilterBox').hide();
+        $('#expModeFilterBtn').removeClass('text-primary');
+        $('#expModeFilterCount').hide().text('');
+        PageNo = 1; getExpensesDetails();
+    };
+    $(document).on('change', '.exp-mf-chk', function () {
+        var total = $('.exp-mf-chk').length, chkd = $('.exp-mf-chk:checked').length;
+        $('#expModeSelectAll').prop('checked', total > 0 && total === chkd);
+        $('#expModeSelectAllLabel').text(total > 0 && total === chkd ? 'Deselect All' : 'Select All');
+    });
+    $(document).on('click', function (e) {
+        if (!$(e.target).closest('#expModeFilterBox, #expModeFilterBtn').length) $('#expModeFilterBox').hide();
+    });
+    // ────────────────────────────────────────────────────────────────────────
+
+    // ── Expense User Filter ──────────────────────────────────────────────────
+    var _expUserData = <?php echo json_encode(array_map(function($u) {
+        return ['uid' => (int)$u->UserUID, 'name' => (string)$u->FullName];
+    }, $OrgUsers ?? [])); ?>;
+
+    if (_expUserData.length > 1) {
+        (function () {
+            var html = '';
+            _expUserData.forEach(function (u) {
+                html += '<label class="catg-list-item">' +
+                            '<input class="form-check-input exp-uf-chk" type="checkbox" value="' + u.uid + '">' +
+                            '<span>' + $('<span>').text(u.name).html() + '</span>' +
+                        '</label>';
+            });
+            $('#expUserList').html(html);
+        })();
+    }
+
+    window.toggleExpUserFilter = function () {
+        var $box = $('#expUserFilterBox');
+        if (!$box.length || $box.is(':visible')) { if ($box.length) $box.hide(); return; }
+        var rect = document.getElementById('expUserFilterBtn').getBoundingClientRect();
+        $box.css({ top: (rect.bottom + 4) + 'px', left: Math.max(4, rect.right - 200) + 'px' }).show();
+    };
+    window.closeExpUserFilter = function () { $('#expUserFilterBox').hide(); };
+    window.toggleAllExpUsers  = function (el) {
+        var checked = $(el).is(':checked');
+        $('.exp-uf-chk').prop('checked', checked);
+        $('#expUserSelectAllLabel').text(checked ? 'Deselect All' : 'Select All');
+    };
+    window.applyExpUserFilter = function () {
+        var sel = $('.exp-uf-chk:checked').map(function () { return $(this).val(); }).get();
+        if (sel.length) { Filter['UpdatedByUIDs'] = sel; } else { delete Filter['UpdatedByUIDs']; }
+        $('#expUserFilterBox').hide();
+        var active = sel.length > 0;
+        $('#expUserFilterBtn').toggleClass('text-primary', active);
+        $('#expUserFilterCount').text(sel.length).toggle(active);
+        PageNo = 1; getExpensesDetails();
+    };
+    window.resetExpUserFilter = function () {
+        $('.exp-uf-chk').prop('checked', false);
+        $('#expUserSelectAll').prop('checked', false);
+        $('#expUserSelectAllLabel').text('Select All');
+        delete Filter['UpdatedByUIDs'];
+        $('#expUserFilterBox').hide();
+        $('#expUserFilterBtn').removeClass('text-primary');
+        $('#expUserFilterCount').hide().text('');
+        PageNo = 1; getExpensesDetails();
+    };
+    $(document).on('change', '.exp-uf-chk', function () {
+        var total = $('.exp-uf-chk').length, chkd = $('.exp-uf-chk:checked').length;
+        $('#expUserSelectAll').prop('checked', total > 0 && total === chkd);
+        $('#expUserSelectAllLabel').text(total > 0 && total === chkd ? 'Deselect All' : 'Select All');
+    });
+    $(document).on('click', function (e) {
+        if (!$(e.target).closest('#expUserFilterBox, #expUserFilterBtn').length) $('#expUserFilterBox').hide();
+    });
+    // ────────────────────────────────────────────────────────────────────────
+
     var expCurSymbol    = '<?php echo addslashes($cur); ?>';
     var expDecPoints    = <?php echo (int)$dec; ?>;
     var expDropzone     = null;
@@ -617,15 +842,18 @@ $(function () {
 
     function _updateStatCards(stats) {
         var pending   = stats.Pending   || { count: 0, amount: 0 };
+        var partial   = stats.Partial   || { count: 0, amount: 0 };
         var paid      = stats.Paid      || { count: 0, amount: 0 };
         var cancelled = stats.Cancelled || { count: 0, amount: 0 };
-        var allCount  = pending.count + paid.count + cancelled.count;
-        var allAmount = pending.amount + paid.amount;
+        var pendingCount  = pending.count  + partial.count;
+        var pendingAmount = pending.amount + partial.amount;
+        var allCount  = pendingCount + paid.count + cancelled.count;
+        var allAmount = pendingAmount + paid.amount;
 
         $('[data-stat-filter="All"]       .trans-stat-count').text(allCount);
         $('[data-stat-filter="All"]       .trans-stat-amount').text(expCurSymbol + ' ' + _fmtNum(allAmount));
-        $('[data-stat-filter="Pending"]   .trans-stat-count').text(pending.count);
-        $('[data-stat-filter="Pending"]   .trans-stat-amount').text(expCurSymbol + ' ' + _fmtNum(pending.amount));
+        $('[data-stat-filter="Pending"]   .trans-stat-count').text(pendingCount);
+        $('[data-stat-filter="Pending"]   .trans-stat-amount').text(expCurSymbol + ' ' + _fmtNum(pendingAmount));
         $('[data-stat-filter="Paid"]      .trans-stat-count').text(paid.count);
         $('[data-stat-filter="Paid"]      .trans-stat-amount').text(expCurSymbol + ' ' + _fmtNum(paid.amount));
         $('[data-stat-filter="Cancelled"] .trans-stat-count').text(cancelled.count);
@@ -652,6 +880,15 @@ $(function () {
         });
     }
 
+    function _clearExpStatusFilter() {
+        delete Filter['StatusList'];
+        $('.exp-sf-chk').prop('checked', false);
+        $('#expStatusSelectAll').prop('checked', false);
+        $('#expStatusSelectAllLabel').text('Select All');
+        $('#expStatusFilterBtn').removeClass('text-primary');
+        $('#expStatusFilterCount').hide().text('');
+    }
+
     // ── Stat card click ──────────────────────────────────────
     $(document).on('click', '[data-stat-filter]', function () {
         var status = $(this).data('stat-filter') || 'All';
@@ -659,6 +896,7 @@ $(function () {
         $(this).addClass('active-stat');
         $('.exp-status-tab').removeClass('active');
         $('.exp-status-tab[data-status="' + status + '"]').addClass('active');
+        _clearExpStatusFilter();
         Filter.Status = status; PageNo = 1; getExpensesDetails();
     });
 
@@ -670,6 +908,7 @@ $(function () {
         $('.trans-stat-card').removeClass('active-stat');
         var status = $(this).data('status') || 'All';
         $('[data-stat-filter="' + status + '"]').addClass('active-stat');
+        _clearExpStatusFilter();
         Filter.Status = status; PageNo = 1; getExpensesDetails();
     });
 
@@ -710,19 +949,92 @@ $(function () {
     });
 
     // ── Row actions ──────────────────────────────────────────
+    // ── Payment history panel ────────────────────────────────────────────────
+    var _expPayPanelUID = null;
+    var $expPayPanel    = $('#payDetailPanel');
+    var $expPayBody     = $('#payDetailBody');
+    var $expPayTitle    = $('#payPanelTitle');
+
+    function _openExpPayPanel($trigger) {
+        var transUID = $trigger.data('trans-uid');
+        var transNum = $trigger.data('trans-num') || '';
+        var fetchUrl = $trigger.data('fetch-url') || '/expenses/getPaymentHistory';
+
+        var rect   = $trigger[0].getBoundingClientRect();
+        var panelW = 290;
+        var left   = rect.left;
+        var top    = rect.bottom + 6;
+        if (left + panelW + 16 > window.innerWidth) left = window.innerWidth - panelW - 16;
+
+        $expPayTitle.text(transNum ? 'Payments — ' + transNum : 'Payments');
+        $expPayBody.html('<div class="text-center py-3"><span class="spinner-border spinner-border-sm text-primary"></span></div>');
+        $expPayPanel.css({ top: top, left: left }).show();
+        _expPayPanelUID = transUID;
+
+        $.ajax({
+            url: fetchUrl, method: 'POST',
+            data: { TransUID: transUID, [CsrfName]: CsrfToken },
+            success: function (resp) {
+                if (resp && !resp.Error && resp.Payments && resp.Payments.length) {
+                    var html = '';
+                    resp.Payments.forEach(function (p, i) {
+                        if (i > 0) html += '<hr style="margin:8px 0;border-color:#f0f0f0;">';
+                        var amt  = parseFloat(p.Amount || 0).toLocaleString('en-IN', { minimumFractionDigits: expDecPoints, maximumFractionDigits: expDecPoints });
+                        var date = '';
+                        if (p.CreatedOn) {
+                            var d = new Date(p.CreatedOn.replace(' ', 'T'));
+                            date  = ('0' + d.getDate()).slice(-2) + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + d.getFullYear();
+                        }
+                        html += '<div class="d-flex justify-content-between align-items-start gap-2">';
+                        html += '  <div style="min-width:0;">';
+                        html += '    <div style="font-size:.83rem;font-weight:600;color:#d97706;">' + expCurSymbol + ' ' + amt + '</div>';
+                        html += '    <div style="font-size:.75rem;color:#566a7f;">' + (p.PaymentTypeName || '—') + '</div>';
+                        if (date) html += '  <div style="font-size:.72rem;color:#aaa;margin-top:1px;">' + date + '</div>';
+                        html += '  </div>';
+                        html += '</div>';
+                    });
+                    $expPayBody.html(html);
+                } else {
+                    $expPayBody.html('<p class="text-muted mb-0" style="font-size:.8rem;">No payments found.</p>');
+                }
+            },
+            error: function () {
+                $expPayBody.html('<p class="text-danger mb-0" style="font-size:.8rem;">Failed to load payments.</p>');
+            }
+        });
+    }
+
+    $(document).on('click', '.pay-mode-clickable', function (e) {
+        if ($(e.target).closest('.transPayAttachBtn').length) return;
+        e.stopPropagation();
+        var transUID = $(this).data('trans-uid');
+        if (_expPayPanelUID === transUID && $expPayPanel.is(':visible')) { $expPayPanel.hide(); _expPayPanelUID = null; return; }
+        _openExpPayPanel($(this));
+    });
+    $(document).on('click', '#payPanelClose', function (e) { e.stopPropagation(); $expPayPanel.hide(); _expPayPanelUID = null; });
+    $(document).on('click', function (e) {
+        if ($expPayPanel.is(':visible') && !$(e.target).closest('#payDetailPanel, .pay-mode-clickable').length) {
+            $expPayPanel.hide(); _expPayPanelUID = null;
+        }
+    });
+    $(document).on('keydown', function (e) { if (e.key === 'Escape') { $expPayPanel.hide(); _expPayPanelUID = null; } });
+    // ────────────────────────────────────────────────────────────────────────
+
     $(document).on('click', '.expMarkPaid', function () {
-        var uid    = $(this).data('uid');
-        var num    = $(this).data('num')    || '';
-        var date   = $(this).data('date')   || '';
-        var amount = parseFloat($(this).data('amount')) || 0;
+        var uid     = $(this).data('uid');
+        var num     = $(this).data('num')     || '';
+        var date    = $(this).data('date')    || '';
+        var total   = parseFloat($(this).data('total'))   || 0;
+        var paid    = parseFloat($(this).data('paid'))    || 0;
+        var pending = parseFloat($(this).data('pending')) || total;
         window.rpOpenModal({
             transUID  : uid,
             submitUrl : '/expenses/recordPayment',
             docNum    : num,
             docDate   : date,
-            total     : amount,
-            paid      : 0,
-            pending   : amount,
+            total     : total,
+            paid      : paid,
+            pending   : pending,
         });
     });
 
@@ -899,9 +1211,10 @@ $(function () {
     function initExpDropzone() {
         var el = document.querySelector('#expAttachDropzone');
         if (!el) return;
-        if (expDropzone) { try { expDropzone.destroy(); } catch (e) {} expDropzone = null; }
+        if (el.dropzone)  { try { el.dropzone.destroy();  } catch (e) {} }
+        if (expDropzone)  { try { expDropzone.destroy();  } catch (e) {} expDropzone = null; }
         Dropzone.instances = Dropzone.instances.filter(function (d) { return d.element !== el; });
-        el.classList.remove('dz-started', 'dropzone');
+        el.classList.remove('dz-started');
 
         expDropzone = new Dropzone(el, {
             url: '#',
@@ -1126,10 +1439,12 @@ $(function () {
 
     // ── Category Manager ─────────────────────────────────────
     function _loadCatMgr(pageNo) {
+        ajaxLoading(0);
         $.ajax({
             url: '/expenses/getCategoryList', method: 'POST',
             data: { PageNo: pageNo || 1, Search: $.trim($('#catMgrSearch').val()), [CsrfName]: CsrfToken },
             success: function (resp) {
+                ajaxLoading(1);
                 if (resp.Error) {
                     $('#catMgrList').html('<li class="list-group-item text-danger py-3 text-center">' + resp.Message + '</li>');
                     return;
@@ -1261,3 +1576,6 @@ $(function () {
 
 });
 </script>
+
+<?php $this->load->view('common/transactions/print_modals'); ?>
+<script src="/js/transactions/attachments.js"></script>

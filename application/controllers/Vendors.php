@@ -68,8 +68,19 @@ class Vendors extends MY_Controller {
             $this->pageData['ModPagination'] = $pageData->Pagination;
 
             $this->load->model('vendors_model');
-            $this->pageData['VendStats'] = $this->vendors_model->getVendorStats($this->pageData['JwtData']->User->OrgUID);
-            $this->pageData['Tags']      = $this->vendors_model->getVendorTags($this->pageData['JwtData']->User->OrgUID);
+            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+            $this->pageData['VendStats'] = $this->vendors_model->getVendorStats($orgUID);
+            $this->pageData['Tags']      = $this->vendors_model->getVendorTags($orgUID);
+
+            $this->load->model('users_model');
+            $cacheKey = $this->redisservice->orgKey('org_users');
+            $orgUsers = $this->redisservice->getCache($cacheKey)->Value;
+            if (!is_array($orgUsers)) {
+                $orgUsers = $this->users_model->getOrgUsersForCache($orgUID);
+                if (!empty($orgUsers)) { $this->redisservice->setCache($cacheKey, $orgUsers, 86400); }
+            }
+            $this->pageData['OrgUsers']      = $orgUsers;
+            $this->pageData['ShowUserFilter'] = is_array($orgUsers) && count($orgUsers) > 1;
 
             $this->load->model('global_model');
             $GetCountryInfo = $this->global_model->getCountryInfo();
@@ -607,6 +618,65 @@ class Vendors extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
+
+    public function exportVendors() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $this->_initModule();
+            $type      = $this->input->get('Type') ?: 'CSV';
+            $filter    = [];
+            $filterStr = $this->input->get('Filter');
+            if (!empty($filterStr)) {
+                $decoded = json_decode($filterStr, true);
+                if (is_array($decoded)) $filter = $decoded;
+            }
+
+            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $timezone = $this->pageData['JwtData']->GenSettings->Timezone ?? 'Asia/Kolkata';
+
+            $this->load->model('vendors_model');
+            $result = $this->vendors_model->getVendorListPaginated($orgUID, 0, 0, $filter);
+
+            $this->load->model('organisation_model');
+            $orgResult = $this->organisation_model->getOrgInfoCached($orgUID);
+            $orgInfo   = ($orgResult->Error === FALSE) ? $orgResult->Data : null;
+
+            $headers   = ['#', 'Vendor Name', 'Area', 'Mobile', 'Email', 'GSTIN', 'Company Name', 'Balance', 'Balance Type', 'Status', 'Last Updated', 'Updated By'];
+            $colWidths = ['3%', '16%', '10%', '10%', '13%', '9%', '9%', '8%', '7%', '5%', '9%', '10%'];
+
+            $rows = [];
+            $i    = 1;
+            foreach ($result->rows as $row) {
+                $balance   = number_format((float)($row->ClosingBalance ?? 0), 2);
+                $balType   = $row->ClosingBalanceType ?? 'Credit';
+                $status    = (int)($row->IsActive ?? 1) === 1 ? 'Active' : 'Inactive';
+                $updatedOn = !empty($row->UpdatedOn)
+                    ? (new DateTime($row->UpdatedOn, new DateTimeZone('UTC')))->setTimezone(new DateTimeZone($timezone))->format('d M Y')
+                    : '';
+                $rows[] = [
+                    $i++,
+                    $row->Name          ?? '',
+                    $row->Area          ?? '',
+                    $row->MobileNumber  ?? '',
+                    $row->EmailAddress  ?? '',
+                    $row->GSTIN         ?? '',
+                    $row->CompanyName   ?? '',
+                    $balance,
+                    $balType,
+                    $status,
+                    $updatedOn,
+                    $row->UpdatedBy     ?? '',
+                ];
+            }
+
+            $this->_sendExport($type, 'Vendor_Data', 'Vendors', 'Vendor Report', $headers, $rows, $orgInfo, $timezone, $colWidths);
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+            $this->globalservice->sendJsonResponse($this->EndReturnData);
+        }
+    }
 
     public function getVendorTags() {
         $this->EndReturnData = new stdClass();

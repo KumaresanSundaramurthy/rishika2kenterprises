@@ -1,4 +1,14 @@
-﻿// ── List page AJAX functions ──────────────────────────────────────────────
+﻿// ── Export ────────────────────────────────────────────────────────────────
+function vendExport(type) {
+    var url = '/vendors/exportVendors?Type=' + encodeURIComponent(type);
+    if (typeof Filter !== 'undefined' && !$.isEmptyObject(Filter)) {
+        url += '&Filter=' + encodeURIComponent(JSON.stringify(Filter));
+    }
+    if (type === 'Print') { printPreviewRecords(url, function () {}); }
+    else { window.location.href = url; }
+}
+
+// ── List page AJAX functions ──────────────────────────────────────────────
 
 function getVendorsDetails(PageNo, RowLimit, Filter) {
     $.ajax({
@@ -349,10 +359,6 @@ $(document).on('submit', '#VendorModalForm', function (e) {
 });
 
 // ── Open modal triggers ───────────────────────────────────────────────────
-$(document).on('click', '#btnCreateVendor', function () {
-    openVendorModal('add');
-});
-
 $(document).on('click', '.vend-edit-btn', function () {
     openVendorModal('edit', $(this).data('uid'));
 });

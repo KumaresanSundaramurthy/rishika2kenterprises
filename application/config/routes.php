@@ -181,6 +181,9 @@ $route['expenses/updateCategory']                                  = 'expenses/u
 $route['expenses/deleteCategory']                                  = 'expenses/deleteCategory';
 $route['expenses/duplicateExpense']                                = 'expenses/duplicateExpense';
 $route['expenses/recordPayment']                                   = 'expenses/recordPayment';
+$route['expenses/getPaymentHistory']                               = 'expenses/getPaymentHistory';
+$route['expenses/getPaymentAttachments']                           = 'expenses/getPaymentAttachments';
+$route['expenses/getAttachments']                                  = 'expenses/getAttachments';
 
 // Indirect Income
 $route['indirectincome']                                           = 'indirectincome/index';
@@ -199,6 +202,9 @@ $route['indirectincome/updateCategory']                            = 'indirectin
 $route['indirectincome/deleteCategory']                            = 'indirectincome/deleteCategory';
 $route['indirectincome/duplicateIncome']                           = 'indirectincome/duplicateIncome';
 $route['indirectincome/recordPayment']                             = 'indirectincome/recordPayment';
+$route['indirectincome/getPaymentHistory']                         = 'indirectincome/getPaymentHistory';
+$route['indirectincome/getPaymentAttachments']                     = 'indirectincome/getPaymentAttachments';
+$route['indirectincome/getAttachments']                            = 'indirectincome/getAttachments';
 
 // Sales Orders
 $route['salesorders']                                      = 'salesorders/index';
@@ -316,6 +322,7 @@ $route['customers/modal/(:any)']        = 'customers/loadModalForm/$1';
 $route['customers/getCustomerForModal/(:num)'] = 'customers/getCustomerForModal/$1';
 $route['customers/getCustomerBalance']    = 'customers/getCustomerBalance';
 $route['customers/updateCustomerBalance'] = 'customers/updateCustomerBalance';
+$route['customers/exportCustomers']       = 'customers/exportCustomers';
 $route['globally/getCommTemplate'] = 'globally/getCommTemplate';
 
 // Vendors
@@ -326,6 +333,7 @@ $route['vendors/modal/(:any)']        = 'vendors/loadModalForm/$1';
 $route['vendors/saveVendorOpeningBalance'] = 'vendors/saveVendorOpeningBalance';
 $route['vendors/getVendorOpeningBalance']  = 'vendors/getVendorOpeningBalance';
 $route['vendors/updateVendorBalance']      = 'vendors/updateVendorBalance';
+$route['vendors/exportVendors']            = 'vendors/exportVendors';
 
 // Products
 $route['products/(:num)/edit'] = 'products/edit/$1';
@@ -344,6 +352,8 @@ $route['inventory/timeline/getPageDetails/(:num)'] = 'inventory/getTimelinePageD
 $route['inventory/searchProducts']               = 'inventory/searchProducts';
 $route['inventory/export']                       = 'inventory/export';
 $route['inventory/exportTimeline']               = 'inventory/exportTimeline';
+$route['inventory/updateAdj']                    = 'inventory/updateAdj';
+$route['inventory/updateLedgerRemarks']          = 'inventory/updateLedgerRemarks';
 
 // Machine Rental
 $route['rental']                                     = 'rental/index';

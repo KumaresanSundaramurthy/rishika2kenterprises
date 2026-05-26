@@ -29,9 +29,22 @@
                                 <?php endif; ?>
                             </div>
                         </div>
-                        <a href="javascript:void(0);" class="btn btn-primary" id="btnCreateVendorHeader">
-                            <i class="bx bx-plus me-1"></i>New Vendor
-                        </a>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="dropdown">
+                                <button class="btn btn-outline-secondary dropdown-toggle btn-sm" type="button" id="vendExportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="bx bx-export me-1"></i>Export
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="vendExportDropdown">
+                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="vendExport('Print')"><i class="bx bx-printer me-1"></i> Print</a></li>
+                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="vendExport('CSV')"><i class="bx bx-file me-1"></i> CSV</a></li>
+                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="vendExport('Excel')"><i class="bx bxs-file-export me-1"></i> Excel</a></li>
+                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="vendExport('Pdf')"><i class="bx bxs-file-pdf me-1"></i> PDF</a></li>
+                                </ul>
+                            </div>
+                            <a href="javascript:void(0);" class="btn btn-primary" id="btnCreateVendorHeader">
+                                <i class="bx bx-plus me-1"></i>New Vendor
+                            </a>
+                        </div>
                     </div>
 
                     <!-- ── Stat Cards ── -->
@@ -79,6 +92,8 @@
                         </div>
                     </div>
 
+                    <?php $showUserBtn = isset($OrgUsers) && is_array($OrgUsers) && count($OrgUsers) > 1; ?>
+
                     <!-- ── Main Card ── -->
                     <div class="card">
 
@@ -99,7 +114,7 @@
                                     <input type="text" id="SearchDetails" placeholder="Name, mobile, GSTIN...">
                                     <i class="bx bx-x r2k-clear d-none" id="clearSearch"></i>
                                 </div>
-                                <div class="btn-group r2k-toolbar-actions" id="ActionsDD-Div">
+                                <div class="btn-group r2k-toolbar-actions d-none" id="ActionsDD-Div">
                                     <button class="r2k-dd-btn dropdown-toggle" type="button" id="actionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                                         <i class="bx bx-slider-alt"></i>
                                     </button>
@@ -116,18 +131,8 @@
                                         <li class="d-none" id="BulkEmailOption">
                                             <a class="dropdown-item" href="javascript:void(0);" id="btnBulkEmail"><i class="bx bx-envelope me-1 text-primary"></i> Send Email</a>
                                         </li>
-                                        <li class="dropdown-submenu">
-                                            <a class="dropdown-item" href="javascript:void(0);"><i class="bx bx-export me-1"></i> Export</a>
-                                            <ul class="dropdown-menu">
-                                                <li><a class="dropdown-item" href="javascript:void(0);" id="btnExportPrint"><i class="bx bx-printer me-1"></i> Print</a></li>
-                                                <li><a class="dropdown-item" href="javascript:void(0);" id="btnExportCSV"><i class="bx bx-file me-1"></i> CSV</a></li>
-                                                <li><a class="dropdown-item" href="javascript:void(0);" id="btnExportExcel"><i class="bx bxs-file-export me-1"></i> Excel</a></li>
-                                                <li><a class="dropdown-item" href="javascript:void(0);" id="btnExportPDF"><i class="bx bxs-file-pdf me-1"></i> PDF</a></li>
-                                            </ul>
-                                        </li>
                                     </ul>
                                 </div>
-                                <a href="javascript:void(0);" class="r2k-create-btn" id="btnCreateVendor"><i class="bx bx-plus"></i> Create</a>
                             </div>
                         </div>
 
@@ -151,7 +156,7 @@
                                         <th>Mobile</th>
                                         <th>GSTIN / Company</th>
                                         <th class="vend-bal-sortable cursor-pointer" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">Balance <i class="bx bx-sort sort-icon ms-1"></i></th>
-                                        <th>Last Updated</th>
+                                        <th>Last Updated<?php if ($showUserBtn): ?> <a href="javascript:void(0);" id="vendUserFilterBtn" onclick="vendToggleUserFilter(); event.stopPropagation();" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by User"><i class="bx bx-user-check fs-6 align-middle" id="vendUserFilterIcon"></i></a><?php endif; ?></th>
                                         <th style="width:80px">Actions</th>
                                     </tr>
                                 </thead>
@@ -238,6 +243,15 @@
 
 <!-- Filter boxes (body-level to avoid overflow clipping) -->
 <div id="vendTagFilterBox" class="card mp-filterbox" style="min-width:220px;z-index:9999;display:none;position:fixed;"><?php $this->load->view('vendors/tagfilter', ['Tags' => $Tags]); ?></div>
+<?php if ($showUserBtn): ?>
+<?php $this->load->view('common/partials/_user_filter_box', [
+    'OrgUsers'   => $OrgUsers,
+    'BoxId'      => 'vendUserFilterBox',
+    'CheckClass' => 'vend-user-checkbox',
+    'ApplyFn'    => 'vendApplyUserFilter',
+    'ResetFn'    => 'vendResetUserFilter',
+]); ?>
+<?php endif; ?>
 
 <?php $this->load->view('common/footer'); ?>
 
@@ -263,6 +277,7 @@ let areaSortState = 0;
 var StateInfo = [];
 var CityInfo  = [];
 var OrgCountryISO2 = <?php echo json_encode($OrgCISO2 ?? 'IN'); ?>;
+var VendShowUserFilter = <?php echo $showUserBtn ? 'true' : 'false'; ?>;
 
 $(function() {
     'use strict'
@@ -270,12 +285,26 @@ $(function() {
     $('#SearchDetails').val('');
     $(ModuleRow).prop('checked', false).trigger('change');
 
-    baseExportFunctions();
     basePaginationFunc(ModulePag, getVendorsDetails);
     baseRefreshPageFunc('.PageRefresh', getVendorsDetails);
     basePageHeaderFunc(ModuleHeader, ModuleTable, ModuleRow);
 
     $(document).on('click', '#btnCreateVendorHeader', function () { openVendorModal('add'); });
+
+    // ── Auto-hide ActionsDD until options are visible ──
+    (function () {
+        var $dd = $('#ActionsDD-Div');
+        function syncDD() {
+            var anyVisible = $('#CloneOption, #DeleteOption, #BulkSmsOption, #BulkEmailOption')
+                .filter(function () { return !$(this).hasClass('d-none'); }).length > 0;
+            $dd.toggleClass('d-none', !anyVisible);
+        }
+        var observer = new MutationObserver(syncDD);
+        ['CloneOption', 'DeleteOption', 'BulkSmsOption', 'BulkEmailOption'].forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el) observer.observe(el, { attributes: true, attributeFilter: ['class'] });
+        });
+    })();
 
     // ── Sticky pagination ──
     var $vStaticPag = $('#VendorsPagination');
@@ -466,9 +495,34 @@ $(function() {
         });
     });
 
+    // ── User filter (Last Updated) ──
+    if (VendShowUserFilter) {
+        window.vendToggleUserFilter = function () {
+            var $box = $('#vendUserFilterBox');
+            if ($box.is(':visible')) { $box.hide(); return; }
+            var rect = document.getElementById('vendUserFilterBtn').getBoundingClientRect();
+            $box.css({ top: (rect.bottom + 4) + 'px', left: rect.left + 'px', display: 'flex' });
+        };
+        window.vendApplyUserFilter = function () {
+            var selected = $('.vend-user-checkbox:checked').map(function () { return parseInt($(this).val(), 10); }).get();
+            if (selected.length) Filter['UpdatedByUIDs'] = selected; else delete Filter['UpdatedByUIDs'];
+            $('#vendUserFilterBox').hide();
+            $('#vendUserFilterIcon').css('color', selected.length ? '#0d6efd' : '');
+            PageNo = 0; getVendorsDetails(PageNo, RowLimit, Filter);
+        };
+        window.vendResetUserFilter = function () {
+            $('.vend-user-checkbox').prop('checked', false);
+            delete Filter['UpdatedByUIDs'];
+            $('#vendUserFilterBox').hide();
+            $('#vendUserFilterIcon').css('color', '');
+            PageNo = 0; getVendorsDetails(PageNo, RowLimit, Filter);
+        };
+    }
+
     // ── Close filter boxes on outside click ──
     $(document).on('click', function (e) {
         if (!$(e.target).closest('#vendTagFilterBox, #vendTagFilter').length) $('#vendTagFilterBox').hide();
+        if (!$(e.target).closest('#vendUserFilterBox, #vendUserFilterBtn').length) $('#vendUserFilterBox').hide();
     });
 
 });

@@ -294,6 +294,60 @@ tr:hover .inv-pay-quick-btn {
     border-color: #16a34a;
     box-shadow: 0 2px 8px rgba(22,163,74,.25);
 }
+/* ── Expense Record Payment button (amber) ──────────────────── */
+.exp-pay-quick-btn {
+    font-size: .78rem;
+    font-weight: 700;
+    padding: 3px 11px;
+    border-radius: 20px;
+    background: #fffbeb;
+    border: 1px solid #fcd34d;
+    color: #d97706;
+    line-height: 1.4;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .15s, background .15s, color .15s;
+}
+tr:hover .exp-pay-quick-btn {
+    opacity: 1;
+    pointer-events: auto;
+}
+.exp-pay-quick-btn:hover,
+.exp-pay-quick-btn:focus {
+    background: #d97706;
+    color: #fff;
+    border-color: #d97706;
+    box-shadow: 0 2px 8px rgba(217,119,6,.25);
+}
+
+/* ── Indirect Income Record Payment button (green) ──────────── */
+.inc-pay-quick-btn {
+    font-size: .78rem;
+    font-weight: 700;
+    padding: 3px 11px;
+    border-radius: 20px;
+    background: #f0fdf4;
+    border: 1px solid #86efac;
+    color: #059669;
+    line-height: 1.4;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .15s, background .15s, color .15s;
+}
+tr:hover .inc-pay-quick-btn {
+    opacity: 1;
+    pointer-events: auto;
+}
+.inc-pay-quick-btn:hover,
+.inc-pay-quick-btn:focus {
+    background: #059669;
+    color: #fff;
+    border-color: #059669;
+    box-shadow: 0 2px 8px rgba(5,150,105,.25);
+}
+
 .inv-row-action {
     opacity: 0;
     pointer-events: none;
@@ -813,6 +867,44 @@ tr:hover .inv-row-action {
     display: block !important;
     margin: 0 auto .75rem !important;
     inset-block-start: unset !important;
+}
+/* Hide message once files are added                                   */
+#expAttachDropzone.dz-started .dz-message {
+    display: none !important;
+}
+
+/* ── Indirect Income modal — attachment dropzone (modal card context) */
+#incAttachDropzone {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 180px;
+}
+#incAttachDropzone.dz-started {
+    display: block !important;
+    min-height: 0;
+}
+/* Reset vendor 8rem top-margin; use flex column to centre message    */
+#incAttachDropzone .dz-message {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 !important;
+    width: 100%;
+    text-align: center;
+    padding-top: 3rem;
+}
+/* Reposition the vendor SVG upload icon relative to the flex parent  */
+#incAttachDropzone .dz-message::before {
+    position: static !important;
+    display: block !important;
+    margin: 0 auto .75rem !important;
+    inset-block-start: unset !important;
+}
+/* Hide message once files are added                                   */
+#incAttachDropzone.dz-started .dz-message {
+    display: none !important;
 }
 
 /* ── Expenses modal — flatpickr calendar positioning ────────────── */

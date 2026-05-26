@@ -192,8 +192,8 @@ class Upstashservice {
                 'Authorization: Bearer ' . $this->token,
                 'Content-Type: application/json',
             ],
-            CURLOPT_TIMEOUT        => 3,        // keep latency impact minimal
-            CURLOPT_CONNECTTIMEOUT => 2,
+            CURLOPT_TIMEOUT        => 5,
+            CURLOPT_CONNECTTIMEOUT => 3,
             CURLOPT_SSL_VERIFYPEER => true,
         ]);
 

@@ -15,8 +15,8 @@ $this->load->view('common/transactions/header'); ?>
                     $cur     = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
                     $dec     = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
 
-                    $cntPending   = $stats['Pending']['count']   ?? 0;
-                    $amtPending   = $stats['Pending']['amount']  ?? 0;
+                    $cntPending   = ($stats['Pending']['count']  ?? 0) + ($stats['Partial']['count']  ?? 0);
+                    $amtPending   = ($stats['Pending']['amount'] ?? 0) + ($stats['Partial']['amount'] ?? 0);
                     $cntReceived  = $stats['Received']['count']  ?? 0;
                     $amtReceived  = $stats['Received']['amount'] ?? 0;
                     $cntCancelled = $stats['Cancelled']['count'] ?? 0;
@@ -148,9 +148,9 @@ $this->load->view('common/transactions/header'); ?>
                                         <th class="col-sortable cursor-pointer user-select-none" data-sort="Number">Income # <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Number"></i></th>
                                         <th class="col-sortable cursor-pointer user-select-none" data-sort="Amount">Amount <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Amount"></i></th>
                                         <th>Category</th>
-                                        <th>Status</th>
-                                        <th>Mode</th>
-                                        <th>Last Updated</th>
+                                        <th class="position-relative">Status <a href="javascript:void(0);" id="incStatusFilterBtn" class="text-body ms-1" onclick="toggleIncStatusFilter();event.stopPropagation();" title="Filter by Status"><i class="bx bx-filter-alt fs-6 align-middle"></i></a></th>
+                                        <th class="position-relative">Mode <a href="javascript:void(0);" id="incModeFilterBtn" class="text-body ms-1" onclick="toggleIncModeFilter();event.stopPropagation();" title="Filter by Mode"><i class="bx bx-filter-alt fs-6 align-middle"></i></a></th>
+                                        <th class="position-relative">Last Updated <?php if (count($OrgUsers ?? []) > 1): ?><a href="javascript:void(0);" id="incUserFilterBtn" class="text-body ms-1" onclick="toggleIncUserFilter();event.stopPropagation();" title="Filter by User"><i class="bx bx-filter-alt fs-6 align-middle"></i></a><?php endif; ?></th>
                                         <th style="width:50px"></th>
                                     </tr>
                                 </thead>
@@ -277,8 +277,9 @@ $this->load->view('common/transactions/header'); ?>
                                     <i class="bx bx-paperclip me-1 text-muted"></i>Attach Files
                                     <small class="text-muted fw-normal ms-1">(Max 3, 3 MB each)</small>
                                 </h6>
-                                <div class="dropzone needsclick dz-clickable w-100" id="incAttachDropzone">
+                                <div class="dropzone needsclick p-3 dz-clickable w-100" id="incAttachDropzone">
                                     <div class="dz-message needsclick text-center">
+                                        <i class="upload-icon mb-3"></i>
                                         <p class="h5 needsclick mb-2">Drag and drop files here</p>
                                         <p class="h4 text-body-secondary fw-normal mb-0">or click to browse (max 3 MB per file)</p>
                                     </div>
@@ -451,6 +452,73 @@ $this->load->view('common/transactions/payment_modal');
     </div>
 </div>
 
+<!-- ── Status Filter Box ─────────────────────────────────────────────────── -->
+<div id="incStatusFilterBox" class="card mp-filterbox" style="min-width:200px;z-index:9999;display:none;position:fixed;">
+    <div class="catg-filter-header">
+        <span class="catg-filter-title"><i class="bx bx-check-circle me-1"></i> Status</span>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-primary" id="incStatusFilterCount" style="display:none;"></span>
+            <button type="button" class="catg-filter-close-btn" onclick="closeIncStatusFilter()" title="Close">&times;</button>
+        </div>
+    </div>
+    <div class="catg-select-all-wrap">
+        <input type="checkbox" class="form-check-input" id="incStatusSelectAll" onchange="toggleAllIncStatuses(this)">
+        <label class="small fw-semibold mb-0" for="incStatusSelectAll" id="incStatusSelectAllLabel">Select All</label>
+    </div>
+    <div id="incStatusList" class="catg-list" style="max-height:160px;overflow-y:auto;">
+        <label class="catg-list-item"><input class="form-check-input inc-sf-chk" type="checkbox" value="Pending"><span>Pending</span></label>
+        <label class="catg-list-item"><input class="form-check-input inc-sf-chk" type="checkbox" value="Partial"><span>Partial</span></label>
+        <label class="catg-list-item"><input class="form-check-input inc-sf-chk" type="checkbox" value="Received"><span>Received</span></label>
+        <label class="catg-list-item"><input class="form-check-input inc-sf-chk" type="checkbox" value="Cancelled"><span>Cancelled</span></label>
+    </div>
+    <div class="catg-filter-footer">
+        <button type="button" class="btn btn-primary btn-sm" onclick="applyIncStatusFilter()"><i class="bx bx-check me-1"></i>Apply</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="resetIncStatusFilter()"><i class="bx bx-reset me-1"></i>Reset</button>
+    </div>
+</div>
+
+<!-- ── Mode Filter Box ───────────────────────────────────────────────────── -->
+<div id="incModeFilterBox" class="card mp-filterbox" style="min-width:200px;z-index:9999;display:none;position:fixed;">
+    <div class="catg-filter-header">
+        <span class="catg-filter-title"><i class="bx bx-credit-card me-1"></i> Mode</span>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-primary" id="incModeFilterCount" style="display:none;"></span>
+            <button type="button" class="catg-filter-close-btn" onclick="closeIncModeFilter()" title="Close">&times;</button>
+        </div>
+    </div>
+    <div class="catg-select-all-wrap">
+        <input type="checkbox" class="form-check-input" id="incModeSelectAll" onchange="toggleAllIncModes(this)">
+        <label class="small fw-semibold mb-0" for="incModeSelectAll" id="incModeSelectAllLabel">Select All</label>
+    </div>
+    <div id="incModeList" class="catg-list" style="max-height:180px;overflow-y:auto;"></div>
+    <div class="catg-filter-footer">
+        <button type="button" class="btn btn-primary btn-sm" onclick="applyIncModeFilter()"><i class="bx bx-check me-1"></i>Apply</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="resetIncModeFilter()"><i class="bx bx-reset me-1"></i>Reset</button>
+    </div>
+</div>
+
+<!-- ── User Filter Box ───────────────────────────────────────────────────── -->
+<?php if (count($OrgUsers ?? []) > 1): ?>
+<div id="incUserFilterBox" class="card mp-filterbox" style="min-width:200px;z-index:9999;display:none;position:fixed;">
+    <div class="catg-filter-header">
+        <span class="catg-filter-title"><i class="bx bx-user me-1"></i> User</span>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-primary" id="incUserFilterCount" style="display:none;"></span>
+            <button type="button" class="catg-filter-close-btn" onclick="closeIncUserFilter()" title="Close">&times;</button>
+        </div>
+    </div>
+    <div class="catg-select-all-wrap">
+        <input type="checkbox" class="form-check-input" id="incUserSelectAll" onchange="toggleAllIncUsers(this)">
+        <label class="small fw-semibold mb-0" for="incUserSelectAll" id="incUserSelectAllLabel">Select All</label>
+    </div>
+    <div id="incUserList" class="catg-list" style="max-height:180px;overflow-y:auto;"></div>
+    <div class="catg-filter-footer">
+        <button type="button" class="btn btn-primary btn-sm" onclick="applyIncUserFilter()"><i class="bx bx-check me-1"></i>Apply</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="resetIncUserFilter()"><i class="bx bx-reset me-1"></i>Reset</button>
+    </div>
+</div>
+<?php endif; ?>
+
 <script src="/js/transactions/indirectincome.js"></script>
 
 <script>
@@ -516,15 +584,18 @@ $(function () {
 
     function _updateStatCards(stats) {
         var pending   = stats.Pending   || { count: 0, amount: 0 };
+        var partial   = stats.Partial   || { count: 0, amount: 0 };
         var received  = stats.Received  || { count: 0, amount: 0 };
         var cancelled = stats.Cancelled || { count: 0, amount: 0 };
-        var allCount  = pending.count + received.count + cancelled.count;
-        var allAmount = pending.amount + received.amount;
+        var pendingCount  = pending.count  + partial.count;
+        var pendingAmount = pending.amount + partial.amount;
+        var allCount  = pendingCount + received.count + cancelled.count;
+        var allAmount = pendingAmount + received.amount;
 
         $('[data-stat-filter="All"]      .trans-stat-count').text(allCount);
         $('[data-stat-filter="All"]      .trans-stat-amount').text(incCurSymbol + ' ' + _fmtNum(allAmount));
-        $('[data-stat-filter="Pending"]  .trans-stat-count').text(pending.count);
-        $('[data-stat-filter="Pending"]  .trans-stat-amount').text(incCurSymbol + ' ' + _fmtNum(pending.amount));
+        $('[data-stat-filter="Pending"]  .trans-stat-count').text(pendingCount);
+        $('[data-stat-filter="Pending"]  .trans-stat-amount').text(incCurSymbol + ' ' + _fmtNum(pendingAmount));
         $('[data-stat-filter="Received"] .trans-stat-count').text(received.count);
         $('[data-stat-filter="Received"] .trans-stat-amount').text(incCurSymbol + ' ' + _fmtNum(received.amount));
         $('[data-stat-filter="Cancelled"].trans-stat-count').text(cancelled.count);
@@ -551,6 +622,177 @@ $(function () {
         });
     }
 
+    // ── Income Status Filter ─────────────────────────────────────────────────
+    window.toggleIncStatusFilter = function () {
+        var $box = $('#incStatusFilterBox');
+        if ($box.is(':visible')) { $box.hide(); return; }
+        var rect = document.getElementById('incStatusFilterBtn').getBoundingClientRect();
+        $box.css({ top: (rect.bottom + 4) + 'px', left: Math.max(4, rect.right - 200) + 'px' }).show();
+    };
+    window.closeIncStatusFilter = function () { $('#incStatusFilterBox').hide(); };
+    window.toggleAllIncStatuses = function (el) {
+        var checked = $(el).is(':checked');
+        $('.inc-sf-chk').prop('checked', checked);
+        $('#incStatusSelectAllLabel').text(checked ? 'Deselect All' : 'Select All');
+    };
+    window.applyIncStatusFilter = function () {
+        var sel = $('.inc-sf-chk:checked').map(function () { return $(this).val(); }).get();
+        if (sel.length) { Filter['StatusList'] = sel; } else { delete Filter['StatusList']; }
+        $('#incStatusFilterBox').hide();
+        var active = sel.length > 0;
+        $('#incStatusFilterBtn').toggleClass('text-primary', active);
+        $('#incStatusFilterCount').text(sel.length).toggle(active);
+        PageNo = 1; getIncomeDetails();
+    };
+    window.resetIncStatusFilter = function () {
+        $('.inc-sf-chk').prop('checked', false);
+        $('#incStatusSelectAll').prop('checked', false);
+        $('#incStatusSelectAllLabel').text('Select All');
+        delete Filter['StatusList'];
+        $('#incStatusFilterBox').hide();
+        $('#incStatusFilterBtn').removeClass('text-primary');
+        $('#incStatusFilterCount').hide().text('');
+        PageNo = 1; getIncomeDetails();
+    };
+    $(document).on('change', '.inc-sf-chk', function () {
+        var total = $('.inc-sf-chk').length, chkd = $('.inc-sf-chk:checked').length;
+        $('#incStatusSelectAll').prop('checked', total > 0 && total === chkd);
+        $('#incStatusSelectAllLabel').text(total > 0 && total === chkd ? 'Deselect All' : 'Select All');
+    });
+    $(document).on('click', function (e) {
+        if (!$(e.target).closest('#incStatusFilterBox, #incStatusFilterBtn').length) $('#incStatusFilterBox').hide();
+    });
+    // ────────────────────────────────────────────────────────────────────────
+
+    // ── Income Mode Filter ───────────────────────────────────────────────────
+    var _incModeData = <?php echo json_encode(array_map(function($t) {
+        return ['uid' => (int)$t->PaymentTypeUID, 'name' => (string)$t->PaymentTypeName];
+    }, $paymentTypes ?? [])); ?>;
+
+    (function () {
+        if (!_incModeData.length) {
+            $('#incModeList').html('<div class="text-muted text-center py-3" style="font-size:.8rem;">No data</div>');
+            return;
+        }
+        var html = '';
+        _incModeData.forEach(function (m) {
+            html += '<label class="catg-list-item">' +
+                        '<input class="form-check-input inc-mf-chk" type="checkbox" value="' + m.uid + '">' +
+                        '<span>' + $('<span>').text(m.name).html() + '</span>' +
+                    '</label>';
+        });
+        $('#incModeList').html(html);
+    })();
+
+    window.toggleIncModeFilter = function () {
+        var $box = $('#incModeFilterBox');
+        if ($box.is(':visible')) { $box.hide(); return; }
+        var rect = document.getElementById('incModeFilterBtn').getBoundingClientRect();
+        $box.css({ top: (rect.bottom + 4) + 'px', left: Math.max(4, rect.right - 200) + 'px' }).show();
+    };
+    window.closeIncModeFilter = function () { $('#incModeFilterBox').hide(); };
+    window.toggleAllIncModes  = function (el) {
+        var checked = $(el).is(':checked');
+        $('.inc-mf-chk').prop('checked', checked);
+        $('#incModeSelectAllLabel').text(checked ? 'Deselect All' : 'Select All');
+    };
+    window.applyIncModeFilter = function () {
+        var sel = $('.inc-mf-chk:checked').map(function () { return $(this).val(); }).get();
+        if (sel.length) { Filter['PaymentTypeUIDs'] = sel; } else { delete Filter['PaymentTypeUIDs']; }
+        $('#incModeFilterBox').hide();
+        var active = sel.length > 0;
+        $('#incModeFilterBtn').toggleClass('text-primary', active);
+        $('#incModeFilterCount').text(sel.length).toggle(active);
+        PageNo = 1; getIncomeDetails();
+    };
+    window.resetIncModeFilter = function () {
+        $('.inc-mf-chk').prop('checked', false);
+        $('#incModeSelectAll').prop('checked', false);
+        $('#incModeSelectAllLabel').text('Select All');
+        delete Filter['PaymentTypeUIDs'];
+        $('#incModeFilterBox').hide();
+        $('#incModeFilterBtn').removeClass('text-primary');
+        $('#incModeFilterCount').hide().text('');
+        PageNo = 1; getIncomeDetails();
+    };
+    $(document).on('change', '.inc-mf-chk', function () {
+        var total = $('.inc-mf-chk').length, chkd = $('.inc-mf-chk:checked').length;
+        $('#incModeSelectAll').prop('checked', total > 0 && total === chkd);
+        $('#incModeSelectAllLabel').text(total > 0 && total === chkd ? 'Deselect All' : 'Select All');
+    });
+    $(document).on('click', function (e) {
+        if (!$(e.target).closest('#incModeFilterBox, #incModeFilterBtn').length) $('#incModeFilterBox').hide();
+    });
+    // ────────────────────────────────────────────────────────────────────────
+
+    // ── Income User Filter ───────────────────────────────────────────────────
+    var _incUserData = <?php echo json_encode(array_map(function($u) {
+        return ['uid' => (int)$u->UserUID, 'name' => (string)$u->FullName];
+    }, $OrgUsers ?? [])); ?>;
+
+    if (_incUserData.length > 1) {
+        (function () {
+            var html = '';
+            _incUserData.forEach(function (u) {
+                html += '<label class="catg-list-item">' +
+                            '<input class="form-check-input inc-uf-chk" type="checkbox" value="' + u.uid + '">' +
+                            '<span>' + $('<span>').text(u.name).html() + '</span>' +
+                        '</label>';
+            });
+            $('#incUserList').html(html);
+        })();
+    }
+
+    window.toggleIncUserFilter = function () {
+        var $box = $('#incUserFilterBox');
+        if (!$box.length || $box.is(':visible')) { if ($box.length) $box.hide(); return; }
+        var rect = document.getElementById('incUserFilterBtn').getBoundingClientRect();
+        $box.css({ top: (rect.bottom + 4) + 'px', left: Math.max(4, rect.right - 200) + 'px' }).show();
+    };
+    window.closeIncUserFilter = function () { $('#incUserFilterBox').hide(); };
+    window.toggleAllIncUsers  = function (el) {
+        var checked = $(el).is(':checked');
+        $('.inc-uf-chk').prop('checked', checked);
+        $('#incUserSelectAllLabel').text(checked ? 'Deselect All' : 'Select All');
+    };
+    window.applyIncUserFilter = function () {
+        var sel = $('.inc-uf-chk:checked').map(function () { return $(this).val(); }).get();
+        if (sel.length) { Filter['UpdatedByUIDs'] = sel; } else { delete Filter['UpdatedByUIDs']; }
+        $('#incUserFilterBox').hide();
+        var active = sel.length > 0;
+        $('#incUserFilterBtn').toggleClass('text-primary', active);
+        $('#incUserFilterCount').text(sel.length).toggle(active);
+        PageNo = 1; getIncomeDetails();
+    };
+    window.resetIncUserFilter = function () {
+        $('.inc-uf-chk').prop('checked', false);
+        $('#incUserSelectAll').prop('checked', false);
+        $('#incUserSelectAllLabel').text('Select All');
+        delete Filter['UpdatedByUIDs'];
+        $('#incUserFilterBox').hide();
+        $('#incUserFilterBtn').removeClass('text-primary');
+        $('#incUserFilterCount').hide().text('');
+        PageNo = 1; getIncomeDetails();
+    };
+    $(document).on('change', '.inc-uf-chk', function () {
+        var total = $('.inc-uf-chk').length, chkd = $('.inc-uf-chk:checked').length;
+        $('#incUserSelectAll').prop('checked', total > 0 && total === chkd);
+        $('#incUserSelectAllLabel').text(total > 0 && total === chkd ? 'Deselect All' : 'Select All');
+    });
+    $(document).on('click', function (e) {
+        if (!$(e.target).closest('#incUserFilterBox, #incUserFilterBtn').length) $('#incUserFilterBox').hide();
+    });
+    // ────────────────────────────────────────────────────────────────────────
+
+    function _clearIncStatusFilter() {
+        delete Filter['StatusList'];
+        $('.inc-sf-chk').prop('checked', false);
+        $('#incStatusSelectAll').prop('checked', false);
+        $('#incStatusSelectAllLabel').text('Select All');
+        $('#incStatusFilterBtn').removeClass('text-primary');
+        $('#incStatusFilterCount').hide().text('');
+    }
+
     // ── Stat card click ──────────────────────────────────────
     $(document).on('click', '[data-stat-filter]', function () {
         var status = $(this).data('stat-filter') || 'All';
@@ -558,6 +800,7 @@ $(function () {
         $(this).addClass('active-stat');
         $('.inc-status-tab').removeClass('active');
         $('.inc-status-tab[data-status="' + status + '"]').addClass('active');
+        _clearIncStatusFilter();
         Filter.Status = status; PageNo = 1; getIncomeDetails();
     });
 
@@ -569,6 +812,7 @@ $(function () {
         $('.trans-stat-card').removeClass('active-stat');
         var status = $(this).data('status') || 'All';
         $('[data-stat-filter="' + status + '"]').addClass('active-stat');
+        _clearIncStatusFilter();
         Filter.Status = status; PageNo = 1; getIncomeDetails();
     });
 
@@ -608,20 +852,93 @@ $(function () {
         $('.incCheck').prop('checked', $(this).is(':checked'));
     });
 
+    // ── Payment history panel ────────────────────────────────────────────────
+    var _incPayPanelUID = null;
+    var $incPayPanel    = $('#payDetailPanel');
+    var $incPayBody     = $('#payDetailBody');
+    var $incPayTitle    = $('#payPanelTitle');
+
+    function _openIncPayPanel($trigger) {
+        var transUID = $trigger.data('trans-uid');
+        var transNum = $trigger.data('trans-num') || '';
+        var fetchUrl = $trigger.data('fetch-url') || '/indirectincome/getPaymentHistory';
+
+        var rect   = $trigger[0].getBoundingClientRect();
+        var panelW = 290;
+        var left   = rect.left;
+        var top    = rect.bottom + 6;
+        if (left + panelW + 16 > window.innerWidth) left = window.innerWidth - panelW - 16;
+
+        $incPayTitle.text(transNum ? 'Payments — ' + transNum : 'Payments');
+        $incPayBody.html('<div class="text-center py-3"><span class="spinner-border spinner-border-sm text-success"></span></div>');
+        $incPayPanel.css({ top: top, left: left }).show();
+        _incPayPanelUID = transUID;
+
+        $.ajax({
+            url: fetchUrl, method: 'POST',
+            data: { TransUID: transUID, [CsrfName]: CsrfToken },
+            success: function (resp) {
+                if (resp && !resp.Error && resp.Payments && resp.Payments.length) {
+                    var html = '';
+                    resp.Payments.forEach(function (p, i) {
+                        if (i > 0) html += '<hr style="margin:8px 0;border-color:#f0f0f0;">';
+                        var amt  = parseFloat(p.Amount || 0).toLocaleString('en-IN', { minimumFractionDigits: incDecPoints, maximumFractionDigits: incDecPoints });
+                        var date = '';
+                        if (p.CreatedOn) {
+                            var d = new Date(p.CreatedOn.replace(' ', 'T'));
+                            date  = ('0' + d.getDate()).slice(-2) + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + d.getFullYear();
+                        }
+                        html += '<div class="d-flex justify-content-between align-items-start gap-2">';
+                        html += '  <div style="min-width:0;">';
+                        html += '    <div style="font-size:.83rem;font-weight:600;color:#059669;">' + incCurSymbol + ' ' + amt + '</div>';
+                        html += '    <div style="font-size:.75rem;color:#566a7f;">' + (p.PaymentTypeName || '—') + '</div>';
+                        if (date) html += '  <div style="font-size:.72rem;color:#aaa;margin-top:1px;">' + date + '</div>';
+                        html += '  </div>';
+                        html += '</div>';
+                    });
+                    $incPayBody.html(html);
+                } else {
+                    $incPayBody.html('<p class="text-muted mb-0" style="font-size:.8rem;">No payments found.</p>');
+                }
+            },
+            error: function () {
+                $incPayBody.html('<p class="text-danger mb-0" style="font-size:.8rem;">Failed to load payments.</p>');
+            }
+        });
+    }
+
+    $(document).on('click', '.pay-mode-clickable', function (e) {
+        if ($(e.target).closest('.transPayAttachBtn').length) return;
+        e.stopPropagation();
+        var transUID = $(this).data('trans-uid');
+        if (_incPayPanelUID === transUID && $incPayPanel.is(':visible')) { $incPayPanel.hide(); _incPayPanelUID = null; return; }
+        _openIncPayPanel($(this));
+    });
+    $(document).on('click', '#payPanelClose', function (e) { e.stopPropagation(); $incPayPanel.hide(); _incPayPanelUID = null; });
+    $(document).on('click', function (e) {
+        if ($incPayPanel.is(':visible') && !$(e.target).closest('#payDetailPanel, .pay-mode-clickable').length) {
+            $incPayPanel.hide(); _incPayPanelUID = null;
+        }
+    });
+    $(document).on('keydown', function (e) { if (e.key === 'Escape') { $incPayPanel.hide(); _incPayPanelUID = null; } });
+    // ────────────────────────────────────────────────────────────────────────
+
     // ── Row actions ──────────────────────────────────────────
     $(document).on('click', '.incMarkReceived', function () {
-        var uid    = $(this).data('uid');
-        var num    = $(this).data('num')    || '';
-        var date   = $(this).data('date')   || '';
-        var amount = parseFloat($(this).data('amount')) || 0;
+        var uid     = $(this).data('uid');
+        var num     = $(this).data('num')     || '';
+        var date    = $(this).data('date')    || '';
+        var total   = parseFloat($(this).data('total'))   || 0;
+        var paid    = parseFloat($(this).data('paid'))    || 0;
+        var pending = parseFloat($(this).data('pending')) || total;
         window.rpOpenModal({
             transUID  : uid,
             submitUrl : '/indirectincome/recordPayment',
             docNum    : num,
             docDate   : date,
-            total     : amount,
-            paid      : 0,
-            pending   : amount,
+            total     : total,
+            paid      : paid,
+            pending   : pending,
         });
     });
 
@@ -662,9 +979,10 @@ $(function () {
     function initIncDropzone() {
         var el = document.querySelector('#incAttachDropzone');
         if (!el) return;
-        if (incDropzone) { try { incDropzone.destroy(); } catch (e) {} incDropzone = null; }
+        if (el.dropzone)  { try { el.dropzone.destroy();  } catch (e) {} }
+        if (incDropzone)  { try { incDropzone.destroy();  } catch (e) {} incDropzone = null; }
         Dropzone.instances = Dropzone.instances.filter(function (d) { return d.element !== el; });
-        el.classList.remove('dz-started', 'dropzone');
+        el.classList.remove('dz-started');
 
         incDropzone = new Dropzone(el, {
             url: '#',
@@ -1141,3 +1459,6 @@ $(function () {
 
 });
 </script>
+
+<?php $this->load->view('common/transactions/print_modals'); ?>
+<script src="/js/transactions/attachments.js"></script>

@@ -1,20 +1,26 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <div class="modal fade" id="timelineModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content">
+    <div class="modal-dialog modal-dialog-top modal-lg">
+        <div class="modal-content" style="overflow:hidden;">
 
-            <div class="modal-header" style="background:#f8fafc;border-bottom:1px solid #e2e8f0;">
-                <div class="d-flex align-items-center gap-2">
-                    <div style="width:34px;height:34px;border-radius:50%;background:#dbeafe;display:flex;align-items:center;justify-content:center;">
-                        <i class="bx bx-history text-primary fs-5"></i>
+            <div class="vtm-banner" style="--vtm-color:#0284c7;--vtm-bg:#e0f2fe;--vtm-icon-bg:rgba(2,132,199,.13);">
+                <div class="vtm-banner-inner">
+                    <div class="vtm-banner-left">
+                        <div class="vtm-banner-icon">
+                            <i class="bx bx-history"></i>
+                        </div>
+                        <div>
+                            <div class="vtm-doc-number">Stock History</div>
+                            <div class="vtm-doc-meta" id="tlProductName"></div>
+                        </div>
                     </div>
-                    <div>
-                        <h6 class="mb-0 fw-semibold">Stock History</h6>
-                        <div id="tlProductName" class="text-muted" style="font-size:.75rem;"></div>
+                    <div class="vtm-banner-right">
+                        <button type="button" class="vtm-close-btn" data-bs-dismiss="modal" aria-label="Close">
+                            <i class="bx bx-x"></i>
+                        </button>
                     </div>
                 </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
 
             <div class="modal-body p-0">
@@ -53,11 +59,10 @@
 
             </div>
 
-            <div class="modal-footer" style="background:#f8fafc;border-top:1px solid #e2e8f0;">
-                <small class="text-muted me-auto" style="font-size:.72rem;">
+            <div class="modal-footer align-items-center" style="background:#f8fafc;border-top:1px solid #e2e8f0;min-height:44px;">
+                <span class="text-muted me-auto" style="font-size:.8rem;line-height:1.4;">
                     Showing last 200 movements. Purchase / Invoice / Return movements are recorded automatically.
-                </small>
-                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                </span>
             </div>
 
         </div>

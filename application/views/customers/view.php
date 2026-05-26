@@ -25,9 +25,23 @@
                                 <?php endif; ?>
                             </div>
                         </div>
-                        <a href="javascript:void(0);" class="btn btn-primary" id="btnCreateCustomerHeader">
-                            <i class="bx bx-plus me-1"></i>New Customer
-                        </a>
+                        <div class="d-flex align-items-center gap-2">
+                            <!-- Export dropdown -->
+                            <div class="dropdown">
+                                <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="bx bx-export me-1"></i>Export
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="custExport('Print')"><i class="bx bx-printer me-1"></i>Print</a></li>
+                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="custExport('CSV')"><i class="bx bx-file me-1"></i>CSV</a></li>
+                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="custExport('Excel')"><i class="bx bxs-file-export me-1"></i>Excel</a></li>
+                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="custExport('Pdf')"><i class="bx bxs-file-pdf me-1"></i>PDF</a></li>
+                                </ul>
+                            </div>
+                            <a href="javascript:void(0);" class="btn btn-primary" id="btnCreateCustomerHeader">
+                                <i class="bx bx-plus me-1"></i>New Customer
+                            </a>
+                        </div>
                     </div>
 
                     <!-- ── Stat Cards ── -->
@@ -75,6 +89,8 @@
                         </div>
                     </div>
 
+                    <?php $showUserBtn = is_array($OrgUsers) && count($OrgUsers) > 1; ?>
+
                     <!-- ── Main Card ── -->
                     <div class="card">
 
@@ -95,7 +111,7 @@
                                     <input type="text" id="SearchDetails" placeholder="Name, mobile, GSTIN...">
                                     <i class="bx bx-x r2k-clear d-none" id="clearSearch"></i>
                                 </div>
-                                <div class="btn-group r2k-toolbar-actions" id="ActionsDD-Div">
+                                <div class="btn-group r2k-toolbar-actions d-none" id="ActionsDD-Div">
                                     <button class="r2k-dd-btn dropdown-toggle" type="button" id="actionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                                         <i class="bx bx-slider-alt"></i>
                                     </button>
@@ -112,18 +128,8 @@
                                         <li class="d-none" id="BulkEmailOption">
                                             <a class="dropdown-item" href="javascript:void(0);" id="btnBulkEmail"><i class="bx bx-envelope me-1 text-primary"></i> Send Email</a>
                                         </li>
-                                        <li class="dropdown-submenu">
-                                            <a class="dropdown-item" href="javascript:void(0);"><i class="bx bx-export me-1"></i> Export</a>
-                                            <ul class="dropdown-menu">
-                                                <li><a class="dropdown-item" href="javascript:void(0);" id="btnExportPrint"><i class="bx bx-printer me-1"></i> Print</a></li>
-                                                <li><a class="dropdown-item" href="javascript:void(0);" id="btnExportCSV"><i class="bx bx-file me-1"></i> CSV</a></li>
-                                                <li><a class="dropdown-item" href="javascript:void(0);" id="btnExportExcel"><i class="bx bxs-file-export me-1"></i> Excel</a></li>
-                                                <li><a class="dropdown-item" href="javascript:void(0);" id="btnExportPDF"><i class="bx bxs-file-pdf me-1"></i> PDF</a></li>
-                                            </ul>
-                                        </li>
                                     </ul>
                                 </div>
-                                <a href="javascript:void(0);" class="r2k-create-btn" id="btnCreateCustomer"><i class="bx bx-plus"></i> Create</a>
                             </div>
                         </div>
 
@@ -150,7 +156,14 @@
                                             Customer Type
                                             <a href="javascript:void(0);" id="custTypeFilter" class="text-body ms-1" onclick="toggleCustTypeFilter(); event.stopPropagation();" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by Customer Type"><i class="bx bx-filter-alt fs-6 align-middle"></i></a>
                                         </th>
-                                        <th>Last Updated</th>
+                                        <th>
+                                            Last Updated
+                                            <?php if ($showUserBtn): ?>
+                                            <a href="javascript:void(0);" id="custUserFilterBtn" onclick="custToggleUserFilter(); event.stopPropagation();" style="color:#64748b;margin-left:4px;font-size:.85rem;vertical-align:middle;">
+                                                <i class="bx bx-filter-alt" id="custUserFilterIcon"></i>
+                                            </a>
+                                            <?php endif; ?>
+                                        </th>
                                         <th class="th-act" style="width:80px">Actions</th>
                                     </tr>
                                 </thead>
@@ -237,6 +250,16 @@
 <div id="custTagFilterBox" class="card mp-filterbox" style="min-width:220px;z-index:9999;display:none;position:fixed;"><?php $this->load->view('customers/tagfilter', ['Tags' => $Tags]); ?></div>
 <div id="custTypeFilterBox" class="card mp-filterbox" style="min-width:220px;z-index:9999;display:none;position:fixed;"><?php $this->load->view('customers/typefilter', ['CustomerTypeList' => $CustomerTypeList]); ?></div>
 
+<?php if ($showUserBtn): ?>
+<?php $this->load->view('common/partials/_user_filter_box', [
+    'OrgUsers'   => $OrgUsers,
+    'BoxId'      => 'custUserFilterBox',
+    'CheckClass' => 'cust-user-checkbox',
+    'ApplyFn'    => 'custApplyUserFilter',
+    'ResetFn'    => 'custResetUserFilter',
+]); ?>
+<?php endif; ?>
+
 <?php $this->load->view('common/footer'); ?>
 
 <script src="/js/customers.js"></script>
@@ -261,6 +284,7 @@ let areaSortState = 0;
 var StateInfo = [];
 var CityInfo  = [];
 var OrgCountryISO2 = <?php echo json_encode($JwtData->User->OrgCISO2 ?? 'IN'); ?>;
+var CustShowUserFilter = <?php echo $showUserBtn ? 'true' : 'false'; ?>;
 
 $(function () {
     'use strict';
@@ -268,7 +292,21 @@ $(function () {
     $('#SearchDetails').val('');
     $(ModuleRow).prop('checked', false).trigger('change');
 
-    baseExportFunctions();
+    // Auto-show/hide the Actions gear button based on whether any option is visible
+    (function () {
+        var $dd = $('#ActionsDD-Div');
+        function syncDD() {
+            var anyVisible = $('#CloneOption, #DeleteOption, #BulkSmsOption, #BulkEmailOption')
+                .filter(function () { return !$(this).hasClass('d-none'); }).length > 0;
+            $dd.toggleClass('d-none', !anyVisible);
+        }
+        var observer = new MutationObserver(syncDD);
+        ['CloneOption', 'DeleteOption', 'BulkSmsOption', 'BulkEmailOption'].forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el) observer.observe(el, { attributes: true, attributeFilter: ['class'] });
+        });
+    })();
+
     basePaginationFunc(ModulePag, getCustomersDetails);
     baseRefreshPageFunc('.PageRefresh', getCustomersDetails);
     basePageHeaderFunc(ModuleHeader, ModuleTable, ModuleRow);
@@ -570,10 +608,47 @@ $(function () {
         });
     });
 
+    // ── User filter ──
+    if (CustShowUserFilter) {
+        window.custToggleUserFilter = function () {
+            var $box = $('#custUserFilterBox');
+            if ($box.is(':visible')) { $box.hide(); return; }
+            $('#custTagFilterBox, #custTypeFilterBox').hide();
+            var btn  = document.getElementById('custUserFilterBtn');
+            var rect = btn.getBoundingClientRect();
+            $box.css({
+                top:  (rect.bottom + window.scrollY + 4) + 'px',
+                left: Math.max(4, rect.left + window.scrollX - 80) + 'px',
+                display: 'flex',
+            });
+        };
+        window.custApplyUserFilter = function () {
+            var uids = [];
+            $('.cust-user-checkbox:checked').each(function () { uids.push($(this).val()); });
+            if (uids.length) {
+                Filter['UpdatedByUIDs'] = uids;
+                $('#custUserFilterIcon').css('color', '#0d6efd');
+            } else {
+                delete Filter['UpdatedByUIDs'];
+                $('#custUserFilterIcon').css('color', '');
+            }
+            $('#custUserFilterBox').hide();
+            PageNo = 0; getCustomersDetails(PageNo, RowLimit, Filter);
+        };
+        window.custResetUserFilter = function () {
+            $('.cust-user-checkbox').prop('checked', false);
+            delete Filter['UpdatedByUIDs'];
+            $('#custUserFilterIcon').css('color', '');
+            $('#custUserFilterBox').hide();
+            PageNo = 0; getCustomersDetails(PageNo, RowLimit, Filter);
+        };
+    }
+
     // ── Close filter boxes on outside click ──
     $(document).on('click', function (e) {
-        if (!$(e.target).closest('#custTagFilterBox, #custTagFilter').length)  $('#custTagFilterBox').hide();
-        if (!$(e.target).closest('#custTypeFilterBox, #custTypeFilter').length) $('#custTypeFilterBox').hide();
+        if (!$(e.target).closest('#custTagFilterBox, #custTagFilter').length)     $('#custTagFilterBox').hide();
+        if (!$(e.target).closest('#custTypeFilterBox, #custTypeFilter').length)   $('#custTypeFilterBox').hide();
+        if (!$(e.target).closest('#custUserFilterBox, #custUserFilterBtn').length) $('#custUserFilterBox').hide();
     });
 
 });

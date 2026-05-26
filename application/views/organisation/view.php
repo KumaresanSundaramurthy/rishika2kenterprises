@@ -3,7 +3,7 @@
 <?php $this->load->view('common/header'); ?>
 
 <!-- Layout wrapper -->
-<div class="layout-wrapper layout-horizontal layout-content-navbar">
+<div class="layout-wrapper layout-horizontal basic-form-page layout-content-navbar">
     <div class="layout-container">
 
         <?php $this->load->view('common/menu_view'); ?>
@@ -133,18 +133,22 @@
                                 </div>
                                 <div class="mb-3 col-md-6">
                                     <label for="TimezoneUID" class="form-label">Timezone</label>
-                                    <select class="select2 form-select" id="TimezoneUID" name="TimezoneUID">
-                                        <option label="-- Select Timezone --"></option>
-                                        <?php if (is_array($TimezoneInfo) && count($TimezoneInfo) > 0) {
-                                            foreach ($TimezoneInfo as $Tzinfo) { ?>
-
-                                                <option value="<?php echo $Tzinfo->TimezoneUID; ?>" data-ccode="<?php echo $Tzinfo->CountryCode; ?>" <?php echo isset($EditOrgData->TimezoneUID) && ($EditOrgData->TimezoneUID == $Tzinfo->TimezoneUID) ? 'selected' : ''; ?>><?php echo '(' . $Tzinfo->GmtOffset . ') ' . $Tzinfo->Timezone; ?></option>
-
-                                        <?php }
-                                        } ?>
+                                    <select class="select2 form-select" id="TimezoneUID" name="TimezoneUID"
+                                        data-selected="<?php echo isset($EditOrgData->TimezoneUID) ? (int)$EditOrgData->TimezoneUID : 0; ?>">
+                                        <option value="">-- Select Timezone --</option>
+                                        <?php if (!empty($EditOrgData->TimezoneUID) && !empty($EditOrgData->TimezoneText)): ?>
+                                        <option value="<?php echo (int)$EditOrgData->TimezoneUID; ?>" selected>
+                                            <?php echo '(' . htmlspecialchars($EditOrgData->TimezoneGmtOffset) . ') ' . htmlspecialchars($EditOrgData->TimezoneText); ?>
+                                        </option>
+                                        <?php endif; ?>
                                     </select>
                                 </div>
-                                <div class="mb-3 col-md-12">
+                                <div class="mb-3 col-md-6">
+                                    <label for="ShortCode" class="form-label">Short Code <span style="color:red">*</span></label>
+                                    <input class="form-control text-uppercase" type="text" id="ShortCode" name="ShortCode" maxlength="3" minlength="3" placeholder="e.g. R2K" value="<?php echo isset($EditOrgData->ShortCode) ? htmlspecialchars(strtoupper($EditOrgData->ShortCode)) : ''; ?>" required pattern="[a-zA-Z0-9]{3}" title="Alphanumeric only, exactly 3 characters" oninput="this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 3)" />
+                                    <div class="form-text">Unique identifier used in system keys. Exactly 3 alphanumeric characters.</div>
+                                </div>
+                                <div class="mb-3 col-md-6">
                                     <label for="Website" class="form-label">Website </label>
                                     <input class="form-control" type="text" id="Website" name="Website" maxlength="255" placeholder="Website" value="<?php echo isset($EditOrgData->Website) ? $EditOrgData->Website : ''; ?>" />
                                 </div>
@@ -180,27 +184,19 @@
                                         <div class="mb-3 col-md-6">
                                             <label for="BillAddrState" class="form-label">State</label>
                                             <select class="select2 form-select" id="BillAddrState" name="BillAddrState">
-                                                <option label="-- Select State --"></option>
-                                                <?php if (is_array($StateData) && count($StateData) > 0) {
-                                                    foreach ($StateData as $StData) { ?>
-
-                                                        <option value="<?php echo $StData->id; ?>" data-iso2="<?php echo $StData->iso2; ?>" <?php echo isset($BillOrgAddrData->State) && ($BillOrgAddrData->State == $StData->id) ? 'selected' : ''; ?>><?php echo $StData->name; ?></option>
-
-                                                <?php }
-                                                } ?>
+                                                <option value="">-- Select State --</option>
+                                                <?php if (!empty($BillOrgAddrData->State) && !empty($BillOrgAddrData->StateText)): ?>
+                                                <option value="<?php echo $BillOrgAddrData->State; ?>" selected><?php echo htmlspecialchars($BillOrgAddrData->StateText); ?></option>
+                                                <?php endif; ?>
                                             </select>
                                         </div>
                                         <div class="mb-3 col-md-6">
                                             <label for="BillAddrCity" class="form-label">City</label>
                                             <select class="select2 form-select" id="BillAddrCity" name="BillAddrCity">
-                                                <option label="-- Select City --"></option>
-                                                <?php if (is_array($CityData) && count($CityData) > 0) {
-                                                    foreach ($CityData as $CtyData) { ?>
-
-                                                        <option value="<?php echo $CtyData->id; ?>" <?php echo isset($BillOrgAddrData->City) && ($BillOrgAddrData->City == $CtyData->id) ? 'selected' : ''; ?>><?php echo $CtyData->name; ?></option>
-
-                                                <?php }
-                                                } ?>
+                                                <option value="">-- Select City --</option>
+                                                <?php if (!empty($BillOrgAddrData->City) && !empty($BillOrgAddrData->CityText)): ?>
+                                                <option value="<?php echo $BillOrgAddrData->City; ?>" selected><?php echo htmlspecialchars($BillOrgAddrData->CityText); ?></option>
+                                                <?php endif; ?>
                                             </select>
                                         </div>
 
@@ -233,23 +229,19 @@
                                         <div class="mb-3 col-md-6">
                                             <label for="ShipAddrState" class="form-label">State</label>
                                             <select class="select2 form-select" id="ShipAddrState" name="ShipAddrState">
-                                                <option label="-- Select State --"></option>
-                                                <?php if (is_array($StateData) && count($StateData) > 0) {
-                                                    foreach ($StateData as $StData) { ?>
-                                                        <option value="<?php echo $StData->id; ?>" data-iso2="<?php echo $StData->iso2; ?>" <?php echo isset($ShipOrgAddrData->State) && ($ShipOrgAddrData->State == $StData->id) ? 'selected' : ''; ?>><?php echo $StData->name; ?></option>
-                                                <?php }
-                                                } ?>
+                                                <option value="">-- Select State --</option>
+                                                <?php if (!empty($ShipOrgAddrData->State) && !empty($ShipOrgAddrData->StateText)): ?>
+                                                <option value="<?php echo $ShipOrgAddrData->State; ?>" selected><?php echo htmlspecialchars($ShipOrgAddrData->StateText); ?></option>
+                                                <?php endif; ?>
                                             </select>
                                         </div>
                                         <div class="mb-3 col-md-6">
                                             <label for="ShipAddrCity" class="form-label">City</label>
                                             <select class="select2 form-select" id="ShipAddrCity" name="ShipAddrCity">
-                                                <option label="-- Select City --"></option>
-                                                <?php if (is_array($CityData) && count($CityData) > 0) {
-                                                    foreach ($CityData as $CtyData) { ?>
-                                                        <option value="<?php echo $CtyData->id; ?>" <?php echo isset($ShipOrgAddrData->City) && ($ShipOrgAddrData->City == $CtyData->id) ? 'selected' : ''; ?>><?php echo $CtyData->name; ?></option>
-                                                <?php }
-                                                } ?>
+                                                <option value="">-- Select City --</option>
+                                                <?php if (!empty($ShipOrgAddrData->City) && !empty($ShipOrgAddrData->CityText)): ?>
+                                                <option value="<?php echo $ShipOrgAddrData->City; ?>" selected><?php echo htmlspecialchars($ShipOrgAddrData->CityText); ?></option>
+                                                <?php endif; ?>
                                             </select>
                                         </div>
 
@@ -332,7 +324,46 @@ $(function() {
         commonSetDropzoneImageOne(ImageUrl);
     }
     
+    // Timezone: saved value shown on load (from DB join).
+    // On first click → check Upstash directly; if miss → AJAX (PHP stores in Upstash).
+    // Every subsequent click (same page or after refresh) → Upstash hit, instant load.
     loadSelect2Field('#TimezoneUID', '-- Select Timezone --');
+    var _tzLoaded = false;
+    $('#TimezoneUID').on('select2:opening', function (e) {
+        if (_tzLoaded) return;
+        e.preventDefault();
+        var $sel     = $(this);
+        var selected = parseInt($sel.data('selected')) || 0;
+
+        function _renderTimezones(data) {
+            _tzLoaded = true;
+            $sel.empty().append('<option value="">-- Select Timezone --</option>');
+            $.each(data, function (i, tz) {
+                $sel.append(
+                    $('<option>').val(tz.TimezoneUID)
+                        .attr('data-ccode', tz.CountryCode || '')
+                        .text('(' + tz.GmtOffset + ') ' + tz.Timezone)
+                );
+            });
+            if (selected) $sel.val(selected).trigger('change.select2');
+            _openAndScroll($sel);
+        }
+
+        // 1. Check Upstash directly — instant if already cached
+        UpstashService.get(UpstashService.orgKey('loc-timezone-all')).then(function (cached) {
+            if (cached && Array.isArray(cached) && cached.length > 0) {
+                _renderTimezones(cached);
+            } else {
+                // 2. Upstash miss — AJAX; PHP queries DB and stores in Upstash
+                $.ajax({
+                    url: '/globally/getTimezones', method: 'GET',
+                    success: function (resp) {
+                        if (!resp.Error && resp.Data) _renderTimezones(resp.Data);
+                    }
+                });
+            }
+        });
+    });
     loadSelect2Field('#BillAddrState', '-- Select State --');
     loadSelect2Field('#ShipAddrState', '-- Select State --');
     loadSelect2Field('#BillAddrCity', '-- Select City --');
@@ -365,17 +396,17 @@ $(function() {
         var formData = new FormData($('#OrganisationForm')[0]);
         formData.append('imageChange', imageChange);
 
-        var BillState = $('#BillAddrState').find('option:selected').val();
-        formData.append('BillAddrStateText', (BillState && BillState.trim() !== "") ? $('#BillAddrState').find('option:selected').data('iso2') : null);
+        var $billState = $('#BillAddrState').find('option:selected');
+        formData.append('BillAddrStateText', ($billState.val() && $billState.val().trim() !== '') ? $billState.text() : '');
 
-        var BillCity = $('#BillAddrCity').find('option:selected').text();
-        formData.append('BillAddrCityText', (BillCity && BillCity.trim() !== "") ? BillCity : null);
+        var $billCity = $('#BillAddrCity').find('option:selected');
+        formData.append('BillAddrCityText', ($billCity.val() && $billCity.val().trim() !== '') ? $billCity.text() : '');
 
-        var ShipState = $('#ShipAddrState').find('option:selected').val();
-        formData.append('ShipAddrStateText', (ShipState && ShipState.trim() !== "") ? $('#ShipAddrState').find('option:selected').data('iso2') : null);
+        var $shipState = $('#ShipAddrState').find('option:selected');
+        formData.append('ShipAddrStateText', ($shipState.val() && $shipState.val().trim() !== '') ? $shipState.text() : '');
 
-        var ShipCity = $('#ShipAddrCity').find('option:selected').text();
-        formData.append('ShipAddrCityText', (ShipCity && ShipCity.trim() !== "") ? ShipCity : null);
+        var $shipCity = $('#ShipAddrCity').find('option:selected');
+        formData.append('ShipAddrCityText', ($shipCity.val() && $shipCity.val().trim() !== '') ? $shipCity.text() : '');
 
         if (myOneDropzone.files.length > 0) {
             const file = myOneDropzone.files[0];

@@ -215,6 +215,73 @@ class Inventory extends MY_Controller {
 
     }
 
+    // Update existing manual stock adjustment
+
+    public function updateAdj() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID  = (int) $this->pageData['JwtData']->User->OrgUID;
+            $userUID = (int) $this->pageData['JwtData']->User->UserUID;
+
+            $adjUID = (int) $this->input->post('AdjUID');
+            $notes  = $this->input->post('Notes') ?: null;
+
+            if ($adjUID <= 0) throw new Exception('Invalid adjustment.');
+
+            $existing = $this->inventory_model->getAdjustmentById($adjUID, $orgUID);
+            if (!$existing) throw new Exception('Adjustment not found or access denied.');
+
+            $this->dbwrite_model->updateData('Products', 'StockAdjustmentTbl',
+                ['Notes' => $notes, 'UpdatedBy' => $userUID],
+                ['AdjUID' => $adjUID, 'OrgUID' => $orgUID]
+            );
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Remarks updated successfully.';
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    // Update remarks on any stock ledger row
+
+    public function updateLedgerRemarks() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID    = (int) $this->pageData['JwtData']->User->OrgUID;
+            $userUID   = (int) $this->pageData['JwtData']->User->UserUID;
+            $ledgerUID = (int) $this->input->post('LedgerUID');
+            $remarks   = $this->input->post('Remarks') ?: null;
+
+            if ($ledgerUID <= 0) throw new Exception('Invalid record.');
+
+            $existing = $this->inventory_model->getLedgerById($ledgerUID, $orgUID);
+            if (!$existing) throw new Exception('Record not found or access denied.');
+
+            $this->dbwrite_model->updateData('Products', 'StockLedgerTbl',
+                ['Remarks' => $remarks, 'UpdatedBy' => $userUID],
+                ['LedgerUID' => $ledgerUID, 'OrgUID' => $orgUID]
+            );
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Remarks updated successfully.';
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
     // Stock timeline (AJAX)
 
     public function getTimeline() {
@@ -244,7 +311,7 @@ class Inventory extends MY_Controller {
 
     public function timelinePage() {
 
-        if (!$this->_loadPageTitle($this->pageModuleUID)) {
+        if (!$this->_loadPageTitle(118)) {
             $this->load->view('common/module_error', $this->pageData);
             return;
         }
@@ -262,6 +329,17 @@ class Inventory extends MY_Controller {
 
             $listData   = $this->inventory_model->getGlobalTimeline($orgUID, $defaultFilter, $limit, 0);
             $totalCount = $this->inventory_model->getGlobalTimelineCount($orgUID, $defaultFilter);
+            $categories = $this->inventory_model->getCategories($orgUID);
+
+            $this->load->model('users_model');
+            $cacheKey = $this->redisservice->orgKey('org_users');
+            $orgUsers = $this->redisservice->getCache($cacheKey)->Value;
+            if (!is_array($orgUsers)) {
+                $orgUsers = $this->users_model->getOrgUsersForCache($orgUID);
+                if (!empty($orgUsers)) {
+                    $this->redisservice->setCache($cacheKey, $orgUsers, 86400);
+                }
+            }
 
             $this->pageData['ModRowData']    = $this->load->view('inventory/timeline_list', [
                 'DataLists' => $listData,
@@ -271,6 +349,8 @@ class Inventory extends MY_Controller {
             $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/inventory/timeline/getPageDetails', $totalCount, 1, $limit);
             $this->pageData['ModAllCount']   = $totalCount;
             $this->pageData['DefaultFilter'] = $defaultFilter;
+            $this->pageData['Categories']    = $categories;
+            $this->pageData['OrgUsers']      = $orgUsers;
 
             $this->load->view('inventory/timeline_view', $this->pageData);
 
@@ -377,8 +457,9 @@ class Inventory extends MY_Controller {
                 $rows[] = $this->_mapInventoryRow($i + 1, $row);
             }
 
-            $timezone = $this->pageData['JwtData']->User->Timezone ?? 'UTC';
-            $this->_sendExport($type, 'Inventory_Data', 'Inventory', 'Inventory / Stock Report', $headers, $rows, $orgInfo, $timezone);
+            $timezone  = $this->pageData['JwtData']->User->Timezone ?? 'UTC';
+            $colWidths = ['3%','18%','10%','5%','5%','9%','9%','9%','9%','12%','11%'];
+            $this->_sendExport($type, 'Inventory_Data', 'Inventory', 'Inventory / Stock Report', $headers, $rows, $orgInfo, $timezone, $colWidths);
 
         } catch (Exception $e) {
             echo json_encode(['Error' => true, 'Message' => $e->getMessage()]);
@@ -404,14 +485,15 @@ class Inventory extends MY_Controller {
                 107 => 'Credit Note', 108 => 'Purchase Return', 118 => 'Manual Adj.',
             ];
 
-            $headers = ['#', 'Date', 'Item Name', 'Category', 'Source', 'Reference', 'Type', 'Qty', 'Unit Cost', 'Notes', 'Created By'];
+            $headers = ['#', 'Date', 'Item Name', 'Category', 'Source', 'Reference', 'Type', 'Qty', 'Price', 'Remarks', 'Created By'];
             $rows    = [];
             foreach ($data as $i => $row) {
                 $rows[] = $this->_mapTimelineRow($i + 1, $row, $moduleLabels);
             }
 
-            $timezone = $this->pageData['JwtData']->User->Timezone ?? 'UTC';
-            $this->_sendExport($type, 'Inventory_Timeline', 'Timeline', 'Inventory Stock Timeline', $headers, $rows, $orgInfo, $timezone);
+            $timezone  = $this->pageData['JwtData']->User->Timezone ?? 'UTC';
+            $colWidths = ['3%','9%','16%','9%','7%','9%','7%','5%','7%','16%','12%'];
+            $this->_sendExport($type, 'Inventory_Timeline', 'Timeline', 'Inventory Stock Timeline', $headers, $rows, $orgInfo, $timezone, $colWidths);
 
         } catch (Exception $e) {
             echo json_encode(['Error' => true, 'Message' => $e->getMessage()]);
@@ -442,10 +524,12 @@ class Inventory extends MY_Controller {
     private function _mapTimelineRow($i, $row, $moduleLabels) {
         $moduleUID = (int)$row->ModuleUID;
         $source    = $moduleLabels[$moduleUID] ?? 'Unknown';
-        $ref       = ($moduleUID === 118) ? ($row->AdjCategory ?: 'Manual') : ($row->TransNumber ?: 'â€”');
+        $ref       = ($moduleUID === 118)
+                   ? (!empty($row->AdjUID) ? 'ADJ-' . (int)$row->AdjUID : ($row->AdjCategory ?: 'Manual'))
+                   : (!empty($row->UniqueNumber) ? $row->UniqueNumber : ($row->TransNumber ?: '—'));
         $date      = ($moduleUID === 118)
-                   ? ($row->AdjDate   ? date('d M Y', strtotime($row->AdjDate))   : 'â€”')
-                   : ($row->TransDate ? date('d M Y', strtotime($row->TransDate)) : 'â€”');
+                   ? ($row->AdjDate   ? date('d M Y', strtotime($row->AdjDate))   : '—')
+                   : ($row->TransDate ? date('d M Y', strtotime($row->TransDate)) : '—');
         return [
             $i,
             $date,
@@ -455,234 +539,11 @@ class Inventory extends MY_Controller {
             $ref,
             $row->MovementType  ?? '',
             $row->Quantity      ?? '',
-            $row->UnitCost      ?? '',
-            $row->AdjNotes      ?? 'â€”',
+            isset($row->SellingPrice) && $row->SellingPrice !== null ? $row->SellingPrice : ($row->UnitCost ?? ''),
+            $row->Remarks       ?? '—',
             $row->CreatedByName ?? '',
         ];
     }
 
-    private function _sendExport($type, $fileName, $sheetName, $previewName, $headers, $rows, $org = null, $timezone = 'UTC') {
-        if ($type === 'Print') {
-            $html = $this->_buildPrintHtml($previewName, $headers, $rows, $org, $timezone);
-            header('Content-Type: application/json');
-            echo json_encode(['Error' => false, 'HtmlData' => $html]);
-            exit;
-        }
-
-        if (ob_get_length()) ob_end_clean();
-
-        // Build org header lines (used by CSV and spreadsheet formats)
-        $str = function($v) { $s = trim((string)$v); return ($v !== null && $s !== '' && $s !== 'null') ? $s : ''; };
-        $orgName    = $org ? ($str($org->BrandName ?? '') ?: $str($org->Name ?? '')) : '';
-        $addrParts  = [];
-        if ($org) {
-            if ($str($org->Line1 ?? ''))   $addrParts[] = $str($org->Line1 ?? '');
-            if ($str($org->Line2 ?? ''))   $addrParts[] = $str($org->Line2 ?? '');
-            $ct = $str($org->CityText ?? '');
-            $st = $str($org->StateText ?? '');
-            $cityState = trim($ct . ($st ? ' - ' . $st : ''));
-            if ($cityState)                $addrParts[] = $cityState;
-            if ($str($org->Pincode ?? '')) $addrParts[] = 'PIN: ' . $str($org->Pincode ?? '');
-        }
-        $addrLine   = implode(', ', $addrParts);
-        $contactLine = implode('  |  ', array_filter([
-            !empty($org->MobileNumber) ? 'Ph: ' . $org->MobileNumber  : '',
-            !empty($org->EmailAddress) ? 'Email: ' . $org->EmailAddress : '',
-            !empty($org->GSTIN)        ? 'GSTIN: ' . $org->GSTIN       : '',
-        ]));
-
-        if ($type === 'CSV') {
-            header('Content-Type: text/csv; charset=utf-8');
-            header("Content-Disposition: attachment; filename=\"{$fileName}.csv\"");
-            header('Pragma: no-cache');
-            $f = fopen('php://output', 'w');
-            fputs($f, chr(0xEF) . chr(0xBB) . chr(0xBF));
-            if ($orgName)    fputcsv($f, [$orgName]);
-            if ($addrLine)   fputcsv($f, [$addrLine]);
-            if ($contactLine) fputcsv($f, [$contactLine]);
-            $genDate = (new DateTime('now', new DateTimeZone($timezone ?: 'UTC')))->format('d M Y, h:i A');
-            fputcsv($f, [$previewName . ' â€” Generated: ' . $genDate]);
-            fputcsv($f, []);
-            fputcsv($f, $headers);
-            foreach ($rows as $row) { fputcsv($f, $row); }
-            fclose($f);
-            exit;
-        }
-
-        // Excel / PDF via PhpSpreadsheet
-        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
-        $sheet       = $spreadsheet->getActiveSheet();
-        $sheet->setTitle($sheetName);
-
-        $colCount = count($headers);
-        $lastCol  = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colCount);
-
-        // ── Company header rows ───────────────────────────────────────────────
-        $r = 1;
-
-        // Logo (if accessible local path or valid URL readable by GD)
-        $logoOffset = 0;
-        if ($org && !empty($org->Logo)) {
-            try {
-                $logoSrc = $org->Logo;
-                // Attempt to fetch remote logo into a temp file
-                $tmpLogo = tempnam(sys_get_temp_dir(), 'inv_logo_');
-                $imgData = @file_get_contents($logoSrc);
-                if ($imgData) {
-                    file_put_contents($tmpLogo, $imgData);
-                    $drawing = new \PhpOffice\PhpSpreadsheet\Worksheet\Drawing();
-                    $drawing->setPath($tmpLogo);
-                    $drawing->setHeight(48);
-                    $drawing->setCoordinates('A1');
-                    $drawing->setOffsetX(4);
-                    $drawing->setOffsetY(4);
-                    $drawing->setWorksheet($sheet);
-                    $logoOffset = 4; // rows occupied by the logo block
-                    $r = $logoOffset + 1;
-                }
-            } catch (\Exception $e) { /* skip logo silently */ }
-        }
-
-        // Org name (bold, 14pt)
-        $sheet->setCellValue("A{$r}", $orgName);
-        $sheet->getStyle("A{$r}")->getFont()->setBold(true)->setSize(14);
-        $sheet->mergeCells("A{$r}:{$lastCol}{$r}");
-        $r++;
-
-        if ($addrLine) {
-            $sheet->setCellValue("A{$r}", $addrLine);
-            $sheet->mergeCells("A{$r}:{$lastCol}{$r}");
-            $r++;
-        }
-        if ($contactLine) {
-            $sheet->setCellValue("A{$r}", $contactLine);
-            $sheet->mergeCells("A{$r}:{$lastCol}{$r}");
-            $r++;
-        }
-
-        // Report title + date
-        $genDate = (new DateTime('now', new DateTimeZone($timezone ?: 'UTC')))->format('d M Y, h:i A');
-        $sheet->setCellValue("A{$r}", $previewName . '   |   Generated: ' . $genDate);
-        $sheet->getStyle("A{$r}")->getFont()->setBold(true)->setColor(
-            (new \PhpOffice\PhpSpreadsheet\Style\Color())->setARGB('FF334155')
-        );
-        $sheet->mergeCells("A{$r}:{$lastCol}{$r}");
-        $r++;
-
-        // Blank separator
-        $r++;
-
-        // ── Column headers ───────────────────────────────────────────────
-        $headerRow = $r;
-        $sheet->fromArray($headers, null, "A{$headerRow}");
-        $sheet->getStyle("A{$headerRow}:{$lastCol}{$headerRow}")->getFont()->setBold(true);
-        $sheet->getStyle("A{$headerRow}:{$lastCol}{$headerRow}")->getFill()
-            ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
-            ->getStartColor()->setARGB('FFE2E8F0');
-        $r++;
-
-        // ── Data rows ───────────────────────────────────────────────
-        foreach ($rows as $row) {
-            $sheet->fromArray($row, null, "A{$r}");
-            $r++;
-        }
-
-        for ($c = 1; $c <= $colCount; $c++) {
-            $sheet->getColumnDimensionByColumn($c)->setAutoSize(true);
-        }
-
-        if ($type === 'Excel') {
-            header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-            header("Content-Disposition: attachment; filename=\"{$fileName}.xlsx\"");
-            header('Pragma: no-cache');
-            $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
-            $writer->save('php://output');
-            exit;
-        }
-
-        if ($type === 'Pdf') {
-            $sheet->getPageSetup()->setOrientation(\PhpOffice\PhpSpreadsheet\Worksheet\PageSetup::ORIENTATION_LANDSCAPE);
-            $sheet->getPageSetup()->setFitToWidth(1);
-            header('Content-Type: application/pdf');
-            header("Content-Disposition: attachment; filename=\"{$fileName}.pdf\"");
-            \PhpOffice\PhpSpreadsheet\IOFactory::registerWriter('Pdf', \PhpOffice\PhpSpreadsheet\Writer\Pdf\Dompdf::class);
-            $writer = \PhpOffice\PhpSpreadsheet\IOFactory::createWriter($spreadsheet, 'Pdf');
-            $writer->save('php://output');
-            exit;
-        }
-    }
-
-    private function _buildPrintHtml($previewName, $headers, $rows, $org = null, $timezone = 'UTC') {
-        $str = function($v) { $s = trim((string)$v); return ($v !== null && $s !== '' && $s !== 'null') ? $s : ''; };
-        $orgName    = $org ? ($str($org->BrandName ?? '') ?: $str($org->Name ?? '')) : '';
-        $addrParts  = [];
-        if ($org) {
-            if ($str($org->Line1 ?? ''))   $addrParts[] = htmlspecialchars($str($org->Line1 ?? ''));
-            if ($str($org->Line2 ?? ''))   $addrParts[] = htmlspecialchars($str($org->Line2 ?? ''));
-            $ct = $str($org->CityText ?? '');
-            $st = $str($org->StateText ?? '');
-            $cs = trim($ct . ($st ? ' - ' . $st : ''));
-            if ($cs)                       $addrParts[] = htmlspecialchars($cs);
-            if ($str($org->Pincode ?? '')) $addrParts[] = 'PIN: ' . htmlspecialchars($str($org->Pincode ?? ''));
-        }
-        $logoHtml = ($org && !empty($org->Logo))
-            ? '<img src="' . htmlspecialchars($org->Logo) . '" style="height:52px;object-fit:contain;" alt="Logo">'
-            : '';
-        $contactItems = array_filter([
-            !empty($org->MobileNumber) ? '<span>&#128222; ' . htmlspecialchars($org->MobileNumber)  . '</span>' : '',
-            !empty($org->EmailAddress) ? '<span>&#9993; ' . htmlspecialchars($org->EmailAddress) . '</span>' : '',
-            !empty($org->GSTIN)        ? '<span>GSTIN: <strong>' . htmlspecialchars($org->GSTIN) . '</strong></span>' : '',
-        ]);
-        $date = (new DateTime('now', new DateTimeZone($timezone ?: 'UTC')))->format('d M Y, h:i A');
-
-        $th = '';
-        foreach ($headers as $h) {
-            $th .= '<th>' . htmlspecialchars($h) . '</th>';
-        }
-        $tb = '';
-        foreach ($rows as $row) {
-            $tb .= '<tr>';
-            foreach ($row as $cell) {
-                $tb .= '<td>' . htmlspecialchars((string)$cell) . '</td>';
-            }
-            $tb .= '</tr>';
-        }
-
-        return '<!DOCTYPE html><html><head><meta charset="utf-8">
-<title>' . htmlspecialchars($orgName ?: $previewName) . '</title>
-<style>
-*{box-sizing:border-box;}
-body{font-family:Arial,sans-serif;font-size:11px;margin:0;padding:14px;}
-.org-header{display:flex;align-items:flex-start;gap:14px;border-bottom:2px solid #334155;padding-bottom:10px;margin-bottom:10px;}
-.org-logo{flex-shrink:0;}
-.org-details{flex:1;}
-.org-name{font-size:16px;font-weight:700;color:#1e293b;margin:0 0 3px;}
-.org-addr{color:#475569;font-size:10px;margin:0 0 3px;}
-.org-contact{display:flex;flex-wrap:wrap;gap:10px;color:#475569;font-size:10px;}
-.report-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
-.report-title h4{margin:0;font-size:13px;color:#1e293b;}
-.report-title .gen-date{font-size:10px;color:#94a3b8;}
-table{width:100%;border-collapse:collapse;}
-th{background:#e2e8f0;padding:6px 8px;text-align:left;border:1px solid #cbd5e1;font-size:11px;color:#1e293b;}
-td{padding:5px 8px;border:1px solid #e2e8f0;font-size:10.5px;color:#334155;}
-tr:nth-child(even) td{background:#f8fafc;}
-@media print{body{padding:5mm;}@page{margin:8mm;}}
-</style>
-</head><body>
-<div class="org-header">
-  <div class="org-logo">' . $logoHtml . '</div>
-  <div class="org-details">
-    <p class="org-name">' . htmlspecialchars($orgName) . '</p>
-    <p class="org-addr">' . implode(', ', $addrParts) . '</p>
-    <div class="org-contact">' . implode('', $contactItems) . '</div>
-  </div>
-</div>
-<div class="report-title">
-  <h4>' . htmlspecialchars($previewName) . '</h4>
-  <span class="gen-date">Generated: ' . $date . '</span>
-</div>
-<table><thead><tr>' . $th . '</tr></thead><tbody>' . $tb . '</tbody></table>
-</body></html>';
-    }
 
 }

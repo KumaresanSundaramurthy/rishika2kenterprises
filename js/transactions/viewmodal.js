@@ -415,6 +415,36 @@
             hasPayments: false,
             validLabel : 'Expected Delivery',
         },
+        'salesreturn': {
+            title      : 'Sales Return Details',
+            editPath   : '/salesreturns/edit/',
+            dataKey    : '_srLastPrintData',
+            partyLabel : 'Customer',
+            typeIcon   : 'bx-undo',
+            typeColor  : '#0891b2',
+            typeBg     : '#e0f5fb',
+            hasPayments: false,
+        },
+        'creditnote': {
+            title      : 'Credit Note Details',
+            editPath   : '/creditnotes/edit/',
+            dataKey    : '_cnLastPrintData',
+            partyLabel : 'Customer',
+            typeIcon   : 'bx-credit-card',
+            typeColor  : '#0891b2',
+            typeBg     : '#e0f5fb',
+            hasPayments: false,
+        },
+        'purchasereturn': {
+            title      : 'Purchase Return Details',
+            editPath   : '/purchasereturns/edit/',
+            dataKey    : '_prLastPrintData',
+            partyLabel : 'Vendor',
+            typeIcon   : 'bx-undo',
+            typeColor  : '#d97706',
+            typeBg     : '#fff8e1',
+            hasPayments: false,
+        },
     };
 
     // ── Attachment section ─────────────────────────────────────────────────────

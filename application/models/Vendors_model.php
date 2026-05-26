@@ -300,6 +300,10 @@ class Vendors_model extends CI_Model {
             if (isset($filter['IsActive']) && $filter['IsActive'] !== '') {
                 $this->ReadDb->where('Vendors.IsActive', (int) $filter['IsActive']);
             }
+            if (!empty($filter['UpdatedByUIDs'])) {
+                $uids = array_filter(array_map('intval', (array)$filter['UpdatedByUIDs']));
+                if (!empty($uids)) $this->ReadDb->where_in('Vendors.UpdatedBy', $uids);
+            }
             $cntQuery = $this->ReadDb->get();
             if (!$cntQuery) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
             $totalCount = (int) $cntQuery->row()->cnt;
@@ -357,6 +361,11 @@ class Vendors_model extends CI_Model {
             if (isset($filter['IsActive']) && $filter['IsActive'] !== '') {
                 $this->ReadDb->where('Vendors.IsActive', (int)$filter['IsActive']);
             }
+            // UpdatedBy filter
+            if (!empty($filter['UpdatedByUIDs'])) {
+                $uids = array_filter(array_map('intval', (array)$filter['UpdatedByUIDs']));
+                if (!empty($uids)) $this->ReadDb->where_in('Vendors.UpdatedBy', $uids);
+            }
             // Sorting
             if (!empty($filter['NameSorting'])) {
                 $this->ReadDb->order_by('Vendors.Name', (int)$filter['NameSorting'] === 1 ? 'ASC' : 'DESC');
@@ -367,7 +376,7 @@ class Vendors_model extends CI_Model {
             } else {
                 $this->ReadDb->order_by('Vendors.VendorUID', 'DESC');
             }
-            $this->ReadDb->limit($limit, $offset);
+            if ($limit > 0) { $this->ReadDb->limit($limit, $offset); }
             $dataQuery = $this->ReadDb->get();
             if (!$dataQuery) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
 

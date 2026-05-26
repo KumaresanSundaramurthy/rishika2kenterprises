@@ -101,6 +101,18 @@ class Customers extends MY_Controller {
             $this->pageData['OrgCCode'] = $orgCCode;
             $this->pageData['OrgCISO2'] = $orgCISO2;
 
+            $this->load->model('users_model');
+            $cacheKey = $this->redisservice->orgKey('org_users');
+            $orgUsers = $this->redisservice->getCache($cacheKey)->Value;
+            if (!is_array($orgUsers)) {
+                $orgUsers = $this->users_model->getOrgUsersForCache($this->pageData['JwtData']->User->OrgUID);
+                if (!empty($orgUsers)) {
+                    $this->redisservice->setCache($cacheKey, $orgUsers, 86400);
+                }
+            }
+            $this->pageData['OrgUsers']     = $orgUsers;
+            $this->pageData['ShowUserFilter'] = is_array($orgUsers) && count($orgUsers) > 1;
+
             $this->load->view('customers/view', $this->pageData);
 
         } catch (Exception $e) {
@@ -704,6 +716,50 @@ class Customers extends MY_Controller {
         }
 
         $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    public function exportCustomers() {
+        try {
+            $type   = $this->input->get('Type')   ?: 'CSV';
+            $filter = $this->input->get('Filter') ?: '{}';
+            $filter = json_decode($filter, true)  ?: [];
+
+            $orgUID = (int)$this->pageData['JwtData']->User->OrgUID;
+            $this->load->model('organisation_model');
+            $orgResult = $this->organisation_model->getOrgInfoCached($orgUID);
+            $orgInfo   = ($orgResult->Error === FALSE) ? $orgResult->Data : null;
+
+            $this->load->model('customers_model');
+            $result = $this->customers_model->getCustomerListPaginated($orgUID, 0, 0, $filter);
+            $data   = $result->rows;
+
+            $headers = ['#', 'Customer Name', 'Area', 'Mobile', 'Email', 'GSTIN', 'Company Name', 'Customer Type', 'Balance', 'Balance Type', 'Status', 'Last Updated', 'Updated By'];
+            $rows    = [];
+            foreach ($data as $i => $row) {
+                $rows[] = [
+                    $i + 1,
+                    $row->Name             ?? '',
+                    $row->Area             ?? '',
+                    $row->MobileNumber     ?? '',
+                    $row->EmailAddress     ?? '',
+                    $row->GSTIN            ?? '',
+                    $row->CompanyName      ?? '',
+                    $row->CustomerTypeName ?? '',
+                    number_format((float)($row->ClosingBalance ?? 0), 2),
+                    $row->ClosingBalanceType ?? '',
+                    ((int)($row->IsActive ?? 1)) === 1 ? 'Active' : 'Inactive',
+                    !empty($row->UpdatedOn) ? date('d M Y', strtotime($row->UpdatedOn)) : '',
+                    $row->UpdatedBy ?? '',
+                ];
+            }
+
+            $timezone  = $this->pageData['JwtData']->User->Timezone ?? 'UTC';
+            $colWidths = ['3%','14%','9%','9%','12%','9%','9%','8%','7%','6%','5%','9%','10%'];
+            $this->_sendExport($type, 'Customer_Data', 'Customers', 'Customer Report', $headers, $rows, $orgInfo, $timezone, $colWidths);
+
+        } catch (Exception $e) {
+            echo json_encode(['Error' => true, 'Message' => $e->getMessage()]);
+        }
     }
 
     public function getCustomerTags() {

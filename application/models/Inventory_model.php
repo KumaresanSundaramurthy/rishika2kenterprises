@@ -170,15 +170,17 @@ class Inventory_model extends CI_Model {
                 sl.Quantity,
                 sl.UnitCost,
                 sl.CreatedOn,
+                COALESCE(sl.Remarks, IF(sl.ModuleUID = 118, sa.Notes, NULL)) AS Remarks,
                 -- Transaction-based movements (Invoice, Purchase, Returns)
                 ts.TransNumber,
+                ts.UniqueNumber,
                 ts.TransDate,
                 ts.DocStatus   AS TransStatus,
                 -- Manual adjustment fields
+                sa.AdjUID,
                 sa.AdjCategory,
                 sa.AdjType,
-                sa.RecordDate  AS AdjDate,
-                sa.Notes       AS AdjNotes
+                sa.RecordDate  AS AdjDate
             FROM Products.StockLedgerTbl sl
             LEFT JOIN Transaction.TransactionsTbl ts
                 ON  ts.TransUID  = sl.TransUID
@@ -206,6 +208,7 @@ class Inventory_model extends CI_Model {
         $this->ReadDb->db_debug = FALSE;
         $params = [(int)$orgUID];
         $where  = $this->_buildTimelineWhere($filter, $params);
+        $sort   = $this->_buildTimelineSort($filter);
 
         $sql = "
             SELECT
@@ -214,19 +217,28 @@ class Inventory_model extends CI_Model {
                 sl.MovementType,
                 sl.Quantity,
                 sl.UnitCost,
+                sl.SellingPrice,
+                sl.TaxAmount,
                 sl.CreatedOn,
                 sl.TransUID,
+                sl.TransProdUID,
+                COALESCE(sl.Remarks, IF(sl.ModuleUID = 118, sa.Notes, NULL)) AS Remarks,
                 p.ProductUID,
                 p.ItemName,
-                pu.ShortName AS UnitName,
+                p.HSNSACCode,
+                p.ProductType,
+                COALESCE(tp.PartNumber, p.PartNumber)       AS PartNumber,
+                COALESCE(tp.Description, p.Description)     AS Description,
+                COALESCE(tp.PrimaryUnitName, pu.ShortName)  AS UnitName,
                 cat.Name AS CategoryName,
                 ts.TransUID AS TransactionUID,
                 ts.TransNumber,
+                ts.UniqueNumber,
                 ts.TransDate,
+                ts.DocStatus,
                 sa.AdjUID,
                 sa.AdjCategory,
                 sa.RecordDate AS AdjDate,
-                sa.Notes AS AdjNotes,
                 CONCAT(IFNULL(usr.FirstName,''), ' ', IFNULL(usr.LastName,'')) AS CreatedByName,
                 COALESCE(ts.TransDate, sa.RecordDate, DATE(sl.CreatedOn)) AS EffectiveDate
             FROM Products.StockLedgerTbl sl
@@ -238,6 +250,7 @@ class Inventory_model extends CI_Model {
                 )
             LEFT JOIN Products.CategoryTbl cat ON cat.CategoryUID = p.CategoryUID AND cat.IsDeleted = 0
             LEFT JOIN Global.PrimaryUnitTbl pu ON pu.PrimaryUnitUID = p.PrimaryUnitUID
+            LEFT JOIN Transaction.TransProductsTbl tp ON tp.TransProdUID = sl.TransProdUID AND tp.IsDeleted = 0
             LEFT JOIN Transaction.TransactionsTbl ts
                 ON ts.TransUID = sl.TransUID AND sl.ModuleUID NOT IN (118) AND ts.IsDeleted = 0
             LEFT JOIN Products.StockAdjustmentTbl sa
@@ -245,7 +258,7 @@ class Inventory_model extends CI_Model {
             LEFT JOIN Users.UserTbl usr ON usr.UserUID = sl.CreatedBy
             WHERE sl.OrgUID = ? AND sl.IsDeleted = 0
             {$where}
-            ORDER BY sl.LedgerUID DESC
+            ORDER BY {$sort}
             LIMIT ? OFFSET ?
         ";
 
@@ -304,15 +317,20 @@ class Inventory_model extends CI_Model {
                 sl.MovementType,
                 sl.Quantity,
                 sl.UnitCost,
+                sl.SellingPrice,
+                sl.TaxAmount,
                 sl.CreatedOn,
+                sl.TransProdUID,
+                COALESCE(sl.Remarks, IF(sl.ModuleUID = 118, sa.Notes, NULL)) AS Remarks,
                 p.ItemName,
-                pu.ShortName AS UnitName,
+                COALESCE(tp.PrimaryUnitName, pu.ShortName) AS UnitName,
                 cat.Name AS CategoryName,
                 ts.TransNumber,
+                ts.UniqueNumber,
                 ts.TransDate,
+                sa.AdjUID,
                 sa.AdjCategory,
                 sa.RecordDate AS AdjDate,
-                sa.Notes AS AdjNotes,
                 CONCAT(IFNULL(usr.FirstName,''), ' ', IFNULL(usr.LastName,'')) AS CreatedByName,
                 COALESCE(ts.TransDate, sa.RecordDate, DATE(sl.CreatedOn)) AS EffectiveDate
             FROM Products.StockLedgerTbl sl
@@ -324,6 +342,7 @@ class Inventory_model extends CI_Model {
                 )
             LEFT JOIN Products.CategoryTbl cat ON cat.CategoryUID = p.CategoryUID AND cat.IsDeleted = 0
             LEFT JOIN Global.PrimaryUnitTbl pu ON pu.PrimaryUnitUID = p.PrimaryUnitUID
+            LEFT JOIN Transaction.TransProductsTbl tp ON tp.TransProdUID = sl.TransProdUID AND tp.IsDeleted = 0
             LEFT JOIN Transaction.TransactionsTbl ts
                 ON ts.TransUID = sl.TransUID AND sl.ModuleUID NOT IN (118) AND ts.IsDeleted = 0
             LEFT JOIN Products.StockAdjustmentTbl sa
@@ -360,7 +379,45 @@ class Inventory_model extends CI_Model {
             $where   .= ' AND sl.MovementType = ?';
             $params[] = $filter['MovementType'];
         }
+        if (!empty($filter['CategoryUID'])) {
+            $uids = is_array($filter['CategoryUID']) ? array_map('intval', $filter['CategoryUID']) : [(int)$filter['CategoryUID']];
+            $uids = array_values(array_filter($uids));
+            if ($uids) {
+                $where .= ' AND p.CategoryUID IN (' . implode(',', array_fill(0, count($uids), '?')) . ')';
+                foreach ($uids as $u) $params[] = $u;
+            }
+        }
+        if (!empty($filter['ModuleUID'])) {
+            $uids = is_array($filter['ModuleUID']) ? array_map('intval', $filter['ModuleUID']) : [(int)$filter['ModuleUID']];
+            $uids = array_values(array_filter($uids));
+            if ($uids) {
+                $where .= ' AND sl.ModuleUID IN (' . implode(',', array_fill(0, count($uids), '?')) . ')';
+                foreach ($uids as $u) $params[] = $u;
+            }
+        }
+        if (!empty($filter['CreatedByUID'])) {
+            $uids = is_array($filter['CreatedByUID']) ? array_map('intval', $filter['CreatedByUID']) : [(int)$filter['CreatedByUID']];
+            $uids = array_values(array_filter($uids));
+            if ($uids) {
+                $where .= ' AND sl.CreatedBy IN (' . implode(',', array_fill(0, count($uids), '?')) . ')';
+                foreach ($uids as $u) $params[] = $u;
+            }
+        }
         return $where;
+
+    }
+
+    private function _buildTimelineSort($filter) {
+
+        $colMap = [
+            'ItemName'  => 'p.ItemName',
+            'Price'     => 'COALESCE(sl.SellingPrice, sl.UnitCost)',
+            'Category'  => 'cat.Name',
+            'Date'      => 'COALESCE(ts.TransDate, sa.RecordDate, DATE(sl.CreatedOn))',
+        ];
+        $col = isset($filter['SortBy'], $colMap[$filter['SortBy']]) ? $colMap[$filter['SortBy']] : 'sl.LedgerUID';
+        $dir = (isset($filter['SortDir']) && strtoupper($filter['SortDir']) === 'ASC') ? 'ASC' : 'DESC';
+        return "{$col} {$dir}";
 
     }
 
@@ -394,6 +451,32 @@ class Inventory_model extends CI_Model {
         $this->ReadDb->order_by('Name', 'ASC');
         $query = $this->ReadDb->get();
         return $query->result();
+
+    }
+
+    // ── Fetch a single manual adjustment (for update) ─────────────────────────
+
+    public function getAdjustmentById($adjUID, $orgUID) {
+
+        $this->ReadDb->db_debug = FALSE;
+        $this->ReadDb->select('AdjUID, ProductUID, AdjType, Qty, Price, Notes, RecordDate');
+        $this->ReadDb->from('Products.StockAdjustmentTbl');
+        $this->ReadDb->where(['AdjUID' => (int)$adjUID, 'OrgUID' => (int)$orgUID, 'IsDeleted' => 0]);
+        $query = $this->ReadDb->get();
+        return $query->row();
+
+    }
+
+    // ── Fetch a single ledger row (for remarks update) ────────────────────────
+
+    public function getLedgerById($ledgerUID, $orgUID) {
+
+        $this->ReadDb->db_debug = FALSE;
+        $this->ReadDb->select('LedgerUID, ProductUID, ModuleUID');
+        $this->ReadDb->from('Products.StockLedgerTbl');
+        $this->ReadDb->where(['LedgerUID' => (int)$ledgerUID, 'OrgUID' => (int)$orgUID, 'IsDeleted' => 0]);
+        $query = $this->ReadDb->get();
+        return $query->row();
 
     }
 

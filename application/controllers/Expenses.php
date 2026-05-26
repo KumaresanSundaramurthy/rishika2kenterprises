@@ -47,6 +47,10 @@ class Expenses extends MY_Controller {
             $this->pageData['PaymentTypes'] = $this->expenses_model->getPaymentTypes();
             $this->pageData['BankAccounts'] = $this->expenses_model->getBankAccounts($orgUID);
 
+            // Org users for column filter
+            $this->load->model('users_model');
+            $this->pageData['OrgUsers'] = $this->users_model->getOrgUsersForCache($orgUID);
+
             $this->load->view('transactions/expenses/view', $this->pageData);
 
         } catch (Throwable $e) {
@@ -119,6 +123,8 @@ class Expenses extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
+            $this->_saveAttachments($expenseUID, 'Expense');
+
             $this->EndReturnData->Error         = FALSE;
             $this->EndReturnData->Message       = 'Expense recorded successfully.';
             $this->EndReturnData->ExpenseUID    = $expenseUID;
@@ -166,6 +172,8 @@ class Expenses extends MY_Controller {
                 ['ExpenseUID' => $expenseUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
             );
             if ($resp->Error) throw new Exception($resp->Message);
+
+            $this->_saveAttachments($expenseUID, 'Expense');
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Expense updated successfully.';
@@ -307,21 +315,45 @@ class Expenses extends MY_Controller {
 
             $existing = $this->expenses_model->getExpenseById($expenseUID, $orgUID);
             if (!$existing) throw new Exception('Expense not found.');
-            if ($existing->DocStatus !== 'Pending') throw new Exception('Only pending expenses can be marked as paid.');
+            if (!in_array($existing->DocStatus, ['Pending', 'Partial'])) {
+                throw new Exception('Payment can only be recorded for Pending or Partially Paid expenses.');
+            }
 
             $paymentTypeUID = (int)getPostValue($PostData, 'PaymentTypeUID') ?: NULL;
             $bankAccountUID = (int)getPostValue($PostData, 'BankAccountUID') ?: NULL;
             $paymentDate    = getPostValue($PostData, 'PaymentDate') ?: $existing->ExpenseDate;
             $referenceNo    = getPostValue($PostData, 'ReferenceNo') ?: NULL;
             $notes          = getPostValue($PostData, 'Notes')       ?: NULL;
+            $paymentAmount  = round((float)getPostValue($PostData, 'Amount'), 2);
 
             if (!$paymentTypeUID) throw new Exception('Please select a payment type.');
+            if ($paymentAmount <= 0) throw new Exception('Payment amount must be greater than 0.');
+
+            $netAmount     = round((float)$existing->NetAmount, 2);
+            $existingPaid  = round((float)($existing->PaidAmount ?? 0), 2);
+            $newPaidAmount = round($existingPaid + $paymentAmount, 2);
+
+            if ($newPaidAmount > $netAmount + 0.01) {
+                throw new Exception('Total payments (' . $newPaidAmount . ') cannot exceed the expense amount (' . $netAmount . ').');
+            }
+
+            $newPaidAmount  = min($newPaidAmount, $netAmount);
+            $balanceAmount  = max(0, round($netAmount - $newPaidAmount, 2));
+            $isFullyPaid    = ($balanceAmount <= 0) ? 1 : 0;
+            $newStatus      = $isFullyPaid ? 'Paid' : 'Partial';
 
             $this->dbwrite_model->startTransaction();
 
             $resp = $this->dbwrite_model->updateData(
                 'Transaction', 'ExpensesTbl',
-                ['DocStatus' => 'Paid', 'IsPaid' => 1, 'UpdatedBy' => $userUID, 'UpdatedOn' => date('Y-m-d H:i:s')],
+                [
+                    'DocStatus'     => $newStatus,
+                    'IsPaid'        => $isFullyPaid,
+                    'PaidAmount'    => $newPaidAmount,
+                    'BalanceAmount' => $balanceAmount,
+                    'UpdatedBy'     => $userUID,
+                    'UpdatedOn'     => date('Y-m-d H:i:s'),
+                ],
                 ['ExpenseUID' => $expenseUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
             );
             if ($resp->Error) throw new Exception($resp->Message);
@@ -333,13 +365,16 @@ class Expenses extends MY_Controller {
             $paymentNumber = $payPrefixUID ? (int)$this->transactions_model->getNextPaymentNumber($payPrefixUID, $orgUID, $payTransYear) : 0;
             $token         = $this->transactions_model->_generateReceiptToken();
 
+            $pmtCount     = $this->expenses_model->getPaymentCount($expenseUID, 'Expense', $orgUID);
+            $uniqueNumber = $pmtCount === 0 ? $existing->ExpenseNumber : $existing->ExpenseNumber . '-' . $pmtCount;
+
             $pmtResp = $this->dbwrite_model->insertData('Transaction', 'PaymentsTbl', [
                 'OrgUID'           => $orgUID,
                 'PaymentDate'      => $paymentDate,
                 'PaymentModuleUID' => 111,
                 'PrefixUID'        => $payPrefixUID,
                 'PaymentNumber'    => $paymentNumber,
-                'UniqueNumber'     => $existing->ExpenseNumber,
+                'UniqueNumber'     => $uniqueNumber,
                 'ReceiptToken'     => $token,
                 'TransYear'        => $payTransYear,
                 'TransUID'         => $expenseUID,
@@ -348,12 +383,12 @@ class Expenses extends MY_Controller {
                 'PartyType'        => NULL,
                 'PartyUID'         => NULL,
                 'PaymentTypeUID'   => $paymentTypeUID,
-                'Amount'           => $existing->NetAmount,
+                'Amount'           => $paymentAmount,
                 'BankAccountUID'   => $bankAccountUID ?: NULL,
                 'Notes'            => $notes,
                 'PaymentSource'    => 'Create',
                 'PaymentDirection' => 'Out',
-                'IsFullyPaid'      => 1,
+                'IsFullyPaid'      => $isFullyPaid,
                 'ExcessAmount'     => 0,
                 'IsActive'         => 1,
                 'IsDeleted'        => 0,
@@ -373,12 +408,12 @@ class Expenses extends MY_Controller {
                     'BankAccountUID' => $ledgerBankUID,
                     'EntryDate'      => $paymentDate,
                     'EntryType'      => 'DR',
-                    'Amount'         => $existing->NetAmount,
+                    'Amount'         => $paymentAmount,
                     'SourceType'     => 'Expense',
                     'SourceUID'      => $expenseUID,
                     'ModuleUID'      => $this->pageModuleUID,
                     'ReferenceNo'    => $referenceNo,
-                    'Narration'      => 'Expense paid — ' . $existing->ExpenseNumber,
+                    'Narration'      => ($isFullyPaid ? 'Expense paid' : 'Expense partially paid') . ' — ' . $existing->ExpenseNumber,
                     'IsActive'       => 1,
                     'IsDeleted'      => 0,
                     'CreatedBy'      => $userUID,
@@ -390,8 +425,11 @@ class Expenses extends MY_Controller {
             }
 
             $this->dbwrite_model->commitTransaction();
+            $this->_savePaymentAttachments((int)$pmtResp->ID);
             $this->EndReturnData->Error   = FALSE;
-            $this->EndReturnData->Message = 'Expense marked as paid.';
+            $this->EndReturnData->Message = $isFullyPaid
+                ? 'Expense marked as paid.'
+                : 'Partial payment recorded. Balance remaining: ' . $balanceAmount . '.';
 
         } catch (Throwable $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -403,6 +441,66 @@ class Expenses extends MY_Controller {
             $this->_appendListResponse($orgUID);
         }
 
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    // ── Payment history popup ────────────────────────────────────────────────
+    public function getPaymentHistory() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $expenseUID = (int)$this->input->post('TransUID');
+            $orgUID     = $this->pageData['JwtData']->User->OrgUID;
+            if ($expenseUID <= 0) throw new Exception('Invalid expense.');
+
+            $this->load->model('transactions_model');
+            $payments = $this->transactions_model->getTransactionPayments($expenseUID, $orgUID);
+
+            $list = [];
+            foreach ($payments as $p) {
+                $list[] = [
+                    'Amount'          => (float)$p->Amount,
+                    'PaymentTypeName' => $p->PaymentTypeName ?? '',
+                    'CreatedOn'       => $p->CreatedOn       ?? '',
+                    'ReferenceNo'     => $p->ReferenceNo     ?? '',
+                ];
+            }
+
+            $this->EndReturnData->Error    = FALSE;
+            $this->EndReturnData->Payments = $list;
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    // ── Payment attachments ──────────────────────────────────────────────────
+    public function getPaymentAttachments() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $expenseUID = (int)$this->input->post('TransUID');
+            $orgUID     = $this->pageData['JwtData']->User->OrgUID;
+            if ($expenseUID <= 0) throw new Exception('Invalid expense.');
+
+            $this->load->model('transactions_model');
+            $payments    = $this->transactions_model->getTransactionPayments($expenseUID, $orgUID);
+            $attachments = [];
+            foreach ($payments as $payment) {
+                $payAttachments = $this->transactions_model->getPaymentAttachments($payment->PaymentUID, $orgUID);
+                foreach ($payAttachments as $attach) {
+                    $attach->PaymentTypeName      = $payment->PaymentTypeName;
+                    $attach->PaymentAmount        = $payment->Amount;
+                    $attach->PaymentUniqueNumber  = $payment->UniqueNumber ?? null;
+                    $attachments[]                = $attach;
+                }
+            }
+
+            $this->EndReturnData->Error       = FALSE;
+            $this->EndReturnData->Attachments = $attachments;
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
@@ -477,6 +575,22 @@ class Expenses extends MY_Controller {
             $this->_appendListResponse($orgUID);
         }
 
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    // ── Get attachments for a single expense ────────────────────────────────
+    public function getAttachments() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $expenseUID = (int)getPostValue($this->input->post(), 'TransUID');
+            $orgUID     = $this->pageData['JwtData']->User->OrgUID;
+            if ($expenseUID <= 0) throw new Exception('Invalid expense.');
+            $this->EndReturnData->Error       = FALSE;
+            $this->EndReturnData->Attachments = $this->expenses_model->getExpenseAttachments($expenseUID, $orgUID);
+        } catch (Throwable $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
@@ -761,6 +875,71 @@ class Expenses extends MY_Controller {
         return $data;
     }
 
+    // Uploads files from $_FILES['Attachments'] and saves rows to ExpenseIncomeAttachmentsTbl
+    private function _saveAttachments($sourceUID, $sourceType) {
+        $files = $_FILES['Attachments'] ?? null;
+        if (empty($files) || empty($files['name'][0])) return;
+        $userUID = $this->pageData['JwtData']->User->UserUID;
+        $orgUID  = $this->pageData['JwtData']->User->OrgUID;
+        $this->load->library('fileupload');
+        $folder = ($sourceType === 'Expense') ? 'expenses' : 'indirectincome';
+        $count  = count($files['name']);
+        for ($i = 0; $i < $count; $i++) {
+            if ($files['error'][$i] !== UPLOAD_ERR_OK || empty($files['name'][$i])) continue;
+            $origName    = basename($files['name'][$i]);
+            $safeName    = time() . '_' . $i . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $origName);
+            $storagePath = $folder . '/' . $sourceUID . '/' . $safeName;
+            $uploadResult = $this->fileupload->fileUpload('file', $storagePath, $files['tmp_name'][$i]);
+            if ($uploadResult->Error) continue;
+            $this->dbwrite_model->insertData('Transaction', 'ExpenseIncomeAttachmentsTbl', [
+                'OrgUID'     => $orgUID,
+                'SourceUID'  => $sourceUID,
+                'SourceType' => $sourceType,
+                'FileName'   => $origName,
+                'FilePath'   => '/' . ltrim($uploadResult->Path, '/'),
+                'FileType'   => $files['type'][$i],
+                'FileSize'   => $files['size'][$i],
+                'SortOrder'  => $i,
+                'IsActive'   => 1,
+                'IsDeleted'  => 0,
+                'CreatedBy'  => $userUID,
+            ]);
+        }
+    }
+
+    // Saves files from $_FILES['PaymentFiles'] to Transaction.PaymentAttachmentsTbl
+    private function _savePaymentAttachments($paymentUID) {
+        $files = $_FILES['PaymentFiles'] ?? null;
+        if (empty($files) || empty($files['name'][0])) return;
+        $userUID = $this->pageData['JwtData']->User->UserUID;
+        $orgUID  = $this->pageData['JwtData']->User->OrgUID;
+        $this->load->library('fileupload');
+        $allowed = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+        $count   = min(count($files['name']), 3);
+        for ($i = 0; $i < $count; $i++) {
+            if ($files['error'][$i] !== UPLOAD_ERR_OK || empty($files['name'][$i])) continue;
+            if ($files['size'][$i] > 3 * 1024 * 1024) continue;
+            if (!in_array($files['type'][$i], $allowed)) continue;
+            $origName    = basename($files['name'][$i]);
+            $safeName    = time() . '_' . $i . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $origName);
+            $storagePath = 'payments/' . $paymentUID . '/' . $safeName;
+            $uploadResult = $this->fileupload->fileUpload('file', $storagePath, $files['tmp_name'][$i]);
+            if ($uploadResult->Error) continue;
+            $this->dbwrite_model->insertData('Transaction', 'PaymentAttachmentsTbl', [
+                'OrgUID'     => $orgUID,
+                'PaymentUID' => $paymentUID,
+                'FileName'   => $origName,
+                'FilePath'   => '/' . ltrim($uploadResult->Path, '/'),
+                'FileType'   => $files['type'][$i],
+                'FileSize'   => $files['size'][$i],
+                'SortOrder'  => $i,
+                'IsActive'   => 1,
+                'IsDeleted'  => 0,
+                'CreatedBy'  => $userUID,
+            ]);
+        }
+    }
+
     // Inserts a PaymentsTbl record + AccountLedgerTbl debit for a paid expense
     private function _insertExpensePayment($PostData, $orgUID, $userUID, $expenseUID, $expenseNumber, $netAmount, $fallbackDate) {
         $paymentTypeUID = (int)getPostValue($PostData, 'PaymentTypeUID') ?: NULL;
@@ -777,13 +956,16 @@ class Expenses extends MY_Controller {
         $paymentNumber = $payPrefixUID ? (int)$this->transactions_model->getNextPaymentNumber($payPrefixUID, $orgUID, $payTransYear) : 0;
         $token         = $this->transactions_model->_generateReceiptToken();
 
+        $pmtCount     = $this->expenses_model->getPaymentCount($expenseUID, 'Expense', $orgUID);
+        $uniqueNumber = $pmtCount === 0 ? $expenseNumber : $expenseNumber . '-' . $pmtCount;
+
         $pmtResp = $this->dbwrite_model->insertData('Transaction', 'PaymentsTbl', [
             'OrgUID'           => $orgUID,
             'PaymentDate'      => $paymentDate,
             'PaymentModuleUID' => 111,
             'PrefixUID'        => $payPrefixUID,
             'PaymentNumber'    => $paymentNumber,
-            'UniqueNumber'     => $expenseNumber,
+            'UniqueNumber'     => $uniqueNumber,
             'ReceiptToken'     => $token,
             'TransYear'        => $payTransYear,
             'TransUID'         => $expenseUID,

@@ -1,3 +1,17 @@
+// ── Export ────────────────────────────────────────────────────────────────
+
+function custExport(type) {
+    var url = '/customers/exportCustomers?Type=' + encodeURIComponent(type);
+    if (typeof Filter !== 'undefined' && !$.isEmptyObject(Filter)) {
+        url += '&Filter=' + encodeURIComponent(JSON.stringify(Filter));
+    }
+    if (type === 'Print') {
+        printPreviewRecords(url, function () {});
+    } else {
+        window.location.href = url;
+    }
+}
+
 // ── List page AJAX functions ──────────────────────────────────────────────
 
 function _smartDecimal(val) {
@@ -395,10 +409,6 @@ $(document).on('submit', '#CustomerModalForm', function (e) {
 });
 
 // ── Open modal triggers ───────────────────────────────────────────────────
-$(document).on('click', '#btnCreateCustomer', function () {
-    openCustomerModal('add');
-});
-
 $(document).on('click', '.cust-edit-btn', function () {
     openCustomerModal('edit', $(this).data('uid'));
 });

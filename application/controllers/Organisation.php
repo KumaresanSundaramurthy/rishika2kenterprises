@@ -19,9 +19,6 @@ class Organisation extends CI_Controller {
         $this->pageData['EditOrgData']    = null;
         $this->pageData['BillOrgAddrData'] = null;
         $this->pageData['ShipOrgAddrData'] = null;
-        $this->pageData['StateData']      = [];
-        $this->pageData['CityData']       = [];
-        $this->pageData['TimezoneInfo']   = [];
 
         try {
 
@@ -45,18 +42,10 @@ class Organisation extends CI_Controller {
                 $this->pageData['EditOrgData']    = $orgRow;
                 $this->pageData['BillOrgAddrData'] = $this->mapOrganisationAddress($orgRow, 'B', 'Billing') ?? null;
                 $this->pageData['ShipOrgAddrData'] = $this->mapOrganisationAddress($orgRow, 'S', 'Shipping') ?? null;
-
-                if (!empty($orgRow->CountryISO2)) {
-                    $StateInfo = $this->global_model->getStateofCountry($orgRow->CountryISO2);
-                    if ($StateInfo->Error === FALSE) $this->pageData['StateData'] = $StateInfo->Data;
-
-                    $CityInfo = $this->global_model->getCityofCountry($orgRow->CountryISO2);
-                    if ($CityInfo->Error === FALSE) $this->pageData['CityData'] = $CityInfo->Data;
-                }
+                
             }
 
-            $TimezoneInfo = $this->global_model->getTimezoneDetails([]);
-            $this->pageData['TimezoneInfo'] = $TimezoneInfo->Error === FALSE ? $TimezoneInfo->Data : [];
+            // Timezone list is loaded via AJAX after page render — not blocking here.
 
             $GeneralSettings = $this->redisservice->getUserCache('settings') ?? new stdClass();
             $this->pageData['JwtData']->GenSettings = $GeneralSettings;
@@ -110,6 +99,7 @@ class Organisation extends CI_Controller {
                 'Name'              => getPostValue($PostData, 'Name'),
                 'ShortDescription'  => getPostValue($PostData, 'Description', 'Array', NULL, false),
                 'BrandName'         => getPostValue($PostData, 'BrandName'),
+                'ShortCode'         => strtoupper(getPostValue($PostData, 'ShortCode')),
                 'CountryCode'       => '+91',
                 'CountryISO2'       => 'IN',
                 'MobileNumber'      => getPostValue($PostData, 'MobileNumber', 'Array', NULL, false),
@@ -141,7 +131,7 @@ class Organisation extends CI_Controller {
             $PostData['ShipOrgAddressUID'] = $this->handleAddress($PostData, 'Shipping', $userUID, $now);
 
             // Rebuild org info Redis cache with fresh DB data + resolved CDN URL
-            $orgUID = (int)$PostData['OrgUID'];
+            $orgUID = (int) $PostData['OrgUID'];
             $this->redisservice->deleteCache($this->redisservice->orgKey('org_info'));
             $this->load->model('organisation_model');
             $this->organisation_model->getOrgInfoCached($orgUID);

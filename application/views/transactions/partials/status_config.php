@@ -110,11 +110,21 @@ $statusTransitions = [
     'expense' => [
         'Pending' => [
             ['db' => 'Paid',      'label' => 'Mark as Paid'],
+            ['db' => 'Partial',   'label' => 'Record Partial Payment'],
+            ['db' => 'Cancelled', 'label' => 'Cancel Expense'],
+        ],
+        'Partial' => [
+            ['db' => 'Paid',      'label' => 'Mark as Paid'],
             ['db' => 'Cancelled', 'label' => 'Cancel Expense'],
         ],
     ],
     'indirectincome' => [
         'Pending' => [
+            ['db' => 'Received',  'label' => 'Mark as Received'],
+            ['db' => 'Partial',   'label' => 'Record Partial Receipt'],
+            ['db' => 'Cancelled', 'label' => 'Cancel Income'],
+        ],
+        'Partial' => [
             ['db' => 'Received',  'label' => 'Mark as Received'],
             ['db' => 'Cancelled', 'label' => 'Cancel Income'],
         ],

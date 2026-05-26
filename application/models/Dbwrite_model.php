@@ -395,21 +395,54 @@ class Dbwrite_model extends CI_Model {
         $movementType = self::$stockMovementMap[$moduleUID] ?? null;
         if (!$movementType) return; // module does not affect stock
 
+        // Bulk-fetch TransProdUID, SellingPrice, TaxAmount, FinancialYear for this transaction
+        $this->WriteDB->db_debug = FALSE;
+        $tpQuery = $this->WriteDB->query(
+            "SELECT TransProdUID, ProductUID, UnitPrice, FinancialYear,
+                    (COALESCE(CgstAmount,0)+COALESCE(SgstAmount,0)+COALESCE(IgstAmount,0)) AS TaxAmt
+             FROM Transaction.TransProductsTbl
+             WHERE TransUID = ? AND IsDeleted = 0
+             ORDER BY TransProdUID ASC",
+            [(int)$transUID]
+        );
+        $tpMap           = [];
+        $txFinancialYear = '';
+        if ($tpQuery) {
+            foreach ($tpQuery->result() as $tp) {
+                $pid = (int)$tp->ProductUID;
+                if (!isset($tpMap[$pid])) {
+                    $tpMap[$pid] = [
+                        'transProdUID' => (int)$tp->TransProdUID,
+                        'sellingPrice' => (float)$tp->UnitPrice,
+                        'taxAmount'    => (float)$tp->TaxAmt,
+                    ];
+                }
+                if ($txFinancialYear === '') {
+                    $txFinancialYear = $tp->FinancialYear ?? '';
+                }
+            }
+        }
+
         foreach ($items as $item) {
             $productUID  = isset($item['id'])          ? (int)   $item['id']          : 0;
             $qty         = isset($item['quantity'])     ? (float) $item['quantity']    : 0;
             $unitCost    = isset($item['unitPrice'])    ? (float) $item['unitPrice']   : 0;
             $productType = isset($item['productType'])  ?         $item['productType'] : 'Product';
 
-            if ($productUID <= 0 || $qty <= 0)               continue; // invalid row
-            if (strtolower($productType) === 'service')       continue; // services have no stock
+            if ($productUID <= 0 || $qty <= 0)         continue;
+            if (strtolower($productType) === 'service') continue;
+
+            $tpInfo       = $tpMap[$productUID] ?? null;
+            $transProdUID = $tpInfo ? $tpInfo['transProdUID'] : null;
+            $sellingPrice = $tpInfo ? $tpInfo['sellingPrice'] : null;
+            $taxAmount    = $tpInfo ? $tpInfo['taxAmount']    : null;
 
             // For composite products expand to BOM components; reduce components, not the combo itself
             $this->WriteDB->db_debug = FALSE;
             $this->WriteDB->select('IsComposite');
             $this->WriteDB->from('Products.ProductTbl');
             $this->WriteDB->where(['ProductUID' => $productUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
-            $prodRow = $this->WriteDB->get()->row();
+            $prodRow     = $this->WriteDB->get()->row();
             $isComposite = $prodRow && (int)$prodRow->IsComposite === 1;
 
             if ($isComposite) {
@@ -418,29 +451,123 @@ class Dbwrite_model extends CI_Model {
                 $this->WriteDB->where(['ParentProductUID' => $productUID, 'IsDeleted' => 0, 'IsActive' => 1]);
                 $bomRows = $this->WriteDB->get()->result();
 
-                foreach ($bomRows as $bom) {
-                    $componentUID = (int)$bom->ChildProductUID;
-                    $componentQty = round((float)$bom->Quantity * $qty, 5);
-                    $this->_applyStockMovement($transUID, $moduleUID, $orgUID, $userUID, $componentUID, $componentQty, $unitCost, $movementType);
+                if (!empty($bomRows)) {
+                    // Batch-fetch full product details for all components in one query
+                    $componentUIDs = [];
+                    foreach ($bomRows as $b) { $componentUIDs[] = (int)$b->ChildProductUID; }
+                    $ph = implode(',', array_fill(0, count($componentUIDs), '?'));
+
+                    $compQuery = $this->WriteDB->query(
+                        "SELECT p.ProductUID, p.ItemName, p.PartNumber, p.Description,
+                                p.CategoryUID, cat.Name AS CategoryName,
+                                p.StorageUID, pu.ShortName AS PrimaryUnitName,
+                                p.TaxDetailsUID, p.TaxPercentage,
+                                p.CGST, p.SGST, p.IGST,
+                                p.SellingPrice, p.PurchasePrice
+                         FROM Products.ProductTbl p
+                         LEFT JOIN Products.CategoryTbl cat
+                                ON cat.CategoryUID = p.CategoryUID AND cat.IsDeleted = 0
+                         LEFT JOIN Global.PrimaryUnitTbl pu
+                                ON pu.PrimaryUnitUID = p.PrimaryUnitUID
+                         WHERE p.ProductUID IN ({$ph}) AND p.OrgUID = ? AND p.IsDeleted = 0",
+                        array_merge($componentUIDs, [(int)$orgUID])
+                    );
+
+                    $compDetails = [];
+                    if ($compQuery) {
+                        foreach ($compQuery->result() as $cd) {
+                            $compDetails[(int)$cd->ProductUID] = $cd;
+                        }
+                    }
+
+                    foreach ($bomRows as $bom) {
+                        $componentUID = (int)$bom->ChildProductUID;
+                        $componentQty = round((float)$bom->Quantity * $qty, 5);
+                        $cd           = $compDetails[$componentUID] ?? null;
+
+                        // Record stock movement for this component
+                        $this->_applyStockMovement($transUID, $moduleUID, $orgUID, $userUID, $componentUID, $componentQty, $unitCost, $movementType, $transProdUID, $sellingPrice, $taxAmount);
+
+                        // Insert BOM snapshot — full component details frozen at transaction time
+                        if ($transProdUID !== null && $cd !== null) {
+                            $sp      = (float)($cd->SellingPrice  ?? 0);
+                            $pp      = (float)($cd->PurchasePrice ?? 0);
+                            $cgstPct = (float)($cd->CGST          ?? 0);
+                            $sgstPct = (float)($cd->SGST          ?? 0);
+                            $igstPct = (float)($cd->IGST          ?? 0);
+                            $taxable = round($sp * $componentQty, 4);
+                            $cgstAmt = round($taxable * $cgstPct / 100, 4);
+                            $sgstAmt = round($taxable * $sgstPct / 100, 4);
+                            $igstAmt = round($taxable * $igstPct / 100, 4);
+                            $taxAmt  = round($cgstAmt + $sgstAmt + $igstAmt, 4);
+                            $netAmt  = round($taxable + $taxAmt, 4);
+
+                            $insOk = $this->WriteDB->insert('Transaction.TransProductBOMTbl', [
+                                'ParentTransProdUID' => $transProdUID,
+                                'OrgUID'             => $orgUID,
+                                'FinancialYear'      => $txFinancialYear,
+                                'TransUID'           => $transUID,
+                                'ProductUID'         => $componentUID,
+                                'ProductName'        => substr($cd->ItemName ?? '', 0, 100),
+                                'Description'        => $cd->Description  ?? null,
+                                'PartNumber'         => $cd->PartNumber   ?? null,
+                                'CategoryUID'        => $cd->CategoryUID  ?? null,
+                                'CategoryName'       => $cd->CategoryName ?? null,
+                                'StorageUID'         => $cd->StorageUID   ?? null,
+                                'Quantity'           => $componentQty,
+                                'PrimaryUnitName'    => $cd->PrimaryUnitName ?? null,
+                                'TaxDetailsUID'      => $cd->TaxDetailsUID  ?? null,
+                                'TaxPercentage'      => (float)($cd->TaxPercentage ?? 0),
+                                'CGST'               => $cgstPct,
+                                'SGST'               => $sgstPct,
+                                'IGST'               => $igstPct,
+                                'UnitPrice'          => $sp,
+                                'SellingPrice'       => $sp,
+                                'PurchasePrice'      => $pp,
+                                'TaxableAmount'      => $taxable,
+                                'CgstAmount'         => $cgstAmt,
+                                'SgstAmount'         => $sgstAmt,
+                                'IgstAmount'         => $igstAmt,
+                                'TaxAmount'          => $taxAmt,
+                                'DiscountTypeUID'    => null,
+                                'Discount'           => 0,
+                                'DiscountAmount'     => 0,
+                                'NetAmount'          => $netAmt,
+                                'QuantityConverted'  => 0,
+                                'IsActive'           => 1,
+                                'IsDeleted'          => 0,
+                                'CreatedBy'          => $userUID,
+                                'UpdatedBy'          => $userUID,
+                            ]);
+                            if ($insOk === false) {
+                                $err = $this->WriteDB->error();
+                                throw new Exception('BOM snapshot insert failed (ComponentUID=' . $componentUID . '): ' . ($err['message'] ?? 'unknown DB error'));
+                            }
+                        }
+                    }
                 }
             } else {
-                $this->_applyStockMovement($transUID, $moduleUID, $orgUID, $userUID, $productUID, $qty, $unitCost, $movementType);
+                $this->_applyStockMovement($transUID, $moduleUID, $orgUID, $userUID, $productUID, $qty, $unitCost, $movementType, $transProdUID, $sellingPrice, $taxAmount);
             }
         }
 
     }
 
-    private function _applyStockMovement($transUID, $moduleUID, $orgUID, $userUID, $productUID, $qty, $unitCost, $movementType) {
+    private function _applyStockMovement($transUID, $moduleUID, $orgUID, $userUID, $productUID, $qty, $unitCost, $movementType, $transProdUID = null, $sellingPrice = null, $taxAmount = null) {
 
         $this->WriteDB->db_debug = FALSE;
         $insOk = $this->WriteDB->insert('Products.StockLedgerTbl', [
             'OrgUID'       => $orgUID,
             'ProductUID'   => $productUID,
             'TransUID'     => $transUID,
+            'TransProdUID' => $transProdUID,
             'ModuleUID'    => $moduleUID,
             'MovementType' => $movementType,
             'Quantity'     => $qty,
             'UnitCost'     => $unitCost,
+            'SellingPrice' => $sellingPrice,
+            'TaxAmount'    => $taxAmount,
+            'Remarks'      => null,
             'IsDeleted'    => 0,
             'CreatedBy'    => $userUID,
             'UpdatedBy'    => $userUID,
@@ -532,6 +659,14 @@ class Dbwrite_model extends CI_Model {
                 throw new Exception('Stock ledger soft-delete failed (LedgerUID=' . $row->LedgerUID . '): ' . ($err['message'] ?? 'unknown error'));
             }
         }
+
+        // Soft-delete BOM snapshots for this transaction (composite items only; no-op otherwise)
+        $this->WriteDB->query(
+            "UPDATE Transaction.TransProductBOMTbl
+                SET IsDeleted = 1, UpdatedBy = ?
+              WHERE TransUID = ? AND OrgUID = ? AND IsDeleted = 0",
+            [(int)$userUID, (int)$transUID, (int)$orgUID]
+        );
 
     }
 

@@ -11,9 +11,13 @@ $showSerial = $JwtData->GenSettings->SerialNoDisplay == 1;
 if (!empty($DataLists)):
     foreach ($DataLists as $list):
         $SerialNumber++;
-        $status     = $list->DocStatus ?? 'Pending';
-        $badgeClass = $statusBadgeClass[$status] ?? 'trans-badge-Draft';
-        $icon       = $statusIcon[$status]        ?? 'bx-circle';
+        $status      = $list->DocStatus ?? 'Pending';
+        $badgeClass  = $statusBadgeClass[$status] ?? 'trans-badge-Draft';
+        $icon        = $statusIcon[$status]        ?? 'bx-circle';
+        $paidAmt     = (float)($list->PaidAmount   ?? 0);
+        $netAmt      = (float)($list->NetAmount    ?? 0);
+        $pendingAmt  = max(0, round($netAmt - $paidAmt, 2));
+        $showPending = in_array($status, ['Pending', 'Partial']) && $netAmt > 0;
 ?>
     <tr>
 
@@ -37,14 +41,33 @@ if (!empty($DataLists)):
                     <?php echo htmlspecialchars($list->IncomeNumber); ?>
                 </a>
             <?php endif; ?>
-            <?php if (!empty($list->IncomeDate)): ?>
-                <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars(format_datedisplay($list->IncomeDate, 'd M Y')); ?></div>
+            <div class="d-flex align-items-center gap-2 mt-1">
+                <?php if (!empty($list->IncomeDate)): ?>
+                    <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars(format_datedisplay($list->IncomeDate, 'd M Y')); ?></div>
+                <?php endif; ?>
+                <?php if (!empty($list->AttachCount) && (int)$list->AttachCount > 0): ?>
+                    <button type="button" class="btn btn-link p-0 transAttachBtn"
+                            data-uid="<?php echo (int)$list->IncomeUID; ?>"
+                            data-num="<?php echo htmlspecialchars($list->IncomeNumber ?? ''); ?>"
+                            data-url="/indirectincome/getAttachments"
+                            data-color="#059669"
+                            title="<?php echo (int)$list->AttachCount; ?> attachment(s)"
+                            style="font-size:.82rem;line-height:1;color:#059669;">
+                        <i class="bx bx-paperclip"></i>
+                    </button>
+                <?php endif; ?>
+            </div>
+            <?php $createdBy = trim($list->CreatedByName ?? ''); if ($createdBy !== ''): ?>
+                <div style="font-size:.68rem;color:#bbb;">by <?php echo htmlspecialchars($createdBy); ?></div>
             <?php endif; ?>
         </td>
 
         <!-- Amount -->
         <td>
             <div class="trans-amount-main"><?php echo $currency . ' ' . smartDecimal($list->Amount, $decimals, true); ?></div>
+            <?php if ($status === 'Partial' && $pendingAmt > 0): ?>
+                <div style="font-size:.7rem;color:#dc3545;margin-top:2px;">Bal <?php echo $currency . ' ' . number_format($pendingAmt, $decimals); ?></div>
+            <?php endif; ?>
         </td>
 
         <!-- Category -->
@@ -69,32 +92,54 @@ if (!empty($DataLists)):
         <!-- Payment Mode -->
         <td>
             <?php
-                $pmtName  = $list->PaymentTypeName  ?? '';
-                $bankName = htmlspecialchars(trim($list->BankName        ?? ''));
-                $acctName = htmlspecialchars(trim($list->BankAccountName ?? ''));
-                $acctNum  = htmlspecialchars(trim($list->AccountNumber   ?? ''));
+                $payCount      = (int)($list->PaymentCount ?? 0);
+                $payModes      = $payCount > 0 ? explode(',', $list->PaymentModes ?? '') : [];
+                $firstMode     = isset($payModes[0]) ? htmlspecialchars(trim($payModes[0])) : '';
+                $extraCnt      = max(0, $payCount - 1);
+                $payBankName   = htmlspecialchars(trim($list->PayBankName      ?? ''));
+                $payAccNum     = htmlspecialchars(trim($list->PayAccountNumber ?? ''));
+                $isCashOnly    = $payCount > 0 && empty($payBankName);
+                $hasPayAttach  = !empty($list->PaymentAttachmentCount) && (int)$list->PaymentAttachmentCount > 0;
             ?>
-            <?php if (!empty($pmtName)): ?>
-                <div>
-                    <span class="badge bg-label-success" style="font-size:.68rem;">
-                        <i class="bx bx-credit-card me-1"></i><?php echo htmlspecialchars($pmtName); ?>
-                    </span>
+            <?php if ($payCount > 0 && $firstMode): ?>
+                <div class="pay-mode-cell<?php echo $payCount > 1 ? ' pay-mode-clickable' : ''; ?>"
+                     <?php if ($payCount > 1): ?>
+                     data-trans-uid="<?php echo (int)$list->IncomeUID; ?>"
+                     data-trans-num="<?php echo htmlspecialchars($list->IncomeNumber ?? ''); ?>"
+                     data-fetch-url="/indirectincome/getPaymentHistory"
+                     style="cursor:pointer;"
+                     <?php endif; ?>>
+                    <div class="d-flex align-items-center gap-1 flex-wrap">
+                        <span class="badge bg-label-success" style="font-size:.68rem;">
+                            <i class="bx bx-credit-card me-1"></i><?php echo $firstMode; ?>
+                        </span>
+                        <?php if ($extraCnt > 0): ?>
+                            <span class="badge bg-label-secondary" style="font-size:.68rem;">+<?php echo $extraCnt; ?></span>
+                        <?php endif; ?>
+                        <?php if ($hasPayAttach): ?>
+                        <button type="button" class="btn btn-link p-0 transPayAttachBtn"
+                                data-uid="<?php echo (int)$list->IncomeUID; ?>"
+                                data-num="<?php echo htmlspecialchars($list->IncomeNumber ?? ''); ?>"
+                                data-url="/indirectincome/getPaymentAttachments"
+                                title="<?php echo (int)$list->PaymentAttachmentCount; ?> payment attachment(s)"
+                                style="font-size:.82rem;line-height:1;color:#059669;">
+                            <i class="bx bx-paperclip"></i>
+                        </button>
+                        <?php endif; ?>
+                    </div>
+                    <?php if (!$isCashOnly && ($payBankName || $payAccNum)): ?>
+                    <div style="font-size:.68rem;color:#6c757d;margin-top:3px;line-height:1.4;">
+                        <?php if ($payBankName): ?>
+                        <div><i class="bx bx-building-house me-1" style="font-size:.7rem;"></i><?php echo $payBankName; ?></div>
+                        <?php endif; ?>
+                        <?php if ($payAccNum): ?>
+                        <div style="font-family:monospace;letter-spacing:.03em;"><?php echo $payAccNum; ?></div>
+                        <?php endif; ?>
+                    </div>
+                    <?php endif; ?>
                 </div>
-                <?php if ($bankName || $acctName || $acctNum): ?>
-                <div style="font-size:.68rem;color:#6c757d;margin-top:3px;line-height:1.4;">
-                    <?php if ($bankName): ?>
-                    <div><i class="bx bx-building-house me-1" style="font-size:.7rem;"></i><?php echo $bankName; ?></div>
-                    <?php endif; ?>
-                    <?php if ($acctName): ?>
-                    <div><?php echo $acctName; ?></div>
-                    <?php endif; ?>
-                    <?php if ($acctNum): ?>
-                    <div style="font-family:monospace;letter-spacing:.03em;"><?php echo $acctNum; ?></div>
-                    <?php endif; ?>
-                </div>
-                <?php endif; ?>
             <?php else: ?>
-                <span class="text-muted">—</span>
+                <span class="text-muted" style="font-size:.78rem;">—</span>
             <?php endif; ?>
         </td>
 
@@ -122,6 +167,17 @@ if (!empty($DataLists)):
         <td style="width:50px">
             <div class="d-flex align-items-center justify-content-end gap-1">
 
+                <?php if ($showPending): ?>
+                <button class="btn inc-pay-quick-btn incMarkReceived"
+                        data-uid="<?php echo (int)$list->IncomeUID; ?>"
+                        data-num="<?php echo htmlspecialchars($list->IncomeNumber ?? ''); ?>"
+                        data-date="<?php echo htmlspecialchars(format_datedisplay($list->IncomeDate, 'd M Y')); ?>"
+                        data-total="<?php echo htmlspecialchars($netAmt); ?>"
+                        data-paid="<?php echo htmlspecialchars($paidAmt); ?>"
+                        data-pending="<?php echo htmlspecialchars($pendingAmt); ?>"
+                        title="Record Receipt"><?php echo $currency; ?></button>
+                <?php endif; ?>
+
                 <?php if ($status !== 'Cancelled'): ?>
                 <button class="btn btn-icon btn-sm text-warning incEdit"
                         data-uid="<?php echo (int)$list->IncomeUID; ?>"
@@ -136,15 +192,16 @@ if (!empty($DataLists)):
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:.82rem;min-width:185px;">
 
-                        <?php if ($status === 'Pending'): ?>
+                        <?php if ($showPending): ?>
                         <li>
                             <button class="dropdown-item incMarkReceived"
                                     data-uid="<?php echo (int)$list->IncomeUID; ?>"
                                     data-num="<?php echo htmlspecialchars($list->IncomeNumber ?? ''); ?>"
                                     data-date="<?php echo htmlspecialchars(format_datedisplay($list->IncomeDate, 'd M Y')); ?>"
-                                    data-amount="<?php echo htmlspecialchars($list->Amount ?? '0'); ?>">
-                                <i class="bx bx-check-circle me-2 text-success"></i>Mark as Received
-                                <span class="text-muted ms-1" style="font-size:.75rem;"><?php echo $currency . ' ' . smartDecimal($list->Amount, $decimals, true); ?></span>
+                                    data-total="<?php echo htmlspecialchars($netAmt); ?>"
+                                    data-paid="<?php echo htmlspecialchars($paidAmt); ?>"
+                                    data-pending="<?php echo htmlspecialchars($pendingAmt); ?>">
+                                <i class="bx bx-wallet me-2 text-success"></i>Record Receipt
                             </button>
                         </li>
                         <li>

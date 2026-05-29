@@ -15,7 +15,7 @@ class Products extends MY_Controller {
     private function sanitizeTabInput($tab) {
 
         $tab = strtolower($tab ?: 'item');
-        $allowedTabs = ['item', 'category', 'size', 'brand'];
+        $allowedTabs = ['item', 'group', 'category', 'size', 'brand'];
         return in_array($tab, $allowedTabs) ? $tab : 'item';
 
     }
@@ -56,7 +56,7 @@ class Products extends MY_Controller {
         return $this->products_model->getProductStats($OrgUID);
     }
 
-    private function fetchProductTableData($pageNo, $limit = 0) {
+    private function fetchProductTableData($pageNo, $limit = 0, $isComposite = null) {
 
         $OrgUID = (int) $this->pageData['JwtData']->User->OrgUID;
         if (!$limit) {
@@ -68,22 +68,37 @@ class Products extends MY_Controller {
         if ($pageNo < 1) { $pageNo = 1; }
         $offset = ($pageNo - 1) * $limit;
 
+        // Determine which tab type to refresh (0 = items, 1 = groups)
+        if ($isComposite === null) {
+            $isComposite = (int) $this->input->post('IsComposite');
+        }
+        $isComposite = (int) $isComposite;
+
         $filter       = $this->input->post('Filter') ?: [];
         $filterResult = $this->products_model->itemFilterFormation((object)['TableAliasName' => 'Products'], $filter);
-        $result       = $this->products_model->getProductListPaginated($OrgUID, $limit, $offset, $filterResult->SearchDirectQuery, $filterResult->sortOperation);
 
-        // Use CI's view loader — same as getProductList() which works correctly
-        $CI =& get_instance();
-        $CI->load->vars([
+        $baseQuery   = 'Products.IsComposite = ' . $isComposite;
+        $searchQuery = $filterResult->SearchDirectQuery
+            ? $baseQuery . ' AND (' . $filterResult->SearchDirectQuery . ')'
+            : $baseQuery;
+
+        $result = $this->products_model->getProductListPaginated($OrgUID, $limit, $offset, $searchQuery, $filterResult->sortOperation);
+
+        $GeneralSettings = $this->redisservice->getUserCache('settings') ?? NULL;
+        $this->pageData['JwtData']->GenSettings = $GeneralSettings ?? $this->pageData['JwtData']->GenSettings;
+
+        $rowHtml = $this->load->view('products/items/list', [
             'DataLists' => $result->rows,
             'StartFrom' => $offset,
             'JwtData'   => $this->pageData['JwtData'],
-        ]);
-        $rowHtml = $CI->load->view('products/items/list', [], TRUE);
+        ], TRUE);
+
+        $paginationUrl = $isComposite ? '/products/getGroupList' : '/products/getProductList';
 
         $resp                 = new stdClass();
         $resp->RecordHtmlData = $rowHtml;
-        $resp->Pagination     = $this->globalservice->buildPagePaginationHtml('/products/getProductList', $result->totalCount, $pageNo, $limit);
+        $resp->List           = $rowHtml;
+        $resp->Pagination     = $this->globalservice->buildPagePaginationHtml($paginationUrl, $result->totalCount, $pageNo, $limit);
         $resp->TotalCount     = $result->totalCount;
         return $resp;
 
@@ -150,7 +165,7 @@ class Products extends MY_Controller {
             $OrgUID = (int) $this->pageData['JwtData']->User->OrgUID;
             $this->pageData['ProductTotalCount'] = 0;
             if ($activeTab === 'item') {
-                $tableData = $this->products_model->getProductListPaginated($OrgUID, $limit, 0);
+                $tableData = $this->products_model->getProductListPaginated($OrgUID, $limit, 0, 'Products.IsComposite = 0');
                 $this->pageData['ModRowData'] = $this->load->view('products/items/list', [
                     'DataLists' => $tableData->rows,
                     'StartFrom' => 0,
@@ -158,6 +173,14 @@ class Products extends MY_Controller {
                 ], TRUE);
                 $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/products/getProductList', $tableData->totalCount, 1, $limit);
                 $this->pageData['ProductTotalCount'] = $tableData->totalCount;
+            } elseif ($activeTab === 'group') {
+                $tableData = $this->products_model->getProductListPaginated($OrgUID, $limit, 0, 'Products.IsComposite = 1');
+                $this->pageData['ModRowData'] = $this->load->view('products/items/list', [
+                    'DataLists' => $tableData->rows,
+                    'StartFrom' => 0,
+                    'JwtData'   => $this->pageData['JwtData'],
+                ], TRUE);
+                $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/products/getGroupList', $tableData->totalCount, 1, $limit);
             } elseif ($activeTab === 'category') {
                 $tableData = $this->products_model->getCategoryListPaginated($OrgUID, $limit, 0);
                 $this->pageData['ModRowData'] = $this->load->view('products/categories/list', [
@@ -186,7 +209,6 @@ class Products extends MY_Controller {
             $this->pageData['ActiveTabName']  = ucfirst($activeTab);
             $this->pageData['ActiveModuleId'] = 4;
 
-            $this->pageData['fltCategoryData'] = $this->products_model->getCategoriesDetails([]) ?? [];
             if (!empty($this->pageData['JwtData']->GenSettings->EnableStorage)) {
                 $this->load->model('storage_model');
                 $this->pageData['fltStorageData'] = $this->storage_model->getStorageDetails([]) ?? [];
@@ -417,11 +439,15 @@ class Products extends MY_Controller {
 
             $filterResult = $this->products_model->itemFilterFormation((object)['TableAliasName' => 'Products'], $filter);
 
-            $result  = $this->products_model->getProductListPaginated($OrgUID, $limit, $offset, $filterResult->SearchDirectQuery, $filterResult->sortOperation);
+            $baseQuery   = 'Products.IsComposite = 0';
+            $searchQuery = $filterResult->SearchDirectQuery
+                ? $baseQuery . ' AND (' . $filterResult->SearchDirectQuery . ')'
+                : $baseQuery;
+            $result  = $this->products_model->getProductListPaginated($OrgUID, $limit, $offset, $searchQuery, $filterResult->sortOperation);
 
             $GeneralSettings = $this->redisservice->getUserCache('settings') ?? NULL;
             $this->pageData['JwtData']->GenSettings = $GeneralSettings;
-            
+
             $rowHtml = $this->load->view('products/items/list', [
                 'DataLists' => $result->rows,
                 'StartFrom' => $offset,
@@ -433,6 +459,49 @@ class Products extends MY_Controller {
             $this->EndReturnData->Pagination  = $this->globalservice->buildPagePaginationHtml('/products/getProductList', $result->totalCount, $pageNo, $limit);
             $this->EndReturnData->UIDs        = array_column($result->rows, 'ProductUID');
             $this->EndReturnData->TotalCount  = $result->totalCount;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    public function getGroupList() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $OrgUID = (int) $this->pageData['JwtData']->User->OrgUID;
+            $pageNo = (int) $this->input->post('PageNo') ?: 1;
+            $limit  = (int) $this->input->post('RowLimit') ?: 10;
+            $offset = ($pageNo - 1) * $limit;
+            $filter = $this->input->post('Filter') ?: [];
+
+            $filterResult = $this->products_model->itemFilterFormation((object)['TableAliasName' => 'Products'], $filter);
+
+            $baseQuery   = 'Products.IsComposite = 1';
+            $searchQuery = $filterResult->SearchDirectQuery
+                ? $baseQuery . ' AND (' . $filterResult->SearchDirectQuery . ')'
+                : $baseQuery;
+            $result = $this->products_model->getProductListPaginated($OrgUID, $limit, $offset, $searchQuery, $filterResult->sortOperation);
+
+            $GeneralSettings = $this->redisservice->getUserCache('settings') ?? NULL;
+            $this->pageData['JwtData']->GenSettings = $GeneralSettings;
+
+            $rowHtml = $this->load->view('products/items/list', [
+                'DataLists' => $result->rows,
+                'StartFrom' => $offset,
+                'JwtData'   => $this->pageData['JwtData'],
+            ], TRUE);
+
+            $this->EndReturnData->Error      = false;
+            $this->EndReturnData->List       = $rowHtml;
+            $this->EndReturnData->Pagination = $this->globalservice->buildPagePaginationHtml('/products/getGroupList', $result->totalCount, $pageNo, $limit);
+            $this->EndReturnData->UIDs       = array_column($result->rows, 'ProductUID');
+            $this->EndReturnData->TotalCount = $result->totalCount;
 
         } catch (Exception $e) {
             $this->EndReturnData->Error   = true;
@@ -491,8 +560,11 @@ class Products extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
-            // Invalidate products list — new product must appear on next fetch
-            $this->upstashservice->del(Upstashservice::keyProductsAll());
+            // Create initial stock row in ProductStockTbl
+            $this->dbwrite_model->initProductStock($ProductUID, (int) $this->pageData['JwtData']->User->OrgUID);
+
+            // Sync new product into the Upstash bulk cache
+            $this->cachehelper->upsertProduct($ProductUID);
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Message = 'Created Successfully';
@@ -500,7 +572,7 @@ class Products extends MY_Controller {
             if(getPostValue($PostData, 'getTableDetails') == 1) {
 
                 $pageNo  = (int) $this->input->post('PageNo');
-                $getResp = $this->fetchProductTableData($pageNo);
+                $getResp = $this->fetchProductTableData($pageNo, 0, 0); // addProductData — always items
 
                 $this->EndReturnData->List       = $getResp->RecordHtmlData;
                 $this->EndReturnData->Pagination = $getResp->Pagination;
@@ -631,14 +703,11 @@ class Products extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
-            // Invalidate stale product cache and products list
-            $this->upstashservice->del(
-                Upstashservice::keyProduct($ProductUID),
-                Upstashservice::keyProductsAll()
-            );
+            // Sync updated product into the Upstash bulk cache
+            $this->cachehelper->upsertProduct($ProductUID);
 
             $pageNo  = (int) $this->input->post('PageNo');
-            $getResp = $this->fetchProductTableData($pageNo);
+            $getResp = $this->fetchProductTableData($pageNo, 0, 0); // updateProductData — always items
 
             $this->EndReturnData->Error      = FALSE;
             $this->EndReturnData->Message    = 'Updated Successfully';
@@ -685,11 +754,8 @@ class Products extends MY_Controller {
                 throw new Exception($UpdateResp->Message);
             }
 
-            // Invalidate deleted product cache and products list
-            $this->upstashservice->del(
-                Upstashservice::keyProduct($ProductUID),
-                Upstashservice::keyProductsAll()
-            );
+            // Remove deleted product from the Upstash bulk cache
+            $this->cachehelper->removeProduct($ProductUID);
 
             $pageNo  = (int) $this->input->post('PageNo') ?: 1;
             $getResp = $this->fetchProductTableData($pageNo);
@@ -875,7 +941,7 @@ class Products extends MY_Controller {
 
             if (getPostValue($PostData, 'getTableDetails') == 1) {
                 $pageNo  = (int) $this->input->post('PageNo') ?: 1;
-                $getResp = $this->fetchProductTableData($pageNo);
+                $getResp = $this->fetchProductTableData($pageNo, 0, 1); // addComboItem — always groups
                 $this->EndReturnData->List       = $getResp->RecordHtmlData;
                 $this->EndReturnData->Pagination = $getResp->Pagination;
                 $this->EndReturnData->Stats      = $this->fetchProductStats();
@@ -956,7 +1022,7 @@ class Products extends MY_Controller {
 
             if (getPostValue($PostData, 'getTableDetails') == 1) {
                 $pageNo  = (int) $this->input->post('PageNo') ?: 1;
-                $getResp = $this->fetchProductTableData($pageNo);
+                $getResp = $this->fetchProductTableData($pageNo, 0, 1); // editComboItem — always groups
                 $this->EndReturnData->List       = $getResp->RecordHtmlData;
                 $this->EndReturnData->Pagination = $getResp->Pagination;
                 $this->EndReturnData->Stats      = $this->fetchProductStats();
@@ -1031,7 +1097,7 @@ class Products extends MY_Controller {
             $this->dbwrite_model->commitTransaction();
 
             $pageNo  = (int) $this->input->post('PageNo') ?: 1;
-            $getResp = $this->fetchProductTableData($pageNo);
+            $getResp = $this->fetchProductTableData($pageNo, 0, 1); // deleteComboItem — always groups
 
             $this->EndReturnData->Error      = false;
             $this->EndReturnData->Message    = 'Combo item deleted successfully';
@@ -1152,6 +1218,24 @@ class Products extends MY_Controller {
 
     }
 
+    public function getCategoryOptions() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+            $this->load->model('products_model');
+            $rows = $this->products_model->getCategoriesDetails([]) ?? [];
+            $this->EndReturnData->Error   = false;
+            $this->EndReturnData->Options = array_values(array_map(function ($c) {
+                return ['uid' => (int) $c->CategoryUID, 'name' => $c->Name];
+            }, $rows));
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Options = [];
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
     public function getProductsByCategory() {
 
         $this->EndReturnData = new stdClass();
@@ -1224,8 +1308,8 @@ class Products extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
-            // Invalidate categories list — new category must appear on next fetch
-            $this->upstashservice->del(Upstashservice::keyCategoriesAll());
+            // Sync new category into the Upstash bulk cache
+            $this->cachehelper->upsertCategory($CategoryUID);
 
             $pageNo  = (int) $this->input->post('PageNo');
             $getResp = $this->fetchCategoryTableData($pageNo);
@@ -1334,11 +1418,8 @@ class Products extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
-            // Invalidate stale category entry and categories list
-            $this->upstashservice->del(
-                Upstashservice::keyCategory($CategoryUID),
-                Upstashservice::keyCategoriesAll()
-            );
+            // Sync updated category into the Upstash bulk cache
+            $this->cachehelper->upsertCategory($CategoryUID);
 
             $pageNo  = (int) $this->input->post('PageNo');
             $getResp = $this->fetchCategoryTableData($pageNo);
@@ -1389,11 +1470,8 @@ class Products extends MY_Controller {
                 throw new Exception($UpdateResp->Message);
             }
 
-            // Invalidate deleted category and categories list
-            $this->upstashservice->del(
-                Upstashservice::keyCategory($CategoryUID),
-                Upstashservice::keyCategoriesAll()
-            );
+            // Remove deleted category from the Upstash bulk cache
+            $this->cachehelper->removeCategory($CategoryUID);
 
             $pageNo  = (int) $this->input->post('PageNo') ?: 1;
             $getResp = $this->fetchCategoryTableData($pageNo);
@@ -1448,13 +1526,10 @@ class Products extends MY_Controller {
                 throw new Exception($UpdateResp->Message);
             }
 
-            // Invalidate each deleted category + categories list
-            $catgKeys = array_map(
-                fn($id) => Upstashservice::keyCategory($id),
-                $CategoryUIDs
-            );
-            $catgKeys[] = Upstashservice::keyCategoriesAll();
-            $this->upstashservice->delMany($catgKeys);
+            // Remove each deleted category from the Upstash bulk cache
+            foreach ($CategoryUIDs as $id) {
+                $this->cachehelper->removeCategory($id);
+            }
 
             $pageNo  = (int) $this->input->post('PageNo') ?: 1;
             $getResp = $this->fetchCategoryTableData($pageNo);
@@ -2019,6 +2094,120 @@ class Products extends MY_Controller {
             $this->EndReturnData->Message = $e->getMessage();
         }
         
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    // ── Cache Sync ────────────────────────────────────────────────────────────
+
+    /**
+     * Rebuild the org-level items cache map in Upstash.
+     * Stores every active product keyed by ProductUID with TTL 0 (no expiry).
+     */
+    public function syncProductsCache() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID = (int) $this->pageData['JwtData']->User->OrgUID;
+
+            $this->load->model('products_model');
+            $products = $this->products_model->getProductsForCache($orgUID);
+            if (empty($products)) throw new Exception('No active items found.');
+
+            $cacheKey = $this->redisservice->orgKey('products');
+            $existing = $this->upstashservice->get($cacheKey);
+            $cacheMap = is_array($existing) ? $existing : [];
+
+            foreach ($products as $prod) {
+                $uid = (int) $prod->ProductUID;
+                $cacheMap[(string)$uid] = [
+                    'ProductUID'                  => $uid,
+                    'ItemName'                    => $prod->ItemName                   ?? '',
+                    'ProductType'                 => $prod->ProductType                ?? '',
+                    'CategoryUID'                 => (int)($prod->CategoryUID          ?? 0),
+                    'CategoryName'                => $prod->CategoryName               ?? '',
+                    'HSNSACCode'                  => $prod->HSNSACCode                 ?? '',
+                    'PartNumber'                  => $prod->PartNumber                 ?? '',
+                    'SKU'                         => $prod->SKU                        ?? '',
+                    'Description'                 => $prod->Description                ?? '',
+                    'PrimaryUnitUID'              => (int)($prod->PrimaryUnitUID       ?? 0),
+                    'PrimaryUnitName'             => $prod->PrimaryUnitName            ?? '',
+                    'MRP'                         => (float)($prod->MRP                ?? 0),
+                    'SellingPrice'                => (float)($prod->SellingPrice       ?? 0),
+                    'PurchasePrice'               => (float)($prod->PurchasePrice      ?? 0),
+                    'SellingProductTaxUID'        => (int)($prod->SellingProductTaxUID ?? 0),
+                    'PurchasePriceProductTaxUID'  => (int)($prod->PurchasePriceProductTaxUID ?? 0),
+                    'TaxDetailsUID'               => (int)($prod->TaxDetailsUID        ?? 0),
+                    'TaxPercentage'               => (float)($prod->TaxPercentage      ?? 0),
+                    'CGST'                        => (float)($prod->CGST               ?? 0),
+                    'SGST'                        => (float)($prod->SGST               ?? 0),
+                    'IGST'                        => (float)($prod->IGST               ?? 0),
+                    'AvailableQuantity'           => (float)($prod->AvailableQuantity  ?? 0),
+                    'Discount'                    => (float)($prod->Discount           ?? 0),
+                    'DiscountTypeUID'             => (int)($prod->DiscountTypeUID      ?? 0),
+                    'LowStockAlertAt'             => (float)($prod->LowStockAlertAt    ?? 0),
+                    'NotForSale'                  => (int)($prod->NotForSale           ?? 0),
+                    'IsComboItem'                 => (int)($prod->IsComboItem          ?? 0),
+                    'IsComposite'                 => (int)($prod->IsComposite          ?? 0),
+                    'IsSerialTracked'             => (int)($prod->IsSerialTracked      ?? 0),
+                    'Image'                       => $prod->Image                      ?? '',
+                ];
+            }
+
+            $this->upstashservice->set($cacheKey, $cacheMap, 0);
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = count($products) . ' item(s) synced to cache.';
+            $this->EndReturnData->Count   = count($products);
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    /**
+     * Rebuild the org-level categories cache map in Upstash.
+     * Stores every active category keyed by CategoryUID with TTL 0 (no expiry).
+     */
+    public function syncCategoriesCache() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID = (int) $this->pageData['JwtData']->User->OrgUID;
+
+            $this->load->model('products_model');
+            $categories = $this->products_model->getCategoriesForCache($orgUID);
+            if (empty($categories)) throw new Exception('No active categories found.');
+
+            $cacheKey = $this->redisservice->orgKey('categories');
+            $existing = $this->upstashservice->get($cacheKey);
+            $cacheMap = is_array($existing) ? $existing : [];
+
+            foreach ($categories as $cat) {
+                $uid = (int) $cat->CategoryUID;
+                $cacheMap[(string)$uid] = [
+                    'CategoryUID'  => $uid,
+                    'Name'         => $cat->Name        ?? '',
+                    'Description'  => $cat->Description ?? '',
+                    'Image'        => $cat->Image       ?? '',
+                ];
+            }
+
+            $this->upstashservice->set($cacheKey, $cacheMap, 0);
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = count($categories) . ' categorie(s) synced to cache.';
+            $this->EndReturnData->Count   = count($categories);
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
         $this->globalservice->sendJsonResponse($this->EndReturnData);
 
     }

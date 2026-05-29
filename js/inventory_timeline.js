@@ -1,6 +1,15 @@
 'use strict';
 
-var _tlFilter = {};
+var _tlFilter     = {};
+var _tlProdCache  = null;
+var _tlUsersCache = null;
+
+var _tlCfbConfig = {
+    checkClass : 'tl-category-checkbox',
+    applyFn    : 'tlApplyCategoryFilter',
+    resetFn    : 'tlResetCategoryFilter',
+    uid        : 'timeline'
+};
 
 // ── Load page ─────────────────────────────────────────────────────────────────
 function tlLoadPage(pageNo) {
@@ -57,39 +66,24 @@ function tlToggleCategoryFilter() {
         left: Math.max(4, rect.left + window.scrollX - 60) + 'px',
         display: 'flex',
     });
-    $('#tlCategorySearch').val('').trigger('input');
-}
-
-function tlFilterCategoryList(term) {
-    var t = term.toLowerCase();
-    $('#tlCategoryList .catg-list-item').each(function () {
-        $(this).toggle($(this).find('span').text().toLowerCase().indexOf(t) !== -1);
-    });
-}
-
-function tlToggleAllCategories(cb) {
-    $('#tlCategoryList .tl-category-checkbox:visible').prop('checked', cb.checked);
+    CategoryAppend.filterBox('#tlCategoryFilterBox', _tlCfbConfig, _tlFilter.CategoryUID || []);
 }
 
 function tlApplyCategoryFilter() {
     var uids = [];
-    $('#tlCategoryList .tl-category-checkbox:checked').each(function () {
+    $('#tlCategoryFilterBox .tl-category-checkbox:checked').each(function () {
         uids.push(parseInt($(this).val()));
     });
-    if (uids.length) {
-        _tlFilter['CategoryUID'] = uids;
-        $('#tlCatFilterIcon').css('color', '#0284c7');
-    } else {
-        delete _tlFilter['CategoryUID'];
-        $('#tlCatFilterIcon').css('color', '');
-    }
+    if (uids.length) { _tlFilter['CategoryUID'] = uids; $('#tlCatFilterIcon').css('color', '#0284c7'); }
+    else             { delete _tlFilter['CategoryUID']; $('#tlCatFilterIcon').css('color', ''); }
     $('#tlCategoryFilterBox').hide();
     tlLoadPage(1);
 }
 
 function tlResetCategoryFilter() {
-    $('#tlCategoryList .tl-category-checkbox').prop('checked', false);
-    $('#tlSelectAllCategories').prop('checked', false);
+    $('#tlCategoryFilterBox .tl-category-checkbox').prop('checked', false);
+    $('#tlCategoryFilterBox .ca-sel-all').prop('checked', false);
+    $('#tlCategoryFilterBox .ca-sel-all-label').text('Select All');
     delete _tlFilter['CategoryUID'];
     $('#tlCatFilterIcon').css('color', '');
     $('#tlCategoryFilterBox').hide();
@@ -134,7 +128,43 @@ function tlResetSourceFilter() {
     tlLoadPage(1);
 }
 
-// ── User filter box (server-side rendered; no AJAX needed) ────────────────────
+// ── User filter (cache-first) ─────────────────────────────────────────────────
+function _tlFetchUsersCache(onSuccess, onMiss) {
+    if (_tlUsersCache !== null) { onSuccess(_tlUsersCache); return; }
+    if (!UpstashService.isEnabled()) { onMiss(); return; }
+    UpstashService.get(UpstashService.orgKey('org_users')).then(function (data) {
+        if (!Array.isArray(data) || !data.length) { onMiss(); return; }
+        _tlUsersCache = data;
+        onSuccess(_tlUsersCache);
+    }).catch(function () { onMiss(); });
+}
+
+function _tlRenderUserList(users) {
+    var $list = $('#tlUserFilterBox .catg-list');
+    $list.empty();
+    if (!users || users.length <= 1) {
+        $('#tlUserFilterBtn').hide();
+        return;
+    }
+    users.forEach(function (u) {
+        var name = u.FullName || ((u.FirstName || '') + ' ' + (u.LastName || '')).trim() || 'User';
+        $list.append(
+            '<label class="catg-list-item">' +
+            '<input class="form-check-input tl-user-checkbox" type="checkbox" value="' + (u.UserUID || 0) + '">' +
+            '<span>' + $('<span>').text(name).html() + '</span>' +
+            '</label>'
+        );
+    });
+}
+
+function _tlEnsureUserList() {
+    if ($('#tlUserFilterBox .catg-list-item').length > 0) return;
+    _tlFetchUsersCache(
+        function (users) { _tlRenderUserList(users); },
+        function ()      { /* cache miss — box stays empty */ }
+    );
+}
+
 function tlToggleUserFilter() {
     var $box = $('#tlUserFilterBox');
     if ($box.is(':visible')) { $box.hide(); return; }
@@ -146,6 +176,7 @@ function tlToggleUserFilter() {
         left: Math.max(4, rect.left + window.scrollX - 80) + 'px',
         display: 'flex',
     });
+    _tlEnsureUserList();
 }
 
 function tlApplyUserFilter() {
@@ -170,6 +201,102 @@ function tlResetUserFilter() {
     $('#tlUserFilterIcon').css('color', '');
     $('#tlUserFilterBox').hide();
     tlLoadPage(1);
+}
+
+// ── Product search (cache-first) ──────────────────────────────────────────────
+function _tlFetchProdCache(onSuccess, onMiss) {
+    if (_tlProdCache !== null) { onSuccess(_tlProdCache); return; }
+    if (!UpstashService.isEnabled()) { onMiss(); return; }
+    UpstashService.get(UpstashService.orgKey('products')).then(function (map) {
+        if (!map) { onMiss(); return; }
+        var keys = Object.keys(map || {});
+        if (!keys.length) { onMiss(); return; }
+        _tlProdCache = keys.map(function (uid) {
+            var p = map[uid];
+            return { id: parseInt(uid, 10), text: p.ItemName || '', category: p.CategoryName || '' };
+        }).sort(function (a, b) { return a.text.localeCompare(b.text); });
+        onSuccess(_tlProdCache);
+    }).catch(function () { onMiss(); });
+}
+
+function _tlProductSearchTemplate(item) {
+    if (!item.id) return item.text;
+    var $el = $('<div style="padding:2px 0;"><div style="font-size:.85rem;font-weight:500;">' + $('<span>').text(item.text).html() + '</div></div>');
+    if (item.category) {
+        $el.append('<div style="font-size:.7rem;color:#6c757d;">' + $('<span>').text(item.category).html() + '</div>');
+    }
+    return $el;
+}
+
+function _tlInitProductSearch() {
+    var prodCache = null;
+    var PAGE_SIZE = 30;
+
+    function _paginate(list, term, page) {
+        var filtered = term
+            ? list.filter(function (p) { return p.text.toLowerCase().includes(term.toLowerCase()); })
+            : list;
+        var start = (page - 1) * PAGE_SIZE;
+        return { results: filtered.slice(start, start + PAGE_SIZE), pagination: { more: (start + PAGE_SIZE) < filtered.length } };
+    }
+
+    $('#tlProductSearch').select2({
+        placeholder        : 'Select Item',
+        allowClear         : true,
+        minimumInputLength : 0,
+        width              : 'resolve',
+        containerCssClass  : ':el',
+        dropdownParent     : $('body'),
+        templateResult     : _tlProductSearchTemplate,
+        ajax: {
+            transport: function (params, success, failure) {
+                var term = (params.data.term || '').trim();
+                var page = params.data.page || 1;
+
+                if (prodCache) {
+                    success(_paginate(prodCache, term, page));
+                    return;
+                }
+
+                _tlFetchProdCache(
+                    function (products) {
+                        prodCache = products;
+                        success(_paginate(prodCache, term, page));
+                    },
+                    function () {
+                        // AJAX fallback
+                        $.ajax({
+                            url : '/inventory/searchProducts',
+                            type: 'POST',
+                            data: { Term: term, [CsrfName]: CsrfToken },
+                            success: function (data) {
+                                if (data.Error) { success({ results: [] }); return; }
+                                prodCache = (data.Products || []).map(function (p) {
+                                    return { id: p.ProductUID, text: p.ItemName, category: p.CategoryName || '' };
+                                });
+                                success(_paginate(prodCache, term, page));
+                            },
+                            error: function () { failure(); }
+                        });
+                    }
+                );
+            },
+            data: function (params) {
+                return { term: params.term || '', page: params.page || 1 };
+            },
+            processResults: function (data) {
+                return data; // already shaped by transport
+            },
+            cache: false
+        }
+    });
+
+    $('#tlProductSearch').on('select2:open', function () {
+        prodCache = null; // clear so every open fetches fresh from Upstash
+    }).on('change', function () {
+        _tlFilter['ProductUID'] = $(this).val() || '';
+        tlLoadPage(1);
+    });
 }
 
 // ── DOM ready ─────────────────────────────────────────────────────────────────
@@ -204,42 +331,8 @@ $(document).ready(function () {
         }
     });
 
-    // Item search (Select2 AJAX)
-    $('#tlProductSearch').select2({
-        placeholder:        'Select Item',
-        allowClear:         true,
-        minimumInputLength: 0,
-        dropdownParent:     $('body'),
-        ajax: {
-            url:   '/inventory/searchProducts',
-            type:  'POST',
-            delay: 300,
-            data: function (params) {
-                return { Term: params.term || '', [CsrfName]: CsrfToken };
-            },
-            processResults: function (data) {
-                if (data.Error) return { results: [] };
-                return {
-                    results: (data.Products || []).map(function (p) {
-                        return { id: p.ProductUID, text: p.ItemName, category: p.CategoryName || '' };
-                    })
-                };
-            },
-        },
-        templateResult: function (item) {
-            if (!item.id) return item.text;
-            var $el = $('<div style="padding:2px 0;"><div style="font-size:.85rem;font-weight:500;">' + $('<span>').text(item.text).html() + '</div></div>');
-            if (item.category) {
-                $el.append('<div style="font-size:.7rem;color:#6c757d;">' + $('<span>').text(item.category).html() + '</div>');
-            }
-            return $el;
-        },
-    });
-
-    $('#tlProductSearch').on('change', function () {
-        _tlFilter['ProductUID'] = $(this).val() || '';
-        tlLoadPage(1);
-    });
+    // Item search (cache-first: Upstash → AJAX fallback)
+    _tlInitProductSearch();
 
     // Movement type filter
     $('#tlMovementFilter').on('change', function () {

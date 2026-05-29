@@ -159,12 +159,13 @@ class Rental_model extends CI_Model {
     public function searchRentableProducts($orgUID, $term = '') {
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->select([
-            'p.ProductUID', 'p.ItemName', 'p.PartNumber', 'p.AvailableQuantity',
+            'p.ProductUID', 'p.ItemName', 'p.PartNumber', 'COALESCE(ps.AvailableQty, 0) AS AvailableQuantity',
             'rc.SecurityDeposit', 'rc.HourlyRate', 'rc.HalfDayRate',
             'rc.FullDayRate', 'rc.FixedPackageRate', 'rc.ExtraHourRate',
             'rc.LateReturnChargePerHour', 'rc.MinRentalHours',
         ]);
         $this->ReadDb->from('Products.ProductTbl p');
+        $this->ReadDb->join('Products.ProductStockTbl ps', 'ps.ProductUID = p.ProductUID', 'left');
         $this->ReadDb->join(
             'Products.ProductRentalConfigTbl rc',
             'rc.ProductUID = p.ProductUID AND rc.OrgUID = p.OrgUID AND rc.IsDeleted = 0',

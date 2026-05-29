@@ -661,7 +661,7 @@ class Transactions_model extends CI_Model {
                 'product.CategoryUID AS CategoryUID',
                 'category.Name AS CatgName',
                 'product.HSNSACCode AS HSNSACCode',
-                'product.AvailableQuantity AS AvailableQuantity',
+                'COALESCE(productStock.AvailableQty, 0) AS AvailableQuantity',
                 'product.Discount AS Discount',
                 'product.DiscountTypeUID AS DiscountTypeUID',
                 'discountType.Name AS DiscountTypeName',
@@ -677,6 +677,7 @@ class Transactions_model extends CI_Model {
             );
             $this->ReadDb->select($select_ary);
             $this->ReadDb->from('Products.ProductTbl as product');
+            $this->ReadDb->join('Products.ProductStockTbl as productStock', 'productStock.ProductUID = product.ProductUID', 'LEFT');
             $this->ReadDb->join('Products.CategoryTbl as category', 'category.CategoryUID = product.CategoryUID AND category.IsDeleted = 0 AND category.IsActive = 1', 'LEFT');
             $this->ReadDb->join('Global.DiscountTypeTbl as discountType', 'discountType.DiscountTypeUID = product.DiscountTypeUID AND discountType.IsDeleted = 0 AND discountType.IsActive = 1', 'LEFT');
             $this->ReadDb->join('Global.PrimaryUnitTbl as primaryUnit', 'primaryUnit.PrimaryUnitUID = product.PrimaryUnitUID', 'LEFT');

@@ -18,6 +18,7 @@ class InternetMonitor {
         this.consecutiveSlowCount = 0;
         this.slowCountThreshold   = 2; // 2 consecutive slow pings → show warning
         this.activeRequests  = 0;     // in-flight $.ajax request count
+        this._slowBannerTimer = null; // auto-hide timer for slow banner
 
         this.init();
     }
@@ -172,9 +173,16 @@ class InternetMonitor {
             </style>`;
 
         $('body').prepend(banner);
+
+        // Auto-hide after 6 seconds
+        this._slowBannerTimer = setTimeout(() => this.hideSlowInternetWarning(), 6000);
     }
 
     hideSlowInternetWarning() {
+        if (this._slowBannerTimer) {
+            clearTimeout(this._slowBannerTimer);
+            this._slowBannerTimer = null;
+        }
         $('#slow-internet-banner').fadeOut(300, function() { $(this).remove(); });
         this.isSlow = false;
     }

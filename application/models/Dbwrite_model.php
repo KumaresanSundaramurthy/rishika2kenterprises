@@ -381,7 +381,7 @@ class Dbwrite_model extends CI_Model {
 
     /**
      * Record stock movements for a saved (non-draft) transaction's items.
-     * Inserts rows into StockLedgerTbl and adjusts AvailableQuantity in ProductTbl.
+     * Inserts rows into StockLedgerTbl and adjusts AvailableQty in ProductStockTbl.
      * Only 'Product' type items are tracked; 'Service' items are skipped.
      *
      * @param int    $transUID   Transaction UID
@@ -556,36 +556,63 @@ class Dbwrite_model extends CI_Model {
     private function _applyStockMovement($transUID, $moduleUID, $orgUID, $userUID, $productUID, $qty, $unitCost, $movementType, $transProdUID = null, $sellingPrice = null, $taxAmount = null) {
 
         $this->WriteDB->db_debug = FALSE;
+
+        // Fetch product snapshot at the moment of this movement
+        $snap = $this->WriteDB->query(
+            "SELECT p.ItemName, p.MRP, p.CGST, p.SGST, p.IGST, p.TaxPercentage,
+                    p.CategoryUID, c.Name AS CategoryName,
+                    p.PurchasePrice, p.PartNumber, p.Description, p.Image
+             FROM Products.ProductTbl p
+             LEFT JOIN Products.CategoryTbl c
+                    ON c.CategoryUID = p.CategoryUID AND c.IsDeleted = 0
+             WHERE p.ProductUID = ? AND p.IsDeleted = 0
+             LIMIT 1",
+            [(int)$productUID]
+        )->row();
+
         $insOk = $this->WriteDB->insert('Products.StockLedgerTbl', [
-            'OrgUID'       => $orgUID,
-            'ProductUID'   => $productUID,
-            'TransUID'     => $transUID,
-            'TransProdUID' => $transProdUID,
-            'ModuleUID'    => $moduleUID,
-            'MovementType' => $movementType,
-            'Quantity'     => $qty,
-            'UnitCost'     => $unitCost,
-            'SellingPrice' => $sellingPrice,
-            'TaxAmount'    => $taxAmount,
-            'Remarks'      => null,
-            'IsDeleted'    => 0,
-            'CreatedBy'    => $userUID,
-            'UpdatedBy'    => $userUID,
+            'OrgUID'             => $orgUID,
+            'ProductUID'         => $productUID,
+            'TransUID'           => $transUID,
+            'TransProdUID'       => $transProdUID,
+            'ModuleUID'          => $moduleUID,
+            'MovementType'       => $movementType,
+            'Quantity'           => $qty,
+            'UnitCost'           => $unitCost,
+            'SellingPrice'       => $sellingPrice,
+            'TaxAmount'          => $taxAmount,
+            'Remarks'            => null,
+            // Product snapshot fields
+            'SnapItemName'       => $snap->ItemName      ?? null,
+            'SnapMRP'            => $snap->MRP           ?? null,
+            'SnapCGST'           => $snap->CGST          ?? null,
+            'SnapSGST'           => $snap->SGST          ?? null,
+            'SnapIGST'           => $snap->IGST          ?? null,
+            'SnapTaxPercentage'  => $snap->TaxPercentage ?? null,
+            'SnapCategoryUID'    => $snap->CategoryUID   ?? null,
+            'SnapCategoryName'   => $snap->CategoryName  ?? null,
+            'SnapPurchasePrice'  => $snap->PurchasePrice ?? null,
+            'SnapPartNumber'     => $snap->PartNumber    ?? null,
+            'SnapDescription'    => $snap->Description   ?? null,
+            'SnapImage'          => $snap->Image         ?? null,
+            'IsDeleted'          => 0,
+            'CreatedBy'          => $userUID,
+            'UpdatedBy'          => $userUID,
         ]);
         if ($insOk === false) {
             $err = $this->WriteDB->error();
             throw new Exception('Stock ledger insert failed (ProductUID=' . $productUID . '): ' . ($err['message'] ?? 'unknown DB error'));
         }
 
-        // Update AvailableQuantity — allow negative (oversold) values.
+        // Update ProductStockTbl — allow negative (oversold) values.
         // CAST to SIGNED prevents UNSIGNED underflow wrapping to a huge positive number.
         if ($movementType === 'IN') {
-            $this->WriteDB->set('AvailableQuantity', 'CAST(AvailableQuantity AS SIGNED) + ' . $qty, false);
+            $this->WriteDB->set('AvailableQty', 'CAST(AvailableQty AS SIGNED) + ' . $qty, false);
         } else {
-            $this->WriteDB->set('AvailableQuantity', 'CAST(AvailableQuantity AS SIGNED) - ' . $qty, false);
+            $this->WriteDB->set('AvailableQty', 'CAST(AvailableQty AS SIGNED) - ' . $qty, false);
         }
-        $this->WriteDB->where(['ProductUID' => $productUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
-        $updOk = $this->WriteDB->update('Products.ProductTbl');
+        $this->WriteDB->where(['ProductUID' => $productUID]);
+        $updOk = $this->WriteDB->update('Products.ProductStockTbl');
         if ($updOk === false) {
             $err = $this->WriteDB->error();
             throw new Exception('Stock quantity update failed (ProductUID=' . $productUID . '): ' . ($err['message'] ?? 'unknown DB error'));
@@ -594,7 +621,7 @@ class Dbwrite_model extends CI_Model {
     }
 
     /**
-     * Write one manual stock adjustment row to StockLedgerTbl and update AvailableQuantity.
+     * Write one manual stock adjustment row to StockLedgerTbl and update AvailableQty in ProductStockTbl.
      * Called after the StockAdjustmentTbl row is already inserted (AdjUID is known).
      *
      * @param int    $adjUID      AdjUID from StockAdjustmentTbl
@@ -605,6 +632,18 @@ class Dbwrite_model extends CI_Model {
      * @param float  $unitCost    Price entered in the form (used as UnitCost in ledger)
      * @param string $adjType     'IN' or 'OUT'
      */
+    /**
+     * Insert the initial ProductStockTbl row when a new product is created.
+     */
+    public function initProductStock($productUID, $orgUID) {
+        $this->WriteDB->db_debug = FALSE;
+        $this->WriteDB->insert('Products.ProductStockTbl', [
+            'ProductUID'   => (int) $productUID,
+            'OrgUID'       => (int) $orgUID,
+            'AvailableQty' => 0,
+        ]);
+    }
+
     public function applyManualStockAdjustment($adjUID, $orgUID, $userUID, $productUID, $qty, $unitCost, $adjType) {
 
         $movementType = ($adjType === 'IN') ? 'IN' : 'OUT';
@@ -636,14 +675,14 @@ class Dbwrite_model extends CI_Model {
 
         foreach ($ledgerRows as $row) {
             if ($row->MovementType === 'IN') {
-                $qtyExpr = 'CAST(AvailableQuantity AS SIGNED) - ' . (float)$row->Quantity;
+                $qtyExpr = 'CAST(AvailableQty AS SIGNED) - ' . (float)$row->Quantity;
             } else {
-                $qtyExpr = 'AvailableQuantity + ' . (float)$row->Quantity;
+                $qtyExpr = 'AvailableQty + ' . (float)$row->Quantity;
             }
 
             $ok = $this->WriteDB->query(
-                "UPDATE Products.ProductTbl SET AvailableQuantity = {$qtyExpr} WHERE ProductUID = ? AND OrgUID = ? AND IsDeleted = 0",
-                [(int)$row->ProductUID, (int)$orgUID]
+                "UPDATE Products.ProductStockTbl SET AvailableQty = {$qtyExpr} WHERE ProductUID = ?",
+                [(int)$row->ProductUID]
             );
             if ($ok === false) {
                 $err = $this->WriteDB->error();

@@ -42,6 +42,27 @@ class MY_Controller extends CI_Controller {
         return true;
     }
 
+    // ── Dispatch address helper ───────────────────────────────────────────────
+
+    /**
+     * Loads all active org dispatch addresses from Redis cache.
+     * Falls back to DB if cache is cold, then re-caches for 24 h.
+     * Sets pageData['DispatchAddresses'] (array) and pageData['DispatchAddress'] (first/default).
+     */
+    protected function _getDispatchAddresses($orgUID) {
+        $cacheKey  = $this->redisservice->orgKey('org_dispatch_addresses');
+        $addresses = $this->redisservice->getCache($cacheKey)->Value ?? null;
+        if (!is_array($addresses) || empty($addresses)) {
+            $this->load->model('organisation_model');
+            $addresses = $this->organisation_model->getAllOrgDispatchAddresses((int) $orgUID);
+            if (!empty($addresses)) {
+                $this->redisservice->setCache($cacheKey, $addresses, 86400);
+            }
+        }
+        $this->pageData['DispatchAddresses'] = $addresses ?? [];
+        $this->pageData['DispatchAddress']   = !empty($addresses) ? $addresses[0] : null;
+    }
+
     // ── Shared export helpers (used by Inventory, Customers, etc.) ────────────
 
     protected function _sendExport($type, $fileName, $sheetName, $previewName, $headers, $rows, $org = null, $timezone = 'UTC', $colWidths = null) {

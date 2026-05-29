@@ -5,6 +5,19 @@
     <meta charset="utf-8">
     <title><?php echo getSiteConfiguration()->ShortName; ?></title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<?php
+$_jwt_user  = isset($JwtData) ? ($JwtData->User ?? null) : null;
+$_sc        = strtolower($_jwt_user->OrgShortCode ?? '');
+$_tk        = strtolower($_jwt_user->OrgToken     ?? '');
+$_env       = defined('ENVIRONMENT') ? ENVIRONMENT : 'production';
+$_envMap    = ['development' => 'dev', 'staging' => 'stg', 'production' => 'prod'];
+$_orgPrefix = ($_sc && $_tk) ? $_sc . ':' . $_tk . ':' . ($_envMap[$_env] ?? $_env) : '';
+unset($_jwt_user, $_sc, $_tk, $_env, $_envMap);
+?>
+    <meta name="upstash-url"    content="<?= htmlspecialchars(getenv('UPSTASH_REDIS_REST_URL')   ?: '') ?>">
+    <meta name="upstash-token"  content="<?= htmlspecialchars(getenv('UPSTASH_REDIS_REST_TOKEN') ?: '') ?>">
+    <meta name="app-org-prefix" content="<?= htmlspecialchars($_orgPrefix) ?>">
+<?php unset($_orgPrefix); ?>
 
     <link rel="icon" href="/images/logo/favicon_io/favicon.ico" type="image/x-icon">
     <link rel="shortcut icon" href="/images/logo/favicon_io/android-chrome-512x512-1.png" type="image/png">

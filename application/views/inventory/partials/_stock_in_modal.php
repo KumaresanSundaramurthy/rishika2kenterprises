@@ -4,17 +4,23 @@
     <div class="modal-dialog modal-dialog-centered" style="max-width:540px;">
         <div class="modal-content">
 
-            <div class="modal-header" style="background:#f0fdf4;border-bottom:1px solid #bbf7d0;">
-                <div class="d-flex align-items-center gap-2">
-                    <div style="width:34px;height:34px;border-radius:50%;background:#dcfce7;display:flex;align-items:center;justify-content:center;">
-                        <i class="bx bx-plus-circle text-success fs-5"></i>
+            <div class="vtm-banner" style="--vtm-color:#198754;--vtm-bg:#dcfce7;--vtm-icon-bg:rgba(25,135,84,.13);">
+                <div class="vtm-banner-inner">
+                    <div class="vtm-banner-left">
+                        <div class="vtm-banner-icon">
+                            <i class="bx bx-plus-circle"></i>
+                        </div>
+                        <div>
+                            <div class="vtm-doc-number">Stock In</div>
+                            <div id="siProductName" class="vtm-doc-meta"></div>
+                        </div>
                     </div>
-                    <div>
-                        <h6 class="mb-0 fw-semibold text-success">Stock In</h6>
-                        <div id="siProductName" class="text-muted" style="font-size:.75rem;"></div>
+                    <div class="vtm-banner-right">
+                        <button type="button" class="vtm-close-btn" data-bs-dismiss="modal">
+                            <i class="bx bx-x"></i>
+                        </button>
                     </div>
                 </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
 
             <div class="modal-body">
@@ -38,8 +44,8 @@
                         </div>
                         <div class="col-5">
                             <label class="form-label fw-semibold" style="font-size:.82rem;">Record Date</label>
-                            <input type="date" class="form-control form-control-sm" id="siRecordDate"
-                                   value="<?php echo date('Y-m-d'); ?>">
+                            <input type="text" class="form-control form-control-sm" id="siRecordDate"
+                                   placeholder="Select date" readonly>
                         </div>
                     </div>
                     <div class="mt-3">
@@ -64,21 +70,22 @@
                         </div>
                         <span class="badge text-bg-secondary" style="font-size:.65rem;">OPTIONAL</span>
                     </div>
-                    <div class="row g-3 align-items-end">
+                    <div class="row g-2">
                         <div class="col-5">
-                            <label class="form-label mb-1" style="font-size:.8rem;">Price</label>
+                            <label class="form-label fw-semibold mb-1" style="font-size:.8rem;">Price</label>
                             <input type="number" class="form-control form-control-sm" id="siPrice" min="0" step="0.01"
                                    placeholder="0.00" oninput="invCalcStockValue('in')">
                             <div class="text-muted mt-1" style="font-size:.68rem;">Includes tax</div>
                         </div>
                         <div class="col-4">
+                            <label class="form-label fw-semibold mb-1" style="font-size:.8rem;">Price Type</label>
                             <select class="form-select form-select-sm" id="siPriceType" onchange="invCalcStockValue('in')">
                                 <option value="PurchasePrice" selected>Purchase Price</option>
                                 <option value="SellingPrice">Selling Price</option>
                             </select>
                         </div>
                         <div class="col-3">
-                            <label class="form-label mb-1" style="font-size:.8rem;">Stock In Value</label>
+                            <label class="form-label fw-semibold mb-1" style="font-size:.8rem;">Stock In Value</label>
                             <input type="text" class="form-control form-control-sm bg-light" id="siStockValue"
                                    readonly placeholder="0">
                         </div>

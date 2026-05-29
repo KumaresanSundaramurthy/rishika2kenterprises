@@ -236,6 +236,21 @@ class Organisation_model extends CI_Model {
      * @return object|null  Single row with OrgAddressUID, AddressType, Line1, Line2,
      *                      Pincode, CityText, StateText — or NULL if no address found.
      */
+    public function getAllOrgDispatchAddresses($orgUID) {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('OrgAddressUID, OrgUID, AddressType, Line1, Line2, Pincode, CityText, StateText');
+            $this->ReadDb->from('Organisation.OrgAddressTbl');
+            $this->ReadDb->where('OrgUID',    (int) $orgUID);
+            $this->ReadDb->where('IsActive',  1);
+            $this->ReadDb->where('IsDeleted', 0);
+            $this->ReadDb->order_by('AddressType', 'ASC');
+            return $this->ReadDb->get()->result() ?? [];
+        } catch (Exception $e) {
+            return [];
+        }
+    }
+
     public function getOrgDispatchAddress($orgUID) {
 
         $this->EndReturnData = new stdClass();

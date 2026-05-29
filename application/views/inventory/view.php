@@ -222,34 +222,7 @@ $this->load->view('common/transactions/header'); ?>
 </div>
 
 <!-- ── Category Filter Box ────────────────────────────────────────────────── -->
-<div id="invCategoryFilterBox" class="mp-filterbox" style="display:none;position:fixed;z-index:9999;width:250px;max-height:340px;flex-direction:column;">
-    <div class="catg-filter-header">
-        <span class="catg-filter-title"><i class="bx bx-layer me-1"></i>Category Filter</span>
-        <button type="button" class="catg-filter-close-btn" onclick="invToggleCategoryFilter()" title="Close">&times;</button>
-    </div>
-    <div class="catg-filter-search-wrap">
-        <div class="input-group input-group-sm">
-            <span class="input-group-text"><i class="bx bx-search"></i></span>
-            <input type="text" id="invCategorySearch" class="form-control" placeholder="Search categories..." oninput="invFilterCategoryList(this.value)">
-        </div>
-    </div>
-    <div class="catg-select-all-wrap">
-        <input type="checkbox" class="form-check-input" id="invSelectAllCategories" onchange="invToggleAllCategories(this)">
-        <label class="small fw-semibold mb-0" for="invSelectAllCategories">Select All</label>
-    </div>
-    <div id="invCategoryList" class="catg-list" style="flex:1;min-height:0;overflow-y:auto;">
-        <?php foreach ($categories as $cat): ?>
-        <label class="catg-list-item">
-            <input class="form-check-input inv-category-checkbox" type="checkbox" value="<?php echo (int)$cat->CategoryUID; ?>">
-            <span><?php echo htmlspecialchars($cat->Name); ?></span>
-        </label>
-        <?php endforeach; ?>
-    </div>
-    <div class="catg-filter-footer">
-        <button type="button" class="btn btn-primary" onclick="invApplyCategoryFilter()"><i class="bx bx-check me-1"></i>Apply</button>
-        <button type="button" class="btn btn-outline-secondary" onclick="invResetCategoryFilter()"><i class="bx bx-reset me-1"></i>Reset</button>
-    </div>
-</div>
+<div id="invCategoryFilterBox" class="mp-filterbox" style="display:none;position:fixed;z-index:9999;width:250px;max-height:340px;flex-direction:column;"></div>
 
 <!-- ── Item Type Filter Box ───────────────────────────────────────────────── -->
 <div id="invProdTypeFilterBox" class="mp-filterbox" style="display:none;position:fixed;z-index:9999;width:190px;flex-direction:column;">

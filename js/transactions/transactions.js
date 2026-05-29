@@ -1634,18 +1634,64 @@ $(document).ready(function () {
     $('#billTableBody').html(emptyTableTrInfo);
     
     (function () {
-        var $el    = $('#prodCategory');
-        var wrapId = 'categoryGroup_prodCategory';
+        var $el         = $('#prodCategory');
+        var wrapId      = 'categoryGroup_prodCategory';
+        var catgCache   = null; // loaded fresh on each open, freed on close
+        var PAGE_SIZE   = 30;
+
         if ($el.length && !$el.closest('.category-search-group').length) {
             $el.wrap('<div class="category-search-group" id="' + wrapId + '"></div>');
         }
         if ($el.hasClass('select2-hidden-accessible')) $el.select2('destroy');
+
+        function _paginate(list, term, page) {
+            var filtered = term
+                ? list.filter(function (c) { return c.text.toLowerCase().includes(term); })
+                : list;
+            var start = (page - 1) * PAGE_SIZE;
+            return { Lists: filtered.slice(start, start + PAGE_SIZE), more: (start + PAGE_SIZE) < filtered.length };
+        }
+
         $el.select2({
             placeholder    : 'Select Category',
             allowClear     : true,
             width          : '100%',
-            dropdownParent : $('#' + wrapId)
+            dropdownParent : $('#' + wrapId),
+            ajax: {
+                transport: function (params, success, failure) {
+                    var term = ((params.data && params.data.term) || '').toLowerCase().trim();
+                    var page = (params.data && params.data.page) || 1;
+
+                    if (catgCache) {
+                        AjaxLoading = 1;
+                        success(_paginate(catgCache, term, page));
+                        return;
+                    }
+
+                    // Fetch via CategoryAppend (Upstash → AJAX fallback)
+                    CategoryAppend.load(
+                        function (catgs) {
+                            catgCache = catgs;
+                            AjaxLoading = 1;
+                            success(_paginate(catgCache, term, page));
+                        },
+                        function () { AjaxLoading = 1; success({ Lists: [], more: false }); }
+                    );
+                },
+                data: function (params) {
+                    AjaxLoading = 0;
+                    return { term: params.term, page: params.page || 1 };
+                },
+                processResults: function (data) {
+                    AjaxLoading = 1;
+                    return { results: data.Lists, pagination: { more: data.more || false } };
+                },
+                cache: false
+            }
         });
+
+        // Clear cache on close so next open fetches fresh from Upstash
+        $el.on('select2:close select2:select', function () { catgCache = null; });
     })();
     searchProductInfo();
 
@@ -2566,55 +2612,65 @@ function setupTransactionValidity(quotationSel, validityDaysSel, validityDateSel
 }
 
 function searchProductInfo() {
+    var prodCache = null;
+    var PAGE_SIZE = 30;
+
+    function _paginate(list, term, catgUID, page) {
+        var filtered = catgUID
+            ? list.filter(function (p) { return p.categoryUID === catgUID; })
+            : list;
+        if (term) {
+            var t = term.toLowerCase();
+            filtered = filtered.filter(function (p) {
+                return (p.text        && p.text.toLowerCase().includes(t))       ||
+                       (p.hsnCode     && p.hsnCode.toLowerCase().includes(t))    ||
+                       (p.partNumber  && p.partNumber.toLowerCase().includes(t));
+            });
+        }
+        var start = (page - 1) * PAGE_SIZE;
+        return { Lists: filtered.slice(start, start + PAGE_SIZE), more: (start + PAGE_SIZE) < filtered.length };
+    }
+
     $('#searchProductInfo').select2({
-        placeholder: 'Search product or scan barcode',
-        minimumInputLength: 0,
-        allowClear: true,
-        width: 'resolve',
-        escapeMarkup: function (markup) { return markup; },
-        dropdownParent: $('#searchProductGroup'),
+        placeholder        : 'Search product or scan barcode',
+        minimumInputLength : 0,
+        allowClear         : true,
+        width              : 'resolve',
+        escapeMarkup       : function (markup) { return markup; },
+        dropdownParent     : $('#searchProductGroup'),
         language: {
-            searching: function () {
-                return productPreloaded ? '' : 'Searching…';
-            }
+            searching: function () { return prodCache ? '' : 'Loading…'; }
         },
         ajax: {
-            url: '/transactions/searchTransProducts',
-            dataType: 'json',
-            delay: 250,
             transport: function (params, success, failure) {
-                const term = params.data.term || '';
-                if (productPreloaded && term === '') {
-                    return null;
+                var term    = (params.data.term || '').trim();
+                var page    = params.data.page  || 1;
+                var catgUID = parseInt($('#prodCategory').val() || 0, 10);
+
+                if (prodCache) {
+                    AjaxLoading = 1;
+                    success(_paginate(prodCache, term, catgUID, page));
+                    return;
                 }
-                if (productPreloaded && term === '') {
-                    return null;
-                }
-                if (term.length > 0 && term.length < 2) {
-                    return null;
-                }
-                lastTerm = term;
-                const request = $.ajax(params);
-                request.then(success);
-                request.fail(failure);
-                return request;
+
+                ProductAppend.load(
+                    function (products) {
+                        prodCache = products;
+                        AjaxLoading = 1;
+                        success(_paginate(prodCache, term, catgUID, page));
+                    },
+                    function () { AjaxLoading = 1; success({ Lists: [], more: false }); }
+                );
             },
             data: function (params) {
                 AjaxLoading = 0;
-                return {
-                    term: params.term,
-                    categuid: $('#prodCategory').find('option:selected').val(),
-                    type: 'public' 
-                };
+                return { term: params.term || '', page: params.page || 1 };
             },
             processResults: function (data) {
                 AjaxLoading = 1;
-                if (!lastTerm && data.Lists && data.Lists.length) {
-                    productPreloaded = true;
-                }
-                return { results: data.Lists };
+                return { results: data.Lists, pagination: { more: data.more || false } };
             },
-            cache: true
+            cache: false
         },
         templateResult: function (data) {
             if (!data.id) return data.text;
@@ -2698,9 +2754,11 @@ function searchProductInfo() {
         }
         $option.attr('data-allfields', JSON.stringify(data));
         $option.attr('data-primaryunit', data.primaryUnit);
+        prodCache = null;
         $('#prodQuantity').focus();
     }).on('select2:close', function () {
-        lastTerm = '';
+        lastTerm  = '';
+        prodCache = null;
         AjaxLoading = 1;
     });
 }

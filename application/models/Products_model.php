@@ -59,7 +59,7 @@ class Products_model extends CI_Model {
                     $sortOperation['Category.Name'] = $Filter['CategorySorting'] == 1 ? 'ASC' : 'DESC';
                 }
                 if (array_key_exists('QtySorting', $Filter)) {
-                    $sortOperation['Products.AvailableQuantity'] = $Filter['QtySorting'] == 1 ? 'ASC' : 'DESC';
+                    $sortOperation['ProductStock.AvailableQty'] = $Filter['QtySorting'] == 1 ? 'ASC' : 'DESC';
                 }
                 if (array_key_exists('MRPSorting', $Filter)) {
                     $sortOperation['Products.MRP'] = $Filter['MRPSorting'] == 1 ? 'ASC' : 'DESC';
@@ -121,7 +121,7 @@ class Products_model extends CI_Model {
                 'Products.Description AS Description',
                 'Products.Image AS Image',
                 'Products.OpeningQuantity AS OpeningQuantity',
-                'Products.AvailableQuantity AS AvailableQuantity',
+                'COALESCE(ProductStock.AvailableQty, 0) AS AvailableQuantity',
                 'Products.OpeningPurchasePrice AS OpeningPurchasePrice',
                 'Products.OpeningStockValue AS OpeningStockValue',
                 'Products.Discount AS Discount',
@@ -144,6 +144,7 @@ class Products_model extends CI_Model {
             $this->ReadDb->select($select_ary);
             $this->ReadDb->from('Products.ProductTbl as Products');
             $this->ReadDb->join('Products.CategoryTbl as Category', 'Category.CategoryUID = Products.CategoryUID', 'left');
+            $this->ReadDb->join('Products.ProductStockTbl as ProductStock', 'ProductStock.ProductUID = Products.ProductUID', 'left');
             $this->ReadDb->where($WhereCondition);
             if (!empty($FilterArray)) {
                 $this->ReadDb->where($FilterArray);
@@ -539,7 +540,7 @@ class Products_model extends CI_Model {
                 'Products.PartNumber AS PartNumber',
                 'Products.Image AS Image',
                 'Products.IsComposite AS IsComposite',
-                'Products.AvailableQuantity AS AvailableQuantity',
+                'COALESCE(ProductStock.AvailableQty, 0) AS AvailableQuantity',
                 'Products.UpdatedOn AS UpdatedOn',
                 'Products.IsActive AS IsActive',
                 "CONCAT(User.FirstName, ' ', User.LastName) AS UpdatedBy",
@@ -550,6 +551,7 @@ class Products_model extends CI_Model {
             ]);
             $this->ReadDb->from('Products.ProductTbl as Products');
             $this->ReadDb->join('Products.CategoryTbl as Category', 'Category.CategoryUID = Products.CategoryUID', 'left');
+            $this->ReadDb->join('Products.ProductStockTbl as ProductStock', 'ProductStock.ProductUID = Products.ProductUID', 'left');
             $this->ReadDb->join('Global.ProductTaxTbl as SelTaxType', 'SelTaxType.ProductTaxUID = Products.SellingProductTaxUID', 'left');
             $this->ReadDb->join('Global.ProductTaxTbl as PurTaxType', 'PurTaxType.ProductTaxUID = Products.PurchasePriceProductTaxUID', 'left');
             $this->ReadDb->join('Global.PrimaryUnitTbl as puid', 'puid.PrimaryUnitUID = Products.PrimaryUnitUID', 'left');
@@ -644,11 +646,12 @@ class Products_model extends CI_Model {
                 'Products.SellingPrice AS SellingPrice',
                 'Products.MRP AS MRP',
                 'Products.PurchasePrice AS PurchasePrice',
-                'Products.AvailableQuantity AS AvailableQuantity',
+                'COALESCE(ProductStock.AvailableQty, 0) AS AvailableQuantity',
                 'Products.ProductType AS ProductType',
                 'Products.IsComposite AS IsComposite',
             ]);
             $this->ReadDb->from('Products.ProductTbl as Products');
+            $this->ReadDb->join('Products.ProductStockTbl as ProductStock', 'ProductStock.ProductUID = Products.ProductUID', 'left');
             $this->ReadDb->where([
                 'Products.CategoryUID' => (int) $CategoryUID,
                 'Products.OrgUID'      => (int) $OrgUID,
@@ -682,14 +685,15 @@ class Products_model extends CI_Model {
                 'COUNT(*)                                                                                                                                                                                                                       AS TotalProducts',
                 'SUM(CASE WHEN Products.IsActive = 1 THEN 1 ELSE 0 END)                                                                                                                                                                        AS ActiveCount',
                 'SUM(CASE WHEN Products.IsActive = 0 THEN 1 ELSE 0 END)                                                                                                                                                                        AS InActiveCount',
-                'SUM(CASE WHEN Products.ProductType = \'Product\' AND Products.IsComposite = 0 AND Products.IsActive = 1 THEN Products.AvailableQuantity * Products.PurchasePrice ELSE 0 END)                                                   AS TotalStockValue',
+                'SUM(CASE WHEN Products.ProductType = \'Product\' AND Products.IsComposite = 0 AND Products.IsActive = 1 THEN COALESCE(ProductStock.AvailableQty, 0) * Products.PurchasePrice ELSE 0 END)                                         AS TotalStockValue',
                 'SUM(CASE WHEN Products.CreatedOn >= \'' . $monthStart . '\' AND Products.IsActive = 1 THEN 1 ELSE 0 END)                                                                                                                       AS AddedThisMonth',
                 'SUM(CASE WHEN Products.CreatedOn >= \'' . $fyStart . '\' AND Products.IsActive = 1 THEN 1 ELSE 0 END)                                                                                                                         AS AddedThisFY',
                 'SUM(CASE WHEN Products.UpdatedOn >= \'' . $sevenDaysAgo . '\' AND Products.IsActive = 1 THEN 1 ELSE 0 END)                                                                                                                    AS RecentlyUpdated',
-                'SUM(CASE WHEN Products.LowStockAlertAt > 0 AND Products.AvailableQuantity <= Products.LowStockAlertAt AND Products.AvailableQuantity > 0 AND Products.ProductType = \'Product\' AND Products.IsComposite = 0 AND Products.IsActive = 1 THEN 1 ELSE 0 END) AS LowStockItems',
+                'SUM(CASE WHEN Products.LowStockAlertAt > 0 AND COALESCE(ProductStock.AvailableQty, 0) <= Products.LowStockAlertAt AND COALESCE(ProductStock.AvailableQty, 0) > 0 AND Products.ProductType = \'Product\' AND Products.IsComposite = 0 AND Products.IsActive = 1 THEN 1 ELSE 0 END) AS LowStockItems',
                 'SUM(CASE WHEN Products.NotForSale = \'Yes\' AND Products.IsActive = 1 THEN 1 ELSE 0 END)                                                                                                                                      AS NotForSale',
             ]);
             $this->ReadDb->from('Products.ProductTbl as Products');
+            $this->ReadDb->join('Products.ProductStockTbl as ProductStock', 'ProductStock.ProductUID = Products.ProductUID', 'left');
             $this->ReadDb->where([
                 'Products.IsDeleted' => 0,
                 'Products.OrgUID'    => (int) $OrgUID,
@@ -761,6 +765,102 @@ class Products_model extends CI_Model {
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
+        }
+
+    }
+
+    // ── Cache helpers ─────────────────────────────────────────────────────────
+
+    /**
+     * Fetch all active products for org-level cache rebuild.
+     * Joins CategoryTbl and PrimaryUnitTbl so entries are self-contained.
+     */
+    public function getProductsForCache($orgUID) {
+
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select([
+                'p.ProductUID',
+                'p.ItemName',
+                'p.ProductType',
+                'p.CategoryUID',
+                'cat.Name              AS CategoryName',
+                'p.HSNSACCode',
+                'p.PartNumber',
+                'p.SKU',
+                'p.Description',
+                'p.PrimaryUnitUID',
+                'pu.ShortName          AS PrimaryUnitName',
+                'p.MRP',
+                'p.SellingPrice',
+                'p.PurchasePrice',
+                'p.SellingProductTaxUID',
+                'p.PurchasePriceProductTaxUID',
+                'p.TaxDetailsUID',
+                'p.TaxPercentage',
+                'p.CGST',
+                'p.SGST',
+                'p.IGST',
+                'COALESCE(ps.AvailableQty, 0) AS AvailableQuantity',
+                'p.Discount',
+                'p.DiscountTypeUID',
+                'p.LowStockAlertAt',
+                'p.NotForSale',
+                'p.IsComboItem',
+                'p.IsComposite',
+                'p.IsSerialTracked',
+                'p.Image',
+            ]);
+            $this->ReadDb->from('Products.ProductTbl p');
+            $this->ReadDb->join('Products.CategoryTbl cat',  'cat.CategoryUID = p.CategoryUID',      'left');
+            $this->ReadDb->join('Global.PrimaryUnitTbl pu',  'pu.PrimaryUnitUID = p.PrimaryUnitUID', 'left');
+            $this->ReadDb->join('Products.ProductStockTbl ps', 'ps.ProductUID = p.ProductUID',       'left');
+            $this->ReadDb->where([
+                'p.OrgUID'    => (int)$orgUID,
+                'p.IsDeleted' => 0,
+                'p.IsActive'  => 1,
+            ]);
+            $this->ReadDb->order_by('p.ProductUID', 'ASC');
+
+            $query = $this->ReadDb->get();
+            $error = $this->ReadDb->error();
+            if ($error['code']) throw new Exception($error['message']);
+            return $query->result();
+
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+
+    }
+
+    /**
+     * Fetch all active categories for org-level cache rebuild.
+     */
+    public function getCategoriesForCache($orgUID) {
+
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select([
+                'CategoryUID',
+                'Name',
+                'Description',
+                'Image',
+            ]);
+            $this->ReadDb->from('Products.CategoryTbl');
+            $this->ReadDb->where([
+                'OrgUID'    => (int)$orgUID,
+                'IsDeleted' => 0,
+                'IsActive'  => 1,
+            ]);
+            $this->ReadDb->order_by('CategoryUID', 'ASC');
+
+            $query = $this->ReadDb->get();
+            $error = $this->ReadDb->error();
+            if ($error['code']) throw new Exception($error['message']);
+            return $query->result();
+
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
         }
 
     }

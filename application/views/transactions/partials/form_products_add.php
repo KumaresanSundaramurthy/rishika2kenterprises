@@ -1,6 +1,6 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed');
 // Shared product section (search bar, bill table, notes/terms, summary) for all CREATE forms.
-// Required (from controller pageData): $JwtData, $TaxDetInfo, $fltCategoryData, $DiscTypeInfo
+// Required (from controller pageData): $JwtData, $TaxDetInfo, $DiscTypeInfo
 // Optional variables (pass via load->view second arg):
 //   $transProductSectionTitle  — default: 'Product &amp; Services Details'
 //   $transNotesPlaceholder     — default: 'Enter your notes, say thanks, or anything else'
@@ -34,9 +34,6 @@ $_paymentVars = isset($transPaymentVars) ? $transPaymentVars : null;
             <div style="width: 20%;">
                 <select id="prodCategory" name="prodCategory" class="form-select form-select-sm">
                     <option label="Select Category"></option>
-                    <?php foreach ($fltCategoryData as $Catg) { ?>
-                        <option value="<?php echo $Catg->CategoryUID; ?>"><?php echo $Catg->Name; ?></option>
-                    <?php } ?>
                 </select>
             </div>
             <div style="width: 35%;">

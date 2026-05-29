@@ -1234,9 +1234,7 @@ class Purchases extends MY_Controller {
             $this->pageData['PaymentTypes'] = $this->transactions_model->getPaymentTypesList();
             $this->pageData['BankAccounts'] = $this->transactions_model->getOrgBankAccounts($orgUID);
 
-            $this->load->model('organisation_model');
-            $dispatchAddrResult                  = $this->organisation_model->getOrgDispatchAddress($orgUID);
-            $this->pageData['DispatchAddress']   = $dispatchAddrResult->Data ?? NULL;
+            $this->_getDispatchAddresses($orgUID);
 
             $this->load->view('transactions/purchases/forms/form', $this->pageData);
 
@@ -1313,9 +1311,7 @@ class Purchases extends MY_Controller {
             $this->pageData['PaymentTypes'] = $this->transactions_model->getPaymentTypesList();
             $this->pageData['BankAccounts'] = $this->transactions_model->getOrgBankAccounts($orgUID);
 
-            $this->load->model('organisation_model');
-            $dispatchAddrResult                  = $this->organisation_model->getOrgDispatchAddress($orgUID);
-            $this->pageData['DispatchAddress']   = $dispatchAddrResult->Data ?? NULL;
+            $this->_getDispatchAddresses($orgUID);
 
             $this->load->view('transactions/purchases/forms/form', $this->pageData);
 

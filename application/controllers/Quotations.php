@@ -844,9 +844,7 @@ class Quotations extends MY_Controller {
                 $this->pageData['CloneItems'] = $cloneItems;
             }
 
-            $this->load->model('organisation_model');
-            $dispatchAddrResult                  = $this->organisation_model->getOrgDispatchAddress($orgUID);
-            $this->pageData['DispatchAddress']   = $dispatchAddrResult->Data ?? NULL;
+            $this->_getDispatchAddresses($orgUID);
 
             $this->load->model('global_model');
             $GetCountryInfo = $this->global_model->getCountryInfo();

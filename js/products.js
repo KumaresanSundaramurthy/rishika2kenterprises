@@ -9,12 +9,13 @@ function toggleProductStatus(ProductUID, IsActive) {
         method: 'POST',
         cache: false,
         data: {
-            ProductUID: ProductUID,
-            IsActive: IsActive,
-            PageNo: PageNo,
-            RowLimit: RowLimit,
-            Filter: Filter,
-            [CsrfName]: CsrfToken
+            ProductUID  : ProductUID,
+            IsActive    : IsActive,
+            IsComposite : ActiveTabId === 'Groups' ? 1 : 0,
+            PageNo      : PageNo,
+            RowLimit    : RowLimit,
+            Filter      : Filter,
+            [CsrfName]  : CsrfToken
         },
         success: function (response) {
             if (response.Error) {
@@ -47,6 +48,34 @@ function getProductDetails(PageNo, RowLimit, Filter) {
                 $(ProdTable + ' tbody').html(response.List);
             }
             executeProdPagnFunc(response, false);
+        },
+    });
+}
+
+function getGroupDetails(PageNo, RowLimit, Filter) {
+    $.ajax({
+        url: '/products/getGroupList',
+        method: 'POST',
+        cache: false,
+        data: {
+            RowLimit: RowLimit,
+            PageNo: PageNo,
+            Filter: Filter,
+            [CsrfName]: CsrfToken,
+        },
+        success: function (response) {
+            if (response.Error) {
+                $(GroupTable + ' tbody').html('');
+                $(GroupPag).html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');
+            } else {
+                $(GroupPag).html(response.Pagination);
+                $(GroupTable + ' tbody').html(response.List);
+                if (typeof response.TotalCount !== 'undefined') {
+                    var $badge = $('#groupTotalCount');
+                    if ($badge.length) { $badge.text(response.TotalCount).removeClass('d-none'); }
+                }
+            }
+            headerCheckboxTrueFalse(GroupTable, GroupHeader, ProdRow);
         },
     });
 }
@@ -90,6 +119,7 @@ function retrieveProductDetails(ItemUID, CloneFlag = false) {
             if (response.Error) {
                 Swal.fire({icon: "error", title: "Oops...", text: response.Message});
             } else {
+                _ensureCategoryOptions(function () {
 
                 $('#AddEditItemForm').trigger('reset');
                 if (CloneFlag) {
@@ -178,6 +208,7 @@ function retrieveProductDetails(ItemUID, CloneFlag = false) {
                     }
                 }
 
+                }); // end _ensureCategoryOptions
             }
         },
     });
@@ -215,12 +246,13 @@ function deleteProduct(ProductUID) {
         method: "POST",
         cache: false,
         data: {
-            RowLimit: RowLimit,
-            PageNo: PageNo,
-            Filter: Filter,
-            ProductUID: ProductUID,
-            ModuleId: ItemModuleId,
-            [CsrfName]: CsrfToken,
+            RowLimit    : RowLimit,
+            PageNo      : PageNo,
+            Filter      : Filter,
+            ProductUID  : ProductUID,
+            IsComposite : ActiveTabId === 'Groups' ? 1 : 0,
+            ModuleId    : ItemModuleId,
+            [CsrfName]  : CsrfToken,
         },
         success: function (response) {
             if (response.Error) {
@@ -243,12 +275,13 @@ function deleteMultipleProduct() {
         method: "POST",
         cache: false,
         data: {
-            RowLimit: RowLimit,
-            PageNo: PageNo,
-            Filter: Filter,
-            ProductUIDs: SelectedUIDs,
-            ModuleId: ItemModuleId,
-            [CsrfName]: CsrfToken,
+            RowLimit    : RowLimit,
+            PageNo      : PageNo,
+            Filter      : Filter,
+            ProductUIDs : SelectedUIDs,
+            IsComposite : ActiveTabId === 'Groups' ? 1 : 0,
+            ModuleId    : ItemModuleId,
+            [CsrfName]  : CsrfToken,
         },
         success: function (response) {
             if (response.Error) {
@@ -262,20 +295,34 @@ function deleteMultipleProduct() {
 }
 
 function executeProdPagnFunc(response, tableinfo = false, silent = false) {
+    var isGroupTab = (typeof ActiveTabId !== 'undefined' && ActiveTabId === 'Groups');
     if (tableinfo) {
-        $(ProdPag).html(response.Pagination);
-        $(ProdTable + ' tbody').html(response.List);
-    }
-    if (typeof response.TotalCount !== 'undefined') {
-        updateProductCount(response.TotalCount);
-    } else if (tableinfo) {
-        var $countEl = $(ProdPag).find('.pagination-result-count, [data-total-count]');
-        if ($countEl.length) updateProductCount(parseInt($countEl.data('total-count') || $countEl.text()) || 0);
+        if (isGroupTab) {
+            $(GroupPag).html(response.Pagination);
+            $(GroupTable + ' tbody').html(response.List);
+            if (typeof response.TotalCount !== 'undefined') {
+                var $groupBadge = $('#groupTotalCount');
+                if ($groupBadge.length) { $groupBadge.text(response.TotalCount).removeClass('d-none'); }
+            }
+        } else {
+            $(ProdPag).html(response.Pagination);
+            $(ProdTable + ' tbody').html(response.List);
+            if (typeof response.TotalCount !== 'undefined') {
+                updateProductCount(response.TotalCount);
+            } else {
+                var $countEl = $(ProdPag).find('.pagination-result-count, [data-total-count]');
+                if ($countEl.length) updateProductCount(parseInt($countEl.data('total-count') || $countEl.text()) || 0);
+            }
+        }
     }
     if (response.Stats) {
         updateProductStats(response.Stats);
     }
-    headerCheckboxTrueFalse(ProdTable, ProdHeader, ProdRow);
+    if (isGroupTab) {
+        headerCheckboxTrueFalse(GroupTable, GroupHeader, ProdRow);
+    } else {
+        headerCheckboxTrueFalse(ProdTable, ProdHeader, ProdRow);
+    }
     MultipleDeleteOption();
 }
 
@@ -1036,6 +1083,8 @@ function showProductPageDetails() {
     if (typeof updateColumnHighlights === 'function') updateColumnHighlights();
     if (ActiveTabId == 'Item') {
         getProductDetails(PageNo, RowLimit, Filter);
+    } else if (ActiveTabId == 'Groups') {
+        getGroupDetails(PageNo, RowLimit, Filter);
     } else if (ActiveTabId == 'Categories') {
         getCategoriesDetails(PageNo, RowLimit, Filter);
     } else if (ActiveTabId == 'Sizes') {
@@ -1101,6 +1150,8 @@ function commonExportFunctions() {
         e.preventDefault();
         if (ActiveTabId == 'Item') {
             exportModalCloseFunc(ProdTable, ProdHeader, ProdRow, ItemUIDs);
+        } else if (ActiveTabId == 'Groups') {
+            exportModalCloseFunc(GroupTable, GroupHeader, ProdRow, ItemUIDs);
         } else if (ActiveTabId == 'Categories') {
             exportModalCloseFunc(CatgTable, CatgHeader, CatgRow, CategoryUIDs);
         } else if (ActiveTabId == 'Sizes') {
@@ -1124,6 +1175,8 @@ function commonExportFunctions() {
         e.preventDefault();
         if (ActiveTabId == 'Item') {
             selectModalCloseFunc(ProdTable, ProdHeader, ProdRow, ItemUIDs);
+        } else if (ActiveTabId == 'Groups') {
+            selectModalCloseFunc(GroupTable, GroupHeader, ProdRow, ItemUIDs);
         } else if (ActiveTabId == 'Categories') {
             selectModalCloseFunc(CatgTable, CatgHeader, CatgRow, CategoryUIDs);
         } else if (ActiveTabId == 'Sizes') {
@@ -1171,35 +1224,28 @@ function closeProdTypeFilter() {
     $('#prodTypeFilterBox').hide();
 }
 
-function refreshSearchCateg() {
-    AjaxLoading = 0;
-    $('#categoryFilterBox').html('<div class="d-flex justify-content-center align-items-center p-3"><div class="spinner-border spinner-border-sm text-primary" role="status"></div></div>');
-    $.ajax({
-        url: '/products/getAllCategories/',
-        method: "POST",
-        cache: false,
-        data: { [CsrfName]: CsrfToken },
-        success: function (response) {
-            AjaxLoading = 1;
-            if (response.Error) {
-                $('#categoryFilterBox').html('<div class="alert alert-danger mb-0 py-2 small">' + response.Message + '</div>');
-            } else {
-                $('#categoryFilterBox').html(response.HtmlData);
-            }
-        },
-    });
+// ── Shared category cache helpers ────────────────────────────────────────────
+
+var _cfbConfig = {
+    checkClass : 'category-checkbox',
+    applyFn    : 'applyCategoryFilter',
+    resetFn    : 'resetCategoryFilter',
+    uid        : 'products'
+};
+
+function _ensureCategoryOptions(callback) {
+    CategoryAppend.populateSelect('#Category', callback);
 }
 
+// ── Category filter box ──────────────────────────────────────────────────────
+
 function toggleCategoryFilter() {
-    const $target = $('#categoryFilterBox');
+    var $target = $('#categoryFilterBox');
     $('.mp-filterbox').not($target).hide();
-    var opening = !$target.is(':visible');
-    if (!opening) { $target.hide(); return; }
+    if ($target.is(':visible')) { $target.hide(); return; }
     var rect = document.getElementById('categoryFilter').getBoundingClientRect();
     $target.css({ top: (rect.bottom + 4) + 'px', left: rect.left + 'px' }).show();
-    if ($target.find('.category-checkbox').length === 0) {
-        refreshSearchCateg();
-    }
+    CategoryAppend.filterBox('#categoryFilterBox', _cfbConfig, Filter.Category || []);
 }
 
 function closeCategoryFilter() {
@@ -1234,38 +1280,18 @@ function applyCategoryFilter() {
     showProductPageDetails();
 }
 
-function toggleAllCategories(main) {
-    var isChecked = $(main).prop('checked');
-    $('.category-checkbox').prop('checked', isChecked);
-    $('#selectAllLabel').text(isChecked ? 'Clear All' : 'Select All');
-}
-
 function updateCategoryOptions(fields, type) {
-    if(type == 'insert') {
-        $('#AddEditItemForm #Category').append(`<option value="${fields.InsertId}">${fields.CategoryName}</option>`);
-        const categoryHtml = `
-                <div class="form-check mb-2 my-1 list-hover-bg">
-                <label class="form-check-label w-100 d-flex align-items-center">
-                    <input class="form-check-input me-2 category-checkbox" type="checkbox" value="${fields.InsertId}">
-                    <span>${fields.CategoryName}</span>
-                </label>
-                </div>`;
-            $('#categoryList').append(categoryHtml);
-    } else if(type == 'update') {
+    if (type == 'insert') {
+        $('#AddEditItemForm #Category').append('<option value="' + fields.InsertId + '">' + fields.CategoryName + '</option>');
+    } else if (type == 'update') {
         var idStr = String(fields.UpdateId).trim();
-        $("#AddEditItemForm #Category option[value='"+idStr+"']").text(fields.CategoryName);
-        $("#ProductsTable #categoryList .category-checkbox[value='" + idStr + "']")
-                .closest('label')
-                .find('span:last')
-                .text(fields.CategoryName);
-    } else if(type == 'delete') {
-        $.each(fields.UpdateId, function(index, id) {
+        $("#AddEditItemForm #Category option[value='" + idStr + "']").text(fields.CategoryName);
+    } else if (type == 'delete') {
+        $.each(fields.UpdateId, function (i, id) {
             $('#AddEditItemForm #Category option[value="' + id + '"]').remove();
-            $('#ProductsTable #categoryList .category-checkbox[value="' + id + '"]')
-                .closest('.form-check')
-                .remove();
         });
     }
+    $('#categoryFilterBox').empty(); // force re-render on next open
 }
 
 function updateSizeOptions(fields, type) {

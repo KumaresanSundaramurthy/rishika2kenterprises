@@ -1,7 +1,7 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <div class="modal fade" id="timelineModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-top modal-lg">
+    <div class="modal-dialog modal-dialog-top modal-xl" style="max-width:1140px;">
         <div class="modal-content" style="overflow:hidden;">
 
             <div class="vtm-banner" style="--vtm-color:#0284c7;--vtm-bg:#e0f2fe;--vtm-icon-bg:rgba(2,132,199,.13);">
@@ -48,7 +48,10 @@
                                     <th style="padding:.6rem .75rem;">Reference</th>
                                     <th style="padding:.6rem .75rem;text-align:center;">Movement</th>
                                     <th style="padding:.6rem .75rem;text-align:right;">Qty</th>
-                                    <th style="padding:.6rem .75rem;text-align:right;">Unit Cost</th>
+                                    <th style="padding:.6rem .75rem;text-align:right;">Cost Price</th>
+                                    <th style="padding:.6rem .75rem;text-align:right;">Tax Amount</th>
+                                    <th style="padding:.6rem .75rem;text-align:right;">Purchase Price</th>
+                                    <th style="padding:.6rem .75rem;text-align:right;">Selling Price</th>
                                     <th style="padding:.6rem .75rem;">Notes</th>
                                 </tr>
                             </thead>

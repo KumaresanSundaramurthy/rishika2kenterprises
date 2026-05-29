@@ -126,6 +126,14 @@ class Login extends CI_Controller {
                                     // Pre-warm org info cache (full CDN-resolved URL stored)
                                     $this->load->model('organisation_model');
                                     $this->organisation_model->getOrgInfoCached((int)$orgUID, $orgShortCode, $orgToken);
+
+                                    // Cache all active dispatch addresses
+                                    $dispatchAddresses = $this->organisation_model->getAllOrgDispatchAddresses((int)$orgUID);
+                                    $this->redisservice->setCache(
+                                        $this->redisservice->orgKey('org_dispatch_addresses', $orgShortCode, $orgToken),
+                                        $dispatchAddresses,
+                                        $loginExpiry
+                                    );
                                 }
 
                                 redirect('dashboard', 'refresh');

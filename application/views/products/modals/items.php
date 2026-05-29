@@ -112,11 +112,6 @@
                             <label for="Category" class="form-label">Category <span style="color:red">*</span></label>
                             <select id="Category" name="Category" class="select2 form-select" required>
                                 <option value=""></option>
-                                <?php if (sizeof($fltCategoryData) > 0) {
-                                    foreach ($fltCategoryData as $Catg) { ?>
-                                        <option value="<?php echo $Catg->CategoryUID; ?>"><?php echo $Catg->Name; ?></option>
-                                <?php }
-                                } ?>
                             </select>
                         </div>
                         

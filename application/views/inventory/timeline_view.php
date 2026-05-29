@@ -1,7 +1,7 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed');
 $this->load->view('common/transactions/header'); ?>
 
-<div class="layout-wrapper layout-horizontal basic-form-page layout-content-navbar">
+<div class="layout-wrapper layout-horizontal basic-form-page transactionPage layout-content-navbar">
     <div class="layout-container">
 
         <?php $this->load->view('common/menu_view'); ?>
@@ -14,7 +14,7 @@ $this->load->view('common/transactions/header'); ?>
                     $cur           = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
                     $dec           = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
                     $defaultFilter = $DefaultFilter ?? ['DateFrom' => date('Y').'-01-01', 'DateTo' => date('Y').'-12-31'];
-                    $showUserBtn   = is_array($OrgUsers) && count($OrgUsers) > 1;
+                    $showUserBtn   = true;
                     ?>
 
                     <!-- ── Page Header ────────────────────────────────────── -->
@@ -55,7 +55,7 @@ $this->load->view('common/transactions/header'); ?>
                             <div class="d-flex align-items-center gap-2 flex-wrap">
                                 <!-- Item search -->
                                 <div class="ms-2" style="min-width: 350px;">
-                                    <select id="tlProductSearch" class="form-select form-select-sm" style="width:100%;"></select>
+                                    <select id="tlProductSearch" class="form-select select2 form-select-sm" style="width:100%;"></select>
                                 </div>
                                 <!-- Date range -->
                                 <div class="d-flex align-items-center gap-1">
@@ -141,34 +141,7 @@ $this->load->view('common/transactions/header'); ?>
 </div>
 
 <!-- ── Category Filter Box ────────────────────────────────────────────────── -->
-<div id="tlCategoryFilterBox" class="mp-filterbox" style="display:none;position:fixed;z-index:9999;width:240px;max-height:320px;flex-direction:column;">
-    <div class="catg-filter-header">
-        <span class="catg-filter-title"><i class="bx bx-layer me-1"></i>Category Filter</span>
-        <button type="button" class="catg-filter-close-btn" onclick="tlToggleCategoryFilter()" title="Close">&times;</button>
-    </div>
-    <div class="catg-filter-search-wrap">
-        <div class="input-group input-group-sm">
-            <span class="input-group-text"><i class="bx bx-search"></i></span>
-            <input type="text" id="tlCategorySearch" class="form-control" placeholder="Search categories..." oninput="tlFilterCategoryList(this.value)">
-        </div>
-    </div>
-    <div class="catg-select-all-wrap">
-        <input type="checkbox" class="form-check-input" id="tlSelectAllCategories" onchange="tlToggleAllCategories(this)">
-        <label class="small fw-semibold mb-0" for="tlSelectAllCategories">Select All</label>
-    </div>
-    <div id="tlCategoryList" class="catg-list" style="flex:1;min-height:0;overflow-y:auto;">
-        <?php if (!empty($Categories)): foreach ($Categories as $cat): ?>
-        <label class="catg-list-item">
-            <input class="form-check-input tl-category-checkbox" type="checkbox" value="<?php echo (int)$cat->CategoryUID; ?>">
-            <span><?php echo htmlspecialchars($cat->Name); ?></span>
-        </label>
-        <?php endforeach; endif; ?>
-    </div>
-    <div class="catg-filter-footer">
-        <button type="button" class="btn btn-primary" onclick="tlApplyCategoryFilter()"><i class="bx bx-check me-1"></i>Apply</button>
-        <button type="button" class="btn btn-outline-secondary" onclick="tlResetCategoryFilter()"><i class="bx bx-reset me-1"></i>Reset</button>
-    </div>
-</div>
+<div id="tlCategoryFilterBox" class="mp-filterbox" style="display:none;position:fixed;z-index:9999;width:240px;max-height:320px;flex-direction:column;"></div>
 
 <!-- ── Source Filter Box ──────────────────────────────────────────────────── -->
 <div id="tlSourceFilterBox" class="mp-filterbox" style="display:none;position:fixed;z-index:9999;width:200px;flex-direction:column;">
@@ -190,16 +163,14 @@ $this->load->view('common/transactions/header'); ?>
     </div>
 </div>
 
-<!-- ── User Filter Box (common partial, server-side rendered) ─────────────── -->
-<?php if ($showUserBtn): ?>
+<!-- ── User Filter Box (JS-populated) ────────────────────────────────────── -->
 <?php $this->load->view('common/partials/_user_filter_box', [
-    'OrgUsers'   => $OrgUsers,
+    'OrgUsers'   => [],
     'BoxId'      => 'tlUserFilterBox',
     'CheckClass' => 'tl-user-checkbox',
     'ApplyFn'    => 'tlApplyUserFilter',
     'ResetFn'    => 'tlResetUserFilter',
 ]); ?>
-<?php endif; ?>
 
 <!-- ── Edit Inventory Remarks Modal ───────────────────────────────────────── -->
 <div class="modal fade" id="tlEditAdjModal" tabindex="-1" aria-hidden="true">
@@ -257,7 +228,6 @@ $this->load->view('common/transactions/header'); ?>
 <?php $this->load->view('common/transactions/print_modals'); ?>
 
 <script src="/js/common/pagecheckbox.js"></script>
-<script src="/js/inventory.js"></script>
 <script src="/js/transactions/viewmodal.js"></script>
 <script src="/js/inventory_timeline.js"></script>
 
@@ -266,5 +236,4 @@ var TlCurrency        = <?php echo json_encode($cur); ?>;
 var TlDecimals        = <?php echo (int)$dec; ?>;
 var TlDefaultDateFrom = <?php echo json_encode($defaultFilter['DateFrom']); ?>;
 var TlDefaultDateTo   = <?php echo json_encode($defaultFilter['DateTo']); ?>;
-var TlShowUserFilter  = <?php echo $showUserBtn ? 'true' : 'false'; ?>;
 </script>

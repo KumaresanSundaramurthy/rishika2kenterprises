@@ -35,6 +35,9 @@
     <script type="text/javascript" src="/bootstrap/js/jquery.blockUI.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
 
+    <script type="text/javascript" src="/assets/js/services/upstash-service.js"></script>
+    <script type="text/javascript" src="/js/common/categoryappend.js"></script>
+    <script type="text/javascript" src="/js/common/productappend.js"></script>
     <script type="text/javascript" src="/js/common/default.js"></script>
     <script type="text/javascript" src="/js/common/datefilter.js"></script>
     <script type="text/javascript" src="/js/transactions/common.js"></script>

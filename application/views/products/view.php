@@ -29,6 +29,13 @@
                                 <?php endif; ?>
                             </div>
                         </div>
+                        <div class="d-flex align-items-center gap-2 me-1">
+                            <a href="javascript:void(0);" class="r2k-create-btn addItem <?php echo $ActiveTabData == 'item' ? '' : 'd-none'; ?>" id="NewItem"><i class="bx bx-plus"></i> Create Item</a>
+                            <a href="javascript:void(0);" class="r2k-create-btn <?php echo $ActiveTabData == 'group' ? '' : 'd-none'; ?>" id="NewComboItem"><i class="bx bx-git-merge"></i> Create Group</a>
+                            <a href="javascript:void(0);" class="r2k-create-btn addCategory <?php echo $ActiveTabData == 'category' ? '' : 'd-none'; ?>" id="NewCategory"><i class="bx bx-plus"></i> Create Category</a>
+                            <a href="javascript:void(0);" class="r2k-create-btn addSizes <?php echo $ActiveTabData == 'size' ? '' : 'd-none'; ?>" id="NewSizes"><i class="bx bx-plus"></i> Create Size</a>
+                            <a href="javascript:void(0);" class="r2k-create-btn addBrands <?php echo $ActiveTabData == 'brand' ? '' : 'd-none'; ?>" id="NewBrands"><i class="bx bx-plus"></i> Create Brand</a>
+                        </div>
                     </div>
 
                     <!-- ── Product Stats ── -->
@@ -103,8 +110,14 @@
                                         <ul class="nav trans-status-tabs" role="tablist">
                                             <li class="nav-item">
                                                 <a class="nav-link <?php echo $ActiveTabData == 'item' ? 'active' : ''; ?> TabPane disabled" data-id="Item" role="tab" data-bs-toggle="tab" data-bs-target="#NavItemPage" href="javascript:void(0);">
-                                                    <i class="bx bx-package me-1"></i> Item
+                                                    <i class="bx bx-package me-1"></i> Items
                                                     <span class="trans-tab-count" id="productTotalCount"><?php echo $ProductTotalCount; ?></span>
+                                                </a>
+                                            </li>
+                                            <li class="nav-item">
+                                                <a class="nav-link <?php echo $ActiveTabData == 'group' ? 'active' : ''; ?> TabPane disabled" data-id="Groups" role="tab" data-bs-toggle="tab" data-bs-target="#NavGroupsPage" href="javascript:void(0);">
+                                                    <i class="bx bx-git-merge me-1"></i> Groups
+                                                    <span class="trans-tab-count d-none" id="groupTotalCount"></span>
                                                 </a>
                                             </li>
                                             <li class="nav-item">
@@ -129,6 +142,8 @@
                                     </div>
                                     <div class="trans-toolbar-actions">
                                         <a href="javascript:void(0);" class="r2k-icon-btn PageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
+                                        <a href="javascript:void(0);" class="r2k-icon-btn <?php echo ($ActiveTabData == 'item' || $ActiveTabData == 'group') ? '' : 'd-none'; ?>" id="btnSyncProductsCache" title="Sync Items Cache"><i class="bx bx-planet"></i></a>
+                                        <a href="javascript:void(0);" class="r2k-icon-btn <?php echo $ActiveTabData == 'category' ? '' : 'd-none'; ?>" id="btnSyncCategoriesCache" title="Sync Categories Cache"><i class="bx bx-planet"></i></a>
                                         <div class="r2k-search-wrap">
                                             <i class="bx bx-search r2k-si"></i>
                                             <input type="text" class="SearchDetails" id="SearchDetails" placeholder="Search items...">
@@ -156,11 +171,6 @@
                                                 </li>
                                             </ul>
                                         </div>
-                                        <a href="javascript:void(0);" class="r2k-create-btn addItem <?php echo $ActiveTabData == 'item' ? '' : 'd-none'; ?>" id="NewItem"><i class="bx bx-plus"></i> Create Item</a>
-                                        <a href="javascript:void(0);" class="r2k-create-btn <?php echo $ActiveTabData == 'item' ? '' : 'd-none'; ?>" id="NewComboItem"><i class="bx bx-git-merge"></i> Combo</a>
-                                        <a href="javascript:void(0);" class="r2k-create-btn addCategory <?php echo $ActiveTabData == 'category' ? '' : 'd-none'; ?>" id="NewCategory"><i class="bx bx-plus"></i> Create Category</a>
-                                        <a href="javascript:void(0);" class="r2k-create-btn addSizes <?php echo $ActiveTabData == 'size' ? '' : 'd-none'; ?>" id="NewSizes"><i class="bx bx-plus"></i> Create Size</a>
-                                        <a href="javascript:void(0);" class="r2k-create-btn addBrands <?php echo $ActiveTabData == 'brand' ? '' : 'd-none'; ?>" id="NewBrands"><i class="bx bx-plus"></i> Create Brand</a>
                                     </div>
                                 </div>
                                 <div class="tab-content p-0">
@@ -215,6 +225,46 @@
                                         <hr class="my-0" />
                                         <div class="row mx-3 justify-content-between ProductsPagination" id="ProductsPagination">
                                             <?php echo $ActiveTabData == 'item' ? $ModPagination : ''; ?>
+                                        </div>
+
+                                    </div>
+
+                                    <div class="tab-pane fade <?php echo $ActiveTabData == 'group' ? 'show active' : ''; ?>" id="NavGroupsPage" role="tabpanel">
+
+                                        <div class="table-responsive text-nowrap h-100 tablecard">
+                                            <table class="table trans-table table-hover" id="GroupsTable">
+                                                <thead class="r2k-thead">
+                                                    <tr>
+                                                        <th class="table-checkbox text-center align-middle">
+                                                            <div class="form-check d-flex justify-content-center align-items-center mb-0">
+                                                                <input class="form-check-input table-chkbox groupsHeaderCheck" type="checkbox">
+                                                            </div>
+                                                        </th>
+                                                        <th class="table-serialno <?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>">S.No</th>
+                                                        <th>Item</th>
+                                                        <th>Status</th>
+                                                        <th>Category</th>
+                                                        <th>Qty</th>
+                                                        <th>MRP</th>
+                                                        <th>Selling Price</th>
+                                                        <th>Purchase Price</th>
+                                                        <th>Last Updated</th>
+                                                        <th class="text-center">Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody class="r2k-tbody table-border-bottom-0">
+                                                    <?php if ($ActiveTabData == 'group') {
+                                                        echo $ModRowData;
+                                                    } else {
+                                                        $PageData['DataLists'] = [];
+                                                        echo $this->load->view('products/items/list', $PageData, TRUE);
+                                                    } ?>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <hr class="my-0" />
+                                        <div class="row mx-3 justify-content-between GroupsPagination" id="GroupsPagination">
+                                            <?php echo $ActiveTabData == 'group' ? $ModPagination : ''; ?>
                                         </div>
 
                                     </div>
@@ -392,6 +442,9 @@ const ProdTable = '#ProductsTable';
 const ProdPag = '.ProductsPagination';
 const ProdHeader = '.productsHeaderCheck';
 const ProdRow = '.productsCheck';
+const GroupTable = '#GroupsTable';
+const GroupPag = '.GroupsPagination';
+const GroupHeader = '.groupsHeaderCheck';
 let CategoryModuleId = 5;
 const CatgTable = '#CategoriesTable';
 const CatgPag = '.CategoriesPagination';
@@ -441,8 +494,10 @@ $(function() {
             $('.mp-filterbox').hide();
             $('#categoryFilter, #productTypeFilter, #statusFilter').removeClass('text-primary');
             $('#ProductCountWrap').addClass('d-none');
+            $('#btnSyncProductsCache,#btnSyncCategoriesCache').addClass('d-none');
             if (ActiveTabId == 'Item') {
-                $('#NewItem,#NewComboItem,#ItemCategory-Div,#ProductCountWrap').removeClass('d-none');
+                $('#NewItem,#ItemCategory-Div,#ProductCountWrap').removeClass('d-none');
+                $('#btnSyncProductsCache').removeClass('d-none');
                 var itemLen = $(ProdTable + ' ' + ProdRow).length;
                 if (itemLen == 0) {
                     getProductDetails(PageNo, RowLimit, Filter);
@@ -450,8 +505,19 @@ $(function() {
                     $(ProdHeader).prop('checked', false);
                     unSelectTableRecords(ProdTable, ProdRow);
                 }
+            } else if (ActiveTabId == 'Groups') {
+                $('#NewComboItem').removeClass('d-none');
+                $('#btnSyncProductsCache').removeClass('d-none');
+                var grpLen = $(GroupTable + ' ' + ProdRow).length;
+                if (grpLen == 0) {
+                    getGroupDetails(PageNo, RowLimit, Filter);
+                } else {
+                    $(GroupHeader).prop('checked', false);
+                    unSelectTableRecords(GroupTable, ProdRow);
+                }
             } else if (ActiveTabId == 'Categories') {
                 $('#NewCategory').removeClass('d-none');
+                $('#btnSyncCategoriesCache').removeClass('d-none');
                 var catgLen = $(CatgTable + ' ' + CatgRow).length;
                 if (catgLen == 0) {
                     getCategoriesDetails(PageNo, RowLimit, Filter);
@@ -514,7 +580,7 @@ $(function() {
         e.preventDefault();
         if (SelectedUIDs.length > 0) {
             let DeleteContent;
-            if (ActiveTabId == 'Item') {
+            if (ActiveTabId == 'Item' || ActiveTabId == 'Groups') {
                 DeleteContent = 'Do you want to delete all the selected product?';
             } else if (ActiveTabId == 'Categories') {
                 DeleteContent = 'Do you want to delete all the selected category?';
@@ -533,7 +599,7 @@ $(function() {
                 cancelButtonColor: "#3085d6",
             }).then((result) => {
                 if (result.isConfirmed) {
-                    if (ActiveTabId == 'Item') {
+                    if (ActiveTabId == 'Item' || ActiveTabId == 'Groups') {
                         deleteMultipleProduct();
                     } else if (ActiveTabId == 'Categories') {
                         deleteMultipleCategory();
@@ -799,7 +865,9 @@ $(function() {
     $(document).on('click', '.addItem', function(e) {
         e.preventDefault();
         formOpenCloseDefActions();
-        $('#itemsModal').modal('show');
+        _ensureCategoryOptions(function() {
+            $('#itemsModal').modal('show');
+        });
     });
 
     $('#itemsModal').on('shown.bs.modal', function() {
@@ -812,14 +880,17 @@ $(function() {
     });
     
     basePaginationFunc(ProdPag, getProductDetails);
+    basePaginationFunc(GroupPag, getGroupDetails);
     baseRefreshPageFunc('.PageRefresh', showProductPageDetails);
     basePageHeaderFunc(ProdHeader, ProdTable, ProdRow);
+    basePageHeaderFunc(GroupHeader, GroupTable, ProdRow);
 
     // ── Sticky pagination (products) ──
     var $prodStickyPag = $('#prodStickyPagination');
     var $prodStickyInner = $('#prodStickyPagInner');
     function _getActiveProdPagEl() {
         if (ActiveTabId === 'Item')       return $('#ProductsPagination');
+        if (ActiveTabId === 'Groups')     return $('#GroupsPagination');
         if (ActiveTabId === 'Categories') return $('#CategoriesPagination');
         if (ActiveTabId === 'Sizes')      return $('#SizesPagination');
         if (ActiveTabId === 'Brands')     return $('#BrandsPagination');
@@ -838,9 +909,11 @@ $(function() {
     _toggleProdSticky();
 
     $(document).on('click', ProdRow, function() {
-        onClickOfCheckbox($(this), ProdTable, ProdHeader, ProdRow);
+        var activeTbl = (ActiveTabId === 'Groups') ? GroupTable : ProdTable;
+        var activeHdr = (ActiveTabId === 'Groups') ? GroupHeader : ProdHeader;
+        onClickOfCheckbox($(this), activeTbl, activeHdr, ProdRow);
         $('#CloneOption').addClass('d-none');
-        if (SelectedUIDs.length == 1) {
+        if (SelectedUIDs.length == 1 && ActiveTabId === 'Item') {
             $('#CloneOption').removeClass('d-none');
         }
         MultipleDeleteOption();
@@ -1313,6 +1386,48 @@ $(document).on('click', '.catg-prod-count-btn', function () {
         error: function () {
             AjaxLoading = 1;
             $('#catgProductsModalBody').html('<div class="alert alert-danger m-3">Failed to load products.</div>');
+        }
+    });
+});
+
+// Sync Items Cache
+$(document).on('click', '#btnSyncProductsCache', function () {
+    var $btn = $(this);
+    $btn.find('i').removeClass('bx-planet').addClass('bx-loader-alt bx-spin');
+    $.ajax({
+        url    : '/products/syncProductsCache',
+        method : 'POST',
+        data   : { [CsrfName]: CsrfToken },
+        success: function (resp) {
+            CsrfToken = resp.NewCsrfToken || CsrfToken;
+            $btn.find('i').removeClass('bx-loader-alt bx-spin').addClass('bx-planet');
+            if (resp.Error) { showToastNotification(resp.Message, 'error'); }
+            else { showToastNotification(resp.Message, 'success'); }
+        },
+        error: function () {
+            $btn.find('i').removeClass('bx-loader-alt bx-spin').addClass('bx-planet');
+            showToastNotification('Sync failed. Please try again.', 'error');
+        }
+    });
+});
+
+// Sync Categories Cache
+$(document).on('click', '#btnSyncCategoriesCache', function () {
+    var $btn = $(this);
+    $btn.find('i').removeClass('bx-planet').addClass('bx-loader-alt bx-spin');
+    $.ajax({
+        url    : '/products/syncCategoriesCache',
+        method : 'POST',
+        data   : { [CsrfName]: CsrfToken },
+        success: function (resp) {
+            CsrfToken = resp.NewCsrfToken || CsrfToken;
+            $btn.find('i').removeClass('bx-loader-alt bx-spin').addClass('bx-planet');
+            if (resp.Error) { showToastNotification(resp.Message, 'error'); }
+            else { showToastNotification(resp.Message, 'success'); }
+        },
+        error: function () {
+            $btn.find('i').removeClass('bx-loader-alt bx-spin').addClass('bx-planet');
+            showToastNotification('Sync failed. Please try again.', 'error');
         }
     });
 });

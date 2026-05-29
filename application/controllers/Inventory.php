@@ -132,10 +132,14 @@ class Inventory extends MY_Controller {
             $insertResp = $this->dbwrite_model->insertData('Products', 'StockAdjustmentTbl', $adjData);
             if ($insertResp->Error) throw new Exception($insertResp->Message);
 
-            $adjUID = $insertResp->InsertId;
+            $adjUID = (int) $insertResp->ID;
+            if ($adjUID <= 0) throw new Exception('Failed to retrieve adjustment ID after insert.');
             $this->dbwrite_model->applyManualStockAdjustment($adjUID, $orgUID, $userUID, $productUID, $qty, $price, 'IN');
 
             $this->dbwrite_model->commitTransaction();
+
+            // Sync updated AvailableQuantity into the Upstash bulk cache
+            $this->cachehelper->upsertProduct($productUID);
 
             $stats = $this->inventory_model->getInventoryStats($orgUID);
             $this->EndReturnData->Error   = FALSE;
@@ -195,10 +199,14 @@ class Inventory extends MY_Controller {
             $insertResp = $this->dbwrite_model->insertData('Products', 'StockAdjustmentTbl', $adjData);
             if ($insertResp->Error) throw new Exception($insertResp->Message);
 
-            $adjUID = $insertResp->InsertId;
+            $adjUID = (int) $insertResp->ID;
+            if ($adjUID <= 0) throw new Exception('Failed to retrieve adjustment ID after insert.');
             $this->dbwrite_model->applyManualStockAdjustment($adjUID, $orgUID, $userUID, $productUID, $qty, $price, 'OUT');
 
             $this->dbwrite_model->commitTransaction();
+
+            // Sync updated AvailableQuantity into the Upstash bulk cache
+            $this->cachehelper->upsertProduct($productUID);
 
             $stats = $this->inventory_model->getInventoryStats($orgUID);
             $this->EndReturnData->Error   = FALSE;
@@ -320,26 +328,12 @@ class Inventory extends MY_Controller {
             $orgUID = (int) $this->pageData['JwtData']->User->OrgUID;
             $GeneralSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
             $this->pageData['JwtData']->GenSettings = $GeneralSettings;
-            $limit = (int)($GeneralSettings->RowLimit ?? 10);
+            $limit = (int) ($GeneralSettings->RowLimit ?? 10);
 
-            $defaultFilter = [
-                'DateFrom' => date('Y') . '-01-01',
-                'DateTo'   => date('Y') . '-12-31',
-            ];
+            $defaultFilter = ['DateFrom' => date('Y') . '-01-01', 'DateTo'   => date('Y') . '-12-31'];
 
             $listData   = $this->inventory_model->getGlobalTimeline($orgUID, $defaultFilter, $limit, 0);
             $totalCount = $this->inventory_model->getGlobalTimelineCount($orgUID, $defaultFilter);
-            $categories = $this->inventory_model->getCategories($orgUID);
-
-            $this->load->model('users_model');
-            $cacheKey = $this->redisservice->orgKey('org_users');
-            $orgUsers = $this->redisservice->getCache($cacheKey)->Value;
-            if (!is_array($orgUsers)) {
-                $orgUsers = $this->users_model->getOrgUsersForCache($orgUID);
-                if (!empty($orgUsers)) {
-                    $this->redisservice->setCache($cacheKey, $orgUsers, 86400);
-                }
-            }
 
             $this->pageData['ModRowData']    = $this->load->view('inventory/timeline_list', [
                 'DataLists' => $listData,
@@ -349,13 +343,10 @@ class Inventory extends MY_Controller {
             $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/inventory/timeline/getPageDetails', $totalCount, 1, $limit);
             $this->pageData['ModAllCount']   = $totalCount;
             $this->pageData['DefaultFilter'] = $defaultFilter;
-            $this->pageData['Categories']    = $categories;
-            $this->pageData['OrgUsers']      = $orgUsers;
 
             $this->load->view('inventory/timeline_view', $this->pageData);
 
         } catch (Throwable $e) {
-            log_message('error', 'Inventory::timelinePage â€” ' . $e->getMessage());
             redirect('dashboard', 'refresh');
         }
 

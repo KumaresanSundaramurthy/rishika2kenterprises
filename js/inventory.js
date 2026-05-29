@@ -10,8 +10,17 @@ var INV_MODULE_LABELS = {
     118: { label: 'Manual Adj.',     color: '#7c3aed' },
 };
 
-var _invFilter        = {};
+var _invFilter = {};
+
+var _invCfbConfig = {
+    checkClass : 'inv-category-checkbox',
+    applyFn    : 'invApplyCategoryFilter',
+    resetFn    : 'invResetCategoryFilter',
+    uid        : 'inventory'
+};
 var _invTimelineFilter = {};
+var _siDateFp = null; // flatpickr instance for Stock In record date
+var _soDateFp = null; // flatpickr instance for Stock Out record date
 
 // ── Export helpers ────────────────────────────────────────────────────────────
 function invExport(type) {
@@ -101,13 +110,26 @@ function invOpenStockIn(uid, name, unit, purchasePrice) {
     $('#siProductName').text(name);
     $('#siUnitLabel').text(unit || 'PCS');
     $('#siQty').val('');
-    $('#siRecordDate').val(new Date().toISOString().split('T')[0]);
     $('#siCategory').val('New');
     $('#siNotes').val('');
     $('#siPrice').val(purchasePrice > 0 ? purchasePrice.toFixed(2) : '');
     $('#siPriceType').val('PurchasePrice');
     invCalcStockValue('in');
+
     new bootstrap.Modal(document.getElementById('stockInModal')).show();
+
+    // Init flatpickr after modal is fully visible so position calculates correctly
+    $('#stockInModal').one('shown.bs.modal', function () {
+        if (_siDateFp) { _siDateFp.destroy(); _siDateFp = null; }
+        _siDateFp = flatpickr('#siRecordDate', {
+            dateFormat:  'Y-m-d',
+            altInput:    true,
+            altFormat:   'd M Y',
+            defaultDate: new Date(),
+            allowInput:  false,
+            appendTo:    document.body,
+        });
+    });
 }
 
 // ── Open Stock Out modal ──────────────────────────────────────────────────────
@@ -116,13 +138,26 @@ function invOpenStockOut(uid, name, unit, sellingPrice) {
     $('#soProductName').text(name);
     $('#soUnitLabel').text(unit || 'PCS');
     $('#soQty').val('');
-    $('#soRecordDate').val(new Date().toISOString().split('T')[0]);
     $('#soCategory').val('Miscellaneous');
     $('#soNotes').val('');
     $('#soPrice').val(sellingPrice > 0 ? sellingPrice.toFixed(2) : '');
     $('#soPriceType').val('SellingPrice');
     invCalcStockValue('out');
+
     new bootstrap.Modal(document.getElementById('stockOutModal')).show();
+
+    // Init flatpickr after modal is fully visible so position calculates correctly
+    $('#stockOutModal').one('shown.bs.modal', function () {
+        if (_soDateFp) { _soDateFp.destroy(); _soDateFp = null; }
+        _soDateFp = flatpickr('#soRecordDate', {
+            dateFormat:  'Y-m-d',
+            altInput:    true,
+            altFormat:   'd M Y',
+            defaultDate: new Date(),
+            allowInput:  false,
+            appendTo:    document.body,
+        });
+    });
 }
 
 // ── Stock In submit ───────────────────────────────────────────────────────────
@@ -281,22 +316,28 @@ function invRenderTimeline(rows) {
             ref = '#' + row.TransNumber;
         }
 
-        // Date display
-        var dateStr = '—';
-        if (moduleUID === 118 && row.AdjDate) {
-            dateStr = invFormatDate(row.AdjDate);
-        } else if (row.TransDate) {
-            dateStr = invFormatDate(row.TransDate);
-        } else if (row.MovementDate) {
-            dateStr = invFormatDate(row.MovementDate);
-        }
+        var dateStr = row.EffectiveDate ? invFormatDate(row.EffectiveDate) : '—';
 
         // Notes — from StockLedgerTbl.Remarks (all modules), fallback sa.Notes already handled server-side
         var notes = row.Remarks ? escHtml(row.Remarks) : '—';
 
-        // Unit cost
-        var cost = parseFloat(row.UnitCost || 0);
-        var costStr = cost > 0 ? (InvCurrency + ' ' + cost.toFixed(InvDecimals)) : '—';
+        // UnitCost = purchase value including tax; TaxAmount = tax portion within that
+        var unitCost = parseFloat(row.UnitCost  || 0);
+        var taxAmt   = parseFloat(row.TaxAmount || 0);
+
+        // Cost Price  : base cost without tax  (UnitCost − TaxAmount)
+        var costBase    = unitCost - taxAmt;
+        var costBaseStr = unitCost > 0 ? (InvCurrency + ' ' + costBase.toFixed(InvDecimals)) : '—';
+
+        // Tax Amount  : tax portion only
+        var taxStr      = taxAmt > 0 ? (InvCurrency + ' ' + taxAmt.toFixed(InvDecimals)) : '—';
+
+        // Purchase Price : full purchase value with tax  (UnitCost as stored)
+        var purchaseStr = unitCost > 0 ? (InvCurrency + ' ' + unitCost.toFixed(InvDecimals)) : '—';
+
+        // Selling Price  : sold value with tax
+        var sell        = parseFloat(row.SellingPrice || 0);
+        var sellStr     = sell > 0 ? (InvCurrency + ' ' + sell.toFixed(InvDecimals)) : '—';
 
         html += '<tr style="border-bottom:1px solid #f1f5f9;">'
             + '<td style="padding:.55rem .75rem;white-space:nowrap;">' + dateStr + '</td>'
@@ -304,10 +345,13 @@ function invRenderTimeline(rows) {
             + '<td style="padding:.55rem .75rem;">' + ref + '</td>'
             + '<td style="padding:.55rem .75rem;text-align:center;">' + dirBadge + '</td>'
             + '<td style="padding:.55rem .75rem;text-align:right;font-weight:600;' + (isIN ? 'color:#16a34a;' : 'color:#dc2626;') + '">'
-            +    (isIN ? '+' : '-') + parseFloat(row.Quantity).toFixed(3)
+            +    (isIN ? '+' : '-') + invSmartQty(row.Quantity)
             + '</td>'
-            + '<td style="padding:.55rem .75rem;text-align:right;">' + costStr + '</td>'
-            + '<td style="padding:.55rem .75rem;color:#64748b;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + notes + '">' + notes + '</td>'
+            + '<td style="padding:.55rem .75rem;text-align:right;">' + costBaseStr + '</td>'
+            + '<td style="padding:.55rem .75rem;text-align:right;">' + taxStr + '</td>'
+            + '<td style="padding:.55rem .75rem;text-align:right;">' + purchaseStr + '</td>'
+            + '<td style="padding:.55rem .75rem;text-align:right;">' + sellStr + '</td>'
+            + '<td style="padding:.55rem .75rem;color:#64748b;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + notes + '">' + notes + '</td>'
             + '</tr>';
     });
     $('#tlTableBody').html(html);
@@ -326,59 +370,42 @@ function invFormatDate(dateStr) {
     return d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear();
 }
 
+// Returns qty without trailing zeros: 1.000→"1", 1.010→"1.01", 1.001→"1.001"
+function invSmartQty(val) {
+    var n = parseFloat(val || 0);
+    return isNaN(n) ? '0' : parseFloat(n.toFixed(3)).toString();
+}
+
 // ── Category filter box ───────────────────────────────────────────────────────
 function invToggleCategoryFilter() {
     var $box = $('#invCategoryFilterBox');
-    if ($box.is(':visible')) {
-        $box.hide();
-        return;
-    }
+    if ($box.is(':visible')) { $box.hide(); return; }
     $('#invStatusFilterBox').hide();
-    var btn = document.getElementById('invCategoryFilterBtn');
+    var btn  = document.getElementById('invCategoryFilterBtn');
     var rect = btn.getBoundingClientRect();
     $box.css({
         top:  (rect.bottom + window.scrollY + 4) + 'px',
         left: Math.max(4, rect.left + window.scrollX - 60) + 'px',
         display: 'flex',
     });
-    $('#invCategorySearch').val('').trigger('input');
-}
-
-function invFilterCategoryList(term) {
-    var t = term.toLowerCase();
-    $('#invCategoryList .catg-list-item').each(function () {
-        var name = $(this).find('span').text().toLowerCase();
-        $(this).toggle(name.indexOf(t) !== -1);
-    });
-}
-
-function invToggleAllCategories(main) {
-    $('#invCategoryList .inv-category-checkbox:visible').prop('checked', main.checked);
+    CategoryAppend.filterBox('#invCategoryFilterBox', _invCfbConfig, _invFilter.CategoryUID || []);
 }
 
 function invApplyCategoryFilter() {
     var uids = [];
-    $('#invCategoryList .inv-category-checkbox:checked').each(function () {
+    $('#invCategoryFilterBox .inv-category-checkbox:checked').each(function () {
         uids.push(parseInt($(this).val()));
     });
-    if (uids.length) {
-        _invFilter['CategoryUID'] = uids;
-    } else {
-        delete _invFilter['CategoryUID'];
-    }
-    var $icon = $('#invCatFilterIcon');
-    if (uids.length) {
-        $icon.css('color', '#0284c7');
-    } else {
-        $icon.css('color', '');
-    }
+    if (uids.length) { _invFilter['CategoryUID'] = uids; } else { delete _invFilter['CategoryUID']; }
+    $('#invCatFilterIcon').css('color', uids.length ? '#0284c7' : '');
     $('#invCategoryFilterBox').hide();
     invLoadPage(1);
 }
 
 function invResetCategoryFilter() {
-    $('#invCategoryList .inv-category-checkbox').prop('checked', false);
-    $('#invSelectAllCategories').prop('checked', false);
+    $('#invCategoryFilterBox .inv-category-checkbox').prop('checked', false);
+    $('#invCategoryFilterBox .ca-sel-all').prop('checked', false);
+    $('#invCategoryFilterBox .ca-sel-all-label').text('Select All');
     delete _invFilter['CategoryUID'];
     $('#invCatFilterIcon').css('color', '');
     $('#invCategoryFilterBox').hide();
@@ -679,8 +706,9 @@ $(document).ready(function () {
         if (pg) invLoadPage(pg);
     });
 
-    // Refresh button
+    // Refresh button — only run on the inventory page (guard against timeline page)
     $(document).on('click', '.pageRefresh', function () {
+        if (!$('#invTable').length) return;
         invLoadPage(1);
         invRefreshStats();
     });

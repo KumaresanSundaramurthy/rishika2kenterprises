@@ -17,16 +17,17 @@ class Inventory_model extends CI_Model {
         $this->ReadDb->db_debug = FALSE;
         $sql = "
             SELECT
-                SUM(CASE WHEN p.AvailableQuantity > 0 THEN 1 ELSE 0 END)                        AS positiveCount,
-                SUM(CASE WHEN p.AvailableQuantity > 0 THEN p.AvailableQuantity ELSE 0 END)       AS positiveQty,
-                SUM(CASE WHEN p.AvailableQuantity <= p.LowStockAlertAt THEN 1 ELSE 0 END)        AS lowStockCount,
-                SUM(CASE WHEN p.AvailableQuantity <= p.LowStockAlertAt
-                         THEN p.AvailableQuantity ELSE 0 END)                                    AS lowStockQty,
-                SUM(CASE WHEN p.AvailableQuantity > 0
-                         THEN p.AvailableQuantity * p.SellingPrice ELSE 0 END)                   AS saleValue,
-                SUM(CASE WHEN p.AvailableQuantity > 0
-                         THEN p.AvailableQuantity * p.PurchasePrice ELSE 0 END)                  AS purchaseValue
+                SUM(CASE WHEN COALESCE(ps.AvailableQty, 0) > 0 THEN 1 ELSE 0 END)                                    AS positiveCount,
+                SUM(CASE WHEN COALESCE(ps.AvailableQty, 0) > 0 THEN COALESCE(ps.AvailableQty, 0) ELSE 0 END)         AS positiveQty,
+                SUM(CASE WHEN COALESCE(ps.AvailableQty, 0) <= p.LowStockAlertAt THEN 1 ELSE 0 END)                   AS lowStockCount,
+                SUM(CASE WHEN COALESCE(ps.AvailableQty, 0) <= p.LowStockAlertAt
+                         THEN COALESCE(ps.AvailableQty, 0) ELSE 0 END)                                               AS lowStockQty,
+                SUM(CASE WHEN COALESCE(ps.AvailableQty, 0) > 0
+                         THEN COALESCE(ps.AvailableQty, 0) * p.SellingPrice ELSE 0 END)                              AS saleValue,
+                SUM(CASE WHEN COALESCE(ps.AvailableQty, 0) > 0
+                         THEN COALESCE(ps.AvailableQty, 0) * p.PurchasePrice ELSE 0 END)                             AS purchaseValue
             FROM Products.ProductTbl p
+            LEFT JOIN Products.ProductStockTbl ps ON ps.ProductUID = p.ProductUID
             WHERE p.OrgUID = ? AND p.IsDeleted = 0 AND p.IsActive = 1
               AND p.ProductType = 'Product'
               AND NOT EXISTS (
@@ -49,7 +50,7 @@ class Inventory_model extends CI_Model {
             'p.ProductUID',
             'p.ItemName',
             'p.PartNumber',
-            'p.AvailableQuantity',
+            'COALESCE(ps.AvailableQty, 0) AS AvailableQuantity',
             'p.LowStockAlertAt',
             'p.SellingPrice',
             'p.PurchasePrice',
@@ -64,6 +65,7 @@ class Inventory_model extends CI_Model {
         ]);
         $this->ReadDb->select("CONCAT(IFNULL(usr.FirstName,''), ' ', IFNULL(usr.LastName,'')) AS UpdatedByName", FALSE);
         $this->ReadDb->from('Products.ProductTbl p');
+        $this->ReadDb->join('Products.ProductStockTbl ps', 'ps.ProductUID = p.ProductUID', 'left');
         $this->ReadDb->join('Products.CategoryTbl c', 'c.CategoryUID = p.CategoryUID AND c.IsDeleted = 0', 'left');
         $this->ReadDb->join('Global.PrimaryUnitTbl u', 'u.PrimaryUnitUID = p.PrimaryUnitUID', 'left');
         $this->ReadDb->join('Users.UserTbl usr', 'usr.UserUID = p.UpdatedBy', 'left');
@@ -89,6 +91,7 @@ class Inventory_model extends CI_Model {
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->select('COUNT(*) AS cnt');
         $this->ReadDb->from('Products.ProductTbl p');
+        $this->ReadDb->join('Products.ProductStockTbl ps', 'ps.ProductUID = p.ProductUID', 'left');
         $this->ReadDb->join('Products.CategoryTbl c', 'c.CategoryUID = p.CategoryUID AND c.IsDeleted = 0', 'left');
         $this->ReadDb->where(['p.OrgUID' => (int)$orgUID, 'p.IsDeleted' => 0, 'p.IsActive' => 1]);
         $this->ReadDb->where('NOT EXISTS (SELECT 1 FROM Products.ProductBOMTbl b WHERE b.ParentProductUID = p.ProductUID AND b.IsDeleted = 0)', null, false);
@@ -128,13 +131,13 @@ class Inventory_model extends CI_Model {
         if (!empty($filter['StockStatus'])) {
             switch ($filter['StockStatus']) {
                 case 'LowStock':
-                    $this->ReadDb->where('p.AvailableQuantity <=', 'p.LowStockAlertAt', false);
+                    $this->ReadDb->where('COALESCE(ps.AvailableQty, 0) <=', 'p.LowStockAlertAt', false);
                     break;
                 case 'Positive':
-                    $this->ReadDb->where('p.AvailableQuantity >', 0);
+                    $this->ReadDb->where('COALESCE(ps.AvailableQty, 0) >', 0);
                     break;
                 case 'OutOfStock':
-                    $this->ReadDb->where('p.AvailableQuantity <=', 0);
+                    $this->ReadDb->where('COALESCE(ps.AvailableQty, 0) <=', 0);
                     break;
             }
         }
@@ -146,7 +149,7 @@ class Inventory_model extends CI_Model {
         $allowed = [
             'ItemName'      => 'p.ItemName',
             'CategoryName'  => 'c.Name',
-            'Qty'           => 'p.AvailableQuantity',
+            'Qty'           => 'ps.AvailableQty',
             'PurchasePrice' => 'p.PurchasePrice',
             'SellingPrice'  => 'p.SellingPrice',
         ];
@@ -169,27 +172,48 @@ class Inventory_model extends CI_Model {
                 sl.MovementType,
                 sl.Quantity,
                 sl.UnitCost,
+                sl.SellingPrice,
+                sl.TaxAmount,
                 sl.CreatedOn,
-                COALESCE(sl.Remarks, IF(sl.ModuleUID = 118, sa.Notes, NULL)) AS Remarks,
+                -- NULLIF guards against empty-string Remarks bypassing the fallback
+                COALESCE(
+                    NULLIF(sl.Remarks, ''),
+                    NULLIF(COALESCE(sa.Notes, sa_fb.Notes), '')
+                ) AS Remarks,
                 -- Transaction-based movements (Invoice, Purchase, Returns)
                 ts.TransNumber,
                 ts.UniqueNumber,
-                ts.TransDate,
-                ts.DocStatus   AS TransStatus,
-                -- Manual adjustment fields
-                sa.AdjUID,
-                sa.AdjCategory,
-                sa.AdjType,
-                sa.RecordDate  AS AdjDate
+                ts.DocStatus AS TransStatus,
+                -- Manual adjustment fields (primary JOIN wins; fallback covers old broken records)
+                COALESCE(sa.AdjUID,      sa_fb.AdjUID)      AS AdjUID,
+                COALESCE(sa.AdjCategory, sa_fb.AdjCategory) AS AdjCategory,
+                COALESCE(sa.AdjType,     sa_fb.AdjType)     AS AdjType,
+                -- Single merged date column for all movement types
+                COALESCE(ts.TransDate, sa.RecordDate, sa_fb.RecordDate, DATE(sl.CreatedOn)) AS EffectiveDate
             FROM Products.StockLedgerTbl sl
             LEFT JOIN Transaction.TransactionsTbl ts
                 ON  ts.TransUID  = sl.TransUID
                 AND sl.ModuleUID NOT IN (118)
                 AND ts.IsDeleted = 0
+            -- Primary adjustment JOIN: correct for records saved after the TransUID fix
             LEFT JOIN Products.StockAdjustmentTbl sa
                 ON  sa.AdjUID    = sl.TransUID
                 AND sl.ModuleUID = 118
                 AND sa.IsDeleted = 0
+            -- Fallback adjustment JOIN: recovers Notes/Date for old records where TransUID was 0
+            LEFT JOIN Products.StockAdjustmentTbl sa_fb
+                ON  sl.ModuleUID = 118
+                AND sl.TransUID  = 0
+                AND sa.AdjUID    IS NULL
+                AND sa_fb.AdjUID = (
+                    SELECT MAX(sa2.AdjUID)
+                    FROM Products.StockAdjustmentTbl sa2
+                    WHERE sa2.IsDeleted  = 0
+                      AND sa2.OrgUID     = sl.OrgUID
+                      AND sa2.ProductUID = sl.ProductUID
+                      AND sa2.AdjType COLLATE utf8mb4_unicode_ci = sl.MovementType COLLATE utf8mb4_unicode_ci
+                      AND sa2.Qty        = sl.Quantity
+                )
             WHERE sl.ProductUID = ? AND sl.OrgUID = ? AND sl.IsDeleted = 0
             ORDER BY sl.LedgerUID DESC
             LIMIT 200
@@ -222,25 +246,29 @@ class Inventory_model extends CI_Model {
                 sl.CreatedOn,
                 sl.TransUID,
                 sl.TransProdUID,
-                COALESCE(sl.Remarks, IF(sl.ModuleUID = 118, sa.Notes, NULL)) AS Remarks,
+                COALESCE(
+                    NULLIF(sl.Remarks, ''),
+                    NULLIF(COALESCE(sa.Notes, sa_fb.Notes), '')
+                ) AS Remarks,
                 p.ProductUID,
-                p.ItemName,
+                COALESCE(sl.SnapItemName, p.ItemName)        AS ItemName,
+                sl.SnapItemName,
                 p.HSNSACCode,
                 p.ProductType,
-                COALESCE(tp.PartNumber, p.PartNumber)       AS PartNumber,
-                COALESCE(tp.Description, p.Description)     AS Description,
-                COALESCE(tp.PrimaryUnitName, pu.ShortName)  AS UnitName,
+                COALESCE(tp.PartNumber, p.PartNumber)        AS PartNumber,
+                COALESCE(tp.Description, p.Description)      AS Description,
+                COALESCE(tp.PrimaryUnitName, pu.ShortName)   AS UnitName,
                 cat.Name AS CategoryName,
                 ts.TransUID AS TransactionUID,
                 ts.TransNumber,
                 ts.UniqueNumber,
                 ts.TransDate,
                 ts.DocStatus,
-                sa.AdjUID,
-                sa.AdjCategory,
-                sa.RecordDate AS AdjDate,
+                COALESCE(sa.AdjUID,      sa_fb.AdjUID)      AS AdjUID,
+                COALESCE(sa.AdjCategory, sa_fb.AdjCategory) AS AdjCategory,
+                COALESCE(sa.RecordDate,  sa_fb.RecordDate)  AS AdjDate,
                 CONCAT(IFNULL(usr.FirstName,''), ' ', IFNULL(usr.LastName,'')) AS CreatedByName,
-                COALESCE(ts.TransDate, sa.RecordDate, DATE(sl.CreatedOn)) AS EffectiveDate
+                COALESCE(ts.TransDate, sa.RecordDate, sa_fb.RecordDate, DATE(sl.CreatedOn)) AS EffectiveDate
             FROM Products.StockLedgerTbl sl
             INNER JOIN Products.ProductTbl p
                 ON p.ProductUID = sl.ProductUID AND p.IsDeleted = 0
@@ -255,6 +283,19 @@ class Inventory_model extends CI_Model {
                 ON ts.TransUID = sl.TransUID AND sl.ModuleUID NOT IN (118) AND ts.IsDeleted = 0
             LEFT JOIN Products.StockAdjustmentTbl sa
                 ON sa.AdjUID = sl.TransUID AND sl.ModuleUID = 118 AND sa.IsDeleted = 0
+            LEFT JOIN Products.StockAdjustmentTbl sa_fb
+                ON  sl.ModuleUID = 118
+                AND sl.TransUID  = 0
+                AND sa.AdjUID    IS NULL
+                AND sa_fb.AdjUID = (
+                    SELECT MAX(sa2.AdjUID)
+                    FROM Products.StockAdjustmentTbl sa2
+                    WHERE sa2.IsDeleted  = 0
+                      AND sa2.OrgUID     = sl.OrgUID
+                      AND sa2.ProductUID = sl.ProductUID
+                      AND sa2.AdjType COLLATE utf8mb4_unicode_ci = sl.MovementType COLLATE utf8mb4_unicode_ci
+                      AND sa2.Qty        = sl.Quantity
+                )
             LEFT JOIN Users.UserTbl usr ON usr.UserUID = sl.CreatedBy
             WHERE sl.OrgUID = ? AND sl.IsDeleted = 0
             {$where}
@@ -321,18 +362,22 @@ class Inventory_model extends CI_Model {
                 sl.TaxAmount,
                 sl.CreatedOn,
                 sl.TransProdUID,
-                COALESCE(sl.Remarks, IF(sl.ModuleUID = 118, sa.Notes, NULL)) AS Remarks,
-                p.ItemName,
+                COALESCE(
+                    NULLIF(sl.Remarks, ''),
+                    NULLIF(COALESCE(sa.Notes, sa_fb.Notes), '')
+                ) AS Remarks,
+                COALESCE(sl.SnapItemName, p.ItemName) AS ItemName,
+                sl.SnapItemName,
                 COALESCE(tp.PrimaryUnitName, pu.ShortName) AS UnitName,
                 cat.Name AS CategoryName,
                 ts.TransNumber,
                 ts.UniqueNumber,
                 ts.TransDate,
-                sa.AdjUID,
-                sa.AdjCategory,
-                sa.RecordDate AS AdjDate,
+                COALESCE(sa.AdjUID,      sa_fb.AdjUID)      AS AdjUID,
+                COALESCE(sa.AdjCategory, sa_fb.AdjCategory) AS AdjCategory,
+                COALESCE(sa.RecordDate,  sa_fb.RecordDate)  AS AdjDate,
                 CONCAT(IFNULL(usr.FirstName,''), ' ', IFNULL(usr.LastName,'')) AS CreatedByName,
-                COALESCE(ts.TransDate, sa.RecordDate, DATE(sl.CreatedOn)) AS EffectiveDate
+                COALESCE(ts.TransDate, sa.RecordDate, sa_fb.RecordDate, DATE(sl.CreatedOn)) AS EffectiveDate
             FROM Products.StockLedgerTbl sl
             INNER JOIN Products.ProductTbl p
                 ON p.ProductUID = sl.ProductUID AND p.IsDeleted = 0
@@ -347,6 +392,19 @@ class Inventory_model extends CI_Model {
                 ON ts.TransUID = sl.TransUID AND sl.ModuleUID NOT IN (118) AND ts.IsDeleted = 0
             LEFT JOIN Products.StockAdjustmentTbl sa
                 ON sa.AdjUID = sl.TransUID AND sl.ModuleUID = 118 AND sa.IsDeleted = 0
+            LEFT JOIN Products.StockAdjustmentTbl sa_fb
+                ON  sl.ModuleUID = 118
+                AND sl.TransUID  = 0
+                AND sa.AdjUID    IS NULL
+                AND sa_fb.AdjUID = (
+                    SELECT MAX(sa2.AdjUID)
+                    FROM Products.StockAdjustmentTbl sa2
+                    WHERE sa2.IsDeleted  = 0
+                      AND sa2.OrgUID     = sl.OrgUID
+                      AND sa2.ProductUID = sl.ProductUID
+                      AND sa2.AdjType COLLATE utf8mb4_unicode_ci = sl.MovementType COLLATE utf8mb4_unicode_ci
+                      AND sa2.Qty        = sl.Quantity
+                )
             LEFT JOIN Users.UserTbl usr ON usr.UserUID = sl.CreatedBy
             WHERE sl.OrgUID = ? AND sl.IsDeleted = 0
             {$where}

@@ -1642,9 +1642,7 @@ class Invoices extends MY_Controller {
                 $this->pageData['ProFormaItems'] = $pfItems;
             }
 
-            $this->load->model('organisation_model');
-            $dispatchAddrResult                = $this->organisation_model->getOrgDispatchAddress($orgUID);
-            $this->pageData['DispatchAddress'] = $dispatchAddrResult->Data ?? NULL;
+            $this->_getDispatchAddresses($orgUID);
 
             $this->load->model('global_model');
             $GetCountryInfo = $this->global_model->getCountryInfo();
@@ -1722,9 +1720,7 @@ class Invoices extends MY_Controller {
             }
             $this->pageData['NextNumberMap'] = $nextNumberMap;
 
-            $this->load->model('organisation_model');
-            $dispatchAddrResult                = $this->organisation_model->getOrgDispatchAddress($orgUID);
-            $this->pageData['DispatchAddress'] = $dispatchAddrResult->Data ?? NULL;
+            $this->_getDispatchAddresses($orgUID);
 
             $this->load->model('global_model');
             $GetCountryInfo = $this->global_model->getCountryInfo();

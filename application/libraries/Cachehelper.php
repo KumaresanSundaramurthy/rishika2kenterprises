@@ -246,4 +246,149 @@ class Cachehelper {
             }
         } catch (Exception $e) {}
     }
+
+    // ── Product ───────────────────────────────────────────────────────────────
+
+    /**
+     * Add or refresh a single product entry in the org bulk search map.
+     * Call after: create, update, status change, stock adjustment.
+     */
+    public function upsertProduct($productUID) {
+        try {
+            $CI     =& get_instance();
+            $orgUID = (int) $CI->pageData['JwtData']->User->OrgUID;
+            $uid    = (int) $productUID;
+            if ($uid <= 0) return;
+
+            $CI->load->model('products_model');
+            $rows = $CI->products_model->getProductsForCache($orgUID);
+            if (empty($rows)) return;
+
+            $prod = null;
+            foreach ($rows as $row) {
+                if ((int)$row->ProductUID === $uid) { $prod = $row; break; }
+            }
+            if (!$prod) return;
+
+            $cacheKey = $CI->redisservice->orgKey('products');
+            $cacheMap = $CI->upstashservice->get($cacheKey);
+            if (!is_array($cacheMap)) $cacheMap = [];
+
+            $cacheMap[(string)$uid] = [
+                'ProductUID'                 => $uid,
+                'ItemName'                   => $prod->ItemName                   ?? '',
+                'ProductType'                => $prod->ProductType                ?? '',
+                'CategoryUID'                => (int)($prod->CategoryUID          ?? 0),
+                'CategoryName'               => $prod->CategoryName               ?? '',
+                'HSNSACCode'                 => $prod->HSNSACCode                 ?? '',
+                'PartNumber'                 => $prod->PartNumber                 ?? '',
+                'SKU'                        => $prod->SKU                        ?? '',
+                'Description'                => $prod->Description                ?? '',
+                'PrimaryUnitUID'             => (int)($prod->PrimaryUnitUID       ?? 0),
+                'PrimaryUnitName'            => $prod->PrimaryUnitName            ?? '',
+                'MRP'                        => (float)($prod->MRP                ?? 0),
+                'SellingPrice'               => (float)($prod->SellingPrice       ?? 0),
+                'PurchasePrice'              => (float)($prod->PurchasePrice      ?? 0),
+                'SellingProductTaxUID'       => (int)($prod->SellingProductTaxUID ?? 0),
+                'PurchasePriceProductTaxUID' => (int)($prod->PurchasePriceProductTaxUID ?? 0),
+                'TaxDetailsUID'              => (int)($prod->TaxDetailsUID        ?? 0),
+                'TaxPercentage'              => (float)($prod->TaxPercentage      ?? 0),
+                'CGST'                       => (float)($prod->CGST               ?? 0),
+                'SGST'                       => (float)($prod->SGST               ?? 0),
+                'IGST'                       => (float)($prod->IGST               ?? 0),
+                'AvailableQuantity'          => (float)($prod->AvailableQuantity  ?? 0),
+                'Discount'                   => (float)($prod->Discount           ?? 0),
+                'DiscountTypeUID'            => (int)($prod->DiscountTypeUID      ?? 0),
+                'LowStockAlertAt'            => (float)($prod->LowStockAlertAt    ?? 0),
+                'NotForSale'                 => (int)($prod->NotForSale           ?? 0),
+                'IsComboItem'                => (int)($prod->IsComboItem          ?? 0),
+                'IsComposite'                => (int)($prod->IsComposite          ?? 0),
+                'IsSerialTracked'            => (int)($prod->IsSerialTracked      ?? 0),
+                'Image'                      => $prod->Image                      ?? '',
+            ];
+
+            $CI->upstashservice->set($cacheKey, $cacheMap, 0);
+            $CI->upstashservice->del(Upstashservice::keyProduct($uid));
+
+        } catch (Exception $e) {}
+    }
+
+    /**
+     * Remove a product from the org bulk map and invalidate its individual key.
+     * Call after soft-delete.
+     */
+    public function removeProduct($productUID) {
+        try {
+            $CI       =& get_instance();
+            $uid      = (int) $productUID;
+            $cacheKey = $CI->redisservice->orgKey('products');
+            $cacheMap = $CI->upstashservice->get($cacheKey);
+            if (is_array($cacheMap)) {
+                unset($cacheMap[(string)$uid]);
+                $CI->upstashservice->set($cacheKey, $cacheMap, 0);
+            }
+            $CI->upstashservice->del(Upstashservice::keyProduct($uid));
+        } catch (Exception $e) {}
+    }
+
+    // ── Category ──────────────────────────────────────────────────────────────
+
+    /**
+     * Add or refresh a single category entry in the org bulk map.
+     * Call after: create, update, status change.
+     */
+    public function upsertCategory($categoryUID) {
+        try {
+            $CI     =& get_instance();
+            $orgUID = (int) $CI->pageData['JwtData']->User->OrgUID;
+            $uid    = (int) $categoryUID;
+            if ($uid <= 0) return;
+
+            $CI->load->model('products_model');
+            $rows = $CI->products_model->getCategoriesForCache($orgUID);
+            if (empty($rows)) return;
+
+            $cat = null;
+            foreach ($rows as $row) {
+                if ((int)$row->CategoryUID === $uid) { $cat = $row; break; }
+            }
+            if (!$cat) return;
+
+            $cacheKey = $CI->redisservice->orgKey('categories');
+            $cacheMap = $CI->upstashservice->get($cacheKey);
+            if (!is_array($cacheMap)) $cacheMap = [];
+
+            $cacheMap[(string)$uid] = [
+                'CategoryUID' => $uid,
+                'Name'        => $cat->Name        ?? '',
+                'Description' => $cat->Description ?? '',
+                'Image'       => $cat->Image       ?? '',
+            ];
+
+            $CI->upstashservice->set($cacheKey, $cacheMap, 0);
+            $CI->upstashservice->del(Upstashservice::keyCategory($uid));
+
+        } catch (Exception $e) {}
+    }
+
+    /**
+     * Remove a category from the org bulk map and invalidate its individual key.
+     * Call after soft-delete.
+     */
+    public function removeCategory($categoryUID) {
+        try {
+            $CI       =& get_instance();
+            $uid      = (int) $categoryUID;
+            $cacheKey = $CI->redisservice->orgKey('categories');
+            $cacheMap = $CI->upstashservice->get($cacheKey);
+            if (is_array($cacheMap)) {
+                unset($cacheMap[(string)$uid]);
+                $CI->upstashservice->set($cacheKey, $cacheMap, 0);
+            }
+            $CI->upstashservice->del(
+                Upstashservice::keyCategory($uid),
+                Upstashservice::keyCategoriesAll()
+            );
+        } catch (Exception $e) {}
+    }
 }

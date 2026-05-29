@@ -61,6 +61,11 @@ if (!empty($DataLists)):
     <!-- Item — same style as inventory list -->
     <td>
         <div class="fw-semibold" style="font-size:.85rem;"><?php echo htmlspecialchars($row->ItemName); ?></div>
+        <?php if (!empty($row->SnapItemName) && $row->SnapItemName !== $row->ItemName): ?>
+        <div class="text-muted" style="font-size:.68rem;">
+            <i class="bx bx-history me-1" style="color:#94a3b8;"></i>At movement: <?php echo htmlspecialchars($row->SnapItemName); ?>
+        </div>
+        <?php endif; ?>
         <?php if (!empty($row->PartNumber)): ?>
         <div class="text-muted" style="font-size:.7rem;">Part# <?php echo htmlspecialchars($row->PartNumber); ?></div>
         <?php endif; ?>

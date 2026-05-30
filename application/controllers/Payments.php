@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
+<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Payments extends MY_Controller {
 
@@ -25,7 +25,7 @@ class Payments extends MY_Controller {
             $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
             $limit = $GeneralSettings->RowLimit ?? 10;
 
-            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
 
             $filter = ['ModuleUID' => 110, 'PaymentDirection' => 'In'];
 
@@ -72,7 +72,7 @@ class Payments extends MY_Controller {
             $filter['PaymentDirection'] = 'In';
             unset($filter['PartyType']);
 
-            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
 
             $this->load->model('transactions_model');
             $allData      = $this->transactions_model->getPaymentsList($limit, $offset, $orgUID, $filter);
@@ -111,7 +111,7 @@ class Payments extends MY_Controller {
 
             $PostData = $this->input->post();
             $userUID  = $this->pageData['JwtData']->User->UserUID;
-            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
 
             $transUID       = (int)   getPostValue($PostData, 'TransUID');
             $moduleUID      = (int)   getPostValue($PostData, 'ModuleUID');
@@ -178,7 +178,7 @@ class Payments extends MY_Controller {
         try {
 
             $transUID = (int) $this->input->get_post('TransUID');
-            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
 
             if ($transUID <= 0) throw new Exception('Invalid transaction.');
 
@@ -206,7 +206,7 @@ class Payments extends MY_Controller {
 
             $PostData   = $this->input->post();
             $paymentUID = (int) getPostValue($PostData, 'PaymentUID');
-            $orgUID     = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID     = $this->pageData['JwtData']->Org->OrgUID;
 
             if ($paymentUID <= 0) throw new Exception('Invalid payment record.');
 
@@ -237,7 +237,7 @@ class Payments extends MY_Controller {
             $PostData   = $this->input->post();
             $paymentUID = (int) getPostValue($PostData, 'PaymentUID');
             $userUID    = $this->pageData['JwtData']->User->UserUID;
-            $orgUID     = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID     = $this->pageData['JwtData']->Org->OrgUID;
 
             if ($paymentUID <= 0) throw new Exception('Invalid payment record.');
 
@@ -337,7 +337,7 @@ class Payments extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
 
-            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
             $this->load->model('transactions_model');
             $accounts = $this->transactions_model->getOrgBankAccounts($orgUID);
 
@@ -361,7 +361,7 @@ class Payments extends MY_Controller {
             $this->load->model('dbwrite_model');
 
             $PostData    = $this->input->post();
-            $orgUID      = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID      = $this->pageData['JwtData']->Org->OrgUID;
             $userUID     = $this->pageData['JwtData']->User->UserUID;
             $accountUID  = (int) getPostValue($PostData, 'BankAccountUID');
 
@@ -415,6 +415,8 @@ class Payments extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
+            $this->upstashservice->del($this->redisservice->orgKey('org-bank-accounts'));
+
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = $accountUID > 0 ? 'Bank account updated.' : 'Bank account added.';
 
@@ -434,7 +436,7 @@ class Payments extends MY_Controller {
         try {
 
             $PostData      = $this->input->post();
-            $orgUID        = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID        = $this->pageData['JwtData']->Org->OrgUID;
             $bankAccountUID = (int) getPostValue($PostData, 'BankAccountUID');
             if ($bankAccountUID <= 0) throw new Exception('Bank account ID is required.');
 
@@ -468,7 +470,7 @@ class Payments extends MY_Controller {
             $this->load->model('dbwrite_model');
 
             $PostData       = $this->input->post();
-            $orgUID         = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID         = $this->pageData['JwtData']->Org->OrgUID;
             $userUID        = $this->pageData['JwtData']->User->UserUID;
             $bankAccountUID = (int) getPostValue($PostData, 'BankAccountUID');
             if ($bankAccountUID <= 0) throw new Exception('Bank account ID is required.');
@@ -492,6 +494,8 @@ class Payments extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
+            $this->upstashservice->del($this->redisservice->orgKey('org-bank-accounts'));
+
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Default bank updated.';
 
@@ -513,7 +517,7 @@ class Payments extends MY_Controller {
             $this->load->model('dbwrite_model');
 
             $PostData       = $this->input->post();
-            $orgUID         = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID         = $this->pageData['JwtData']->Org->OrgUID;
             $userUID        = $this->pageData['JwtData']->User->UserUID;
             $bankAccountUID = (int) getPostValue($PostData, 'BankAccountUID');
             if ($bankAccountUID <= 0) throw new Exception('Bank account ID is required.');
@@ -526,6 +530,8 @@ class Payments extends MY_Controller {
                 ['BankAccountUID' => $bankAccountUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
             );
             if ($resp->Error) throw new Exception($resp->Message);
+
+            $this->upstashservice->del($this->redisservice->orgKey('org-bank-accounts'));
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Bank account deleted.';
@@ -546,7 +552,7 @@ class Payments extends MY_Controller {
 
             $paymentUID = (int) $this->input->get_post('PaymentUID');
             $printType  = $this->input->get_post('PrintType') ?: 'a4'; // 'thermal' | 'a4'
-            $orgUID     = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID     = $this->pageData['JwtData']->Org->OrgUID;
             $isThermal  = $printType == 'thermal' ? 1 : 0;
 
             if ($paymentUID <= 0) throw new Exception('Invalid payment.');
@@ -589,7 +595,7 @@ class Payments extends MY_Controller {
 
             $paymentUID = (int) $this->input->get_post('PaymentUID');
             $paperSize  = strtoupper(trim($this->input->get_post('PaperSize') ?: 'A4'));
-            $orgUID     = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID     = $this->pageData['JwtData']->Org->OrgUID;
 
             if ($paymentUID <= 0) throw new Exception('Invalid payment.');
 
@@ -621,7 +627,7 @@ class Payments extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
 
-            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
             $this->load->model('transactions_model');
             $accounts = $this->transactions_model->getOrgBankAccounts($orgUID);
 
@@ -648,7 +654,7 @@ class Payments extends MY_Controller {
 
             $paymentUID = (int) $this->input->post('PaymentUID');
             $paperSize  = strtoupper(trim($this->input->post('PaperSize') ?: 'A4'));
-            $orgUID     = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID     = $this->pageData['JwtData']->Org->OrgUID;
 
             if ($paymentUID <= 0) throw new Exception('Invalid payment.');
 

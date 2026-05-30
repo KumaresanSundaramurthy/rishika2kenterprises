@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
+<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Settings extends MY_Controller {
 
@@ -37,7 +37,7 @@ class Settings extends MY_Controller {
         $this->_loadPageTitle();
         if (empty($this->pageData['PageTitle'])) $this->pageData['PageTitle'] = 'Settings';
         try {
-            $orgUID  = (int) $this->pageData['JwtData']->User->OrgUID;
+            $orgUID  = (int) $this->pageData['JwtData']->Org->OrgUID;
             $userUID = (int) $this->pageData['JwtData']->User->UserUID;
 
             $this->load->model('login_model');
@@ -80,7 +80,7 @@ class Settings extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
 
-            $orgUID  = (int) $this->pageData['JwtData']->User->OrgUID;
+            $orgUID  = (int) $this->pageData['JwtData']->Org->OrgUID;
             $userUID = (int) $this->pageData['JwtData']->User->UserUID;
             $post    = $this->input->post();
 
@@ -154,7 +154,7 @@ class Settings extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
 
-            $orgUID  = (int) $this->pageData['JwtData']->User->OrgUID;
+            $orgUID  = (int) $this->pageData['JwtData']->Org->OrgUID;
             $userUID = (int) $this->pageData['JwtData']->User->UserUID;
             $post    = $this->input->post();
 
@@ -179,10 +179,12 @@ class Settings extends MY_Controller {
             $priceMaxLength = (int)getPostValue($post, 'PriceMaxLength');
             if ($priceMaxLength < 1 || $priceMaxLength > 20) $priceMaxLength = 12;
 
+            $maxShippingAddr = (int)getPostValue($post, 'MaxShippingAddr');
+            if ($maxShippingAddr < 1 || $maxShippingAddr > 5) $maxShippingAddr = 3;
+
             $serialNoDisplay  = getPostValue($post, 'SerialNoDisplay')  ? 1 : 0;
             $enableStorage    = getPostValue($post, 'EnableStorage')    ? 1 : 0;
             $mandatoryStorage = getPostValue($post, 'MandatoryStorage') ? 1 : 0;
-            // MandatoryStorage only valid if EnableStorage is on
             if (!$enableStorage) $mandatoryStorage = 0;
 
             $data = [
@@ -195,6 +197,7 @@ class Settings extends MY_Controller {
                 'PriceMaxLength'  => $priceMaxLength,
                 'EnableStorage'   => $enableStorage,
                 'MandatoryStorage'=> $mandatoryStorage,
+                'MaxShippingAddr' => $maxShippingAddr,
             ];
 
             $this->load->model('dbwrite_model');
@@ -235,7 +238,7 @@ class Settings extends MY_Controller {
         $this->pageData['PageTitle'] = 'Thermal Print Config';
         try {
             $this->load->model('organisation_model');
-            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
             $this->pageData['OrgPreviewData']   = $this->organisation_model->getOrgInfoCached($orgUID)->Data;
             $this->pageData['ThermalTypeCount'] = count($this->getThermalTransTypes());
             $this->load->view('settings/thermalconfig/view', $this->pageData);
@@ -270,7 +273,7 @@ class Settings extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
 
-            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
 
             $this->load->model('organisation_model');
             $result = $this->organisation_model->getThermalPrintConfigList($orgUID);
@@ -307,7 +310,7 @@ class Settings extends MY_Controller {
         try {
 
             $PostData    = $this->input->post();
-            $orgUID      = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID      = $this->pageData['JwtData']->Org->OrgUID;
             $userUID     = $this->pageData['JwtData']->User->UserUID;
             $configUID = (int) getPostValue($PostData, 'ThermalConfigUID');
             $moduleUID = (int) getPostValue($PostData, 'ModuleUID');
@@ -407,7 +410,7 @@ class Settings extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
 
-            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
             $this->load->model('organisation_model');
             $result = $this->organisation_model->getBankAccountList($orgUID);
             $rows   = $result->Error === FALSE ? $result->Data : [];
@@ -437,7 +440,7 @@ class Settings extends MY_Controller {
         try {
 
             $PostData = $this->input->post();
-            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
             $bankUID  = (int) getPostValue($PostData, 'BankAccountUID');
 
             if ($bankUID <= 0) throw new Exception('Invalid bank account ID.');
@@ -464,7 +467,7 @@ class Settings extends MY_Controller {
         try {
 
             $PostData = $this->input->post();
-            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
             $bankUID  = (int) getPostValue($PostData, 'BankAccountUID');
 
             if ($bankUID <= 0) throw new Exception('Invalid bank account ID.');
@@ -492,7 +495,7 @@ class Settings extends MY_Controller {
         try {
 
             $PostData     = $this->input->post();
-            $orgUID       = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID       = $this->pageData['JwtData']->Org->OrgUID;
             $userUID      = $this->pageData['JwtData']->User->UserUID;
             $bankUID      = (int) getPostValue($PostData, 'BankAccountUID');
             $accountName  = trim(getPostValue($PostData, 'AccountName') ?: '');
@@ -572,7 +575,7 @@ class Settings extends MY_Controller {
         try {
 
             $PostData = $this->input->post();
-            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
             $userUID  = $this->pageData['JwtData']->User->UserUID;
             $bankUID  = (int) getPostValue($PostData, 'BankAccountUID');
 
@@ -609,7 +612,7 @@ class Settings extends MY_Controller {
         try {
 
             $PostData = $this->input->post();
-            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
             $userUID  = $this->pageData['JwtData']->User->UserUID;
             $bankUID  = (int) getPostValue($PostData, 'BankAccountUID');
 
@@ -646,7 +649,7 @@ class Settings extends MY_Controller {
         try {
 
             $PostData    = $this->input->post();
-            $orgUID      = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID      = $this->pageData['JwtData']->Org->OrgUID;
             $userUID     = $this->pageData['JwtData']->User->UserUID;
             $fromUID     = (int) getPostValue($PostData, 'FromBankUID');
             $toUID       = (int) getPostValue($PostData, 'ToBankUID');
@@ -716,7 +719,7 @@ class Settings extends MY_Controller {
     public function getMsgTemplateDetail() {
         $this->EndReturnData = new stdClass();
         try {
-            $orgUID      = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID      = $this->pageData['JwtData']->Org->OrgUID;
             $templateUID = (int) $this->input->get_post('TemplateUID');
             if ($templateUID <= 0) throw new Exception('Invalid template.');
 
@@ -735,7 +738,7 @@ class Settings extends MY_Controller {
     public function getMsgTemplateList() {
         $this->EndReturnData = new stdClass();
         try {
-            $orgUID  = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID  = $this->pageData['JwtData']->Org->OrgUID;
             $this->load->model('organisation_model');
             $result  = $this->organisation_model->getMessageTemplates($orgUID);
             $rows    = $result->Error === FALSE ? $result->Data : [];
@@ -763,7 +766,7 @@ class Settings extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
             $PostData    = $this->input->post();
-            $orgUID      = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID      = $this->pageData['JwtData']->Org->OrgUID;
             $userUID     = $this->pageData['JwtData']->User->UserUID;
             $templateUID = (int) getPostValue($PostData, 'TemplateUID');
             $moduleUID   = (int) getPostValue($PostData, 'ModuleUID');
@@ -817,7 +820,7 @@ class Settings extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
             $PostData    = $this->input->post();
-            $orgUID      = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID      = $this->pageData['JwtData']->Org->OrgUID;
             $userUID     = $this->pageData['JwtData']->User->UserUID;
             $templateUID = (int) getPostValue($PostData, 'TemplateUID');
             if ($templateUID <= 0) throw new Exception('Invalid template.');
@@ -851,7 +854,7 @@ class Settings extends MY_Controller {
     public function getPrefixConfigList() {
         $this->EndReturnData = new stdClass();
         try {
-            $orgUID  = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID  = $this->pageData['JwtData']->Org->OrgUID;
             $this->load->model('organisation_model');
             $result  = $this->organisation_model->getPrefixConfigList($orgUID);
             $rows    = $result->Error === FALSE ? $result->Data : [];
@@ -877,7 +880,7 @@ class Settings extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
             $PostData  = $this->input->post();
-            $orgUID    = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
             $userUID   = $this->pageData['JwtData']->User->UserUID;
             $prefixUID = (int) getPostValue($PostData, 'prePrefixUID');
             $moduleUID = (int) getPostValue($PostData, 'preModuleUID');
@@ -964,7 +967,7 @@ class Settings extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
             $PostData  = $this->input->post();
-            $orgUID    = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
             $userUID   = $this->pageData['JwtData']->User->UserUID;
             $prefixUID = (int) getPostValue($PostData, 'prePrefixUID');
             if ($prefixUID <= 0) throw new Exception('Invalid prefix ID.');
@@ -996,7 +999,7 @@ class Settings extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
             $PostData  = $this->input->post();
-            $orgUID    = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
             $userUID   = $this->pageData['JwtData']->User->UserUID;
             $prefixUID = (int) getPostValue($PostData, 'prePrefixUID');
             if ($prefixUID <= 0) throw new Exception('Invalid prefix ID.');
@@ -1030,7 +1033,7 @@ class Settings extends MY_Controller {
         try {
 
             $PostData  = $this->input->post();
-            $orgUID    = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
             $userUID   = $this->pageData['JwtData']->User->UserUID;
             $configUID = (int) getPostValue($PostData, 'ThermalConfigUID');
 

@@ -250,6 +250,7 @@ if ($isEdit) {
                                 'transNotesContent'        => $isEdit ? ($SRData->Notes ?? '') : '',
                                 'transTermsContent'        => $isEdit ? ($SRData->TermsConditions ?? '') : '',
                                 'transSignatureUID'        => $isEdit ? (int)($SRData->SignatureUID ?? 0) : 0,
+                                'transSignatures'          => $JwtData->User->Signatures ?? [],
                                 'transPaymentVars'         => !$isEdit ? [
                                     'PaymentTypes'     => $PaymentTypes ?? [],
                                     'BankAccounts'     => $BankAccounts ?? [],

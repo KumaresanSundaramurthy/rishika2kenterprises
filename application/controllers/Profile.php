@@ -110,7 +110,7 @@ class Profile extends MY_Controller {
         try {
 
             $userUID = $this->pageData['JwtData']->User->UserUID;
-            $orgUID  = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID  = $this->pageData['JwtData']->Org->OrgUID;
 
             $this->load->model('signature_model');
             $result = $this->signature_model->getSignatureList($userUID, $orgUID);
@@ -152,7 +152,7 @@ class Profile extends MY_Controller {
         try {
 
             $userUID = $this->pageData['JwtData']->User->UserUID;
-            $orgUID  = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID  = $this->pageData['JwtData']->Org->OrgUID;
 
             $this->load->model('signature_model');
             $result = $this->signature_model->getSignatureList($userUID, $orgUID);
@@ -172,7 +172,7 @@ class Profile extends MY_Controller {
         try {
 
             $userUID  = $this->pageData['JwtData']->User->UserUID;
-            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
             $PostData = $this->input->post();
 
             $sigType = trim(getPostValue($PostData, 'SignatureType'));
@@ -247,6 +247,8 @@ class Profile extends MY_Controller {
                 );
             }
 
+            $this->_patchSignaturesJWT();
+
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Signature saved successfully';
 
@@ -265,7 +267,7 @@ class Profile extends MY_Controller {
         try {
 
             $userUID      = $this->pageData['JwtData']->User->UserUID;
-            $orgUID       = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID       = $this->pageData['JwtData']->Org->OrgUID;
             $PostData     = $this->input->post();
             $signatureUID = (int)getPostValue($PostData, 'SignatureUID');
             $sigType      = trim(getPostValue($PostData, 'SignatureType'));
@@ -329,6 +331,8 @@ class Profile extends MY_Controller {
                 );
             }
 
+            $this->_patchSignaturesJWT();
+
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Signature updated successfully';
 
@@ -364,6 +368,8 @@ class Profile extends MY_Controller {
                 throw new Exception($resp->Message);
             }
 
+            $this->_patchSignaturesJWT();
+
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Signature deleted';
 
@@ -382,7 +388,7 @@ class Profile extends MY_Controller {
         try {
 
             $userUID      = $this->pageData['JwtData']->User->UserUID;
-            $orgUID       = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID       = $this->pageData['JwtData']->Org->OrgUID;
             $signatureUID = (int)$this->input->post('SignatureUID');
 
             if (!$signatureUID) {
@@ -408,6 +414,8 @@ class Profile extends MY_Controller {
                 throw new Exception($resp->Message);
             }
 
+            $this->_patchSignaturesJWT();
+
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Default signature updated';
 
@@ -418,6 +426,43 @@ class Profile extends MY_Controller {
 
         $this->globalservice->sendJsonResponse($this->EndReturnData);
 
+    }
+
+    // ── Patch User.Signatures in the JWT Redis payload ────────────────────────
+    private function _patchSignaturesJWT() {
+        try {
+            $userUID = $this->pageData['JwtData']->User->UserUID;
+            $orgUID  = $this->pageData['JwtData']->Org->OrgUID;
+
+            $this->load->model('signature_model');
+            $result  = $this->signature_model->getSignatureList($userUID, $orgUID);
+
+            $cdnBase = getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv('CFLARE_R2_CDN');
+            $list    = [];
+            if ($result->Error === FALSE) {
+                foreach ($result->Data as $sig) {
+                    $imgSrc = ($sig->SignatureType === 'Draw')
+                        ? ($sig->DrawData ?? '')
+                        : ($cdnBase . ($sig->ImagePath ?? ''));
+                    $list[] = [
+                        'SignatureUID'  => (int)$sig->SignatureUID,
+                        'Label'         => $sig->Label,
+                        'SignatureType' => $sig->SignatureType,
+                        'ImgSrc'        => $imgSrc,
+                        'IsDefault'     => (int)$sig->IsDefault,
+                    ];
+                }
+            }
+
+            $jwtKey      = $this->pageData['JwtUserKey'] ?? null;
+            $redisPayload = $jwtKey ? $this->redisservice->getCache($jwtKey) : null;
+            if ($redisPayload && !$redisPayload->Error && !empty($redisPayload->Value)) {
+                $redisPayload->Value->User->Signatures = $list;
+                $this->redisservice->setCache($jwtKey, $redisPayload->Value, $redisPayload->TTL);
+            }
+        } catch (Exception $e) {
+            // Silently fail — JWT patch is best-effort, not critical
+        }
     }
 
 }

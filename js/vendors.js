@@ -1,4 +1,4 @@
-﻿// ── Export ────────────────────────────────────────────────────────────────
+// ── Export ────────────────────────────────────────────────────────────────
 function vendExport(type) {
     var url = '/vendors/exportVendors?Type=' + encodeURIComponent(type);
     if (typeof Filter !== 'undefined' && !$.isEmptyObject(Filter)) {

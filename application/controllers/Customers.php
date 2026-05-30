@@ -17,7 +17,7 @@ class Customers extends MY_Controller {
 
     private function _fetchTableData($pageNo, $limit, $filter = []) {
 
-        $orgUID = $this->pageData['JwtData']->User->OrgUID;
+        $orgUID = $this->pageData['JwtData']->Org->OrgUID;
         $offset = max(0, ($pageNo - 1) * $limit);
 
         $this->load->model('customers_model');
@@ -54,20 +54,20 @@ class Customers extends MY_Controller {
             $this->pageData['ModPagination'] = $pageData->Pagination;
 
             $this->load->model('customers_model');
-            $this->pageData['CustStats']        = $this->customers_model->getCustomerStats($this->pageData['JwtData']->User->OrgUID);
-            $this->pageData['CustomerTypeList'] = $this->customers_model->getCustomerTypeList($this->pageData['JwtData']->User->OrgUID);
-            $this->pageData['Tags']             = $this->customers_model->getCustomerTags($this->pageData['JwtData']->User->OrgUID);
+            $this->pageData['CustStats']        = $this->customers_model->getCustomerStats($this->pageData['JwtData']->Org->OrgUID);
+            $this->pageData['CustomerTypeList'] = $this->customers_model->getCustomerTypeList($this->pageData['JwtData']->Org->OrgUID);
+            $this->pageData['Tags']             = $this->customers_model->getCustomerTags($this->pageData['JwtData']->Org->OrgUID);
 
             // Resolve org phone country code from JwtData (sourced from OrganisationTbl at login)
             // Fall back to OrganisationTbl only if missing from JwtData
-            $this->pageData['OrgCCode'] = $this->pageData['JwtData']->User->OrgCCode  ?? '';
-            $this->pageData['OrgCISO2'] = $this->pageData['JwtData']->User->OrgCISO2  ?? '';
+            $this->pageData['OrgCCode'] = $this->pageData['JwtData']->Org->OrgCCode  ?? '';
+            $this->pageData['OrgCISO2'] = $this->pageData['JwtData']->Org->OrgCISO2  ?? '';
 
             $this->load->model('users_model');
             $cacheKey = $this->redisservice->orgKey('org_users');
             $orgUsers = $this->redisservice->getCache($cacheKey)->Value;
             if (!is_array($orgUsers)) {
-                $orgUsers = $this->users_model->getOrgUsersForCache($this->pageData['JwtData']->User->OrgUID);
+                $orgUsers = $this->users_model->getOrgUsersForCache($this->pageData['JwtData']->Org->OrgUID);
                 if (!empty($orgUsers)) {
                     $this->redisservice->setCache($cacheKey, $orgUsers, 86400);
                 }
@@ -139,8 +139,8 @@ class Customers extends MY_Controller {
         $data = [
             'Name'              => getPostValue($postData, 'Name'),
             'Area'              => getPostValue($postData, 'Area'),
-            'OrgUID'            => $this->pageData['JwtData']->User->OrgUID,
-            'BranchUID'         => $this->pageData['JwtData']->User->BranchUID,
+            'OrgUID'            => $this->pageData['JwtData']->Org->OrgUID,
+            'BranchUID'         => $this->pageData['JwtData']->Org->BranchUID,
             'EmailAddress'      => getPostValue($postData, 'EmailAddress'),
             'CountryCode'       => getPostValue($postData, 'CountryCode'),
             'CountryISO2'       => getPostValue($postData, 'CountryISO2', '', 'IN'),
@@ -217,12 +217,12 @@ class Customers extends MY_Controller {
             $initType = getPostValue($PostData, 'DebitCreditCheck', '', 'Debit');
             if ($initAmt > 0) {
                 $this->customers_model->saveCustomerOpeningBalance(
-                    $this->pageData['JwtData']->User->OrgUID, $CustomerUID,
+                    $this->pageData['JwtData']->Org->OrgUID, $CustomerUID,
                     $initAmt, $initType, null,
                     $this->pageData['JwtData']->User->UserUID
                 );
                 $this->customers_model->saveCustomerYearOpening(
-                    $this->pageData['JwtData']->User->OrgUID, $CustomerUID,
+                    $this->pageData['JwtData']->Org->OrgUID, $CustomerUID,
                     $this->_currentFinancialYear(),
                     $initAmt, $initType,
                     $this->pageData['JwtData']->User->UserUID
@@ -261,7 +261,7 @@ class Customers extends MY_Controller {
             $this->EndReturnData->Message    = 'Created Successfully';
             $this->EndReturnData->List       = $pageData->RecordHtmlData;
             $this->EndReturnData->Pagination = $pageData->Pagination;
-            $this->EndReturnData->Stats      = $this->customers_model->getCustomerStats($this->pageData['JwtData']->User->OrgUID);
+            $this->EndReturnData->Stats      = $this->customers_model->getCustomerStats($this->pageData['JwtData']->Org->OrgUID);
 
         } catch (InvalidArgumentException $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -288,7 +288,7 @@ class Customers extends MY_Controller {
             $uid  = (int) $uid;
 
             $this->load->model('customers_model');
-            $this->pageData['CustomerTypeList'] = $this->customers_model->getCustomerTypeList($this->pageData['JwtData']->User->OrgUID);
+            $this->pageData['CustomerTypeList'] = $this->customers_model->getCustomerTypeList($this->pageData['JwtData']->Org->OrgUID);
 
             $formData     = null;
             $bankDetails  = [];
@@ -339,7 +339,7 @@ class Customers extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
 
-            $orgUID  = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID  = $this->pageData['JwtData']->Org->OrgUID;
             $userUID = $this->pageData['JwtData']->User->UserUID;
 
             $this->load->model('customers_model');
@@ -539,7 +539,7 @@ class Customers extends MY_Controller {
             }
 
             if ($balanceChanged) {
-                $orgUID  = $this->pageData['JwtData']->User->OrgUID;
+                $orgUID  = $this->pageData['JwtData']->Org->OrgUID;
                 $userUID = $this->pageData['JwtData']->User->UserUID;
 
                 // Read current balance via ReadDb (no lock conflict)
@@ -604,7 +604,7 @@ class Customers extends MY_Controller {
             $this->EndReturnData->Message    = 'Updated Successfully';
             $this->EndReturnData->List       = $pageData->RecordHtmlData;
             $this->EndReturnData->Pagination = $pageData->Pagination;
-            $this->EndReturnData->Stats      = $this->customers_model->getCustomerStats($this->pageData['JwtData']->User->OrgUID);
+            $this->EndReturnData->Stats      = $this->customers_model->getCustomerStats($this->pageData['JwtData']->Org->OrgUID);
 
         } catch (InvalidArgumentException $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -660,7 +660,7 @@ class Customers extends MY_Controller {
             $this->EndReturnData->Message    = 'Deleted Successfully';
             $this->EndReturnData->List       = $pageData->RecordHtmlData;
             $this->EndReturnData->Pagination = $pageData->Pagination;
-            $this->EndReturnData->Stats      = $this->customers_model->getCustomerStats($this->pageData['JwtData']->User->OrgUID);
+            $this->EndReturnData->Stats      = $this->customers_model->getCustomerStats($this->pageData['JwtData']->Org->OrgUID);
 
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -677,7 +677,7 @@ class Customers extends MY_Controller {
             $filter = $this->input->get('Filter') ?: '{}';
             $filter = json_decode($filter, true)  ?: [];
 
-            $orgUID = (int)$this->pageData['JwtData']->User->OrgUID;
+            $orgUID = (int)$this->pageData['JwtData']->Org->OrgUID;
             $this->load->model('organisation_model');
             $orgResult = $this->organisation_model->getOrgInfoCached($orgUID);
             $orgInfo   = ($orgResult->Error === FALSE) ? $orgResult->Data : null;
@@ -719,7 +719,7 @@ class Customers extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
             $this->load->model('customers_model');
-            $tags = $this->customers_model->getCustomerTags($this->pageData['JwtData']->User->OrgUID);
+            $tags = $this->customers_model->getCustomerTags($this->pageData['JwtData']->Org->OrgUID);
             $this->EndReturnData->Error = false;
             $this->EndReturnData->Tags  = $tags;
         } catch (Exception $e) {
@@ -733,7 +733,7 @@ class Customers extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
             $this->load->model('customers_model');
-            $types = $this->customers_model->getCustomerTypeList($this->pageData['JwtData']->User->OrgUID);
+            $types = $this->customers_model->getCustomerTypeList($this->pageData['JwtData']->Org->OrgUID);
             $this->EndReturnData->Error = false;
             $this->EndReturnData->Types = $types;
         } catch (Exception $e) {
@@ -748,7 +748,7 @@ class Customers extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
             $this->load->model('customers_model');
-            $stats = $this->customers_model->getCustomerStats($this->pageData['JwtData']->User->OrgUID);
+            $stats = $this->customers_model->getCustomerStats($this->pageData['JwtData']->Org->OrgUID);
             $this->EndReturnData->Error = false;
             $this->EndReturnData->Stats = $stats;
         } catch (Exception $e) {
@@ -779,7 +779,7 @@ class Customers extends MY_Controller {
             $pageData = $this->_fetchTableData($pageNo, $this->pageData['Limit']);
             $this->EndReturnData->Error      = false;
             $this->EndReturnData->Message    = 'Status updated successfully';
-            $this->EndReturnData->Stats      = $this->customers_model->getCustomerStats($this->pageData['JwtData']->User->OrgUID);
+            $this->EndReturnData->Stats      = $this->customers_model->getCustomerStats($this->pageData['JwtData']->Org->OrgUID);
             $this->EndReturnData->List       = $pageData->RecordHtmlData;
             $this->EndReturnData->Pagination = $pageData->Pagination;
         } catch (Exception $e) {
@@ -850,7 +850,7 @@ class Customers extends MY_Controller {
             $this->EndReturnData->Message    = count($CustomerUIDs) . ' customer(s) deleted successfully';
             $this->EndReturnData->List       = $pageData->RecordHtmlData;
             $this->EndReturnData->Pagination = $pageData->Pagination;
-            $this->EndReturnData->Stats      = $this->customers_model->getCustomerStats($this->pageData['JwtData']->User->OrgUID);
+            $this->EndReturnData->Stats      = $this->customers_model->getCustomerStats($this->pageData['JwtData']->Org->OrgUID);
 
         } catch (Exception $e) {
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
@@ -868,7 +868,7 @@ class Customers extends MY_Controller {
         $tempFiles = [];
         try {
 
-            $orgUID    = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
             $sentBy    = $this->pageData['JwtData']->User->UserUID;
             $commType  = $this->input->post('CommType');
             $message   = trim($this->input->post('Message', FALSE));
@@ -932,7 +932,7 @@ class Customers extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
 
-            $orgUID        = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID        = $this->pageData['JwtData']->Org->OrgUID;
             $userUID       = $this->pageData['JwtData']->User->UserUID;
             $customerUID   = (int)   $this->input->post('CustomerUID');
             $balance       = (float) $this->input->post('OpeningBalance');
@@ -976,7 +976,7 @@ class Customers extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
 
-            $orgUID        = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID        = $this->pageData['JwtData']->Org->OrgUID;
             $customerUID   = (int) $this->input->get_post('CustomerUID');
             $financialYear = (int) $this->input->get_post('FinancialYear');
 
@@ -1008,7 +1008,7 @@ class Customers extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
 
-            $orgUID     = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID     = $this->pageData['JwtData']->Org->OrgUID;
             $userUID    = $this->pageData['JwtData']->User->UserUID;
             $filterUID  = (int) $this->input->post('CustomerUID');
 
@@ -1088,7 +1088,7 @@ class Customers extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
 
-            $orgUID      = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID      = $this->pageData['JwtData']->Org->OrgUID;
             $customerUID = (int) $this->input->get_post('CustomerUID');
             if ($customerUID <= 0) throw new Exception('Invalid customer.');
 
@@ -1139,7 +1139,7 @@ class Customers extends MY_Controller {
             $limit  = (int) $this->input->post('RowLimit') ?: 10;
             $search = trim($this->input->post('Search') ?? '');
 
-            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
             $offset = max(0, ($pageNo - 1) * $limit);
 
             $filter = [];

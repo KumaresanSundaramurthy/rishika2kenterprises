@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
+<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Deliverychallans extends MY_Controller {
 
@@ -31,7 +31,7 @@ class Deliverychallans extends MY_Controller {
             $this->pageData['ModRowData']    = $this->load->view('transactions/deliverychallans/list', ['DataLists' => $allData, 'SerialNumber' => 0, 'JwtData' => $this->pageData['JwtData']], TRUE);
             $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/deliverychallan/getPageDetails', $allDataCount, 1, $limit);
             $this->pageData['ModAllCount']   = $allDataCount;
-            $this->pageData['SummaryStats']  = $this->transactions_model->getTransactionSummaryStats($this->pageModuleUID, $this->pageData['JwtData']->User->OrgUID);
+            $this->pageData['SummaryStats']  = $this->transactions_model->getTransactionSummaryStats($this->pageModuleUID, $this->pageData['JwtData']->Org->OrgUID);
 
             $this->pageData['UpstashReadUrl']   = getenv('UPSTASH_REDIS_REST_URL') ?: '';
             $this->pageData['UpstashReadToken'] = getenv('UPSTASH_REDIS_REST_READONLY_TOKEN') ?: '';
@@ -77,7 +77,7 @@ class Deliverychallans extends MY_Controller {
     // ── Create form ──────────────────────────────────────────────
     public function create() {
         try {
-            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
 
             $this->load->model('transactions_model');
@@ -109,7 +109,7 @@ class Deliverychallans extends MY_Controller {
             $this->pageData['CountryInfo'] = $GetCountryInfo->Error === FALSE ? $GetCountryInfo->Data : [];
             $this->pageData['StateData']   = [];
             $this->pageData['CityData']    = [];
-            $OrgCountryISO2 = $this->pageData['JwtData']->User->OrgCISO2;
+            $OrgCountryISO2 = $this->pageData['JwtData']->Org->OrgCISO2;
             if (!empty($OrgCountryISO2)) {
                 $StateInfo = $this->global_model->getStateofCountry($OrgCountryISO2);
                 if ($StateInfo->Error === FALSE) $this->pageData['StateData'] = $StateInfo->Data;
@@ -145,7 +145,7 @@ class Deliverychallans extends MY_Controller {
             $transUID = (int) $transUID;
             if ($transUID <= 0) redirect('deliverychallan', 'refresh');
 
-            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
 
             $this->load->model('transactions_model');
@@ -178,7 +178,7 @@ class Deliverychallans extends MY_Controller {
             $this->pageData['CountryInfo'] = $GetCountryInfo->Error === FALSE ? $GetCountryInfo->Data : [];
             $this->pageData['StateData']   = [];
             $this->pageData['CityData']    = [];
-            $OrgCountryISO2 = $this->pageData['JwtData']->User->OrgCISO2;
+            $OrgCountryISO2 = $this->pageData['JwtData']->Org->OrgCISO2;
             if (!empty($OrgCountryISO2)) {
                 $StateInfo = $this->global_model->getStateofCountry($OrgCountryISO2);
                 if ($StateInfo->Error === FALSE) $this->pageData['StateData'] = $StateInfo->Data;
@@ -218,7 +218,7 @@ class Deliverychallans extends MY_Controller {
 
             $PostData = $this->input->post();
             $userUID  = $this->pageData['JwtData']->User->UserUID;
-            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
 
             $this->load->model('formvalidation_model');
             $ErrorInForm = $this->formvalidation_model->quotationValidateForm($PostData);
@@ -380,7 +380,7 @@ class Deliverychallans extends MY_Controller {
 
             $PostData = $this->input->post();
             $userUID  = $this->pageData['JwtData']->User->UserUID;
-            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
 
             $transUID = (int) getPostValue($PostData, 'TransUID');
             if ($transUID <= 0) throw new Exception('Delivery Challan ID is required.');
@@ -595,7 +595,7 @@ class Deliverychallans extends MY_Controller {
 
             $PostData = $this->input->post();
             $userUID  = $this->pageData['JwtData']->User->UserUID;
-            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
             $transUID = (int) getPostValue($PostData, 'TransUID');
             if ($transUID <= 0) throw new Exception('Delivery Challan ID is required.');
 
@@ -649,7 +649,7 @@ class Deliverychallans extends MY_Controller {
             $PostData = $this->input->post();
             $srcUID   = (int) getPostValue($PostData, 'TransUID');
             $userUID  = $this->pageData['JwtData']->User->UserUID;
-            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
             if ($srcUID <= 0) throw new Exception('Invalid delivery challan.');
 
             $this->load->model('transactions_model');
@@ -770,7 +770,7 @@ class Deliverychallans extends MY_Controller {
             $transUID  = (int) getPostValue($PostData, 'TransUID');
             $newStatus = trim(getPostValue($PostData, 'Status'));
             $userUID   = $this->pageData['JwtData']->User->UserUID;
-            $orgUID    = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
             if ($transUID <= 0) throw new Exception('Invalid delivery challan.');
 
             $validTransitions = [
@@ -829,7 +829,7 @@ class Deliverychallans extends MY_Controller {
             $PostData = $this->input->post();
             $transUID = (int) getPostValue($PostData, 'TransUID');
             $userUID  = $this->pageData['JwtData']->User->UserUID;
-            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
             if ($transUID <= 0) throw new Exception('Invalid delivery challan.');
 
             $this->load->model('transactions_model');
@@ -862,7 +862,7 @@ class Deliverychallans extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
             $transUID = (int) $this->input->get_post('TransUID');
-            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
             if ($transUID <= 0) throw new Exception('Invalid delivery challan.');
 
             $this->load->model('transactions_model');
@@ -894,7 +894,7 @@ class Deliverychallans extends MY_Controller {
             $transUID = (int) $transUID;
             if ($transUID <= 0) redirect('deliverychallan', 'refresh');
 
-            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
 
             $this->load->model('transactions_model');
             $header = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);

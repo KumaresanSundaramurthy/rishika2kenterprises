@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
+<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Invoices extends MY_Controller {
 
@@ -29,11 +29,10 @@ class Invoices extends MY_Controller {
             $limit = $GeneralSettings->RowLimit ?? 10;
             $this->pageData['DiscTypeInfo'] = [];
 
-            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
 
             $this->load->model('organisation_model');
             $WhatsAppTemplate = $this->organisation_model->getMessageTemplate($orgUID, $this->pageModuleUID, 'WhatsApp');
-            $this->_injectOrgInfo($orgUID);
 
             $this->load->model('transactions_model');
             $allData      = $this->transactions_model->getTransactionPageList($limit, 0, $this->pageModuleUID, [], 0);
@@ -81,20 +80,18 @@ class Invoices extends MY_Controller {
             $allData      = $this->transactions_model->getTransactionPageList($limit, $offset, $this->pageModuleUID, $filter, 0);
             $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, $filter);
 
-            $this->_injectOrgInfo($this->pageData['JwtData']->User->OrgUID);
-
             $rowHtml = $this->load->view('transactions/invoices/list', [
                 'DataLists'    => $allData,
                 'SerialNumber' => ($pageNo - 1) * $limit,
                 'JwtData'      => $this->pageData['JwtData'],
-                'WhatsAppTemplate' => $this->getWhatsAppTemplate($this->pageData['JwtData']->User->OrgUID),
+                'WhatsAppTemplate' => $this->getWhatsAppTemplate($this->pageData['JwtData']->Org->OrgUID),
             ], true);
 
             $this->EndReturnData->Error           = FALSE;
             $this->EndReturnData->RecordHtmlData  = $rowHtml;
             $this->EndReturnData->Pagination      = $this->globalservice->buildPagePaginationHtml('/invoices/getInvoicesPageDetails', $allDataCount, $pageNo, $limit);
             $this->EndReturnData->TotalCount      = $allDataCount;
-            $this->EndReturnData->SummaryStats    = $this->transactions_model->getTransactionSummaryStats($this->pageModuleUID, $this->pageData['JwtData']->User->OrgUID);
+            $this->EndReturnData->SummaryStats    = $this->transactions_model->getTransactionSummaryStats($this->pageModuleUID, $this->pageData['JwtData']->Org->OrgUID);
 
         } catch (Exception $e) {
             $this->EndReturnData->Error   = TRUE;
@@ -116,7 +113,7 @@ class Invoices extends MY_Controller {
 
             $PostData = $this->input->post();
             $userUID  = $this->pageData['JwtData']->User->UserUID;
-            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
 
             $this->load->model('formvalidation_model');
             $ErrorInForm = $this->formvalidation_model->quotationValidateForm($PostData);
@@ -322,7 +319,9 @@ class Invoices extends MY_Controller {
             $this->EndReturnData->TransUID = $transUID;
             $this->_saveAttachments($transUID);
             if (!empty($firstPaymentUID)) $this->_savePaymentAttachments($firstPaymentUID);
-            $this->_touchCustomerCache($customerUID);
+            if (!$isDraft) {
+                $this->_recalcCustomerBalance($orgUID, $customerUID, $userUID);
+            }
 
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -344,7 +343,7 @@ class Invoices extends MY_Controller {
 
             $PostData = $this->input->post();
             $userUID  = $this->pageData['JwtData']->User->UserUID;
-            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
 
             $transUID = (int) getPostValue($PostData, 'TransUID');
             if ($transUID <= 0) throw new Exception('Invoice ID is required.');
@@ -685,7 +684,7 @@ class Invoices extends MY_Controller {
             $this->_saveAttachments($activeTransUID);
             $this->_softDeleteAttachments($this->input->post('RemovedAttachIDs') ?? '');
             if (!empty($firstPaymentUID)) $this->_savePaymentAttachments($firstPaymentUID);
-            $this->_touchCustomerCache($customerUID);
+            $this->_recalcCustomerBalance($orgUID, $customerUID, $userUID);
 
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -706,7 +705,7 @@ class Invoices extends MY_Controller {
         if (empty($files) || empty($files['name'][0])) return;
 
         $userUID   = $this->pageData['JwtData']->User->UserUID;
-        $orgUID    = $this->pageData['JwtData']->User->OrgUID;
+        $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
         $moduleUID = $this->pageModuleUID;
 
         $this->load->library('fileupload');
@@ -749,7 +748,7 @@ class Invoices extends MY_Controller {
         $uids = json_decode($removedJson, true);
         if (empty($uids) || !is_array($uids)) return;
 
-        $orgUID  = $this->pageData['JwtData']->User->OrgUID;
+        $orgUID  = $this->pageData['JwtData']->Org->OrgUID;
         $userUID = $this->pageData['JwtData']->User->UserUID;
         $this->load->model('dbwrite_model');
 
@@ -774,7 +773,7 @@ class Invoices extends MY_Controller {
 
             $PostData = $this->input->post();
             $userUID  = $this->pageData['JwtData']->User->UserUID;
-            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
 
             $transUID       = (int)   getPostValue($PostData, 'TransUID');
             $paymentTypeUID = (int)   getPostValue($PostData, 'PaymentTypeUID');
@@ -872,6 +871,7 @@ class Invoices extends MY_Controller {
             $this->EndReturnData->Error      = FALSE;
             $this->EndReturnData->Message    = 'Payment of ' . $amount . ' recorded successfully.';
             $this->EndReturnData->IsFullyPaid = $isFullyPaid;
+            $this->_recalcCustomerBalance($orgUID, $existing->PartyUID, $userUID);
 
             // Fetch complete page data to refresh the invoice list
             $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
@@ -919,7 +919,7 @@ class Invoices extends MY_Controller {
 
             $PostData = $this->input->post();
             $userUID  = $this->pageData['JwtData']->User->UserUID;
-            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
 
             $transUID = (int) getPostValue($PostData, 'TransUID');
             if ($transUID <= 0) throw new Exception('Invoice ID is required.');
@@ -963,6 +963,9 @@ class Invoices extends MY_Controller {
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Invoice deleted successfully.';
+            if ($existing->PartyType === 'C') {
+                $this->_recalcCustomerBalance($orgUID, $existing->PartyUID, $userUID);
+            }
             try { $this->load->library('auditlog'); $this->auditlog->log($orgUID, $userUID, 'DELETE_INVOICE', 'Invoice', $transUID, $existing->UniqueNumber ?? '', ['status' => $existing->DocStatus, 'netAmount' => $existing->NetAmount]); } catch (Exception $auditEx) { log_message('error', 'Audit log failed: ' . $auditEx->getMessage()); }
 
         } catch (Exception $e) {
@@ -986,7 +989,7 @@ class Invoices extends MY_Controller {
             $PostData = $this->input->post();
             $srcUID   = (int) getPostValue($PostData, 'TransUID');
             $userUID  = $this->pageData['JwtData']->User->UserUID;
-            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
 
             if ($srcUID <= 0) throw new Exception('Invalid invoice.');
 
@@ -1139,7 +1142,7 @@ class Invoices extends MY_Controller {
             $transUID  = (int) getPostValue($PostData, 'TransUID');
             $newStatus = trim(getPostValue($PostData, 'Status'));
             $userUID   = $this->pageData['JwtData']->User->UserUID;
-            $orgUID    = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
 
             if ($transUID <= 0) throw new Exception('Invalid invoice.');
 
@@ -1147,7 +1150,7 @@ class Invoices extends MY_Controller {
                 'Draft'     => ['Issued', 'Cancelled'],
                 'Issued'    => ['Paid', 'Partial', 'Cancelled'],
                 'Partial'   => ['Paid', 'Cancelled'],
-                'Paid'      => [],
+                'Paid'      => ['Cancelled'],
                 'Cancelled' => [],
             ];
 
@@ -1161,9 +1164,13 @@ class Invoices extends MY_Controller {
             }
 
             $this->dbwrite_model->startTransaction();
+            $updateData = ['DocStatus' => $newStatus, 'UpdatedBy' => $userUID];
+            if ($newStatus === 'Cancelled') {
+                $updateData['IsCancelled'] = 1;
+            }
             $resp = $this->dbwrite_model->updateData(
                 'Transaction', 'TransactionsTbl',
-                ['DocStatus' => $newStatus, 'UpdatedBy' => $userUID],
+                $updateData,
                 ['TransUID' => $transUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
             );
             if ($resp->Error) throw new Exception($resp->Message);
@@ -1199,7 +1206,7 @@ class Invoices extends MY_Controller {
         try {
 
             $transUID = (int) $this->input->get_post('TransUID');
-            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
 
             if ($transUID <= 0) throw new Exception('Invalid invoice.');
 
@@ -1407,7 +1414,7 @@ class Invoices extends MY_Controller {
 
             $PostData  = $this->input->post();
             $userUID   = $this->pageData['JwtData']->User->UserUID;
-            $orgUID    = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
             $transUID  = (int) getPostValue($PostData, 'TransUID');
             $moduleUID = (int) getPostValue($PostData, 'ModuleUID') ?: $this->pageModuleUID;
 
@@ -1475,7 +1482,7 @@ class Invoices extends MY_Controller {
         try {
 
             $transUID = (int) $this->input->post('TransUID');
-            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
             if ($transUID <= 0) throw new Exception('Invalid invoice.');
 
             $this->load->model('transactions_model');
@@ -1499,7 +1506,7 @@ class Invoices extends MY_Controller {
         try {
 
             $transUID = (int) $this->input->post('TransUID');
-            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
             if ($transUID <= 0) throw new Exception('Invalid transaction.');
 
             $this->load->model('transactions_model');
@@ -1533,7 +1540,7 @@ class Invoices extends MY_Controller {
         if (empty($files) || empty($files['name'][0])) return;
 
         $userUID  = $this->pageData['JwtData']->User->UserUID;
-        $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+        $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
 
         $this->load->library('fileupload');
         $this->load->model('dbwrite_model');
@@ -1585,7 +1592,7 @@ class Invoices extends MY_Controller {
 
         try {
 
-            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
 
             $this->load->model('transactions_model');
@@ -1638,27 +1645,13 @@ class Invoices extends MY_Controller {
             }
 
             $this->_getDispatchAddresses($orgUID);
-
+            
             $this->load->model('global_model');
-            $GetCountryInfo = $this->global_model->getCountryInfo();
-            $this->pageData['CountryInfo'] = $GetCountryInfo->Error === FALSE ? $GetCountryInfo->Data : [];
-
-            $this->pageData['StateData'] = [];
-            $this->pageData['CityData']  = [];
-
-            $OrgCountryISO2 = $this->pageData['JwtData']->User->OrgCISO2;
-            if (!empty($OrgCountryISO2)) {
-                $StateInfo = $this->global_model->getStateofCountry($OrgCountryISO2);
-                if ($StateInfo->Error === FALSE) $this->pageData['StateData'] = $StateInfo->Data;
-                $CityInfo = $this->global_model->getCityofCountry($OrgCountryISO2);
-                if ($CityInfo->Error === FALSE) $this->pageData['CityData'] = $CityInfo->Data;
-            }
-
-            $this->pageData['PrimaryUnitInfo'] = $this->global_model->getPrimaryUnitInfo()->Data ?? [];
+            $this->pageData['TaxDetInfo'] = $this->global_model->getTaxDetailsInfo()->Data ?? [];
             $this->pageData['DiscTypeInfo']    = $this->global_model->getDiscountTypeInfo()->Data ?? [];
             $this->pageData['ProdTypeInfo']    = $this->global_model->getProductTypeInfo()->Data ?? [];
             $this->pageData['ProdTaxInfo']     = $this->global_model->getProductTaxInfo()->Data ?? [];
-            $this->pageData['TaxDetInfo']      = $this->global_model->getTaxDetailsInfo()->Data ?? [];
+            $this->pageData['PrimaryUnitInfo'] = $this->global_model->getPrimaryUnitInfo()->Data ?? [];
 
             $this->load->model('products_model');
             $this->pageData['fltCategoryData'] = $this->products_model->getCategoriesDetails([]) ?? [];
@@ -1681,7 +1674,7 @@ class Invoices extends MY_Controller {
             $token = trim((string) $token);
             if (empty($token)) redirect('invoices');
 
-            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
 
             $this->load->model('transactions_model');
             $invData = $this->transactions_model->getTransactionByToken($token, $orgUID, $this->pageModuleUID);
@@ -1722,7 +1715,7 @@ class Invoices extends MY_Controller {
             $this->pageData['StateData'] = [];
             $this->pageData['CityData']  = [];
 
-            $OrgCountryISO2 = $this->pageData['JwtData']->User->OrgCISO2;
+            $OrgCountryISO2 = $this->pageData['JwtData']->Org->OrgCISO2;
             if (!empty($OrgCountryISO2)) {
                 $StateInfo = $this->global_model->getStateofCountry($OrgCountryISO2);
                 if ($StateInfo->Error === FALSE) $this->pageData['StateData'] = $StateInfo->Data;
@@ -1766,16 +1759,6 @@ class Invoices extends MY_Controller {
         return ($query && $query->num_rows() > 0) ? $query->row() : null;
     }
 
-    private function _injectOrgInfo($orgUID) {
-        $this->load->model('organisation_model');
-        $result = $this->organisation_model->getOrganisationDetails(['Org.OrgUID' => $orgUID]);
-        if (!$result->Error && !empty($result->Data)) {
-            $org = $result->Data[0];
-            $this->pageData['JwtData']->User->OrgName   = !empty($org->BrandName) ? $org->BrandName : $org->Name;
-            $this->pageData['JwtData']->User->OrgMobile = $org->MobileNumber ?? '';
-        }
-    }
-
     public function getInvoicePdfBase64() {
 
         $this->EndReturnData = new stdClass();
@@ -1783,7 +1766,7 @@ class Invoices extends MY_Controller {
 
             $transUID  = (int) $this->input->post('TransUID');
             $paperSize = strtoupper(trim($this->input->post('PaperSize') ?: 'A4'));
-            $orgUID    = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
 
             if ($transUID <= 0) throw new Exception('Invalid invoice.');
 
@@ -1827,6 +1810,10 @@ class Invoices extends MY_Controller {
             $this->customers_model->updateCustomerBalanceInLedger($cust->LedgerUID, $newBalance, $newBalType, $userUID);
         }
         $this->customers_model->updateCustomerPendingBalance($orgUID, $custUID, $newBalance, $newBalType, $userUID);
+
+        // Sync Upstash cache so customer search shows updated balance immediately
+        $this->cachehelper->upsertCustomer($custUID);
+
         return ['balance' => $newBalance, 'type' => $newBalType];
     }
 

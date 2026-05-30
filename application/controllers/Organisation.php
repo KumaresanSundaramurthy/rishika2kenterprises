@@ -34,16 +34,18 @@ class Organisation extends CI_Controller {
             $OrgBusRegData = $this->organisation_model->getOrgBusRegTypeDetails();
             $this->pageData['OrgBusRegType'] = $OrgBusRegData->Error === FALSE ? $OrgBusRegData->Data : [];
 
-            $OrganisationData = $this->organisation_model->getAllOrganisationAddressDetails(['Org.OrgUID' => $this->pageData['JwtData']->User->OrgUID]);
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
+
+            $OrganisationData = $this->organisation_model->getAllOrganisationAddressDetails(['Org.OrgUID' => $orgUID]);
             if ($OrganisationData->Error === FALSE && !empty($OrganisationData->Data)) {
-
                 $orgRow = $OrganisationData->Data[0];
-
-                $this->pageData['EditOrgData']    = $orgRow;
+                $this->pageData['EditOrgData']     = $orgRow;
                 $this->pageData['BillOrgAddrData'] = $this->mapOrganisationAddress($orgRow, 'B', 'Billing') ?? null;
-                $this->pageData['ShipOrgAddrData'] = $this->mapOrganisationAddress($orgRow, 'S', 'Shipping') ?? null;
-                
             }
+
+            $shipResult = $this->organisation_model->getOrgShippingAddresses($orgUID);
+            $this->pageData['ShipOrgAddrList']  = (!$shipResult->Error) ? $shipResult->Data : [];
+            $this->pageData['MaxShippingAddr']   = (int)($this->pageData['JwtData']->GenSettings->MaxShippingAddr ?? 3);
 
             // Timezone list is loaded via AJAX after page render — not blocking here.
 
@@ -110,6 +112,8 @@ class Organisation extends CI_Controller {
                 'Website'           => getPostValue($PostData, 'Website', 'Array', NULL, false),
                 'PANNumber'         => getPostValue($PostData, 'PANNumber', 'Array', NULL, false),
                 'TimezoneUID'       => getPostValue($PostData, 'TimezoneUID', 'Array', NULL, false),
+                'StateCode'         => getPostValue($PostData, 'StateCode', 'Array', NULL, false),
+                'StateName'         => getPostValue($PostData, 'StateName', 'Array', NULL, false),
                 'UpdatedBy'         => $userUID,
             ];
 
@@ -126,8 +130,45 @@ class Organisation extends CI_Controller {
                 }
             }
 
-            $PostData['BillOrgAddressUID'] = $this->handleAddress($PostData, 'Billing', $userUID, $now);
-            $PostData['ShipOrgAddressUID'] = $this->handleAddress($PostData, 'Shipping', $userUID, $now);
+            // Billing — single address
+            if (!empty($PostData['BillAddrLine1'])) {
+                $this->handleAddress($PostData, 'Billing', $userUID, $now);
+            }
+
+            // Shipping — multiple addresses via JSON array
+            $shipAddresses = json_decode($PostData['ShipAddresses'] ?? '[]', true) ?: [];
+            foreach ($shipAddresses as $sa) {
+                if (empty($sa['Line1'])) continue;
+                $shipData = [
+                    'OrgUID'      => (int) $PostData['OrgUID'],
+                    'AddressType' => 'Shipping',
+                    'Line1'       => $sa['Line1']     ?? '',
+                    'Line2'       => $sa['Line2']     ?? '',
+                    'Pincode'     => $sa['Pincode']   ?? '',
+                    'City'        => $sa['CityId']    ?? '',
+                    'CityText'    => $sa['CityName']  ?? '',
+                    'State'       => $sa['StateId']   ?? '',
+                    'StateText'   => $sa['StateName'] ?? '',
+                    'UpdatedBy'   => $userUID,
+                ];
+                $uid = (int)($sa['UID'] ?? 0);
+                if ($uid > 0) {
+                    $this->dbwrite_model->updateData('Organisation', 'OrgAddressTbl', $shipData, ['OrgAddressUID' => $uid]);
+                } else {
+                    $shipData['CreatedOn'] = $now;
+                    $shipData['CreatedBy'] = $userUID;
+                    $this->dbwrite_model->insertData('Organisation', 'OrgAddressTbl', $shipData);
+                }
+            }
+
+            // Delete removed shipping addresses
+            $delUIDs = json_decode($PostData['DelShipUIDs'] ?? '[]', true) ?: [];
+            foreach ($delUIDs as $delUID) {
+                $delUID = (int) $delUID;
+                if ($delUID > 0) {
+                    $this->dbwrite_model->updateData('Organisation', 'OrgAddressTbl', ['IsDeleted' => 1], ['OrgAddressUID' => $delUID]);
+                }
+            }
 
             // Rebuild org info Redis cache with fresh DB data + resolved CDN URL
             $orgUID = (int) $PostData['OrgUID'];
@@ -138,10 +179,32 @@ class Organisation extends CI_Controller {
             // Refresh JWT payload so OrgLogo / OrgName / OrgMobile are up-to-date
             $this->globalservice->refreshUserCache();
 
-            $this->EndReturnData->Error = FALSE;
-            $this->EndReturnData->Message = 'Updated Successfully';
-            $this->EndReturnData->BillOrgAddressUID = $PostData['BillOrgAddressUID'];
-            $this->EndReturnData->ShipOrgAddressUID = $PostData['ShipOrgAddressUID'];
+            // Return fresh billing + shipping UIDs so JS can update in-memory state
+            // and prevent duplicate inserts on subsequent saves without page refresh
+            $freshOrg = $this->organisation_model->getAllOrganisationAddressDetails(['Org.OrgUID' => $orgUID]);
+            $freshBill = (!$freshOrg->Error && !empty($freshOrg->Data))
+                ? $this->mapOrganisationAddress($freshOrg->Data[0], 'B', 'Billing')
+                : null;
+            $freshShip = $this->organisation_model->getOrgShippingAddresses($orgUID);
+
+            $this->EndReturnData->Error        = FALSE;
+            $this->EndReturnData->Message      = 'Updated Successfully';
+            $this->EndReturnData->BillAddrUID  = $freshBill ? (int)$freshBill->OrgAddressUID : 0;
+            $this->EndReturnData->ShipAddresses = (!$freshShip->Error)
+                ? array_map(function($sa) {
+                    return [
+                        'UID'       => (int)$sa->OrgAddressUID,
+                        'Line1'     => $sa->Line1    ?? '',
+                        'Line2'     => $sa->Line2    ?? '',
+                        'Pincode'   => $sa->Pincode  ?? '',
+                        'StateId'   => $sa->State    ?? '',
+                        'StateName' => $sa->StateText ?? '',
+                        'StateISO2' => '',
+                        'CityId'    => $sa->City     ?? '',
+                        'CityName'  => $sa->CityText ?? '',
+                    ];
+                }, $freshShip->Data)
+                : [];
 
         } catch (Exception $e) {
             $this->EndReturnData->Error = TRUE;

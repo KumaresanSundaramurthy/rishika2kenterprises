@@ -38,7 +38,7 @@
                                     <li><a class="dropdown-item" href="javascript:void(0);" onclick="custExport('Pdf')"><i class="bx bxs-file-pdf me-1"></i>PDF</a></li>
                                 </ul>
                             </div>
-                            <a href="javascript:void(0);" class="btn btn-primary" id="btnCreateCustomerHeader">
+                            <a href="javascript:void(0);" class="btn btn-primary me-1" id="btnCreateCustomerHeader">
                                 <i class="bx bx-plus me-1"></i>New Customer
                             </a>
                         </div>
@@ -270,7 +270,7 @@
 <script src="/js/common/address.js"></script>
 
 <script>
-let ModuleId = <?php echo $ModuleId; ?>;
+let ModuleId = 2;
 const ModuleTable  = '#CustomersTable';
 const ModulePag    = '.CustomersPagination';
 const ModuleHeader = '.customerHeaderCheck';
@@ -283,7 +283,7 @@ let balSortState  = 0;
 let areaSortState = 0;
 var StateInfo = [];
 var CityInfo  = [];
-var OrgCountryISO2 = <?php echo json_encode($JwtData->User->OrgCISO2 ?? 'IN'); ?>;
+var OrgCountryISO2 = <?php echo json_encode($JwtData->Org->OrgCISO2 ?? 'IN'); ?>;
 var CustShowUserFilter = <?php echo $showUserBtn ? 'true' : 'false'; ?>;
 
 $(function () {

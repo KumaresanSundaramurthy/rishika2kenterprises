@@ -63,8 +63,8 @@ if (!empty($DataLists)):
         // Build WhatsApp message
         $waTemplate = !empty($WhatsAppTemplate) && is_object($WhatsAppTemplate) ? $WhatsAppTemplate->Body : (!empty($WhatsAppTemplate) && is_string($WhatsAppTemplate) ? $WhatsAppTemplate : null);
 
-        $orgName    = $JwtData->User->OrgName   ?? 'Our Company';
-        $orgMobile  = $JwtData->User->OrgMobile ?? '';
+        $orgName    = $JwtData->Org->OrgName   ?? 'Our Company';
+        $orgMobile  = $JwtData->Org->OrgMobile ?? '';
         $partyName  = $list->PartyName   ?? 'Customer';
         $quotNum    = $list->UniqueNumber ?? 'Draft';
         $quotLink   = (getenv('APP_URL') ?: 'http://localhost:8080') . '/quotation/' . ($list->TransToken ?? '');

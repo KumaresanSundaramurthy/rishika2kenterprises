@@ -231,7 +231,7 @@ class Customers_model extends CI_Model {
 
             $baseWhere = ['Customers.IsDeleted' => 0, 'Customers.OrgUID' => $orgUID];
             if (isset($filter['IsActive'])) {
-                $baseWhere['Customers.IsActive'] = (int)$filter['IsActive'];
+                $baseWhere['Customers.IsActive'] = (int) $filter['IsActive'];
             }
 
             // Count query
@@ -476,7 +476,8 @@ class Customers_model extends CI_Model {
                 'ModuleUID' => 103,
                 'IsDeleted' => 0,
             ]);
-            $this->ReadDb->where_not_in('DocStatus', ['Cancelled', 'Rejected']);
+            // Draft invoices do not affect customer balance — exclude along with Cancelled/Rejected
+            $this->ReadDb->where_not_in('DocStatus', ['Draft', 'Cancelled', 'Rejected']);
             $query = $this->ReadDb->get();
             if (!$query) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
             return (float) $query->row()->total;

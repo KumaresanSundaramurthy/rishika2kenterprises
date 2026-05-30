@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php $this->load->view('common/header'); ?>
 
@@ -159,6 +159,7 @@
                                                 </div>
 
                                                 <!-- ── Input Limits ── -->
+                                                <?php $gsMaxShip = (int)($gs->MaxShippingAddr ?? 3); ?>
                                                 <p class="text-muted fw-semibold mb-2" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;">Input Limits</p>
                                                 <div class="row g-3 mb-4">
                                                     <div class="col-md-6">
@@ -172,6 +173,12 @@
                                                         <input type="number" class="form-control" id="gs_PriceMaxLength" name="PriceMaxLength"
                                                                min="1" max="20" value="<?php echo $gsPriceMax; ?>" />
                                                         <div class="form-text">Maximum number of digits allowed when entering a price or amount (e.g. 12 allows up to ₹99,99,99,999.99). Includes decimal digits.</div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">Max Shipping Addresses</label>
+                                                        <input type="number" class="form-control" id="gs_MaxShippingAddr" name="MaxShippingAddr"
+                                                               min="1" max="5" value="<?php echo $gsMaxShip; ?>" />
+                                                        <div class="form-text">Maximum number of shipping addresses allowed per organisation (1–5).</div>
                                                     </div>
                                                 </div>
 
@@ -213,7 +220,6 @@
                                                         Save Changes
                                                     </button>
                                                 </div>
-                                                <div id="gsAlert" class="mt-3 d-none"></div>
 
                                             </div>
                                             <!-- / Sub-Tab 1 -->
@@ -297,7 +303,6 @@
                                                         Save Changes
                                                     </button>
                                                 </div>
-                                                <div id="psAlert" class="mt-3 d-none"></div>
 
                                             </div>
                                             <!-- / Sub-Tab 4: Product Settings -->
@@ -510,18 +515,15 @@ $(document).ready(function () {
     $('#btnSaveGeneralSettings').on('click', function () {
         var $btn     = $(this);
         var $spinner = $('#gsSpinner');
-        var $alert   = $('#gsAlert');
 
-        // Collect values
-        var currency  = $('#gs_CurrenySymbol').val().trim();
+        var currency = $('#gs_CurrenySymbol').val().trim();
         if (!currency) {
-            $alert.removeClass('d-none alert-success').addClass('alert alert-danger').text('Currency symbol is required.');
+            showToastNotification('Currency symbol is required.', 'error');
             return;
         }
 
         $btn.prop('disabled', true);
         $spinner.removeClass('d-none');
-        $alert.addClass('d-none');
 
         $.ajax({
             url    : '/settings/updateGeneralSettings',
@@ -531,18 +533,15 @@ $(document).ready(function () {
                 DecimalPoints  : $('#gs_DecimalPoints').val(),
                 RowLimit       : $('#gs_RowLimit').val(),
                 FYStartMonth   : $('#gs_FYStartMonth').val(),
-                SerialNoDisplay: $('#gs_SerialNoDisplay').is(':checked') ? 1 : 0,
-                [CsrfName]     : CsrfToken,
+                SerialNoDisplay : $('#gs_SerialNoDisplay').is(':checked') ? 1 : 0,
+                MaxShippingAddr : $('#gs_MaxShippingAddr').val(),
+                [CsrfName]      : CsrfToken,
             },
             success: function (resp) {
-                if (resp.Error) {
-                    $alert.removeClass('d-none alert-success').addClass('alert alert-danger').text(resp.Message);
-                } else {
-                    $alert.removeClass('d-none alert-danger').addClass('alert alert-success').text(resp.Message);
-                }
+                showToastNotification(resp.Message, resp.Error ? 'error' : 'success');
             },
             error: function () {
-                $alert.removeClass('d-none alert-success').addClass('alert alert-danger').text('Request failed. Please try again.');
+                showToastNotification('Request failed. Please try again.', 'error');
             },
             complete: function () {
                 $btn.prop('disabled', false);
@@ -555,17 +554,15 @@ $(document).ready(function () {
     $('#btnSaveProductSettings').on('click', function () {
         var $btn     = $(this);
         var $spinner = $('#psSpinner');
-        var $alert   = $('#psAlert');
 
         if (!$('#ps_ProductType').val() || !$('#ps_DiscountType').val() ||
             !$('#ps_ProductTax').val()  || !$('#ps_TaxDetail').val()) {
-            $alert.removeClass('d-none alert-success').addClass('alert alert-danger').text('Please select all four fields.');
+            showToastNotification('Please select all four fields.', 'error');
             return;
         }
 
         $btn.prop('disabled', true);
         $spinner.removeClass('d-none');
-        $alert.addClass('d-none');
 
         $.ajax({
             url    : '/settings/updateProductSettings',
@@ -578,14 +575,10 @@ $(document).ready(function () {
                 [CsrfName]             : CsrfToken,
             },
             success: function (resp) {
-                if (resp.Error) {
-                    $alert.removeClass('d-none alert-success').addClass('alert alert-danger').text(resp.Message);
-                } else {
-                    $alert.removeClass('d-none alert-danger').addClass('alert alert-success').text(resp.Message);
-                }
+                showToastNotification(resp.Message, resp.Error ? 'error' : 'success');
             },
             error: function () {
-                $alert.removeClass('d-none alert-success').addClass('alert alert-danger').text('Request failed. Please try again.');
+                showToastNotification('Request failed. Please try again.', 'error');
             },
             complete: function () {
                 $btn.prop('disabled', false);

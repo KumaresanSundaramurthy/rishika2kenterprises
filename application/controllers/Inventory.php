@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
+<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Inventory extends MY_Controller {
 
@@ -21,7 +21,7 @@ class Inventory extends MY_Controller {
         }
 
         try {
-            $orgUID = (int) $this->pageData['JwtData']->User->OrgUID;
+            $orgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
             $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
             $limit = (int)($GeneralSettings->RowLimit ?? 10);
 
@@ -62,7 +62,7 @@ class Inventory extends MY_Controller {
             $offset = ($pageNo - 1) * $limit;
             $filter = $this->input->post('Filter') ?: [];
 
-            $orgUID = (int) $this->pageData['JwtData']->User->OrgUID;
+            $orgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
 
             $listData   = $this->inventory_model->getInventoryList($orgUID, $filter, $limit, $offset);
             $totalCount = $this->inventory_model->getInventoryCount($orgUID, $filter);
@@ -93,7 +93,7 @@ class Inventory extends MY_Controller {
 
         $this->EndReturnData = new stdClass();
         try {
-            $orgUID  = (int) $this->pageData['JwtData']->User->OrgUID;
+            $orgUID  = (int) $this->pageData['JwtData']->Org->OrgUID;
             $userUID = (int) $this->pageData['JwtData']->User->UserUID;
 
             $productUID = (int)   $this->input->post('ProductUID');
@@ -160,7 +160,7 @@ class Inventory extends MY_Controller {
 
         $this->EndReturnData = new stdClass();
         try {
-            $orgUID  = (int) $this->pageData['JwtData']->User->OrgUID;
+            $orgUID  = (int) $this->pageData['JwtData']->Org->OrgUID;
             $userUID = (int) $this->pageData['JwtData']->User->UserUID;
 
             $productUID = (int)   $this->input->post('ProductUID');
@@ -227,7 +227,7 @@ class Inventory extends MY_Controller {
 
         $this->EndReturnData = new stdClass();
         try {
-            $orgUID  = (int) $this->pageData['JwtData']->User->OrgUID;
+            $orgUID  = (int) $this->pageData['JwtData']->Org->OrgUID;
             $userUID = (int) $this->pageData['JwtData']->User->UserUID;
 
             $adjUID = (int) $this->input->post('AdjUID');
@@ -261,7 +261,7 @@ class Inventory extends MY_Controller {
 
         $this->EndReturnData = new stdClass();
         try {
-            $orgUID    = (int) $this->pageData['JwtData']->User->OrgUID;
+            $orgUID    = (int) $this->pageData['JwtData']->Org->OrgUID;
             $userUID   = (int) $this->pageData['JwtData']->User->UserUID;
             $ledgerUID = (int) $this->input->post('LedgerUID');
             $remarks   = $this->input->post('Remarks') ?: null;
@@ -295,7 +295,7 @@ class Inventory extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
             $productUID = (int) $this->input->post('ProductUID');
-            $orgUID     = (int) $this->pageData['JwtData']->User->OrgUID;
+            $orgUID     = (int) $this->pageData['JwtData']->Org->OrgUID;
 
             if ($productUID <= 0) throw new Exception('Invalid product.');
 
@@ -323,7 +323,7 @@ class Inventory extends MY_Controller {
         }
 
         try {
-            $orgUID = (int) $this->pageData['JwtData']->User->OrgUID;
+            $orgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
             $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
             $limit = (int) ($GeneralSettings->RowLimit ?? 10);
 
@@ -358,7 +358,7 @@ class Inventory extends MY_Controller {
             $pageNo = max(1, (int)$pageNo);
             $limit  = (int)($this->input->post('RowLimit') ?: 10);
             $offset = ($pageNo - 1) * $limit;
-            $orgUID = (int) $this->pageData['JwtData']->User->OrgUID;
+            $orgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
 
             $filterRaw = $this->input->post('Filter');
             $filter    = $filterRaw ? (json_decode($filterRaw, true) ?: []) : [];
@@ -392,7 +392,7 @@ class Inventory extends MY_Controller {
 
         $this->EndReturnData = new stdClass();
         try {
-            $orgUID  = (int) $this->pageData['JwtData']->User->OrgUID;
+            $orgUID  = (int) $this->pageData['JwtData']->Org->OrgUID;
             $term    = trim($this->input->post('Term') ?: '');
             $results = $this->inventory_model->searchProducts($orgUID, $term);
             $this->EndReturnData->Error    = FALSE;
@@ -412,7 +412,7 @@ class Inventory extends MY_Controller {
 
         $this->EndReturnData = new stdClass();
         try {
-            $orgUID = (int) $this->pageData['JwtData']->User->OrgUID;
+            $orgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Stats = $this->inventory_model->getInventoryStats($orgUID);
         } catch (Exception $e) {
@@ -431,7 +431,7 @@ class Inventory extends MY_Controller {
             $filter = $this->input->get('Filter') ?: '{}';
             $filter = json_decode($filter, true)  ?: [];
 
-            $orgUID = (int)$this->pageData['JwtData']->User->OrgUID;
+            $orgUID = (int)$this->pageData['JwtData']->Org->OrgUID;
             $this->load->model('organisation_model');
             $orgResult = $this->organisation_model->getOrgInfoCached($orgUID);
             $orgInfo   = ($orgResult->Error === FALSE) ? $orgResult->Data : null;
@@ -460,7 +460,7 @@ class Inventory extends MY_Controller {
             $filter = $this->input->get('Filter') ?: '{}';
             $filter = json_decode($filter, true)  ?: [];
 
-            $orgUID = (int)$this->pageData['JwtData']->User->OrgUID;
+            $orgUID = (int)$this->pageData['JwtData']->Org->OrgUID;
             $this->load->model('organisation_model');
             $orgResult = $this->organisation_model->getOrgInfoCached($orgUID);
             $orgInfo   = ($orgResult->Error === FALSE) ? $orgResult->Data : null;

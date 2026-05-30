@@ -17,6 +17,23 @@ class Transactions_model extends CI_Model {
         try {
 
             $this->ReadDb->db_debug = FALSE;
+
+            // ── Smart COUNT path ──────────────────────────────────────────────────
+            // No expensive JOINs or correlated subqueries — only join what the
+            // active filter actually needs. Everything else uses Ts.* columns only.
+            if ($isCount) {
+                $this->ReadDb->from('Transaction.TransactionsTbl as Ts');
+                if (!empty($filter['Name'])) {
+                    // Name search references Cust.Name and Cust.MobileNumber
+                    $this->ReadDb->join('Customers.CustomerTbl as Cust', "Cust.CustomerUID = Ts.PartyUID AND Ts.PartyType = 'C'", 'LEFT');
+                    $this->ReadDb->join('Vendors.VendorTbl as Vend',     "Vend.VendorUID   = Ts.PartyUID AND Ts.PartyType = 'S'", 'LEFT');
+                }
+                $this->ReadDb->where(['Ts.IsDeleted' => 0, 'Ts.IsActive' => 1, 'Ts.ModuleUID' => $ModuleUID]);
+                $this->applyFilters($filter);
+                return (int) $this->ReadDb->count_all_results();
+            }
+            // ─────────────────────────────────────────────────────────────────────
+
             $this->ReadDb->select([
                 'Ts.TransUID AS TransUID',
                 'Ts.TransToken AS TransToken',
@@ -63,9 +80,6 @@ class Transactions_model extends CI_Model {
             );
             $this->ReadDb->where(['Ts.IsDeleted' => 0, 'Ts.IsActive' => 1, 'Ts.ModuleUID' => $ModuleUID]);
             $this->applyFilters($filter);
-            if ($isCount) {
-                return $this->ReadDb->count_all_results();
-            }
             $sortMap = ['Date' => 'Ts.TransDate', 'Amount' => 'Ts.NetAmount', 'Number' => 'Ts.TransNumber'];
             $sortCol = $sortMap[$filter['SortBy'] ?? ''] ?? 'Ts.TransUID';
             $sortDir = strtoupper($filter['SortDir'] ?? 'DESC') === 'ASC' ? 'ASC' : 'DESC';
@@ -767,8 +781,10 @@ class Transactions_model extends CI_Model {
     // ── Payment Methods ──────────────────────────────────────────
 
     public function getPaymentTypesList() {
-
         try {
+            $key    = $this->redisservice->orgKey('payment-types');
+            $cached = $this->upstashservice->get($key);
+            if ($cached !== null) return array_map(fn($r) => is_array($r) ? (object) $r : $r, $cached);
 
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('PaymentTypeUID, Name, Code, IsCash');
@@ -777,12 +793,12 @@ class Transactions_model extends CI_Model {
             $this->ReadDb->order_by('PaymentTypeUID', 'ASC');
             $query = $this->ReadDb->get();
             if (!$query) return [];
-            return $query->result();
-
+            $data = $query->result();
+            $this->upstashservice->set($key, $data, 0);
+            return $data;
         } catch (Exception $e) {
             return [];
         }
-
     }
 
     // Returns ONE bank account for print templates.
@@ -815,8 +831,10 @@ class Transactions_model extends CI_Model {
     }
 
     public function getOrgBankAccounts($orgUID) {
-
         try {
+            $key    = $this->redisservice->orgKey('org-bank-accounts');
+            $cached = $this->upstashservice->get($key);
+            if ($cached !== null) return array_map(fn($r) => is_array($r) ? (object) $r : $r, $cached);
 
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('BankAccountUID, AccountName, BankName, AccountNumber, IFSC, BranchName, UPIId, UPINumber, IsDefault, IsCash');
@@ -826,12 +844,12 @@ class Transactions_model extends CI_Model {
             $this->ReadDb->order_by('AccountName', 'ASC');
             $query = $this->ReadDb->get();
             if (!$query) return [];
-            return $query->result();
-
+            $data = $query->result();
+            $this->upstashservice->set($key, $data, 0);
+            return $data;
         } catch (Exception $e) {
             return [];
         }
-
     }
 
     public function getTransactionPayments($transUID, $orgUID) {

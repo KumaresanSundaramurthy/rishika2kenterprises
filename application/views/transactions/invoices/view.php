@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php defined('BASEPATH') or exit('No direct script access allowed');
 $this->load->view('common/transactions/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -392,7 +392,6 @@ $(function () {
                     if (resp.Error) {
                         Swal.fire({ icon: 'error', text: resp.Message });
                     } else {
-                        getInvoicesDetails();
                         var msg = resp.Message || 'Invoice cancelled.';
                         if (resp.CustomerBalance !== undefined) {
                             msg += '<br><small class="text-muted mt-1 d-block">Customer Balance: <strong>' +
@@ -400,7 +399,10 @@ $(function () {
                                    parseFloat(resp.CustomerBalance).toLocaleString('en-IN', { minimumFractionDigits: 2 }) +
                                    '</strong></small>';
                         }
-                        Swal.fire({ icon: 'success', html: msg, timer: 2500, showConfirmButton: false });
+                        // Refresh list first — show success only after fresh data is loaded
+                        getInvoicesDetails(undefined, undefined, undefined, function () {
+                            Swal.fire({ icon: 'success', html: msg, timer: 2500, showConfirmButton: false });
+                        });
                     }
                 },
                 error: function () {

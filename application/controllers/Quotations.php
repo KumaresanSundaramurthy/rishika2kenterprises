@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
+<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Quotations extends MY_Controller {
 
@@ -33,14 +33,13 @@ class Quotations extends MY_Controller {
             $allData = $this->transactions_model->getTransactionPageList($limit, 0, $this->pageModuleUID, [], 0);
             $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, []);
 
-            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
             $whatsAppTemplate = $this->getWhatsAppTemplate($orgUID);
-            $this->_injectOrgInfo($orgUID);
 
             $this->pageData['ModRowData'] = $this->load->view('transactions/quotations/list', ['DataLists' => $allData, 'SerialNumber' => 0, 'JwtData' => $this->pageData['JwtData'], 'WhatsAppTemplate' => $whatsAppTemplate], TRUE);
             $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/quotations/getQuotationsPageDetails', $allDataCount, 1, $limit);
             $this->pageData['ModAllCount'] = $allDataCount;
-            $this->pageData['SummaryStats'] = $this->transactions_model->getTransactionSummaryStats($this->pageModuleUID, $this->pageData['JwtData']->User->OrgUID);
+            $this->pageData['SummaryStats'] = $this->transactions_model->getTransactionSummaryStats($this->pageModuleUID, $this->pageData['JwtData']->Org->OrgUID);
 
             $this->load->view('transactions/quotations/view', $this->pageData);
 
@@ -69,9 +68,8 @@ class Quotations extends MY_Controller {
             $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, $filter);
 
 
-            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
             $whatsAppTemplate = $this->getWhatsAppTemplate($orgUID);
-            $this->_injectOrgInfo($orgUID);
 
             $rowHtml = $this->load->view('transactions/quotations/list', [
                 'DataLists'       => $allData,
@@ -84,7 +82,7 @@ class Quotations extends MY_Controller {
             $this->EndReturnData->RecordHtmlData = $rowHtml;
             $this->EndReturnData->Pagination = $this->globalservice->buildPagePaginationHtml('/quotations/getQuotationsPageDetails', $allDataCount, $pageNo, $limit);
             $this->EndReturnData->TotalCount = $allDataCount;
-            $this->EndReturnData->SummaryStats = $this->transactions_model->getTransactionSummaryStats($this->pageModuleUID, $this->pageData['JwtData']->User->OrgUID);
+            $this->EndReturnData->SummaryStats = $this->transactions_model->getTransactionSummaryStats($this->pageModuleUID, $this->pageData['JwtData']->Org->OrgUID);
 
 		} catch (Exception $e) {
             $this->EndReturnData->Error = TRUE;
@@ -106,7 +104,7 @@ class Quotations extends MY_Controller {
 
             $PostData = $this->input->post();
             $userUID  = $this->pageData['JwtData']->User->UserUID;
-            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
 
             // --- Validation ---
             $this->load->model('formvalidation_model');
@@ -275,7 +273,7 @@ class Quotations extends MY_Controller {
 
             $PostData = $this->input->post();
             $userUID  = $this->pageData['JwtData']->User->UserUID;
-            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
 
             // --- Validation ---
             $transUID = (int) getPostValue($PostData, 'TransUID');
@@ -538,7 +536,7 @@ class Quotations extends MY_Controller {
 
             $PostData = $this->input->post();
             $userUID  = $this->pageData['JwtData']->User->UserUID;
-            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
 
             $transUID = (int) getPostValue($PostData, 'TransUID');
             if ($transUID <= 0) throw new Exception('Quotation ID is required.');
@@ -626,7 +624,7 @@ class Quotations extends MY_Controller {
             $transUID  = (int) getPostValue($PostData, 'TransUID');
             $newStatus = trim(getPostValue($PostData, 'Status'));
             $userUID   = $this->pageData['JwtData']->User->UserUID;
-            $orgUID    = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
 
             if ($transUID <= 0) throw new Exception('Invalid quotation.');
 
@@ -676,7 +674,7 @@ class Quotations extends MY_Controller {
         try {
 
             $transUID = (int) $this->input->get_post('TransUID');
-            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
 
             if ($transUID <= 0) throw new Exception('Invalid quotation.');
 
@@ -812,7 +810,7 @@ class Quotations extends MY_Controller {
 
         try {
 
-            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
 
             $this->load->model('transactions_model');
@@ -848,7 +846,7 @@ class Quotations extends MY_Controller {
             $this->pageData['StateData'] = [];
             $this->pageData['CityData'] = [];
 
-            $OrgCountryISO2 = $this->pageData['JwtData']->User->OrgCISO2;
+            $OrgCountryISO2 = $this->pageData['JwtData']->Org->OrgCISO2;
             if(!empty($OrgCountryISO2)) {
                 $StateInfo = $this->global_model->getStateofCountry($OrgCountryISO2);
                 if($StateInfo->Error === FALSE) $this->pageData['StateData'] = $StateInfo->Data;
@@ -892,7 +890,7 @@ class Quotations extends MY_Controller {
             $transUID = (int) $transUID;
             if ($transUID <= 0) redirect('quotations', 'refresh');
 
-            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
 
             $this->load->model('transactions_model');
@@ -938,7 +936,7 @@ class Quotations extends MY_Controller {
             $this->pageData['StateData'] = [];
             $this->pageData['CityData']  = [];
 
-            $OrgCountryISO2 = $this->pageData['JwtData']->User->OrgCISO2;
+            $OrgCountryISO2 = $this->pageData['JwtData']->Org->OrgCISO2;
             if (!empty($OrgCountryISO2)) {
                 $StateInfo = $this->global_model->getStateofCountry($OrgCountryISO2);
                 if ($StateInfo->Error === FALSE) $this->pageData['StateData'] = $StateInfo->Data;
@@ -980,7 +978,7 @@ class Quotations extends MY_Controller {
         if (empty($files) || empty($files['name'][0])) return;
 
         $userUID   = $this->pageData['JwtData']->User->UserUID;
-        $orgUID    = $this->pageData['JwtData']->User->OrgUID;
+        $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
         $moduleUID = $this->pageModuleUID;
 
         $this->load->library('fileupload');
@@ -1022,22 +1020,13 @@ class Quotations extends MY_Controller {
         return $result->Error === false ? $result->Data : new stdClass();
     }
 
-    private function _injectOrgInfo($orgUID) {
-        $this->load->model('organisation_model');
-        $result = $this->organisation_model->getOrganisationDetails(['Org.OrgUID' => $orgUID]);
-        if (!$result->Error && !empty($result->Data)) {
-            $org = $result->Data[0];
-            $this->pageData['JwtData']->User->OrgName   = !empty($org->BrandName) ? $org->BrandName : $org->Name;
-            $this->pageData['JwtData']->User->OrgMobile = $org->MobileNumber ?? '';
-        }
-    }
 
     private function _softDeleteAttachments($removedJson) {
         if (empty($removedJson)) return;
         $uids = json_decode($removedJson, true);
         if (empty($uids) || !is_array($uids)) return;
 
-        $orgUID  = $this->pageData['JwtData']->User->OrgUID;
+        $orgUID  = $this->pageData['JwtData']->Org->OrgUID;
         $userUID = $this->pageData['JwtData']->User->UserUID;
         $this->load->model('dbwrite_model');
 
@@ -1059,7 +1048,7 @@ class Quotations extends MY_Controller {
 
             $transUID  = (int) $this->input->post('TransUID');
             $paperSize = strtoupper(trim($this->input->post('PaperSize') ?: 'A4'));
-            $orgUID    = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
 
             if ($transUID <= 0) throw new Exception('Invalid quotation.');
 
@@ -1093,7 +1082,7 @@ class Quotations extends MY_Controller {
 
             $PostData  = $this->input->post();
             $userUID   = $this->pageData['JwtData']->User->UserUID;
-            $orgUID    = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
             $transUID  = (int) getPostValue($PostData, 'TransUID');
             $moduleUID = (int) getPostValue($PostData, 'ModuleUID') ?: $this->pageModuleUID;
 
@@ -1160,7 +1149,7 @@ class Quotations extends MY_Controller {
         try {
 
             $transUID = (int) $this->input->post('TransUID');
-            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
             if ($transUID <= 0) throw new Exception('Invalid quotation.');
 
             $this->load->model('transactions_model');

@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
+<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Globally extends CI_Controller {
 
@@ -473,7 +473,7 @@ class Globally extends CI_Controller {
     public function getCommTemplate() {
         $this->EndReturnData = new stdClass();
         try {
-            $orgUID    = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
             $moduleUID = (int) $this->input->post('ModuleUID');
             $channel   = trim($this->input->post('Channel') ?: 'Email');
             $recordUID = (int) $this->input->post('RecordUID');

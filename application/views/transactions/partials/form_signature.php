@@ -5,7 +5,8 @@
  * Optional variable passed via load->view second arg:
  *   $transSignatureUID  — pre-selected SignatureUID for edit mode (default 0)
  */
-$_savedSigUID = isset($transSignatureUID) ? (int)$transSignatureUID : 0;
+$_savedSigUID   = isset($transSignatureUID) ? (int)$transSignatureUID : 0;
+$_sigFromJwt    = isset($transSignatures) ? $transSignatures : null; // null = use AJAX fallback
 ?>
 
 <!-- ── Authorized Signatory Section ─────────────────────────────────────── -->
@@ -187,9 +188,13 @@ $_savedSigUID = isset($transSignatureUID) ? (int)$transSignatureUID : 0;
         $('#transSigPreviewContent').removeClass('d-none');
     }
 
-    // Load on page ready — use native DOMContentLoaded so this runs after jQuery
-    // is loaded from footer_script.php (inline scripts execute before footer JS).
     document.addEventListener('DOMContentLoaded', function () {
+
+        <?php if ($_sigFromJwt !== null): ?>
+        // ── Signatures from JWT — no AJAX needed ─────────────────────────────
+        _populateSigSelect(<?php echo json_encode(array_values((array)$_sigFromJwt)); ?>);
+        <?php else: ?>
+        // ── Fallback: load via AJAX (pages not yet passing JWT signatures) ────
         var CsrfName  = typeof window.CsrfName  !== 'undefined' ? window.CsrfName  : '';
         var CsrfToken = typeof window.CsrfToken !== 'undefined' ? window.CsrfToken : '';
         ajaxLoading(0);
@@ -207,6 +212,7 @@ $_savedSigUID = isset($transSignatureUID) ? (int)$transSignatureUID : 0;
                 $('#transSigLoading').addClass('d-none');
             }
         });
+        <?php endif; ?>
 
         $(document).on('change', '#transSignatureSelect', function () {
             _renderPreview(parseInt($(this).val()) || 0);

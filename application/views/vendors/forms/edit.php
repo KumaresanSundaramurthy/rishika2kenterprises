@@ -55,7 +55,7 @@
                                                         value="<?php echo $Country->phone[0]; ?>"
                                                         data-region="<?php echo $Country->region; ?>"
                                                         data-ccode="<?php echo $Country->iso->{'alpha-2'}; ?>"
-                                                        <?php echo (isset($EditData->CountryCode) && $EditData->CountryCode == $Country->phone[0]) ? 'selected' : ($Country->iso->{'alpha-2'} == $JwtData->User->OrgCISO2 ? 'selected' : ''); ?>>
+                                                        <?php echo (isset($EditData->CountryCode) && $EditData->CountryCode == $Country->phone[0]) ? 'selected' : ($Country->iso->{'alpha-2'} == $JwtData->Org->OrgCISO2 ? 'selected' : ''); ?>>
                                                         <?php echo '(' . $Country->phone[0] . ') ' . $Country->name; ?>
                                                     </option>
                                             <?php }

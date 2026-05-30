@@ -78,8 +78,8 @@ class Login extends CI_Controller {
                         } else {
 
                             $newPayload   = clone $jwtPayload;
-                            $orgShortCode = $newPayload->JWTData['User']['OrgShortCode'] ?? '';
-                            $orgToken     = $newPayload->JWTData['User']['OrgToken']     ?? '';
+                            $orgShortCode = $newPayload->JWTData['Org']['OrgShortCode'] ?? '';
+                            $orgToken     = $newPayload->JWTData['Org']['OrgToken']     ?? '';
 
                             $auditId = $this->logLoginSuccess($UserData->Data[0]);
                             $jwtPayload->JWTData['User']['auditId'] = $auditId ?? 0;
@@ -665,13 +665,14 @@ class Login extends CI_Controller {
 
 			}
 
-            $logoutShortCode = $getAuditInfo->Value->User->OrgShortCode ?? '';
-            $logoutOrgToken  = $getAuditInfo->Value->User->OrgToken     ?? '';
+            // Org object exists in new JWT structure; fall back to User for old cached JWTs
+            $logoutShortCode = $getAuditInfo->Value->Org->OrgShortCode ?? ($getAuditInfo->Value->User->OrgShortCode ?? '');
+            $logoutOrgToken  = $getAuditInfo->Value->Org->OrgToken     ?? ($getAuditInfo->Value->User->OrgToken     ?? '');
             if ($userUID) {
                 $this->redisservice->deleteAllUserCache($userUID, $logoutShortCode, $logoutOrgToken);
             }
 
-            $orgUID = $getAuditInfo->Value->User->OrgUID ?? null;
+            $orgUID = $getAuditInfo->Value->Org->OrgUID ?? ($getAuditInfo->Value->User->OrgUID ?? null);
             if ($orgUID) {
                 $this->redisservice->deleteCache($this->redisservice->orgKey('org_users', $logoutShortCode, $logoutOrgToken));
             }

@@ -280,6 +280,7 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
                                 'transShowDropzone'         => true,
                                 'transShowChargesBreakdown' => true,
                                 'transSignatureUID'         => $isEdit ? (int)($QuotData->SignatureUID ?? 0) : 0,
+                                'transSignatures'           => $JwtData->User->Signatures ?? [],
                             ]); ?>
 
                         </div>

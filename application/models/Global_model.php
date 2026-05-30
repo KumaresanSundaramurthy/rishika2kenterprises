@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed');
 
 class Global_model extends CI_Model {
 
@@ -86,10 +86,11 @@ class Global_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
             
-            $PUIKey = $this->redisservice->orgKey('primary-unit');
-            $PUIGet_Data = $this->redisservice->getCache($PUIKey);
-            if ($PUIGet_Data->Error) {
-
+            $PUIKey  = $this->redisservice->orgKey('primary-unit');
+            $PUICached = $this->upstashservice->get($PUIKey);
+            if ($PUICached !== null) {
+                $this->EndReturnData->Data = array_map(fn($r) => is_array($r) ? (object) $r : $r, (array)$PUICached);
+            } else {
                 $this->ReadDb->db_debug = FALSE;
                 $this->ReadDb->select([
                     'PrimaryUnit.PrimaryUnitUID AS PrimaryUnitUID',
@@ -106,13 +107,8 @@ class Global_model extends CI_Model {
                     $error = $this->ReadDb->error();
                     throw new Exception($error['message']);
                 }
-                
                 $this->EndReturnData->Data = $query->result();
-
-                $this->redisservice->setCache($PUIKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
-
-            } else {
-                $this->EndReturnData->Data = $PUIGet_Data->Value;
+                $this->upstashservice->set($PUIKey, $this->EndReturnData->Data, 0);
             }
 
             $this->EndReturnData->Error = FALSE;
@@ -132,10 +128,11 @@ class Global_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $DTIKey = $this->redisservice->orgKey('disc-type');
-            $DTIGet_Data = $this->redisservice->getCache($DTIKey);
-            if ($DTIGet_Data->Error) {
-
+            $DTIKey    = $this->redisservice->orgKey('disc-type');
+            $DTICached = $this->upstashservice->get($DTIKey);
+            if ($DTICached !== null) {
+                $this->EndReturnData->Data = array_map(fn($r) => is_array($r) ? (object) $r : $r, (array)$DTICached);
+            } else {
                 $this->ReadDb->db_debug = FALSE;
                 $this->ReadDb->select([
                     'DiscType.DiscountTypeUID AS DiscountTypeUID',
@@ -152,13 +149,8 @@ class Global_model extends CI_Model {
                     $error = $this->ReadDb->error();
                     throw new Exception($error['message']);
                 }
-                
                 $this->EndReturnData->Data = $query->result();
-
-                $this->redisservice->setCache($DTIKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
-
-            } else {
-                $this->EndReturnData->Data = $DTIGet_Data->Value;
+                $this->upstashservice->set($DTIKey, $this->EndReturnData->Data, 0);
             }
 
             $this->EndReturnData->Error = FALSE;
@@ -178,10 +170,11 @@ class Global_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
             
-            $PTIKey = $this->redisservice->orgKey('prod-type');
-            $PTIGet_Data = $this->redisservice->getCache($PTIKey);
-            if ($PTIGet_Data->Error) {
-
+            $PTIKey    = $this->redisservice->orgKey('prod-type');
+            $PTICached = $this->upstashservice->get($PTIKey);
+            if ($PTICached !== null) {
+                $this->EndReturnData->Data = array_map(fn($r) => is_array($r) ? (object) $r : $r, (array)$PTICached);
+            } else {
                 $this->ReadDb->db_debug = FALSE;
                 $this->ReadDb->select([
                     'ProdType.ProductTypeUID AS ProductTypeUID',
@@ -196,13 +189,8 @@ class Global_model extends CI_Model {
                     $error = $this->ReadDb->error();
                     throw new Exception($error['message']);
                 }
-                
                 $this->EndReturnData->Data = $query->result();
-
-                $this->redisservice->setCache($PTIKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
-
-            } else {
-                $this->EndReturnData->Data = $PTIGet_Data->Value;
+                $this->upstashservice->set($PTIKey, $this->EndReturnData->Data, 0);
             }
 
             $this->EndReturnData->Error = FALSE;
@@ -222,10 +210,11 @@ class Global_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $PTIKey = $this->redisservice->orgKey('prod-tax');
-            $PTIGet_Data = $this->redisservice->getCache($PTIKey);
-            if ($PTIGet_Data->Error) {
-
+            $ProdTaxKey    = $this->redisservice->orgKey('prod-tax');
+            $ProdTaxCached = $this->upstashservice->get($ProdTaxKey);
+            if ($ProdTaxCached !== null) {
+                $this->EndReturnData->Data = array_map(fn($r) => is_array($r) ? (object) $r : $r, (array)$ProdTaxCached);
+            } else {
                 $this->ReadDb->db_debug = FALSE;
                 $this->ReadDb->select([
                     'ProdTax.ProductTaxUID AS ProductTaxUID',
@@ -240,13 +229,8 @@ class Global_model extends CI_Model {
                     $error = $this->ReadDb->error();
                     throw new Exception($error['message']);
                 }
-                
                 $this->EndReturnData->Data = $query->result();
-
-                $this->redisservice->setCache($PTIKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
-
-            } else {
-                $this->EndReturnData->Data = $PTIGet_Data->Value;
+                $this->upstashservice->set($ProdTaxKey, $this->EndReturnData->Data, 0);
             }
 
             $this->EndReturnData->Error = FALSE;
@@ -266,10 +250,11 @@ class Global_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
             
-            $TDIKey = $this->redisservice->orgKey('tax-details');
-            $TDIGet_Data = $this->redisservice->getCache($TDIKey);
-            if ($TDIGet_Data->Error) {
-
+            $TDIKey    = $this->redisservice->orgKey('tax-details');
+            $TDICached = $this->upstashservice->get($TDIKey);
+            if ($TDICached !== null) {
+                $this->EndReturnData->Data = array_map(fn($r) => is_array($r) ? (object) $r : $r, (array)$TDICached);
+            } else {
                 $this->ReadDb->db_debug = FALSE;
                 $this->ReadDb->select([
                     'TaxDetail.TaxDetailsUID AS TaxDetailsUID',
@@ -288,13 +273,8 @@ class Global_model extends CI_Model {
                     $error = $this->ReadDb->error();
                     throw new Exception($error['message']);
                 }
-                
                 $this->EndReturnData->Data = $query->result();
-
-                $this->redisservice->setCache($TDIKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
-
-            } else {
-                $this->EndReturnData->Data = $TDIGet_Data->Value;
+                $this->upstashservice->set($TDIKey, $this->EndReturnData->Data, 0);
             }
 
             $this->EndReturnData->Error = FALSE;
@@ -314,10 +294,11 @@ class Global_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
             
-            $TPDIKey = $this->redisservice->orgKey('tax-per-detail');
-            $TPDIGet_Data = $this->redisservice->getCache($TPDIKey);
-            if ($TPDIGet_Data->Error) {
-
+            $TPDIKey    = $this->redisservice->orgKey('tax-per-detail-' . md5(json_encode($WhereArrayCondition)));
+            $TPDICached = $this->upstashservice->get($TPDIKey);
+            if ($TPDICached !== null) {
+                $this->EndReturnData->Data = array_map(fn($r) => is_array($r) ? (object) $r : $r, (array)$TPDICached);
+            } else {
                 $this->ReadDb->db_debug = FALSE;
                 $this->ReadDb->select([
                     'TaxDetail.TaxDetailsUID AS TaxDetailsUID',
@@ -339,13 +320,8 @@ class Global_model extends CI_Model {
                     $error = $this->ReadDb->error();
                     throw new Exception($error['message']);
                 }
-
                 $this->EndReturnData->Data = $query->result();
-
-                $this->redisservice->setCache($TPDIKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
-
-            } else {
-                $this->EndReturnData->Data = $TPDIGet_Data->Value;
+                $this->upstashservice->set($TPDIKey, $this->EndReturnData->Data, (int)getenv('ONEYEAR_EXPIRE_SECS'));
             }
 
             $this->EndReturnData->Error = FALSE;
@@ -365,10 +341,11 @@ class Global_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
             
-            $STRDEKey = $this->redisservice->orgKey('storage-type');
-            $STRDEGet_Data = $this->redisservice->getCache($STRDEKey);
-            if ($STRDEGet_Data->Error) {
-
+            $STRDEKey    = $this->redisservice->orgKey('storage-type');
+            $STRDECached = $this->upstashservice->get($STRDEKey);
+            if ($STRDECached !== null) {
+                $this->EndReturnData->Data = array_map(fn($r) => is_array($r) ? (object) $r : $r, (array)$STRDECached);
+            } else {
                 $this->ReadDb->db_debug = FALSE;
                 $this->ReadDb->select([
                     'StorageType.StorageTypeUID AS StorageTypeUID',
@@ -384,13 +361,8 @@ class Global_model extends CI_Model {
                     $error = $this->ReadDb->error();
                     throw new Exception($error['message']);
                 }
-
                 $this->EndReturnData->Data = $query->result();
-
-                $this->redisservice->setCache($STRDEKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
-
-            } else {
-                $this->EndReturnData->Data = $STRDEGet_Data->Value;
+                $this->upstashservice->set($STRDEKey, $this->EndReturnData->Data, 0);
             }
 
             $this->EndReturnData->Error = FALSE;
@@ -409,54 +381,49 @@ class Global_model extends CI_Model {
         $this->EndReturnData = new StdClass();
         try {
 
-            $params_hash = md5(json_encode(['WC' => $WhereCond, 'WIC' => $whereInCondition]));
-            $RedisName = $this->redisservice->orgKey('module-details-' . $params_hash);
-            $ModDataRedis = $this->redisservice->getCache($RedisName);
-            if ($ModDataRedis->Error) {
-
-                $this->ReadDb->db_debug = FALSE;
-                $this->ReadDb->select([
-                    'Modules.ModuleUID AS ModuleUID',
-                    'Modules.Name AS Name',
-                    'Modules.OrgUID AS OrgUID',
-                    'Modules.ControllerName AS ControllerName',
-                    'Modules.ModelName AS ModelName',
-                    'Modules.FilterFunctionName AS FilterFunctionName',
-                    'Modules.ListUrl AS ListUrl',
-                    'Modules.DatabaseName as DatabaseName',
-                    'Modules.MasterTableName as MasterTableName',
-                    'Modules.TableAliasName as TableAliasName',
-                    'Modules.TablePrimaryUID as TablePrimaryUID',
-                    'Modules.ParentModuleUID as ParentModuleUID',
-                    'Modules.IsMainModule as IsMainModule',
-                    'Modules.IsModuleEnabled as IsModuleEnabled',
-                    'Modules.EditOnPage as EditOnPage',
-                ]);
-                $this->ReadDb->from('Modules.ModuleTbl as Modules');
-                $this->ReadDb->where(['Modules.IsDeleted' => 0, 'Modules.IsActive' => 1]);
-                if (!empty($WhereCond)) {
-                    $this->ReadDb->where($WhereCond);
-                }
-                if (!empty($whereInCondition)) {
-                    foreach ($whereInCondition as $wkey => $wval) {
-                        $this->ReadDb->where_in($wkey, $wval);
-                    }
-                }
-                $query = $this->ReadDb->get();
-                if (!$query) {
-                    $error = $this->ReadDb->error();
-                    throw new Exception($error['message']);
-                }
-
-                $this->EndReturnData->Data = $query->result();
-                $this->redisservice->setCache($RedisName, $this->EndReturnData->Data, getenv('ONEMONTH_EXPIRE_SECS'));
-
-                return $this->EndReturnData->Data;
-
-            } else {
-                $this->EndReturnData->Data = $ModDataRedis->Value;
-                return $this->EndReturnData->Data;
+            $params_hash   = md5(json_encode(['WC' => $WhereCond, 'WIC' => $whereInCondition]));
+            $ModKey        = $this->redisservice->orgKey('module-details-' . $params_hash);
+            $ModCached     = $this->upstashservice->get($ModKey);
+            if ($ModCached !== null) {
+                return $ModCached;
             }
+
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select([
+                'Modules.ModuleUID AS ModuleUID',
+                'Modules.Name AS Name',
+                'Modules.OrgUID AS OrgUID',
+                'Modules.ControllerName AS ControllerName',
+                'Modules.ModelName AS ModelName',
+                'Modules.FilterFunctionName AS FilterFunctionName',
+                'Modules.ListUrl AS ListUrl',
+                'Modules.DatabaseName as DatabaseName',
+                'Modules.MasterTableName as MasterTableName',
+                'Modules.TableAliasName as TableAliasName',
+                'Modules.TablePrimaryUID as TablePrimaryUID',
+                'Modules.ParentModuleUID as ParentModuleUID',
+                'Modules.IsMainModule as IsMainModule',
+                'Modules.IsModuleEnabled as IsModuleEnabled',
+                'Modules.EditOnPage as EditOnPage',
+            ]);
+            $this->ReadDb->from('Modules.ModuleTbl as Modules');
+            $this->ReadDb->where(['Modules.IsDeleted' => 0, 'Modules.IsActive' => 1]);
+            if (!empty($WhereCond)) {
+                $this->ReadDb->where($WhereCond);
+            }
+            if (!empty($whereInCondition)) {
+                foreach ($whereInCondition as $wkey => $wval) {
+                    $this->ReadDb->where_in($wkey, $wval);
+                }
+            }
+            $query = $this->ReadDb->get();
+            if (!$query) {
+                $error = $this->ReadDb->error();
+                throw new Exception($error['message']);
+            }
+            $this->EndReturnData->Data = $query->result();
+            $this->upstashservice->set($ModKey, $this->EndReturnData->Data, (int)getenv('ONEMONTH_EXPIRE_SECS'));
+            return $this->EndReturnData->Data;
 
         } catch (Exception $e) {
             $this->EndReturnData->Error = TRUE;
@@ -549,13 +516,8 @@ class Global_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $RedisName = $this->redisservice->orgKey('module-view-join-' . md5(json_encode(['WC' => $WhereArrayCondition, 'Sort' => $Sorting, 'SortCol' => $SortingColumn])));
-            $this->redisservice->deleteCache($RedisName);
-            $ModViewJoinColRedis = $this->redisservice->getCache($RedisName);
-            if ($ModViewJoinColRedis->Error) {
-
-                $this->ReadDb->db_debug = FALSE;
-                $this->ReadDb->select([
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select([
                     'JoinColmn.ViewDataJoinUID AS ViewDataJoinUID',
                     'JoinColmn.OrgUID AS OrgUID',
                     'JoinColmn.MainModuleUID AS MainModuleUID',
@@ -597,17 +559,7 @@ class Global_model extends CI_Model {
                 }
 
                 $this->EndReturnData->Data = $query->result();
-
-                $this->redisservice->setCache($RedisName, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
-
                 return $this->EndReturnData->Data;
-
-            } else {
-                
-                $this->EndReturnData->Data = $ModViewJoinColRedis->Value;
-                return $this->EndReturnData->Data;
-
-            }
 
         } catch (Exception $e) {
             $this->EndReturnData->Error = TRUE;

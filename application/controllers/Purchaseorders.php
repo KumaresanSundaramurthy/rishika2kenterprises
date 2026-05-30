@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
+<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Purchaseorders extends MY_Controller {
 
@@ -97,7 +97,7 @@ class Purchaseorders extends MY_Controller {
 
             $PostData = $this->input->post();
             $userUID  = $this->pageData['JwtData']->User->UserUID;
-            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
 
             $this->load->model('formvalidation_model');
             $ErrorInForm = $this->formvalidation_model->quotationValidateForm($PostData);
@@ -258,7 +258,7 @@ class Purchaseorders extends MY_Controller {
 
             $PostData = $this->input->post();
             $userUID  = $this->pageData['JwtData']->User->UserUID;
-            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
 
             $transUID = (int) getPostValue($PostData, 'TransUID');
             if ($transUID <= 0) throw new Exception('Purchase order ID is required.');
@@ -516,7 +516,7 @@ class Purchaseorders extends MY_Controller {
 
             $PostData = $this->input->post();
             $userUID  = $this->pageData['JwtData']->User->UserUID;
-            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
 
             $transUID = (int) getPostValue($PostData, 'TransUID');
             if ($transUID <= 0) throw new Exception('Purchase order ID is required.');
@@ -571,7 +571,7 @@ class Purchaseorders extends MY_Controller {
             $PostData = $this->input->post();
             $srcUID   = (int) getPostValue($PostData, 'TransUID');
             $userUID  = $this->pageData['JwtData']->User->UserUID;
-            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
 
             if ($srcUID <= 0) throw new Exception('Invalid purchase order.');
 
@@ -723,7 +723,7 @@ class Purchaseorders extends MY_Controller {
             $transUID  = (int) getPostValue($PostData, 'TransUID');
             $newStatus = trim(getPostValue($PostData, 'Status'));
             $userUID   = $this->pageData['JwtData']->User->UserUID;
-            $orgUID    = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
 
             if ($transUID <= 0) throw new Exception('Invalid purchase order.');
 
@@ -772,7 +772,7 @@ class Purchaseorders extends MY_Controller {
         try {
 
             $transUID = (int) $this->input->get_post('TransUID');
-            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
 
             if ($transUID <= 0) throw new Exception('Invalid purchase order.');
 
@@ -877,7 +877,7 @@ class Purchaseorders extends MY_Controller {
 
         try {
 
-            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
 
             $this->load->model('transactions_model');
@@ -900,7 +900,7 @@ class Purchaseorders extends MY_Controller {
             $this->pageData['StateData'] = [];
             $this->pageData['CityData']  = [];
 
-            $OrgCountryISO2 = $this->pageData['JwtData']->User->OrgCISO2;
+            $OrgCountryISO2 = $this->pageData['JwtData']->Org->OrgCISO2;
             if (!empty($OrgCountryISO2)) {
                 $StateInfo = $this->global_model->getStateofCountry($OrgCountryISO2);
                 if ($StateInfo->Error === FALSE) $this->pageData['StateData'] = $StateInfo->Data;
@@ -932,7 +932,7 @@ class Purchaseorders extends MY_Controller {
             $transUID = (int) $transUID;
             if ($transUID <= 0) redirect('purchaseorders');
 
-            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
 
             $this->load->model('transactions_model');
@@ -968,7 +968,7 @@ class Purchaseorders extends MY_Controller {
             $this->pageData['StateData'] = [];
             $this->pageData['CityData']  = [];
 
-            $OrgCountryISO2 = $this->pageData['JwtData']->User->OrgCISO2;
+            $OrgCountryISO2 = $this->pageData['JwtData']->Org->OrgCISO2;
             if (!empty($OrgCountryISO2)) {
                 $StateInfo = $this->global_model->getStateofCountry($OrgCountryISO2);
                 if ($StateInfo->Error === FALSE) $this->pageData['StateData'] = $StateInfo->Data;
@@ -1002,7 +1002,7 @@ class Purchaseorders extends MY_Controller {
         if (empty($files) || empty($files['name'][0])) return;
 
         $userUID   = $this->pageData['JwtData']->User->UserUID;
-        $orgUID    = $this->pageData['JwtData']->User->OrgUID;
+        $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
         $moduleUID = $this->pageModuleUID;
 
         $this->load->library('fileupload');
@@ -1043,7 +1043,7 @@ class Purchaseorders extends MY_Controller {
         $uids = json_decode($removedJson, true);
         if (empty($uids) || !is_array($uids)) return;
 
-        $orgUID  = $this->pageData['JwtData']->User->OrgUID;
+        $orgUID  = $this->pageData['JwtData']->Org->OrgUID;
         $userUID = $this->pageData['JwtData']->User->UserUID;
         $this->load->model('dbwrite_model');
 
@@ -1065,7 +1065,7 @@ class Purchaseorders extends MY_Controller {
 
             $PostData  = $this->input->post();
             $userUID   = $this->pageData['JwtData']->User->UserUID;
-            $orgUID    = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
             $transUID  = (int) getPostValue($PostData, 'TransUID');
             $moduleUID = (int) getPostValue($PostData, 'ModuleUID') ?: $this->pageModuleUID;
 
@@ -1132,7 +1132,7 @@ class Purchaseorders extends MY_Controller {
         try {
 
             $transUID = (int) $this->input->post('TransUID');
-            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
             if ($transUID <= 0) throw new Exception('Invalid purchase order.');
 
             $this->load->model('transactions_model');

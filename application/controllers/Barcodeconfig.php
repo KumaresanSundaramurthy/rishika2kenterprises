@@ -18,7 +18,7 @@ class Barcodeconfig extends MY_Controller {
             return;
         }
 
-        $OrgUID = (int) $this->pageData['JwtData']->User->OrgUID;
+        $OrgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
 
         $BarcodeConfig = $this->global_model->getSingleRow(
             'Products', 'BarcodeConfigTbl',
@@ -72,7 +72,7 @@ class Barcodeconfig extends MY_Controller {
     public function saveConfig() {
         $this->EndReturnData = new stdClass();
         try {
-            $OrgUID  = (int) $this->pageData['JwtData']->User->OrgUID;
+            $OrgUID  = (int) $this->pageData['JwtData']->Org->OrgUID;
             $UserUID = (int) $this->pageData['JwtData']->User->UserUID;
             $post    = $this->input->post();
 
@@ -134,7 +134,7 @@ class Barcodeconfig extends MY_Controller {
     public function getLayout() {
         $this->EndReturnData = new stdClass();
         try {
-            $OrgUID    = (int) $this->pageData['JwtData']->User->OrgUID;
+            $OrgUID    = (int) $this->pageData['JwtData']->Org->OrgUID;
             $LabelType = $this->input->get('type') === 'qrcode' ? 'qrcode' : 'barcode';
 
             $row = $this->global_model->getSingleRow(
@@ -161,7 +161,7 @@ class Barcodeconfig extends MY_Controller {
     public function saveLayout() {
         $this->EndReturnData = new stdClass();
         try {
-            $OrgUID  = (int) $this->pageData['JwtData']->User->OrgUID;
+            $OrgUID  = (int) $this->pageData['JwtData']->Org->OrgUID;
             $UserUID = (int) $this->pageData['JwtData']->User->UserUID;
             $post    = $this->input->post();
 

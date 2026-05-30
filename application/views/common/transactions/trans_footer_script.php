@@ -3,7 +3,7 @@ var JwtToken = '<?php echo $JwtToken; ?>';
 var JwtData = JSON.parse('<?php echo json_encode($JwtData); ?>');
 var CsrfName = '<?php echo $this->security->get_csrf_token_name(); ?>';
 var CsrfToken = '<?php echo $this->security->get_csrf_hash(); ?>';
-const defaultIso2 = '<?php echo $JwtData->User->OrgCISO2 ?? 'IN'; ?>';
+const defaultIso2 = '<?php echo $JwtData->Org->OrgCISO2 ?? 'IN'; ?>';
 const defaultCCode = '+91';
 var RowLimit = <?php echo $JwtData->GenSettings->RowLimit ?? 10; ?>;
 var UserRoleUID = <?php echo isset($JwtData->User->RoleUID) ? $JwtData->User->RoleUID : 0; ?>;
@@ -28,7 +28,7 @@ const genSettings = <?php echo json_encode($JwtData->GenSettings ?? new stdClass
 const discTypeInfo = <?php echo json_encode($DiscTypeInfo ?? []); ?>;
 let customerInterState = false;
 const emptyTableTrInfo = `<tr class="text-center text-muted">
-                                <td colspan="6">
+                                <td colspan="7">
                                     <div class="py-4">
                                         <i class="bx bx-cart text-muted text-primary" style="font-size: 2rem;"></i>
                                         <p class="mt-2 mb-0">No items added yet</p>

@@ -1,7 +1,7 @@
 /* ── Barcode / QR Code label print ───────────────────────────────────────
    Layout tabs: 1×1, 1×2, 1×3, 1×4, A4 8×2, A4 10×4, A4 13×5, Square
    Field config: stored in localStorage['r2k_bc_label_config']
-   Org logo: overlaid on QR centre from JwtData.User.OrgLogo
+   Org logo: overlaid on QR centre from JwtData.Org.OrgLogo
    ─────────────────────────────────────────────────────────────────────── */
 
 /* ── Layout definitions ─────────────────────────────────────────────── */
@@ -69,7 +69,7 @@ function _getFieldValue(key) {
 
 function _getOrgLogoUrl() {
     try {
-        var logo = JwtData && JwtData.User && JwtData.User.OrgLogo;
+        var logo = JwtData && JwtData.Org && JwtData.Org.OrgLogo;
         if (logo) return (CDN_URL || '') + logo;
     } catch (e) {}
     return '';

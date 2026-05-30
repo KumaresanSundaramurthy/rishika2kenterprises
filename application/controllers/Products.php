@@ -52,13 +52,13 @@ class Products extends MY_Controller {
     }
 
     private function fetchProductStats() {
-        $OrgUID = (int) $this->pageData['JwtData']->User->OrgUID;
+        $OrgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
         return $this->products_model->getProductStats($OrgUID);
     }
 
     private function fetchProductTableData($pageNo, $limit = 0, $isComposite = null) {
 
-        $OrgUID = (int) $this->pageData['JwtData']->User->OrgUID;
+        $OrgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
         if (!$limit) {
             $postLimit     = (int) $this->input->post('RowLimit');
             $settingsLimit = (int) (($this->pageData['JwtData']->GenSettings ?? null)?->RowLimit ?? 0);
@@ -113,7 +113,7 @@ class Products extends MY_Controller {
 
     private function fetchCategoryTableData($pageNo, $limit = 0) {
 
-        $OrgUID = (int) $this->pageData['JwtData']->User->OrgUID;
+        $OrgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
         if (!$limit) {
             $postLimit     = (int) $this->input->post('RowLimit');
             $settingsLimit = (int) (($this->pageData['JwtData']->GenSettings ?? null)?->RowLimit ?? 0);
@@ -154,7 +154,7 @@ class Products extends MY_Controller {
             $limit = (int) ($GeneralSettings->RowLimit ?? 10);
 
             // Use dedicated paginated functions for active-tab row data
-            $OrgUID = (int) $this->pageData['JwtData']->User->OrgUID;
+            $OrgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
             $this->pageData['ProductTotalCount'] = 0;
             if ($activeTab === 'item') {
                 $tableData = $this->products_model->getProductListPaginated($OrgUID, $limit, 0, 'Products.IsComposite = 0');
@@ -192,7 +192,7 @@ class Products extends MY_Controller {
             $this->pageData['ProdTaxInfo']     = $this->global_model->getProductTaxInfo()->Data ?? [];
             $this->pageData['TaxDetInfo']      = $this->global_model->getTaxDetailsInfo()->Data ?? [];
 
-            $OrgUID = (int) $this->pageData['JwtData']->User->OrgUID;
+            $OrgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
 
             $this->load->model('customers_model');
             $this->pageData['CustomerTypeInfo'] = $this->customers_model->getCustomerTypeList($OrgUID) ?? [];
@@ -230,7 +230,7 @@ class Products extends MY_Controller {
         }
 
         $data = [
-            'OrgUID'                     => (int) $this->pageData['JwtData']->User->OrgUID,
+            'OrgUID'                     => (int) $this->pageData['JwtData']->Org->OrgUID,
             'ItemName'                   => getPostValue($postData, 'ItemName'),
             'ProductType'                => in_array(getPostValue($postData, 'ProductType', '', 'Product'), ['Product', 'Service']) ? getPostValue($postData, 'ProductType', '', 'Product') : 'Product',
             'MRP'                        => (float) getPostValue($postData, 'MRP', '', 0),
@@ -295,7 +295,7 @@ class Products extends MY_Controller {
                 $qty      = (float) ($comp['Qty'] ?? 1);
                 if ($childUID > 0 && $qty > 0 && $childUID !== (int) $ParentProductUID) {
                     $this->dbwrite_model->insertData('Products', 'ProductBOMTbl', [
-                        'OrgUID'           => (int) $this->pageData['JwtData']->User->OrgUID,
+                        'OrgUID'           => (int) $this->pageData['JwtData']->Org->OrgUID,
                         'ParentProductUID' => (int) $ParentProductUID,
                         'ChildProductUID'  => $childUID,
                         'Quantity'         => $qty,
@@ -311,7 +311,7 @@ class Products extends MY_Controller {
     private function saveCustomerTypePricing($ProductUID, $PostData) {
 
         $userUID = (int) $this->pageData['JwtData']->User->UserUID;
-        $orgUID  = (int) $this->pageData['JwtData']->User->OrgUID;
+        $orgUID  = (int) $this->pageData['JwtData']->Org->OrgUID;
 
         $pricingJson = getPostValue($PostData, 'CustomerPricingData', '', '[]');
         $pricing = json_decode($pricingJson, true);
@@ -366,7 +366,7 @@ class Products extends MY_Controller {
         if (!$isRentable) return;
 
         $userUID = (int) $this->pageData['JwtData']->User->UserUID;
-        $orgUID  = (int) $this->pageData['JwtData']->User->OrgUID;
+        $orgUID  = (int) $this->pageData['JwtData']->Org->OrgUID;
 
         $configData = [
             'SecurityDeposit'         => (float) getPostValue($PostData, 'rc_SecurityDeposit',   '', 0),
@@ -404,7 +404,7 @@ class Products extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
             $ProductUID = (int) $this->input->post('ProductUID');
-            $orgUID     = (int) $this->pageData['JwtData']->User->OrgUID;
+            $orgUID     = (int) $this->pageData['JwtData']->Org->OrgUID;
             if (!$ProductUID) throw new Exception('Invalid product');
             $config = $this->products_model->getRentalConfig($ProductUID, $orgUID);
             $this->EndReturnData->Error  = false;
@@ -423,7 +423,7 @@ class Products extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
 
-            $OrgUID = (int) $this->pageData['JwtData']->User->OrgUID;
+            $OrgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
             $pageNo = (int) $this->input->post('PageNo') ?: 1;
             $limit  = (int) $this->input->post('RowLimit') ?: 10;
             $offset = ($pageNo - 1) * $limit;
@@ -464,7 +464,7 @@ class Products extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
 
-            $OrgUID = (int) $this->pageData['JwtData']->User->OrgUID;
+            $OrgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
             $pageNo = (int) $this->input->post('PageNo') ?: 1;
             $limit  = (int) $this->input->post('RowLimit') ?: 10;
             $offset = ($pageNo - 1) * $limit;
@@ -548,7 +548,7 @@ class Products extends MY_Controller {
             $this->dbwrite_model->commitTransaction();
 
             // Create initial stock row in ProductStockTbl
-            $this->dbwrite_model->initProductStock($ProductUID, (int) $this->pageData['JwtData']->User->OrgUID);
+            $this->dbwrite_model->initProductStock($ProductUID, (int) $this->pageData['JwtData']->Org->OrgUID);
 
             // Sync new product into the Upstash bulk cache
             $this->cachehelper->upsertProduct($ProductUID);
@@ -615,7 +615,7 @@ class Products extends MY_Controller {
                     throw new Exception('Product not found');
                 }
                 $customerPricing = $this->products_model->getCustomerTypePricing($ProductUID);
-                $orgUID          = (int) $this->pageData['JwtData']->User->OrgUID;
+                $orgUID          = (int) $this->pageData['JwtData']->Org->OrgUID;
                 $rentalConfig    = $this->products_model->getRentalConfig($ProductUID, $orgUID);
 
                 $this->EndReturnData->Error           = FALSE;
@@ -833,7 +833,7 @@ class Products extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
             $search = trim($this->input->post('search') ?? '');
-            $OrgUID = (int) $this->pageData['JwtData']->User->OrgUID;
+            $OrgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
             $items  = $this->products_model->getItemsForBOM($OrgUID, $search);
             $this->EndReturnData->Error = false;
             $this->EndReturnData->Items = $items;
@@ -875,7 +875,7 @@ class Products extends MY_Controller {
             }
 
             $userUID = (int) $this->pageData['JwtData']->User->UserUID;
-            $orgUID  = (int) $this->pageData['JwtData']->User->OrgUID;
+            $orgUID  = (int) $this->pageData['JwtData']->Org->OrgUID;
 
             $taxUID     = (int) getPostValue($PostData, 'ComboTaxPercentage');
             $TaxDetails = null;
@@ -1147,7 +1147,7 @@ class Products extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
 
-            $OrgUID = (int) $this->pageData['JwtData']->User->OrgUID;
+            $OrgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
             $pageNo = (int) $this->input->post('PageNo') ?: 1;
             $limit  = (int) $this->input->post('RowLimit') ?: 10;
             $offset = ($pageNo - 1) * $limit;
@@ -1222,7 +1222,7 @@ class Products extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
             $CategoryUID = (int) $this->input->post('CategoryUID');
-            $OrgUID      = (int) $this->pageData['JwtData']->User->OrgUID;
+            $OrgUID      = (int) $this->pageData['JwtData']->Org->OrgUID;
             if ($CategoryUID <= 0) throw new Exception('Invalid Category.');
 
             $products = $this->products_model->getProductsByCategoryUID($CategoryUID, $OrgUID);
@@ -1241,7 +1241,7 @@ class Products extends MY_Controller {
     private function buildCategoryFormData($postData, $isCreate = false) {
         $data = [
             'Name'        => getPostValue($postData, 'CategoryName'),
-            'OrgUID'      => (int) $this->pageData['JwtData']->User->OrgUID,
+            'OrgUID'      => (int) $this->pageData['JwtData']->Org->OrgUID,
             'Description' => getPostValue($postData, 'CategoryDescription'),
             'UpdatedBy'   => $this->pageData['JwtData']->User->UserUID,
         ];
@@ -1533,7 +1533,7 @@ class Products extends MY_Controller {
     private function buildSizeFormData($postData, $isCreate = false) {
         $data = [
             'Name'        => getPostValue($postData, 'SizesName'),
-            'OrgUID'      => (int) $this->pageData['JwtData']->User->OrgUID,
+            'OrgUID'      => (int) $this->pageData['JwtData']->Org->OrgUID,
             'Description' => getPostValue($postData, 'SizesDescription'),
             'UpdatedBy'   => (int) $this->pageData['JwtData']->User->UserUID,
         ];
@@ -1807,7 +1807,7 @@ class Products extends MY_Controller {
     private function buildBrandFormData($postData, $isCreate = false) {
         $data = [
             'Name'        => getPostValue($postData, 'BrandsName'),
-            'OrgUID'      => (int) $this->pageData['JwtData']->User->OrgUID,
+            'OrgUID'      => (int) $this->pageData['JwtData']->Org->OrgUID,
             'Description' => getPostValue($postData, 'BrandsDescription'),
             'UpdatedBy'   => (int) $this->pageData['JwtData']->User->UserUID,
         ];
@@ -2089,7 +2089,7 @@ class Products extends MY_Controller {
 
         $this->EndReturnData = new stdClass();
         try {
-            $orgUID = (int) $this->pageData['JwtData']->User->OrgUID;
+            $orgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
 
             $this->load->model('products_model');
             $products = $this->products_model->getProductsForCache($orgUID);
@@ -2158,7 +2158,7 @@ class Products extends MY_Controller {
 
         $this->EndReturnData = new stdClass();
         try {
-            $orgUID = (int) $this->pageData['JwtData']->User->OrgUID;
+            $orgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
 
             $this->load->model('products_model');
             $categories = $this->products_model->getCategoriesForCache($orgUID);

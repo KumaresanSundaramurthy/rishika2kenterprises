@@ -948,7 +948,7 @@ Class Globalservice {
 
         $addressData = [
             $entityField => $entityUID,
-            'OrgUID'     => $this->CI->pageData['JwtData']->User->OrgUID,
+            'OrgUID'     => $this->CI->pageData['JwtData']->Org->OrgUID,
             'AddressType'=> $addressType,
             'Line1'      => $postData[$typePrefix.'AddrLine1'],
             'Line2'      => getPostValue($postData, $typePrefix.'AddrLine2') ?? NULL,

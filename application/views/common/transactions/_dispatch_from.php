@@ -8,7 +8,7 @@ $_defUID = (int)($DispatchAddress->OrgAddressUID ?? 0);
 ?>
 <select id="dispatchFrom" name="dispatchFrom" class="form-select form-select-sm r2k-dispatch-sel" required>
     <?php foreach ($DispatchAddresses as $addr):
-        $uid = (int)$addr->OrgAddressUID; ?>
+        $uid = (int) $addr->OrgAddressUID; ?>
     <option value="<?php echo $uid; ?>"
             data-orgname="<?php echo htmlspecialchars($addr->OrgName    ?? ''); ?>"
             data-line1="<?php echo htmlspecialchars($addr->Line1       ?? ''); ?>"

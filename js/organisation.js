@@ -172,8 +172,10 @@ function updateOrgForm(formdata) {
             } else {
                 showToastNotification(response.Message, 'success');
                 imageChange = 0;
-                if ($('#BillOrgAddressUID').val() == 0) $('#BillOrgAddressUID').val(response.BillOrgAddressUID);
-                if ($('#ShipOrgAddressUID').val() == 0) $('#ShipOrgAddressUID').val(response.ShipOrgAddressUID);
+                // Sync UIDs back into JS memory (closure fn defined in view's document.ready)
+                if (typeof window._orgAfterSave === 'function') {
+                    window._orgAfterSave(response);
+                }
             }
         }
     });

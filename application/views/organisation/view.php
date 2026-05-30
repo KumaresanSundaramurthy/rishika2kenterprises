@@ -28,14 +28,14 @@
                     </div>
 
                     <div class="card mb-3">
-                        <div class="card-header modal-header-center-sticky d-flex justify-content-between align-items-center mb-3">
+                        <div class="card-header modal-header-center-sticky d-flex justify-content-between align-items-center p-2">
                             <h5 class="modal-title">Organisation Details</h5>
                             <div class="d-flex align-items-center gap-2" id="mainActionBar">
                                 <!-- <button type="button" class="btn btn-label-danger" data-bs-dismiss="modal" aria-label="Close">Close</button> -->
                                 <button type="submit" class="btn btn-primary OrgSubBtn me-2">Update</button>
                             </div>
                         </div>
-                        <div class="card-body">
+                        <div class="card-body mt-3">
 
                             <div class="row">
                                 
@@ -80,18 +80,11 @@
                                     <label for="email" class="form-label">Company Email <span style="color:red">*</span></label>
                                     <input class="form-control" type="email" id="EmailAddress" name="EmailAddress" required disabled maxlength="100" placeholder="Email Address" value="<?php echo isset($EditOrgData->EmailAddress) ? $EditOrgData->EmailAddress : ''; ?>" />
                                 </div>
-                                <div class="mb-3 col-md-4">
+                                <div class="mb-3 col-md-6">
                                     <label for="AlternateNumber" class="form-label">Alternative Contact Number </label>
                                     <input class="form-control" type="number" id="AlternateNumber" name="AlternateNumber" maxLength="20" placeholder="Alternative Contact Number" value="<?php echo isset($EditOrgData->AlternateNumber) ? $EditOrgData->AlternateNumber : ''; ?>" onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))" oninput="this.value=this.value.slice(0,this.maxLength)" pattern="[0-9]*" />
                                 </div>
-                                <div class="mb-3 col-md-4">
-                                    <label for="text" class="form-label">GSTIN</label>
-                                    <!-- <div class="input-group"> -->
-                                        <input type="text" class="form-control" placeholder="GSTIN" aria-label="GSTIN" aria-describedby="GSTIN_Fetch" name="GSTIN" id="GSTIN" value="<?php echo isset($EditOrgData->GSTIN) ? $EditOrgData->GSTIN : ''; ?>" />
-                                        <!-- <button class="btn btn-outline-primary" type="button" id="GSTIN_Fetch">Fetch</button> -->
-                                    <!-- </div> -->
-                                </div>
-                                <div class="mb-3 col-md-4">
+                                <div class="mb-3 col-md-6">
                                     <label for="PANNumber" class="form-label">PAN Number </label>
                                     <input class="form-control" type="text" id="PANNumber" name="PANNumber" maxlength="10" placeholder="PAN Number" value="<?php echo isset($EditOrgData->PANNumber) ? $EditOrgData->PANNumber : ''; ?>" />
                                 </div>
@@ -157,119 +150,129 @@
                         </div>
                     </div>
 
-                    <div class="row">
-                        <div class="col-md-6">
-                            
-                            <div class="card mb-3">
-                                <div class="card-header modal-header-center-sticky d-flex justify-content-between align-items-center mb-3">
-                                    <h5 class="mb-0">Billing Details</h5>
-                                    <button type="button" id="CopyToShipping" class="btn btn-sm btn-outline-info">Copy to Shipping</button>
+                    <!-- GST & Place of Supply -->
+                    <?php
+                    $indianGstStates = [
+                        '01'=>'Jammu & Kashmir',      '02'=>'Himachal Pradesh',
+                        '03'=>'Punjab',               '04'=>'Chandigarh',
+                        '05'=>'Uttarakhand',          '06'=>'Haryana',
+                        '07'=>'Delhi',                '08'=>'Rajasthan',
+                        '09'=>'Uttar Pradesh',        '10'=>'Bihar',
+                        '11'=>'Sikkim',               '12'=>'Arunachal Pradesh',
+                        '13'=>'Nagaland',             '14'=>'Manipur',
+                        '15'=>'Mizoram',              '16'=>'Tripura',
+                        '17'=>'Meghalaya',            '18'=>'Assam',
+                        '19'=>'West Bengal',          '20'=>'Jharkhand',
+                        '21'=>'Odisha',               '22'=>'Chhattisgarh',
+                        '23'=>'Madhya Pradesh',       '24'=>'Gujarat',
+                        '26'=>'Dadra & Nagar Haveli and Daman & Diu',
+                        '27'=>'Maharashtra',          '29'=>'Karnataka',
+                        '30'=>'Goa',                  '31'=>'Lakshadweep',
+                        '32'=>'Kerala',               '33'=>'Tamil Nadu',
+                        '34'=>'Puducherry',           '35'=>'Andaman & Nicobar Islands',
+                        '36'=>'Telangana',            '37'=>'Andhra Pradesh',
+                        '38'=>'Ladakh',               '97'=>'Other Territory',
+                    ];
+                    $savedStateCode = isset($EditOrgData->StateCode) ? $EditOrgData->StateCode : '';
+                    ?>
+                    <div class="card mb-3">
+                        <div class="card-header modal-header-center-sticky p-2">
+                            <h5 class="mb-0">GST &amp; Place of Supply</h5>
+                        </div>
+                        <div class="card-body p-3">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Registered State <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="OrgStateCode" name="StateCode">
+                                        <option value="">— Select State —</option>
+                                        <?php foreach ($indianGstStates as $code => $name): ?>
+                                        <option value="<?php echo $code; ?>" data-name="<?php echo htmlspecialchars($name, ENT_QUOTES); ?>"
+                                            <?php echo $savedStateCode === $code ? 'selected' : ''; ?>>
+                                            <?php echo $code; ?> — <?php echo htmlspecialchars($name); ?>
+                                        </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <input type="hidden" id="OrgStateName" name="StateName"
+                                        value="<?php echo htmlspecialchars($savedStateCode ? ($indianGstStates[$savedStateCode] ?? '') : '', ENT_QUOTES); ?>" />
+                                    <div class="form-text">The state where your GST is registered. Determines CGST+SGST vs IGST on all transactions.</div>
                                 </div>
-                                <div class="card-body">
-                                    <div class="row">
+                                <div class="col-md-6">
+                                    <label class="form-label">GSTIN</label>
+                                    <input type="text" class="form-control text-uppercase" id="OrgGSTIN" name="GSTIN"
+                                        maxlength="15" placeholder="e.g. 33AAAAA0000A1Z5"
+                                        value="<?php echo htmlspecialchars(isset($EditOrgData->GSTIN) ? $EditOrgData->GSTIN : '', ENT_QUOTES); ?>"
+                                        oninput="this.value = this.value.toUpperCase()" />
+                                    <div class="form-text">Your organisation's 15-digit GST Identification Number.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-                                        <input type="hidden" name="BillOrgAddressUID" id="BillOrgAddressUID" value="<?php echo isset($BillOrgAddrData->OrgAddressUID) ? $BillOrgAddrData->OrgAddressUID : 0; ?>" required />
-                                        <div class="mb-3 col-md-12">
-                                            <label for="BillAddrLine1" class="form-label">Address Line 1 <span style="color:red">*</span></label>
-                                            <input class="form-control" type="text" id="BillAddrLine1" name="BillAddrLine1" maxlength="100" placeholder="Address Line 1" value="<?php echo isset($BillOrgAddrData->Line1) ? $BillOrgAddrData->Line1 : ''; ?>" required />
-                                        </div>
-                                        <div class="mb-3 col-md-12">
-                                            <label for="BillAddrLine2" class="form-label">Address Line 2 </label>
-                                            <input class="form-control" type="text" id="BillAddrLine2" name="BillAddrLine2" maxlength="100" placeholder="Address Line 2" value="<?php echo isset($BillOrgAddrData->Line2) ? $BillOrgAddrData->Line2 : ''; ?>" />
-                                        </div>
-                                        <div class="mb-3 col-md-12">
-                                            <label for="BillAddrPincode" class="form-label">Pincode <span style="color:red">*</span></label>
-                                            <input class="form-control" type="text" id="BillAddrPincode" name="BillAddrPincode" maxlength="10" placeholder="Pincode" value="<?php echo isset($BillOrgAddrData->Pincode) ? $BillOrgAddrData->Pincode : ''; ?>" required />
-                                        </div>
-                                        <div class="mb-3 col-md-6">
-                                            <label for="BillAddrState" class="form-label">State</label>
-                                            <select class="select2 form-select" id="BillAddrState" name="BillAddrState">
-                                                <option value="">-- Select State --</option>
-                                                <?php if (!empty($BillOrgAddrData->State) && !empty($BillOrgAddrData->StateText)): ?>
-                                                <option value="<?php echo $BillOrgAddrData->State; ?>" selected><?php echo htmlspecialchars($BillOrgAddrData->StateText); ?></option>
-                                                <?php endif; ?>
-                                            </select>
-                                        </div>
-                                        <div class="mb-3 col-md-6">
-                                            <label for="BillAddrCity" class="form-label">City</label>
-                                            <select class="select2 form-select" id="BillAddrCity" name="BillAddrCity">
-                                                <option value="">-- Select City --</option>
-                                                <?php if (!empty($BillOrgAddrData->City) && !empty($BillOrgAddrData->CityText)): ?>
-                                                <option value="<?php echo $BillOrgAddrData->City; ?>" selected><?php echo htmlspecialchars($BillOrgAddrData->CityText); ?></option>
-                                                <?php endif; ?>
-                                            </select>
-                                        </div>
+                    <!-- ── Billing Address card ──────────────────────────────────────── -->
+                    <div class="card mb-3">
+                        <div class="card-header modal-header-center-sticky p-3 d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Billing Address</h5>
+                        </div>
+                        <div class="card-body p-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="fw-semibold small text-muted text-uppercase">Billing Address</span>
+                                    <a href="javascript:void(0)" class="btn btn-sm btn-outline-warning" id="addBillingAddress">
+                                        <i class="bx bx-plus-circle"></i>
+                                    </a>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-secondary d-none" id="copyToShippingBtn">
+                                    <i class="bx bx-copy-alt me-1"></i>Copy to Shipping
+                                </button>
+                            </div>
+                            <div id="appendBillingAddress"></div>
+                        </div>
+                    </div>
 
+                    <!-- ── Shipping Addresses card ────────────────────────────────────── -->
+                    <div class="card mb-3">
+                        <div class="card-header modal-header-center-sticky p-3 d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Shipping Addresses</h5>
+                            <span class="badge bg-label-secondary" id="orgShipCount">
+                                <?php echo count($ShipOrgAddrList ?? []); ?> / <?php echo $MaxShippingAddr; ?>
+                            </span>
+                        </div>
+                        <div class="card-body p-3">
+                            <div class="row g-3" id="orgShipContainer">
+                                <?php $loop = 0; foreach (($ShipOrgAddrList ?? []) as $sa): ?>
+                                <div class="col-md-4 org-ship-card" data-uid="<?php echo (int)$sa->OrgAddressUID; ?>">
+                                    <div class="org-ship-bg border rounded p-3 d-flex justify-content-between align-items-start gap-2 h-100">
+                                        <div class="small text-muted lh-base">
+                                            <?php if ($sa->Line1): ?><div><?php echo htmlspecialchars($sa->Line1); ?></div><?php endif; ?>
+                                            <?php if ($sa->Line2): ?><div><?php echo htmlspecialchars($sa->Line2); ?></div><?php endif; ?>
+                                            <?php
+                                                $loc = implode(', ', array_filter([$sa->CityText ?? '', $sa->StateText ?? '', $sa->Pincode ?? '']));
+                                                if ($loc): ?><div><?php echo htmlspecialchars($loc); ?></div><?php endif;
+                                            ?>
+                                        </div>
+                                        <div class="d-flex gap-1 flex-shrink-0">
+                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="_openOrgShipModal(<?php echo $loop; ?>)" title="Edit"><i class="bx bx-edit-alt"></i></button>
+                                            <?php if (count($ShipOrgAddrList) > 1): ?>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="_deleteOrgShip(<?php echo $loop; ?>)" title="Delete"><i class="bx bx-trash"></i></button>
+                                            <?php endif; ?>
+                                        </div>
                                     </div>
                                 </div>
+                                <?php $loop++; endforeach; ?>
                             </div>
-                        </div>
-                        <div class="col-md-6">
-
-                            <div class="card mb-3">
-                                <div class="card-header modal-header-center-sticky mb-3">
-                                    <h5 class="mb-0">Shipping Details</h5>
-                                </div>
-                                <div class="card-body">
-                                    <div class="row">
-
-                                        <input type="hidden" name="ShipOrgAddressUID" id="ShipOrgAddressUID" value="<?php echo isset($ShipOrgAddrData->OrgAddressUID) ? $ShipOrgAddrData->OrgAddressUID : 0; ?>" required />
-                                        <div class="mb-3 col-md-12">
-                                            <label for="ShipAddrLine1" class="form-label">Address Line 1 <span style="color:red">*</span></label>
-                                            <input class="form-control" type="text" id="ShipAddrLine1" name="ShipAddrLine1" maxlength="100" placeholder="Address Line 1" value="<?php echo isset($ShipOrgAddrData->Line1) ? $ShipOrgAddrData->Line1 : ''; ?>" required />
-                                        </div>
-                                        <div class="mb-3 col-md-12">
-                                            <label for="ShipAddrLine2" class="form-label">Address Line 2 </label>
-                                            <input class="form-control" type="text" id="ShipAddrLine2" name="ShipAddrLine2" maxlength="100" placeholder="Address Line 2" value="<?php echo isset($ShipOrgAddrData->Line2) ? $ShipOrgAddrData->Line2 : ''; ?>" />
-                                        </div>
-                                        <div class="mb-3 col-md-12">
-                                            <label for="ShipAddrPincode" class="form-label">Pincode <span style="color:red">*</span></label>
-                                            <input class="form-control" type="text" id="ShipAddrPincode" name="ShipAddrPincode" maxlength="10" placeholder="Pincode" value="<?php echo isset($ShipOrgAddrData->Pincode) ? $ShipOrgAddrData->Pincode : ''; ?>" required />
-                                        </div>
-                                        <div class="mb-3 col-md-6">
-                                            <label for="ShipAddrState" class="form-label">State</label>
-                                            <select class="select2 form-select" id="ShipAddrState" name="ShipAddrState">
-                                                <option value="">-- Select State --</option>
-                                                <?php if (!empty($ShipOrgAddrData->State) && !empty($ShipOrgAddrData->StateText)): ?>
-                                                <option value="<?php echo $ShipOrgAddrData->State; ?>" selected><?php echo htmlspecialchars($ShipOrgAddrData->StateText); ?></option>
-                                                <?php endif; ?>
-                                            </select>
-                                        </div>
-                                        <div class="mb-3 col-md-6">
-                                            <label for="ShipAddrCity" class="form-label">City</label>
-                                            <select class="select2 form-select" id="ShipAddrCity" name="ShipAddrCity">
-                                                <option value="">-- Select City --</option>
-                                                <?php if (!empty($ShipOrgAddrData->City) && !empty($ShipOrgAddrData->CityText)): ?>
-                                                <option value="<?php echo $ShipOrgAddrData->City; ?>" selected><?php echo htmlspecialchars($ShipOrgAddrData->CityText); ?></option>
-                                                <?php endif; ?>
-                                            </select>
-                                        </div>
-
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                    </div>
-
-                    <div class="card mb-3" id="fixedActionBar">
-                        <div class="card-body p-0">
-                            <div class="m-3">
-                                <button type="submit" class="btn btn-primary OrgSubBtn me-2 ">Update</button>
-                                <!-- <a href="/dashboard" class="btn btn-label-danger">Close</a> -->
+                            <div class="mt-3">
+                                <button type="button" class="btn btn-outline-warning btn-sm <?php echo count($ShipOrgAddrList ?? []) >= $MaxShippingAddr ? 'd-none' : ''; ?>" id="btnAddOrgShip">
+                                    <i class="bx bx-plus-circle me-1"></i>Add Shipping Address
+                                </button>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Sticky duplicate bar -->
-                    <div class="card mb-3" id="stickyActionBar">
-                        <div class="card-body p-0">
-                            <div class="m-3 text-end">
-                            <button type="submit" class="btn btn-primary OrgSubBtn me-2">Update</button>
-                            <!-- <a href="/dashboard" class="btn btn-label-danger">Close</a> -->
-                            </div>
-                        </div>
-                    </div>
+                    <!-- Hidden: dummy elements address.js needs (unused on org page, silently no-ops) -->
+                    <div class="d-none" id="appendShippingAddress"></div>
+                    <button type="button" class="d-none" id="addShippingAddress"></button>
+                    <button type="button" class="d-none" id="copyToBillingBtn"></button>
+
 
                 <?php echo form_close(); ?>
                     <!-- / Org Details -->
@@ -278,6 +281,7 @@
             </div>
             <!-- Content wrapper -->
 
+            <?php $this->load->view('common/form/address_form'); ?>
             <?php $this->load->view('common/footer_desc'); ?>
 
         </div>
@@ -286,11 +290,6 @@
 </div>
 
 <?php $this->load->view('common/footer'); ?>
-
-<script>
-/* Suppress Pickr error on this page — pickr.js loads after template-customizer.js window.onload */
-if (typeof Pickr === 'undefined') { window.Pickr = function() { return { on: function() { return this; } }; }; }
-</script>
 
 <style>
 .org-country-frozen {
@@ -309,11 +308,17 @@ if (typeof Pickr === 'undefined') { window.Pickr = function() { return { on: fun
 }
 .org-country-code { font-size: 0.875rem; font-weight: 600; color: #555; letter-spacing: 0.02em; }
 .org-country-lock { font-size: 0.8rem; color: #999; }
+
+/* ── Address card backgrounds (point 5) ── */
+#appendBillingAddress .border { background-color: #eef6ff; }   /* billing: soft blue  */
+.org-ship-bg                  { background-color: #f0fdf4; }   /* shipping: soft green */
 </style>
 
 <script src="/js/organisation.js"></script>
+<script src="/js/common/address.js"></script>
 
 <script>
+var OrgCountryISO2 = '<?php echo $JwtData->Org->OrgCISO2 ?? 'IN'; ?>';
 var imageChange = 0;
 var defaultImg = '<?php echo isset($EditOrgData->Logo) ? $EditOrgData->Logo : ''; ?>';
 $(function() {
@@ -364,30 +369,204 @@ $(function() {
             }
         });
     });
-    loadSelect2Field('#BillAddrState', '-- Select State --');
-    loadSelect2Field('#ShipAddrState', '-- Select State --');
-    loadSelect2Field('#BillAddrCity', '-- Select City --');
-    loadSelect2Field('#ShipAddrCity', '-- Select City --');
-
-    $('#CopyToShipping').click(function(e) {
-        e.preventDefault();
-
-        var BillLine1 = $('#BillAddrLine1').val();
-        if (hasValue(BillLine1)) $('#ShipAddrLine1').val(BillLine1);
-
-        var BillLine2 = $('#BillAddrLine2').val();
-        if (hasValue(BillLine2)) $('#ShipAddrLine2').val(BillLine2);
-
-        var BillPincode = $('#BillAddrPincode').val();
-        if (hasValue(BillPincode)) $('#ShipAddrPincode').val(BillPincode);
-
-        var BillState = $('#BillAddrState').find('option:selected').val();
-        if (hasValue(BillState)) $('#ShipAddrState').val(BillState).trigger('change');
-
-        var BillCity = $('#BillAddrCity').find('option:selected').val();
-        if (hasValue(BillCity)) $('#ShipAddrCity').val(BillCity).trigger('change');
-
+    // Sync StateName hidden field when registered state changes
+    $('#OrgStateCode').on('change', function () {
+        var $opt = $(this).find('option:selected');
+        $('#OrgStateName').val($opt.data('name') || '');
     });
+
+    // ── Shipping vars declared first (needed by billing init below) ──────
+    var _maxShip      = <?php echo (int)($MaxShippingAddr ?? 3); ?>;
+    var orgShipList   = <?php
+        $shipJs = [];
+        foreach (($ShipOrgAddrList ?? []) as $sa) {
+            $shipJs[] = [
+                'UID'      => (int)$sa->OrgAddressUID,
+                'Line1'    => $sa->Line1    ?? '',
+                'Line2'    => $sa->Line2    ?? '',
+                'Pincode'  => $sa->Pincode  ?? '',
+                'StateId'  => $sa->State    ?? '',
+                'StateName'=> $sa->StateText?? '',
+                'StateISO2'=> '',
+                'CityId'   => $sa->City     ?? '',
+                'CityName' => $sa->CityText ?? '',
+            ];
+        }
+        echo json_encode($shipJs);
+    ?>;
+    var orgDelShipUIDs = [];
+    var _orgShipMode   = false;
+    var _orgShipEditIdx = -1;
+
+    // Override address.js _updateCopyButtons so it doesn't interfere with our logic
+    window._updateCopyButtons = function () { _updateOrgCopyButtons(); };
+
+    // Override renderAddrSummary so billing card NEVER gets a Delete button
+    // (address.js always adds one — we wrap it to strip it immediately for type 1)
+    var _origRenderAddrSummary = renderAddrSummary;
+    renderAddrSummary = function (addrType, data) {
+        _origRenderAddrSummary(addrType, data);
+        if (addrType == 1) {
+            $('#appendBillingAddress .deleteAddrBtn').remove();
+            _updateOrgCopyButtons();
+        }
+    };
+
+    // Global hook called by organisation.js after a successful save.
+    // Defined here (inside document.ready) so it has closure access to local vars:
+    // orgShipList, orgDelShipUIDs, _renderOrgShipCards, billingAddrData (global from address.js)
+    window._orgAfterSave = function (response) {
+        // Sync billing UID so re-saves UPDATE instead of INSERT
+        if (response.BillAddrUID && billingAddrData) {
+            billingAddrData.UID = response.BillAddrUID;
+        }
+        // Replace orgShipList with fresh server data (correct UIDs)
+        if (Array.isArray(response.ShipAddresses)) {
+            orgShipList = response.ShipAddresses;
+            _renderOrgShipCards();
+        }
+        // Clear deleted-UIDs tracker — they're now gone from DB
+        orgDelShipUIDs = [];
+        // Rebuild copy-button state after card refresh
+        _updateOrgCopyButtons();
+    };
+
+    // ── Billing: pre-populate from existing DB data ───────────────────────
+    <?php if (!empty($BillOrgAddrData->Line1)): ?>
+    billingAddrData = {
+        UID      : <?php echo (int)($BillOrgAddrData->OrgAddressUID ?? 0); ?>,
+        Line1    : <?php echo json_encode($BillOrgAddrData->Line1    ?? ''); ?>,
+        Line2    : <?php echo json_encode($BillOrgAddrData->Line2    ?? ''); ?>,
+        Pincode  : <?php echo json_encode($BillOrgAddrData->Pincode  ?? ''); ?>,
+        StateId  : <?php echo json_encode($BillOrgAddrData->State    ?? ''); ?>,
+        StateName: <?php echo json_encode($BillOrgAddrData->StateText?? ''); ?>,
+        StateISO2: '',
+        CityId   : <?php echo json_encode($BillOrgAddrData->City     ?? ''); ?>,
+        CityName : <?php echo json_encode($BillOrgAddrData->CityText ?? ''); ?>
+    };
+    renderAddrSummary(1, billingAddrData); // override above strips delete btn automatically
+    <?php endif; ?>
+    _updateOrgCopyButtons();
+
+    // ── Intercept AddrSaveBtn for shipping — fires BEFORE address.js handler
+    $('#AddrSaveBtn').on('click', function (e) {
+        if (!_orgShipMode) return; // billing: let address.js handle
+        e.stopImmediatePropagation();
+
+        var line1 = $.trim($('#ModalAddrLine1').val());
+        if (!line1) { showAlertMessageSwal('error', '', 'Address Line 1 is required.'); return; }
+        var pincode = $.trim($('#ModalAddrPincode').val());
+        if (!pincode) { showAlertMessageSwal('error', '', 'Pincode is required.'); return; }
+
+        var $state    = $('#ModalAddrState').find('option:selected');
+        var $city     = $('#ModalAddrCity').find('option:selected');
+        var stateISO2 = $state.data('iso2') || '';
+
+        var data = {
+            UID      : (_orgShipEditIdx >= 0) ? (orgShipList[_orgShipEditIdx].UID || 0) : 0,
+            Line1    : line1,
+            Line2    : $.trim($('#ModalAddrLine2').val()),
+            Pincode  : pincode,
+            StateId  : $state.val()  || '',
+            StateName: ($state.val() && $state.text() !== '-- Select State --') ? $state.text() : '',
+            StateISO2: stateISO2,
+            CityId   : $city.val()   || '',
+            CityName : ($city.val()  && $city.text()  !== '-- Select City --')  ? $city.text()  : ''
+        };
+
+        if (_orgShipEditIdx >= 0) {
+            orgShipList[_orgShipEditIdx] = data;
+        } else {
+            orgShipList.push(data);
+        }
+
+        _renderOrgShipCards();
+        _orgShipMode    = false;
+        _orgShipEditIdx = -1;
+        $('#addEditAddressModal').modal('hide');
+    });
+
+    // Reset mode on modal close
+    $('#addEditAddressModal').on('hidden.bs.modal', function () {
+        _orgShipMode    = false;
+        _orgShipEditIdx = -1;
+    });
+
+    // ── Open shipping modal (new or edit) ────────────────────────────────
+    function _openOrgShipModal(idx) {
+        _orgShipMode    = true;
+        _orgShipEditIdx = (idx !== undefined && idx >= 0) ? idx : -1;
+        shippingAddrData = (_orgShipEditIdx >= 0) ? orgShipList[_orgShipEditIdx] : null;
+        openAddressModal(2);
+    }
+
+    // ── Copy-button visibility rules (points 3 & 4) ───────────────────────
+    function _updateOrgCopyButtons() {
+        // "Copy to Shipping" on billing: only when no shipping addresses exist
+        if (billingAddrData && orgShipList.length === 0) {
+            $('#copyToShippingBtn').removeClass('d-none');
+        } else {
+            $('#copyToShippingBtn').addClass('d-none');
+        }
+        // "Copy to Billing" on shipping: handled inside _renderOrgShipCards
+    }
+
+    // ── Delete a shipping card (point 6: min 1 shipping allowed) ─────────
+    function _deleteOrgShip(idx) {
+        if (orgShipList.length <= 1) return; // safety guard
+        if (orgShipList[idx] && orgShipList[idx].UID > 0) {
+            orgDelShipUIDs.push(orgShipList[idx].UID);
+        }
+        orgShipList.splice(idx, 1);
+        _renderOrgShipCards();
+        _updateOrgCopyButtons();
+    }
+
+    // ── Render all shipping cards (points 5 & 6) ──────────────────────────
+    function _renderOrgShipCards() {
+        var $c     = $('#orgShipContainer');
+        var count  = orgShipList.length;
+        var canDel = count > 1; // point 6: delete only when more than 1
+        $c.empty();
+        orgShipList.forEach(function (addr, idx) {
+            var lines = [];
+            if (addr.Line1) lines.push(addr.Line1);
+            if (addr.Line2) lines.push(addr.Line2);
+            var loc = [addr.CityName, addr.StateName, addr.Pincode].filter(Boolean).join(', ');
+            if (loc) lines.push(loc);
+            var txt = lines.map(function (l) { return '<div>' + $('<div>').text(l).html() + '</div>'; }).join('');
+            var delBtn = canDel
+                ? '<button type="button" class="btn btn-sm btn-outline-danger" onclick="_deleteOrgShip(' + idx + ')" title="Delete"><i class="bx bx-trash"></i></button>'
+                : '';
+            $c.append(
+                '<div class="col-md-4">' +
+                  '<div class="org-ship-bg border rounded p-3 d-flex justify-content-between align-items-start gap-2 h-100">' +
+                    '<div class="small lh-base">' + txt + '</div>' +
+                    '<div class="d-flex gap-1 flex-shrink-0">' +
+                      '<button type="button" class="btn btn-sm btn-outline-primary" onclick="_openOrgShipModal(' + idx + ')" title="Edit"><i class="bx bx-edit-alt"></i></button>' +
+                      delBtn +
+                    '</div>' +
+                  '</div>' +
+                '</div>'
+            );
+        });
+        $('#orgShipCount').text(count + ' / ' + _maxShip);
+        $('#btnAddOrgShip').toggleClass('d-none', count >= _maxShip);
+        // Point 4: "Copy to Billing" — show on shipping section only when billing is empty
+        // (handled via a dedicated element inside shipping card header — not applicable here)
+        _updateOrgCopyButtons();
+    }
+
+    // ── Add Shipping Address button ───────────────────────────────────────
+    $('#btnAddOrgShip').on('click', function () {
+        if (orgShipList.length >= _maxShip) {
+            showToastNotification('Maximum ' + _maxShip + ' shipping addresses allowed.', 'error');
+            return;
+        }
+        _openOrgShipModal();
+    });
+
+    // Billing save is handled by address.js → renderAddrSummary override strips delete btn
 
     $('#OrganisationForm').submit(function(e) {
         e.preventDefault();
@@ -396,17 +575,19 @@ $(function() {
         var formData = new FormData($('#OrganisationForm')[0]);
         formData.append('imageChange', imageChange);
 
-        var $billState = $('#BillAddrState').find('option:selected');
-        formData.append('BillAddrStateText', ($billState.val() && $billState.val().trim() !== '') ? $billState.text() : '');
+        // Billing address
+        formData.append('BillOrgAddressUID', billingAddrData ? (billingAddrData.UID     || 0)   : 0);
+        formData.append('BillAddrLine1',     billingAddrData ? (billingAddrData.Line1    || '')  : '');
+        formData.append('BillAddrLine2',     billingAddrData ? (billingAddrData.Line2    || '')  : '');
+        formData.append('BillAddrPincode',   billingAddrData ? (billingAddrData.Pincode  || '')  : '');
+        formData.append('BillAddrState',     billingAddrData ? (billingAddrData.StateId  || '')  : '');
+        formData.append('BillAddrStateText', billingAddrData ? (billingAddrData.StateName|| '')  : '');
+        formData.append('BillAddrCity',      billingAddrData ? (billingAddrData.CityId   || '')  : '');
+        formData.append('BillAddrCityText',  billingAddrData ? (billingAddrData.CityName || '')  : '');
 
-        var $billCity = $('#BillAddrCity').find('option:selected');
-        formData.append('BillAddrCityText', ($billCity.val() && $billCity.val().trim() !== '') ? $billCity.text() : '');
-
-        var $shipState = $('#ShipAddrState').find('option:selected');
-        formData.append('ShipAddrStateText', ($shipState.val() && $shipState.val().trim() !== '') ? $shipState.text() : '');
-
-        var $shipCity = $('#ShipAddrCity').find('option:selected');
-        formData.append('ShipAddrCityText', ($shipCity.val() && $shipCity.val().trim() !== '') ? $shipCity.text() : '');
+        // Multiple shipping addresses as JSON
+        formData.append('ShipAddresses', JSON.stringify(orgShipList));
+        formData.append('DelShipUIDs',   JSON.stringify(orgDelShipUIDs));
 
         if (myOneDropzone.files.length > 0) {
             const file = myOneDropzone.files[0];
@@ -419,29 +600,6 @@ $(function() {
 
     });
 
-    /** Common Sticky Bar */
-    var $stickyBar = $('#stickyActionBar');
-    var $fixedBar = $('#fixedActionBar');
-
-    function toggleStickyBar() {
-        if ($fixedBar.length) {
-            var rect = $fixedBar[0].getBoundingClientRect();
-            var windowHeight = $(window).height();
-
-            // ✅ Partial visibility check
-            var partiallyVisible = rect.bottom > 0 && rect.top < windowHeight;
-
-            if (partiallyVisible) {
-                $stickyBar.stop(true, true).fadeOut(150);
-            } else {
-                $stickyBar.stop(true, true).fadeIn(150);
-            }
-        }
-    }
-
-    $stickyBar.show();
-    $(window).on('scroll resize', toggleStickyBar);
-    toggleStickyBar();
 
 });
 </script>

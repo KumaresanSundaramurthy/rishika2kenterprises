@@ -1825,6 +1825,14 @@ $(document).ready(function () {
             allowClear     : true,
             width          : '100%',
             dropdownParent : $('#' + wrapId),
+            language: {
+                searching: function () {
+                    return '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 0;color:#9ca3af;">' +
+                        '<i class="bx bx-loader-alt bx-spin" style="font-size:1.5rem;"></i>' +
+                        '<div style="font-size:.8rem;margin-top:8px;">Searching...</div>' +
+                        '</div>';
+                }
+            },
             ajax: {
                 transport: function (params, success, failure) {
                     var term = ((params.data && params.data.term) || '').toLowerCase().trim();
@@ -1849,6 +1857,7 @@ $(document).ready(function () {
                         function () { AjaxLoading = 1; success({ Lists: [], more: false }); }
                     );
                 },
+                delay: 2000,
                 data: function (params) {
                     AjaxLoading = 0;
                     return { term: params.term, page: params.page || 1 };
@@ -1861,8 +1870,22 @@ $(document).ready(function () {
             }
         });
 
-        // Clear cache on close so next open fetches fresh from Upstash
-        $el.on('select2:close select2:select', function () { catgCache = null; });
+        $el.on('select2:open', function () {
+            $('#' + wrapId).on('input.catgSearch', '.select2-search__field', function () {
+                if ($(this).val().length > 0) {
+                    $('#' + wrapId).find('.select2-results__options').html(
+                        '<li class="select2-results__option select2-results__message" style="pointer-events:none;">' +
+                        '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 0;color:#9ca3af;">' +
+                        '<i class="bx bx-loader-alt bx-spin" style="font-size:1.5rem;"></i>' +
+                        '<div style="font-size:.8rem;margin-top:8px;">Searching...</div>' +
+                        '</div></li>'
+                    );
+                }
+            });
+        }).on('select2:close select2:select', function () {
+            catgCache = null;
+            $('#' + wrapId).off('input.catgSearch');
+        });
     })();
     searchProductInfo();
 
@@ -2485,7 +2508,8 @@ function _custBalanceHtml(balance, balanceType) {
 function searchCustomers(key) {
     var $el      = $('#' + key);
     var wrapId   = 'customerGroup_' + key;
-    var custCache = null; // local — freed after customer is selected
+    var custCache = null;
+
 
     if (!$el.closest('.customer-search-group').length) {
         $el.wrap('<div class="input-group input-group-sm input-group-merge customer-search-group" id="' + wrapId + '"></div>');
@@ -2523,11 +2547,19 @@ function searchCustomers(key) {
             if (d.name) return d.area ? d.name + ' (' + d.area + ')' : d.name;
             return d.text;
         },
+        language: {
+            searching: function () {
+                return '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 0;color:#9ca3af;">' +
+                    '<i class="bx bx-loader-alt bx-spin" style="font-size:1.5rem;"></i>' +
+                    '<div style="font-size:.8rem;margin-top:8px;">Searching...</div>' +
+                    '</div>';
+            }
+        },
         ajax: {
             transport: function (params, success, failure) {
                 var term     = ((params.data && params.data.term) || '').toLowerCase().trim();
                 var page     = (params.data && params.data.page) || 1;
-                var pageSize = 15;
+                var pageSize = 30;
 
                 function _paginate(list) {
                     var filtered = term
@@ -2565,8 +2597,8 @@ function searchCustomers(key) {
                                 gstin:       c.GSTIN            || '',
                                 company:     c.CompanyName      || '',
                                 contact:     c.ContactPerson    || '',
-                                balance:     parseFloat(c.OpeningBalance || 0),
-                                balanceType: c.OpeningBalType   || 'Debit',
+                                balance:     parseFloat(c.ClosingBalance || 0),
+                                balanceType: c.ClosingBalType   || 'Debit',
                                 lastTxAt:    c.LastTransactionAt || '',
                             };
                             if (c.Address && c.Address.length) {
@@ -2607,7 +2639,7 @@ function searchCustomers(key) {
                     });
                 }
             },
-            delay: 250,
+            delay: 2000,
             data: function (params) {
                 AjaxLoading = 0;
                 return { term: params.term, page: params.page || 1 };
@@ -2618,8 +2650,23 @@ function searchCustomers(key) {
             },
             cache: false
         }
+    }).on('select2:open', function () {
+        // On every keystroke: clear existing options, show centred searching message
+        $('#' + wrapId).on('input.custSearch', '.select2-search__field', function () {
+            if ($(this).val().length > 0) {
+                $('#' + wrapId).find('.select2-results__options').html(
+                    '<li class="select2-results__option select2-results__message" style="pointer-events:none;">' +
+                    '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 0;color:#9ca3af;">' +
+                    '<i class="bx bx-loader-alt bx-spin" style="font-size:1.5rem;"></i>' +
+                    '<div style="font-size:.8rem;margin-top:8px;">Searching...</div>' +
+                    '</div></li>'
+                );
+            }
+        });
+    }).on('select2:close', function () {
+        $('#' + wrapId).off('input.custSearch');
     }).on('select2:select', function (e) {
-        custCache = null; // free memory — no longer needed after selection
+        custCache = null; // free after selection
         var data = e.params.data;
         if (data.address) {
             var addrHtml = `
@@ -2763,6 +2810,7 @@ function searchProductInfo() {
     var prodCache = null;
     var PAGE_SIZE = 30;
 
+
     function _paginate(list, term, catgUID, page) {
         var filtered = catgUID
             ? list.filter(function (p) { return p.categoryUID === catgUID; })
@@ -2787,7 +2835,12 @@ function searchProductInfo() {
         escapeMarkup       : function (markup) { return markup; },
         dropdownParent     : $('#searchProductGroup'),
         language: {
-            searching: function () { return prodCache ? '' : 'Loading…'; }
+            searching: function () {
+                return '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 0;color:#9ca3af;">' +
+                    '<i class="bx bx-loader-alt bx-spin" style="font-size:1.5rem;"></i>' +
+                    '<div style="font-size:.8rem;margin-top:8px;">Searching...</div>' +
+                    '</div>';
+            }
         },
         ajax: {
             transport: function (params, success, failure) {
@@ -2810,6 +2863,7 @@ function searchProductInfo() {
                     function () { AjaxLoading = 1; success({ Lists: [], more: false }); }
                 );
             },
+            delay: 2000,
             data: function (params) {
                 AjaxLoading = 0;
                 return { term: params.term || '', page: params.page || 1 };
@@ -2883,16 +2937,18 @@ function searchProductInfo() {
             return data.text || '';
         },
     }).on('select2:open', function () {
-        const results = $('.select2-results__options');
-        if (results.length) {
-            results.find('.select2-results__option--loading').remove();
-            results.find('.select2-results__message').remove();
-            results.children('li').each(function () {
-                if ($(this).text().trim() === '') {
-                    $(this).remove();
-                }
-            });
-        }
+        // Clear on typing — show centred searching state immediately
+        $('#searchProductGroup').on('input.prodSearch', '.select2-search__field', function () {
+            if ($(this).val().length > 0) {
+                $('#searchProductGroup').find('.select2-results__options').html(
+                    '<li class="select2-results__option select2-results__message" style="pointer-events:none;">' +
+                    '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 0;color:#9ca3af;">' +
+                    '<i class="bx bx-loader-alt bx-spin" style="font-size:1.5rem;"></i>' +
+                    '<div style="font-size:.8rem;margin-top:8px;">Searching...</div>' +
+                    '</div></li>'
+                );
+            }
+        });
     }).on('select2:select', function (e) {
         const data = e.params.data;
         let $option = $(this).find('option[value="'+data.id+'"]');
@@ -2908,6 +2964,7 @@ function searchProductInfo() {
         lastTerm  = '';
         prodCache = null;
         AjaxLoading = 1;
+        $('#searchProductGroup').off('input.prodSearch');
     });
 }
 

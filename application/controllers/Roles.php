@@ -23,11 +23,11 @@ class Roles extends MY_Controller {
 
             // All roles for this org
             $JwtData = $this->pageData['JwtData'];
-            $rolesResult = $this->roles_model->getRolesList($JwtData->User->OrgUID);
+            $rolesResult = $this->roles_model->getRolesList($JwtData->Org->OrgUID);
             $this->pageData['RolesList'] = $rolesResult->Error === FALSE ? $rolesResult->Data : [];
 
             // All main menus + sub menus (for the permission matrix)
-            $menusResult = $this->roles_model->getAllMenusForMatrix($JwtData->User->OrgUID);
+            $menusResult = $this->roles_model->getAllMenusForMatrix($JwtData->Org->OrgUID);
             $this->pageData['AllMainMenus'] = $menusResult->Error === FALSE ? ($menusResult->Data['main'] ?? []) : [];
             $this->pageData['AllSubMenus']  = $menusResult->Error === FALSE ? ($menusResult->Data['sub']  ?? []) : [];
 
@@ -45,11 +45,13 @@ class Roles extends MY_Controller {
 
         $this->EndReturnData = new stdClass();
         try {
-            $JwtData    = $this->pageData['JwtData'];
-            $userUID    = $JwtData->User->UserUID;
-            $orgUID     = $JwtData->User->OrgUID;
-            $roleUID    = $JwtData->User->RoleUID;
-            $loginExpiry = (int) getenv('LOGIN_EXPIRE_SECS');
+            $JwtData      = $this->pageData['JwtData'];
+            $userUID      = $JwtData->User->UserUID;
+            $orgUID       = $JwtData->Org->OrgUID;
+            $roleUID      = $JwtData->User->RoleUID;
+            $orgShortCode = $JwtData->Org->OrgShortCode ?? '';
+            $orgToken     = $JwtData->Org->OrgToken     ?? '';
+            $loginExpiry  = (int) getenv('LOGIN_EXPIRE_SECS');
 
             $this->load->model('login_model');
             $this->load->model('user_model');
@@ -74,12 +76,12 @@ class Roles extends MY_Controller {
                 }
             }
 
-            $this->redisservice->setUserCache('menus',       $userUID, $menus,       $loginExpiry);
-            $this->redisservice->setUserCache('submenus',    $userUID, $submenus,    $loginExpiry);
-            $this->redisservice->setUserCache('modules',     $userUID, $modules,     $loginExpiry);
-            $this->redisservice->setUserCache('permissions', $userUID, $permissions, $loginExpiry);
+            $this->redisservice->setUserCache('menus',       $userUID, $menus,       $loginExpiry, $orgShortCode, $orgToken);
+            $this->redisservice->setUserCache('submenus',    $userUID, $submenus,    $loginExpiry, $orgShortCode, $orgToken);
+            $this->redisservice->setUserCache('modules',     $userUID, $modules,     $loginExpiry, $orgShortCode, $orgToken);
+            $this->redisservice->setUserCache('permissions', $userUID, $permissions, $loginExpiry, $orgShortCode, $orgToken);
             if ($userInfo) {
-                $this->redisservice->setUserCache('userinfo', $userUID, $userInfo, $loginExpiry);
+                $this->redisservice->setUserCache('userinfo', $userUID, $userInfo, $loginExpiry, $orgShortCode, $orgToken);
             }
 
             // Rebuild JWT payload (User + Permissions) in Redis
@@ -109,7 +111,7 @@ class Roles extends MY_Controller {
         try {
             $this->load->model('roles_model');
             $JwtData = $this->pageData['JwtData'];
-            $result  = $this->roles_model->getRolesList($JwtData->User->OrgUID);
+            $result  = $this->roles_model->getRolesList($JwtData->Org->OrgUID);
 
             $this->EndReturnData->Error   = $result->Error;
             $this->EndReturnData->Message = $result->Message;
@@ -171,8 +173,8 @@ class Roles extends MY_Controller {
 
             $RoleData = [
                 'Name'      => $Name,
-                'OrgUID'    => $JwtData->User->OrgUID,
-                'BranchUID' => $JwtData->User->BranchUID,
+                'OrgUID'    => $JwtData->Org->OrgUID,
+                'BranchUID' => $JwtData->Org->BranchUID,
                 'IsActive'  => 1,
                 'IsDeleted' => 0,
             ];

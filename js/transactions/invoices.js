@@ -42,13 +42,16 @@ $(document).on('comm:switchedToEmail', function (e, moduleUID, recordUID) {
     }, 150);
 });
 
-function getInvoicesDetails(pageNo, rowLimit, filter) {
+function getInvoicesDetails(pageNo, rowLimit, filter, afterLoad) {
     loadTransactionList({
         url:            '/invoices/getInvoicesPageDetails/',
         tabCountClass:  '.inv-tab-count',
         statusTabClass: '.inv-status-tab',
         errorMessage:   'Failed to load invoices.',
-        onSuccess:      function (resp) { if (typeof updateSummaryStats === 'function' && resp.SummaryStats) updateSummaryStats(resp.SummaryStats); },
+        onSuccess:      function (resp) {
+            if (typeof updateSummaryStats === 'function' && resp.SummaryStats) updateSummaryStats(resp.SummaryStats);
+            if (typeof afterLoad === 'function') afterLoad();
+        },
     }, pageNo, rowLimit, filter);
 }
 

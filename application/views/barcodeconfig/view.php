@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php $this->load->view('common/header'); ?>
 
 <style>
@@ -364,7 +364,7 @@ function _overlayLogoOnQR(containerEl, logoUrl) {
 
 function _getOrgLogoUrl() {
     try {
-        var logo = JwtData && JwtData.User && JwtData.User.OrgLogo;
+        var logo = JwtData && JwtData.Org && JwtData.Org.OrgLogo;
         if (logo) return (CDN_URL || '') + logo;
     } catch (e) {}
     return '';

@@ -79,7 +79,7 @@ class Storage extends MY_Controller {
 
     private function buildStorageFormData($postData, $isCreate = true) {
         $data = [
-            'OrgUID'         => $this->pageData['JwtData']->User->OrgUID,
+            'OrgUID'         => $this->pageData['JwtData']->Org->OrgUID,
             'Name'           => getPostValue($postData, 'Name'),
             'ShortName'      => getPostValue($postData, 'ShortName') ?: null,
             'StorageTypeUID' => getPostValue($postData, 'StorageTypeUID', '', null),

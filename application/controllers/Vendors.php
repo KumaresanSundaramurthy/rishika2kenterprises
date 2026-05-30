@@ -30,7 +30,7 @@ class Vendors extends MY_Controller {
     }
 
     private function _fetchTableData($pageNo, $limit, $filter = []) {
-        $orgUID = $this->pageData['JwtData']->User->OrgUID;
+        $orgUID = $this->pageData['JwtData']->Org->OrgUID;
         $offset = max(0, ($pageNo - 1) * $limit);
 
         $this->load->model('vendors_model');
@@ -67,7 +67,7 @@ class Vendors extends MY_Controller {
             $this->pageData['ModPagination'] = $pageData->Pagination;
 
             $this->load->model('vendors_model');
-            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
             $this->pageData['VendStats'] = $this->vendors_model->getVendorStats($orgUID);
             $this->pageData['Tags']      = $this->vendors_model->getVendorTags($orgUID);
 
@@ -85,11 +85,11 @@ class Vendors extends MY_Controller {
             $GetCountryInfo = $this->global_model->getCountryInfo();
             $this->pageData['CountryInfo'] = $GetCountryInfo->Error === FALSE ? $GetCountryInfo->Data : [];
 
-            $orgCCode = $this->pageData['JwtData']->User->OrgCCode  ?? '';
-            $orgCISO2 = $this->pageData['JwtData']->User->OrgCISO2  ?? '';
+            $orgCCode = $this->pageData['JwtData']->Org->OrgCCode  ?? '';
+            $orgCISO2 = $this->pageData['JwtData']->Org->OrgCISO2  ?? '';
             if (empty($orgCCode) || empty($orgCISO2)) {
                 $this->load->model('organisation_model');
-                $orgResp = $this->organisation_model->getOrganisationDetails(['Org.OrgUID' => $this->pageData['JwtData']->User->OrgUID]);
+                $orgResp = $this->organisation_model->getOrganisationDetails(['Org.OrgUID' => $this->pageData['JwtData']->Org->OrgUID]);
                 if ($orgResp->Error === FALSE && !empty($orgResp->Data)) {
                     $orgCCode = $orgCCode ?: ($orgResp->Data[0]->CountryCode ?? '');
                     $orgCISO2 = $orgCISO2 ?: ($orgResp->Data[0]->CountryISO2 ?? '');
@@ -139,7 +139,7 @@ class Vendors extends MY_Controller {
         $this->pageData['StateData'] = [];
         $this->pageData['CityData']  = [];
 
-        $OrgCountryISO2 = $this->pageData['JwtData']->User->OrgCISO2;
+        $OrgCountryISO2 = $this->pageData['JwtData']->Org->OrgCISO2;
         if (!empty($OrgCountryISO2)) {
             $StateInfo = $this->global_model->getStateofCountry($OrgCountryISO2);
             if ($StateInfo->Error === FALSE) $this->pageData['StateData'] = $StateInfo->Data;
@@ -162,8 +162,8 @@ class Vendors extends MY_Controller {
         $data = [
             'Name'              => getPostValue($postData, 'Name'),
             'Area'              => getPostValue($postData, 'Area'),
-            'OrgUID'            => $this->pageData['JwtData']->User->OrgUID,
-            'BranchUID'         => $this->pageData['JwtData']->User->BranchUID,
+            'OrgUID'            => $this->pageData['JwtData']->Org->OrgUID,
+            'BranchUID'         => $this->pageData['JwtData']->Org->BranchUID,
             'EmailAddress'      => getPostValue($postData, 'EmailAddress'),
             'CountryCode'       => getPostValue($postData, 'CountryCode'),
             'CountryISO2'       => getPostValue($postData, 'CountryISO2', '', 'IN'),
@@ -233,12 +233,12 @@ class Vendors extends MY_Controller {
             $initType = getPostValue($PostData, 'DebitCreditCheck', '', 'Credit');
             if ($initAmt > 0) {
                 $this->vendors_model->saveVendorOpeningBalance(
-                    $this->pageData['JwtData']->User->OrgUID, $VendorUID,
+                    $this->pageData['JwtData']->Org->OrgUID, $VendorUID,
                     $initAmt, $initType, null,
                     $this->pageData['JwtData']->User->UserUID
                 );
                 $this->vendors_model->saveVendorYearOpening(
-                    $this->pageData['JwtData']->User->OrgUID, $VendorUID,
+                    $this->pageData['JwtData']->Org->OrgUID, $VendorUID,
                     $this->_currentFinancialYear(),
                     $initAmt, $initType,
                     $this->pageData['JwtData']->User->UserUID
@@ -278,7 +278,7 @@ class Vendors extends MY_Controller {
             $this->EndReturnData->VendorArea = getPostValue($PostData, 'Area');
             $this->EndReturnData->List       = $pageData->RecordHtmlData;
             $this->EndReturnData->Pagination = $pageData->Pagination;
-            $this->EndReturnData->Stats      = $this->vendors_model->getVendorStats($this->pageData['JwtData']->User->OrgUID);
+            $this->EndReturnData->Stats      = $this->vendors_model->getVendorStats($this->pageData['JwtData']->Org->OrgUID);
 
         } catch (InvalidArgumentException $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -416,7 +416,7 @@ class Vendors extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
 
-            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
 
             $this->load->model('vendors_model');
 
@@ -600,7 +600,7 @@ class Vendors extends MY_Controller {
             $newSigned   = ($newDCType === 'Credit') ? $newDCAmount : -$newDCAmount;
             $delta       = round($newSigned - $oldSigned, 2);
 
-            $orgUID  = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID  = $this->pageData['JwtData']->Org->OrgUID;
             $userUID = $this->pageData['JwtData']->User->UserUID;
 
             // Read current balance via ReadDb (no lock conflict)
@@ -674,7 +674,7 @@ class Vendors extends MY_Controller {
             $this->EndReturnData->Message    = 'Updated Successfully';
             $this->EndReturnData->List       = $pageData->RecordHtmlData;
             $this->EndReturnData->Pagination = $pageData->Pagination;
-            $this->EndReturnData->Stats      = $this->vendors_model->getVendorStats($this->pageData['JwtData']->User->OrgUID);
+            $this->EndReturnData->Stats      = $this->vendors_model->getVendorStats($this->pageData['JwtData']->Org->OrgUID);
 
         } catch (InvalidArgumentException $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -707,7 +707,7 @@ class Vendors extends MY_Controller {
                 if (is_array($decoded)) $filter = $decoded;
             }
 
-            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
             $timezone = $this->pageData['JwtData']->GenSettings->Timezone ?? 'Asia/Kolkata';
 
             $this->load->model('vendors_model');
@@ -758,7 +758,7 @@ class Vendors extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
             $this->load->model('vendors_model');
-            $tags = $this->vendors_model->getVendorTags($this->pageData['JwtData']->User->OrgUID);
+            $tags = $this->vendors_model->getVendorTags($this->pageData['JwtData']->Org->OrgUID);
             $this->EndReturnData->Error = false;
             $this->EndReturnData->Tags  = $tags;
         } catch (Exception $e) {
@@ -772,7 +772,7 @@ class Vendors extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
             $this->load->model('vendors_model');
-            $stats = $this->vendors_model->getVendorStats($this->pageData['JwtData']->User->OrgUID);
+            $stats = $this->vendors_model->getVendorStats($this->pageData['JwtData']->Org->OrgUID);
             $this->EndReturnData->Error = false;
             $this->EndReturnData->Stats = $stats;
         } catch (Exception $e) {
@@ -806,7 +806,7 @@ class Vendors extends MY_Controller {
             $pageData = $this->_fetchTableData($pageNo, $this->pageData['Limit']);
             $this->EndReturnData->Error      = false;
             $this->EndReturnData->Message    = 'Status updated successfully.';
-            $this->EndReturnData->Stats      = $this->vendors_model->getVendorStats($this->pageData['JwtData']->User->OrgUID);
+            $this->EndReturnData->Stats      = $this->vendors_model->getVendorStats($this->pageData['JwtData']->Org->OrgUID);
             $this->EndReturnData->List       = $pageData->RecordHtmlData;
             $this->EndReturnData->Pagination = $pageData->Pagination;
 
@@ -857,7 +857,7 @@ class Vendors extends MY_Controller {
             $this->EndReturnData->Message    = 'Deleted Successfully';
             $this->EndReturnData->List       = $pageData->RecordHtmlData;
             $this->EndReturnData->Pagination = $pageData->Pagination;
-            $this->EndReturnData->Stats      = $this->vendors_model->getVendorStats($this->pageData['JwtData']->User->OrgUID);
+            $this->EndReturnData->Stats      = $this->vendors_model->getVendorStats($this->pageData['JwtData']->Org->OrgUID);
 
         } catch (Exception $e) {
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
@@ -916,7 +916,7 @@ class Vendors extends MY_Controller {
             $this->EndReturnData->Message    = count($VendorUIDs) . ' vendor(s) deleted successfully';
             $this->EndReturnData->List       = $pageData->RecordHtmlData;
             $this->EndReturnData->Pagination = $pageData->Pagination;
-            $this->EndReturnData->Stats      = $this->vendors_model->getVendorStats($this->pageData['JwtData']->User->OrgUID);
+            $this->EndReturnData->Stats      = $this->vendors_model->getVendorStats($this->pageData['JwtData']->Org->OrgUID);
 
         } catch (Exception $e) {
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
@@ -947,7 +947,7 @@ class Vendors extends MY_Controller {
         $tempFiles = [];
         try {
 
-            $orgUID    = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
             $sentBy    = $this->pageData['JwtData']->User->UserUID;
             $commType  = $this->input->post('CommType');
             $message   = trim($this->input->post('Message', FALSE));
@@ -1013,7 +1013,7 @@ class Vendors extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
 
-            $orgUID        = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID        = $this->pageData['JwtData']->Org->OrgUID;
             $userUID       = $this->pageData['JwtData']->User->UserUID;
             $vendorUID     = (int)   $this->input->post('VendorUID');
             $balance       = (float) $this->input->post('OpeningBalance');
@@ -1057,7 +1057,7 @@ class Vendors extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
 
-            $orgUID        = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID        = $this->pageData['JwtData']->Org->OrgUID;
             $vendorUID     = (int) $this->input->get_post('VendorUID');
             $financialYear = (int) $this->input->get_post('FinancialYear');
 
@@ -1089,7 +1089,7 @@ class Vendors extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
 
-            $orgUID    = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
             $userUID   = $this->pageData['JwtData']->User->UserUID;
             $filterUID = (int) $this->input->post('VendorUID');
 

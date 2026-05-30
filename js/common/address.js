@@ -38,7 +38,10 @@ function csc_loadStates(selectId, countryISO2, selectedVal, onDone) {
         });
         if ($sel.hasClass('select2'))
             $sel.select2({ width: '100%', dropdownParent: $('#addEditAddressModal .modal-content') });
-        if (selectedVal) $sel.val(String(selectedVal));
+        if (selectedVal) {
+            $sel.val(String(selectedVal));
+            if ($sel.hasClass('select2')) $sel.trigger('change.select2');
+        }
         if (typeof onDone === 'function') onDone();
     }
 
@@ -92,9 +95,13 @@ function csc_loadCities(selectId, countryISO2, stateISO2, selectedVal, selectedN
         });
         if ($sel.hasClass('select2'))
             $sel.select2({ width: '100%', dropdownParent: $('#addEditAddressModal .modal-content') });
+        var matched = false;
         if (selectedVal) {
             $sel.val(String(selectedVal));
-        } else if (selectedName) {
+            matched = !!$sel.val() && $sel.val() !== '';
+            if (matched && $sel.hasClass('select2')) $sel.trigger('change.select2');
+        }
+        if (!matched && selectedName) {
             var lower = $.trim(selectedName).toLowerCase();
             $sel.find('option').each(function () {
                 if ($.trim($(this).text()).toLowerCase() === lower) {

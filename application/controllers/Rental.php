@@ -20,7 +20,7 @@ class Rental extends MY_Controller {
             return;
         }
         try {
-            $orgUID = (int) $this->pageData['JwtData']->User->OrgUID;
+            $orgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
             $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
             $limit = (int)($GeneralSettings->RowLimit ?? 10);
 
@@ -62,7 +62,7 @@ class Rental extends MY_Controller {
                 $filter = json_decode($filter, true) ?: ['Status' => 'All'];
             }
 
-            $orgUID = (int) $this->pageData['JwtData']->User->OrgUID;
+            $orgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
 
             $listData   = $this->rental_model->getRentalList($orgUID, $filter, $limit, $offset);
             $totalCount = $this->rental_model->getRentalCount($orgUID, $filter);
@@ -91,7 +91,7 @@ class Rental extends MY_Controller {
     public function createRental() {
         $this->EndReturnData = new stdClass();
         try {
-            $orgUID  = (int) $this->pageData['JwtData']->User->OrgUID;
+            $orgUID  = (int) $this->pageData['JwtData']->Org->OrgUID;
             $userUID = (int) $this->pageData['JwtData']->User->UserUID;
 
             $PostData = $this->input->post();
@@ -236,7 +236,7 @@ class Rental extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
             $rentalUID = (int) $this->input->post('RentalUID');
-            $orgUID    = (int) $this->pageData['JwtData']->User->OrgUID;
+            $orgUID    = (int) $this->pageData['JwtData']->Org->OrgUID;
 
             if ($rentalUID <= 0) throw new Exception('Invalid rental record.');
 
@@ -258,7 +258,7 @@ class Rental extends MY_Controller {
     public function processReturn() {
         $this->EndReturnData = new stdClass();
         try {
-            $orgUID  = (int) $this->pageData['JwtData']->User->OrgUID;
+            $orgUID  = (int) $this->pageData['JwtData']->Org->OrgUID;
             $userUID = (int) $this->pageData['JwtData']->User->UserUID;
 
             $PostData      = $this->input->post();
@@ -376,7 +376,7 @@ class Rental extends MY_Controller {
         try {
             $PostData  = $this->input->post();
             $rentalUID = (int)getPostValue($PostData, 'TransUID');
-            $orgUID    = (int) $this->pageData['JwtData']->User->OrgUID;
+            $orgUID    = (int) $this->pageData['JwtData']->Org->OrgUID;
             $userUID   = (int) $this->pageData['JwtData']->User->UserUID;
 
             if ($rentalUID <= 0) throw new Exception('Invalid rental record.');
@@ -457,7 +457,7 @@ class Rental extends MY_Controller {
         try {
             $PostData  = $this->input->post();
             $rentalUID = (int)getPostValue($PostData, 'RentalUID');
-            $orgUID    = (int) $this->pageData['JwtData']->User->OrgUID;
+            $orgUID    = (int) $this->pageData['JwtData']->Org->OrgUID;
             $userUID   = (int) $this->pageData['JwtData']->User->UserUID;
 
             if ($rentalUID <= 0) throw new Exception('Invalid rental record.');
@@ -494,7 +494,7 @@ class Rental extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
             $term   = trim($this->input->post('term') ?: '');
-            $orgUID = (int) $this->pageData['JwtData']->User->OrgUID;
+            $orgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
             $this->EndReturnData->Error    = FALSE;
             $this->EndReturnData->Products = $this->rental_model->searchRentableProducts($orgUID, $term);
         } catch (Exception $e) {

@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
+<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class PrintThemes extends MY_Controller {
 
@@ -41,7 +41,7 @@ class PrintThemes extends MY_Controller {
 
     private function fetchThemeTableData($pageNo, $limit = 0) {
 
-        $orgUID = (int) $this->pageData['JwtData']->User->OrgUID;
+        $orgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
         if (!$limit) {
             $postLimit     = (int) $this->input->post('RowLimit');
             $settingsLimit = (int) (($this->pageData['JwtData']->GenSettings ?? null)?->RowLimit ?? 0);
@@ -124,7 +124,7 @@ class PrintThemes extends MY_Controller {
             $this->pageData['TransactionTypes'] = self::$TRANSACTION_TYPES;
 
             // Used types (for disabling in add form)
-            $orgUID = (int) $this->pageData['JwtData']->User->OrgUID;
+            $orgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
             $configs = $this->organisation_model->getPrintThemeConfigs($orgUID)->Data ?? [];
             $this->pageData['UsedTypes'] = array_map(fn($c) => $c->TransactionType, $configs);
 
@@ -186,7 +186,7 @@ class PrintThemes extends MY_Controller {
         try {
 
             $PostData    = $this->input->post();
-            $orgUID      = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID      = $this->pageData['JwtData']->Org->OrgUID;
             $userUID     = $this->pageData['JwtData']->User->UserUID;
 
             $themeConfigUID  = (int) getPostValue($PostData, 'ThemeConfigUID');
@@ -277,7 +277,7 @@ class PrintThemes extends MY_Controller {
 
             $PostData       = $this->input->post();
             $themeConfigUID = (int) getPostValue($PostData, 'ThemeConfigUID');
-            $orgUID         = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID         = $this->pageData['JwtData']->Org->OrgUID;
             $userUID        = $this->pageData['JwtData']->User->UserUID;
 
             if ($themeConfigUID <= 0) throw new Exception('Invalid theme config.');
@@ -307,7 +307,7 @@ class PrintThemes extends MY_Controller {
         try {
 
             $themeConfigUID = (int) $this->input->get('ThemeConfigUID');
-            $orgUID         = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID         = $this->pageData['JwtData']->Org->OrgUID;
 
             $result  = $this->organisation_model->getPrintThemeConfigsPaginated($orgUID, 200, 0);
             $found   = null;

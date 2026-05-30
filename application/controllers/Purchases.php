@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
+<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Purchases extends MY_Controller {
 
@@ -33,7 +33,7 @@ class Purchases extends MY_Controller {
             $allData      = $this->transactions_model->getTransactionPageList($limit, 0, $this->pageModuleUID, [], 0);
             $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, []);
 
-            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
 
             $this->pageData['ModRowData']    = $this->load->view('transactions/purchases/list', ['DataLists' => $allData, 'SerialNumber' => 0, 'JwtData' => $this->pageData['JwtData']], TRUE);
             $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/purchases/getPurchasesPageDetails', $allDataCount, 1, $limit);
@@ -99,7 +99,7 @@ class Purchases extends MY_Controller {
 
             $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
             $limit  = $GeneralSettings->RowLimit ?? 10;
-            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
 
             $filter = ['PartyType' => 'V', 'ModuleUID' => $this->pageModuleUID];
 
@@ -140,7 +140,7 @@ class Purchases extends MY_Controller {
             $filter['PartyType'] = 'V';
             $filter['ModuleUID'] = $this->pageModuleUID;
 
-            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
 
             $this->load->model('transactions_model');
             $allData      = $this->transactions_model->getPaymentsList($limit, $offset, $orgUID, $filter);
@@ -178,7 +178,7 @@ class Purchases extends MY_Controller {
 
             $PostData = $this->input->post();
             $userUID  = $this->pageData['JwtData']->User->UserUID;
-            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
 
             $this->load->model('formvalidation_model');
             $ErrorInForm = $this->formvalidation_model->quotationValidateForm($PostData);
@@ -383,7 +383,7 @@ class Purchases extends MY_Controller {
 
             $PostData = $this->input->post();
             $userUID  = $this->pageData['JwtData']->User->UserUID;
-            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
 
             $transUID = (int) getPostValue($PostData, 'TransUID');
             if ($transUID <= 0) throw new Exception('Purchase bill ID is required.');
@@ -697,7 +697,7 @@ class Purchases extends MY_Controller {
 
             $PostData = $this->input->post();
             $userUID  = $this->pageData['JwtData']->User->UserUID;
-            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
 
             $transUID = (int) getPostValue($PostData, 'TransUID');
             if ($transUID <= 0) throw new Exception('Purchase bill ID is required.');
@@ -762,7 +762,7 @@ class Purchases extends MY_Controller {
             $PostData = $this->input->post();
             $srcUID   = (int) getPostValue($PostData, 'TransUID');
             $userUID  = $this->pageData['JwtData']->User->UserUID;
-            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
 
             if ($srcUID <= 0) throw new Exception('Invalid purchase bill.');
 
@@ -914,7 +914,7 @@ class Purchases extends MY_Controller {
             $transUID  = (int) getPostValue($PostData, 'TransUID');
             $newStatus = trim(getPostValue($PostData, 'Status'));
             $userUID   = $this->pageData['JwtData']->User->UserUID;
-            $orgUID    = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
 
             if ($transUID <= 0) throw new Exception('Invalid purchase bill.');
 
@@ -963,7 +963,7 @@ class Purchases extends MY_Controller {
         try {
 
             $transUID = (int) $this->input->get_post('TransUID');
-            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
 
             if ($transUID <= 0) throw new Exception('Invalid purchase bill.');
 
@@ -1172,7 +1172,7 @@ class Purchases extends MY_Controller {
 
         try {
 
-            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
 
             $this->load->model('transactions_model');
@@ -1207,7 +1207,7 @@ class Purchases extends MY_Controller {
             $this->pageData['StateData'] = [];
             $this->pageData['CityData']  = [];
 
-            $OrgCountryISO2 = $this->pageData['JwtData']->User->OrgCISO2;
+            $OrgCountryISO2 = $this->pageData['JwtData']->Org->OrgCISO2;
             if (!empty($OrgCountryISO2)) {
                 $StateInfo = $this->global_model->getStateofCountry($OrgCountryISO2);
                 if ($StateInfo->Error === FALSE) $this->pageData['StateData'] = $StateInfo->Data;
@@ -1244,7 +1244,7 @@ class Purchases extends MY_Controller {
             $transUID = (int) $transUID;
             if ($transUID <= 0) redirect('purchases');
 
-            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
 
             $this->load->model('transactions_model');
@@ -1281,7 +1281,7 @@ class Purchases extends MY_Controller {
             $this->pageData['StateData'] = [];
             $this->pageData['CityData']  = [];
 
-            $OrgCountryISO2 = $this->pageData['JwtData']->User->OrgCISO2;
+            $OrgCountryISO2 = $this->pageData['JwtData']->Org->OrgCISO2;
             if (!empty($OrgCountryISO2)) {
                 $StateInfo = $this->global_model->getStateofCountry($OrgCountryISO2);
                 if ($StateInfo->Error === FALSE) $this->pageData['StateData'] = $StateInfo->Data;
@@ -1320,7 +1320,7 @@ class Purchases extends MY_Controller {
         if (empty($files) || empty($files['name'][0])) return;
 
         $userUID   = $this->pageData['JwtData']->User->UserUID;
-        $orgUID    = $this->pageData['JwtData']->User->OrgUID;
+        $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
         $moduleUID = $this->pageModuleUID;
 
         $this->load->library('fileupload');
@@ -1361,7 +1361,7 @@ class Purchases extends MY_Controller {
         $uids = json_decode($removedJson, true);
         if (empty($uids) || !is_array($uids)) return;
 
-        $orgUID  = $this->pageData['JwtData']->User->OrgUID;
+        $orgUID  = $this->pageData['JwtData']->Org->OrgUID;
         $userUID = $this->pageData['JwtData']->User->UserUID;
         $this->load->model('dbwrite_model');
 
@@ -1383,7 +1383,7 @@ class Purchases extends MY_Controller {
 
             $PostData  = $this->input->post();
             $userUID   = $this->pageData['JwtData']->User->UserUID;
-            $orgUID    = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
             $transUID  = (int) getPostValue($PostData, 'TransUID');
             $moduleUID = (int) getPostValue($PostData, 'ModuleUID') ?: $this->pageModuleUID;
 
@@ -1450,7 +1450,7 @@ class Purchases extends MY_Controller {
         try {
 
             $transUID = (int) $this->input->post('TransUID');
-            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
             if ($transUID <= 0) throw new Exception('Invalid purchase.');
 
             $this->load->model('transactions_model');
@@ -1478,7 +1478,7 @@ class Purchases extends MY_Controller {
 
             $PostData = $this->input->post();
             $userUID  = $this->pageData['JwtData']->User->UserUID;
-            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
 
             $transUID       = (int)   getPostValue($PostData, 'TransUID');
             $paymentTypeUID = (int)   getPostValue($PostData, 'PaymentTypeUID');
@@ -1615,7 +1615,7 @@ class Purchases extends MY_Controller {
         try {
 
             $transUID = (int) $this->input->post('TransUID');
-            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
             if ($transUID <= 0) throw new Exception('Invalid transaction.');
 
             $this->load->model('transactions_model');
@@ -1649,7 +1649,7 @@ class Purchases extends MY_Controller {
         if (empty($files) || empty($files['name'][0])) return;
 
         $userUID = $this->pageData['JwtData']->User->UserUID;
-        $orgUID  = $this->pageData['JwtData']->User->OrgUID;
+        $orgUID  = $this->pageData['JwtData']->Org->OrgUID;
 
         $this->load->library('fileupload');
         $this->load->model('dbwrite_model');

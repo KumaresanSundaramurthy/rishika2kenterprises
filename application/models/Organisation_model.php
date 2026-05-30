@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Organisation_model extends CI_Model {
     
@@ -44,12 +44,11 @@ class Organisation_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->ReadDb->select('Org.OrgUID as OrgUID, Org.Name as Name, Org.ShortDescription as ShortDescription, Org.BrandName as BrandName, Org.ShortCode as ShortCode, Org.Logo as Logo, Org.CountryCode as CountryCode, Org.CountryISO2 as CountryISO2, Org.MobileNumber as MobileNumber, Org.EmailAddress as EmailAddress, Org.GSTIN as GSTIN, Org.GSTINValidation as GSTINValidation, Org.OrgBussTypeUID as OrgBussTypeUID, Org.OrgIndTypeUID as OrgIndTypeUID, Org.OrgBusRegTypeUID as OrgBusRegTypeUID, Org.AlternateNumber as AlternateNumber, Org.Website as Website, Org.PANNumber as PANNumber, Org.TimezoneUID as TimezoneUID, Tz.Timezone as TimezoneText, Tz.GmtOffset as TimezoneGmtOffset, BusinessType.Name as OrgBusinessTypeName, Billing.OrgAddressUID as BAddressUID, Billing.Line1 as BLine1, Billing.Line2 as BLine2, Billing.Pincode as BPincode, Billing.City as BCity, Billing.CityText as BCityText, Billing.State as BState, Billing.StateText as BStateText, Shipping.OrgAddressUID as SAddressUID, Shipping.Line1 as SLine1, Shipping.Line2 as SLine2, Shipping.Pincode as SPincode, Shipping.City as SCity, Shipping.CityText as SCityText, Shipping.State as SState, Shipping.StateText as SStateText');
+            $this->ReadDb->select('Org.OrgUID as OrgUID, Org.Name as Name, Org.ShortDescription as ShortDescription, Org.BrandName as BrandName, Org.ShortCode as ShortCode, Org.Logo as Logo, Org.CountryCode as CountryCode, Org.CountryISO2 as CountryISO2, Org.MobileNumber as MobileNumber, Org.EmailAddress as EmailAddress, Org.GSTIN as GSTIN, Org.GSTINValidation as GSTINValidation, Org.OrgBussTypeUID as OrgBussTypeUID, Org.OrgIndTypeUID as OrgIndTypeUID, Org.OrgBusRegTypeUID as OrgBusRegTypeUID, Org.AlternateNumber as AlternateNumber, Org.Website as Website, Org.PANNumber as PANNumber, Org.TimezoneUID as TimezoneUID, Org.StateCode as StateCode, Org.StateName as StateName, Tz.Timezone as TimezoneText, Tz.GmtOffset as TimezoneGmtOffset, BusinessType.Name as OrgBusinessTypeName, Billing.OrgAddressUID as BAddressUID, Billing.Line1 as BLine1, Billing.Line2 as BLine2, Billing.Pincode as BPincode, Billing.City as BCity, Billing.CityText as BCityText, Billing.State as BState, Billing.StateText as BStateText');
             $this->ReadDb->from('Organisation.OrganisationTbl as Org');
             $this->ReadDb->join('Organisation.OrgBusinessTypeTbl as BusinessType', 'BusinessType.OrgBussTypeUID = Org.OrgBussTypeUID', 'left');
             $this->ReadDb->join('Global.TimezoneTbl as Tz', 'Tz.TimezoneUID = Org.TimezoneUID', 'left');
             $this->ReadDb->join('Organisation.OrgAddressTbl as Billing', "Billing.OrgUID = Org.OrgUID AND Billing.AddressType = 'Billing' AND Billing.IsDeleted = 0 AND Billing.IsActive = 1", 'left');
-            $this->ReadDb->join('Organisation.OrgAddressTbl as Shipping', "Shipping.OrgUID = Org.OrgUID AND Shipping.AddressType = 'Shipping' AND Shipping.IsDeleted = 0 AND Shipping.IsActive = 1", 'left');
             $this->ReadDb->where($FilterArray);
             $this->ReadDb->where('Org.IsActive', 1);
             $this->ReadDb->where('Org.IsDeleted', 0);
@@ -71,15 +70,46 @@ class Organisation_model extends CI_Model {
 
     }
 
+    public function getOrgShippingAddresses($OrgUID) {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $this->ReadDb->select('OrgAddressUID, Line1, Line2, Pincode, City, CityText, State, StateText');
+            $this->ReadDb->from('Organisation.OrgAddressTbl');
+            $this->ReadDb->where('OrgUID', (int) $OrgUID);
+            $this->ReadDb->where('AddressType', 'Shipping');
+            $this->ReadDb->where('IsActive', 1);
+            $this->ReadDb->where('IsDeleted', 0);
+            $this->ReadDb->order_by('OrgAddressUID', 'ASC');
+            $query = $this->ReadDb->get();
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Success';
+            $this->EndReturnData->Data    = $query->result();
+
+            return $this->EndReturnData;
+
+        } catch (Exception $e) {
+
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+            throw new Exception($this->EndReturnData->Message);
+
+        }
+
+    }
+
     public function getOrgBusinessTypeDetails() {
 
         $this->EndReturnData = new stdClass();
         try {
 
-            $OBTKey = $this->redisservice->orgKey('orgbustypeinfo');
-            $OBTGet_Data = $this->redisservice->getCache($OBTKey);
-            if ($OBTGet_Data->Error) {
-
+            $OBTKey    = $this->redisservice->orgKey('org-bus-type');
+            $OBTCached = $this->upstashservice->get($OBTKey);
+            if ($OBTCached !== null) {
+                $this->EndReturnData->Data = array_map(fn($r) => is_array($r) ? (object) $r : $r, (array)$OBTCached);
+            } else {
                 $this->ReadDb->select('BusinessType.OrgBussTypeUID as OrgBussTypeUID, BusinessType.Name as Name');
                 $this->ReadDb->from('Organisation.OrgBusinessTypeTbl as BusinessType');
                 $this->ReadDb->where('BusinessType.IsActive', 1);
@@ -88,14 +118,9 @@ class Organisation_model extends CI_Model {
                 $error = $this->ReadDb->error();
                 if ($error['code']) {
                     throw new Exception($error['message']);
-                } else {
-                    $this->EndReturnData->Data = $query->result();
                 }
-                
-                $this->redisservice->setCache($OBTKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
-                
-            } else {
-                $this->EndReturnData->Data = $OBTGet_Data->Value;
+                $this->EndReturnData->Data = $query->result();
+                $this->upstashservice->set($OBTKey, $this->EndReturnData->Data, 0);
             }
 
             $this->EndReturnData->Error = FALSE;
@@ -118,10 +143,11 @@ class Organisation_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $OITKey = $this->redisservice->orgKey('orgindustypeinfo');
-            $OITGet_Data = $this->redisservice->getCache($OITKey);
-            if ($OITGet_Data->Error) {
-
+            $OITKey    = $this->redisservice->orgKey('org-ind-type');
+            $OITCached = $this->upstashservice->get($OITKey);
+            if ($OITCached !== null) {
+                $this->EndReturnData->Data = array_map(fn($r) => is_array($r) ? (object) $r : $r, (array)$OITCached);
+            } else {
                 $this->ReadDb->select('IndustryType.OrgIndTypeUID as OrgIndTypeUID, IndustryType.Name as Name');
                 $this->ReadDb->from('Organisation.OrgIndustryTypeTbl as IndustryType');
                 $this->ReadDb->where('IndustryType.IsActive', 1);
@@ -130,14 +156,9 @@ class Organisation_model extends CI_Model {
                 $error = $this->ReadDb->error();
                 if ($error['code']) {
                     throw new Exception($error['message']);
-                } else {
-                    $this->EndReturnData->Data = $query->result();
                 }
-
-                $this->redisservice->setCache($OITKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
-
-            } else {
-                $this->EndReturnData->Data = $OITGet_Data->Value;
+                $this->EndReturnData->Data = $query->result();
+                $this->upstashservice->set($OITKey, $this->EndReturnData->Data, 0);
             }
 
             $this->EndReturnData->Error = FALSE;
@@ -160,10 +181,11 @@ class Organisation_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
             
-            $OBRTKey = $this->redisservice->orgKey('orgbusregtypeinfo');
-            $OBRTGet_Data = $this->redisservice->getCache($OBRTKey);
-            if ($OBRTGet_Data->Error) {
-
+            $OBRTKey    = $this->redisservice->orgKey('org-bus-reg-type');
+            $OBRTCached = $this->upstashservice->get($OBRTKey);
+            if ($OBRTCached !== null) {
+                $this->EndReturnData->Data = array_map(fn($r) => is_array($r) ? (object) $r : $r, (array)$OBRTCached);
+            } else {
                 $this->ReadDb->select('BusRegType.OrgBusRegTypeUID as OrgBusRegTypeUID, BusRegType.Name as Name');
                 $this->ReadDb->from('Organisation.OrgBusinessRegTypeTbl as BusRegType');
                 $this->ReadDb->where('BusRegType.IsActive', 1);
@@ -172,14 +194,9 @@ class Organisation_model extends CI_Model {
                 $error = $this->ReadDb->error();
                 if ($error['code']) {
                     throw new Exception($error['message']);
-                } else {
-                    $this->EndReturnData->Data = $query->result();
                 }
-
-                $this->redisservice->setCache($OBRTKey, $this->EndReturnData->Data, getenv('ONEYEAR_EXPIRE_SECS'));
-
-            } else {
-                $this->EndReturnData->Data = $OBRTGet_Data->Value;
+                $this->EndReturnData->Data = $query->result();
+                $this->upstashservice->set($OBRTKey, $this->EndReturnData->Data, 0);
             }
 
             $this->EndReturnData->Error = FALSE;

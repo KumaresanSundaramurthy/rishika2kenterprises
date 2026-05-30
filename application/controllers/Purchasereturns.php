@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
+<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Purchasereturns extends MY_Controller {
 
@@ -27,7 +27,7 @@ class Purchasereturns extends MY_Controller {
             $allData      = $this->transactions_model->getTransactionPageList($limit, 0, $this->pageModuleUID, [], 0);
             $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, []);
 
-            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
 
             $this->pageData['ModRowData']    = $this->load->view('transactions/purchasereturns/list', ['DataLists' => $allData, 'SerialNumber' => 0, 'JwtData' => $this->pageData['JwtData']], TRUE);
             $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/purchasereturns/getPurchaseReturnsPageDetails', $allDataCount, 1, $limit);
@@ -86,7 +86,7 @@ class Purchasereturns extends MY_Controller {
 
             $PostData = $this->input->post();
             $userUID  = $this->pageData['JwtData']->User->UserUID;
-            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
 
             $this->load->model('formvalidation_model');
             $ErrorInForm = $this->formvalidation_model->quotationValidateForm($PostData);
@@ -238,7 +238,7 @@ class Purchasereturns extends MY_Controller {
 
             $PostData = $this->input->post();
             $userUID  = $this->pageData['JwtData']->User->UserUID;
-            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
             $transUID = (int) getPostValue($PostData, 'TransUID');
             if ($transUID <= 0) throw new Exception('Purchase Return ID is required.');
 
@@ -472,7 +472,7 @@ class Purchasereturns extends MY_Controller {
             $this->dbwrite_model->startTransaction();
             $PostData = $this->input->post();
             $userUID  = $this->pageData['JwtData']->User->UserUID;
-            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
             $transUID = (int) getPostValue($PostData, 'TransUID');
             if ($transUID <= 0) throw new Exception('Purchase Return ID is required.');
             $this->load->model('transactions_model');
@@ -506,7 +506,7 @@ class Purchasereturns extends MY_Controller {
             $PostData = $this->input->post();
             $srcUID   = (int) getPostValue($PostData, 'TransUID');
             $userUID  = $this->pageData['JwtData']->User->UserUID;
-            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
             if ($srcUID <= 0) throw new Exception('Invalid purchase return.');
             $this->load->model('transactions_model');
             $src = $this->transactions_model->getTransactionById($srcUID, $orgUID, $this->pageModuleUID);
@@ -648,7 +648,7 @@ class Purchasereturns extends MY_Controller {
             $transUID  = (int) getPostValue($PostData, 'TransUID');
             $newStatus = trim(getPostValue($PostData, 'Status'));
             $userUID   = $this->pageData['JwtData']->User->UserUID;
-            $orgUID    = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
             if ($transUID <= 0) throw new Exception('Invalid purchase return.');
 
             $validTransitions = [
@@ -683,7 +683,7 @@ class Purchasereturns extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
             $transUID = (int) $this->input->get_post('TransUID');
-            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
             if ($transUID <= 0) throw new Exception('Invalid purchase return.');
             $this->load->model('transactions_model');
             $header = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
@@ -708,7 +708,7 @@ class Purchasereturns extends MY_Controller {
 
     public function create() {
         try {
-            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
 
             $this->load->model('transactions_model');
@@ -725,7 +725,7 @@ class Purchasereturns extends MY_Controller {
             $this->pageData['CountryInfo'] = $GetCountryInfo->Error === FALSE ? $GetCountryInfo->Data : [];
             $this->pageData['StateData']   = [];
             $this->pageData['CityData']    = [];
-            $OrgCountryISO2 = $this->pageData['JwtData']->User->OrgCISO2;
+            $OrgCountryISO2 = $this->pageData['JwtData']->Org->OrgCISO2;
             if (!empty($OrgCountryISO2)) {
                 $StateInfo = $this->global_model->getStateofCountry($OrgCountryISO2);
                 if ($StateInfo->Error === FALSE) $this->pageData['StateData'] = $StateInfo->Data;
@@ -751,7 +751,7 @@ class Purchasereturns extends MY_Controller {
             $transUID = (int) $transUID;
             if ($transUID <= 0) redirect('purchasereturns');
 
-            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
 
             $this->load->model('transactions_model');
@@ -774,7 +774,7 @@ class Purchasereturns extends MY_Controller {
             $this->pageData['CountryInfo'] = $GetCountryInfo->Error === FALSE ? $GetCountryInfo->Data : [];
             $this->pageData['StateData']   = [];
             $this->pageData['CityData']    = [];
-            $OrgCountryISO2 = $this->pageData['JwtData']->User->OrgCISO2;
+            $OrgCountryISO2 = $this->pageData['JwtData']->Org->OrgCISO2;
             if (!empty($OrgCountryISO2)) {
                 $StateInfo = $this->global_model->getStateofCountry($OrgCountryISO2);
                 if ($StateInfo->Error === FALSE) $this->pageData['StateData'] = $StateInfo->Data;
@@ -805,7 +805,7 @@ class Purchasereturns extends MY_Controller {
 
             $PostData       = $this->input->post();
             $userUID        = $this->pageData['JwtData']->User->UserUID;
-            $orgUID         = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID         = $this->pageData['JwtData']->Org->OrgUID;
             $transUID       = (int)   getPostValue($PostData, 'TransUID');
             $paymentTypeUID = (int)   getPostValue($PostData, 'PaymentTypeUID');
             $amount         = (float) getPostValue($PostData, 'Amount', 'Array', 0);
@@ -919,7 +919,7 @@ class Purchasereturns extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
             $prUID  = (int) $this->input->post('PurchaseReturnUID');
-            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
             if ($prUID <= 0) throw new Exception('Invalid purchase return.');
 
             $this->load->model('transactions_model');
@@ -968,7 +968,7 @@ class Purchasereturns extends MY_Controller {
 
             $PostData   = $this->input->post();
             $userUID    = $this->pageData['JwtData']->User->UserUID;
-            $orgUID     = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID     = $this->pageData['JwtData']->Org->OrgUID;
             $prUID      = (int)   getPostValue($PostData, 'PurchaseReturnUID');
             $purchUID   = (int)   getPostValue($PostData, 'PurchaseUID');
             $amount     = (float) getPostValue($PostData, 'Amount', 'Array', 0);
@@ -1098,7 +1098,7 @@ class Purchasereturns extends MY_Controller {
         $files = $_FILES['PaymentFiles'] ?? null;
         if (empty($files) || empty($files['name'][0])) return;
         $userUID = $this->pageData['JwtData']->User->UserUID;
-        $orgUID  = $this->pageData['JwtData']->User->OrgUID;
+        $orgUID  = $this->pageData['JwtData']->Org->OrgUID;
         $this->load->library('fileupload');
         $this->load->model('dbwrite_model');
         $allowed = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
@@ -1197,7 +1197,7 @@ class Purchasereturns extends MY_Controller {
         if (empty($files) || empty($files['name'][0])) return;
 
         $userUID   = $this->pageData['JwtData']->User->UserUID;
-        $orgUID    = $this->pageData['JwtData']->User->OrgUID;
+        $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
         $moduleUID = $this->pageModuleUID;
 
         $this->load->library('fileupload');
@@ -1238,7 +1238,7 @@ class Purchasereturns extends MY_Controller {
         $uids = json_decode($removedJson, true);
         if (empty($uids) || !is_array($uids)) return;
 
-        $orgUID  = $this->pageData['JwtData']->User->OrgUID;
+        $orgUID  = $this->pageData['JwtData']->Org->OrgUID;
         $userUID = $this->pageData['JwtData']->User->UserUID;
         $this->load->model('dbwrite_model');
 
@@ -1260,7 +1260,7 @@ class Purchasereturns extends MY_Controller {
 
             $PostData  = $this->input->post();
             $userUID   = $this->pageData['JwtData']->User->UserUID;
-            $orgUID    = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
             $transUID  = (int) getPostValue($PostData, 'TransUID');
             $moduleUID = (int) getPostValue($PostData, 'ModuleUID') ?: $this->pageModuleUID;
 
@@ -1327,7 +1327,7 @@ class Purchasereturns extends MY_Controller {
         try {
 
             $transUID = (int) $this->input->post('TransUID');
-            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
             if ($transUID <= 0) throw new Exception('Invalid purchase return.');
 
             $this->load->model('transactions_model');

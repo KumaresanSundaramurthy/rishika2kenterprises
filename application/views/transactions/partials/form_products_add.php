@@ -373,7 +373,8 @@ $_paymentVars = isset($transPaymentVars) ? $transPaymentVars : null;
         <?php endif; ?>
 
         <?php $this->load->view('transactions/partials/form_signature', [
-            'transSignatureUID' => isset($transSignatureUID) ? (int)$transSignatureUID : 0,
+            'transSignatureUID'  => isset($transSignatureUID) ? (int)$transSignatureUID : 0,
+            'transSignatures'    => isset($transSignatures) ? $transSignatures : null,
         ]); ?>
     </div>
 

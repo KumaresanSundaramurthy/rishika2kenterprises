@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php
 if (!isset($ModAllCount))  { $ModAllCount  = 0; }
 if (!isset($ModRowData))   { $ModRowData   = ''; }
@@ -116,7 +116,7 @@ var CsrfToken       = '<?php echo $this->security->get_csrf_hash(); ?>';
 var PageNo          = 1;
 var RowLimit        = <?php echo (int)($JwtData->GenSettings->RowLimit ?? 10); ?>;
 var Filter          = { Status: 'All' };
-var OrgCountryISO2  = <?php echo json_encode($JwtData->User->OrgCISO2 ?? 'IN'); ?>;
+var OrgCountryISO2  = <?php echo json_encode($JwtData->Org->OrgCISO2 ?? 'IN'); ?>;
 
 // Override address modal title labels for user form context
 var _origOpenAddressModal = openAddressModal;

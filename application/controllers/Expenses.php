@@ -24,7 +24,7 @@ class Expenses extends MY_Controller {
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
             $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
             $limit  = $GeneralSettings->RowLimit ?? 10;
-            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
 
             $filter = ['Status' => 'All'];
 
@@ -67,7 +67,7 @@ class Expenses extends MY_Controller {
             $offset = ($pageNo - 1) * $limit;
             $filter = $this->input->post('Filter') ?: [];
 
-            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
 
             $allData      = $this->expenses_model->getExpenseList($orgUID, $filter, $limit, $offset);
             $allDataCount = $this->expenses_model->getExpenseCount($orgUID, $filter);
@@ -99,7 +99,7 @@ class Expenses extends MY_Controller {
 
             $PostData = $this->input->post();
             $userUID  = $this->pageData['JwtData']->User->UserUID;
-            $orgUID   = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
 
             $data = $this->_buildExpenseData($PostData, $userUID, $orgUID, true);
 
@@ -148,7 +148,7 @@ class Expenses extends MY_Controller {
             $PostData   = $this->input->post();
             $expenseUID = (int)getPostValue($PostData, 'ExpenseUID');
             $userUID    = $this->pageData['JwtData']->User->UserUID;
-            $orgUID     = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID     = $this->pageData['JwtData']->Org->OrgUID;
 
             if ($expenseUID <= 0) throw new Exception('Invalid expense record.');
 
@@ -195,7 +195,7 @@ class Expenses extends MY_Controller {
             $PostData   = $this->input->post();
             $expenseUID = (int)getPostValue($PostData, 'ExpenseUID');
             $userUID    = $this->pageData['JwtData']->User->UserUID;
-            $orgUID     = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID     = $this->pageData['JwtData']->Org->OrgUID;
 
             if ($expenseUID <= 0) throw new Exception('Invalid expense record.');
 
@@ -243,7 +243,7 @@ class Expenses extends MY_Controller {
             $PostData   = $this->input->post();
             $expenseUID = (int)getPostValue($PostData, 'ExpenseUID');
             $userUID    = $this->pageData['JwtData']->User->UserUID;
-            $orgUID     = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID     = $this->pageData['JwtData']->Org->OrgUID;
 
             if ($expenseUID <= 0) throw new Exception('Invalid expense record.');
 
@@ -307,7 +307,7 @@ class Expenses extends MY_Controller {
             $PostData   = $this->input->post();
             $expenseUID = (int)getPostValue($PostData, 'TransUID');
             $userUID    = $this->pageData['JwtData']->User->UserUID;
-            $orgUID     = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID     = $this->pageData['JwtData']->Org->OrgUID;
 
             if ($expenseUID <= 0) throw new Exception('Invalid expense record.');
 
@@ -447,7 +447,7 @@ class Expenses extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
             $expenseUID = (int)$this->input->post('TransUID');
-            $orgUID     = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID     = $this->pageData['JwtData']->Org->OrgUID;
             if ($expenseUID <= 0) throw new Exception('Invalid expense.');
 
             $this->load->model('transactions_model');
@@ -477,7 +477,7 @@ class Expenses extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
             $expenseUID = (int)$this->input->post('TransUID');
-            $orgUID     = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID     = $this->pageData['JwtData']->Org->OrgUID;
             if ($expenseUID <= 0) throw new Exception('Invalid expense.');
 
             $this->load->model('transactions_model');
@@ -510,7 +510,7 @@ class Expenses extends MY_Controller {
             $expenseUID = (int)getPostValue($PostData, 'ExpenseUID');
             $newStatus  = trim(getPostValue($PostData, 'Status'));
             $userUID    = $this->pageData['JwtData']->User->UserUID;
-            $orgUID     = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID     = $this->pageData['JwtData']->Org->OrgUID;
 
             if ($expenseUID <= 0)  throw new Exception('Invalid expense record.');
             if (empty($newStatus)) throw new Exception('Status is required.');
@@ -581,7 +581,7 @@ class Expenses extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
             $expenseUID = (int)getPostValue($this->input->post(), 'TransUID');
-            $orgUID     = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID     = $this->pageData['JwtData']->Org->OrgUID;
             if ($expenseUID <= 0) throw new Exception('Invalid expense.');
             $this->EndReturnData->Error       = FALSE;
             $this->EndReturnData->Attachments = $this->expenses_model->getExpenseAttachments($expenseUID, $orgUID);
@@ -598,7 +598,7 @@ class Expenses extends MY_Controller {
         try {
             $PostData   = $this->input->post();
             $expenseUID = (int)getPostValue($PostData, 'ExpenseUID');
-            $orgUID     = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID     = $this->pageData['JwtData']->Org->OrgUID;
 
             if ($expenseUID <= 0) throw new Exception('Invalid expense record.');
 
@@ -619,7 +619,7 @@ class Expenses extends MY_Controller {
     public function getCategories() {
         $this->EndReturnData = new stdClass();
         try {
-            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Data  = $this->expenses_model->getCategories($orgUID);
         } catch (Throwable $e) {
@@ -635,7 +635,7 @@ class Expenses extends MY_Controller {
         try {
             $PostData     = $this->input->post();
             $categoryName = trim(getPostValue($PostData, 'CategoryName'));
-            $orgUID       = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID       = $this->pageData['JwtData']->Org->OrgUID;
             $userUID      = $this->pageData['JwtData']->User->UserUID;
 
             if (empty($categoryName)) throw new Exception('Category name is required.');
@@ -670,7 +670,7 @@ class Expenses extends MY_Controller {
     public function getCategoryList() {
         $this->EndReturnData = new stdClass();
         try {
-            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
             $pageNo = max(1, (int)($this->input->post('PageNo') ?: 1));
             $limit  = 30;
             $search = trim($this->input->post('Search') ?: '');
@@ -694,7 +694,7 @@ class Expenses extends MY_Controller {
         try {
             $PostData    = $this->input->post();
             $categoryUID = (int)getPostValue($PostData, 'CategoryUID');
-            $orgUID      = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID      = $this->pageData['JwtData']->Org->OrgUID;
             $userUID     = $this->pageData['JwtData']->User->UserUID;
             $name        = trim(getPostValue($PostData, 'CategoryName'));
 
@@ -726,7 +726,7 @@ class Expenses extends MY_Controller {
         try {
             $PostData    = $this->input->post();
             $categoryUID = (int)getPostValue($PostData, 'CategoryUID');
-            $orgUID      = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID      = $this->pageData['JwtData']->Org->OrgUID;
             $userUID     = $this->pageData['JwtData']->User->UserUID;
 
             if ($categoryUID <= 0) throw new Exception('Invalid category.');
@@ -877,7 +877,7 @@ class Expenses extends MY_Controller {
         $files = $_FILES['Attachments'] ?? null;
         if (empty($files) || empty($files['name'][0])) return;
         $userUID = $this->pageData['JwtData']->User->UserUID;
-        $orgUID  = $this->pageData['JwtData']->User->OrgUID;
+        $orgUID  = $this->pageData['JwtData']->Org->OrgUID;
         $this->load->library('fileupload');
         $folder = ($sourceType === 'Expense') ? 'expenses' : 'indirectincome';
         $count  = count($files['name']);
@@ -909,7 +909,7 @@ class Expenses extends MY_Controller {
         $files = $_FILES['PaymentFiles'] ?? null;
         if (empty($files) || empty($files['name'][0])) return;
         $userUID = $this->pageData['JwtData']->User->UserUID;
-        $orgUID  = $this->pageData['JwtData']->User->OrgUID;
+        $orgUID  = $this->pageData['JwtData']->Org->OrgUID;
         $this->load->library('fileupload');
         $allowed = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
         $count   = min(count($files['name']), 3);

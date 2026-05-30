@@ -52,8 +52,8 @@ if (!empty($DataLists)):
         $hasAttach   = !empty($list->AttachmentCount) && (int)$list->AttachmentCount > 0;
 
         // WhatsApp message
-        $orgName    = $JwtData->User->OrgName   ?? 'Our Company';
-        $orgMobile  = $JwtData->User->OrgMobile ?? '';
+        $orgName    = $JwtData->Org->OrgName   ?? 'Our Company';
+        $orgMobile  = $JwtData->Org->OrgMobile ?? '';
         $partyName  = $list->PartyName   ?? 'Customer';
         $returnNum  = $list->UniqueNumber ?? 'Draft';
         $transDate  = !empty($list->TransDate) ? date('d M Y', strtotime($list->TransDate)) : '';

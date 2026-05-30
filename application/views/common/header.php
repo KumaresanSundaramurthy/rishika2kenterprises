@@ -7,13 +7,16 @@
     <title><?php echo getSiteConfiguration()->ShortName; ?></title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <?php
-$_jwt_user  = isset($JwtData) ? ($JwtData->User ?? null) : null;
-$_sc        = strtolower($_jwt_user->OrgShortCode ?? '');
-$_tk        = strtolower($_jwt_user->OrgToken     ?? '');
+$_sc = '';
+$_tk = '';
+if (isset($JwtData)) {
+    $_sc = strtolower($JwtData->Org->OrgShortCode);
+    $_tk = strtolower($JwtData->Org->OrgToken ?? '');
+}
 $_env       = defined('ENVIRONMENT') ? ENVIRONMENT : 'production';
 $_envMap    = ['development' => 'dev', 'staging' => 'stg', 'production' => 'prod'];
 $_orgPrefix = ($_sc && $_tk) ? $_sc . ':' . $_tk . ':' . ($_envMap[$_env] ?? $_env) : '';
-unset($_jwt_user, $_sc, $_tk, $_env, $_envMap);
+unset($_sc, $_tk, $_env, $_envMap);
 ?>
     <meta name="upstash-url"    content="<?= htmlspecialchars(getenv('UPSTASH_REDIS_REST_URL')   ?: '') ?>">
     <meta name="upstash-token"  content="<?= htmlspecialchars(getenv('UPSTASH_REDIS_REST_TOKEN') ?: '') ?>">

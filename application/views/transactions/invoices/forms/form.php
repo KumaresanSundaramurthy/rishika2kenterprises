@@ -223,8 +223,6 @@ if ($isEdit) {
 
                             <?php
                             $_invType  = $InvData->QuotationType ?? 'Regular';
-                            $_posOptions = ['01 - Jammu & Kashmir','02 - Himachal Pradesh','03 - Punjab','04 - Chandigarh','05 - Uttarakhand','06 - Haryana','07 - Delhi','08 - Rajasthan','09 - Uttar Pradesh','10 - Bihar','11 - Sikkim','12 - Arunachal Pradesh','13 - Nagaland','14 - Manipur','15 - Mizoram','16 - Tripura','17 - Meghalaya','18 - Assam','19 - West Bengal','20 - Jharkhand','21 - Odisha','22 - Chhattisgarh','23 - Madhya Pradesh','24 - Gujarat','25 - Daman & Diu','26 - Dadra & Nagar Haveli','27 - Maharashtra','29 - Karnataka','30 - Goa','31 - Lakshadweep','32 - Kerala','33 - Tamil Nadu','34 - Puducherry','35 - Andaman & Nicobar Islands','36 - Telangana','37 - Andhra Pradesh','97 - Other Territory','96 - Foreign Country'];
-                            $_savedPos   = $isEdit ? ($InvData->PlaceOfSupply ?? '') : '';
                             ?>
 
                             <!-- ── Toolbar: Type & Dispatch From ─────────────────────────────── -->
@@ -278,7 +276,7 @@ if ($isEdit) {
                                             <select id="customerSearch" name="customerSearch" class="form-select form-select-sm"></select>
                                         <?php endif; ?>
                                     </div>
-                                    <div class="col-md-2">
+                                    <div class="col-md-4">
                                         <label for="transDate" class="trans-field-label">Invoice Date <span class="text-danger">*</span></label>
                                         <?php if ($isEdit && !$isDraftEdit): ?>
                                             <input type="hidden" name="transDate" value="<?php echo htmlspecialchars(format_datedisplay($InvData->TransDate, 'Y-m-d')); ?>" />
@@ -293,21 +291,12 @@ if ($isEdit) {
                                             </div>
                                         <?php endif; ?>
                                     </div>
-                                    <div class="col-md-2">
+                                    <div class="col-md-4">
                                         <label for="dueDate" class="trans-field-label">Due Date</label>
                                         <div class="input-group input-group-sm input-group-merge">
                                             <span class="input-group-text bg-white"><i class="icon-base bx bx-calendar"></i></span>
                                             <input type="text" class="form-control form-control-sm bg-white" id="dueDate" name="dueDate" readonly="readonly" value="<?php echo ($isEdit && !empty($InvData->ValidityDate)) ? htmlspecialchars(format_datedisplay($InvData->ValidityDate, 'Y-m-d')) : ''; ?>" />
                                         </div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label for="placeOfSupply" class="trans-field-label">Place of Supply</label>
-                                        <select id="placeOfSupply" name="placeOfSupply" class="form-select form-select-sm bg-white">
-                                            <option value="">— Select State —</option>
-                                            <?php foreach ($_posOptions as $_posOpt): ?>
-                                            <option value="<?php echo htmlspecialchars($_posOpt); ?>"<?php echo ($_savedPos === $_posOpt) ? ' selected' : ''; ?>><?php echo htmlspecialchars($_posOpt); ?></option>
-                                            <?php endforeach; ?>
-                                        </select>
                                     </div>
                                 </div>
 
@@ -331,6 +320,7 @@ if ($isEdit) {
                                 'transTermsContent'     => $_termsVal,
                                 'transShowDropzone'     => true,
                                 'transSignatureUID'     => $isEdit ? (int)($InvData->SignatureUID ?? 0) : 0,
+                                'transSignatures'       => $JwtData->User->Signatures ?? [],
                                 'transPaymentVars'      => !$isEdit ? [
                                     'PaymentTypes'     => $PaymentTypes ?? [],
                                     'BankAccounts'     => $BankAccounts ?? [],
@@ -374,8 +364,6 @@ if ($isEdit) {
 <script src="/js/transactions/attachments.js"></script>
 
 <script>
-const StateInfo     = <?php echo json_encode($StateData); ?>;
-const CityInfo      = <?php echo json_encode($CityData); ?>;
 const EnableStorage = <?php echo $JwtData->GenSettings->EnableStorage; ?>;
 var _isEdit    = <?php echo $isEdit ? 'true' : 'false'; ?>;
 var _orgState  = '<?php echo addslashes($DispatchAddress->StateText ?? ''); ?>';
@@ -653,7 +641,6 @@ $(function() {
             }
             fd.append('invoiceType',            $('[name="invoiceType"]').val() || '');
             fd.append('dispatchFrom',           $('[name="dispatchFrom"]').val() || '');
-            fd.append('placeOfSupply',          $('#placeOfSupply').val() || '');
             fd.append('referenceDetails',       $.trim($('#referenceDetails').val()));
             fd.append('transNotes',             $.trim($('#transNotes').val()));
             fd.append('transTermsCond',         $.trim($('#transTermsCond').val()));
@@ -723,33 +710,8 @@ $(function() {
 
     }
 
-    // Auto-fill Place of Supply from Select2 customer selection
-    $('#customerSearch').on('select2:select', function(e) {
-        var state = (e.params.data.address && e.params.data.address.State) ? e.params.data.address.State : '';
-        _autoFillPlaceOfSupply(state);
-    });
-
-    // Hook for customer search modal selection (called from customer_search.js)
-    window._onCustStateSelected = function(stateText) {
-        _autoFillPlaceOfSupply(stateText);
-    };
-
 });
 
-function _autoFillPlaceOfSupply(stateText) {
-    if (!stateText || !$('#placeOfSupply').length) return;
-    var st = stateText.trim().toLowerCase();
-    var matched = false;
-    $('#placeOfSupply option').each(function() {
-        var label = $(this).text().replace(/^\d+\s*-\s*/, '').trim().toLowerCase();
-        if (label && label === st) {
-            $('#placeOfSupply').val($(this).val());
-            matched = true;
-            return false;
-        }
-    });
-    if (!matched) $('#placeOfSupply').val('');
-}
 
 function _showSavedAndGo(title, msg) {
     Swal.fire({

@@ -4,6 +4,98 @@
    No inline styles. All custom CSS lives here.
    ============================================================================= */
 
+/* ── Product section — search toolbar, table header & footer ─────────────── */
+
+/* Search toolbar row (Select Category / Search product / Qty / Add to Bill) */
+.prod-header-static {
+    background: linear-gradient(135deg, #f0f4ff 0%, #e8eeff 100%) !important;
+    border: 1px solid #d0d8ff !important;
+    border-bottom: none !important;
+    border-radius: 8px 8px 0 0 !important;
+    padding: 10px 12px !important;
+    margin-bottom: 0 !important;
+    box-shadow: none !important;
+}
+
+/* Table card directly below toolbar — flush, no gap */
+.prod-header-static + .card {
+    border-top: 1px solid #d0d8ff !important;
+    border-radius: 0 0 8px 8px !important;
+    margin-top: 0 !important;
+    box-shadow: 0 1px 4px rgba(105,108,255,.08);
+}
+
+/* Table header */
+#billTable thead th {
+    background: #eef0ff !important;
+    color: #4a4f9e !important;
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    border-color: #d8dbff !important;
+    padding: 9px 10px;
+    white-space: nowrap;
+}
+#billTable thead th select,
+#billTable thead th .form-select {
+    background: #fff !important;
+    color: #4a4f9e !important;
+    border-color: #c9ccf0 !important;
+    font-size: .72rem;
+    font-weight: 600;
+}
+#billTable thead th select option { color: #333; background: #fff; }
+
+/* Restore dropdown arrow on discApplyFor only */
+#discApplyFor {
+    -webkit-appearance: auto !important;
+    -moz-appearance: auto !important;
+    appearance: auto !important;
+    padding-right: 1.5rem !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24'%3E%3Cpath fill='%234a4f9e' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 0.4rem center !important;
+    background-size: 14px !important;
+}
+
+/* Table footer */
+#billTable tfoot td {
+    background: linear-gradient(135deg, #f0f4ff 0%, #e8eeff 100%) !important;
+    border-top: 2px solid #696cff !important;
+    padding: 8px 10px;
+    font-size: .8rem;
+}
+#billTable tfoot .text-primary { color: #696cff !important; font-weight: 700; }
+
+/* No gap between toolbar and table */
+#billTable { border-radius: 0 0 8px 8px; margin-top: 0; }
+
+/* ── TEMPORARY: reduce content area top / left / right spacing ─────────────
+   1. Top space above page title — reduce container-p-y block-start
+   2. Left/right container padding — tighten container-xxl inline padding
+   3. Stat-card → tab row gap — reduce margin on the stats wrapper
+-------------------------------------------------------------------------- */
+
+/* Top space: override layout-navbar-fixed container-p-y rule */
+.layout-navbar-fixed .container-p-y:not([class^=pt-]):not([class*=" pt-"]) {
+    padding-block-start: 0.1rem !important;
+}
+/* Also override the menu-horizontal + container 5.25rem offset — reduce top gap */
+.layout-menu-fixed .layout-horizontal .layout-page .menu-horizontal + [class*=container-],
+.layout-menu-fixed-offcanvas .layout-horizontal .layout-page .menu-horizontal + [class*=container-] {
+    padding-block-start: 4.5rem !important;
+}
+
+/* Left/right: tighten container-xxl padding */
+.content-wrapper .container-xxl {
+    padding-left:  0.5rem !important;
+    padding-right: 0.5rem !important;
+}
+
+/* ── S.No column — shrink-to-content ─────────────────────────────────────── */
+.table-serialno { width: 1%; white-space: nowrap; }
+
 /* ── Bill table drag-to-reorder ───────────────────────────────────────────── */
 .drag-handle { user-select: none; }
 .drag-handle:active { cursor: grabbing; }

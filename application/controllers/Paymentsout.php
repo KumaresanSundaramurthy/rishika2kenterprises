@@ -24,7 +24,7 @@ class Paymentsout extends MY_Controller {
 
             $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
             $limit  = $GeneralSettings->RowLimit ?? 10;
-            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
 
             $filter = ['ModuleUID' => 111, 'PaymentDirection' => 'Out'];
 
@@ -62,7 +62,7 @@ class Paymentsout extends MY_Controller {
             $PostData   = $this->input->post();
             $paymentUID = (int) getPostValue($PostData, 'PaymentUID');
             $userUID    = $this->pageData['JwtData']->User->UserUID;
-            $orgUID     = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID     = $this->pageData['JwtData']->Org->OrgUID;
 
             if ($paymentUID <= 0) throw new Exception('Invalid payment record.');
 
@@ -131,7 +131,7 @@ class Paymentsout extends MY_Controller {
             $filter['PaymentDirection'] = 'Out';
             unset($filter['PartyType']);
 
-            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
 
             $this->load->model('transactions_model');
             $allData      = $this->transactions_model->getPaymentsList($limit, $offset, $orgUID, $filter);

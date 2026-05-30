@@ -29,7 +29,7 @@ class Cachehelper {
     public function upsertCustomer($customerUID) {
         try {
             $CI     =& get_instance();
-            $orgUID = (int) $CI->pageData['JwtData']->User->OrgUID;
+            $orgUID = (int) $CI->pageData['JwtData']->Org->OrgUID;
             $uid    = (int) $customerUID;
             if ($uid <= 0) return;
 
@@ -56,8 +56,9 @@ class Cachehelper {
             }
 
             $obRow          = $CI->customers_model->getCustomerOpeningBalance($orgUID, $uid);
-            $openingBalance = $obRow ? (float)$obRow->OpeningBalance : 0.0;
-            $openingBalType = $obRow ? $obRow->OpeningBalType        : 'Debit';
+            // ClosingBalance = current outstanding after all invoices & payments
+            $closingBalance = $obRow ? (float)($obRow->PendingBalance ?? $obRow->OpeningBalance) : 0.0;
+            $closingBalType = $obRow ? ($obRow->PendingBalType        ?? $obRow->OpeningBalType)  : 'Debit';
 
             $cacheKey = $CI->redisservice->orgKey('customers');
             $cacheMap = $CI->upstashservice->get($cacheKey);
@@ -81,8 +82,8 @@ class Cachehelper {
                 'DiscountPercent' => (float)($cust->DiscountPercent ?? 0),
                 'CreditPeriod'    => (int)($cust->CreditPeriod     ?? 0),
                 'CreditLimit'     => (float)($cust->CreditLimit    ?? 0),
-                'OpeningBalance'  => $openingBalance,
-                'OpeningBalType'  => $openingBalType,
+                'ClosingBalance'  => $closingBalance,
+                'ClosingBalType'  => $closingBalType,
                 'Area'            => $cust->Area  ?? '',
                 'Tags'            => $cust->Tags  ?? '',
                 'Notes'           => $cust->Notes ?? '',
@@ -144,7 +145,7 @@ class Cachehelper {
     public function upsertVendor($vendorUID) {
         try {
             $CI     =& get_instance();
-            $orgUID = (int) $CI->pageData['JwtData']->User->OrgUID;
+            $orgUID = (int) $CI->pageData['JwtData']->Org->OrgUID;
             $uid    = (int) $vendorUID;
             if ($uid <= 0) return;
 
@@ -256,7 +257,7 @@ class Cachehelper {
     public function upsertProduct($productUID) {
         try {
             $CI     =& get_instance();
-            $orgUID = (int) $CI->pageData['JwtData']->User->OrgUID;
+            $orgUID = (int) $CI->pageData['JwtData']->Org->OrgUID;
             $uid    = (int) $productUID;
             if ($uid <= 0) return;
 
@@ -340,7 +341,7 @@ class Cachehelper {
     public function upsertCategory($categoryUID) {
         try {
             $CI     =& get_instance();
-            $orgUID = (int) $CI->pageData['JwtData']->User->OrgUID;
+            $orgUID = (int) $CI->pageData['JwtData']->Org->OrgUID;
             $uid    = (int) $categoryUID;
             if ($uid <= 0) return;
 

@@ -291,6 +291,7 @@ if (!empty($DispatchAddress)) {
                                 'transTermsContent'     => $_termsVal,
                                 'transShowDropzone'     => true,
                                 'transSignatureUID'     => $isEdit ? (int)($DCData->SignatureUID ?? 0) : 0,
+                                'transSignatures'       => $JwtData->User->Signatures ?? [],
                             ]); ?>
 
                         </div>

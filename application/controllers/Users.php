@@ -22,7 +22,7 @@ class Users extends MY_Controller {
         try {
             $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
             $limit  = $GeneralSettings->RowLimit ?? 10;
-            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
 
             $filter = ['Status' => 'All'];
 
@@ -57,7 +57,7 @@ class Users extends MY_Controller {
             $offset = ($pageNo - 1) * $limit;
             $filter = $this->input->post('Filter') ?: [];
 
-            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
 
             $allData      = $this->users_model->getUsersList($orgUID, $filter, $limit, $offset);
             $allDataCount = $this->users_model->getUsersCount($orgUID, $filter);
@@ -85,7 +85,7 @@ class Users extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
             $userUID = (int)($this->input->post('UserUID') ?: 0);
-            $orgUID  = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID  = $this->pageData['JwtData']->Org->OrgUID;
 
             if ($userUID <= 0) throw new Exception('Invalid user.');
 
@@ -120,7 +120,7 @@ class Users extends MY_Controller {
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'User status updated successfully.';
-            $this->_appendListResponse($JwtData->User->OrgUID);
+            $this->_appendListResponse($JwtData->Org->OrgUID);
 
         } catch (Throwable $e) {
             $this->EndReturnData->Error   = TRUE;
@@ -163,8 +163,8 @@ class Users extends MY_Controller {
                 'CountryCode'  => $CountryCode ?: NULL,
                 'CountryISO2'  => $CountryISO2 ?: 'IN',
                 'RoleUID'      => $RoleUID,
-                'OrgUID'       => $JwtData->User->OrgUID,
-                'BranchUID'    => $JwtData->User->BranchUID,
+                'OrgUID'       => $JwtData->Org->OrgUID,
+                'BranchUID'    => $JwtData->Org->BranchUID,
                 'IsActive'     => $IsActive,
                 'IsDeleted'    => 0,
             ];
@@ -259,7 +259,7 @@ class Users extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
-            $orgUID = $JwtData->User->OrgUID;
+            $orgUID = $JwtData->Org->OrgUID;
             $this->load->model('users_model');
             $orgUsers = $this->users_model->getOrgUsersForCache($orgUID);
             $this->redisservice->setCache($this->redisservice->orgKey('org_users'), $orgUsers, 86400);
@@ -273,7 +273,7 @@ class Users extends MY_Controller {
             $this->EndReturnData->Message = $msg;
             $this->EndReturnData->UID     = $UserUID;
 
-            $this->_appendListResponse($JwtData->User->OrgUID);
+            $this->_appendListResponse($JwtData->Org->OrgUID);
 
         } catch (Throwable $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -348,7 +348,7 @@ class Users extends MY_Controller {
 
     // ── Org user list for caching (shared across all pages) ──────────────────
     public function getOrgUsers() {
-        $orgUID   = (int)$this->pageData['JwtData']->User->OrgUID;
+        $orgUID   = (int)$this->pageData['JwtData']->Org->OrgUID;
         $cacheKey = $this->redisservice->orgKey('org_users');
         $users    = $this->redisservice->getCache($cacheKey);
         if (empty($users)) {

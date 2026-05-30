@@ -22,25 +22,35 @@ class Login_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
+            // User — personal identity fields only
             $JwtUserData = [];
-            $JwtUserData['UserUID'] = $UserData->UserUID;
-            $JwtUserData['FirstName'] = $UserData->UserFirstName;
-            $JwtUserData['LastName'] = $UserData->UserLastName;
-            $JwtUserData['UserName'] = $UserData->UserName;
+            $JwtUserData['UserUID']      = $UserData->UserUID;
+            $JwtUserData['FirstName']    = $UserData->UserFirstName;
+            $JwtUserData['LastName']     = $UserData->UserLastName;
+            $JwtUserData['UserName']     = $UserData->UserName;
             $JwtUserData['EmailAddress'] = $UserData->UserEmailAddress;
-            $JwtUserData['UserImage'] = $UserData->UserImage;
-            $JwtUserData['OrgUID'] = $UserData->UserOrgUID;
-            $JwtUserData['BranchUID'] = $UserData->UserOrgUID;
-            $JwtUserData['OrgCCode'] = $UserData->UserOrgCCode;
-            $JwtUserData['OrgCISO2'] = $UserData->UserOrgCISO2;
-            $JwtUserData['OrgLogo'] = $UserData->UserOrgLogo;
-            $JwtUserData['OrgName'] = !empty($UserData->UserOrgBrandName) ? $UserData->UserOrgBrandName : ($UserData->UserOrgName ?? '');
-            $JwtUserData['OrgMobile'] = $UserData->UserOrgMobile ?? '';
-            $JwtUserData['RoleUID'] = $UserData->UserRoleUID;
-            $JwtUserData['RoleName'] = $UserData->UserRoleName;
-            $JwtUserData['Timezone'] = $UserData->Timezone;
+            $JwtUserData['UserImage']    = $UserData->UserImage;
+            $JwtUserData['RoleUID']      = $UserData->UserRoleUID;
+            $JwtUserData['RoleName']     = $UserData->UserRoleName;
+            $JwtUserData['Timezone']     = $UserData->Timezone;
+            $JwtUserData['Signatures']   = $this->_loadUserSignatures($UserData->UserUID, $UserData->UserOrgUID);
+            // Keep OrgShortCode/OrgToken in User for backward compat (header.php prefix building)
             $JwtUserData['OrgShortCode'] = $UserData->OrgShortCode ?? '';
             $JwtUserData['OrgToken']     = $UserData->OrgToken     ?? '';
+
+            // Org — organisation-level fields
+            $JwtOrgData = [];
+            $JwtOrgData['OrgUID']       = $UserData->UserOrgUID;
+            $JwtOrgData['BranchUID']    = $UserData->UserOrgUID;
+            $JwtOrgData['OrgCCode']     = $UserData->UserOrgCCode;
+            $JwtOrgData['OrgCISO2']     = $UserData->UserOrgCISO2;
+            $JwtOrgData['OrgLogo']      = $UserData->UserOrgLogo;
+            $JwtOrgData['OrgName']      = !empty($UserData->UserOrgBrandName) ? $UserData->UserOrgBrandName : ($UserData->UserOrgName ?? '');
+            $JwtOrgData['OrgMobile']    = $UserData->UserOrgMobile   ?? '';
+            $JwtOrgData['OrgShortCode'] = $UserData->OrgShortCode    ?? '';
+            $JwtOrgData['OrgToken']     = $UserData->OrgToken        ?? '';
+            $JwtOrgData['StateCode']    = $UserData->OrgStateCode    ?? '';
+            $JwtOrgData['StateName']    = $UserData->OrgStateName    ?? '';
 
             $MainModule = $this->getRoleMainMenus($UserData->UserRoleUID)->Data;
             $SubModule  = $this->getRoleSubMenus($UserData->UserRoleUID)->Data;
@@ -68,7 +78,7 @@ class Login_model extends CI_Model {
                 }
             }
 
-            $jwtPayload = array('User' => $JwtUserData, 'UserMainModule' => $MainModule, 'UserSubModule' => $SubModule, 'Permissions' => $Permissions, 'GenSettings' => $GeneralSettings, 'ProdSettings' => $ProductSettings, 'ModuleInfo' => $ModuleInfo);
+            $jwtPayload = array('User' => $JwtUserData, 'Org' => $JwtOrgData, 'UserMainModule' => $MainModule, 'UserSubModule' => $SubModule, 'Permissions' => $Permissions, 'GenSettings' => $GeneralSettings, 'ProdSettings' => $ProductSettings, 'ModuleInfo' => $ModuleInfo);
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Message = 'Success';
@@ -196,7 +206,7 @@ class Login_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->ReadDb->select('GeneralSettg.DecimalPoints as DecimalPoints, GeneralSettg.CurrenySymbol as CurrenySymbol, GeneralSettg.PriceMaxLength as PriceMaxLength, GeneralSettg.RowLimit as RowLimit, GeneralSettg.EnableStorage as EnableStorage, GeneralSettg.MandatoryStorage as MandatoryStorage, GeneralSettg.SerialNoDisplay as SerialNoDisplay, GeneralSettg.QtyMaxLength as QtyMaxLength, GeneralSettg.FYStartMonth as FYStartMonth');
+            $this->ReadDb->select('GeneralSettg.DecimalPoints as DecimalPoints, GeneralSettg.CurrenySymbol as CurrenySymbol, GeneralSettg.PriceMaxLength as PriceMaxLength, GeneralSettg.RowLimit as RowLimit, GeneralSettg.EnableStorage as EnableStorage, GeneralSettg.MandatoryStorage as MandatoryStorage, GeneralSettg.SerialNoDisplay as SerialNoDisplay, GeneralSettg.QtyMaxLength as QtyMaxLength, GeneralSettg.FYStartMonth as FYStartMonth, GeneralSettg.MaxShippingAddr as MaxShippingAddr');
             $this->ReadDb->from('Settings.OrgSettingsTbl as GeneralSettg');
             $this->ReadDb->where('GeneralSettg.OrgUID', $OrgUID);
             $this->ReadDb->limit(1);
@@ -315,6 +325,32 @@ class Login_model extends CI_Model {
             throw new Exception($e->getMessage());
         }
 
+    }
+
+    private function _loadUserSignatures($userUID, $orgUID) {
+        try {
+            $this->load->model('signature_model');
+            $result  = $this->signature_model->getSignatureList((int)$userUID, (int)$orgUID);
+            if ($result->Error || empty($result->Data)) return [];
+
+            $cdnBase = getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv('CFLARE_R2_CDN');
+            $list    = [];
+            foreach ($result->Data as $sig) {
+                $imgSrc = ($sig->SignatureType === 'Draw')
+                    ? ($sig->DrawData ?? '')
+                    : ($cdnBase . ($sig->ImagePath ?? ''));
+                $list[] = [
+                    'SignatureUID'  => (int)$sig->SignatureUID,
+                    'Label'         => $sig->Label,
+                    'SignatureType' => $sig->SignatureType,
+                    'ImgSrc'        => $imgSrc,
+                    'IsDefault'     => (int)$sig->IsDefault,
+                ];
+            }
+            return $list;
+        } catch (Exception $e) {
+            return [];
+        }
     }
 
 }

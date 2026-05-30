@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
+<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Transactions extends CI_Controller {
 
@@ -19,7 +19,7 @@ class Transactions extends CI_Controller {
         $this->EndReturnData = new stdClass();
         try {
 
-            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
 
             $this->load->model('transactions_model');
             $result = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.OrgUID' => $orgUID]);
@@ -57,7 +57,7 @@ class Transactions extends CI_Controller {
             $now     = time();
 
             $addFormData = [
-                'OrgUID'           => $this->pageData['JwtData']->User->OrgUID,
+                'OrgUID'           => $this->pageData['JwtData']->Org->OrgUID,
                 'Name'             => strtoupper(getPostValue($PostData, 'transPrefixName')),
                 'IncludeFiscalYear'=> getPostValue($PostData, 'includeFiscalYear') ? 1 : 0,
                 'FiscalYearFormat' => in_array(getPostValue($PostData, 'fiscalYearFormat'), ['SHORT','LONG'])
@@ -116,7 +116,7 @@ class Transactions extends CI_Controller {
             if (!empty($ErrorInForm)) throw new Exception($ErrorInForm);
 
             $userUID = $this->pageData['JwtData']->User->UserUID;
-            $orgUID  = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID  = $this->pageData['JwtData']->Org->OrgUID;
 
             $updateData = [
                 'Name'             => strtoupper(getPostValue($PostData, 'transPrefixName')),
@@ -169,7 +169,7 @@ class Transactions extends CI_Controller {
             if ($prefixUID <= 0) throw new Exception('Invalid prefix.');
 
             $userUID = $this->pageData['JwtData']->User->UserUID;
-            $orgUID  = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID  = $this->pageData['JwtData']->Org->OrgUID;
 
             $this->load->model('dbwrite_model');
             $resp = $this->dbwrite_model->updateData(
@@ -208,7 +208,7 @@ class Transactions extends CI_Controller {
             $prefixUID = (int) getPostValue($PostData, 'prePrefixUID');
             if ($prefixUID <= 0) throw new Exception('Invalid prefix.');
 
-            $orgUID  = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID  = $this->pageData['JwtData']->Org->OrgUID;
             $userUID = $this->pageData['JwtData']->User->UserUID;
 
             $this->load->model('transactions_model');
@@ -256,7 +256,7 @@ class Transactions extends CI_Controller {
             $term = $this->input->get('term') ? trim($this->input->get('term')) : '';
 
             $this->load->model('vendors_model');
-            $orgUID = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
             $filter = !empty($term) ? ['SearchAllData' => $term] : [];
             $result = $this->vendors_model->getVendorListPaginated($orgUID, 20, 0, $filter);
 
@@ -347,7 +347,7 @@ class Transactions extends CI_Controller {
             $transUID   = (int) $this->input->get_post('TransUID');
             $moduleUID  = (int) $this->input->get_post('ModuleUID');
             $printType  = $this->input->get_post('PrintType') ?: 'a4'; // 'thermal' | 'a4'
-            $orgUID     = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID     = $this->pageData['JwtData']->Org->OrgUID;
             $isThermal  = ($printType === 'thermal');
 
             if ($transUID  <= 0) throw new Exception('Invalid transaction.');
@@ -483,7 +483,7 @@ class Transactions extends CI_Controller {
 
             $transUID  = (int) $this->input->get_post('TransUID');
             $moduleUID = (int) $this->input->get_post('ModuleUID');
-            $orgUID    = $this->pageData['JwtData']->User->OrgUID;
+            $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
 
             if ($transUID  <= 0) throw new Exception('Invalid transaction.');
             if ($moduleUID <= 0) throw new Exception('ModuleUID is required.');

@@ -83,10 +83,12 @@ class RedisService {
     private function buildOrgPrefix($shortCode = '', $token = '') {
         if (empty($shortCode) || empty($token)) {
             try {
-                $CI        = &get_instance();
-                $user      = $CI->pageData['JwtData']->User;
-                $shortCode = $shortCode ?: ($user->OrgShortCode ?? '');
-                $token     = $token     ?: ($user->OrgToken     ?? '');
+                $CI      = &get_instance();
+                $jwtData = isset($CI->pageData) ? ($CI->pageData['JwtData'] ?? null) : null;
+                if (!$shortCode) {
+                    $shortCode = $jwtData->Org->OrgShortCode;
+                    $token     = $jwtData->Org->OrgToken ?? '';
+                }
             } catch (Exception $e) {}
         }
         if (empty($shortCode) || empty($token)) return '';

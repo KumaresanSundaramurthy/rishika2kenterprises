@@ -47,8 +47,7 @@ class Organisation extends CI_Controller {
 
             // Timezone list is loaded via AJAX after page render — not blocking here.
 
-            $GeneralSettings = $this->redisservice->getUserCache('settings') ?? new stdClass();
-            $this->pageData['JwtData']->GenSettings = $GeneralSettings;
+            $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
 
             $this->load->view('organisation/view', $this->pageData);
 

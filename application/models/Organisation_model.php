@@ -239,12 +239,13 @@ class Organisation_model extends CI_Model {
     public function getAllOrgDispatchAddresses($orgUID) {
         try {
             $this->ReadDb->db_debug = FALSE;
-            $this->ReadDb->select('OrgAddressUID, OrgUID, AddressType, Line1, Line2, Pincode, CityText, StateText');
-            $this->ReadDb->from('Organisation.OrgAddressTbl');
-            $this->ReadDb->where('OrgUID',    (int) $orgUID);
-            $this->ReadDb->where('IsActive',  1);
-            $this->ReadDb->where('IsDeleted', 0);
-            $this->ReadDb->order_by('AddressType', 'ASC');
+            $this->ReadDb->select('a.OrgAddressUID, a.OrgUID, a.AddressType, a.Line1, a.Line2, a.Pincode, a.CityText, a.StateText, o.Name AS OrgName');
+            $this->ReadDb->from('Organisation.OrgAddressTbl a');
+            $this->ReadDb->join('Organisation.OrganisationTbl o', 'o.OrgUID = a.OrgUID', 'left');
+            $this->ReadDb->where('a.OrgUID',    (int) $orgUID);
+            $this->ReadDb->where('a.IsActive',  1);
+            $this->ReadDb->where('a.IsDeleted', 0);
+            $this->ReadDb->order_by('a.AddressType', 'ASC');
             return $this->ReadDb->get()->result() ?? [];
         } catch (Exception $e) {
             return [];

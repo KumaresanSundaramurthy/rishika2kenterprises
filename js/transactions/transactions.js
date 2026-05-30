@@ -1632,6 +1632,174 @@ $(document).ready(function () {
     'use strict'
 
     $('#billTableBody').html(emptyTableTrInfo);
+
+    // ── Cart controls visibility (called on every add / remove / clear) ───────
+    function _syncCartControls() {
+        var count = $('#billTableBody tr[data-id]').length;
+        // Clear All: visible when ≥ 1 item
+        $('#btnClearCart').toggleClass('d-none', count < 1);
+        // Reverse Order: visible when ≥ 2 items
+        $('#chkReverseOrder').closest('.form-check-inline').toggleClass('d-none', count < 2);
+    }
+    _syncCartControls(); // init — hidden by default on empty cart
+
+    // ── Show / Hide description rows ──────────────────────────────────────────
+    // Uses d-none toggle — safe against d-flex Bootstrap class conflict
+    $(document).on('change', '#chkShowDesc', function () {
+        var hide = !$(this).is(':checked');
+        $('.bill-desc-wrap').toggleClass('d-none', hide);
+    });
+
+    // ── Reverse item order (visual only) ──────────────────────────────────────
+    $(document).on('change', '#chkReverseOrder', function () {
+        var $tbody = $('#billTableBody');
+        var rows   = $tbody.find('tr[data-id]').get(); // DOM array [tr1, tr2, tr3]
+
+        if ($(this).is(':checked')) {
+            // Detach all rows, reverse array, re-append → [tr3, tr2, tr1]
+            $tbody.find('tr[data-id]').detach();
+            rows.reverse().forEach(function (r) { $tbody.append(r); });
+        } else {
+            // Restore original billManager.items order
+            $tbody.find('tr[data-id]').detach();
+            billManager.items.forEach(function (item) {
+                var r = rows.find(function (el) {
+                    return parseInt(el.dataset.id, 10) === parseInt(item.id, 10);
+                });
+                if (r) $tbody.append(r);
+            });
+        }
+    });
+
+    // ── Clear all cart items ───────────────────────────────────────────────────
+    $(document).on('click', '#btnClearCart', function () {
+        if (!$('#billTableBody tr[data-id]').length) return;
+        Swal.fire({
+            title            : 'Clear all items?',
+            text             : 'All items will be removed from the cart.',
+            icon             : 'warning',
+            showCancelButton : true,
+            confirmButtonColor: '#dc2626',
+            confirmButtonText: '<i class="bx bx-trash me-1"></i> Yes, Clear All',
+            cancelButtonText : 'Cancel',
+            reverseButtons   : true,
+        }).then(function (result) {
+            if (!result.isConfirmed) return;
+            // Clear billManager state
+            billManager.items  = [];
+            billManager.map    = {};
+            billManager.summary = billManager._buildEmptySummary
+                ? billManager._buildEmptySummary()
+                : { items: { count:0, totalQuantity:0, taxableAmount:0, discountTotal:0, netAmount:0 },
+                    taxSummary:{}, taxRates:[], additionalCharges:{ shipping:{}, packing:{}, handling:{}, other:{}, total:{taxAmount:0} },
+                    taxTotals:{ totalTax:0, cgstTotal:0, sgstTotal:0, igstTotal:0 },
+                    totals:{ grandTotal:0, roundOff:0 } };
+            // Clear DOM
+            var emptyRow = '<tr class="text-center text-muted"><td colspan="7"><div class="py-4">' +
+                '<i class="bx bx-cart text-primary" style="font-size:2rem;"></i>' +
+                '<p class="mt-2 mb-0">No items added yet</p>' +
+                '<small class="text-muted">Click "Add Product" or search above to get started</small>' +
+                '</div></td></tr>';
+            $('#billTableBody').html(emptyRow);
+            // Reset totals display
+            billManager.updateSummary && billManager.updateSummary();
+            $('.sumItemCount').text('0');
+            $('.sumTotalQty').text('0');
+            $('.sumNetTotal').text(smartDecimal(0, genSettings.DecimalPoints, true));
+            // Hide controls — cart is empty
+            $('#btnClearCart').addClass('d-none');
+            $('#chkReverseOrder').closest('.form-check-inline').addClass('d-none');
+            // Reset reverse checkbox state
+            $('#chkReverseOrder').prop('checked', false);
+        });
+    });
+
+    // ── Drag-to-reorder bill items ─────────────────────────────────────────────
+    (function () {
+        var tbody = document.getElementById('billTableBody');
+        if (!tbody || typeof Sortable === 'undefined') return;
+        Sortable.create(tbody, {
+            handle    : '.drag-handle',
+            animation : 150,
+            ghostClass: 'sortable-ghost',
+            onEnd: function () {
+                // Rebuild billManager.items to match the new DOM order
+                var reordered = [];
+                $('#billTableBody tr[data-id]').each(function () {
+                    var id   = parseInt($(this).data('id'), 10);
+                    var item = billManager.getItemById(id);
+                    if (item) reordered.push(item);
+                });
+                billManager.items = reordered;
+                billManager.map   = {};
+                reordered.forEach(function (item) {
+                    billManager.map[parseInt(item.id, 10)] = item;
+                });
+                renumberTableRows();
+            }
+        });
+    }());
+
+    // ── Dispatch From — rich address card dropdown ─────────────────────────────
+    (function () {
+        var $sel = $('#dispatchFrom');
+        if (!$sel.length) return;
+
+        $sel.select2({
+            allowClear     : false,
+            width          : '100%',
+            dropdownParent : $sel.closest('.modal-content').length
+                ? $sel.closest('.modal-content')
+                : $('body'),
+
+            templateResult: function (data) {
+                if (!data.id || !data.element) return data.text;
+                var el       = data.element;
+                var orgName  = $(el).data('orgname')  || '';
+                var line1    = $(el).data('line1')     || '';
+                var line2    = $(el).data('line2')     || '';
+                var city     = $(el).data('city')      || '';
+                var state    = $(el).data('state')     || '';
+                var pin      = $(el).data('pin')       || '';
+                var type     = $(el).data('type')      || '';
+                var cityState = [city, state + (pin ? ' ' + pin : '')].filter(Boolean).join(', ');
+                var isSelected = $sel.val() == data.id;
+
+                return $('<div style="padding:8px 4px;display:flex;align-items:flex-start;gap:10px;">' +
+                    '<div style="flex-shrink:0;margin-top:3px;">' +
+                        (isSelected
+                            ? '<i class="bx bx-check-circle" style="font-size:1.1rem;color:#696cff;"></i>'
+                            : '<i class="bx bx-circle" style="font-size:1.1rem;color:#d0d3d4;"></i>') +
+                    '</div>' +
+                    '<div style="flex:1;min-width:0;">' +
+                        (orgName ? '<div style="font-weight:600;font-size:.875rem;color:#444;margin-bottom:2px;">' + $('<span>').text(orgName).html() + '</div>' : '') +
+                        (line1   ? '<div style="font-size:.8rem;color:#555;">' + $('<span>').text(line1).html() + '</div>' : '') +
+                        (line2   ? '<div style="font-size:.8rem;color:#555;">' + $('<span>').text(line2).html() + '</div>' : '') +
+                        (cityState ? '<div style="font-size:.78rem;color:#777;">' + $('<span>').text(cityState).html() + '</div>' : '') +
+                        (type    ? '<span style="display:inline-block;margin-top:4px;font-size:.68rem;font-weight:600;letter-spacing:.4px;padding:1px 7px;border-radius:4px;background:#f0edff;color:#696cff;">' + $('<span>').text(type).html() + '</span>' : '') +
+                    '</div>' +
+                '</div>');
+            },
+
+            templateSelection: function (data) {
+                if (!data.id || !data.element) return data.text;
+                var el    = data.element;
+                var line1 = $(el).data('line1') || '';
+                var city  = $(el).data('city')  || '';
+                var state = $(el).data('state') || '';
+                var pin   = $(el).data('pin')   || '';
+                var parts = [line1, [city, state].filter(Boolean).join(', '), pin].filter(Boolean);
+                return $('<span style="display:flex;align-items:center;min-width:0;">' +
+                    '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' +
+                        $('<span>').text(parts.join(' · ')).html() +
+                    '</span>' +
+                '</span>');
+            }
+        });
+
+        // Update checkmarks when selection changes
+        $sel.on('change', function () { $sel.select2('close').select2('open').select2('close'); });
+    }());
     
     (function () {
         var $el         = $('#prodCategory');
@@ -1669,9 +1837,12 @@ $(document).ready(function () {
                     }
 
                     // Fetch via CategoryAppend (Upstash → AJAX fallback)
+                    // CategoryAppend returns {uid,name} — map to {id,text} for Select2
                     CategoryAppend.load(
                         function (catgs) {
-                            catgCache = catgs;
+                            catgCache = catgs.map(function (c) {
+                                return { id: c.uid, text: c.name };
+                            });
                             AjaxLoading = 1;
                             success(_paginate(catgCache, term, page));
                         },
@@ -1918,28 +2089,18 @@ $(document).ready(function () {
         var netAmt   = smartDecimal(item.net_total, dec, true);
         var taxPct   = item.taxPercent || 0;
 
-        Swal.fire({
-            title             : 'Remove from Cart?',
-            html              :
-                '<div style="text-align:center;margin-bottom:8px;"><i class="bx bx-error-circle" style="font-size:2.5rem;color:#f59e0b;"></i></div>' +
-                '<div style="text-align:left;font-size:.88rem;">' +
-                    '<div style="background:#fff5f5;border:1px solid #fecaca;border-radius:8px;padding:12px 14px;margin-bottom:4px;">' +
-                        '<div style="font-weight:700;font-size:.95rem;color:#1e293b;margin-bottom:6px;">' + $('<span>').text(name).html() + '</div>' +
-                        '<div style="display:flex;gap:16px;flex-wrap:wrap;">' +
-                            '<div><span style="color:#64748b;font-size:.75rem;">QTY</span><br><span style="font-weight:600;">' + qty + (unit ? ' ' + $('<span>').text(unit).html() : '') + '</span></div>' +
-                            '<div><span style="color:#64748b;font-size:.75rem;">UNIT PRICE</span><br><span style="font-weight:600;">' + cur + ' ' + smartDecimal(item.unitPrice, dec, true) + '</span></div>' +
-                            '<div><span style="color:#64748b;font-size:.75rem;">TAX</span><br><span style="font-weight:600;">' + taxPct + '%</span></div>' +
-                            '<div><span style="color:#64748b;font-size:.75rem;">NET AMOUNT</span><br><span style="font-weight:600;color:#dc2626;">' + cur + ' ' + netAmt + '</span></div>' +
-                        '</div>' +
-                    '</div>' +
-                '</div>',
-            showCancelButton  : true,
-            confirmButtonColor: '#dc2626',
-            confirmButtonText : '<i class="bx bx-trash me-1"></i> Yes, Remove',
-            cancelButtonText  : 'Cancel',
-            reverseButtons    : true,
-        }).then(function(result) {
-            if (!result.isConfirmed) return;
+        // Populate the pre-rendered modal (HTML lives in common/transactions/remove_cart_modal.php)
+        $('#rcm-name').text(name);
+        $('#rcm-qty').text(qty + (unit ? ' ' + unit : ''));
+        $('#rcm-price').text(cur + ' ' + smartDecimal(item.unitPrice, dec, true));
+        $('#rcm-tax').text(taxPct + '%');
+        $('#rcm-net').text(cur + ' ' + netAmt);
+
+        var modal = new bootstrap.Modal(document.getElementById('removeCartModal'));
+        modal.show();
+
+        $('#rcm-confirm').off('click').on('click', function () {
+            modal.hide();
             var removed = billManager.removeItem(itemId);
             if (removed) {
                 $row.remove();
@@ -2388,68 +2549,55 @@ function searchCustomers(key) {
                 // Already loaded — paginate instantly
                 if (custCache) { _paginate(custCache); return; }
 
-                // Upstash direct (pages that inject _upstashUrl / _custCacheKey)
-                if (typeof _upstashUrl !== 'undefined' && _upstashUrl && typeof _custCacheKey !== 'undefined' && _custCacheKey) {
-                    $.ajax({
-                        url: _upstashUrl + '/get/' + encodeURIComponent(_custCacheKey),
-                        headers: { 'Authorization': 'Bearer ' + _upstashReadToken },
-                        dataType: 'json',
-                        success: function (resp) {
-                            var raw = resp.result;
-                            var map = typeof raw === 'string' ? JSON.parse(raw) : (raw || {});
-                            custCache = Object.keys(map).map(function (uid) {
-                                var c = map[uid];
-                                var entry = {
-                                    id:          parseInt(c.CustomerUID || uid, 10),
-                                    text:        c.Area ? (c.Name + ' (' + c.Area + ')') : (c.Name || ''),
-                                    name:        c.Name             || '',
-                                    area:        c.Area             || '',
-                                    mobile:      c.MobileNumber     || '',
-                                    email:       c.EmailAddress     || '',
-                                    gstin:       c.GSTIN            || '',
-                                    company:     c.CompanyName      || '',
-                                    contact:     c.ContactPerson    || '',
-                                    balance:     parseFloat(c.OpeningBalance || 0),
-                                    balanceType: c.OpeningBalType   || 'Debit',
-                                    lastTxAt:    c.LastTransactionAt || '',
+                // Fetch from Upstash via UpstashService (same pattern as categories/products)
+                if (UpstashService.isEnabled()) {
+                    UpstashService.get(UpstashService.orgKey('customers')).then(function (map) {
+                        if (!map || typeof map !== 'object') { _fallbackSearch(); return; }
+                        custCache = Object.keys(map).map(function (uid) {
+                            var c = map[uid];
+                            var entry = {
+                                id:          parseInt(c.CustomerUID || uid, 10),
+                                text:        c.Area ? (c.Name + ' (' + c.Area + ')') : (c.Name || ''),
+                                name:        c.Name             || '',
+                                area:        c.Area             || '',
+                                mobile:      c.MobileNumber     || '',
+                                email:       c.EmailAddress     || '',
+                                gstin:       c.GSTIN            || '',
+                                company:     c.CompanyName      || '',
+                                contact:     c.ContactPerson    || '',
+                                balance:     parseFloat(c.OpeningBalance || 0),
+                                balanceType: c.OpeningBalType   || 'Debit',
+                                lastTxAt:    c.LastTransactionAt || '',
+                            };
+                            if (c.Address && c.Address.length) {
+                                var addr = c.Address[0];
+                                c.Address.forEach(function (a) {
+                                    if (a.AddressType === 'Billing') addr = a;
+                                });
+                                entry.address = {
+                                    Line1:   addr.Line1     || '',
+                                    Line2:   addr.Line2     || '',
+                                    Pincode: addr.Pincode   || '',
+                                    City:    addr.CityText  || '',
+                                    State:   addr.StateText || '',
                                 };
-                                if (c.Address && c.Address.length) {
-                                    var addr = c.Address[0];
-                                    c.Address.forEach(function (a) {
-                                        if (a.AddressType === 'Billing') addr = a;
-                                    });
-                                    entry.address = {
-                                        Line1:   addr.Line1     || '',
-                                        Line2:   addr.Line2     || '',
-                                        Pincode: addr.Pincode   || '',
-                                        City:    addr.CityText  || '',
-                                        State:   addr.StateText || '',
-                                    };
-                                }
-                                return entry;
-                            });
-                            // Recent customers first (newest → oldest), then rest A–Z
-                            custCache.sort(function (a, b) {
-                                if (a.lastTxAt && b.lastTxAt) return new Date(b.lastTxAt) - new Date(a.lastTxAt);
-                                if (a.lastTxAt) return -1;
-                                if (b.lastTxAt) return 1;
-                                return a.name.localeCompare(b.name);
-                            });
-                            _paginate(custCache);
-                        },
-                        error: function () {
-                            // Upstash failed — fall back to DB search
-                            $.ajax({
-                                url: '/transactions/searchCustomers',
-                                dataType: 'json',
-                                data: { term: (params.data && params.data.term) || '', type: 'public' },
-                                success: function (data) { AjaxLoading = 1; success(data); },
-                                error: function () { AjaxLoading = 1; failure(); }
-                            });
-                        }
-                    });
+                            }
+                            return entry;
+                        });
+                        custCache.sort(function (a, b) {
+                            if (a.lastTxAt && b.lastTxAt) return new Date(b.lastTxAt) - new Date(a.lastTxAt);
+                            if (a.lastTxAt) return -1;
+                            if (b.lastTxAt) return 1;
+                            return a.name.localeCompare(b.name);
+                        });
+                        if (!custCache.length) { _fallbackSearch(); return; }
+                        _paginate(custCache);
+                    }).catch(function () { _fallbackSearch(); });
                 } else {
-                    // Fallback for pages not yet migrated — original server search
+                    _fallbackSearch();
+                }
+
+                function _fallbackSearch() {
                     $.ajax({
                         url: '/transactions/searchCustomers',
                         dataType: 'json',
@@ -2818,6 +2966,9 @@ function formationTableBillItems(productRow) {
 
     let tableData = `
         <tr data-id="${productRow.id}">
+            <td class="drag-handle" style="width:30px;vertical-align:middle;text-align:center;cursor:grab;" title="Drag to reorder">
+                <i class="bx bx-grid-vertical" style="font-size:1.1rem;color:#c0c7cf;"></i>
+            </td>
             <td>
                 <div class="text-primary fw-semibold">${productRow.text}</div>
                 <div class="transtext-small text-muted">#<span id="sequenceId_${productRow.id}">${rowCount+1}</span>
@@ -2880,6 +3031,10 @@ function formationTableBillItems(productRow) {
     } else {
         $('#billTableBody').append(tableData);
     }
+    // Update controls visibility after add
+    var newCount = $('#billTableBody tr[data-id]').length;
+    $('#btnClearCart').toggleClass('d-none', newCount < 1);
+    $('#chkReverseOrder').closest('.form-check-inline').toggleClass('d-none', newCount < 2);
 }
 
 function isIntegerValue(value) {
@@ -2887,12 +3042,15 @@ function isIntegerValue(value) {
 }
 
 function renumberTableRows() {
-    // Update sequence numbers in the table
     $('#billTableBody tr').each(function(index) {
         const $row = $(this);
         const itemId = $row.data('id');
         $(`#sequenceId_${itemId}`).text(index + 1);
     });
+    // Update controls visibility after every delete
+    var count = $('#billTableBody tr[data-id]').length;
+    $('#btnClearCart').toggleClass('d-none', count < 1);
+    $('#chkReverseOrder').closest('.form-check-inline').toggleClass('d-none', count < 2);
 }
 
 function validatePercentageInput(input, maxPercentage = 50) {

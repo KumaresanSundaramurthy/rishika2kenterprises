@@ -47,7 +47,13 @@ class Login_model extends CI_Model {
 
             // Organisation Settings
             $GeneralSettings = $this->getOrgGeneralSettings($UserData->UserOrgUID)->Data[0];
-            $ModuleInfo = $this->getModuleDetails($UserData->UserOrgUID)->Data;
+            $ModuleInfo      = $this->getModuleDetails($UserData->UserOrgUID)->Data;
+
+            // Product Settings (OrgProductSettingsTbl) — stored in main JWT payload
+            $productSettingsResult = $this->getProductSettings($UserData->UserOrgUID);
+            $ProductSettings = (!$productSettingsResult->Error && !empty($productSettingsResult->Data))
+                ? $productSettingsResult->Data[0]
+                : new stdClass();
 
             // Build flat permissions map: ControllerName => {CanView,CanCreate,CanEdit,CanDelete}
             $Permissions = [];
@@ -62,7 +68,7 @@ class Login_model extends CI_Model {
                 }
             }
 
-            $jwtPayload = array('User' => $JwtUserData, 'UserMainModule' => $MainModule, 'UserSubModule' => $SubModule, 'Permissions' => $Permissions, 'GenSettings' => $GeneralSettings, 'ModuleInfo' => $ModuleInfo);
+            $jwtPayload = array('User' => $JwtUserData, 'UserMainModule' => $MainModule, 'UserSubModule' => $SubModule, 'Permissions' => $Permissions, 'GenSettings' => $GeneralSettings, 'ProdSettings' => $ProductSettings, 'ModuleInfo' => $ModuleInfo);
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Message = 'Success';
@@ -88,13 +94,12 @@ class Login_model extends CI_Model {
 
             $RedisKey = Uuid::uuid4() . '-' . $UserData->UserUID;
 
-            // Unset all the unwanted information
+            // GenSettings and ProdSettings are kept in the main JWT payload.
+            // Both are accessible as $JwtData->GenSettings and $JwtData->ProdSettings on every request.
+            // No separate Redis cache needed for either.
             unset($jwtPayload->JWTData['UserMainModule']);
             unset($jwtPayload->JWTData['UserSubModule']);
-
             unset($jwtPayload->JWTData['ModuleInfo']);
-            
-            unset($jwtPayload->JWTData['GenSettings']);
 
             $this->redisservice->setCache($RedisKey, $jwtPayload->JWTData, $Expiry);
 
@@ -191,8 +196,8 @@ class Login_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->ReadDb->select('GeneralSettg.DecimalPoints as DecimalPoints, GeneralSettg.CurrenySymbol as CurrenySymbol, GeneralSettg.DiscountType as DiscountType, GeneralSettg.ProductType as ProductType, GeneralSettg.ProductTax as ProductTax, GeneralSettg.TaxDetail as TaxDetail, GeneralSettg.PriceMaxLength as PriceMaxLength, GeneralSettg.RowLimit as RowLimit, GeneralSettg.EnableStorage as EnableStorage, GeneralSettg.MandatoryStorage as MandatoryStorage, GeneralSettg.SerialNoDisplay as SerialNoDisplay, GeneralSettg.QtyMaxLength as QtyMaxLength');
-            $this->ReadDb->from('Organisation.OrgSettingsTbl as GeneralSettg');
+            $this->ReadDb->select('GeneralSettg.DecimalPoints as DecimalPoints, GeneralSettg.CurrenySymbol as CurrenySymbol, GeneralSettg.PriceMaxLength as PriceMaxLength, GeneralSettg.RowLimit as RowLimit, GeneralSettg.EnableStorage as EnableStorage, GeneralSettg.MandatoryStorage as MandatoryStorage, GeneralSettg.SerialNoDisplay as SerialNoDisplay, GeneralSettg.QtyMaxLength as QtyMaxLength, GeneralSettg.FYStartMonth as FYStartMonth');
+            $this->ReadDb->from('Settings.OrgSettingsTbl as GeneralSettg');
             $this->ReadDb->where('GeneralSettg.OrgUID', $OrgUID);
             $this->ReadDb->limit(1);
             $query = $this->ReadDb->get();
@@ -209,6 +214,27 @@ class Login_model extends CI_Model {
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
 
+        }
+
+    }
+
+    public function getProductSettings($OrgUID) {
+
+        $this->EndReturnData = new stdClass();
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('DefaultProductTypeUID, DefaultDiscountTypeUID, DefaultProductTaxUID, DefaultTaxDetailUID');
+            $this->ReadDb->from('Settings.OrgProductSettingsTbl');
+            $this->ReadDb->where('OrgUID', (int) $OrgUID);
+            $this->ReadDb->limit(1);
+            $query = $this->ReadDb->get();
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Data  = $query->result();
+            return $this->EndReturnData;
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+            throw new Exception($this->EndReturnData->Message);
         }
 
     }

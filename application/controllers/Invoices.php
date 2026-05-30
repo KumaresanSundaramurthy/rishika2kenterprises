@@ -25,9 +25,8 @@ class Invoices extends MY_Controller {
 
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
 
-            $GeneralSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
+            $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
             $limit = $GeneralSettings->RowLimit ?? 10;
-            $this->pageData['JwtData']->GenSettings = $GeneralSettings;
             $this->pageData['DiscTypeInfo'] = [];
 
             $orgUID = $this->pageData['JwtData']->User->OrgUID;
@@ -82,7 +81,6 @@ class Invoices extends MY_Controller {
             $allData      = $this->transactions_model->getTransactionPageList($limit, $offset, $this->pageModuleUID, $filter, 0);
             $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, $filter);
 
-            $this->pageData['JwtData']->GenSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
             $this->_injectOrgInfo($this->pageData['JwtData']->User->OrgUID);
 
             $rowHtml = $this->load->view('transactions/invoices/list', [
@@ -876,7 +874,7 @@ class Invoices extends MY_Controller {
             $this->EndReturnData->IsFullyPaid = $isFullyPaid;
 
             // Fetch complete page data to refresh the invoice list
-            $GeneralSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
+            $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
             $limit = $GeneralSettings->RowLimit ?? 10;
             $pageNo = (int) $this->input->post('CurrentPage') ?: 1;
             $offset = ($pageNo - 1) * $limit;
@@ -1587,9 +1585,6 @@ class Invoices extends MY_Controller {
 
         try {
 
-            $GeneralSettings = $this->redisservice->getUserCache('settings') ?? NULL;
-            $this->pageData['JwtData']->GenSettings = $GeneralSettings;
-
             $orgUID = $this->pageData['JwtData']->User->OrgUID;
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
 
@@ -1694,8 +1689,6 @@ class Invoices extends MY_Controller {
 
             $transUID = (int) $invData->TransUID;
 
-            $GeneralSettings = $this->redisservice->getUserCache('settings') ?? NULL;
-            $this->pageData['JwtData']->GenSettings = $GeneralSettings;
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
 
             $invItems = $this->transactions_model->getTransactionItems($transUID, $orgUID);

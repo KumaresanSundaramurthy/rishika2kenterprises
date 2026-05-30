@@ -219,128 +219,111 @@ if ($isEdit) {
                             </div>
                         </div>
 
-                        <div class="card-body card-body-form-static p-4">
+                        <div class="card-body card-body-form-static p-3">
 
-                            <div class="card-header modal-header-center-sticky p-1 mb-3">
-                                <h5 class="modal-title mb-0"><i class="bx bx-user me-1"></i> Customer Details</h5>
-                            </div>
+                            <?php
+                            $_invType  = $InvData->QuotationType ?? 'Regular';
+                            $_posOptions = ['01 - Jammu & Kashmir','02 - Himachal Pradesh','03 - Punjab','04 - Chandigarh','05 - Uttarakhand','06 - Haryana','07 - Delhi','08 - Rajasthan','09 - Uttar Pradesh','10 - Bihar','11 - Sikkim','12 - Arunachal Pradesh','13 - Nagaland','14 - Manipur','15 - Mizoram','16 - Tripura','17 - Meghalaya','18 - Assam','19 - West Bengal','20 - Jharkhand','21 - Odisha','22 - Chhattisgarh','23 - Madhya Pradesh','24 - Gujarat','25 - Daman & Diu','26 - Dadra & Nagar Haveli','27 - Maharashtra','29 - Karnataka','30 - Goa','31 - Lakshadweep','32 - Kerala','33 - Tamil Nadu','34 - Puducherry','35 - Andaman & Nicobar Islands','36 - Telangana','37 - Andhra Pradesh','97 - Other Territory','96 - Foreign Country'];
+                            $_savedPos   = $isEdit ? ($InvData->PlaceOfSupply ?? '') : '';
+                            ?>
 
-                            <!-- Row 1: Customer | Type | Dispatch From | Invoice Date | Due Date -->
-                            <div class="row g-2 align-items-end">
-                                <div class="col-md-4">
+                            <!-- ── Toolbar: Type & Dispatch From ─────────────────────────────── -->
+                            <div class="d-flex align-items-center gap-4 mb-3 pb-2 border-bottom">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="text-muted" style="font-size:.78rem;white-space:nowrap;">Type</span>
+                                    <select class="form-select form-select-sm border-0 bg-transparent fw-semibold"
+                                            id="invoiceType" name="invoiceType" style="min-width:110px;cursor:pointer;"
+                                            <?php echo ($isEdit && !$isDraftEdit) ? 'disabled' : 'required'; ?>>
+                                        <option value="Regular"     <?php echo $_invType !== 'Without_GST' ? 'selected' : ''; ?>>Regular</option>
+                                        <option value="Without_GST" <?php echo $_invType === 'Without_GST' ? 'selected' : ''; ?>>Without GST</option>
+                                    </select>
                                     <?php if ($isEdit && !$isDraftEdit): ?>
-                                        <label class="trans-field-label mb-1">Customer</label>
-                                        <div class="trans-vendor-card">
-                                            <div class="trans-vendor-card-name">
-                                                <i class="bx bx-user me-1"></i><?php echo htmlspecialchars($InvData->PartyName ?? '—'); ?>
-                                            </div>
-                                            <?php if (!empty($InvData->PartyMobile)): ?>
-                                            <div class="trans-vendor-card-meta"><i class="bx bx-phone me-1"></i><?php echo htmlspecialchars($InvData->PartyMobile); ?></div>
-                                            <?php endif; ?>
-                                            <?php if (!empty($InvData->PartyGSTIN)): ?>
-                                            <div class="trans-vendor-card-meta"><i class="bx bx-id-card me-1"></i><?php echo htmlspecialchars($InvData->PartyGSTIN); ?></div>
-                                            <?php endif; ?>
-                                            <?php
-                                                $_cParts = array_filter([
-                                                    $CustAddr->Line1     ?? '',
-                                                    $CustAddr->CityText  ?? '',
-                                                    $CustAddr->StateText ?? '',
-                                                ]);
-                                                if (!empty($_cParts)):
-                                            ?>
-                                            <div class="trans-vendor-card-meta"><i class="bx bx-map me-1"></i><?php echo htmlspecialchars(implode(', ', $_cParts)); ?></div>
-                                            <?php endif; ?>
-                                        </div>
-                                        <input type="hidden" id="customerSearch" name="customerSearch" value="<?php echo (int)$InvData->PartyUID; ?>" />
-                                    <?php else: ?>
-                                        <div class="d-flex align-items-center gap-2 mb-1">
-                                            <label for="customerSearch" class="trans-field-label mb-0">Select Customer <span class="text-danger">*</span></label>
-                                            <button type="button" id="addTransCustomer" class="trans-add-btn btn btn-outline-primary btn-sm" aria-label="Add new customer" style="white-space:nowrap;"><i class="bx bx-plus-circle me-1"></i>Add Customer</button>
-                                        </div>
-                                        <select id="customerSearch" name="customerSearch" class="form-select form-select-sm"></select>
+                                    <input type="hidden" name="invoiceType" value="<?php echo htmlspecialchars($_invType); ?>" />
                                     <?php endif; ?>
                                 </div>
-                                <div class="col-md-2">
-                                    <label class="trans-field-label">Type</label>
-                                    <?php if ($isEdit && !$isDraftEdit): ?>
-                                        <?php $_invTypeLabel = ($InvData->QuotationType === 'Without_GST') ? 'Without GST' : 'Regular'; ?>
-                                        <input type="hidden" name="invoiceType" value="<?php echo htmlspecialchars($InvData->QuotationType ?: 'Regular'); ?>" />
-                                        <div class="form-control form-control-sm bg-light text-muted" style="cursor:default;" title="<?php echo $_invTypeLabel; ?>"><?php echo $_invTypeLabel; ?></div>
-                                    <?php else: ?>
-                                        <select id="invoiceType" name="invoiceType" class="form-select form-select-sm" required>
-                                            <option value="Regular" selected>Regular</option>
-                                            <option value="Without_GST">Without GST</option>
-                                        </select>
-                                    <?php endif; ?>
-                                </div>
-                                <?php if (!empty($DispatchAddress)): ?>
-                                <div class="col-md-2">
-                                    <label class="trans-field-label">Dispatch From</label>
-                                    <?php if ($isEdit && !$isDraftEdit): ?>
-                                        <?php $_dispLabel = implode(', ', $_addrLines); ?>
-                                        <input type="hidden" name="dispatchFrom" value="<?php echo (int)$DispatchAddress->OrgAddressUID; ?>" />
-                                        <div class="form-control form-control-sm bg-light text-muted text-truncate" style="cursor:default;"
-                                             data-bs-toggle="tooltip" data-bs-placement="top" title="<?php echo htmlspecialchars($_dispLabel); ?>"><?php echo htmlspecialchars($_dispLabel); ?></div>
-                                    <?php else: ?>
-                                        <select id="dispatchFrom" name="dispatchFrom" class="form-select form-select-sm" required>
-                                            <option value="<?php echo (int)$DispatchAddress->OrgAddressUID; ?>" selected><?php echo htmlspecialchars($_dispLabel ?? implode(', ', $_addrLines)); ?></option>
-                                        </select>
-                                    <?php endif; ?>
+                                <?php if (!empty($DispatchAddresses)): ?>
+                                <div class="d-flex align-items-center gap-2" style="max-width:360px;">
+                                    <span class="text-muted" style="font-size:.78rem;white-space:nowrap;">Dispatch From</span>
+                                    <?php $this->load->view('common/transactions/_dispatch_from'); ?>
                                 </div>
                                 <?php endif; ?>
-                                <div class="col-md-2">
-                                    <label for="transDate" class="trans-field-label">Invoice Date <span class="text-danger">*</span></label>
-                                    <?php if ($isEdit && !$isDraftEdit): ?>
-                                        <input type="hidden" name="transDate" value="<?php echo htmlspecialchars(format_datedisplay($InvData->TransDate, 'Y-m-d')); ?>" />
-                                        <div class="input-group input-group-sm input-group-merge">
-                                            <span class="input-group-text"><i class="icon-base bx bx-calendar"></i></span>
-                                            <input type="text" class="form-control form-control-sm bg-light text-muted" style="cursor:default;"
-                                                value="<?php echo htmlspecialchars(format_datedisplay($InvData->TransDate, 'd-m-Y')); ?>" readonly tabindex="-1" />
-                                        </div>
-                                    <?php else: ?>
-                                        <div class="input-group input-group-sm input-group-merge">
-                                            <span class="input-group-text"><i class="icon-base bx bx-calendar"></i></span>
-                                            <input type="text" class="form-control form-control-sm" id="transDate" name="transDate" readonly="readonly"
-                                                value="<?php echo format_datedisplay(time(), 'Y-m-d'); ?>" required />
-                                        </div>
-                                    <?php endif; ?>
-                                </div>
-                                <div class="col-md-2">
-                                    <label for="dueDate" class="trans-field-label">Due Date</label>
-                                    <div class="input-group input-group-sm input-group-merge">
-                                        <span class="input-group-text"><i class="icon-base bx bx-calendar"></i></span>
-                                        <input type="text" class="form-control form-control-sm" id="dueDate" name="dueDate" readonly="readonly"
-                                            value="<?php echo ($isEdit && !empty($InvData->ValidityDate)) ? htmlspecialchars(format_datedisplay($InvData->ValidityDate, 'Y-m-d')) : ''; ?>" />
-                                    </div>
-                                </div>
                             </div>
 
-                            <!-- Row 2: Customer address + Reference -->
-                            <div class="row g-2 mt-2">
-                                <div class="col-md-4">
-                                    <div id="customerAddressBox" class="p-2 border border-secondary trans-border-dotted rounded small d-none"></div>
+                            <!-- ── Customer Details ───────────────────────────────────────────── -->
+                            <div class="row g-2 align-items-end mb-3">
+                                    <div class="col-md-4">
+                                        <?php if ($isEdit && !$isDraftEdit): ?>
+                                            <label class="trans-field-label">Customer</label>
+                                            <div class="trans-vendor-card">
+                                                <div class="trans-vendor-card-name"><i class="bx bx-user me-1"></i><?php echo htmlspecialchars($InvData->PartyName ?? '—'); ?></div>
+                                                <?php if (!empty($InvData->PartyMobile)): ?>
+                                                <div class="trans-vendor-card-meta"><i class="bx bx-phone me-1"></i><?php echo htmlspecialchars($InvData->PartyMobile); ?></div>
+                                                <?php endif; ?>
+                                                <?php if (!empty($InvData->PartyGSTIN)): ?>
+                                                <div class="trans-vendor-card-meta"><i class="bx bx-id-card me-1"></i><?php echo htmlspecialchars($InvData->PartyGSTIN); ?></div>
+                                                <?php endif; ?>
+                                                <?php $_cParts = array_filter([$CustAddr->Line1 ?? '', $CustAddr->CityText ?? '', $CustAddr->StateText ?? '']);
+                                                    if (!empty($_cParts)): ?>
+                                                <div class="trans-vendor-card-meta"><i class="bx bx-map me-1"></i><?php echo htmlspecialchars(implode(', ', $_cParts)); ?></div>
+                                                <?php endif; ?>
+                                            </div>
+                                            <input type="hidden" id="customerSearch" name="customerSearch" value="<?php echo (int)$InvData->PartyUID; ?>" />
+                                        <?php else: ?>
+                                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                                <label for="customerSearch" class="trans-field-label mb-0">Customer <span class="text-danger">*</span></label>
+                                                <button type="button" id="addTransCustomer" class="trans-add-btn btn btn-outline-primary btn-sm" style="font-size:.72rem;white-space:nowrap;">
+                                                    <i class="bx bx-plus-circle me-1"></i>Add Customer
+                                                </button>
+                                            </div>
+                                            <select id="customerSearch" name="customerSearch" class="form-select form-select-sm"></select>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label for="transDate" class="trans-field-label">Invoice Date <span class="text-danger">*</span></label>
+                                        <?php if ($isEdit && !$isDraftEdit): ?>
+                                            <input type="hidden" name="transDate" value="<?php echo htmlspecialchars(format_datedisplay($InvData->TransDate, 'Y-m-d')); ?>" />
+                                            <div class="input-group input-group-sm input-group-merge">
+                                                <span class="input-group-text bg-white"><i class="icon-base bx bx-calendar"></i></span>
+                                                <input type="text" class="form-control form-control-sm bg-white text-muted" style="cursor:default;" value="<?php echo htmlspecialchars(format_datedisplay($InvData->TransDate, 'd-m-Y')); ?>" readonly tabindex="-1" />
+                                            </div>
+                                        <?php else: ?>
+                                            <div class="input-group input-group-sm input-group-merge">
+                                                <span class="input-group-text bg-white"><i class="icon-base bx bx-calendar"></i></span>
+                                                <input type="text" class="form-control form-control-sm bg-white" id="transDate" name="transDate" readonly="readonly" value="<?php echo format_datedisplay(time(), 'Y-m-d'); ?>" required />
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label for="dueDate" class="trans-field-label">Due Date</label>
+                                        <div class="input-group input-group-sm input-group-merge">
+                                            <span class="input-group-text bg-white"><i class="icon-base bx bx-calendar"></i></span>
+                                            <input type="text" class="form-control form-control-sm bg-white" id="dueDate" name="dueDate" readonly="readonly" value="<?php echo ($isEdit && !empty($InvData->ValidityDate)) ? htmlspecialchars(format_datedisplay($InvData->ValidityDate, 'Y-m-d')) : ''; ?>" />
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="placeOfSupply" class="trans-field-label">Place of Supply</label>
+                                        <select id="placeOfSupply" name="placeOfSupply" class="form-select form-select-sm bg-white">
+                                            <option value="">— Select State —</option>
+                                            <?php foreach ($_posOptions as $_posOpt): ?>
+                                            <option value="<?php echo htmlspecialchars($_posOpt); ?>"<?php echo ($_savedPos === $_posOpt) ? ' selected' : ''; ?>><?php echo htmlspecialchars($_posOpt); ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
                                 </div>
-                                <div class="col-md-4">
-                                    <label for="referenceDetails" class="trans-field-label">Reference</label>
-                                    <input type="text" id="referenceDetails" name="referenceDetails" class="form-control form-control-sm"
-                                        placeholder="PO Number, <?php echo $isEdit ? 'Ref No...' : 'Sales Person, Ref No...'; ?>" maxlength="100"
-                                        value="<?php echo $isEdit ? htmlspecialchars($InvData->Reference ?? '') : (!empty($SalesOrderData->Reference) ? htmlspecialchars($SalesOrderData->Reference) : (!empty($QuotationData->Reference) ? htmlspecialchars($QuotationData->Reference) : '')); ?>" />
-                                </div>
-                                <?php
-                                $_posOptions = ['01 - Jammu & Kashmir','02 - Himachal Pradesh','03 - Punjab','04 - Chandigarh','05 - Uttarakhand','06 - Haryana','07 - Delhi','08 - Rajasthan','09 - Uttar Pradesh','10 - Bihar','11 - Sikkim','12 - Arunachal Pradesh','13 - Nagaland','14 - Manipur','15 - Mizoram','16 - Tripura','17 - Meghalaya','18 - Assam','19 - West Bengal','20 - Jharkhand','21 - Odisha','22 - Chhattisgarh','23 - Madhya Pradesh','24 - Gujarat','25 - Daman & Diu','26 - Dadra & Nagar Haveli','27 - Maharashtra','29 - Karnataka','30 - Goa','31 - Lakshadweep','32 - Kerala','33 - Tamil Nadu','34 - Puducherry','35 - Andaman & Nicobar Islands','36 - Telangana','37 - Andhra Pradesh','97 - Other Territory','96 - Foreign Country'];
-                                $_savedPos = $isEdit ? ($InvData->PlaceOfSupply ?? '') : '';
-                                ?>
-                                <div class="col-md-4">
-                                    <label for="placeOfSupply" class="trans-field-label">Place of Supply</label>
-                                    <select id="placeOfSupply" name="placeOfSupply" class="form-select form-select-sm">
-                                        <option value="">— Select State —</option>
-                                        <?php foreach ($_posOptions as $_posOpt): ?>
-                                        <option value="<?php echo htmlspecialchars($_posOpt); ?>"<?php echo ($_savedPos === $_posOpt) ? ' selected' : ''; ?>><?php echo htmlspecialchars($_posOpt); ?></option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
+
+                            <!-- Row 2: Address box | Reference -->
+                            <div class="row g-2 mt-1 mb-3">
+                                    <div class="col-md-4">
+                                        <div id="customerAddressBox" class="p-2 border border-secondary trans-border-dotted rounded small d-none"></div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="referenceDetails" class="trans-field-label">Reference</label>
+                                        <input type="text" id="referenceDetails" name="referenceDetails" class="form-control form-control-sm"
+                                            placeholder="PO Number, Sales Person, Ref No..." maxlength="100"
+                                            value="<?php echo $isEdit ? htmlspecialchars($InvData->Reference ?? '') : (!empty($SalesOrderData->Reference) ? htmlspecialchars($SalesOrderData->Reference) : (!empty($QuotationData->Reference) ? htmlspecialchars($QuotationData->Reference) : '')); ?>" />
+                                    </div>
                             </div>
-                            <hr class="mt-3"/>
+                            <hr class="mt-2 mb-3"/>
 
                             <?php $this->load->view('transactions/partials/form_products_add', [
                                 'transNotesPlaceholder' => 'Enter notes or anything else',

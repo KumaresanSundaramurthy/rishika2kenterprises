@@ -21,8 +21,7 @@ class Rental extends MY_Controller {
         }
         try {
             $orgUID = (int) $this->pageData['JwtData']->User->OrgUID;
-            $GeneralSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
-            $this->pageData['JwtData']->GenSettings = $GeneralSettings;
+            $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
             $limit = (int)($GeneralSettings->RowLimit ?? 10);
 
             $filter = ['Status' => 'All'];
@@ -64,7 +63,6 @@ class Rental extends MY_Controller {
             }
 
             $orgUID = (int) $this->pageData['JwtData']->User->OrgUID;
-            $this->pageData['JwtData']->GenSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
 
             $listData   = $this->rental_model->getRentalList($orgUID, $filter, $limit, $offset);
             $totalCount = $this->rental_model->getRentalCount($orgUID, $filter);
@@ -509,8 +507,7 @@ class Rental extends MY_Controller {
     // ── Private helpers ───────────────────────────────────────────────────────
 
     private function _appendListResponse($orgUID) {
-        $GeneralSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
-        $this->pageData['JwtData']->GenSettings = $GeneralSettings;
+        $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
 
         $filterRaw = $this->input->post('Filter');
         $filter = is_array($filterRaw)

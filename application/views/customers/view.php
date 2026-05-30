@@ -228,7 +228,6 @@
                                 'BillingAddr'      => null,
                                 'ShippingAddr'     => null,
                                 'CustomerTypeList' => $CustomerTypeList,
-                                'CountryInfo'      => $CountryInfo,
                                 'OrgCCode'         => $OrgCCode,
                                 'OrgCISO2'         => $OrgCISO2,
                                 'JwtData'          => $JwtData,

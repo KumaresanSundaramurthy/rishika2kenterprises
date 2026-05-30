@@ -103,8 +103,6 @@ class PrintThemes extends MY_Controller {
 
         try {
 
-            $GeneralSettings = $this->redisservice->getUserCache('settings') ?? NULL;
-            $this->pageData['JwtData']->GenSettings = $GeneralSettings;
 
             $activeTab = $this->sanitizeTabInput($this->input->get('tab', TRUE));
             $limit     = (int) ($GeneralSettings->RowLimit ?? 10);

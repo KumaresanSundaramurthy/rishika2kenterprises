@@ -19,12 +19,27 @@ $_chargesBd   = !empty($transShowChargesBreakdown);
 $_hideAddProd = !empty($transHideAddProduct);
 $_paymentVars = isset($transPaymentVars) ? $transPaymentVars : null;
 ?>
-<div class="card-header modal-header-center-sticky p-1 mb-3">
+<div class="card-header modal-header-center-sticky p-1 mb-3 d-flex align-items-center justify-content-between">
+    <!-- Left: title + add button -->
     <div class="d-flex align-items-center gap-2">
         <h5 class="modal-title mb-0"><i class="bx bx-cart-add me-1"></i> <?php echo $_secTitle; ?></h5>
         <?php if (!$_hideAddProd): ?>
         <button type="button" class="trans-add-btn btn btn-outline-primary" id="addTransProduct"><i class="bx bx-plus-circle me-1"></i> Product</button>
         <?php endif; ?>
+    </div>
+    <!-- Right: controls -->
+    <div class="d-flex align-items-center gap-3">
+        <div class="form-check form-check-inline mb-0">
+            <input class="form-check-input" type="checkbox" id="chkShowDesc" checked>
+            <label class="form-check-label small" for="chkShowDesc" style="cursor:pointer;">Show Description</label>
+        </div>
+        <div class="form-check form-check-inline mb-0">
+            <input class="form-check-input" type="checkbox" id="chkReverseOrder">
+            <label class="form-check-label small" for="chkReverseOrder" style="cursor:pointer;">Reverse Order</label>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-danger d-none" id="btnClearCart" style="font-size:.75rem;">
+            <i class="bx bx-trash me-1"></i>Clear All
+        </button>
     </div>
 </div>
 <div class="row">
@@ -62,6 +77,7 @@ $_paymentVars = isset($transPaymentVars) ? $transPaymentVars : null;
             <table id="billTable" class="table trans-table table-bordered table-sm table-hover align-middle" data-update-delay="300">
                 <thead class="table-light trans-table-light">
                     <tr>
+                        <th style="width:30px;"></th>
                         <th style="width:30%;">Product Name</th>
                         <th style="width:10%;">Quantity</th>
                         <th style="width:15%;">Unit Price</th>
@@ -87,7 +103,7 @@ $_paymentVars = isset($transPaymentVars) ? $transPaymentVars : null;
                 </thead>
                 <tbody id="billTableBody">
                     <tr class="text-center text-muted">
-                        <td colspan="6">
+                        <td colspan="7">
                             <div class="py-4">
                                 <i class="bx bx-cart text-primary" style="font-size:2rem;"></i>
                                 <p class="mt-2 mb-0">No items added yet</p>
@@ -98,7 +114,7 @@ $_paymentVars = isset($transPaymentVars) ? $transPaymentVars : null;
                 </tbody>
                 <tfoot class="table-light trans-table-light">
                     <tr>
-                        <td colspan="1" class="small fw-semibold">#Items: <span class="sumItemCount text-primary">0</span></td>
+                        <td colspan="2" class="small fw-semibold">#Items: <span class="sumItemCount text-primary">0</span></td>
                         <td colspan="4" class="small fw-semibold">Qty: <span class="sumTotalQty text-primary">0</span></td>
                         <td colspan="1" class="small fw-semibold text-end">Net Total: <?php echo $JwtData->GenSettings->CurrenySymbol; ?><span class="sumNetTotal ms-1 text-primary"><?php echo smartDecimal(0, $JwtData->GenSettings->DecimalPoints, true); ?></span></td>
                     </tr>
@@ -216,76 +232,70 @@ $_paymentVars = isset($transPaymentVars) ? $transPaymentVars : null;
         <!-- Summary Information Section -->
         <div class="row">
             <div class="col-md-6 tax-summary-section">
-                <div id="taxBreakupPanel" style="display:none;" class="tax-details-view p-2 bg-light rounded border">
-                    <h6 class="tax-details-title mb-2">Tax Breakdown</h6>
-                    <div class="mb-3">
-                        <p class="small fw-semibold mb-2 text-secondary">Items Tax</p>
-                        <div class="table-responsive">
-                            <table class="table table-sm mb-0">
-                                <thead class="small bg-light">
-                                    <tr>
-                                        <th class="fw-semibold border-bottom"># Items</th>
-                                        <th class="fw-semibold border-bottom taxBreakUpItemsCgst">CGST</th>
-                                        <th class="fw-semibold border-bottom taxBreakUpItemsSgst">SGST</th>
-                                        <th class="fw-semibold border-bottom taxBreakUpItemsIgst d-none">IGST</th>
-                                        <th class="fw-semibold border-bottom text-end">Total Amount</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td class="py-1"><span class="taxBreakUpItemsCnt">0</span></td>
-                                        <td class="py-1 taxBreakUpItemsCgst"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span class="taxBreakUpItemsCgstVal">0</span></td>
-                                        <td class="py-1 taxBreakUpItemsSgst"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span class="taxBreakUpItemsSgstVal">0</span></td>
-                                        <td class="py-1 taxBreakUpItemsIgst d-none"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span class="taxBreakUpItemsIgstVal">0</span></td>
-                                        <td class="py-1 text-end fw-semibold"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span class="taxBreakUpItemsTotAmt">0</span></td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                <div id="taxBreakupPanel" style="display:none;" class="tax-details-view rounded-3 overflow-hidden" style="border:1px solid #bae6fd;">
+
+                    <!-- Header strip -->
+                    <div class="d-flex align-items-center gap-2 px-3 py-2" style="background:#0284c7;">
+                        <i class="bx bx-receipt" style="color:#fff;font-size:1rem;"></i>
+                        <span style="font-size:.78rem;font-weight:700;color:#fff;letter-spacing:.4px;text-transform:uppercase;">Tax Breakdown</span>
+                    </div>
+
+                    <!-- Items Tax metrics -->
+                    <div style="background:#f0f9ff;padding:10px 12px 8px;">
+                        <div style="font-size:.65rem;font-weight:700;color:#0369a1;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">
+                            Items Tax · <span class="taxBreakUpItemsCnt">0</span> items
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;">
+                            <div class="taxBreakUpItemsCgst" style="background:#fff;border-radius:6px;padding:6px 8px;border:1px solid #e0f2fe;">
+                                <div style="font-size:.6rem;color:#64748b;text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px;">CGST</div>
+                                <div style="font-weight:600;font-size:.82rem;color:#0284c7;"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span class="taxBreakUpItemsCgstVal">0</span></div>
+                            </div>
+                            <div class="taxBreakUpItemsSgst" style="background:#fff;border-radius:6px;padding:6px 8px;border:1px solid #e0f2fe;">
+                                <div style="font-size:.6rem;color:#64748b;text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px;">SGST</div>
+                                <div style="font-weight:600;font-size:.82rem;color:#0284c7;"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span class="taxBreakUpItemsSgstVal">0</span></div>
+                            </div>
+                            <div class="taxBreakUpItemsIgst d-none" style="background:#fff;border-radius:6px;padding:6px 8px;border:1px solid #e0f2fe;">
+                                <div style="font-size:.6rem;color:#64748b;text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px;">IGST</div>
+                                <div style="font-weight:600;font-size:.82rem;color:#0284c7;"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span class="taxBreakUpItemsIgstVal">0</span></div>
+                            </div>
+                            <div style="background:#fff;border-radius:6px;padding:6px 8px;border:1px solid #e0f2fe;">
+                                <div style="font-size:.6rem;color:#64748b;text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px;">Total Tax</div>
+                                <div style="font-weight:700;font-size:.82rem;color:#0369a1;"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span class="taxBreakUpItemsTotAmt">0</span></div>
+                            </div>
                         </div>
                     </div>
+
                     <?php if ($_chargesBd): ?>
-                    <div class="mb-3 d-none" id="chargeBreakUpTaxDetails">
-                        <p class="small fw-semibold mb-2 text-secondary">All Charges Tax</p>
-                        <div class="table-responsive">
-                            <table class="table table-sm mb-0">
-                                <thead class="small bg-light">
-                                    <tr>
-                                        <th class="fw-semibold border-bottom">Charges</th>
-                                        <th class="fw-semibold border-bottom taxBreakUpChargesCgst">CGST</th>
-                                        <th class="fw-semibold border-bottom taxBreakUpChargesSgst">SGST</th>
-                                        <th class="fw-semibold border-bottom taxBreakUpChargesIgst d-none">IGST</th>
-                                        <th class="fw-semibold border-bottom text-end">Total Amount</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr class="cgst-sgst-row">
-                                        <td class="py-1">Shipping</td>
-                                        <td class="py-1 taxBreakUpChargesCgst"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span class="taxBreakUpChargesCgstVal">0</span></td>
-                                        <td class="py-1 taxBreakUpChargesSgst"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span class="taxBreakUpChargesSgstVal">0</span></td>
-                                        <td class="py-1 taxBreakUpChargesIgst d-none"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span class="taxBreakUpChargesIgstVal">0</span></td>
-                                        <td class="py-1 text-end fw-semibold"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span class="taxBreakUpChargesTotAmt">0</span></td>
-                                    </tr>
-                                </tbody>
-                                <tfoot>
-                                    <tr class="border-top">
-                                        <td colspan="3" class="pt-2 fw-semibold">Total Charges Tax</td>
-                                        <td class="pt-2 text-end fw-semibold"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span id="chargeTaxTotal">0</span></td>
-                                    </tr>
-                                </tfoot>
-                            </table>
+                    <!-- Charges Tax -->
+                    <div class="d-none" id="chargeBreakUpTaxDetails" style="background:#f0f9ff;padding:8px 12px;border-top:1px solid #bae6fd;">
+                        <div style="font-size:.65rem;font-weight:700;color:#0369a1;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Charges Tax</div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;">
+                            <div class="taxBreakUpChargesCgst" style="background:#fff;border-radius:6px;padding:6px 8px;border:1px solid #e0f2fe;">
+                                <div style="font-size:.6rem;color:#64748b;text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px;">CGST</div>
+                                <div style="font-weight:600;font-size:.82rem;color:#0284c7;"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span class="taxBreakUpChargesCgstVal">0</span></div>
+                            </div>
+                            <div class="taxBreakUpChargesSgst" style="background:#fff;border-radius:6px;padding:6px 8px;border:1px solid #e0f2fe;">
+                                <div style="font-size:.6rem;color:#64748b;text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px;">SGST</div>
+                                <div style="font-weight:600;font-size:.82rem;color:#0284c7;"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span class="taxBreakUpChargesSgstVal">0</span></div>
+                            </div>
+                            <div class="taxBreakUpChargesIgst d-none" style="background:#fff;border-radius:6px;padding:6px 8px;border:1px solid #e0f2fe;">
+                                <div style="font-size:.6rem;color:#64748b;text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px;">IGST</div>
+                                <div style="font-weight:600;font-size:.82rem;color:#0284c7;"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span class="taxBreakUpChargesIgstVal">0</span></div>
+                            </div>
+                            <div style="background:#fff;border-radius:6px;padding:6px 8px;border:1px solid #e0f2fe;">
+                                <div style="font-size:.6rem;color:#64748b;text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px;">Total</div>
+                                <div style="font-weight:700;font-size:.82rem;color:#0369a1;"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span id="chargeTaxTotal">0</span></div>
+                            </div>
                         </div>
                     </div>
                     <?php endif; ?>
-                    <div class="border-top pt-2">
-                        <table class="table table-sm mb-0">
-                            <tbody>
-                                <tr>
-                                    <td class="fw-bold">Grand Tax Total</td>
-                                    <td class="text-end fw-bold"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span id="grandChargesTaxTotal">0</span></td>
-                                </tr>
-                            </tbody>
-                        </table>
+
+                    <!-- Grand Tax Total footer -->
+                    <div class="d-flex align-items-center justify-content-between px-3 py-2" style="background:#0284c7;">
+                        <span style="font-size:.75rem;font-weight:600;color:#e0f2fe;text-transform:uppercase;letter-spacing:.4px;">Grand Tax Total</span>
+                        <span style="font-size:.92rem;font-weight:800;color:#fff;"><?php echo $JwtData->GenSettings->CurrenySymbol; ?> <span id="grandChargesTaxTotal">0</span></span>
                     </div>
+
                 </div>
             </div>
 

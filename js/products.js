@@ -1096,9 +1096,12 @@ function showProductPageDetails() {
 
 function clearItemValues() {
     $('#HProductUID').val(0);
-    $('#ProductType').val('Product').trigger('change');
-    $('#SellingTaxOption,#PurchaseTaxOption,#DiscountOption').val(1).trigger('change');
-    $('#TaxPercentage,#PrimaryUnit,#Category,#StorageUID,#BrandUID,#PSizeUID').val(null).trigger('change');
+    // Apply defaults from ProdSettings (injected from JwtData->ProdSettings in view.php)
+    $('#ProductType').val(typeof _defProductType  !== 'undefined' ? _defProductType  : 'Product').trigger('change');
+    $('#SellingTaxOption,#PurchaseTaxOption').val(typeof _defProdTaxUID   !== 'undefined' && _defProdTaxUID   ? _defProdTaxUID   : 1).trigger('change');
+    $('#DiscountOption').val(typeof _defDiscTypeUID  !== 'undefined' && _defDiscTypeUID  ? _defDiscTypeUID  : 1).trigger('change');
+    $('#TaxPercentage').val(typeof _defTaxDetailUID !== 'undefined' && _defTaxDetailUID ? _defTaxDetailUID : null).trigger('change');
+    $('#PrimaryUnit,#Category,#StorageUID,#BrandUID,#PSizeUID').val(null).trigger('change');
     $('#IsSizeApplicable,#IsBrandApplicable,#IsSerialTracked,#NotForSale,#IsRentable').prop('checked', false).trigger('change');
     $('#SizeDiv,#rentalConfigSection').addClass('d-none');
     myOneDropzone.removeAllFiles(true);
@@ -1400,28 +1403,44 @@ function toggleAllStorage(main) {
 function loadTaxDetailOptions() {
     $('#TaxPercentage').select2({
         placeholder: '-- Select Tax Percentage --',
-        allowClear: false,
+        allowClear: true,
         width: 'resolve',
         templateResult: function (data) {
             if (!data.id) return data.text;
-            const el = $(data.element);
+            const el    = $(data.element);
             const left  = el.data('left');
             const right = el.data('right');
-            return $('<div class="d-flex justify-content-between">' +
+            // Use null/undefined check — NOT !left, because 0 is a valid falsy value
+            if (left == null || left === '') return data.text;
+            return $('<div class="d-flex justify-content-between align-items-center">' +
                     '<span class="fw-semibold">' + left + '</span>' +
                     '<span class="text-muted small">' + right + '</span>' +
                     '</div>');
         },
         templateSelection: function (data) {
             if (!data.id) return data.text;
-            const el = $(data.element);
+            const el    = $(data.element);
             const left  = el.data('left');
             const right = el.data('right');
-            return $('<div class="d-flex justify-content-between">' +
-                    '<span class="fw-semibold">' + left + '</span>' +
-                    '<span class="text-muted small">' + right + '</span>' +
-                    '</div>');
+            // Use null/undefined check — NOT !left, because 0 is a valid falsy value
+            if (left == null || left === '') return data.text;
+            // Two-column: percentage fixed left, breakdown truncates right,
+            // padding-right leaves room for the clear (×) button
+            return $('<span style="display:flex;align-items:center;width:100%;min-width:0;padding-right:20px;">' +
+                    '<span style="flex-shrink:0;font-weight:600;margin-right:8px;white-space:nowrap;">' + left + '</span>' +
+                    '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#6c757d;font-size:.82em;">' + right + '</span>' +
+                    '</span>');
         },
         dropdownParent: $('#itemsModal'),
     });
+
+    // Tag the Select2 container so we can scope CSS to this field only
+    $('#TaxPercentage').data('select2').$container.addClass('r2k-tax-pct-s2');
+
+    if (!$('#r2k-tax-pct-sel2-style').length) {
+        $('<style id="r2k-tax-pct-sel2-style">' +
+            // Make __rendered flex so our two-column templateSelection works
+            '#select2-TaxPercentage-container{display:flex!important;align-items:center!important;overflow:hidden!important;}' +
+        '</style>').appendTo('head');
+    }
 }

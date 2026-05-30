@@ -84,8 +84,6 @@ class Products extends MY_Controller {
 
         $result = $this->products_model->getProductListPaginated($OrgUID, $limit, $offset, $searchQuery, $filterResult->sortOperation);
 
-        $GeneralSettings = $this->redisservice->getUserCache('settings') ?? NULL;
-        $this->pageData['JwtData']->GenSettings = $GeneralSettings ?? $this->pageData['JwtData']->GenSettings;
 
         $rowHtml = $this->load->view('products/items/list', [
             'DataLists' => $result->rows,
@@ -127,10 +125,6 @@ class Products extends MY_Controller {
         }
         $offset = ($pageNo - 1) * $limit;
 
-        if (!isset($this->pageData['JwtData']->GenSettings)) {
-            $GeneralSettings = $this->redisservice->getUserCache('settings') ?? NULL;
-            $this->pageData['JwtData']->GenSettings = $GeneralSettings;
-        }
 
         $result  = $this->products_model->getCategoryListPaginated($OrgUID, $limit, $offset);
         $rowHtml = $this->load->view('products/categories/list', [
@@ -156,8 +150,6 @@ class Products extends MY_Controller {
         try {
 
             $activeTab = $this->sanitizeTabInput($this->input->get('tab', TRUE));
-            $GeneralSettings = $this->redisservice->getUserCache('settings') ?? NULL;
-            $this->pageData['JwtData']->GenSettings = $GeneralSettings;
 
             $limit = (int) ($GeneralSettings->RowLimit ?? 10);
 
@@ -445,8 +437,6 @@ class Products extends MY_Controller {
                 : $baseQuery;
             $result  = $this->products_model->getProductListPaginated($OrgUID, $limit, $offset, $searchQuery, $filterResult->sortOperation);
 
-            $GeneralSettings = $this->redisservice->getUserCache('settings') ?? NULL;
-            $this->pageData['JwtData']->GenSettings = $GeneralSettings;
 
             $rowHtml = $this->load->view('products/items/list', [
                 'DataLists' => $result->rows,
@@ -488,8 +478,6 @@ class Products extends MY_Controller {
                 : $baseQuery;
             $result = $this->products_model->getProductListPaginated($OrgUID, $limit, $offset, $searchQuery, $filterResult->sortOperation);
 
-            $GeneralSettings = $this->redisservice->getUserCache('settings') ?? NULL;
-            $this->pageData['JwtData']->GenSettings = $GeneralSettings;
 
             $rowHtml = $this->load->view('products/items/list', [
                 'DataLists' => $result->rows,
@@ -521,8 +509,7 @@ class Products extends MY_Controller {
             $this->load->model('dbwrite_model');
             $this->dbwrite_model->startTransaction();
             
-            $GeneralSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
-            $this->pageData['JwtData']->GenSettings = $GeneralSettings;
+            $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
 
             $PostData = $this->input->post();
 
@@ -663,8 +650,7 @@ class Products extends MY_Controller {
             $this->load->model('dbwrite_model');
             $this->dbwrite_model->startTransaction();
             
-            $GeneralSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
-            $this->pageData['JwtData']->GenSettings = $GeneralSettings;
+            $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
 
             $PostData = $this->input->post();
 
@@ -868,8 +854,7 @@ class Products extends MY_Controller {
             $this->load->model('dbwrite_model');
             $this->dbwrite_model->startTransaction();
 
-            $GeneralSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
-            $this->pageData['JwtData']->GenSettings = $GeneralSettings;
+            $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
 
             $PostData = $this->input->post();
 
@@ -964,8 +949,7 @@ class Products extends MY_Controller {
             $this->load->model('dbwrite_model');
             $this->dbwrite_model->startTransaction();
 
-            $GeneralSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
-            $this->pageData['JwtData']->GenSettings = $GeneralSettings;
+            $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
 
             $PostData = $this->input->post();
             $comboUID = (int) getPostValue($PostData, 'ComboUID');
@@ -1136,8 +1120,7 @@ class Products extends MY_Controller {
             );
             if ($resp->Error) throw new Exception($resp->Message);
 
-            $GeneralSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
-            $this->pageData['JwtData']->GenSettings = $GeneralSettings;
+            $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
 
             $pageNo  = (int) $this->input->post('PageNo') ?: 1;
             $getResp = $this->fetchProductTableData($pageNo);
@@ -1174,8 +1157,6 @@ class Products extends MY_Controller {
 
             $result  = $this->products_model->getCategoryListPaginated($OrgUID, $limit, $offset, $filterResult->SearchDirectQuery, $filterResult->sortOperation);
 
-            $GeneralSettings = $this->redisservice->getUserCache('settings') ?? NULL;
-            $this->pageData['JwtData']->GenSettings = $GeneralSettings;
 
             $rowHtml = $this->load->view('products/categories/list', [
                 'DataLists' => $result->rows,

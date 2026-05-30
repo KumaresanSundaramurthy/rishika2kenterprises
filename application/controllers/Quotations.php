@@ -25,9 +25,8 @@ class Quotations extends MY_Controller {
 
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
 
-            $GeneralSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
+            $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
             $limit = $GeneralSettings->RowLimit ?? 10;
-            $this->pageData['JwtData']->GenSettings = $GeneralSettings;
             $this->pageData['DiscTypeInfo'] = [];
 
             $this->load->model('transactions_model');
@@ -69,7 +68,6 @@ class Quotations extends MY_Controller {
             $allData = $this->transactions_model->getTransactionPageList($limit, $offset, $this->pageModuleUID, $filter, 0);
             $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, $filter);
 
-            $this->pageData['JwtData']->GenSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
 
             $orgUID = $this->pageData['JwtData']->User->OrgUID;
             $whatsAppTemplate = $this->getWhatsAppTemplate($orgUID);
@@ -814,9 +812,6 @@ class Quotations extends MY_Controller {
 
         try {
 
-            $GeneralSettings = $this->redisservice->getUserCache('settings') ?? NULL;
-            $this->pageData['JwtData']->GenSettings = $GeneralSettings;
-
             $orgUID = $this->pageData['JwtData']->User->OrgUID;
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
 
@@ -896,9 +891,6 @@ class Quotations extends MY_Controller {
 
             $transUID = (int) $transUID;
             if ($transUID <= 0) redirect('quotations', 'refresh');
-
-            $GeneralSettings = $this->redisservice->getUserCache('settings') ?? NULL;
-            $this->pageData['JwtData']->GenSettings = $GeneralSettings;
 
             $orgUID = $this->pageData['JwtData']->User->OrgUID;
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;

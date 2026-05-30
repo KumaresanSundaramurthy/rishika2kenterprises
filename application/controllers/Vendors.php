@@ -25,8 +25,7 @@ class Vendors extends MY_Controller {
         $this->pageData['ModColumnData']         = $ModuleInfo[0]->DispViewColumns ?? [];
         $this->pageData['DispSettColumnDetails'] = $ModuleInfo[0]->DispSettingsViewColumns ?? [];
 
-        $GeneralSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
-        $this->pageData['JwtData']->GenSettings = $GeneralSettings;
+        $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
         $this->pageData['Limit'] = $GeneralSettings->RowLimit ?? 10;
     }
 

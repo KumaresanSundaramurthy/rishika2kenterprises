@@ -22,8 +22,7 @@ class Inventory extends MY_Controller {
 
         try {
             $orgUID = (int) $this->pageData['JwtData']->User->OrgUID;
-            $GeneralSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
-            $this->pageData['JwtData']->GenSettings = $GeneralSettings;
+            $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
             $limit = (int)($GeneralSettings->RowLimit ?? 10);
 
             $filter = $this->input->post('Filter') ?: [];
@@ -64,7 +63,6 @@ class Inventory extends MY_Controller {
             $filter = $this->input->post('Filter') ?: [];
 
             $orgUID = (int) $this->pageData['JwtData']->User->OrgUID;
-            $this->pageData['JwtData']->GenSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
 
             $listData   = $this->inventory_model->getInventoryList($orgUID, $filter, $limit, $offset);
             $totalCount = $this->inventory_model->getInventoryCount($orgUID, $filter);
@@ -326,8 +324,7 @@ class Inventory extends MY_Controller {
 
         try {
             $orgUID = (int) $this->pageData['JwtData']->User->OrgUID;
-            $GeneralSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
-            $this->pageData['JwtData']->GenSettings = $GeneralSettings;
+            $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
             $limit = (int) ($GeneralSettings->RowLimit ?? 10);
 
             $defaultFilter = ['DateFrom' => date('Y') . '-01-01', 'DateTo'   => date('Y') . '-12-31'];
@@ -362,7 +359,6 @@ class Inventory extends MY_Controller {
             $limit  = (int)($this->input->post('RowLimit') ?: 10);
             $offset = ($pageNo - 1) * $limit;
             $orgUID = (int) $this->pageData['JwtData']->User->OrgUID;
-            $this->pageData['JwtData']->GenSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
 
             $filterRaw = $this->input->post('Filter');
             $filter    = $filterRaw ? (json_decode($filterRaw, true) ?: []) : [];

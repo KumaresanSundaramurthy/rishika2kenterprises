@@ -783,6 +783,17 @@ function fileSelect(id) {
     }
 }
 
+function _resolveDropdownParent($el, modalSelector) {
+    // Explicit selector wins
+    if (modalSelector) return $(modalSelector);
+    // Auto-detect: use .modal-content (NOT .modal) as dropdownParent.
+    // .modal-content is position:relative so Select2 positions correctly.
+    // Using .modal caused Bootstrap._adjustDialog() to fire on each dropdown
+    // open/close (recalculating scrollbar padding), producing the zoom in/out.
+    var $content = $el.closest('.modal-content');
+    return $content.length ? $content : null;
+}
+
 function loadSelect2Field(fieldSelector, placeholder, modalSelector = null) {
 
     const $el = $(fieldSelector);
@@ -793,15 +804,10 @@ function loadSelect2Field(fieldSelector, placeholder, modalSelector = null) {
         allowClear: true,
         width: '100%'
     };
-    // If used inside modal
-    if (modalSelector) {
-        options.dropdownParent = $(modalSelector);
-    }
-    // Destroy if already initialized
-    if ($el.hasClass('select2-hidden-accessible')) {
-        $el.select2('destroy');
-    }
+    var parent = _resolveDropdownParent($el, modalSelector);
+    if (parent) options.dropdownParent = parent;
 
+    if ($el.hasClass('select2-hidden-accessible')) $el.select2('destroy');
     $el.select2(options);
 
 }
@@ -815,15 +821,10 @@ function loadCountrySelect2Field(fieldSelector, placeholder, modalSelector = nul
         placeholder: placeholder,
         width: '100%'
     };
-    // If used inside modal
-    if (modalSelector) {
-        options.dropdownParent = $(modalSelector);
-    }
-    // Destroy if already initialized
-    if ($el.hasClass('select2-hidden-accessible')) {
-        $el.select2('destroy');
-    }
+    var parent = _resolveDropdownParent($el, modalSelector);
+    if (parent) options.dropdownParent = parent;
 
+    if ($el.hasClass('select2-hidden-accessible')) $el.select2('destroy');
     $el.select2(options);
 
 }
@@ -838,15 +839,10 @@ function initializeSelect2Tags(fieldSelector, placeholder, modalSelector = null)
         placeholder: placeholder,
         width: '100%'
     };
-    // If used inside modal
-    if (modalSelector) {
-        options.dropdownParent = $(modalSelector);
-    }
-    // Destroy if already initialized
-    if ($el.hasClass('select2-hidden-accessible')) {
-        $el.select2('destroy');
-    }
+    var parent = _resolveDropdownParent($el, modalSelector);
+    if (parent) options.dropdownParent = parent;
 
+    if ($el.hasClass('select2-hidden-accessible')) $el.select2('destroy');
     $el.select2(options);
 
 }
@@ -859,7 +855,10 @@ $(document).on('select2:open', function(e) {
     setTimeout(function() {
         var $search = $('.select2-container--open .select2-search--dropdown .select2-search__field');
         if (placeholder) $search.attr('placeholder', placeholder);
-        $search.trigger('focus').select();
+        // Use native focus() — avoids triggering jQuery's event chain which
+        // Bootstrap 5's FocusTrap intercepts, causing the focus in/out flicker
+        // inside modals when trigger('focus') was used.
+        if ($search.length) $search[0].focus({ preventScroll: true });
     }, 0);
 });
 

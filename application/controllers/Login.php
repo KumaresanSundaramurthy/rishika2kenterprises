@@ -114,7 +114,6 @@ class Login extends CI_Controller {
                                 $this->redisservice->setUserCache('submenus',    $userUID, $newPayload->JWTData['UserSubModule']  ?? [], $loginExpiry, $orgShortCode, $orgToken);
                                 $this->redisservice->setUserCache('modules',     $userUID, $newPayload->JWTData['ModuleInfo']     ?? [], $loginExpiry, $orgShortCode, $orgToken);
                                 $this->redisservice->setUserCache('permissions', $userUID, $newPayload->JWTData['Permissions']    ?? [], $loginExpiry, $orgShortCode, $orgToken);
-                                $this->redisservice->setUserCache('settings',    $userUID, $newPayload->JWTData['GenSettings']    ?? [], $loginExpiry, $orgShortCode, $orgToken);
                                 $this->redisservice->setUserCache('userinfo',    $userUID, $UserData->Data[0],                         $loginExpiry, $orgShortCode, $orgToken);
 
                                 $orgUID = $UserData->Data[0]->UserOrgUID ?? null;

@@ -20,8 +20,7 @@ class Users extends MY_Controller {
             return;
         }
         try {
-            $GeneralSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
-            $this->pageData['JwtData']->GenSettings = $GeneralSettings;
+            $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
             $limit  = $GeneralSettings->RowLimit ?? 10;
             $orgUID = $this->pageData['JwtData']->User->OrgUID;
 
@@ -59,7 +58,6 @@ class Users extends MY_Controller {
             $filter = $this->input->post('Filter') ?: [];
 
             $orgUID = $this->pageData['JwtData']->User->OrgUID;
-            $this->pageData['JwtData']->GenSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
 
             $allData      = $this->users_model->getUsersList($orgUID, $filter, $limit, $offset);
             $allDataCount = $this->users_model->getUsersCount($orgUID, $filter);
@@ -328,8 +326,7 @@ class Users extends MY_Controller {
     }
 
     private function _appendListResponse($orgUID) {
-        $GeneralSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
-        $this->pageData['JwtData']->GenSettings = $GeneralSettings;
+        $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
 
         $filterJson = $this->input->post('Filter');
         $filter = ($filterJson && ($decoded = json_decode($filterJson, true))) ? $decoded : ['Status' => 'All'];

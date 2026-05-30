@@ -19,7 +19,7 @@ class Storage extends MY_Controller {
 
         try {
 
-            $GeneralSettings = $this->redisservice->getUserCache('settings') ?? new stdClass();
+            $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
             if($GeneralSettings->EnableStorage != 1) {
                 redirect('dashboard', 'refresh');
                 return;
@@ -102,8 +102,7 @@ class Storage extends MY_Controller {
         $this->EndReturnData = new stdClass();
 		try {
 
-            $GeneralSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
-            $this->pageData['JwtData']->GenSettings = $GeneralSettings;
+            $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
 
             $postData = $this->input->post();
             $this->load->model('formvalidation_model');
@@ -149,8 +148,7 @@ class Storage extends MY_Controller {
         $this->EndReturnData = new stdClass();
 		try {
 
-            $GeneralSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
-            $this->pageData['JwtData']->GenSettings = $GeneralSettings;
+            $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
 
             $postData = $this->input->post();
             $this->load->model('formvalidation_model');

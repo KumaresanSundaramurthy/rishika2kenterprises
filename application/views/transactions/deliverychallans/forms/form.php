@@ -238,12 +238,10 @@ if (!empty($DispatchAddress)) {
                                                value="<?php echo htmlspecialchars($_vehicleNo); ?>" />
                                     </div>
 
-                                    <?php if (!empty($DispatchAddress)): ?>
+                                    <?php if (!empty($DispatchAddresses)): ?>
                                     <div class="mb-2">
                                         <label class="form-label small fw-semibold">Dispatch From</label>
-                                        <select id="dispatchFrom" name="dispatchFrom" class="form-select form-select-sm">
-                                            <option value="<?php echo (int)$DispatchAddress->OrgAddressUID; ?>" selected><?php echo implode(', ', $_addrLines); ?></option>
-                                        </select>
+                                        <?php $this->load->view('common/transactions/_dispatch_from'); ?>
                                     </div>
                                     <?php endif; ?>
 

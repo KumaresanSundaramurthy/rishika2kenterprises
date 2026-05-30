@@ -82,18 +82,11 @@
                                                 <i class="bx bx-slider-alt me-2"></i>General
                                             </a>
 
-                                            <a class="nav-link gs-tab-link px-4 py-3" id="tab-invoice-tab"
-                                                data-bs-toggle="pill" data-bs-target="#tab-invoice"
-                                                role="tab" aria-controls="tab-invoice" aria-selected="false"
+                                            <a class="nav-link gs-tab-link px-4 py-3" id="tab-product-tab"
+                                                data-bs-toggle="pill" data-bs-target="#tab-product"
+                                                role="tab" aria-controls="tab-product" aria-selected="false"
                                                 href="javascript:void(0);">
-                                                <i class="bx bx-receipt me-2"></i>Invoice Settings
-                                            </a>
-
-                                            <a class="nav-link gs-tab-link px-4 py-3" id="tab-inventory-tab"
-                                                data-bs-toggle="pill" data-bs-target="#tab-inventory"
-                                                role="tab" aria-controls="tab-inventory" aria-selected="false"
-                                                href="javascript:void(0);">
-                                                <i class="bx bx-package me-2"></i>Inventory
+                                                <i class="bx bx-box me-2"></i>Product Settings
                                             </a>
 
                                         </div>
@@ -105,172 +98,209 @@
                                         <div class="tab-content p-4" id="genSettingsTabContent">
 
                                             <!-- Sub-Tab 1: General -->
+                                            <?php
+                                            $gs              = $GenSettings ?? new stdClass();
+                                            $gsCurrency      = htmlspecialchars($gs->CurrenySymbol   ?? '₹');
+                                            $gsDecimal       = (int)($gs->DecimalPoints  ?? 2);
+                                            $gsSerial        = !empty($gs->SerialNoDisplay);
+                                            $gsRowLimit      = (int)($gs->RowLimit       ?? 10);
+                                            $gsFYMonth       = (int)($gs->FYStartMonth   ?? 4);
+                                            $gsEnableStorage = !empty($gs->EnableStorage);
+                                            $gsMandatory     = !empty($gs->MandatoryStorage);
+                                            $gsQtyMax        = (int)($gs->QtyMaxLength   ?? 6);
+                                            $gsPriceMax      = (int)($gs->PriceMaxLength ?? 12);
+                                            ?>
                                             <div class="tab-pane fade show active" id="tab-general" role="tabpanel" aria-labelledby="tab-general-tab">
 
                                                 <h6 class="fw-semibold mb-1">General Preferences</h6>
                                                 <p class="text-muted small mb-4">Configure your application's basic display and regional preferences.</p>
 
-                                                <div class="row g-3">
+                                                <!-- ── Display & Regional ── -->
+                                                <p class="text-muted fw-semibold mb-2" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;">Display &amp; Regional</p>
+                                                <div class="row g-3 mb-4">
                                                     <div class="col-md-6">
-                                                        <label class="form-label">Date Format</label>
-                                                        <select class="form-select" id="DateFormat" name="DateFormat">
-                                                            <option value="DD/MM/YYYY">DD/MM/YYYY</option>
-                                                            <option value="MM/DD/YYYY">MM/DD/YYYY</option>
-                                                            <option value="YYYY-MM-DD">YYYY-MM-DD</option>
-                                                        </select>
-                                                    </div>
-                                                    <div class="col-md-6">
-                                                        <label class="form-label">Currency Symbol</label>
-                                                        <input type="text" class="form-control" id="CurrencySymbol" name="CurrencySymbol" placeholder="e.g. ₹" value="₹" maxlength="5" />
+                                                        <label class="form-label">Currency Symbol <span class="text-danger">*</span></label>
+                                                        <input type="text" class="form-control" id="gs_CurrenySymbol" name="CurrenySymbol"
+                                                               placeholder="e.g. ₹" value="<?php echo $gsCurrency; ?>" maxlength="1" />
+                                                        <div class="form-text">Single character representing your country's currency (e.g. ₹ India, $ USA, € Europe).</div>
                                                     </div>
                                                     <div class="col-md-6">
                                                         <label class="form-label">Decimal Places</label>
-                                                        <select class="form-select" id="DecimalPlaces" name="DecimalPlaces">
-                                                            <option value="0">0</option>
-                                                            <option value="2" selected>2</option>
-                                                            <option value="3">3</option>
+                                                        <select class="form-select" id="gs_DecimalPoints" name="DecimalPoints">
+                                                            <option value="0" <?php echo $gsDecimal === 0 ? 'selected' : ''; ?>>0 — No decimals (e.g. 100)</option>
+                                                            <option value="2" <?php echo $gsDecimal === 2 ? 'selected' : ''; ?>>2 — Standard (e.g. 100.00)</option>
+                                                            <option value="3" <?php echo $gsDecimal === 3 ? 'selected' : ''; ?>>3 — High precision (e.g. 100.000)</option>
                                                         </select>
+                                                        <div class="form-text">Controls how prices, quantities, and totals are displayed throughout the app.</div>
                                                     </div>
                                                     <div class="col-md-6">
-                                                        <label class="form-label">Language</label>
-                                                        <select class="form-select" id="Language" name="Language">
-                                                            <option value="en" selected>English</option>
-                                                            <option value="ta">Tamil</option>
-                                                            <option value="hi">Hindi</option>
+                                                        <label class="form-label">Rows Per Page</label>
+                                                        <select class="form-select" id="gs_RowLimit" name="RowLimit">
+                                                            <option value="10"  <?php echo $gsRowLimit === 10  ? 'selected' : ''; ?>>10</option>
+                                                            <option value="25"  <?php echo $gsRowLimit === 25  ? 'selected' : ''; ?>>25</option>
+                                                            <option value="50"  <?php echo $gsRowLimit === 50  ? 'selected' : ''; ?>>50</option>
+                                                            <option value="100" <?php echo $gsRowLimit === 100 ? 'selected' : ''; ?>>100</option>
                                                         </select>
+                                                        <div class="form-text">Default number of records shown per page in all list/table views.</div>
                                                     </div>
-                                                    <div class="col-md-12">
-                                                        <div class="form-check form-switch mb-0">
-                                                            <input class="form-check-input" type="checkbox" role="switch" id="SerialNoDisplay" name="SerialNoDisplay" checked>
-                                                            <label class="form-check-label" for="SerialNoDisplay">Show Serial Number in Lists</label>
-                                                        </div>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">Financial Year Start Month</label>
+                                                        <select class="form-select" id="gs_FYStartMonth" name="FYStartMonth">
+                                                            <?php
+                                                            $months = [1=>'January',2=>'February',3=>'March',4=>'April',5=>'May',6=>'June',
+                                                                       7=>'July',8=>'August',9=>'September',10=>'October',11=>'November',12=>'December'];
+                                                            foreach ($months as $num => $name):
+                                                            ?>
+                                                            <option value="<?php echo $num; ?>" <?php echo $gsFYMonth === $num ? 'selected' : ''; ?>><?php echo $name; ?></option>
+                                                            <?php endforeach; ?>
+                                                        </select>
+                                                        <div class="form-text">Transaction sequence numbers (INV-001, PO-001 etc.) reset to 1 when the new FY begins.</div>
                                                     </div>
-                                                    <div class="col-md-12">
-                                                        <div class="form-check form-switch mb-0">
-                                                            <input class="form-check-input" type="checkbox" role="switch" id="DarkModeDefault" name="DarkModeDefault">
-                                                            <label class="form-check-label" for="DarkModeDefault">Default to Dark Mode</label>
+                                                </div>
+
+                                                <!-- ── Input Limits ── -->
+                                                <p class="text-muted fw-semibold mb-2" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;">Input Limits</p>
+                                                <div class="row g-3 mb-4">
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">Quantity Max Length</label>
+                                                        <input type="number" class="form-control" id="gs_QtyMaxLength" name="QtyMaxLength"
+                                                               min="1" max="15" value="<?php echo $gsQtyMax; ?>" />
+                                                        <div class="form-text">Maximum number of digits allowed when entering a product quantity (e.g. 6 allows up to 999999). Includes decimal digits.</div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">Price Max Length</label>
+                                                        <input type="number" class="form-control" id="gs_PriceMaxLength" name="PriceMaxLength"
+                                                               min="1" max="20" value="<?php echo $gsPriceMax; ?>" />
+                                                        <div class="form-text">Maximum number of digits allowed when entering a price or amount (e.g. 12 allows up to ₹99,99,99,999.99). Includes decimal digits.</div>
+                                                    </div>
+                                                </div>
+
+                                                <!-- ── Toggles ── -->
+                                                <p class="text-muted fw-semibold mb-2" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;">Features</p>
+                                                <div class="row g-3">
+                                                    <div class="col-md-6">
+                                                        <div class="form-check form-switch">
+                                                            <input class="form-check-input" type="checkbox" role="switch"
+                                                                   id="gs_SerialNoDisplay" name="SerialNoDisplay"
+                                                                   <?php echo $gsSerial ? 'checked' : ''; ?>>
+                                                            <label class="form-check-label fw-semibold" for="gs_SerialNoDisplay">Show Serial Number in Lists</label>
                                                         </div>
+                                                        <div class="form-text ms-4 ps-2">Displays a row number (#1, #2…) as the first column in all list and table views for easy reference.</div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <div class="form-check form-switch">
+                                                            <input class="form-check-input" type="checkbox" role="switch"
+                                                                   id="gs_EnableStorage" name="EnableStorage"
+                                                                   <?php echo $gsEnableStorage ? 'checked' : ''; ?>>
+                                                            <label class="form-check-label fw-semibold" for="gs_EnableStorage">Enable Storage / Warehouse</label>
+                                                        </div>
+                                                        <div class="form-text ms-4 ps-2">Activates warehouse or storage location tracking. When enabled, products can be assigned to specific storage locations and transactions can specify the source/destination store.</div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <div class="form-check form-switch">
+                                                            <input class="form-check-input" type="checkbox" role="switch"
+                                                                   id="gs_MandatoryStorage" name="MandatoryStorage"
+                                                                   <?php echo $gsMandatory ? 'checked' : ''; ?>>
+                                                            <label class="form-check-label fw-semibold" for="gs_MandatoryStorage">Make Storage Selection Mandatory</label>
+                                                        </div>
+                                                        <div class="form-text ms-4 ps-2">When enabled, users must select a storage location before saving a transaction. Requires "Enable Storage" to be turned on. Ensures every stock movement is traceable to a specific location.</div>
                                                     </div>
                                                 </div>
 
                                                 <div class="mt-4 d-flex gap-2">
-                                                    <button type="button" class="btn btn-primary gs-save-btn">Save Changes</button>
-                                                    <button type="button" class="btn btn-label-secondary">Reset</button>
+                                                    <button type="button" class="btn btn-primary" id="btnSaveGeneralSettings">
+                                                        <span class="spinner-border spinner-border-sm me-1 d-none" id="gsSpinner"></span>
+                                                        Save Changes
+                                                    </button>
                                                 </div>
+                                                <div id="gsAlert" class="mt-3 d-none"></div>
 
                                             </div>
                                             <!-- / Sub-Tab 1 -->
 
-                                            <!-- Sub-Tab 2: Invoice Settings -->
-                                            <div class="tab-pane fade" id="tab-invoice" role="tabpanel" aria-labelledby="tab-invoice-tab">
+                                            <!-- Sub-Tab 2: Product Settings -->
+                                            <?php
+                                            $ps              = $ProdSettings   ?? new stdClass();
+                                            $psProductType   = (int)($ps->DefaultProductTypeUID  ?? 0);
+                                            $psDiscountType  = (int)($ps->DefaultDiscountTypeUID ?? 0);
+                                            $psProductTax    = (int)($ps->DefaultProductTaxUID   ?? 0);
+                                            $psTaxDetail     = (int)($ps->DefaultTaxDetailUID    ?? 0);
+                                            ?>
+                                            <div class="tab-pane fade" id="tab-product" role="tabpanel" aria-labelledby="tab-product-tab">
 
-                                                <h6 class="fw-semibold mb-1">Invoice Settings</h6>
-                                                <p class="badge bg-label-secondary d-inline-flex align-items-center gap-1 mb-4" style="font-size:.78rem;font-weight:500;">
-                                                    <i class="bx bx-info-circle"></i>
-                                                    Manage invoice numbering, defaults, and display preferences.
-                                                </p>
+                                                <h6 class="fw-semibold mb-1">Product Settings</h6>
+                                                <p class="text-muted small mb-4">Set the default selections that pre-fill the product creation form. Users can override these per product.</p>
 
                                                 <div class="row g-3">
+
                                                     <div class="col-md-6">
-                                                        <label class="form-label">Invoice Prefix</label>
-                                                        <input type="text" class="form-control" id="InvoicePrefix" name="InvoicePrefix" placeholder="e.g. INV-" value="INV-" maxlength="10" />
-                                                    </div>
-                                                    <div class="col-md-6">
-                                                        <label class="form-label">Starting Number</label>
-                                                        <input type="number" class="form-control" id="InvoiceStartNo" name="InvoiceStartNo" placeholder="e.g. 1001" value="1001" min="1" />
-                                                    </div>
-                                                    <div class="col-md-6">
-                                                        <label class="form-label">Default Due Days</label>
-                                                        <input type="number" class="form-control" id="DefaultDueDays" name="DefaultDueDays" placeholder="e.g. 30" value="30" min="0" />
-                                                    </div>
-                                                    <div class="col-md-6">
-                                                        <label class="form-label">Default Tax Type</label>
-                                                        <select class="form-select" id="DefaultTaxType" name="DefaultTaxType">
-                                                            <option value="GST" selected>GST (CGST + SGST)</option>
-                                                            <option value="IGST">IGST</option>
-                                                            <option value="None">None</option>
+                                                        <label class="form-label">Default Product Type</label>
+                                                        <select class="form-select" id="ps_ProductType" name="DefaultProductTypeUID">
+                                                            <option value="">— Select —</option>
+                                                            <?php foreach ($ProdTypeInfo as $pt): ?>
+                                                            <option value="<?php echo (int)$pt->ProductTypeUID; ?>"
+                                                                <?php echo $psProductType === (int)$pt->ProductTypeUID ? 'selected' : ''; ?>>
+                                                                <?php echo htmlspecialchars($pt->Name); ?>
+                                                            </option>
+                                                            <?php endforeach; ?>
                                                         </select>
+                                                        <div class="form-text">Whether a new product defaults to a physical "Product" or an intangible "Service". This controls whether stock tracking and inventory movement apply to the item.</div>
                                                     </div>
-                                                    <div class="col-md-12">
-                                                        <label class="form-label">Default Terms &amp; Conditions</label>
-                                                        <textarea class="form-control" id="DefaultTerms" name="DefaultTerms" rows="3" placeholder="Enter default terms and conditions for invoices...">Goods once sold will not be taken back or exchanged.</textarea>
+
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">Default Discount Type</label>
+                                                        <select class="form-select" id="ps_DiscountType" name="DefaultDiscountTypeUID">
+                                                            <option value="">— Select —</option>
+                                                            <?php foreach ($DiscTypeInfo as $dt): ?>
+                                                            <option value="<?php echo (int)$dt->DiscountTypeUID; ?>"
+                                                                <?php echo $psDiscountType === (int)$dt->DiscountTypeUID ? 'selected' : ''; ?>>
+                                                                <?php echo htmlspecialchars($dt->Name); ?> (<?php echo htmlspecialchars($dt->Symbol); ?>)
+                                                            </option>
+                                                            <?php endforeach; ?>
+                                                        </select>
+                                                        <div class="form-text">The discount calculation method pre-selected on the product form — Percentage (%) deducts a share of the price; Amount (₹) deducts a fixed value.</div>
                                                     </div>
-                                                    <div class="col-md-12">
-                                                        <div class="form-check form-switch mb-0">
-                                                            <input class="form-check-input" type="checkbox" role="switch" id="ShowSignature" name="ShowSignature" checked>
-                                                            <label class="form-check-label" for="ShowSignature">Show Signature on Invoice</label>
-                                                        </div>
+
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">Default Product Tax Type</label>
+                                                        <select class="form-select" id="ps_ProductTax" name="DefaultProductTaxUID">
+                                                            <option value="">— Select —</option>
+                                                            <?php foreach ($ProdTaxInfo as $ptx): ?>
+                                                            <option value="<?php echo (int)$ptx->ProductTaxUID; ?>"
+                                                                <?php echo $psProductTax === (int)$ptx->ProductTaxUID ? 'selected' : ''; ?>>
+                                                                <?php echo htmlspecialchars($ptx->Name); ?>
+                                                            </option>
+                                                            <?php endforeach; ?>
+                                                        </select>
+                                                        <div class="form-text">Controls how the selling price is interpreted — "With Tax" means the entered price includes GST; "Without Tax" means GST is added on top during invoicing.</div>
                                                     </div>
-                                                    <div class="col-md-12">
-                                                        <div class="form-check form-switch mb-0">
-                                                            <input class="form-check-input" type="checkbox" role="switch" id="ShowBankDetails" name="ShowBankDetails" checked>
-                                                            <label class="form-check-label" for="ShowBankDetails">Show Bank Details on Invoice</label>
-                                                        </div>
+
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">Default Tax Percentage</label>
+                                                        <select class="form-select" id="ps_TaxDetail" name="DefaultTaxDetailUID">
+                                                            <option value="">— Select —</option>
+                                                            <?php foreach ($TaxDetInfo as $td): ?>
+                                                            <option value="<?php echo (int)$td->TaxDetailsUID; ?>"
+                                                                <?php echo $psTaxDetail === (int)$td->TaxDetailsUID ? 'selected' : ''; ?>>
+                                                                <?php echo htmlspecialchars(smartDecimal($td->Percentage)); ?>% — <?php echo htmlspecialchars($td->TaxName); ?>
+                                                            </option>
+                                                            <?php endforeach; ?>
+                                                        </select>
+                                                        <div class="form-text">The GST slab pre-selected when creating a new product (e.g. 0%, 5%, 12%, 18%, 28%). The split into CGST+SGST or IGST is determined automatically based on the transaction's place of supply.</div>
                                                     </div>
+
                                                 </div>
 
                                                 <div class="mt-4 d-flex gap-2">
-                                                    <button type="button" class="btn btn-primary gs-save-btn">Save Changes</button>
-                                                    <button type="button" class="btn btn-label-secondary">Reset</button>
+                                                    <button type="button" class="btn btn-primary" id="btnSaveProductSettings">
+                                                        <span class="spinner-border spinner-border-sm me-1 d-none" id="psSpinner"></span>
+                                                        Save Changes
+                                                    </button>
                                                 </div>
+                                                <div id="psAlert" class="mt-3 d-none"></div>
 
                                             </div>
-                                            <!-- / Sub-Tab 2 -->
-
-                                            <!-- Sub-Tab 3: Inventory -->
-                                            <div class="tab-pane fade" id="tab-inventory" role="tabpanel" aria-labelledby="tab-inventory-tab">
-
-                                                <h6 class="fw-semibold mb-1">Inventory Settings</h6>
-                                                <p class="text-muted small mb-4">Control stock tracking, storage, and low-stock alert preferences.</p>
-
-                                                <div class="row g-3">
-                                                    <div class="col-md-6">
-                                                        <label class="form-label">Default Low Stock Alert Quantity</label>
-                                                        <input type="number" class="form-control" id="LowStockDefault" name="LowStockDefault" placeholder="e.g. 5" value="5" min="0" />
-                                                        <div class="form-text">Alert triggers when stock falls below this quantity.</div>
-                                                    </div>
-                                                    <div class="col-md-6">
-                                                        <label class="form-label">Default Unit of Measurement</label>
-                                                        <select class="form-select" id="DefaultUOM" name="DefaultUOM">
-                                                            <option value="Nos" selected>Nos (Numbers)</option>
-                                                            <option value="Kg">Kg</option>
-                                                            <option value="Ltr">Ltr</option>
-                                                            <option value="Mtr">Mtr</option>
-                                                        </select>
-                                                    </div>
-                                                    <div class="col-md-12">
-                                                        <div class="form-check form-switch mb-0">
-                                                            <input class="form-check-input" type="checkbox" role="switch" id="EnableStorage" name="EnableStorage" checked>
-                                                            <label class="form-check-label" for="EnableStorage">Enable Storage / Warehouse Management</label>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-md-12">
-                                                        <div class="form-check form-switch mb-0">
-                                                            <input class="form-check-input" type="checkbox" role="switch" id="EnableLowStockAlert" name="EnableLowStockAlert" checked>
-                                                            <label class="form-check-label" for="EnableLowStockAlert">Enable Low Stock Alerts</label>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-md-12">
-                                                        <div class="form-check form-switch mb-0">
-                                                            <input class="form-check-input" type="checkbox" role="switch" id="TrackNegativeStock" name="TrackNegativeStock">
-                                                            <label class="form-check-label" for="TrackNegativeStock">Allow Negative Stock</label>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-md-12">
-                                                        <div class="form-check form-switch mb-0">
-                                                            <input class="form-check-input" type="checkbox" role="switch" id="EnableOpeningStock" name="EnableOpeningStock" checked>
-                                                            <label class="form-check-label" for="EnableOpeningStock">Enable Opening Stock Entry for New Items</label>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <div class="mt-4 d-flex gap-2">
-                                                    <button type="button" class="btn btn-primary gs-save-btn">Save Changes</button>
-                                                    <button type="button" class="btn btn-label-secondary">Reset</button>
-                                                </div>
-
-                                            </div>
-                                            <!-- / Sub-Tab 3 -->
+                                            <!-- / Sub-Tab 4: Product Settings -->
 
                                         </div>
                                     </div>
@@ -464,7 +494,7 @@
 .gs-top-tabs .gs-top-link.active { color: var(--bs-primary); border-bottom: 3px solid var(--bs-primary); background: transparent; font-weight: 600; }
 
 /* ── Left vertical sub-tabs ────────────────────────────── */
-.gs-nav-pills .gs-tab-link { border-radius: 0; color: var(--bs-body-color); font-size: 0.875rem; border-left: 3px solid transparent; transition: background 0.15s, border-color 0.15s; }
+.gs-nav-pills .gs-tab-link { border-radius: 0; color: var(--bs-body-color); font-size: 0.875rem; border-left: 3px solid transparent; transition: background 0.15s, border-color 0.15s; text-align: left; justify-content: flex-start; }
 .gs-nav-pills .gs-tab-link:hover  { background-color: var(--bs-gray-100); }
 .gs-nav-pills .gs-tab-link.active { background-color: rgba(var(--bs-primary-rgb), 0.08); color: var(--bs-primary); border-left-color: var(--bs-primary); font-weight: 600; }
 
@@ -474,10 +504,95 @@
 var CsrfName  = '<?php echo $this->security->get_csrf_token_name(); ?>';
 var CsrfToken = '<?php echo $this->security->get_csrf_hash(); ?>';
 
-window.addEventListener('load', function() {
+$(document).ready(function () {
     'use strict';
-    $(document).on('click', '.gs-save-btn', function() {
-        Swal.fire({ icon:'success', title:'Saved!', text:'Settings have been saved successfully.', timer:1800, showConfirmButton:false });
+
+    $('#btnSaveGeneralSettings').on('click', function () {
+        var $btn     = $(this);
+        var $spinner = $('#gsSpinner');
+        var $alert   = $('#gsAlert');
+
+        // Collect values
+        var currency  = $('#gs_CurrenySymbol').val().trim();
+        if (!currency) {
+            $alert.removeClass('d-none alert-success').addClass('alert alert-danger').text('Currency symbol is required.');
+            return;
+        }
+
+        $btn.prop('disabled', true);
+        $spinner.removeClass('d-none');
+        $alert.addClass('d-none');
+
+        $.ajax({
+            url    : '/settings/updateGeneralSettings',
+            method : 'POST',
+            data   : {
+                CurrenySymbol  : currency,
+                DecimalPoints  : $('#gs_DecimalPoints').val(),
+                RowLimit       : $('#gs_RowLimit').val(),
+                FYStartMonth   : $('#gs_FYStartMonth').val(),
+                SerialNoDisplay: $('#gs_SerialNoDisplay').is(':checked') ? 1 : 0,
+                [CsrfName]     : CsrfToken,
+            },
+            success: function (resp) {
+                if (resp.Error) {
+                    $alert.removeClass('d-none alert-success').addClass('alert alert-danger').text(resp.Message);
+                } else {
+                    $alert.removeClass('d-none alert-danger').addClass('alert alert-success').text(resp.Message);
+                }
+            },
+            error: function () {
+                $alert.removeClass('d-none alert-success').addClass('alert alert-danger').text('Request failed. Please try again.');
+            },
+            complete: function () {
+                $btn.prop('disabled', false);
+                $spinner.addClass('d-none');
+            }
+        });
     });
+
+    // ── Product Settings save ─────────────────────────────────────────────────
+    $('#btnSaveProductSettings').on('click', function () {
+        var $btn     = $(this);
+        var $spinner = $('#psSpinner');
+        var $alert   = $('#psAlert');
+
+        if (!$('#ps_ProductType').val() || !$('#ps_DiscountType').val() ||
+            !$('#ps_ProductTax').val()  || !$('#ps_TaxDetail').val()) {
+            $alert.removeClass('d-none alert-success').addClass('alert alert-danger').text('Please select all four fields.');
+            return;
+        }
+
+        $btn.prop('disabled', true);
+        $spinner.removeClass('d-none');
+        $alert.addClass('d-none');
+
+        $.ajax({
+            url    : '/settings/updateProductSettings',
+            method : 'POST',
+            data   : {
+                DefaultProductTypeUID  : $('#ps_ProductType').val(),
+                DefaultDiscountTypeUID : $('#ps_DiscountType').val(),
+                DefaultProductTaxUID   : $('#ps_ProductTax').val(),
+                DefaultTaxDetailUID    : $('#ps_TaxDetail').val(),
+                [CsrfName]             : CsrfToken,
+            },
+            success: function (resp) {
+                if (resp.Error) {
+                    $alert.removeClass('d-none alert-success').addClass('alert alert-danger').text(resp.Message);
+                } else {
+                    $alert.removeClass('d-none alert-danger').addClass('alert alert-success').text(resp.Message);
+                }
+            },
+            error: function () {
+                $alert.removeClass('d-none alert-success').addClass('alert alert-danger').text('Request failed. Please try again.');
+            },
+            complete: function () {
+                $btn.prop('disabled', false);
+                $spinner.addClass('d-none');
+            }
+        });
+    });
+
 });
 </script>

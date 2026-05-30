@@ -25,9 +25,8 @@ class Purchases extends MY_Controller {
 
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
 
-            $GeneralSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
+            $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
             $limit = $GeneralSettings->RowLimit ?? 10;
-            $this->pageData['JwtData']->GenSettings = $GeneralSettings;
             $this->pageData['DiscTypeInfo'] = [];
 
             $this->load->model('transactions_model');
@@ -71,7 +70,6 @@ class Purchases extends MY_Controller {
             $allData      = $this->transactions_model->getTransactionPageList($limit, $offset, $this->pageModuleUID, $filter, 0);
             $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, $filter);
 
-            $this->pageData['JwtData']->GenSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
 
             $rowHtml = $this->load->view('transactions/purchases/list', [
                 'DataLists'    => $allData,
@@ -99,8 +97,7 @@ class Purchases extends MY_Controller {
 
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
 
-            $GeneralSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
-            $this->pageData['JwtData']->GenSettings = $GeneralSettings;
+            $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
             $limit  = $GeneralSettings->RowLimit ?? 10;
             $orgUID = $this->pageData['JwtData']->User->OrgUID;
 
@@ -144,7 +141,6 @@ class Purchases extends MY_Controller {
             $filter['ModuleUID'] = $this->pageModuleUID;
 
             $orgUID = $this->pageData['JwtData']->User->OrgUID;
-            $this->pageData['JwtData']->GenSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
 
             $this->load->model('transactions_model');
             $allData      = $this->transactions_model->getPaymentsList($limit, $offset, $orgUID, $filter);
@@ -1176,9 +1172,6 @@ class Purchases extends MY_Controller {
 
         try {
 
-            $GeneralSettings = $this->redisservice->getUserCache('settings') ?? NULL;
-            $this->pageData['JwtData']->GenSettings = $GeneralSettings;
-
             $orgUID = $this->pageData['JwtData']->User->OrgUID;
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
 
@@ -1250,9 +1243,6 @@ class Purchases extends MY_Controller {
 
             $transUID = (int) $transUID;
             if ($transUID <= 0) redirect('purchases');
-
-            $GeneralSettings = $this->redisservice->getUserCache('settings') ?? NULL;
-            $this->pageData['JwtData']->GenSettings = $GeneralSettings;
 
             $orgUID = $this->pageData['JwtData']->User->OrgUID;
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
@@ -1587,7 +1577,7 @@ class Purchases extends MY_Controller {
             $this->EndReturnData->IsFullyPaid = $isFullyPaid;
 
             // Refresh the purchase list
-            $GeneralSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
+            $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
             $limit  = $GeneralSettings->RowLimit ?? 10;
             $pageNo = (int) $this->input->post('CurrentPage') ?: 1;
             $offset = ($pageNo - 1) * $limit;

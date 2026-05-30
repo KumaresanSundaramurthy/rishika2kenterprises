@@ -11,30 +11,7 @@ class Customers extends MY_Controller {
 
     // ── Internal helpers ──────────────────────────────────────────────────────
     private function _initModule() {
-        if (isset($this->pageData['ModuleId'])) return;
-
-        $controllerName = strtolower($this->router->fetch_class());
-        $getModuleInfo  = $this->redisservice->getUserCache('modules') ?? [];
-
-        // Cache miss — fall back to ModuleInfo embedded in the JWT payload
-        if (empty($getModuleInfo)) {
-            $getModuleInfo = $this->pageData['JwtData']->ModuleInfo ?? [];
-            if (!empty($getModuleInfo)) {
-                $this->redisservice->setUserCache('modules', $this->pageData['JwtData']->User->UserUID, $getModuleInfo, (int)(getenv('LOGIN_EXPIRE_SECS') ?: 3600));
-            }
-        }
-
-        $ModuleInfo = array_values(array_filter((array)$getModuleInfo, fn($m) => $m->ControllerName === $controllerName));
-        if (empty($ModuleInfo)) {
-            throw new Exception("Module information not found for controller: {$controllerName}");
-        }
-
-        $this->pageData['ModuleId']              = $ModuleInfo[0]->ModuleUID;
-        $this->pageData['ModColumnData']         = $ModuleInfo[0]->DispViewColumns ?? [];
-        $this->pageData['DispSettColumnDetails'] = $ModuleInfo[0]->DispSettingsViewColumns ?? [];
-
-        $GeneralSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
-        $this->pageData['JwtData']->GenSettings = $GeneralSettings;
+        $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
         $this->pageData['Limit'] = $GeneralSettings->RowLimit ?? 10;
     }
 
@@ -49,7 +26,6 @@ class Customers extends MY_Controller {
         $rowHtml = $this->load->view('customers/list', [
             'DataLists'       => $result->rows,
             'SerialNumber'    => $offset,
-            'DispViewColumns' => $this->pageData['ModColumnData'],
             'JwtData'         => $this->pageData['JwtData'],
             'GenSettings'     => $this->pageData['JwtData']->GenSettings,
         ], TRUE);
@@ -82,24 +58,10 @@ class Customers extends MY_Controller {
             $this->pageData['CustomerTypeList'] = $this->customers_model->getCustomerTypeList($this->pageData['JwtData']->User->OrgUID);
             $this->pageData['Tags']             = $this->customers_model->getCustomerTags($this->pageData['JwtData']->User->OrgUID);
 
-            $this->load->model('global_model');
-            $GetCountryInfo = $this->global_model->getCountryInfo();
-            $this->pageData['CountryInfo'] = $GetCountryInfo->Error === FALSE ? $GetCountryInfo->Data : [];
-
             // Resolve org phone country code from JwtData (sourced from OrganisationTbl at login)
             // Fall back to OrganisationTbl only if missing from JwtData
-            $orgCCode  = $this->pageData['JwtData']->User->OrgCCode  ?? '';
-            $orgCISO2  = $this->pageData['JwtData']->User->OrgCISO2  ?? '';
-            if (empty($orgCCode) || empty($orgCISO2)) {
-                $this->load->model('organisation_model');
-                $orgResp = $this->organisation_model->getOrganisationDetails(['Org.OrgUID' => $this->pageData['JwtData']->User->OrgUID]);
-                if ($orgResp->Error === FALSE && !empty($orgResp->Data)) {
-                    $orgCCode = $orgCCode  ?: ($orgResp->Data[0]->CountryCode ?? '');
-                    $orgCISO2 = $orgCISO2  ?: ($orgResp->Data[0]->CountryISO2 ?? '');
-                }
-            }
-            $this->pageData['OrgCCode'] = $orgCCode;
-            $this->pageData['OrgCISO2'] = $orgCISO2;
+            $this->pageData['OrgCCode'] = $this->pageData['JwtData']->User->OrgCCode  ?? '';
+            $this->pageData['OrgCISO2'] = $this->pageData['JwtData']->User->OrgCISO2  ?? '';
 
             $this->load->model('users_model');
             $cacheKey = $this->redisservice->orgKey('org_users');
@@ -160,9 +122,7 @@ class Customers extends MY_Controller {
                 foreach ($customersData as $value) {
                     $this->EndReturnData->Lists[] = [
                         'id'   => $value->CustomerUID,
-                        'text' => $value->Area
-                            ? $value->Name . ' (' . $value->Area . ')'
-                            : $value->Name,
+                        'text' => $value->Area ? $value->Name . ' (' . $value->Area . ')' : $value->Name,
                     ];
                 }
             }
@@ -173,35 +133,6 @@ class Customers extends MY_Controller {
         }
 
         $this->globalservice->sendJsonResponse($this->EndReturnData);
-    }
-
-    private function loadCountryStateCityData() {
-        $this->load->model('global_model');
-        $GetCountryInfo = $this->global_model->getCountryInfo();
-        $this->pageData['CountryInfo'] = $GetCountryInfo->Error === FALSE ? $GetCountryInfo->Data : [];
-
-        $this->pageData['StateData'] = [];
-        $this->pageData['CityData']  = [];
-
-        $OrgCountryISO2 = $this->pageData['JwtData']->User->OrgCISO2;
-        if (!empty($OrgCountryISO2)) {
-            $StateInfo = $this->global_model->getStateofCountry($OrgCountryISO2);
-            if ($StateInfo->Error === FALSE) $this->pageData['StateData'] = $StateInfo->Data;
-
-            $CityInfo = $this->global_model->getCityofCountry($OrgCountryISO2);
-            if ($CityInfo->Error === FALSE) $this->pageData['CityData'] = $CityInfo->Data;
-        }
-    }
-
-    public function create() {
-        try {
-            $this->loadCountryStateCityData();
-            $this->load->model('customers_model');
-            $this->pageData['CustomerTypeList'] = $this->customers_model->getCustomerTypeList($this->pageData['JwtData']->User->OrgUID);
-            $this->load->view('customers/forms/add', $this->pageData);
-        } catch (Exception $e) {
-            redirect('customers', 'refresh');
-        }
     }
 
     private function buildCustomerFormData($postData, $isCreate = false) {
@@ -320,8 +251,9 @@ class Customers extends MY_Controller {
                 $this->EndReturnData->Customer = $cust_Data;
             }
 
-            $this->dbwrite_model->commitTransaction();
             $this->cachehelper->upsertCustomer($CustomerUID);
+
+            $this->dbwrite_model->commitTransaction();            
 
             $this->_initModule();
             $pageData = $this->_fetchTableData(1, $this->pageData['Limit']);
@@ -349,67 +281,6 @@ class Customers extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    public function edit($CustomerUID) {
-        try {
-
-            $CustomerUID = (int) $CustomerUID;
-            if ($CustomerUID <= 0) { redirect('customers', 'refresh'); return; }
-
-            $this->load->model('customers_model');
-            $getCustData = $this->customers_model->getCustomers(['Customers.CustomerUID' => $CustomerUID]);
-            if (empty($getCustData) || count($getCustData) !== 1) { redirect('customers', 'refresh'); return; }
-
-            $this->pageData['EditData'] = $getCustData[0];
-
-            $this->loadCountryStateCityData();
-            $this->pageData['CustomerTypeList'] = $this->customers_model->getCustomerTypeList($this->pageData['JwtData']->User->OrgUID);
-            $this->pageData['BankDetails']      = $this->customers_model->getCustomerBankInfo(['CustBankDetails.CustomerUID' => $getCustData[0]->CustomerUID]);
-
-            $AddressInfo = $this->customers_model->getCustomerAddress(['CustAddress.CustomerUID' => $getCustData[0]->CustomerUID]);
-            $this->pageData['BillingAddr']  = null;
-            $this->pageData['ShippingAddr'] = null;
-            foreach ($AddressInfo as $addr) {
-                if ($addr->AddressType === 'Billing')  $this->pageData['BillingAddr']  = $addr;
-                if ($addr->AddressType === 'Shipping') $this->pageData['ShippingAddr'] = $addr;
-            }
-
-            $this->load->view('customers/forms/edit', $this->pageData);
-
-        } catch (Exception $e) {
-            redirect('customers', 'refresh');
-        }
-    }
-
-    public function cloneCustomer($CustomerUID) {
-        try {
-
-            $CustomerUID = (int) $CustomerUID;
-            if ($CustomerUID <= 0) { redirect('customers', 'refresh'); return; }
-
-            $this->load->model('customers_model');
-            $customerData = $this->customers_model->getCustomers(['Customers.CustomerUID' => $CustomerUID]);
-            if (empty($customerData) || count($customerData) !== 1) { redirect('customers', 'refresh'); return; }
-
-            $this->pageData['EditData']   = $customerData[0];
-            $this->pageData['BankDetails'] = $this->customers_model->getCustomerBankInfo(['CustBankDetails.CustomerUID' => $customerData[0]->CustomerUID]);
-
-            $this->loadCountryStateCityData();
-
-            $AddressInfo = $this->customers_model->getCustomerAddress(['CustAddress.CustomerUID' => $customerData[0]->CustomerUID]);
-            $this->pageData['BillingAddr']  = null;
-            $this->pageData['ShippingAddr'] = null;
-            foreach ($AddressInfo as $addr) {
-                if ($addr->AddressType === 'Billing')  $this->pageData['BillingAddr']  = $addr;
-                if ($addr->AddressType === 'Shipping') $this->pageData['ShippingAddr'] = $addr;
-            }
-
-            $this->load->view('customers/forms/clone', $this->pageData);
-
-        } catch (Exception $e) {
-            redirect('customers', 'refresh');
-        }
-    }
-
     public function loadModalForm($type = 'add', $uid = 0) {
         $this->EndReturnData = new stdClass();
         try {
@@ -417,7 +288,6 @@ class Customers extends MY_Controller {
             $uid  = (int) $uid;
 
             $this->load->model('customers_model');
-            $this->loadCountryStateCityData();
             $this->pageData['CustomerTypeList'] = $this->customers_model->getCustomerTypeList($this->pageData['JwtData']->User->OrgUID);
 
             $formData     = null;
@@ -445,7 +315,6 @@ class Customers extends MY_Controller {
                 'BillingAddr'      => $billingAddr,
                 'ShippingAddr'     => $shippingAddr,
                 'CustomerTypeList' => $this->pageData['CustomerTypeList'],
-                'CountryInfo'      => $this->pageData['CountryInfo'],
                 'JwtData'          => $this->pageData['JwtData'],
             ], TRUE);
 
@@ -723,10 +592,10 @@ class Customers extends MY_Controller {
                 }
             }
 
-            $this->dbwrite_model->commitTransaction();
-
             // Refresh customer in bulk search cache with live data
             $this->cachehelper->upsertCustomer((int)$CustomerUID);
+
+            $this->dbwrite_model->commitTransaction();
 
             $pageNo = (int) ($this->input->post('PageNo') ?: 1);
             $this->_initModule();
@@ -778,11 +647,10 @@ class Customers extends MY_Controller {
                 $this->load->library('accountledger');
                 $this->accountledger->deactivateEntityLedger($CustomerUID, $customer->LedgerUID, 'Customer');
             }
-
-            $this->dbwrite_model->commitTransaction();
-
             // Remove deleted customer from bulk search cache
             $this->cachehelper->removeCustomer($CustomerUID);
+
+            $this->dbwrite_model->commitTransaction();
 
             $pageNo   = (int) ($this->input->post('PageNo') ?: 1);
             $this->_initModule();

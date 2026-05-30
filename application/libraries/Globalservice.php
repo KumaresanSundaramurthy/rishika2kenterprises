@@ -328,7 +328,7 @@ Class Globalservice {
                         'DataLists' => $DataLists,
                         'SerialNumber' => $Offset * $Limit,
                         'DispViewColumns' => $DispViewColumns,
-                        'GenSettings' => $this->CI->redisservice->getUserCache('settings') ?? new stdClass(),
+                        'GenSettings' => $this->CI->pageData['JwtData']->GenSettings ?? new stdClass(),
                         'JwtData' => $this->CI->pageData['JwtData'],
                     ];
                     if($ModuleInfoData->EditOnPage == 1) {
@@ -990,8 +990,7 @@ Class Globalservice {
         $Filter = $this->CI->input->post('Filter') ?? [];
         $ModuleId = $this->CI->input->post('ModuleId');
 
-        $GeneralSettings = ($this->CI->redisservice->getUserCache('settings')) ?? new stdClass();
-        $this->CI->pageData['JwtData']->GenSettings = $GeneralSettings;
+        $GeneralSettings = $this->CI->pageData['JwtData']->GenSettings ?? new stdClass();
 
         $ReturnResponse = $this->getBaseMainPageTablePagination($ModuleId, $pageNo, $limit, $offset, $Filter, [], 'Pagination');
         if($ReturnResponse->Error) {

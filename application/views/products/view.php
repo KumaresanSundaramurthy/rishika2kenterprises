@@ -437,6 +437,29 @@
 <script src="/js/products/barcodeprint.js"></script>
 
 <script>
+<?php
+// Product settings defaults — used by clearItemValues() in products.js
+$_ps = $JwtData->ProdSettings ?? new stdClass();
+$_defProdTypeName = 'Product'; // null fallback
+foreach (($ProdTypeInfo ?? []) as $_pt) {
+    if ((int)$_pt->ProductTypeUID === (int)($_ps->DefaultProductTypeUID ?? 0)) {
+        $_defProdTypeName = $_pt->Name;
+        break;
+    }
+}
+$_defDiscUID    = (int)($_ps->DefaultDiscountTypeUID ?? 0);
+$_defProdTaxUID = (int)($_ps->DefaultProductTaxUID   ?? 0);
+$_defTaxDetUID  = (int)($_ps->DefaultTaxDetailUID    ?? 0);
+// For null cases, find the fallback UIDs from the lookup arrays
+if ($_defDiscUID === 0)    foreach (($DiscTypeInfo ?? []) as $_dt) { if (stripos($_dt->Name, 'Percentage') !== false) { $_defDiscUID    = (int)$_dt->DiscountTypeUID; break; } }
+if ($_defProdTaxUID === 0) foreach (($ProdTaxInfo ?? []) as $_px) { if (stripos($_px->Name, 'With Tax')   !== false) { $_defProdTaxUID = (int)$_px->ProductTaxUID;  break; } }
+?>
+// Product settings defaults from JwtData->ProdSettings
+const _defProductType  = '<?php echo htmlspecialchars($_defProdTypeName, ENT_QUOTES); ?>';
+const _defDiscTypeUID  = <?php echo $_defDiscUID; ?>;
+const _defProdTaxUID   = <?php echo $_defProdTaxUID; ?>;
+const _defTaxDetailUID = <?php echo $_defTaxDetUID; ?>;
+
 let ItemModuleId = 4;
 const ProdTable = '#ProductsTable';
 const ProdPag = '.ProductsPagination';

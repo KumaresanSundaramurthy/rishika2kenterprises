@@ -22,8 +22,7 @@ class Expenses extends MY_Controller {
         }
         try {
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
-            $GeneralSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
-            $this->pageData['JwtData']->GenSettings = $GeneralSettings;
+            $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
             $limit  = $GeneralSettings->RowLimit ?? 10;
             $orgUID = $this->pageData['JwtData']->User->OrgUID;
 
@@ -69,7 +68,6 @@ class Expenses extends MY_Controller {
             $filter = $this->input->post('Filter') ?: [];
 
             $orgUID = $this->pageData['JwtData']->User->OrgUID;
-            $this->pageData['JwtData']->GenSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
 
             $allData      = $this->expenses_model->getExpenseList($orgUID, $filter, $limit, $offset);
             $allDataCount = $this->expenses_model->getExpenseCount($orgUID, $filter);
@@ -761,8 +759,7 @@ class Expenses extends MY_Controller {
 
     // Builds refreshed list HTML + pagination + stats and appends to EndReturnData
     private function _appendListResponse($orgUID) {
-        $GeneralSettings = ($this->redisservice->getUserCache('settings')) ?? new stdClass();
-        $this->pageData['JwtData']->GenSettings = $GeneralSettings;
+        $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
 
         $filterRaw = $this->input->post('Filter');
         $filter = is_array($filterRaw) ? $filterRaw : (($filterRaw && ($decoded = json_decode($filterRaw, true))) ? $decoded : ['Status' => 'All']);

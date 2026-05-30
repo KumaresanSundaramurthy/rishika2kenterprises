@@ -1,5 +1,13 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
+<?php
+// Read product defaults from JWT ProdSettings
+$_ps              = $JwtData->ProdSettings ?? new stdClass();
+$_defProdTypeUID  = (int)($_ps->DefaultProductTypeUID  ?? 0); // null → "Product"
+$_defDiscTypeUID  = (int)($_ps->DefaultDiscountTypeUID ?? 0); // null → "Percentage"
+$_defProdTaxUID   = (int)($_ps->DefaultProductTaxUID   ?? 0); // null → "With Tax"
+$_defTaxDetailUID = (int)($_ps->DefaultTaxDetailUID    ?? 0); // null → no default
+?>
 <!-- Product Items Form -->
 <div class="modal fade" id="itemsModal" tabindex="-1" aria-labelledby="itemsModal" data-bs-backdrop="static" data-bs-keyboard="false" aria-hidden="true" aria-modal="true" role="dialog">
     <div class="modal-dialog modal-dialog-full-height modal-xl">
@@ -44,11 +52,13 @@
                         <div class="mb-3 col-md-6">
                             <label for="ProductType" class="form-label">Product Type <span style="color:red">*</span></label>
                             <select class="select2 form-select" id="ProductType" name="ProductType" required>
-                                <?php if (sizeof($ProdTypeInfo) > 0) {
-                                    foreach ($ProdTypeInfo as $ProdType) { ?>
-                                        <option value="<?php echo $ProdType->Name; ?>"><?php echo $ProdType->Name; ?></option>
-                                <?php }
-                                } ?>
+                                <?php foreach ($ProdTypeInfo as $ProdType):
+                                    $isSelected = $_defProdTypeUID > 0
+                                        ? ($ProdType->ProductTypeUID == $_defProdTypeUID)
+                                        : ($ProdType->Name === 'Product');
+                                ?>
+                                    <option value="<?php echo $ProdType->Name; ?>" <?php echo $isSelected ? 'selected' : ''; ?>><?php echo $ProdType->Name; ?></option>
+                                <?php endforeach; ?>
                             </select>
                         </div>
                         <div class="mb-3 col-md-6">
@@ -57,11 +67,13 @@
                                 <span class="input-group-text"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span>
                                 <input type="text" class="form-control" name="SellingPrice" id="SellingPrice" min="0" placeholder="Enter Selling Price" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" maxLength="<?php echo $JwtData->GenSettings->PriceMaxLength; ?>" pattern="^\d{1,<?php echo $JwtData->GenSettings->PriceMaxLength; ?>}(\.\d{0,<?php echo $JwtData->GenSettings->DecimalPoints; ?>})?$" onpaste="handlePricePaste(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" ondrop="handlePriceDrop(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" required />
                                 <select class="form-select tax-option-select" id="SellingTaxOption" name="SellingTaxOption">
-                                    <?php if (sizeof($ProdTaxInfo) > 0) {
-                                        foreach ($ProdTaxInfo as $ProdTax) { ?>
-                                            <option value="<?php echo $ProdTax->ProductTaxUID; ?>"><?php echo $ProdTax->Name; ?></option>
-                                    <?php }
-                                    } ?>
+                                    <?php foreach ($ProdTaxInfo as $ProdTax):
+                                        $isSelected = $_defProdTaxUID > 0
+                                            ? ($ProdTax->ProductTaxUID == $_defProdTaxUID)
+                                            : (stripos($ProdTax->Name, 'With Tax') !== false);
+                                    ?>
+                                        <option value="<?php echo $ProdTax->ProductTaxUID; ?>" <?php echo $isSelected ? 'selected' : ''; ?>><?php echo $ProdTax->Name; ?></option>
+                                    <?php endforeach; ?>
                                 </select>
                             </div>
                         </div>
@@ -78,11 +90,13 @@
                                 <span class="input-group-text"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span>
                                 <input type="text" class="form-control" name="PurchasePrice" id="PurchasePrice" min="0" placeholder="Enter Purchase Price" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" maxLength="<?php echo $JwtData->GenSettings->PriceMaxLength; ?>" pattern="^\d{1,<?php echo $JwtData->GenSettings->PriceMaxLength; ?>}(\.\d{0,<?php echo $JwtData->GenSettings->DecimalPoints; ?>})?$" onpaste="handlePricePaste(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" ondrop="handlePriceDrop(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" />
                                 <select class="form-select tax-option-select" id="PurchaseTaxOption" name="PurchaseTaxOption">
-                                    <?php if (sizeof($ProdTaxInfo) > 0) {
-                                        foreach ($ProdTaxInfo as $ProdTax) { ?>
-                                            <option value="<?php echo $ProdTax->ProductTaxUID; ?>"><?php echo $ProdTax->Name; ?></option>
-                                    <?php }
-                                    } ?>
+                                    <?php foreach ($ProdTaxInfo as $ProdTax):
+                                        $isSelected = $_defProdTaxUID > 0
+                                            ? ($ProdTax->ProductTaxUID == $_defProdTaxUID)
+                                            : (stripos($ProdTax->Name, 'With Tax') !== false);
+                                    ?>
+                                        <option value="<?php echo $ProdTax->ProductTaxUID; ?>" <?php echo $isSelected ? 'selected' : ''; ?>><?php echo $ProdTax->Name; ?></option>
+                                    <?php endforeach; ?>
                                 </select>
                             </div>
                         </div>
@@ -90,11 +104,17 @@
                             <label class="form-label" for="TaxPercentage">Tax % <span style="color:red">*</span></label>
                             <select id="TaxPercentage" name="TaxPercentage" class="select2 form-select" required>
                                 <option value=""></option>
-                                <?php if (sizeof($TaxDetInfo) > 0) {
-                                    foreach ($TaxDetInfo as $TaxInfo) { ?>
-                                        <option value="<?php echo $TaxInfo->TaxDetailsUID; ?>" data-left="<?php echo smartDecimal($TaxInfo->Percentage); ?>" data-right="<?php echo $TaxInfo->TaxName; ?>"><?php echo $TaxInfo->TaxName; ?></option>
-                                <?php }
-                                } ?>
+                                <?php foreach ($TaxDetInfo as $TaxInfo):
+                                    // null DefaultTaxDetailUID → no pre-selection (leave blank)
+                                    $isSelected = ($_defTaxDetailUID > 0 && $TaxInfo->TaxDetailsUID == $_defTaxDetailUID);
+                                ?>
+                                    <option value="<?php echo $TaxInfo->TaxDetailsUID; ?>"
+                                            data-left="<?php echo smartDecimal($TaxInfo->Percentage); ?>"
+                                            data-right="<?php echo $TaxInfo->TaxName; ?>"
+                                            <?php echo $isSelected ? 'selected' : ''; ?>>
+                                        <?php echo $TaxInfo->TaxName; ?>
+                                    </option>
+                                <?php endforeach; ?>
                             </select>
                         </div>
                         <div class="mb-3 col-md-6">
@@ -226,11 +246,13 @@
                             <div class="input-group input-group-merge">
                                 <input class="form-control" type="text" id="Discount" name="Discount" min="0" placeholder="Enter Discount Percentage" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validateDiscountInput(this, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" maxLength="<?php echo $JwtData->GenSettings->PriceMaxLength; ?>" pattern="^\d{1,<?php echo $JwtData->GenSettings->PriceMaxLength; ?>}(\.\d{0,<?php echo $JwtData->GenSettings->DecimalPoints; ?>})?$" onpaste="handleDiscountPaste(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" ondrop="handleDiscountDrop(event, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" value="0" />
                                 <select class="form-select w-30" id="DiscountOption" name="DiscountOption">
-                                    <?php if (sizeof($DiscTypeInfo) > 0) {
-                                        foreach ($DiscTypeInfo as $DiscType) { ?>
-                                            <option value="<?php echo $DiscType->DiscountTypeUID; ?>"><?php echo $DiscType->DisplayName; ?></option>
-                                    <?php }
-                                    } ?>
+                                    <?php foreach ($DiscTypeInfo as $DiscType):
+                                        $isSelected = $_defDiscTypeUID > 0
+                                            ? ($DiscType->DiscountTypeUID == $_defDiscTypeUID)
+                                            : (stripos($DiscType->Name, 'Percentage') !== false);
+                                    ?>
+                                        <option value="<?php echo $DiscType->DiscountTypeUID; ?>" <?php echo $isSelected ? 'selected' : ''; ?>><?php echo $DiscType->DisplayName; ?></option>
+                                    <?php endforeach; ?>
                                 </select>
                             </div>
                         </div>

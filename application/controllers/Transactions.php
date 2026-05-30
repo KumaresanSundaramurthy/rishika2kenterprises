@@ -581,7 +581,7 @@ class Transactions extends CI_Controller {
             $this->load->model('transactions_model');
             $productData = $this->transactions_model->getTransProductsDetails($term, $whereArr);
 
-            $GeneralSettings = $this->redisservice->getUserCache('settings') ?? NULL;
+            $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? null;
 
             $retProdDetails = [];
             foreach ($productData as $value) {

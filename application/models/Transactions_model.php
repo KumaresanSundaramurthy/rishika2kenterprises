@@ -349,12 +349,6 @@ class Transactions_model extends CI_Model {
                 'Prefix.IsDefault          as IsDefault',
             ]);
             $this->ReadDb->from('Transaction.TransactionPrefixTbl as Prefix');
-
-            // Strip any ModuleUID filter passed by legacy callers — prefixes are now org-level
-            // $cleanFilter = array_filter($FilterArray, function ($key) {
-            //     return stripos($key, 'ModuleUID') === FALSE;
-            // }, ARRAY_FILTER_USE_KEY);
-
             $cleanFilter = $FilterArray;
             if (!empty($cleanFilter)) {
                 $this->ReadDb->where($cleanFilter);

@@ -37,10 +37,196 @@ class Settings extends MY_Controller {
         $this->_loadPageTitle();
         if (empty($this->pageData['PageTitle'])) $this->pageData['PageTitle'] = 'Settings';
         try {
+            $orgUID  = (int) $this->pageData['JwtData']->User->OrgUID;
+            $userUID = (int) $this->pageData['JwtData']->User->UserUID;
+
+            $this->load->model('login_model');
+            $loginExpiry = (int) getenv('LOGIN_EXPIRE_SECS') ?: 86400;
+
+            // ── General Settings — read from JWT payload (no Redis lookup) ───
+            $genSettings = $this->pageData['JwtData']->GenSettings ?? null;
+            if (empty($genSettings)) {
+                // Fallback: DB read if session predates this change
+                $result      = $this->login_model->getOrgGeneralSettings($orgUID);
+                $genSettings = (!$result->Error && !empty($result->Data)) ? $result->Data[0] : new stdClass();
+            }
+            $this->pageData['GenSettings'] = $genSettings;
+
+            // ── Product Settings — read from JWT payload (no Redis lookup) ───
+            $prodSettings = $this->pageData['JwtData']->ProdSettings ?? null;
+            if (empty($prodSettings)) {
+                // Fallback: DB read if session predates this change
+                $result       = $this->login_model->getProductSettings($orgUID);
+                $prodSettings = (!$result->Error && !empty($result->Data)) ? $result->Data[0] : new stdClass();
+            }
+            $this->pageData['ProdSettings'] = $prodSettings;
+
+            // ── Lookup dropdowns for Product Settings ─────────────────────────
+            $this->load->model('global_model');
+            $this->pageData['DiscTypeInfo'] = $this->global_model->getDiscountTypeInfo()->Data ?? [];
+            $this->pageData['ProdTypeInfo'] = $this->global_model->getProductTypeInfo()->Data  ?? [];
+            $this->pageData['ProdTaxInfo']  = $this->global_model->getProductTaxInfo()->Data   ?? [];
+            $this->pageData['TaxDetInfo']   = $this->global_model->getTaxDetailsInfo()->Data   ?? [];
+
             $this->load->view('settings/generalsettings/view', $this->pageData);
         } catch (Exception $e) {
             redirect('dashboard', 'refresh');
         }
+    }
+
+    /** AJAX POST: save Product Settings (OrgProductSettingsTbl) */
+    public function updateProductSettings() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $orgUID  = (int) $this->pageData['JwtData']->User->OrgUID;
+            $userUID = (int) $this->pageData['JwtData']->User->UserUID;
+            $post    = $this->input->post();
+
+            $productTypeUID  = (int) getPostValue($post, 'DefaultProductTypeUID');
+            $discountTypeUID = (int) getPostValue($post, 'DefaultDiscountTypeUID');
+            $productTaxUID   = (int) getPostValue($post, 'DefaultProductTaxUID');
+            $taxDetailUID    = (int) getPostValue($post, 'DefaultTaxDetailUID');
+
+            if ($productTypeUID  <= 0) throw new Exception('Please select a default product type.');
+            if ($discountTypeUID <= 0) throw new Exception('Please select a default discount type.');
+            if ($productTaxUID   <= 0) throw new Exception('Please select a default product tax.');
+            if ($taxDetailUID    <= 0) throw new Exception('Please select a default tax percentage.');
+
+            $data = [
+                'DefaultProductTypeUID'  => $productTypeUID,
+                'DefaultDiscountTypeUID' => $discountTypeUID,
+                'DefaultProductTaxUID'   => $productTaxUID,
+                'DefaultTaxDetailUID'    => $taxDetailUID,
+                'UpdatedBy'              => $userUID,
+            ];
+
+            // Upsert via INSERT ... ON DUPLICATE KEY UPDATE
+            // OrgUID is the PRIMARY KEY — single safe query, no existence check needed
+            $writeDB = $this->load->database('WriteDB', TRUE);
+            $writeDB->db_debug = FALSE;
+            $sql = "INSERT INTO Settings.OrgProductSettingsTbl
+                        (OrgUID, DefaultProductTypeUID, DefaultDiscountTypeUID, DefaultProductTaxUID, DefaultTaxDetailUID, UpdatedBy)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    ON DUPLICATE KEY UPDATE
+                        DefaultProductTypeUID  = VALUES(DefaultProductTypeUID),
+                        DefaultDiscountTypeUID = VALUES(DefaultDiscountTypeUID),
+                        DefaultProductTaxUID   = VALUES(DefaultProductTaxUID),
+                        DefaultTaxDetailUID    = VALUES(DefaultTaxDetailUID),
+                        UpdatedBy              = VALUES(UpdatedBy)";
+
+            $ok = $writeDB->query($sql, [
+                $orgUID, $productTypeUID, $discountTypeUID, $productTaxUID, $taxDetailUID, $userUID
+            ]);
+            if (!$ok) {
+                $err = $writeDB->error();
+                throw new Exception($err['message'] ?? 'Failed to save product settings.');
+            }
+
+            // Patch ONLY ProdSettings in the main JWT payload — takes effect on very next request
+            $this->load->model('login_model');
+            $fresh = $this->login_model->getProductSettings($orgUID);
+            if (!$fresh->Error && !empty($fresh->Data)) {
+                $jwtKey      = $this->pageData['JwtUserKey'] ?? null;
+                $redisPayload = $jwtKey ? $this->redisservice->getCache($jwtKey) : null;
+                if ($redisPayload && !$redisPayload->Error && !empty($redisPayload->Value)) {
+                    $redisPayload->Value->ProdSettings = $fresh->Data[0];
+                    $this->redisservice->setCache($jwtKey, $redisPayload->Value, $redisPayload->TTL);
+                }
+            }
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Product settings saved successfully.';
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    /** AJAX POST: save General Settings (OrgSettingsTbl) */
+    public function updateGeneralSettings() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $orgUID  = (int) $this->pageData['JwtData']->User->OrgUID;
+            $userUID = (int) $this->pageData['JwtData']->User->UserUID;
+            $post    = $this->input->post();
+
+            // Validate & sanitize
+            $decimalPoints = in_array((int)getPostValue($post, 'DecimalPoints'), [0, 2, 3])
+                ? (int)getPostValue($post, 'DecimalPoints') : 2;
+
+            // Currency: exactly 1 character
+            $currencySymbol = trim(getPostValue($post, 'CurrenySymbol') ?: '₹');
+            $currencySymbol = mb_substr($currencySymbol, 0, 1);
+            if (!$currencySymbol) throw new Exception('Currency symbol is required (1 character).');
+
+            $fyStartMonth = (int)getPostValue($post, 'FYStartMonth');
+            if ($fyStartMonth < 1 || $fyStartMonth > 12) $fyStartMonth = 4;
+
+            $rowLimit = (int)getPostValue($post, 'RowLimit');
+            if (!in_array($rowLimit, [10, 25, 50, 100])) $rowLimit = 10;
+
+            $qtyMaxLength = (int)getPostValue($post, 'QtyMaxLength');
+            if ($qtyMaxLength < 1 || $qtyMaxLength > 15) $qtyMaxLength = 6;
+
+            $priceMaxLength = (int)getPostValue($post, 'PriceMaxLength');
+            if ($priceMaxLength < 1 || $priceMaxLength > 20) $priceMaxLength = 12;
+
+            $serialNoDisplay  = getPostValue($post, 'SerialNoDisplay')  ? 1 : 0;
+            $enableStorage    = getPostValue($post, 'EnableStorage')    ? 1 : 0;
+            $mandatoryStorage = getPostValue($post, 'MandatoryStorage') ? 1 : 0;
+            // MandatoryStorage only valid if EnableStorage is on
+            if (!$enableStorage) $mandatoryStorage = 0;
+
+            $data = [
+                'DecimalPoints'   => $decimalPoints,
+                'CurrenySymbol'   => $currencySymbol,
+                'SerialNoDisplay' => $serialNoDisplay,
+                'FYStartMonth'    => $fyStartMonth,
+                'RowLimit'        => $rowLimit,
+                'QtyMaxLength'    => $qtyMaxLength,
+                'PriceMaxLength'  => $priceMaxLength,
+                'EnableStorage'   => $enableStorage,
+                'MandatoryStorage'=> $mandatoryStorage,
+            ];
+
+            $this->load->model('dbwrite_model');
+            $resp = $this->dbwrite_model->updateData(
+                'Settings', 'OrgSettingsTbl',   // moved from Organisation → Settings
+                $data,
+                ['OrgUID' => $orgUID]
+            );
+            if ($resp->Error) throw new Exception($resp->Message);
+
+            // Patch ONLY GenSettings in the main JWT payload — takes effect on very next request
+            $this->load->model('login_model');
+            $freshSettings = $this->login_model->getOrgGeneralSettings($orgUID);
+            if (!$freshSettings->Error && !empty($freshSettings->Data)) {
+                $jwtKey      = $this->pageData['JwtUserKey'] ?? null;
+                $redisPayload = $jwtKey ? $this->redisservice->getCache($jwtKey) : null;
+                if ($redisPayload && !$redisPayload->Error && !empty($redisPayload->Value)) {
+                    $redisPayload->Value->GenSettings = $freshSettings->Data[0];
+                    $this->redisservice->setCache($jwtKey, $redisPayload->Value, $redisPayload->TTL);
+                }
+            }
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Settings saved successfully.';
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
     }
 
     // ── Separate settings pages ──────────────────────────────────────────────

@@ -78,7 +78,6 @@ class Roles extends MY_Controller {
             $this->redisservice->setUserCache('submenus',    $userUID, $submenus,    $loginExpiry);
             $this->redisservice->setUserCache('modules',     $userUID, $modules,     $loginExpiry);
             $this->redisservice->setUserCache('permissions', $userUID, $permissions, $loginExpiry);
-            $this->redisservice->setUserCache('settings',    $userUID, $settings,    $loginExpiry);
             if ($userInfo) {
                 $this->redisservice->setUserCache('userinfo', $userUID, $userInfo, $loginExpiry);
             }

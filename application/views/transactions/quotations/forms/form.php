@@ -219,12 +219,10 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
                                         <option value="Without_GST" <?php echo $isEdit && $QuotData->QuotationType === 'Without_GST' ? 'selected' : ''; ?>>Without GST</option>
                                     </select>
                                 </div>
-                                <?php if (!empty($DispatchAddress)): ?>
+                                <?php if (!empty($DispatchAddresses)): ?>
                                 <div class="col-md-2">
                                     <label class="trans-field-label">Dispatch From</label>
-                                    <select id="dispatchFrom" name="dispatchFrom" class="form-select form-select-sm" required>
-                                        <option value="<?php echo (int)$DispatchAddress->OrgAddressUID; ?>" selected><?php echo htmlspecialchars(implode(', ', $_addrLines)); ?></option>
-                                    </select>
+                                    <?php $this->load->view('common/transactions/_dispatch_from'); ?>
                                 </div>
                                 <?php endif; ?>
                                 <div class="col-md-2">

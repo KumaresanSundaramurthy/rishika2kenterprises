@@ -245,6 +245,36 @@ class Payments extends MY_Controller {
             $payment = $this->transactions_model->getPaymentRow($paymentUID, $orgUID);
             if (!$payment) throw new Exception('Payment record not found or already deleted.');
 
+            // Guard 1 — Block cancellation of source On Account payment that was already applied
+            $appliedTransUID = (int)($payment->OnAccountAppliedTransUID ?? 0);
+            if ($appliedTransUID > 0 && (int)($payment->IsOnAccount ?? 1) === 0) {
+                $linkedInv = $this->transactions_model->getTransactionBasicInfo($appliedTransUID, $orgUID);
+                if ($linkedInv && !in_array($linkedInv->DocStatus, ['Cancelled', 'Rejected'])) {
+                    throw new Exception(
+                        'This payment is adjusted against Invoice ' .
+                        ($linkedInv->UniqueNumber ?: '#' . $appliedTransUID) .
+                        '. You cannot delete this payment until that invoice is fully cancelled.'
+                    );
+                }
+            }
+
+            // Guard 2 — Block cancellation of source On Account if applied child payments exist
+            $wDB = $this->load->database('WriteDB', TRUE);
+            $wDB->db_debug = FALSE;
+            $wDB->select('P.PaymentUID, T.UniqueNumber');
+            $wDB->from('Transaction.PaymentsTbl P');
+            $wDB->join('Transaction.TransactionsTbl T', 'T.TransUID = P.TransUID', 'left');
+            $wDB->where(['P.OnAccountSourcePaymentUID' => $paymentUID, 'P.IsCancelled' => 0, 'P.IsDeleted' => 0]);
+            $wDB->limit(1);
+            $appliedChild = $wDB->get()->row();
+            if ($appliedChild) {
+                throw new Exception(
+                    'This On Account payment has been applied to Invoice ' .
+                    ($appliedChild->UniqueNumber ?: '#' . $appliedChild->PaymentUID) .
+                    '. Cancel that payment first before deleting this record.'
+                );
+            }
+
             $transUID     = (int) $payment->TransUID;
             $existingPaid = ($transUID > 0)
                 ? $this->transactions_model->getSumPaidForTransaction($transUID, $orgUID)
@@ -252,16 +282,15 @@ class Payments extends MY_Controller {
 
             $this->dbwrite_model->startTransaction();
 
-            // 2. Soft-delete the payment
-            $deleteData = $this->globalservice->baseDeleteArrayDetails();
-            $deleteData['IsActive'] = 0;
+            // 2. Cancel the payment — IsCancelled = 1 (cancel rule, not delete)
             $resp = $this->dbwrite_model->updateData(
-                'Transaction', 'PaymentsTbl', $deleteData,
+                'Transaction', 'PaymentsTbl',
+                ['IsCancelled' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
                 ['PaymentUID' => $paymentUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
             );
             if ($resp->Error) throw new Exception($resp->Message);
 
-            // 3. Recalculate and persist updated transaction balance
+            // 3. Recalculate and persist updated invoice balance
             if ($transUID > 0) {
                 $newTotalPaid = max(0, round($existingPaid - (float) $payment->Amount, 2));
 
@@ -273,7 +302,7 @@ class Payments extends MY_Controller {
 
                     $this->dbwrite_model->updateTransIsFullyPaid($transUID, $isFullyPaid, $newTotalPaid, $balanceAmount, $userUID);
 
-                    if ($newTotalPaid <= 0)  $newStatus = 'Unpaid';
+                    if ($newTotalPaid <= 0)  $newStatus = 'Issued';
                     elseif ($isFullyPaid)    $newStatus = 'Paid';
                     else                     $newStatus = 'Partial';
 
@@ -285,9 +314,30 @@ class Payments extends MY_Controller {
                 }
             }
 
+            // 3b. If this payment was created from an On Account source, restore the source
+            $sourceOAUID = (int)($payment->OnAccountSourcePaymentUID ?? 0);
+            if ($sourceOAUID > 0) {
+                $wDB2 = $this->load->database('WriteDB', TRUE);
+                $wDB2->db_debug = FALSE;
+                $wDB2->select('PaymentUID, Amount, IsOnAccount');
+                $wDB2->from('Transaction.PaymentsTbl');
+                $wDB2->where(['PaymentUID' => $sourceOAUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
+                $sourceOA = $wDB2->get()->row();
+                if ($sourceOA) {
+                    $restoredAmount = round((float)$sourceOA->Amount + (float)$payment->Amount, 2);
+                    $wDB2->where(['PaymentUID' => $sourceOAUID, 'OrgUID' => $orgUID]);
+                    $wDB2->update('Transaction.PaymentsTbl', [
+                        'Amount'                   => $restoredAmount,
+                        'IsOnAccount'              => 1,
+                        'OnAccountAppliedTransUID' => NULL,
+                        'UpdatedBy'                => $userUID,
+                    ]);
+                }
+            }
+
             $this->dbwrite_model->commitTransaction();
 
-            // 4. Reverse customer ledger entry outside transaction (non-fatal on failure)
+            // 4. Reverse customer ledger entry (non-fatal)
             if ($transUID > 0 && $payment->PartyType === 'C' && (int)$payment->PartyUID > 0) {
                 try {
                     $this->load->library('accountledger');
@@ -295,12 +345,26 @@ class Payments extends MY_Controller {
                         (int) $payment->PartyUID, 'Customer', (float) $payment->Amount, 'Debit', $transUID
                     );
                 } catch (Exception $ledgerEx) {
-                    log_message('error', 'Ledger reversal failed after payment deletion PaymentUID=' . $paymentUID . ': ' . $ledgerEx->getMessage());
+                    log_message('error', 'Ledger reversal failed after payment cancel PaymentUID=' . $paymentUID . ': ' . $ledgerEx->getMessage());
+                }
+            }
+
+            // 5. Recalculate customer closing balance and sync Upstash cache
+            if ($payment->PartyType === 'C' && (int)$payment->PartyUID > 0) {
+                try {
+                    $this->load->library('customerbalance');
+                    $balResult = $this->customerbalance->recalcAndSync($orgUID, (int)$payment->PartyUID, $userUID);
+                    if ($balResult) {
+                        $this->EndReturnData->CustomerBalance     = $balResult['balance'];
+                        $this->EndReturnData->CustomerBalanceType = $balResult['type'];
+                    }
+                } catch (Exception $balEx) {
+                    log_message('error', 'Customer balance recalc failed after payment cancel PaymentUID=' . $paymentUID . ': ' . $balEx->getMessage());
                 }
             }
 
             $this->EndReturnData->Error   = FALSE;
-            $this->EndReturnData->Message = 'Payment deleted.';
+            $this->EndReturnData->Message = 'Payment cancelled.';
 
         } catch (Exception $e) {
             if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();

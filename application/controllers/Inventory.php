@@ -515,8 +515,8 @@ class Inventory extends MY_Controller {
                    ? (!empty($row->AdjUID) ? 'ADJ-' . (int)$row->AdjUID : ($row->AdjCategory ?: 'Manual'))
                    : (!empty($row->UniqueNumber) ? $row->UniqueNumber : ($row->TransNumber ?: '—'));
         $date      = ($moduleUID === 118)
-                   ? ($row->AdjDate   ? date('d M Y', strtotime($row->AdjDate))   : '—')
-                   : ($row->TransDate ? date('d M Y', strtotime($row->TransDate)) : '—');
+                   ? ($row->AdjDate   ? format_datedisplay($row->AdjDate)   : '—')
+                   : ($row->TransDate ? format_datedisplay($row->TransDate) : '—');
         return [
             $i,
             $date,

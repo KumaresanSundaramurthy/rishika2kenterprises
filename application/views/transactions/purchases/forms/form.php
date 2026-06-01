@@ -575,6 +575,7 @@ $(function() {
                 RoundOff               : roundOff,
                 NetAmount              : netAmount,
                 Items                  : JSON.stringify(items),
+                SignatureUID           : parseInt($('#transSignatureUID').val(), 10) || 0,
                 action                 : action,
                 PaymentRows            : !_isEdit ? $('#PaymentRowsJson').val() : '',
                 IsFullyPaid            : (!_isEdit && $('#isFullyPaid').is(':checked')) ? 1 : 0,

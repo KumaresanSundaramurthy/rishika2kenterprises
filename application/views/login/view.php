@@ -575,7 +575,7 @@
                 <p>Sign in to manage your billing operations</p>
             </div>
 
-            <?php $FormAttribute = array('id' => 'doLoginForm', 'name' => 'doLoginForm', 'autocomplete' => 'off');
+            <?php $FormAttribute = array('id' => 'doLoginForm', 'name' => 'doLoginForm', 'autocomplete' => 'on');
             echo form_open('login/doLoginForm', $FormAttribute); ?>
 
             <div class="lr-alerts">
@@ -585,7 +585,7 @@
             <div class="lr-field">
                 <label for="UserName">Username or Email</label>
                 <div class="lr-input-wrap">
-                    <input type="text" id="UserName" name="UserName" placeholder="Enter your username" autocomplete="off" required />
+                    <input type="text" id="UserName" name="UserName" placeholder="Enter your username" autocomplete="username" required />
                     <i class="bx bx-user lr-input-icon"></i>
                 </div>
             </div>
@@ -593,7 +593,7 @@
             <div class="lr-field">
                 <label for="UserPassword">Password</label>
                 <div class="lr-input-wrap">
-                    <input type="password" id="UserPassword" name="UserPassword" placeholder="Enter your password" autocomplete="new-password" required />
+                    <input type="password" id="UserPassword" name="UserPassword" placeholder="Enter your password" autocomplete="current-password" required />
                     <i class="bx bx-lock-alt lr-input-icon"></i>
                     <button type="button" class="lr-pw-toggle" id="pwToggle" aria-label="Toggle password visibility">
                         <i class="bx bx-hide" id="pwIcon"></i>
@@ -603,7 +603,7 @@
 
             <div class="lr-bottom-row">
                 <label class="lr-remember">
-                    <input type="checkbox" id="remember-me">
+                    <input type="checkbox" id="remember-me" name="RememberMe" value="1">
                     <span>Remember me</span>
                 </label>
                 <a href="/forgot-password" class="lr-forgot">Forgot password?</a>

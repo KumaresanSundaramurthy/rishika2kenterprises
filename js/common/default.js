@@ -863,7 +863,8 @@ $(document).on('select2:open', function(e) {
 });
 
 function initializeFlatPickr(FieldName, IsModal) {
-    var opts = { dateFormat: "Y-m-d", altInput: true, altFormat: "d M Y", clickOpens: true };
+    var altFmt = (typeof _transFormDateFormat !== 'undefined') ? _transFormDateFormat : 'd-m-Y';
+    var opts = { dateFormat: "Y-m-d", altInput: true, altFormat: altFmt, clickOpens: true };
     if (IsModal) { opts.appendTo = document.querySelector(IsModal + " .modal-body"); }
     flatpickr(FieldName, opts);
 }

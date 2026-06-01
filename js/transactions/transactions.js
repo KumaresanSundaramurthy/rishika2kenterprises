@@ -2597,8 +2597,10 @@ function searchCustomers(key) {
                                 gstin:       c.GSTIN            || '',
                                 company:     c.CompanyName      || '',
                                 contact:     c.ContactPerson    || '',
-                                balance:     parseFloat(c.ClosingBalance || 0),
-                                balanceType: c.ClosingBalType   || 'Debit',
+                                balance:           parseFloat(c.ClosingBalance    || 0),
+                                balanceType:       c.ClosingBalType              || 'Debit',
+                                onAccountBalance:  parseFloat(c.OnAccountBalance || 0),
+                                onAccountRecords:  c.OnAccountRecords            || [],
                                 lastTxAt:    c.LastTransactionAt || '',
                             };
                             if (c.Address && c.Address.length) {
@@ -2668,6 +2670,17 @@ function searchCustomers(key) {
     }).on('select2:select', function (e) {
         custCache = null; // free after selection
         var data = e.params.data;
+
+        // On Account — show indicator + button from cached data immediately.
+        // Records are fetched lazily only when user clicks the "On Account" button.
+        if (typeof _showOnAccountBanner === 'function') {
+            _showOnAccountBanner(
+                data.onAccountBalance || 0,
+                data.onAccountRecords || [],
+                data.id                          // pass customerUID for lazy AJAX fallback
+            );
+        }
+
         if (data.address) {
             var addrHtml = `
                 <div><strong>Shipping Address:</strong></div>
@@ -2701,6 +2714,11 @@ function searchCustomers(key) {
 function transDatePickr(FieldName, IsModal = '', dateFormat = 'Y-m-d', restrictPastDate = false, restrictFutureDate = false, setTodaysDate = false, useAltInput = true,
 altFormat = 'd-m-Y', minDateField = '') {
 
+    // Use the organisation's FormDateFormat from JWT settings when the default 'd-m-Y' is in use
+    var _fmt = (altFormat === 'd-m-Y' && typeof _transFormDateFormat !== 'undefined')
+        ? _transFormDateFormat
+        : altFormat;
+
     const el = document.querySelector(FieldName);
     if (!el) return;
 
@@ -2709,7 +2727,7 @@ altFormat = 'd-m-Y', minDateField = '') {
     const options = {
         dateFormat,
         altInput: useAltInput,
-        altFormat,
+        altFormat: _fmt,
         allowInput: false,
         clickOpens: true
     };
@@ -3869,9 +3887,16 @@ function showToastNotification(message, type = 'success') {
     
     const $toast = $(toast);
     $('body').append($toast);
-    
+
     setTimeout(() => {
         $toast.css('animation', 'slideOutRight 0.3s ease');
         setTimeout(() => $toast.remove(), 300);
     }, 3000);
 }
+
+// ── Close all Select2 dropdowns on window blur (Alt+Tab / window switch) ─────
+// When browser regains focus, the dropdown is already closed so Select2 does
+// not restore focus to the search input and no re-search fires.
+$(window).on('blur', function() {
+    try { $('.select2-hidden-accessible').select2('close'); } catch(e) {}
+});

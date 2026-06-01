@@ -223,6 +223,18 @@ class Invoices extends MY_Controller {
                 'UpdatedBy'             => $userUID,
             ];
             $insertResp = $this->dbwrite_model->insertData('Transaction', 'TransactionsTbl', $headerData);
+
+            // Race condition: another request grabbed the same number between our dupCheck and INSERT.
+            // Auto-resolve silently — fetch next available number and retry once (no loop).
+            if ($insertResp->Error && !$isDraft && stripos($insertResp->Message, 'Duplicate entry') !== false) {
+                $transNumber                    = $this->transactions_model->getNextTransactionNumber($prefixUID, $orgUID, $this->pageModuleUID);
+                $parts[count($parts) - 1]       = $padding > 1 ? str_pad($transNumber, $padding, '0', STR_PAD_LEFT) : (string)$transNumber;
+                $uniqueNumber                   = implode($sep, $parts);
+                $headerData['TransNumber']      = $transNumber;
+                $headerData['UniqueNumber']     = $uniqueNumber;
+                $insertResp = $this->dbwrite_model->insertData('Transaction', 'TransactionsTbl', $headerData);
+            }
+
             if ($insertResp->Error) throw new Exception($insertResp->Message);
 
             $transUID = $insertResp->ID;
@@ -267,6 +279,84 @@ class Invoices extends MY_Controller {
                 }
             }
 
+            // Apply On Account payments to this invoice
+            // JSON format: [{"PaymentUID":101,"ApplyAmount":100}, ...]
+            if (!$isDraft) {
+                $onAccountJson = trim(getPostValue($PostData, 'OnAccountApplyJson') ?? '');
+                if ($onAccountJson) {
+                    $onAccountItems = json_decode($onAccountJson, true);
+                    if (is_array($onAccountItems) && count($onAccountItems) > 0) {
+                        $wOA = $this->load->database('WriteDB', TRUE);
+                        $wOA->db_debug = FALSE;
+                        $onAccountAppliedTotal = 0;
+                        $now = time();
+
+                        foreach ($onAccountItems as $item) {
+                            $sourceUID   = (int)($item['PaymentUID']  ?? 0);
+                            $applyAmount = round((float)($item['ApplyAmount'] ?? 0), 2);
+                            if ($sourceUID <= 0 || $applyAmount <= 0) continue;
+
+                            // Fetch source On Account payment from WriteDB
+                            $wOA->select('PaymentUID, Amount, PartyUID');
+                            $wOA->from('Transaction.PaymentsTbl');
+                            $wOA->where(['PaymentUID' => $sourceUID, 'OrgUID' => $orgUID,
+                                         'IsOnAccount' => 1, 'IsDeleted' => 0, 'IsCancelled' => 0]);
+                            $source = $wOA->get()->row();
+                            if (!$source) continue;
+
+                            $sourceAmount = round((float)$source->Amount, 2);
+                            // Cap apply amount at source amount
+                            $applyAmount  = min($applyAmount, $sourceAmount);
+                            $isFullyApplied = ($applyAmount >= $sourceAmount);
+
+                            // Create a new payment record linked to this invoice
+                            $wOA->insert('Transaction.PaymentsTbl', [
+                                'OrgUID'                    => $orgUID,
+                                'TransUID'                  => $transUID,
+                                'PartyUID'                  => $customerUID,
+                                'PartyType'                 => 'C',
+                                'PaymentDirection'          => 'In',
+                                'Amount'                    => $applyAmount,
+                                'Source'                    => 'OnAccount',
+                                'IsOnAccount'               => 0,
+                                'OnAccountSourcePaymentUID' => $sourceUID,
+                                'IsTransferredToCreditNote' => 0,
+                                'IsCancelled'               => 0,
+                                'IsDeleted'                 => 0,
+                                'IsActive'                  => 1,
+                                'CreatedOn'                 => $now,
+                                'CreatedBy'                 => $userUID,
+                                'UpdatedBy'                 => $userUID,
+                            ]);
+
+                            if ($isFullyApplied) {
+                                // Fully used — mark source as applied
+                                $wOA->where(['PaymentUID' => $sourceUID, 'OrgUID' => $orgUID]);
+                                $wOA->update('Transaction.PaymentsTbl', [
+                                    'IsOnAccount'              => 0,
+                                    'OnAccountAppliedTransUID' => $transUID,
+                                    'UpdatedBy'                => $userUID,
+                                ]);
+                            } else {
+                                // Partially used (Option A) — reduce source amount, stays On Account
+                                $wOA->where(['PaymentUID' => $sourceUID, 'OrgUID' => $orgUID]);
+                                $wOA->update('Transaction.PaymentsTbl', [
+                                    'Amount'    => round($sourceAmount - $applyAmount, 2),
+                                    'UpdatedBy' => $userUID,
+                                ]);
+                            }
+
+                            $onAccountAppliedTotal += $applyAmount;
+                        }
+
+                        if ($onAccountAppliedTotal > 0) {
+                            $this->updateTransactionBalance($transUID, $netAmount, $paidAmountForLedger + $onAccountAppliedTotal, $userUID);
+                            $paidAmountForLedger += $onAccountAppliedTotal;
+                        }
+                    }
+                }
+            }
+
             // Conversion tracking
             if (!$isDraft) {
                 $fromSalesOrderUID = (int) getPostValue($PostData, 'fromSalesOrderUID');
@@ -285,12 +375,9 @@ class Invoices extends MY_Controller {
                 }
             }
 
-            $this->dbwrite_model->commitTransaction();
-
             try { $this->dbwrite_model->saveFormData($orgUID, $transUID, $this->pageModuleUID, $isDraft ? 'draft' : 'create', json_encode($PostData), $userUID); } catch (Exception $fdEx) { log_message('error', 'saveFormData failed: ' . $fdEx->getMessage()); }
             try { $this->load->library('auditlog'); $this->auditlog->log($orgUID, $userUID, 'CREATE_INVOICE', 'Invoice', $transUID, $uniqueNumber ?? 'Draft', ['status' => $status, 'netAmount' => $netAmount, 'customerUID' => $customerUID]); } catch (Exception $auditEx) { log_message('error', 'Audit log failed: ' . $auditEx->getMessage()); }
 
-            // Apply ledger entries after commit so ReadDb sees the committed invoice write
             if (!$isDraft) {
                 try {
                     $this->load->library('accountledger');
@@ -314,14 +401,18 @@ class Invoices extends MY_Controller {
                 }
             }
 
-            $this->EndReturnData->Error    = FALSE;
-            $this->EndReturnData->Message  = 'Invoice created successfully.';
-            $this->EndReturnData->TransUID = $transUID;
             $this->_saveAttachments($transUID);
             if (!empty($firstPaymentUID)) $this->_savePaymentAttachments($firstPaymentUID);
+
+            $this->dbwrite_model->commitTransaction();
+
             if (!$isDraft) {
                 $this->_recalcCustomerBalance($orgUID, $customerUID, $userUID);
             }
+
+            $this->EndReturnData->Error    = FALSE;
+            $this->EndReturnData->Message  = 'Invoice created successfully.';
+            $this->EndReturnData->TransUID = $transUID;
 
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -963,6 +1054,46 @@ class Invoices extends MY_Controller {
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Invoice deleted successfully.';
+
+            // ── Payment handling for deleted invoices ─────────────────────────
+            // No DocStatus gate — invoice can be 'Issued' and still have payments.
+            // If no payments exist the UPDATEs affect 0 rows, which is harmless.
+            if ($existing->PartyType === 'C' && $existing->PartyUID > 0) {
+
+                $this->load->library('customerbalance');
+
+                // Read action from TransSettings (allow POST override for 'ask' case)
+                $transSettings = $this->pageData['JwtData']->TransSettings ?? null;
+                $cancelAction  = $transSettings->InvoiceCancelAction ?? 'ask';
+                $postAction    = trim($this->input->post('CancelPaymentAction') ?? '');
+                if (in_array($postAction, ['credit_note', 'refund', 'cancel_only'])) {
+                    $cancelAction = $postAction;
+                }
+
+                $writeDB = $this->load->database('WriteDB', TRUE);
+                $writeDB->db_debug = FALSE;
+
+                // For credit_note: create the credit note BEFORE marking IsDeleted=1 so that
+                // createCreditNote() can still find payments (it filters IsDeleted=0).
+                // For refund / cancel_only: no credit note — IsDeleted=1 alone is sufficient.
+                if ($cancelAction === 'credit_note') {
+                    $this->customerbalance->createCreditNote(
+                        $orgUID, (int)$existing->PartyUID, $transUID, $userUID
+                    );
+                }
+
+                // DELETE rule: mark all payments as IsDeleted = 1
+                $writeDB->where([
+                    'TransUID'         => $transUID,
+                    'PartyType'        => 'C',
+                    'PaymentDirection' => 'In',
+                    'IsDeleted'        => 0,
+                ])->update('Transaction.PaymentsTbl', [
+                    'IsDeleted' => 1,
+                    'UpdatedBy' => $userUID,
+                ]);
+            }
+
             if ($existing->PartyType === 'C') {
                 $this->_recalcCustomerBalance($orgUID, $existing->PartyUID, $userUID);
             }
@@ -1174,6 +1305,25 @@ class Invoices extends MY_Controller {
                 ['TransUID' => $transUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
             );
             if ($resp->Error) throw new Exception($resp->Message);
+
+            // Cascade IsCancelled = 1 to all child records
+            if ($newStatus === 'Cancelled') {
+                $writeDB = $this->load->database('WriteDB', TRUE);
+                $writeDB->db_debug = FALSE;
+                $childFlag = ['IsCancelled' => 1, 'UpdatedBy' => $userUID];
+                $writeDB->where('TransUID', $transUID)->update('Transaction.TransDetailTbl',      $childFlag);
+                $writeDB->where('TransUID', $transUID)->update('Transaction.TransProductsTbl',    $childFlag);
+                $writeDB->where('TransUID', $transUID)->update('Transaction.TransProductBOMTbl',  $childFlag);
+                $writeDB->where('TransUID', $transUID)->update('Transaction.TransAttachmentsTbl', $childFlag);
+
+                // Mark payments IsCancelled = 1 when "Mark Refund" is selected
+                $cancelPaymentAction = trim($this->input->post('CancelPaymentAction') ?? '');
+                if ($cancelPaymentAction === 'refund') {
+                    $writeDB->where(['TransUID' => $transUID, 'IsDeleted' => 0])
+                            ->update('Transaction.PaymentsTbl', $childFlag);
+                }
+            }
+
             $this->dbwrite_model->commitTransaction();
 
             $this->EndReturnData->Error     = FALSE;
@@ -1183,7 +1333,74 @@ class Invoices extends MY_Controller {
             try { $this->load->library('auditlog'); $this->auditlog->log($orgUID, $userUID, strtoupper($newStatus) . '_INVOICE', 'Invoice', $transUID, $existing->UniqueNumber ?? '', ['fromStatus' => $current, 'toStatus' => $newStatus]); } catch (Exception $auditEx) { log_message('error', 'Audit log failed: ' . $auditEx->getMessage()); }
 
             if ($newStatus === 'Cancelled' && $existing->PartyType === 'C') {
-                $balResult = $this->_recalcCustomerBalance($orgUID, (int)$existing->PartyUID, $userUID);
+                $this->load->library('customerbalance');
+
+                // ── Determine cancel action ───────────────────────────────────
+                // Priority: explicit POST param (user made decision) → JWT setting → default 'ask'
+                $transSettings = $this->pageData['JwtData']->TransSettings ?? null;
+                $cancelAction  = $transSettings->InvoiceCancelAction ?? 'ask';
+
+                $postAction = trim($this->input->post('CancelPaymentAction') ?? '');
+                if (in_array($postAction, ['credit_note', 'refund', 'cancel_only'])) {
+                    $cancelAction = $postAction; // user explicitly chose via 'ask' modal
+                }
+
+                // ── Handle payments for every cancelled invoice ───────────────
+                // Do NOT gate on DocStatus — an invoice can be 'Issued' and still
+                // have payments recorded. If no payments exist, the UPDATE affects
+                // 0 rows which is harmless.
+
+                if ($cancelAction === 'cancel_only') {
+                    // Mark payments as On Account — money held by org, reusable on a future invoice
+                    $wdbOA = $this->load->database('WriteDB', TRUE);
+                    $wdbOA->db_debug = FALSE;
+                    $wdbOA->where([
+                        'TransUID'         => $transUID,
+                        'PartyType'        => 'C',
+                        'PaymentDirection' => 'In',
+                        'IsDeleted'        => 0,
+                        'IsCancelled'      => 0,
+                    ])->update('Transaction.PaymentsTbl', [
+                        'IsOnAccount' => 1,
+                        'UpdatedBy'   => $userUID,
+                    ]);
+
+                } elseif ($cancelAction === 'refund') {
+                    // Directly set IsCancelled = 1 on all payments for this invoice.
+                    // Excludes them from TotalReceived → balance returns to pre-invoice state.
+                    $wdb = $this->load->database('WriteDB', TRUE);
+                    $wdb->db_debug = FALSE;
+                    $wdb->where([
+                        'TransUID'         => $transUID,
+                        'PartyType'        => 'C',
+                        'PaymentDirection' => 'In',
+                        'IsDeleted'        => 0,
+                    ])->update('Transaction.PaymentsTbl', [
+                        'IsCancelled' => 1,
+                        'UpdatedBy'   => $userUID,
+                    ]);
+
+                } else {
+                    // credit_note / ask → create a Pending credit note for the paid portion
+                    $cnResult = $this->customerbalance->createCreditNote(
+                        $orgUID, (int)$existing->PartyUID, $transUID, $userUID
+                    );
+
+                    if ($cnResult) {
+                        $this->EndReturnData->CreditNote       = $cnResult['creditNoteUID'];
+                        $this->EndReturnData->CreditNoteAmount = $cnResult['amount'];
+
+                        if ($cancelAction === 'ask') {
+                            $this->EndReturnData->CreditNoteStatus = 'Pending';
+                            $this->EndReturnData->NeedsDecision    = true;
+                        } else {
+                            $this->EndReturnData->CreditNoteStatus = 'Pending';
+                        }
+                    }
+                }
+
+                // ── Recalculate and sync balance for all cases ────────────────
+                $balResult = $this->customerbalance->recalcAndSync($orgUID, (int)$existing->PartyUID, $userUID);
                 if ($balResult) {
                     $this->EndReturnData->CustomerBalance     = $balResult['balance'];
                     $this->EndReturnData->CustomerBalanceType = $balResult['type'];
@@ -1350,13 +1567,14 @@ class Invoices extends MY_Controller {
             $paymentData = [
                 'OrgUID'            => $orgUID,
                 'PaymentDate'       => $paymentDate,
+                'PaymentModuleUID'  => 110,
                 'PrefixUID'         => $payPrefixUID,
                 'PaymentNumber'     => $paymentNumber,
                 'UniqueNumber'      => $payUniqueNum,
                 'ReceiptToken'      => $receiptToken,
                 'TransYear'         => $payTransYear,
                 'TransUID'          => (int) $transUID,
-                'ModuleUID'         => 110,
+                'ModuleUID'         => $this->pageModuleUID,
                 'PartyType'         => $partyType,
                 'PartyUID'          => $partyUID,
                 'PaymentTypeUID'    => $paymentTypeUID,
@@ -1793,28 +2011,83 @@ class Invoices extends MY_Controller {
 
     }
 
-    private function _recalcCustomerBalance($orgUID, $custUID, $userUID) {
-        $this->load->model('customers_model');
-        $custRows = $this->customers_model->getCustomersWithLedgerForBalance($orgUID, $custUID);
-        if (empty($custRows)) return null;
-        $cust          = $custRows[0];
-        $totalInvoiced = $this->customers_model->getCustomerTotalInvoiced($orgUID, $custUID);
-        $totalReceived = $this->customers_model->getCustomerTotalReceived($orgUID, $custUID);
-        $totalReturned = $this->customers_model->getCustomerTotalReturned($orgUID, $custUID);
-        $signedOpening = ($cust->OpeningBalType === 'Debit')
-            ? (float)$cust->OpeningBalance : -(float)$cust->OpeningBalance;
-        $signedBalance = round($signedOpening + $totalInvoiced - $totalReceived - $totalReturned, 2);
-        $newBalance    = abs($signedBalance);
-        $newBalType    = ($signedBalance >= 0) ? 'Debit' : 'Credit';
-        if (!empty($cust->LedgerUID)) {
-            $this->customers_model->updateCustomerBalanceInLedger($cust->LedgerUID, $newBalance, $newBalType, $userUID);
+    // ── Apply a pending credit note to a future invoice ──────────────────────
+
+    public function applyCreditNote() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID        = $this->pageData['JwtData']->Org->OrgUID;
+            $userUID       = $this->pageData['JwtData']->User->UserUID;
+            $creditNoteUID = (int) $this->input->post('CreditNoteUID');
+            $targetTransUID= (int) $this->input->post('TransUID');
+
+            if ($creditNoteUID <= 0) throw new Exception('Credit note ID is required.');
+            if ($targetTransUID <= 0) throw new Exception('Target invoice ID is required.');
+
+            $this->load->library('customerbalance');
+            $result = $this->customerbalance->applyCreditNote($orgUID, $creditNoteUID, $targetTransUID, $userUID);
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Credit note applied successfully.';
+            $this->EndReturnData->Data    = $result;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
         }
-        $this->customers_model->updateCustomerPendingBalance($orgUID, $custUID, $newBalance, $newBalType, $userUID);
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
 
-        // Sync Upstash cache so customer search shows updated balance immediately
-        $this->cachehelper->upsertCustomer($custUID);
+    // ── Refund a pending credit note (org returns money to customer) ──────────
 
-        return ['balance' => $newBalance, 'type' => $newBalType];
+    public function refundCreditNote() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID        = $this->pageData['JwtData']->Org->OrgUID;
+            $userUID       = $this->pageData['JwtData']->User->UserUID;
+            $creditNoteUID = (int) $this->input->post('CreditNoteUID');
+
+            if ($creditNoteUID <= 0) throw new Exception('Credit note ID is required.');
+
+            $this->load->library('customerbalance');
+            $this->customerbalance->refundCreditNote($orgUID, $creditNoteUID, $userUID);
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Credit note marked as refunded.';
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    // ── Get pending credit notes for a customer ───────────────────────────────
+
+    public function getCustomerCreditNotes() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID      = $this->pageData['JwtData']->Org->OrgUID;
+            $customerUID = (int) $this->input->post('CustomerUID');
+
+            if ($customerUID <= 0) throw new Exception('Customer ID is required.');
+
+            $this->load->library('customerbalance');
+            $notes = $this->customerbalance->getPendingCreditNotes($orgUID, $customerUID);
+
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Data  = $notes;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    private function _recalcCustomerBalance($orgUID, $custUID, $userUID) {
+        $this->load->library('customerbalance');
+        return $this->customerbalance->recalcAndSync($orgUID, $custUID, $userUID);
     }
 
 }

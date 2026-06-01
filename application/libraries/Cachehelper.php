@@ -60,6 +60,19 @@ class Cachehelper {
             $closingBalance = $obRow ? (float)($obRow->PendingBalance ?? $obRow->OpeningBalance) : 0.0;
             $closingBalType = $obRow ? ($obRow->PendingBalType        ?? $obRow->OpeningBalType)  : 'Debit';
 
+            // On Account = unapplied credits from cancelled invoices (Cancel Only)
+            $onAccountRows    = $CI->customers_model->getCustomerOnAccountPayments($orgUID, $uid);
+            $onAccountBalance = round(array_sum(array_column($onAccountRows, 'Amount')), 2);
+            // Cache full records for FIFO panel (no AJAX needed on invoice form)
+            $onAccountRecords = array_map(function($r) {
+                return [
+                    'PaymentUID'          => (int)$r['PaymentUID'],
+                    'Amount'              => (float)$r['Amount'],
+                    'CreatedOn'           => $r['CreatedOn'] ?? '',
+                    'SourceInvoiceNumber' => $r['SourceInvoiceNumber'] ?? '—',
+                ];
+            }, $onAccountRows);
+
             $cacheKey = $CI->redisservice->orgKey('customers');
             $cacheMap = $CI->upstashservice->get($cacheKey);
             if (!is_array($cacheMap)) $cacheMap = [];
@@ -82,8 +95,10 @@ class Cachehelper {
                 'DiscountPercent' => (float)($cust->DiscountPercent ?? 0),
                 'CreditPeriod'    => (int)($cust->CreditPeriod     ?? 0),
                 'CreditLimit'     => (float)($cust->CreditLimit    ?? 0),
-                'ClosingBalance'  => $closingBalance,
-                'ClosingBalType'  => $closingBalType,
+                'ClosingBalance'   => $closingBalance,
+                'ClosingBalType'   => $closingBalType,
+                'OnAccountBalance' => $onAccountBalance,
+                'OnAccountRecords' => $onAccountRecords,
                 'Area'            => $cust->Area  ?? '',
                 'Tags'            => $cust->Tags  ?? '',
                 'Notes'           => $cust->Notes ?? '',

@@ -307,9 +307,13 @@ $(document).ready(function () {
     _tlFilter['DateFrom'] = TlDefaultDateFrom;
     _tlFilter['DateTo']   = TlDefaultDateTo;
 
+    var _tlDateFmt = (typeof _transFormDateFormat !== 'undefined') ? _transFormDateFormat : 'd-m-Y';
+
     // Date From picker
     flatpickr('#tlDateFrom', {
-        dateFormat:  'd-m-Y',
+        dateFormat:  'Y-m-d',
+        altInput:    true,
+        altFormat:   _tlDateFmt,
         defaultDate: TlDefaultDateFrom,
         onChange: function (dates) {
             if (dates.length) {
@@ -321,7 +325,9 @@ $(document).ready(function () {
 
     // Date To picker
     flatpickr('#tlDateTo', {
-        dateFormat:  'd-m-Y',
+        dateFormat:  'Y-m-d',
+        altInput:    true,
+        altFormat:   _tlDateFmt,
         defaultDate: TlDefaultDateTo,
         onChange: function (dates) {
             if (dates.length) {

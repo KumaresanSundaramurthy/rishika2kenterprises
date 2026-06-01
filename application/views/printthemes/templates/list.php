@@ -4,7 +4,7 @@ $cdnUrl = getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv('CFL
 if (!empty($DataLists)):
     foreach ($DataLists as $i => $row):
         $preview   = !empty($row->PreviewImage) ? $row->PreviewImage : null;
-        $updatedOn = !empty($row->UpdatedOn) ? date('d M Y', strtotime($row->UpdatedOn)) : '—';
+        $updatedOn = !empty($row->UpdatedOn) ? format_datedisplay($row->UpdatedOn) : '—';
         $catBadge  = [
             'general' => 'bg-label-secondary',
             'gst'     => 'bg-label-success',

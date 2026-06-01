@@ -61,7 +61,7 @@ if (!empty($DataLists)):
             <?php if ($isDraft || empty($list->UniqueNumber)): ?>
                 <span class="trans-doc-draft"><i class="bx bx-pencil me-1" style="font-size:.8rem;"></i>Draft</span>
                 <?php if (!empty($list->TransDate)): ?>
-                    <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars(format_datedisplay($list->TransDate, 'd M Y')); ?></div>
+                    <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars(format_datedisplay($list->TransDate)); ?></div>
                 <?php endif; ?>
             <?php else: ?>
                 <a href="javascript:void(0)" class="trans-doc-number viewTransaction"
@@ -73,7 +73,7 @@ if (!empty($DataLists)):
                    data-status="<?php echo htmlspecialchars($list->Status ?? ''); ?>">
                     <?php echo htmlspecialchars($list->UniqueNumber); ?>
                 </a>
-                <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars(format_datedisplay($list->TransDate, 'd M Y')); ?></div>
+                <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars(format_datedisplay($list->TransDate)); ?></div>
             <?php endif; ?>
         </td>
 
@@ -125,7 +125,7 @@ if (!empty($DataLists)):
         <!-- Expected Return Date -->
         <td class="<?php echo $dueClass; ?>">
             <?php if (!$isDraft && $challanType === 'Returnable' && !empty($list->ValidityDate)): ?>
-                <?php echo format_datedisplay($list->ValidityDate, 'd M Y'); ?>
+                <?php echo format_datedisplay($list->ValidityDate); ?>
                 <?php echo $dueTag; ?>
             <?php else: ?>
                 <span class="text-muted">—</span>

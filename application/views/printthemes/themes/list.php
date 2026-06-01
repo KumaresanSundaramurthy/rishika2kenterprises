@@ -6,7 +6,7 @@ if (!empty($DataLists)):
         $typeLabel = $typeLabels[$row->TransactionType] ?? $row->TransactionType;
         $tplName   = !empty($row->TemplateName) ? htmlspecialchars($row->TemplateName) : '<span class="text-muted">—</span>';
         $preview   = !empty($row->TemplatePreviewImage) ? $row->TemplatePreviewImage : null;
-        $updatedOn = !empty($row->UpdatedOn) ? date('d M Y', strtotime($row->UpdatedOn)) : '—';
+        $updatedOn = !empty($row->UpdatedOn) ? format_datedisplay($row->UpdatedOn) : '—';
 ?>
 <tr>
     <td>

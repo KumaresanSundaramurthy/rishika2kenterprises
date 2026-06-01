@@ -39,7 +39,7 @@ if (!empty($DataLists)):
             $diffDays = (int) round(($dueTs - $todayTs) / 86400);
 
             // Row 1: validity date
-            $validityHtml .= '<div style="font-size:.68rem;color:#6c757d;">Due: ' . format_datedisplay($list->ValidityDate, 'd M Y') . '</div>';
+            $validityHtml .= '<div style="font-size:.68rem;color:#6c757d;">Due: ' . format_datedisplay($list->ValidityDate) . '</div>';
 
             // Row 2: since / in N days
             if ($diffDays < 0) {
@@ -71,7 +71,7 @@ if (!empty($DataLists)):
         $netAmt     = (float)($list->NetAmount ?? 0);
         $numericAmt = smartDecimal($netAmt, $decimals, true);
         $billAmount = $currency . ' ' . $numericAmt;
-        $transDate  = !empty($list->TransDate) ? date('d M Y', strtotime($list->TransDate)) : '';
+        $transDate  = !empty($list->TransDate) ? format_datedisplay($list->TransDate) : '';
         $quotStatus = $list->Status ?? '';
 
         if (!empty($waTemplate)) {
@@ -136,7 +136,7 @@ if (!empty($DataLists)):
             <?php if ($isDraft || empty($list->UniqueNumber)): ?>
                 <span class="trans-doc-draft"><i class="bx bx-pencil me-1" style="font-size:.8rem;"></i>Draft</span>
                 <?php if (!empty($list->TransDate)): ?>
-                    <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars(format_datedisplay($list->TransDate, 'd M Y')); ?></div>
+                    <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars(format_datedisplay($list->TransDate)); ?></div>
                 <?php endif; ?>
             <?php else: ?>
                 <a href="javascript:void(0)" class="trans-doc-number viewTransaction"
@@ -148,7 +148,7 @@ if (!empty($DataLists)):
                    data-status="<?php echo htmlspecialchars($list->Status ?? ''); ?>">
                     <?php echo htmlspecialchars($list->UniqueNumber); ?>
                 </a>
-                <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars(format_datedisplay($list->TransDate, 'd M Y')); ?></div>
+                <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars(format_datedisplay($list->TransDate)); ?></div>
                 <?php if (!empty($list->CreatedBy)): ?>
                 <div style="font-size:.68rem;color:#bbb;">by <?php echo htmlspecialchars($list->CreatedBy); ?></div>
                 <?php endif; ?>
@@ -263,7 +263,7 @@ if (!empty($DataLists)):
             <?php if ($showValidity): ?>
                 <?php echo $validityHtml; ?>
             <?php elseif (!$isDraft && !empty($list->ValidityDate)): ?>
-                <div style="font-size:.68rem;color:#6c757d;">Due: <?php echo format_datedisplay($list->ValidityDate, 'd M Y'); ?></div>
+                <div style="font-size:.68rem;color:#6c757d;">Due: <?php echo format_datedisplay($list->ValidityDate); ?></div>
             <?php else: ?>
                 <span class="text-muted">&mdash;</span>
             <?php endif; ?>

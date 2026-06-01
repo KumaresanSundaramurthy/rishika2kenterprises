@@ -91,7 +91,7 @@ function rntOpenCreate() {
             enableTime: true,
             dateFormat: 'Y-m-d H:i',
             altInput:   true,
-            altFormat:  'd M Y, h:i K',
+            altFormat:  (typeof _transFormDateTimeFormat !== 'undefined') ? _transFormDateTimeFormat : 'd-m-Y H:i',
             defaultDate: startStr,
             time_24hr:  false,
             disableMobile: true,
@@ -105,7 +105,7 @@ function rntOpenCreate() {
             enableTime: true,
             dateFormat: 'Y-m-d H:i',
             altInput:   true,
-            altFormat:  'd M Y, h:i K',
+            altFormat:  (typeof _transFormDateTimeFormat !== 'undefined') ? _transFormDateTimeFormat : 'd-m-Y H:i',
             defaultDate: dueStr,
             time_24hr:  false,
             disableMobile: true,
@@ -351,8 +351,8 @@ function rntOpenReturn(rentalUID, rentalNum, itemUID, itemName, itemStatus) {
     $.post('/rental/getRentalDetail', { RentalUID: rentalUID, [CsrfName]: CsrfToken }, function (r) {
         if (!r.Error && r.Data) {
             var d = r.Data;
-            if (d.RentalStartDateTime) $('#rtnStartDate').text(new Date(d.RentalStartDateTime).toLocaleDateString('en-IN', {day:'2-digit',month:'short',year:'numeric'}));
-            if (d.ReturnDueDateTime)   $('#rtnDueDate').text(new Date(d.ReturnDueDateTime).toLocaleDateString('en-IN', {day:'2-digit',month:'short',year:'numeric'}));
+            if (d.RentalStartDateTime) $('#rtnStartDate').text((function(d){ var fp = (typeof _transListDateTimeFormat !== 'undefined') ? _transListDateTimeFormat : 'd M Y'; var dt = new Date(d); return flatpickr.formatDate(dt, fp); })(d.RentalStartDateTime));
+            if (d.ReturnDueDateTime)   $('#rtnDueDate').text((function(d){ var fp = (typeof _transListDateTimeFormat !== 'undefined') ? _transListDateTimeFormat : 'd M Y'; var dt = new Date(d); return flatpickr.formatDate(dt, fp); })(d.ReturnDueDateTime));
             // Find the item
             if (d.Items) {
                 d.Items.forEach(function (item) {
@@ -373,7 +373,7 @@ function rntOpenReturn(rentalUID, rentalNum, itemUID, itemName, itemStatus) {
             enableTime: true,
             dateFormat: 'Y-m-d H:i',
             altInput:   true,
-            altFormat:  'd M Y, h:i K',
+            altFormat:  (typeof _transFormDateTimeFormat !== 'undefined') ? _transFormDateTimeFormat : 'd-m-Y H:i',
             defaultDate: nowStr,
             time_24hr:  false,
             disableMobile: true,

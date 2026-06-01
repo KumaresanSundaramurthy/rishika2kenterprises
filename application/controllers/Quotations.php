@@ -924,10 +924,11 @@ class Quotations extends MY_Controller {
             }
             $this->pageData['NextNumberMap'] = $nextNumberMap;
 
-            // Dispatch address
-            $this->load->model('organisation_model');
-            $dispatchAddrResult                = $this->organisation_model->getOrgDispatchAddress($orgUID);
-            $this->pageData['DispatchAddress'] = $dispatchAddrResult->Data ?? NULL;
+            // Dispatch address — use same method as create so DispatchAddresses (plural) is set
+            $this->_getDispatchAddresses($orgUID);
+
+            // Attachments — load server-side to avoid AJAX call on page load
+            $this->pageData['QuotAttachments'] = $this->transactions_model->getTransactionAttachments($transUID, $orgUID);
 
             $this->load->model('global_model');
             $GetCountryInfo = $this->global_model->getCountryInfo();

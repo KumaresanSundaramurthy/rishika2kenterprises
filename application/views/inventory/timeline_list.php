@@ -31,11 +31,11 @@ if (!empty($DataLists)):
 
         // Effective date
         if ($moduleUID === 118 && !empty($row->AdjDate)) {
-            $effDate = date('d M Y', strtotime($row->AdjDate));
+            $effDate = format_datedisplay($row->AdjDate);
         } elseif (!empty($row->TransDate)) {
-            $effDate = date('d M Y', strtotime($row->TransDate));
+            $effDate = format_datedisplay($row->TransDate);
         } else {
-            $effDate = date('d M Y', strtotime($row->CreatedOn));
+            $effDate = format_datedisplay($row->CreatedOn);
         }
 
         // Reference number

@@ -43,7 +43,7 @@ if (!empty($DataLists)):
             <?php endif; ?>
             <div class="d-flex align-items-center gap-2 mt-1">
                 <?php if (!empty($list->IncomeDate)): ?>
-                    <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars(format_datedisplay($list->IncomeDate, 'd M Y')); ?></div>
+                    <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars(format_datedisplay($list->IncomeDate)); ?></div>
                 <?php endif; ?>
                 <?php if (!empty($list->AttachCount) && (int)$list->AttachCount > 0): ?>
                     <button type="button" class="btn btn-link p-0 transAttachBtn"
@@ -175,7 +175,7 @@ if (!empty($DataLists)):
                 <button class="btn inc-pay-quick-btn incMarkReceived"
                         data-uid="<?php echo (int)$list->IncomeUID; ?>"
                         data-num="<?php echo htmlspecialchars($list->IncomeNumber ?? ''); ?>"
-                        data-date="<?php echo htmlspecialchars(format_datedisplay($list->IncomeDate, 'd M Y')); ?>"
+                        data-date="<?php echo htmlspecialchars(format_datedisplay($list->IncomeDate)); ?>"
                         data-total="<?php echo htmlspecialchars($netAmt); ?>"
                         data-paid="<?php echo htmlspecialchars($paidAmt); ?>"
                         data-pending="<?php echo htmlspecialchars($pendingAmt); ?>"
@@ -201,7 +201,7 @@ if (!empty($DataLists)):
                             <button class="dropdown-item incMarkReceived"
                                     data-uid="<?php echo (int)$list->IncomeUID; ?>"
                                     data-num="<?php echo htmlspecialchars($list->IncomeNumber ?? ''); ?>"
-                                    data-date="<?php echo htmlspecialchars(format_datedisplay($list->IncomeDate, 'd M Y')); ?>"
+                                    data-date="<?php echo htmlspecialchars(format_datedisplay($list->IncomeDate)); ?>"
                                     data-total="<?php echo htmlspecialchars($netAmt); ?>"
                                     data-paid="<?php echo htmlspecialchars($paidAmt); ?>"
                                     data-pending="<?php echo htmlspecialchars($pendingAmt); ?>">

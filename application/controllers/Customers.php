@@ -575,9 +575,15 @@ class Customers extends MY_Controller {
                     ]);
                 }
 
-                // Seed year-opening snapshot only if this financial year has no record yet
+                // Update year-opening snapshot for current financial year
                 $yrRow = $this->customers_model->getCustomerYearOpening($orgUID, (int)$CustomerUID, $this->_currentFinancialYear());
-                if (!$yrRow) {
+                if ($yrRow) {
+                    $this->dbwrite_model->updateData('Customers', 'CustYearOpeningBalanceTbl', [
+                        'OpeningBalance' => $newBalance,
+                        'OpeningBalType' => $newType,
+                        'UpdatedBy'      => (int)$userUID,
+                    ], ['OrgUID' => (int)$orgUID, 'CustomerUID' => (int)$CustomerUID, 'FinancialYear' => (int)$this->_currentFinancialYear()]);
+                } else {
                     $this->dbwrite_model->insertData('Customers', 'CustYearOpeningBalanceTbl', [
                         'OrgUID'         => (int)$orgUID,
                         'CustomerUID'    => (int)$CustomerUID,
@@ -590,6 +596,10 @@ class Customers extends MY_Controller {
                         'UpdatedBy'      => (int)$userUID,
                     ]);
                 }
+
+                // Recalculate closing balance and sync all tables + cache
+                $this->load->library('customerbalance');
+                $this->customerbalance->recalcAndSync($orgUID, (int)$CustomerUID, $userUID);
             }
 
             // Refresh customer in bulk search cache with live data
@@ -701,7 +711,7 @@ class Customers extends MY_Controller {
                     number_format((float)($row->ClosingBalance ?? 0), 2),
                     $row->ClosingBalanceType ?? '',
                     ((int)($row->IsActive ?? 1)) === 1 ? 'Active' : 'Inactive',
-                    !empty($row->UpdatedOn) ? date('d M Y', strtotime($row->UpdatedOn)) : '',
+                    !empty($row->UpdatedOn) ? date($this->pageData['JwtData']->GenSettings->ListDateTimeFormat ?? 'd M Y', strtotime($row->UpdatedOn)) : '',
                     $row->UpdatedBy ?? '',
                 ];
             }
@@ -1180,6 +1190,104 @@ class Customers extends MY_Controller {
             );
 
         } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    // Returns total On Account balance + individual payment rows for a customer
+    public function getCustomerOnAccountBalance() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID      = $this->pageData['JwtData']->Org->OrgUID;
+            $customerUID = (int) $this->input->post('CustomerUID');
+            if ($customerUID <= 0) throw new Exception('CustomerUID is required.');
+
+            $this->load->model('customers_model');
+            $result = $this->customers_model->getCustomerOnAccountPayments($orgUID, $customerUID);
+
+            $total = array_sum(array_column($result, 'Amount'));
+
+            $this->EndReturnData->Error    = false;
+            $this->EndReturnData->Total    = round((float)$total, 2);
+            $this->EndReturnData->Payments = $result;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    // Applies a specific On Account payment to the given invoice
+    public function applyOnAccountPayment() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID      = $this->pageData['JwtData']->Org->OrgUID;
+            $userUID     = $this->pageData['JwtData']->User->UserUID;
+            $paymentUID  = (int) $this->input->post('PaymentUID');
+            $transUID    = (int) $this->input->post('TransUID');
+            if ($paymentUID <= 0 || $transUID <= 0) throw new Exception('PaymentUID and TransUID are required.');
+
+            $this->load->model('dbwrite_model');
+            $this->load->model('transactions_model');
+
+            $writeDB = $this->load->database('WriteDB', TRUE);
+            $writeDB->db_debug = FALSE;
+
+            // Fetch the On Account payment
+            $writeDB->from('Transaction.PaymentsTbl');
+            $writeDB->where(['PaymentUID' => $paymentUID, 'OrgUID' => $orgUID, 'IsOnAccount' => 1, 'IsDeleted' => 0, 'IsCancelled' => 0]);
+            $payment = $writeDB->get()->row();
+            if (!$payment) throw new Exception('On Account payment not found or already applied.');
+
+            $this->dbwrite_model->startTransaction();
+
+            // Link payment to the new invoice and clear On Account flag
+            $writeDB->where(['PaymentUID' => $paymentUID, 'OrgUID' => $orgUID]);
+            $writeDB->update('Transaction.PaymentsTbl', [
+                'TransUID'                => $transUID,
+                'IsOnAccount'             => 0,
+                'OnAccountAppliedTransUID'=> $transUID,
+                'UpdatedBy'               => $userUID,
+            ]);
+
+            // Update invoice paid/balance
+            $existingPaid = $this->transactions_model->getSumPaidForTransaction($transUID, $orgUID);
+            $trans        = $this->transactions_model->getTransactionBasicInfo($transUID, $orgUID);
+            if ($trans) {
+                $netAmount     = (float) $trans->NetAmount;
+                $newPaid       = round($existingPaid, 2);
+                $balanceAmount = max(0, round($netAmount - $newPaid, 2));
+                $isFullyPaid   = ($netAmount > 0 && $balanceAmount <= 0) ? 1 : 0;
+                $newStatus     = $isFullyPaid ? 'Paid' : ($newPaid > 0 ? 'Partial' : 'Issued');
+
+                $this->dbwrite_model->updateTransIsFullyPaid($transUID, $isFullyPaid, $newPaid, $balanceAmount, $userUID);
+                $this->dbwrite_model->updateTransDocStatus($transUID, $orgUID, $newStatus, $userUID);
+            }
+
+            $this->dbwrite_model->commitTransaction();
+
+            // Recalculate customer closing balance
+            $this->load->library('customerbalance');
+            $balResult = $this->customerbalance->recalcAndSync($orgUID, (int)$payment->PartyUID, $userUID);
+
+            $this->EndReturnData->Error   = false;
+            $this->EndReturnData->Message = 'On Account payment applied successfully.';
+            if ($balResult) {
+                $this->EndReturnData->CustomerBalance     = $balResult['balance'];
+                $this->EndReturnData->CustomerBalanceType = $balResult['type'];
+            }
+
+        } catch (Exception $e) {
+            if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
         }

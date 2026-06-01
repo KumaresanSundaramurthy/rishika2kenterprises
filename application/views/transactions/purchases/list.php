@@ -61,7 +61,7 @@ if (!empty($DataLists)):
         $numericAmt = smartDecimal($netAmt, $decimals, true);
         $billAmount = $currency . ' ' . $numericAmt;
         $pendingFmt = $currency . ' ' . smartDecimal($pendingAmt, $decimals, true);
-        $transDate  = !empty($list->TransDate) ? date('d M Y', strtotime($list->TransDate)) : '';
+        $transDate  = !empty($list->TransDate) ? format_datedisplay($list->TransDate) : '';
 
         if (!empty($waTemplate)) {
             $waMessage = str_replace(
@@ -101,7 +101,7 @@ if (!empty($DataLists)):
             <?php if ($isDraft || empty($list->UniqueNumber)): ?>
                 <span class="trans-doc-draft"><i class="bx bx-pencil me-1" style="font-size:.8rem;"></i>Draft</span>
                 <?php if (!empty($list->TransDate)): ?>
-                    <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars(format_datedisplay($list->TransDate, 'd M Y')); ?></div>
+                    <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars(format_datedisplay($list->TransDate)); ?></div>
                 <?php endif; ?>
             <?php else: ?>
                 <a href="javascript:void(0)" class="trans-doc-number viewTransaction"
@@ -114,7 +114,7 @@ if (!empty($DataLists)):
                     <?php echo htmlspecialchars($list->UniqueNumber); ?>
                 </a>
                 <div class="d-flex align-items-center gap-2 mt-1">
-                    <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars(format_datedisplay($list->TransDate, 'd M Y')); ?></div>
+                    <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars(format_datedisplay($list->TransDate)); ?></div>
                     <?php if ($hasAttach): ?>
                     <button type="button" class="btn btn-link p-0 transAttachBtn"
                             data-uid="<?php echo (int)$list->TransUID; ?>"
@@ -157,7 +157,7 @@ if (!empty($DataLists)):
                 </div>
                 <?php if (!empty($list->ValidityDate)): ?>
                 <div style="font-size:.68rem;color:#6c757d;margin-top:1px;">
-                    Due: <?php echo format_datedisplay($list->ValidityDate, 'd M Y'); ?>
+                    Due: <?php echo format_datedisplay($list->ValidityDate); ?>
                 </div>
                 <?php endif; ?>
             <?php endif; ?>
@@ -308,7 +308,7 @@ if (!empty($DataLists)):
                         class="btn inv-pay-quick-btn purchReceivePayment"
                         data-uid="<?php echo (int)$list->TransUID; ?>"
                         data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
-                        data-date="<?php echo htmlspecialchars(format_datedisplay($list->TransDate ?? '', 'd M Y')); ?>"
+                        data-date="<?php echo htmlspecialchars(format_datedisplay($list->TransDate ?? '')); ?>"
                         data-party="<?php echo htmlspecialchars($list->PartyName ?? ''); ?>"
                         data-total="<?php echo $netAmt; ?>"
                         data-paid="<?php echo $paidAmt; ?>"
@@ -361,7 +361,7 @@ if (!empty($DataLists)):
                             <button class="dropdown-item purchReceivePayment"
                                     data-uid="<?php echo (int)$list->TransUID; ?>"
                                     data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
-                                    data-date="<?php echo htmlspecialchars(format_datedisplay($list->TransDate ?? '', 'd M Y')); ?>"
+                                    data-date="<?php echo htmlspecialchars(format_datedisplay($list->TransDate ?? '')); ?>"
                                     data-party="<?php echo htmlspecialchars($list->PartyName ?? ''); ?>"
                                     data-total="<?php echo $netAmt; ?>"
                                     data-paid="<?php echo $paidAmt; ?>"

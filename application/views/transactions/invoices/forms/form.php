@@ -187,7 +187,7 @@ if ($isEdit) {
                                         <?php if (!empty($InvData->TransDate)): ?>
                                         <div class="d-flex align-items-center gap-1">
                                             <span style="font-size:.7rem;color:#8592a3;">Date</span>
-                                            <span style="font-size:.78rem;color:#566a7f;"><?php echo htmlspecialchars(format_datedisplay($InvData->TransDate, 'd M Y')); ?></span>
+                                            <span style="font-size:.78rem;color:#566a7f;"><?php echo htmlspecialchars(format_datedisplay($InvData->TransDate)); ?></span>
                                         </div>
                                         <?php endif; ?>
                                     </div>
@@ -240,77 +240,94 @@ if ($isEdit) {
                                     <?php endif; ?>
                                 </div>
                                 <?php if (!empty($DispatchAddresses)): ?>
-                                <div class="d-flex align-items-center gap-2" style="max-width:360px;">
+                                <div class="d-flex align-items-center gap-2 dispatch-from-grp" style="max-width:360px;">
                                     <span class="text-muted" style="font-size:.78rem;white-space:nowrap;">Dispatch From</span>
                                     <?php $this->load->view('common/transactions/_dispatch_from'); ?>
                                 </div>
                                 <?php endif; ?>
+                                <?php if (!$isEdit): ?>
+                                <!-- On Account indicator — shown right of Dispatch From when customer has unapplied credits -->
+                                <div id="onAccountIndicator" class="d-none ms-auto d-flex align-items-center gap-1"
+                                     style="font-size:.78rem;color:#856404;background:#fff8e1;border:1px solid #ffc107;padding:3px 12px;border-radius:20px;white-space:nowrap;">
+                                    <i class="bx bx-wallet" style="font-size:.88rem;"></i>
+                                    On Account: <strong id="onAccountTotal" style="margin-left:3px;"></strong>
+                                </div>
+                                <?php endif; ?>
                             </div>
 
-                            <!-- ── Customer Details ───────────────────────────────────────────── -->
-                            <div class="row g-2 align-items-end mb-3">
-                                    <div class="col-md-4">
-                                        <?php if ($isEdit && !$isDraftEdit): ?>
-                                            <label class="trans-field-label">Customer</label>
-                                            <div class="trans-vendor-card">
-                                                <div class="trans-vendor-card-name"><i class="bx bx-user me-1"></i><?php echo htmlspecialchars($InvData->PartyName ?? '—'); ?></div>
-                                                <?php if (!empty($InvData->PartyMobile)): ?>
-                                                <div class="trans-vendor-card-meta"><i class="bx bx-phone me-1"></i><?php echo htmlspecialchars($InvData->PartyMobile); ?></div>
-                                                <?php endif; ?>
-                                                <?php if (!empty($InvData->PartyGSTIN)): ?>
-                                                <div class="trans-vendor-card-meta"><i class="bx bx-id-card me-1"></i><?php echo htmlspecialchars($InvData->PartyGSTIN); ?></div>
-                                                <?php endif; ?>
-                                                <?php $_cParts = array_filter([$CustAddr->Line1 ?? '', $CustAddr->CityText ?? '', $CustAddr->StateText ?? '']);
-                                                    if (!empty($_cParts)): ?>
-                                                <div class="trans-vendor-card-meta"><i class="bx bx-map me-1"></i><?php echo htmlspecialchars(implode(', ', $_cParts)); ?></div>
-                                                <?php endif; ?>
-                                            </div>
-                                            <input type="hidden" id="customerSearch" name="customerSearch" value="<?php echo (int)$InvData->PartyUID; ?>" />
-                                        <?php else: ?>
-                                            <div class="d-flex align-items-center justify-content-between mb-1">
-                                                <label for="customerSearch" class="trans-field-label mb-0">Customer <span class="text-danger">*</span></label>
-                                                <button type="button" id="addTransCustomer" class="trans-add-btn btn btn-outline-primary btn-sm" style="font-size:.72rem;white-space:nowrap;">
-                                                    <i class="bx bx-plus-circle me-1"></i>Add Customer
-                                                </button>
-                                            </div>
-                                            <select id="customerSearch" name="customerSearch" class="form-select form-select-sm"></select>
-                                        <?php endif; ?>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label for="transDate" class="trans-field-label">Invoice Date <span class="text-danger">*</span></label>
-                                        <?php if ($isEdit && !$isDraftEdit): ?>
-                                            <input type="hidden" name="transDate" value="<?php echo htmlspecialchars(format_datedisplay($InvData->TransDate, 'Y-m-d')); ?>" />
-                                            <div class="input-group input-group-sm input-group-merge">
-                                                <span class="input-group-text bg-white"><i class="icon-base bx bx-calendar"></i></span>
-                                                <input type="text" class="form-control form-control-sm bg-white text-muted" style="cursor:default;" value="<?php echo htmlspecialchars(format_datedisplay($InvData->TransDate, 'd-m-Y')); ?>" readonly tabindex="-1" />
-                                            </div>
-                                        <?php else: ?>
-                                            <div class="input-group input-group-sm input-group-merge">
-                                                <span class="input-group-text bg-white"><i class="icon-base bx bx-calendar"></i></span>
-                                                <input type="text" class="form-control form-control-sm bg-white" id="transDate" name="transDate" readonly="readonly" value="<?php echo format_datedisplay(time(), 'Y-m-d'); ?>" required />
-                                            </div>
-                                        <?php endif; ?>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label for="dueDate" class="trans-field-label">Due Date</label>
+                            <!-- ── Row 1: Customer | Invoice Date | Due Date | Reference ─────── -->
+                            <div class="row g-2 align-items-end mb-2">
+
+                                <!-- Customer -->
+                                <div class="col-md-4">
+                                    <?php if ($isEdit && !$isDraftEdit): ?>
+                                        <label class="trans-field-label">Customer</label>
+                                        <div class="trans-vendor-card">
+                                            <div class="trans-vendor-card-name"><i class="bx bx-user me-1"></i><?php echo htmlspecialchars($InvData->PartyName ?? '—'); ?></div>
+                                            <?php if (!empty($InvData->PartyMobile)): ?>
+                                            <div class="trans-vendor-card-meta"><i class="bx bx-phone me-1"></i><?php echo htmlspecialchars($InvData->PartyMobile); ?></div>
+                                            <?php endif; ?>
+                                            <?php if (!empty($InvData->PartyGSTIN)): ?>
+                                            <div class="trans-vendor-card-meta"><i class="bx bx-id-card me-1"></i><?php echo htmlspecialchars($InvData->PartyGSTIN); ?></div>
+                                            <?php endif; ?>
+                                            <?php $_cParts = array_filter([$CustAddr->Line1 ?? '', $CustAddr->CityText ?? '', $CustAddr->StateText ?? '']);
+                                                if (!empty($_cParts)): ?>
+                                            <div class="trans-vendor-card-meta"><i class="bx bx-map me-1"></i><?php echo htmlspecialchars(implode(', ', $_cParts)); ?></div>
+                                            <?php endif; ?>
+                                        </div>
+                                        <input type="hidden" id="customerSearch" name="customerSearch" value="<?php echo (int)$InvData->PartyUID; ?>" />
+                                    <?php else: ?>
+                                        <div class="d-flex align-items-center justify-content-between mb-2">
+                                            <label for="customerSearch" class="trans-field-label mb-0">Customer <span class="text-danger">*</span></label>
+                                            <button type="button" id="addTransCustomer" class="trans-add-btn btn btn-outline-primary btn-sm" style="font-size:.72rem;white-space:nowrap;">
+                                                <i class="bx bx-plus-circle me-1"></i>Add Customer
+                                            </button>
+                                        </div>
+                                        <select id="customerSearch" name="customerSearch" class="form-select form-select-sm"></select>
+                                    <?php endif; ?>
+                                </div>
+
+                                <!-- Invoice Date — narrow (date width only) -->
+                                <div class="col-auto" style="min-width:155px;">
+                                    <label for="transDate" class="trans-field-label">Invoice Date <span class="text-danger">*</span></label>
+                                    <?php if ($isEdit && !$isDraftEdit): ?>
+                                        <input type="hidden" name="transDate" value="<?php echo htmlspecialchars(format_datedisplay($InvData->TransDate, 'Y-m-d')); ?>" />
                                         <div class="input-group input-group-sm input-group-merge">
                                             <span class="input-group-text bg-white"><i class="icon-base bx bx-calendar"></i></span>
-                                            <input type="text" class="form-control form-control-sm bg-white" id="dueDate" name="dueDate" readonly="readonly" value="<?php echo ($isEdit && !empty($InvData->ValidityDate)) ? htmlspecialchars(format_datedisplay($InvData->ValidityDate, 'Y-m-d')) : ''; ?>" />
+                                            <input type="text" class="form-control form-control-sm bg-white text-muted" style="cursor:default;" value="<?php echo htmlspecialchars(format_datedisplay($InvData->TransDate, 'd-m-Y')); ?>" readonly tabindex="-1" />
                                         </div>
+                                    <?php else: ?>
+                                        <div class="input-group input-group-sm input-group-merge">
+                                            <span class="input-group-text bg-white"><i class="icon-base bx bx-calendar"></i></span>
+                                            <input type="text" class="form-control form-control-sm bg-white" id="transDate" name="transDate" readonly="readonly" value="<?php echo format_datedisplay(time(), 'Y-m-d'); ?>" required />
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+
+                                <!-- Due Date — narrow (date width only) -->
+                                <div class="col-auto" style="min-width:145px;">
+                                    <label for="dueDate" class="trans-field-label">Due Date</label>
+                                    <div class="input-group input-group-sm input-group-merge">
+                                        <span class="input-group-text bg-white"><i class="icon-base bx bx-calendar"></i></span>
+                                        <input type="text" class="form-control form-control-sm bg-white" id="dueDate" name="dueDate" readonly="readonly" value="<?php echo ($isEdit && !empty($InvData->ValidityDate)) ? htmlspecialchars(format_datedisplay($InvData->ValidityDate, 'Y-m-d')) : ''; ?>" />
                                     </div>
                                 </div>
 
-                            <!-- Row 2: Address box | Reference -->
-                            <div class="row g-2 mt-1 mb-3">
-                                    <div class="col-md-4">
-                                        <div id="customerAddressBox" class="p-2 border border-secondary trans-border-dotted rounded small d-none"></div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label for="referenceDetails" class="trans-field-label">Reference</label>
-                                        <input type="text" id="referenceDetails" name="referenceDetails" class="form-control form-control-sm"
-                                            placeholder="PO Number, Sales Person, Ref No..." maxlength="100"
-                                            value="<?php echo $isEdit ? htmlspecialchars($InvData->Reference ?? '') : (!empty($SalesOrderData->Reference) ? htmlspecialchars($SalesOrderData->Reference) : (!empty($QuotationData->Reference) ? htmlspecialchars($QuotationData->Reference) : '')); ?>" />
-                                    </div>
+                                <!-- Reference — takes remaining width -->
+                                <div class="col">
+                                    <label for="referenceDetails" class="trans-field-label">Reference</label>
+                                    <input type="text" id="referenceDetails" name="referenceDetails" class="form-control form-control-sm"
+                                        placeholder="PO Number, Sales Person, Ref No..." maxlength="100"
+                                        value="<?php echo $isEdit ? htmlspecialchars($InvData->Reference ?? '') : (!empty($SalesOrderData->Reference) ? htmlspecialchars($SalesOrderData->Reference) : (!empty($QuotationData->Reference) ? htmlspecialchars($QuotationData->Reference) : '')); ?>" />
+                                </div>
+
+                            </div>
+
+                            <!-- Address box (below customer column) -->
+                            <div class="row g-2 mb-3">
+                                <div class="col-md-4">
+                                    <div id="customerAddressBox" class="p-2 border border-secondary trans-border-dotted rounded small d-none"></div>
+                                </div>
                             </div>
                             <hr class="mt-2 mb-3"/>
 
@@ -329,6 +346,173 @@ if ($isEdit) {
                                 ] : null,
                             ]); ?>
 
+                            <!-- ── Inline full-width summary (below both columns) ──────────── -->
+                            <?php $cur = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>
+                            <div id="inlineSummaryBar" class="sticky-bottom-bar mt-3" style="
+                                padding:10px 24px;
+                                display:flex;align-items:center;justify-content:space-between;gap:16px;
+                                border-radius:8px;">
+
+                                <!-- Left info sections -->
+                                <div class="d-flex align-items-stretch gap-0">
+
+                                    <!-- Section 1: Total + Tax (always visible) -->
+                                    <div style="padding-right:20px;">
+                                        <div class="fw-bold" style="font-size:.95rem;">TOTAL &nbsp;<span style="color:#0d6efd;" id="inlineGrandTotal"><?php echo $cur; ?> 0.00</span></div>
+                                        <div class="text-muted" style="font-size:.74rem;">Includes Total Tax &nbsp;<span id="inlineTotalTax">0.00</span></div>
+                                    </div>
+
+                                    <!-- Section 2: Total Paid (shown when paid > 0) -->
+                                    <div id="inlinePaidGroup" class="d-none d-flex align-items-stretch">
+                                        <div style="width:1px;background:#c5dcff;margin:0 20px;flex-shrink:0;"></div>
+                                        <div>
+                                            <div style="font-size:.74rem;color:#198754;font-weight:600;">
+                                                <i class="bx bx-check-circle me-1"></i>Total Paid
+                                            </div>
+                                            <div class="fw-bold" style="font-size:.92rem;color:#198754;">
+                                                <span id="inlineTotalPaid"><?php echo $cur; ?> 0.00</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Section 3: Balance (shown when balance > 0 and no excess) -->
+                                    <div id="inlineBalanceGroup" class="d-none d-flex align-items-stretch">
+                                        <div style="width:1px;background:#c5dcff;margin:0 20px;flex-shrink:0;"></div>
+                                        <div>
+                                            <div style="font-size:.74rem;color:#dc3545;font-weight:600;">
+                                                <i class="bx bx-wallet me-1"></i>Balance
+                                            </div>
+                                            <div class="fw-bold" style="font-size:.92rem;color:#dc3545;">
+                                                <span id="inlineBalanceAmt"><?php echo $cur; ?> 0.00</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Section 4: Excess (shown when excess > 0) -->
+                                    <div id="inlineExcessGroup" class="d-none d-flex align-items-stretch">
+                                        <div style="width:1px;background:#c5dcff;margin:0 20px;flex-shrink:0;"></div>
+                                        <div>
+                                            <div style="font-size:.74rem;color:#f59e0b;font-weight:600;">
+                                                <i class="bx bx-error-circle me-1"></i>Excess
+                                            </div>
+                                            <div class="fw-bold" style="font-size:.92rem;color:#f59e0b;">
+                                                <span id="inlineExcessAmt"><?php echo $cur; ?> 0.00</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+
+                                <div class="d-flex align-items-center gap-2">
+                                    <?php if (!$isEdit || $isDraftEdit): ?>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="inlineDraftBtn">
+                                        <i class="bx bx-save me-1"></i>Draft
+                                    </button>
+                                    <?php endif; ?>
+                                    <div class="btn-group">
+                                        <button type="button" class="btn btn-sm btn-primary px-3" id="inlineSaveBtn">
+                                            <i class="bx bx-check me-1"></i><?php echo ($isEdit && !$isDraftEdit) ? 'Update' : 'Save'; ?>
+                                        </button>
+                                        <?php if (!$isEdit || $isDraftEdit): ?>
+                                        <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split ps-2 pe-2"
+                                                data-bs-toggle="dropdown" aria-expanded="false">
+                                            <span class="visually-hidden">Save options</span>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end shadow dropup" style="min-width:195px;font-size:.82rem;">
+                                            <li><span class="dropdown-header py-1" style="font-size:.65rem;letter-spacing:.4px;">SAVE &amp; PRINT</span></li>
+                                            <li><button type="button" class="dropdown-item py-1" data-inline-action="save_a4"><i class="bx bx-file text-primary me-2"></i>Save &amp; Print A4</button></li>
+                                            <li><button type="button" class="dropdown-item py-1" data-inline-action="save_a5"><i class="bx bx-file-blank text-info me-2"></i>Save &amp; Print A5</button></li>
+                                            <li><button type="button" class="dropdown-item py-1" data-inline-action="save_thermal"><i class="bx bx-receipt text-success me-2"></i>Save &amp; Print Thermal</button></li>
+                                        </ul>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- ── Sticky bottom summary bar ──────────────────────────────── -->
+                    <div id="stickyBottomBar" class="sticky-bottom-bar" style="
+                        position:fixed;bottom:0;right:0;z-index:1040;
+                        padding:10px 24px;
+                        display:flex;align-items:center;justify-content:space-between;gap:16px;">
+
+                        <!-- Left info sections -->
+                        <div class="d-flex align-items-stretch gap-0">
+
+                            <!-- Section 1: Total + Tax -->
+                            <div style="padding-right:20px;">
+                                <div class="fw-bold" style="font-size:.95rem;">TOTAL &nbsp;<span style="color:#0d6efd;" id="stickyGrandTotal"><?php echo $cur; ?> 0.00</span></div>
+                                <div class="text-muted" style="font-size:.74rem;">Includes Total Tax &nbsp;<span id="stickyTotalTax">0.00</span></div>
+                            </div>
+
+                            <!-- Section 2: Total Paid -->
+                            <div id="stickyPaidGroup" class="d-none d-flex align-items-stretch">
+                                <div style="width:1px;background:#c5dcff;margin:0 20px;flex-shrink:0;"></div>
+                                <div>
+                                    <div style="font-size:.74rem;color:#198754;font-weight:600;">
+                                        <i class="bx bx-check-circle me-1"></i>Total Paid
+                                    </div>
+                                    <div class="fw-bold" style="font-size:.92rem;color:#198754;">
+                                        <span id="stickyTotalPaid"><?php echo $cur; ?> 0.00</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Section 3: Balance -->
+                            <div id="stickyBalanceGroup" class="d-none d-flex align-items-stretch">
+                                <div style="width:1px;background:#c5dcff;margin:0 20px;flex-shrink:0;"></div>
+                                <div>
+                                    <div style="font-size:.74rem;color:#dc3545;font-weight:600;">
+                                        <i class="bx bx-wallet me-1"></i>Balance
+                                    </div>
+                                    <div class="fw-bold" style="font-size:.92rem;color:#dc3545;">
+                                        <span id="stickyBalanceAmt"><?php echo $cur; ?> 0.00</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Section 4: Excess -->
+                            <div id="stickyExcessGroup" class="d-none d-flex align-items-stretch">
+                                <div style="width:1px;background:#c5dcff;margin:0 20px;flex-shrink:0;"></div>
+                                <div>
+                                    <div style="font-size:.74rem;color:#f59e0b;font-weight:600;">
+                                        <i class="bx bx-error-circle me-1"></i>Excess
+                                    </div>
+                                    <div class="fw-bold" style="font-size:.92rem;color:#f59e0b;">
+                                        <span id="stickyExcessAmt"><?php echo $cur; ?> 0.00</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <!-- Action buttons — delegate to existing header buttons -->
+                        <div class="d-flex align-items-center gap-2">
+                            <?php if (!$isEdit || $isDraftEdit): ?>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="stickyDraftBtn">
+                                <i class="bx bx-save me-1"></i>Draft
+                            </button>
+                            <?php endif; ?>
+
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-sm btn-primary px-3" id="stickySaveBtn">
+                                    <i class="bx bx-check me-1"></i><?php echo ($isEdit && !$isDraftEdit) ? 'Update' : 'Save'; ?>
+                                </button>
+                                <?php if (!$isEdit || $isDraftEdit): ?>
+                                <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split ps-2 pe-2"
+                                        data-bs-toggle="dropdown" aria-expanded="false">
+                                    <span class="visually-hidden">Save options</span>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end shadow dropup" style="min-width:195px;font-size:.82rem;">
+                                    <li><span class="dropdown-header py-1" style="font-size:.65rem;letter-spacing:.4px;">SAVE &amp; PRINT</span></li>
+                                    <li><button type="button" class="dropdown-item py-1" data-sticky-action="save_a4"><i class="bx bx-file text-primary me-2"></i>Save &amp; Print A4</button></li>
+                                    <li><button type="button" class="dropdown-item py-1" data-sticky-action="save_a5"><i class="bx bx-file-blank text-info me-2"></i>Save &amp; Print A5</button></li>
+                                    <li><button type="button" class="dropdown-item py-1" data-sticky-action="save_thermal"><i class="bx bx-receipt text-success me-2"></i>Save &amp; Print Thermal</button></li>
+                                </ul>
+                                <?php endif; ?>
+                            </div>
                         </div>
                     </div>
 
@@ -485,6 +669,36 @@ $(function() {
 
     <?php if (!$isEdit || $isDraftEdit): ?>
     searchCustomers('customerSearch');
+    <?php endif; ?>
+
+    <?php if (!$isEdit): ?>
+    var _cur = '<?php echo addslashes($JwtData->GenSettings->CurrenySymbol ?? "₹"); ?>';
+
+    var _oaCustomerUID = 0;
+
+    // Called by transactions.js select2:select — immediate, no AJAX
+    window._showOnAccountBanner = function(total, records, customerUID) {
+        _oaCustomerUID = parseInt(customerUID, 10) || 0;
+        if (total > 0) {
+            $('#onAccountTotal').text(_cur + ' ' + parseFloat(total).toFixed(2));
+            $('#onAccountIndicator').removeClass('d-none');
+        } else {
+            $('#onAccountIndicator').addClass('d-none');
+        }
+        // Pass total + records to panel. Button shows from total immediately;
+        // records may be [] if cache is stale — fetched lazily when button is clicked.
+        if (typeof window._loadOnAccountPanel === 'function') {
+            window._loadOnAccountPanel(records || [], _oaCustomerUID, total);
+        }
+    };
+
+    // Hide indicator and clear panel when customer is cleared
+    $('#customerSearch').on('select2:clear change', function() {
+        if (!parseInt($(this).val(), 10)) {
+            $('#onAccountIndicator').addClass('d-none');
+            if (typeof window._clearOnAccountPanel === 'function') window._clearOnAccountPanel();
+        }
+    });
     <?php endif; ?>
     <?php if (!$isEdit || $isDraftEdit): ?>
     transDatePickr('#transDate', false, 'Y-m-d', false, true, true, true, 'd-m-Y');
@@ -657,15 +871,17 @@ $(function() {
             fd.append('RoundOff',               roundOff);
             fd.append('NetAmount',              netAmount);
             fd.append('Items',                  JSON.stringify(items));
+            fd.append('SignatureUID',           parseInt($('#transSignatureUID').val(), 10) || 0);
             fd.append('action',                 action);
             $.each(charges, function(k, v) { fd.append(k, v); });
             if (typeof multiDropzone !== 'undefined' && multiDropzone) {
                 multiDropzone.files.forEach(function(f) { fd.append('AttachFiles[]', f); });
             }
             if (!_isEdit) {
-                fd.append('PaymentRows',   $('#PaymentRowsJson').val() || '');
-                fd.append('IsFullyPaid',   $('#isFullyPaid').is(':checked') ? 1 : 0);
-                fd.append('RecordPayment', action !== 'draft' ? 1 : 0);
+                fd.append('PaymentRows',       $('#PaymentRowsJson').val()    || '');
+                fd.append('IsFullyPaid',       $('#isFullyPaid').is(':checked') ? 1 : 0);
+                fd.append('RecordPayment',     action !== 'draft' ? 1 : 0);
+                fd.append('OnAccountApplyJson', $('#OnAccountApplyJson').val() || '');
                 // Append payment attachment files
                 if (typeof getPaymentAttachmentFiles === 'function') {
                     var paymentFiles = getPaymentAttachmentFiles();
@@ -712,6 +928,158 @@ $(function() {
 
 });
 
+// ── Sticky bottom bar — total sync + button delegation ─────────────────────
+(function() {
+    var cur = '<?php echo addslashes($JwtData->GenSettings->CurrenySymbol ?? "₹"); ?>';
+    var dec = <?php echo (int)($JwtData->GenSettings->DecimalPoints ?? 2); ?>;
+
+    // Align sticky bar to exactly match the form's left and right edges.
+    // Use clientWidth (excludes scrollbar) — window.innerWidth includes scrollbar
+    // which creates a ~17px gap between the bar's right edge and the form's right edge.
+    function _alignStickyBar() {
+        var bar  = document.getElementById('stickyBottomBar');
+        var form = document.getElementById('<?php echo $formId; ?>');
+        if (bar && form) {
+            var rect        = form.getBoundingClientRect();
+            var clientWidth = document.documentElement.clientWidth;
+            bar.style.left  = Math.round(rect.left)               + 'px';
+            bar.style.right = Math.round(clientWidth - rect.right) + 'px';
+        }
+    }
+    document.addEventListener('DOMContentLoaded', _alignStickyBar);
+    window.addEventListener('resize', _alignStickyBar);
+
+    document.addEventListener('DOMContentLoaded', function() {
+        _alignStickyBar();
+
+        // IntersectionObserver: hide sticky when inline summary is in view
+        var inlineBar = document.getElementById('inlineSummaryBar');
+        if (inlineBar) {
+            new IntersectionObserver(function(entries) {
+                var sticky = document.getElementById('stickyBottomBar');
+                if (sticky) sticky.style.display = entries[0].isIntersecting ? 'none' : 'flex';
+            }, { threshold: 0.1 }).observe(inlineBar);
+        }
+    });
+
+    function _r2(v) { return Math.round(v * 100) / 100; }
+
+    function _toggleGroup(ids, show, amtIds, amtValue) {
+        ids.forEach(function(id) {
+            var el = document.getElementById(id);
+            if (!el) return;
+            el.classList.toggle('d-none', !show);
+            el.classList.toggle('d-flex', show);
+        });
+        if (amtIds) amtIds.forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el) el.textContent = cur + ' ' + (amtValue || 0).toFixed(dec);
+        });
+    }
+
+    // Sync totals — calculate fresh from source, never rely on stale DOM values
+    function _syncStickyTotals() {
+        if (typeof billManager === 'undefined') return;
+
+        var grand = billManager.summary && billManager.summary.totals
+            ? (billManager.summary.totals.grandTotal || 0) : 0;
+        var tax = billManager.summary && billManager.summary.taxTotals
+            ? (billManager.summary.taxTotals.totalTax || 0) : 0;
+
+        // Sum payment rows
+        var rowsPaid = 0;
+        document.querySelectorAll('#paymentRowsBody tr .pay-amount-inp').forEach(function(inp) {
+            rowsPaid += parseFloat(inp.value) || 0;
+        });
+
+        // Add On Account applied amount
+        var oaPaid = 0;
+        try {
+            var oaEl = document.getElementById('OnAccountApplyJson');
+            if (oaEl && oaEl.value) {
+                (JSON.parse(oaEl.value) || []).forEach(function(x) { oaPaid += parseFloat(x.ApplyAmount) || 0; });
+            }
+        } catch(e) {}
+
+        var paid    = _r2(rowsPaid + oaPaid);
+        var balance = grand > 0 ? Math.max(0, _r2(grand - paid)) : 0;
+        var excess  = grand > 0 ? Math.max(0, _r2(paid - grand)) : 0;
+
+        // Grand Total + Tax (always shown)
+        ['stickyGrandTotal','inlineGrandTotal'].forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el) el.textContent = cur + ' ' + grand.toFixed(dec);
+        });
+        ['stickyTotalTax','inlineTotalTax'].forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el) el.textContent = cur + ' ' + tax.toFixed(dec);
+        });
+
+        // Total Paid — show only when paid > 0
+        _toggleGroup(['stickyPaidGroup','inlinePaidGroup'],
+            paid > 0, ['stickyTotalPaid','inlineTotalPaid'], paid);
+
+        // Balance — show whenever items exist and there is still something to pay
+        _toggleGroup(['stickyBalanceGroup','inlineBalanceGroup'],
+            grand > 0 && balance > 0 && excess === 0,
+            ['stickyBalanceAmt','inlineBalanceAmt'], balance);
+
+        // Excess — show when excess > 0
+        _toggleGroup(['stickyExcessGroup','inlineExcessGroup'],
+            excess > 0, ['stickyExcessAmt','inlineExcessAmt'], excess);
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // When bill total changes → update payment section + sync sticky bars
+        var billTotEl = document.querySelector('.bill_tot_amt');
+        if (billTotEl) {
+            new MutationObserver(function() {
+                if (typeof updatePaymentSummary === 'function') updatePaymentSummary();
+                _syncStickyTotals();
+            }).observe(billTotEl, { childList: true, characterData: true, subtree: true });
+        }
+
+        // When payment row amounts change → sync sticky bars
+        document.addEventListener('input', function(e) {
+            if (e.target && e.target.classList.contains('pay-amount-inp')) {
+                _syncStickyTotals();
+            }
+        });
+
+        // When On Account JSON changes (apply/remove) → sync
+        var oaJsonEl = document.getElementById('OnAccountApplyJson');
+        if (oaJsonEl) {
+            new MutationObserver(_syncStickyTotals).observe(oaJsonEl, { attributes: true, attributeFilter: ['value'] });
+        }
+
+        _syncStickyTotals();
+        _syncStickyTotals();
+
+        // Sticky bar button delegation
+        var d = document.getElementById('stickyDraftBtn');
+        var s = document.getElementById('stickySaveBtn');
+        if (d) d.addEventListener('click', function() { var o = document.querySelector('[name="action"][value="draft"]'); if (o) o.click(); });
+        if (s) s.addEventListener('click', function() { var o = document.querySelector('[name="action"][value="save"]');  if (o) o.click(); });
+        document.querySelectorAll('[data-sticky-action]').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var o = document.querySelector('[name="action"][value="' + this.getAttribute('data-sticky-action') + '"]');
+                if (o) o.click();
+            });
+        });
+
+        // Inline bar button delegation
+        var id = document.getElementById('inlineDraftBtn');
+        var is = document.getElementById('inlineSaveBtn');
+        if (id) id.addEventListener('click', function() { var o = document.querySelector('[name="action"][value="draft"]'); if (o) o.click(); });
+        if (is) is.addEventListener('click', function() { var o = document.querySelector('[name="action"][value="save"]');  if (o) o.click(); });
+        document.querySelectorAll('[data-inline-action]').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var o = document.querySelector('[name="action"][value="' + this.getAttribute('data-inline-action') + '"]');
+                if (o) o.click();
+            });
+        });
+    });
+}());
 
 function _showSavedAndGo(title, msg) {
     Swal.fire({

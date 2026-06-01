@@ -54,13 +54,13 @@ if (!empty($DataLists)):
             <?php if ($isDraft || empty($list->UniqueNumber)): ?>
                 <span class="trans-doc-draft"><i class="bx bx-pencil me-1" style="font-size:.8rem;"></i>Draft</span>
                 <?php if (!empty($list->TransDate)): ?>
-                    <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars(format_datedisplay($list->TransDate, 'd M Y')); ?></div>
+                    <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars(format_datedisplay($list->TransDate)); ?></div>
                 <?php endif; ?>
             <?php else: ?>
                 <a href="javascript:void(0)" class="trans-doc-number viewTransaction" data-uid="<?php echo (int)$list->TransUID; ?>" data-module="<?php echo (int)$list->ModuleUID; ?>" data-type="purchasereturn" data-number="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>" data-date="<?php echo htmlspecialchars($list->TransDate ?? ''); ?>" data-status="<?php echo htmlspecialchars($list->Status ?? ''); ?>">
                     <?php echo htmlspecialchars($list->UniqueNumber); ?>
                 </a>
-                <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars(format_datedisplay($list->TransDate, 'd M Y')); ?></div>
+                <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars(format_datedisplay($list->TransDate)); ?></div>
             <?php endif; ?>
         </td>
 
@@ -134,7 +134,7 @@ if (!empty($DataLists)):
         <!-- Date -->
         <td>
             <?php if (!$isDraft && !empty($list->TransDate)): ?>
-                <span class="text-muted" style="font-size:.82rem;"><?php echo format_datedisplay($list->TransDate, 'd M Y'); ?></span>
+                <span class="text-muted" style="font-size:.82rem;"><?php echo format_datedisplay($list->TransDate); ?></span>
             <?php else: ?>
                 <span class="text-muted">—</span>
             <?php endif; ?>
@@ -168,7 +168,7 @@ if (!empty($DataLists)):
                         class="btn inv-pay-quick-btn prReceivePayment"
                         data-uid="<?php echo (int)$list->TransUID; ?>"
                         data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
-                        data-date="<?php echo htmlspecialchars(format_datedisplay($list->TransDate ?? '', 'd M Y')); ?>"
+                        data-date="<?php echo htmlspecialchars(format_datedisplay($list->TransDate ?? '')); ?>"
                         data-party="<?php echo htmlspecialchars($list->PartyName ?? ''); ?>"
                         data-total="<?php echo $netAmt; ?>"
                         data-paid="<?php echo $paidAmt; ?>"
@@ -211,7 +211,7 @@ if (!empty($DataLists)):
                             <button class="dropdown-item prReceivePayment"
                                     data-uid="<?php echo (int)$list->TransUID; ?>"
                                     data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
-                                    data-date="<?php echo htmlspecialchars(format_datedisplay($list->TransDate ?? '', 'd M Y')); ?>"
+                                    data-date="<?php echo htmlspecialchars(format_datedisplay($list->TransDate ?? '')); ?>"
                                     data-party="<?php echo htmlspecialchars($list->PartyName ?? ''); ?>"
                                     data-total="<?php echo $netAmt; ?>"
                                     data-paid="<?php echo $paidAmt; ?>"

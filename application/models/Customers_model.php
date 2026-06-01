@@ -492,11 +492,13 @@ class Customers_model extends CI_Model {
             $this->ReadDb->select('COALESCE(SUM(Amount), 0) AS total');
             $this->ReadDb->from('`Transaction`.PaymentsTbl');
             $this->ReadDb->where([
-                'OrgUID'           => (int)$orgUID,
-                'PartyUID'         => (int)$customerUID,
-                'PartyType'        => 'C',
-                'PaymentDirection' => 'In',
-                'IsDeleted'        => 0,
+                'OrgUID'                       => (int)$orgUID,
+                'PartyUID'                     => (int)$customerUID,
+                'PartyType'                    => 'C',
+                'PaymentDirection'             => 'In',
+                'IsDeleted'                    => 0,
+                'IsTransferredToCreditNote'    => 0,   // exclude payments moved to credit note
+                'IsCancelled'                  => 0,   // exclude voided/reversed payments
             ]);
             $query = $this->ReadDb->get();
             if (!$query) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
@@ -521,6 +523,25 @@ class Customers_model extends CI_Model {
             ]);
             $this->ReadDb->where_in('ModuleUID', [106, 107]);
             $this->ReadDb->where_not_in('DocStatus', ['Cancelled', 'Rejected']);
+            $query = $this->ReadDb->get();
+            if (!$query) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
+            return (float) $query->row()->total;
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+    }
+
+    public function getCustomerTotalPendingCreditNotes($orgUID, $customerUID) {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('COALESCE(SUM(Amount), 0) AS total');
+            $this->ReadDb->from('Transaction.CustomerCreditNoteTbl');
+            $this->ReadDb->where([
+                'OrgUID'      => (int)$orgUID,
+                'CustomerUID' => (int)$customerUID,
+                'Status'      => 'Pending',
+                'IsDeleted'   => 0,
+            ]);
             $query = $this->ReadDb->get();
             if (!$query) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
             return (float) $query->row()->total;
@@ -816,6 +837,32 @@ class Customers_model extends CI_Model {
 
         } catch (Exception $e) {
             throw new Exception($e->getMessage());
+        }
+    }
+
+    public function getCustomerOnAccountPayments($orgUID, $customerUID) {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('P.PaymentUID, P.Amount, P.CreatedOn, P.Notes,
+                T.UniqueNumber AS SourceInvoiceNumber, T.NetAmount AS SourceInvoiceAmount,
+                T.TransDate AS SourceInvoiceDate');
+            $this->ReadDb->from('Transaction.PaymentsTbl P');
+            $this->ReadDb->join('Transaction.TransactionsTbl T', 'T.TransUID = P.TransUID', 'left');
+            $this->ReadDb->where([
+                'P.OrgUID'           => (int)$orgUID,
+                'P.PartyUID'         => (int)$customerUID,
+                'P.PartyType'        => 'C',
+                'P.PaymentDirection' => 'In',
+                'P.IsOnAccount'      => 1,
+                'P.IsDeleted'        => 0,
+                'P.IsCancelled'      => 0,
+            ]);
+            // FIFO — oldest first
+            $this->ReadDb->order_by('P.CreatedOn', 'ASC');
+            $result = $this->ReadDb->get()->result_array();
+            return $result ?: [];
+        } catch (Exception $e) {
+            return [];
         }
     }
 

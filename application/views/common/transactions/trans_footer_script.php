@@ -25,6 +25,13 @@ const INTEGER_ONLY_UOMS = ['PCS', 'NOS', 'UNT', 'BOX', 'PAC', 'EACH', 'SET', 'BT
 let billItems = [];
 let billMap = {};
 const genSettings = <?php echo json_encode($JwtData->GenSettings ?? new stdClass()); ?>;
+// Date & DateTime format settings from GenSettings JWT
+var _transFormDateFormat      = '<?php echo addslashes($JwtData->GenSettings->FormDateFormat      ?? 'd-m-Y'); ?>';
+var _transListDateFormat      = '<?php echo addslashes($JwtData->GenSettings->ListDateFormat      ?? 'd-m-Y'); ?>';
+var _transPrintDateFormat     = '<?php echo addslashes($JwtData->GenSettings->PrintDateFormat     ?? 'd-m-Y'); ?>';
+var _transFormDateTimeFormat  = '<?php echo addslashes($JwtData->GenSettings->FormDateTimeFormat  ?? 'd-m-Y H:i'); ?>';
+var _transListDateTimeFormat  = '<?php echo addslashes($JwtData->GenSettings->ListDateTimeFormat  ?? 'd-m-Y H:i'); ?>';
+var _transPrintDateTimeFormat = '<?php echo addslashes($JwtData->GenSettings->PrintDateTimeFormat ?? 'd-m-Y H:i'); ?>';
 const discTypeInfo = <?php echo json_encode($DiscTypeInfo ?? []); ?>;
 let customerInterState = false;
 const emptyTableTrInfo = `<tr class="text-center text-muted">

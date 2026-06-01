@@ -162,7 +162,13 @@ function pmtModeBadge($name, $modeColors) {
             <div class="fw-semibold text-dark" style="font-size:.88rem;">
                 <?php echo htmlspecialchars($cur); ?> <?php echo number_format((float)$row->Amount, $dec, '.', ','); ?>
             </div>
-            <?php if ($row->ExcessAmount > 0): ?>
+            <?php if (!empty($row->IsOnAccount)): ?>
+                <div style="margin-top:3px;">
+                    <span style="font-size:.68rem;font-weight:600;padding:2px 7px;border-radius:10px;background:#fff3cd;color:#856404;border:1px solid #ffc107;">
+                        On Account
+                    </span>
+                </div>
+            <?php elseif ($row->ExcessAmount > 0): ?>
                 <div style="font-size:.7rem;color:#f59e0b;">Excess: <?php echo htmlspecialchars($cur); ?> <?php echo number_format((float)$row->ExcessAmount, $dec); ?></div>
             <?php endif; ?>
         </td>

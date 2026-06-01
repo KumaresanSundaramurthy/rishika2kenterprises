@@ -61,6 +61,14 @@ class Settings extends MY_Controller {
             }
             $this->pageData['ProdSettings'] = $prodSettings;
 
+            // ── Transaction Settings — read from JWT payload ──────────────────
+            $transSettings = $this->pageData['JwtData']->TransSettings ?? null;
+            if (empty($transSettings)) {
+                $result        = $this->login_model->getOrgTransactionSettings($orgUID);
+                $transSettings = (!$result->Error && !empty($result->Data)) ? $result->Data[0] : new stdClass();
+            }
+            $this->pageData['TransSettings'] = $transSettings;
+
             // ── Lookup dropdowns for Product Settings ─────────────────────────
             $this->load->model('global_model');
             $this->pageData['DiscTypeInfo'] = $this->global_model->getDiscountTypeInfo()->Data ?? [];
@@ -187,41 +195,179 @@ class Settings extends MY_Controller {
             $mandatoryStorage = getPostValue($post, 'MandatoryStorage') ? 1 : 0;
             if (!$enableStorage) $mandatoryStorage = 0;
 
+            // Validate date/datetime formats before building $data
+            $validFormats   = ['d-m-Y', 'd/m/Y', 'Y-m-d', 'Y/m/d', 'd.m.Y', 'm/d/Y', 'd M Y'];
+            $validDtFormats = ['d-m-Y H:i', 'd/m/Y H:i', 'Y-m-d H:i', 'd M Y H:i', 'd-m-Y h:i A', 'd/m/Y h:i A', 'Y-m-d h:i A', 'd M Y h:i A'];
+            $formDateFormat  = getPostValue($post, 'FormDateFormat');
+            $listDateFormat  = getPostValue($post, 'ListDateFormat');
+            $printDateFormat = getPostValue($post, 'PrintDateFormat');
+            $formDtFormat    = getPostValue($post, 'FormDateTimeFormat');
+            $listDtFormat    = getPostValue($post, 'ListDateTimeFormat');
+            $printDtFormat   = getPostValue($post, 'PrintDateTimeFormat');
+            if (!in_array($formDateFormat,  $validFormats))   $formDateFormat  = 'd-m-Y';
+            if (!in_array($listDateFormat,  $validFormats))   $listDateFormat  = 'd-m-Y';
+            if (!in_array($printDateFormat, $validFormats))   $printDateFormat = 'd-m-Y';
+            if (!in_array($formDtFormat,    $validDtFormats)) $formDtFormat    = 'd-m-Y H:i';
+            if (!in_array($listDtFormat,    $validDtFormats)) $listDtFormat    = 'd-m-Y H:i';
+            if (!in_array($printDtFormat,   $validDtFormats)) $printDtFormat   = 'd-m-Y H:i';
+
             $data = [
-                'DecimalPoints'   => $decimalPoints,
-                'CurrenySymbol'   => $currencySymbol,
-                'SerialNoDisplay' => $serialNoDisplay,
-                'FYStartMonth'    => $fyStartMonth,
-                'RowLimit'        => $rowLimit,
-                'QtyMaxLength'    => $qtyMaxLength,
-                'PriceMaxLength'  => $priceMaxLength,
-                'EnableStorage'   => $enableStorage,
-                'MandatoryStorage'=> $mandatoryStorage,
-                'MaxShippingAddr' => $maxShippingAddr,
+                'DecimalPoints'       => $decimalPoints,
+                'CurrenySymbol'       => $currencySymbol,
+                'SerialNoDisplay'     => $serialNoDisplay,
+                'FYStartMonth'        => $fyStartMonth,
+                'RowLimit'            => $rowLimit,
+                'QtyMaxLength'        => $qtyMaxLength,
+                'PriceMaxLength'      => $priceMaxLength,
+                'EnableStorage'       => $enableStorage,
+                'MandatoryStorage'    => $mandatoryStorage,
+                'MaxShippingAddr'     => $maxShippingAddr,
+                'FormDateFormat'      => $formDateFormat,
+                'ListDateFormat'      => $listDateFormat,
+                'PrintDateFormat'     => $printDateFormat,
+                'FormDateTimeFormat'  => $formDtFormat,
+                'ListDateTimeFormat'  => $listDtFormat,
+                'PrintDateTimeFormat' => $printDtFormat,
             ];
 
             $this->load->model('dbwrite_model');
             $resp = $this->dbwrite_model->updateData(
-                'Settings', 'OrgSettingsTbl',   // moved from Organisation → Settings
+                'Settings', 'OrgSettingsTbl',
                 $data,
                 ['OrgUID' => $orgUID]
             );
             if ($resp->Error) throw new Exception($resp->Message);
 
-            // Patch ONLY GenSettings in the main JWT payload — takes effect on very next request
+            // Patch GenSettings in JWT — now includes date formats since they're in OrgSettingsTbl
             $this->load->model('login_model');
             $freshSettings = $this->login_model->getOrgGeneralSettings($orgUID);
-            if (!$freshSettings->Error && !empty($freshSettings->Data)) {
+            $jwtKey        = $this->pageData['JwtUserKey'] ?? null;
+            $redisPayload  = $jwtKey ? $this->redisservice->getCache($jwtKey) : null;
+            if ($redisPayload && !$redisPayload->Error && !empty($redisPayload->Value)) {
+                if (!$freshSettings->Error && !empty($freshSettings->Data)) {
+                    $redisPayload->Value->GenSettings = $freshSettings->Data[0];
+                }
+                $this->redisservice->setCache($jwtKey, $redisPayload->Value, $redisPayload->TTL);
+            }
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Settings saved successfully.';
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    /** AJAX POST: save Transaction Settings (OrgTransactionSettingsTbl) */
+    public function updateTransactionSettings() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID  = (int) $this->pageData['JwtData']->Org->OrgUID;
+            $userUID = (int) $this->pageData['JwtData']->User->UserUID;
+            $post    = $this->input->post();
+
+            $validActions = ['ask', 'credit_note', 'refund', 'cancel_only'];
+            $invoiceCancelAction = getPostValue($post, 'InvoiceCancelAction');
+            if (!in_array($invoiceCancelAction, $validActions)) {
+                $invoiceCancelAction = 'ask';
+            }
+
+            $writeDB = $this->load->database('WriteDB', TRUE);
+            $writeDB->db_debug = FALSE;
+            $sql = "INSERT INTO Settings.OrgTransactionSettingsTbl
+                        (OrgUID, InvoiceCancelAction, UpdatedBy)
+                    VALUES (?, ?, ?)
+                    ON DUPLICATE KEY UPDATE
+                        InvoiceCancelAction = VALUES(InvoiceCancelAction),
+                        UpdatedBy           = VALUES(UpdatedBy)";
+
+            $ok = $writeDB->query($sql, [$orgUID, $invoiceCancelAction, $userUID]);
+            if (!$ok) {
+                $err = $writeDB->error();
+                throw new Exception($err['message'] ?? 'Failed to save transaction settings.');
+            }
+
+            // Patch only TransSettings in JWT payload
+            $this->load->model('login_model');
+            $fresh = $this->login_model->getOrgTransactionSettings($orgUID);
+            if (!$fresh->Error && !empty($fresh->Data)) {
                 $jwtKey      = $this->pageData['JwtUserKey'] ?? null;
                 $redisPayload = $jwtKey ? $this->redisservice->getCache($jwtKey) : null;
                 if ($redisPayload && !$redisPayload->Error && !empty($redisPayload->Value)) {
-                    $redisPayload->Value->GenSettings = $freshSettings->Data[0];
+                    $redisPayload->Value->TransSettings = $fresh->Data[0];
                     $this->redisservice->setCache($jwtKey, $redisPayload->Value, $redisPayload->TTL);
                 }
             }
 
             $this->EndReturnData->Error   = FALSE;
-            $this->EndReturnData->Message = 'Settings saved successfully.';
+            $this->EndReturnData->Message = 'Transaction settings saved successfully.';
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    /** AJAX POST: save Transaction General Settings (OrgTransGeneralSettingsTbl) */
+    public function updateTransactionGeneralSettings() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID  = (int) $this->pageData['JwtData']->Org->OrgUID;
+            $userUID = (int) $this->pageData['JwtData']->User->UserUID;
+            $post    = $this->input->post();
+
+            $validFormats = ['d-m-Y', 'Y-m-d', 'd/m/Y', 'm/d/Y', 'd.m.Y', 'Y/m/d', 'd M Y', 'D, d M Y'];
+            $formDateFormat  = getPostValue($post, 'FormDateFormat');
+            $listDateFormat  = getPostValue($post, 'ListDateFormat');
+            $printDateFormat = getPostValue($post, 'PrintDateFormat');
+
+            if (!in_array($formDateFormat,  $validFormats)) $formDateFormat  = 'd-m-Y';
+            if (!in_array($listDateFormat,  $validFormats)) $listDateFormat  = 'd-m-Y';
+            if (!in_array($printDateFormat, $validFormats)) $printDateFormat = 'd-m-Y';
+
+            $writeDB = $this->load->database('WriteDB', TRUE);
+            $writeDB->db_debug = FALSE;
+            $sql = "INSERT INTO Settings.OrgTransGeneralSettingsTbl
+                        (OrgUID, FormDateFormat, ListDateFormat, PrintDateFormat, UpdatedBy)
+                    VALUES (?, ?, ?, ?, ?)
+                    ON DUPLICATE KEY UPDATE
+                        FormDateFormat  = VALUES(FormDateFormat),
+                        ListDateFormat  = VALUES(ListDateFormat),
+                        PrintDateFormat = VALUES(PrintDateFormat),
+                        UpdatedBy       = VALUES(UpdatedBy)";
+
+            $ok = $writeDB->query($sql, [$orgUID, $formDateFormat, $listDateFormat, $printDateFormat, $userUID]);
+            if (!$ok) {
+                $err = $writeDB->error();
+                throw new Exception($err['message'] ?? 'Failed to save general settings.');
+            }
+
+            // Patch TransSettings in JWT — add date format fields
+            $jwtKey       = $this->pageData['JwtUserKey'] ?? null;
+            $redisPayload = $jwtKey ? $this->redisservice->getCache($jwtKey) : null;
+            if ($redisPayload && !$redisPayload->Error && !empty($redisPayload->Value)) {
+                $ts = $redisPayload->Value->TransSettings ?? new stdClass();
+                $ts->FormDateFormat  = $formDateFormat;
+                $ts->ListDateFormat  = $listDateFormat;
+                $ts->PrintDateFormat = $printDateFormat;
+                $redisPayload->Value->TransSettings = $ts;
+                $this->redisservice->setCache($jwtKey, $redisPayload->Value, $redisPayload->TTL);
+            }
+
+            $this->EndReturnData->Error          = FALSE;
+            $this->EndReturnData->Message        = 'Date format settings saved successfully.';
+            $this->EndReturnData->FormDateFormat  = $formDateFormat;
+            $this->EndReturnData->ListDateFormat  = $listDateFormat;
+            $this->EndReturnData->PrintDateFormat = $printDateFormat;
 
         } catch (Exception $e) {
             $this->EndReturnData->Error   = TRUE;

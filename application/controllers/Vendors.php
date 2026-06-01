@@ -727,7 +727,7 @@ class Vendors extends MY_Controller {
                 $balType   = $row->ClosingBalanceType ?? 'Credit';
                 $status    = (int)($row->IsActive ?? 1) === 1 ? 'Active' : 'Inactive';
                 $updatedOn = !empty($row->UpdatedOn)
-                    ? (new DateTime($row->UpdatedOn, new DateTimeZone('UTC')))->setTimezone(new DateTimeZone($timezone))->format('d M Y')
+                    ? (new DateTime($row->UpdatedOn, new DateTimeZone('UTC')))->setTimezone(new DateTimeZone($timezone))->format($this->pageData['JwtData']->GenSettings->ListDateTimeFormat ?? 'd M Y')
                     : '';
                 $rows[] = [
                     $i++,

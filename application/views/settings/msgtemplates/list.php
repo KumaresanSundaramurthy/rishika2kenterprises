@@ -58,7 +58,7 @@ foreach ($DataLists as $row) {
     </td>
     <td style="width:130px;">
         <?php if ($row): ?>
-        <div style="font-size:.72rem;color:#666;"><?php echo !empty($row->UpdatedOn) ? date('d M Y', strtotime($row->UpdatedOn)) : '—'; ?></div>
+        <div style="font-size:.72rem;color:#666;"><?php echo !empty($row->UpdatedOn) ? format_datedisplay($row->UpdatedOn) : '—'; ?></div>
         <div style="font-size:.68rem;color:#aaa;">by <?php echo htmlspecialchars($row->UpdatedByName ?? '—'); ?></div>
         <?php else: ?>
         <span class="text-muted">—</span>

@@ -42,7 +42,7 @@ if (!empty($DataLists)):
                 <a href="javascript:void(0);" class="trans-doc-number fw-semibold expViewDetail"
                    data-uid="<?php echo (int)$list->ExpenseUID; ?>"
                    data-num="<?php echo htmlspecialchars($list->ExpenseNumber); ?>"
-                   data-date="<?php echo htmlspecialchars(format_datedisplay($list->ExpenseDate, 'd M Y')); ?>"
+                   data-date="<?php echo htmlspecialchars(format_datedisplay($list->ExpenseDate)); ?>"
                    data-amount="<?php echo $currency . ' ' . smartDecimal($list->Amount, $decimals, true); ?>"
                    data-status="<?php echo htmlspecialchars($status); ?>"
                    data-badge="<?php echo htmlspecialchars($badgeClass); ?>"
@@ -54,7 +54,7 @@ if (!empty($DataLists)):
             <?php endif; ?>
             <div class="d-flex align-items-center gap-2 mt-1">
                 <?php if (!empty($list->ExpenseDate)): ?>
-                    <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars(format_datedisplay($list->ExpenseDate, 'd M Y')); ?></div>
+                    <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars(format_datedisplay($list->ExpenseDate)); ?></div>
                 <?php endif; ?>
                 <?php if (!empty($list->AttachCount) && (int)$list->AttachCount > 0): ?>
                     <button type="button" class="btn btn-link p-0 transAttachBtn"
@@ -185,7 +185,7 @@ if (!empty($DataLists)):
                 <button class="btn exp-pay-quick-btn expMarkPaid"
                         data-uid="<?php echo (int)$list->ExpenseUID; ?>"
                         data-num="<?php echo htmlspecialchars($list->ExpenseNumber ?? ''); ?>"
-                        data-date="<?php echo htmlspecialchars(format_datedisplay($list->ExpenseDate, 'd M Y')); ?>"
+                        data-date="<?php echo htmlspecialchars(format_datedisplay($list->ExpenseDate)); ?>"
                         data-total="<?php echo htmlspecialchars($netAmt); ?>"
                         data-paid="<?php echo htmlspecialchars($paidAmt); ?>"
                         data-pending="<?php echo htmlspecialchars($pendingAmt); ?>"
@@ -211,7 +211,7 @@ if (!empty($DataLists)):
                             <button class="dropdown-item expMarkPaid"
                                     data-uid="<?php echo (int)$list->ExpenseUID; ?>"
                                     data-num="<?php echo htmlspecialchars($list->ExpenseNumber ?? ''); ?>"
-                                    data-date="<?php echo htmlspecialchars(format_datedisplay($list->ExpenseDate, 'd M Y')); ?>"
+                                    data-date="<?php echo htmlspecialchars(format_datedisplay($list->ExpenseDate)); ?>"
                                     data-total="<?php echo htmlspecialchars($netAmt); ?>"
                                     data-paid="<?php echo htmlspecialchars($paidAmt); ?>"
                                     data-pending="<?php echo htmlspecialchars($pendingAmt); ?>">

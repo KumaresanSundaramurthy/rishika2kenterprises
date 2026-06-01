@@ -373,35 +373,153 @@ $(function () {
         });
     });
 
-    // ── Cancel Invoice ──────────────────────────────────────
+    // ── Cancel Invoice ──────────────────────────────────────────────────────
+    var _invCancelSetting = '<?php echo addslashes($JwtData->TransSettings->InvoiceCancelAction ?? 'ask'); ?>';
+
+    var _cancelActionMeta = {
+        credit_note : {
+            label: 'Convert to Credit Note',
+            desc : 'The paid amount will be converted into a <strong>Credit Note</strong> for this customer. It can be applied to a future invoice or refunded later.'
+        },
+        refund : {
+            label: 'Mark as Refund',
+            desc : 'The paid amount will be marked as a <strong>Refund</strong> due to this customer. You must physically return the money (cash / bank transfer).'
+        },
+        cancel_only : {
+            label: 'Cancel Only',
+            desc : 'The invoice will be cancelled. The paid amount remains as a <strong>credit</strong> in the customer\'s balance. Handle payment adjustments manually.'
+        }
+    };
+
+    function _buildPaymentActionHtml(defaultAction) {
+        var isAsk = (defaultAction === 'ask');
+        var html  = '';
+
+        if (isAsk) {
+            // Ask mode — show dropdown directly
+            html += '<div class="mt-3 text-start">';
+            html += '<label class="form-label fw-semibold small mb-1">Select action for the received payment:</label>';
+            html += '<select class="form-select form-select-sm" id="swalCancelAction">';
+            html += '<option value="">— Choose an action —</option>';
+            $.each(_cancelActionMeta, function (val, m) {
+                html += '<option value="' + val + '">' + m.label + '</option>';
+            });
+            html += '</select>';
+            html += '<div id="swalCancelDesc" class="text-muted small mt-2 p-2 rounded" style="background:#f8f9fa;min-height:36px;"></div>';
+            html += '</div>';
+        } else {
+            // Preset mode — show description + "Click here to change"
+            var meta = _cancelActionMeta[defaultAction] || {};
+            html += '<div class="mt-3 text-start" id="swalPresetWrap">';
+            html += '<div class="p-2 rounded small" style="background:#f0f4ff;border-left:3px solid #696cff;">';
+            html += meta.desc || '';
+            html += '</div>';
+            html += '<a href="javascript:void(0)" class="small text-primary mt-2 d-inline-block" id="swalChangeAction">&#9998; Click here to change</a>';
+            html += '</div>';
+            // Hidden dropdown (shown on "Click here to change")
+            html += '<div class="mt-2 text-start d-none" id="swalChangeWrap">';
+            html += '<label class="form-label fw-semibold small mb-1">Select a different action:</label>';
+            html += '<select class="form-select form-select-sm" id="swalCancelAction">';
+            $.each(_cancelActionMeta, function (val, m) {
+                html += '<option value="' + val + '"' + (val === defaultAction ? ' selected' : '') + '>' + m.label + '</option>';
+            });
+            html += '</select>';
+            html += '<div id="swalCancelDesc" class="text-muted small mt-2 p-2 rounded" style="background:#f8f9fa;">' + meta.desc + '</div>';
+            html += '</div>';
+        }
+
+        return html;
+    }
+
     $(document).on('click', '.cancelInvoice', function () {
-        var uid = $(this).data('uid');
-        var num = $(this).data('num') || '';
+        var uid        = $(this).attr('data-uid');
+        var num        = $(this).attr('data-num') || '';
+        var paidAmt    = parseFloat($(this).attr('data-paid') || 0);
+        var hasPaid    = paidAmt > 0;
+
+        var baseHtml = num
+            ? 'Cancel invoice <strong>' + num + '</strong>? This cannot be undone.'
+            : 'This cannot be undone.';
+
+        if (hasPaid) {
+            baseHtml += '<div class="mt-2 text-muted small">Paid amount: <strong>&#8377;' +
+                paidAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 }) + '</strong></div>';
+            baseHtml += _buildPaymentActionHtml(_invCancelSetting);
+        }
+
         Swal.fire({
-            title: 'Cancel Invoice?',
-            html : num ? 'Cancel <strong>' + num + '</strong>? This cannot be undone.' : 'This cannot be undone.',
-            icon : 'warning', showCancelButton: true,
-            confirmButtonText: 'Yes, Cancel It', confirmButtonColor: '#fd7e14',
+            title             : 'Cancel Invoice?',
+            html              : baseHtml,
+            icon              : 'warning',
+            showCancelButton  : true,
+            confirmButtonText : 'Yes, Cancel It',
+            confirmButtonColor: '#fd7e14',
+            didOpen: function () {
+                // Shrink icon only — no other side effects
+                var $icon = $(Swal.getIcon());
+                $icon.css({ width: '3em', height: '3em', borderWidth: '2px' });
+                $icon.find('.swal2-icon-content').css({ fontSize: '1.5em' });
+                // Dropdown change → update description
+                $(document).on('change', '#swalCancelAction', function () {
+                    var val  = $(this).val();
+                    var desc = val && _cancelActionMeta[val] ? _cancelActionMeta[val].desc : '';
+                    $('#swalCancelDesc').html(desc);
+                });
+                // "Click here to change" link
+                $(document).on('click', '#swalChangeAction', function () {
+                    $('#swalPresetWrap').addClass('d-none');
+                    $('#swalChangeWrap').removeClass('d-none');
+                });
+            },
+            willClose: function () {
+                $(document).off('change', '#swalCancelAction');
+                $(document).off('click', '#swalChangeAction');
+            }
         }).then(function (r) {
             if (!r.isConfirmed) return;
+
+            // Determine payment action to send
+            var cancelPaymentAction = '';
+            if (hasPaid) {
+                var chosen = $('#swalCancelAction').val();
+                if (_invCancelSetting === 'ask') {
+                    cancelPaymentAction = chosen || '';
+                    if (!cancelPaymentAction) {
+                        Swal.fire({ icon: 'warning', text: 'Please select an action for the received payment.' });
+                        return;
+                    }
+                } else {
+                    cancelPaymentAction = chosen || _invCancelSetting;
+                }
+            }
+
             $.ajax({
                 url   : '/invoices/updateInvoiceStatus',
                 method: 'POST',
-                data  : { TransUID: uid, Status: 'Cancelled', [CsrfName]: CsrfToken },
+                data  : {
+                    TransUID           : uid,
+                    Status             : 'Cancelled',
+                    CancelPaymentAction: cancelPaymentAction,
+                    [CsrfName]         : CsrfToken
+                },
                 success: function (resp) {
                     if (resp.Error) {
                         Swal.fire({ icon: 'error', text: resp.Message });
                     } else {
                         var msg = resp.Message || 'Invoice cancelled.';
+                        if (resp.CreditNoteAmount) {
+                            msg += '<br><small class="text-muted mt-1 d-block">Credit Note: <strong>&#8377;' +
+                                   parseFloat(resp.CreditNoteAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 }) +
+                                   '</strong> (' + (resp.CreditNoteStatus || 'Pending') + ')</small>';
+                        }
                         if (resp.CustomerBalance !== undefined) {
                             msg += '<br><small class="text-muted mt-1 d-block">Customer Balance: <strong>' +
                                    resp.CustomerBalanceType + ' &#8377;' +
                                    parseFloat(resp.CustomerBalance).toLocaleString('en-IN', { minimumFractionDigits: 2 }) +
                                    '</strong></small>';
                         }
-                        // Refresh list first — show success only after fresh data is loaded
                         getInvoicesDetails(undefined, undefined, undefined, function () {
-                            Swal.fire({ icon: 'success', html: msg, timer: 2500, showConfirmButton: false });
+                            Swal.fire({ icon: 'success', html: msg, timer: 3000, showConfirmButton: false });
                         });
                     }
                 },

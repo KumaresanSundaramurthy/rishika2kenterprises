@@ -29,16 +29,18 @@ $(function() {
         var opts = '<option value="">— Select Bank Account —</option>';
         _bankAccounts.filter(function(ba) { return parseInt(ba.IsCash) !== 1; }).forEach(function(ba) {
             var isDefault = parseInt(ba.IsDefault) === 1;
-            var label     = esc(ba.AccountName) + ' — ' + esc(ba.BankName);
-            if (isDefault) label += ' ★';
-            // Auto-select default if no specific UID requested
+            var fullLabel  = esc(ba.AccountName) + ' — ' + esc(ba.BankName) + (isDefault ? ' ★' : '');
+            var shortLabel = esc(ba.BankName)    + (isDefault ? ' ★' : '');
             var sel = '';
             if (selectedUID) {
                 sel = (parseInt(selectedUID) === parseInt(ba.BankAccountUID)) ? ' selected' : '';
             } else if (isDefault) {
                 sel = ' selected';
             }
-            opts += '<option value="' + ba.BankAccountUID + '"' + sel + '>' + label + '</option>';
+            // Option text = short name (bank only); full text stored in data-full for dropdown display
+            opts += '<option value="' + ba.BankAccountUID + '"'
+                  + ' data-short="' + shortLabel + '" data-full="' + fullLabel + '"'
+                  + sel + '>' + shortLabel + '</option>';
         });
         return opts;
     }
@@ -71,7 +73,7 @@ $(function() {
 
         var removeHtml = isFirst
             ? '<span class="pay-remove-placeholder"></span>'
-            : '<button type="button" class="btn btn-sm btn-link text-danger p-0 pay-remove-btn" data-row="' + rowId + '" title="Remove"><i class="bx bx-x fs-5"></i></button>';
+            : '<button type="button" class="pay-remove-btn" data-row="' + rowId + '" title="Remove" style="background:none;border:1px solid #dc3545;border-radius:4px;padding:3px 6px;cursor:pointer;color:#dc3545;line-height:1;"><i class="bx bx-trash" style="font-size:.85rem;"></i></button>';
 
         return '<tr data-row="' + rowId + '">' +
             '<td class="ps-3">' +
@@ -140,12 +142,48 @@ $(function() {
         }
     });
 
+    /* ── bank selector: show full name in dropdown, short name when selected ── */
+    // mousedown → dropdown about to open → swap to full labels
+    $(document).on('mousedown', '.pay-bank-sel', function() {
+        $(this).find('option[data-full]').each(function() {
+            $(this).text($(this).data('full'));
+        });
+    });
+    // change/blur → dropdown closed → swap back to short (bank name only)
+    $(document).on('change blur', '.pay-bank-sel', function() {
+        $(this).find('option[data-full]').each(function() {
+            $(this).text($(this).data('short'));
+        });
+    });
+
     /* ── amount input ────────────────────────────── */
     $(document).on('input', '.pay-amount-inp', function() {
         var val = $(this).val().replace(/[^0-9.]/g, '');
         var parts = val.split('.');
         if (parts.length > 2) val = parts[0] + '.' + parts.slice(1).join('');
         $(this).val(val);
+        updatePaymentSummary();
+    });
+
+    // Focus: if value is 0/0.00 → clear for fresh typing; else → select all
+    $(document).on('focus', '.pay-amount-inp', function() {
+        var v = parseFloat($(this).val()) || 0;
+        if (v === 0) {
+            $(this).val('');
+        } else {
+            this.select();
+        }
+    });
+
+    // Blur: if empty → restore 0; strip leading zeros (e.g. 0100 → 100)
+    $(document).on('blur', '.pay-amount-inp', function() {
+        var raw = $.trim($(this).val());
+        if (raw === '') {
+            $(this).val('0');
+        } else {
+            var n = parseFloat(raw);
+            $(this).val(isNaN(n) ? '0' : String(n));
+        }
         updatePaymentSummary();
     });
 
@@ -175,6 +213,16 @@ $(function() {
         $('#paymentRowsBody tr').each(function() {
             totalPaid += parseFloat($(this).find('.pay-amount-inp').val()) || 0;
         });
+
+        // Include On Account applied amount in total paid
+        try {
+            var oaJson = $('#OnAccountApplyJson').val() || '';
+            if (oaJson) {
+                (JSON.parse(oaJson) || []).forEach(function(item) {
+                    totalPaid += parseFloat(item.ApplyAmount) || 0;
+                });
+            }
+        } catch(e) {}
 
         var balance = billTotal - totalPaid;
         var excess  = totalPaid - billTotal;

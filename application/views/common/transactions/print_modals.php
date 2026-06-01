@@ -40,36 +40,74 @@
 
 <!-- ── A4 / Document Print Modal ────────────────────────────────────────── -->
 <div class="modal fade" id="a4PrintModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-top">
-        <div class="modal-content border-0 shadow-lg" style="border-radius:10px;overflow:hidden;">
+    <div class="modal-dialog modal-xl" style="margin:0 auto;height:100vh;max-height:100vh;display:flex;flex-direction:column;justify-content:flex-end;">
+        <div class="modal-content border-0 shadow-lg d-flex flex-column" style="border-radius:10px 10px 0 0;overflow:hidden;height:100vh;max-height:100vh;">
 
-            <!-- Toolbar -->
-            <div class="d-flex align-items-center justify-content-between px-4 py-2 border-bottom bg-white" style="min-height:52px;">
-                <div class="fw-semibold text-truncate me-3" style="font-size:.88rem;max-width:340px;">
-                    <i class="bx bx-file-blank text-primary me-1"></i>
-                    <span id="a4ModalTitle">Document Preview</span>
+            <!-- Row 1: vtm-banner header -->
+            <div class="vtm-banner flex-shrink-0" style="--vtm-color:#0d6efd;--vtm-bg:#e8f0fe;--vtm-icon-bg:rgba(13,110,253,.13);">
+                <div class="vtm-banner-inner">
+                    <div class="vtm-banner-left">
+                        <div class="vtm-banner-icon">
+                            <i class="bx bx-printer"></i>
+                        </div>
+                        <div>
+                            <div class="vtm-doc-number" id="a4ModalTitle">Document Preview</div>
+                            <div class="vtm-doc-meta" id="a4ModalSubtitle">Print / Download</div>
+                        </div>
+                    </div>
+                    <div class="vtm-banner-right">
+                        <button type="button" class="vtm-close-btn" data-bs-dismiss="modal" aria-label="Close">
+                            <i class="bx bx-x"></i>
+                        </button>
+                    </div>
                 </div>
+            </div>
+
+            <!-- Row 2: Copy checkboxes (left) | Paper + Actions (right) -->
+            <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom bg-white flex-shrink-0" style="min-height:44px;">
+
+                <!-- Copy type checkboxes -->
+                <div class="d-flex align-items-center gap-3" id="a4CopyOptions">
+                    <div class="form-check mb-0">
+                        <input class="form-check-input a4-copy-check" type="checkbox" id="copyCustomer" value="customer" checked>
+                        <label class="form-check-label small fw-semibold" for="copyCustomer" style="cursor:pointer;">Customer</label>
+                    </div>
+                    <div class="form-check mb-0">
+                        <input class="form-check-input a4-copy-check" type="checkbox" id="copyTransport" value="transport">
+                        <label class="form-check-label small fw-semibold" for="copyTransport" style="cursor:pointer;">Transport</label>
+                    </div>
+                    <div class="form-check mb-0">
+                        <input class="form-check-input a4-copy-check" type="checkbox" id="copySupplier" value="supplier">
+                        <label class="form-check-label small fw-semibold" for="copySupplier" style="cursor:pointer;">Supplier</label>
+                    </div>
+                </div>
+
+                <!-- Paper size + Action buttons -->
                 <div class="d-flex align-items-center gap-2 flex-shrink-0">
-                    <!-- Paper size -->
                     <div class="btn-group btn-group-sm" role="group">
                         <input type="radio" class="btn-check" name="a4PaperSize" id="psA4" value="A4" checked>
-                        <label class="btn btn-outline-secondary px-3" for="psA4">A4</label>
+                        <label class="btn btn-outline-secondary px-3" for="psA4" style="font-size:.78rem;">A4</label>
                         <input type="radio" class="btn-check" name="a4PaperSize" id="psA5" value="A5">
-                        <label class="btn btn-outline-secondary px-3" for="psA5">A5</label>
+                        <label class="btn btn-outline-secondary px-3" for="psA5" style="font-size:.78rem;">A5</label>
                     </div>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" id="a4DownloadBtn" title="Download / Print to PDF">
+                    <button type="button" class="btn btn-sm btn-outline-success" id="a4EmailBtn" title="Send Email">
+                        <i class="bx bx-envelope"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm" id="a4WhatsappBtn" title="Share via WhatsApp"
+                            style="background:#25d366;border-color:#25d366;color:#fff;">
+                        <i class="bx bxl-whatsapp"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="a4DownloadBtn" title="Download PDF">
                         <i class="bx bx-download"></i>
                     </button>
                     <button type="button" class="btn btn-sm btn-success px-3" id="a4PrintBtn">
                         <i class="bx bx-printer me-1"></i>Print
                     </button>
-                    <button type="button" class="btn btn-sm btn-danger px-3" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
 
-            <!-- Preview stage — dark background, scrollable -->
-            <div id="a4PreviewStage"
-                 style="background:#3c3c3c;overflow-y:auto;max-height:82vh;min-height:200px;">
+            <!-- Preview stage — fills remaining height, scrollable -->
+            <div id="a4PreviewStage" style="background:#3c3c3c;overflow-y:auto;flex:1;min-height:0;">
                 <div class="d-flex justify-content-center align-items-center" style="height:200px;">
                     <div class="spinner-border text-secondary"></div>
                 </div>

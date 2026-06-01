@@ -86,7 +86,7 @@
                                                 data-bs-toggle="pill" data-bs-target="#tab-product"
                                                 role="tab" aria-controls="tab-product" aria-selected="false"
                                                 href="javascript:void(0);">
-                                                <i class="bx bx-box me-2"></i>Product Settings
+                                                <i class="bx bx-box me-2"></i>Product
                                             </a>
 
                                         </div>
@@ -155,6 +155,96 @@
                                                             <?php endforeach; ?>
                                                         </select>
                                                         <div class="form-text">Transaction sequence numbers (INV-001, PO-001 etc.) reset to 1 when the new FY begins.</div>
+                                                    </div>
+                                                </div>
+
+                                                <!-- ── Date & DateTime Formats ── -->
+                                                <?php
+                                                $formDateFormat     = $gs->FormDateFormat      ?? 'd-m-Y';
+                                                $listDateFormat     = $gs->ListDateFormat      ?? 'd-m-Y';
+                                                $printDateFormat    = $gs->PrintDateFormat     ?? 'd-m-Y';
+                                                $formDtFormat       = $gs->FormDateTimeFormat  ?? 'd-m-Y H:i';
+                                                $listDtFormat       = $gs->ListDateTimeFormat  ?? 'd-m-Y H:i';
+                                                $printDtFormat      = $gs->PrintDateTimeFormat ?? 'd-m-Y H:i';
+                                                $dateFormatOptions = [
+                                                    'd-m-Y' => '01-06-2026  (DD-MM-YYYY)',
+                                                    'd/m/Y' => '01/06/2026  (DD/MM/YYYY)',
+                                                    'Y-m-d' => '2026-06-01  (YYYY-MM-DD)',
+                                                    'Y/m/d' => '2026/06/01  (YYYY/MM/DD)',
+                                                    'd.m.Y' => '01.06.2026  (DD.MM.YYYY)',
+                                                    'm/d/Y' => '06/01/2026  (MM/DD/YYYY)',
+                                                    'd M Y' => '01 Jun 2026 (DD Mon YYYY)',
+                                                ];
+                                                $dtFormatOptions = [
+                                                    'd-m-Y H:i'   => '01-06-2026 14:30  (24hr)',
+                                                    'd/m/Y H:i'   => '01/06/2026 14:30  (24hr)',
+                                                    'Y-m-d H:i'   => '2026-06-01 14:30  (24hr)',
+                                                    'd M Y H:i'   => '01 Jun 2026 14:30 (24hr)',
+                                                    'd-m-Y h:i A' => '01-06-2026 02:30 PM (12hr)',
+                                                    'd/m/Y h:i A' => '01/06/2026 02:30 PM (12hr)',
+                                                    'Y-m-d h:i A' => '2026-06-01 02:30 PM (12hr)',
+                                                    'd M Y h:i A' => '01 Jun 2026 02:30 PM (12hr)',
+                                                ];
+                                                ?>
+                                                <p class="text-muted fw-semibold mb-2 mt-1" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;">Date Formats</p>
+                                                <div class="row g-3 mb-4">
+                                                    <div class="col-md-4">
+                                                        <label class="form-label">Form Page</label>
+                                                        <select class="form-select" id="FormDateFormat" name="FormDateFormat">
+                                                            <?php foreach ($dateFormatOptions as $val => $lbl): ?>
+                                                            <option value="<?php echo $val; ?>" <?php echo $formDateFormat === $val ? 'selected' : ''; ?>><?php echo htmlspecialchars($lbl); ?></option>
+                                                            <?php endforeach; ?>
+                                                        </select>
+                                                        <div class="form-text">Used in Create / Edit form date pickers.</div>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <label class="form-label">List Page</label>
+                                                        <select class="form-select" id="ListDateFormat" name="ListDateFormat">
+                                                            <?php foreach ($dateFormatOptions as $val => $lbl): ?>
+                                                            <option value="<?php echo $val; ?>" <?php echo $listDateFormat === $val ? 'selected' : ''; ?>><?php echo htmlspecialchars($lbl); ?></option>
+                                                            <?php endforeach; ?>
+                                                        </select>
+                                                        <div class="form-text">Used in list page date columns.</div>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <label class="form-label">Print / PDF</label>
+                                                        <select class="form-select" id="PrintDateFormat" name="PrintDateFormat">
+                                                            <?php foreach ($dateFormatOptions as $val => $lbl): ?>
+                                                            <option value="<?php echo $val; ?>" <?php echo $printDateFormat === $val ? 'selected' : ''; ?>><?php echo htmlspecialchars($lbl); ?></option>
+                                                            <?php endforeach; ?>
+                                                        </select>
+                                                        <div class="form-text">Used in print templates &amp; PDF exports.</div>
+                                                    </div>
+                                                </div>
+
+                                                <p class="text-muted fw-semibold mb-2" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;">Date &amp; Time Formats</p>
+                                                <div class="row g-3 mb-4">
+                                                    <div class="col-md-4">
+                                                        <label class="form-label">Form Page</label>
+                                                        <select class="form-select" id="FormDateTimeFormat" name="FormDateTimeFormat">
+                                                            <?php foreach ($dtFormatOptions as $val => $lbl): ?>
+                                                            <option value="<?php echo $val; ?>" <?php echo $formDtFormat === $val ? 'selected' : ''; ?>><?php echo htmlspecialchars($lbl); ?></option>
+                                                            <?php endforeach; ?>
+                                                        </select>
+                                                        <div class="form-text">Used for datetime fields in forms (e.g. created on).</div>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <label class="form-label">List Page</label>
+                                                        <select class="form-select" id="ListDateTimeFormat" name="ListDateTimeFormat">
+                                                            <?php foreach ($dtFormatOptions as $val => $lbl): ?>
+                                                            <option value="<?php echo $val; ?>" <?php echo $listDtFormat === $val ? 'selected' : ''; ?>><?php echo htmlspecialchars($lbl); ?></option>
+                                                            <?php endforeach; ?>
+                                                        </select>
+                                                        <div class="form-text">Used for datetime columns in list pages.</div>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <label class="form-label">Print / PDF</label>
+                                                        <select class="form-select" id="PrintDateTimeFormat" name="PrintDateTimeFormat">
+                                                            <?php foreach ($dtFormatOptions as $val => $lbl): ?>
+                                                            <option value="<?php echo $val; ?>" <?php echo $printDtFormat === $val ? 'selected' : ''; ?>><?php echo htmlspecialchars($lbl); ?></option>
+                                                            <?php endforeach; ?>
+                                                        </select>
+                                                        <div class="form-text">Used for datetime in print templates &amp; PDFs.</div>
                                                     </div>
                                                 </div>
 
@@ -327,9 +417,16 @@
                                     <div class="col-md-3 border-end">
                                         <div class="nav flex-column nav-pills gs-nav-pills py-3" id="txnSettingsTab" role="tablist" aria-orientation="vertical">
 
-                                            <a class="nav-link gs-tab-link active px-4 py-3" id="tab-quotation-tab"
+                                            <a class="nav-link gs-tab-link active px-4 py-3" id="tab-invoice-settings-tab"
+                                                data-bs-toggle="pill" data-bs-target="#tab-invoice-settings"
+                                                role="tab" aria-controls="tab-invoice-settings" aria-selected="true"
+                                                href="javascript:void(0);">
+                                                <i class="bx bx-receipt me-2"></i>Invoice
+                                            </a>
+
+                                            <a class="nav-link gs-tab-link px-4 py-3" id="tab-quotation-tab"
                                                 data-bs-toggle="pill" data-bs-target="#tab-quotation"
-                                                role="tab" aria-controls="tab-quotation" aria-selected="true"
+                                                role="tab" aria-controls="tab-quotation" aria-selected="false"
                                                 href="javascript:void(0);">
                                                 <i class="bx bx-file me-2"></i>Quotation
                                             </a>
@@ -356,8 +453,79 @@
                                     <div class="col-md-9">
                                         <div class="tab-content p-4" id="txnSettingsTabContent">
 
+                                            <!-- Sub-Tab: Invoice -->
+                                            <?php
+                                            $ts = $TransSettings ?? new stdClass();
+                                            $invoiceCancelAction = $ts->InvoiceCancelAction ?? 'ask';
+                                            ?>
+                                            <div class="tab-pane fade show active" id="tab-invoice-settings" role="tabpanel" aria-labelledby="tab-invoice-settings-tab">
+
+                                                <h6 class="fw-semibold mb-1">Invoice</h6>
+                                                <p class="text-muted small mb-4">Configure default behaviours for invoice operations.</p>
+
+                                                <div class="row g-4">
+                                                    <div class="col-12">
+                                                        <label class="form-label fw-semibold">Cancelling / Deleting Invoice <span class="text-danger">*</span></label>
+                                                        <p class="text-muted small mb-3">When a <strong>paid or partially paid</strong> invoice is cancelled or deleted, define what should happen to the amount already received from the customer.</p>
+
+                                                        <div class="row g-3">
+
+                                                            <div class="col-md-6">
+                                                                <div class="border rounded p-3 h-100 <?php echo $invoiceCancelAction === 'ask' ? 'border-primary bg-label-primary' : ''; ?>" style="cursor:pointer;" onclick="selectCancelAction('ask')">
+                                                                    <div class="d-flex align-items-center gap-2 mb-2">
+                                                                        <input class="form-check-input mt-0" type="radio" name="InvoiceCancelAction" id="ica_ask" value="ask" <?php echo $invoiceCancelAction === 'ask' ? 'checked' : ''; ?>>
+                                                                        <label class="fw-semibold mb-0" for="ica_ask" style="cursor:pointer;">Always Ask</label>
+                                                                    </div>
+                                                                    <p class="text-muted small mb-0">Show a prompt every time so the user can decide on the spot — convert to credit note, issue a refund, or cancel without any action. Best for teams that handle each case individually.</p>
+                                                                </div>
+                                                            </div>
+
+                                                            <div class="col-md-6">
+                                                                <div class="border rounded p-3 h-100 <?php echo $invoiceCancelAction === 'credit_note' ? 'border-primary bg-label-primary' : ''; ?>" style="cursor:pointer;" onclick="selectCancelAction('credit_note')">
+                                                                    <div class="d-flex align-items-center gap-2 mb-2">
+                                                                        <input class="form-check-input mt-0" type="radio" name="InvoiceCancelAction" id="ica_credit_note" value="credit_note" <?php echo $invoiceCancelAction === 'credit_note' ? 'checked' : ''; ?>>
+                                                                        <label class="fw-semibold mb-0" for="ica_credit_note" style="cursor:pointer;">Convert to Credit Note</label>
+                                                                    </div>
+                                                                    <p class="text-muted small mb-0">Automatically convert the paid amount into a credit note for the customer. The credit note can later be applied against a future invoice or refunded. Ideal for businesses that frequently re-invoice the same customer.</p>
+                                                                </div>
+                                                            </div>
+
+                                                            <div class="col-md-6">
+                                                                <div class="border rounded p-3 h-100 <?php echo $invoiceCancelAction === 'refund' ? 'border-primary bg-label-primary' : ''; ?>" style="cursor:pointer;" onclick="selectCancelAction('refund')">
+                                                                    <div class="d-flex align-items-center gap-2 mb-2">
+                                                                        <input class="form-check-input mt-0" type="radio" name="InvoiceCancelAction" id="ica_refund" value="refund" <?php echo $invoiceCancelAction === 'refund' ? 'checked' : ''; ?>>
+                                                                        <label class="fw-semibold mb-0" for="ica_refund" style="cursor:pointer;">Mark as Refund</label>
+                                                                    </div>
+                                                                    <p class="text-muted small mb-0">Automatically mark the paid amount as a refund due to the customer. This records the liability to return the money. The actual payment back to the customer must be processed separately (bank transfer / cash).</p>
+                                                                </div>
+                                                            </div>
+
+                                                            <div class="col-md-6">
+                                                                <div class="border rounded p-3 h-100 <?php echo $invoiceCancelAction === 'cancel_only' ? 'border-primary bg-label-primary' : ''; ?>" style="cursor:pointer;" onclick="selectCancelAction('cancel_only')">
+                                                                    <div class="d-flex align-items-center gap-2 mb-2">
+                                                                        <input class="form-check-input mt-0" type="radio" name="InvoiceCancelAction" id="ica_cancel_only" value="cancel_only" <?php echo $invoiceCancelAction === 'cancel_only' ? 'checked' : ''; ?>>
+                                                                        <label class="fw-semibold mb-0" for="ica_cancel_only" style="cursor:pointer;">Cancel Only</label>
+                                                                    </div>
+                                                                    <p class="text-muted small mb-0">Simply cancel the invoice without any automatic action on the received payment. The customer balance will naturally show a credit. Use this if your business handles payment adjustments manually outside the system.</p>
+                                                                </div>
+                                                            </div>
+
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="mt-4 d-flex gap-2">
+                                                    <button type="button" class="btn btn-primary" id="btnSaveTransactionSettings">
+                                                        <span class="spinner-border spinner-border-sm me-1 d-none" id="tsSpinner"></span>
+                                                        Save Changes
+                                                    </button>
+                                                </div>
+
+                                            </div>
+                                            <!-- / Sub-Tab 0: Invoice -->
+
                                             <!-- Sub-Tab 1: Quotation -->
-                                            <div class="tab-pane fade show active" id="tab-quotation" role="tabpanel" aria-labelledby="tab-quotation-tab">
+                                            <div class="tab-pane fade" id="tab-quotation" role="tabpanel" aria-labelledby="tab-quotation-tab">
 
                                                 <h6 class="fw-semibold mb-1">Quotation Settings</h6>
                                                 <p class="text-muted small mb-4">Configure prefix, validity, and defaults for quotations.</p>
@@ -529,12 +697,18 @@ $(document).ready(function () {
             url    : '/settings/updateGeneralSettings',
             method : 'POST',
             data   : {
-                CurrenySymbol  : currency,
-                DecimalPoints  : $('#gs_DecimalPoints').val(),
-                RowLimit       : $('#gs_RowLimit').val(),
-                FYStartMonth   : $('#gs_FYStartMonth').val(),
+                CurrenySymbol   : currency,
+                DecimalPoints   : $('#gs_DecimalPoints').val(),
+                RowLimit        : $('#gs_RowLimit').val(),
+                FYStartMonth    : $('#gs_FYStartMonth').val(),
                 SerialNoDisplay : $('#gs_SerialNoDisplay').is(':checked') ? 1 : 0,
                 MaxShippingAddr : $('#gs_MaxShippingAddr').val(),
+                FormDateFormat      : $('#FormDateFormat').val(),
+                ListDateFormat      : $('#ListDateFormat').val(),
+                PrintDateFormat     : $('#PrintDateFormat').val(),
+                FormDateTimeFormat  : $('#FormDateTimeFormat').val(),
+                ListDateTimeFormat  : $('#ListDateTimeFormat').val(),
+                PrintDateTimeFormat : $('#PrintDateTimeFormat').val(),
                 [CsrfName]      : CsrfToken,
             },
             success: function (resp) {
@@ -573,6 +747,52 @@ $(document).ready(function () {
                 DefaultProductTaxUID   : $('#ps_ProductTax').val(),
                 DefaultTaxDetailUID    : $('#ps_TaxDetail').val(),
                 [CsrfName]             : CsrfToken,
+            },
+            success: function (resp) {
+                showToastNotification(resp.Message, resp.Error ? 'error' : 'success');
+            },
+            error: function () {
+                showToastNotification('Request failed. Please try again.', 'error');
+            },
+            complete: function () {
+                $btn.prop('disabled', false);
+                $spinner.addClass('d-none');
+            }
+        });
+    });
+
+    // ── Invoice cancel action card selection ──────────────────────────────────
+    window.selectCancelAction = function (value) {
+        $('input[name="InvoiceCancelAction"]').val([value]);
+        $('input[name="InvoiceCancelAction"]').closest('.border').each(function () {
+            $(this).removeClass('border-primary bg-label-primary');
+        });
+        $('input[name="InvoiceCancelAction"][value="' + value + '"]')
+            .closest('.border').addClass('border-primary bg-label-primary');
+    };
+
+    // ── Save Transaction Settings ─────────────────────────────────────────────
+    // ── Transaction General Settings (date formats) save ─────────────────────
+
+    $('#btnSaveTransactionSettings').on('click', function () {
+        var $btn     = $(this);
+        var $spinner = $('#tsSpinner');
+        var action   = $('input[name="InvoiceCancelAction"]:checked').val();
+
+        if (!action) {
+            showToastNotification('Please select a cancellation action.', 'error');
+            return;
+        }
+
+        $btn.prop('disabled', true);
+        $spinner.removeClass('d-none');
+
+        $.ajax({
+            url    : '/settings/updateTransactionSettings',
+            method : 'POST',
+            data   : {
+                InvoiceCancelAction : action,
+                [CsrfName]          : CsrfToken,
             },
             success: function (resp) {
                 showToastNotification(resp.Message, resp.Error ? 'error' : 'success');

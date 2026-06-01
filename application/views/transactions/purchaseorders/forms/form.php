@@ -401,6 +401,7 @@ $(function() {
                 RoundOff               : summary.extra ? (summary.extra.roundOff || 0) : 0,
                 NetAmount              : summary.totals ? (summary.totals.grandTotal || 0) : 0,
                 Items                  : JSON.stringify(items),
+                SignatureUID           : parseInt($('#transSignatureUID').val(), 10) || 0,
                 action                 : action,
                 [csrfName]             : csrfVal,
             }, charges);

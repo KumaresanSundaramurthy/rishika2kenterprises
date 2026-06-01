@@ -418,6 +418,7 @@ $(function() {
                 RoundOff               : roundOff,
                 NetAmount              : netAmount,
                 Items                  : JSON.stringify(items),
+                SignatureUID           : parseInt($('#transSignatureUID').val(), 10) || 0,
                 action                 : action,
                 [csrfName]             : csrfVal,
             }, charges);

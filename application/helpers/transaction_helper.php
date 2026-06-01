@@ -17,7 +17,16 @@ if (!function_exists('smart_dec_amount')) {
 }
 
 if (!function_exists('format_datedisplay')) {
-    function format_datedisplay($getDate, $format = 'd-m-Y', $default = '', $timezone = null, $adjustDays = 0) {
+    function format_datedisplay($getDate, $format = null, $default = '', $timezone = null, $adjustDays = 0) {
+        // When no format supplied, read ListDateFormat from JWT TransSettings via CI instance
+        if ($format === null) {
+            try {
+                $CI     = &get_instance();
+                $format = $CI->pageData['JwtData']->GenSettings->ListDateFormat ?? 'd-m-Y';
+            } catch (Exception $_) {
+                $format = 'd-m-Y';
+            }
+        }
         if (empty($getDate)) {
             return $default;
         }

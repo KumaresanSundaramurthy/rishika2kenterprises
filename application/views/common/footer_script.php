@@ -6,6 +6,13 @@ var CsrfToken = '<?php echo $this->security->get_csrf_hash(); ?>';
 const defaultIso2 = '<?php echo $JwtData->Org->OrgCISO2 ?? 'IN'; ?>';
 const defaultCCode = '+91';
 var RowLimit = <?php echo isset($JwtData->GenSettings->RowLimit) ? $JwtData->GenSettings->RowLimit : 10; ?>;
+// Date format settings — available on all pages (customers, vendors, etc.)
+var _transFormDateFormat      = '<?php echo addslashes($JwtData->GenSettings->FormDateFormat      ?? 'd-m-Y'); ?>';
+var _transListDateFormat      = '<?php echo addslashes($JwtData->GenSettings->ListDateFormat      ?? 'd-m-Y'); ?>';
+var _transPrintDateFormat     = '<?php echo addslashes($JwtData->GenSettings->PrintDateFormat     ?? 'd-m-Y'); ?>';
+var _transFormDateTimeFormat  = '<?php echo addslashes($JwtData->GenSettings->FormDateTimeFormat  ?? 'd-m-Y H:i'); ?>';
+var _transListDateTimeFormat  = '<?php echo addslashes($JwtData->GenSettings->ListDateTimeFormat  ?? 'd-m-Y H:i'); ?>';
+var _transPrintDateTimeFormat = '<?php echo addslashes($JwtData->GenSettings->PrintDateTimeFormat ?? 'd-m-Y H:i'); ?>';
 var UserRoleUID = <?php echo isset($JwtData->User->RoleUID) ? $JwtData->User->RoleUID : 0; ?>;
 var PageNo = 0;
 var Filter = {};

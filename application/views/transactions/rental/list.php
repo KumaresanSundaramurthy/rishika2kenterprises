@@ -52,7 +52,7 @@ if (!empty($DataLists)):
         <td>
             <div class="trans-doc-number fw-semibold"><?php echo htmlspecialchars($list->RentalNumber ?? '—'); ?></div>
             <div class="text-muted" style="font-size:.72rem;">
-                <?php echo $list->RentalStartDateTime ? date('d M Y', strtotime($list->RentalStartDateTime)) : '—'; ?>
+                <?php echo $list->RentalStartDateTime ? format_datedisplay($list->RentalStartDateTime) : '—'; ?>
             </div>
         </td>
 
@@ -85,10 +85,10 @@ if (!empty($DataLists)):
         <!-- Period -->
         <td style="white-space:nowrap;">
             <div style="font-size:.78rem;">
-                <i class="bx bx-calendar me-1 text-muted"></i><?php echo $list->RentalStartDateTime ? date('d M Y', strtotime($list->RentalStartDateTime)) : '—'; ?>
+                <i class="bx bx-calendar me-1 text-muted"></i><?php echo $list->RentalStartDateTime ? format_datedisplay($list->RentalStartDateTime) : '—'; ?>
             </div>
             <div style="font-size:.78rem;<?php echo $isOverdue ? 'color:#dc2626;font-weight:600;' : 'color:#64748b;'; ?>">
-                <i class="bx bx-calendar-exclamation me-1"></i>Due: <?php echo $list->ReturnDueDateTime ? date('d M Y', strtotime($list->ReturnDueDateTime)) : '—'; ?>
+                <i class="bx bx-calendar-exclamation me-1"></i>Due: <?php echo $list->ReturnDueDateTime ? format_datedisplay($list->ReturnDueDateTime) : '—'; ?>
                 <?php if ($isOverdue): ?><span class="ms-1">⚠</span><?php endif; ?>
             </div>
         </td>
@@ -138,7 +138,7 @@ if (!empty($DataLists)):
                 <button class="btn btn-icon btn-sm text-success rntRecordPayBtn"
                         data-uid="<?php echo (int)$list->RentalUID; ?>"
                         data-num="<?php echo htmlspecialchars($list->RentalNumber ?? ''); ?>"
-                        data-date="<?php echo $list->RentalStartDateTime ? date('d M Y', strtotime($list->RentalStartDateTime)) : ''; ?>"
+                        data-date="<?php echo $list->RentalStartDateTime ? format_datedisplay($list->RentalStartDateTime) : ''; ?>"
                         data-customer="<?php echo htmlspecialchars($list->CustomerName ?? ''); ?>"
                         data-total="<?php echo (float)$list->GrandTotal; ?>"
                         data-paid="<?php echo (float)$list->TotalPaid; ?>"

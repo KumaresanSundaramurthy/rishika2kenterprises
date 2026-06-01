@@ -17,6 +17,14 @@
  * This file retains ONLY transaction-specific styles not needed globally.
  */
 
+/* ── Sticky bottom summary bar ──────────────────────────────────────────── */
+.sticky-bottom-bar {
+    background-color: #e6f2ff;
+    border-radius: 8px 8px 0 0;
+    border-top: 1px solid #c5dcff;
+    box-shadow: 0 -3px 14px rgba(13, 110, 253, .10);
+}
+
 /* ── Form header — transaction document number (edit mode) ─────────────── */
 .trans-form-doc-number {
     display: inline-flex;
@@ -60,6 +68,65 @@
 #dispatchTo option {
     white-space: normal;
     word-break: break-word;
+}
+/* Remove Sneat's excess right padding so text fills ~95% of the field width.
+   Arrow stays visible because rendered padding-right (28px) keeps text clear of it. */
+.dispatch-from-grp .select2-container--default .select2-selection--single {
+    padding-right: 0 !important;
+}
+.dispatch-from-grp .select2-selection--single .select2-selection__rendered {
+    font-size: 0.8125rem !important;
+    padding-right: 28px !important;
+}
+/* Make the dropdown chevron visible.
+   Sneat's select2.css uses background-image SVG on the b element but omits
+   position:absolute and display:block, so the b tag stays inline and the
+   SVG never renders. Force those properties here. */
+.dispatch-from-grp .select2-selection--single .select2-selection__arrow {
+    right: 4px !important;
+    margin-right: 0 !important;
+}
+.dispatch-from-grp .select2-selection--single .select2-selection__arrow b {
+    display: block !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* ── Product search field — slightly taller than other fields ───────────── */
+#searchProductGroup .select2-container--default .select2-selection--single {
+    height: 36px !important;
+}
+#searchProductGroup .select2-selection--single .select2-selection__rendered {
+    line-height: 36px !important;
+}
+#searchProductGroup .input-group-text {
+    height: 36px;
+}
+
+/* ── Transaction form Select2 height — standardise to form-select-sm ────── */
+/* Sneat core.css forces all Select2 to 39px; override here for form fields  */
+.customer-search-group .select2-container--default .select2-selection--single,
+.category-search-group .select2-container--default .select2-selection--single,
+.dispatch-from-grp     .select2-container--default .select2-selection--single,
+.input-group-sm        .select2-container--default .select2-selection--single {
+    height: 32px !important;
+    padding-top:    0.3rem !important;
+    padding-bottom: 0.3rem !important;
+}
+.customer-search-group .select2-selection--single .select2-selection__rendered,
+.category-search-group .select2-selection--single .select2-selection__rendered,
+.dispatch-from-grp     .select2-selection--single .select2-selection__rendered,
+.input-group-sm        .select2-selection--single .select2-selection__rendered {
+    line-height: 32px !important;
+}
+.customer-search-group .select2-selection--single .select2-selection__arrow,
+.category-search-group .select2-selection--single .select2-selection__arrow,
+.dispatch-from-grp     .select2-selection--single .select2-selection__arrow,
+.input-group-sm        .select2-selection--single .select2-selection__arrow {
+    height: 30px !important;
 }
 .trans-badge {
     display: inline-flex; align-items: center; gap: 4px;

@@ -121,12 +121,12 @@ if (!empty($DataLists)) {
             </td>
 
             <!-- PO Date -->
-            <td><?php echo htmlspecialchars(format_datedisplay($list->TransDate, 'd M Y')); ?></td>
+            <td><?php echo htmlspecialchars(format_datedisplay($list->TransDate)); ?></td>
 
             <!-- Expected Date -->
             <td class="<?php echo $expectedClass; ?>">
                 <?php if (!$isDraft && !empty($list->ValidityDate)): ?>
-                    <?php echo format_datedisplay($list->ValidityDate, 'd M Y'); ?>
+                    <?php echo format_datedisplay($list->ValidityDate); ?>
                     <?php if ($expectedClass): ?><br><small>Overdue</small><?php endif; ?>
                 <?php else: ?>
                     <span class="text-muted">—</span>

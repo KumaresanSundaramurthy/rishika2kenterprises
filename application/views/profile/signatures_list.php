@@ -89,10 +89,7 @@
                                 <?php echo htmlspecialchars($sig->Label ?? 'My Signature'); ?>
                             </div>
                             <div class="text-muted" style="font-size:0.72rem;">
-                                <?php
-                                    $dt = new DateTime($sig->CreatedOn ?? 'now');
-                                    echo $dt->format('d M Y');
-                                ?>
+                                <?php echo format_datedisplay($sig->CreatedOn ?? ''); ?>
                                 <?php if (!empty($sig->FileSize)): ?>
                                 &nbsp;&bull;&nbsp;<?php echo round($sig->FileSize / 1024, 1); ?> KB
                                 <?php endif; ?>

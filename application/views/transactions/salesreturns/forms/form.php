@@ -146,7 +146,7 @@ if ($isEdit) {
                                         <?php if (!empty($SRData->TransDate)): ?>
                                         <div class="d-flex align-items-center gap-1">
                                             <span style="font-size:.7rem;color:#8592a3;">Date</span>
-                                            <span style="font-size:.78rem;color:#566a7f;"><?php echo htmlspecialchars(format_datedisplay($SRData->TransDate, 'd M Y')); ?></span>
+                                            <span style="font-size:.78rem;color:#566a7f;"><?php echo htmlspecialchars(format_datedisplay($SRData->TransDate)); ?></span>
                                         </div>
                                         <?php endif; ?>
                                     </div>
@@ -215,7 +215,7 @@ if ($isEdit) {
                                         <div class="input-group input-group-sm input-group-merge">
                                             <span class="input-group-text"><i class="icon-base bx bx-calendar"></i></span>
                                             <input type="text" class="form-control form-control-sm bg-light text-muted" style="cursor:default;"
-                                                value="<?php echo htmlspecialchars(format_datedisplay($SRData->TransDate, 'd M Y')); ?>" readonly tabindex="-1" />
+                                                value="<?php echo htmlspecialchars(format_datedisplay($SRData->TransDate)); ?>" readonly tabindex="-1" />
                                         </div>
                                     <?php else: ?>
                                         <div class="input-group input-group-sm input-group-merge">
@@ -711,6 +711,7 @@ $(function() {
                 RoundOff               : roundOff,
                 NetAmount              : netAmount,
                 Items                  : JSON.stringify(items),
+                SignatureUID           : parseInt($('#transSignatureUID').val(), 10) || 0,
                 action                 : action,
                 [csrfName]             : csrfVal,
             }, charges);

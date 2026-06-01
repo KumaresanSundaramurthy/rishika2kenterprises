@@ -124,7 +124,7 @@ function invOpenStockIn(uid, name, unit, purchasePrice) {
         _siDateFp = flatpickr('#siRecordDate', {
             dateFormat:  'Y-m-d',
             altInput:    true,
-            altFormat:   'd M Y',
+            altFormat:   (typeof _transFormDateFormat !== 'undefined') ? _transFormDateFormat : 'd-m-Y',
             defaultDate: new Date(),
             allowInput:  false,
             appendTo:    document.body,
@@ -152,7 +152,7 @@ function invOpenStockOut(uid, name, unit, sellingPrice) {
         _soDateFp = flatpickr('#soRecordDate', {
             dateFormat:  'Y-m-d',
             altInput:    true,
-            altFormat:   'd M Y',
+            altFormat:   (typeof _transFormDateFormat !== 'undefined') ? _transFormDateFormat : 'd-m-Y',
             defaultDate: new Date(),
             allowInput:  false,
             appendTo:    document.body,

@@ -25,7 +25,7 @@ $(document).ready(function () {
                 $('#transVendorModalBody').html(resp.Html);
                 // Initialise flatpickr for DOB field inside modal
                 if (typeof flatpickr !== 'undefined' && document.querySelector('#VM_CPDateOfBirth')) {
-                    flatpickr('#VM_CPDateOfBirth', { dateFormat: 'Y-m-d', altInput: true, altFormat: 'd M Y' });
+                    flatpickr('#VM_CPDateOfBirth', { dateFormat: 'Y-m-d', altInput: true, altFormat: (typeof _transFormDateFormat !== 'undefined') ? _transFormDateFormat : 'd-m-Y' });
                 }
                 // Initialise Select2 fields inside modal
                 $('#transVendorModalBody .select2').each(function() {

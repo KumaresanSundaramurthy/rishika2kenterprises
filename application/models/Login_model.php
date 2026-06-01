@@ -65,6 +65,13 @@ class Login_model extends CI_Model {
                 ? $productSettingsResult->Data[0]
                 : new stdClass();
 
+            // Transaction Settings (OrgTransactionSettingsTbl) — stored in main JWT payload
+            $transSettingsResult = $this->getOrgTransactionSettings($UserData->UserOrgUID);
+            $TransSettings = (!$transSettingsResult->Error && !empty($transSettingsResult->Data))
+                ? $transSettingsResult->Data[0]
+                : new stdClass();
+            // Date formats now live in OrgSettingsTbl → available in GenSettings
+
             // Build flat permissions map: ControllerName => {CanView,CanCreate,CanEdit,CanDelete}
             $Permissions = [];
             foreach ($SubModule as $sm) {
@@ -78,7 +85,7 @@ class Login_model extends CI_Model {
                 }
             }
 
-            $jwtPayload = array('User' => $JwtUserData, 'Org' => $JwtOrgData, 'UserMainModule' => $MainModule, 'UserSubModule' => $SubModule, 'Permissions' => $Permissions, 'GenSettings' => $GeneralSettings, 'ProdSettings' => $ProductSettings, 'ModuleInfo' => $ModuleInfo);
+            $jwtPayload = array('User' => $JwtUserData, 'Org' => $JwtOrgData, 'UserMainModule' => $MainModule, 'UserSubModule' => $SubModule, 'Permissions' => $Permissions, 'GenSettings' => $GeneralSettings, 'ProdSettings' => $ProductSettings, 'TransSettings' => $TransSettings, 'ModuleInfo' => $ModuleInfo);
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Message = 'Success';
@@ -206,7 +213,7 @@ class Login_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->ReadDb->select('GeneralSettg.DecimalPoints as DecimalPoints, GeneralSettg.CurrenySymbol as CurrenySymbol, GeneralSettg.PriceMaxLength as PriceMaxLength, GeneralSettg.RowLimit as RowLimit, GeneralSettg.EnableStorage as EnableStorage, GeneralSettg.MandatoryStorage as MandatoryStorage, GeneralSettg.SerialNoDisplay as SerialNoDisplay, GeneralSettg.QtyMaxLength as QtyMaxLength, GeneralSettg.FYStartMonth as FYStartMonth, GeneralSettg.MaxShippingAddr as MaxShippingAddr');
+            $this->ReadDb->select("GeneralSettg.DecimalPoints, GeneralSettg.CurrenySymbol, GeneralSettg.PriceMaxLength, GeneralSettg.RowLimit, GeneralSettg.EnableStorage, GeneralSettg.MandatoryStorage, GeneralSettg.SerialNoDisplay, GeneralSettg.QtyMaxLength, GeneralSettg.FYStartMonth, GeneralSettg.MaxShippingAddr, COALESCE(GeneralSettg.FormDateFormat,'d-m-Y') AS FormDateFormat, COALESCE(GeneralSettg.ListDateFormat,'d-m-Y') AS ListDateFormat, COALESCE(GeneralSettg.PrintDateFormat,'d-m-Y') AS PrintDateFormat, COALESCE(GeneralSettg.FormDateTimeFormat,'d-m-Y H:i') AS FormDateTimeFormat, COALESCE(GeneralSettg.ListDateTimeFormat,'d-m-Y H:i') AS ListDateTimeFormat, COALESCE(GeneralSettg.PrintDateTimeFormat,'d-m-Y H:i') AS PrintDateTimeFormat");
             $this->ReadDb->from('Settings.OrgSettingsTbl as GeneralSettg');
             $this->ReadDb->where('GeneralSettg.OrgUID', $OrgUID);
             $this->ReadDb->limit(1);
@@ -247,6 +254,47 @@ class Login_model extends CI_Model {
             throw new Exception($this->EndReturnData->Message);
         }
 
+    }
+
+    public function getOrgTransactionSettings($OrgUID) {
+
+        $this->EndReturnData = new stdClass();
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('InvoiceCancelAction');
+            $this->ReadDb->from('Settings.OrgTransactionSettingsTbl');
+            $this->ReadDb->where('OrgUID', (int) $OrgUID);
+            $this->ReadDb->limit(1);
+            $query = $this->ReadDb->get();
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Data  = $query ? $query->result() : [];
+            return $this->EndReturnData;
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+            $this->EndReturnData->Data    = [];
+            return $this->EndReturnData;
+        }
+
+    }
+
+    public function getOrgTransGeneralSettings($OrgUID) {
+        $this->EndReturnData = new stdClass();
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('FormDateFormat, ListDateFormat, PrintDateFormat');
+            $this->ReadDb->from('Settings.OrgTransGeneralSettingsTbl');
+            $this->ReadDb->where('OrgUID', (int) $OrgUID);
+            $this->ReadDb->limit(1);
+            $query = $this->ReadDb->get();
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Data  = $query ? $query->result() : [];
+            return $this->EndReturnData;
+        } catch (Exception $e) {
+            $this->EndReturnData->Error = TRUE;
+            $this->EndReturnData->Data  = [];
+            return $this->EndReturnData;
+        }
     }
 
     public function getModuleDetails($OrgUID) {

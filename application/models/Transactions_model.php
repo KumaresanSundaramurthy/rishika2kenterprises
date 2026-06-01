@@ -280,6 +280,7 @@ class Transactions_model extends CI_Model {
             'ShipAddr.CityText AS ShipCity', 'ShipAddr.StateText AS ShipState', 'ShipAddr.Pincode AS ShipPincode',
             'Td.ValidityDays', 'Td.ValidityDate', 'Td.Reference', 'Td.SupplierInvoiceNo',
             'Td.Notes', 'Td.TermsConditions', 'Td.AdditionalCharges AS AdditionalChargesJson', 'Td.PlaceOfSupply',
+            'Td.SignatureUID',
         ]);
         $this->ReadDb->from('Transaction.TransactionsTbl AS Ts');
         $this->ReadDb->join('Customers.CustomerTbl AS Cust', 'Cust.CustomerUID = Ts.PartyUID AND Ts.PartyType = \'C\'', 'LEFT');
@@ -434,49 +435,20 @@ class Transactions_model extends CI_Model {
      * Result = MAX(TransNumber) + 1, or 1 if no records exist yet.
      */
     public function getNextTransactionNumber($prefixUID, $orgUID, $moduleUID) {
-
         try {
-
             $this->ReadDb->db_debug = FALSE;
-            $this->ReadDb->reset_query();
-
-            // Get MAX across ALL records (including soft-deleted) so we never
-            // suggest a number that was previously used, even if now deleted.
             $this->ReadDb->select_max('TransNumber', 'MaxNumber');
             $this->ReadDb->from('Transaction.TransactionsTbl');
             $this->ReadDb->where([
-                'PrefixUID' => (int) $prefixUID,
                 'OrgUID'    => (int) $orgUID,
+                'ModuleUID' => (int) $moduleUID,
+                'PrefixUID' => (int) $prefixUID,
             ]);
-            $query  = $this->ReadDb->get();
-            $result = $query->row();
-            $next   = $result ? ((int)($result->MaxNumber ?? 0) + 1) : 1;
-
-            // Safety loop: keep incrementing until we find a number
-            // that has no active (IsDeleted = 0) record.
-            $maxAttempts = 100;
-            while ($maxAttempts-- > 0) {
-                $this->ReadDb->reset_query();
-                $this->ReadDb->select('TransUID');
-                $this->ReadDb->from('Transaction.TransactionsTbl');
-                $this->ReadDb->where([
-                    'PrefixUID'   => (int) $prefixUID,
-                    'TransNumber' => $next,
-                    'OrgUID'      => (int) $orgUID,
-                    'IsDeleted'   => 0,
-                ]);
-                $this->ReadDb->limit(1);
-                $check = $this->ReadDb->get()->row();
-                if (!$check) break;
-                $next++;
-            }
-
-            return $next;
-
+            $result = $this->ReadDb->get()->row();
+            return $result ? ((int)($result->MaxNumber ?? 0) + 1) : 1;
         } catch (Exception $e) {
             return 1;
         }
-
     }
 
     /**
@@ -889,7 +861,7 @@ class Transactions_model extends CI_Model {
     /** Single payment row for pre-deletion checks (no joins). */
     public function getPaymentRow($paymentUID, $orgUID) {
         $this->ReadDb->db_debug = FALSE;
-        $this->ReadDb->select('PaymentUID, TransUID, Amount, PartyType, PartyUID');
+        $this->ReadDb->select('PaymentUID, TransUID, Amount, PartyType, PartyUID, IsOnAccount, OnAccountAppliedTransUID, OnAccountSourcePaymentUID');
         $this->ReadDb->from('Transaction.PaymentsTbl');
         $this->ReadDb->where(['PaymentUID' => $paymentUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
         $query = $this->ReadDb->get();
@@ -907,10 +879,10 @@ class Transactions_model extends CI_Model {
         return $row ? (float) $row->TotalPaid : 0;
     }
 
-    /** Minimal transaction header: NetAmount + DocStatus (for balance recalculation). */
+    /** Minimal transaction header: NetAmount + DocStatus + UniqueNumber (for balance recalculation). */
     public function getTransactionBasicInfo($transUID, $orgUID) {
         $this->ReadDb->db_debug = FALSE;
-        $this->ReadDb->select('TransUID, NetAmount, DocStatus');
+        $this->ReadDb->select('TransUID, NetAmount, DocStatus, UniqueNumber');
         $this->ReadDb->from('Transaction.TransactionsTbl');
         $this->ReadDb->where(['TransUID' => $transUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
         $query = $this->ReadDb->get();
@@ -1198,10 +1170,17 @@ class Transactions_model extends CI_Model {
         $cur = '₹ ';
         $dec = 2;
         $e   = fn($v) => htmlspecialchars((string)($v ?? ''), ENT_QUOTES);
-        $fmt = function($date) {
+        // Read PrintDateFormat from GenSettings JWT (stored in OrgSettingsTbl)
+        try {
+            $CI = &get_instance();
+            $_printFmt = $CI->pageData['JwtData']->GenSettings->PrintDateFormat ?? 'd M Y';
+        } catch (Exception $_) {
+            $_printFmt = 'd M Y';
+        }
+        $fmt = function($date) use ($_printFmt) {
             if (!$date) return '—';
             $d = date_create($date);
-            return $d ? date_format($d, 'd M Y') : $date;
+            return $d ? date_format($d, $_printFmt) : $date;
         };
         $addr    = fn($l1,$l2,$city,$state,$pin) => implode(', ', array_filter([$l1,$l2,$city,$state,$pin]));
         $addrHtml = fn($l1,$l2,$city,$state,$pin) => implode('<br>', array_filter(array_map('htmlspecialchars', array_filter([$l1,$l2,$city,$state,$pin]))));
@@ -1288,8 +1267,8 @@ class Transactions_model extends CI_Model {
             $org->Logo ?? ''
         );
 
-        // Signature block: space for physical stamp/signature + label
-        $signatureSpaceHtml = '<div style="min-height:65px;"></div>';
+        // Signature block: show actual signature if selected, otherwise empty space
+        $signatureSpaceHtml = $this->_buildSignatureHtml((int)($h->SignatureUID ?? 0));
 
         // ── Summary totals — read directly from TransactionsTbl (no item-level summing) ──
         $totalItemsCount = (int)($h->TotalItems    ?? count($items));
@@ -1381,6 +1360,8 @@ class Transactions_model extends CI_Model {
             '{{BANK_QR_HTML}}'         => $bankQrHtml,
             /** Signature */
             '{{SIGNATURE_SPACE}}'      => $signatureSpaceHtml,
+            /** Copy label — JS replaces __COPY_LABEL__ client-side based on user selection */
+            '{{COPY_LABEL}}'           => '__COPY_LABEL__',
             /** HSN Summary TOTAL row tokens (match the summed rows in the loop) */
             '{{HSN_TOTAL_TAXABLE}}'    => number_format($hsnTotalTaxable, $dec2),
             '{{HSN_TOTAL_CGST}}'       => number_format(round($hsnTotalCgst, $dec2), $dec2),
@@ -1398,12 +1379,21 @@ class Transactions_model extends CI_Model {
         $fontFamilyEsc = str_replace("'", "\\'", $fontFamily);
         $fontSizePx    = (int) ($theme->FontSizePx ?? 11);
 
+        $orgNameForWatermark = addslashes($org->BrandName ?? $org->Name ?? '');
         $headInject = '<style>'
             . '@page{size:A4;margin:0;}'
             . '@media print{body{background:#fff;}}'
             . "body{padding:0 5mm;box-sizing:border-box;font-size:{$fontSizePx}px !important;}"
             . '.invoice{width:100%!important;max-width:100%!important;box-sizing:border-box!important;margin:10px 0!important;}'
             . "body,body *{font-family:'{$fontFamilyEsc}',Arial,Helvetica,sans-serif !important;}"
+            . 'body::before{'
+            . "content:'{$orgNameForWatermark}';"
+            . 'position:fixed;top:50%;left:50%;'
+            . 'transform:translate(-50%,-50%) rotate(-45deg);'
+            . 'font-size:72px;font-weight:800;letter-spacing:4px;'
+            . 'color:rgba(0,0,0,0.045);white-space:nowrap;'
+            . 'pointer-events:none;z-index:9999;'
+            . '}'
             . '</style>';
 
         // For Google Fonts: inject <link> tag — rendered via Blob URL so external requests load correctly
@@ -1623,8 +1613,8 @@ class Transactions_model extends CI_Model {
         $bankUpiId   = $bank ? ($bank->UPIId ?? '') : '';
         $bankQrHtml  = print_build_qr_html($bankUpiId, (float)($p->Amount ?? 0), $org->BrandName ?? $org->Name ?? '', $org->Logo ?? '');
 
-        // Signature block: space for physical stamp/signature + label
-        $signatureSpaceHtml = '<div style="min-height:65px;"></div>';
+        // Signature block: show actual signature if selected, otherwise empty space
+        $signatureSpaceHtml = $this->_buildSignatureHtml((int)($p->SignatureUID ?? 0));
 
         // Payment reference text: either linked document number or payment reference number
         $payRefNo = $p->TransNumber ?? $p->TransNumber ?? '';
@@ -2015,7 +2005,58 @@ class Transactions_model extends CI_Model {
         } while ($exists > 0);
 
         return $token;
-        
+
+    }
+
+    // ── Build signature HTML for {{SIGNATURE_SPACE}} token ────────────────────
+    // Returns the actual signature (image + label) if SignatureUID is set,
+    // otherwise returns an empty space div (same as before).
+
+    private function _buildSignatureHtml($signatureUID) {
+        if ($signatureUID <= 0) {
+            return '<div style="min-height:65px;"></div>';
+        }
+
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('SignatureUID, Label, SignatureType, ImagePath, DrawData, MimeType');
+            $this->ReadDb->from('Users.UserSignaturesTbl');
+            $this->ReadDb->where(['SignatureUID' => $signatureUID, 'IsDeleted' => 0]);
+            $sig = $this->ReadDb->get()->row();
+
+            if (!$sig) {
+                return '<div style="min-height:65px;"></div>';
+            }
+
+            // Resolve image source — same logic as Profile.php getSignaturesJson()
+            $sigType = strtolower($sig->SignatureType ?? '');
+            if ($sigType === 'draw' && !empty($sig->DrawData)) {
+                // DrawData is already a full data URL (data:image/png;base64,...)
+                $drawRaw = $sig->DrawData;
+                // Ensure it's a valid data URL — prefix if stored as raw base64
+                if (strpos($drawRaw, 'data:image/') === 0) {
+                    $imgSrc = $drawRaw;
+                } else {
+                    $mime   = $sig->MimeType ?: 'image/png';
+                    $imgSrc = 'data:' . $mime . ';base64,' . $drawRaw;
+                }
+            } elseif (!empty($sig->ImagePath)) {
+                // Uploaded image — build CDN URL from environment (same as Profile controller)
+                $cdnBase = getenv('FILE_UPLOAD') === 'amazonaws'
+                    ? getenv('CDN_URL')
+                    : getenv('CFLARE_R2_CDN');
+                $imgSrc = rtrim($cdnBase ?? '', '/') . '/' . ltrim($sig->ImagePath, '/');
+            } else {
+                return '<div style="min-height:65px;"></div>';
+            }
+
+            return '<div style="text-align:center;padding-top:8px;min-height:65px;">'
+                 . '<img src="' . $imgSrc . '" alt="Signature" style="max-height:55px;max-width:160px;display:block;margin:0 auto;" />'
+                 . '</div>';
+
+        } catch (Exception $e) {
+            return '<div style="min-height:65px;"></div>';
+        }
     }
 
 }

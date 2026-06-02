@@ -927,6 +927,17 @@ class Transactions_model extends CI_Model {
         return ($query && $query->num_rows() > 0) ? $query->result() : [];
     }
 
+    // Shared for Expenses and Indirect Income — both use ExpenseIncomeAttachmentsTbl, SourceType differentiates them
+    public function getExpenseIncomeAttachments($uid, $orgUID, $sourceType) {
+        $this->ReadDb->db_debug = FALSE;
+        $this->ReadDb->select('AttachUID, FileName, FilePath, FileType, FileSize, SortOrder');
+        $this->ReadDb->from('Transaction.ExpenseIncomeAttachmentsTbl');
+        $this->ReadDb->where(['SourceUID' => $uid, 'SourceType' => $sourceType, 'OrgUID' => $orgUID, 'IsDeleted' => 0, 'IsActive' => 1]);
+        $this->ReadDb->order_by('SortOrder', 'ASC');
+        $query = $this->ReadDb->get();
+        return ($query && $query->num_rows() > 0) ? $query->result() : [];
+    }
+
     public function getPaymentAttachments($paymentUID, $orgUID) {
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->select('AttachUID, FileName, FilePath, FileType, FileSize, CreatedOn');

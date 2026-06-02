@@ -287,4 +287,15 @@ tr:nth-child(even) td{background:#f8fafc;}
 </body></html>';
     }
 
+
+    protected function buildAdditionalChargesJson($PostData) {
+        $charges = [];
+        foreach (['shipping', 'handling', 'packing', 'other'] as $type) {
+            $amt = (float) getPostValue($PostData, $type . 'Amount', 'Array', 0);
+            $tax = getPostValue($PostData, $type . 'Tax') ?: NULL;
+            if ($amt > 0) $charges[] = ['type' => $type, 'amount' => $amt, 'tax' => $tax];
+        }
+        return !empty($charges) ? json_encode($charges) : NULL;
+    }
+
 }

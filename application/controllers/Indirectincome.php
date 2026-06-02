@@ -571,20 +571,6 @@ class Indirectincome extends MY_Controller {
     }
 
     // ── Get attachments for a single income record ───────────────────────────
-    public function getAttachments() {
-        $this->EndReturnData = new stdClass();
-        try {
-            $incomeUID = (int)getPostValue($this->input->post(), 'TransUID');
-            $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
-            if ($incomeUID <= 0) throw new Exception('Invalid income record.');
-            $this->EndReturnData->Error       = FALSE;
-            $this->EndReturnData->Attachments = $this->indirectincome_model->getIncomeAttachments($incomeUID, $orgUID);
-        } catch (Throwable $e) {
-            $this->EndReturnData->Error   = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-        }
-        $this->globalservice->sendJsonResponse($this->EndReturnData);
-    }
 
     // ── Get single income detail ──────────────────────────────────────────────
     public function getIncomeDetail() {

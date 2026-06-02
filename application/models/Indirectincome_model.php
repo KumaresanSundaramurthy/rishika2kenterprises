@@ -262,25 +262,6 @@ class Indirectincome_model extends CI_Model {
         }
     }
 
-    // ── Attachments for a single income record ───────────────────────────────
-    public function getIncomeAttachments($incomeUID, $orgUID) {
-        try {
-            $this->ReadDb->db_debug = FALSE;
-            $this->ReadDb->select('AttachUID, FileName, FilePath, FileType, FileSize, SortOrder');
-            $this->ReadDb->from('Transaction.ExpenseIncomeAttachmentsTbl');
-            $this->ReadDb->where('SourceUID',  $incomeUID);
-            $this->ReadDb->where('SourceType', 'IndirectIncome');
-            $this->ReadDb->where('OrgUID',     $orgUID);
-            $this->ReadDb->where('IsDeleted',  0);
-            $this->ReadDb->where('IsActive',   1);
-            $this->ReadDb->order_by('SortOrder', 'ASC');
-            $query = $this->ReadDb->get();
-            return $query ? $query->result() : [];
-        } catch (Exception $e) {
-            log_message('error', 'Indirectincome_model::getIncomeAttachments — ' . $e->getMessage());
-            return [];
-        }
-    }
 
     // ── Count existing payment rows for an income (for UniqueNumber suffix) ────
     public function getPaymentCount($transUID, $sourceType, $orgUID) {

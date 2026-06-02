@@ -316,7 +316,7 @@ $(function() {
     transDatePickr('#validityDate', false, 'Y-m-d', false, false, <?php echo $isEdit ? 'false' : 'true'; ?>, true, 'd-m-Y', '#transDate');
 
     <?php if ($isEdit): ?>
-    initTransAttachments(<?php echo $transUID; ?>, '/proforma/getAttachments');
+    initTransAttachments(<?php echo $transUID; ?>, '/transactions/getAttachments', 113);
 
     <?php if (!empty($PFData->PartyUID)): ?>
     $('#customerSearch').append(new Option(

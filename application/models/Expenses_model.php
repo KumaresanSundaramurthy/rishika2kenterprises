@@ -264,25 +264,6 @@ class Expenses_model extends CI_Model {
         }
     }
 
-    // ── Attachments for a single expense ────────────────────────────────────
-    public function getExpenseAttachments($expenseUID, $orgUID) {
-        try {
-            $this->ReadDb->db_debug = FALSE;
-            $this->ReadDb->select('AttachUID, FileName, FilePath, FileType, FileSize, SortOrder');
-            $this->ReadDb->from('Transaction.ExpenseIncomeAttachmentsTbl');
-            $this->ReadDb->where('SourceUID',  $expenseUID);
-            $this->ReadDb->where('SourceType', 'Expense');
-            $this->ReadDb->where('OrgUID',     $orgUID);
-            $this->ReadDb->where('IsDeleted',  0);
-            $this->ReadDb->where('IsActive',   1);
-            $this->ReadDb->order_by('SortOrder', 'ASC');
-            $query = $this->ReadDb->get();
-            return $query ? $query->result() : [];
-        } catch (Exception $e) {
-            log_message('error', 'Expenses_model::getExpenseAttachments — ' . $e->getMessage());
-            return [];
-        }
-    }
 
     // ── Count existing payment rows for an expense (for UniqueNumber suffix) ───
     public function getPaymentCount($transUID, $sourceType, $orgUID) {

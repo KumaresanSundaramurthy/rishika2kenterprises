@@ -577,20 +577,6 @@ class Expenses extends MY_Controller {
     }
 
     // ── Get attachments for a single expense ────────────────────────────────
-    public function getAttachments() {
-        $this->EndReturnData = new stdClass();
-        try {
-            $expenseUID = (int)getPostValue($this->input->post(), 'TransUID');
-            $orgUID     = $this->pageData['JwtData']->Org->OrgUID;
-            if ($expenseUID <= 0) throw new Exception('Invalid expense.');
-            $this->EndReturnData->Error       = FALSE;
-            $this->EndReturnData->Attachments = $this->expenses_model->getExpenseAttachments($expenseUID, $orgUID);
-        } catch (Throwable $e) {
-            $this->EndReturnData->Error   = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-        }
-        $this->globalservice->sendJsonResponse($this->EndReturnData);
-    }
 
     // ── Get single expense detail ────────────────────────────────────────────
     public function getExpenseDetail() {

@@ -423,7 +423,7 @@ $(function() {
     });
 
     <?php if ($isEdit): ?>
-    initTransAttachments(<?php echo $transUID; ?>, '/deliverychallan/getAttachments');
+    initTransAttachments(<?php echo $transUID; ?>, '/transactions/getAttachments', 112);
 
     <?php if (!empty($DCData->PartyUID)): ?>
     $('#customerSearch').append(new Option(

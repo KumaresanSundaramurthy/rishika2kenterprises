@@ -983,16 +983,6 @@ class Salesreturns extends MY_Controller {
         if ($batchResp->Error) throw new Exception($batchResp->Message);
     }
 
-    private function buildAdditionalChargesJson($PostData) {
-        $charges = [];
-        foreach (['shipping', 'handling', 'packing', 'other'] as $type) {
-            $amt = (float) getPostValue($PostData, $type . 'Amount', 'Array', 0);
-            $tax = getPostValue($PostData, $type . 'Tax') ?: NULL;
-            if ($amt > 0) $charges[] = ['type' => $type, 'amount' => $amt, 'tax' => $tax];
-        }
-        return !empty($charges) ? json_encode($charges) : NULL;
-    }
-
     private function _saveAttachments($transUID) {
         $files = $_FILES['AttachFiles'] ?? null;
         if (empty($files) || empty($files['name'][0])) return;
@@ -1122,29 +1112,6 @@ class Salesreturns extends MY_Controller {
 
     }
 
-    public function getAttachments() {
-
-        $this->EndReturnData = new stdClass();
-        try {
-
-            $transUID = (int) $this->input->post('TransUID');
-            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
-            if ($transUID <= 0) throw new Exception('Invalid sales return.');
-
-            $this->load->model('transactions_model');
-            $attachments = $this->transactions_model->getTransactionAttachments($transUID, $orgUID);
-
-            $this->EndReturnData->Error       = FALSE;
-            $this->EndReturnData->Attachments = $attachments;
-
-        } catch (Exception $e) {
-            $this->EndReturnData->Error   = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-        }
-
-        $this->globalservice->sendJsonResponse($this->EndReturnData);
-
-    }
 
     public function getPaymentAttachments() {
         $this->EndReturnData = new stdClass();

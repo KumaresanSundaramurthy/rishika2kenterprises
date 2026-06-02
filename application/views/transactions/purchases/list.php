@@ -119,7 +119,8 @@ if (!empty($DataLists)):
                     <button type="button" class="btn btn-link p-0 transAttachBtn"
                             data-uid="<?php echo (int)$list->TransUID; ?>"
                             data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
-                            data-url="/purchases/getAttachments"
+                            data-url="/transactions/getAttachments"
+                            data-module-uid="105"
                             title="<?php echo (int)$list->AttachmentCount; ?> attachment(s)"
                             style="font-size:.82rem;line-height:1;color:#6f42c1;">
                         <i class="bx bx-paperclip"></i>

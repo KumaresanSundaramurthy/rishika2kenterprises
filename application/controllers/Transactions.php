@@ -475,6 +475,39 @@ class Transactions extends CI_Controller {
     // ----------------------------------------------------------------
     // POST /transactions/downloadA4Pdf
     // Renders the transaction as HTML, converts to PDF via DomPDF,
+    // ── Generic attachment fetch for all modules ─────────────────────────────
+    // Single endpoint for all 9 modules: transactions, expenses, indirect income.
+    // POST: TransUID, ModuleUID
+    // ModuleUID 114 = Expenses, 115 = Indirect Income, all others = standard transactions.
+    public function getAttachments() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $transUID  = (int) $this->input->post('TransUID');
+            $moduleUID = (int) $this->input->post('ModuleUID');
+            $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
+
+            if ($transUID <= 0) throw new Exception('Invalid record.');
+
+            $this->load->model('transactions_model');
+
+            if ($moduleUID === 114) {
+                $attachments = $this->transactions_model->getExpenseIncomeAttachments($transUID, $orgUID, 'Expense');
+            } elseif ($moduleUID === 115) {
+                $attachments = $this->transactions_model->getExpenseIncomeAttachments($transUID, $orgUID, 'IndirectIncome');
+            } else {
+                $attachments = $this->transactions_model->getTransactionAttachments($transUID, $orgUID);
+            }
+
+            $this->EndReturnData->Error       = FALSE;
+            $this->EndReturnData->Attachments = $attachments;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
     // ── Generic PDF base64 for email auto-attach (all transaction modules) ───
     // Replaces the old per-module getQuotationPdfBase64 endpoint.
     // POST: TransUID, ModuleUID, PaperSize

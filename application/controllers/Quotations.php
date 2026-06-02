@@ -730,43 +730,6 @@ class Quotations extends MY_Controller {
 
     }
 
-    public function getQuotationDetail() {
-
-        $this->EndReturnData = new stdClass();
-        try {
-
-            $transUID = (int) $this->input->get_post('TransUID');
-            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
-
-            if ($transUID <= 0) throw new Exception('Invalid quotation.');
-
-            $this->load->model('transactions_model');
-            $header = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
-            if (!$header) throw new Exception('Quotation not found.');
-
-            $items = $this->transactions_model->getTransactionItems($transUID, $orgUID);
-
-            $this->load->model('organisation_model');
-            $orgInfo          = $this->organisation_model->getOrgInfoCached($orgUID);
-            $thermalCfgResult = $this->organisation_model->getThermalPrintConfigByType($orgUID, $header->TransType);
-            $printThemeResult = $this->organisation_model->getPrintThemeByType($orgUID, $header->TransType);
-
-            $this->EndReturnData->Error         = FALSE;
-            $this->EndReturnData->Header        = $header;
-            $this->EndReturnData->Items         = $items;
-            $this->EndReturnData->OrgInfo       = $orgInfo->Data ?? null;
-            $this->EndReturnData->ThermalConfig = $thermalCfgResult->Data ?? null;
-            $this->EndReturnData->PrintTheme    = $printThemeResult->Data ?? null;
-
-        } catch (Exception $e) {
-            $this->EndReturnData->Error   = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-        }
-
-        $this->globalservice->sendJsonResponse($this->EndReturnData);
-
-    }
-
     /**
      * Insert line items into TransProductsTbl.
      *
@@ -853,19 +816,6 @@ class Quotations extends MY_Controller {
         $padding = (int)($prefix->NumberPadding ?? 1);
         $parts[] = $padding > 1 ? str_pad($transNumber, $padding, '0', STR_PAD_LEFT) : (string)$transNumber;
         return [implode($sep, $parts), $transNumber];
-    }
-
-    private function buildAdditionalChargesJson($PostData) {
-        $charges = [];
-        $types   = ['shipping', 'handling', 'packing', 'other'];
-        foreach ($types as $type) {
-            $amt = (float) getPostValue($PostData, $type . 'Amount', 'Array', 0);
-            $tax = getPostValue($PostData, $type . 'Tax') ?: NULL;
-            if ($amt > 0) {
-                $charges[] = ['type' => $type, 'amount' => $amt, 'tax' => $tax];
-            }
-        }
-        return !empty($charges) ? json_encode($charges) : NULL;
     }
 
     public function create() {
@@ -1168,28 +1118,5 @@ class Quotations extends MY_Controller {
 
     }
 
-    public function getAttachments() {
-
-        $this->EndReturnData = new stdClass();
-        try {
-
-            $transUID = (int) $this->input->post('TransUID');
-            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
-            if ($transUID <= 0) throw new Exception('Invalid quotation.');
-
-            $this->load->model('transactions_model');
-            $attachments = $this->transactions_model->getTransactionAttachments($transUID, $orgUID);
-
-            $this->EndReturnData->Error       = FALSE;
-            $this->EndReturnData->Attachments = $attachments;
-
-        } catch (Exception $e) {
-            $this->EndReturnData->Error   = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-        }
-
-        $this->globalservice->sendJsonResponse($this->EndReturnData);
-
-    }
 
 }

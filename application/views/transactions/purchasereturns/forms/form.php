@@ -252,7 +252,7 @@ $(function() {
     'use strict';
 
     <?php if ($isEdit): ?>
-    initTransAttachments(<?php echo $transUID; ?>, '/purchasereturns/getAttachments');
+    initTransAttachments(<?php echo $transUID; ?>, '/transactions/getAttachments', 108);
     <?php endif; ?>
 
     searchVendors('vendorSearch');

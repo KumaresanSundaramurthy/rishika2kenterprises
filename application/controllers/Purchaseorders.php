@@ -862,19 +862,6 @@ class Purchaseorders extends MY_Controller {
 
     }
 
-    private function buildAdditionalChargesJson($PostData) {
-        $charges = [];
-        $types   = ['shipping', 'handling', 'packing', 'other'];
-        foreach ($types as $type) {
-            $amt = (float) getPostValue($PostData, $type . 'Amount', 'Array', 0);
-            $tax = getPostValue($PostData, $type . 'Tax') ?: NULL;
-            if ($amt > 0) {
-                $charges[] = ['type' => $type, 'amount' => $amt, 'tax' => $tax];
-            }
-        }
-        return !empty($charges) ? json_encode($charges) : NULL;
-    }
-
     public function create() {
 
         try {
@@ -1128,28 +1115,5 @@ class Purchaseorders extends MY_Controller {
 
     }
 
-    public function getAttachments() {
-
-        $this->EndReturnData = new stdClass();
-        try {
-
-            $transUID = (int) $this->input->post('TransUID');
-            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
-            if ($transUID <= 0) throw new Exception('Invalid purchase order.');
-
-            $this->load->model('transactions_model');
-            $attachments = $this->transactions_model->getTransactionAttachments($transUID, $orgUID);
-
-            $this->EndReturnData->Error       = FALSE;
-            $this->EndReturnData->Attachments = $attachments;
-
-        } catch (Exception $e) {
-            $this->EndReturnData->Error   = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-        }
-
-        $this->globalservice->sendJsonResponse($this->EndReturnData);
-
-    }
 
 }

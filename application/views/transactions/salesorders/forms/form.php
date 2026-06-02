@@ -382,7 +382,7 @@ $(function() {
     transDatePickr('#deliveryDate', false, 'Y-m-d', false, false, <?php echo $isEdit ? 'false' : 'true'; ?>, true, 'd-m-Y', '#transDate');
 
     <?php if ($isEdit): ?>
-    initTransAttachments(<?php echo $transUID; ?>, '/salesorders/getAttachments');
+    initTransAttachments(<?php echo $transUID; ?>, '/transactions/getAttachments', 102);
 
     <?php if (!empty($SOData->PartyUID)): ?>
     $('#customerSearch').append(new Option(

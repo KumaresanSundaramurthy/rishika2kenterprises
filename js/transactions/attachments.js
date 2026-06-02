@@ -86,7 +86,8 @@ function renderTransAttachmentsFromData(attachments) {
 }
 
 // Call this when attachment data must be fetched via AJAX on page load.
-function initTransAttachments(transUID, getUrl) {
+// moduleUID — the module identifier (e.g. 103 for Invoices, 114 for Expenses)
+function initTransAttachments(transUID, getUrl, moduleUID) {
     if (!transUID || transUID <= 0) return;
     _removedAttachIDs = [];
     var $form     = $('[data-csrf]').first();
@@ -95,7 +96,7 @@ function initTransAttachments(transUID, getUrl) {
     $.ajax({
         url   : getUrl,
         method: 'POST',
-        data  : { TransUID: transUID, [csrfName]: csrfToken },
+        data  : { TransUID: transUID, ModuleUID: moduleUID || 0, [csrfName]: csrfToken },
         success: function(resp) {
             if (resp.Error || !resp.Attachments || !resp.Attachments.length) {
                 _syncDropzoneLimit(0);
@@ -146,7 +147,8 @@ function _buildAttachGalleryHtml(attachments, cdnUrl) {
 // fetchUrl   — AJAX endpoint
 // accentColor — e.g. '#0d6efd'
 // title      — optional title prefix, defaults to 'Attachments'
-function openTransAttachModal(uid, num, fetchUrl, accentColor, title) {
+// moduleUID — passed from data-module-uid attribute on the button
+function openTransAttachModal(uid, num, fetchUrl, accentColor, title, moduleUID) {
     accentColor = accentColor || '#0d6efd';
     title       = (title || 'Attachments') + ' — ' + (num || ('Ref #' + uid));
     $('#transAttachModalTitle').text(title).css('color', accentColor);
@@ -159,7 +161,7 @@ function openTransAttachModal(uid, num, fetchUrl, accentColor, title) {
     $.ajax({
         url    : fetchUrl,
         method : 'POST',
-        data   : { TransUID: uid, [CsrfName]: CsrfToken },
+        data   : { TransUID: uid, ModuleUID: moduleUID || 0, [CsrfName]: CsrfToken },
         success: function (resp) {
             AjaxLoading = 1;
             if (resp.Error || !resp.Attachments || !resp.Attachments.length) {
@@ -220,7 +222,7 @@ $(document).on('hidden.bs.modal', '#attachPreviewModal', function () {
 
 // ── Common attachment button handlers (used across all transaction pages) ────
 $(document).on('click', '.transAttachBtn', function () {
-    openTransAttachModal($(this).data('uid'), $(this).data('num'), $(this).data('url'), $(this).data('color') || '#0d6efd');
+    openTransAttachModal($(this).data('uid'), $(this).data('num'), $(this).data('url'), $(this).data('color') || '#0d6efd', undefined, $(this).data('module-uid'));
 });
 
 $(document).on('click', '.transPayAttachBtn', function (e) {

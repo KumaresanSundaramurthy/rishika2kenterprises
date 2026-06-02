@@ -968,15 +968,4 @@ class Deliverychallans extends MY_Controller {
         $batchResp = $this->dbwrite_model->insertBatchInTransaction('Transaction', 'TransProductsTbl', $rows);
         if ($batchResp->Error) throw new Exception($batchResp->Message);
     }
-
-    private function buildAdditionalChargesJson($PostData) {
-        $charges = [];
-        $types   = ['shipping', 'handling', 'packing', 'other'];
-        foreach ($types as $type) {
-            $amt = (float) getPostValue($PostData, $type . 'Amount', 'Array', 0);
-            $tax = getPostValue($PostData, $type . 'Tax') ?: NULL;
-            if ($amt > 0) $charges[] = ['type' => $type, 'amount' => $amt, 'tax' => $tax];
-        }
-        return !empty($charges) ? json_encode($charges) : NULL;
-    }
 }

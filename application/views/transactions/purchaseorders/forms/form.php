@@ -296,7 +296,7 @@ $(function() {
     'use strict';
 
     <?php if ($isEdit): ?>
-    initTransAttachments(<?php echo $transUID; ?>, '/purchaseorders/getAttachments');
+    initTransAttachments(<?php echo $transUID; ?>, '/transactions/getAttachments', 104);
     <?php endif; ?>
 
     searchVendors('vendorSearch');

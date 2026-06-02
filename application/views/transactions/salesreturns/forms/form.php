@@ -605,7 +605,7 @@ $(function() {
     }
 
     <?php if ($isEdit): ?>
-    initTransAttachments(<?php echo $transUID; ?>, '/salesreturns/getAttachments');
+    initTransAttachments(<?php echo $transUID; ?>, '/transactions/getAttachments', 106);
 
     <?php if ($isDraftEdit && !empty($SRData->PartyUID)): ?>
     $('#customerSearch').append(new Option(

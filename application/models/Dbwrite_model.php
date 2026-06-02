@@ -815,7 +815,7 @@ class Dbwrite_model extends CI_Model {
 
     public function saveFormData($orgUID, $transUID, $moduleUID, $action, $formDataJson, $userUID) {
         $this->WriteDB->db_debug = FALSE;
-        $this->WriteDB->insert('Transaction.TransFormDataTbl', [
+        $this->WriteDB->insert('Security.TransFormDataTbl', [
             'OrgUID'       => (int) $orgUID,
             'TransUID'     => (int) $transUID,
             'ModuleUID'    => (int) $moduleUID,

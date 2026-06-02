@@ -147,7 +147,7 @@ class Rental_model extends CI_Model {
         $sql = "
             SELECT rp.*, pt.Name AS PaymentTypeName
             FROM Transaction.RentalPaymentsTbl rp
-            LEFT JOIN Transaction.PaymentTypesTbl pt ON pt.PaymentTypeUID = rp.PaymentTypeUID
+            LEFT JOIN Global.PaymentTypesTbl pt ON pt.PaymentTypeUID = rp.PaymentTypeUID
             WHERE rp.RentalUID = ? AND rp.OrgUID = ? AND rp.IsDeleted = 0
             ORDER BY rp.RentalPaymentUID ASC
         ";
@@ -189,7 +189,7 @@ class Rental_model extends CI_Model {
     public function getPaymentTypes() {
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->select('PaymentTypeUID, Name AS PaymentTypeName, IsCash');
-        $this->ReadDb->from('Transaction.PaymentTypesTbl');
+        $this->ReadDb->from('Global.PaymentTypesTbl');
         $this->ReadDb->where('IsActive', 1);
         $this->ReadDb->order_by('PaymentTypeUID', 'ASC');
         $query = $this->ReadDb->get();
@@ -199,7 +199,7 @@ class Rental_model extends CI_Model {
     public function getBankAccounts($orgUID) {
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->select('BankAccountUID, AccountName, BankName, IsDefault');
-        $this->ReadDb->from('Transaction.OrgBankAccountsTbl');
+        $this->ReadDb->from('Organisation.OrgBankAccountsTbl');
         $this->ReadDb->where('OrgUID',    (int)$orgUID);
         $this->ReadDb->where('IsCash',    0);
         $this->ReadDb->where('IsDeleted', 0);

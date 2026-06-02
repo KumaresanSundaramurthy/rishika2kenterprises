@@ -21,6 +21,15 @@ class Middleware {
 		$cookieName = getenv('JWT_COOKIE_NAME');
         $JwtEncoded = get_cookie($cookieName);
 
+		// Save the intended URL so the login page can redirect back after successful login
+        // Only for non-AJAX, non-excluded page requests
+        if (!$CI->input->is_ajax_request()) {
+            $intendedUri = trim($CI->uri->uri_string(), '/');
+            if (!empty($intendedUri) && !in_array(explode('/', $intendedUri)[0], $ExcludeController)) {
+                $CI->session->set_userdata('intended_url', $intendedUri);
+            }
+        }
+
 		//check JWT
 		if (empty($JwtEncoded)) {
 			$CI->session->set_flashdata('danger', 'Oops! Action not allowed. please try login.');

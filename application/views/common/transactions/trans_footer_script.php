@@ -1,6 +1,6 @@
 <script>
 var JwtToken = '<?php echo $JwtToken; ?>';
-var JwtData = JSON.parse('<?php echo json_encode($JwtData); ?>');
+var JwtData = <?php echo json_encode($JwtData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;
 var CsrfName = '<?php echo $this->security->get_csrf_token_name(); ?>';
 var CsrfToken = '<?php echo $this->security->get_csrf_hash(); ?>';
 const defaultIso2 = '<?php echo $JwtData->Org->OrgCISO2 ?? 'IN'; ?>';

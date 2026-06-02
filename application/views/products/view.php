@@ -570,7 +570,7 @@ $(function() {
         }
     });
 
-    $('.SearchDetails').keyup(inputDelay(function(e) {
+    $('.SearchDetails').on('input', inputDelay(function(e) {
         PageNo = 0;
         let searchText = $('#SearchDetails').val();
         if (searchText.length >= 3) {
@@ -583,7 +583,7 @@ $(function() {
             $('#SearchDetails').blur();
             showProductPageDetails();
         }
-    }, 500));
+    }, 1500));
 
     $('#clearSearch').click(function(e) {
         e.preventDefault();

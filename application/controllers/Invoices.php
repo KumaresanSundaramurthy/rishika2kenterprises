@@ -557,6 +557,7 @@ class Invoices extends MY_Controller {
                 'IsFullyPaid'       => $newIsFullyPaid,
                 'DocStatus'         => $computedStatus,
                 'UpdatedBy'         => $userUID,
+                'PdfPath'           => NULL,
             ];
 
             $isInterState          = $igstAmount > 0 ? 1 : ($cgstAmount > 0 || $sgstAmount > 0 ? 0 : NULL);
@@ -770,6 +771,8 @@ class Invoices extends MY_Controller {
                 }
             }
 
+            $this->transactions_model->generateAndStorePdf($activeTransUID, $orgUID, $this->pageModuleUID);
+
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Invoice updated successfully.';
             $this->_saveAttachments($activeTransUID);
@@ -785,10 +788,6 @@ class Invoices extends MY_Controller {
 
         $this->globalservice->sendJsonResponse($this->EndReturnData);
 
-    }
-
-    private function _touchCustomerCache($customerUID) {
-        $this->cachehelper->touchCustomer($customerUID);
     }
 
     private function _saveAttachments($transUID) {
@@ -1965,7 +1964,7 @@ class Invoices extends MY_Controller {
     private function getWhatsAppTemplate($orgUID) {
         $db = $this->load->database('ReadDB', TRUE);
         $db->select('Body');
-        $db->from('Organisation.MessageTemplatesTbl');
+        $db->from('Settings.MessageTemplatesTbl');
         $db->where([
             'OrgUID' => $orgUID,
             'ModuleUID' => $this->pageModuleUID,

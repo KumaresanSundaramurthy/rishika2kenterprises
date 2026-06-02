@@ -696,7 +696,7 @@ $(document).ready(function () {
         _searchTimer = setTimeout(function () {
             _invFilter['Search'] = val;
             invLoadPage(1);
-        }, 400);
+        }, 1500);
     });
 
     // Pagination clicks (delegated)

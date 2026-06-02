@@ -181,12 +181,12 @@ $(function () {
 
     // ── Search ────────────────────────────────────────────────────────
     var _debounceTimer;
-    $('#searchUserData').on('keyup', function () {
+    $('#searchUserData').on('input', function () {
         clearTimeout(_debounceTimer);
         var val = $.trim($(this).val());
         _debounceTimer = setTimeout(function () {
             Filter.Name = val; PageNo = 1; _loadUsers();
-        }, 400);
+        }, 1500);
     });
 
     // ── Pagination ─────────────────────────────────────────────────────

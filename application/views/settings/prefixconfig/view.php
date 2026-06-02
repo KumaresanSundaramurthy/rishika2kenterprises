@@ -21,7 +21,7 @@ $_fyLong  = $_fyStart . '-' . ($_fyStart + 1);
                 <div class="container-xxl flex-grow-1 container-p-y">
 
                     <!-- Page Header -->
-                    <div class="trans-page-header">
+                    <div class="trans-page-header d-flex align-items-center justify-content-between">
                         <div class="d-flex align-items-center gap-3">
                             <div class="trans-ph-icon" style="background:#ede9fe;">
                                 <i class="bx bx-hash" style="color:#7c3aed;"></i>
@@ -33,24 +33,24 @@ $_fyLong  = $_fyStart . '-' . ($_fyStart + 1);
                                 <?php endif; ?>
                             </div>
                         </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <button class="btn btn-primary btn-sm px-3" id="btnAddPrefixConfig">
+                                <i class="bx bx-plus me-1"></i>Add Prefix
+                            </button>
+                        </div>
                     </div>
 
                     <div class="card">
 
-                        <!-- Action bar -->
-                        <div class="d-flex justify-content-between align-items-center px-3 py-3 border-bottom flex-wrap gap-2">
-                            <div class="d-flex align-items-center gap-2">
-                                <span class="badge bg-label-secondary d-inline-flex align-items-center gap-1" style="font-size:.78rem;font-weight:500;">
-                                    <i class="bx bx-info-circle"></i>
-                                    Prefixes define how your transaction numbers are formatted
-                                </span>
-                                <span class="badge bg-label-primary d-inline-flex align-items-center gap-1" style="font-size:.78rem;font-weight:500;" id="pcModuleCountBadge">
-                                    <?php echo (int)$PrefixModuleCount; ?> module<?php echo $PrefixModuleCount != 1 ? 's' : ''; ?> support prefix numbering
-                                </span>
-                            </div>
-                            <button class="btn btn-primary btn-sm px-3" id="btnAddPrefixConfig">
-                                <i class="bx bx-plus me-1"></i>Add Prefix
-                            </button>
+                        <!-- Info bar -->
+                        <div class="px-3 py-2 border-bottom d-flex align-items-center gap-2 flex-wrap">
+                            <span class="badge bg-label-secondary d-inline-flex align-items-center gap-1" style="font-size:.78rem;font-weight:500;">
+                                <i class="bx bx-info-circle"></i>
+                                Prefixes define how your transaction numbers are formatted
+                            </span>
+                            <span class="badge bg-label-primary d-inline-flex align-items-center gap-1" style="font-size:.78rem;font-weight:500;" id="pcModuleCountBadge">
+                                <?php echo (int)$PrefixModuleCount; ?> module<?php echo $PrefixModuleCount != 1 ? 's' : ''; ?> support prefix numbering
+                            </span>
                         </div>
 
                         <!-- Table -->
@@ -69,11 +69,7 @@ $_fyLong  = $_fyStart . '-' . ($_fyStart + 1);
                                     </tr>
                                 </thead>
                                 <tbody id="PrefixConfigBody" class="r2k-tbody table-border-bottom-0">
-                                    <tr>
-                                        <td colspan="8" class="text-center py-4 text-muted">
-                                            <span class="spinner-border spinner-border-sm me-2"></span>Loading...
-                                        </td>
-                                    </tr>
+                                    <?php echo $ModRowData ?? ''; ?>
                                 </tbody>
                             </table>
                         </div>
@@ -278,7 +274,7 @@ var CsrfToken = '<?php echo $this->security->get_csrf_hash(); ?>';
 window.addEventListener('load', function () {
     'use strict';
 
-    var prefixAllModules = {};
+    var prefixAllModules = <?php echo $PrefixModulesJson ?? '{}'; ?>;
 
     /* ── Utilities ──────────────────────────────────────────────── */
     function escHtml(s) {
@@ -603,8 +599,7 @@ window.addEventListener('load', function () {
     /* ── Reset modal on close ────────────────────────────────────── */
     $('#prefixConfigModal').on('hidden.bs.modal', resetModal);
 
-    /* ── Initial load ────────────────────────────────────────────── */
-    loadPrefixConfigList();
+    // List pre-rendered server-side — no initial AJAX needed.
 
 });
 </script>

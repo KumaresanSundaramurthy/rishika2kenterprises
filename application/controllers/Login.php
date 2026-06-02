@@ -135,7 +135,10 @@ class Login extends CI_Controller {
                                     );
                                 }
 
-                                redirect('dashboard', 'refresh');
+                                // Redirect to where the user was before session expired
+                                $intendedUrl = $this->session->userdata('intended_url');
+                                $this->session->unset_userdata('intended_url');
+                                redirect(!empty($intendedUrl) ? $intendedUrl : 'dashboard', 'refresh');
 
                             } else {
                                 $this->session->set_flashdata('danger', 'Oops! '.$JwtReturnData->Message);  

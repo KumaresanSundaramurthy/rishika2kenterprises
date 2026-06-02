@@ -191,11 +191,11 @@ $(function () {
     });
 
     // Search
-    $('#searchTransactionData').on('keyup', debounce(function () {
+    $('#searchTransactionData').on('input', debounce(function () {
         Filter.Name = $.trim($(this).val());
         PageNo = 1;
         getPurchaseOrdersDetails();
-    }, 400));
+    }, 1500));
 
     // Date filter
     $(document).on('click', '.date-option', function () {

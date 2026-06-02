@@ -73,7 +73,7 @@ class Transactions extends CI_Controller {
             ];
 
             $this->load->model('dbwrite_model');
-            $getResp = $this->dbwrite_model->insertData('Transaction', 'TransactionPrefixTbl', $addFormData);
+            $getResp = $this->dbwrite_model->insertData('Settings', 'TransactionPrefixTbl', $addFormData);
             if ($getResp->Error) throw new Exception($getResp->Message);
 
             // Return the new prefix data so the caller can update the UI
@@ -132,7 +132,7 @@ class Transactions extends CI_Controller {
 
             $this->load->model('dbwrite_model');
             $resp = $this->dbwrite_model->updateData(
-                'Transaction', 'TransactionPrefixTbl',
+                'Settings', 'TransactionPrefixTbl',
                 $updateData,
                 ['PrefixUID' => $prefixUID, 'OrgUID' => $orgUID]
             );
@@ -173,7 +173,7 @@ class Transactions extends CI_Controller {
 
             $this->load->model('dbwrite_model');
             $resp = $this->dbwrite_model->updateData(
-                'Transaction', 'TransactionPrefixTbl',
+                'Settings', 'TransactionPrefixTbl',
                 ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID, 'UpdatedOn' => time()],
                 ['PrefixUID' => $prefixUID, 'OrgUID' => $orgUID]
             );
@@ -215,14 +215,14 @@ class Transactions extends CI_Controller {
 
             // Clear default flag for all org prefixes, then set the chosen one
             $resp = $this->dbwrite_model->updateData(
-                'Transaction', 'TransactionPrefixTbl',
+                'Settings', 'TransactionPrefixTbl',
                 ['IsDefault' => 0, 'UpdatedBy' => $userUID, 'UpdatedOn' => time()],
                 ['OrgUID' => $orgUID]
             );
             if ($resp->Error) throw new Exception($resp->Message);
 
             $updresp = $this->dbwrite_model->updateData(
-                'Transaction', 'TransactionPrefixTbl',
+                'Settings', 'TransactionPrefixTbl',
                 ['IsDefault' => 1, 'UpdatedBy' => $userUID, 'UpdatedOn' => time()],
                 ['PrefixUID' => $prefixUID, 'OrgUID' => $orgUID]
             );
@@ -475,14 +475,17 @@ class Transactions extends CI_Controller {
     // ----------------------------------------------------------------
     // POST /transactions/downloadA4Pdf
     // Renders the transaction as HTML, converts to PDF via DomPDF,
-    // and streams it as a file download.
-    // ----------------------------------------------------------------
-    public function downloadA4Pdf() {
+    // ── Generic PDF base64 for email auto-attach (all transaction modules) ───
+    // Replaces the old per-module getQuotationPdfBase64 endpoint.
+    // POST: TransUID, ModuleUID, PaperSize
+    public function getTransactionPdfBase64() {
 
+        $this->EndReturnData = new stdClass();
         try {
 
-            $transUID  = (int) $this->input->get_post('TransUID');
-            $moduleUID = (int) $this->input->get_post('ModuleUID');
+            $transUID  = (int) $this->input->post('TransUID');
+            $moduleUID = (int) $this->input->post('ModuleUID');
+            $paperSize = strtoupper(trim($this->input->post('PaperSize') ?: 'A4'));
             $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
 
             if ($transUID  <= 0) throw new Exception('Invalid transaction.');
@@ -492,70 +495,58 @@ class Transactions extends CI_Controller {
             $header = $this->transactions_model->getTransactionById($transUID, $orgUID, $moduleUID);
             if (!$header) throw new Exception('Transaction not found.');
 
+            // Verify a print template is configured for this transaction type
             $this->load->model('organisation_model');
-            $orgInfo          = $this->organisation_model->getOrgInfoCached($orgUID);
-            $printThemeResult = $this->organisation_model->getPrintThemeByType($orgUID, $header->TransType);
-            $printBankAccount = $this->transactions_model->getPrintBankAccount($orgUID);
+            $themeResult = $this->organisation_model->getPrintThemeByType($orgUID, $header->TransType);
+            if (empty($themeResult->Data) || empty($themeResult->Data->TemplateHtmlContent)) {
+                throw new Exception('Print template not configured for "' . $header->TransType . '". Please set it up in Settings → Print Templates before sending.');
+            }
 
-            $items = $this->transactions_model->getTransactionItems($transUID, $orgUID);
-            $html  = $this->transactions_model->_renderA4Html($moduleUID, $header, $items, $orgInfo->Data ?? null, $printThemeResult->Data ?? null, $printBankAccount);
-
-            // ── PDF-specific HTML adjustments ────────────────────────
-            $paperSize  = strtoupper(trim($this->input->get_post('PaperSize') ?: 'A4'));
-            $fontFamily = $printThemeResult->Data->FontFamily ?? 'Arial';
-
-            // 1. Strip Google Fonts link — Dompdf cannot load WOFF2/web fonts.
-            //    The font-family !important rule in _renderA4Html falls back to Arial in Dompdf.
-            $html = preg_replace('/<link[^>]*fonts\.googleapis\.com[^>]*>/i', '', $html);
-
-            // 2. PDF layout overrides — body padding is for browser preview only;
-            //    @page margin handles spacing in the PDF.
-            $html = str_replace('</head>',
-                '<style>'
-                . 'body{padding:0!important;margin:0!important;}'
-                . '.print-content{margin:0!important;}'
-                . '#trans-type-header td{border-left:none!important;border-right:none!important;}'
-                . '</style></head>',
-                $html);
-
-            // 3. Composite QR + logo into a single base64 PNG (Dompdf can't do CSS positioning)
-            $html = $this->_compositeQrForPdf($html);
-
-            // 4. Dompdf CSS compatibility fixes
-            $html = preg_replace('/\bdisplay\s*:\s*flex\s*;?/i',                       'display:block;', $html);
-            $html = preg_replace('/\bflex-direction\s*:[^;"}]+;?/i',                   '', $html);
-            $html = preg_replace('/\bjustify-content\s*:[^;"}]+;?/i',                  '', $html);
-            $html = preg_replace('/\balign-items\s*:[^;"}]+;?/i',                      '', $html);
-            $html = preg_replace('/\bheight\s*:\s*100%\s*;?/i',                        '', $html);
-            $html = preg_replace('/\bposition\s*:\s*(absolute|relative|fixed)\s*;?/i', '', $html);
-            $html = preg_replace('/\btransform\s*:[^;"}]+;?/i',                        '', $html);
-            $html = preg_replace('/\btop\s*:\s*[^;"}]+;?/i',                           '', $html);
-            $html = preg_replace('/\bleft\s*:\s*[^;"}]+;?/i',                          '', $html);
-
-            // 5. Page size — body padding removed above, so @page margin is the only spacing
-            $html = preg_replace('/@page\s*\{[^}]*\}/', "@page{size:{$paperSize};margin:10mm 5mm;}", $html);
-
-            // ── DomPDF ──────────────────────────────────────────────
-            require_once FCPATH . 'vendor/autoload.php';
-
-            $options = new \Dompdf\Options();
-            $options->set('isHtml5ParserEnabled', true);
-            $options->set('isRemoteEnabled', true);
-            $options->set('defaultFont', 'Arial');
-            $options->set('chroot', FCPATH);
-
-            $dompdf = new \Dompdf\Dompdf($options);
-            $dompdf->loadHtml($html, 'UTF-8');
-            $dompdf->setPaper(strtolower($paperSize), 'portrait');
-            $dompdf->render();
+            $pdfBytes = $this->transactions_model->getOrGeneratePdfBytes($transUID, $orgUID, $moduleUID, $paperSize);
+            if (!$pdfBytes) throw new Exception('Failed to generate PDF. Please try again.');
 
             $filename = preg_replace('/[^A-Za-z0-9_\-]/', '_', $header->UniqueNumber ?? ('Trans_' . $transUID)) . '.pdf';
 
-            // Stream PDF to browser as download
+            $this->EndReturnData->Error    = FALSE;
+            $this->EndReturnData->Base64   = base64_encode($pdfBytes);
+            $this->EndReturnData->Filename = $filename;
+            $this->EndReturnData->Size     = strlen($pdfBytes);
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    // and streams it as a file download.
+    // ----------------------------------------------------------------
+    public function downloadA4Pdf() {
+
+        try {
+
+            $transUID  = (int) $this->input->get_post('TransUID');
+            $moduleUID = (int) $this->input->get_post('ModuleUID');
+            $paperSize = strtoupper(trim($this->input->get_post('PaperSize') ?: 'A4'));
+            $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
+
+            if ($transUID  <= 0) throw new Exception('Invalid transaction.');
+            if ($moduleUID <= 0) throw new Exception('ModuleUID is required.');
+
+            $this->load->model('transactions_model');
+            $header = $this->transactions_model->getTransactionById($transUID, $orgUID, $moduleUID);
+            if (!$header) throw new Exception('Transaction not found.');
+
+            $pdfBytes = $this->transactions_model->getOrGeneratePdfBytes($transUID, $orgUID, $moduleUID, $paperSize);
+            if (!$pdfBytes) throw new Exception('Failed to generate PDF.');
+
+            $filename = preg_replace('/[^A-Za-z0-9_\-]/', '_', $header->UniqueNumber ?? ('Trans_' . $transUID)) . '.pdf';
+
             header('Content-Type: application/pdf');
             header('Content-Disposition: attachment; filename="' . $filename . '"');
             header('Cache-Control: private, max-age=0, must-revalidate');
-            echo $dompdf->output();
+            echo $pdfBytes;
             exit;
 
         } catch (Exception $e) {

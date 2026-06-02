@@ -262,11 +262,11 @@ $(function () {
         getSalesOrdersDetails();
     });
 
-    $('#searchTransactionData').on('keyup', debounce(function () {
+    $('#searchTransactionData').on('input', debounce(function () {
         Filter.Name = $.trim($(this).val());
         PageNo = 1;
         getSalesOrdersDetails();
-    }, 400));
+    }, 1500));
 
     $(document).on('click', '.date-option', function () {
         $('.date-option').removeClass('active');

@@ -131,26 +131,28 @@ foreach ($DataLists as $row):
         <div class="text-muted" style="font-size:.7rem;">by <?php echo $updatedByName; ?></div>
     </td>
 
-    <td class="text-center align-middle text-nowrap">
-        <button type="button"
-                class="btn btn-icon btn-sm text-warning EditPrefixConfig"
-                data-config='<?php echo $editData; ?>'
-                title="Edit">
-            <i class="bx bx-edit"></i>
-        </button>
-        <?php if (!$isDefault): ?>
-        <button type="button"
-                class="btn btn-icon btn-sm text-danger DeletePrefixConfig"
-                data-uid="<?php echo (int)$row->PrefixUID; ?>"
-                data-name="<?php echo htmlspecialchars($row->Name ?? ''); ?>"
-                title="Delete">
-            <i class="bx bx-trash"></i>
-        </button>
-        <?php else: ?>
-        <button type="button" class="btn btn-icon btn-sm text-muted" disabled title="Default prefix cannot be deleted">
-            <i class="bx bx-lock-alt"></i>
-        </button>
-        <?php endif; ?>
+    <td class="text-center align-middle">
+        <div class="d-flex align-items-center justify-content-center gap-1">
+            <button type="button"
+                    class="btn btn-icon btn-sm text-warning EditPrefixConfig"
+                    data-config='<?php echo $editData; ?>'
+                    title="Edit">
+                <i class="bx bx-edit"></i>
+            </button>
+            <?php if (!$isDefault): ?>
+            <button type="button"
+                    class="btn btn-icon btn-sm text-danger DeletePrefixConfig"
+                    data-uid="<?php echo (int)$row->PrefixUID; ?>"
+                    data-name="<?php echo htmlspecialchars($row->Name ?? ''); ?>"
+                    title="Delete">
+                <i class="bx bx-trash"></i>
+            </button>
+            <?php else: ?>
+            <button type="button" class="btn btn-icon btn-sm text-muted" disabled title="Default prefix cannot be deleted">
+                <i class="bx bx-lock-alt"></i>
+            </button>
+            <?php endif; ?>
+        </div>
     </td>
 </tr>
 <?php endforeach; ?>

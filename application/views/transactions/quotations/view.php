@@ -62,9 +62,22 @@ $this->load->view('common/transactions/header'); ?>
                                 <?php endif; ?>
                             </div>
                         </div>
-                        <a href="/quotations/create" class="btn btn-primary me-1">
-                            <i class="bx bx-plus me-1"></i>New Quotation
-                        </a>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="dropdown">
+                                <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="bx bx-export me-1"></i>Export
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="quotExport('Print')"><i class="bx bx-printer me-1"></i>Print</a></li>
+                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="quotExport('CSV')"><i class="bx bx-file me-1"></i>CSV</a></li>
+                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="quotExport('Excel')"><i class="bx bxs-file-export me-1"></i>Excel</a></li>
+                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="quotExport('Pdf')"><i class="bx bxs-file-pdf me-1"></i>PDF</a></li>
+                                </ul>
+                            </div>
+                            <a href="/quotations/create" class="btn btn-primary me-1">
+                                <i class="bx bx-plus me-1"></i>New Quotation
+                            </a>
+                        </div>
                     </div>
 
                     <!-- ── Stat Cards ────────────────────────────────────── -->
@@ -224,11 +237,34 @@ $this->load->view('common/transactions/header'); ?>
 <?php $this->load->view('common/transactions/footer'); ?>
 
 <script src="/js/common/communication.js"></script>
+<script src="/js/common/pagecheckbox.js"></script>
 <script src="/js/transactions/viewmodal.js"></script>
 <script src="/js/transactions/a4_print.js"></script>
 <script src="/js/transactions/quotations.js"></script>
 
 <script>
+// ── Comm modal pre-loaded data (eliminates getCommTemplate AJAX call) ─────────
+var _commOrgContext = <?php
+    $org     = $CommOrgContext ?? null;
+    $orgAddr = $org ? implode(', ', array_filter([
+        $org->Line1 ?? '', $org->Line2 ?? '',
+        $org->CityText ?? '', $org->StateText ?? '', $org->Pincode ?? '',
+    ])) : '';
+    echo json_encode([
+        'OrgName'    => $org ? ($org->BrandName ?? $org->Name ?? '') : '',
+        'OrgPhone'   => $org->MobileNumber  ?? '',
+        'OrgEmail'   => $org->EmailAddress  ?? '',
+        'OrgGSTIN'   => $org->GSTIN         ?? '',
+        'OrgAddress' => $orgAddr,
+    ]);
+?>;
+var _commGenSettings  = <?php echo json_encode([
+    'CurrenySymbol' => $JwtData->GenSettings->CurrenySymbol ?? '₹',
+    'DecimalPoints' => (int)($JwtData->GenSettings->DecimalPoints ?? 2),
+]); ?>;
+var _rawEmailTemplate = <?php echo json_encode($CommEmailTemplate ?? null); ?>;
+var _r2CdnBase        = <?php echo json_encode(rtrim(getenv('CFLARE_R2_CDN') ?: getenv('CDN_URL'), '/')); ?>;
+// ─────────────────────────────────────────────────────────────────────────────
 const ModuleId     = 101;
 const ModuleTable  = '#quotTable';
 const ModulePag    = '.quotPagination';
@@ -313,7 +349,7 @@ $(function () {
         getQuotationsDetails();
     });
 
-    $('#searchTransactionData').on('keyup', debounce(function () {
+    $('#searchTransactionData').on('input', debounce(function () {
         var val = $.trim($(this).val());
         if (val === '') {
             $('#clearQuotSearch').addClass('d-none');
@@ -326,7 +362,7 @@ $(function () {
         Filter.Name = val;
         PageNo = 1;
         getQuotationsDetails();
-    }, 400));
+    }, 1500));
 
     $('#clearQuotSearch').on('click', function () {
         $('#searchTransactionData').val('');
@@ -486,5 +522,18 @@ function _buildQuotDetailHtml(resp) {
 function _stripHtml(v) {
     if (!v) return '';
     return $('<div>').html(String(v)).text().trim();
+}
+
+// ── Export ────────────────────────────────────────────────────────────────────
+function quotExport(type) {
+    var url = '/quotations/exportQuotations?Type=' + encodeURIComponent(type);
+    if (typeof Filter !== 'undefined' && !$.isEmptyObject(Filter)) {
+        url += '&Filter=' + encodeURIComponent(JSON.stringify(Filter));
+    }
+    if (type === 'Print') {
+        printPreviewRecords(url, function () {});
+    } else {
+        window.location.href = url;
+    }
 }
 </script>

@@ -45,11 +45,24 @@ foreach ($DataLists as $row) {
             <div class="fw-semibold text-dark mb-1" style="font-size:.8rem;"><?php echo htmlspecialchars($row->Subject); ?></div>
             <?php endif; ?>
             <?php
-            // Strip HTML tags for Email channel preview (body is HTML from editor)
-            $bodyPreview = $channel === 'Email'
-                ? strip_tags($row->Body)
-                : $row->Body;
-            $bodyPreview = mb_substr(trim($bodyPreview), 0, 120) . (mb_strlen(trim($bodyPreview)) > 120 ? '…' : '');
+            // Strip HTML for Email preview — replace block tags with newlines first
+            // so paragraph/line breaks are preserved as readable whitespace
+            if ($channel === 'Email') {
+                $bodyPreview = preg_replace('/<(br\s*\/?|\/?(p|div|li|h[1-6]))[^>]*>/i', "\n", $row->Body ?? '');
+                $bodyPreview = strip_tags($bodyPreview);
+            } else {
+                $bodyPreview = $row->Body ?? '';
+            }
+            $bodyPreview = trim($bodyPreview);
+            // Truncate at 120 chars but never cut inside a {{token}}
+            if (mb_strlen($bodyPreview) > 120) {
+                $cut = mb_substr($bodyPreview, 0, 120);
+                // If the cut lands inside an open {{ token, trim back to before {{
+                if (substr_count($cut, '{{') > substr_count($cut, '}}')) {
+                    $cut = mb_substr($cut, 0, mb_strrpos($cut, '{{'));
+                }
+                $bodyPreview = rtrim($cut) . '…';
+            }
             ?>
             <div class="text-muted" style="font-size:.76rem;white-space:pre-wrap;max-height:48px;overflow:hidden;"><?php echo htmlspecialchars($bodyPreview); ?></div>
         <?php else: ?>
@@ -66,13 +79,15 @@ foreach ($DataLists as $row) {
     </td>
     <td class="text-center" style="width:90px;">
         <?php if ($row): ?>
-        <a href="javascript:void(0);" class="btn btn-icon btn-sm text-warning EditMsgTemplate"
-           data-uid="<?php echo (int)$row->TemplateUID; ?>"
-           title="Edit"><i class="bx bx-edit"></i></a>
-        <a href="javascript:void(0);" class="btn btn-icon btn-sm text-danger DeleteMsgTemplate"
-           data-uid="<?php echo (int)$row->TemplateUID; ?>"
-           data-label="<?php echo htmlspecialchars($moduleName . ' — ' . $channel); ?>"
-           title="Delete"><i class="bx bx-trash"></i></a>
+        <div class="d-flex align-items-center justify-content-center gap-1">
+            <a href="javascript:void(0);" class="btn btn-icon btn-sm text-warning EditMsgTemplate"
+               data-uid="<?php echo (int)$row->TemplateUID; ?>"
+               title="Edit"><i class="bx bx-edit"></i></a>
+            <a href="javascript:void(0);" class="btn btn-icon btn-sm text-danger DeleteMsgTemplate"
+               data-uid="<?php echo (int)$row->TemplateUID; ?>"
+               data-label="<?php echo htmlspecialchars($moduleName . ' — ' . $channel); ?>"
+               title="Delete"><i class="bx bx-trash"></i></a>
+        </div>
         <?php else: ?>
         <a href="javascript:void(0);" class="btn btn-sm btn-outline-secondary AddMsgTemplate"
            style="font-size:.72rem;padding:2px 8px;"

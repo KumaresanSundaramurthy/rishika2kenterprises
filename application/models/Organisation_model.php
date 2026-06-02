@@ -1,4 +1,4 @@
-﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
+<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Organisation_model extends CI_Model {
     
@@ -415,7 +415,7 @@ class Organisation_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->ReadDb->from('Organisation.PrintThemeConfigTbl');
+            $this->ReadDb->from('Settings.PrintThemeConfigTbl');
             $this->ReadDb->where(['OrgUID' => $orgUID, 'IsDeleted' => 0]);
             $this->ReadDb->order_by('ThemeConfigUID', 'ASC');
             $rows = $this->ReadDb->get()->result();
@@ -444,8 +444,8 @@ class Organisation_model extends CI_Model {
                 'PT.PreviewImage  AS TemplatePreviewImage',
                 'PT.TemplateName  AS TemplateName',
             ]);
-            $this->ReadDb->from('Organisation.PrintThemeConfigTbl TC');
-            $this->ReadDb->join('Organisation.PrintTemplatesTbl PT', 'PT.TemplateUID = TC.TemplateUID AND PT.IsDeleted = 0', 'left');
+            $this->ReadDb->from('Settings.PrintThemeConfigTbl TC');
+            $this->ReadDb->join('Settings.PrintTemplatesTbl PT', 'PT.TemplateUID = TC.TemplateUID AND PT.IsDeleted = 0', 'left');
             $this->ReadDb->where(['TC.OrgUID' => $orgUID, 'TC.TransactionType' => $transactionType, 'TC.IsDeleted' => 0]);
             $this->ReadDb->limit(1);
             $row = $this->ReadDb->get()->row();
@@ -471,8 +471,8 @@ class Organisation_model extends CI_Model {
             $base = ['TC.OrgUID' => $orgUID, 'TC.IsDeleted' => 0];
 
             // Count
-            $this->ReadDb->from('Organisation.PrintThemeConfigTbl TC');
-            $this->ReadDb->join('Organisation.PrintTemplatesTbl PT', 'PT.TemplateUID = TC.TemplateUID AND PT.IsDeleted = 0', 'left');
+            $this->ReadDb->from('Settings.PrintThemeConfigTbl TC');
+            $this->ReadDb->join('Settings.PrintTemplatesTbl PT', 'PT.TemplateUID = TC.TemplateUID AND PT.IsDeleted = 0', 'left');
             $this->ReadDb->where($base);
             $total = $this->ReadDb->count_all_results();
 
@@ -482,8 +482,8 @@ class Organisation_model extends CI_Model {
                 'PT.TemplateName  AS TemplateName',
                 'PT.PreviewImage  AS TemplatePreviewImage',
             ]);
-            $this->ReadDb->from('Organisation.PrintThemeConfigTbl TC');
-            $this->ReadDb->join('Organisation.PrintTemplatesTbl PT', 'PT.TemplateUID = TC.TemplateUID AND PT.IsDeleted = 0', 'left');
+            $this->ReadDb->from('Settings.PrintThemeConfigTbl TC');
+            $this->ReadDb->join('Settings.PrintTemplatesTbl PT', 'PT.TemplateUID = TC.TemplateUID AND PT.IsDeleted = 0', 'left');
             $this->ReadDb->where($base);
             $this->ReadDb->order_by('TC.ThemeConfigUID', 'ASC');
             $this->ReadDb->limit($limit, $offset);
@@ -508,7 +508,7 @@ class Organisation_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->ReadDb->from('Organisation.PrintTemplatesTbl');
+            $this->ReadDb->from('Settings.PrintTemplatesTbl');
             $this->ReadDb->where('IsDeleted', 0);
             if ($search) {
                 $this->ReadDb->like('TemplateName', $search);
@@ -516,7 +516,7 @@ class Organisation_model extends CI_Model {
             $total = $this->ReadDb->count_all_results();
 
             $this->ReadDb->select(['TemplateUID', 'TemplateKey', 'TemplateName', 'Description', 'Category', 'PreviewImage', 'SortOrder', 'IsActive', 'CreatedOn', 'UpdatedOn']);
-            $this->ReadDb->from('Organisation.PrintTemplatesTbl');
+            $this->ReadDb->from('Settings.PrintTemplatesTbl');
             $this->ReadDb->where('IsDeleted', 0);
             if ($search) {
                 $this->ReadDb->like('TemplateName', $search);
@@ -545,7 +545,7 @@ class Organisation_model extends CI_Model {
         try {
 
             $this->ReadDb->select(['TemplateUID', 'TemplateKey', 'TemplateName', 'Description', 'Category', 'PreviewImage']);
-            $this->ReadDb->from('Organisation.PrintTemplatesTbl');
+            $this->ReadDb->from('Settings.PrintTemplatesTbl');
             $this->ReadDb->where(['IsDeleted' => 0, 'IsActive' => 1]);
             $this->ReadDb->order_by('SortOrder', 'ASC');
             $rows = $this->ReadDb->get()->result();
@@ -568,7 +568,7 @@ class Organisation_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->ReadDb->from('Organisation.PrintTemplatesTbl');
+            $this->ReadDb->from('Settings.PrintTemplatesTbl');
             $this->ReadDb->where(['TemplateUID' => (int)$templateUID, 'IsDeleted' => 0]);
             $this->ReadDb->limit(1);
             $row = $this->ReadDb->get()->row();
@@ -591,7 +591,7 @@ class Organisation_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->ReadDb->from('Organisation.ThermalPrintConfigTbl');
+            $this->ReadDb->from('Settings.ThermalPrintConfigTbl');
             $this->ReadDb->where(['OrgUID' => $orgUID, 'IsDeleted' => 0]);
             $this->ReadDb->limit(1);
             $row = $this->ReadDb->get()->row();
@@ -616,7 +616,7 @@ class Organisation_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->ReadDb->from('Organisation.ThermalPrintConfigTbl');
+            $this->ReadDb->from('Settings.ThermalPrintConfigTbl');
             $this->ReadDb->where(['OrgUID' => $orgUID, 'ModuleUID' => (int)$moduleUID, 'IsDeleted' => 0]);
             $this->ReadDb->limit(1);
             $row = $this->ReadDb->get()->row();
@@ -649,7 +649,7 @@ class Organisation_model extends CI_Model {
                 'OpeningBalance', 'Notes', 'IsDefault', 'IsCash',
                 'CreatedOn', 'UpdatedOn',
             ]);
-            $this->ReadDb->from('Transaction.OrgBankAccountsTbl');
+            $this->ReadDb->from('Organisation.OrgBankAccountsTbl');
             $this->ReadDb->where(['OrgUID' => $orgUID, 'IsDeleted' => 0, 'IsActive' => 1]);
             $this->ReadDb->order_by('IsCash DESC, IsDefault DESC, BankAccountUID ASC');
             $rows = $this->ReadDb->get()->result();
@@ -672,7 +672,7 @@ class Organisation_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->ReadDb->from('Transaction.OrgBankAccountsTbl');
+            $this->ReadDb->from('Organisation.OrgBankAccountsTbl');
             $this->ReadDb->where(['BankAccountUID' => (int)$bankUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
             $this->ReadDb->limit(1);
             $row = $this->ReadDb->get()->row();
@@ -702,7 +702,7 @@ class Organisation_model extends CI_Model {
                     COALESCE(SUM(CASE WHEN P.PartyType = 'S' AND P.IsDeleted = 0 AND P.IsActive = 1 THEN P.Amount ELSE 0 END), 0) AS TotalOut,
                     COALESCE((SELECT SUM(FT.Amount) FROM `Transaction`.`FundTransfersTbl` FT WHERE FT.ToBankUID   = BA.BankAccountUID AND FT.IsDeleted = 0), 0) AS TransferIn,
                     COALESCE((SELECT SUM(FT.Amount) FROM `Transaction`.`FundTransfersTbl` FT WHERE FT.FromBankUID = BA.BankAccountUID AND FT.IsDeleted = 0), 0) AS TransferOut
-                FROM `Transaction`.`OrgBankAccountsTbl` BA
+                FROM `Organisation`.`OrgBankAccountsTbl` BA
                 LEFT JOIN `Transaction`.`PaymentsTbl` P ON P.BankAccountUID = BA.BankAccountUID
                 WHERE BA.BankAccountUID = ? AND BA.OrgUID = ? AND BA.IsDeleted = 0
                 GROUP BY BA.BankAccountUID, BA.OpeningBalance
@@ -736,7 +736,7 @@ class Organisation_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
             $this->ReadDb->select(['T.*', 'M.Name AS ModuleName', "CONCAT(U.FirstName,' ',U.LastName) AS UpdatedByName"]);
-            $this->ReadDb->from('Organisation.MessageTemplatesTbl T');
+            $this->ReadDb->from('Settings.MessageTemplatesTbl T');
             $this->ReadDb->join('Modules.ModuleTbl M', 'M.ModuleUID = T.ModuleUID', 'left');
             $this->ReadDb->join('Users.UserTbl U', 'U.UserUID = T.UpdatedBy', 'left');
             $this->ReadDb->where(['T.OrgUID' => $orgUID, 'T.IsDeleted' => 0]);
@@ -754,7 +754,7 @@ class Organisation_model extends CI_Model {
     public function getMessageTemplate($orgUID, $moduleUID, $channel) {
         $this->EndReturnData = new stdClass();
         try {
-            $this->ReadDb->from('Organisation.MessageTemplatesTbl');
+            $this->ReadDb->from('Settings.MessageTemplatesTbl');
             $this->ReadDb->where(['OrgUID' => $orgUID, 'ModuleUID' => (int)$moduleUID, 'Channel' => $channel, 'IsDeleted' => 0]);
             $this->ReadDb->limit(1);
             $this->EndReturnData->Error = FALSE;
@@ -769,7 +769,7 @@ class Organisation_model extends CI_Model {
     public function getMessageTemplateByUID($templateUID, $orgUID) {
         $this->EndReturnData = new stdClass();
         try {
-            $this->ReadDb->from('Organisation.MessageTemplatesTbl');
+            $this->ReadDb->from('Settings.MessageTemplatesTbl');
             $this->ReadDb->where(['TemplateUID' => (int)$templateUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
             $this->ReadDb->limit(1);
             $this->EndReturnData->Error = FALSE;
@@ -788,7 +788,7 @@ class Organisation_model extends CI_Model {
         try {
 
             $this->ReadDb->select(['TC.*', 'M.Name AS ModuleName', "CONCAT(U.FirstName, ' ', U.LastName) AS UpdatedByName"]);
-            $this->ReadDb->from('Organisation.ThermalPrintConfigTbl TC');
+            $this->ReadDb->from('Settings.ThermalPrintConfigTbl TC');
             $this->ReadDb->join('Modules.ModuleTbl M', 'M.ModuleUID = TC.ModuleUID', 'left');
             $this->ReadDb->join('Users.UserTbl U', 'U.UserUID = TC.UpdatedBy', 'left');
             $this->ReadDb->where(['TC.OrgUID' => $orgUID, 'TC.IsDeleted' => 0]);
@@ -862,7 +862,7 @@ class Organisation_model extends CI_Model {
                 'M.Name AS ModuleName',
                 "CONCAT(U.FirstName, ' ', IFNULL(U.LastName,'')) AS UpdatedByName",
             ]);
-            $this->ReadDb->from('Transaction.TransactionPrefixTbl P');
+            $this->ReadDb->from('Settings.TransactionPrefixTbl P');
             $this->ReadDb->join('Modules.ModuleTbl M',  'M.ModuleUID = P.ModuleUID AND M.IsDeleted = 0', 'left');
             $this->ReadDb->join('Users.UserTbl U',       'U.UserUID = P.UpdatedBy',                      'left');
             $this->ReadDb->where(['P.OrgUID' => $orgUID, 'P.IsDeleted' => 0]);
@@ -882,7 +882,7 @@ class Organisation_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
             $this->ReadDb->select('P.*, M.Name AS ModuleName');
-            $this->ReadDb->from('Transaction.TransactionPrefixTbl P');
+            $this->ReadDb->from('Settings.TransactionPrefixTbl P');
             $this->ReadDb->join('Modules.ModuleTbl M', 'M.ModuleUID = P.ModuleUID AND M.IsDeleted = 0', 'left');
             $this->ReadDb->where(['P.PrefixUID' => $prefixUID, 'P.OrgUID' => $orgUID, 'P.IsDeleted' => 0]);
             $this->EndReturnData->Error = FALSE;

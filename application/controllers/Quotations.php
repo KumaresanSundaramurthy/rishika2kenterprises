@@ -36,6 +36,17 @@ class Quotations extends MY_Controller {
             $orgUID = $this->pageData['JwtData']->Org->OrgUID;
             $whatsAppTemplate = $this->getWhatsAppTemplate($orgUID);
 
+            // Pre-load org context and email template so the comm modal can populate
+            // client-side (zero AJAX on email button click)
+            $this->load->model('organisation_model');
+            $orgResult = $this->organisation_model->getOrgInfoCached($orgUID);
+            $this->pageData['CommOrgContext'] = $orgResult->Data ?? null;
+
+            $msgTplResult = $this->organisation_model->getMessageTemplate($orgUID, $this->pageModuleUID, 'Email');
+            $this->pageData['CommEmailTemplate'] = (!$msgTplResult->Error && !empty($msgTplResult->Data))
+                ? ['Subject' => $msgTplResult->Data->Subject ?? '', 'Body' => $msgTplResult->Data->Body ?? '']
+                : null;
+
             $this->pageData['ModRowData'] = $this->load->view('transactions/quotations/list', ['DataLists' => $allData, 'SerialNumber' => 0, 'JwtData' => $this->pageData['JwtData'], 'WhatsAppTemplate' => $whatsAppTemplate], TRUE);
             $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/quotations/getQuotationsPageDetails', $allDataCount, 1, $limit);
             $this->pageData['ModAllCount'] = $allDataCount;
@@ -91,6 +102,56 @@ class Quotations extends MY_Controller {
 
         $this->globalservice->sendJsonResponse($this->EndReturnData);
 
+    }
+
+    /** Export quotations as CSV / Excel / PDF / Print */
+    public function exportQuotations() {
+        try {
+            $type     = $this->input->get('Type')   ?: 'CSV';
+            $filter   = $this->input->get('Filter') ?: '{}';
+            $filter   = json_decode($filter, true)  ?: [];
+
+            $orgUID   = (int)$this->pageData['JwtData']->Org->OrgUID;
+            $timezone = $this->pageData['JwtData']->User->Timezone ?? 'UTC';
+            $dtFmt    = $this->pageData['JwtData']->GenSettings->ListDateTimeFormat ?? 'd M Y';
+            $dateFmt  = $this->pageData['JwtData']->GenSettings->ListDateFormat     ?? 'd M Y';
+            $dec      = $this->pageData['JwtData']->GenSettings->DecimalPoints      ?? 2;
+
+            $this->load->model('organisation_model');
+            $orgResult = $this->organisation_model->getOrgInfoCached($orgUID);
+            $orgInfo   = ($orgResult->Error === FALSE) ? $orgResult->Data : null;
+
+            $this->load->model('transactions_model');
+            $data = $this->transactions_model->getTransactionPageList(0, 0, $this->pageModuleUID, $filter, 0);
+
+            $headers = [
+                '#', 'Quotation #', 'Customer', 'Mobile', 'Amount', 'Status',
+                'Quotation Date', 'Valid Until', 'Reference', 'Created By', 'Last Updated',
+            ];
+
+            $rows = [];
+            foreach ($data as $i => $row) {
+                $rows[] = [
+                    $i + 1,
+                    $row->UniqueNumber         ?? '',
+                    $row->PartyName            ?? '',
+                    $row->MobileNumber         ?? '',
+                    number_format((float)($row->NetAmount ?? 0), $dec),
+                    $row->Status               ?? '',
+                    !empty($row->TransDate)    ? format_datedisplay($row->TransDate, $dateFmt)    : '',
+                    !empty($row->ValidityDate) ? format_datedisplay($row->ValidityDate, $dateFmt) : '',
+                    $row->Reference            ?? '',
+                    $row->CreatedByName        ?? '',
+                    !empty($row->UpdatedOn)    ? date($dtFmt, strtotime($row->UpdatedOn))         : '',
+                ];
+            }
+
+            $colWidths = ['3%','11%','14%','10%','9%','9%','10%','9%','10%','8%','7%'];
+            $this->_sendExport($type, 'Quotation_Data', 'Quotations', 'Quotation Report', $headers, $rows, $orgInfo, $timezone, $colWidths);
+
+        } catch (Exception $e) {
+            echo json_encode(['Error' => true, 'Message' => $e->getMessage()]);
+        }
     }
 
     public function addQuotation() {
@@ -234,11 +295,10 @@ class Quotations extends MY_Controller {
 
             // --- Insert line items + tax records ---
             $this->saveQuotationItems($transUID, $financialYear, $orgUID, $userUID, $items);
+            $this->_saveAttachments($transUID);
 
             $this->dbwrite_model->commitTransaction();
-
-            $this->_saveAttachments($transUID);
-            $this->_touchCustomerCache($customerUID);
+            $this->cachehelper->touchCustomer($customerUID);
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Quotation created successfully.';
@@ -367,6 +427,7 @@ class Quotations extends MY_Controller {
                 'NetAmount'         => $netAmount,
                 'DocStatus'         => $status,
                 'UpdatedBy'         => $userUID,
+                'PdfPath'           => NULL,
             ];
 
             $isInterState          = $igstAmount > 0 ? 1 : ($cgstAmount > 0 || $sgstAmount > 0 ? 0 : NULL);
@@ -511,7 +572,8 @@ class Quotations extends MY_Controller {
 
             $this->_saveAttachments($transUID);
             $this->_softDeleteAttachments($this->input->post('RemovedAttachIDs') ?? '');
-            $this->_touchCustomerCache($customerUID);
+            $this->cachehelper->touchCustomer($customerUID);
+            $this->transactions_model->generateAndStorePdf(isset($newTransUID) ? $newTransUID : $transUID, $orgUID, $this->pageModuleUID);
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Quotation updated successfully.';
@@ -970,10 +1032,6 @@ class Quotations extends MY_Controller {
 
     }
 
-    private function _touchCustomerCache($customerUID) {
-        $this->cachehelper->touchCustomer($customerUID);
-    }
-
     private function _saveAttachments($transUID) {
         $files = $_FILES['AttachFiles'] ?? null;
         if (empty($files) || empty($files['name'][0])) return;
@@ -1040,40 +1098,6 @@ class Quotations extends MY_Controller {
                 ['AttachUID' => $attachUID, 'OrgUID' => $orgUID]
             );
         }
-    }
-
-    public function getQuotationPdfBase64() {
-
-        $this->EndReturnData = new stdClass();
-        try {
-
-            $transUID  = (int) $this->input->post('TransUID');
-            $paperSize = strtoupper(trim($this->input->post('PaperSize') ?: 'A4'));
-            $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
-
-            if ($transUID <= 0) throw new Exception('Invalid quotation.');
-
-            $this->load->model('transactions_model');
-            $quotation = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
-            if (!$quotation) throw new Exception('Quotation not found.');
-
-            $pdfBytes = $this->transactions_model->generateTransactionPdfBytes($transUID, $orgUID, $this->pageModuleUID, $paperSize);
-            if (!$pdfBytes) throw new Exception('Failed to generate PDF.');
-
-            $filename = preg_replace('/[^A-Za-z0-9_\-]/', '_', $quotation->UniqueNumber ?? ('Quotation_' . $transUID)) . '.pdf';
-
-            $this->EndReturnData->Error    = FALSE;
-            $this->EndReturnData->Base64   = base64_encode($pdfBytes);
-            $this->EndReturnData->Filename = $filename;
-            $this->EndReturnData->Size     = strlen($pdfBytes);
-
-        } catch (Exception $e) {
-            $this->EndReturnData->Error   = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-        }
-
-        $this->globalservice->sendJsonResponse($this->EndReturnData);
-
     }
 
     public function uploadAttachments() {

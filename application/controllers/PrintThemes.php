@@ -29,6 +29,7 @@ class PrintThemes extends MY_Controller {
 
     public function __construct() {
         parent::__construct();
+        $this->load->helper('transaction');
         $this->load->model('organisation_model');
     }
 
@@ -96,14 +97,12 @@ class PrintThemes extends MY_Controller {
 
     public function index() {
 
-        if (!$this->_loadPageTitle()) {
-            $this->load->view('common/module_error', $this->pageData);
-            return;
-        }
+        $this->pageData['PageTitle']       = 'Print Themes';
+        $this->pageData['PageDescription'] = 'Configure print templates and themes for each transaction type.';
 
         try {
 
-
+            $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
             $activeTab = $this->sanitizeTabInput($this->input->get('tab', TRUE));
             $limit     = (int) ($GeneralSettings->RowLimit ?? 10);
 
@@ -242,7 +241,7 @@ class PrintThemes extends MY_Controller {
 
             if ($themeConfigUID > 0) {
                 $resp = $this->dbwrite_model->updateData(
-                    'Organisation', 'PrintThemeConfigTbl', $configData,
+                    'Settings', 'PrintThemeConfigTbl', $configData,
                     ['ThemeConfigUID' => $themeConfigUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
                 );
                 if ($resp->Error) throw new Exception($resp->Message);
@@ -255,7 +254,7 @@ class PrintThemes extends MY_Controller {
                 $configData['CreatedBy'] = $userUID;
                 $configData['IsActive']  = 1;
                 $configData['IsDeleted'] = 0;
-                $resp = $this->dbwrite_model->insertData('Organisation', 'PrintThemeConfigTbl', $configData);
+                $resp = $this->dbwrite_model->insertData('Settings', 'PrintThemeConfigTbl', $configData);
                 if ($resp->Error) throw new Exception($resp->Message);
             }
 
@@ -284,7 +283,7 @@ class PrintThemes extends MY_Controller {
 
             $this->load->model('dbwrite_model');
             $resp = $this->dbwrite_model->updateData(
-                'Organisation', 'PrintThemeConfigTbl',
+                'Settings', 'PrintThemeConfigTbl',
                 ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
                 ['ThemeConfigUID' => $themeConfigUID, 'OrgUID' => $orgUID]
             );
@@ -371,14 +370,14 @@ class PrintThemes extends MY_Controller {
 
             if ($templateUID > 0) {
                 $resp = $this->dbwrite_model->updateData(
-                    'Organisation', 'PrintTemplatesTbl', $data,
+                    'Settings', 'PrintTemplatesTbl', $data,
                     ['TemplateUID' => $templateUID, 'IsDeleted' => 0]
                 );
                 if ($resp->Error) throw new Exception($resp->Message);
             } else {
                 $data['IsActive']  = 1;
                 $data['IsDeleted'] = 0;
-                $resp = $this->dbwrite_model->insertData('Organisation', 'PrintTemplatesTbl', $data);
+                $resp = $this->dbwrite_model->insertData('Settings', 'PrintTemplatesTbl', $data);
                 if ($resp->Error) throw new Exception($resp->Message);
             }
 
@@ -405,7 +404,7 @@ class PrintThemes extends MY_Controller {
 
             $this->load->model('dbwrite_model');
             $resp = $this->dbwrite_model->updateData(
-                'Organisation', 'PrintTemplatesTbl',
+                'Settings', 'PrintTemplatesTbl',
                 ['IsDeleted' => 1, 'IsActive' => 0],
                 ['TemplateUID' => $templateUID]
             );

@@ -458,7 +458,7 @@ class Payments extends MY_Controller {
             // If set as default, clear other defaults first
             if ($isDefault) {
                 $this->dbwrite_model->updateData(
-                    'Transaction', 'OrgBankAccountsTbl',
+                    'Organisation', 'OrgBankAccountsTbl',
                     ['IsDefault' => 0, 'UpdatedBy' => $userUID],
                     ['OrgUID' => $orgUID, 'IsDeleted' => 0]
                 );
@@ -466,12 +466,12 @@ class Payments extends MY_Controller {
 
             if ($accountUID > 0) {
                 $resp = $this->dbwrite_model->updateData(
-                    'Transaction', 'OrgBankAccountsTbl', $accountData,
+                    'Organisation', 'OrgBankAccountsTbl', $accountData,
                     ['BankAccountUID' => $accountUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
                 );
             } else {
                 $accountData['CreatedBy'] = $userUID;
-                $resp = $this->dbwrite_model->insertData('Transaction', 'OrgBankAccountsTbl', $accountData);
+                $resp = $this->dbwrite_model->insertData('Organisation', 'OrgBankAccountsTbl', $accountData);
                 if (!$resp->Error) $this->EndReturnData->BankAccountUID = $resp->ID;
             }
 
@@ -508,7 +508,7 @@ class Payments extends MY_Controller {
 
             $this->transactions_model->ReadDb->db_debug = FALSE;
             $this->transactions_model->ReadDb->select('BankAccountUID, AccountName, BankName, AccountNumber, IFSC, BranchName, UPIId, UPINumber, IsDefault');
-            $this->transactions_model->ReadDb->from('Transaction.OrgBankAccountsTbl');
+            $this->transactions_model->ReadDb->from('Organisation.OrgBankAccountsTbl');
             $this->transactions_model->ReadDb->where(['BankAccountUID' => $bankAccountUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
             $query  = $this->transactions_model->ReadDb->get();
             $record = $query ? $query->row() : null;
@@ -543,14 +543,14 @@ class Payments extends MY_Controller {
 
             // Clear all defaults
             $this->dbwrite_model->updateData(
-                'Transaction', 'OrgBankAccountsTbl',
+                'Organisation', 'OrgBankAccountsTbl',
                 ['IsDefault' => 0, 'UpdatedBy' => $userUID],
                 ['OrgUID' => $orgUID, 'IsDeleted' => 0]
             );
 
             // Set the selected one
             $resp = $this->dbwrite_model->updateData(
-                'Transaction', 'OrgBankAccountsTbl',
+                'Organisation', 'OrgBankAccountsTbl',
                 ['IsDefault' => 1, 'UpdatedBy' => $userUID],
                 ['BankAccountUID' => $bankAccountUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
             );
@@ -590,7 +590,7 @@ class Payments extends MY_Controller {
             $deleteData['IsActive'] = 0;
 
             $resp = $this->dbwrite_model->updateData(
-                'Transaction', 'OrgBankAccountsTbl', $deleteData,
+                'Organisation', 'OrgBankAccountsTbl', $deleteData,
                 ['BankAccountUID' => $bankAccountUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
             );
             if ($resp->Error) throw new Exception($resp->Message);

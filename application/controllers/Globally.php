@@ -638,7 +638,7 @@ class Globally extends CI_Controller {
         $orgAddress = $context['OrgAddress'] ?? '';
 
         $fmtAmt = isset($context['Amount'])
-            ? $cur . ' ' . number_format((float)$context['Amount'], $dec)
+            ? number_format((float)$context['Amount'], $dec)
             : '';
 
         // ── Common tokens — both UPPER_CASE and camelCase variants ────────────
@@ -673,7 +673,7 @@ class Globally extends CI_Controller {
         // ── Module 110: Payments ──────────────────────────────────────────────
         if ((int)$moduleUID === 110) {
             $balFmt = isset($context['BalanceAmount'])
-                ? $cur . ' ' . number_format((float)$context['BalanceAmount'], $dec)
+                ? number_format((float)$context['BalanceAmount'], $dec)
                 : '';
 
             // UPPER_CASE
@@ -701,19 +701,19 @@ class Globally extends CI_Controller {
         // ── Module 103: Sales Invoice ───────────────────────────────────────────
         if ((int)$moduleUID === 103) {
             $balFmt = isset($context['BalanceAmount'])
-                ? $cur . ' ' . number_format((float)$context['BalanceAmount'], $dec)
+                ? number_format((float)$context['BalanceAmount'], $dec)
                 : '';
             $paidFmt = isset($context['PaidAmount'])
-                ? $cur . ' ' . number_format((float)$context['PaidAmount'], $dec)
+                ? number_format((float)$context['PaidAmount'], $dec)
                 : '';
             $subTotalFmt = isset($context['SubTotal'])
-                ? $cur . ' ' . number_format((float)$context['SubTotal'], $dec)
+                ? number_format((float)$context['SubTotal'], $dec)
                 : '';
             $taxFmt = isset($context['TaxAmount'])
-                ? $cur . ' ' . number_format((float)$context['TaxAmount'], $dec)
+                ? number_format((float)$context['TaxAmount'], $dec)
                 : '';
             $discountFmt = isset($context['DiscountAmount'])
-                ? $cur . ' ' . number_format((float)$context['DiscountAmount'], $dec)
+                ? number_format((float)$context['DiscountAmount'], $dec)
                 : '';
 
             // UPPER_CASE

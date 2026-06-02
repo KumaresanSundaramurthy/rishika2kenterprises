@@ -44,8 +44,8 @@ class Indirectincome_model extends CI_Model {
                      WHERE PA.PaymentUID IN (SELECT PaymentUID FROM Transaction.PaymentsTbl P2 WHERE P2.TransUID = P.TransUID AND P2.SourceType = 'IndirectIncome' AND P2.IsDeleted = 0 AND P2.IsActive = 1)
                      AND PA.IsDeleted = 0 AND PA.IsActive = 1) AS PaymentAttachmentCount
                  FROM Transaction.PaymentsTbl P
-                 JOIN Transaction.PaymentTypesTbl PT ON PT.PaymentTypeUID = P.PaymentTypeUID
-                 LEFT JOIN Transaction.OrgBankAccountsTbl BA ON BA.BankAccountUID = P.BankAccountUID
+                 JOIN Global.PaymentTypesTbl PT ON PT.PaymentTypeUID = P.PaymentTypeUID
+                 LEFT JOIN Organisation.OrgBankAccountsTbl BA ON BA.BankAccountUID = P.BankAccountUID
                  WHERE P.IsDeleted = 0 AND P.IsActive = 1 AND P.SourceType = 'IndirectIncome'
                  GROUP BY P.TransUID) AS PayInfo",
                 'PayInfo.TransUID = i.IncomeUID',
@@ -102,8 +102,8 @@ class Indirectincome_model extends CI_Model {
             $this->ReadDb->from('Transaction.IndirectIncomeTbl i');
             $this->ReadDb->join('Transaction.IndirectIncomeCategoryTbl ic', 'ic.CategoryUID = i.CategoryUID AND ic.IsDeleted = 0',                                    'left');
             $this->ReadDb->join('Transaction.PaymentsTbl py',               'py.TransUID = i.IncomeUID AND py.SourceType = \'IndirectIncome\' AND py.IsDeleted = 0', 'left');
-            $this->ReadDb->join('Transaction.PaymentTypesTbl pt',           'pt.PaymentTypeUID = py.PaymentTypeUID',                                                   'left');
-            $this->ReadDb->join('Transaction.OrgBankAccountsTbl ba',        'ba.BankAccountUID = py.BankAccountUID AND ba.IsDeleted = 0',                             'left');
+            $this->ReadDb->join('Global.PaymentTypesTbl pt',           'pt.PaymentTypeUID = py.PaymentTypeUID',                                                   'left');
+            $this->ReadDb->join('Organisation.OrgBankAccountsTbl ba',        'ba.BankAccountUID = py.BankAccountUID AND ba.IsDeleted = 0',                             'left');
             $this->ReadDb->join('Users.UserTbl u',                          'u.UserUID = i.UpdatedBy',                                                                'left');
             $this->ReadDb->where('i.IncomeUID', $incomeUID);
             $this->ReadDb->where('i.OrgUID',    $orgUID);
@@ -164,7 +164,7 @@ class Indirectincome_model extends CI_Model {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('PaymentTypeUID, Name AS PaymentTypeName, IsCash');
-            $this->ReadDb->from('Transaction.PaymentTypesTbl');
+            $this->ReadDb->from('Global.PaymentTypesTbl');
             $this->ReadDb->where('IsActive', 1);
             $this->ReadDb->order_by('PaymentTypeUID', 'ASC');
             $query = $this->ReadDb->get();
@@ -180,7 +180,7 @@ class Indirectincome_model extends CI_Model {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('BankAccountUID, AccountName, BankName, IsDefault');
-            $this->ReadDb->from('Transaction.OrgBankAccountsTbl');
+            $this->ReadDb->from('Organisation.OrgBankAccountsTbl');
             $this->ReadDb->where('OrgUID',    $orgUID);
             $this->ReadDb->where('IsDeleted', 0);
             $this->ReadDb->where('IsActive',  1);
@@ -198,7 +198,7 @@ class Indirectincome_model extends CI_Model {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('BankAccountUID');
-            $this->ReadDb->from('Transaction.OrgBankAccountsTbl');
+            $this->ReadDb->from('Organisation.OrgBankAccountsTbl');
             $this->ReadDb->where('OrgUID',    $orgUID);
             $this->ReadDb->where('IsCash',    1);
             $this->ReadDb->where('IsDeleted', 0);

@@ -1,15 +1,16 @@
-/**
+﻿/**
  * communication.js -- shared Send SMS / Send Email modal logic
  */
 
-var _commSmsQuill   = null;
-var _commEmailQuill = null;
-var _commDropzone   = null;
-var _commMobiles    = [];
-var _commEmails     = [];
-var _commTpl        = { rawSubject: '', rawBody: '', resolvedSubject: '', resolvedBody: '', showingRaw: false };
-var _commPendingTpl = null;
+var _commSmsQuill        = null;
+var _commEmailQuill      = null;
+var _commDropzone        = null;
+var _commMobiles         = [];
+var _commEmails          = [];
+var _commTpl             = { rawSubject: '', rawBody: '', resolvedSubject: '', resolvedBody: '', showingRaw: false };
+var _commPendingTpl      = null;
 var _commPdfAutoAttached = false;
+var _commRowData         = null;   // row data attributes from the clicked email button
 
 function _initCommQuill() {
     if (!_commSmsQuill && document.getElementById('CommSmsEditor')) {
@@ -145,6 +146,7 @@ function sendEmail(options) {
 function openCommModal(commType, recipientType, uids, names, mobiles, emails, opts) {
     opts = opts || {};
 
+    _commRowData = opts.rowData || null;
     _commMobiles = mobiles || [];
     _commEmails  = emails  || [];
 
@@ -204,21 +206,119 @@ function openCommModal(commType, recipientType, uids, names, mobiles, emails, op
 }
 
 // -- Template fetch ----------------------------------------------------------
+// Uses pre-loaded _rawEmailTemplate (set in view.php) for instant client-side
+// token replacement. Falls back to AJAX only when the template is not pre-loaded.
 function _fetchCommTemplate(moduleUID, recordUID) {
     if (!moduleUID) return;
+
+    // If the page declared _rawEmailTemplate (any value including null), the server
+    // already checked the DB — no AJAX needed.
+    // undefined = old page not yet updated → fall back to AJAX for backward compat.
+    if (typeof window._rawEmailTemplate !== 'undefined') {
+        if (window._rawEmailTemplate &&
+            (window._rawEmailTemplate.Subject || window._rawEmailTemplate.Body)) {
+            var rawSubject = window._rawEmailTemplate.Subject || '';
+            var rawBody    = window._rawEmailTemplate.Body    || '';
+            var ctx        = _buildCommTokenContext(moduleUID, _commRowData);
+            var resolved   = _resolveCommTokensJS(rawSubject, rawBody, ctx);
+            var resp       = { RawSubject: rawSubject, RawBody: rawBody,
+                               Subject: resolved.subject, Body: resolved.body };
+            if (_commEmailQuill) { _applyCommTemplate(resp); } else { _commPendingTpl = resp; }
+        }
+        // null or empty template → nothing to apply, but still skip AJAX
+        return;
+    }
+
+    // _rawEmailTemplate not declared → old page, fall back to AJAX
     $.ajax({
         url   : '/globally/getCommTemplate',
         method: 'POST',
         data  : { ModuleUID: moduleUID, RecordUID: recordUID || 0, Channel: 'Email', [CsrfName]: CsrfToken },
         success: function (resp) {
             if (resp.Error || !resp.Found) return;
-            if (_commEmailQuill) {
-                _applyCommTemplate(resp);
-            } else {
-                _commPendingTpl = resp;
-            }
+            if (_commEmailQuill) { _applyCommTemplate(resp); } else { _commPendingTpl = resp; }
         }
     });
+}
+
+// -- Client-side token context builder ---------------------------------------
+// Mirrors PHP's _resolveCommTokens / _buildCommContext for all common modules.
+function _buildCommTokenContext(moduleUID, rowData) {
+    rowData    = rowData    || {};
+    var orgCtx = (window._commOrgContext  || {});
+    var gs     = (window._commGenSettings || {});
+    var cur    = gs.CurrenySymbol || '₹';
+    var dec    = parseInt(gs.DecimalPoints || 2);
+    var fmtAmt = function (n) {
+        return parseFloat(n || 0).toFixed(dec)
+            .replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    };
+    var appBase = ((window._commAppBase || window.location.origin) + '').replace(/\/+$/, '');
+
+    var ctx = {
+        PARTY_NAME:      rowData.partyName    || '',
+        DOC_NUMBER:      rowData.docNumber    || '',
+        DOC_DATE:        rowData.docDate      || '',
+        DOC_TYPE:        rowData.docType      || '',
+        AMOUNT:          fmtAmt(rowData.netAmount),
+        AMOUNT_IN_WORDS: rowData.amountWords  || '',
+        CURRENCY:        cur,
+        VALID_UNTIL:     rowData.validityDate || '',
+        ORG_NAME:        orgCtx.OrgName       || '',
+        ORG_PHONE:       orgCtx.OrgPhone      || '',
+        ORG_EMAIL:       orgCtx.OrgEmail      || '',
+        ORG_GSTIN:       orgCtx.OrgGSTIN      || '',
+        ORG_ADDRESS:     orgCtx.OrgAddress    || '',
+        // camelCase aliases
+        PartyName:       rowData.partyName    || '',
+        DocNumber:       rowData.docNumber    || '',
+        DocDate:         rowData.docDate      || '',
+        Amount:          fmtAmt(rowData.netAmount),
+        AmountInWords:   rowData.amountWords  || '',
+        CompanyName:     orgCtx.OrgName       || '',
+        CompanyMobile:   orgCtx.OrgPhone      || '',
+        CompanyEmail:    orgCtx.OrgEmail      || '',
+        CompanyGSTIN:    orgCtx.OrgGSTIN      || '',
+        CompanyAddress:  orgCtx.OrgAddress    || '',
+    };
+
+    // Module 103: Invoice
+    if (moduleUID === 103) {
+        var bal       = Math.max(0, (rowData.netAmount || 0) - (rowData.paidAmount || 0));
+        var paid      = rowData.paidAmount || 0;
+        var payStatus = paid > 0 && bal <= 0.01 ? 'Paid' : paid > 0 ? 'Partially Paid' : 'Pending';
+        var invLink   = rowData.transToken
+            ? appBase + '/invoice/' + rowData.transToken : '';
+        Object.assign(ctx, {
+            INVOICE_NUMBER:  rowData.docNumber    || '',
+            INVOICE_DATE:    rowData.docDate      || '',
+            DUE_DATE:        rowData.validityDate || '',
+            PAYMENT_STATUS:  payStatus,
+            PAID_AMOUNT:     fmtAmt(paid),
+            BALANCE_AMOUNT:  fmtAmt(bal),
+            INVOICE_LINK:    invLink,
+            InvoiceNumber:   rowData.docNumber    || '',
+            InvoiceDate:     rowData.docDate      || '',
+            DueDate:         rowData.validityDate || '',
+            PaymentStatus:   payStatus,
+            PaidAmount:      fmtAmt(paid),
+            BalanceAmount:   fmtAmt(bal),
+            InvoiceLink:     invLink,
+            CustomerName:    rowData.partyName    || '',
+            BillAmount:      fmtAmt(rowData.netAmount),
+        });
+    }
+
+    return ctx;
+}
+
+function _resolveCommTokensJS(subject, body, ctx) {
+    var replace = function (text) {
+        return text.replace(/\{\{([^}]+)\}\}/g, function (m, k) {
+            return ctx.hasOwnProperty(k) ? ctx[k] : m;
+        });
+    };
+    return { subject: replace(subject), body: replace(body) };
 }
 
 // -- PDF attachment fetch (module 110 Payments) ------------------------------
@@ -364,9 +464,23 @@ $(document).on('click', '.comm-send-single', function () {
     var moduleUID     = parseInt($btn.data('module-uid') || $row.data('trans-module') || 0);
     var recordUID     = parseInt($btn.data('trans-uid') || $row.data('uid') || 0);
 
-    openCommModal(commType, recipientType, [uid], [name], [mobile], [email],
-        { moduleUID: moduleUID, recordUID: recordUID }
-    );
+    openCommModal(commType, recipientType, [uid], [name], [mobile], [email], {
+        moduleUID: moduleUID,
+        recordUID: recordUID,
+        rowData: {
+            pdfPath:      String($btn.data('pdf-path')      || ''),
+            transToken:   String($btn.data('trans-token')   || ''),
+            docNumber:    String($btn.data('doc-number')    || ''),
+            netAmount:    parseFloat($btn.data('net-amount')   || 0),
+            paidAmount:   parseFloat($btn.data('paid-amount')  || 0),
+            docDate:      String($btn.data('doc-date')      || ''),
+            validityDate: String($btn.data('validity-date') || ''),
+            docStatus:    String($btn.data('doc-status')    || ''),
+            amountWords:  String($btn.data('amount-words')  || ''),
+            partyName:    String($btn.data('name')          || ''),
+            docType:      String($btn.data('doc-type')      || ''),
+        }
+    });
 });
 
 // -- Send button -------------------------------------------------------------

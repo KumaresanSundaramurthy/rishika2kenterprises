@@ -381,12 +381,25 @@ class Settings extends MY_Controller {
     // ── Separate settings pages ──────────────────────────────────────────────
 
     public function thermalconfig() {
-        $this->pageData['PageTitle'] = 'Thermal Print Config';
+        $this->pageData['PageTitle']       = 'Thermal Print Config';
+        $this->pageData['PageDescription'] = 'Configure thermal receipt layout, paper width and receipt elements per transaction type.';
         try {
             $this->load->model('organisation_model');
-            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
+            $orgUID     = $this->pageData['JwtData']->Org->OrgUID;
+            $transTypes = $this->getThermalTransTypes();
+            $result     = $this->organisation_model->getThermalPrintConfigList($orgUID);
+            $rows       = $result->Error === FALSE ? $result->Data : [];
+
             $this->pageData['OrgPreviewData']   = $this->organisation_model->getOrgInfoCached($orgUID)->Data;
-            $this->pageData['ThermalTypeCount'] = count($this->getThermalTransTypes());
+            $this->pageData['ThermalTypeCount'] = count($transTypes);
+            $this->pageData['ModRowData']       = $this->load->view('settings/thermalconfig/list', [
+                'DataLists'  => $rows,
+                'TransTypes' => $transTypes,
+                'JwtData'    => $this->pageData['JwtData'],
+            ], TRUE);
+            $this->pageData['ThermalTransTypes'] = json_encode($transTypes);
+            $this->pageData['ThermalUsedTypes']  = json_encode(array_map(fn($r) => (int)$r->ModuleUID, $rows));
+
             $this->load->view('settings/thermalconfig/view', $this->pageData);
         } catch (Exception $e) {
             redirect('dashboard', 'refresh');
@@ -403,8 +416,24 @@ class Settings extends MY_Controller {
     }
 
     public function msgtemplates() {
-        $this->pageData['PageTitle'] = 'Message Templates';
+        $this->pageData['PageTitle']       = 'Message Templates';
+        $this->pageData['PageDescription'] = 'Create and manage Email, WhatsApp & SMS templates per transaction type. Use {{tokens}} to auto-fill real data when sending.';
         try {
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
+            $this->load->helper('transaction');
+            $this->load->model('organisation_model');
+            $result  = $this->organisation_model->getMessageTemplates($orgUID);
+            $rows    = $result->Error === FALSE ? $result->Data : [];
+            $modules = $this->getThermalTransTypes();
+
+            $this->pageData['ModRowData']  = $this->load->view('settings/msgtemplates/list', [
+                'DataLists' => $rows,
+                'Modules'   => $modules,
+                'JwtData'   => $this->pageData['JwtData'],
+            ], TRUE);
+            $this->pageData['MsgTokens']   = json_encode(self::$MSG_TOKENS);
+            $this->pageData['MsgModules']  = json_encode($modules);
+
             $this->load->view('settings/msgtemplates/view', $this->pageData);
         } catch (Exception $e) {
             redirect('dashboard', 'refresh');
@@ -667,7 +696,7 @@ class Settings extends MY_Controller {
 
             if ($isDefault) {
                 $this->dbwrite_model->updateData(
-                    'Transaction', 'OrgBankAccountsTbl',
+                    'Organisation', 'OrgBankAccountsTbl',
                     ['IsDefault' => 0, 'UpdatedBy' => $userUID],
                     ['OrgUID' => $orgUID, 'IsDeleted' => 0]
                 );
@@ -689,7 +718,7 @@ class Settings extends MY_Controller {
 
             if ($bankUID > 0) {
                 $this->dbwrite_model->updateData(
-                    'Transaction', 'OrgBankAccountsTbl', $data,
+                    'Organisation', 'OrgBankAccountsTbl', $data,
                     ['BankAccountUID' => $bankUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0, 'IsCash' => 0]
                 );
                 $this->EndReturnData->Message = 'Bank account updated successfully.';
@@ -699,7 +728,7 @@ class Settings extends MY_Controller {
                 $data['IsActive']  = 1;
                 $data['IsDeleted'] = 0;
                 $data['CreatedBy'] = $userUID;
-                $this->dbwrite_model->insertData('Transaction', 'OrgBankAccountsTbl', $data);
+                $this->dbwrite_model->insertData('Organisation', 'OrgBankAccountsTbl', $data);
                 $this->EndReturnData->Message = 'Bank account added successfully.';
             }
 
@@ -734,7 +763,7 @@ class Settings extends MY_Controller {
 
             $this->load->model('dbwrite_model');
             $this->dbwrite_model->updateData(
-                'Transaction', 'OrgBankAccountsTbl',
+                'Organisation', 'OrgBankAccountsTbl',
                 ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
                 ['BankAccountUID' => $bankUID, 'OrgUID' => $orgUID]
             );
@@ -766,12 +795,12 @@ class Settings extends MY_Controller {
 
             $this->load->model('dbwrite_model');
             $this->dbwrite_model->updateData(
-                'Transaction', 'OrgBankAccountsTbl',
+                'Organisation', 'OrgBankAccountsTbl',
                 ['IsDefault' => 0, 'UpdatedBy' => $userUID],
                 ['OrgUID' => $orgUID, 'IsDeleted' => 0]
             );
             $this->dbwrite_model->updateData(
-                'Transaction', 'OrgBankAccountsTbl',
+                'Organisation', 'OrgBankAccountsTbl',
                 ['IsDefault' => 1, 'UpdatedBy' => $userUID],
                 ['BankAccountUID' => $bankUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
             );
@@ -885,6 +914,7 @@ class Settings extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
             $orgUID  = $this->pageData['JwtData']->Org->OrgUID;
+            $this->load->helper('transaction');
             $this->load->model('organisation_model');
             $result  = $this->organisation_model->getMessageTemplates($orgUID);
             $rows    = $result->Error === FALSE ? $result->Data : [];
@@ -936,16 +966,17 @@ class Settings extends MY_Controller {
             ];
 
             if ($templateUID > 0) {
-                $this->dbwrite_model->updateData('Organisation', 'MessageTemplatesTbl', $data,
+                $this->dbwrite_model->updateData('Settings', 'MessageTemplatesTbl', $data,
                     ['TemplateUID' => $templateUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
                 $this->EndReturnData->Message = 'Template updated.';
             } else {
                 $data['OrgUID']    = $orgUID;
                 $data['CreatedBy'] = $userUID;
-                $this->dbwrite_model->insertData('Organisation', 'MessageTemplatesTbl', $data);
+                $this->dbwrite_model->insertData('Settings', 'MessageTemplatesTbl', $data);
                 $this->EndReturnData->Message = 'Template saved.';
             }
 
+            $this->load->helper('transaction');
             $this->load->model('organisation_model');
             $rows    = $this->organisation_model->getMessageTemplates($orgUID);
             $modules = $this->getThermalTransTypes();
@@ -971,7 +1002,7 @@ class Settings extends MY_Controller {
             $templateUID = (int) getPostValue($PostData, 'TemplateUID');
             if ($templateUID <= 0) throw new Exception('Invalid template.');
             $this->load->model('dbwrite_model');
-            $this->dbwrite_model->updateData('Organisation', 'MessageTemplatesTbl',
+            $this->dbwrite_model->updateData('Settings', 'MessageTemplatesTbl',
                 ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
                 ['TemplateUID' => $templateUID, 'OrgUID' => $orgUID]);
             $this->EndReturnData->Error   = FALSE;
@@ -986,10 +1017,23 @@ class Settings extends MY_Controller {
     // ── Prefix Configuration page ────────────────────────────────────────────
 
     public function prefixconfig() {
-        $this->pageData['PageTitle'] = 'Prefix Configuration';
+        $this->pageData['PageTitle']       = 'Prefix Configuration';
+        $this->pageData['PageDescription'] = 'Prefixes define how your transaction numbers are formatted per module.';
         try {
             $this->load->model('organisation_model');
-            $this->pageData['PrefixModuleCount'] = count($this->getPrefixModulesList());
+            $orgUID  = $this->pageData['JwtData']->Org->OrgUID;
+            $modules = $this->getPrefixModulesList();
+            $result  = $this->organisation_model->getPrefixConfigList($orgUID);
+            $rows    = $result->Error === FALSE ? $result->Data : [];
+
+            $this->pageData['PrefixModuleCount'] = count($modules);
+            $this->pageData['ModRowData']        = $this->load->view('settings/prefixconfig/list', [
+                'DataLists' => $rows,
+                'Modules'   => $modules,
+                'JwtData'   => $this->pageData['JwtData'],
+            ], TRUE);
+            $this->pageData['PrefixModulesJson'] = json_encode($modules);
+
             $this->load->view('settings/prefixconfig/view', $this->pageData);
         } catch (Exception $e) {
             redirect('dashboard', 'refresh');
@@ -1071,7 +1115,7 @@ class Settings extends MY_Controller {
 
             if ($prefixUID > 0) {
                 $resp = $this->dbwrite_model->updateData(
-                    'Transaction', 'TransactionPrefixTbl', $data,
+                    'Settings', 'TransactionPrefixTbl', $data,
                     ['PrefixUID' => $prefixUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
                 );
                 if ($resp->Error) throw new Exception($resp->Message);
@@ -1083,7 +1127,7 @@ class Settings extends MY_Controller {
                 $data['IsActive']  = 1;
                 $data['IsDeleted'] = 0;
                 $data['CreatedBy'] = $userUID;
-                $resp = $this->dbwrite_model->insertData('Transaction', 'TransactionPrefixTbl', $data);
+                $resp = $this->dbwrite_model->insertData('Settings', 'TransactionPrefixTbl', $data);
                 if ($resp->Error) throw new Exception($resp->Message);
                 $this->EndReturnData->Message = 'Prefix added successfully.';
             }
@@ -1125,7 +1169,7 @@ class Settings extends MY_Controller {
 
             $this->load->model('dbwrite_model');
             $resp = $this->dbwrite_model->updateData(
-                'Transaction', 'TransactionPrefixTbl',
+                'Settings', 'TransactionPrefixTbl',
                 ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID, 'UpdatedOn' => time()],
                 ['PrefixUID' => $prefixUID, 'OrgUID' => $orgUID]
             );
@@ -1152,12 +1196,12 @@ class Settings extends MY_Controller {
 
             $this->load->model('dbwrite_model');
             $this->dbwrite_model->updateData(
-                'Transaction', 'TransactionPrefixTbl',
+                'Settings', 'TransactionPrefixTbl',
                 ['IsDefault' => 0, 'UpdatedBy' => $userUID, 'UpdatedOn' => time()],
                 ['OrgUID' => $orgUID, 'IsDeleted' => 0]
             );
             $resp = $this->dbwrite_model->updateData(
-                'Transaction', 'TransactionPrefixTbl',
+                'Settings', 'TransactionPrefixTbl',
                 ['IsDefault' => 1, 'UpdatedBy' => $userUID, 'UpdatedOn' => time()],
                 ['PrefixUID' => $prefixUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
             );

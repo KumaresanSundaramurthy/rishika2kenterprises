@@ -255,7 +255,7 @@ $(function () {
             PmtFilter.Search = v;
             PmtPageNo = 1;
             getPaymentsDetails(1);
-        }, 400);
+        }, 1500);
     });
 
     // Date filter — dropdown with range presets + custom flatpickr pickers

@@ -916,9 +916,9 @@ $(function () {
         e.preventDefault(); PageNo = 1; getExpensesDetails();
     });
 
-    $('#searchExpenseData').on('keyup', debounce(function () {
+    $('#searchExpenseData').on('input', debounce(function () {
         Filter.Name = $.trim($(this).val()); PageNo = 1; getExpensesDetails();
-    }, 400));
+    }, 1500));
 
     $(document).on('click', '.date-option', function () {
         $('.date-option').removeClass('active');
@@ -1470,7 +1470,7 @@ $(function () {
         setTimeout(function () { $('#newCategoryName').focus(); }, 350);
     });
 
-    $('#catMgrSearch').on('keyup', debounce(function () { _loadCatMgr(1); }, 350));
+    $('#catMgrSearch').on('input', debounce(function () { _loadCatMgr(1); }, 1500));
 
     $(document).on('click', '#catMgrPagination .page-link', function (e) {
         e.preventDefault();

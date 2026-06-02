@@ -336,7 +336,7 @@ class Proformainvoices extends MY_Controller {
             $this->saveProFormaItems($transUID, $financialYear, $orgUID, $userUID, $items);
 
             $this->dbwrite_model->commitTransaction();
-            $this->_touchCustomerCache($customerUID);
+            $this->cachehelper->touchCustomer($customerUID);
 
             $this->EndReturnData->Error    = FALSE;
             $this->EndReturnData->Message  = 'Pro Forma Invoice created successfully.';
@@ -458,6 +458,7 @@ class Proformainvoices extends MY_Controller {
                 'NetAmount'         => $netAmount,
                 'DocStatus'         => $status,
                 'UpdatedBy'         => $userUID,
+                'PdfPath'           => NULL,
             ];
 
             $commonDetail = [
@@ -550,7 +551,8 @@ class Proformainvoices extends MY_Controller {
             }
 
             $this->dbwrite_model->commitTransaction();
-            $this->_touchCustomerCache($customerUID);
+            $this->cachehelper->touchCustomer($customerUID);
+            $this->transactions_model->generateAndStorePdf(isset($newTransUID) ? $newTransUID : $transUID, $orgUID, $this->pageModuleUID);
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Pro Forma Invoice updated successfully.';
@@ -861,10 +863,6 @@ class Proformainvoices extends MY_Controller {
             $this->EndReturnData->Message = $e->getMessage();
         }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
-    }
-
-    private function _touchCustomerCache($customerUID) {
-        $this->cachehelper->touchCustomer($customerUID);
     }
 
     // ── Private helpers ──────────────────────────────────────────

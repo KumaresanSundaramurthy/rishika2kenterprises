@@ -9,7 +9,7 @@
                 <div class="container-xxl flex-grow-1 container-p-y">
 
                     <!-- ── Page Header ── -->
-                    <div class="trans-page-header">
+                    <div class="trans-page-header d-flex align-items-center justify-content-between">
                         <div class="d-flex align-items-center gap-3">
                             <div class="trans-ph-icon" style="background:#fef3c7;">
                                 <i class="bx bx-palette" style="color:#f59e0b;"></i>
@@ -20,6 +20,14 @@
                                 <div class="text-muted" style="font-size:.76rem;"><?php echo htmlspecialchars($PageDescription); ?></div>
                                 <?php endif; ?>
                             </div>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <button class="btn btn-primary btn-sm px-3 <?php echo $ActiveTabData === 'themes'    ? '' : 'd-none'; ?>" id="btnNewTheme">
+                                <i class="bx bx-plus me-1"></i>Add Theme
+                            </button>
+                            <button class="btn btn-primary btn-sm px-3 <?php echo $ActiveTabData === 'templates' ? '' : 'd-none'; ?>" id="btnNewTemplate">
+                                <i class="bx bx-plus me-1"></i>Add Template
+                            </button>
                         </div>
                     </div>
 
@@ -52,12 +60,6 @@
                                             <input type="text" class="form-control SearchDetails" id="SearchDetails" placeholder="Search..." style="min-width:200px;">
                                             <i class="bx bx-x position-absolute top-50 end-0 translate-middle-y me-3 text-muted cursor-pointer d-none" id="clearSearch"></i>
                                         </div>
-                                        <button class="btn btn-primary btn-sm px-3 <?php echo $ActiveTabData === 'themes' ? '' : 'd-none'; ?>" id="btnNewTheme">
-                                            <i class="bx bx-plus me-1"></i>Add Theme
-                                        </button>
-                                        <button class="btn btn-primary btn-sm px-3 <?php echo $ActiveTabData === 'templates' ? '' : 'd-none'; ?>" id="btnNewTemplate">
-                                            <i class="bx bx-plus me-1"></i>Add Template
-                                        </button>
                                     </div>
                                 </div>
 
@@ -137,7 +139,13 @@ var _usedTypes = <?php echo json_encode(array_values($UsedTypes)); ?>;
 var PageNo     = 1, Filter = {};
 var _themeModal = new bootstrap.Modal(document.getElementById('themeModal'));
 var _tplModal   = new bootstrap.Modal(document.getElementById('templateModal'));
-var _templates  = <?php echo json_encode(array_values($Templates)); ?>;
+var _templates  = <?php echo json_encode(array_values(array_map(function($t) {
+    return [
+        'TemplateUID'  => $t->TemplateUID  ?? 0,
+        'TemplateName' => $t->TemplateName ?? '',
+        'PreviewImage' => $t->PreviewImage ?? '',
+    ];
+}, $Templates ?? []))); ?>;
 var CsrfName    = '<?php echo $this->security->get_csrf_token_name(); ?>';
 var CsrfToken   = '<?php echo $this->security->get_csrf_hash(); ?>';
 
@@ -160,7 +168,7 @@ $('#SearchDetails').on('input', function(){
     $('#clearSearch').toggleClass('d-none', !v);
     clearTimeout(_st);
     if (v.length===0 || v.length>=3) {
-        _st = setTimeout(function(){ PageNo=1; Filter.SearchAllData=$('#SearchDetails').val(); if(ActiveTab==='themes') _loadThemes(); else _loadTemplates(); }, 400);
+        _st = setTimeout(function(){ PageNo=1; Filter.SearchAllData=$('#SearchDetails').val(); if(ActiveTab==='themes') _loadThemes(); else _loadTemplates(); }, 1500);
     }
 });
 $('#clearSearch').on('click', function(){ $('#SearchDetails').val('').trigger('input'); });

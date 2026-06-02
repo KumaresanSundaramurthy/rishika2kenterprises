@@ -12,7 +12,7 @@
                 <div class="container-xxl flex-grow-1 container-p-y">
 
                     <!-- Page Header -->
-                    <div class="trans-page-header">
+                    <div class="trans-page-header d-flex align-items-center justify-content-between">
                         <div class="d-flex align-items-center gap-3">
                             <div class="trans-ph-icon" style="background:#f0fdf4;">
                                 <i class="bx bx-printer" style="color:#16a34a;"></i>
@@ -24,19 +24,21 @@
                                 <?php endif; ?>
                             </div>
                         </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <button class="btn btn-primary btn-sm px-3" id="btnAddThermalConfig">
+                                <i class="bx bx-plus me-1"></i>Add Config
+                            </button>
+                        </div>
                     </div>
 
                     <div class="card">
 
-                        <!-- Action bar -->
-                        <div class="d-flex justify-content-between align-items-center px-3 py-3 border-bottom">
+                        <!-- Info bar -->
+                        <div class="px-3 py-2 border-bottom">
                             <span class="badge bg-label-secondary d-inline-flex align-items-center gap-1" style="font-size:.78rem;font-weight:500;">
                                 <i class="bx bx-info-circle"></i>
                                 One configuration per transaction type &nbsp;&bull;&nbsp; Max <?php echo $ThermalTypeCount; ?> records
                             </span>
-                            <button class="btn btn-primary btn-sm px-3" id="btnAddThermalConfig">
-                                <i class="bx bx-plus me-1"></i>Add Config
-                            </button>
                         </div>
 
                         <!-- Table -->
@@ -54,11 +56,7 @@
                                     </tr>
                                 </thead>
                                 <tbody id="ThermalConfigBody" class="r2k-tbody table-border-bottom-0">
-                                    <tr>
-                                        <td colspan="7" class="text-center py-4 text-muted">
-                                            <span class="spinner-border spinner-border-sm me-2"></span>Loading...
-                                        </td>
-                                    </tr>
+                                    <?php echo $ModRowData ?? ''; ?>
                                 </tbody>
                             </table>
                         </div>
@@ -308,9 +306,9 @@ var CsrfToken = '<?php echo $this->security->get_csrf_hash(); ?>';
 window.addEventListener('load', function() {
     'use strict';
 
-    var thermalUsedTypes = [];
-    var thermalAllTypes  = {};
-    var thermalLoaded    = false;
+    var thermalUsedTypes = <?php echo $ThermalUsedTypes  ?? '[]'; ?>;
+    var thermalAllTypes  = <?php echo $ThermalTransTypes ?? '{}'; ?>;
+    var thermalLoaded    = true;
 
     function escHtml(s) {
         return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -482,7 +480,12 @@ window.addEventListener('load', function() {
         $('#btnAddThermalConfig').prop('disabled', allUsed).attr('title', allUsed ? 'All transaction types are already configured.' : '');
     }
 
-    loadThermalConfigList();
+    // List pre-rendered server-side — no initial AJAX needed.
+    updateAddBtnState();
+    var $sel = $('#ThermalTransType').empty().append('<option value="">-- Select Transaction Type --</option>');
+    $.each(thermalAllTypes, function(moduleUID, label) {
+        $sel.append('<option value="' + moduleUID + '">' + escHtml(label) + '</option>');
+    });
 
     $('#btnAddThermalConfig').on('click', function() {
         resetThermalModal();

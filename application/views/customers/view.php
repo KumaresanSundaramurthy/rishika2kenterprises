@@ -381,13 +381,13 @@ $(function () {
     });
 
     // ── Search ──
-    $('#SearchDetails').on('keyup', inputDelay(function () {
+    $('#SearchDetails').on('input', inputDelay(function () {
         var val = $.trim($(this).val());
         $('#clearSearch').toggleClass('d-none', !val);
         delete Filter['SearchAllData'];
         if (val.length >= 3) Filter['SearchAllData'] = val;
         if (val.length === 0 || val.length >= 3) { PageNo = 0; getCustomersDetails(PageNo, RowLimit, Filter); }
-    }, 400));
+    }, 1500));
 
     $('#clearSearch').on('click', function () {
         $('#SearchDetails').val('');

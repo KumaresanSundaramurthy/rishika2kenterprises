@@ -167,7 +167,7 @@ $(function() {
 
     QuillEditor('.ql-toolbar', 'Enter storage description...');
 
-    $('.SearchDetails').keyup(inputDelay(function(e) {
+    $('.SearchDetails').on('input', inputDelay(function(e) {
         PageNo = 0;
         let searchText = $('#SearchDetails').val();
         if (searchText.length >= 3) {
@@ -180,7 +180,7 @@ $(function() {
             $('#SearchDetails').blur();
             getStorageDetails(PageNo, RowLimit, Filter);
         }
-    }, 500));
+    }, 1500));
 
     $('#clearSearch').click(function(e) {
         e.preventDefault();

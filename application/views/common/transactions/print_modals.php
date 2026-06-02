@@ -43,24 +43,13 @@
     <div class="modal-dialog modal-xl" style="margin:0 auto;height:100vh;max-height:100vh;display:flex;flex-direction:column;justify-content:flex-end;">
         <div class="modal-content border-0 shadow-lg d-flex flex-column" style="border-radius:10px 10px 0 0;overflow:hidden;height:100vh;max-height:100vh;">
 
-            <!-- Row 1: vtm-banner header -->
-            <div class="vtm-banner flex-shrink-0" style="--vtm-color:#0d6efd;--vtm-bg:#e8f0fe;--vtm-icon-bg:rgba(13,110,253,.13);">
-                <div class="vtm-banner-inner">
-                    <div class="vtm-banner-left">
-                        <div class="vtm-banner-icon">
-                            <i class="bx bx-printer"></i>
-                        </div>
-                        <div>
-                            <div class="vtm-doc-number" id="a4ModalTitle">Document Preview</div>
-                            <div class="vtm-doc-meta" id="a4ModalSubtitle">Print / Download</div>
-                        </div>
-                    </div>
-                    <div class="vtm-banner-right">
-                        <button type="button" class="vtm-close-btn" data-bs-dismiss="modal" aria-label="Close">
-                            <i class="bx bx-x"></i>
-                        </button>
-                    </div>
-                </div>
+            <!-- Row 1: Title | Close -->
+            <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom flex-shrink-0" style="min-height:46px;background-color:#e6f2ff;">
+                <span class="fw-semibold text-truncate" style="font-size:.88rem;max-width:60%;">
+                    <i class="bx bx-file-blank text-primary me-1"></i>
+                    <span id="a4ModalTitle">Document Preview</span>
+                </span>
+                <button type="button" class="btn btn-sm btn-outline-secondary px-3" data-bs-dismiss="modal">Close</button>
             </div>
 
             <!-- Row 2: Copy checkboxes (left) | Paper + Actions (right) -->

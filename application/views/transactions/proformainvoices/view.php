@@ -231,9 +231,9 @@ $(function () {
 
     $(document).on('click', '.pageRefresh', function (e) { e.preventDefault(); PageNo = 1; getProFormaInvoicesDetails(); });
 
-    $('#searchTransactionData').on('keyup', debounce(function () {
+    $('#searchTransactionData').on('input', debounce(function () {
         Filter.Name = $.trim($(this).val()); PageNo = 1; getProFormaInvoicesDetails();
-    }, 400));
+    }, 1500));
 
     $(document).on('click', '.date-option', function () {
         $('.date-option').removeClass('active'); $(this).addClass('active');

@@ -50,29 +50,33 @@ $(document).on('click', '.a4PrintTransaction', function () {
     _a4SetLoading(true);
     AjaxLoading = 0;
     $.ajax({
-        url   : '/transactions/getTransactionDetail',
-        method: 'GET',
-        data  : { TransUID: uid, ModuleUID: moduleUID },
-        success: function (resp) {
+        url    : '/transactions/getTransactionDetail',
+        method : 'GET',
+        data   : { TransUID: uid, ModuleUID: moduleUID },
+        success: function (data) {
             AjaxLoading = 1;
-            if (resp.Error) {
+            // Ensure we have a plain object regardless of how jQuery received the response
+            var resp = (typeof data === 'object' && data !== null) ? data : null;
+            if (!resp) {
+                try { resp = JSON.parse(data); } catch (e) { resp = null; }
+            }
+            if (!resp || resp.Error) {
                 _a4SetLoading(false);
-                $('#a4PreviewStage').html('<div class="alert alert-danger m-4">' + resp.Message + '</div>');
+                $('#a4PreviewStage').html('<div class="alert alert-danger m-4">' + (resp && resp.Message ? resp.Message : 'Error loading document.') + '</div>');
                 return;
             }
-            _a4Html   = resp.PrintHtml;
+            _a4Html   = resp.PrintHtmlEncoded ? atob(resp.PrintHtmlEncoded) : (resp.PrintHtml || '');
             _a4Header = resp.Header || null;
             _a4Title  = (_a4Header && _a4Header.UniqueNumber) ? _a4Header.UniqueNumber : 'Document';
             var transType = (_a4Header && _a4Header.TransType) ? _a4Header.TransType : 'Document';
             $('#a4ModalTitle').text(transType + ' — ' + _a4Title);
-            $('#a4ModalSubtitle').text((_a4Header && _a4Header.PartyName) ? _a4Header.PartyName : 'Print / Download');
             _a4SetLoading(false);
             _a4ShowPreview();
         },
-        error: function () {
+        error: function (jqXHR, textStatus) {
             AjaxLoading = 1;
             _a4SetLoading(false);
-            $('#a4PreviewStage').html('<div class="alert alert-danger m-4">Failed to load document.</div>');
+            $('#a4PreviewStage').html('<div class="alert alert-danger m-4">Failed to load document. (' + textStatus + ')</div>');
         }
     });
 });

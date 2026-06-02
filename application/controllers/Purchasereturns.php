@@ -333,6 +333,7 @@ class Purchasereturns extends MY_Controller {
                 'NetAmount'         => $netAmount,
                 'DocStatus'         => $status,
                 'UpdatedBy'         => $userUID,
+                'PdfPath'           => NULL,
             ];
             $isInterState          = $igstAmount > 0 ? 1 : ($cgstAmount > 0 || $sgstAmount > 0 ? 0 : NULL);
             $commonDetail = [
@@ -455,6 +456,7 @@ class Purchasereturns extends MY_Controller {
             $this->_saveAttachments($transUID);
             $this->_softDeleteAttachments($this->input->post('RemovedAttachIDs') ?? '');
             $this->_touchVendorCache($vendorUID);
+            $this->transactions_model->generateAndStorePdf(isset($newTransUID) ? $newTransUID : $transUID, $orgUID, $this->pageModuleUID);
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Purchase Return updated successfully.';
         } catch (Exception $e) {

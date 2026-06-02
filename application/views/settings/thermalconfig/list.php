@@ -81,18 +81,20 @@ foreach ($DataLists as $row):
         <?php endif; ?>
         <div class="text-muted" style="font-size:.7rem;">by <?php echo $updatedByName; ?></div>
     </td>
-    <td class="text-center align-middle text-nowrap">
-        <a href="javascript:void(0);" class="btn btn-icon btn-sm text-warning EditThermalConfig"
-            data-config='<?php echo $editData; ?>'
-            title="Edit">
-            <i class="bx bx-edit"></i>
-        </a>
-        <a href="javascript:void(0);" class="btn btn-icon btn-sm text-danger DeleteThermalConfig"
-            data-uid="<?php echo (int)$row->ThermalConfigUID; ?>"
-            data-type="<?php echo htmlspecialchars($typeLabel); ?>"
-            title="Delete">
-            <i class="bx bx-trash"></i>
-        </a>
+    <td class="text-center align-middle">
+        <div class="d-flex align-items-center justify-content-center gap-1">
+            <a href="javascript:void(0);" class="btn btn-icon btn-sm text-warning EditThermalConfig"
+                data-config='<?php echo $editData; ?>'
+                title="Edit">
+                <i class="bx bx-edit"></i>
+            </a>
+            <a href="javascript:void(0);" class="btn btn-icon btn-sm text-danger DeleteThermalConfig"
+                data-uid="<?php echo (int)$row->ThermalConfigUID; ?>"
+                data-type="<?php echo htmlspecialchars($typeLabel); ?>"
+                title="Delete">
+                <i class="bx bx-trash"></i>
+            </a>
+        </div>
     </td>
 </tr>
 <?php endforeach; ?>

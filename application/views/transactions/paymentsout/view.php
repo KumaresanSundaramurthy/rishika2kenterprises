@@ -265,7 +265,7 @@ $(function () {
         poutSearchTimer = setTimeout(function () {
             PoutFilter.Search = v;
             getPaymentsOut(1);
-        }, 400);
+        }, 1500);
     });
 
     // Date filter

@@ -486,6 +486,7 @@ class Purchases extends MY_Controller {
                 'BalanceAmount'     => max(0, round($netAmount - (float)($existing->PaidAmount ?? 0), 2)),
                 'DocStatus'         => $status,
                 'UpdatedBy'         => $userUID,
+                'PdfPath'           => NULL,
             ];
 
             $isInterState = $igstAmount > 0 ? 1 : ($cgstAmount > 0 || $sgstAmount > 0 ? 0 : NULL);
@@ -673,6 +674,7 @@ class Purchases extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
             $this->_touchVendorCache($vendorUID);
+            $this->transactions_model->generateAndStorePdf(isset($newTransUID) ? $newTransUID : $transUID, $orgUID, $this->pageModuleUID);
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Purchase bill updated successfully.';

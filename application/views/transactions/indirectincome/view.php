@@ -929,9 +929,9 @@ $(function () {
         e.preventDefault(); PageNo = 1; getIncomeDetails();
     });
 
-    $('#searchIncomeData').on('keyup', debounce(function () {
+    $('#searchIncomeData').on('input', debounce(function () {
         Filter.Name = $.trim($(this).val()); PageNo = 1; getIncomeDetails();
-    }, 400));
+    }, 1500));
 
     $(document).on('click', '.date-option', function () {
         $('.date-option').removeClass('active');
@@ -1342,7 +1342,7 @@ $(function () {
         setTimeout(function () { $('#newIncomeCategoryName').focus(); }, 350);
     });
 
-    $('#incCatMgrSearch').on('keyup', debounce(function () { _loadIncCatMgr(1); }, 350));
+    $('#incCatMgrSearch').on('input', debounce(function () { _loadIncCatMgr(1); }, 1500));
 
     $(document).on('click', '#incCatMgrPagination .page-link', function (e) {
         e.preventDefault();

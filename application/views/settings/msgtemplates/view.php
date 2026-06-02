@@ -12,7 +12,7 @@
                 <div class="container-xxl flex-grow-1 container-p-y">
 
                     <!-- Page Header -->
-                    <div class="trans-page-header">
+                    <div class="trans-page-header d-flex align-items-center justify-content-between">
                         <div class="d-flex align-items-center gap-3">
                             <div class="trans-ph-icon" style="background:#fdf4ff;">
                                 <i class="bx bx-message-square-edit" style="color:#9333ea;"></i>
@@ -24,17 +24,14 @@
                                 <?php endif; ?>
                             </div>
                         </div>
-                    </div>
-
-                    <div class="card">
-
-                        <!-- Action bar -->
-                        <div class="d-flex justify-content-between align-items-center px-3 py-3 border-bottom gap-2 flex-wrap">
-                            <span class="text-muted small">Create Email, WhatsApp &amp; SMS templates per transaction type. Use <code>{{tokens}}</code> to auto-fill real data when sending.</span>
-                            <button class="btn btn-primary btn-sm px-3" id="btnAddMsgTemplate">
+                        <div class="d-flex align-items-center gap-2">
+                            <button class="btn btn-primary btn-sm px-3 me-1" id="btnAddMsgTemplate">
                                 <i class="bx bx-plus me-1"></i>Add Template
                             </button>
                         </div>
+                    </div>
+
+                    <div class="card">
 
                         <!-- Table -->
                         <div class="table-responsive">
@@ -48,9 +45,7 @@
                                     </tr>
                                 </thead>
                                 <tbody id="MsgTemplateBody" class="r2k-tbody table-border-bottom-0">
-                                    <tr><td colspan="4" class="text-center py-4 text-muted">
-                                        <span class="spinner-border spinner-border-sm me-2"></span>Loading...
-                                    </td></tr>
+                                    <?php echo $ModRowData ?? ''; ?>
                                 </tbody>
                             </table>
                         </div>
@@ -169,9 +164,10 @@ var CsrfToken = '<?php echo $this->security->get_csrf_hash(); ?>';
 window.addEventListener('load', function() {
     'use strict';
 
-    var msgTplLoaded     = false;
-    var msgTokens        = {};
-    var msgModules       = {};
+    var msgTplLoaded     = true;
+    var msgTokens        = <?php echo $MsgTokens  ?? '{}'; ?>;
+    var msgModules       = <?php echo $MsgModules ?? '{}'; ?>;
+    buildModuleOptions();
     var quillEditor      = null;
     var _pendingEditBody = null;
 
@@ -409,11 +405,10 @@ window.addEventListener('load', function() {
     $('#btnSaveMsgTemplate').on('click', function() {
         var body = getMsgBody();
         if (!body.trim() || body === '<p><br></p>') {
-            Swal.fire({ icon: 'warning', text: 'Template body is required.' });
+            showToastNotification('Template body is required.', 'error');
             return;
         }
         var $btn = $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
-        AjaxLoading = 0;
         $.ajax({
             url: '/settings/saveMsgTemplate', method: 'POST',
             data: {
@@ -425,20 +420,18 @@ window.addEventListener('load', function() {
                 [CsrfName]  : CsrfToken
             },
             success: function(resp) {
-                AjaxLoading = 1;
                 $btn.prop('disabled', false).html('<i class="bx bx-save me-1"></i>Save Template');
                 if (!resp.Error) {
                     $('#MsgTemplateBody').html(resp.RecordHtmlData);
                     $('#msgTemplateModal').modal('hide');
-                    Swal.fire({ icon:'success', text: resp.Message, timer:1500, showConfirmButton:false });
+                    showToastNotification(resp.Message, 'success');
                 } else {
-                    Swal.fire({ icon:'error', text: resp.Message });
+                    showToastNotification(resp.Message, 'error');
                 }
             },
             error: function() {
-                AjaxLoading = 1;
                 $btn.prop('disabled', false).html('<i class="bx bx-save me-1"></i>Save Template');
-                Swal.fire({ icon:'error', text:'Server error.' });
+                showToastNotification('Server error.', 'error');
             }
         });
     });
@@ -470,7 +463,8 @@ window.addEventListener('load', function() {
         });
     });
 
-    loadMsgTemplates();
+    // Templates pre-rendered server-side on page load — no initial AJAX needed.
+    // loadMsgTemplates() is still called after delete to refresh the list.
 
 });
 </script>

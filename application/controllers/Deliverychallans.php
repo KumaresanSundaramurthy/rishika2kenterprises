@@ -358,7 +358,7 @@ class Deliverychallans extends MY_Controller {
             }
 
             $this->dbwrite_model->commitTransaction();
-            $this->_touchCustomerCache($customerUID);
+            $this->cachehelper->touchCustomer($customerUID);
 
             $this->EndReturnData->Error    = FALSE;
             $this->EndReturnData->Message  = 'Delivery challan created successfully.';
@@ -482,6 +482,7 @@ class Deliverychallans extends MY_Controller {
                 'NetAmount'         => $netAmount,
                 'DocStatus'         => $status,
                 'UpdatedBy'         => $userUID,
+                'PdfPath'           => NULL,
             ];
 
             $commonDetail = [
@@ -574,7 +575,8 @@ class Deliverychallans extends MY_Controller {
             }
 
             $this->dbwrite_model->commitTransaction();
-            $this->_touchCustomerCache($customerUID);
+            $this->cachehelper->touchCustomer($customerUID);
+            $this->transactions_model->generateAndStorePdf(isset($newTransUID) ? $newTransUID : $transUID, $orgUID, $this->pageModuleUID);
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Delivery challan updated successfully.';
@@ -913,10 +915,6 @@ class Deliverychallans extends MY_Controller {
         } catch (Exception $e) {
             redirect('deliverychallan', 'refresh');
         }
-    }
-
-    private function _touchCustomerCache($customerUID) {
-        $this->cachehelper->touchCustomer($customerUID);
     }
 
     // ── Private helpers ──────────────────────────────────────────

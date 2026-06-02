@@ -35,11 +35,11 @@ class Receipt extends CI_Controller {
             "CONCAT(CrUser.FirstName, ' ', CrUser.LastName) AS CreatedByName",
         ]);
         $this->db->from('Transaction.PaymentsTbl AS P');
-        $this->db->join('Transaction.PaymentTypesTbl AS PT', 'PT.PaymentTypeUID = P.PaymentTypeUID', 'LEFT');
+        $this->db->join('Global.PaymentTypesTbl AS PT', 'PT.PaymentTypeUID = P.PaymentTypeUID', 'LEFT');
         $this->db->join('Transaction.TransactionsTbl AS T', 'T.TransUID = P.TransUID AND T.IsDeleted = 0', 'LEFT');
         $this->db->join('Customers.CustomerTbl AS C', "C.CustomerUID = P.PartyUID AND P.PartyType = 'C'", 'LEFT');
         $this->db->join('Vendors.VendorTbl AS V', "V.VendorUID = P.PartyUID AND P.PartyType = 'S'", 'LEFT');
-        $this->db->join('Transaction.OrgBankAccountsTbl AS BA', 'BA.BankAccountUID = P.BankAccountUID', 'LEFT');
+        $this->db->join('Organisation.OrgBankAccountsTbl AS BA', 'BA.BankAccountUID = P.BankAccountUID', 'LEFT');
         $this->db->join('Users.UserTbl AS CrUser', 'CrUser.UserUID = P.CreatedBy', 'LEFT');
         $this->db->where(['P.ReceiptToken' => $token, 'P.IsDeleted' => 0]);
         $this->db->limit(1);

@@ -217,7 +217,7 @@ class Salesreturns extends MY_Controller {
             $this->dbwrite_model->commitTransaction();
 
             $this->_saveAttachments($transUID);
-            $this->_touchCustomerCache($customerUID);
+            $this->cachehelper->touchCustomer($customerUID);
 
             // ── Save payment if recorded on create ──────────────────
             if (!$isDraft && (int) getPostValue($PostData, 'RecordPayment') === 1) {
@@ -356,6 +356,7 @@ class Salesreturns extends MY_Controller {
                 'NetAmount'         => $netAmount,
                 'DocStatus'         => $status,
                 'UpdatedBy'         => $userUID,
+                'PdfPath'           => NULL,
             ];
             $isInterState          = $igstAmount > 0 ? 1 : ($cgstAmount > 0 || $sgstAmount > 0 ? 0 : NULL);
             $_cc                   = $this->transactions_model->getCustomerCountryCode($customerUID);
@@ -480,7 +481,8 @@ class Salesreturns extends MY_Controller {
             $this->dbwrite_model->commitTransaction();
             $this->_saveAttachments($transUID);
             $this->_softDeleteAttachments($this->input->post('RemovedAttachIDs') ?? '');
-            $this->_touchCustomerCache($customerUID);
+            $this->cachehelper->touchCustomer($customerUID);
+            $this->transactions_model->generateAndStorePdf(isset($newTransUID) ? $newTransUID : $transUID, $orgUID, $this->pageModuleUID);
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Sales Return updated successfully.';
         } catch (Exception $e) {
@@ -989,10 +991,6 @@ class Salesreturns extends MY_Controller {
             if ($amt > 0) $charges[] = ['type' => $type, 'amount' => $amt, 'tax' => $tax];
         }
         return !empty($charges) ? json_encode($charges) : NULL;
-    }
-
-    private function _touchCustomerCache($customerUID) {
-        $this->cachehelper->touchCustomer($customerUID);
     }
 
     private function _saveAttachments($transUID) {

@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') OR exit('No direct script access allowed');
+﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Transactions_model extends CI_Model {
     
@@ -61,6 +61,7 @@ class Transactions_model extends CI_Model {
                 'PayInfo.PayAccountNumber AS PayAccountNumber',
                 'IFNULL(PayInfo.PaymentAttachmentCount, 0) AS PaymentAttachmentCount',
                 '(SELECT COUNT(*) FROM Transaction.TransAttachmentsTbl AT WHERE AT.TransUID = Ts.TransUID AND AT.IsDeleted = 0 AND AT.IsActive = 1) AS AttachmentCount',
+                'Ts.PdfPath AS PdfPath',
             ]);
             $this->ReadDb->from('Transaction.TransactionsTbl as Ts');
             $this->ReadDb->join('Customers.CustomerTbl as Cust', 'Cust.CustomerUID = Ts.PartyUID AND Ts.PartyType = \'C\'', 'LEFT');
@@ -74,7 +75,7 @@ class Transactions_model extends CI_Model {
                 'LEFT'
             );
             $this->ReadDb->join(
-                "(SELECT P.TransUID, COUNT(*) AS PaymentCount, GROUP_CONCAT(PT.Name ORDER BY P.PaymentUID ASC SEPARATOR ',') AS PaymentModes, MAX(CASE WHEN PT.IsCash = 0 THEN BA.BankName ELSE NULL END) AS PayBankName, MAX(CASE WHEN PT.IsCash = 0 THEN BA.AccountNumber ELSE NULL END) AS PayAccountNumber, (SELECT COUNT(*) FROM Transaction.PaymentAttachmentsTbl PA WHERE PA.PaymentUID IN (SELECT PaymentUID FROM Transaction.PaymentsTbl P2 WHERE P2.TransUID = P.TransUID AND P2.IsDeleted = 0 AND P2.IsActive = 1) AND PA.IsDeleted = 0 AND PA.IsActive = 1) AS PaymentAttachmentCount FROM Transaction.PaymentsTbl P JOIN Transaction.PaymentTypesTbl PT ON PT.PaymentTypeUID = P.PaymentTypeUID LEFT JOIN Transaction.OrgBankAccountsTbl BA ON BA.BankAccountUID = P.BankAccountUID WHERE P.IsDeleted = 0 AND P.IsActive = 1 GROUP BY P.TransUID) AS PayInfo",
+                "(SELECT P.TransUID, COUNT(*) AS PaymentCount, GROUP_CONCAT(PT.Name ORDER BY P.PaymentUID ASC SEPARATOR ',') AS PaymentModes, MAX(CASE WHEN PT.IsCash = 0 THEN BA.BankName ELSE NULL END) AS PayBankName, MAX(CASE WHEN PT.IsCash = 0 THEN BA.AccountNumber ELSE NULL END) AS PayAccountNumber, (SELECT COUNT(*) FROM Transaction.PaymentAttachmentsTbl PA WHERE PA.PaymentUID IN (SELECT PaymentUID FROM Transaction.PaymentsTbl P2 WHERE P2.TransUID = P.TransUID AND P2.IsDeleted = 0 AND P2.IsActive = 1) AND PA.IsDeleted = 0 AND PA.IsActive = 1) AS PaymentAttachmentCount FROM Transaction.PaymentsTbl P JOIN Global.PaymentTypesTbl PT ON PT.PaymentTypeUID = P.PaymentTypeUID LEFT JOIN Organisation.OrgBankAccountsTbl BA ON BA.BankAccountUID = P.BankAccountUID WHERE P.IsDeleted = 0 AND P.IsActive = 1 GROUP BY P.TransUID) AS PayInfo",
                 'PayInfo.TransUID = Ts.TransUID',
                 'LEFT'
             );
@@ -363,7 +364,7 @@ class Transactions_model extends CI_Model {
                 'Prefix.NumberPadding      as NumberPadding',
                 'Prefix.IsDefault          as IsDefault',
             ]);
-            $this->ReadDb->from('Transaction.TransactionPrefixTbl as Prefix');
+            $this->ReadDb->from('Settings.TransactionPrefixTbl as Prefix');
             $cleanFilter = $FilterArray;
             if (!empty($cleanFilter)) {
                 $this->ReadDb->where($cleanFilter);
@@ -760,7 +761,7 @@ class Transactions_model extends CI_Model {
 
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('PaymentTypeUID, Name, Code, IsCash');
-            $this->ReadDb->from('Transaction.PaymentTypesTbl');
+            $this->ReadDb->from('Global.PaymentTypesTbl');
             $this->ReadDb->where(['IsDeleted' => 0, 'IsActive' => 1]);
             $this->ReadDb->order_by('PaymentTypeUID', 'ASC');
             $query = $this->ReadDb->get();
@@ -782,7 +783,7 @@ class Transactions_model extends CI_Model {
 
             // 1. Default non-cash account
             $this->ReadDb->select('BankAccountUID, AccountName, BankName, AccountNumber, IFSC, BranchName, UPIId, UPINumber, IsDefault, IsCash');
-            $this->ReadDb->from('Transaction.OrgBankAccountsTbl');
+            $this->ReadDb->from('Organisation.OrgBankAccountsTbl');
             $this->ReadDb->where(array_merge($base, ['IsDefault' => 1]));
             $this->ReadDb->limit(1);
             $row = $this->ReadDb->get()->row();
@@ -790,7 +791,7 @@ class Transactions_model extends CI_Model {
 
             // 2. Any non-cash account
             $this->ReadDb->select('BankAccountUID, AccountName, BankName, AccountNumber, IFSC, BranchName, UPIId, UPINumber, IsDefault, IsCash');
-            $this->ReadDb->from('Transaction.OrgBankAccountsTbl');
+            $this->ReadDb->from('Organisation.OrgBankAccountsTbl');
             $this->ReadDb->where($base);
             $this->ReadDb->order_by('IsDefault', 'DESC');
             $this->ReadDb->limit(1);
@@ -810,7 +811,7 @@ class Transactions_model extends CI_Model {
 
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('BankAccountUID, AccountName, BankName, AccountNumber, IFSC, BranchName, UPIId, UPINumber, IsDefault, IsCash');
-            $this->ReadDb->from('Transaction.OrgBankAccountsTbl');
+            $this->ReadDb->from('Organisation.OrgBankAccountsTbl');
             $this->ReadDb->where(['OrgUID' => $orgUID, 'IsDeleted' => 0, 'IsActive' => 1]);
             $this->ReadDb->order_by('IsDefault', 'DESC');
             $this->ReadDb->order_by('AccountName', 'ASC');
@@ -844,8 +845,8 @@ class Transactions_model extends CI_Model {
                 'BA.AccountNumber',
             ]);
             $this->ReadDb->from('Transaction.PaymentsTbl AS P');
-            $this->ReadDb->join('Transaction.PaymentTypesTbl AS PT', 'PT.PaymentTypeUID = P.PaymentTypeUID', 'LEFT');
-            $this->ReadDb->join('Transaction.OrgBankAccountsTbl AS BA', 'BA.BankAccountUID = P.BankAccountUID', 'LEFT');
+            $this->ReadDb->join('Global.PaymentTypesTbl AS PT', 'PT.PaymentTypeUID = P.PaymentTypeUID', 'LEFT');
+            $this->ReadDb->join('Organisation.OrgBankAccountsTbl AS BA', 'BA.BankAccountUID = P.BankAccountUID', 'LEFT');
             $this->ReadDb->where(['P.TransUID' => $transUID, 'P.OrgUID' => $orgUID, 'P.IsDeleted' => 0]);
             $this->ReadDb->order_by('P.PaymentUID', 'ASC');
             $query = $this->ReadDb->get();
@@ -904,11 +905,11 @@ class Transactions_model extends CI_Model {
             "CONCAT(CrUser.FirstName, ' ', CrUser.LastName) AS CreatedByName",
         ]);
         $this->ReadDb->from('Transaction.PaymentsTbl AS P');
-        $this->ReadDb->join('Transaction.PaymentTypesTbl AS PT', 'PT.PaymentTypeUID = P.PaymentTypeUID', 'LEFT');
+        $this->ReadDb->join('Global.PaymentTypesTbl AS PT', 'PT.PaymentTypeUID = P.PaymentTypeUID', 'LEFT');
         $this->ReadDb->join('Transaction.TransactionsTbl AS T', 'T.TransUID = P.TransUID AND T.IsDeleted = 0', 'LEFT');
         $this->ReadDb->join('Customers.CustomerTbl AS C', "C.CustomerUID = P.PartyUID AND P.PartyType = 'C'", 'LEFT');
         $this->ReadDb->join('Vendors.VendorTbl AS V', "V.VendorUID = P.PartyUID AND P.PartyType = 'S'", 'LEFT');
-        $this->ReadDb->join('Transaction.OrgBankAccountsTbl AS BA', 'BA.BankAccountUID = P.BankAccountUID', 'LEFT');
+        $this->ReadDb->join('Organisation.OrgBankAccountsTbl AS BA', 'BA.BankAccountUID = P.BankAccountUID', 'LEFT');
         $this->ReadDb->join('Users.UserTbl AS CrUser', 'CrUser.UserUID = P.CreatedBy', 'LEFT');
         $this->ReadDb->where(['P.PaymentUID' => $paymentUID, 'P.OrgUID' => $orgUID]);
         $query = $this->ReadDb->get();
@@ -972,11 +973,11 @@ class Transactions_model extends CI_Model {
                 "CONCAT(CrUser.FirstName, ' ', CrUser.LastName) AS CreatedByName",
             ]);
             $this->ReadDb->from('Transaction.PaymentsTbl AS P');
-            $this->ReadDb->join('Transaction.PaymentTypesTbl AS PT', 'PT.PaymentTypeUID = P.PaymentTypeUID', 'LEFT');
+            $this->ReadDb->join('Global.PaymentTypesTbl AS PT', 'PT.PaymentTypeUID = P.PaymentTypeUID', 'LEFT');
             $this->ReadDb->join('Transaction.TransactionsTbl AS T', 'T.TransUID = P.TransUID AND T.IsDeleted = 0', 'LEFT');
             $this->ReadDb->join('Customers.CustomerTbl AS C', "C.CustomerUID = P.PartyUID AND P.PartyType = 'C'", 'LEFT');
             $this->ReadDb->join('Vendors.VendorTbl AS V', "V.VendorUID = P.PartyUID AND P.PartyType = 'S'", 'LEFT');
-            $this->ReadDb->join('Transaction.OrgBankAccountsTbl AS BA', 'BA.BankAccountUID = P.BankAccountUID', 'LEFT');
+            $this->ReadDb->join('Organisation.OrgBankAccountsTbl AS BA', 'BA.BankAccountUID = P.BankAccountUID', 'LEFT');
             $this->ReadDb->join('Users.UserTbl AS CrUser', 'CrUser.UserUID = P.CreatedBy', 'LEFT');
 
             $isCancelled = (!empty($filter['Status']) && $filter['Status'] === 'Cancelled');
@@ -1096,8 +1097,8 @@ class Transactions_model extends CI_Model {
                 "(SUM(CASE WHEN P.PartyType = 'C' THEN P.Amount ELSE 0 END) - SUM(CASE WHEN P.PartyType = 'S' THEN P.Amount ELSE 0 END)) AS NetBalance",
             ]);
             $this->ReadDb->from('Transaction.PaymentsTbl AS P');
-            $this->ReadDb->join('Transaction.PaymentTypesTbl AS PT', 'PT.PaymentTypeUID = P.PaymentTypeUID', 'LEFT');
-            $this->ReadDb->join('Transaction.OrgBankAccountsTbl AS BA', 'BA.BankAccountUID = P.BankAccountUID', 'LEFT');
+            $this->ReadDb->join('Global.PaymentTypesTbl AS PT', 'PT.PaymentTypeUID = P.PaymentTypeUID', 'LEFT');
+            $this->ReadDb->join('Organisation.OrgBankAccountsTbl AS BA', 'BA.BankAccountUID = P.BankAccountUID', 'LEFT');
             $this->ReadDb->where(['P.OrgUID' => $orgUID, 'P.IsDeleted' => 0, 'P.IsActive' => 1]);
 
             if (!empty($filter['PartyType']))        $this->ReadDb->where('P.PartyType', $filter['PartyType']);
@@ -1232,6 +1233,23 @@ class Transactions_model extends CI_Model {
         $custAddrHtml = $addrHtml($h->BillLine1 ?? '', $h->BillLine2 ?? '', $h->BillCity ?? '', $h->BillState ?? '', $h->BillPincode ?? '');
         if (empty($custAddrHtml)) {
             $custAddrHtml = $addrHtml($h->ShipLine1 ?? '', $h->ShipLine2 ?? '', $h->ShipCity ?? '', $h->ShipState ?? '', $h->ShipPincode ?? '');
+        }
+
+        // Dispatch From: OrgAddressUID in DispatchFrom field — populates SHIPPING_ADDRESS token
+        $dispatchFromUID = (int)($h->DispatchFrom ?? 0);
+        if ($dispatchFromUID > 0) {
+            try {
+                $dispatchDb = $this->load->database('ReadDB', TRUE);
+                $dispatchDb->db_debug = FALSE;
+                $dispatchDb->select('Line1, Line2, CityText, StateText, Pincode');
+                $dispatchDb->from('Organisation.OrgAddressTbl');
+                $dispatchDb->where('OrgAddressUID', $dispatchFromUID);
+                $da = $dispatchDb->get()->row();
+                if ($da) {
+                    $dFrom = $addr($da->Line1 ?? '', $da->Line2 ?? '', $da->CityText ?? '', $da->StateText ?? '', $da->Pincode ?? '');
+                    if (!empty($dFrom)) { $shipAddr = $dFrom; }
+                }
+            } catch (Exception $_) {}
         }
 
         // ── Org logo ─────────────────────────────────────────────────
@@ -1379,21 +1397,13 @@ class Transactions_model extends CI_Model {
         $fontFamilyEsc = str_replace("'", "\\'", $fontFamily);
         $fontSizePx    = (int) ($theme->FontSizePx ?? 11);
 
-        $orgNameForWatermark = addslashes($org->BrandName ?? $org->Name ?? '');
         $headInject = '<style>'
             . '@page{size:A4;margin:0;}'
             . '@media print{body{background:#fff;}}'
             . "body{padding:0 5mm;box-sizing:border-box;font-size:{$fontSizePx}px !important;}"
             . '.invoice{width:100%!important;max-width:100%!important;box-sizing:border-box!important;margin:10px 0!important;}'
             . "body,body *{font-family:'{$fontFamilyEsc}',Arial,Helvetica,sans-serif !important;}"
-            . 'body::before{'
-            . "content:'{$orgNameForWatermark}';"
-            . 'position:fixed;top:50%;left:50%;'
-            . 'transform:translate(-50%,-50%) rotate(-45deg);'
-            . 'font-size:72px;font-weight:800;letter-spacing:4px;'
-            . 'color:rgba(0,0,0,0.045);white-space:nowrap;'
-            . 'pointer-events:none;z-index:9999;'
-            . '}'
+            . '.r2k-watermark{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-45deg);font-size:72px;font-weight:800;letter-spacing:4px;color:rgba(0,0,0,0.045);white-space:nowrap;pointer-events:none;z-index:9999;}'
             . '</style>';
 
         // For Google Fonts: inject <link> tag — rendered via Blob URL so external requests load correctly
@@ -1402,6 +1412,14 @@ class Transactions_model extends CI_Model {
         }
 
         $html = str_replace('</head>', $headInject . '</head>', $html);
+
+        // Watermark: inject as a <div> into <body> — avoids CSS content: escaping issues
+        $wmText = htmlspecialchars($org->BrandName ?? $org->Name ?? '', ENT_QUOTES, 'UTF-8');
+        if (!empty($wmText)) {
+            $wmDiv = '<div class="r2k-watermark">' . $wmText . '</div>';
+            $html  = preg_replace('/<body([^>]*)>/i', '<body$1>' . $wmDiv, $html, 1);
+        }
+
         return $html;
 
     }
@@ -1817,7 +1835,6 @@ class Transactions_model extends CI_Model {
         $dompdf->setPaper(strtolower($paperSize), 'portrait');
         $dompdf->render();
 
-        return $dompdf->output();
     }
 
     // ── Invoice PDF generation (used by getInvoicePdfBase64 for email attachment) ─
@@ -1846,11 +1863,27 @@ class Transactions_model extends CI_Model {
 
         $html = $this->_renderA4Html($moduleUID, $header, $items, $orgInfo->Data ?? null, $printThemeResult->Data ?? null, $printBankAccount);
 
+        // Replace copy-label placeholder — JS replacement doesn't run server-side
+        $html = str_replace('__COPY_LABEL__', 'ORIGINAL FOR RECIPIENT', $html);
+
+        // Extract watermark text before CSS-strip pass removes its positioning.
+        // Rendered via DomPDF Canvas API instead (supports rotation correctly).
+        $wmPdfText = '';
+        if (preg_match('/<div[^>]*class="r2k-watermark"[^>]*>(.*?)<\/div>/is', $html, $wmMatch)) {
+            $wmPdfText = html_entity_decode(strip_tags($wmMatch[1]), ENT_QUOTES, 'UTF-8');
+            $html      = str_replace($wmMatch[0], '', $html);
+        }
+        $html = preg_replace('/\.r2k-watermark\s*\{[^}]*\}/s', '', $html);
+
         $html = preg_replace('/<link[^>]*fonts\.googleapis\.com[^>]*>/i', '', $html);
         $html = str_replace('</head>',
             '<style>body{padding:0!important;margin:0!important;}.print-content{margin:0!important;}#trans-type-header td{border-left:none!important;border-right:none!important;}</style></head>',
             $html);
+
         $html = $this->_compositeQrForPdf($html);
+
+        $html = $this->_inlineExternalImages($html);
+
         $html = preg_replace('/\bdisplay\s*:\s*flex\s*;?/i',                       'display:block;', $html);
         $html = preg_replace('/\bflex-direction\s*:[^;"}]+;?/i',                   '', $html);
         $html = preg_replace('/\bjustify-content\s*:[^;"}]+;?/i',                  '', $html);
@@ -1865,7 +1898,7 @@ class Transactions_model extends CI_Model {
         require_once FCPATH . 'vendor/autoload.php';
         $options = new \Dompdf\Options();
         $options->set('isHtml5ParserEnabled', true);
-        $options->set('isRemoteEnabled', true);
+        $options->set('isRemoteEnabled', false); // all images already inlined as base64
         $options->set('defaultFont', 'Arial');
         $options->set('chroot', FCPATH);
 
@@ -1874,11 +1907,180 @@ class Transactions_model extends CI_Model {
         $dompdf->setPaper(strtolower($paperSize), 'portrait');
         $dompdf->render();
 
+        // Draw diagonal watermark via DomPDF Canvas API on every page
+        if (!empty($wmPdfText)) {
+            $canvas      = $dompdf->getCanvas();
+            $fontMetrics = $dompdf->getFontMetrics();
+            $font        = $fontMetrics->getFont('Arial', 'bold');
+            $size        = 42;
+            $canvas->page_script(function ($pageNum, $pageCount, $canvas, $fontMetrics) use ($wmPdfText, $font, $size) {
+                $w         = $canvas->get_width();
+                $h         = $canvas->get_height();
+                $textWidth = $fontMetrics->getTextWidth($wmPdfText, $font, $size);
+                $x         = ($w / 2) - ($textWidth / 2) * cos(deg2rad(45));
+                $y         = ($h / 2) + ($textWidth / 2) * sin(deg2rad(45));
+                $canvas->set_opacity(0.07);
+                $canvas->text($x, $y, $wmPdfText, $font, $size, [0, 0, 0], 0, 0, -45);
+                $canvas->set_opacity(1.0);
+            });
+        }
+
         return $dompdf->output();
+    }
+
+    // ── Eager PDF generation: called on every create/update ───────────────────
+    // Generates a fresh PDF, uploads to R2, and saves the path in TransactionsTbl.
+    // Does nothing when PDF_STORAGE_MODE is not 'r2'.
+    public function generateAndStorePdf($transUID, $orgUID, $moduleUID) {
+        if (getenv('PDF_STORAGE_MODE') !== 'r2') return;
+
+        $bytes = $this->generateTransactionPdfBytes((int)$transUID, (int)$orgUID, (int)$moduleUID, 'A4');
+        if (!$bytes) return;
+
+        $folder  = $this->_getModuleFolder($moduleUID);
+        $relPath = $folder . '/' . $transUID . '/pdf/' . $transUID . '.pdf';
+        $stored  = $this->_uploadPdfToR2($relPath, $bytes);
+
+        if ($stored) {
+            $this->load->model('dbwrite_model');
+            $this->dbwrite_model->updateData(
+                'Transaction', 'TransactionsTbl',
+                ['PdfPath' => $stored],
+                ['TransUID' => (int)$transUID, 'OrgUID' => (int)$orgUID]
+            );
+        }
+    }
+
+    // ── PDF storage: R2 lazy-cache or live generation ─────────────────────────
+    // PDF_STORAGE_MODE=r2  → serve from Cloudflare R2 (generate + upload on first access,
+    //                         A4 only; non-A4 always generated live)
+    // PDF_STORAGE_MODE=live → generate fresh on every request (default)
+    public function getOrGeneratePdfBytes($transUID, $orgUID, $moduleUID, $paperSize = 'A4') {
+        $paperSize = strtoupper(trim($paperSize));
+
+        if (getenv('PDF_STORAGE_MODE') === 'r2' && $paperSize === 'A4') {
+            // Check stored path in DB
+            $this->ReadDb->select('PdfPath');
+            $this->ReadDb->from('Transaction.TransactionsTbl');
+            $this->ReadDb->where(['TransUID' => (int)$transUID, 'OrgUID' => (int)$orgUID, 'IsDeleted' => 0]);
+            $q   = $this->ReadDb->get();
+            $row = ($q !== false) ? $q->row() : null;
+
+            if ($row && !empty($row->PdfPath)) {
+                $bytes = $this->_fetchPdfFromR2($row->PdfPath);
+                if ($bytes) return $bytes;
+            }
+
+            // Not in R2 yet — generate, upload, save path
+            $bytes = $this->generateTransactionPdfBytes($transUID, $orgUID, $moduleUID, 'A4');
+            if ($bytes) {
+                $relPath = $this->_getModuleFolder($moduleUID) . '/' . $transUID . '/pdf/' . $transUID . '.pdf';
+                $stored  = $this->_uploadPdfToR2($relPath, $bytes);
+                if ($stored) {
+                    $this->load->model('dbwrite_model');
+                    $this->dbwrite_model->updateData(
+                        'Transaction', 'TransactionsTbl',
+                        ['PdfPath' => $stored],
+                        ['TransUID' => (int)$transUID, 'OrgUID' => (int)$orgUID]
+                    );
+                }
+            }
+            return $bytes;
+        }
+
+        // Live mode or non-A4: generate fresh every time
+        return $this->generateTransactionPdfBytes($transUID, $orgUID, $moduleUID, $paperSize);
+    }
+
+    private function _getModuleFolder($moduleUID) {
+        $map = [
+            101 => 'quotations',
+            102 => 'salesorders',
+            103 => 'invoices',
+            104 => 'purchaseorders',
+            105 => 'purchases',
+            106 => 'salesreturns',
+            108 => 'purchasereturns',
+            112 => 'deliverychallans',
+            113 => 'proformainvoices',
+            114 => 'expenses',
+            115 => 'indirectincome',
+            116 => 'rental',
+        ];
+        return $map[(int)$moduleUID] ?? 'transactions';
+    }
+
+    private function _uploadPdfToR2($relPath, $pdfBytes) {
+        try {
+            require_once FCPATH . 'vendor/autoload.php';
+            $s3 = new \Aws\S3\S3Client([
+                'version'                 => 'latest',
+                'region'                  => 'auto',
+                'endpoint'                => getenv('CFLARE_ENDPOINT'),
+                'credentials'             => [
+                    'key'    => getenv('CFLARE_ACC_KEY'),
+                    'secret' => getenv('CFLARE_SECRET'),
+                ],
+                'use_path_style_endpoint' => false,
+            ]);
+            $key = 'user_uploads/' . ltrim($relPath, '/');
+            $s3->putObject([
+                'Bucket'      => getenv('AWS_BUCKET_NAME'),
+                'Key'         => $key,
+                'Body'        => $pdfBytes,
+                'ContentType' => 'application/pdf',
+            ]);
+            return $key;
+        } catch (Exception $e) {
+            return null;
+        }
+    }
+
+    private function _fetchPdfFromR2($storedPath) {
+        try {
+            $cdnBase = rtrim(getenv('CFLARE_R2_CDN') ?: getenv('CDN_URL'), '/');
+            if (empty($cdnBase)) return null;
+            $url  = $cdnBase . '/' . ltrim($storedPath, '/');
+            $ctx  = stream_context_create(['http' => ['timeout' => 10]]);
+            $data = @file_get_contents($url, false, $ctx);
+            // Verify it's a real PDF (starts with %PDF-)
+            return ($data !== false && strncmp($data, '%PDF-', 5) === 0) ? $data : null;
+        } catch (Exception $e) {
+            return null;
+        }
+    }
+
+    // Replaces every external <img src="http(s)://..."> in the HTML with a
+    // base64 data URI fetched with a short timeout. This prevents DomPDF from
+    // making its own outbound HTTP calls (which have no timeout and hang in Docker).
+    // Images that can't be fetched within the timeout are left as-is (DomPDF skips them).
+    private function _inlineExternalImages(string $html): string {
+        static $cache = [];
+
+        return preg_replace_callback(
+            '/(<img\b[^>]+\bsrc=")https?:\/\/([^"]+)(")/i',
+            function ($m) use (&$cache) {
+                $url = 'https://' . $m[2];
+                if (!array_key_exists($url, $cache)) {
+                    $ctx  = stream_context_create(['http' => ['timeout' => 1], 'https' => ['timeout' => 1]]);
+                    $data = @file_get_contents($url, false, $ctx);
+                    if ($data && strlen($data) > 50) {
+                        $finfo        = new \finfo(FILEINFO_MIME_TYPE);
+                        $mime         = $finfo->buffer($data) ?: 'image/png';
+                        $cache[$url]  = 'data:' . $mime . ';base64,' . base64_encode($data);
+                    } else {
+                        $cache[$url] = null; // fetch failed — leave URL as-is
+                    }
+                }
+                return $cache[$url] ? ($m[1] . $cache[$url] . $m[3]) : $m[0];
+            },
+            $html
+        );
     }
 
     // Composites the QR code + logo overlay into a single base64 PNG so dompdf
     // can render it without position:absolute support.
+    // QR is generated locally via chillerlan/php-qrcode — no external HTTP call.
     private function _compositeQrForPdf(string $html): string {
         $pattern = '/<div[^>]*>\s*<img[^>]+src="(https:\/\/api\.qrserver\.com[^"]+)"[^>]*>\s*<div[^>]*class="qr-logo-overlay"[^>]*>\s*<img[^>]+src="([^"]+)"[^>]*>\s*<\/div>\s*<\/div>/is';
 
@@ -1886,13 +2088,44 @@ class Transactions_model extends CI_Model {
             $qrUrl   = $m[1];
             $logoUrl = $m[2];
 
-            $qrData = @file_get_contents($qrUrl);
+            // Extract the data parameter from the api.qrserver.com URL and generate locally
+            $qrData = null;
+            $parsed = parse_url($qrUrl);
+            parse_str($parsed['query'] ?? '', $qrParams);
+            $qrContent = urldecode($qrParams['data'] ?? '');
+
+            if (!empty($qrContent)) {
+                try {
+                    $options = new \chillerlan\QRCode\QROptions([
+                        'outputType'  => \chillerlan\QRCode\QRCode::OUTPUT_IMAGE_PNG,
+                        'imageBase64' => false,
+                        'scale'       => 5,
+                        'quietzoneSize' => 2,
+                    ]);
+                    $qrData = (new \chillerlan\QRCode\QRCode($options))->render($qrContent);
+                } catch (Exception $e) {
+                    $qrData = null;
+                }
+            }
+
+            // Fallback to external API only if local generation failed
+            if (!$qrData) {
+                $ctx    = stream_context_create(['http' => ['timeout' => 1]]);
+                $qrData = @file_get_contents($qrUrl, false, $ctx);
+            }
+
             if (!$qrData) return '<img src="' . htmlspecialchars($qrUrl) . '" width="150" height="150">';
 
             $qrImg = @imagecreatefromstring($qrData);
             if (!$qrImg) return '<img src="' . htmlspecialchars($qrUrl) . '" width="150" height="150">';
 
-            $logoData = @file_get_contents($logoUrl);
+            // Cache logo bytes within the request to avoid re-fetching for multiple copies
+            static $logoCache = [];
+            if (!isset($logoCache[$logoUrl])) {
+                $logoCtx = stream_context_create(['http' => ['timeout' => 1]]);
+                $logoCache[$logoUrl] = @file_get_contents($logoUrl, false, $logoCtx) ?: false;
+            }
+            $logoData = $logoCache[$logoUrl];
             if ($logoData) {
                 $logoImg = @imagecreatefromstring($logoData);
                 if ($logoImg) {

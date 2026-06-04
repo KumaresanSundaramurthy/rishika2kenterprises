@@ -99,9 +99,49 @@ const UpstashService = (() => {
         }
     }
 
+    // ── Hash (HSET) operations ────────────────────────────────────────────────
+
+    /**
+     * HGETALL — fetch every field of a hash as { field: parsedValue, ... }.
+     * Returns {} on miss or error.
+     */
+    async function hgetall(key) {
+        const raw = await _cmd(['HGETALL', key]);
+        if (!Array.isArray(raw) || !raw.length) return {};
+        const map = {};
+        for (let i = 0; i + 1 < raw.length; i += 2) {
+            const field = raw[i];
+            const val   = raw[i + 1];
+            try   { map[field] = JSON.parse(val); }
+            catch { map[field] = val; }
+        }
+        return map;
+    }
+
+    /**
+     * HGET — retrieve one field from a hash. Returns parsed value or null on miss.
+     */
+    async function hget(key, field) {
+        const raw = await _cmd(['HGET', key, String(field)]);
+        if (raw === null || raw === undefined) return null;
+        try   { return JSON.parse(raw); }
+        catch { return raw; }
+    }
+
+    /** HSET — store one field inside a hash. Value is JSON-stringified. */
+    async function hset(key, field, value) {
+        const payload = typeof value === 'string' ? value : JSON.stringify(value);
+        return (await _cmd(['HSET', key, String(field), payload])) !== null;
+    }
+
+    /** HDEL — remove one or more fields from a hash. */
+    async function hdel(key, ...fields) {
+        return (await _cmd(['HDEL', key, ...fields])) > 0;
+    }
+
     /** True when Upstash URL + token are configured. */
     function isEnabled() { return _on; }
 
-    return { get, set, del, orgKey, isEnabled };
+    return { get, set, del, hgetall, hget, hset, hdel, orgKey, isEnabled };
 
 })();

@@ -50,13 +50,13 @@ window.CategoryFilterBox = (function () {
         if (!UpstashService.isEnabled()) { onMiss(); return; }
 
         // Tier 1: dedicated categories cache
-        UpstashService.get(UpstashService.orgKey('categories')).then(function (map) {
+        UpstashService.hgetall(UpstashService.orgKey('categories')).then(function (map) {
             var built = (map && typeof map === 'object' && !Array.isArray(map))
                 ? _buildFromCatgMap(map) : null;
             if (built) { _cache = built; onSuccess(_cache); return; }
 
             // Tier 2: derive unique categories from the products cache
-            UpstashService.get(UpstashService.orgKey('products')).then(function (prodMap) {
+            UpstashService.hgetall(UpstashService.orgKey('products')).then(function (prodMap) {
                 var built2 = (prodMap && typeof prodMap === 'object')
                     ? _buildFromProdMap(prodMap) : null;
                 if (built2) { _cache = built2; onSuccess(_cache); return; }

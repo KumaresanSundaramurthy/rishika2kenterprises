@@ -207,7 +207,7 @@ function tlResetUserFilter() {
 function _tlFetchProdCache(onSuccess, onMiss) {
     if (_tlProdCache !== null) { onSuccess(_tlProdCache); return; }
     if (!UpstashService.isEnabled()) { onMiss(); return; }
-    UpstashService.get(UpstashService.orgKey('products')).then(function (map) {
+    UpstashService.hgetall(UpstashService.orgKey('products')).then(function (map) {
         if (!map) { onMiss(); return; }
         var keys = Object.keys(map || {});
         if (!keys.length) { onMiss(); return; }

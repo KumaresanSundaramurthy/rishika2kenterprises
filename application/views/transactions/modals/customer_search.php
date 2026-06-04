@@ -23,6 +23,12 @@
                             <input type="text" id="custSearchInput" class="form-control" placeholder="Name, mobile, area..." />
                             <button type="button" id="custSearchClear" class="btn btn-outline-secondary d-none" tabindex="-1"><i class="bx bx-x"></i></button>
                         </div>
+                        <button type="button" id="btnCreateCustomerFromSearch"
+                                class="btn btn-sm btn-outline-primary"
+                                style="white-space:nowrap;"
+                                title="Create new customer">
+                            <i class="bx bx-plus me-1"></i>Create Customer
+                        </button>
                         <button type="button" class="vtm-close-btn" data-bs-dismiss="modal" aria-label="Close">
                             <i class="bx bx-x"></i>
                         </button>

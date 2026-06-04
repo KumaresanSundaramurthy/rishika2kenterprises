@@ -59,21 +59,13 @@ class Customers extends MY_Controller {
             $this->pageData['Tags']             = $this->customers_model->getCustomerTags($this->pageData['JwtData']->Org->OrgUID);
 
             // Resolve org phone country code from JwtData (sourced from OrganisationTbl at login)
-            // Fall back to OrganisationTbl only if missing from JwtData
             $this->pageData['OrgCCode'] = $this->pageData['JwtData']->Org->OrgCCode  ?? '';
             $this->pageData['OrgCISO2'] = $this->pageData['JwtData']->Org->OrgCISO2  ?? '';
 
-            $this->load->model('users_model');
-            $cacheKey = $this->redisservice->orgKey('org_users');
-            $orgUsers = $this->redisservice->getCache($cacheKey)->Value;
-            if (!is_array($orgUsers)) {
-                $orgUsers = $this->users_model->getOrgUsersForCache($this->pageData['JwtData']->Org->OrgUID);
-                if (!empty($orgUsers)) {
-                    $this->redisservice->setCache($cacheKey, $orgUsers, 86400);
-                }
-            }
-            $this->pageData['OrgUsers']     = $orgUsers;
-            $this->pageData['ShowUserFilter'] = is_array($orgUsers) && count($orgUsers) > 1;
+            $orgUsers = $this->_requireCache($this->redisservice->orgKey('org_users'));
+            if (!$orgUsers) return;
+            $this->pageData['OrgUsers']      = $orgUsers;
+            $this->pageData['ShowUserFilter'] = count($orgUsers) > 1;
 
             $this->load->view('customers/view', $this->pageData);
 
@@ -348,10 +340,10 @@ class Customers extends MY_Controller {
             $customers = $this->customers_model->getCustomers(['Customers.OrgUID' => $orgUID]);
             if (empty($customers)) throw new Exception('No customers found.');
 
-            // Build the cache map — GET existing first to preserve any keys not in this batch
-            $cacheKey  = $this->redisservice->orgKey('customers');
-            $existing  = $this->upstashservice->get($cacheKey);
-            $cacheMap  = is_array($existing) ? $existing : [];
+            // Build the HSET map — DEL old key first to clear stale entries (handles migration from old STRING format)
+            $cacheKey = $this->redisservice->orgKey('customers');
+            $this->upstashservice->del($cacheKey);
+            $newMap   = [];
 
             foreach ($customers as $cust) {
                 $uid = (int)$cust->CustomerUID;
@@ -375,8 +367,8 @@ class Customers extends MY_Controller {
                 $openingBalance = $obRow ? (float)$obRow->OpeningBalance : 0.0;
                 $openingBalType = $obRow ? $obRow->OpeningBalType        : 'Debit';
 
-                // Build customer entry — add or overwrite by UID
-                $cacheMap[(string)$uid] = [
+                // Build customer entry
+                $newMap[(string)$uid] = [
                     'CustomerUID'     => $uid,
                     'Name'            => $cust->Name            ?? '',
                     'CompanyName'     => $cust->CompanyName     ?? '',
@@ -402,8 +394,8 @@ class Customers extends MY_Controller {
                 ];
             }
 
-            // Store back — TTL 0 = no expiry
-            $this->upstashservice->set($cacheKey, $cacheMap, 0);
+            // Store as HSET — one bulk command, one field per customer
+            $this->upstashservice->hmset($cacheKey, $newMap);
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = count($customers) . ' customer(s) synced to cache.';

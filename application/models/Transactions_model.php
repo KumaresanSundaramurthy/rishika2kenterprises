@@ -2230,28 +2230,6 @@ class Transactions_model extends CI_Model {
 
     }
 
-    public function _uniqueTransToken() {
-
-        $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-        do {
-
-            $token = '';
-            $bytes = random_bytes(10);
-
-            for ($i = 0; $i < 10; $i++) {
-                $token .= $chars[ord($bytes[$i]) % 62];
-            }
-
-            $exists = $this->ReadDb
-                ->where('TransToken', $token)
-                ->count_all_results('Transaction.TransactionsTbl');
-
-        } while ($exists > 0);
-
-        return $token;
-
-    }
-
     // ── Build signature HTML for {{SIGNATURE_SPACE}} token ────────────────────
     // Returns the actual signature (image + label) if SignatureUID is set,
     // otherwise returns an empty space div (same as before).

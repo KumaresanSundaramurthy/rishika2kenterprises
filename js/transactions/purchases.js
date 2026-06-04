@@ -79,12 +79,21 @@ function searchVendors(key) {
                 // Upstash direct (pages that inject _upstashUrl / _vendorCacheKey)
                 if (typeof _upstashUrl !== 'undefined' && _upstashUrl && typeof _vendorCacheKey !== 'undefined' && _vendorCacheKey) {
                     $.ajax({
-                        url: _upstashUrl + '/get/' + encodeURIComponent(_vendorCacheKey),
+                        url: _upstashUrl + '/hgetall/' + encodeURIComponent(_vendorCacheKey),
                         headers: { 'Authorization': 'Bearer ' + _upstashReadToken },
                         dataType: 'json',
                         success: function (resp) {
                             var raw = resp.result;
-                            var map = typeof raw === 'string' ? JSON.parse(raw) : (raw || {});
+                            // HGETALL returns alternating [field, value, field, value, ...]
+                            var map = {};
+                            if (Array.isArray(raw)) {
+                                for (var i = 0; i + 1 < raw.length; i += 2) {
+                                    try { map[raw[i]] = JSON.parse(raw[i + 1]); }
+                                    catch (e) { map[raw[i]] = raw[i + 1]; }
+                                }
+                            } else if (raw && typeof raw === 'object') {
+                                map = raw; // already parsed (some client versions)
+                            }
                             vendorCache = Object.keys(map).map(function (uid) {
                                 var v = map[uid];
                                 return {

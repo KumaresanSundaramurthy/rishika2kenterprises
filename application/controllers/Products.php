@@ -2096,12 +2096,12 @@ class Products extends MY_Controller {
             if (empty($products)) throw new Exception('No active items found.');
 
             $cacheKey = $this->redisservice->orgKey('products');
-            $existing = $this->upstashservice->get($cacheKey);
-            $cacheMap = is_array($existing) ? $existing : [];
+            $this->upstashservice->del($cacheKey);
+            $newMap = [];
 
             foreach ($products as $prod) {
                 $uid = (int) $prod->ProductUID;
-                $cacheMap[(string)$uid] = [
+                $newMap[(string)$uid] = [
                     'ProductUID'                  => $uid,
                     'ItemName'                    => $prod->ItemName                   ?? '',
                     'ProductType'                 => $prod->ProductType                ?? '',
@@ -2135,7 +2135,7 @@ class Products extends MY_Controller {
                 ];
             }
 
-            $this->upstashservice->set($cacheKey, $cacheMap, 0);
+            $this->upstashservice->hmset($cacheKey, $newMap);
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = count($products) . ' item(s) synced to cache.';
@@ -2165,12 +2165,12 @@ class Products extends MY_Controller {
             if (empty($categories)) throw new Exception('No active categories found.');
 
             $cacheKey = $this->redisservice->orgKey('categories');
-            $existing = $this->upstashservice->get($cacheKey);
-            $cacheMap = is_array($existing) ? $existing : [];
+            $this->upstashservice->del($cacheKey);
+            $newMap = [];
 
             foreach ($categories as $cat) {
                 $uid = (int) $cat->CategoryUID;
-                $cacheMap[(string)$uid] = [
+                $newMap[(string)$uid] = [
                     'CategoryUID'  => $uid,
                     'Name'         => $cat->Name        ?? '',
                     'Description'  => $cat->Description ?? '',
@@ -2178,7 +2178,7 @@ class Products extends MY_Controller {
                 ];
             }
 
-            $this->upstashservice->set($cacheKey, $cacheMap, 0);
+            $this->upstashservice->hmset($cacheKey, $newMap);
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = count($categories) . ' categorie(s) synced to cache.';

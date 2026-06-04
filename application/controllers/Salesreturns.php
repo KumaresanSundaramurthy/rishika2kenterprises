@@ -21,7 +21,6 @@ class Salesreturns extends MY_Controller {
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
             $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
             $limit = $GeneralSettings->RowLimit ?? 10;
-            $this->pageData['DiscTypeInfo'] = [];
 
             $this->load->model('transactions_model');
             $allData      = $this->transactions_model->getTransactionPageList($limit, 0, $this->pageModuleUID, [], 0);
@@ -113,6 +112,7 @@ class Salesreturns extends MY_Controller {
             $roundOff               = (float) getPostValue($PostData, 'RoundOff',               'Array', 0);
             $globalDiscPercent      = (float) getPostValue($PostData, 'GlobalDiscPercent',      'Array', 0);
             $extraDiscount          = (float) getPostValue($PostData, 'extraDiscount',          'Array', 0);
+            $prefix = null;
             $isDraft                = getPostValue($PostData, 'action') === 'draft';
             $status                 = $isDraft ? 'Draft' : 'Approved';
 
@@ -133,20 +133,7 @@ class Salesreturns extends MY_Controller {
                     $nextSuggested = $this->transactions_model->getNextTransactionNumber($prefixUID, $orgUID, $this->pageModuleUID);
                     throw new Exception("Transaction number {$transNumber} already exists. Next available: {$nextSuggested}.");
                 }
-                $sep   = $prefix->Separator ?? '-';
-                $parts = [strtoupper($prefix->Name)];
-                if (!empty($prefix->IncludeShortName) && !empty($prefix->ShortName)) $parts[] = strtoupper($prefix->ShortName);
-                if (!empty($prefix->IncludeFiscalYear)) {
-                    $txMonth = (int) date('m', strtotime($transDate));
-                    $txYear  = (int) date('Y', strtotime($transDate));
-                    $fyStart = $txMonth >= 4 ? $txYear : $txYear - 1;
-                    $parts[] = ($prefix->FiscalYearFormat ?? 'SHORT') === 'LONG'
-                        ? $fyStart . '-' . ($fyStart + 1)
-                        : str_pad($fyStart % 100, 2, '0', STR_PAD_LEFT) . '-' . str_pad(($fyStart + 1) % 100, 2, '0', STR_PAD_LEFT);
-                }
-                $padding      = (int)($prefix->NumberPadding ?? 1);
-                $parts[]      = $padding > 1 ? str_pad($transNumber, $padding, '0', STR_PAD_LEFT) : (string)$transNumber;
-                $uniqueNumber = implode($sep, $parts);
+                list($uniqueNumber) = $this->buildUniqueNumber($prefix, $transNumber, $transDate);
             }
 
             $headerData = [
@@ -180,15 +167,17 @@ class Salesreturns extends MY_Controller {
                 'ExtraDiscType'     => getPostValue($PostData, 'extDiscountType') ?: NULL,
                 'NetAmount'         => $netAmount,
                 'DocStatus'         => $status,
-                'TransToken'        => $this->transactions_model->_uniqueTransToken(),
+                'TransToken'        => \Ramsey\Uuid\Uuid::uuid4()->toString(),
                 'IsActive'          => 1,
                 'IsDeleted'         => 0,
                 'CreatedBy'         => $userUID,
                 'UpdatedBy'         => $userUID,
             ];
-            $insertResp = $this->dbwrite_model->insertData('Transaction', 'TransactionsTbl', $headerData);
+            $insertResp = $this->_insertTransactionWithRetry($headerData, $prefixUID, $orgUID, $prefix, $transDate);
             if ($insertResp->Error) throw new Exception($insertResp->Message);
-            $transUID = $insertResp->ID;
+            $transUID     = $insertResp->ID;
+            $transNumber  = $headerData['TransNumber'];
+            $uniqueNumber = $headerData['UniqueNumber'];
 
             $additionalChargesJson = $this->buildAdditionalChargesJson($PostData);
             $isInterState          = $igstAmount > 0 ? 1 : ($cgstAmount > 0 || $sgstAmount > 0 ? 0 : NULL);
@@ -385,7 +374,7 @@ class Salesreturns extends MY_Controller {
                     'PrefixUID'    => $prefixUID,
                     'TransNumber'  => $transNumber,
                     'UniqueNumber' => $uniqueNumber,
-                    'TransToken'   => $this->transactions_model->_uniqueTransToken(),
+                    'TransToken'   => \Ramsey\Uuid\Uuid::uuid4()->toString(),
                     'IsActive'     => 1,
                     'IsDeleted'    => 0,
                     'CreatedBy'    => $userUID,
@@ -983,134 +972,11 @@ class Salesreturns extends MY_Controller {
         if ($batchResp->Error) throw new Exception($batchResp->Message);
     }
 
-    private function _saveAttachments($transUID) {
-        $files = $_FILES['AttachFiles'] ?? null;
-        if (empty($files) || empty($files['name'][0])) return;
 
-        $userUID   = $this->pageData['JwtData']->User->UserUID;
-        $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
-        $moduleUID = $this->pageModuleUID;
 
-        $this->load->library('fileupload');
-        $this->load->model('dbwrite_model');
 
-        $fileCount = count($files['name']);
-        for ($i = 0; $i < $fileCount; $i++) {
-            if ($files['error'][$i] !== UPLOAD_ERR_OK || empty($files['name'][$i])) continue;
 
-            $origName    = basename($files['name'][$i]);
-            $tmpPath     = $files['tmp_name'][$i];
-            $fileType    = $files['type'][$i];
-            $fileSize    = $files['size'][$i];
-            $safeName    = time() . '_' . $i . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $origName);
-            $storagePath = 'salesreturns/' . $transUID . '/' . $safeName;
 
-            $uploadResult = $this->fileupload->fileUpload('file', $storagePath, $tmpPath);
-            if ($uploadResult->Error) continue;
-
-            $this->dbwrite_model->insertData('Transaction', 'TransAttachmentsTbl', [
-                'OrgUID'    => $orgUID,
-                'TransUID'  => $transUID,
-                'ModuleUID' => $moduleUID,
-                'FileName'  => $origName,
-                'FilePath'  => '/' . ltrim($uploadResult->Path, '/'),
-                'FileType'  => $fileType,
-                'FileSize'  => $fileSize,
-                'SortOrder' => $i,
-                'IsActive'  => 1,
-                'IsDeleted' => 0,
-                'CreatedBy' => $userUID,
-            ]);
-        }
-    }
-
-    private function _softDeleteAttachments($removedJson) {
-        if (empty($removedJson)) return;
-        $uids = json_decode($removedJson, true);
-        if (empty($uids) || !is_array($uids)) return;
-
-        $orgUID  = $this->pageData['JwtData']->Org->OrgUID;
-        $userUID = $this->pageData['JwtData']->User->UserUID;
-        $this->load->model('dbwrite_model');
-
-        foreach ($uids as $attachUID) {
-            $attachUID = (int) $attachUID;
-            if ($attachUID <= 0) continue;
-            $this->dbwrite_model->updateData(
-                'Transaction', 'TransAttachmentsTbl',
-                ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
-                ['AttachUID' => $attachUID, 'OrgUID' => $orgUID]
-            );
-        }
-    }
-
-    public function uploadAttachments() {
-
-        $this->EndReturnData = new stdClass();
-        try {
-
-            $PostData  = $this->input->post();
-            $userUID   = $this->pageData['JwtData']->User->UserUID;
-            $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
-            $transUID  = (int) getPostValue($PostData, 'TransUID');
-            $moduleUID = (int) getPostValue($PostData, 'ModuleUID') ?: $this->pageModuleUID;
-
-            if ($transUID <= 0) throw new Exception('Invalid sales return reference.');
-
-            $files = $_FILES['AttachFiles'] ?? null;
-            if (empty($files) || empty($files['name'][0])) {
-                $this->EndReturnData->Error   = FALSE;
-                $this->EndReturnData->Message = 'No files to upload.';
-                $this->globalservice->sendJsonResponse($this->EndReturnData);
-                return;
-            }
-
-            $this->load->library('fileupload');
-            $this->load->model('dbwrite_model');
-
-            $uploaded  = 0;
-            $fileCount = count($files['name']);
-            for ($i = 0; $i < $fileCount; $i++) {
-                if ($files['error'][$i] !== UPLOAD_ERR_OK || empty($files['name'][$i])) continue;
-
-                $origName    = basename($files['name'][$i]);
-                $tmpPath     = $files['tmp_name'][$i];
-                $fileType    = $files['type'][$i];
-                $fileSize    = $files['size'][$i];
-                $safeName    = time() . '_' . $i . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $origName);
-                $storagePath = 'salesreturns/' . $transUID . '/' . $safeName;
-
-                $uploadResult = $this->fileupload->fileUpload('file', $storagePath, $tmpPath);
-                if ($uploadResult->Error) continue;
-
-                $this->dbwrite_model->insertData('Transaction', 'TransAttachmentsTbl', [
-                    'OrgUID'    => $orgUID,
-                    'TransUID'  => $transUID,
-                    'ModuleUID' => $moduleUID,
-                    'FileName'  => $origName,
-                    'FilePath'  => $uploadResult->Path,
-                    'FileType'  => $fileType,
-                    'FileSize'  => $fileSize,
-                    'SortOrder' => $i,
-                    'IsActive'  => 1,
-                    'IsDeleted' => 0,
-                    'CreatedBy' => $userUID,
-                ]);
-                $uploaded++;
-            }
-
-            $this->EndReturnData->Error    = FALSE;
-            $this->EndReturnData->Message  = $uploaded . ' file(s) uploaded.';
-            $this->EndReturnData->Uploaded = $uploaded;
-
-        } catch (Exception $e) {
-            $this->EndReturnData->Error   = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-        }
-
-        $this->globalservice->sendJsonResponse($this->EndReturnData);
-
-    }
 
 
     public function getPaymentAttachments() {

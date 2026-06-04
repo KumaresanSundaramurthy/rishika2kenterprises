@@ -750,6 +750,24 @@ class Organisation_model extends CI_Model {
         return $this->EndReturnData;
     }
 
+    /** Fetch all message templates for a module in ONE query, keyed by Channel.
+     *  Returns: ['Email' => obj, 'WhatsApp' => obj, 'SMS' => obj]  (only configured channels)
+     */
+    public function getModuleMessageTemplates($orgUID, $moduleUID) {
+        try {
+            $this->ReadDb->from('Settings.MessageTemplatesTbl');
+            $this->ReadDb->where(['OrgUID' => $orgUID, 'ModuleUID' => (int)$moduleUID, 'IsDeleted' => 0]);
+            $rows   = $this->ReadDb->get()->result();
+            $result = [];
+            foreach ($rows as $row) {
+                $result[$row->Channel] = $row;
+            }
+            return $result;
+        } catch (Exception $e) {
+            return [];
+        }
+    }
+
     /** Get a single message template by org + module + channel. */
     public function getMessageTemplate($orgUID, $moduleUID, $channel) {
         $this->EndReturnData = new stdClass();

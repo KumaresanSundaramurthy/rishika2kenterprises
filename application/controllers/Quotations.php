@@ -27,24 +27,22 @@ class Quotations extends MY_Controller {
 
             $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
             $limit = $GeneralSettings->RowLimit ?? 10;
-            $this->pageData['DiscTypeInfo'] = [];
 
             $this->load->model('transactions_model');
             $allData = $this->transactions_model->getTransactionPageList($limit, 0, $this->pageModuleUID, [], 0);
             $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, []);
 
             $orgUID = $this->pageData['JwtData']->Org->OrgUID;
-            $whatsAppTemplate = $this->getWhatsAppTemplate($orgUID);
 
-            // Pre-load org context and email template so the comm modal can populate
-            // client-side (zero AJAX on email button click)
+            // Single query fetches all channels (WhatsApp + Email) for this module
             $this->load->model('organisation_model');
             $orgResult = $this->organisation_model->getOrgInfoCached($orgUID);
             $this->pageData['CommOrgContext'] = $orgResult->Data ?? null;
 
-            $msgTplResult = $this->organisation_model->getMessageTemplate($orgUID, $this->pageModuleUID, 'Email');
-            $this->pageData['CommEmailTemplate'] = (!$msgTplResult->Error && !empty($msgTplResult->Data))
-                ? ['Subject' => $msgTplResult->Data->Subject ?? '', 'Body' => $msgTplResult->Data->Body ?? '']
+            $templates    = $this->organisation_model->getModuleMessageTemplates($orgUID, $this->pageModuleUID);
+            $whatsAppTemplate = $templates['WhatsApp'] ?? null;
+            $this->pageData['CommEmailTemplate'] = isset($templates['Email'])
+                ? ['Subject' => $templates['Email']->Subject ?? '', 'Body' => $templates['Email']->Body ?? '']
                 : null;
 
             $this->pageData['ModRowData'] = $this->load->view('transactions/quotations/list', ['DataLists' => $allData, 'SerialNumber' => 0, 'JwtData' => $this->pageData['JwtData'], 'WhatsAppTemplate' => $whatsAppTemplate], TRUE);
@@ -79,14 +77,15 @@ class Quotations extends MY_Controller {
             $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, $filter);
 
 
-            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
-            $whatsAppTemplate = $this->getWhatsAppTemplate($orgUID);
+            $orgUID       = $this->pageData['JwtData']->Org->OrgUID;
+            $this->load->model('organisation_model');
+            $templates    = $this->organisation_model->getModuleMessageTemplates($orgUID, $this->pageModuleUID);
 
             $rowHtml = $this->load->view('transactions/quotations/list', [
-                'DataLists'       => $allData,
-                'SerialNumber'    => ($pageNo - 1) * $limit,
-                'JwtData'         => $this->pageData['JwtData'],
-                'WhatsAppTemplate' => $whatsAppTemplate,
+                'DataLists'        => $allData,
+                'SerialNumber'     => ($pageNo - 1) * $limit,
+                'JwtData'          => $this->pageData['JwtData'],
+                'WhatsAppTemplate' => $templates['WhatsApp'] ?? null,
             ], true);
             
             $this->EndReturnData->Error = FALSE;
@@ -219,12 +218,6 @@ class Quotations extends MY_Controller {
                 if (empty($prefixData->Data)) throw new Exception('Invalid prefix selected.');
                 $prefix = $prefixData->Data[0];
 
-                // Race condition guard: if the submitted number is already taken
-                // (another user saved first), auto-advance to the next free number.
-                if ($this->dbwrite_model->checkTransactionNumberExists($prefixUID, $transNumber, $orgUID)) {
-                    $transNumber = $this->dbwrite_model->getNextAvailableTransNumber($prefixUID, $orgUID);
-                }
-
                 list($uniqueNumber) = $this->buildUniqueNumber($prefix, $transNumber, $transDate);
             }
 
@@ -261,17 +254,19 @@ class Quotations extends MY_Controller {
                 'ExtraDiscType'         => getPostValue($PostData, 'extDiscountType') ?: NULL,
                 'NetAmount'             => $netAmount,
                 'DocStatus'             => $status,
-                'TransToken'            => $this->transactions_model->_uniqueTransToken(),
+                'TransToken'            => \Ramsey\Uuid\Uuid::uuid4()->toString(),
                 'IsActive'              => 1,
                 'IsDeleted'             => 0,
                 'CreatedBy'             => $userUID,
                 'UpdatedBy'             => $userUID,
             ];
 
-            $insertResp = $this->dbwrite_model->insertData('Transaction', 'TransactionsTbl', $headerData);
+            $insertResp = $this->_insertTransactionWithRetry($headerData, $prefixUID, $orgUID, $prefix, $transDate);
             if ($insertResp->Error) throw new Exception($insertResp->Message);
 
-            $transUID = $insertResp->ID;
+            $transUID     = $insertResp->ID;
+            $transNumber  = $headerData['TransNumber'];
+            $uniqueNumber = $headerData['UniqueNumber'];
 
             // --- Insert detail row (TransDetailTbl - notes, terms, validity, charges) ---
             $additionalChargesJson = $this->buildAdditionalChargesJson($PostData);
@@ -456,7 +451,7 @@ class Quotations extends MY_Controller {
                     'PrefixUID'    => $prefixUID,
                     'TransNumber'  => $transNumber,
                     'UniqueNumber' => $uniqueNumber,
-                    'TransToken'   => $this->transactions_model->_uniqueTransToken(),
+                    'TransToken'   => \Ramsey\Uuid\Uuid::uuid4()->toString(),
                     'IsActive'     => 1,
                     'IsDeleted'    => 0,
                     'CreatedBy'    => $userUID,
@@ -799,25 +794,6 @@ class Quotations extends MY_Controller {
 
     }
 
-    private function buildUniqueNumber($prefix, $transNumber, $transDate) {
-        $sep   = $prefix->Separator ?? '-';
-        $parts = [strtoupper($prefix->Name)];
-        if (!empty($prefix->IncludeShortName) && !empty($prefix->ShortName)) {
-            $parts[] = strtoupper($prefix->ShortName);
-        }
-        if (!empty($prefix->IncludeFiscalYear)) {
-            $txMonth = (int) date('m', strtotime($transDate));
-            $txYear  = (int) date('Y', strtotime($transDate));
-            $fyStart = $txMonth >= 4 ? $txYear : $txYear - 1;
-            $parts[] = ($prefix->FiscalYearFormat ?? 'SHORT') === 'LONG'
-                ? $fyStart . '-' . ($fyStart + 1)
-                : str_pad($fyStart % 100, 2, '0', STR_PAD_LEFT) . '-' . str_pad(($fyStart + 1) % 100, 2, '0', STR_PAD_LEFT);
-        }
-        $padding = (int)($prefix->NumberPadding ?? 1);
-        $parts[] = $padding > 1 ? str_pad($transNumber, $padding, '0', STR_PAD_LEFT) : (string)$transNumber;
-        return [implode($sep, $parts), $transNumber];
-    }
-
     public function create() {
 
         try {
@@ -979,142 +955,6 @@ class Quotations extends MY_Controller {
         } catch (Exception $e) {
             redirect('quotations', 'refresh');
         }
-
-    }
-
-    private function _saveAttachments($transUID) {
-        $files = $_FILES['AttachFiles'] ?? null;
-        if (empty($files) || empty($files['name'][0])) return;
-
-        $userUID   = $this->pageData['JwtData']->User->UserUID;
-        $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
-        $moduleUID = $this->pageModuleUID;
-
-        $this->load->library('fileupload');
-        $this->load->model('dbwrite_model');
-
-        $fileCount = count($files['name']);
-        for ($i = 0; $i < $fileCount; $i++) {
-            if ($files['error'][$i] !== UPLOAD_ERR_OK || empty($files['name'][$i])) continue;
-
-            $origName    = basename($files['name'][$i]);
-            $tmpPath     = $files['tmp_name'][$i];
-            $fileType    = $files['type'][$i];
-            $fileSize    = $files['size'][$i];
-            $safeName    = time() . '_' . $i . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $origName);
-            $storagePath = 'quotations/' . $transUID . '/' . $safeName;
-
-            $uploadResult = $this->fileupload->fileUpload('file', $storagePath, $tmpPath);
-            if ($uploadResult->Error) continue;
-
-            $this->dbwrite_model->insertData('Transaction', 'TransAttachmentsTbl', [
-                'OrgUID'    => $orgUID,
-                'TransUID'  => $transUID,
-                'ModuleUID' => $moduleUID,
-                'FileName'  => $origName,
-                'FilePath'  => '/' . ltrim($uploadResult->Path, '/'),
-                'FileType'  => $fileType,
-                'FileSize'  => $fileSize,
-                'SortOrder' => $i,
-                'IsActive'  => 1,
-                'IsDeleted' => 0,
-                'CreatedBy' => $userUID,
-            ]);
-        }
-    }
-
-    private function getWhatsAppTemplate($orgUID) {
-        $this->load->model('organisation_model');
-        $result = $this->organisation_model->getMessageTemplate($orgUID, $this->pageModuleUID, 'WhatsApp');
-        return $result->Error === false ? $result->Data : new stdClass();
-    }
-
-
-    private function _softDeleteAttachments($removedJson) {
-        if (empty($removedJson)) return;
-        $uids = json_decode($removedJson, true);
-        if (empty($uids) || !is_array($uids)) return;
-
-        $orgUID  = $this->pageData['JwtData']->Org->OrgUID;
-        $userUID = $this->pageData['JwtData']->User->UserUID;
-        $this->load->model('dbwrite_model');
-
-        foreach ($uids as $attachUID) {
-            $attachUID = (int) $attachUID;
-            if ($attachUID <= 0) continue;
-            $this->dbwrite_model->updateData(
-                'Transaction', 'TransAttachmentsTbl',
-                ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
-                ['AttachUID' => $attachUID, 'OrgUID' => $orgUID]
-            );
-        }
-    }
-
-    public function uploadAttachments() {
-
-        $this->EndReturnData = new stdClass();
-        try {
-
-            $PostData  = $this->input->post();
-            $userUID   = $this->pageData['JwtData']->User->UserUID;
-            $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
-            $transUID  = (int) getPostValue($PostData, 'TransUID');
-            $moduleUID = (int) getPostValue($PostData, 'ModuleUID') ?: $this->pageModuleUID;
-
-            if ($transUID <= 0) throw new Exception('Invalid quotation reference.');
-
-            $files = $_FILES['AttachFiles'] ?? null;
-            if (empty($files) || empty($files['name'][0])) {
-                $this->EndReturnData->Error   = FALSE;
-                $this->EndReturnData->Message = 'No files to upload.';
-                $this->globalservice->sendJsonResponse($this->EndReturnData);
-                return;
-            }
-
-            $this->load->library('fileupload');
-            $this->load->model('dbwrite_model');
-
-            $uploaded  = 0;
-            $fileCount = count($files['name']);
-            for ($i = 0; $i < $fileCount; $i++) {
-                if ($files['error'][$i] !== UPLOAD_ERR_OK || empty($files['name'][$i])) continue;
-
-                $origName    = basename($files['name'][$i]);
-                $tmpPath     = $files['tmp_name'][$i];
-                $fileType    = $files['type'][$i];
-                $fileSize    = $files['size'][$i];
-                $safeName    = time() . '_' . $i . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $origName);
-                $storagePath = 'quotations/' . $transUID . '/' . $safeName;
-
-                $uploadResult = $this->fileupload->fileUpload('file', $storagePath, $tmpPath);
-                if ($uploadResult->Error) continue;
-
-                $this->dbwrite_model->insertData('Transaction', 'TransAttachmentsTbl', [
-                    'OrgUID'    => $orgUID,
-                    'TransUID'  => $transUID,
-                    'ModuleUID' => $moduleUID,
-                    'FileName'  => $origName,
-                    'FilePath'  => $uploadResult->Path,
-                    'FileType'  => $fileType,
-                    'FileSize'  => $fileSize,
-                    'SortOrder' => $i,
-                    'IsActive'  => 1,
-                    'IsDeleted' => 0,
-                    'CreatedBy' => $userUID,
-                ]);
-                $uploaded++;
-            }
-
-            $this->EndReturnData->Error    = FALSE;
-            $this->EndReturnData->Message  = $uploaded . ' file(s) uploaded.';
-            $this->EndReturnData->Uploaded = $uploaded;
-
-        } catch (Exception $e) {
-            $this->EndReturnData->Error   = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-        }
-
-        $this->globalservice->sendJsonResponse($this->EndReturnData);
 
     }
 

@@ -22,7 +22,6 @@ class Deliverychallans extends MY_Controller {
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
             $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
             $limit = $GeneralSettings->RowLimit ?? 10;
-            $this->pageData['DiscTypeInfo'] = [];
 
             $this->load->model('transactions_model');
             $allData      = $this->transactions_model->getTransactionPageList($limit, 0, $this->pageModuleUID, [], 0);
@@ -246,6 +245,7 @@ class Deliverychallans extends MY_Controller {
             $roundOff               = (float) getPostValue($PostData, 'RoundOff',               'Array', 0);
             $globalDiscPercent      = (float) getPostValue($PostData, 'GlobalDiscPercent',      'Array', 0);
             $extraDiscount          = (float) getPostValue($PostData, 'extraDiscount',           'Array', 0);
+            $prefix = null;
             $isDraft   = getPostValue($PostData, 'action') === 'draft';
             $status    = $isDraft ? 'Draft' : 'Dispatched';
 
@@ -268,20 +268,7 @@ class Deliverychallans extends MY_Controller {
                     throw new Exception("Transaction number {$transNumber} already exists. Next available: {$nextSuggested}.");
                 }
 
-                $sep   = $prefix->Separator ?? '-';
-                $parts = [strtoupper($prefix->Name)];
-                if (!empty($prefix->IncludeShortName) && !empty($prefix->ShortName)) $parts[] = strtoupper($prefix->ShortName);
-                if (!empty($prefix->IncludeFiscalYear)) {
-                    $txMonth = (int) date('m', strtotime($transDate));
-                    $txYear  = (int) date('Y', strtotime($transDate));
-                    $fyStart = $txMonth >= 4 ? $txYear : $txYear - 1;
-                    $parts[] = ($prefix->FiscalYearFormat ?? 'SHORT') === 'LONG'
-                        ? $fyStart . '-' . ($fyStart + 1)
-                        : str_pad($fyStart % 100, 2, '0', STR_PAD_LEFT) . '-' . str_pad(($fyStart + 1) % 100, 2, '0', STR_PAD_LEFT);
-                }
-                $padding      = (int)($prefix->NumberPadding ?? 1);
-                $parts[]      = $padding > 1 ? str_pad($transNumber, $padding, '0', STR_PAD_LEFT) : (string)$transNumber;
-                $uniqueNumber = implode($sep, $parts);
+                list($uniqueNumber) = $this->buildUniqueNumber($prefix, $transNumber, $transDate);
             }
 
             $additionalChargesJson = $this->buildAdditionalChargesJson($PostData);
@@ -320,16 +307,18 @@ class Deliverychallans extends MY_Controller {
                 'ExtraDiscType'     => getPostValue($PostData, 'extDiscountType') ?: NULL,
                 'NetAmount'         => $netAmount,
                 'DocStatus'         => $status,
-                'TransToken'        => $this->transactions_model->_uniqueTransToken(),
+                'TransToken'        => \Ramsey\Uuid\Uuid::uuid4()->toString(),
                 'IsActive'          => 1,
                 'IsDeleted'         => 0,
                 'CreatedBy'         => $userUID,
                 'UpdatedBy'         => $userUID,
             ];
 
-            $insertResp = $this->dbwrite_model->insertData('Transaction', 'TransactionsTbl', $headerData);
+            $insertResp = $this->_insertTransactionWithRetry($headerData, $prefixUID, $orgUID, $prefix, $transDate);
             if ($insertResp->Error) throw new Exception($insertResp->Message);
-            $transUID = $insertResp->ID;
+            $transUID     = $insertResp->ID;
+            $transNumber  = $headerData['TransNumber'];
+            $uniqueNumber = $headerData['UniqueNumber'];
 
             $detailData = [
                 'FinancialYear'     => $financialYear,

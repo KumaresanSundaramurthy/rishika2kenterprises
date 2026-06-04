@@ -23,7 +23,7 @@ window.CategoryAppend = (function () {
 
     function _fromUpstash(onSuccess, onFail) {
         if (!UpstashService.isEnabled()) { onFail(); return; }
-        UpstashService.get(UpstashService.orgKey('categories')).then(function (map) {
+        UpstashService.hgetall(UpstashService.orgKey('categories')).then(function (map) {
             if (!map || typeof map !== 'object' || Array.isArray(map)) { onFail(); return; }
             var keys = Object.keys(map);
             if (!keys.length) { onFail(); return; }

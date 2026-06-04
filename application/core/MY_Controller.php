@@ -288,6 +288,170 @@ tr:nth-child(even) td{background:#f8fafc;}
     }
 
 
+    // ── Cache guard ─────────────────────────────────────────────────────────
+    // Returns the cached value if present, otherwise renders the cache-refresh
+    // error page and returns null so the caller can do: if (!$v) return;
+    protected function _requireCache($cacheKey) {
+        $value = $this->redisservice->getCache($cacheKey)->Value;
+        if ($value !== null && (!is_array($value) || !empty($value))) {
+            return $value;
+        }
+        $this->load->view('common/cache_refresh', $this->pageData);
+        return null;
+    }
+
+    // ── Unified attachment save ──────────────────────────────────────────────
+    // $uid        — TransUID for standard transactions, SourceUID for expenses/income
+    // $sourceType — null for standard transactions; 'Expense' or 'IndirectIncome' for those pages
+    //
+    // Callers (unchanged):
+    //   $this->_saveAttachments($transUID);                     ← 7 transaction controllers
+    //   $this->_saveAttachments($expenseUID, 'Expense');        ← Expenses
+    //   $this->_saveAttachments($incomeUID,  'IndirectIncome'); ← IndirectIncome
+    protected function _saveAttachments($uid, $sourceType = null) {
+        $files = $_FILES['AttachFiles'] ?? $_FILES['Attachments'] ?? null;
+        if (empty($files) || empty($files['name'][0])) return;
+
+        $userUID = $this->pageData['JwtData']->User->UserUID;
+        $orgUID  = $this->pageData['JwtData']->Org->OrgUID;
+
+        $this->load->library('fileupload');
+        $this->load->model('dbwrite_model');
+
+        // Determine storage folder
+        if ($sourceType === 'Expense') {
+            $folder = 'expenses';
+        } elseif ($sourceType === 'IndirectIncome') {
+            $folder = 'indirectincome';
+        } else {
+            static $folderMap = [
+                101 => 'quotations',      102 => 'salesorders',   103 => 'invoices',
+                104 => 'purchaseorders',  105 => 'purchases',     106 => 'salesreturns',
+                108 => 'purchasereturns', 112 => 'deliverychallans', 113 => 'proformainvoices',
+            ];
+            $folder = $folderMap[(int)($this->pageModuleUID ?? 0)] ?? 'transactions';
+        }
+
+        $count = count($files['name']);
+        for ($i = 0; $i < $count; $i++) {
+            if ($files['error'][$i] !== UPLOAD_ERR_OK || empty($files['name'][$i])) continue;
+
+            $origName    = basename($files['name'][$i]);
+            $safeName    = time() . '_' . $i . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $origName);
+            $storagePath = $folder . '/' . $uid . '/' . $safeName;
+
+            $uploadResult = $this->fileupload->fileUpload('file', $storagePath, $files['tmp_name'][$i]);
+            if ($uploadResult->Error) continue;
+
+            $filePath = '/' . ltrim($uploadResult->Path, '/');
+
+            if ($sourceType !== null) {
+                // Expenses or IndirectIncome
+                $this->dbwrite_model->insertData('Transaction', 'ExpenseIncomeAttachmentsTbl', [
+                    'OrgUID'     => $orgUID,
+                    'SourceUID'  => $uid,
+                    'SourceType' => $sourceType,
+                    'FileName'   => $origName,
+                    'FilePath'   => $filePath,
+                    'FileType'   => $files['type'][$i],
+                    'FileSize'   => $files['size'][$i],
+                    'SortOrder'  => $i,
+                    'IsActive'   => 1,
+                    'IsDeleted'  => 0,
+                    'CreatedBy'  => $userUID,
+                ]);
+            } else {
+                // Standard transaction
+                $this->dbwrite_model->insertData('Transaction', 'TransAttachmentsTbl', [
+                    'OrgUID'    => $orgUID,
+                    'TransUID'  => $uid,
+                    'ModuleUID' => (int)($this->pageModuleUID ?? 0),
+                    'FileName'  => $origName,
+                    'FilePath'  => $filePath,
+                    'FileType'  => $files['type'][$i],
+                    'FileSize'  => $files['size'][$i],
+                    'SortOrder' => $i,
+                    'IsActive'  => 1,
+                    'IsDeleted' => 0,
+                    'CreatedBy' => $userUID,
+                ]);
+            }
+        }
+    }
+
+    // ── Transaction number helpers ───────────────────────────────────────────
+
+    // Builds the formatted UniqueNumber from prefix config + transaction number + date.
+    // e.g. EST/26-27/001, INV-2026-2027-0042
+    protected function buildUniqueNumber($prefix, $transNumber, $transDate) {
+        $sep   = $prefix->Separator ?? '-';
+        $parts = [strtoupper($prefix->Name)];
+        if (!empty($prefix->IncludeShortName) && !empty($prefix->ShortName)) {
+            $parts[] = strtoupper($prefix->ShortName);
+        }
+        if (!empty($prefix->IncludeFiscalYear)) {
+            $txMonth = (int) date('m', strtotime($transDate));
+            $txYear  = (int) date('Y', strtotime($transDate));
+            $fyStart = $txMonth >= 4 ? $txYear : $txYear - 1;
+            $parts[] = ($prefix->FiscalYearFormat ?? 'SHORT') === 'LONG'
+                ? $fyStart . '-' . ($fyStart + 1)
+                : str_pad($fyStart % 100, 2, '0', STR_PAD_LEFT) . '-' . str_pad(($fyStart + 1) % 100, 2, '0', STR_PAD_LEFT);
+        }
+        $padding = (int)($prefix->NumberPadding ?? 1);
+        $parts[] = $padding > 1 ? str_pad($transNumber, $padding, '0', STR_PAD_LEFT) : (string)$transNumber;
+        return [implode($sep, $parts), $transNumber];
+    }
+
+    // Inserts into TransactionsTbl and retries up to 5 times on duplicate number conflict.
+    // $headerData is passed by reference so TransNumber/UniqueNumber stay in sync with caller.
+    // On 6th failure returns a user-friendly message instead of a raw DB error.
+    protected function _insertTransactionWithRetry(&$headerData, $prefixUID, $orgUID, $prefix, $transDate) {
+        $this->load->model('dbwrite_model');
+        $this->load->model('transactions_model');
+        for ($attempt = 0; $attempt <= 5; $attempt++) {
+            $result = $this->dbwrite_model->insertData('Transaction', 'TransactionsTbl', $headerData);
+            if (!$result->Error) {
+                return $result;
+            }
+            // Non-duplicate error — return immediately, let caller handle
+            if (stripos($result->Message ?? '', 'Duplicate entry') === false) {
+                return $result;
+            }
+            // Draft or no prefix — cannot retry, return as-is
+            if ($prefix === null) return $result;
+            // All retries exhausted — user-friendly message
+            if ($attempt >= 5) {
+                $result->Message = 'Could not assign a transaction number. Please try again.';
+                return $result;
+            }
+            // Fetch next free number, rebuild UniqueNumber and retry
+            $transNumber = $this->transactions_model->getNextTransactionNumber(
+                $prefixUID, $orgUID, (int)($this->pageModuleUID ?? 0)
+            );
+            list($uniqueNumber) = $this->buildUniqueNumber($prefix, $transNumber, $transDate);
+            $headerData['TransNumber']  = $transNumber;
+            $headerData['UniqueNumber'] = $uniqueNumber;
+        }
+    }
+
+    protected function _softDeleteAttachments($removedJson) {
+        if (empty($removedJson)) return;
+        $uids = json_decode($removedJson, true);
+        if (empty($uids) || !is_array($uids)) return;
+        $orgUID  = $this->pageData['JwtData']->Org->OrgUID;
+        $userUID = $this->pageData['JwtData']->User->UserUID;
+        $this->load->model('dbwrite_model');
+        foreach ($uids as $attachUID) {
+            $attachUID = (int) $attachUID;
+            if ($attachUID <= 0) continue;
+            $this->dbwrite_model->updateData(
+                'Transaction', 'TransAttachmentsTbl',
+                ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
+                ['AttachUID' => $attachUID, 'OrgUID' => $orgUID]
+            );
+        }
+    }
+
     protected function buildAdditionalChargesJson($PostData) {
         $charges = [];
         foreach (['shipping', 'handling', 'packing', 'other'] as $type) {

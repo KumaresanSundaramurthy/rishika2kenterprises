@@ -206,15 +206,35 @@ class Customers_model extends CI_Model {
 
         try {
             $this->ReadDb->db_debug = FALSE;
+
+            // Range conditions so idx_customers_created is usable (not MONTH()/YEAR())
+            $thisMonthStart = date('Y-m-01');
+            $nextMonthStart = date('Y-m-01', strtotime('+1 month'));
+            $lastMonthStart = date('Y-m-01', strtotime('-1 month'));
+            $fyStart        = (date('n') >= 4)
+                              ? date('Y') . '-04-01'
+                              : (date('Y') - 1) . '-04-01';
+
             $this->ReadDb->select([
-                'COUNT(*) AS TotalCount',
-                'SUM(CASE WHEN IsActive = 1 THEN 1 ELSE 0 END) AS ActiveCount',
-                'SUM(CASE WHEN MONTH(CreatedOn) = MONTH(NOW()) AND YEAR(CreatedOn) = YEAR(NOW()) THEN 1 ELSE 0 END) AS MonthCount',
-                'SUM(CASE WHEN CreatedOn >= IF(MONTH(NOW())>=4, CONCAT(YEAR(NOW()),\'-04-01\'), CONCAT(YEAR(NOW())-1,\'-04-01\')) THEN 1 ELSE 0 END) AS FYCount',
-                'SUM(CASE WHEN MONTH(CreatedOn) = MONTH(NOW() - INTERVAL 1 MONTH) AND YEAR(CreatedOn) = YEAR(NOW() - INTERVAL 1 MONTH) THEN 1 ELSE 0 END) AS LastMonthCount',
+                'COUNT(C.CustomerUID) AS TotalCount',
+                'SUM(CASE WHEN C.IsActive = 1 THEN 1 ELSE 0 END) AS ActiveCount',
+                "SUM(CASE WHEN C.CreatedOn >= '{$thisMonthStart}' AND C.CreatedOn < '{$nextMonthStart}' THEN 1 ELSE 0 END) AS MonthCount",
+                "SUM(CASE WHEN C.CreatedOn >= '{$fyStart}' THEN 1 ELSE 0 END) AS FYCount",
+                "SUM(CASE WHEN C.CreatedOn >= '{$lastMonthStart}' AND C.CreatedOn < '{$thisMonthStart}' THEN 1 ELSE 0 END) AS LastMonthCount",
+                // To Collect: customers who owe us (Debit balance)
+                "SUM(CASE WHEN COB.PendingBalType = 'Debit' AND COB.PendingBalance > 0 THEN 1 ELSE 0 END) AS ToCollectCount",
+                "COALESCE(SUM(CASE WHEN COB.PendingBalType = 'Debit' AND COB.PendingBalance > 0 THEN COB.PendingBalance ELSE 0 END), 0) AS ToCollectAmount",
+                // To Pay: we owe customers (Credit balance)
+                "SUM(CASE WHEN COB.PendingBalType = 'Credit' AND COB.PendingBalance > 0 THEN 1 ELSE 0 END) AS ToPayCount",
+                "COALESCE(SUM(CASE WHEN COB.PendingBalType = 'Credit' AND COB.PendingBalance > 0 THEN COB.PendingBalance ELSE 0 END), 0) AS ToPayAmount",
             ]);
-            $this->ReadDb->from('Customers.CustomerTbl');
-            $this->ReadDb->where(['IsDeleted' => 0, 'OrgUID' => $OrgUID]);
+            $this->ReadDb->from('Customers.CustomerTbl C');
+            $this->ReadDb->join(
+                'Customers.CustOpeningBalanceTbl COB',
+                'COB.CustomerUID = C.CustomerUID AND COB.OrgUID = C.OrgUID AND COB.IsDeleted = 0',
+                'left'
+            );
+            $this->ReadDb->where(['C.IsDeleted' => 0, 'C.OrgUID' => (int)$OrgUID]);
             $query = $this->ReadDb->get();
             if (!$query) throw new Exception('DB error');
             return $query->row();
@@ -232,6 +252,17 @@ class Customers_model extends CI_Model {
             $baseWhere = ['Customers.IsDeleted' => 0, 'Customers.OrgUID' => $orgUID];
             if (isset($filter['IsActive'])) {
                 $baseWhere['Customers.IsActive'] = (int) $filter['IsActive'];
+            }
+
+            // ToCollect / ToPay filter — subquery approach works for both count and data queries
+            $balanceSubquery = null;
+            if (!empty($filter['BalanceType'])) {
+                $balType        = ($filter['BalanceType'] === 'Credit') ? 'Credit' : 'Debit';
+                $balanceSubquery = "Customers.CustomerUID IN (
+                    SELECT CustomerUID FROM Customers.CustOpeningBalanceTbl
+                    WHERE OrgUID = {$orgUID} AND PendingBalType = '{$balType}'
+                      AND PendingBalance > 0 AND IsDeleted = 0
+                )";
             }
 
             // Count query
@@ -257,6 +288,7 @@ class Customers_model extends CI_Model {
                 $typeUIDs = array_filter(array_map('intval', (array)$filter['CustomerTypeUIDs']));
                 if (!empty($typeUIDs)) $this->ReadDb->where_in('Customers.CustomerTypeUID', $typeUIDs);
             }
+            if ($balanceSubquery) $this->ReadDb->where($balanceSubquery, null, false);
             $cntQuery = $this->ReadDb->get();
             if (!$cntQuery) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
             $totalCount = (int) $cntQuery->row()->cnt;
@@ -348,6 +380,7 @@ class Customers_model extends CI_Model {
                 $uids = array_filter(array_map('intval', (array)$filter['UpdatedByUIDs']));
                 if (!empty($uids)) $this->ReadDb->where_in('Customers.UpdatedBy', $uids);
             }
+            if ($balanceSubquery) $this->ReadDb->where($balanceSubquery, null, false);
             if (!empty($filter['NameSorting'])) {
                 $this->ReadDb->order_by('Customers.Name', (int)$filter['NameSorting'] === 1 ? 'ASC' : 'DESC');
             } elseif (!empty($filter['AreaSorting'])) {

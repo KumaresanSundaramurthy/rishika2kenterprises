@@ -2515,9 +2515,16 @@ function searchCustomers(key) {
         $el.wrap('<div class="input-group input-group-sm input-group-merge customer-search-group" id="' + wrapId + '"></div>');
         $('<span class="input-group-text p-2 cursor-pointer" id="openCustomerSearchModal" style="background:#f0efff;border-color:#d9d8ff;color:#696cff;"><i class="icon-base bx bx-search"></i></span>').insertBefore($el);
     }
+    // Ensure the Select2 rendered text never wraps to 2 lines
+    if (!document.getElementById('_custSelect2Style')) {
+        var s = document.createElement('style');
+        s.id  = '_custSelect2Style';
+        s.textContent = '.customer-search-group .select2-selection__rendered { white-space:nowrap !important; overflow:hidden !important; text-overflow:ellipsis !important; }';
+        document.head.appendChild(s);
+    }
 
     $el.select2({
-        placeholder: "Search Customer by Name, Email, Mobile, GSTIN, Company, Contact Person.",
+        placeholder: "Search customer...",
         minimumInputLength: 0,
         allowClear: true,
         dropdownParent: $('#' + wrapId),
@@ -2553,6 +2560,14 @@ function searchCustomers(key) {
                     '<i class="bx bx-loader-alt bx-spin" style="font-size:1.5rem;"></i>' +
                     '<div style="font-size:.8rem;margin-top:8px;">Searching...</div>' +
                     '</div>';
+            },
+            noResults: function () {
+                return '<div style="text-align:center;padding:20px 0;">' +
+                    '<div style="color:#6c757d;font-size:.85rem;margin-bottom:12px;">No results — create Customer</div>' +
+                    '<span class="btn btn-primary btn-sm px-3 select2-create-customer-btn" style="cursor:pointer;">' +
+                        '<i class="bx bx-plus me-1"></i>Create Customer' +
+                    '</span>' +
+                    '</div>';
             }
         },
         ajax: {
@@ -2583,8 +2598,8 @@ function searchCustomers(key) {
 
                 // Fetch from Upstash via UpstashService (same pattern as categories/products)
                 if (UpstashService.isEnabled()) {
-                    UpstashService.get(UpstashService.orgKey('customers')).then(function (map) {
-                        if (!map || typeof map !== 'object') { _fallbackSearch(); return; }
+                    UpstashService.hgetall(UpstashService.orgKey('customers')).then(function (map) {
+                        if (!map || typeof map !== 'object' || !Object.keys(map).length) { _fallbackSearch(); return; }
                         custCache = Object.keys(map).map(function (uid) {
                             var c = map[uid];
                             var entry = {
@@ -2665,9 +2680,29 @@ function searchCustomers(key) {
                 );
             }
         });
+
+        // Attach "Create Customer" handler directly on $dropdown.
+        // Select2's stopPropagation module calls stopPropagation() on $dropdown for ALL
+        // mouse events, so $(document) handlers never fire. Attaching to $dropdown itself
+        // works because stopPropagation only blocks upward bubbling — all handlers on the
+        // same element still fire regardless.
+        var $dropdown = $('#' + wrapId).find('.select2-dropdown');
+        $dropdown.off('mousedown.createCust')
+                 .on('mousedown.createCust', '.select2-create-customer-btn', function (e) {
+                     e.stopPropagation();
+                     var term = $('#' + wrapId).find('.select2-search__field').val().trim();
+                     $el.select2('close');
+                     setTimeout(function () {
+                         $('#addTransCustomer').trigger('click');
+                         if (term && $('#Name').length) { $('#Name').val(term); }
+                     }, 50);
+                 });
     }).on('select2:close', function () {
         $('#' + wrapId).off('input.custSearch');
-    }).on('select2:select', function (e) {
+        $('#' + wrapId).find('.select2-dropdown').off('mousedown.createCust');
+    });
+
+    $el.on('select2:select', function (e) {
         custCache = null; // free after selection
         var data = e.params.data;
 

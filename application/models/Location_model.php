@@ -59,13 +59,12 @@ class Location_model extends CI_Model {
             $iso2 = strtolower(trim($countryISO2));
             $key  = $this->redisservice->orgKey('loc-states');
 
-            $allStates = $this->upstashservice->get($key);
-            $allStates = is_array($allStates) ? $allStates : [];
-
-            if (isset($allStates[$iso2])) {
+            // HGET — fetch only this country's states (not the entire map)
+            $cached = $this->upstashservice->hget($key, $iso2);
+            if (is_array($cached)) {
                 $this->EndReturnData->Error   = FALSE;
                 $this->EndReturnData->Message = 'Data Retrieved Successfully';
-                $this->EndReturnData->Data    = $allStates[$iso2];
+                $this->EndReturnData->Data    = $cached;
                 return $this->EndReturnData;
             }
 
@@ -80,9 +79,9 @@ class Location_model extends CI_Model {
                 throw new Exception($error['message']);
             }
 
-            $data              = $query->result_array();
-            $allStates[$iso2]  = $data;
-            $this->upstashservice->set($key, $allStates, 0);
+            $data = $query->result_array();
+            // HSET — store only this country's states as one field
+            $this->upstashservice->hset($key, $iso2, $data);
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Data Retrieved Successfully';
@@ -106,13 +105,12 @@ class Location_model extends CI_Model {
             $subKey = $cISO2 . '-' . $sISO2;
             $key    = $this->redisservice->orgKey('loc-cities-by-state');
 
-            $allCities = $this->upstashservice->get($key);
-            $allCities = is_array($allCities) ? $allCities : [];
-
-            if (isset($allCities[$subKey])) {
+            // HGET — fetch only this state's cities (not the entire map)
+            $cached = $this->upstashservice->hget($key, $subKey);
+            if (is_array($cached)) {
                 $this->EndReturnData->Error   = FALSE;
                 $this->EndReturnData->Message = 'Data Retrieved Successfully';
-                $this->EndReturnData->Data    = $allCities[$subKey];
+                $this->EndReturnData->Data    = $cached;
                 return $this->EndReturnData;
             }
 
@@ -127,9 +125,9 @@ class Location_model extends CI_Model {
                 throw new Exception($error['message']);
             }
 
-            $data                 = $query->result_array();
-            $allCities[$subKey]   = $data;
-            $this->upstashservice->set($key, $allCities, 0);
+            $data = $query->result_array();
+            // HSET — store only this state's cities as one field
+            $this->upstashservice->hset($key, $subKey, $data);
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Data Retrieved Successfully';
@@ -151,13 +149,12 @@ class Location_model extends CI_Model {
             $iso2 = strtolower(trim($countryISO2));
             $key  = $this->redisservice->orgKey('loc-all-cities');
 
-            $allCities = $this->upstashservice->get($key);
-            $allCities = is_array($allCities) ? $allCities : [];
-
-            if (isset($allCities[$iso2])) {
+            // HGET — fetch only this country's cities (not the entire map)
+            $cached = $this->upstashservice->hget($key, $iso2);
+            if (is_array($cached)) {
                 $this->EndReturnData->Error   = FALSE;
                 $this->EndReturnData->Message = 'Data Retrieved Successfully';
-                $this->EndReturnData->Data    = $allCities[$iso2];
+                $this->EndReturnData->Data    = $cached;
                 return $this->EndReturnData;
             }
 
@@ -172,9 +169,9 @@ class Location_model extends CI_Model {
                 throw new Exception($error['message']);
             }
 
-            $data              = $query->result_array();
-            $allCities[$iso2]  = $data;
-            $this->upstashservice->set($key, $allCities, 0);
+            $data = $query->result_array();
+            // HSET — store only this country's cities as one field
+            $this->upstashservice->hset($key, $iso2, $data);
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Data Retrieved Successfully';

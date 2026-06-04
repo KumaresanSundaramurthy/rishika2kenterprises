@@ -424,10 +424,10 @@ class Vendors extends MY_Controller {
             $vendors = $this->vendors_model->getVendors(['Vendors.OrgUID' => $orgUID]);
             if (empty($vendors)) throw new Exception('No vendors found.');
 
-            // GET existing map first to preserve any keys not in this batch
+            // DEL old STRING key (handles migration) then rebuild fresh as HSET
             $cacheKey = $this->redisservice->orgKey('vendors');
-            $existing = $this->upstashservice->get($cacheKey);
-            $cacheMap = is_array($existing) ? $existing : [];
+            $this->upstashservice->del($cacheKey);
+            $newMap   = [];
 
             foreach ($vendors as $vend) {
                 $uid = (int)$vend->VendorUID;
@@ -451,8 +451,7 @@ class Vendors extends MY_Controller {
                 $openingBalance = $obRow ? (float)$obRow->OpeningBalance : 0.0;
                 $openingBalType = $obRow ? $obRow->OpeningBalType        : 'Credit';
 
-                // Add or overwrite by UID
-                $cacheMap[(string)$uid] = [
+                $newMap[(string)$uid] = [
                     'VendorUID'       => $uid,
                     'Name'            => $vend->Name          ?? '',
                     'CompanyName'     => $vend->CompanyName   ?? '',
@@ -472,8 +471,8 @@ class Vendors extends MY_Controller {
                 ];
             }
 
-            // Store back — TTL 0 = no expiry
-            $this->upstashservice->set($cacheKey, $cacheMap, 0);
+            // Store as HSET — one bulk command, one field per vendor
+            $this->upstashservice->hmset($cacheKey, $newMap);
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = count($vendors) . ' vendor(s) synced to cache.';

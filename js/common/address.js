@@ -62,10 +62,10 @@ function csc_loadStates(selectId, countryISO2, selectedVal, onDone) {
     // 2. Check Upstash — the map key is lowercase ISO2
     if (!UpstashService.isEnabled()) { _ajaxFallback(); return; }
 
-    UpstashService.get(UpstashService.orgKey('loc-states')).then(function (allStates) {
-        var liso2 = iso2.toLowerCase();
-        if (allStates && allStates[liso2]) {
-            _stateSessionCache[iso2] = allStates[liso2];
+    // HGET — fetch only this country's states, not the entire map
+    UpstashService.hget(UpstashService.orgKey('loc-states'), iso2.toLowerCase()).then(function (states) {
+        if (Array.isArray(states) && states.length > 0) {
+            _stateSessionCache[iso2] = states;
             _render(_stateSessionCache[iso2]);
         } else {
             // 3. Upstash miss — AJAX; PHP will query DB and store in Upstash
@@ -138,9 +138,10 @@ function csc_loadCities(selectId, countryISO2, stateISO2, selectedVal, selectedN
     if ($sel.hasClass('select2'))
         $sel.select2({ width: '100%', dropdownParent: $('#addEditAddressModal .modal-content') });
 
-    UpstashService.get(UpstashService.orgKey('loc-cities-by-state')).then(function (allCities) {
-        if (allCities && allCities[subKey]) {
-            _citySessionCache[subKey] = allCities[subKey];
+    // HGET — fetch only this state's cities, not the entire map
+    UpstashService.hget(UpstashService.orgKey('loc-cities-by-state'), subKey).then(function (cities) {
+        if (Array.isArray(cities) && cities.length > 0) {
+            _citySessionCache[subKey] = cities;
             _render(_citySessionCache[subKey]);
         } else {
             // 3. Upstash miss — AJAX; PHP will query DB and store in Upstash

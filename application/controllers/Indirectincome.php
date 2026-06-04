@@ -827,36 +827,7 @@ class Indirectincome extends MY_Controller {
     }
 
     // Uploads files from $_FILES['Attachments'] and saves rows to ExpenseIncomeAttachmentsTbl
-    private function _saveAttachments($sourceUID, $sourceType) {
-        $files = $_FILES['Attachments'] ?? null;
-        if (empty($files) || empty($files['name'][0])) return;
-        $userUID = $this->pageData['JwtData']->User->UserUID;
-        $orgUID  = $this->pageData['JwtData']->Org->OrgUID;
-        $this->load->library('fileupload');
-        $folder = ($sourceType === 'Expense') ? 'expenses' : 'indirectincome';
-        $count  = count($files['name']);
-        for ($i = 0; $i < $count; $i++) {
-            if ($files['error'][$i] !== UPLOAD_ERR_OK || empty($files['name'][$i])) continue;
-            $origName    = basename($files['name'][$i]);
-            $safeName    = time() . '_' . $i . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $origName);
-            $storagePath = $folder . '/' . $sourceUID . '/' . $safeName;
-            $uploadResult = $this->fileupload->fileUpload('file', $storagePath, $files['tmp_name'][$i]);
-            if ($uploadResult->Error) continue;
-            $this->dbwrite_model->insertData('Transaction', 'ExpenseIncomeAttachmentsTbl', [
-                'OrgUID'     => $orgUID,
-                'SourceUID'  => $sourceUID,
-                'SourceType' => $sourceType,
-                'FileName'   => $origName,
-                'FilePath'   => '/' . ltrim($uploadResult->Path, '/'),
-                'FileType'   => $files['type'][$i],
-                'FileSize'   => $files['size'][$i],
-                'SortOrder'  => $i,
-                'IsActive'   => 1,
-                'IsDeleted'  => 0,
-                'CreatedBy'  => $userUID,
-            ]);
-        }
-    }
+
 
     // Saves files from $_FILES['PaymentFiles'] to Transaction.PaymentAttachmentsTbl
     private function _savePaymentAttachments($paymentUID) {

@@ -117,7 +117,15 @@
 
                 if (!response.Customers || response.Customers.length === 0) {
                     AjaxLoading = 1;
-                    $results.html('<div class="text-center py-5 text-muted"><i class="bx bx-user-x fs-3 d-block mb-2"></i>No customers found</div>');
+                    var noResHtml =
+                        '<div class="text-center py-4 text-muted">' +
+                            '<i class="bx bx-user-x fs-3 d-block mb-2"></i>' +
+                            '<div class="mb-3" style="font-size:.9rem;">No results — create Customer</div>' +
+                            '<button type="button" class="btn btn-primary btn-sm px-3" id="custSearchCreateBtn">' +
+                                '<i class="bx bx-plus me-1"></i>Create Customer' +
+                            '</button>' +
+                        '</div>';
+                    $results.html(noResHtml);
                     $('#custSearchPagination').html('');
                     $('#custSearchPageInfo').text('');
                     $('#custSearchPaginationWrap').addClass('d-none');
@@ -200,6 +208,29 @@
             }
         });
     }
+
+    // ── Create Customer — triggered from header button or no-results button ────
+    function openCreateCustomerModal() {
+        var prefill = $('#custSearchInput').val().trim();
+        $('#customerSearchModal').modal('hide');
+        setTimeout(function () {
+            // Trigger #addTransCustomer — same as clicking the Add Customer button
+            // (calls setTransAddrDefaultActions() + shows modal)
+            $('#addTransCustomer').trigger('click');
+            // Pre-fill Name with what was searched
+            if (prefill && $('#Name').length) { $('#Name').val(prefill); }
+        }, 300); // wait for search modal to fully close
+    }
+
+    // Header "+ Create Customer" button
+    $(document).on('click', '#btnCreateCustomerFromSearch', function () {
+        openCreateCustomerModal();
+    });
+
+    // No-results "+ Create Customer" button (dynamically rendered)
+    $(document).on('click', '#custSearchCreateBtn', function () {
+        openCreateCustomerModal();
+    });
 
     // Helper function to escape HTML
     function escapeHtml(text) {

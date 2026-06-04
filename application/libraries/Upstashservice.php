@@ -112,6 +112,91 @@ class Upstashservice {
         return $this->enabled;
     }
 
+    // ── Hash (HSET) operations ────────────────────────────────────────────────
+
+    /** HSET — store one field inside a Redis hash. Value is JSON-encoded. */
+    public function hset(string $key, string $field, $value): bool {
+        if (!$this->enabled) return false;
+        try {
+            $payload = is_string($value)
+                ? $value
+                : json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            return $this->cmd(['HSET', $key, $field, $payload]) !== null;
+        } catch (Exception $e) {
+            $this->log("HSET [{$key}:{$field}]", $e->getMessage());
+            return false;
+        }
+    }
+
+    /** HGET — retrieve one field from a Redis hash. Decodes JSON automatically. */
+    public function hget(string $key, string $field) {
+        if (!$this->enabled) return null;
+        try {
+            $raw = $this->cmd(['HGET', $key, $field]);
+            if ($raw === null) return null;
+            $decoded = json_decode($raw, true);
+            return ($decoded !== null) ? $decoded : $raw;
+        } catch (Exception $e) {
+            $this->log("HGET [{$key}:{$field}]", $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * HGETALL — retrieve every field of a Redis hash.
+     * Returns associative array: ['field' => decodedValue, ...]
+     */
+    public function hgetall(string $key): array {
+        if (!$this->enabled) return [];
+        try {
+            $raw = $this->cmd(['HGETALL', $key]);
+            if (!is_array($raw) || empty($raw)) return [];
+            $result = [];
+            for ($i = 0; $i + 1 < count($raw); $i += 2) {
+                $field   = $raw[$i];
+                $val     = $raw[$i + 1];
+                $decoded = json_decode($val, true);
+                $result[$field] = ($decoded !== null) ? $decoded : $val;
+            }
+            return $result;
+        } catch (Exception $e) {
+            $this->log("HGETALL [{$key}]", $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * HMSET — bulk-store multiple fields in one command.
+     * $data = ['field1' => value1, 'field2' => value2, ...]
+     */
+    public function hmset(string $key, array $data): bool {
+        if (!$this->enabled || empty($data)) return false;
+        try {
+            $cmd = ['HSET', $key];
+            foreach ($data as $field => $value) {
+                $cmd[] = (string)$field;
+                $cmd[] = is_string($value)
+                    ? $value
+                    : json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            }
+            return $this->cmd($cmd) !== null;
+        } catch (Exception $e) {
+            $this->log("HMSET [{$key}]", $e->getMessage());
+            return false;
+        }
+    }
+
+    /** HDEL — remove one or more fields from a hash. */
+    public function hdel(string $key, string ...$fields): int {
+        if (!$this->enabled || empty($fields)) return 0;
+        try {
+            return (int)$this->cmd(array_merge(['HDEL', $key], $fields));
+        } catch (Exception $e) {
+            $this->log('HDEL [' . $key . ':' . implode(',', $fields) . ']', $e->getMessage());
+            return 0;
+        }
+    }
+
     // ── Cache key helpers (static) ────────────────────────────────────────────
 
     public static function keyCustomer(int $id): string        { return "customer:{$id}"; }

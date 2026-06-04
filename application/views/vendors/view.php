@@ -48,48 +48,75 @@
                     </div>
 
                     <!-- ── Stat Cards ── -->
-                    <?php $s = $VendStats ?? null; ?>
+                    <?php
+                        $s   = $VendStats ?? null;
+                        $cur = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
+                        $dec = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
+                    ?>
                     <div class="row g-3 mb-3">
+
+                        <!-- 1. Total Vendors — clickable -->
                         <div class="col-6 col-md">
-                            <div class="trans-stat-card stat-all">
+                            <div class="trans-stat-card stat-all vend-stat-clickable" data-filter="All" style="cursor:pointer;">
                                 <div class="trans-stat-label">Total Vendors</div>
                                 <div class="trans-stat-count vend-stat-total"><?php echo number_format((int)($s->TotalCount ?? 0)); ?></div>
                                 <div class="trans-stat-amount">&nbsp;</div>
                                 <i class="bx bxs-store trans-stat-icon"></i>
                             </div>
                         </div>
+
+                        <!-- 2. Active — clickable -->
                         <div class="col-6 col-md">
-                            <div class="trans-stat-card stat-active">
+                            <div class="trans-stat-card stat-active vend-stat-clickable" data-filter="Active" style="cursor:pointer;">
                                 <div class="trans-stat-label">Active</div>
                                 <div class="trans-stat-count vend-stat-active"><?php echo number_format((int)($s->ActiveCount ?? 0)); ?></div>
                                 <div class="trans-stat-amount">&nbsp;</div>
                                 <i class="bx bx-check-circle trans-stat-icon"></i>
                             </div>
                         </div>
+
+                        <!-- 3. To Collect — clickable -->
                         <div class="col-6 col-md">
-                            <div class="trans-stat-card stat-paid">
-                                <div class="trans-stat-label">This Month</div>
-                                <div class="trans-stat-count vend-stat-month"><?php echo number_format((int)($s->MonthCount ?? 0)); ?></div>
-                                <div class="trans-stat-amount">&nbsp;</div>
-                                <i class="bx bx-calendar trans-stat-icon"></i>
+                            <div class="trans-stat-card stat-paid vend-stat-clickable" data-filter="ToCollect" style="cursor:pointer;">
+                                <div class="trans-stat-label">To Collect</div>
+                                <div class="trans-stat-count vend-stat-tocollect"><?php echo number_format((int)($s->ToCollectCount ?? 0)); ?></div>
+                                <div class="trans-stat-amount"><?php echo $cur . ' ' . number_format((float)($s->ToCollectAmount ?? 0), $dec); ?></div>
+                                <i class="bx bx-arrow-to-bottom trans-stat-icon"></i>
                             </div>
                         </div>
+
+                        <!-- 4. To Pay — clickable -->
                         <div class="col-6 col-md">
-                            <div class="trans-stat-card stat-converted">
-                                <div class="trans-stat-label">This Financial Year</div>
-                                <div class="trans-stat-count vend-stat-fy"><?php echo number_format((int)($s->FYCount ?? 0)); ?></div>
-                                <div class="trans-stat-amount">&nbsp;</div>
-                                <i class="bx bx-trending-up trans-stat-icon"></i>
+                            <div class="trans-stat-card stat-converted vend-stat-clickable" data-filter="ToPay" style="cursor:pointer;">
+                                <div class="trans-stat-label">To Pay</div>
+                                <div class="trans-stat-count vend-stat-topay"><?php echo number_format((int)($s->ToPayCount ?? 0)); ?></div>
+                                <div class="trans-stat-amount"><?php echo $cur . ' ' . number_format((float)($s->ToPayAmount ?? 0), $dec); ?></div>
+                                <i class="bx bx-arrow-from-bottom trans-stat-icon"></i>
                             </div>
                         </div>
+
+                        <!-- 5. Combined Stats — NOT clickable -->
                         <div class="col-6 col-md">
-                            <div class="trans-stat-card stat-draft">
-                                <div class="trans-stat-label">Last Month</div>
-                                <div class="trans-stat-count vend-stat-lastmonth"><?php echo number_format((int)($s->LastMonthCount ?? 0)); ?></div>
-                                <div class="trans-stat-amount">&nbsp;</div>
-                                <i class="bx bx-history trans-stat-icon"></i>
+                            <div class="trans-stat-card stat-draft" style="cursor:default;">
+                                <div class="trans-stat-label">Combined Stats</div>
+                                <div class="d-flex justify-content-between mt-1" style="font-size:.72rem;color:#6c757d;gap:6px;">
+                                    <div class="text-center">
+                                        <div style="font-size:.95rem;font-weight:700;color:#334155;" class="vend-stat-month"><?php echo number_format((int)($s->MonthCount ?? 0)); ?></div>
+                                        <div>This Month</div>
+                                    </div>
+                                    <div class="text-center">
+                                        <div style="font-size:.95rem;font-weight:700;color:#334155;" class="vend-stat-lastmonth"><?php echo number_format((int)($s->LastMonthCount ?? 0)); ?></div>
+                                        <div>Last Month</div>
+                                    </div>
+                                    <div class="text-center">
+                                        <div style="font-size:.95rem;font-weight:700;color:#334155;" class="vend-stat-fy"><?php echo number_format((int)($s->FYCount ?? 0)); ?></div>
+                                        <div>This FY</div>
+                                    </div>
+                                </div>
+                                <i class="bx bx-bar-chart-alt-2 trans-stat-icon"></i>
                             </div>
                         </div>
+
                     </div>
 
                     <?php $showUserBtn = isset($OrgUsers) && is_array($OrgUsers) && count($OrgUsers) > 1; ?>
@@ -346,13 +373,37 @@ $(function() {
     $(window).on('scroll resize', _toggleVendSticky);
     _toggleVendSticky();
 
+    // ── Stat card clicks ──
+    $(document).on('click', '.vend-stat-clickable', function () {
+        var filterType = $(this).data('filter');
+        delete Filter['IsActive'];
+        delete Filter['BalanceType'];
+        $('.vend-stat-clickable').removeClass('active');
+        $(this).addClass('active');
+
+        if (filterType === 'All')            { /* no filter */ }
+        else if (filterType === 'Active')    { Filter['IsActive'] = 1; }
+        else if (filterType === 'ToCollect') { Filter['BalanceType'] = 'Debit'; }
+        else if (filterType === 'ToPay')     { Filter['BalanceType'] = 'Credit'; }
+
+        $('.vend-tab').removeClass('active');
+        if (filterType === 'All')          { $('.vend-tab[data-status="All"]').addClass('active'); }
+        else if (filterType === 'Active')  { $('.vend-tab[data-status="Active"]').addClass('active'); }
+
+        PageNo = 0;
+        getVendorsDetails(PageNo, RowLimit, Filter);
+    });
+
     // ── Status tabs ──
     $(document).on('click', '.vend-tab', function (e) {
         e.preventDefault();
         $('.vend-tab').removeClass('active');
         $(this).addClass('active');
+        $('.vend-stat-clickable').removeClass('active');
         var status = $(this).data('status') || 'All';
-        if (status === 'All')           { delete Filter['IsActive']; }
+        delete Filter['IsActive'];
+        delete Filter['BalanceType'];
+        if (status === 'All')           { /* no filter */ }
         else if (status === 'Active')   { Filter['IsActive'] = 1; }
         else if (status === 'Inactive') { Filter['IsActive'] = 0; }
         PageNo = 0;

@@ -69,6 +69,11 @@ class Settings extends MY_Controller {
             }
             $this->pageData['TransSettings'] = $transSettings;
 
+            // ── Transaction General Settings (T&C etc.) — always read from DB on settings page ──
+            $result           = $this->login_model->getOrgTransGeneralSettings($orgUID);
+            $transGenSettings = (!$result->Error && !empty($result->Data)) ? $result->Data[0] : new stdClass();
+            $this->pageData['TransGenSettings'] = $transGenSettings;
+
             // ── Lookup dropdowns for Product Settings ─────────────────────────
             $this->load->model('global_model');
             $this->pageData['DiscTypeInfo'] = $this->global_model->getDiscountTypeInfo()->Data ?? [];
@@ -325,49 +330,36 @@ class Settings extends MY_Controller {
             $userUID = (int) $this->pageData['JwtData']->User->UserUID;
             $post    = $this->input->post();
 
-            $validFormats = ['d-m-Y', 'Y-m-d', 'd/m/Y', 'm/d/Y', 'd.m.Y', 'Y/m/d', 'd M Y', 'D, d M Y'];
-            $formDateFormat  = getPostValue($post, 'FormDateFormat');
-            $listDateFormat  = getPostValue($post, 'ListDateFormat');
-            $printDateFormat = getPostValue($post, 'PrintDateFormat');
-
-            if (!in_array($formDateFormat,  $validFormats)) $formDateFormat  = 'd-m-Y';
-            if (!in_array($listDateFormat,  $validFormats)) $listDateFormat  = 'd-m-Y';
-            if (!in_array($printDateFormat, $validFormats)) $printDateFormat = 'd-m-Y';
+            $termsAndConditions = trim($this->input->post('TermsAndConditions') ?? '');
 
             $writeDB = $this->load->database('WriteDB', TRUE);
             $writeDB->db_debug = FALSE;
             $sql = "INSERT INTO Settings.OrgTransGeneralSettingsTbl
-                        (OrgUID, FormDateFormat, ListDateFormat, PrintDateFormat, UpdatedBy)
-                    VALUES (?, ?, ?, ?, ?)
+                        (OrgUID, TermsAndConditions, UpdatedBy)
+                    VALUES (?, ?, ?)
                     ON DUPLICATE KEY UPDATE
-                        FormDateFormat  = VALUES(FormDateFormat),
-                        ListDateFormat  = VALUES(ListDateFormat),
-                        PrintDateFormat = VALUES(PrintDateFormat),
-                        UpdatedBy       = VALUES(UpdatedBy)";
+                        TermsAndConditions = VALUES(TermsAndConditions),
+                        UpdatedBy          = VALUES(UpdatedBy)";
 
-            $ok = $writeDB->query($sql, [$orgUID, $formDateFormat, $listDateFormat, $printDateFormat, $userUID]);
+            $ok = $writeDB->query($sql, [$orgUID, $termsAndConditions, $userUID]);
             if (!$ok) {
                 $err = $writeDB->error();
-                throw new Exception($err['message'] ?? 'Failed to save general settings.');
+                throw new Exception($err['message'] ?? 'Failed to save transaction general settings.');
             }
 
-            // Patch TransSettings in JWT — add date format fields
+            // Patch TransGenSettings in JWT Redis cache
             $jwtKey       = $this->pageData['JwtUserKey'] ?? null;
             $redisPayload = $jwtKey ? $this->redisservice->getCache($jwtKey) : null;
             if ($redisPayload && !$redisPayload->Error && !empty($redisPayload->Value)) {
-                $ts = $redisPayload->Value->TransSettings ?? new stdClass();
-                $ts->FormDateFormat  = $formDateFormat;
-                $ts->ListDateFormat  = $listDateFormat;
-                $ts->PrintDateFormat = $printDateFormat;
-                $redisPayload->Value->TransSettings = $ts;
+                $tgs = $redisPayload->Value->TransGenSettings ?? new stdClass();
+                $tgs->TermsAndConditions = $termsAndConditions;
+                $redisPayload->Value->TransGenSettings = $tgs;
                 $this->redisservice->setCache($jwtKey, $redisPayload->Value, $redisPayload->TTL);
             }
 
-            $this->EndReturnData->Error          = FALSE;
-            $this->EndReturnData->Message        = 'Date format settings saved successfully.';
-            $this->EndReturnData->FormDateFormat  = $formDateFormat;
-            $this->EndReturnData->ListDateFormat  = $listDateFormat;
-            $this->EndReturnData->PrintDateFormat = $printDateFormat;
+            $this->EndReturnData->Error             = FALSE;
+            $this->EndReturnData->Message           = 'Transaction general settings saved successfully.';
+            $this->EndReturnData->TermsAndConditions = $termsAndConditions;
 
         } catch (Exception $e) {
             $this->EndReturnData->Error   = TRUE;

@@ -1,5 +1,14 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed');
 
+if (!function_exists('generate_uuid4')) {
+    function generate_uuid4() {
+        $b = random_bytes(16);
+        $b[6] = chr(ord($b[6]) & 0x0f | 0x40);
+        $b[8] = chr(ord($b[8]) & 0x3f | 0x80);
+        return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($b), 4));
+    }
+}
+
 /**
  * Converts a relative file path stored in DB to a full CDN URL.
  * Picks CDN_URL (Amazon S3) or CFLARE_R2_CDN (Cloudflare R2) based on FILE_UPLOAD env.

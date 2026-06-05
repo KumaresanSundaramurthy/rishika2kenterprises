@@ -14,11 +14,16 @@ Class Accountledger {
         try {
             
             $ledgerConfig = $this->getLedgerConfig($entityType);
-            
-            $this->CI->load->model('accountledger_model');
-            $parentExists = $this->CI->accountledger_model->getLedgerById($ledgerConfig['parent_id'], $ledgerConfig['parent_type']);
-            if(!$parentExists) {
-                throw new Exception("Parent ledger ({$ledgerConfig['parent_name']}) not found. Setup chart of accounts first.");
+
+            // Cache parent ledger existence — it never changes once chart of accounts is set up
+            $cacheKey = 'parent_' . $ledgerConfig['parent_id'];
+            if (!isset($this->_sysLedgerCache[$cacheKey])) {
+                $this->CI->load->model('accountledger_model');
+                $parentExists = $this->CI->accountledger_model->getLedgerById($ledgerConfig['parent_id'], $ledgerConfig['parent_type']);
+                if (!$parentExists) {
+                    throw new Exception("Parent ledger ({$ledgerConfig['parent_name']}) not found. Setup chart of accounts first.");
+                }
+                $this->_sysLedgerCache[$cacheKey] = true;
             }
 
             // Create ledger account
@@ -160,8 +165,14 @@ Class Accountledger {
                     throw new Exception("Unsupported entity type: {$entityType}");
             }
             
+            // Parent row (Customer/Vendor) was inserted in the same open transaction.
+            // InnoDB FK check tries to acquire a shared lock on a row that already has
+            // an exclusive lock in our transaction → lock wait timeout (50s).
+            // The row genuinely exists — disable FK checks just for this insert.
+            $this->CI->dbwrite_model->setForeignKeyChecks(false);
             $mapResp = $this->CI->dbwrite_model->insertData('Accounting', 'EntityLedgerMap', $mapData);
-            
+            $this->CI->dbwrite_model->setForeignKeyChecks(true);
+
             if ($mapResp->Error) {
                 throw new Exception($mapResp->Message);
             }

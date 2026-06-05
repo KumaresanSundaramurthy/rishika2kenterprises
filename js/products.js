@@ -80,165 +80,15 @@ function getGroupDetails(PageNo, RowLimit, Filter) {
     });
 }
 
-function addProductData(formdata) {
-    $.ajax({
-        url: '/products/addProductData',
-        method: 'POST',
-        data: formdata,
-        cache: false,
-        processData: false,
-        contentType: false,
-        enctype: 'multipart/form-data',
-        success: function (response) {
-            if (response.Error) {
-                $('.addEditFormAlert').removeClass('d-none');
-                Swal.fire({icon: "error", title: "Oops...", text: response.Message});
-            } else {
-                myOneDropzone.removeAllFiles(true);
-                quill.setContents([]);
-                $('#AddEditItemForm').trigger('reset');
-                $('#itemsModal').modal('hide');
-                clearItemValues();
-                showToastNotification(response.Message, 'success');
-                executeProdPagnFunc(response, true, true);
-            }
-        }
-    });
+function _prodPageSaveSuccess(response) {
+    executeProdPagnFunc(response, true, true);
+}
+_prodPageSaveSuccess._needsList = true;
+
+function retrieveProductDetails(ItemUID, CloneFlag) {
+    ProductForm.open(CloneFlag ? 'clone' : 'edit', ItemUID, { onSaveSuccess: _prodPageSaveSuccess });
 }
 
-function retrieveProductDetails(ItemUID, CloneFlag = false) {
-    $.ajax({
-        url: '/products/retrieveProductDetails',
-        method: "POST",
-        cache: false,
-        data: {
-            ItemUID: ItemUID,
-            [CsrfName]: CsrfToken,
-        },
-        success: function (response) {
-            if (response.Error) {
-                Swal.fire({icon: "error", title: "Oops...", text: response.Message});
-            } else {
-                _ensureCategoryOptions(function () {
-
-                $('#AddEditItemForm').trigger('reset');
-                if (CloneFlag) {
-                    $('#ItemModalTitle').text('Create Item');
-                    $('.AddEditProductBtn').text('Save');
-                } else {
-                    $('#ItemModalTitle').text('Edit Item');
-                    $('.AddEditProductBtn').text('Update');
-                }
-                clearItemValues();
-                $('#itemsModal').modal('show');
-
-                if (CloneFlag) {
-                    $('#HProductUID').val(0);
-                } else {
-                    $('#HProductUID').val(response.Data.ProductUID);
-                }
-
-                $('#ItemName').val(response.Data.ItemName);
-                $('#ProductType').val(response.Data.ProductType);
-                $('#SellingPrice').val(smartDecimal(response.Data.SellingPrice));
-                $('#MRP').val(smartDecimal(response.Data.MRP));
-                $('#SellingTaxOption').val(response.Data.SellingProductTaxUID).trigger('change');
-                $('#TaxPercentage').val(response.Data.TaxDetailsUID).trigger('change');
-                $('#PrimaryUnit').val(response.Data.PrimaryUnitUID).trigger('change');
-                $('#Category').val(response.Data.CategoryUID).trigger('change');
-                $('#PurchasePrice').val(smartDecimal(response.Data.PurchasePrice));
-                $('#PurchaseTaxOption').val(response.Data.PurchasePriceProductTaxUID).trigger('change');
-                if (EnableStorage) {
-                    $('#StorageUID').val(response.Data.StorageUID).trigger('change');
-                }
-
-                $('#HSNCode').val(response.Data.HSNSACCode);
-                $('#Standard').val(response.Data.Standard);
-                $('#BrandUID').val(response.Data.BrandUID).trigger('change');
-                $('#Model').val(response.Data.Model);
-                $('#PartNumber').val(response.Data.PartNumber);
-                if (response.Data.IsSizeApplicable == 1) {
-                    $('#IsSizeApplicable').prop('checked', true).trigger('change');
-                    $('#SizeDiv').removeClass('d-none');
-                    $('#PSizeUID').val(response.Data.SizeUID).trigger('change').prop('required', true);
-                }
-                if (response.Data.IsBrandApplicable == 1) {
-                    $('#IsBrandApplicable').prop('checked', true);
-                }
-                if (response.Data.IsSerialTracked == 1) {
-                    $('#IsSerialTracked').prop('checked', true);
-                }
-                // Load customer type pricing
-                if (typeof loadCustomerPricingRows === 'function') {
-                    loadCustomerPricingRows(response.CustomerPricing || []);
-                }
-                
-                if (hasValue(response.Data.Image)) {
-                    var ImageUrl = CDN_URL + response.Data.Image;
-                    commonSetDropzoneImageOne(ImageUrl);
-                    imgData = ImageUrl;
-                }
-                if (response.Data.Description != null && response.Data.Description != undefined) {
-                    appendToQuill(response.Data.Description, true);
-                }
-
-                $('#OpeningQuantity').val(smartDecimal(response.Data.OpeningQuantity));
-                $('#OpeningPurchasePrice').val(smartDecimal(response.Data.OpeningPurchasePrice));
-                $('#OpeningStockValue').val(smartDecimal(response.Data.OpeningStockValue));
-
-                $('#Discount').val(smartDecimal(response.Data.Discount));
-                $('#DiscountOption').val(response.Data.DiscountTypeUID).trigger('change');
-                $('#LowStockAlert').val(smartDecimal(response.Data.LowStockAlertAt));
-                if (response.Data.NotForSale == 'Yes') {
-                    $('#NotForSale').prop('checked', true);
-                }
-                if (response.Data.IsRentable == 1) {
-                    $('#IsRentable').prop('checked', true).trigger('change');
-                    if (response.RentalConfig) {
-                        var rc = response.RentalConfig;
-                        $('#rc_SecurityDeposit').val(smartDecimal(rc.SecurityDeposit));
-                        $('#rc_HourlyRate').val(smartDecimal(rc.HourlyRate));
-                        $('#rc_HalfDayRate').val(smartDecimal(rc.HalfDayRate));
-                        $('#rc_FullDayRate').val(smartDecimal(rc.FullDayRate));
-                        $('#rc_FixedPackageRate').val(smartDecimal(rc.FixedPackageRate));
-                        $('#rc_ExtraHourRate').val(smartDecimal(rc.ExtraHourRate));
-                        $('#rc_LateReturnCharge').val(smartDecimal(rc.LateReturnChargePerHour));
-                        $('#rc_DamagePenaltyRate').val(smartDecimal(rc.DamagePenaltyRate));
-                        $('#rc_MinRentalHours').val(rc.MinRentalHours || 1);
-                    }
-                }
-
-                }); // end _ensureCategoryOptions
-            }
-        },
-    });
-}
-
-function editProductData(formdata) {
-    $.ajax({
-        url: '/products/updateProductData',
-        method: 'POST',
-        data: formdata,
-        cache: false,
-        processData: false,
-        contentType: false,
-        enctype: 'multipart/form-data',
-        success: function (response) {
-            if (response.Error) {
-                $('.addEditFormAlert').removeClass('d-none');
-                inlineMessageAlert('.addEditFormAlert', 'danger', response.Message, false, false);
-            } else {
-                myOneDropzone.removeAllFiles(true);
-                quill.setContents([]);
-                $('#AddEditItemForm').trigger('reset');
-                $('#itemsModal').modal('hide');
-                clearItemValues();
-                showToastNotification(response.Message, 'success');
-                executeProdPagnFunc(response, true, true);
-            }
-        }
-    });
-}
 
 function deleteProduct(ProductUID) {
     $.ajax({
@@ -381,6 +231,7 @@ function getCategoriesDetails(PageNo, RowLimit, Filter) {
 }
 
 function addCategoryDetails(formdata) {
+    formdata.append('returnList', 1);
     $.ajax({
         url: '/products/addCategoryDetails',
         method: 'POST',
@@ -1055,11 +906,7 @@ function commonExportFunctionality(Flag, Type, PageType) {
 function formOpenCloseDefActions() {
     imgData = '';
     if (ActiveTabId == 'Item') {
-        $('#AddEditItemForm').trigger('reset');
-        $('#ItemModalTitle').text('Create Item');
-        $('.AddEditProductBtn').text('Save');
-        $('#AddEditItemForm').find('#HProductUID').val(0);
-        clearItemValues();
+        // product form reset handled by ProductFormModal hide event in product_form.js
     } else if (ActiveTabId == 'Categories') {
         $('#categoryForm').trigger('reset');
         $('#CatgModalTitle').text('Add Category');
@@ -1094,24 +941,6 @@ function showProductPageDetails() {
     }
 }
 
-function clearItemValues() {
-    $('#HProductUID').val(0);
-    // Apply defaults from ProdSettings (injected from JwtData->ProdSettings in view.php)
-    $('#ProductType').val(typeof _defProductType  !== 'undefined' ? _defProductType  : 'Product').trigger('change');
-    $('#SellingTaxOption,#PurchaseTaxOption').val(typeof _defProdTaxUID   !== 'undefined' && _defProdTaxUID   ? _defProdTaxUID   : 1).trigger('change');
-    $('#DiscountOption').val(typeof _defDiscTypeUID  !== 'undefined' && _defDiscTypeUID  ? _defDiscTypeUID  : 1).trigger('change');
-    $('#TaxPercentage').val(typeof _defTaxDetailUID !== 'undefined' && _defTaxDetailUID ? _defTaxDetailUID : null).trigger('change');
-    $('#PrimaryUnit,#Category,#StorageUID,#BrandUID,#PSizeUID').val(null).trigger('change');
-    $('#IsSizeApplicable,#IsBrandApplicable,#IsSerialTracked,#NotForSale,#IsRentable').prop('checked', false).trigger('change');
-    $('#SizeDiv,#rentalConfigSection').addClass('d-none');
-    myOneDropzone.removeAllFiles(true);
-    quill.setContents([]);
-    // Reset customer pricing
-    if (typeof loadCustomerPricingRows === 'function') loadCustomerPricingRows([]);
-    $('#CustomerTypeSelect').val('').trigger('change');
-    $('#CustomerTypePrice').val('');
-    $('#CustomerPricingData').val('[]');
-}
 
 function commonExportFunctions() {
     $('#btnExportPrint').click(function (e) {
@@ -1236,9 +1065,6 @@ var _cfbConfig = {
     uid        : 'products'
 };
 
-function _ensureCategoryOptions(callback) {
-    CategoryAppend.populateSelect('#Category', callback);
-}
 
 // ── Category filter box ──────────────────────────────────────────────────────
 
@@ -1431,7 +1257,7 @@ function loadTaxDetailOptions() {
                     '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#6c757d;font-size:.82em;">' + right + '</span>' +
                     '</span>');
         },
-        dropdownParent: $('#itemsModal'),
+        dropdownParent: $('#ProductFormModal'),
     });
 
     // Tag the Select2 container so we can scope CSS to this field only

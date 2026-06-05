@@ -1825,11 +1825,20 @@ $(document).ready(function () {
             allowClear     : true,
             width          : '100%',
             dropdownParent : $('#' + wrapId),
+            escapeMarkup   : function (markup) { return markup; },
             language: {
                 searching: function () {
                     return '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 0;color:#9ca3af;">' +
                         '<i class="bx bx-loader-alt bx-spin" style="font-size:1.5rem;"></i>' +
                         '<div style="font-size:.8rem;margin-top:8px;">Searching...</div>' +
+                        '</div>';
+                },
+                noResults: function () {
+                    return '<div style="text-align:center;padding:20px 0;">' +
+                        '<div style="color:#6c757d;font-size:.85rem;margin-bottom:12px;">No results — create Category</div>' +
+                        '<span class="btn btn-primary btn-sm px-3 select2-create-category-btn" style="cursor:pointer;">' +
+                            '<i class="bx bx-plus me-1"></i>Create Category' +
+                        '</span>' +
                         '</div>';
                 }
             },
@@ -1857,7 +1866,7 @@ $(document).ready(function () {
                         function () { AjaxLoading = 1; success({ Lists: [], more: false }); }
                     );
                 },
-                delay: 2000,
+                delay: 1000,
                 data: function (params) {
                     AjaxLoading = 0;
                     return { term: params.term, page: params.page || 1 };
@@ -1882,12 +1891,66 @@ $(document).ready(function () {
                     );
                 }
             });
+
+            // Attach "Create Category" handler directly on $dropdown (same fix as customer —
+            // Select2's stopPropagation module blocks $(document) handlers)
+            var $dropdown = $('#' + wrapId).find('.select2-dropdown');
+            $dropdown.off('mousedown.createCatg')
+                     .on('mousedown.createCatg', '.select2-create-category-btn', function (e) {
+                         e.stopPropagation();
+                         var term = $('#' + wrapId).find('.select2-search__field').val().trim();
+                         $el.select2('close');
+                         setTimeout(function () {
+                             CategoryForm.open({
+                                 prefillName  : term,
+                                 onSaveSuccess: function (response) {
+                                     if (!response.InsertId) return;
+                                     // Add to Select2 and select it
+                                     var $select = $el;
+                                     if ($select.find('option[value="' + response.InsertId + '"]').length === 0) {
+                                         $select.append(new Option(response.CategoryName, response.InsertId, true, true));
+                                     } else {
+                                         $select.val(response.InsertId);
+                                     }
+                                     $select.trigger('change');
+                                     $select.trigger({ type: 'select2:select', params: { data: {} } });
+                                     // Bust catgCache so next open fetches fresh list from Upstash
+                                     catgCache = null;
+                                 }
+                             });
+                         }, 50);
+                     });
         }).on('select2:close select2:select', function () {
             catgCache = null;
             $('#' + wrapId).off('input.catgSearch');
+            $('#' + wrapId).find('.select2-dropdown').off('mousedown.createCatg');
         });
     })();
     searchProductInfo();
+
+    // "Add Product" button on transaction form → open common product modal
+    $(document).on('click', '#addTransProduct', function (e) {
+        e.preventDefault();
+        if (typeof ProductForm !== 'undefined') {
+            ProductForm.open('add', null, {
+                onSaveSuccess: function (response) {
+                    if (!response || !response.Product) return;
+                    var prod = response.Product;
+                    var $sel = $('#searchProductInfo');
+                    var $opt = $sel.find('option[value="' + prod.id + '"]');
+                    if ($opt.length === 0) {
+                        $opt = $('<option>').val(prod.id).text(prod.text);
+                        $sel.append($opt);
+                    }
+                    $opt.attr('data-allfields', JSON.stringify(prod));
+                    $opt.attr('data-primaryunit', prod.primaryUnit || '');
+                    $sel.val(prod.id).trigger('change');
+                    $sel.trigger({ type: 'select2:select', params: { data: prod } });
+                    $('#prodQuantity').focus();
+                }
+            });
+        }
+    });
 
     $('#toggleChargesBtn').on('click', function (e) {
         e.preventDefault();
@@ -2656,7 +2719,7 @@ function searchCustomers(key) {
                     });
                 }
             },
-            delay: 2000,
+            delay: 1000,
             data: function (params) {
                 AjaxLoading = 0;
                 return { term: params.term, page: params.page || 1 };
@@ -2693,8 +2756,33 @@ function searchCustomers(key) {
                      var term = $('#' + wrapId).find('.select2-search__field').val().trim();
                      $el.select2('close');
                      setTimeout(function () {
-                         $('#addTransCustomer').trigger('click');
-                         if (term && $('#Name').length) { $('#Name').val(term); }
+                         CustomerForm.open('add', null, {
+                             prefillName  : term,
+                             onSaveSuccess: function (response) {
+                                 var c = response.Customer;
+                                 if (!c || !c.id) return;
+                                 var $select = $('#' + key);
+                                 if ($select.find('option[value="' + c.id + '"]').length === 0) {
+                                     $select.append(new Option(c.text, c.id, true, true));
+                                 } else {
+                                     $select.val(c.id);
+                                 }
+                                 $select.trigger('change');
+                                 // Fire select2:select so custCache is cleared — prevents
+                                 // stale cache showing old results when user searches again
+                                 $select.trigger({ type: 'select2:select', params: { data: { id: c.id, text: c.text } } });
+                                 if (c.address) {
+                                     var a = c.address;
+                                     var addrHtml = '<div><strong>Shipping Address:</strong></div>'
+                                         + '<div>' + (a.Line1 || '') + '</div>'
+                                         + '<div>' + (a.Line2 || '') + '</div>'
+                                         + '<div>' + [a.City, a.State].filter(Boolean).join(', ') + (a.Pincode ? ' - ' + a.Pincode : '') + '</div>';
+                                     $('#customerAddressBox').html(addrHtml).removeClass('d-none');
+                                 } else {
+                                     $('#customerAddressBox').addClass('d-none').empty();
+                                 }
+                             }
+                         });
                      }, 50);
                  });
     }).on('select2:close', function () {
@@ -2893,6 +2981,14 @@ function searchProductInfo() {
                     '<i class="bx bx-loader-alt bx-spin" style="font-size:1.5rem;"></i>' +
                     '<div style="font-size:.8rem;margin-top:8px;">Searching...</div>' +
                     '</div>';
+            },
+            noResults: function () {
+                return '<div style="text-align:center;padding:20px 0;">' +
+                    '<div style="color:#6c757d;font-size:.85rem;margin-bottom:12px;">No results — create Product</div>' +
+                    '<span class="btn btn-primary btn-sm px-3 select2-create-product-btn" style="cursor:pointer;">' +
+                        '<i class="bx bx-plus me-1"></i>Create Product' +
+                    '</span>' +
+                    '</div>';
             }
         },
         ajax: {
@@ -2916,7 +3012,7 @@ function searchProductInfo() {
                     function () { AjaxLoading = 1; success({ Lists: [], more: false }); }
                 );
             },
-            delay: 2000,
+            delay: 1000,
             data: function (params) {
                 AjaxLoading = 0;
                 return { term: params.term || '', page: params.page || 1 };
@@ -3002,6 +3098,37 @@ function searchProductInfo() {
                 );
             }
         });
+
+        // Attach "Create Product" handler directly on $dropdown (same fix as category —
+        // Select2's stopPropagation module blocks $(document) handlers)
+        var $dropdown = $('#searchProductGroup').find('.select2-dropdown');
+        $dropdown.off('mousedown.createProd')
+                 .on('mousedown.createProd', '.select2-create-product-btn', function (e) {
+                     e.stopPropagation();
+                     var term = $('#searchProductGroup').find('.select2-search__field').val().trim();
+                     $('#searchProductInfo').select2('close');
+                     setTimeout(function () {
+                         ProductForm.open('add', null, {
+                             prefillName  : term,
+                             onSaveSuccess: function (response) {
+                                 if (!response || !response.Product) return;
+                                 var prod = response.Product;
+                                 var $sel = $('#searchProductInfo');
+                                 var $opt = $sel.find('option[value="' + prod.id + '"]');
+                                 if ($opt.length === 0) {
+                                     $opt = $('<option>').val(prod.id).text(prod.text);
+                                     $sel.append($opt);
+                                 }
+                                 $opt.attr('data-allfields', JSON.stringify(prod));
+                                 $opt.attr('data-primaryunit', prod.primaryUnit || '');
+                                 $sel.val(prod.id).trigger('change');
+                                 $sel.trigger({ type: 'select2:select', params: { data: prod } });
+                                 prodCache = null;
+                                 $('#prodQuantity').focus();
+                             }
+                         });
+                     }, 50);
+                 });
     }).on('select2:select', function (e) {
         const data = e.params.data;
         let $option = $(this).find('option[value="'+data.id+'"]');
@@ -3018,6 +3145,7 @@ function searchProductInfo() {
         prodCache = null;
         AjaxLoading = 1;
         $('#searchProductGroup').off('input.prodSearch');
+        $('#searchProductGroup').find('.select2-dropdown').off('mousedown.createProd');
     });
 }
 

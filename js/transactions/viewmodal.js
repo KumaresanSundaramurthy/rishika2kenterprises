@@ -14,12 +14,30 @@
 
     function _fmtDate(s) {
         if (!s) return '—';
-        var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        var months     = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        var monthsFull = ['January','February','March','April','May','June','July','August','September','October','November','December'];
         var p = String(s).split(/[-T ]/);
-        if (p.length < 3) return _esc(s);
-        var d = parseInt(p[2], 10), m = parseInt(p[1], 10) - 1, y = p[0];
-        if (isNaN(d) || m < 0 || m > 11) return _esc(s);
-        return d + ' ' + months[m] + ' ' + y;
+        if (p.length < 3) return s;
+        var dy = parseInt(p[2], 10), mo = parseInt(p[1], 10) - 1, yr = parseInt(p[0], 10);
+        if (isNaN(dy) || mo < 0 || mo > 11) return s;
+
+        var fmt = (typeof _transListDateFormat !== 'undefined' && _transListDateFormat)
+                  ? _transListDateFormat
+                  : 'd M Y';
+
+        var tokens = {
+            'd': String(dy).padStart(2, '0'),
+            'j': String(dy),
+            'm': String(mo + 1).padStart(2, '0'),
+            'n': String(mo + 1),
+            'Y': String(yr),
+            'y': String(yr).slice(-2),
+            'F': monthsFull[mo],
+            'M': months[mo]
+        };
+        return fmt.replace(/[djmnYyFM]/g, function (tok) {
+            return tokens[tok] !== undefined ? tokens[tok] : tok;
+        });
     }
 
     function _smartDec(n) {
@@ -113,7 +131,7 @@
                 '</div>' +
             '</div>' +
             '<div class="vtm-banner-right">' +
-                (h.PlaceOfSupply ? '<span class="badge bg-light text-secondary border vtm-pos-badge">POS: ' + _esc(h.PlaceOfSupply) + '</span>' : '') +
+                (h.PlaceOfSupplyCode ? '<span class="badge bg-light text-secondary border vtm-pos-badge">POS: ' + _esc(h.PlaceOfSupplyCode) + ' – ' + _esc(h.PlaceOfSupplyName || '') + '</span>' : '') +
                 _statusBadge(h.DocStatus) +
                 editBtn +
                 closeBtn +

@@ -154,8 +154,7 @@ class Customers extends MY_Controller {
             'UpdatedBy'         => $this->pageData['JwtData']->User->UserUID,
         ];
         if ($isCreate) {
-            $this->load->model('transactions_model');
-            $data['CustToken'] = $this->transactions_model->_generateUniqueToken('Customers.CustomerTbl', 'CustToken');
+            $data['CustToken'] = generate_uuid4();
             $data['CreatedBy'] = $this->pageData['JwtData']->User->UserUID;
         }
         return $data;
@@ -166,7 +165,6 @@ class Customers extends MY_Controller {
         $this->EndReturnData = new stdClass();
         $ErrorInForm = '';
         try {
-
             $this->load->model('dbwrite_model');
             $this->dbwrite_model->startTransaction();
 
@@ -180,7 +178,6 @@ class Customers extends MY_Controller {
 
             $InsertDataResp = $this->dbwrite_model->insertData('Customers', 'CustomerTbl', $customerFormData);
             if ($InsertDataResp->Error) throw new Exception($InsertDataResp->Message);
-
             $CustomerUID = $InsertDataResp->ID;
 
             if (isset($_FILES['UploadImage'])) {
@@ -205,55 +202,63 @@ class Customers extends MY_Controller {
                 'Customer'
             );
 
+            $this->load->model('customers_model');
             $initAmt  = (float) getPostValue($PostData, 'DebitCreditAmount', '', 0);
             $initType = getPostValue($PostData, 'DebitCreditCheck', '', 'Debit');
             if ($initAmt > 0) {
                 $this->customers_model->saveCustomerOpeningBalance(
                     $this->pageData['JwtData']->Org->OrgUID, $CustomerUID,
                     $initAmt, $initType, null,
-                    $this->pageData['JwtData']->User->UserUID
+                    $this->pageData['JwtData']->User->UserUID, true
                 );
                 $this->customers_model->saveCustomerYearOpening(
                     $this->pageData['JwtData']->Org->OrgUID, $CustomerUID,
                     $this->_currentFinancialYear(),
                     $initAmt, $initType,
-                    $this->pageData['JwtData']->User->UserUID
+                    $this->pageData['JwtData']->User->UserUID, false, true
                 );
             }
 
-            if (getPostValue($PostData, 'transCustomer') == 1) {
-                $this->load->model('transactions_model');
-                $customersData = $this->transactions_model->getCustomersDetails('', ['Customers.CustomerUID' => $CustomerUID]);
-                $cust_Data = [];
-                foreach ($customersData as $value) {
-                    $cust_Data = [
-                        'id'   => $value->CustomerUID,
-                        'text' => $value->Area ? $value->Name . ' (' . $value->Area . ')' : $value->Name,
-                    ];
-                    if ($value->AddrUID) {
-                        $cust_Data['address'] = [
-                            'Line1'   => $value->Line1,
-                            'Line2'   => $value->Line2,
-                            'Pincode' => $value->Pincode,
-                            'City'    => $value->CityText,
-                            'State'   => $value->StateText,
-                        ];
-                    }
-                }
-                $this->EndReturnData->Customer = $cust_Data;
+            // Build Customer response from POST data — no extra DB query needed
+            $custName = getPostValue($PostData, 'Name');
+            $custArea = getPostValue($PostData, 'Area');
+            $cust_Data = [
+                'id'   => $CustomerUID,
+                'text' => $custArea ? $custName . ' (' . $custArea . ')' : $custName,
+            ];
+            if (!empty(getPostValue($PostData, 'BillAddrLine1'))) {
+                $cust_Data['address'] = [
+                    'Line1'   => getPostValue($PostData, 'BillAddrLine1'),
+                    'Line2'   => getPostValue($PostData, 'BillAddrLine2'),
+                    'Pincode' => getPostValue($PostData, 'BillAddrPincode'),
+                    'City'    => getPostValue($PostData, 'BillAddrCityText'),
+                    'State'   => getPostValue($PostData, 'BillAddrStateText'),
+                ];
             }
+            $this->EndReturnData->Customer = $cust_Data;
 
+            $this->dbwrite_model->commitTransaction();
+
+            // Cache update is a Redis write — not a DB operation, safe after commit.
+            // Must be after commit so ReadDB can see the now-committed customer row.
             $this->cachehelper->upsertCustomer($CustomerUID);
 
-            $this->dbwrite_model->commitTransaction();            
+            // Success is confirmed — customer is saved
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Created Successfully';
 
-            $this->_initModule();
-            $pageData = $this->_fetchTableData(1, $this->pageData['Limit']);
-            $this->EndReturnData->Error      = FALSE;
-            $this->EndReturnData->Message    = 'Created Successfully';
-            $this->EndReturnData->List       = $pageData->RecordHtmlData;
-            $this->EndReturnData->Pagination = $pageData->Pagination;
-            $this->EndReturnData->Stats      = $this->customers_model->getCustomerStats($this->pageData['JwtData']->Org->OrgUID);
+            // List + stats are optional extras; failures here must NOT flip Error to true
+            if ($this->input->post('returnList') == 1) {
+                try {
+                    $this->_initModule();
+                    $pageData = $this->_fetchTableData(1, $this->pageData['Limit']);
+                    $this->EndReturnData->List       = $pageData->RecordHtmlData;
+                    $this->EndReturnData->Pagination = $pageData->Pagination;
+                    $this->EndReturnData->Stats      = $this->customers_model->getCustomerStats($this->pageData['JwtData']->Org->OrgUID);
+                } catch (Exception $e) {
+                    // non-fatal — list refresh failed but customer was created successfully
+                }
+            }
 
         } catch (InvalidArgumentException $e) {
             $this->dbwrite_model->rollbackTransaction();
@@ -307,13 +312,13 @@ class Customers extends MY_Controller {
                 'BillingAddr'      => $billingAddr,
                 'ShippingAddr'     => $shippingAddr,
                 'CustomerTypeList' => $this->pageData['CustomerTypeList'],
+                'OrgCCode'         => $this->pageData['JwtData']->Org->OrgCCode  ?? '',
+                'OrgCISO2'         => $this->pageData['JwtData']->Org->OrgCISO2  ?? '',
                 'JwtData'          => $this->pageData['JwtData'],
             ], TRUE);
 
             $this->EndReturnData->Error        = FALSE;
             $this->EndReturnData->Html         = $html;
-            $this->EndReturnData->StateData    = $this->pageData['StateData'];
-            $this->EndReturnData->CityData     = $this->pageData['CityData'];
             $this->EndReturnData->FormMode     = $type;
             $this->EndReturnData->ImgData      = $formData ? ($formData->Image ?? '') : '';
             $this->EndReturnData->BillingAddr  = $billingAddr;

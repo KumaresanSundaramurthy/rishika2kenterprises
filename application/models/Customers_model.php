@@ -638,27 +638,32 @@ class Customers_model extends CI_Model {
         }
     }
 
-    public function saveCustomerOpeningBalance($orgUID, $customerUID, $openingBalance, $openingBalType, $notes, $userUID) {
+    public function saveCustomerOpeningBalance($orgUID, $customerUID, $openingBalance, $openingBalType, $notes, $userUID, $isNew = false) {
         try {
-            $this->ReadDb->db_debug = FALSE;
-            $this->ReadDb->select('OpeningBalUID');
-            $this->ReadDb->from('Customers.CustOpeningBalanceTbl');
-            $this->ReadDb->where(['OrgUID' => (int)$orgUID, 'CustomerUID' => (int)$customerUID, 'IsDeleted' => 0]);
-            $existing = $this->ReadDb->get()->row();
+            if (!$isNew) {
+                $this->ReadDb->db_debug = FALSE;
+                $this->ReadDb->select('OpeningBalUID');
+                $this->ReadDb->from('Customers.CustOpeningBalanceTbl');
+                $this->ReadDb->where(['OrgUID' => (int)$orgUID, 'CustomerUID' => (int)$customerUID, 'IsDeleted' => 0]);
+                $existing = $this->ReadDb->get()->row();
 
-            if ($existing) {
-                $this->WriteDb->db_debug = FALSE;
-                $this->WriteDb->where('OpeningBalUID', (int)$existing->OpeningBalUID);
-                $this->WriteDb->update('Customers.CustOpeningBalanceTbl', [
-                    'OpeningBalance' => (float)$openingBalance,
-                    'OpeningBalType' => $openingBalType,
-                    'Notes'          => $notes ?: NULL,
-                    'UpdatedBy'      => (int)$userUID,
-                ]);
-                return (int)$existing->OpeningBalUID;
+                if ($existing) {
+                    $this->WriteDb->db_debug = FALSE;
+                    $this->WriteDb->where('OpeningBalUID', (int)$existing->OpeningBalUID);
+                    $this->WriteDb->update('Customers.CustOpeningBalanceTbl', [
+                        'OpeningBalance' => (float)$openingBalance,
+                        'OpeningBalType' => $openingBalType,
+                        'Notes'          => $notes ?: NULL,
+                        'UpdatedBy'      => (int)$userUID,
+                    ]);
+                    return (int)$existing->OpeningBalUID;
+                }
             }
 
+            // CustomerUID was inserted in the caller's open transaction (different connection).
+            // FK check would wait 50s for the uncommitted row → disable for this insert only.
             $this->WriteDb->db_debug = FALSE;
+            $this->WriteDb->query('SET FOREIGN_KEY_CHECKS = 0');
             $this->WriteDb->insert('Customers.CustOpeningBalanceTbl', [
                 'OrgUID'         => (int)$orgUID,
                 'CustomerUID'    => (int)$customerUID,
@@ -672,6 +677,7 @@ class Customers_model extends CI_Model {
                 'CreatedBy'      => (int)$userUID,
                 'UpdatedBy'      => (int)$userUID,
             ]);
+            $this->WriteDb->query('SET FOREIGN_KEY_CHECKS = 1');
             return (int)$this->WriteDb->insert_id();
 
         } catch (Exception $e) {
@@ -747,32 +753,35 @@ class Customers_model extends CI_Model {
     // ── CustYearOpeningBalanceTbl (year-wise opening balance snapshot) ─────────
 
     // $onlyIfNew=true: insert-only, preserving the year-start snapshot.
-    public function saveCustomerYearOpening($orgUID, $customerUID, $financialYear, $openingBalance, $openingBalType, $userUID, $onlyIfNew = false) {
+    public function saveCustomerYearOpening($orgUID, $customerUID, $financialYear, $openingBalance, $openingBalType, $userUID, $onlyIfNew = false, $isNew = false) {
         try {
-            $this->ReadDb->db_debug = FALSE;
-            $this->ReadDb->select('YearBalUID');
-            $this->ReadDb->from('Customers.CustYearOpeningBalanceTbl');
-            $this->ReadDb->where([
-                'OrgUID'        => (int)$orgUID,
-                'CustomerUID'   => (int)$customerUID,
-                'FinancialYear' => (int)$financialYear,
-                'IsDeleted'     => 0,
-            ]);
-            $existing = $this->ReadDb->get()->row();
-
-            if ($existing) {
-                if ($onlyIfNew) return (int)$existing->YearBalUID;
-                $this->WriteDb->db_debug = FALSE;
-                $this->WriteDb->where('YearBalUID', (int)$existing->YearBalUID);
-                $this->WriteDb->update('Customers.CustYearOpeningBalanceTbl', [
-                    'OpeningBalance' => (float)$openingBalance,
-                    'OpeningBalType' => $openingBalType,
-                    'UpdatedBy'      => (int)$userUID,
+            if (!$isNew) {
+                $this->ReadDb->db_debug = FALSE;
+                $this->ReadDb->select('YearBalUID');
+                $this->ReadDb->from('Customers.CustYearOpeningBalanceTbl');
+                $this->ReadDb->where([
+                    'OrgUID'        => (int)$orgUID,
+                    'CustomerUID'   => (int)$customerUID,
+                    'FinancialYear' => (int)$financialYear,
+                    'IsDeleted'     => 0,
                 ]);
-                return (int)$existing->YearBalUID;
+                $existing = $this->ReadDb->get()->row();
+
+                if ($existing) {
+                    if ($onlyIfNew) return (int)$existing->YearBalUID;
+                    $this->WriteDb->db_debug = FALSE;
+                    $this->WriteDb->where('YearBalUID', (int)$existing->YearBalUID);
+                    $this->WriteDb->update('Customers.CustYearOpeningBalanceTbl', [
+                        'OpeningBalance' => (float)$openingBalance,
+                        'OpeningBalType' => $openingBalType,
+                        'UpdatedBy'      => (int)$userUID,
+                    ]);
+                    return (int)$existing->YearBalUID;
+                }
             }
 
             $this->WriteDb->db_debug = FALSE;
+            $this->WriteDb->query('SET FOREIGN_KEY_CHECKS = 0');
             $this->WriteDb->insert('Customers.CustYearOpeningBalanceTbl', [
                 'OrgUID'         => (int)$orgUID,
                 'CustomerUID'    => (int)$customerUID,
@@ -784,6 +793,7 @@ class Customers_model extends CI_Model {
                 'CreatedBy'      => (int)$userUID,
                 'UpdatedBy'      => (int)$userUID,
             ]);
+            $this->WriteDb->query('SET FOREIGN_KEY_CHECKS = 1');
             return (int)$this->WriteDb->insert_id();
         } catch (Exception $e) {
             throw new Exception($e->getMessage());

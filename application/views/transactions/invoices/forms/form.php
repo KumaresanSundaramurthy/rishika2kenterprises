@@ -54,7 +54,8 @@ if (!empty($DispatchAddress)) {
 }
 
 $_notesVal = '';
-$_termsVal = "1. Goods once sold will not be taken back or exchanged\n2. All disputes are subject to Gingee jurisdiction only";
+$_jwtTerms = $JwtData->TransGenSettings->TermsAndConditions ?? '';
+$_termsVal = $_jwtTerms;
 if (!$isEdit) {
     if (!empty($SalesOrderData->Notes)) $_notesVal = $SalesOrderData->Notes;
     elseif (!empty($QuotationData->Notes)) $_notesVal = $QuotationData->Notes;
@@ -105,6 +106,8 @@ if ($isEdit) {
                     <input type="hidden" name="fromSalesOrderUID" id="fromSalesOrderUID" value="<?php echo (int)($FromSalesOrderUID ?? 0); ?>" />
                     <input type="hidden" name="fromQuotationUID" id="fromQuotationUID" value="<?php echo (int)($FromQuotationUID ?? 0); ?>" />
                     <?php endif; ?>
+                    <input type="hidden" id="placeOfSupplyCode" name="placeOfSupplyCode" value="<?php echo !$isEdit ? htmlspecialchars($JwtData->Org->StateCode ?? '', ENT_QUOTES) : ''; ?>" />
+                    <input type="hidden" id="placeOfSupplyName" name="placeOfSupplyName" value="<?php echo !$isEdit ? htmlspecialchars($JwtData->Org->StateName ?? '', ENT_QUOTES) : ''; ?>" />
 
                     <div class="card mb-3">
 
@@ -522,10 +525,11 @@ if ($isEdit) {
             </div>
 
             <?php $this->load->view('common/transactions/transprefix'); ?>
-            <?php $this->load->view('transactions/modals/customer'); ?>
+            <?php $this->load->view('common/modals/customer_form'); ?>
             <?php $this->load->view('transactions/modals/customer_search'); ?>
             <?php $this->load->view('transactions/modals/taxdetails'); ?>
-            <?php $this->load->view('products/modals/items'); ?>
+            <?php $this->load->view('common/modals/category_form'); ?>
+            <?php $this->load->view('common/modals/product_form'); ?>
             <?php $this->load->view('common/footer_desc'); ?>
 
         </div>
@@ -535,13 +539,17 @@ if ($isEdit) {
 
 <?php $this->load->view('common/transactions/footer'); ?>
 
+<script src="/js/common/address.js"></script>
+<script src="/js/common/bankdetails.js"></script>
+<script src="/js/common/gstin_fetch.js"></script>
+<script src="/js/common/customer_form.js"></script>
 <script src="/js/transactions/invoices.js"></script>
 <script src="/js/transactions/transactions.js"></script>
 <script src="/js/transactions/customer_search.js"></script>
 <script src="/js/transactions/transprefix.js"></script>
 <script src="/js/transactions/modaladdress.js"></script>
-<script src="/js/transactions/products.js"></script>
-<script src="/js/combinemodules/products.js"></script>
+<script src="/js/common/category_form.js"></script>
+<script src="/js/common/product_form.js"></script>
 <?php if (!$isEdit): ?>
 <script src="/js/transactions/payment_section.js"></script>
 <?php endif; ?>
@@ -852,6 +860,8 @@ $(function() {
             if (!_isEdit) {
                 fd.append('fromSalesOrderUID',  parseInt($('#fromSalesOrderUID').val(), 10) || 0);
                 fd.append('fromQuotationUID',   parseInt($('#fromQuotationUID').val(), 10) || 0);
+                fd.append('placeOfSupplyCode',  $('#placeOfSupplyCode').val() || '');
+                fd.append('placeOfSupplyName',  $('#placeOfSupplyName').val() || '');
             }
             fd.append('invoiceType',            $('[name="invoiceType"]').val() || '');
             fd.append('dispatchFrom',           $('[name="dispatchFrom"]').val() || '');

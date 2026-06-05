@@ -553,20 +553,50 @@ class Products extends MY_Controller {
             // Sync new product into the Upstash bulk cache
             $this->cachehelper->upsertProduct($ProductUID);
 
-            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Created Successfully';
 
-            if(getPostValue($PostData, 'getTableDetails') == 1) {
+            // Build product data object from POST + TaxDetails — no extra DB query needed
+            $sellingPrice  = (float) getPostValue($PostData, 'SellingPrice', '', 0);
+            $taxPercent    = (float) ($TaxDetails->Percentage ?? 0);
+            $taxAmount     = round($sellingPrice * $taxPercent / 100, 2);
+            $this->EndReturnData->Product = [
+                'id'               => $ProductUID,
+                'text'             => getPostValue($PostData, 'ItemName'),
+                'itemName'         => getPostValue($PostData, 'ItemName'),
+                'productType'      => getPostValue($PostData, 'ProductType', '', 'Product'),
+                'unitPrice'        => $sellingPrice,
+                'taxAmount'        => $taxAmount,
+                'sellingPrice'     => $sellingPrice,
+                'purchasePrice'    => (float) getPostValue($PostData, 'PurchasePrice', '', 0),
+                'availableQuantity'=> (float) getPostValue($PostData, 'OpeningQuantity', '', 0),
+                'hsnCode'          => getPostValue($PostData, 'HSNCode'),
+                'partNumber'       => getPostValue($PostData, 'PartNumber'),
+                'taxPercent'       => $taxPercent,
+                'taxDetailsUID'    => (int) getPostValue($PostData, 'TaxPercentage', '', 0),
+                'cgstPercent'      => (float) ($TaxDetails->CGST ?? 0),
+                'sgstPercent'      => (float) ($TaxDetails->SGST ?? 0),
+                'igstPercent'      => (float) ($TaxDetails->IGST ?? 0),
+                'discount'         => (float) getPostValue($PostData, 'Discount', '', 0),
+                'discountTypeUID'  => (int) getPostValue($PostData, 'DiscountOption', '', 0),
+                'primaryUnit'      => '',
+                'isComboItem'      => 0,
+                'comboItemCount'   => 0,
+            ];
 
+            if ($this->input->post('returnList') == 1) {
                 $pageNo  = (int) $this->input->post('PageNo');
-                $getResp = $this->fetchProductTableData($pageNo, 0, 0); // addProductData — always items
-
+                $getResp = $this->fetchProductTableData($pageNo, 0, 0);
                 $this->EndReturnData->List       = $getResp->RecordHtmlData;
                 $this->EndReturnData->Pagination = $getResp->Pagination;
                 $this->EndReturnData->Stats      = $this->fetchProductStats();
-
-            } else if(getPostValue($PostData, 'getTableDetails') == 0) {
-                $this->EndReturnData->Info = $ProductUID;
+            } else if (getPostValue($PostData, 'getTableDetails') == 1) {
+                // backward-compat for any callers still using getTableDetails
+                $pageNo  = (int) $this->input->post('PageNo');
+                $getResp = $this->fetchProductTableData($pageNo, 0, 0);
+                $this->EndReturnData->List       = $getResp->RecordHtmlData;
+                $this->EndReturnData->Pagination = $getResp->Pagination;
+                $this->EndReturnData->Stats      = $this->fetchProductStats();
             }
 
         } catch (InvalidArgumentException $e) {
@@ -1246,9 +1276,8 @@ class Products extends MY_Controller {
             'UpdatedBy'   => $this->pageData['JwtData']->User->UserUID,
         ];
         if ($isCreate) {
-            $this->load->model('transactions_model');
-            $data['CategToken'] = $this->transactions_model->_generateUniqueToken('Products.CategoryTbl', 'CategToken');
-            $data['CreatedBy'] = $this->pageData['JwtData']->User->UserUID;
+            $data['CategToken'] = generate_uuid4();
+            $data['CreatedBy']  = $this->pageData['JwtData']->User->UserUID;
         }
         return $data;
     }
@@ -1289,17 +1318,20 @@ class Products extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
-            // Sync new category into the Upstash bulk cache
+            // Cache update must be after commit so ReadDB can see the new row
             $this->cachehelper->upsertCategory($CategoryUID);
 
-            $pageNo  = (int) $this->input->post('PageNo');
-            $getResp = $this->fetchCategoryTableData($pageNo);
+            $this->EndReturnData->Error        = FALSE;
+            $this->EndReturnData->Message      = 'Created Successfully';
+            $this->EndReturnData->InsertId     = $CategoryUID;
+            $this->EndReturnData->CategoryName = getPostValue($PostData, 'CategoryName');
 
-            $this->EndReturnData->Error      = FALSE;
-            $this->EndReturnData->Message    = 'Created Successfully';
-            $this->EndReturnData->List       = $getResp->RecordHtmlData;
-            $this->EndReturnData->Pagination = $getResp->Pagination;
-            $this->EndReturnData->InsertId   = $insDataResp->ID;
+            if ($this->input->post('returnList') == 1) {
+                $pageNo  = (int) $this->input->post('PageNo');
+                $getResp = $this->fetchCategoryTableData($pageNo);
+                $this->EndReturnData->List       = $getResp->RecordHtmlData;
+                $this->EndReturnData->Pagination = $getResp->Pagination;
+            }
 
         } catch (InvalidArgumentException $e) {
             $this->dbwrite_model->rollbackTransaction();

@@ -29523,6 +29523,14 @@ body:not(.modal-open) .layout-content-navbar .layout-navbar {
 .trans-due-soon    { color: var(--status-partial);  font-weight: 600; font-size: .79rem; }
 .trans-due-normal  { font-size: .79rem; color: #555; }
 
+/* ── Date filter dropdown — single rule covers every transaction page ── */
+.dropdown-menu:has(.date-option) {
+    min-width: 320px !important;
+    max-height: 440px;
+    overflow-y: auto;
+    font-size: .82rem;
+}
+
 /* ── Date filter option ── */
 .date-option {
     display: flex !important;
@@ -29531,9 +29539,9 @@ body:not(.modal-open) .layout-content-navbar .layout-navbar {
     gap: 8px;
 }
 .df-date-preview {
-    font-size: .68rem; color: #94a3b8;
+    font-size: .70rem; color: #475569;
     white-space: nowrap; margin-left: auto;
-    font-weight: 400; pointer-events: none;
+    font-weight: 600; pointer-events: none;
 }
 
 /* ============================================================================= */

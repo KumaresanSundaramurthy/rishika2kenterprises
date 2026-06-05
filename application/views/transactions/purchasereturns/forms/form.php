@@ -60,6 +60,8 @@ $editPrefixSeg = ($isEdit && $isDraftEdit) ? buildPRPrefixSegment($editPrefixCon
                 <?php if ($isEdit): ?>
                 <input type="hidden" name="TransUID" value="<?php echo $transUID; ?>" />
                 <?php endif; ?>
+                <input type="hidden" id="placeOfSupplyCode" name="placeOfSupplyCode" value="<?php echo !$isEdit ? htmlspecialchars($JwtData->Org->StateCode ?? '', ENT_QUOTES) : ''; ?>" />
+                <input type="hidden" id="placeOfSupplyName" name="placeOfSupplyName" value="<?php echo !$isEdit ? htmlspecialchars($JwtData->Org->StateName ?? '', ENT_QUOTES) : ''; ?>" />
 
                     <div class="card mb-3">
 
@@ -171,7 +173,7 @@ $editPrefixSeg = ($isEdit && $isDraftEdit) ? buildPRPrefixSegment($editPrefixCon
                                 'transProductSectionTitle' => 'Returned Products',
                                 'transNotesPlaceholder'    => 'Reason for return',
                                 'transNotesContent'        => $isEdit ? ($PRData->Notes ?? '') : '',
-                                'transTermsContent'        => $isEdit ? ($PRData->TermsConditions ?? '') : '',
+                                'transTermsContent'        => $isEdit ? ($PRData->TermsConditions ?? '') : ($JwtData->TransGenSettings->TermsAndConditions ?? ''),
                                 'transShowDropzone'        => true,
                                 'transSignatureUID'        => $isEdit ? (int)($PRData->SignatureUID ?? 0) : 0,
                             ]); ?>
@@ -186,7 +188,8 @@ $editPrefixSeg = ($isEdit && $isDraftEdit) ? buildPRPrefixSegment($editPrefixCon
 
             <?php $this->load->view('common/transactions/transprefix'); ?>
             <?php $this->load->view('transactions/modals/taxdetails'); ?>
-            <?php $this->load->view('products/modals/items'); ?>
+            <?php $this->load->view('common/modals/category_form'); ?>
+            <?php $this->load->view('common/modals/product_form'); ?>
             <?php $this->load->view('common/footer_desc'); ?>
 
         </div>
@@ -200,8 +203,8 @@ $editPrefixSeg = ($isEdit && $isDraftEdit) ? buildPRPrefixSegment($editPrefixCon
 <script src="/js/transactions/transactions.js"></script>
 <script src="/js/transactions/transprefix.js"></script>
 <script src="/js/transactions/modaladdress.js"></script>
-<script src="/js/transactions/products.js"></script>
-<script src="/js/combinemodules/products.js"></script>
+<script src="/js/common/category_form.js"></script>
+<script src="/js/common/product_form.js"></script>
 <script src="/js/transactions/attachments.js"></script>
 
 <script>
@@ -323,6 +326,8 @@ $(function() {
                 referenceDetails       : $.trim($('#referenceDetails').val()),
                 transNotes             : $.trim($('#transNotes').val()),
                 transTermsCond         : $.trim($('#transTermsCond').val()),
+                placeOfSupplyCode      : $('#placeOfSupplyCode').val() || '',
+                placeOfSupplyName      : $('#placeOfSupplyName').val() || '',
                 extraDiscount          : parseFloat($('#extraDiscount').val()) || 0,
                 extDiscountType        : $('#extDiscountType').val() || '',
                 SubTotal               : summary.items     ? (summary.items.taxableAmount     || 0) : 0,

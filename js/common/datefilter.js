@@ -19,8 +19,30 @@ function formatDateDisplay(dateStr) {
     if (!dateStr) return '';
     var parts = dateStr.split('-');
     if (parts.length !== 3) return dateStr;
-    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    return parts[2] + ' ' + months[parseInt(parts[1]) - 1] + ' ' + parts[0];
+    var months     = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var monthsFull = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    var dy = parseInt(parts[2], 10);
+    var mo = parseInt(parts[1], 10) - 1;
+    var yr = parseInt(parts[0], 10);
+    if (isNaN(dy) || mo < 0 || mo > 11) return dateStr;
+
+    var fmt = (typeof _transListDateFormat !== 'undefined' && _transListDateFormat)
+              ? _transListDateFormat
+              : 'd M Y';
+
+    var tokens = {
+        'd': String(dy).padStart(2, '0'),
+        'j': String(dy),
+        'm': String(mo + 1).padStart(2, '0'),
+        'n': String(mo + 1),
+        'Y': String(yr),
+        'y': String(yr).slice(-2),
+        'F': monthsFull[mo],
+        'M': months[mo]
+    };
+    return fmt.replace(/[djmnYyFM]/g, function (tok) {
+        return tokens[tok] !== undefined ? tokens[tok] : tok;
+    });
 }
 
 function getDateRange(range) {
@@ -117,9 +139,40 @@ function getDateRangeLabel(range) {
     return formatDateDisplay(r.from) + ' – ' + formatDateDisplay(r.to);
 }
 
+// ── Global hover preview (works on every page — no initDateFilter call needed) ──
+$(document).on('mouseenter', '.date-option[data-range]', function () {
+    var range = $(this).data('range');
+    if (!range || range === 'custom') return;
+    var label = getDateRangeLabel(range);
+    if (!label) return;
+    var $preview = $(this).find('.df-date-preview');
+    if (!$preview.length) {
+        $(this).append('<span class="df-date-preview"></span>');
+        $preview = $(this).find('.df-date-preview');
+    }
+    $preview.text(label);
+}).on('mouseleave', '.date-option[data-range]', function () {
+    $(this).find('.df-date-preview').remove();
+});
+
+// ── Auto-populate every #dateFilterBtn dropdown from buildDateFilterHtml ──────
+// Runs on every transaction page — replaces any hardcoded <li> items in PHP
+// with the single standard list maintained here. Pages that call initDateFilter()
+// explicitly will overwrite this with their own fromId/toId; that is intentional.
+$(document).ready(function () {
+    var $btn = $('#dateFilterBtn');
+    if (!$btn.length) return;
+    var $menu = $btn.closest('.dropdown').find('ul.dropdown-menu').first();
+    if (!$menu.length) return;
+    if (!$menu.attr('id')) $menu.attr('id', 'dateFilterMenu');
+    $menu.html(buildDateFilterHtml('customDateFrom', 'customDateTo'));
+});
+
 // ── initDateFilter ────────────────────────────────────────────────────────────
 /**
- * Initialises the date filter dropdown on a page.
+ * Wires up the custom-range picker and onApply callback for a date filter.
+ * The hover preview and standard item click handling are already global above.
+ * Call this only when you need an onApply callback or custom date range support.
  *
  * @param {object} opts
  *   btnId        {string}   id of the dropdown toggle button          (default: 'dateFilterBtn')
@@ -136,21 +189,9 @@ function initDateFilter(opts) {
     var toId    = opts.toId    || 'customDateTo';
     var onApply = opts.onApply || function () {};
 
-    // ── Hover preview ────────────────────────────────────────────────────────
-    $(document).on('mouseenter', '.date-option[data-range]', function () {
-        var range = $(this).data('range');
-        if (!range || range === 'custom') return;
-        var label = getDateRangeLabel(range);
-        if (!label) return;
-        var $preview = $(this).find('.df-date-preview');
-        if (!$preview.length) {
-            $(this).append('<span class="df-date-preview"></span>');
-            $preview = $(this).find('.df-date-preview');
-        }
-        $preview.text(label);
-    }).on('mouseleave', '.date-option[data-range]', function () {
-        $(this).find('.df-date-preview').remove();
-    });
+    // Re-populate with correct fromId/toId for this page's custom picker
+    var $menu = $('#' + btnId).closest('.dropdown').find('ul.dropdown-menu').first();
+    if ($menu.length) $menu.html(buildDateFilterHtml(fromId, toId));
 
     // ── Option click ─────────────────────────────────────────────────────────
     $(document).on('click', '.date-option[data-range]', function (e) {
@@ -158,12 +199,10 @@ function initDateFilter(opts) {
         var range = $(this).data('range');
 
         if (range === 'custom') {
-            // Show inline custom picker — don't close dropdown
             $('#r2k-custom-date-picker').toggleClass('d-none');
             return;
         }
 
-        // Close custom picker if open
         $('#r2k-custom-date-picker').addClass('d-none');
 
         var dates = getDateRange(range);
@@ -173,7 +212,6 @@ function initDateFilter(opts) {
         $(this).addClass('active');
         $('#' + labelId).text(label);
 
-        // Close dropdown
         var $btn = $('#' + btnId);
         var dd   = bootstrap.Dropdown.getInstance($btn[0]);
         if (dd) dd.hide();

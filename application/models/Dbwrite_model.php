@@ -57,6 +57,13 @@ class Dbwrite_model extends CI_Model {
         $this->WriteDB->trans_rollback();
     }
 
+    // Disable/enable FK checks on the write connection.
+    // Use when inserting into a child table whose parent row was inserted
+    // in the same open transaction — InnoDB lock wait timeout would occur otherwise.
+    public function setForeignKeyChecks($enabled) {
+        $this->WriteDB->query('SET FOREIGN_KEY_CHECKS = ' . ($enabled ? '1' : '0'));
+    }
+
     public function insertData($Database, $Table, $Data) {
 
         $this->EndReturnData = new stdclass();
@@ -122,10 +129,8 @@ class Dbwrite_model extends CI_Model {
 
         try {
 
-            $this->WriteDB = $this->load->database($Database, TRUE);
             $this->WriteDB->db_debug = FALSE;
-
-            $res = $this->WriteDB->insert_batch($Table, $Data);
+            $res = $this->WriteDB->insert_batch($Database . '.' . $Table, $Data);
 
             if (!$res) {
 
@@ -149,7 +154,7 @@ class Dbwrite_model extends CI_Model {
             $this->EndReturnData->Table = $Table;
             $this->EndReturnData->Data = $Data;
             $this->EndReturnData->Message = $e->getMessage();
-            
+
         }
 
         return $this->EndReturnData;
@@ -227,10 +232,8 @@ class Dbwrite_model extends CI_Model {
 
         try {
 
-            $this->WriteDB = $this->load->database($Database, TRUE);
             $this->WriteDB->db_debug = FALSE;
-
-            $res = $this->WriteDB->update_batch($Table, $Data, $Field);
+            $res = $this->WriteDB->update_batch($Database . '.' . $Table, $Data, $Field);
 
             if ($res === FALSE) {
 
@@ -294,10 +297,8 @@ class Dbwrite_model extends CI_Model {
 
         try {
 
-            $this->WriteDB = $this->load->database($Database, TRUE);
             $this->WriteDB->db_debug = FALSE;
-
-            $res = $this->WriteDB->delete($Table, $Condition);
+            $res = $this->WriteDB->delete($Database . '.' . $Table, $Condition);
 
             if (!$res) {
 

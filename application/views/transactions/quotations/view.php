@@ -152,6 +152,7 @@ $this->load->view('common/transactions/header'); ?>
                                     <ul class="dropdown-menu dropdown-menu-end shadow" id="dateFilterMenu" style="width:240px;max-height:420px;overflow-y:auto;font-size:.82rem;z-index:9999;">
                                     </ul>
                                 </div>
+                                <?php $this->load->view('common/partials/export_btn'); ?>
                             </div>
                         </div>
 
@@ -275,6 +276,7 @@ $(function () {
     'use strict';
 
     Filter['Status'] = 'All';
+    initExport({ moduleUID: 101, getFilters: function () { return Filter; } });
 
     // ── Sticky pagination ──
     var $quotStaticPag = $('#quotPagination');

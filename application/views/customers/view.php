@@ -223,50 +223,7 @@
             <?php $this->load->view('common/settings_modal'); ?>
             <?php $this->load->view('common/modals/send_communication'); ?>
 
-            <!-- Customer Add / Edit / Clone Modal -->
-            <div class="modal fade" id="CustomerFormModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false" aria-hidden="true" style="padding:0!important;">
-                <div class="modal-dialog modal-xl modal-dialog-scrollable" style="height:100vh;max-height:100vh;margin:0 auto;">
-                    <div class="modal-content h-100 d-flex flex-column">
-
-                        <div class="modal-header bg-white border-bottom d-flex align-items-center justify-content-between px-3 py-2 trans-theme">
-                            <div class="d-flex align-items-center gap-3">
-                                <div class="modal-doc-icon bg-primary bg-opacity-10">
-                                    <i class="bx bx-user text-primary modal-doc-icon-inner"></i>
-                                </div>
-                                <div>
-                                    <h5 class="modal-title mb-0" id="CustomerFormModalTitle">Customer</h5>
-                                </div>
-                            </div>
-                            <div class="d-flex align-items-center gap-2">
-                                <button type="button" class="btn btn-sm btn-primary" id="CustomerFormSaveBtn">
-                                    <i class="bx bx-check me-1"></i>Save
-                                </button>
-                                <button type="button" class="btn btn-sm btn-outline-danger" data-bs-dismiss="modal">
-                                    <i class="bx bx-x me-1"></i>Close
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="modal-body p-0 flex-grow-1 overflow-auto" id="CustomerFormModalBody">
-                            <?php $this->load->view('customers/forms/modal_body', [
-                                'FormMode'         => 'add',
-                                'FormData'         => null,
-                                'BankDetails'      => [],
-                                'BillingAddr'      => null,
-                                'ShippingAddr'     => null,
-                                'CustomerTypeList' => $CustomerTypeList,
-                                'OrgCCode'         => $OrgCCode,
-                                'OrgCISO2'         => $OrgCISO2,
-                                'JwtData'          => $JwtData,
-                            ]); ?>
-                        </div>
-
-                    </div>
-                </div>
-            </div>
-
-            <?php $this->load->view('common/form/bank_details'); ?>
-            <?php $this->load->view('common/form/address_form'); ?>
+            <?php $this->load->view('common/modals/customer_form'); ?>
             <?php $this->load->view('common/footer_desc'); ?>
         </div>
 
@@ -289,12 +246,13 @@
 
 <?php $this->load->view('common/footer'); ?>
 
+<script src="/js/common/address.js"></script>
+<script src="/js/common/bankdetails.js"></script>
+<script src="/js/common/gstin_fetch.js"></script>
+<script src="/js/common/customer_form.js"></script>
 <script src="/js/customers.js"></script>
 <script src="/js/common/pagecheckbox.js"></script>
 <script src="/js/common/communication.js"></script>
-<script src="/js/common/gstin_fetch.js"></script>
-<script src="/js/common/bankdetails.js"></script>
-<script src="/js/common/address.js"></script>
 
 <script>
 let ModuleId = 2;
@@ -363,9 +321,9 @@ $(function () {
     });
     // ────────────────────────────────────────────────────────────────────────
 
-    // Header "New Customer" button mirrors the toolbar Create button
+    // Header "New Customer" button
     $(document).on('click', '#btnCreateCustomerHeader', function () {
-        openCustomerModal('add');
+        CustomerForm.open('add', null, { onSaveSuccess: _custPageSaveSuccess });
     });
 
     // ── Sticky pagination ──
@@ -466,7 +424,7 @@ $(function () {
     });
     $('#btnClone').on('click', function (e) {
         e.preventDefault();
-        if (SelectedUIDs.length === 1) openCustomerModal('clone', SelectedUIDs[0]);
+        if (SelectedUIDs.length === 1) CustomerForm.open('clone', SelectedUIDs[0], { onSaveSuccess: _custPageSaveSuccess });
     });
 
     // ── Delete single ──

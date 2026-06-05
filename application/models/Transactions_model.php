@@ -253,7 +253,8 @@ class Transactions_model extends CI_Model {
             'ShipAddr.Line1 AS ShipLine1', 'ShipAddr.Line2 AS ShipLine2',
             'ShipAddr.CityText AS ShipCity', 'ShipAddr.StateText AS ShipState', 'ShipAddr.Pincode AS ShipPincode',
             'Td.ValidityDays', 'Td.ValidityDate', 'Td.Reference', 'Td.SupplierInvoiceNo',
-            'Td.Notes', 'Td.TermsConditions', 'Td.AdditionalCharges AS AdditionalChargesJson', 'Td.PlaceOfSupply',
+            'Td.Notes', 'Td.TermsConditions', 'Td.AdditionalCharges AS AdditionalChargesJson',
+            'Td.PlaceOfSupplyCode', 'Td.PlaceOfSupplyName',
         ]);
         $this->ReadDb->from('Transaction.TransactionsTbl AS Ts');
         $this->ReadDb->join('Customers.CustomerTbl AS Cust', 'Cust.CustomerUID = Ts.PartyUID AND Ts.PartyType = \'C\'', 'LEFT');
@@ -280,8 +281,8 @@ class Transactions_model extends CI_Model {
             'ShipAddr.Line1 AS ShipLine1', 'ShipAddr.Line2 AS ShipLine2',
             'ShipAddr.CityText AS ShipCity', 'ShipAddr.StateText AS ShipState', 'ShipAddr.Pincode AS ShipPincode',
             'Td.ValidityDays', 'Td.ValidityDate', 'Td.Reference', 'Td.SupplierInvoiceNo',
-            'Td.Notes', 'Td.TermsConditions', 'Td.AdditionalCharges AS AdditionalChargesJson', 'Td.PlaceOfSupply',
-            'Td.SignatureUID',
+            'Td.Notes', 'Td.TermsConditions', 'Td.AdditionalCharges AS AdditionalChargesJson',
+            'Td.PlaceOfSupplyCode', 'Td.PlaceOfSupplyName', 'Td.SignatureUID',
         ]);
         $this->ReadDb->from('Transaction.TransactionsTbl AS Ts');
         $this->ReadDb->join('Customers.CustomerTbl AS Cust', 'Cust.CustomerUID = Ts.PartyUID AND Ts.PartyType = \'C\'', 'LEFT');
@@ -916,6 +917,48 @@ class Transactions_model extends CI_Model {
         return ($query && $query->num_rows() > 0) ? $query->row() : null;
     }
 
+    public function getTransactionExportData($moduleUID, $orgUID, $filter = []) {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select([
+                'Ts.TransUID', 'Ts.UniqueNumber', 'Ts.TransDate', 'Ts.DocStatus AS Status',
+                'Ts.NetAmount', 'Ts.SubTotal', 'Ts.TaxAmount', 'Ts.DiscountAmount',
+                'Ts.CgstAmount', 'Ts.SgstAmount', 'Ts.IgstAmount', 'Ts.RoundOff',
+                'COALESCE(Cust.Name, Vend.Name) AS PartyName',
+                'COALESCE(Cust.Area, Vend.Area) AS PartyArea',
+                'COALESCE(Cust.MobileNumber, Vend.MobileNumber) AS MobileNumber',
+                'COALESCE(Cust.EmailAddress, Vend.EmailAddress) AS EmailAddress',
+                'Td.ValidityDate', 'Td.Reference', 'Td.SupplierInvoiceNo',
+                'Td.PlaceOfSupplyCode', 'Td.PlaceOfSupplyName',
+                "CONCAT(User.FirstName, ' ', User.LastName) AS UpdatedBy",
+                "CONCAT(CUser.FirstName, ' ', CUser.LastName) AS CreatedBy",
+                'Ts.UpdatedOn',
+                'IFNULL(PaidSum.PaidAmount, 0) AS PaidAmount',
+                "GROUP_CONCAT(DISTINCT PT.Name ORDER BY P.PaymentUID ASC SEPARATOR ', ') AS PaymentModes",
+            ]);
+            $this->ReadDb->from('Transaction.TransactionsTbl AS Ts');
+            $this->ReadDb->join('Customers.CustomerTbl AS Cust',   'Cust.CustomerUID = Ts.PartyUID AND Ts.PartyType = \'C\'', 'LEFT');
+            $this->ReadDb->join('Vendors.VendorTbl AS Vend',       'Vend.VendorUID   = Ts.PartyUID AND Ts.PartyType = \'S\'', 'LEFT');
+            $this->ReadDb->join('Transaction.TransDetailTbl AS Td','Td.TransUID = Ts.TransUID AND Td.FinancialYear = YEAR(Ts.TransDate)', 'LEFT');
+            $this->ReadDb->join('Users.UserTbl AS User',           'User.UserUID  = Ts.UpdatedBy', 'LEFT');
+            $this->ReadDb->join('Users.UserTbl AS CUser',          'CUser.UserUID = Ts.CreatedBy', 'LEFT');
+            $this->ReadDb->join(
+                '(SELECT TransUID, SUM(Amount) AS PaidAmount FROM Transaction.PaymentsTbl WHERE IsDeleted = 0 AND IsActive = 1 GROUP BY TransUID) AS PaidSum',
+                'PaidSum.TransUID = Ts.TransUID', 'LEFT'
+            );
+            $this->ReadDb->join('Transaction.PaymentsTbl AS P',        'P.TransUID = Ts.TransUID AND P.IsDeleted = 0 AND P.IsActive = 1', 'LEFT');
+            $this->ReadDb->join('Global.PaymentTypesTbl AS PT',        'PT.PaymentTypeUID = P.PaymentTypeUID', 'LEFT');
+            $this->ReadDb->where(['Ts.IsDeleted' => 0, 'Ts.IsActive' => 1, 'Ts.ModuleUID' => (int)$moduleUID, 'Ts.OrgUID' => $orgUID]);
+            $this->applyFilters($filter);
+            $this->ReadDb->group_by('Ts.TransUID');
+            $this->ReadDb->order_by('Ts.TransDate', 'DESC');
+            $query = $this->ReadDb->get();
+            return ($query) ? $query->result() : [];
+        } catch (Exception $e) {
+            return [];
+        }
+    }
+
     public function getTransactionAttachments($transUID, $orgUID) {
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->select('AttachUID, FileName, FilePath, FileType, FileSize, CreatedOn');
@@ -1340,7 +1383,7 @@ class Transactions_model extends CI_Model {
             '{{ORG_BRANCH}}'           => $e($org->Branch ?? ''),
             '{{ORG_UPI_ID}}'           => $e($org->UpiId ?? ''),
             '{{ORG_INFO_LINES}}'       => $orgInfoLines,
-            '{{PLACE_OF_SUPPLY}}'      => $e($h->PlaceOfSupply ?? $org->StateText ?? ''),
+            '{{PLACE_OF_SUPPLY}}'      => $e(!empty($h->PlaceOfSupplyCode) ? $h->PlaceOfSupplyCode . ' – ' . ($h->PlaceOfSupplyName ?? '') : ($h->PlaceOfSupplyName ?? $org->StateText ?? '')),
             '{{BANK_DETAILS_LINES}}'   => implode('<br>', array_filter([$e($org->BankName ?? ''), !empty($org->AccountNo) ? 'A/C: ' . $e($org->AccountNo) : '', !empty($org->IFSC) ? 'IFSC: ' . $e($org->IFSC) : ''])),
             '{{CURRENCY}}'             => $cur,
             /** Customer Details */

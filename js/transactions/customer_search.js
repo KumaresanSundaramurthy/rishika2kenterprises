@@ -214,11 +214,31 @@
         var prefill = $('#custSearchInput').val().trim();
         $('#customerSearchModal').modal('hide');
         setTimeout(function () {
-            // Trigger #addTransCustomer — same as clicking the Add Customer button
-            // (calls setTransAddrDefaultActions() + shows modal)
-            $('#addTransCustomer').trigger('click');
-            // Pre-fill Name with what was searched
-            if (prefill && $('#Name').length) { $('#Name').val(prefill); }
+            CustomerForm.open('add', null, {
+                prefillName  : prefill,
+                onSaveSuccess: function (response) {
+                    var c = response.Customer;
+                    if (!c || !c.id) return;
+                    var $select = $('#customerSearch');
+                    if ($select.find('option[value="' + c.id + '"]').length === 0) {
+                        $select.append(new Option(c.text, c.id, true, true));
+                    } else {
+                        $select.val(c.id);
+                    }
+                    $select.trigger('change');
+                    $select.trigger({ type: 'select2:select', params: { data: { id: c.id, text: c.text } } });
+                    if (c.address) {
+                        var a = c.address;
+                        var addrHtml = '<div><strong>Shipping Address:</strong></div>'
+                            + '<div>' + (a.Line1 || '') + '</div>'
+                            + '<div>' + (a.Line2 || '') + '</div>'
+                            + '<div>' + [a.City, a.State].filter(Boolean).join(', ') + (a.Pincode ? ' - ' + a.Pincode : '') + '</div>';
+                        $('#customerAddressBox').html(addrHtml).removeClass('d-none');
+                    } else {
+                        $('#customerAddressBox').addClass('d-none').empty();
+                    }
+                }
+            });
         }, 300); // wait for search modal to fully close
     }
 

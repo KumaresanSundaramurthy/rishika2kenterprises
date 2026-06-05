@@ -39,7 +39,7 @@ if ($isEdit && !empty($PFData->ValidityDate)) {
 
 $_invoiceType = $isEdit ? ($PFData->QuotationType ?? 'Regular') : 'Regular';
 $_notesVal    = $isEdit ? ($PFData->Notes ?? '') : '';
-$_termsVal    = $isEdit ? ($PFData->TermsConditions ?? '') : "1. This is a Pro Forma Invoice and not a Tax Invoice.\n2. Prices are valid until the date mentioned above.\n3. Goods once sold will not be taken back or exchanged.";
+$_termsVal    = $isEdit ? ($PFData->TermsConditions ?? '') : ($JwtData->TransGenSettings->TermsAndConditions ?? '');
 
 $_addrLines = [];
 if (!empty($DispatchAddress)) {
@@ -73,6 +73,8 @@ if (!empty($DispatchAddress)) {
                     <?php if ($isEdit): ?>
                     <input type="hidden" name="TransUID" value="<?php echo $transUID; ?>" />
                     <?php endif; ?>
+                    <input type="hidden" id="placeOfSupplyCode" name="placeOfSupplyCode" value="<?php echo !$isEdit ? htmlspecialchars($JwtData->Org->StateCode ?? '', ENT_QUOTES) : ''; ?>" />
+                    <input type="hidden" id="placeOfSupplyName" name="placeOfSupplyName" value="<?php echo !$isEdit ? htmlspecialchars($JwtData->Org->StateName ?? '', ENT_QUOTES) : ''; ?>" />
 
                     <div class="card mb-3">
 
@@ -244,9 +246,10 @@ if (!empty($DispatchAddress)) {
             </div>
 
             <?php $this->load->view('common/transactions/transprefix'); ?>
-            <?php $this->load->view('transactions/modals/customer'); ?>
+            <?php $this->load->view('common/modals/customer_form'); ?>
             <?php $this->load->view('transactions/modals/taxdetails'); ?>
-            <?php $this->load->view('products/modals/items'); ?>
+            <?php $this->load->view('common/modals/category_form'); ?>
+            <?php $this->load->view('common/modals/product_form'); ?>
             <?php $this->load->view('common/footer_desc'); ?>
 
         </div>
@@ -255,12 +258,16 @@ if (!empty($DispatchAddress)) {
 
 <?php $this->load->view('common/transactions/footer'); ?>
 
+<script src="/js/common/address.js"></script>
+<script src="/js/common/bankdetails.js"></script>
+<script src="/js/common/gstin_fetch.js"></script>
+<script src="/js/common/customer_form.js"></script>
 <script src="/js/transactions/proformainvoices.js"></script>
 <script src="/js/transactions/transactions.js"></script>
 <script src="/js/transactions/transprefix.js"></script>
 <script src="/js/transactions/modaladdress.js"></script>
-<script src="/js/transactions/products.js"></script>
-<script src="/js/combinemodules/products.js"></script>
+<script src="/js/common/category_form.js"></script>
+<script src="/js/common/product_form.js"></script>
 <script src="/js/transactions/attachments.js"></script>
 
 <script>
@@ -405,6 +412,8 @@ $(function() {
                 referenceDetails       : $.trim($('#referenceDetails').val()),
                 transNotes             : $.trim($('#transNotes').val()),
                 transTermsCond         : $.trim($('#transTermsCond').val()),
+                placeOfSupplyCode      : $('#placeOfSupplyCode').val() || '',
+                placeOfSupplyName      : $('#placeOfSupplyName').val() || '',
                 extraDiscount          : extraDisc,
                 extDiscountType        : $('#extDiscountType').val() || '',
                 SubTotal               : subTotal,

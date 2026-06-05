@@ -95,6 +95,8 @@ if (!empty($DispatchAddress)) {
                 <?php if ($isEdit): ?>
                 <input type="hidden" name="TransUID" value="<?php echo $transUID; ?>" />
                 <?php endif; ?>
+                <input type="hidden" id="placeOfSupplyCode" name="placeOfSupplyCode" value="<?php echo !$isEdit ? htmlspecialchars($JwtData->Org->StateCode ?? '', ENT_QUOTES) : ''; ?>" />
+                <input type="hidden" id="placeOfSupplyName" name="placeOfSupplyName" value="<?php echo !$isEdit ? htmlspecialchars($JwtData->Org->StateName ?? '', ENT_QUOTES) : ''; ?>" />
 
                     <div class="card mb-3">
 
@@ -325,7 +327,8 @@ if (!empty($DispatchAddress)) {
             <?php $this->load->view('common/transactions/transprefix'); ?>
             <?php $this->load->view('transactions/modals/vendor'); ?>
             <?php $this->load->view('transactions/modals/taxdetails'); ?>
-            <?php $this->load->view('products/modals/items'); ?>
+            <?php $this->load->view('common/modals/category_form'); ?>
+            <?php $this->load->view('common/modals/product_form'); ?>
             <?php $this->load->view('common/footer_desc'); ?>
 
         </div>
@@ -339,8 +342,8 @@ if (!empty($DispatchAddress)) {
 <script src="/js/transactions/transactions.js"></script>
 <script src="/js/transactions/transprefix.js"></script>
 <script src="/js/transactions/modaladdress.js"></script>
-<script src="/js/transactions/products.js"></script>
-<script src="/js/combinemodules/products.js"></script>
+<script src="/js/common/category_form.js"></script>
+<script src="/js/common/product_form.js"></script>
 <?php if (!$isEdit): ?>
 <script src="/js/transactions/payment_section.js"></script>
 <?php endif; ?>
@@ -562,6 +565,8 @@ $(function() {
                 supplierInvoiceNo      : $.trim($('#supplierInvoiceNo').val()),
                 referenceDetails       : $.trim($('#referenceDetails').val()),
                 transNotes             : $.trim($('#transNotes').val()),
+                placeOfSupplyCode      : $('#placeOfSupplyCode').val() || '',
+                placeOfSupplyName      : $('#placeOfSupplyName').val() || '',
                 extraDiscount          : extraDisc,
                 extDiscountType        : $('#extDiscountType').val() || '',
                 SubTotal               : subTotal,

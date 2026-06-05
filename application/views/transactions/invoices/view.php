@@ -45,9 +45,12 @@ $this->load->view('common/transactions/header'); ?>
                                 <?php endif; ?>
                             </div>
                         </div>
-                        <a href="/invoices/create" class="btn btn-primary me-1">
-                            <i class="bx bx-plus me-1"></i>New Invoice
-                        </a>
+                        <div class="d-flex align-items-center gap-2">
+                            <?php $this->load->view('common/partials/export_btn'); ?>
+                            <a href="/invoices/create" class="btn btn-primary me-1">
+                                <i class="bx bx-plus me-1"></i>New Invoice
+                            </a>
+                        </div>
                     </div>
 
                     <!-- ── Stat Cards ──────────────────────────────────────── -->
@@ -93,71 +96,27 @@ $this->load->view('common/transactions/header'); ?>
 
                         <!-- Toolbar -->
                         <div class="trans-toolbar">
-
-                            <!-- Status tabs -->
-                            <ul class="nav trans-status-tabs gap-1" id="invStatusTabs" role="tablist">
-                                <li class="nav-item">
-                                    <a class="nav-link active inv-status-tab" data-status="All" href="javascript:void(0);">
-                                        All <span class="inv-tab-count ms-1"><?php echo $ModAllCount; ?></span>
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link inv-status-tab" data-status="InvPending" href="javascript:void(0);">
-                                        Pending <span class="inv-tab-count ms-1 d-none"></span>
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link inv-status-tab" data-status="Paid" href="javascript:void(0);">
-                                        Paid <span class="inv-tab-count ms-1 d-none"></span>
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link inv-status-tab" data-status="Cancelled" href="javascript:void(0);">
-                                        Cancelled <span class="inv-tab-count ms-1 d-none"></span>
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link inv-status-tab" data-status="Draft" href="javascript:void(0);">
-                                        Drafts <span class="inv-tab-count ms-1 d-none"></span>
-                                    </a>
-                                </li>
-                            </ul>
-
-                            <!-- Right controls -->
-                            <div class="d-flex align-items-center gap-2 flex-wrap">
-                                <a href="javascript:void(0);" class="btn btn-sm btn-outline-secondary p-1 pageRefresh" title="Refresh">
-                                    <i class="bx bx-refresh fs-5"></i>
-                                </a>
-                                <div class="input-group input-group-sm" style="width:210px">
-                                    <span class="input-group-text bg-transparent border-end-0"><i class="bx bx-search text-muted"></i></span>
-                                    <input type="text" class="form-control border-start-0" id="searchTransactionData"
-                                           placeholder="Invoice # or customer..." title="Search invoices">
+                            <div class="trans-toolbar-tabs">
+                                <ul class="nav trans-status-tabs" id="invStatusTabs" role="tablist">
+                                    <li class="nav-item"><a class="nav-link active inv-status-tab" data-status="All" href="javascript:void(0);">All <span class="inv-tab-count ms-1"><?php echo $ModAllCount; ?></span></a></li>
+                                    <li class="nav-item"><a class="nav-link inv-status-tab" data-status="InvPending" href="javascript:void(0);">Pending <span class="inv-tab-count ms-1 d-none"></span></a></li>
+                                    <li class="nav-item"><a class="nav-link inv-status-tab" data-status="Paid" href="javascript:void(0);">Paid <span class="inv-tab-count ms-1 d-none"></span></a></li>
+                                    <li class="nav-item"><a class="nav-link inv-status-tab" data-status="Cancelled" href="javascript:void(0);">Cancelled <span class="inv-tab-count ms-1 d-none"></span></a></li>
+                                    <li class="nav-item"><a class="nav-link inv-status-tab" data-status="Draft" href="javascript:void(0);">Drafts <span class="inv-tab-count ms-1 d-none"></span></a></li>
+                                </ul>
+                            </div>
+                            <div class="trans-toolbar-actions">
+                                <a href="javascript:void(0);" class="r2k-icon-btn pageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
+                                <div class="r2k-search-wrap">
+                                    <i class="bx bx-search r2k-si"></i>
+                                    <input type="text" id="searchTransactionData" placeholder="Invoice # or customer...">
+                                    <i class="bx bx-x r2k-clear d-none"></i>
                                 </div>
                                 <div class="dropdown">
-                                    <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button"
-                                            id="dateFilterBtn" data-bs-toggle="dropdown" aria-expanded="false">
-                                        <i class="bx bx-calendar me-1"></i><span id="dateFilterLabel">All Dates</span>
+                                    <button class="r2k-dd-btn" type="button" id="dateFilterBtn" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                        <i class="bx bx-calendar"></i> <span id="dateFilterLabel">All Dates</span> <i class="bx bx-chevron-down" style="font-size:.75rem;"></i>
                                     </button>
-                                    <ul class="dropdown-menu shadow" style="width:210px;max-height:300px;overflow-y:auto;font-size:.82rem;">
-                                        <li><a class="dropdown-item date-option" data-range=""><i class="bx bx-list-ul me-2"></i>All Dates</a></li>
-                                        <li><hr class="dropdown-divider"></li>
-                                        <li><a class="dropdown-item date-option" data-range="today">Today</a></li>
-                                        <li><a class="dropdown-item date-option" data-range="yesterday">Yesterday</a></li>
-                                        <li><hr class="dropdown-divider"></li>
-                                        <li><a class="dropdown-item date-option" data-range="this_week">This Week</a></li>
-                                        <li><a class="dropdown-item date-option" data-range="last_week">Last Week</a></li>
-                                        <li><a class="dropdown-item date-option" data-range="last_7_days">Last 7 Days</a></li>
-                                        <li><hr class="dropdown-divider"></li>
-                                        <li><a class="dropdown-item date-option" data-range="this_month">This Month</a></li>
-                                        <li><a class="dropdown-item date-option" data-range="previous_month">Previous Month</a></li>
-                                        <li><a class="dropdown-item date-option" data-range="last_30_days">Last 30 Days</a></li>
-                                        <li><hr class="dropdown-divider"></li>
-                                        <li><a class="dropdown-item date-option" data-range="this_year">This Year</a></li>
-                                        <li><a class="dropdown-item date-option" data-range="last_year">Last Year</a></li>
-                                        <li><hr class="dropdown-divider"></li>
-                                        <li><a class="dropdown-item date-option fw-bold" data-range="fy_25_26">
-                                            <i class="bx bxs-star text-warning me-1"></i>FY 25-26
-                                        </a></li>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow" id="dateFilterMenu" style="width:240px;max-height:420px;overflow-y:auto;font-size:.82rem;z-index:9999;">
                                     </ul>
                                 </div>
                             </div>
@@ -256,6 +215,7 @@ $(function () {
     });
 
     Filter['Status'] = 'All';
+    initExport({ moduleUID: 103, getFilters: function () { return Filter; } });
 
     // ── Sticky pagination ──
     var $invStaticPag = $('#invPagination');

@@ -388,7 +388,7 @@
 
             <?php $this->load->view('common/imagepreview_modal'); ?>
 
-            <?php $this->load->view('products/modals/items'); ?>
+            <?php $this->load->view('common/modals/product_form'); ?>
             <?php $this->load->view('products/modals/combo'); ?>
             <?php $this->load->view('products/modals/category'); ?>
             <?php $this->load->view('products/modals/sizes'); ?>
@@ -430,35 +430,18 @@
 
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="/js/common/address.js"></script>
+<script src="/js/common/bankdetails.js"></script>
+<script src="/js/common/gstin_fetch.js"></script>
+<script src="/js/common/customer_form.js"></script>
+<script src="/js/common/category_form.js"></script>
+<script src="/js/common/product_form.js"></script>
 <script src="/js/products.js"></script>
-<script src="/js/combinemodules/products.js"></script>
 <script src="/js/combinemodules/combo.js"></script>
 <script src="/js/common/pagecheckbox.js"></script>
 <script src="/js/products/barcodeprint.js"></script>
 
 <script>
-<?php
-// Product settings defaults — used by clearItemValues() in products.js
-$_ps = $JwtData->ProdSettings ?? new stdClass();
-$_defProdTypeName = 'Product'; // null fallback
-foreach (($ProdTypeInfo ?? []) as $_pt) {
-    if ((int)$_pt->ProductTypeUID === (int)($_ps->DefaultProductTypeUID ?? 0)) {
-        $_defProdTypeName = $_pt->Name;
-        break;
-    }
-}
-$_defDiscUID    = (int)($_ps->DefaultDiscountTypeUID ?? 0);
-$_defProdTaxUID = (int)($_ps->DefaultProductTaxUID   ?? 0);
-$_defTaxDetUID  = (int)($_ps->DefaultTaxDetailUID    ?? 0);
-// For null cases, find the fallback UIDs from the lookup arrays
-if ($_defDiscUID === 0)    foreach (($DiscTypeInfo ?? []) as $_dt) { if (stripos($_dt->Name, 'Percentage') !== false) { $_defDiscUID    = (int)$_dt->DiscountTypeUID; break; } }
-if ($_defProdTaxUID === 0) foreach (($ProdTaxInfo ?? []) as $_px) { if (stripos($_px->Name, 'With Tax')   !== false) { $_defProdTaxUID = (int)$_px->ProductTaxUID;  break; } }
-?>
-// Product settings defaults from JwtData->ProdSettings
-const _defProductType  = '<?php echo htmlspecialchars($_defProdTypeName, ENT_QUOTES); ?>';
-const _defDiscTypeUID  = <?php echo $_defDiscUID; ?>;
-const _defProdTaxUID   = <?php echo $_defProdTaxUID; ?>;
-const _defTaxDetailUID = <?php echo $_defTaxDetUID; ?>;
 
 let ItemModuleId = 4;
 const ProdTable = '#ProductsTable';
@@ -887,19 +870,7 @@ $(function() {
 
     $(document).on('click', '.addItem', function(e) {
         e.preventDefault();
-        formOpenCloseDefActions();
-        _ensureCategoryOptions(function() {
-            $('#itemsModal').modal('show');
-        });
-    });
-
-    $('#itemsModal').on('shown.bs.modal', function() {
-        $('#AddEditItemForm #ItemName').trigger('focus');
-        $('.addEditFormAlert').addClass('d-none');
-    });
-
-    $('#itemsModal').on('hide.bs.modal', function() {
-        formOpenCloseDefActions();
+        ProductForm.open('add', null, { onSaveSuccess: _prodPageSaveSuccess });
     });
     
     basePaginationFunc(ProdPag, getProductDetails);

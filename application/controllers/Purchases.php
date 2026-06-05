@@ -267,7 +267,7 @@ class Purchases extends MY_Controller {
                 'BalanceAmount'         => $netAmount,
                 'IsFullyPaid'           => 0,
                 'DocStatus'             => $status,
-                'TransToken'            => \Ramsey\Uuid\Uuid::uuid4()->toString(),
+                'TransToken'            => generate_uuid4(),
                 'IsActive'              => 1,
                 'IsDeleted'             => 0,
                 'CreatedBy'             => $userUID,
@@ -284,10 +284,6 @@ class Purchases extends MY_Controller {
             $additionalChargesJson = $this->buildAdditionalChargesJson($PostData);
             $isInterState          = $igstAmount > 0 ? 1 : ($cgstAmount > 0 || $sgstAmount > 0 ? 0 : NULL);
 
-            $this->load->model('vendors_model');
-            $vendorAddrArr = $this->vendors_model->getVendorAddress(['VendAddress.VendorUID' => $vendorUID, 'VendAddress.OrgUID' => $orgUID]);
-            $placeOfSupply = !empty($vendorAddrArr) ? ($vendorAddrArr[0]->StateText ?? NULL) : NULL;
-
             $detailData = [
                 'FinancialYear'     => $financialYear,
                 'TransUID'          => $transUID,
@@ -299,7 +295,8 @@ class Purchases extends MY_Controller {
                 'TermsConditions'   => getPostValue($PostData, 'transTermsCond') ?: NULL,
                 'SignatureUID'      => (int)getPostValue($PostData, 'SignatureUID') ?: NULL,
                 'AdditionalCharges' => $additionalChargesJson,
-                'PlaceOfSupply'     => $placeOfSupply,
+                'PlaceOfSupplyCode' => getPostValue($PostData, 'placeOfSupplyCode') ?: NULL,
+                'PlaceOfSupplyName' => getPostValue($PostData, 'placeOfSupplyName') ?: NULL,
                 'IsInterState'      => $isInterState,
                 'IsForeignCustomer' => NULL,
             ];
@@ -478,10 +475,6 @@ class Purchases extends MY_Controller {
 
             $isInterState = $igstAmount > 0 ? 1 : ($cgstAmount > 0 || $sgstAmount > 0 ? 0 : NULL);
 
-            $this->load->model('vendors_model');
-            $vendorAddrArr = $this->vendors_model->getVendorAddress(['VendAddress.VendorUID' => $vendorUID, 'VendAddress.OrgUID' => $orgUID]);
-            $placeOfSupply = !empty($vendorAddrArr) ? ($vendorAddrArr[0]->StateText ?? NULL) : NULL;
-
             $commonDetail = [
                 'ValidityDays'      => NULL,
                 'ValidityDate'      => $billDueDate ?: NULL,
@@ -491,7 +484,6 @@ class Purchases extends MY_Controller {
                 'TermsConditions'   => getPostValue($PostData, 'transTermsCond') ?: NULL,
                 'SignatureUID'      => (int)getPostValue($PostData, 'SignatureUID') ?: NULL,
                 'AdditionalCharges' => $additionalChargesJson,
-                'PlaceOfSupply'     => $placeOfSupply,
                 'IsInterState'      => $isInterState,
                 'IsForeignCustomer' => NULL,
             ];
@@ -509,7 +501,7 @@ class Purchases extends MY_Controller {
                     'PrefixUID'    => $prefixUID,
                     'TransNumber'  => $transNumber,
                     'UniqueNumber' => $uniqueNumber,
-                    'TransToken'   => \Ramsey\Uuid\Uuid::uuid4()->toString(),
+                    'TransToken'   => generate_uuid4(),
                     'IsActive'     => 1,
                     'IsDeleted'    => 0,
                     'CreatedBy'    => $userUID,

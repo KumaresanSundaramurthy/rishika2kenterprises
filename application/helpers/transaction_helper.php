@@ -1,5 +1,6 @@
 <?php if (!defined('BASEPATH')) exit('No direct script access allowed');
 
+
 if (!function_exists('smart_dec_amount')) {
     /**
      * Format a decimal amount with 2 decimal places, or 3 if the 3rd decimal digit is non-zero.

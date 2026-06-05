@@ -417,32 +417,18 @@
                                     <div class="col-md-3 border-end">
                                         <div class="nav flex-column nav-pills gs-nav-pills py-3" id="txnSettingsTab" role="tablist" aria-orientation="vertical">
 
-                                            <a class="nav-link gs-tab-link active px-4 py-3" id="tab-invoice-settings-tab"
+                                            <a class="nav-link gs-tab-link active px-4 py-3" id="tab-txn-general-tab"
+                                                data-bs-toggle="pill" data-bs-target="#tab-txn-general"
+                                                role="tab" aria-controls="tab-txn-general" aria-selected="true"
+                                                href="javascript:void(0);">
+                                                <i class="bx bx-slider-alt me-2"></i>General
+                                            </a>
+
+                                            <a class="nav-link gs-tab-link px-4 py-3" id="tab-invoice-settings-tab"
                                                 data-bs-toggle="pill" data-bs-target="#tab-invoice-settings"
-                                                role="tab" aria-controls="tab-invoice-settings" aria-selected="true"
+                                                role="tab" aria-controls="tab-invoice-settings" aria-selected="false"
                                                 href="javascript:void(0);">
                                                 <i class="bx bx-receipt me-2"></i>Invoice
-                                            </a>
-
-                                            <a class="nav-link gs-tab-link px-4 py-3" id="tab-quotation-tab"
-                                                data-bs-toggle="pill" data-bs-target="#tab-quotation"
-                                                role="tab" aria-controls="tab-quotation" aria-selected="false"
-                                                href="javascript:void(0);">
-                                                <i class="bx bx-file me-2"></i>Quotation
-                                            </a>
-
-                                            <a class="nav-link gs-tab-link px-4 py-3" id="tab-salesorder-tab"
-                                                data-bs-toggle="pill" data-bs-target="#tab-salesorder"
-                                                role="tab" aria-controls="tab-salesorder" aria-selected="false"
-                                                href="javascript:void(0);">
-                                                <i class="bx bx-cart me-2"></i>Sales Order
-                                            </a>
-
-                                            <a class="nav-link gs-tab-link px-4 py-3" id="tab-purchase-tab"
-                                                data-bs-toggle="pill" data-bs-target="#tab-purchase"
-                                                role="tab" aria-controls="tab-purchase" aria-selected="false"
-                                                href="javascript:void(0);">
-                                                <i class="bx bx-purchase-tag me-2"></i>Purchase
                                             </a>
 
                                         </div>
@@ -453,12 +439,42 @@
                                     <div class="col-md-9">
                                         <div class="tab-content p-4" id="txnSettingsTabContent">
 
+                                            <!-- Sub-Tab: General (T&C) -->
+                                            <?php
+                                            $tgs = $TransGenSettings ?? new stdClass();
+                                            $tgsTerms = htmlspecialchars($tgs->TermsAndConditions ?? '', ENT_QUOTES);
+                                            ?>
+                                            <div class="tab-pane fade show active" id="tab-txn-general" role="tabpanel" aria-labelledby="tab-txn-general-tab">
+
+                                                <h6 class="fw-semibold mb-1">Transaction General Settings</h6>
+                                                <p class="text-muted small mb-4">Configure default content that applies across all transaction types.</p>
+
+                                                <div class="row g-3">
+                                                    <div class="col-12">
+                                                        <label class="form-label fw-semibold" for="txn_TermsAndConditions">Terms &amp; Conditions</label>
+                                                        <textarea class="form-control" id="txn_TermsAndConditions" name="TermsAndConditions"
+                                                                  rows="8" placeholder="Enter your default terms and conditions here. This will appear on all transaction documents (invoices, quotations, etc.)."
+                                                                  ><?php echo $tgsTerms; ?></textarea>
+                                                        <div class="form-text">This text will be printed on all transaction documents unless overridden at the document level.</div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="mt-4 d-flex gap-2">
+                                                    <button type="button" class="btn btn-primary" id="btnSaveTxnGeneral">
+                                                        <span class="spinner-border spinner-border-sm me-1 d-none" id="tgSpinner"></span>
+                                                        Save Changes
+                                                    </button>
+                                                </div>
+
+                                            </div>
+                                            <!-- / Sub-Tab: General -->
+
                                             <!-- Sub-Tab: Invoice -->
                                             <?php
                                             $ts = $TransSettings ?? new stdClass();
                                             $invoiceCancelAction = $ts->InvoiceCancelAction ?? 'ask';
                                             ?>
-                                            <div class="tab-pane fade show active" id="tab-invoice-settings" role="tabpanel" aria-labelledby="tab-invoice-settings-tab">
+                                            <div class="tab-pane fade" id="tab-invoice-settings" role="tabpanel" aria-labelledby="tab-invoice-settings-tab">
 
                                                 <h6 class="fw-semibold mb-1">Invoice</h6>
                                                 <p class="text-muted small mb-4">Configure default behaviours for invoice operations.</p>
@@ -522,108 +538,7 @@
                                                 </div>
 
                                             </div>
-                                            <!-- / Sub-Tab 0: Invoice -->
-
-                                            <!-- Sub-Tab 1: Quotation -->
-                                            <div class="tab-pane fade" id="tab-quotation" role="tabpanel" aria-labelledby="tab-quotation-tab">
-
-                                                <h6 class="fw-semibold mb-1">Quotation Settings</h6>
-                                                <p class="text-muted small mb-4">Configure prefix, validity, and defaults for quotations.</p>
-
-                                                <div class="row g-3">
-                                                    <div class="col-md-6">
-                                                        <label class="form-label">Quotation Prefix</label>
-                                                        <input type="text" class="form-control" id="QuotationPrefix" name="QuotationPrefix" placeholder="e.g. QUO-" value="QUO-" maxlength="10" />
-                                                    </div>
-                                                    <div class="col-md-6">
-                                                        <label class="form-label">Starting Number</label>
-                                                        <input type="number" class="form-control" id="QuotationStartNo" name="QuotationStartNo" placeholder="e.g. 1001" value="1001" min="1" />
-                                                    </div>
-                                                    <div class="col-md-6">
-                                                        <label class="form-label">Default Validity (Days)</label>
-                                                        <input type="number" class="form-control" id="QuotationValidity" name="QuotationValidity" placeholder="e.g. 15" value="15" min="1" />
-                                                    </div>
-                                                    <div class="col-md-12">
-                                                        <div class="form-check form-switch mb-0">
-                                                            <input class="form-check-input" type="checkbox" role="switch" id="QuotationAutoConvert" name="QuotationAutoConvert">
-                                                            <label class="form-check-label" for="QuotationAutoConvert">Allow Auto-Convert to Invoice</label>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <div class="mt-4 d-flex gap-2">
-                                                    <button type="button" class="btn btn-primary gs-save-btn">Save Changes</button>
-                                                    <button type="button" class="btn btn-label-secondary">Reset</button>
-                                                </div>
-
-                                            </div>
-                                            <!-- / Sub-Tab 1 -->
-
-                                            <!-- Sub-Tab 2: Sales Order -->
-                                            <div class="tab-pane fade" id="tab-salesorder" role="tabpanel" aria-labelledby="tab-salesorder-tab">
-
-                                                <h6 class="fw-semibold mb-1">Sales Order Settings</h6>
-                                                <p class="text-muted small mb-4">Configure prefix and defaults for sales orders.</p>
-
-                                                <div class="row g-3">
-                                                    <div class="col-md-6">
-                                                        <label class="form-label">Sales Order Prefix</label>
-                                                        <input type="text" class="form-control" id="SOPrefix" name="SOPrefix" placeholder="e.g. SO-" value="SO-" maxlength="10" />
-                                                    </div>
-                                                    <div class="col-md-6">
-                                                        <label class="form-label">Starting Number</label>
-                                                        <input type="number" class="form-control" id="SOStartNo" name="SOStartNo" placeholder="e.g. 1001" value="1001" min="1" />
-                                                    </div>
-                                                    <div class="col-md-12">
-                                                        <div class="form-check form-switch mb-0">
-                                                            <input class="form-check-input" type="checkbox" role="switch" id="SOAutoConvert" name="SOAutoConvert">
-                                                            <label class="form-check-label" for="SOAutoConvert">Allow Auto-Convert to Invoice</label>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <div class="mt-4 d-flex gap-2">
-                                                    <button type="button" class="btn btn-primary gs-save-btn">Save Changes</button>
-                                                    <button type="button" class="btn btn-label-secondary">Reset</button>
-                                                </div>
-
-                                            </div>
-                                            <!-- / Sub-Tab 2 -->
-
-                                            <!-- Sub-Tab 3: Purchase -->
-                                            <div class="tab-pane fade" id="tab-purchase" role="tabpanel" aria-labelledby="tab-purchase-tab">
-
-                                                <h6 class="fw-semibold mb-1">Purchase Settings</h6>
-                                                <p class="text-muted small mb-4">Configure prefix and defaults for purchase bills.</p>
-
-                                                <div class="row g-3">
-                                                    <div class="col-md-6">
-                                                        <label class="form-label">Purchase Bill Prefix</label>
-                                                        <input type="text" class="form-control" id="PurchasePrefix" name="PurchasePrefix" placeholder="e.g. PUR-" value="PUR-" maxlength="10" />
-                                                    </div>
-                                                    <div class="col-md-6">
-                                                        <label class="form-label">Starting Number</label>
-                                                        <input type="number" class="form-control" id="PurchaseStartNo" name="PurchaseStartNo" placeholder="e.g. 1001" value="1001" min="1" />
-                                                    </div>
-                                                    <div class="col-md-6">
-                                                        <label class="form-label">Default Payment Due Days</label>
-                                                        <input type="number" class="form-control" id="PurchaseDueDays" name="PurchaseDueDays" placeholder="e.g. 30" value="30" min="0" />
-                                                    </div>
-                                                    <div class="col-md-12">
-                                                        <div class="form-check form-switch mb-0">
-                                                            <input class="form-check-input" type="checkbox" role="switch" id="PurchaseUpdateStock" name="PurchaseUpdateStock" checked>
-                                                            <label class="form-check-label" for="PurchaseUpdateStock">Auto-Update Stock on Purchase</label>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <div class="mt-4 d-flex gap-2">
-                                                    <button type="button" class="btn btn-primary gs-save-btn">Save Changes</button>
-                                                    <button type="button" class="btn btn-label-secondary">Reset</button>
-                                                </div>
-
-                                            </div>
-                                            <!-- / Sub-Tab 3 -->
+                                            <!-- / Sub-Tab: Invoice -->
 
                                         </div>
                                     </div>
@@ -747,6 +662,34 @@ $(document).ready(function () {
                 DefaultProductTaxUID   : $('#ps_ProductTax').val(),
                 DefaultTaxDetailUID    : $('#ps_TaxDetail').val(),
                 [CsrfName]             : CsrfToken,
+            },
+            success: function (resp) {
+                showToastNotification(resp.Message, resp.Error ? 'error' : 'success');
+            },
+            error: function () {
+                showToastNotification('Request failed. Please try again.', 'error');
+            },
+            complete: function () {
+                $btn.prop('disabled', false);
+                $spinner.addClass('d-none');
+            }
+        });
+    });
+
+    // ── Save Transaction General Settings (T&C) ──────────────────────────────
+    $('#btnSaveTxnGeneral').on('click', function () {
+        var $btn     = $(this);
+        var $spinner = $('#tgSpinner');
+
+        $btn.prop('disabled', true);
+        $spinner.removeClass('d-none');
+
+        $.ajax({
+            url    : '/settings/updateTransactionGeneralSettings',
+            method : 'POST',
+            data   : {
+                TermsAndConditions : $('#txn_TermsAndConditions').val(),
+                [CsrfName]         : CsrfToken,
             },
             success: function (resp) {
                 showToastNotification(resp.Message, resp.Error ? 'error' : 'success');

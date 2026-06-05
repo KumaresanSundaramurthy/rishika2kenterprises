@@ -204,7 +204,7 @@ class Invoices extends MY_Controller {
                 'PaidAmount'            => 0,
                 'BalanceAmount'         => $netAmount,
                 'DocStatus'             => $status,
-                'TransToken'            => \Ramsey\Uuid\Uuid::uuid4()->toString(),
+                'TransToken'            => generate_uuid4(),
                 'IsActive'              => 1,
                 'IsDeleted'             => 0,
                 'CreatedBy'             => $userUID,
@@ -221,20 +221,20 @@ class Invoices extends MY_Controller {
             $isInterState          = $igstAmount > 0 ? 1 : ($cgstAmount > 0 || $sgstAmount > 0 ? 0 : NULL);
             $_cc                   = $this->transactions_model->getCustomerCountryCode($customerUID);
             $isForeignCustomer     = $_cc !== NULL ? ($_cc === 'IN' ? 0 : 1) : NULL;
-            $placeOfSupply         = getPostValue($PostData, 'placeOfSupply') ?: $this->transactions_model->getCustomerBillingState($customerUID);
             $detailData = [
-                'FinancialYear'     => $financialYear,
-                'TransUID'          => $transUID,
-                'ValidityDays'      => NULL,
-                'ValidityDate'      => $dueDate ?: NULL,
-                'Reference'         => getPostValue($PostData, 'referenceDetails') ?: NULL,
-                'Notes'             => getPostValue($PostData, 'transNotes') ?: NULL,
-                'TermsConditions'   => getPostValue($PostData, 'transTermsCond') ?: NULL,
-                'SignatureUID'      => (int)getPostValue($PostData, 'SignatureUID') ?: NULL,
-                'AdditionalCharges' => $additionalChargesJson,
-                'PlaceOfSupply'     => $placeOfSupply,
-                'IsInterState'      => $isInterState,
-                'IsForeignCustomer' => $isForeignCustomer,
+                'FinancialYear'      => $financialYear,
+                'TransUID'           => $transUID,
+                'ValidityDays'       => NULL,
+                'ValidityDate'       => $dueDate ?: NULL,
+                'Reference'          => getPostValue($PostData, 'referenceDetails') ?: NULL,
+                'Notes'              => getPostValue($PostData, 'transNotes') ?: NULL,
+                'TermsConditions'    => getPostValue($PostData, 'transTermsCond') ?: NULL,
+                'SignatureUID'       => (int)getPostValue($PostData, 'SignatureUID') ?: NULL,
+                'AdditionalCharges'  => $additionalChargesJson,
+                'PlaceOfSupplyCode'  => getPostValue($PostData, 'placeOfSupplyCode') ?: NULL,
+                'PlaceOfSupplyName'  => getPostValue($PostData, 'placeOfSupplyName') ?: NULL,
+                'IsInterState'       => $isInterState,
+                'IsForeignCustomer'  => $isForeignCustomer,
             ];
             $detailResp = $this->dbwrite_model->insertData('Transaction', 'TransDetailTbl', $detailData);
             if ($detailResp->Error) throw new Exception($detailResp->Message);
@@ -541,7 +541,6 @@ class Invoices extends MY_Controller {
             $isInterState          = $igstAmount > 0 ? 1 : ($cgstAmount > 0 || $sgstAmount > 0 ? 0 : NULL);
             $_cc                   = $this->transactions_model->getCustomerCountryCode($customerUID);
             $isForeignCustomer     = $_cc !== NULL ? ($_cc === 'IN' ? 0 : 1) : NULL;
-            $placeOfSupply         = getPostValue($PostData, 'placeOfSupply') ?: $this->transactions_model->getCustomerBillingState($customerUID);
             $commonDetail = [
                 'ValidityDays'      => NULL,
                 'ValidityDate'      => $dueDate ?: NULL,
@@ -550,7 +549,6 @@ class Invoices extends MY_Controller {
                 'TermsConditions'   => getPostValue($PostData, 'transTermsCond') ?: NULL,
                 'SignatureUID'      => (int)getPostValue($PostData, 'SignatureUID') ?: NULL,
                 'AdditionalCharges' => $additionalChargesJson,
-                'PlaceOfSupply'     => $placeOfSupply,
                 'IsInterState'      => $isInterState,
                 'IsForeignCustomer' => $isForeignCustomer,
             ];
@@ -567,7 +565,7 @@ class Invoices extends MY_Controller {
                     'PrefixUID'    => $prefixUID,
                     'TransNumber'  => $transNumber,
                     'UniqueNumber' => $uniqueNumber,
-                    'TransToken'   => \Ramsey\Uuid\Uuid::uuid4()->toString(),
+                    'TransToken'   => generate_uuid4(),
                     'IsActive'     => 1,
                     'IsDeleted'    => 0,
                     'CreatedBy'    => $userUID,

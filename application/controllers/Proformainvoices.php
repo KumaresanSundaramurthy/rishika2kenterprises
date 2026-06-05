@@ -295,7 +295,7 @@ class Proformainvoices extends MY_Controller {
                 'ExtraDiscType'     => getPostValue($PostData, 'extDiscountType') ?: NULL,
                 'NetAmount'         => $netAmount,
                 'DocStatus'         => $status,
-                'TransToken'        => \Ramsey\Uuid\Uuid::uuid4()->toString(),
+                'TransToken'        => generate_uuid4(),
                 'IsActive'          => 1,
                 'IsDeleted'         => 0,
                 'CreatedBy'         => $userUID,
@@ -318,6 +318,8 @@ class Proformainvoices extends MY_Controller {
                 'TermsConditions'   => getPostValue($PostData, 'transTermsCond') ?: NULL,
                 'SignatureUID'      => (int)getPostValue($PostData, 'SignatureUID') ?: NULL,
                 'AdditionalCharges' => $additionalChargesJson,
+                'PlaceOfSupplyCode' => getPostValue($PostData, 'placeOfSupplyCode') ?: NULL,
+                'PlaceOfSupplyName' => getPostValue($PostData, 'placeOfSupplyName') ?: NULL,
                 'IsInterState'      => $isInterState,
                 'IsForeignCustomer' => $isForeignCustomer,
             ]);

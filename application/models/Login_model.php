@@ -3,8 +3,6 @@
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 
-use Ramsey\Uuid\Uuid;
-
 class Login_model extends CI_Model {
     
     private $EndReturnData;
@@ -70,7 +68,12 @@ class Login_model extends CI_Model {
             $TransSettings = (!$transSettingsResult->Error && !empty($transSettingsResult->Data))
                 ? $transSettingsResult->Data[0]
                 : new stdClass();
-            // Date formats now live in OrgSettingsTbl → available in GenSettings
+
+            // Transaction General Settings (OrgTransGeneralSettingsTbl) — T&C and date overrides
+            $transGenResult = $this->getOrgTransGeneralSettings($UserData->UserOrgUID);
+            $TransGenSettings = (!$transGenResult->Error && !empty($transGenResult->Data))
+                ? $transGenResult->Data[0]
+                : new stdClass();
 
             // Build flat permissions map: ControllerName => {CanView,CanCreate,CanEdit,CanDelete}
             $Permissions = [];
@@ -85,7 +88,7 @@ class Login_model extends CI_Model {
                 }
             }
 
-            $jwtPayload = array('User' => $JwtUserData, 'Org' => $JwtOrgData, 'UserMainModule' => $MainModule, 'UserSubModule' => $SubModule, 'Permissions' => $Permissions, 'GenSettings' => $GeneralSettings, 'ProdSettings' => $ProductSettings, 'TransSettings' => $TransSettings, 'ModuleInfo' => $ModuleInfo);
+            $jwtPayload = array('User' => $JwtUserData, 'Org' => $JwtOrgData, 'UserMainModule' => $MainModule, 'UserSubModule' => $SubModule, 'Permissions' => $Permissions, 'GenSettings' => $GeneralSettings, 'ProdSettings' => $ProductSettings, 'TransSettings' => $TransSettings, 'TransGenSettings' => $TransGenSettings, 'ModuleInfo' => $ModuleInfo);
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Message = 'Success';
@@ -109,7 +112,7 @@ class Login_model extends CI_Model {
         $Expiry = getenv('LOGIN_EXPIRE_SECS');
         try {
 
-            $RedisKey = Uuid::uuid4() . '-' . $UserData->UserUID;
+            $RedisKey = generate_uuid4() . '-' . $UserData->UserUID;
 
             // GenSettings and ProdSettings are kept in the main JWT payload.
             // Both are accessible as $JwtData->GenSettings and $JwtData->ProdSettings on every request.
@@ -282,7 +285,7 @@ class Login_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
             $this->ReadDb->db_debug = FALSE;
-            $this->ReadDb->select('FormDateFormat, ListDateFormat, PrintDateFormat');
+            $this->ReadDb->select('TermsAndConditions');
             $this->ReadDb->from('Settings.OrgTransGeneralSettingsTbl');
             $this->ReadDb->where('OrgUID', (int) $OrgUID);
             $this->ReadDb->limit(1);

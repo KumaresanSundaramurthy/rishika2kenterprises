@@ -308,4 +308,10 @@
 /* Banner header always visible in modal */
 #viewTransModal .modal-content  { display: flex; flex-direction: column; }
 #viewTransModalHeader           { flex-shrink: 0; }
+/* Customer type indicator badge */
+.cust-type-badge          { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px; font-size: .75rem; font-weight: 500; }
+.cust-type-badge i        { font-size: .82rem; }
+.cust-type-intrastate     { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
+.cust-type-interstate     { background: #fff3e0; color: #e65100; border: 1px solid #ffcc80; }
+.cust-type-foreign        { background: #e3f2fd; color: #0d47a1; border: 1px solid #90caf9; }
 #viewTransModalBody             { flex: 1; overflow-y: auto; }

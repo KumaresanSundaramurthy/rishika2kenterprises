@@ -51,10 +51,11 @@
 
     // Customer selection
     $(document).on('click', '.cust-search-item', function() {
-        const custUID  = $(this).data('uid');
-        const custName = $(this).data('name');
-        const address  = $(this).data('address');
-        const state    = $(this).data('state');
+        const custUID    = $(this).data('uid');
+        const custName   = $(this).data('name');
+        const address    = $(this).data('address');
+        const state      = $(this).data('state');
+        const countryISO2 = $(this).data('country') || 'IN';
 
         if (custUID && custName) {
             const $select = $('#customerSearch');
@@ -67,26 +68,26 @@
             }
             $select.trigger('change');
 
-            // Show address box — same logic as select2:select in transactions.js
+            // Show address box
             if (address) {
                 var addrHtml = '<div><strong>Shipping Address:</strong></div>'
                              + '<div>' + (address.Line1 || '') + '</div>'
                              + '<div>' + (address.Line2 || '') + '</div>'
                              + '<div>' + [address.City, address.State].filter(Boolean).join(', ') + (address.Pincode ? ' - ' + address.Pincode : '') + '</div>';
                 $('#customerAddressBox').html(addrHtml).removeClass('d-none');
-
-                if (typeof billManager !== 'undefined') {
-                    var custState = (state || address.State || '').trim().toLowerCase();
-                    var orgState  = (typeof _orgState !== 'undefined' ? _orgState : '').trim().toLowerCase();
-                    var interState = (custState !== '' && orgState !== '' && custState !== orgState);
-                    billManager.setInterState(interState);
-                }
                 if (typeof window._onCustStateSelected === 'function') {
                     window._onCustStateSelected((state || (address && address.State) || '').trim());
                 }
             } else {
                 $('#customerAddressBox').addClass('d-none').empty();
-                if (typeof billManager !== 'undefined') billManager.setInterState(false);
+            }
+
+            // Show customer type indicator (also sets billManager inter-state)
+            if (typeof _showCustTypeIndicator === 'function') {
+                _showCustTypeIndicator({
+                    countryISO2: countryISO2,
+                    address: address || null
+                });
             }
 
             $('#customerSearchModal').modal('hide');
@@ -140,11 +141,12 @@
                     const balanceClass = balanceType === 'Debit' ? 'debit' : 'credit';
                     const balanceLabel = balanceType === 'Debit' ? 'Receivable' : 'Payable';
                     const currency = (typeof CurrencySymbol !== 'undefined' && CurrencySymbol) ? CurrencySymbol : '₹';
-                    const addrAttr  = cust.address ? ' data-address=\'' + JSON.stringify(cust.address).replace(/'/g, '&#39;') + '\'' : '';
-                    const stateAttr = cust.address ? ' data-state="' + escapeHtml(cust.address.State || '') + '"' : '';
-                    const serialNo  = ((currentPage - 1) * limit) + index + 1;
+                    const addrAttr    = cust.address ? ' data-address=\'' + JSON.stringify(cust.address).replace(/'/g, '&#39;') + '\'' : '';
+                    const stateAttr   = cust.address ? ' data-state="' + escapeHtml(cust.address.State || '') + '"' : '';
+                    const countryAttr = ' data-country="' + escapeHtml(cust.CountryISO2 || 'IN') + '"';
+                    const serialNo    = ((currentPage - 1) * limit) + index + 1;
 
-                    html += '<div class="cust-search-item" data-uid="' + cust.CustomerUID + '" data-name="' + escapeHtml(cust.Name) + '"' + addrAttr + stateAttr + '>';
+                    html += '<div class="cust-search-item" data-uid="' + cust.CustomerUID + '" data-name="' + escapeHtml(cust.Name) + '"' + addrAttr + stateAttr + countryAttr + '>';
                     html += '<div class="d-flex align-items-start gap-2">';
                     html += '<div class="cust-serial">' + serialNo + '</div>';
                     html += '<div class="flex-grow-1">';

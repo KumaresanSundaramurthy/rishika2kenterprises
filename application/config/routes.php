@@ -368,6 +368,9 @@ $route['rental/recordPayment']                       = 'rental/recordPayment';
 $route['rental/cancelRental']                        = 'rental/cancelRental';
 $route['rental/searchRentableProducts']              = 'rental/searchRentableProducts';
 
+// Reports Hub
+$route['reports'] = 'reports/index';
+
 // Barcode & QR Code Config
 $route['settings/barcodeconfig'] = 'barcodeconfig/index';
 

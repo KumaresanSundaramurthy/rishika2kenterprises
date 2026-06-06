@@ -34,6 +34,8 @@ var _transListDateTimeFormat  = '<?php echo addslashes($JwtData->GenSettings->Li
 var _transPrintDateTimeFormat = '<?php echo addslashes($JwtData->GenSettings->PrintDateTimeFormat ?? 'd-m-Y H:i'); ?>';
 const discTypeInfo = <?php echo json_encode($DiscTypeInfo ?? []); ?>;
 let customerInterState = false;
+var _orgStateName = '<?php echo addslashes($JwtData->Org->StateName ?? ''); ?>';
+var _orgStateCode = '<?php echo addslashes($JwtData->Org->StateCode ?? ''); ?>';
 const emptyTableTrInfo = `<tr class="text-center text-muted">
                                 <td colspan="7">
                                     <div class="py-4">

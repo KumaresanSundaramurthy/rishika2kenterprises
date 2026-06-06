@@ -185,6 +185,7 @@ if (!empty($DispatchAddress)) {
                                         <?php $this->load->view('common/transactions/_dispatch_from'); ?>
                                     </div>
                                     <?php endif; ?>
+                                    <div id="custTypeIndicator" class="mt-2 d-none"></div>
                                 </div>
 
                                 <div class="col-md-6 border-end pe-3">

@@ -1166,6 +1166,7 @@ class Customers extends MY_Controller {
                     'MobileNumber' => $row->MobileNumber ?? '',
                     'Balance'      => $row->ClosingBalance ?? 0,
                     'BalanceType'  => $row->ClosingBalanceType ?? 'Debit',
+                    'CountryISO2'  => $row->CountryISO2 ?? 'IN',
                 ];
                 if (!empty($row->ShipLine1) || !empty($row->ShipCity) || !empty($row->ShipState)) {
                     $cust['address'] = [

@@ -195,67 +195,82 @@ if (!empty($DispatchAddress)) {
                         </div>
                         <?php endif; ?>
 
-                        <div class="card-body card-body-form-static p-4">
+                        <div class="card-body card-body-form-static p-3">
 
-                            <div class="card-header modal-header-center-sticky p-1 mb-3">
-                                <h5 class="modal-title mb-0"><i class="bx bx-user me-1"></i> Customer Details</h5>
+                            <!-- ── Toolbar: Type & Dispatch From ─────────────────────────── -->
+                            <div class="d-flex align-items-center gap-4 mb-3 pb-2 border-bottom">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="text-muted" style="font-size:.78rem;white-space:nowrap;">Type</span>
+                                    <select id="orderType" name="orderType" class="form-select form-select-sm border-0 bg-transparent fw-semibold" style="min-width:110px;cursor:pointer;" <?php echo !$isEdit ? 'required' : ''; ?>>
+                                        <option value="Regular" <?php echo ($isEdit && ($SOData->QuotationType === 'Regular' || empty($SOData->QuotationType))) || !$isEdit ? 'selected' : ''; ?>>Regular</option>
+                                        <option value="Without_GST" <?php echo $isEdit && $SOData->QuotationType === 'Without_GST' ? 'selected' : ''; ?>>Without GST</option>
+                                    </select>
+                                </div>
+                                <?php if (!empty($DispatchAddresses)): ?>
+                                <div class="d-flex align-items-center gap-2 dispatch-from-grp" style="max-width:360px;">
+                                    <span class="text-muted" style="font-size:.78rem;white-space:nowrap;">Dispatch From</span>
+                                    <?php $this->load->view('common/transactions/_dispatch_from'); ?>
+                                </div>
+                                <?php endif; ?>
+                                <?php if (!$isEdit): ?>
+                                <div class="ms-auto d-flex align-items-center gap-2">
+                                    <div id="custTypeIndicator" class="d-none"></div>
+                                    <div id="onAccountIndicator" class="d-none d-flex align-items-center gap-1"
+                                         style="font-size:.78rem;color:#856404;background:#fff8e1;border:1px solid #ffc107;padding:3px 12px;border-radius:20px;white-space:nowrap;">
+                                        <i class="bx bx-wallet" style="font-size:.88rem;"></i>
+                                        On Account: <strong id="onAccountTotal" style="margin-left:3px;"></strong>
+                                    </div>
+                                </div>
+                                <?php endif; ?>
                             </div>
 
-                            <div class="row">
-                                <div class="col-md-3 trans-right-border">
-                                    <div class="mb-2">
-                                        <label for="orderType" class="form-label small fw-semibold">Type <span style="color:red">*</span></label>
-                                        <select id="orderType" name="orderType" class="form-select form-select-sm" <?php echo !$isEdit ? 'required' : ''; ?>>
-                                            <option value="Regular" <?php echo ($isEdit && ($SOData->QuotationType === 'Regular' || empty($SOData->QuotationType))) || !$isEdit ? 'selected' : ''; ?>>Regular</option>
-                                            <option value="Without_GST" <?php echo $isEdit && $SOData->QuotationType === 'Without_GST' ? 'selected' : ''; ?>>Without GST</option>
-                                        </select>
-                                    </div>
-                                    <?php if (!empty($DispatchAddresses)): ?>
-                                    <div class="mb-2">
-                                        <label class="form-label small fw-semibold">Dispatch From <span style="color:red">*</span></label>
-                                        <?php $this->load->view('common/transactions/_dispatch_from'); ?>
-                                    </div>
-                                    <?php endif; ?>
-                                </div>
-                                <div class="col-md-6 border-end pe-3">
-                                    <div class="d-flex align-items-center gap-2 mb-1">
+                            <!-- ── Row 1: Customer | Order Date | Expected Delivery Date | Reference ── -->
+                            <div class="row g-2 align-items-end mb-2">
+                                <div class="col-md-4">
+                                    <div class="d-flex align-items-center justify-content-between mb-2">
                                         <label for="customerSearch" class="trans-field-label mb-0">Select Customer <span class="text-danger">*</span></label>
                                         <?php if (!$isEdit): ?>
-                                        <button type="button" id="addTransCustomer" class="trans-add-btn btn btn-outline-primary btn-sm" aria-label="Add new customer" style="white-space:nowrap;"><i class="bx bx-plus-circle me-1"></i>Add Customer</button>
+                                        <button type="button" id="addTransCustomer" class="trans-add-btn btn btn-outline-primary btn-sm" style="font-size:.72rem;white-space:nowrap;"><i class="bx bx-plus-circle me-1"></i>Add Customer</button>
                                         <?php endif; ?>
                                     </div>
-                                    <div class="flex-grow-1">
-                                        <select id="customerSearch" name="customerSearch" class="form-select form-select-sm"></select>
-                                    </div>
-                                    <div id="customerAddressBox" class="mt-2 p-2 border border-secondary trans-border-dotted rounded small d-none"></div>
+                                    <select id="customerSearch" name="customerSearch" class="form-select form-select-sm">
+                                        <?php if ($isEdit && !empty($SOData->PartyUID)): ?>
+                                        <option value="<?php echo (int)$SOData->PartyUID; ?>" selected><?php echo htmlspecialchars($SOData->PartyName ?? ''); ?></option>
+                                        <?php endif; ?>
+                                    </select>
                                 </div>
-                                <div class="col-md-3">
-                                    <div class="mb-2">
-                                        <label for="transDate" class="form-label small fw-semibold">Order Date <span class="text-danger">*</span></label>
-                                        <div class="input-group input-group-merge">
-                                            <span class="input-group-text"><i class="icon-base bx bx-calendar"></i></span>
-                                            <input type="text" class="form-control form-control-sm" id="transDate" name="transDate" readonly="readonly"
-                                                value="<?php echo $isEdit ? htmlspecialchars(format_datedisplay($SOData->TransDate, 'Y-m-d')) : format_datedisplay(time(), 'Y-m-d'); ?>"
-                                                required />
-                                        </div>
+                                <div class="col-auto" style="min-width:155px;">
+                                    <label for="transDate" class="trans-field-label">Order Date <span class="text-danger">*</span></label>
+                                    <div class="input-group input-group-sm input-group-merge">
+                                        <span class="input-group-text bg-white"><i class="icon-base bx bx-calendar"></i></span>
+                                        <input type="text" class="form-control form-control-sm bg-white" id="transDate" name="transDate" readonly="readonly"
+                                            value="<?php echo $isEdit ? htmlspecialchars(format_datedisplay($SOData->TransDate, 'Y-m-d')) : format_datedisplay(time(), 'Y-m-d'); ?>"
+                                            required />
                                     </div>
-                                    <div class="mb-2">
-                                        <label for="deliveryDate" class="form-label small fw-semibold">Expected Delivery Date</label>
-                                        <div class="input-group input-group-merge">
-                                            <span class="input-group-text"><i class="icon-base bx bx-calendar"></i></span>
-                                            <input type="text" class="form-control form-control-sm" id="deliveryDate" name="deliveryDate" readonly="readonly"
-                                                value="<?php echo $_deliveryDate; ?>" />
-                                        </div>
+                                </div>
+                                <div class="col-auto" style="min-width:155px;">
+                                    <label for="deliveryDate" class="trans-field-label">Expected Delivery Date</label>
+                                    <div class="input-group input-group-sm input-group-merge">
+                                        <span class="input-group-text bg-white"><i class="icon-base bx bx-calendar"></i></span>
+                                        <input type="text" class="form-control form-control-sm bg-white" id="deliveryDate" name="deliveryDate" readonly="readonly"
+                                            value="<?php echo $_deliveryDate; ?>" />
                                     </div>
-                                    <div>
-                                        <label for="referenceDetails" class="form-label small fw-semibold">Reference</label>
-                                        <input type="text" id="referenceDetails" name="referenceDetails" class="form-control form-control-sm"
-                                            placeholder="<?php echo $isEdit ? 'PO Number, Ref No...' : 'PO Number, Sales Person, Ref No...'; ?>" maxlength="100"
-                                            value="<?php echo $isEdit ? htmlspecialchars($SOData->Reference ?? '') : (!empty($QuotationData->Reference) ? htmlspecialchars($QuotationData->Reference) : ''); ?>" />
-                                    </div>
+                                </div>
+                                <div class="col">
+                                    <label for="referenceDetails" class="trans-field-label">Reference</label>
+                                    <input type="text" id="referenceDetails" name="referenceDetails" class="form-control form-control-sm"
+                                        placeholder="PO Number, Sales Person, Ref No..." maxlength="100"
+                                        value="<?php echo $isEdit ? htmlspecialchars($SOData->Reference ?? '') : (!empty($QuotationData->Reference) ? htmlspecialchars($QuotationData->Reference) : ''); ?>" />
                                 </div>
                             </div>
-                            <hr/>
+
+                            <!-- Address box below customer -->
+                            <div class="row g-2 mb-3">
+                                <div class="col-md-4">
+                                    <div id="customerAddressBox" class="p-2 border border-secondary trans-border-dotted rounded small d-none"></div>
+                                </div>
+                            </div>
+                            <hr class="mt-2 mb-3"/>
 
                             <?php $this->load->view('transactions/partials/form_products_add', [
                                 'transNotesPlaceholder' => 'Enter notes or anything else',

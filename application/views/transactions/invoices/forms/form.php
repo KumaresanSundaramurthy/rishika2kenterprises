@@ -249,11 +249,14 @@ if ($isEdit) {
                                 </div>
                                 <?php endif; ?>
                                 <?php if (!$isEdit): ?>
-                                <!-- On Account indicator — shown right of Dispatch From when customer has unapplied credits -->
-                                <div id="onAccountIndicator" class="d-none ms-auto d-flex align-items-center gap-1"
-                                     style="font-size:.78rem;color:#856404;background:#fff8e1;border:1px solid #ffc107;padding:3px 12px;border-radius:20px;white-space:nowrap;">
-                                    <i class="bx bx-wallet" style="font-size:.88rem;"></i>
-                                    On Account: <strong id="onAccountTotal" style="margin-left:3px;"></strong>
+                                <div class="ms-auto d-flex align-items-center gap-2">
+                                    <div id="custTypeIndicator" class="d-none"></div>
+                                    <!-- On Account indicator — shown when customer has unapplied credits -->
+                                    <div id="onAccountIndicator" class="d-none d-flex align-items-center gap-1"
+                                         style="font-size:.78rem;color:#856404;background:#fff8e1;border:1px solid #ffc107;padding:3px 12px;border-radius:20px;white-space:nowrap;">
+                                        <i class="bx bx-wallet" style="font-size:.88rem;"></i>
+                                        On Account: <strong id="onAccountTotal" style="margin-left:3px;"></strong>
+                                    </div>
                                 </div>
                                 <?php endif; ?>
                             </div>

@@ -234,6 +234,7 @@ if ($isEdit) {
                             <div class="row g-2 mt-2">
                                 <div class="col-md-4">
                                     <div id="customerAddressBox" class="p-2 border border-secondary trans-border-dotted rounded small d-none"></div>
+                                    <div id="custTypeIndicator" class="mt-1 d-none"></div>
                                 </div>
                                 <div class="col-md-4">
                                     <label for="referenceDetails" class="trans-field-label">Reference</label>

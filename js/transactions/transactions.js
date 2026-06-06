@@ -2679,7 +2679,8 @@ function searchCustomers(key) {
                                 balanceType:       c.ClosingBalType              || 'Debit',
                                 onAccountBalance:  parseFloat(c.OnAccountBalance || 0),
                                 onAccountRecords:  c.OnAccountRecords            || [],
-                                lastTxAt:    c.LastTransactionAt || '',
+                                lastTxAt:     c.LastTransactionAt || '',
+                                countryISO2:  c.CountryISO2 || 'IN',
                             };
                             if (c.Address && c.Address.length) {
                                 var addr = c.Address[0];
@@ -2812,26 +2813,47 @@ function searchCustomers(key) {
                 <div>${data.address.City || ''}, ${data.address.State || ''} - ${data.address.Pincode || ''}</div>
             `;
             $("#customerAddressBox").html(addrHtml).removeClass('d-none');
-
-            // Determine intra-state vs inter-state for GST tax split
-            if (typeof billManager !== 'undefined') {
-                var custState = (data.address.State || '').trim().toLowerCase();
-                var orgState  = (typeof _orgState !== 'undefined' ? _orgState : '').trim().toLowerCase();
-                // Inter-state only when BOTH states are known AND they differ
-                var interState = (custState !== '' && orgState !== '' && custState !== orgState);
-                billManager.setInterState(interState);
-            }
         } else {
             $("#customerAddressBox").addClass('d-none').empty();
-            // No address info — default to intra-state (CGST+SGST)
-            if (typeof billManager !== 'undefined') billManager.setInterState(false);
         }
+        _showCustTypeIndicator(data);
     }).on('select2:clear', function () {
         $("#customerAddressBox").addClass('d-none').empty();
+        $("#custTypeIndicator").addClass('d-none').empty();
         if (typeof billManager !== 'undefined') billManager.setInterState(false);
     }).on('select2:close', function () {
         AjaxLoading = 1;
     });
+}
+
+function _showCustTypeIndicator(data) {
+    var $box = $("#custTypeIndicator");
+    if (!$box.length) return;
+
+    var countryISO2 = (data.countryISO2 || 'IN').toUpperCase();
+    var orgState    = (typeof _orgStateName !== 'undefined' ? _orgStateName : '').trim().toLowerCase();
+    var custState   = (data.address && data.address.State ? data.address.State : '').trim().toLowerCase();
+    var hasAddress  = !!(data.address && custState !== '');
+
+    var typeLabel, typeClass, typeIcon;
+    if (countryISO2 !== 'IN') {
+        typeLabel = 'Foreign Customer';
+        typeClass = 'cust-type-foreign';
+        typeIcon  = 'bx-globe';
+        if (typeof billManager !== 'undefined') billManager.setInterState(true);
+    } else if (hasAddress && orgState !== '' && custState !== orgState) {
+        typeLabel = 'Inter-State Customer';
+        typeClass = 'cust-type-interstate';
+        typeIcon  = 'bx-transfer';
+        if (typeof billManager !== 'undefined') billManager.setInterState(true);
+    } else {
+        typeLabel = 'Intra-State Customer';
+        typeClass = 'cust-type-intrastate';
+        typeIcon  = 'bx-map-pin';
+        if (typeof billManager !== 'undefined') billManager.setInterState(false);
+    }
+
+    $box.html('<span class="cust-type-badge ' + typeClass + '"><i class="bx ' + typeIcon + '"></i> ' + typeLabel + '</span>').removeClass('d-none');
 }
 
 function transDatePickr(FieldName, IsModal = '', dateFormat = 'Y-m-d', restrictPastDate = false, restrictFutureDate = false, setTodaysDate = false, useAltInput = true,

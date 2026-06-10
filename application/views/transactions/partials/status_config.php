@@ -19,9 +19,10 @@ $statusBadgeClass = [
     'Paid'      => 'trans-badge-Paid',
     'Partial'   => 'trans-badge-Partial',
     'Overdue'   => 'trans-badge-Overdue',
-    'Cancelled' => 'trans-badge-Cancelled',
-    'Converted' => 'trans-badge-Converted',
-    'Pending'   => 'trans-badge-Pending',
+    'Cancelled'  => 'trans-badge-Cancelled',
+    'Completed'  => 'trans-badge-Confirmed',
+    'Converted'  => 'trans-badge-Converted',
+    'Pending'    => 'trans-badge-Pending',
     'Accepted'  => 'trans-badge-Accepted',
     'Rejected'  => 'trans-badge-Rejected',
     'Confirmed' => 'trans-badge-Confirmed',
@@ -41,9 +42,10 @@ $statusIcon = [
     'Paid'      => 'bx-check-circle',
     'Partial'   => 'bx-adjust',
     'Overdue'   => 'bx-time-five',
-    'Cancelled' => 'bx-x-circle',
-    'Converted' => 'bx-transfer-alt',
-    'Pending'   => 'bx-time',
+    'Cancelled'  => 'bx-x-circle',
+    'Completed'  => 'bx-check-double',
+    'Converted'  => 'bx-transfer-alt',
+    'Pending'    => 'bx-time',
     'Accepted'  => 'bx-check',
     'Rejected'  => 'bx-x',
     'Confirmed' => 'bx-check-double',
@@ -54,7 +56,7 @@ $statusIcon = [
 ];
 
 // ── Terminal states (no more transitions) ───────────────────────
-$terminalStatuses = ['Paid', 'Cancelled', 'Converted', 'Fulfilled', 'Rejected', 'Received', 'Delivered'];
+$terminalStatuses = ['Paid', 'Cancelled', 'Completed', 'Converted', 'Fulfilled', 'Rejected', 'Received', 'Delivered'];
 
 // ── Status transitions per module ───────────────────────────────
 $statusTransitions = [

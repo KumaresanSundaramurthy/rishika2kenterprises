@@ -105,17 +105,17 @@ $this->load->view('common/transactions/header'); ?>
                             </div>
                             <div class="trans-toolbar-actions">
                                 <a href="javascript:void(0);" class="r2k-icon-btn pageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
+                                <div class="dropdown">
+                                    <button class="r2k-dd-btn<?php echo (!empty($SavedDateRange) && $SavedDateRange !== 'all') ? ' r2k-date-active' : ''; ?>" type="button" id="dateFilterBtn" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                        <i class="bx bx-calendar"></i> <span id="dateFilterLabel"><?php echo htmlspecialchars($SavedDateLabel ?? 'All Dates'); ?></span><?php if (!empty($SavedDateFromDisplay ?? '')): ?> <strong id="dateFilterDates" class="r2k-df-dates"><?php echo $SavedDateFromDisplay === $SavedDateToDisplay ? $SavedDateFromDisplay : $SavedDateFromDisplay . ' – ' . $SavedDateToDisplay; ?></strong><?php else: ?><strong id="dateFilterDates" class="r2k-df-dates" style="display:none;"></strong><?php endif; ?> <i class="bx bx-chevron-down" style="font-size:.75rem;"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow" id="dateFilterMenu" style="width:240px;max-height:420px;overflow-y:auto;font-size:.82rem;z-index:9999;">
+                                    </ul>
+                                </div>
                                 <div class="r2k-search-wrap">
                                     <i class="bx bx-search r2k-si"></i>
                                     <input type="text" id="searchTransactionData" placeholder="Challan # or customer...">
                                     <i class="bx bx-x r2k-clear d-none"></i>
-                                </div>
-                                <div class="dropdown">
-                                    <button class="r2k-dd-btn" type="button" id="dateFilterBtn" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
-                                        <i class="bx bx-calendar"></i> <span id="dateFilterLabel">All Dates</span> <i class="bx bx-chevron-down" style="font-size:.75rem;"></i>
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-end shadow" id="dateFilterMenu" style="width:240px;max-height:420px;overflow-y:auto;font-size:.82rem;z-index:9999;">
-                                    </ul>
                                 </div>
                             </div>
                         </div>
@@ -139,7 +139,14 @@ $this->load->view('common/transactions/header'); ?>
                                         </th>
                                         <th>Status</th>
                                         <th>Type</th>
-                                        <th>Customer</th>
+                                        <th>
+                                            Customer
+                                            <a href="javascript:void(0);" id="dcPartyFilterTrigger" class="text-body ms-1"
+                                               data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by Customer"
+                                               style="font-size:.85rem;">
+                                                <i class="bx bx-filter-alt align-middle"></i>
+                                            </a>
+                                        </th>
                                         <th class="col-sortable cursor-pointer user-select-none" data-sort="Date">
                                             Expected Return <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Date"></i>
                                         </th>
@@ -178,13 +185,23 @@ $this->load->view('common/transactions/header'); ?>
     </div>
 </div>
 
+<?php $this->load->view('common/transactions/col_party_filter_box', [
+    'ColPartyFilterConfig' => [
+        'id'    => 'dcPartyFilterBox',
+        'title' => 'Filter by Customer',
+        'icon'  => 'bx-user',
+    ],
+]); ?>
+
 <?php $this->load->view('common/transactions/footer'); ?>
 
+<script src="/js/common/party_filter.js"></script>
 <script src="/js/transactions/viewmodal.js"></script>
 <script src="/js/transactions/a4_print.js"></script>
 <script src="/js/transactions/deliverychallans.js"></script>
 
 <script>
+
 const ModuleId     = 112;
 const ModuleTable  = '#dcTable';
 const ModulePag    = '.dcPagination';
@@ -196,6 +213,22 @@ $(function () {
 
     Filter['Status'] = 'All';
     initExport({ moduleUID: 112, getFilters: function () { return Filter; } });
+
+    var dcPartyFilter = new TransPartyColFilter({
+        boxId     : 'dcPartyFilterBox',
+        triggerId : 'dcPartyFilterTrigger',
+        partyType : 'customer',
+        filterKey : 'PartyUID',
+        onApply   : function () { PageNo = 1; getDeliveryChallansDetails(); }
+    });
+
+    var _origGetDeliveryChallansDetails = getDeliveryChallansDetails;
+    getDeliveryChallansDetails = function (pageNo, rowLimit, filter) {
+        var f = $.extend({}, filter || Filter,
+            dcPartyFilter ? dcPartyFilter.getState() : {}
+        );
+        _origGetDeliveryChallansDetails(pageNo, rowLimit, f);
+    };
 
     // ── Sticky pagination ──
     var $dcStaticPag = $('#dcPagination');
@@ -289,7 +322,8 @@ $(function () {
         $(ModuleTable + ' tbody').html(resp.RecordHtmlData);
         $(ModulePag).html(resp.Pagination);
         var count = resp.TotalCount || 0;
-        $('.dc-status-tab.active .trans-tab-count').text(count > 0 ? count : '').removeClass('d-none');
+        var $dcBadge = $('.dc-status-tab.active .trans-tab-count');
+        if (count > 0) { $dcBadge.text(count).removeClass('d-none'); } else { $dcBadge.text('').addClass('d-none'); }
         initTooltips();
     }
 

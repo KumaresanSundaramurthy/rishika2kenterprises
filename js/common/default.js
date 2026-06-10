@@ -368,29 +368,10 @@ function showUIBlock() {
         d.id = 'globalProcOverlay';
 
         d.innerHTML = ''
-
             + '<div class="gpo-wrap">'
-
-                + '<div class="gpo-orbit">'
-                    + '<span class="gpo-particle gpo-p1"></span>'
-                    + '<span class="gpo-particle gpo-p2"></span>'
-                    + '<span class="gpo-particle gpo-p3"></span>'
-                + '</div>'
-                + '<div class="gpo-logo-wrap">'
-                    + '<div class="gpo-glow"></div>'
-                    + '<div class="gpo-ring"></div>'
-                    // + '<img class="gpo-logo" src="https://pub-bb40942a33344637936ade1f3800ff8b.r2.dev/Global/favicon_io/android-chrome-512x512-1.png">'
+                + '<div class="gpo-spinner">'
                     + '<img class="gpo-logo" src="/images/logo/favicon_io/android-chrome-512x512-1.png">'
                 + '</div>'
-
-                // + '<div class="gpo-brand">YourApp</div>'
-
-                + '<div class="gpo-label text-warning" id="globalProcLabel">'
-                    + ('Processing... Plesae wait...')
-                + '</div>'
-
-                // + '<div class="gpo-loader"></div>'
-
             + '</div>';
 
         document.body.appendChild(d);
@@ -1386,5 +1367,48 @@ $(document).on('show.bs.dropdown', '.dropdown', function () {
         $(this).addClass('dropup');
     } else {
         $(this).removeClass('dropup');
+    }
+});
+
+// ── r2k search bar — universal expand + clear icon ───────────────────────
+// Expand on focus
+$(document).on('focus', '.r2k-search-wrap input', function () {
+    $(this).closest('.r2k-search-wrap').addClass('is-expanded');
+});
+
+// Shrink when blurred with empty value; keep expanded if text is present
+$(document).on('blur', '.r2k-search-wrap input', function () {
+    if (!$.trim($(this).val())) {
+        $(this).closest('.r2k-search-wrap').removeClass('is-expanded');
+    }
+});
+
+// Show/hide clear icon as user types; expand and highlight while typing
+$(document).on('input', '.r2k-search-wrap input', function () {
+    var hasVal = !!$.trim($(this).val());
+    var $wrap  = $(this).closest('.r2k-search-wrap');
+    $wrap.find('.r2k-clear').toggleClass('d-none', !hasVal);
+    $wrap.toggleClass('is-expanded r2k-search-active', hasVal);
+    if (!hasVal) $wrap.removeClass('r2k-search-active');
+});
+
+// Clear icon click:
+//   - Pages that already have their own clear handler (icon has an id): only do
+//     housekeeping (wipe value, hide icon, collapse) — the page's own click handler
+//     already fires first and handles the data reload.
+//   - Transaction list pages (icon has no id): no dedicated handler exists, so we
+//     trigger 'input' here which fires each page's debounced search handler.
+$(document).on('click', '.r2k-clear', function () {
+    var $wrap    = $(this).closest('.r2k-search-wrap');
+    var $input   = $wrap.find('input');
+    var hasOwnId = !!$(this).attr('id'); // id means the page wires its own reload
+
+    $input.val('');
+    $wrap.find('.r2k-clear').addClass('d-none');
+    $wrap.removeClass('is-expanded r2k-search-active');
+
+    if (!hasOwnId) {
+        // No page-specific clear handler — fire input to trigger the search reload
+        $input.trigger('input');
     }
 });

@@ -29,16 +29,21 @@ class Purchaseorders extends MY_Controller {
             $limit = $GeneralSettings->RowLimit ?? 10;
 
             $this->load->model('transactions_model');
-            $allData      = $this->transactions_model->getTransactionPageList($limit, 0, $this->pageModuleUID, [], 0);
-            $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, []);
+            $datePref   = $this->getDateFilterPreference('purchaseorders');
+            $initFilter = $datePref['from'] ? ['DateFrom' => $datePref['from'], 'DateTo' => $datePref['to']] : [];
+            $allData      = $this->transactions_model->getTransactionPageList($limit, 0, $this->pageModuleUID, $initFilter, 0);
+            $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, $initFilter);
+            $this->pageData['SavedDateRange'] = $datePref['range'];
+            $this->pageData['SavedDateLabel'] = $datePref['label'];
 
             $this->pageData['ModRowData']    = $this->load->view('transactions/purchaseorders/list', ['DataLists' => $allData, 'SerialNumber' => 0, 'JwtData' => $this->pageData['JwtData']], TRUE);
             $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/purchaseorders/getPurchaseOrdersPageDetails', $allDataCount, 1, $limit);
             $this->pageData['ModAllCount']   = $allDataCount;
 
-            $this->pageData['UpstashReadUrl']   = getenv('UPSTASH_REDIS_REST_URL') ?: '';
-            $this->pageData['UpstashReadToken'] = getenv('UPSTASH_REDIS_REST_READONLY_TOKEN') ?: '';
-            $this->pageData['VendorCacheKey']   = $this->redisservice->orgKey('vendors');
+            $this->_loadUpstashConfig();
+
+            $this->load->model('users_model');
+            $this->pageData['OrgUsers']         = $this->users_model->getOrgUsersForCache($this->pageData['JwtData']->Org->OrgUID);
 
             $this->load->view('transactions/purchaseorders/view', $this->pageData);
 

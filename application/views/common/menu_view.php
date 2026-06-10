@@ -47,26 +47,32 @@
 
                 if ($MMKey === $lastSettings) continue;
 
-                $SubMenuData = (count($UserSubModule) > 0) ? filterByMainMenuUID($UserSubModule, $MMVal->MainMenuUID) : []; ?>
+                $SubMenuData  = (count($UserSubModule) > 0) ? filterByMainMenuUID($UserSubModule, $MMVal->MainMenuUID) : [];
+                $isDirectLink = !empty($MMVal->IsDirectLink);
+                $directUrl    = $isDirectLink ? ('/' . ltrim($MMVal->DirectUrl ?? '', '/')) : null;
+                $isMenuActive = $isDirectLink
+                    ? (strtolower($ControllerName) === strtolower(basename($MMVal->DirectUrl ?? '')))
+                    : in_array(strtolower($ControllerName), array_column($SubMenuData, 'ControllerName'));
+                ?>
 
                 <!-- All Pages -->
-                <li class="menu-item <?php echo in_array(strtolower($ControllerName), array_column($SubMenuData, 'ControllerName')) ? 'active' : ''; ?>">
-                    <a href="javascript:void(0);" class="menu-link menu-toggle">
-                        <i class="menu-icon tf-icons <?php echo $MMVal->MainMenuIcons; ?>"></i>
-                        <div data-i18n="<?php echo $MMVal->MainMenuName; ?>"><?php echo $MMVal->MainMenuName; ?></div>
-                    </a>
-
-
-                    <?php if (count($SubMenuData) > 0) { ?>
-
+                <li class="menu-item <?php echo $isMenuActive ? 'active' : ''; ?>">
+                    <?php if ($isDirectLink): ?>
+                        <a href="<?php echo htmlspecialchars($directUrl); ?>" class="menu-link">
+                            <i class="menu-icon tf-icons <?php echo $MMVal->MainMenuIcons; ?>"></i>
+                            <div data-i18n="<?php echo $MMVal->MainMenuName; ?>"><?php echo $MMVal->MainMenuName; ?></div>
+                        </a>
+                    <?php else: ?>
+                        <a href="javascript:void(0);" class="menu-link menu-toggle">
+                            <i class="menu-icon tf-icons <?php echo $MMVal->MainMenuIcons; ?>"></i>
+                            <div data-i18n="<?php echo $MMVal->MainMenuName; ?>"><?php echo $MMVal->MainMenuName; ?></div>
+                        </a>
+                        <?php if (count($SubMenuData) > 0): ?>
                         <ul class="menu-sub">
-
                             <?php $this->globalservice->renderSubMenu($ControllerName, $SubMenuData, null); ?>
-
                         </ul>
-
-                    <?php } ?>
-
+                        <?php endif; ?>
+                    <?php endif; ?>
                 </li>
 
         <?php }

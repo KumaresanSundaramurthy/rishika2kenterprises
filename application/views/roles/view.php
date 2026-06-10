@@ -170,6 +170,11 @@ function _rowAllChk(uid, allChecked) {
                 data-uid="${uid}" title="Toggle all" ${allChecked ? 'checked' : ''}>`;
 }
 
+function _mmChk(mmUID, field, checked, disabled) {
+    return `<input type="checkbox" class="form-check-input mm-perm-chk" style="width:.9rem;height:.9rem;cursor:pointer;"
+                data-mmuid="${mmUID}" data-field="${field}" ${checked ? 'checked' : ''} ${disabled ? 'disabled' : ''}>`;
+}
+
 function _colHdrChk(field) {
     return `<div class="d-flex flex-column align-items-center gap-1">
                 <input type="checkbox" class="form-check-input col-hdr-chk" style="width:.9rem;height:.9rem;cursor:pointer;"
@@ -289,32 +294,71 @@ function _buildMatrix(mainPerms, subPerms) {
     <tbody>`;
 
     _allMainMenus.forEach(mm => {
-        const mp      = mmMap[mm.MainMenuUID] || {};
-        const mmOn    = !!(mp.CanView || mp.CanCreate || mp.CanEdit || mp.CanDelete);
-        const topSubs = _allSubMenus.filter(s => s.MainMenuUID == mm.MainMenuUID && !s.ParentSubMenuUID);
+        const mp       = mmMap[mm.MainMenuUID] || {};
+        const mmOn     = !!(mp.CanView || mp.CanCreate || mp.CanEdit || mp.CanDelete);
+        const topSubs  = _allSubMenus.filter(s => s.MainMenuUID == mm.MainMenuUID && !s.ParentSubMenuUID);
+        const isDirect = mm.IsDirectLink == 1;
 
-        html += `
-        <tr class="mm-row" data-mmuid="${mm.MainMenuUID}">
-            <td>
-                <i class="${mm.Icon || 'bx bx-menu'} me-1" style="color:#696cff;font-size:.95rem;"></i>
-                <strong>${mm.Name}</strong>
-                <span class="badge ms-1" style="font-size:.6rem;background:#e0e3ff;color:#696cff;">${topSubs.length}</span>
-            </td>
-            <td class="text-center td-mm-enable">
-                <div class="form-check form-switch d-flex justify-content-center m-0">
-                    <input class="form-check-input mm-enable-toggle" type="checkbox"
-                        data-mmuid="${mm.MainMenuUID}" ${mmOn ? 'checked' : ''}>
-                </div>
-            </td>
-            <td colspan="6" class="mm-access-note ps-2">
-                ${mmOn
-                    ? '<span class="badge bg-label-primary" style="font-size:.65rem;"><i class="bx bx-check me-1"></i>Menu enabled — configure page access below</span>'
-                    : '<span class="text-muted" style="font-size:.7rem;">Enable menu to configure pages</span>'
-                }
-            </td>
-        </tr>`;
+        if (isDirect) {
+            // No submenus: show inline permission checkboxes directly on the main menu row
+            const mmAllChk = mmOn && _allChecked4(mp);
+            const mmdis    = mmOn ? '' : 'perm-disabled';
 
-        html += _renderSubs(mm.MainMenuUID, null, mmOn, 0);
+            html += `
+            <tr class="mm-row mm-direct-row" data-mmuid="${mm.MainMenuUID}">
+                <td>
+                    <i class="${mm.Icon || 'bx bx-menu'} me-1" style="color:#696cff;font-size:.95rem;"></i>
+                    <strong>${mm.Name}</strong>
+                    <span class="badge ms-1" style="font-size:.6rem;background:#ede9ff;color:#696cff;">
+                        <i class="bx bx-link-external" style="font-size:.65rem;"></i> Direct
+                    </span>
+                </td>
+                <td class="text-center td-mm-enable">
+                    <div class="form-check form-switch d-flex justify-content-center m-0">
+                        <input class="form-check-input mm-enable-toggle" type="checkbox"
+                            data-mmuid="${mm.MainMenuUID}" data-isdirect="1" ${mmOn ? 'checked' : ''}>
+                    </div>
+                </td>
+                <td class="text-center" style="background:#e8f5e9;">
+                    <span class="badge bg-label-success" style="font-size:.6rem;padding:2px 6px;">
+                        <i class="bx bx-link me-1"></i>Direct
+                    </span>
+                </td>
+                <td class="text-center td-row-all">
+                    <input type="checkbox" class="form-check-input mm-row-all" style="width:.9rem;height:.9rem;cursor:pointer;"
+                        data-mmuid="${mm.MainMenuUID}" title="Toggle all"
+                        ${mmAllChk ? 'checked' : ''} ${!mmOn ? 'disabled' : ''}>
+                </td>
+                <td class="text-center ${mmdis}">${_mmChk(mm.MainMenuUID, 'CanView',   mp.CanView,   !mmOn)}</td>
+                <td class="text-center ${mmdis}">${_mmChk(mm.MainMenuUID, 'CanCreate', mp.CanCreate, !mmOn)}</td>
+                <td class="text-center ${mmdis}">${_mmChk(mm.MainMenuUID, 'CanEdit',   mp.CanEdit,   !mmOn)}</td>
+                <td class="text-center ${mmdis}">${_mmChk(mm.MainMenuUID, 'CanDelete', mp.CanDelete, !mmOn)}</td>
+            </tr>`;
+
+        } else {
+            html += `
+            <tr class="mm-row" data-mmuid="${mm.MainMenuUID}">
+                <td>
+                    <i class="${mm.Icon || 'bx bx-menu'} me-1" style="color:#696cff;font-size:.95rem;"></i>
+                    <strong>${mm.Name}</strong>
+                    <span class="badge ms-1" style="font-size:.6rem;background:#e0e3ff;color:#696cff;">${topSubs.length}</span>
+                </td>
+                <td class="text-center td-mm-enable">
+                    <div class="form-check form-switch d-flex justify-content-center m-0">
+                        <input class="form-check-input mm-enable-toggle" type="checkbox"
+                            data-mmuid="${mm.MainMenuUID}" ${mmOn ? 'checked' : ''}>
+                    </div>
+                </td>
+                <td colspan="6" class="mm-access-note ps-2">
+                    ${mmOn
+                        ? '<span class="badge bg-label-primary" style="font-size:.65rem;"><i class="bx bx-check me-1"></i>Menu enabled — configure page access below</span>'
+                        : '<span class="text-muted" style="font-size:.7rem;">Enable menu to configure pages</span>'
+                    }
+                </td>
+            </tr>`;
+
+            html += _renderSubs(mm.MainMenuUID, null, mmOn, 0);
+        }
     });
 
     html += '</tbody></table></div>';
@@ -363,7 +407,7 @@ function loadRolePermissions(roleUID) {
 /* ── Matrix event bindings (all delegated — called once on ready) ────── */
 function _bindMatrixEvents() {
 
-    // 1. Column header "Select all column" checkbox — pages only
+    // 1. Column header "Select all column" checkbox — applies to both sub rows and direct-link main rows
     $(document).off('change', '.col-hdr-chk').on('change', '.col-hdr-chk', function() {
         const field   = $(this).data('field');
         const checked = $(this).is(':checked');
@@ -373,6 +417,7 @@ function _bindMatrixEvents() {
                 $(this).prop('checked', checked);
             }
         });
+        $(`.mm-perm-chk[data-field="${field}"]`).not(':disabled').prop('checked', checked);
         _syncAllRowCheckboxes();
     });
 
@@ -384,24 +429,43 @@ function _bindMatrixEvents() {
         _syncHeaderCheckboxes();
     });
 
-    // 3. Main-menu Enable toggle — show/hide all sub-menu rows, update note label
+    // 2b. Direct-link main menu "All" checkbox
+    $(document).off('change', '.mm-row-all').on('change', '.mm-row-all', function() {
+        const mmUID   = $(this).data('mmuid');
+        const checked = $(this).is(':checked');
+        $(`.mm-perm-chk[data-mmuid="${mmUID}"]`).not(':disabled').prop('checked', checked);
+        _syncHeaderCheckboxes();
+    });
+
+    // 3. Main-menu Enable toggle — direct-link: enable/disable inline checkboxes; normal: show/hide sub rows
     $(document).off('change', '.mm-enable-toggle').on('change', '.mm-enable-toggle', function() {
         const mmUID    = $(this).data('mmuid');
         const enabled  = $(this).is(':checked');
+        const isDirect = $(this).data('isdirect') == 1;
         const $mmRow   = $(`.mm-row[data-mmuid="${mmUID}"]`);
-        const $subRows = $(`.sm-row[data-mmuid="${mmUID}"]`);
 
-        const $noteCell = $mmRow.find('td[colspan="6"]');
-        if (enabled) {
-            $noteCell.html('<span class="badge bg-label-primary" style="font-size:.65rem;"><i class="bx bx-check me-1"></i>Menu enabled — configure page access below</span>');
-            $subRows.removeClass('sm-hidden');
+        if (isDirect) {
+            if (enabled) {
+                $mmRow.find('.mm-perm-chk').prop('disabled', false).closest('td').removeClass('perm-disabled');
+                $mmRow.find('.mm-row-all').prop('disabled', false);
+            } else {
+                $mmRow.find('.mm-perm-chk').prop('checked', false).prop('disabled', true).closest('td').addClass('perm-disabled');
+                $mmRow.find('.mm-row-all').prop('checked', false).prop('disabled', true);
+            }
         } else {
-            $noteCell.html('<span class="text-muted" style="font-size:.7rem;">Enable menu to configure pages</span>');
-            $subRows.addClass('sm-hidden');
-            $subRows.find('.sm-perm-chk').prop('checked', false).prop('disabled', true).closest('td').addClass('perm-disabled');
-            $subRows.find('.sm-row-all').prop('checked', false);
-            $subRows.find('.sm-enable-toggle').prop('checked', false);
-            $subRows.removeClass('sm-enabled');
+            const $subRows  = $(`.sm-row[data-mmuid="${mmUID}"]`);
+            const $noteCell = $mmRow.find('td[colspan="6"]');
+            if (enabled) {
+                $noteCell.html('<span class="badge bg-label-primary" style="font-size:.65rem;"><i class="bx bx-check me-1"></i>Menu enabled — configure page access below</span>');
+                $subRows.removeClass('sm-hidden');
+            } else {
+                $noteCell.html('<span class="text-muted" style="font-size:.7rem;">Enable menu to configure pages</span>');
+                $subRows.addClass('sm-hidden');
+                $subRows.find('.sm-perm-chk').prop('checked', false).prop('disabled', true).closest('td').addClass('perm-disabled');
+                $subRows.find('.sm-row-all').prop('checked', false);
+                $subRows.find('.sm-enable-toggle').prop('checked', false);
+                $subRows.removeClass('sm-enabled');
+            }
         }
 
         _syncAllRowCheckboxes();
@@ -435,9 +499,16 @@ function _bindMatrixEvents() {
         _syncRowAllForUID(uid);
         _syncHeaderCheckboxes();
     });
+
+    // 5b. Direct-link main menu individual checkbox change
+    $(document).off('change', '.mm-perm-chk').on('change', '.mm-perm-chk', function() {
+        const mmUID = $(this).data('mmuid');
+        _syncMmRowAllForUID(mmUID);
+        _syncHeaderCheckboxes();
+    });
 }
 
-/* ── Sync the "All" checkbox for one page row ────────────────────────── */
+/* ── Sync the "All" checkbox for one sub-menu page row ───────────────── */
 function _syncRowAllForUID(uid) {
     const $chks   = $(`.sm-perm-chk[data-uid="${uid}"]`).not(':disabled');
     const total   = $chks.length;
@@ -447,9 +518,22 @@ function _syncRowAllForUID(uid) {
     $rowAll.prop('indeterminate', checked > 0 && checked < total);
 }
 
+/* ── Sync the "All" checkbox for one direct-link main menu row ────────── */
+function _syncMmRowAllForUID(mmUID) {
+    const $chks   = $(`.mm-perm-chk[data-mmuid="${mmUID}"]`).not(':disabled');
+    const total   = $chks.length;
+    const checked = $chks.filter(':checked').length;
+    const $rowAll = $(`.mm-row-all[data-mmuid="${mmUID}"]`);
+    $rowAll.prop('checked', total > 0 && checked === total);
+    $rowAll.prop('indeterminate', checked > 0 && checked < total);
+}
+
 /* ── Sync ALL row-level "All" checkboxes ─────────────────────────────── */
 function _syncAllRowCheckboxes() {
     _allSubMenus.forEach(sm => _syncRowAllForUID(sm.SubMenuUID));
+    _allMainMenus.forEach(mm => {
+        if (mm.IsDirectLink == 1) _syncMmRowAllForUID(mm.MainMenuUID);
+    });
 }
 
 /* ── Sync column header checkboxes ──────────────────────────────────── */
@@ -459,6 +543,12 @@ function _syncHeaderCheckboxes() {
         $(`.sm-perm-chk[data-field="${field}"]`).each(function() {
             const $tr = $(this).closest('tr');
             if (!$tr.hasClass('sm-hidden') && !$(this).prop('disabled')) {
+                total++;
+                if ($(this).is(':checked')) checked++;
+            }
+        });
+        $(`.mm-perm-chk[data-field="${field}"]`).each(function() {
+            if (!$(this).prop('disabled')) {
                 total++;
                 if ($(this).is(':checked')) checked++;
             }
@@ -475,18 +565,29 @@ function _collectPermissions() {
     const mainMenus = [];
     const subMenus  = [];
 
-    // Main menu: only enabled/disabled — when enabled all 4 flags set to 1 for menu-level access
+    // Main menus: rows with no submenus save individual checkbox values; normal rows save enabled flag
     _allMainMenus.forEach(mm => {
-        const uid     = mm.MainMenuUID;
-        const enabled = $(`.mm-enable-toggle[data-mmuid="${uid}"]`).is(':checked') ? 1 : 0;
-        mainMenus.push({
-            MainMenuUID: uid,
-            CanView:    enabled,
-            CanCreate:  enabled,
-            CanEdit:    enabled,
-            CanDelete:  enabled,
-            Sorting:    mm.Sorting || 0,
-        });
+        const uid      = mm.MainMenuUID;
+        const enabled  = $(`.mm-enable-toggle[data-mmuid="${uid}"]`).is(':checked') ? 1 : 0;
+        if (mm.IsDirectLink == 1) {
+            mainMenus.push({
+                MainMenuUID: uid,
+                CanView:    enabled && $(`.mm-perm-chk[data-mmuid="${uid}"][data-field="CanView"]`).is(':checked')   ? 1 : 0,
+                CanCreate:  enabled && $(`.mm-perm-chk[data-mmuid="${uid}"][data-field="CanCreate"]`).is(':checked') ? 1 : 0,
+                CanEdit:    enabled && $(`.mm-perm-chk[data-mmuid="${uid}"][data-field="CanEdit"]`).is(':checked')   ? 1 : 0,
+                CanDelete:  enabled && $(`.mm-perm-chk[data-mmuid="${uid}"][data-field="CanDelete"]`).is(':checked') ? 1 : 0,
+                Sorting:    mm.Sorting || 0,
+            });
+        } else {
+            mainMenus.push({
+                MainMenuUID: uid,
+                CanView:    enabled,
+                CanCreate:  enabled,
+                CanEdit:    enabled,
+                CanDelete:  enabled,
+                Sorting:    mm.Sorting || 0,
+            });
+        }
     });
 
     _allSubMenus.forEach(sm => {

@@ -187,8 +187,10 @@
                                         <th>
                                             Last Updated
                                             <?php if ($showUserBtn): ?>
-                                            <a href="javascript:void(0);" id="custUserFilterBtn" onclick="custToggleUserFilter(); event.stopPropagation();" style="color:#64748b;margin-left:4px;font-size:.85rem;vertical-align:middle;">
-                                                <i class="bx bx-filter-alt" id="custUserFilterIcon"></i>
+                                            <a href="javascript:void(0);" id="custUserFilterBtn" class="text-body ms-1"
+                                               data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by User"
+                                               style="font-size:.85rem;vertical-align:middle;">
+                                                <i class="bx bx-filter-alt align-middle"></i>
                                             </a>
                                             <?php endif; ?>
                                         </th>
@@ -235,12 +237,13 @@
 <div id="custTypeFilterBox" class="card mp-filterbox" style="min-width:220px;z-index:9999;display:none;position:fixed;"><?php $this->load->view('customers/typefilter', ['CustomerTypeList' => $CustomerTypeList]); ?></div>
 
 <?php if ($showUserBtn): ?>
-<?php $this->load->view('common/partials/_user_filter_box', [
-    'OrgUsers'   => $OrgUsers,
-    'BoxId'      => 'custUserFilterBox',
-    'CheckClass' => 'cust-user-checkbox',
-    'ApplyFn'    => 'custApplyUserFilter',
-    'ResetFn'    => 'custResetUserFilter',
+<?php $this->load->view('common/transactions/col_user_filter_box', [
+    'ColUserFilterConfig' => [
+        'id'         => 'custUserFilterBox',
+        'triggerId'  => 'custUserFilterBtn',
+        'checkClass' => 'cust-user-chk',
+        'OrgUsers'   => $OrgUsers,
+    ],
 ]); ?>
 <?php endif; ?>
 
@@ -250,6 +253,7 @@
 <script src="/js/common/bankdetails.js"></script>
 <script src="/js/common/gstin_fetch.js"></script>
 <script src="/js/common/customer_form.js"></script>
+<script src="/js/transactions/col_filter.js"></script>
 <script src="/js/customers.js"></script>
 <script src="/js/common/pagecheckbox.js"></script>
 <script src="/js/common/communication.js"></script>
@@ -649,47 +653,29 @@ $(function () {
         });
     });
 
-    // ── User filter ──
+    // ── User filter (OOP — TransColFilter drives toggle/apply/reset) ──
     if (CustShowUserFilter) {
-        window.custToggleUserFilter = function () {
-            var $box = $('#custUserFilterBox');
-            if ($box.is(':visible')) { $box.hide(); return; }
-            $('#custTagFilterBox, #custTypeFilterBox').hide();
-            var btn  = document.getElementById('custUserFilterBtn');
-            var rect = btn.getBoundingClientRect();
-            $box.css({
-                top:  (rect.bottom + window.scrollY + 4) + 'px',
-                left: Math.max(4, rect.left + window.scrollX - 80) + 'px',
-                display: 'flex',
-            });
-        };
-        window.custApplyUserFilter = function () {
-            var uids = [];
-            $('.cust-user-checkbox:checked').each(function () { uids.push($(this).val()); });
-            if (uids.length) {
-                Filter['UpdatedByUIDs'] = uids;
-                $('#custUserFilterIcon').css('color', '#0d6efd');
-            } else {
-                delete Filter['UpdatedByUIDs'];
-                $('#custUserFilterIcon').css('color', '');
+        var custUserFilter = new TransColFilter({
+            boxId     : 'custUserFilterBox',
+            triggerId : 'custUserFilterBtn',
+            filterKey : 'UpdatedByUIDs',
+            onApply   : function () {
+                var state = custUserFilter.getState();
+                if (state.UpdatedByUIDs && state.UpdatedByUIDs.length) {
+                    Filter.UpdatedByUIDs = state.UpdatedByUIDs;
+                } else {
+                    delete Filter.UpdatedByUIDs;
+                }
+                PageNo = 0;
+                getCustomersDetails(PageNo, RowLimit, Filter);
             }
-            $('#custUserFilterBox').hide();
-            PageNo = 0; getCustomersDetails(PageNo, RowLimit, Filter);
-        };
-        window.custResetUserFilter = function () {
-            $('.cust-user-checkbox').prop('checked', false);
-            delete Filter['UpdatedByUIDs'];
-            $('#custUserFilterIcon').css('color', '');
-            $('#custUserFilterBox').hide();
-            PageNo = 0; getCustomersDetails(PageNo, RowLimit, Filter);
-        };
+        });
     }
 
     // ── Close filter boxes on outside click ──
     $(document).on('click', function (e) {
-        if (!$(e.target).closest('#custTagFilterBox, #custTagFilter').length)     $('#custTagFilterBox').hide();
-        if (!$(e.target).closest('#custTypeFilterBox, #custTypeFilter').length)   $('#custTypeFilterBox').hide();
-        if (!$(e.target).closest('#custUserFilterBox, #custUserFilterBtn').length) $('#custUserFilterBox').hide();
+        if (!$(e.target).closest('#custTagFilterBox, #custTagFilter').length)   $('#custTagFilterBox').hide();
+        if (!$(e.target).closest('#custTypeFilterBox, #custTypeFilter').length) $('#custTypeFilterBox').hide();
     });
 
 });

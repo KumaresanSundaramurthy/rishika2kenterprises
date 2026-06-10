@@ -29278,6 +29278,7 @@ body:not(.modal-open) .layout-content-navbar .layout-navbar {
 .stat-all       { --stat-accent: #696cff; }
 .stat-active    { --stat-accent: #0d6efd; }
 .stat-paid      { --stat-accent: #198754; }
+.stat-completed { --stat-accent: #0dcaf0; }
 .stat-draft     { --stat-accent: #6c757d; }
 .stat-overdue   { --stat-accent: #dc3545; }
 .stat-cancelled { --stat-accent: #adb5bd; }
@@ -29375,6 +29376,7 @@ body:not(.modal-open) .layout-content-navbar .layout-navbar {
     background: #696cff;
     color: #fff;
 }
+.trans-tab-count:empty { display: none; }
 
 /* ── Toolbar right actions ── */
 .trans-toolbar-actions {
@@ -29399,20 +29401,25 @@ body:not(.modal-open) .layout-content-navbar .layout-navbar {
 /* ── r2k search wrap ── */
 .r2k-search-wrap { position: relative; }
 .r2k-search-wrap input {
-    height: 34px; width: 200px;
+    height: 34px; width: 160px;
     padding: 0 30px 0 32px;
     border: 1.5px solid #e2e8f0; border-radius: 7px;
     font-size: .82rem; color: #1e293b;
     outline: none; background: #fff;
-    transition: border-color .2s, box-shadow .2s;
+    transition: border-color .2s, box-shadow .2s, width .25s ease;
     display: block;
 }
-.r2k-search-wrap input:focus {
+.r2k-search-wrap input:focus,
+.r2k-search-wrap.is-expanded input {
+    width: 280px;
     border-color: #2563eb;
     box-shadow: 0 0 0 3px rgba(37,99,235,.1);
 }
 .r2k-search-wrap .r2k-si  { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: .9rem; pointer-events: none; }
-.r2k-search-wrap .r2k-clear { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); color: #94a3b8; cursor: pointer; font-size: .95rem; }
+.r2k-search-wrap .r2k-clear { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); color: #94a3b8; cursor: pointer; font-size: .95rem; line-height: 1; }
+.r2k-search-wrap .r2k-clear:hover { color: #ef4444; }
+.r2k-search-wrap.r2k-search-active input { border-color: #2563eb; background: #eff6ff; }
+.r2k-search-wrap.r2k-search-active .r2k-si { color: #2563eb; }
 
 /* ── r2k dropdown button ── */
 .r2k-dd-btn {
@@ -29425,6 +29432,9 @@ body:not(.modal-open) .layout-content-navbar .layout-navbar {
 }
 .r2k-dd-btn:hover { background: #f8fafc; }
 .r2k-dd-btn::after { display: none; }
+.r2k-dd-btn.r2k-date-active { border-color: #2563eb; color: #2563eb; background: #eff6ff; }
+.r2k-dd-btn.r2k-date-active:hover { background: #dbeafe; }
+.r2k-df-dates { font-size: .72rem; font-weight: 700; color: #1d4ed8; opacity: .9; letter-spacing: .01em; }
 
 /* ── r2k create button ── */
 .r2k-create-btn {

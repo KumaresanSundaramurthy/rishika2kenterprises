@@ -834,7 +834,8 @@ $(function () {
         $(ModuleTable + ' tbody').html(resp.RecordHtmlData);
         $('.expPagination').html(resp.Pagination);
         var count = resp.TotalCount || 0;
-        $('.exp-status-tab.active .trans-tab-count').text(count > 0 ? count : '').removeClass('d-none');
+        var $expBadge = $('.exp-status-tab.active .trans-tab-count');
+        if (count > 0) { $expBadge.text(count).removeClass('d-none'); } else { $expBadge.text('').addClass('d-none'); }
         if (resp.SummaryStats) _updateStatCards(resp.SummaryStats);
         initTooltips();
         _syncSticky();

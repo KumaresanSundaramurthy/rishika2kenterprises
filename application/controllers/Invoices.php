@@ -34,8 +34,12 @@ class Invoices extends MY_Controller {
             $templates = $this->organisation_model->getModuleMessageTemplates($orgUID, $this->pageModuleUID);
 
             $this->load->model('transactions_model');
-            $allData      = $this->transactions_model->getTransactionPageList($limit, 0, $this->pageModuleUID, [], 0);
-            $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, []);
+            $datePref   = $this->getDateFilterPreference('invoices');
+            $initFilter = $datePref['from'] ? ['DateFrom' => $datePref['from'], 'DateTo' => $datePref['to']] : [];
+            $allData      = $this->transactions_model->getTransactionPageList($limit, 0, $this->pageModuleUID, $initFilter, 0);
+            $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, $initFilter);
+            $this->pageData['SavedDateRange'] = $datePref['range'];
+            $this->pageData['SavedDateLabel'] = $datePref['label'];
             $summaryStats = $this->transactions_model->getTransactionSummaryStats($this->pageModuleUID, $orgUID);
 
             $this->pageData['ModRowData']      = $this->load->view('transactions/invoices/list', 
@@ -51,9 +55,10 @@ class Invoices extends MY_Controller {
             $this->pageData['PaymentTypes']    = $this->transactions_model->getPaymentTypesList();
             $this->pageData['BankAccounts']    = $this->transactions_model->getOrgBankAccounts($orgUID);
 
-            $this->pageData['UpstashReadUrl']   = getenv('UPSTASH_REDIS_REST_URL') ?: '';
-            $this->pageData['UpstashReadToken'] = getenv('UPSTASH_REDIS_REST_READONLY_TOKEN') ?: '';
-            $this->pageData['CustomerCacheKey'] = $this->redisservice->orgKey('customers');
+            $this->load->model('users_model');
+            $this->pageData['OrgUsers']        = $this->users_model->getOrgUsersForCache($orgUID);
+
+            $this->_loadUpstashConfig();
 
             $this->load->view('transactions/invoices/view', $this->pageData);
 

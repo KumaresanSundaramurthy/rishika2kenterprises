@@ -342,9 +342,7 @@ $('#a4EmailBtn').on('click', function () {
 });
 
 // ── Direct PDF download (from list page) ─────────────────────────────────
-$(document).on('click', '.downloadPdfQuotation', function () {
-    var uid       = $(this).data('uid');
-    var moduleUID = $(this).data('module');
+function _submitDownloadPdf(uid, moduleUID) {
     if (!uid || !moduleUID) { Swal.fire({ icon: 'warning', text: 'Unable to download: missing transaction data.' }); return; }
     var form = document.createElement('form');
     form.method = 'POST'; form.action = '/transactions/downloadA4Pdf'; form.style.display = 'none';
@@ -354,4 +352,12 @@ $(document).on('click', '.downloadPdfQuotation', function () {
         form.appendChild(inp);
     });
     document.body.appendChild(form); form.submit(); document.body.removeChild(form);
+}
+
+$(document).on('click', '.downloadPdfQuotation', function () {
+    _submitDownloadPdf($(this).data('uid'), $(this).data('module'));
+});
+
+$(document).on('click', '.downloadPdfTransaction', function () {
+    _submitDownloadPdf($(this).data('uid'), $(this).data('module'));
 });

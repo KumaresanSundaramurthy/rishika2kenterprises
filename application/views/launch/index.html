@@ -91,7 +91,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--fb);font-size:16px
 .stat-num sup{font-size:1.2rem;color:var(--gold)}
 .stat-lbl{font-size:.75rem;color:var(--muted);margin-top:4px;letter-spacing:.5px}
 .hero-globe{position:absolute;right:-60px;top:50%;transform:translateY(-50%);z-index:1;width:640px;height:640px}
-#globe-canvas{width:100%;height:100%;opacity:.9}
+#globe-canvas{width:100%;height:100%;opacity:.9;overflow:hidden;position:relative;}
 .hero-globe-glow{position:absolute;inset:-40px;border-radius:50%;background:radial-gradient(circle,rgba(59,130,246,.12),transparent 70%);pointer-events:none}
 
 /* ── MARQUEE STRIP ──────────────────────────────────── */
@@ -354,7 +354,7 @@ select.finput option{background:var(--card);color:var(--text)}
   <!-- Animated Globe -->
   <div class="hero-globe" aria-hidden="true">
     <div class="hero-globe-glow"></div>
-    <canvas id="globe-canvas"></canvas>
+    <div id="globe-canvas"></div>
   </div>
   <div class="scroll-ind">
     <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
@@ -846,154 +846,93 @@ select.finput option{background:var(--card);color:var(--text)}
 <!-- Toast -->
 <div class="toast" id="toast"><span id="toastMsg"></span></div>
 
+<script src="https://unpkg.com/globe.gl@2.30.0/dist/globe.gl.min.js"></script>
 <script>
-// ── Globe Animation ──────────────────────────────────────────────────────────
+// ── Globe Animation (WebGL · photorealistic Earth via globe.gl) ───────────────
 (function () {
-  const canvas = document.getElementById('globe-canvas');
-  const C = canvas.getContext('2d');
-  const SIZE = 640;
-  canvas.width = SIZE;
-  canvas.height = SIZE;
-  const cx = SIZE / 2, cy = SIZE / 2, R = SIZE * 0.38;
-  let angle = 0;
+  var container = document.getElementById('globe-canvas');
+  if (!container || typeof Globe === 'undefined') return;
 
-  // Major cities [lat, lon]
-  const cities = [
-    [28.6, 77.2],   // Delhi
-    [19.1, 72.9],   // Mumbai
-    [13.1, 80.3],   // Chennai
-    [12.9, 77.6],   // Bangalore
-    [22.6, 88.4],   // Kolkata
-    [51.5, -0.1],   // London
-    [48.9, 2.4],    // Paris
-    [40.7, -74.0],  // New York
-    [35.7, 139.7],  // Tokyo
-    [31.2, 121.5],  // Shanghai
-    [-33.9, 151.2], // Sydney
-    [1.3, 103.8],   // Singapore
-    [25.2, 55.3],   // Dubai
-    [55.8, 37.6],   // Moscow
-    [-23.5, -46.6], // São Paulo
-    [37.8, -122.4], // San Francisco
+  var size = container.offsetWidth || 640;
+
+  var cities = [
+    { lat: 13.1,  lng: 80.3,   name: 'Chennai',       india: true  },
+    { lat: 28.6,  lng: 77.2,   name: 'Delhi',          india: true  },
+    { lat: 19.1,  lng: 72.9,   name: 'Mumbai',         india: true  },
+    { lat: 12.9,  lng: 77.6,   name: 'Bangalore',      india: true  },
+    { lat: 22.6,  lng: 88.4,   name: 'Kolkata',        india: true  },
+    { lat: 25.2,  lng: 55.3,   name: 'Dubai',          india: false },
+    { lat: 1.3,   lng: 103.8,  name: 'Singapore',      india: false },
+    { lat: 51.5,  lng: -0.1,   name: 'London',         india: false },
+    { lat: 48.9,  lng: 2.4,    name: 'Paris',          india: false },
+    { lat: 40.7,  lng: -74.0,  name: 'New York',       india: false },
+    { lat: 37.8,  lng: -122.4, name: 'San Francisco',  india: false },
+    { lat: 35.7,  lng: 139.7,  name: 'Tokyo',          india: false },
+    { lat: 31.2,  lng: 121.5,  name: 'Shanghai',       india: false },
+    { lat: -33.9, lng: 151.2,  name: 'Sydney',         india: false },
+    { lat: -23.5, lng: -46.6,  name: 'São Paulo',      india: false },
+    { lat: 55.8,  lng: 37.6,   name: 'Moscow',         india: false },
   ];
 
-  function project(lat, lon) {
-    const latr = lat * Math.PI / 180;
-    const lonr = (lon + angle * (180 / Math.PI)) * Math.PI / 180;
-    const x = Math.cos(latr) * Math.cos(lonr);
-    const y = Math.sin(latr);
-    const z = Math.cos(latr) * Math.sin(lonr);
-    return { sx: cx + x * R, sy: cy - y * R, z };
-  }
+  var arcsData = [
+    { sLat: 13.1,  sLng: 80.3,  eLat: 51.5,   eLng: -0.1  },
+    { sLat: 28.6,  sLng: 77.2,  eLat: 40.7,   eLng: -74.0 },
+    { sLat: 19.1,  sLng: 72.9,  eLat: 25.2,   eLng: 55.3  },
+    { sLat: 13.1,  sLng: 80.3,  eLat: 1.3,    eLng: 103.8 },
+    { sLat: 28.6,  sLng: 77.2,  eLat: 35.7,   eLng: 139.7 },
+    { sLat: 19.1,  sLng: 72.9,  eLat: -33.9,  eLng: 151.2 },
+    { sLat: 12.9,  sLng: 77.6,  eLat: 37.8,   eLng: -122.4},
+    { sLat: 22.6,  sLng: 88.4,  eLat: -23.5,  eLng: -46.6 },
+    { sLat: 13.1,  sLng: 80.3,  eLat: 55.8,   eLng: 37.6  },
+    { sLat: 28.6,  sLng: 77.2,  eLat: 48.9,   eLng: 2.4   },
+    { sLat: 19.1,  sLng: 72.9,  eLat: 31.2,   eLng: 121.5 },
+  ];
 
-  function drawFrame() {
-    C.clearRect(0, 0, SIZE, SIZE);
+  var globe = Globe({
+      animateIn: true,
+      rendererConfig: { antialias: true, alpha: true }
+    })
+    .width(size)
+    .height(size)
+    .backgroundColor('rgba(0,0,0,0)')
+    .showGraticules(false)
+    .showAtmosphere(true)
+    .atmosphereColor('rgba(80,150,255,1)')
+    .atmosphereAltitude(0.28)
+    .globeImageUrl('//unpkg.com/three-globe/example/img/earth-blue-marble.jpg')
+    .bumpImageUrl('//unpkg.com/three-globe/example/img/earth-topology.png')
+    .pointsData(cities)
+    .pointLat('lat')
+    .pointLng('lng')
+    .pointColor(function (d) { return d.india ? '#f59e0b' : '#93c5fd'; })
+    .pointAltitude(0.008)
+    .pointRadius(function (d) { return d.india ? 0.65 : 0.4; })
+    .pointResolution(12)
+    .arcsData(arcsData)
+    .arcStartLat('sLat')
+    .arcStartLng('sLng')
+    .arcEndLat('eLat')
+    .arcEndLng('eLng')
+    .arcColor(function () {
+      return ['rgba(245,158,11,0)', 'rgba(245,158,11,0.9)', 'rgba(147,197,253,0.9)', 'rgba(147,197,253,0)'];
+    })
+    .arcDashLength(0.35)
+    .arcDashGap(0.15)
+    .arcDashInitialGap(function () { return Math.random(); })
+    .arcDashAnimateTime(2000)
+    .arcStroke(0.4)
+    .arcAltitudeAutoScale(0.38)
+    (container);
 
-    // Outer atmospheric glow
-    const atmos = C.createRadialGradient(cx, cy, R * 0.88, cx, cy, R * 1.35);
-    atmos.addColorStop(0, 'rgba(59,130,246,0.18)');
-    atmos.addColorStop(0.5, 'rgba(59,130,246,0.06)');
-    atmos.addColorStop(1, 'transparent');
-    C.fillStyle = atmos;
-    C.beginPath(); C.arc(cx, cy, R * 1.35, 0, Math.PI * 2); C.fill();
+  var controls = globe.controls();
+  controls.autoRotate      = true;
+  controls.autoRotateSpeed = 1.0;
+  controls.enableZoom      = false;
+  controls.enableDamping   = true;
+  controls.dampingFactor   = 0.1;
 
-    // Globe sphere
-    const sphere = C.createRadialGradient(cx - R * 0.25, cy - R * 0.25, R * 0.05, cx, cy, R);
-    sphere.addColorStop(0, 'rgba(20,50,100,0.75)');
-    sphere.addColorStop(0.5, 'rgba(10,25,60,0.85)');
-    sphere.addColorStop(1, 'rgba(4,11,24,0.95)');
-    C.fillStyle = sphere;
-    C.beginPath(); C.arc(cx, cy, R, 0, Math.PI * 2); C.fill();
-
-    // Clip to sphere
-    C.save();
-    C.beginPath(); C.arc(cx, cy, R, 0, Math.PI * 2); C.clip();
-
-    // Latitude lines
-    for (let lat = -75; lat <= 75; lat += 15) {
-      C.beginPath();
-      let first = true;
-      for (let lon = 0; lon <= 361; lon += 1.5) {
-        const p = project(lat, lon);
-        if (p.z < -0.05) { first = true; continue; }
-        if (first) { C.moveTo(p.sx, p.sy); first = false; }
-        else C.lineTo(p.sx, p.sy);
-      }
-      const isEquator = lat === 0;
-      C.strokeStyle = isEquator ? 'rgba(100,160,255,0.28)' : 'rgba(60,100,200,0.1)';
-      C.lineWidth = isEquator ? 1.2 : 0.7;
-      C.stroke();
-    }
-
-    // Longitude lines
-    for (let lon = 0; lon < 360; lon += 15) {
-      C.beginPath();
-      let first = true;
-      for (let lat = -90; lat <= 90; lat += 1.5) {
-        const p = project(lat, lon);
-        if (p.z < -0.05) { first = true; continue; }
-        if (first) { C.moveTo(p.sx, p.sy); first = false; }
-        else C.lineTo(p.sx, p.sy);
-      }
-      C.strokeStyle = 'rgba(60,100,200,0.09)';
-      C.lineWidth = 0.7;
-      C.stroke();
-    }
-
-    // India highlight region (approximate)
-    C.beginPath();
-    const indiaPoints = [[35,68],[35,97],[8,77],[8,68],[35,68]];
-    let fst = true;
-    for (const [lt, ln] of indiaPoints) {
-      const p = project(lt, ln);
-      if (p.z < 0) continue;
-      if (fst) { C.moveTo(p.sx, p.sy); fst = false; }
-      else C.lineTo(p.sx, p.sy);
-    }
-    C.fillStyle = 'rgba(245,158,11,0.04)';
-    C.fill();
-
-    C.restore();
-
-    // City dots (outside clip to allow glow)
-    for (const [lat, lon] of cities) {
-      const p = project(lat, lon);
-      if (p.z < 0.15) continue;
-      const alpha = Math.min(1, (p.z - 0.15) / 0.5);
-      const isIndia = (lat > 8 && lat < 35 && lon > 68 && lon < 97);
-
-      // Glow ring
-      const gr = C.createRadialGradient(p.sx, p.sy, 0, p.sx, p.sy, 12);
-      const c = isIndia ? '245,158,11' : '147,197,253';
-      gr.addColorStop(0, `rgba(${c},${alpha * 0.4})`);
-      gr.addColorStop(1, 'transparent');
-      C.fillStyle = gr;
-      C.beginPath(); C.arc(p.sx, p.sy, 12, 0, Math.PI * 2); C.fill();
-
-      // Dot
-      C.beginPath(); C.arc(p.sx, p.sy, isIndia ? 3.5 : 2.5, 0, Math.PI * 2);
-      C.fillStyle = isIndia ? `rgba(245,158,11,${alpha * 0.95})` : `rgba(147,197,253,${alpha * 0.7})`;
-      C.fill();
-    }
-
-    // Specular highlight
-    const spec = C.createRadialGradient(cx - R * 0.35, cy - R * 0.4, 0, cx - R * 0.35, cy - R * 0.4, R * 0.6);
-    spec.addColorStop(0, 'rgba(180,210,255,0.09)');
-    spec.addColorStop(1, 'transparent');
-    C.fillStyle = spec;
-    C.beginPath(); C.arc(cx, cy, R, 0, Math.PI * 2); C.fill();
-
-    // Edge glow
-    const edge = C.createRadialGradient(cx, cy, R * 0.8, cx, cy, R);
-    edge.addColorStop(0, 'transparent');
-    edge.addColorStop(1, 'rgba(30,80,180,0.35)');
-    C.fillStyle = edge;
-    C.beginPath(); C.arc(cx, cy, R, 0, Math.PI * 2); C.fill();
-
-    angle += 0.0025;
-    requestAnimationFrame(drawFrame);
-  }
-  drawFrame();
+  // Start focused on India
+  globe.pointOfView({ lat: 20, lng: 80, altitude: 1.8 }, 0);
 })();
 
 // ── Navbar scroll ─────────────────────────────────────────────────────────────

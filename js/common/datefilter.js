@@ -166,6 +166,81 @@ $(document).ready(function () {
     if (!$menu.length) return;
     if (!$menu.attr('id')) $menu.attr('id', 'dateFilterMenu');
     $menu.html(buildDateFilterHtml('customDateFrom', 'customDateTo'));
+
+    // Apply the saved preference active state from PHP (r2kSavedDateRange defined in trans_footer_script.php)
+    var savedRange = (typeof r2kSavedDateRange !== 'undefined') ? r2kSavedDateRange : null;
+    var savedLabel = (typeof r2kSavedDateLabel !== 'undefined') ? r2kSavedDateLabel : '';
+    if (savedRange !== null) {
+        $('.date-option').removeClass('active');
+        $('.date-option[data-range="' + savedRange + '"]').addClass('active');
+        if (savedLabel) $('#dateFilterLabel').text(savedLabel);
+    }
+
+    // Seed the global Filter object so tab / sort / search AJAX calls carry the saved date range.
+    // Without this, clicking a status tab after page load sends no DateFrom/DateTo to the server.
+    if (savedRange && savedRange !== '' && savedRange !== 'all' && typeof Filter !== 'undefined') {
+        var _savedDr = getDateRange(savedRange);
+        Filter.DateFrom = _savedDr.from;
+        Filter.DateTo   = _savedDr.to;
+    }
+});
+
+// ── Persist date filter preference + update bold date range display ───────────
+var _r2kAllDatesSkipConfirm = false;
+
+$(document).on('click', '.date-option[data-range]', function (e) {
+    var $btn = $('#dateFilterBtn');
+    if (!$btn.length) return;
+    var range = $(this).data('range');
+    if (range === 'custom') return;
+
+    // Confirm before removing the date filter — loading all records can be slow
+    if ((range === '' || range === 'all') && !_r2kAllDatesSkipConfirm) {
+        e.stopImmediatePropagation();
+        var $el = $(this);
+        Swal.fire({
+            icon             : 'warning',
+            title            : 'Load All Records?',
+            html             : 'Loading data <strong>without a date filter</strong> may be slow and return a large number of records.<br><br>Are you sure you want to proceed?',
+            showCancelButton : true,
+            confirmButtonText: 'Proceed',
+            cancelButtonText : 'Cancel',
+            confirmButtonColor: '#2563eb',
+            cancelButtonColor : '#6c757d',
+        }).then(function (result) {
+            if (!result.isConfirmed) return;
+            _r2kAllDatesSkipConfirm = true;
+            $el.trigger('click');
+            _r2kAllDatesSkipConfirm = false;
+        });
+        return;
+    }
+
+    // Active button styling
+    if (range && range !== '' && range !== 'all') {
+        $btn.addClass('r2k-date-active');
+    } else {
+        $btn.removeClass('r2k-date-active');
+    }
+
+    // Bold date range display
+    var $dates = $('#dateFilterDates');
+    if (range && range !== '' && range !== 'all') {
+        var dr = getDateRange(range);
+        if (dr.from) {
+            var f = formatDateDisplay(dr.from);
+            var t = formatDateDisplay(dr.to);
+            $dates.text(dr.from === dr.to ? f : f + ' – ' + t).show();
+        }
+    } else {
+        $dates.text('').hide();
+    }
+
+    var pageKey = location.pathname.split('/').filter(Boolean)[0] || '';
+    if (!pageKey) return;
+    var data = { PreferenceKey: 'df_' + pageKey, PreferenceValue: String(range) };
+    if (typeof CsrfName !== 'undefined') data[CsrfName] = CsrfToken;
+    $.post('/userpreferences/save', data);
 });
 
 // ── initDateFilter ────────────────────────────────────────────────────────────
@@ -226,8 +301,12 @@ function initDateFilter(opts) {
         if (!from || !to) { alert('Please select both From and To dates.'); return; }
         if (from > to)    { alert('From date cannot be after To date.'); return; }
 
-        var label = formatDateDisplay(from) + ' – ' + formatDateDisplay(to);
-        $('#' + labelId).text(label);
+        var f     = formatDateDisplay(from);
+        var t     = formatDateDisplay(to);
+        var label = f + ' – ' + t;
+        $('#' + labelId).text('Custom');
+        $('#dateFilterDates').text(label).show();
+        $('#dateFilterBtn').addClass('r2k-date-active');
         $('.date-option').removeClass('active');
         $('.date-option[data-range="custom"]').addClass('active');
 

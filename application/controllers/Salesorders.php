@@ -28,18 +28,35 @@ class Salesorders extends MY_Controller {
             $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
             $limit = $GeneralSettings->RowLimit ?? 10;
 
-            $this->load->model('transactions_model');
-            $allData = $this->transactions_model->getTransactionPageList($limit, 0, $this->pageModuleUID, [], 0);
-            $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, []);
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
 
-            $this->pageData['ModRowData'] = $this->load->view('transactions/salesorders/list', ['DataLists' => $allData, 'SerialNumber' => 0, 'JwtData' => $this->pageData['JwtData']], TRUE);
+            $this->load->model('transactions_model');
+            $this->load->model('organisation_model');
+            $datePref   = $this->getDateFilterPreference('salesorders');
+            $initFilter = $datePref['from'] ? ['DateFrom' => $datePref['from'], 'DateTo' => $datePref['to']] : [];
+            $allData      = $this->transactions_model->getTransactionPageList($limit, 0, $this->pageModuleUID, $initFilter, 0);
+            $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, $initFilter);
+            $this->pageData['SavedDateRange'] = $datePref['range'];
+            $this->pageData['SavedDateLabel'] = $datePref['label'];
+
+            $orgResult = $this->organisation_model->getOrgInfoCached($orgUID);
+            $this->pageData['CommOrgContext'] = $orgResult->Data ?? null;
+
+            $templates = $this->organisation_model->getModuleMessageTemplates($orgUID, $this->pageModuleUID);
+            $whatsAppTemplate = $templates['WhatsApp'] ?? null;
+            $this->pageData['CommEmailTemplate'] = isset($templates['Email'])
+                ? ['Subject' => $templates['Email']->Subject ?? '', 'Body' => $templates['Email']->Body ?? '']
+                : null;
+
+            $this->pageData['ModRowData'] = $this->load->view('transactions/salesorders/list', ['DataLists' => $allData, 'SerialNumber' => 0, 'JwtData' => $this->pageData['JwtData'], 'WhatsAppTemplate' => $whatsAppTemplate], TRUE);
             $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/salesorders/getSalesOrdersPageDetails', $allDataCount, 1, $limit);
             $this->pageData['ModAllCount'] = $allDataCount;
-            $this->pageData['SummaryStats'] = $this->transactions_model->getTransactionSummaryStats($this->pageModuleUID, $this->pageData['JwtData']->Org->OrgUID);
+            $this->pageData['SummaryStats'] = $this->transactions_model->getTransactionSummaryStats($this->pageModuleUID, $orgUID);
 
-            $this->pageData['UpstashReadUrl']   = getenv('UPSTASH_REDIS_REST_URL') ?: '';
-            $this->pageData['UpstashReadToken'] = getenv('UPSTASH_REDIS_REST_READONLY_TOKEN') ?: '';
-            $this->pageData['CustomerCacheKey'] = $this->redisservice->orgKey('customers');
+            $this->_loadUpstashConfig();
+
+            $this->load->model('users_model');
+            $this->pageData['OrgUsers']         = $this->users_model->getOrgUsersForCache($this->pageData['JwtData']->Org->OrgUID);
 
             $this->load->view('transactions/salesorders/view', $this->pageData);
 
@@ -63,15 +80,20 @@ class Salesorders extends MY_Controller {
             $offset = ($pageNo - 1) * $limit;
             $filter = $this->input->post('Filter') ?: [];
 
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
+
             $this->load->model('transactions_model');
-            $allData = $this->transactions_model->getTransactionPageList($limit, $offset, $this->pageModuleUID, $filter, 0);
+            $this->load->model('organisation_model');
+            $allData      = $this->transactions_model->getTransactionPageList($limit, $offset, $this->pageModuleUID, $filter, 0);
             $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, $filter);
 
+            $templates = $this->organisation_model->getModuleMessageTemplates($orgUID, $this->pageModuleUID);
 
             $rowHtml = $this->load->view('transactions/salesorders/list', [
-                'DataLists'    => $allData,
-                'SerialNumber' => ($pageNo - 1) * $limit,
-                'JwtData'      => $this->pageData['JwtData'],
+                'DataLists'        => $allData,
+                'SerialNumber'     => ($pageNo - 1) * $limit,
+                'JwtData'          => $this->pageData['JwtData'],
+                'WhatsAppTemplate' => $templates['WhatsApp'] ?? null,
             ], true);
 
             $this->EndReturnData->Error = FALSE;

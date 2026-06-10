@@ -73,3 +73,37 @@
     
 </head>
 <body>
+<?php
+$_hideNavOnTransForm = (int)(isset($JwtData) ? ($JwtData->TransGenSettings->HideNavOnTransForm ?? 0) : 0);
+// Only apply on create/edit form pages, not on view/detail pages.
+if ($_hideNavOnTransForm) {
+    $_ci     = &get_instance();
+    $_method = strtolower($_ci->router->fetch_method());
+    $_hideNavOnTransForm = (
+        strpos($_method, 'create') === 0 ||
+        strpos($_method, 'edit')   === 0 ||
+        strpos($_method, 'add')    === 0 ||
+        strpos($_method, 'update') === 0
+    ) ? 1 : 0;
+    unset($_ci, $_method);
+}
+?>
+<?php if ($_hideNavOnTransForm): ?>
+<style>
+#layout-menu { display: none !important; }
+.layout-page  { margin-left: 0 !important; padding-left: 0 !important; }
+</style>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var headerInfo = document.getElementById('transHeaderInfo');
+    if (!headerInfo) return;
+    var btn = document.createElement('button');
+    btn.type      = 'button';
+    btn.className = 'btn btn-outline-secondary btn-sm me-1';
+    btn.style.cssText = 'display:inline-flex;align-items:center;gap:3px;flex-shrink:0;';
+    btn.innerHTML = '<i class="bx bx-undo" style="font-size:1rem;"></i>Back';
+    btn.onclick   = function () { history.back(); };
+    headerInfo.insertBefore(btn, headerInfo.firstChild);
+});
+</script>
+<?php endif; unset($_hideNavOnTransForm); ?>

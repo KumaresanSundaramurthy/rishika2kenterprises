@@ -54,7 +54,12 @@ function loadTransactionList(config, pageNo, rowLimit, filter) {
                 $(ModuleTable + ' tbody').html(response.RecordHtmlData);
                 var count   = response.TotalCount || 0;
                 var $active = $(config.statusTabClass + '.active');
-                $active.find(config.tabCountClass).text(count > 0 ? count : '').removeClass('d-none');
+                var $badge  = $active.find(config.tabCountClass);
+                if (count > 0) {
+                    $badge.text(count).removeClass('d-none');
+                } else {
+                    $badge.text('').addClass('d-none');
+                }
                 initTooltips();
                 $(window).trigger('scroll');
                 if (config.onSuccess) config.onSuccess(response);

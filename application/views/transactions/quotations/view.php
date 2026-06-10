@@ -68,10 +68,11 @@ $this->load->view('common/transactions/header'); ?>
                                     <i class="bx bx-export me-1"></i>Export
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end">
-                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="quotExport('Print')"><i class="bx bx-printer me-1"></i>Print</a></li>
-                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="quotExport('CSV')"><i class="bx bx-file me-1"></i>CSV</a></li>
-                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="quotExport('Excel')"><i class="bx bxs-file-export me-1"></i>Excel</a></li>
-                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="quotExport('Pdf')"><i class="bx bxs-file-pdf me-1"></i>PDF</a></li>
+                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="quotExport('Print')"><i class="bx bx-printer me-2 text-secondary"></i>Print</a></li>
+                                    <li><hr class="dropdown-divider my-1"></li>
+                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="quotExport('CSV')"><i class="bx bx-file me-2 text-success"></i>CSV</a></li>
+                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="quotExport('Excel')"><i class="bx bxs-file-export me-2 text-success"></i>Excel</a></li>
+                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="quotExport('Pdf')"><i class="bx bxs-file-pdf me-2 text-danger"></i>PDF</a></li>
                                 </ul>
                             </div>
                             <a href="/quotations/create" class="btn btn-primary me-1">
@@ -134,25 +135,34 @@ $this->load->view('common/transactions/header'); ?>
                             <div class="trans-toolbar-tabs">
                                 <ul class="nav trans-status-tabs" id="quotStatusTabs" role="tablist">
                                     <li class="nav-item"><a class="nav-link active quot-status-tab" data-status="All" href="javascript:void(0);">All <span class="trans-tab-count"><?php echo $ModAllCount; ?></span></a></li>
-                                    <li class="nav-item"><a class="nav-link quot-status-tab" data-status="Cancelled" href="javascript:void(0);">Cancelled <?php if ($cntCancelled > 0): ?><span class="trans-tab-count"><?php echo $cntCancelled; ?></span><?php else: ?><span class="trans-tab-count d-none"></span><?php endif; ?></a></li>
+                                    <li class="nav-item"><a class="nav-link quot-status-tab" data-status="Cancelled" href="javascript:void(0);">Cancelled <span class="trans-tab-count d-none"></span></a></li>
                                     <li class="nav-item"><a class="nav-link quot-status-tab" data-status="Draft" href="javascript:void(0);">Draft <span class="trans-tab-count d-none"></span></a></li>
                                 </ul>
                             </div>
                             <div class="trans-toolbar-actions">
                                 <a href="javascript:void(0);" class="r2k-icon-btn pageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
+                                <div class="dropdown">
+                                    <button class="r2k-dd-btn<?php echo (!empty($SavedDateRange) && $SavedDateRange !== 'all') ? ' r2k-date-active' : ''; ?>" type="button" id="dateFilterBtn" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                        <i class="bx bx-calendar"></i> <span id="dateFilterLabel"><?php echo htmlspecialchars($SavedDateLabel ?? 'All Dates'); ?></span><?php if (!empty($SavedDateFromDisplay ?? '')): ?> <strong id="dateFilterDates" class="r2k-df-dates"><?php echo $SavedDateFromDisplay === $SavedDateToDisplay ? $SavedDateFromDisplay : $SavedDateFromDisplay . ' – ' . $SavedDateToDisplay; ?></strong><?php else: ?><strong id="dateFilterDates" class="r2k-df-dates" style="display:none;"></strong><?php endif; ?> <i class="bx bx-chevron-down" style="font-size:.75rem;"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow" id="dateFilterMenu" style="width:240px;max-height:420px;overflow-y:auto;font-size:.82rem;z-index:9999;">
+                                    </ul>
+                                </div>
+                                <?php $this->load->view('common/transactions/filter_bar', [
+                                    'FilterBarConfig' => [
+                                        'paymentStatus' => false,
+                                        'paymentMode'   => false,
+                                        'party'         => false,
+                                        'lastUpdated'   => false,
+                                        'PaymentTypes'  => [],
+                                        'OrgUsers'      => $OrgUsers ?? [],
+                                    ],
+                                ]); ?>
                                 <div class="r2k-search-wrap">
                                     <i class="bx bx-search r2k-si"></i>
                                     <input type="text" id="searchTransactionData" placeholder="Quot. # or customer...">
                                     <i class="bx bx-x r2k-clear d-none" id="clearQuotSearch"></i>
                                 </div>
-                                <div class="dropdown">
-                                    <button class="r2k-dd-btn" type="button" id="dateFilterBtn" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
-                                        <i class="bx bx-calendar"></i> <span id="dateFilterLabel">All Dates</span> <i class="bx bx-chevron-down" style="font-size:.75rem;"></i>
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-end shadow" id="dateFilterMenu" style="width:240px;max-height:420px;overflow-y:auto;font-size:.82rem;z-index:9999;">
-                                    </ul>
-                                </div>
-                                <?php $this->load->view('common/partials/export_btn'); ?>
                             </div>
                         </div>
 
@@ -177,11 +187,27 @@ $this->load->view('common/transactions/header'); ?>
                                             Status
                                             <a href="javascript:void(0);" id="quotStatusFilter" class="text-body ms-1" onclick="toggleQuotStatusFilter(); event.stopPropagation();" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by Status"><i class="bx bx-filter-alt fs-6 align-middle"></i></a>
                                         </th>
-                                        <th>Customer</th>
+                                        <th>
+                                            Customer
+                                            <a href="javascript:void(0);" id="quotPartyFilterTrigger" class="text-body ms-1"
+                                               data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by Customer"
+                                               style="font-size:.85rem;">
+                                                <i class="bx bx-filter-alt align-middle"></i>
+                                            </a>
+                                        </th>
                                         <th class="col-sortable cursor-pointer user-select-none" data-sort="Date">
                                             Valid Until <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Date"></i>
                                         </th>
-                                        <th>Last Updated</th>
+                                        <th>
+                                            Last Updated
+                                            <?php if (count($OrgUsers ?? []) > 1): ?>
+                                            <a href="javascript:void(0);" id="quotCreatedByFilter" class="text-body ms-1"
+                                               data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by User"
+                                               style="font-size:.85rem;">
+                                                <i class="bx bx-filter-alt align-middle"></i>
+                                            </a>
+                                            <?php endif; ?>
+                                        </th>
                                         <th style="width:50px">Actions</th>
                                     </tr>
                                 </thead>
@@ -235,12 +261,34 @@ $this->load->view('common/transactions/header'); ?>
     </div>
 </div>
 
+<?php if (count($OrgUsers ?? []) > 1): ?>
+<?php $this->load->view('common/transactions/col_user_filter_box', [
+    'ColUserFilterConfig' => [
+        'id'         => 'quotCreatedByFilterBox',
+        'triggerId'  => 'quotCreatedByFilter',
+        'checkClass' => 'quot-user-chk',
+        'OrgUsers'   => $OrgUsers ?? [],
+    ],
+]); ?>
+<?php endif; ?>
+
+<?php $this->load->view('common/transactions/col_party_filter_box', [
+    'ColPartyFilterConfig' => [
+        'id'    => 'quotPartyFilterBox',
+        'title' => 'Filter by Customer',
+        'icon'  => 'bx-user',
+    ],
+]); ?>
+
 <?php $this->load->view('common/transactions/footer'); ?>
 
 <script src="/js/common/communication.js"></script>
+<script src="/js/common/party_filter.js"></script>
 <script src="/js/common/pagecheckbox.js"></script>
 <script src="/js/transactions/viewmodal.js"></script>
 <script src="/js/transactions/a4_print.js"></script>
+<script src="/js/transactions/filter_bar.js"></script>
+<script src="/js/transactions/col_filter.js"></script>
 <script src="/js/transactions/quotations.js"></script>
 
 <script>
@@ -265,7 +313,7 @@ var _commGenSettings  = <?php echo json_encode([
 ]); ?>;
 var _rawEmailTemplate = <?php echo json_encode($CommEmailTemplate ?? null); ?>;
 var _r2CdnBase        = <?php echo json_encode(rtrim(getenv('CFLARE_R2_CDN') ?: getenv('CDN_URL'), '/')); ?>;
-// ─────────────────────────────────────────────────────────────────────────────
+
 const ModuleId     = 101;
 const ModuleTable  = '#quotTable';
 const ModulePag    = '.quotPagination';
@@ -277,6 +325,38 @@ $(function () {
 
     Filter['Status'] = 'All';
     initExport({ moduleUID: 101, getFilters: function () { return Filter; } });
+
+    // ── Filter bar ──────────────────────────────────────────────────────
+    var tfb = (typeof TransFilterBar !== 'undefined')
+        ? new TransFilterBar({ onChange: function () { PageNo = 1; getQuotationsDetails(); } })
+        : null;
+
+    var quotCreatedByFilter = (document.getElementById('quotCreatedByFilterBox'))
+        ? new TransColFilter({
+            boxId     : 'quotCreatedByFilterBox',
+            triggerId : 'quotCreatedByFilter',
+            filterKey : 'UpdatedByUIDs',
+            onApply   : function () { PageNo = 1; getQuotationsDetails(); }
+        })
+        : null;
+
+    var quotPartyFilter = new TransPartyColFilter({
+        boxId     : 'quotPartyFilterBox',
+        triggerId : 'quotPartyFilterTrigger',
+        partyType : 'customer',
+        filterKey : 'PartyUID',
+        onApply   : function () { PageNo = 1; getQuotationsDetails(); }
+    });
+
+    var _origGetQuotationsDetails = getQuotationsDetails;
+    getQuotationsDetails = function (pageNo, rowLimit, filter) {
+        var f = $.extend({}, filter || Filter,
+            tfb                 ? tfb.getState()                 : {},
+            quotCreatedByFilter ? quotCreatedByFilter.getState() : {},
+            quotPartyFilter     ? quotPartyFilter.getState()     : {}
+        );
+        _origGetQuotationsDetails(pageNo, rowLimit, f);
+    };
 
     // ── Sticky pagination ──
     var $quotStaticPag = $('#quotPagination');

@@ -105,17 +105,27 @@ $this->load->view('common/transactions/header'); ?>
                             </div>
                             <div class="trans-toolbar-actions">
                                 <a href="javascript:void(0);" class="r2k-icon-btn pageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
+                                <div class="dropdown">
+                                    <button class="r2k-dd-btn<?php echo (!empty($SavedDateRange) && $SavedDateRange !== 'all') ? ' r2k-date-active' : ''; ?>" type="button" id="dateFilterBtn" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                        <i class="bx bx-calendar"></i> <span id="dateFilterLabel"><?php echo htmlspecialchars($SavedDateLabel ?? 'All Dates'); ?></span><?php if (!empty($SavedDateFromDisplay ?? '')): ?> <strong id="dateFilterDates" class="r2k-df-dates"><?php echo $SavedDateFromDisplay === $SavedDateToDisplay ? $SavedDateFromDisplay : $SavedDateFromDisplay . ' – ' . $SavedDateToDisplay; ?></strong><?php else: ?><strong id="dateFilterDates" class="r2k-df-dates" style="display:none;"></strong><?php endif; ?> <i class="bx bx-chevron-down" style="font-size:.75rem;"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow" id="dateFilterMenu" style="width:240px;max-height:420px;overflow-y:auto;font-size:.82rem;z-index:9999;">
+                                    </ul>
+                                </div>
+                                <?php $this->load->view('common/transactions/filter_bar', [
+                                    'FilterBarConfig' => [
+                                        'paymentStatus' => false,
+                                        'paymentMode'   => true,
+                                        'party'         => false,
+                                        'lastUpdated'   => false,
+                                        'PaymentTypes'  => $PaymentTypes ?? [],
+                                        'OrgUsers'      => $OrgUsers     ?? [],
+                                    ],
+                                ]); ?>
                                 <div class="r2k-search-wrap">
                                     <i class="bx bx-search r2k-si"></i>
                                     <input type="text" id="searchTransactionData" placeholder="Bill # or vendor...">
                                     <i class="bx bx-x r2k-clear d-none"></i>
-                                </div>
-                                <div class="dropdown">
-                                    <button class="r2k-dd-btn" type="button" id="dateFilterBtn" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
-                                        <i class="bx bx-calendar"></i> <span id="dateFilterLabel">All Dates</span> <i class="bx bx-chevron-down" style="font-size:.75rem;"></i>
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-end shadow" id="dateFilterMenu" style="width:240px;max-height:420px;overflow-y:auto;font-size:.82rem;z-index:9999;">
-                                    </ul>
                                 </div>
                             </div>
                         </div>
@@ -137,10 +147,40 @@ $this->load->view('common/transactions/header'); ?>
                                         <th class="col-sortable cursor-pointer user-select-none" data-sort="Amount">
                                             Amount <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Amount"></i>
                                         </th>
-                                        <th>Payment Status</th>
-                                        <th>Payment Mode</th>
-                                        <th>Vendor</th>
-                                        <th>Last Updated</th>
+                                        <th>
+                                            Payment Status
+                                            <a href="javascript:void(0);" id="purchPayStatusFilter" class="text-body ms-1"
+                                               data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by Payment Status"
+                                               style="font-size:.85rem;">
+                                                <i class="bx bx-filter-alt align-middle"></i>
+                                            </a>
+                                        </th>
+                                        <th>
+                                            Payment Mode
+                                            <a href="javascript:void(0);" id="purchPayModeFilter" class="text-body ms-1"
+                                               data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by Payment Mode"
+                                               style="font-size:.85rem;">
+                                                <i class="bx bx-filter-alt align-middle"></i>
+                                            </a>
+                                        </th>
+                                        <th>
+                                            Vendor
+                                            <a href="javascript:void(0);" id="purchPartyFilterTrigger" class="text-body ms-1"
+                                               data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by Vendor"
+                                               style="font-size:.85rem;">
+                                                <i class="bx bx-filter-alt align-middle"></i>
+                                            </a>
+                                        </th>
+                                        <th>
+                                            Last Updated
+                                            <?php if (count($OrgUsers ?? []) > 1): ?>
+                                            <a href="javascript:void(0);" id="purchCreatedByFilter" class="text-body ms-1"
+                                               data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by User"
+                                               style="font-size:.85rem;">
+                                                <i class="bx bx-filter-alt align-middle"></i>
+                                            </a>
+                                            <?php endif; ?>
+                                        </th>
                                         <th style="width:50px"></th>
                                     </tr>
                                 </thead>
@@ -189,15 +229,68 @@ $this->load->view('common/transactions/header'); ?>
     </div>
 </div>
 
+<?php $this->load->view('common/transactions/col_filter_box', [
+    'ColFilterConfig' => [
+        'id'         => 'purchPayStatusFilterBox',
+        'triggerId'  => 'purchPayStatusFilter',
+        'title'      => 'Payment Status',
+        'icon'       => 'bx-wallet-alt',
+        'filterKey'  => 'PaymentStatus',
+        'checkClass' => 'purch-pay-status-chk',
+        'items'      => [
+            ['value' => 'Pending',        'label' => 'Pending',        'icon' => 'bx-time-five',    'color' => '#e65100'],
+            ['value' => 'Partially Paid', 'label' => 'Partially Paid', 'icon' => 'bx-adjust',       'color' => '#0d47a1'],
+            ['value' => 'Paid',           'label' => 'Paid',           'icon' => 'bx-check-circle', 'color' => '#2e7d32'],
+        ],
+    ],
+]); ?>
+
+<?php $this->load->view('common/transactions/col_filter_box', [
+    'ColFilterConfig' => [
+        'id'         => 'purchPayModeFilterBox',
+        'triggerId'  => 'purchPayModeFilter',
+        'title'      => 'Payment Mode',
+        'icon'       => 'bx-credit-card',
+        'filterKey'  => 'PaymentMode',
+        'checkClass' => 'purch-pay-mode-chk',
+        'items'      => array_map(function($t) {
+            return ['value' => $t->Name, 'label' => $t->Name, 'icon' => 'bx-credit-card', 'color' => '#6f42c1'];
+        }, $PaymentTypes ?? []),
+    ],
+]); ?>
+
+<?php if (count($OrgUsers ?? []) > 1): ?>
+<?php $this->load->view('common/transactions/col_user_filter_box', [
+    'ColUserFilterConfig' => [
+        'id'         => 'purchCreatedByFilterBox',
+        'triggerId'  => 'purchCreatedByFilter',
+        'checkClass' => 'purch-user-chk',
+        'OrgUsers'   => $OrgUsers ?? [],
+    ],
+]); ?>
+<?php endif; ?>
+
+<?php $this->load->view('common/transactions/col_party_filter_box', [
+    'ColPartyFilterConfig' => [
+        'id'    => 'purchPartyFilterBox',
+        'title' => 'Filter by Vendor',
+        'icon'  => 'bx-store',
+    ],
+]); ?>
+
 <?php $this->load->view('common/transactions/footer'); ?>
 
 <script src="/js/common/communication.js"></script>
+<script src="/js/common/party_filter.js"></script>
 <script src="/js/transactions/attachments.js"></script>
 <script src="/js/transactions/viewmodal.js"></script>
 <script src="/js/transactions/a4_print.js"></script>
+<script src="/js/transactions/filter_bar.js"></script>
+<script src="/js/transactions/col_filter.js"></script>
 <script src="/js/transactions/purchases.js"></script>
 
 <script>
+
 const ModuleId     = 105;
 const ModuleTable  = '#purchTable';
 const ModulePag    = '.purchPagination';
@@ -214,6 +307,55 @@ $(function () {
 
     Filter['Status'] = 'All';
     initExport({ moduleUID: 105, getFilters: function () { return Filter; } });
+
+    // ── Filter bar ──────────────────────────────────────────────────────
+    var tfb = (typeof TransFilterBar !== 'undefined')
+        ? new TransFilterBar({ onChange: function () { PageNo = 1; getPurchasesDetails(); } })
+        : null;
+
+    // ── Column-level Payment Status filter ──────────────────────────────
+    var payStatusFilter = new TransColFilter({
+        boxId     : 'purchPayStatusFilterBox',
+        triggerId : 'purchPayStatusFilter',
+        filterKey : 'PaymentStatus',
+        onApply   : function () { PageNo = 1; getPurchasesDetails(); }
+    });
+
+    var payModeFilter = new TransColFilter({
+        boxId     : 'purchPayModeFilterBox',
+        triggerId : 'purchPayModeFilter',
+        filterKey : 'PaymentMode',
+        onApply   : function () { PageNo = 1; getPurchasesDetails(); }
+    });
+
+    var purchCreatedByFilter = (document.getElementById('purchCreatedByFilterBox'))
+        ? new TransColFilter({
+            boxId     : 'purchCreatedByFilterBox',
+            triggerId : 'purchCreatedByFilter',
+            filterKey : 'UpdatedByUIDs',
+            onApply   : function () { PageNo = 1; getPurchasesDetails(); }
+        })
+        : null;
+
+    var purchPartyFilter = new TransPartyColFilter({
+        boxId     : 'purchPartyFilterBox',
+        triggerId : 'purchPartyFilterTrigger',
+        partyType : 'vendor',
+        filterKey : 'PartyUID',
+        onApply   : function () { PageNo = 1; getPurchasesDetails(); }
+    });
+
+    var _origGetPurchasesDetails = getPurchasesDetails;
+    getPurchasesDetails = function (pageNo, rowLimit, filter) {
+        var f = $.extend({}, filter || Filter,
+            tfb                  ? tfb.getState()                  : {},
+            payStatusFilter      ? payStatusFilter.getState()      : {},
+            payModeFilter        ? payModeFilter.getState()        : {},
+            purchCreatedByFilter ? purchCreatedByFilter.getState() : {},
+            purchPartyFilter     ? purchPartyFilter.getState()     : {}
+        );
+        _origGetPurchasesDetails(pageNo, rowLimit, f);
+    };
 
     // ── Sticky pagination ──
     var $purchStaticPag = $('#purchPagination');

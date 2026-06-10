@@ -295,6 +295,7 @@
 .stat-all       .tsc-icon-wrap { background: rgba(105,108,255,.13); }
 .stat-active    .tsc-icon-wrap { background: rgba(13,110,253,.13); }
 .stat-paid      .tsc-icon-wrap { background: rgba(25,135,84,.13); }
+.stat-completed .tsc-icon-wrap { background: rgba(13,202,240,.13); }
 .stat-draft     .tsc-icon-wrap { background: rgba(108,117,125,.13); }
 .stat-overdue   .tsc-icon-wrap { background: rgba(220,53,69,.13); }
 .stat-cancelled .tsc-icon-wrap { background: rgba(173,181,189,.13); }

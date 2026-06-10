@@ -12,43 +12,8 @@ class Paymentsout extends MY_Controller {
     }
 
     public function index() {
-
-        if (!$this->_loadPageTitle($this->pageModuleUID)) {
-            $this->load->view('common/module_error', $this->pageData);
-            return;
-        }
-
-        try {
-
-            $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
-
-            $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
-            $limit  = $GeneralSettings->RowLimit ?? 10;
-            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
-
-            $filter = ['ModuleUID' => 111, 'PaymentDirection' => 'Out'];
-
-            $this->load->model('transactions_model');
-            $allData      = $this->transactions_model->getPaymentsList($limit, 0, $orgUID, $filter);
-            $allDataCount = $this->transactions_model->getPaymentsCount($orgUID, $filter);
-
-            $this->pageData['ModRowData']    = $this->load->view('transactions/paymentsout/list', [
-                'DataLists'    => $allData,
-                'SerialNumber' => 0,
-                'JwtData'      => $this->pageData['JwtData'],
-            ], TRUE);
-            $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/paymentsout/getPageDetails', $allDataCount, 1, $limit);
-            $this->pageData['ModAllCount']   = $allDataCount;
-            $this->pageData['Totals']        = $this->transactions_model->getPaymentsTotals($orgUID, $filter);
-            $this->pageData['MethodSummary'] = $this->transactions_model->getPaymentMethodSummary($orgUID, $filter);
-            $this->pageData['BankAccounts']  = $this->transactions_model->getOrgBankAccounts($orgUID);
-
-            $this->load->view('transactions/paymentsout/view', $this->pageData);
-
-        } catch (Exception $e) {
-            redirect('dashboard', 'refresh');
-        }
-
+        // Unified payments page — redirect to /payments with Out filter pre-applied
+        redirect('payments?dir=out', 'location');
     }
 
     public function cancelPayment() {

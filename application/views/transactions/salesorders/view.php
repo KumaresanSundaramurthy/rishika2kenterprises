@@ -16,12 +16,14 @@ $this->load->view('common/transactions/header'); ?>
                     $cur         = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
                     $dec         = $JwtData->GenSettings->DecimalPoints ?? 2;
 
-                    $cntAll      = array_sum(array_column($stats, 'count'));
-                    $cntConfirmed= $stats['Pending']['count']   ?? 0;
-                    $cntDraft    = $stats['Draft']['count']      ?? 0;
+                    $cntAll       = array_sum(array_column($stats, 'count'));
+                    $cntConfirmed = $stats['Pending']['count']   ?? 0;
+                    $cntCompleted = $stats['Completed']['count'] ?? 0;
+                    $cntDraft     = $stats['Draft']['count']     ?? 0;
 
-                    $amtAll      = array_sum(array_column($stats, 'amount'));
-                    $amtConfirmed= $stats['Pending']['amount']   ?? 0;
+                    $amtAll       = array_sum(array_column($stats, 'amount'));
+                    $amtConfirmed = $stats['Pending']['amount']   ?? 0;
+                    $amtCompleted = $stats['Completed']['amount'] ?? 0;
 
                     function fmtAmt($val, $sym, $dec) {
                         return $sym . ' ' . number_format((float)$val, $dec, '.', ',');
@@ -51,7 +53,7 @@ $this->load->view('common/transactions/header'); ?>
 
                     <!-- ── Stat Cards ────────────────────────────────────── -->
                     <div class="trans-stats-section">
-                        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+                        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
                             <a href="javascript:void(0);" class="trans-stat-card stat-all active-stat" data-stat-filter="All">
                                 <div class="tsc-icon-wrap"><i class="bx bx-cart"></i></div>
                                 <div class="tsc-body">
@@ -66,6 +68,14 @@ $this->load->view('common/transactions/header'); ?>
                                     <div class="trans-stat-label">Pending</div>
                                     <div class="trans-stat-count"><?php echo number_format($cntConfirmed); ?></div>
                                     <div class="trans-stat-amount"><?php echo fmtAmt($amtConfirmed, $cur, $dec); ?></div>
+                                </div>
+                            </a>
+                            <a href="javascript:void(0);" class="trans-stat-card stat-completed" data-stat-filter="Completed">
+                                <div class="tsc-icon-wrap"><i class="bx bx-check-double"></i></div>
+                                <div class="tsc-body">
+                                    <div class="trans-stat-label">Completed</div>
+                                    <div class="trans-stat-count"><?php echo number_format($cntCompleted); ?></div>
+                                    <div class="trans-stat-amount"><?php echo fmtAmt($amtCompleted, $cur, $dec); ?></div>
                                 </div>
                             </a>
                             <a href="javascript:void(0);" class="trans-stat-card stat-draft" data-stat-filter="Draft">
@@ -88,23 +98,34 @@ $this->load->view('common/transactions/header'); ?>
                                 <ul class="nav trans-status-tabs" id="soStatusTabs" role="tablist">
                                     <li class="nav-item"><a class="nav-link active so-status-tab" data-status="All" href="javascript:void(0);">All <span class="trans-tab-count ms-1"><?php echo $ModAllCount; ?></span></a></li>
                                     <li class="nav-item"><a class="nav-link so-status-tab" data-status="Pending" href="javascript:void(0);">Pending <span class="trans-tab-count ms-1 d-none"></span></a></li>
+                                    <li class="nav-item"><a class="nav-link so-status-tab" data-status="Completed" href="javascript:void(0);">Completed <span class="trans-tab-count ms-1 d-none"></span></a></li>
                                     <li class="nav-item"><a class="nav-link so-status-tab" data-status="Cancelled" href="javascript:void(0);">Cancelled <span class="trans-tab-count ms-1 d-none"></span></a></li>
                                     <li class="nav-item"><a class="nav-link so-status-tab" data-status="Draft" href="javascript:void(0);">Drafts <span class="trans-tab-count ms-1 d-none"></span></a></li>
                                 </ul>
                             </div>
                             <div class="trans-toolbar-actions">
                                 <a href="javascript:void(0);" class="r2k-icon-btn pageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
+                                <div class="dropdown">
+                                    <button class="r2k-dd-btn<?php echo (!empty($SavedDateRange) && $SavedDateRange !== 'all') ? ' r2k-date-active' : ''; ?>" type="button" id="dateFilterBtn" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                        <i class="bx bx-calendar"></i> <span id="dateFilterLabel"><?php echo htmlspecialchars($SavedDateLabel ?? 'All Dates'); ?></span><?php if (!empty($SavedDateFromDisplay ?? '')): ?> <strong id="dateFilterDates" class="r2k-df-dates"><?php echo $SavedDateFromDisplay === $SavedDateToDisplay ? $SavedDateFromDisplay : $SavedDateFromDisplay . ' – ' . $SavedDateToDisplay; ?></strong><?php else: ?><strong id="dateFilterDates" class="r2k-df-dates" style="display:none;"></strong><?php endif; ?> <i class="bx bx-chevron-down" style="font-size:.75rem;"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow" id="dateFilterMenu" style="width:240px;max-height:420px;overflow-y:auto;font-size:.82rem;z-index:9999;">
+                                    </ul>
+                                </div>
+                                <?php $this->load->view('common/transactions/filter_bar', [
+                                    'FilterBarConfig' => [
+                                        'paymentStatus' => false,
+                                        'paymentMode'   => false,
+                                        'party'         => false,
+                                        'lastUpdated'   => false,
+                                        'PaymentTypes'  => [],
+                                        'OrgUsers'      => $OrgUsers ?? [],
+                                    ],
+                                ]); ?>
                                 <div class="r2k-search-wrap">
                                     <i class="bx bx-search r2k-si"></i>
                                     <input type="text" id="searchTransactionData" placeholder="Order # or customer...">
                                     <i class="bx bx-x r2k-clear d-none"></i>
-                                </div>
-                                <div class="dropdown">
-                                    <button class="r2k-dd-btn" type="button" id="dateFilterBtn" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
-                                        <i class="bx bx-calendar"></i> <span id="dateFilterLabel">All Dates</span> <i class="bx bx-chevron-down" style="font-size:.75rem;"></i>
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-end shadow" id="dateFilterMenu" style="width:240px;max-height:420px;overflow-y:auto;font-size:.82rem;z-index:9999;">
-                                    </ul>
                                 </div>
                             </div>
                         </div>
@@ -127,11 +148,27 @@ $this->load->view('common/transactions/header'); ?>
                                             Amount <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Amount"></i>
                                         </th>
                                         <th>Status</th>
-                                        <th>Customer</th>
+                                        <th>
+                                            Customer
+                                            <a href="javascript:void(0);" id="soPartyFilterTrigger" class="text-body ms-1"
+                                               data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by Customer"
+                                               style="font-size:.85rem;">
+                                                <i class="bx bx-filter-alt align-middle"></i>
+                                            </a>
+                                        </th>
                                         <th class="col-sortable cursor-pointer user-select-none" data-sort="Date">
                                             Expected Delivery <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Date"></i>
                                         </th>
-                                        <th>Last Updated</th>
+                                        <th>
+                                            Last Updated
+                                            <?php if (count($OrgUsers ?? []) > 1): ?>
+                                            <a href="javascript:void(0);" id="soCreatedByFilter" class="text-body ms-1"
+                                               data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by User"
+                                               style="font-size:.85rem;">
+                                                <i class="bx bx-filter-alt align-middle"></i>
+                                            </a>
+                                            <?php endif; ?>
+                                        </th>
                                         <th style="width:50px"></th>
                                     </tr>
                                 </thead>
@@ -161,18 +198,64 @@ $this->load->view('common/transactions/header'); ?>
                 </div>
             </div>
 
+            <?php $this->load->view('common/modals/send_communication'); ?>
+
             <?php $this->load->view('common/footer_desc'); ?>
         </div>
     </div>
 </div>
 
+<?php if (count($OrgUsers ?? []) > 1): ?>
+<?php $this->load->view('common/transactions/col_user_filter_box', [
+    'ColUserFilterConfig' => [
+        'id'         => 'soCreatedByFilterBox',
+        'triggerId'  => 'soCreatedByFilter',
+        'checkClass' => 'so-user-chk',
+        'OrgUsers'   => $OrgUsers ?? [],
+    ],
+]); ?>
+<?php endif; ?>
+
+<?php $this->load->view('common/transactions/col_party_filter_box', [
+    'ColPartyFilterConfig' => [
+        'id'    => 'soPartyFilterBox',
+        'title' => 'Filter by Customer',
+        'icon'  => 'bx-user',
+    ],
+]); ?>
+
 <?php $this->load->view('common/transactions/footer'); ?>
 
+<script src="/js/common/communication.js"></script>
+<script src="/js/common/party_filter.js"></script>
 <script src="/js/transactions/viewmodal.js"></script>
 <script src="/js/transactions/a4_print.js"></script>
+<script src="/js/transactions/filter_bar.js"></script>
+<script src="/js/transactions/col_filter.js"></script>
 <script src="/js/transactions/salesorders.js"></script>
 
 <script>
+var _commOrgContext = <?php
+    $org     = $CommOrgContext ?? null;
+    $orgAddr = $org ? implode(', ', array_filter([
+        $org->Line1 ?? '', $org->Line2 ?? '',
+        $org->CityText ?? '', $org->StateText ?? '', $org->Pincode ?? '',
+    ])) : '';
+    echo json_encode([
+        'OrgName'    => $org ? ($org->BrandName ?? $org->Name ?? '') : '',
+        'OrgPhone'   => $org->MobileNumber  ?? '',
+        'OrgEmail'   => $org->EmailAddress  ?? '',
+        'OrgGSTIN'   => $org->GSTIN         ?? '',
+        'OrgAddress' => $orgAddr,
+    ]);
+?>;
+var _commGenSettings  = <?php echo json_encode([
+    'CurrenySymbol' => $JwtData->GenSettings->CurrenySymbol ?? '₹',
+    'DecimalPoints' => (int)($JwtData->GenSettings->DecimalPoints ?? 2),
+]); ?>;
+var _rawEmailTemplate = <?php echo json_encode($CommEmailTemplate ?? null); ?>;
+var _r2CdnBase        = <?php echo json_encode(rtrim(getenv('CFLARE_R2_CDN') ?: getenv('CDN_URL'), '/')); ?>;
+
 const ModuleId     = 102;
 const ModuleTable  = '#soTable';
 const ModulePag    = '.soPagination';
@@ -184,6 +267,38 @@ $(function () {
 
     Filter['Status'] = 'All';
     initExport({ moduleUID: 102, getFilters: function () { return Filter; } });
+
+    // ── Filter bar ──────────────────────────────────────────────────────
+    var tfb = (typeof TransFilterBar !== 'undefined')
+        ? new TransFilterBar({ onChange: function () { PageNo = 1; getSalesOrdersDetails(); } })
+        : null;
+
+    var soCreatedByFilter = (document.getElementById('soCreatedByFilterBox'))
+        ? new TransColFilter({
+            boxId     : 'soCreatedByFilterBox',
+            triggerId : 'soCreatedByFilter',
+            filterKey : 'UpdatedByUIDs',
+            onApply   : function () { PageNo = 1; getSalesOrdersDetails(); }
+        })
+        : null;
+
+    var soPartyFilter = new TransPartyColFilter({
+        boxId     : 'soPartyFilterBox',
+        triggerId : 'soPartyFilterTrigger',
+        partyType : 'customer',
+        filterKey : 'PartyUID',
+        onApply   : function () { PageNo = 1; getSalesOrdersDetails(); }
+    });
+
+    var _origGetSalesOrdersDetails = getSalesOrdersDetails;
+    getSalesOrdersDetails = function (pageNo, rowLimit, filter) {
+        var f = $.extend({}, filter || Filter,
+            tfb               ? tfb.getState()               : {},
+            soCreatedByFilter ? soCreatedByFilter.getState() : {},
+            soPartyFilter     ? soPartyFilter.getState()     : {}
+        );
+        _origGetSalesOrdersDetails(pageNo, rowLimit, f);
+    };
 
     // ── Sticky pagination ──
     var $soStaticPag = $('#soPagination');
@@ -279,7 +394,8 @@ $(function () {
         $(ModuleTable + ' tbody').html(resp.RecordHtmlData);
         $(ModulePag).html(resp.Pagination);
         var count = resp.TotalCount || 0;
-        $('.so-status-tab.active .trans-tab-count').text(count > 0 ? count : '').removeClass('d-none');
+        var $soBadge = $('.so-status-tab.active .trans-tab-count');
+        if (count > 0) { $soBadge.text(count).removeClass('d-none'); } else { $soBadge.text('').addClass('d-none'); }
         initTooltips();
     }
 

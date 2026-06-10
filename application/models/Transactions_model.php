@@ -29,7 +29,7 @@ class Transactions_model extends CI_Model {
                     $this->ReadDb->join('Vendors.VendorTbl as Vend',     "Vend.VendorUID   = Ts.PartyUID AND Ts.PartyType = 'S'", 'LEFT');
                 }
                 $this->ReadDb->where(['Ts.IsDeleted' => 0, 'Ts.IsActive' => 1, 'Ts.ModuleUID' => $ModuleUID]);
-                $this->applyFilters($filter);
+                $this->applyFilters($filter, true);
                 return (int) $this->ReadDb->count_all_results();
             }
             // ─────────────────────────────────────────────────────────────────────
@@ -170,7 +170,7 @@ class Transactions_model extends CI_Model {
      * 'All' (or empty) excludes Draft.
      * Any other tab filters to a specific DocStatus.
      */
-    private function applyFilters($filter) {
+    private function applyFilters($filter, $isCountQuery = false) {
 
         if (empty($filter)) {
             $this->ReadDb->where_not_in('Ts.DocStatus', ['Draft', 'Rejected', 'Cancelled']);
@@ -235,6 +235,49 @@ class Transactions_model extends CI_Model {
         }
         if (!empty($filter['MaxAmount'])) {
             $this->ReadDb->where('Ts.NetAmount <=', $filter['MaxAmount']);
+        }
+
+        // ── Filter bar filters ─────────────────────────────────────────────
+
+        if (!empty($filter['PaymentStatus'])) {
+            $ps = $filter['PaymentStatus'];
+            if ($ps === 'Paid') {
+                $this->ReadDb->where('Ts.DocStatus', 'Paid');
+            } elseif ($ps === 'Partially Paid') {
+                $this->ReadDb->where('Ts.DocStatus', 'Partial');
+            } elseif ($ps === 'Pending') {
+                $this->ReadDb->where_not_in('Ts.DocStatus', ['Paid', 'Partial', 'Draft', 'Cancelled', 'Rejected']);
+            }
+        }
+
+        if (!empty($filter['PaymentMode'])) {
+            // For count queries, PayInfo is not yet joined — add a minimal join here.
+            if ($isCountQuery) {
+                $this->ReadDb->join(
+                    "(SELECT P.TransUID, GROUP_CONCAT(PT.Name ORDER BY P.PaymentUID SEPARATOR ',') AS PaymentModes
+                      FROM Transaction.PaymentsTbl P
+                      JOIN Global.PaymentTypesTbl PT ON PT.PaymentTypeUID = P.PaymentTypeUID
+                      WHERE P.IsDeleted = 0 AND P.IsActive = 1
+                      GROUP BY P.TransUID) AS PayInfo",
+                    'PayInfo.TransUID = Ts.TransUID',
+                    'LEFT'
+                );
+            }
+            $safe = $this->ReadDb->escape_str($filter['PaymentMode']);
+            $this->ReadDb->where("FIND_IN_SET('" . $safe . "', IFNULL(PayInfo.PaymentModes, '')) > 0");
+        }
+
+        if (!empty($filter['PartyUID'])) {
+            $this->ReadDb->where('Ts.PartyUID', (int) $filter['PartyUID']);
+        }
+
+        if (!empty($filter['UpdatedBy'])) {
+            $this->ReadDb->where('Ts.UpdatedBy', (int) $filter['UpdatedBy']);
+        }
+
+        if (!empty($filter['UpdatedByUIDs']) && is_array($filter['UpdatedByUIDs'])) {
+            $uids = array_map('intval', $filter['UpdatedByUIDs']);
+            $this->ReadDb->where_in('Ts.UpdatedBy', $uids);
         }
 
     }
@@ -1003,9 +1046,11 @@ class Transactions_model extends CI_Model {
                 'P.PartyUID',
                 'P.ModuleUID',
                 'P.PartyType',
+                'P.PaymentDirection',
                 'P.Amount',
                 'P.IsFullyPaid',
                 'P.ExcessAmount',
+                'P.ReferenceNo',
                 'P.UniqueNumber as PaymentUniqueNumber',
                 'P.Notes',
                 'P.CreatedOn',
@@ -1024,6 +1069,8 @@ class Transactions_model extends CI_Model {
                 'BA.AccountName',
                 'BA.BankName',
                 'BA.AccountNumber',
+                'BA.IFSC',
+                'BA.BranchName',
                 "CONCAT(CrUser.FirstName, ' ', CrUser.LastName) AS CreatedByName",
             ]);
             $this->ReadDb->from('Transaction.PaymentsTbl AS P');
@@ -1036,9 +1083,13 @@ class Transactions_model extends CI_Model {
 
             $isCancelled = (!empty($filter['Status']) && $filter['Status'] === 'Cancelled');
             if ($isCancelled) {
-                $this->ReadDb->where(['P.OrgUID' => $orgUID, 'P.IsDeleted' => 1]);
+                $this->ReadDb->where('P.OrgUID', $orgUID);
+                $this->ReadDb->group_start();
+                    $this->ReadDb->where('P.IsCancelled', 1);
+                    $this->ReadDb->or_where('P.IsDeleted', 1);
+                $this->ReadDb->group_end();
             } else {
-                $this->ReadDb->where(['P.OrgUID' => $orgUID, 'P.IsDeleted' => 0, 'P.IsActive' => 1]);
+                $this->ReadDb->where(['P.OrgUID' => $orgUID, 'P.IsDeleted' => 0, 'P.IsActive' => 1, 'P.IsCancelled' => 0]);
             }
             if (!empty($filter['PaymentDirection'])) {
                 $this->ReadDb->where('P.PaymentDirection', $filter['PaymentDirection']);
@@ -1067,6 +1118,15 @@ class Transactions_model extends CI_Model {
                 $this->ReadDb->group_end();
             }
 
+            if (!empty($filter['UpdatedByUIDs']) && is_array($filter['UpdatedByUIDs'])) {
+                $uids = array_map('intval', $filter['UpdatedByUIDs']);
+                $this->ReadDb->where_in('P.CreatedBy', $uids);
+            }
+            if (!empty($filter['PaymentMode'])) {
+                $modes = is_array($filter['PaymentMode']) ? $filter['PaymentMode'] : [$filter['PaymentMode']];
+                $this->ReadDb->where_in('PT.Name', $modes);
+            }
+
             $this->ReadDb->order_by('P.PaymentUID', 'DESC');
             if ($limit > 0) {
                 $this->ReadDb->limit($limit, $offset);
@@ -1090,9 +1150,13 @@ class Transactions_model extends CI_Model {
 
             $isCancelled = (!empty($filter['Status']) && $filter['Status'] === 'Cancelled');
             if ($isCancelled) {
-                $this->ReadDb->where(['P.OrgUID' => $orgUID, 'P.IsDeleted' => 1]);
+                $this->ReadDb->where('P.OrgUID', $orgUID);
+                $this->ReadDb->group_start();
+                    $this->ReadDb->where('P.IsCancelled', 1);
+                    $this->ReadDb->or_where('P.IsDeleted', 1);
+                $this->ReadDb->group_end();
             } else {
-                $this->ReadDb->where(['P.OrgUID' => $orgUID, 'P.IsDeleted' => 0, 'P.IsActive' => 1]);
+                $this->ReadDb->where(['P.OrgUID' => $orgUID, 'P.IsDeleted' => 0, 'P.IsActive' => 1, 'P.IsCancelled' => 0]);
             }
             if (!empty($filter['PaymentDirection'])) {
                 $this->ReadDb->where('P.PaymentDirection', $filter['PaymentDirection']);
@@ -1122,6 +1186,16 @@ class Transactions_model extends CI_Model {
                 $this->ReadDb->or_like('CS2.Name', $s, 'both');
                 $this->ReadDb->or_like('VS2.Name', $s, 'both');
                 $this->ReadDb->group_end();
+            }
+
+            if (!empty($filter['UpdatedByUIDs']) && is_array($filter['UpdatedByUIDs'])) {
+                $uids = array_map('intval', $filter['UpdatedByUIDs']);
+                $this->ReadDb->where_in('P.CreatedBy', $uids);
+            }
+            if (!empty($filter['PaymentMode'])) {
+                $this->ReadDb->join('Global.PaymentTypesTbl AS PT2', 'PT2.PaymentTypeUID = P.PaymentTypeUID', 'LEFT');
+                $modes = is_array($filter['PaymentMode']) ? $filter['PaymentMode'] : [$filter['PaymentMode']];
+                $this->ReadDb->where_in('PT2.Name', $modes);
             }
 
             return $this->ReadDb->count_all_results();
@@ -1201,6 +1275,41 @@ class Transactions_model extends CI_Model {
 
         } catch (Exception $e) {
             return (object)['TotalReceived' => 0, 'TotalPaid' => 0];
+        }
+
+    }
+
+    public function getPaymentsBalanceStats($orgUID, $filter = []) {
+
+        try {
+
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select([
+                "SUM(CASE WHEN P.PaymentDirection = 'In'  AND PT.IsCash = 1 THEN P.Amount ELSE 0 END) AS CashIn",
+                "SUM(CASE WHEN P.PaymentDirection = 'Out' AND PT.IsCash = 1 THEN P.Amount ELSE 0 END) AS CashOut",
+                "SUM(CASE WHEN P.PaymentDirection = 'In'  AND PT.IsCash = 0 THEN P.Amount ELSE 0 END) AS BankIn",
+                "SUM(CASE WHEN P.PaymentDirection = 'Out' AND PT.IsCash = 0 THEN P.Amount ELSE 0 END) AS BankOut",
+            ]);
+            $this->ReadDb->from('Transaction.PaymentsTbl AS P');
+            $this->ReadDb->join('Global.PaymentTypesTbl AS PT', 'PT.PaymentTypeUID = P.PaymentTypeUID', 'LEFT');
+            $this->ReadDb->where(['P.OrgUID' => $orgUID, 'P.IsDeleted' => 0, 'P.IsActive' => 1]);
+
+            if (!empty($filter['DateFrom']))  $this->ReadDb->where('DATE(P.CreatedOn) >=', $filter['DateFrom']);
+            if (!empty($filter['DateTo']))    $this->ReadDb->where('DATE(P.CreatedOn) <=', $filter['DateTo']);
+            if (!empty($filter['PaymentMode'])) {
+                $modes = is_array($filter['PaymentMode']) ? $filter['PaymentMode'] : [$filter['PaymentMode']];
+                $this->ReadDb->where_in('PT.Name', $modes);
+            }
+            if (!empty($filter['UpdatedByUIDs']) && is_array($filter['UpdatedByUIDs'])) {
+                $this->ReadDb->where_in('P.CreatedBy', array_map('intval', $filter['UpdatedByUIDs']));
+            }
+
+            $query = $this->ReadDb->get();
+            if (!$query) return (object)['CashIn' => 0, 'CashOut' => 0, 'BankIn' => 0, 'BankOut' => 0];
+            return $query->row() ?: (object)['CashIn' => 0, 'CashOut' => 0, 'BankIn' => 0, 'BankOut' => 0];
+
+        } catch (Exception $e) {
+            return (object)['CashIn' => 0, 'CashOut' => 0, 'BankIn' => 0, 'BankOut' => 0];
         }
 
     }

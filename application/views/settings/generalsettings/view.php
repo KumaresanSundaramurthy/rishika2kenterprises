@@ -442,7 +442,8 @@
                                             <!-- Sub-Tab: General (T&C) -->
                                             <?php
                                             $tgs = $TransGenSettings ?? new stdClass();
-                                            $tgsTerms = htmlspecialchars($tgs->TermsAndConditions ?? '', ENT_QUOTES);
+                                            $tgsTerms       = htmlspecialchars($tgs->TermsAndConditions ?? '', ENT_QUOTES);
+                                            $tgsHideNav     = !empty($tgs->HideNavOnTransForm) ? (int)$tgs->HideNavOnTransForm : 0;
                                             ?>
                                             <div class="tab-pane fade show active" id="tab-txn-general" role="tabpanel" aria-labelledby="tab-txn-general-tab">
 
@@ -450,6 +451,24 @@
                                                 <p class="text-muted small mb-4">Configure default content that applies across all transaction types.</p>
 
                                                 <div class="row g-3">
+
+                                                    <div class="col-12">
+                                                        <label class="form-label fw-semibold">Transaction Form Navigation</label>
+                                                        <div class="d-flex align-items-center gap-3 p-3 border rounded">
+                                                            <div class="form-check form-switch mb-0">
+                                                                <input class="form-check-input" type="checkbox"
+                                                                       id="txn_HideNavOnTransForm" name="HideNavOnTransForm"
+                                                                       value="1" <?php echo $tgsHideNav ? 'checked' : ''; ?>>
+                                                            </div>
+                                                            <div>
+                                                                <label class="form-check-label fw-semibold mb-0" for="txn_HideNavOnTransForm">
+                                                                    Hide sidebar &amp; show Back button
+                                                                </label>
+                                                                <div class="form-text mt-0">When enabled, hides the sidebar navigation and adds a Back button on all transaction create / edit pages.</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
                                                     <div class="col-12">
                                                         <label class="form-label fw-semibold" for="txn_TermsAndConditions">Terms &amp; Conditions</label>
                                                         <textarea class="form-control" id="txn_TermsAndConditions" name="TermsAndConditions"
@@ -689,6 +708,7 @@ $(document).ready(function () {
             method : 'POST',
             data   : {
                 TermsAndConditions : $('#txn_TermsAndConditions').val(),
+                HideNavOnTransForm : $('#txn_HideNavOnTransForm').is(':checked') ? 1 : 0,
                 [CsrfName]         : CsrfToken,
             },
             success: function (resp) {

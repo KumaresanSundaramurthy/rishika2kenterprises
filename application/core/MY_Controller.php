@@ -288,6 +288,19 @@ tr:nth-child(even) td{background:#f8fafc;}
     }
 
 
+    // ── Upstash client config ────────────────────────────────────────────────
+    // Sets UpstashReadUrl, UpstashReadToken, CustomerCacheKey, VendorCacheKey
+    // in pageData so every transaction list view has the JS vars it needs.
+    // Prefers the read-only token; falls back to the main token if not set.
+    protected function _loadUpstashConfig() {
+        $this->pageData['UpstashReadUrl']   = rtrim(getenv('UPSTASH_REDIS_REST_URL') ?: '', '/');
+        $this->pageData['UpstashReadToken'] = getenv('UPSTASH_REDIS_REST_READONLY_TOKEN')
+                                            ?: getenv('UPSTASH_REDIS_REST_TOKEN')
+                                            ?: '';
+        $this->pageData['CustomerCacheKey'] = $this->redisservice->orgKey('customers');
+        $this->pageData['VendorCacheKey']   = $this->redisservice->orgKey('vendors');
+    }
+
     // ── Cache guard ─────────────────────────────────────────────────────────
     // Returns the cached value if present, otherwise renders the cache-refresh
     // error page and returns null so the caller can do: if (!$v) return;
@@ -460,6 +473,108 @@ tr:nth-child(even) td{background:#f8fafc;}
             if ($amt > 0) $charges[] = ['type' => $type, 'amount' => $amt, 'tax' => $tax];
         }
         return !empty($charges) ? json_encode($charges) : NULL;
+    }
+
+    // ── Date filter preference helper ─────────────────────────────────────────
+
+    /**
+     * Reads the saved date filter preference for a page from user_preferences,
+     * falling back to $default ('this_month') if none is saved.
+     *
+     * Returns: ['range'=>string, 'from'=>string, 'to'=>string, 'label'=>string]
+     */
+    protected function getDateFilterPreference($pageKey, $default = 'this_month') {
+        $jwtData   = $this->pageData['JwtData'] ?? null;
+        $orgUID    = (int)($jwtData->Org->OrgUID    ?? 0);
+        $branchUID = (int)($jwtData->Org->BranchUID ?? 0);
+        $userUID   = (int)($jwtData->User->UserUID  ?? 0);
+
+        $range = $default;
+        if ($orgUID && $userUID) {
+            $this->load->model('UserPreferences_model');
+            $saved = $this->UserPreferences_model->getUserPreference(
+                $orgUID, $branchUID, $userUID, 'df_' . $pageKey
+            );
+            if ($saved !== null && $saved !== '') $range = $saved;
+        }
+
+        $result = $this->_buildDateRange($range);
+        $this->pageData['SavedDateFrom'] = $result['from'];
+        $this->pageData['SavedDateTo']   = $result['to'];
+
+        $fmt = $jwtData->GenSettings->ListDateFormat ?? 'd M Y';
+        $this->pageData['SavedDateFromDisplay'] = $result['from'] ? date($fmt, strtotime($result['from'])) : '';
+        $this->pageData['SavedDateToDisplay']   = $result['to']   ? date($fmt, strtotime($result['to']))   : '';
+
+        return $result;
+    }
+
+    protected function _buildDateRange($range) {
+        $today = date('Y-m-d');
+        $y     = (int)date('Y');
+        $m     = (int)date('m');
+        $from  = '';
+        $to    = $today;
+        $label = 'This Month';
+
+        switch ($range) {
+            case 'today':
+                $from = $to = $today; $label = 'Today'; break;
+            case 'yesterday':
+                $d = date('Y-m-d', strtotime('-1 day'));
+                $from = $to = $d; $label = 'Yesterday'; break;
+            case 'this_week':
+                $dow = (int)date('w');
+                $from = date('Y-m-d', strtotime('-' . $dow . ' days')); $label = 'This Week'; break;
+            case 'last_week':
+                $dow  = (int)date('w');
+                $from = date('Y-m-d', strtotime('-' . ($dow + 7) . ' days'));
+                $to   = date('Y-m-d', strtotime('-' . ($dow + 1) . ' days'));
+                $label = 'Last Week'; break;
+            case 'last_7_days':
+                $from = date('Y-m-d', strtotime('-6 days')); $label = 'Last 7 Days'; break;
+            case 'this_month':
+            default:
+                $from = date('Y-m-01'); $label = 'This Month'; $range = 'this_month'; break;
+            case 'previous_month':
+                $from  = date('Y-m-01', strtotime('first day of last month'));
+                $to    = date('Y-m-t',  strtotime('last month'));
+                $label = 'Previous Month'; break;
+            case 'last_30_days':
+                $from = date('Y-m-d', strtotime('-29 days')); $label = 'Last 30 Days'; break;
+            case 'this_quarter':
+                $qStart = (int)(floor(($m - 1) / 3) * 3) + 1;
+                $from   = $y . '-' . str_pad($qStart, 2, '0', STR_PAD_LEFT) . '-01';
+                $label  = 'This Quarter'; break;
+            case 'previous_quarter':
+                $pqStart = (int)(floor(($m - 1) / 3) * 3) - 3;
+                $pqYear  = $y;
+                if ($pqStart < 1) { $pqStart += 12; $pqYear--; }
+                $from   = $pqYear . '-' . str_pad($pqStart, 2, '0', STR_PAD_LEFT) . '-01';
+                $to     = date('Y-m-t', strtotime($from . ' +2 months'));
+                $label  = 'Previous Quarter'; break;
+            case 'this_year':
+                $from = $y . '-01-01'; $label = 'This Year'; break;
+            case 'last_year':
+                $from = ($y - 1) . '-01-01'; $to = ($y - 1) . '-12-31'; $label = 'Last Year'; break;
+            case 'last_365_days':
+                $from = date('Y-m-d', strtotime('-364 days')); $label = 'Last 365 Days'; break;
+            case 'current_fy':
+                $fyYear = ($m >= 4) ? $y : $y - 1;
+                $from   = $fyYear . '-04-01';
+                $to     = ($fyYear + 1) . '-03-31';
+                $label  = 'Current FY'; break;
+            case 'previous_fy':
+                $fyYear = (($m >= 4) ? $y : $y - 1) - 1;
+                $from   = $fyYear . '-04-01';
+                $to     = ($fyYear + 1) . '-03-31';
+                $label  = 'Previous FY'; break;
+            case '':
+            case 'all':
+                $from = ''; $to = ''; $label = 'All Dates'; $range = ''; break;
+        }
+
+        return ['range' => $range, 'from' => $from, 'to' => $to, 'label' => $label];
     }
 
 }

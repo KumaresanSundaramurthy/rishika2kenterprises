@@ -4,7 +4,6 @@
 $cur = $JwtData->GenSettings->CurrenySymbol ?? '₹';
 $dec = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
 
-// Org info for message formatting
 $orgName   = $OrgInfo->BrandName ?? $OrgInfo->Name ?? '';
 $orgMobile = $OrgInfo->MobileNumber ?? '';
 $appUrl    = rtrim(getenv('HTTP_HOST_URL') ?: '', '/');
@@ -19,76 +18,54 @@ $modeColors = [
     'tds'         => ['bg' => '#f3e5f5', 'color' => '#6a1b9a'],
 ];
 
-function pmtModeBadge($name, $modeColors) {
-    $key   = strtolower(trim($name ?? ''));
-    $style = isset($modeColors[$key])
-        ? 'background:' . $modeColors[$key]['bg'] . ';color:' . $modeColors[$key]['color'] . ';'
-        : 'background:#f0f0f0;color:#555;';
-    return '<span class="pmt-mode-badge" style="' . $style . '">' . htmlspecialchars($name ?? '—') . '</span>';
+if (!function_exists('_allPmtModeBadge')) {
+    function _allPmtModeBadge($name, $modeColors) {
+        $key   = strtolower(trim($name ?? ''));
+        $style = isset($modeColors[$key])
+            ? 'background:' . $modeColors[$key]['bg'] . ';color:' . $modeColors[$key]['color'] . ';'
+            : 'background:#f0f0f0;color:#555;';
+        return '<span class="pmt-mode-badge" style="' . $style . '">' . htmlspecialchars($name ?? '—') . '</span>';
+    }
 }
 ?>
-
-<style>
-/* Contact icon strip — hidden by default, shown on row hover */
-.pmt-row .pmt-contact-icons {
-    display: none;
-    position: absolute;
-    right: 0;
-    top: 0;
-    bottom: 0;
-    align-items: center;
-    gap: 4px;
-    padding: 0 8px;
-    background: linear-gradient(to right, transparent, #f0f4ff 30%);
-}
-.pmt-row:hover .pmt-contact-icons { display: flex; }
-.pmt-contact-icons a,
-.pmt-contact-icons button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    font-size: 1.3rem;
-    text-decoration: none;
-    transition: transform .12s;
-    flex-shrink: 0;
-    border: none;
-    cursor: pointer;
-    background: transparent;
-    padding: 0;
-}
-.pmt-contact-icons a:hover,
-.pmt-contact-icons button:hover { transform: scale(1.18); }
-.pmt-contact-icons a.wa,
-.pmt-contact-icons button.wa  { color: #25d366; background: rgba(37,211,102,0.15); }
-.pmt-contact-icons a.sms,
-.pmt-contact-icons button.sms { color: #0097a7; background: rgba(0,151,167,0.15); }
-.pmt-contact-icons a.em,
-.pmt-contact-icons button.em  { color: #1565c0; background: rgba(21,101,192,0.15); }
-.pmt-party-td { position: relative; }
-</style>
 
 <?php if (!empty($DataLists)): ?>
     <?php foreach ($DataLists as $row): ?>
     <?php
-        $words    = preg_split('/\s+/', trim($row->PartyName ?? ''));
-        $initials = strtoupper(substr($words[0] ?? '', 0, 1));
+        $isIn  = ($row->PaymentDirection ?? 'In') === 'In';
+
+        // Type badge appearance
+        $typeBg    = $isIn ? '#dcfce7' : '#fee2e2';
+        $typeColor = $isIn ? '#15803d' : '#dc2626';
+        $typeLabel = $isIn ? 'IN'      : 'OUT';
+        $typeIcon  = $isIn ? 'bx-up-arrow-alt'  : 'bx-down-arrow-alt';
+
+        // Amount color
+        $amtClass  = $isIn ? 'text-success' : 'text-danger';
+
+        // Avatar
+        $words       = preg_split('/\s+/', trim($row->PartyName ?? ''));
+        $initials    = strtoupper(substr($words[0] ?? '', 0, 1));
         if (!empty($words[1])) $initials .= strtoupper(substr($words[1], 0, 1));
-        $avatarColors = ['#4f46e5','#0891b2','#059669','#d97706','#db2777','#7c3aed'];
+
+        $avatarColors = $isIn
+            ? ['#4f46e5','#0891b2','#059669','#d97706','#db2777','#7c3aed']
+            : ['#f57c00','#e53935','#8e24aa','#d81b60','#6d4c41','#00838f'];
         $avatarColor  = $avatarColors[crc32($row->PartyName ?? '') % count($avatarColors)];
 
-        $createdTs     = strtotime($row->CreatedOn);
-        $diffSec       = time() - $createdTs;
-        $showAgo       = ($diffSec >= 0 && $diffSec < 86400);
-        $agoText       = '';
+        // Date + ago
+        $createdTs   = strtotime($row->CreatedOn);
+        $diffSec     = time() - $createdTs;
+        $showAgo     = ($diffSec >= 0 && $diffSec < 86400);
+        $agoText     = '';
         if ($showAgo) {
             $mins = (int)floor($diffSec / 60);
             $agoText = $mins < 60 ? $mins . 'm ago' : (int)floor($mins / 60) . 'h ago';
         }
-        $dateFormatted = date('d M Y, h:i A', $createdTs);
+        $dateFormatted = date('d M Y', $createdTs);
+        $timeFormatted = date('h:i A', $createdTs);
 
+        // Party contact
         $countryCode = trim($row->PartyCountryCode ?? '');
         $mobileNum   = trim($row->PartyMobile ?? '');
         $fullMobile  = ($countryCode && $countryCode !== '+91' && $countryCode !== '91'
@@ -97,31 +74,38 @@ function pmtModeBadge($name, $modeColors) {
 
         $partyEmail  = trim($row->PartyEmail ?? '');
         $waNum       = $fullMobile ? preg_replace('/[^0-9]/', '', $fullMobile) : '';
-        $smsNum      = $fullMobile ? preg_replace('/[^0-9+]/', '', $fullMobile) : '';
 
-        $transType   = ($row->PartyType === 'C') ? 'invoice' : 'purchase';
-        $transModule = ($row->PartyType === 'C') ? 103 : 105;
+        // Party type badge — only shown when PartyType is explicitly set
+        $hasParty     = !empty($row->PartyType);
+        $partyIsCust  = ($row->PartyType === 'C');
+        $partyTypeBg  = $partyIsCust ? '#dbeafe' : '#fef9c3';
+        $partyTypeClr = $partyIsCust ? '#1d4ed8' : '#854d0e';
+        $partyTypeTxt = $partyIsCust ? 'Customer' : 'Vendor';
+
+        // Linked document
+        $transModule = $partyIsCust ? 103 : 105;
+        $transType   = $partyIsCust ? 'invoice' : 'purchase';
+
+        // Receipt
         $receiptToken = trim($row->ReceiptToken ?? '');
         $receiptUrl   = $receiptToken ? $appUrl . '/receipt/' . $receiptToken : '';
 
-        // Format the WhatsApp / SMS message
-        $partyFirstName = trim(explode(' ', trim($row->PartyName ?? ''))[0]);
-        $amtFormatted   = $cur . ' ' . number_format((float)$row->Amount, $dec, '.', ',');
-        $payStatus      = $row->IsFullyPaid ? 'Paid' : 'Partially Paid';
-        $receiptNum     = $row->PaymentUniqueNumber ?? '';
-
-        $shareMsg = "Hello *{$row->PartyName}*,\n\n"
-                  . "Thanks for your business!\n\n"
-                  . ($receiptNum  ? "*Receipt: {$receiptNum}*\n" : '')
-                  . "*Total: {$amtFormatted}*\n"
-                  . "*Payment Status: {$payStatus}*\n"
-                  . ($receiptUrl  ? "*Link:* {$receiptUrl}\n" : '')
-                  . "\nThanks\n"
-                  . "*{$orgName}*\n"
-                  . ($orgMobile   ? "*{$orgMobile}*" : '');
+        // WhatsApp message
+        $amtFormatted = $cur . ' ' . number_format((float)$row->Amount, $dec, '.', ',');
+        $payStatus    = ($row->IsFullyPaid ?? 0) ? 'Paid' : ($isIn ? 'Partially Paid' : 'Partial');
+        $receiptNum   = $row->PaymentUniqueNumber ?? '';
+        $shareMsg     = "Hello *{$row->PartyName}*,\n\n"
+                      . ($isIn ? "Thanks for your payment!\n\n" : "Payment confirmation:\n\n")
+                      . ($receiptNum ? "*Ref: {$receiptNum}*\n" : '')
+                      . "*Amount: {$amtFormatted}*\n"
+                      . "*Status: {$payStatus}*\n"
+                      . ($receiptUrl ? "*Link:* {$receiptUrl}\n" : '')
+                      . "\nThanks,\n*{$orgName}*"
+                      . ($orgMobile ? "\n*{$orgMobile}*" : '');
     ?>
     <tr class="pmt-row"
         data-uid="<?php echo (int)$row->PaymentUID; ?>"
+        data-direction="<?php echo htmlspecialchars($row->PaymentDirection ?? 'In'); ?>"
         data-unique-number="<?php echo htmlspecialchars($row->PaymentUniqueNumber ?? ''); ?>"
         data-trans-uid="<?php echo (int)($row->TransUID ?? 0); ?>"
         data-trans-module="<?php echo $transModule; ?>"
@@ -129,9 +113,9 @@ function pmtModeBadge($name, $modeColors) {
         data-trans-number="<?php echo htmlspecialchars($row->TransNumber ?? ''); ?>"
         data-amount="<?php echo number_format((float)$row->Amount, $dec, '.', ','); ?>"
         data-raw-amount="<?php echo (float)$row->Amount; ?>"
-        data-payment-date="<?php echo htmlspecialchars($row->PaymentDate ?? $row->CreatedOn ?? ''); ?>"
+        data-payment-date="<?php echo htmlspecialchars($row->CreatedOn ?? ''); ?>"
         data-payment-type="<?php echo htmlspecialchars($row->PaymentTypeName ?? ''); ?>"
-        data-is-cash="<?php echo (int)$row->IsCash; ?>"
+        data-is-cash="<?php echo (int)($row->IsCash ?? 0); ?>"
         data-party-uid="<?php echo (int)($row->PartyUID ?? 0); ?>"
         data-party-type="<?php echo htmlspecialchars($row->PartyType ?? 'C'); ?>"
         data-party-name="<?php echo htmlspecialchars($row->PartyName ?? ''); ?>"
@@ -146,88 +130,104 @@ function pmtModeBadge($name, $modeColors) {
         data-ifsc="<?php echo htmlspecialchars($row->IFSC ?? ''); ?>"
         data-branch="<?php echo htmlspecialchars($row->BranchName ?? ''); ?>">
 
-        <!-- Ref No -->
+        <!-- Date / Ref No -->
         <td class="ps-3">
+            <div class="text-muted" style="font-size:.72rem;"><?php echo $dateFormatted; ?></div>
             <?php if (!empty($row->PaymentUniqueNumber)): ?>
-                <a href="javascript:void(0);" class="trans-doc-number viewPaymentDetail">
+                <a href="javascript:void(0);" class="trans-doc-number viewPaymentDetail"
+                   style="font-size:.82rem;">
                     <?php echo htmlspecialchars($row->PaymentUniqueNumber); ?>
                 </a>
             <?php else: ?>
-                <span class="text-muted">—</span>
+                <span class="text-muted" style="font-size:.8rem;">—</span>
             <?php endif; ?>
+            <div class="text-muted" style="font-size:.68rem;"><?php echo $timeFormatted; ?></div>
+        </td>
+
+        <!-- Type badge -->
+        <td>
+            <span style="display:inline-flex;align-items:center;gap:2px;font-size:.68rem;font-weight:700;
+                         padding:3px 7px;border-radius:10px;
+                         background:<?php echo $typeBg; ?>;color:<?php echo $typeColor; ?>;">
+                <i class="bx <?php echo $typeIcon; ?>" style="font-size:.8rem;"></i>
+                <?php echo $typeLabel; ?>
+            </span>
         </td>
 
         <!-- Amount -->
-        <td class="ps-3">
-            <div class="fw-semibold text-dark" style="font-size:.88rem;">
-                <?php echo htmlspecialchars($cur); ?> <?php echo number_format((float)$row->Amount, $dec, '.', ','); ?>
+        <td>
+            <div class="fw-semibold <?php echo $amtClass; ?>" style="font-size:.88rem;">
+                <?php echo htmlspecialchars($cur); ?>
+                <?php echo number_format((float)$row->Amount, $dec, '.', ','); ?>
             </div>
             <?php if (!empty($row->IsOnAccount)): ?>
-                <div style="margin-top:3px;">
-                    <span style="font-size:.68rem;font-weight:600;padding:2px 7px;border-radius:10px;background:#fff3cd;color:#856404;border:1px solid #ffc107;">
-                        On Account
-                    </span>
+                <span style="font-size:.65rem;font-weight:600;padding:1px 6px;border-radius:8px;
+                             background:#fff3cd;color:#856404;border:1px solid #ffc107;">On Account</span>
+            <?php elseif (($row->ExcessAmount ?? 0) > 0): ?>
+                <div style="font-size:.7rem;color:#f59e0b;">
+                    Excess: <?php echo htmlspecialchars($cur); ?> <?php echo number_format((float)$row->ExcessAmount, $dec); ?>
                 </div>
-            <?php elseif ($row->ExcessAmount > 0): ?>
-                <div style="font-size:.7rem;color:#f59e0b;">Excess: <?php echo htmlspecialchars($cur); ?> <?php echo number_format((float)$row->ExcessAmount, $dec); ?></div>
+            <?php endif; ?>
+            <?php if (!empty($row->ReferenceNo)): ?>
+                <div class="text-muted" style="font-size:.68rem;font-family:monospace;">
+                    <?php echo htmlspecialchars($row->ReferenceNo); ?>
+                </div>
             <?php endif; ?>
         </td>
 
         <!-- Mode + Bank -->
         <td>
-            <?php echo pmtModeBadge($row->PaymentTypeName, $modeColors); ?>
-            <?php if (!$row->IsCash && !empty($row->BankName)): ?>
-                <div style="font-size:.76rem;font-weight:500;color:#444;margin-top:4px;"><?php echo htmlspecialchars($row->BankName); ?></div>
+            <?php echo _allPmtModeBadge($row->PaymentTypeName, $modeColors); ?>
+            <?php if (!($row->IsCash ?? 0) && !empty($row->BankName)): ?>
+                <div style="font-size:.76rem;font-weight:500;color:#444;margin-top:3px;">
+                    <?php echo htmlspecialchars($row->BankName); ?>
+                </div>
                 <?php if (!empty($row->AccountNumber)): ?>
-                    <div class="text-muted" style="font-size:.68rem;font-family:monospace;"><?php echo htmlspecialchars($row->AccountNumber); ?></div>
+                    <div class="text-muted" style="font-size:.68rem;font-family:monospace;">
+                        <?php echo htmlspecialchars($row->AccountNumber); ?>
+                    </div>
                 <?php endif; ?>
             <?php endif; ?>
         </td>
 
-        <!-- Linked Document -->
-        <td>
-            <?php if (!empty($row->TransNumber)): ?>
-                <a href="javascript:void(0);" class="trans-doc-number viewTransaction"
-                   data-uid="<?php echo (int)($row->TransUID ?? 0); ?>"
-                   data-module="<?php echo $transModule; ?>"
-                   data-type="<?php echo $transType; ?>"
-                   data-number="<?php echo htmlspecialchars($row->TransNumber); ?>"
-                   data-date=""
-                   data-status="">
-                    <?php echo htmlspecialchars($row->TransNumber); ?>
-                </a>
-            <?php else: ?>
-                <span class="text-muted">—</span>
-            <?php endif; ?>
-        </td>
-
-        <!-- Party Name + Contact icons (hover overlay) -->
+        <!-- Party -->
         <td class="pmt-party-td">
             <div class="d-flex align-items-center gap-2">
                 <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
-                     style="width:30px;height:30px;background:<?php echo $avatarColor; ?>1a;color:<?php echo $avatarColor; ?>;font-size:.7rem;font-weight:700;">
+                     style="width:30px;height:30px;background:<?php echo $avatarColor; ?>1a;color:<?php echo $avatarColor; ?>;
+                            font-size:.7rem;font-weight:700;">
                     <?php echo $initials ?: '?'; ?>
                 </div>
                 <div>
                     <div style="font-size:.82rem;font-weight:600;"><?php echo htmlspecialchars($row->PartyName ?? '—'); ?></div>
+                    <?php if ($hasParty): ?>
+                    <span style="font-size:.62rem;font-weight:600;padding:1px 5px;border-radius:6px;
+                                 background:<?php echo $partyTypeBg; ?>;color:<?php echo $partyTypeClr; ?>;">
+                        <?php echo $partyTypeTxt; ?>
+                    </span>
+                    <?php endif; ?>
                     <?php if (!empty($row->PartyArea)): ?>
-                    <div style="font-size:.7rem;color:#888;margin-top:1px;">
-                        <i class="bx bx-map" style="font-size:.72rem;"></i> <?php echo htmlspecialchars($row->PartyArea); ?>
-                    </div>
+                        <div style="font-size:.68rem;color:#888;margin-top:1px;">
+                            <i class="bx bx-map" style="font-size:.7rem;"></i>
+                            <?php echo htmlspecialchars($row->PartyArea); ?>
+                        </div>
                     <?php endif; ?>
                     <?php if ($fullMobile): ?>
-                    <div style="font-size:.72rem;color:#666;margin-top:1px;"><?php echo htmlspecialchars($fullMobile); ?></div>
+                        <div style="font-size:.68rem;color:#666;"><?php echo htmlspecialchars($fullMobile); ?></div>
                     <?php endif; ?>
                 </div>
             </div>
-            <!-- Icon strip: shown on row hover, absolutely overlaid on right -->
+            <!-- Contact hover icons -->
             <?php if ($fullMobile || $partyEmail): ?>
             <div class="pmt-contact-icons">
                 <?php if ($fullMobile): ?>
-                <a href="javascript:void(0)" data-wa-url="https://wa.me/<?php echo $waNum; ?>?text=<?php echo rawurlencode($shareMsg); ?>" target="_blank" class="wa pmt-wa-link" title="WhatsApp"><i class="bx bxl-whatsapp"></i></a>
+                <a href="javascript:void(0)" class="wa pmt-wa-link" title="WhatsApp"
+                   data-wa-url="https://wa.me/<?php echo $waNum; ?>?text=<?php echo rawurlencode($shareMsg); ?>">
+                    <i class="bx bxl-whatsapp"></i>
+                </a>
                 <button class="comm-send-single sms" title="Send SMS"
                     data-commtype="SMS"
-                    data-recipienttype="<?php echo $row->PartyType === 'C' ? 'Customer' : 'Vendor'; ?>"
+                    data-recipienttype="<?php echo $partyIsCust ? 'Customer' : 'Vendor'; ?>"
                     data-uid="<?php echo (int)($row->PartyUID ?? 0); ?>"
                     data-name="<?php echo htmlspecialchars($row->PartyName ?? ''); ?>"
                     data-mobile="<?php echo htmlspecialchars($mobileNum); ?>"
@@ -239,7 +239,7 @@ function pmtModeBadge($name, $modeColors) {
                 <?php if ($partyEmail): ?>
                 <button class="comm-send-single em" title="Send Email"
                     data-commtype="Email"
-                    data-recipienttype="<?php echo $row->PartyType === 'C' ? 'Customer' : 'Vendor'; ?>"
+                    data-recipienttype="<?php echo $partyIsCust ? 'Customer' : 'Vendor'; ?>"
                     data-uid="<?php echo (int)($row->PartyUID ?? 0); ?>"
                     data-name="<?php echo htmlspecialchars($row->PartyName ?? ''); ?>"
                     data-mobile="<?php echo htmlspecialchars($mobileNum); ?>"
@@ -251,7 +251,7 @@ function pmtModeBadge($name, $modeColors) {
                         'Amount'        => (float)$row->Amount,
                         'ReceiptNumber' => $row->PaymentUniqueNumber ?? '',
                         'PaymentMode'   => $row->PaymentTypeName ?? '',
-                        'PaymentStatus' => $row->IsFullyPaid ? 'Paid' : 'Partially Paid',
+                        'PaymentStatus' => ($row->IsFullyPaid ?? 0) ? 'Paid' : 'Partial',
                         'ReceiptLink'   => $receiptUrl,
                     ]), ENT_QUOTES); ?>'>
                     <i class="bx bx-envelope"></i>
@@ -261,12 +261,32 @@ function pmtModeBadge($name, $modeColors) {
             <?php endif; ?>
         </td>
 
+        <!-- Linked Document -->
+        <td>
+            <?php if (!empty($row->TransNumber)): ?>
+                <a href="javascript:void(0);" class="trans-doc-number viewTransaction"
+                   data-uid="<?php echo (int)($row->TransUID ?? 0); ?>"
+                   data-module="<?php echo $transModule; ?>"
+                   data-type="<?php echo $transType; ?>"
+                   data-number="<?php echo htmlspecialchars($row->TransNumber); ?>"
+                   data-date="" data-status="">
+                    <?php echo htmlspecialchars($row->TransNumber); ?>
+                </a>
+                <div class="text-muted" style="font-size:.7rem;">
+                    <?php echo $partyIsCust ? 'Invoice' : 'Purchase'; ?>
+                </div>
+            <?php else: ?>
+                <span class="text-muted">—</span>
+            <?php endif; ?>
+        </td>
+
         <!-- Created By + Date -->
         <td>
-            <div style="font-size:.82rem;font-weight:500;"><?php echo htmlspecialchars($row->CreatedByName ?? '—'); ?></div>
-            <div class="text-muted" style="font-size:.72rem;"><?php echo $dateFormatted; ?></div>
+            <div style="font-size:.82rem;font-weight:500;">
+                <?php echo htmlspecialchars($row->CreatedByName ?? '—'); ?>
+            </div>
             <?php if ($showAgo && $agoText): ?>
-                <div style="font-size:.68rem;color:#0d6efd;font-weight:500;"><?php echo $agoText; ?></div>
+                <div style="font-size:.68rem;color:#4f46e5;font-weight:500;"><?php echo $agoText; ?></div>
             <?php endif; ?>
         </td>
 
@@ -302,8 +322,7 @@ function pmtModeBadge($name, $modeColors) {
                     <li><hr class="dropdown-divider my-1"></li>
                     <?php if ($fullMobile): ?>
                     <li>
-                        <a class="dropdown-item pmt-wa-link"
-                           href="javascript:void(0)"
+                        <a class="dropdown-item pmt-wa-link" href="javascript:void(0)"
                            data-wa-url="https://wa.me/<?php echo $waNum; ?>?text=<?php echo rawurlencode($shareMsg); ?>"
                            style="color:#25d366;">
                             <i class="bx bxl-whatsapp me-2"></i>Share via WhatsApp
@@ -312,7 +331,7 @@ function pmtModeBadge($name, $modeColors) {
                     <li>
                         <button class="dropdown-item comm-send-single"
                                 data-commtype="SMS"
-                                data-recipienttype="<?php echo $row->PartyType === 'C' ? 'Customer' : 'Vendor'; ?>"
+                                data-recipienttype="<?php echo $partyIsCust ? 'Customer' : 'Vendor'; ?>"
                                 data-uid="<?php echo (int)($row->PartyUID ?? 0); ?>"
                                 data-name="<?php echo htmlspecialchars($row->PartyName ?? ''); ?>"
                                 data-mobile="<?php echo htmlspecialchars($mobileNum); ?>"
@@ -327,7 +346,7 @@ function pmtModeBadge($name, $modeColors) {
                     <li>
                         <button class="dropdown-item comm-send-single"
                                 data-commtype="Email"
-                                data-recipienttype="<?php echo $row->PartyType === 'C' ? 'Customer' : 'Vendor'; ?>"
+                                data-recipienttype="<?php echo $partyIsCust ? 'Customer' : 'Vendor'; ?>"
                                 data-uid="<?php echo (int)($row->PartyUID ?? 0); ?>"
                                 data-name="<?php echo htmlspecialchars($row->PartyName ?? ''); ?>"
                                 data-mobile="<?php echo htmlspecialchars($mobileNum); ?>"
@@ -339,7 +358,7 @@ function pmtModeBadge($name, $modeColors) {
                                     'Amount'        => (float)$row->Amount,
                                     'ReceiptNumber' => $row->PaymentUniqueNumber ?? '',
                                     'PaymentMode'   => $row->PaymentTypeName ?? '',
-                                    'PaymentStatus' => $row->IsFullyPaid ? 'Paid' : 'Partially Paid',
+                                    'PaymentStatus' => ($row->IsFullyPaid ?? 0) ? 'Paid' : 'Partial',
                                     'ReceiptLink'   => $receiptUrl,
                                 ]), ENT_QUOTES); ?>'
                                 style="color:#1565c0;">
@@ -350,10 +369,11 @@ function pmtModeBadge($name, $modeColors) {
                     <?php endif; ?>
 
                     <li><hr class="dropdown-divider my-1"></li>
+                    <?php if ($isIn): ?>
                     <li>
                         <button class="dropdown-item cancelPayment text-warning"
                                 data-payment-uid="<?php echo (int)$row->PaymentUID; ?>">
-                            <i class="bx bx-x-circle me-2"></i>Cancel Payment
+                            <i class="bx bx-x-circle me-2"></i>Cancel
                         </button>
                     </li>
                     <li>
@@ -362,6 +382,23 @@ function pmtModeBadge($name, $modeColors) {
                             <i class="bx bx-trash me-2"></i>Delete
                         </button>
                     </li>
+                    <?php else: ?>
+                    <li>
+                        <button class="dropdown-item cancelPaymentOut text-warning"
+                                data-payment-uid="<?php echo (int)$row->PaymentUID; ?>"
+                                data-num="<?php echo htmlspecialchars($row->PaymentUniqueNumber ?? ''); ?>"
+                                data-amount="<?php echo htmlspecialchars(number_format((float)$row->Amount, $dec)); ?>">
+                            <i class="bx bx-x-circle me-2"></i>Cancel
+                        </button>
+                    </li>
+                    <li>
+                        <button class="dropdown-item deletePaymentOut text-danger"
+                                data-payment-uid="<?php echo (int)$row->PaymentUID; ?>"
+                                data-amount="<?php echo htmlspecialchars(number_format((float)$row->Amount, $dec)); ?>">
+                            <i class="bx bx-trash me-2"></i>Delete
+                        </button>
+                    </li>
+                    <?php endif; ?>
                 </ul>
             </div>
         </td>
@@ -370,14 +407,35 @@ function pmtModeBadge($name, $modeColors) {
     <?php endforeach; ?>
 <?php else: ?>
     <tr>
-        <td colspan="7">
+        <td colspan="8">
             <div class="d-flex flex-column align-items-center justify-content-center py-5" style="gap:10px;">
-                <div style="width:56px;height:56px;border-radius:50%;background:#e8f0fe;display:flex;align-items:center;justify-content:center;">
-                    <i class="bx bx-credit-card-front" style="font-size:1.6rem;color:#0d6efd;"></i>
+                <div style="width:56px;height:56px;border-radius:50%;background:#f0f4ff;
+                            display:flex;align-items:center;justify-content:center;">
+                    <i class="bx bx-wallet-alt" style="font-size:1.6rem;color:#4f46e5;"></i>
                 </div>
-                <div class="fw-semibold text-dark" style="font-size:.92rem;">No Payments Yet</div>
-                <div class="text-muted" style="font-size:.8rem;">Payments received from customers will appear here.</div>
+                <div class="fw-semibold text-dark" style="font-size:.92rem;">No Payments Found</div>
+                <div class="text-muted" style="font-size:.8rem;">Try adjusting your filters or date range.</div>
             </div>
         </td>
     </tr>
 <?php endif; ?>
+
+<style>
+.pmt-row .pmt-contact-icons {
+    display: none; position: absolute; right: 0; top: 0; bottom: 0;
+    align-items: center; gap: 4px; padding: 0 8px;
+    background: linear-gradient(to right, transparent, #f0f4ff 30%);
+}
+.pmt-row:hover .pmt-contact-icons { display: flex; }
+.pmt-contact-icons a, .pmt-contact-icons button {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px; border-radius: 50%; font-size: 1.3rem;
+    text-decoration: none; transition: transform .12s; flex-shrink: 0;
+    border: none; cursor: pointer; background: transparent; padding: 0;
+}
+.pmt-contact-icons a:hover, .pmt-contact-icons button:hover { transform: scale(1.18); }
+.pmt-contact-icons .wa  { color: #25d366; background: rgba(37,211,102,0.15); }
+.pmt-contact-icons .sms { color: #0097a7; background: rgba(0,151,167,0.15); }
+.pmt-contact-icons .em  { color: #1565c0; background: rgba(21,101,192,0.15); }
+.pmt-party-td { position: relative; }
+</style>

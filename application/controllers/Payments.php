@@ -27,7 +27,8 @@ class Payments extends MY_Controller {
 
             $orgUID = $this->pageData['JwtData']->Org->OrgUID;
 
-            $filter = ['ModuleUID' => 110, 'PaymentDirection' => 'In'];
+            // No direction or module filter — unified list shows both In and Out
+            $filter = [];
 
             $this->load->model('transactions_model');
             $allData      = $this->transactions_model->getPaymentsList($limit, 0, $orgUID, $filter);
@@ -43,9 +44,12 @@ class Payments extends MY_Controller {
             ], TRUE);
             $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/payments/getPaymentsPageDetails', $allDataCount, 1, $limit);
             $this->pageData['ModAllCount']   = $allDataCount;
-            $this->pageData['MethodSummary'] = $this->transactions_model->getPaymentMethodSummary($orgUID, $filter);
+            $this->pageData['BalanceStats']  = $this->transactions_model->getPaymentsBalanceStats($orgUID);
             $this->pageData['Totals']        = $this->transactions_model->getPaymentsTotals($orgUID, $filter);
             $this->pageData['BankAccounts']  = $this->transactions_model->getOrgBankAccounts($orgUID);
+            $this->pageData['PaymentTypes']  = $this->transactions_model->getPaymentTypesList();
+            $this->load->model('users_model');
+            $this->pageData['OrgUsers']      = $this->users_model->getOrgUsersForCache($orgUID);
 
             $this->load->view('transactions/payments/view', $this->pageData);
 
@@ -67,14 +71,11 @@ class Payments extends MY_Controller {
             $offset = ($pageNo - 1) * $limit;
             $filter = $this->input->post('Filter') ?: [];
 
-            // Always scope to Payments-In module
-            $filter['ModuleUID']        = 110;
-            $filter['PaymentDirection'] = 'In';
-            unset($filter['PartyType']);
-
+            // Unified: show both In and Out — direction filter comes from client if set
             $orgUID = $this->pageData['JwtData']->Org->OrgUID;
 
             $this->load->model('transactions_model');
+            $this->load->model('organisation_model');
             $allData      = $this->transactions_model->getPaymentsList($limit, $offset, $orgUID, $filter);
             $allDataCount = $this->transactions_model->getPaymentsCount($orgUID, $filter);
 
@@ -91,6 +92,27 @@ class Payments extends MY_Controller {
             $this->EndReturnData->Pagination     = $this->globalservice->buildPagePaginationHtml('/payments/getPaymentsPageDetails', $allDataCount, $pageNo, $limit);
             $this->EndReturnData->TotalCount     = $allDataCount;
             $this->EndReturnData->Totals         = $this->transactions_model->getPaymentsTotals($orgUID, $filter);
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    public function getStats() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $filter = $this->input->post('Filter') ?: [];
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
+
+            $this->load->model('transactions_model');
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Stats = $this->transactions_model->getPaymentsBalanceStats($orgUID, $filter);
 
         } catch (Exception $e) {
             $this->EndReturnData->Error   = TRUE;

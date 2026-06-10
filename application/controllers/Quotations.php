@@ -29,8 +29,12 @@ class Quotations extends MY_Controller {
             $limit = $GeneralSettings->RowLimit ?? 10;
 
             $this->load->model('transactions_model');
-            $allData = $this->transactions_model->getTransactionPageList($limit, 0, $this->pageModuleUID, [], 0);
-            $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, []);
+            $datePref   = $this->getDateFilterPreference('quotations');
+            $initFilter = $datePref['from'] ? ['DateFrom' => $datePref['from'], 'DateTo' => $datePref['to']] : [];
+            $allData = $this->transactions_model->getTransactionPageList($limit, 0, $this->pageModuleUID, $initFilter, 0);
+            $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, $initFilter);
+            $this->pageData['SavedDateRange'] = $datePref['range'];
+            $this->pageData['SavedDateLabel'] = $datePref['label'];
 
             $orgUID = $this->pageData['JwtData']->Org->OrgUID;
 
@@ -49,6 +53,11 @@ class Quotations extends MY_Controller {
             $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/quotations/getQuotationsPageDetails', $allDataCount, 1, $limit);
             $this->pageData['ModAllCount'] = $allDataCount;
             $this->pageData['SummaryStats'] = $this->transactions_model->getTransactionSummaryStats($this->pageModuleUID, $this->pageData['JwtData']->Org->OrgUID);
+
+            $this->load->model('users_model');
+            $this->pageData['OrgUsers']     = $this->users_model->getOrgUsersForCache($orgUID);
+
+            $this->_loadUpstashConfig();
 
             $this->load->view('transactions/quotations/view', $this->pageData);
 
@@ -861,9 +870,7 @@ class Quotations extends MY_Controller {
                 $this->pageData['fltStorageData'] = $this->storage_model->getStorageDetails([]) ?? [];
             }
 
-            $this->pageData['UpstashReadUrl']   = getenv('UPSTASH_REDIS_REST_URL') ?: '';
-            $this->pageData['UpstashReadToken'] = getenv('UPSTASH_REDIS_REST_READONLY_TOKEN') ?: '';
-            $this->pageData['CustomerCacheKey'] = $this->redisservice->orgKey('customers');
+            $this->_loadUpstashConfig();
 
             $this->load->view('transactions/quotations/forms/form', $this->pageData);
 

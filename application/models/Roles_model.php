@@ -45,7 +45,7 @@ class Roles_model extends CI_Model {
         try {
 
             // Main menus
-            $this->ReadDb->select('MM.MainMenuUID, MM.Name, MM.Icon, MM.Sorting');
+            $this->ReadDb->select('MM.MainMenuUID, MM.Name, MM.Icon, MM.Sorting, COALESCE(MM.IsDirectLink, 0) AS IsDirectLink');
             $this->ReadDb->from('Modules.MainMenusTbl AS MM');
             $this->ReadDb->where('MM.OrgUID', $OrgUID);
             $this->ReadDb->where('MM.IsDeleted', 0);

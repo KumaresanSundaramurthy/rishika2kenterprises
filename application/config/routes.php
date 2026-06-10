@@ -79,6 +79,12 @@ $route['dev/cache/deleteUpstashKey']   = 'cachemonitor/deleteUpstashKey';
 // Login
 $route['portal'] = 'login/login';
 $route['logout'] = 'login/logout';
+
+// Social OAuth
+$route['auth/google']             = 'oauth/googleRedirect';
+$route['auth/google/callback']    = 'oauth/googleCallback';
+$route['auth/facebook']           = 'oauth/facebookRedirect';
+$route['auth/facebook/callback']  = 'oauth/facebookCallback';
 $route['launch/sendEnquiry'] = 'launch/sendEnquiry';
 
 // Forgot / Reset password (public)
@@ -374,6 +380,67 @@ $route['reports'] = 'reports/index';
 // Barcode & QR Code Config
 $route['settings/barcodeconfig'] = 'barcodeconfig/index';
 
+// ── HRMS — Employees ─────────────────────────────────────────────────────────
+$route['employees']                               = 'employees/index';
+$route['employees/getPageDetails/(:num)']         = 'employees/getPageDetails/$1';
+$route['employees/save']                          = 'employees/save';
+$route['employees/delete']                        = 'employees/delete';
+$route['employees/toggleStatus']                  = 'employees/toggleStatus';
+$route['employees/getEmployee/(:num)']            = 'employees/getEmployee/$1';
+$route['employees/getEmployeeList']               = 'employees/getEmployeeList';
+
+// ── HRMS — Departments ────────────────────────────────────────────────────────
+$route['departments']                             = 'departments/index';
+$route['departments/getPageDetails/(:num)']       = 'departments/getPageDetails/$1';
+$route['departments/save']                        = 'departments/save';
+$route['departments/delete']                      = 'departments/delete';
+$route['departments/getList']                     = 'departments/getList';
+
+// ── HRMS — Designations ───────────────────────────────────────────────────────
+$route['designations']                            = 'designations/index';
+$route['designations/getPageDetails/(:num)']      = 'designations/getPageDetails/$1';
+$route['designations/save']                       = 'designations/save';
+$route['designations/delete']                     = 'designations/delete';
+$route['designations/getList']                    = 'designations/getList';
+
+// ── HRMS — Holidays ───────────────────────────────────────────────────────────
+$route['holidays']                                = 'holidays/index';
+$route['holidays/getPageDetails/(:num)']          = 'holidays/getPageDetails/$1';
+$route['holidays/save']                           = 'holidays/save';
+$route['holidays/delete']                         = 'holidays/delete';
+
+// ── HRMS — Attendance ─────────────────────────────────────────────────────────
+$route['attendance']                              = 'attendance/index';
+$route['attendance/getPageDetails/(:num)']        = 'attendance/getPageDetails/$1';
+$route['attendance/save']                         = 'attendance/save';
+$route['attendance/saveBulk']                     = 'attendance/saveBulk';
+$route['attendance/delete']                       = 'attendance/delete';
+$route['attendance/monthly']                      = 'attendance/monthly';
+$route['attendance/getMonthlyData']               = 'attendance/getMonthlyData';
+$route['attendance/getDashboardStats']            = 'attendance/getDashboardStats';
+
+// ── HRMS — Salary Advances ────────────────────────────────────────────────────
+$route['salaryadvances']                          = 'salaryadvances/index';
+$route['salaryadvances/getPageDetails/(:num)']    = 'salaryadvances/getPageDetails/$1';
+$route['salaryadvances/save']                     = 'salaryadvances/save';
+$route['salaryadvances/delete']                   = 'salaryadvances/delete';
+
+// ── HRMS — Payroll ────────────────────────────────────────────────────────────
+$route['payroll']                                 = 'payroll/index';
+$route['payroll/getPageDetails/(:num)']           = 'payroll/getPageDetails/$1';
+$route['payroll/process']                         = 'payroll/process';
+$route['payroll/getPayrollEmployees']             = 'payroll/getPayrollEmployees';
+$route['payroll/savePayroll']                     = 'payroll/savePayroll';
+$route['payroll/updateStatus']                    = 'payroll/updateStatus';
+$route['payroll/delete']                          = 'payroll/delete';
+$route['payroll/view/(:num)']                     = 'payroll/viewPayroll/$1';
+
+// ── HRMS — Payslips ───────────────────────────────────────────────────────────
+$route['payslips']                                = 'payslips/index';
+$route['payslips/getPageDetails/(:num)']          = 'payslips/getPageDetails/$1';
+$route['payslips/view/(:num)']                    = 'payslips/viewPayslip/$1';
+$route['payslips/print/(:num)']                   = 'payslips/printPayslip/$1';
+
 // Print Themes
 $route['settings/printthemes']                    = 'printthemes/index';
 $route['settings/printthemes/save']               = 'printthemes/save';
@@ -385,4 +452,8 @@ $route['settings/printthemes/deleteTheme']        = 'printthemes/deleteTheme';
 $route['settings/printthemes/getTemplateList']    = 'printthemes/getTemplateList';
 $route['settings/printthemes/saveTemplate']       = 'printthemes/saveTemplate';
 $route['settings/printthemes/deleteTemplate']     = 'printthemes/deleteTemplate';
+
+// ── User Preferences ─────────────────────────────────────────────────────────
+$route['userpreferences/save']   = 'userpreferences/save';
+$route['userpreferences/getAll'] = 'userpreferences/getAll';
 $route['settings/printthemes/getTemplateData']    = 'printthemes/getTemplateData';

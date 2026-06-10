@@ -611,7 +611,8 @@ $(function () {
         $(ModuleTable + ' tbody').html(resp.RecordHtmlData);
         $('.incPagination').html(resp.Pagination);
         var count = resp.TotalCount || 0;
-        $('.inc-status-tab.active .trans-tab-count').text(count > 0 ? count : '').removeClass('d-none');
+        var $incBadge = $('.inc-status-tab.active .trans-tab-count');
+        if (count > 0) { $incBadge.text(count).removeClass('d-none'); } else { $incBadge.text('').addClass('d-none'); }
         if (resp.SummaryStats) _updateStatCards(resp.SummaryStats);
         initTooltips();
         _syncSticky();

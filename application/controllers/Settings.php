@@ -330,18 +330,20 @@ class Settings extends MY_Controller {
             $userUID = (int) $this->pageData['JwtData']->User->UserUID;
             $post    = $this->input->post();
 
-            $termsAndConditions = trim($this->input->post('TermsAndConditions') ?? '');
+            $termsAndConditions  = trim($this->input->post('TermsAndConditions') ?? '');
+            $hideNavOnTransForm  = $this->input->post('HideNavOnTransForm') ? 1 : 0;
 
             $writeDB = $this->load->database('WriteDB', TRUE);
             $writeDB->db_debug = FALSE;
             $sql = "INSERT INTO Settings.OrgTransGeneralSettingsTbl
-                        (OrgUID, TermsAndConditions, UpdatedBy)
-                    VALUES (?, ?, ?)
+                        (OrgUID, TermsAndConditions, HideNavOnTransForm, UpdatedBy)
+                    VALUES (?, ?, ?, ?)
                     ON DUPLICATE KEY UPDATE
                         TermsAndConditions = VALUES(TermsAndConditions),
+                        HideNavOnTransForm = VALUES(HideNavOnTransForm),
                         UpdatedBy          = VALUES(UpdatedBy)";
 
-            $ok = $writeDB->query($sql, [$orgUID, $termsAndConditions, $userUID]);
+            $ok = $writeDB->query($sql, [$orgUID, $termsAndConditions, $hideNavOnTransForm, $userUID]);
             if (!$ok) {
                 $err = $writeDB->error();
                 throw new Exception($err['message'] ?? 'Failed to save transaction general settings.');
@@ -353,13 +355,15 @@ class Settings extends MY_Controller {
             if ($redisPayload && !$redisPayload->Error && !empty($redisPayload->Value)) {
                 $tgs = $redisPayload->Value->TransGenSettings ?? new stdClass();
                 $tgs->TermsAndConditions = $termsAndConditions;
+                $tgs->HideNavOnTransForm = $hideNavOnTransForm;
                 $redisPayload->Value->TransGenSettings = $tgs;
                 $this->redisservice->setCache($jwtKey, $redisPayload->Value, $redisPayload->TTL);
             }
 
-            $this->EndReturnData->Error             = FALSE;
-            $this->EndReturnData->Message           = 'Transaction general settings saved successfully.';
+            $this->EndReturnData->Error              = FALSE;
+            $this->EndReturnData->Message            = 'Transaction general settings saved successfully.';
             $this->EndReturnData->TermsAndConditions = $termsAndConditions;
+            $this->EndReturnData->HideNavOnTransForm = $hideNavOnTransForm;
 
         } catch (Exception $e) {
             $this->EndReturnData->Error   = TRUE;

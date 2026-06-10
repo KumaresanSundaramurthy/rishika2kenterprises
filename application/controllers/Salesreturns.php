@@ -23,8 +23,12 @@ class Salesreturns extends MY_Controller {
             $limit = $GeneralSettings->RowLimit ?? 10;
 
             $this->load->model('transactions_model');
-            $allData      = $this->transactions_model->getTransactionPageList($limit, 0, $this->pageModuleUID, [], 0);
-            $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, []);
+            $datePref   = $this->getDateFilterPreference('salesreturns');
+            $initFilter = $datePref['from'] ? ['DateFrom' => $datePref['from'], 'DateTo' => $datePref['to']] : [];
+            $allData      = $this->transactions_model->getTransactionPageList($limit, 0, $this->pageModuleUID, $initFilter, 0);
+            $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, $initFilter);
+            $this->pageData['SavedDateRange'] = $datePref['range'];
+            $this->pageData['SavedDateLabel'] = $datePref['label'];
 
             $this->pageData['ModRowData']    = $this->load->view('transactions/salesreturns/list', ['DataLists' => $allData, 'SerialNumber' => 0, 'JwtData' => $this->pageData['JwtData']], TRUE);
             $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/salesreturns/getSalesReturnsPageDetails', $allDataCount, 1, $limit);
@@ -33,9 +37,10 @@ class Salesreturns extends MY_Controller {
             $this->pageData['PaymentTypes']  = $this->transactions_model->getPaymentTypesList();
             $this->pageData['BankAccounts']  = $this->transactions_model->getOrgBankAccounts($this->pageData['JwtData']->Org->OrgUID);
 
-            $this->pageData['UpstashReadUrl']   = getenv('UPSTASH_REDIS_REST_URL') ?: '';
-            $this->pageData['UpstashReadToken'] = getenv('UPSTASH_REDIS_REST_READONLY_TOKEN') ?: '';
-            $this->pageData['CustomerCacheKey'] = $this->redisservice->orgKey('customers');
+            $this->_loadUpstashConfig();
+
+            $this->load->model('users_model');
+            $this->pageData['OrgUsers']         = $this->users_model->getOrgUsersForCache($this->pageData['JwtData']->Org->OrgUID);
 
             $this->load->view('transactions/salesreturns/view', $this->pageData);
         } catch (Exception $e) {

@@ -145,10 +145,26 @@
                                     <tr>
                                         <th class="ps-3" style="width:140px;">Ref No</th>
                                         <th class="ps-3" style="width:140px;">Amount Paid</th>
-                                        <th style="width:150px;">Mode / Bank</th>
+                                        <th style="width:150px;">
+                                            Mode / Bank
+                                            <a href="javascript:void(0);" id="poutPayModeFilter" class="text-body ms-1"
+                                               data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by Payment Mode"
+                                               style="font-size:.85rem;">
+                                                <i class="bx bx-filter-alt align-middle"></i>
+                                            </a>
+                                        </th>
                                         <th style="width:140px;">Linked Bill</th>
                                         <th>Vendor</th>
-                                        <th style="width:160px;">Recorded By</th>
+                                        <th style="width:160px;">
+                                            Recorded By
+                                            <?php if (count($OrgUsers ?? []) > 1): ?>
+                                            <a href="javascript:void(0);" id="poutCreatedByFilter" class="text-body ms-1"
+                                               data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by User"
+                                               style="font-size:.85rem;">
+                                                <i class="bx bx-filter-alt align-middle"></i>
+                                            </a>
+                                            <?php endif; ?>
+                                        </th>
                                         <th style="width:80px;" class="text-end pe-3">Actions</th>
                                     </tr>
                                 </thead>
@@ -195,9 +211,36 @@ $this->load->view('common/transactions/payment_modal');
 
 <?php $this->load->view('common/footer'); ?>
 
+<?php $this->load->view('common/transactions/col_filter_box', [
+    'ColFilterConfig' => [
+        'id'         => 'poutPayModeFilterBox',
+        'triggerId'  => 'poutPayModeFilter',
+        'title'      => 'Payment Mode',
+        'icon'       => 'bx-credit-card',
+        'filterKey'  => 'PaymentMode',
+        'checkClass' => 'pout-pay-mode-chk',
+        'items'      => array_map(function($t) {
+            return ['value' => $t->Name, 'label' => $t->Name, 'icon' => 'bx-credit-card', 'color' => '#ef4444'];
+        }, $PaymentTypes ?? []),
+    ],
+]); ?>
+
+<?php if (count($OrgUsers ?? []) > 1): ?>
+<?php $this->load->view('common/transactions/col_user_filter_box', [
+    'ColUserFilterConfig' => [
+        'id'         => 'poutCreatedByFilterBox',
+        'triggerId'  => 'poutCreatedByFilter',
+        'checkClass' => 'pout-user-chk',
+        'OrgUsers'   => $OrgUsers ?? [],
+    ],
+]); ?>
+<?php endif; ?>
+
 <link rel="stylesheet" href="/assets/vendor/css/transactions.css">
 <link rel="stylesheet" href="/css/transactions-theme.css">
 <script type="text/javascript" src="/js/common/datefilter.js"></script>
+<script src="/js/transactions/filter_bar.js"></script>
+<script src="/js/transactions/col_filter.js"></script>
 <script type="text/javascript" src="/js/transactions/attachments.js"></script>
 <script type="text/javascript" src="/js/transactions/viewmodal.js"></script>
 <script type="text/javascript" src="/js/transactions/a4_print.js"></script>
@@ -208,6 +251,22 @@ $('#viewTransEditBtn').data('hide-edit', true);
 var PoutFilter = {};
 var PoutPageNo = 1;
 var PoutLimit  = 10;
+
+var poutPayModeFilter = new TransColFilter({
+    boxId     : 'poutPayModeFilterBox',
+    triggerId : 'poutPayModeFilter',
+    filterKey : 'PaymentMode',
+    onApply   : function () { getPaymentsOut(1); }
+});
+
+var poutCreatedByFilter = (document.getElementById('poutCreatedByFilterBox'))
+    ? new TransColFilter({
+        boxId     : 'poutCreatedByFilterBox',
+        triggerId : 'poutCreatedByFilter',
+        filterKey : 'UpdatedByUIDs',
+        onApply   : function () { getPaymentsOut(1); }
+    })
+    : null;
 
 $(function () {
     'use strict';
@@ -221,10 +280,14 @@ $(function () {
     function getPaymentsOut(pageNo) {
         pageNo     = pageNo || 1;
         PoutPageNo = pageNo;
+        var f = $.extend({}, PoutFilter,
+            poutPayModeFilter    ? poutPayModeFilter.getState()    : {},
+            poutCreatedByFilter  ? poutCreatedByFilter.getState()  : {}
+        );
         $.ajax({
             url   : '/paymentsout/getPageDetails/' + pageNo,
             method: 'POST',
-            data  : { RowLimit: PoutLimit, Filter: PoutFilter, [CsrfName]: CsrfToken },
+            data  : { RowLimit: PoutLimit, Filter: f, [CsrfName]: CsrfToken },
             success: function (resp) {
                 if (!resp.Error) {
                     $('#poutTableBody').html(resp.RecordHtmlData);

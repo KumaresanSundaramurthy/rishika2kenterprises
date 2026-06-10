@@ -153,7 +153,7 @@ class Login_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->ReadDb->select('RMM.RoleMainMenuUID, RMM.MainMenuUID, MainMenu.Name as MainMenuName, MainMenu.Icon as MainMenuIcons, RMM.Sorting, RMM.CanView, RMM.CanCreate, RMM.CanEdit, RMM.CanDelete');
+            $this->ReadDb->select('RMM.RoleMainMenuUID, RMM.MainMenuUID, MainMenu.Name as MainMenuName, MainMenu.Icon as MainMenuIcons, MainMenu.IsDirectLink, MainMenu.DirectUrl, RMM.Sorting, RMM.CanView, RMM.CanCreate, RMM.CanEdit, RMM.CanDelete');
             $this->ReadDb->from('UserRole.RoleMainMenusTbl as RMM');
             $this->ReadDb->join('Modules.MainMenusTbl as MainMenu', 'MainMenu.MainMenuUID = RMM.MainMenuUID', 'left');
             $this->ReadDb->where('RMM.RoleUID', $RoleUID);
@@ -285,7 +285,7 @@ class Login_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
             $this->ReadDb->db_debug = FALSE;
-            $this->ReadDb->select('TermsAndConditions');
+            $this->ReadDb->select('TermsAndConditions, HideNavOnTransForm');
             $this->ReadDb->from('Settings.OrgTransGeneralSettingsTbl');
             $this->ReadDb->where('OrgUID', (int) $OrgUID);
             $this->ReadDb->limit(1);

@@ -11,16 +11,17 @@
                 <div class="container-xxl flex-grow-1 container-p-y">
 
                     <?php
-                    $cur      = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-                    $dec      = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
-                    $summary      = $MethodSummary ?? [];
-                    $bankAccounts = $BankAccounts ?? [];
-                    $totals   = $Totals ?? (object)['TotalReceived' => 0, 'TotalPaid' => 0];
-                    $received = (float)($totals->TotalReceived ?? 0);
-                    $paid     = (float)($totals->TotalPaid ?? 0);
-                    $net      = $received - $paid;
+                    $cur     = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
+                    $dec     = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
+                    $totals  = $Totals ?? (object)['TotalReceived' => 0, 'TotalPaid' => 0];
+                    $stats   = $BalanceStats ?? (object)['CashIn' => 0, 'CashOut' => 0, 'BankIn' => 0, 'BankOut' => 0];
 
-                    function pmtFmt($val, $sym, $dec) {
+                    $cashIn  = (float)($stats->CashIn  ?? 0);
+                    $cashOut = (float)($stats->CashOut ?? 0);
+                    $bankIn  = (float)($stats->BankIn  ?? 0);
+                    $bankOut = (float)($stats->BankOut ?? 0);
+
+                    function allPmtFmt($val, $sym, $dec) {
                         return $sym . ' ' . number_format((float)$val, $dec, '.', ',');
                     }
                     ?>
@@ -28,167 +29,256 @@
                     <!-- ── Page Header ──────────────────────────────────────── -->
                     <div class="trans-page-header">
                         <div class="d-flex align-items-center gap-3">
-                            <div class="trans-ph-icon" style="background:#dcfce7;">
-                                <i class="bx bx-credit-card-alt" style="color:#22c55e;"></i>
+                            <div class="trans-ph-icon" style="background:#f0f4ff;">
+                                <i class="bx bx-wallet-alt" style="color:#4f46e5;"></i>
                             </div>
                             <div>
-                                <h5 class="trans-ph-title mb-0"><?php echo htmlspecialchars($PageTitle ?? 'Payments In'); ?></h5>
-                                <?php if (!empty($PageDescription)): ?>
-                                <div class="text-muted" style="font-size:.76rem;"><?php echo htmlspecialchars($PageDescription); ?></div>
-                                <?php endif; ?>
+                                <h5 class="trans-ph-title mb-0">Payments</h5>
+                                <div class="text-muted" style="font-size:.76rem;">All money received and paid out — in one place</div>
                             </div>
                         </div>
                     </div>
-                    <!-- ── Balance Summary ─────────────────────────────────── -->
-                    <div class="trans-stats-section mb-4">
-                        <div class="d-flex gap-3 flex-wrap" id="pmtSummaryCards">
 
-                        <?php if (!empty($summary)): ?>
-                            <?php foreach ($summary as $row): ?>
-                            <?php
-                                $balance  = (float)($row->TotalReceived ?? 0);
-                                $label    = htmlspecialchars($row->AccountLabel ?? 'Cash');
-                                $bankName = htmlspecialchars($row->BankName ?? '');
-                            ?>
-                            <div class="card border-0 shadow-sm pmt-summary-card" style="min-width:200px;flex:1 1 180px;max-width:260px;">
-                                <div class="card-body py-3 px-3">
-                                    <div class="d-flex align-items-center gap-2 mb-1">
-                                        <?php if ($row->IsCash): ?>
-                                            <i class="bx bx-money fs-5 text-success"></i>
-                                        <?php else: ?>
-                                            <i class="bx bx-building-house fs-5 text-primary"></i>
-                                        <?php endif; ?>
-                                        <span class="fw-semibold" style="font-size:.82rem;"><?php echo $label; ?></span>
-                                        <i class="bx bx-up-arrow-alt text-success ms-auto fs-5"></i>
-                                    </div>
-                                    <?php if ($bankName): ?>
-                                        <div class="text-muted" style="font-size:.72rem;"><?php echo $bankName; ?></div>
-                                    <?php endif; ?>
-                                    <div class="fw-bold mt-1 text-dark" style="font-size:1.05rem;">
-                                        <?php echo pmtFmt($balance, $cur, $dec); ?>
-                                    </div>
-                                </div>
-                            </div>
-                            <?php endforeach; ?>
-                        <?php else: ?>
-                            <!-- No payments yet — show all bank accounts with ₹0 -->
-                            <div class="card border-0 shadow-sm pmt-summary-card" style="min-width:200px;flex:1 1 180px;max-width:260px;">
-                                <div class="card-body py-3 px-3">
-                                    <div class="d-flex align-items-center gap-2 mb-1">
-                                        <i class="bx bx-money fs-5 text-success"></i>
-                                        <span class="fw-semibold" style="font-size:.82rem;">Cash</span>
-                                        <i class="bx bx-minus text-muted ms-auto fs-5"></i>
-                                    </div>
-                                    <div class="fw-bold mt-1 text-muted" style="font-size:1.05rem;"><?php echo pmtFmt(0, $cur, $dec); ?></div>
-                                </div>
-                            </div>
-                            <?php foreach ($bankAccounts as $ba): ?>
-                                <?php if ($ba->IsCash) continue; ?>
-                                <div class="card border-0 shadow-sm pmt-summary-card" style="min-width:200px;flex:1 1 180px;max-width:260px;">
-                                    <div class="card-body py-3 px-3">
-                                        <div class="d-flex align-items-center gap-2 mb-1">
-                                            <i class="bx bx-building-house fs-5 text-primary"></i>
-                                            <span class="fw-semibold" style="font-size:.82rem;"><?php echo htmlspecialchars($ba->AccountName); ?></span>
-                                            <i class="bx bx-minus text-muted ms-auto fs-5"></i>
+                    <!-- ── Stats Bar: Balance | In | Out ────────────────────── -->
+                    <div class="row g-3 mb-4">
+
+                        <!-- Balance -->
+                        <div class="col-md-4">
+                            <div class="card border-0 shadow-sm h-100">
+                                <div class="card-body py-3 px-4">
+                                    <div class="d-flex align-items-center justify-content-between mb-3">
+                                        <span class="fw-bold" style="font-size:.82rem;color:#374151;">Current Balance</span>
+                                        <div class="rounded-circle d-flex align-items-center justify-content-center"
+                                             style="width:34px;height:34px;background:#f0f4ff;">
+                                            <i class="bx bx-wallet fs-5" style="color:#4f46e5;"></i>
                                         </div>
-                                        <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars($ba->BankName); ?></div>
-                                        <div class="fw-bold mt-1 text-muted" style="font-size:1.05rem;"><?php echo pmtFmt(0, $cur, $dec); ?></div>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span class="text-muted" style="font-size:.75rem;">
+                                            <i class="bx bx-money me-1 text-success" style="font-size:.8rem;"></i>Cash
+                                        </span>
+                                        <span class="fw-semibold" style="font-size:.82rem;" id="statCashBalance">
+                                            <?php echo allPmtFmt($cashIn - $cashOut, $cur, $dec); ?>
+                                        </span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span class="text-muted" style="font-size:.75rem;">
+                                            <i class="bx bx-building-house me-1 text-primary" style="font-size:.8rem;"></i>Bank
+                                        </span>
+                                        <span class="fw-semibold" style="font-size:.82rem;" id="statBankBalance">
+                                            <?php echo allPmtFmt($bankIn - $bankOut, $cur, $dec); ?>
+                                        </span>
+                                    </div>
+                                    <div class="border-top pt-2 mt-1 d-flex justify-content-between align-items-center">
+                                        <span class="text-muted" style="font-size:.73rem;">Net</span>
+                                        <span class="fw-bold" style="font-size:.9rem;color:#4f46e5;" id="statNetBalance">
+                                            <?php echo allPmtFmt(($cashIn + $bankIn) - ($cashOut + $bankOut), $cur, $dec); ?>
+                                        </span>
                                     </div>
                                 </div>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
+                            </div>
+                        </div>
+
+                        <!-- Money In -->
+                        <div class="col-md-4">
+                            <div class="card border-0 shadow-sm h-100" style="border-left:3px solid #22c55e!important;">
+                                <div class="card-body py-3 px-4">
+                                    <div class="d-flex align-items-center justify-content-between mb-3">
+                                        <span class="fw-bold" style="font-size:.82rem;color:#374151;">
+                                            <i class="bx bx-up-arrow-alt text-success me-1 fs-5"></i>Money In
+                                        </span>
+                                        <div class="rounded-circle d-flex align-items-center justify-content-center"
+                                             style="width:34px;height:34px;background:#dcfce7;">
+                                            <i class="bx bx-log-in-circle fs-5 text-success"></i>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span class="text-muted" style="font-size:.75rem;">
+                                            <i class="bx bx-money me-1 text-success" style="font-size:.8rem;"></i>Cash
+                                        </span>
+                                        <span class="fw-semibold text-success" style="font-size:.82rem;" id="statCashIn">
+                                            <?php echo allPmtFmt($cashIn, $cur, $dec); ?>
+                                        </span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span class="text-muted" style="font-size:.75rem;">
+                                            <i class="bx bx-building-house me-1 text-primary" style="font-size:.8rem;"></i>Bank
+                                        </span>
+                                        <span class="fw-semibold text-success" style="font-size:.82rem;" id="statBankIn">
+                                            <?php echo allPmtFmt($bankIn, $cur, $dec); ?>
+                                        </span>
+                                    </div>
+                                    <div class="border-top pt-2 mt-1 d-flex justify-content-between align-items-center">
+                                        <span class="text-muted" style="font-size:.73rem;">Total In</span>
+                                        <span class="fw-bold text-success" style="font-size:.9rem;" id="statTotalIn">
+                                            <?php echo allPmtFmt($cashIn + $bankIn, $cur, $dec); ?>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Money Out -->
+                        <div class="col-md-4">
+                            <div class="card border-0 shadow-sm h-100" style="border-left:3px solid #ef4444!important;">
+                                <div class="card-body py-3 px-4">
+                                    <div class="d-flex align-items-center justify-content-between mb-3">
+                                        <span class="fw-bold" style="font-size:.82rem;color:#374151;">
+                                            <i class="bx bx-down-arrow-alt text-danger me-1 fs-5"></i>Money Out
+                                        </span>
+                                        <div class="rounded-circle d-flex align-items-center justify-content-center"
+                                             style="width:34px;height:34px;background:#fee2e2;">
+                                            <i class="bx bx-log-out-circle fs-5 text-danger"></i>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span class="text-muted" style="font-size:.75rem;">
+                                            <i class="bx bx-money me-1 text-success" style="font-size:.8rem;"></i>Cash
+                                        </span>
+                                        <span class="fw-semibold text-danger" style="font-size:.82rem;" id="statCashOut">
+                                            <?php echo allPmtFmt($cashOut, $cur, $dec); ?>
+                                        </span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span class="text-muted" style="font-size:.75rem;">
+                                            <i class="bx bx-building-house me-1 text-primary" style="font-size:.8rem;"></i>Bank
+                                        </span>
+                                        <span class="fw-semibold text-danger" style="font-size:.82rem;" id="statBankOut">
+                                            <?php echo allPmtFmt($bankOut, $cur, $dec); ?>
+                                        </span>
+                                    </div>
+                                    <div class="border-top pt-2 mt-1 d-flex justify-content-between align-items-center">
+                                        <span class="text-muted" style="font-size:.73rem;">Total Out</span>
+                                        <span class="fw-bold text-danger" style="font-size:.9rem;" id="statTotalOut">
+                                            <?php echo allPmtFmt($cashOut + $bankOut, $cur, $dec); ?>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
 
                     </div>
-                    </div>
+                    <!-- /.row stats -->
 
                     <!-- ── Main Card ──────────────────────────────────────── -->
                     <div class="card border-0 shadow-sm">
 
-                        <!-- Tabs + Toolbar -->
+                        <!-- Toolbar -->
                         <div class="trans-toolbar d-flex align-items-center justify-content-between flex-wrap gap-2">
 
-                            <!-- Status tabs -->
-                            <ul class="nav trans-status-tabs gap-1" id="pmtStatusTabs">
+                            <!-- Left: All, In, Out, Cancelled -->
+                            <ul class="nav trans-status-tabs" id="allPmtStatusTabs">
                                 <li class="nav-item">
-                                    <a class="nav-link pmt-tab active fw-semibold px-3 py-1" data-tab="Success" href="javascript:void(0);">
-                                        Success <span class="badge bg-primary ms-1" id="pmtTabCountSuccess"><?php echo number_format($ModAllCount); ?></span>
+                                    <a class="nav-link allpmt-status-tab active" data-status="" href="javascript:void(0);">
+                                        All <span class="trans-tab-count ms-1" id="allPmtTabCountActive"><?php echo number_format($ModAllCount); ?></span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link pmt-tab fw-semibold px-3 py-1 text-muted" data-tab="Cancelled" href="javascript:void(0);">
-                                        Cancelled <span class="badge bg-secondary ms-1" id="pmtTabCountCancelled">0</span>
+                                    <a class="nav-link allpmt-dir-pill" data-dir="In" href="javascript:void(0);">
+                                        <i class="bx bx-up-arrow-alt text-success"></i> In
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link allpmt-dir-pill" data-dir="Out" href="javascript:void(0);">
+                                        <i class="bx bx-down-arrow-alt text-danger"></i> Out
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link allpmt-status-tab" data-status="Cancelled" href="javascript:void(0);">
+                                        Cancelled <span class="trans-tab-count ms-1" id="allPmtTabCountCancelled">0</span>
                                     </a>
                                 </li>
                             </ul>
 
-                            <!-- Right controls -->
+                            <!-- Right: Search + Date + Clear -->
                             <div class="d-flex align-items-center gap-2 flex-wrap py-2">
-                                <div class="input-group input-group-sm" style="width:200px;">
-                                    <span class="input-group-text bg-white border-end-0"><i class="bx bx-search text-muted"></i></span>
-                                    <input type="text" class="form-control border-start-0" id="pmtSearch" placeholder="Search payment, party, amount…">
+                                <div class="input-group input-group-sm" style="width:210px;">
+                                    <span class="input-group-text bg-white border-end-0">
+                                        <i class="bx bx-search text-muted"></i>
+                                    </span>
+                                    <input type="text" class="form-control border-start-0" id="allPmtSearch"
+                                           placeholder="Party, ref, amount…">
                                 </div>
                                 <div class="dropdown">
                                     <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button"
-                                            id="pmtDateFilterBtn" data-bs-toggle="dropdown" aria-expanded="false">
-                                        <i class="bx bx-calendar me-1"></i><span id="pmtDateFilterLabel">All Dates</span>
+                                            id="allPmtDateBtn" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="bx bx-calendar me-1"></i>
+                                        <span id="allPmtDateLabel">All Dates</span>
                                     </button>
-                                    <ul class="dropdown-menu shadow" id="pmtDateFilterMenu"
+                                    <ul class="dropdown-menu shadow" id="allPmtDateMenu"
                                         style="width:220px;max-height:360px;overflow-y:auto;font-size:.82rem;"></ul>
                                 </div>
-                                <div class="dropdown">
-                                    <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                        Actions
-                                    </button>
-                                    <ul class="dropdown-menu shadow-sm" style="font-size:.82rem;">
-                                        <li><a class="dropdown-item" href="javascript:void(0);" id="pmtFilterSales"><i class="bx bx-upload me-2 text-success"></i>Sales (Received)</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);" id="pmtFilterPurchases"><i class="bx bx-download me-2 text-danger"></i>Purchases (Paid)</a></li>
-                                        <li><hr class="dropdown-divider my-1"></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0);" id="pmtClearFilter"><i class="bx bx-x me-2 text-muted"></i>Clear Filters</a></li>
-                                    </ul>
-                                </div>
+                                <button class="btn btn-outline-secondary btn-sm" id="allPmtClearBtn" title="Clear all filters">
+                                    <i class="bx bx-x me-1"></i>Clear
+                                </button>
                             </div>
                         </div>
 
                         <!-- Table -->
                         <div class="table-responsive">
-                            <table class="table trans-table table-hover MainviewTable mb-0" id="paymentsTable">
+                            <table class="table trans-table table-hover MainviewTable mb-0" id="allPaymentsTable">
                                 <thead class="r2k-thead">
                                     <tr>
-                                        <th class="ps-3" style="width:140px;">Ref No</th>
-                                        <th class="ps-3" style="width:130px;">Amount</th>
-                                        <th style="width:150px;">Mode / Bank</th>
-                                        <th style="width:130px;">Linked Document</th>
-                                        <th>Party Name</th>
-                                        <th style="width:160px;">Created By</th>
-                                        <th style="width:120px;" class="text-end pe-3">Actions</th>
+                                        <th class="ps-3" style="width:160px;">Date / Ref No</th>
+                                        <th style="width:70px;">Type</th>
+                                        <th style="width:140px;">Amount</th>
+                                        <th style="width:160px;">
+                                            Mode / Bank
+                                            <a href="javascript:void(0);" id="allPmtModeFilter" class="text-body ms-1"
+                                               data-bs-toggle="tooltip" data-bs-placement="top"
+                                               data-bs-title="Filter by Payment Mode" style="font-size:.85rem;">
+                                                <i class="bx bx-filter-alt align-middle"></i>
+                                            </a>
+                                        </th>
+                                        <th>Party</th>
+                                        <th style="width:140px;">Linked Doc</th>
+                                        <th style="width:170px;">
+                                            Created By
+                                            <?php if (count($OrgUsers ?? []) > 1): ?>
+                                            <a href="javascript:void(0);" id="allPmtCreatedByFilter" class="text-body ms-1"
+                                               data-bs-toggle="tooltip" data-bs-placement="top"
+                                               data-bs-title="Filter by User" style="font-size:.85rem;">
+                                                <i class="bx bx-filter-alt align-middle"></i>
+                                            </a>
+                                            <?php endif; ?>
+                                        </th>
+                                        <th style="width:80px;" class="text-end pe-3">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody id="paymentsTableBody">
+                                <tbody id="allPaymentsTableBody">
                                     <?php echo $ModRowData; ?>
                                 </tbody>
                             </table>
                         </div>
 
-                        <!-- Footer with totals -->
+                        <!-- Footer totals + pagination -->
                         <div class="card-footer bg-white border-top d-flex flex-wrap justify-content-between align-items-center px-3 py-2 gap-3">
-                            <div class="d-flex align-items-center gap-3">
+                            <div class="d-flex align-items-center gap-3 flex-wrap">
                                 <span class="text-muted" style="font-size:.8rem;">
-                                    Net Balance &nbsp;<strong class="text-dark" id="pmtFooterNet"><?php echo pmtFmt($net, $cur, $dec); ?></strong>
+                                    In: &nbsp;<strong class="text-success" id="allPmtFooterIn">
+                                        <?php echo allPmtFmt((float)($totals->TotalReceived ?? 0), $cur, $dec); ?>
+                                    </strong>
                                 </span>
                                 <span class="text-muted" style="font-size:.8rem;">
-                                    You Received: &nbsp;<strong class="text-success" id="pmtFooterReceived"><?php echo pmtFmt($received, $cur, $dec); ?></strong>
+                                    Out: &nbsp;<strong class="text-danger" id="allPmtFooterOut">
+                                        <?php echo allPmtFmt((float)($totals->TotalPaid ?? 0), $cur, $dec); ?>
+                                    </strong>
                                 </span>
                                 <span class="text-muted" style="font-size:.8rem;">
-                                    You Gave: &nbsp;<strong class="text-danger" id="pmtFooterPaid"><?php echo pmtFmt($paid, $cur, $dec); ?></strong>
+                                    Net: &nbsp;<strong class="text-dark" id="allPmtFooterNet">
+                                        <?php echo allPmtFmt((float)($totals->TotalReceived ?? 0) - (float)($totals->TotalPaid ?? 0), $cur, $dec); ?>
+                                    </strong>
                                 </span>
                             </div>
-                            <div id="pmtPagination" class="d-flex align-items-center gap-3">
-                                <span class="text-muted" style="font-size:.78rem;">Total: <strong id="pmtTotalCount"><?php echo number_format($ModAllCount); ?></strong></span>
+                            <div id="allPmtPagination" class="d-flex align-items-center gap-3">
+                                <span class="text-muted" style="font-size:.78rem;">
+                                    Total: <strong id="allPmtTotalCount"><?php echo number_format($ModAllCount); ?></strong>
+                                </span>
                                 <?php echo $ModPagination; ?>
                             </div>
                         </div>
 
-                    </div>
+                    </div><!-- /.card -->
 
                 </div>
                 <?php $this->load->view('common/footer_desc'); ?>
@@ -210,111 +300,266 @@ $this->load->view('common/transactions/payment_modal');
 
 <?php $this->load->view('common/footer'); ?>
 
+<!-- ── Column filter boxes ──────────────────────────────────────────────── -->
+<?php $this->load->view('common/transactions/col_filter_box', [
+    'ColFilterConfig' => [
+        'id'         => 'allPmtModeFilterBox',
+        'triggerId'  => 'allPmtModeFilter',
+        'title'      => 'Payment Mode',
+        'icon'       => 'bx-credit-card',
+        'filterKey'  => 'PaymentMode',
+        'checkClass' => 'allpmt-mode-chk',
+        'items'      => array_map(function($t) {
+            return ['value' => $t->Name, 'label' => $t->Name];
+        }, $PaymentTypes ?? []),
+    ],
+]); ?>
+
+<?php if (count($OrgUsers ?? []) > 1): ?>
+<?php $this->load->view('common/transactions/col_user_filter_box', [
+    'ColUserFilterConfig' => [
+        'id'         => 'allPmtCreatedByFilterBox',
+        'triggerId'  => 'allPmtCreatedByFilter',
+        'checkClass' => 'allpmt-user-chk',
+        'OrgUsers'   => $OrgUsers ?? [],
+    ],
+]); ?>
+<?php endif; ?>
+
+<!-- ── Styles + Scripts ─────────────────────────────────────────────────── -->
 <link rel="stylesheet" href="/assets/vendor/css/transactions.css">
 <link rel="stylesheet" href="/css/transactions-theme.css">
-<script type="text/javascript" src="/js/common/datefilter.js"></script>
-<script type="text/javascript" src="/js/transactions/attachments.js"></script>
-<script type="text/javascript" src="/js/transactions/viewmodal.js"></script>
-<script type="text/javascript" src="/js/transactions/a4_print.js"></script>
-<script type="text/javascript" src="/js/transactions/thermal_print.js"></script>
-<script type="text/javascript" src="/js/common/communication.js"></script>
+<script src="/js/common/datefilter.js"></script>
+<script src="/js/transactions/col_filter.js"></script>
+<script src="/js/transactions/payments_page.js"></script>
+<script src="/js/transactions/attachments.js"></script>
+<script src="/js/transactions/viewmodal.js"></script>
+<script src="/js/transactions/a4_print.js"></script>
+<script src="/js/transactions/thermal_print.js"></script>
+<script src="/js/common/communication.js"></script>
 
 <script>
 $('#viewTransEditBtn').data('hide-edit', true);
-const PmtModuleId = <?php echo (int) $JwtData->ModuleUID; ?>;
-var PmtFilter  = {};
-var PmtPageNo  = 1;
-var PmtLimit   = 10;
+
+// ── Bootstrap PaymentsPage ───────────────────────────────────────────────
+var _allPmtPage;
+
+var allPmtPayModeFilter = new TransColFilter({
+    boxId     : 'allPmtModeFilterBox',
+    triggerId : 'allPmtModeFilter',
+    filterKey : 'PaymentMode',
+    onApply   : function () { _allPmtPage.loadData(1); }
+});
+
+var allPmtCreatedByFilter = (document.getElementById('allPmtCreatedByFilterBox'))
+    ? new TransColFilter({
+        boxId     : 'allPmtCreatedByFilterBox',
+        triggerId : 'allPmtCreatedByFilter',
+        filterKey : 'UpdatedByUIDs',
+        onApply   : function () { _allPmtPage.loadData(1); }
+    })
+    : null;
+
+_allPmtPage = new PaymentsPage({
+    sym            : '<?php echo addslashes($cur); ?>',
+    dec            : <?php echo $dec; ?>,
+    limit          : <?php echo (int)($JwtData->GenSettings->RowLimit ?? 10); ?>,
+    initStats      : <?php echo json_encode($BalanceStats ?? (object)['CashIn'=>0,'CashOut'=>0,'BankIn'=>0,'BankOut'=>0]); ?>,
+    payModeFilter  : allPmtPayModeFilter,
+    createdByFilter: allPmtCreatedByFilter,
+});
 
 $(function () {
     'use strict';
 
-    // Tab switch
-    $(document).on('click', '.pmt-tab', function (e) {
+    var sym = '<?php echo addslashes($cur); ?>';
+    var dec = <?php echo $dec; ?>;
+
+    // Init payment modal
+    initRecordPaymentModal(
+        <?php echo json_encode($PaymentTypes ?? []); ?>,
+        <?php echo json_encode($BankAccounts ?? []); ?>,
+        '<?php echo addslashes($cur); ?>'
+    );
+
+    // ── Status tab (Active / Cancelled) ─────────────────────────────────────
+    $(document).on('click', '.allpmt-status-tab', function (e) {
         e.preventDefault();
-        $('.pmt-tab').removeClass('active');
+        $('.allpmt-status-tab').removeClass('active');
         $(this).addClass('active');
-        PmtFilter.Status = $(this).data('tab') === 'Cancelled' ? 'Cancelled' : '';
-        PmtPageNo = 1;
-        getPaymentsDetails(1);
+        _allPmtPage._filter.Status = $(this).data('status') || '';
+        _allPmtPage.loadData(1);
     });
 
-    // Pagination
-    $(document).on('click', '#pmtPagination .page-link', function (e) {
+    // ── Direction pill (All / In / Out) ─────────────────────────────────────
+    $(document).on('click', '.allpmt-dir-pill', function (e) {
+        e.preventDefault();
+        $('.allpmt-dir-pill').removeClass('active').addClass('text-muted');
+        $(this).addClass('active').removeClass('text-muted');
+        _allPmtPage.setDir($(this).data('dir'));
+    });
+
+    // ── Pagination ───────────────────────────────────────────────────────────
+    $(document).on('click', '#allPmtPagination .page-link', function (e) {
         e.preventDefault();
         var m = ($(this).attr('href') || '').match(/\/(\d+)$/);
-        if (m) getPaymentsDetails(parseInt(m[1]));
+        if (m) { _allPmtPage.loadData(parseInt(m[1], 10)); }
     });
 
-    // Search
-    var pmtSearchTimer;
-    $('#pmtSearch').on('input', function () {
-        clearTimeout(pmtSearchTimer);
+    // ── Search ───────────────────────────────────────────────────────────────
+    var _searchTimer;
+    $('#allPmtSearch').on('input', function () {
+        clearTimeout(_searchTimer);
         var v = $.trim($(this).val());
-        pmtSearchTimer = setTimeout(function () {
-            PmtFilter.Search = v;
-            PmtPageNo = 1;
-            getPaymentsDetails(1);
+        _searchTimer = setTimeout(function () {
+            _allPmtPage._filter.Search = v;
+            _allPmtPage.loadData(1);
         }, 1500);
     });
 
-    // Date filter — dropdown with range presets + custom flatpickr pickers
-    $('#pmtDateFilterMenu').html(buildDateFilterHtml('pmtCustomDateFrom', 'pmtCustomDateTo'));
-
+    // ── Date filter ──────────────────────────────────────────────────────────
+    $('#allPmtDateMenu').html(buildDateFilterHtml('allPmtDateFrom', 'allPmtDateTo'));
     initDateFilter({
-        btnId  : 'pmtDateFilterBtn',
-        labelId: 'pmtDateFilterLabel',
-        fromId : 'pmtCustomDateFrom',
-        toId   : 'pmtCustomDateTo',
+        btnId  : 'allPmtDateBtn',
+        labelId: 'allPmtDateLabel',
+        fromId : 'allPmtDateFrom',
+        toId   : 'allPmtDateTo',
         onApply: function (from, to) {
-            PmtFilter.DateFrom = from;
-            PmtFilter.DateTo   = to;
-            PmtPageNo = 1;
-            getPaymentsDetails(1);
+            _allPmtPage._filter.DateFrom = from;
+            _allPmtPage._filter.DateTo   = to;
+            _allPmtPage.loadData(1);
+        }
+    });
+    $(document).on('shown.bs.dropdown', '#allPmtDateBtn', function () {
+        if (!$('#allPmtDateFrom').data('fpInit')) {
+            flatpickr('#allPmtDateFrom', { dateFormat: 'Y-m-d', altInput: true, altFormat: 'd M Y', maxDate: 'today', disableMobile: true });
+            flatpickr('#allPmtDateTo',   { dateFormat: 'Y-m-d', altInput: true, altFormat: 'd M Y', maxDate: 'today', disableMobile: true });
+            $('#allPmtDateFrom').data('fpInit', true);
         }
     });
 
-    // Attach flatpickr to the custom range inputs once they are rendered in the dropdown
-    $(document).on('shown.bs.dropdown', '#pmtDateFilterBtn', function () {
-        if (!$('#pmtCustomDateFrom').data('fpInit')) {
-            flatpickr('#pmtCustomDateFrom', { dateFormat: 'Y-m-d', altInput: true, altFormat: 'd M Y', maxDate: 'today', disableMobile: true });
-            flatpickr('#pmtCustomDateTo',   { dateFormat: 'Y-m-d', altInput: true, altFormat: 'd M Y', maxDate: 'today', disableMobile: true });
-            $('#pmtCustomDateFrom').data('fpInit', true);
-        }
-    });
-
-    // Actions dropdown filters
-    $('#pmtFilterSales').on('click', function () {
-        PmtFilter.PartyType = 'C';
-        PmtPageNo = 1;
-        getPaymentsDetails(1);
-    });
-
-    $('#pmtFilterPurchases').on('click', function () {
-        PmtFilter.PartyType = 'V';
-        PmtPageNo = 1;
-        getPaymentsDetails(1);
-    });
-
-    $('#pmtClearFilter').on('click', function () {
-        PmtFilter = {};
-        $('#pmtSearch').val('');
-        $('#pmtDateFilterLabel').text('All Dates');
+    // ── Clear all filters ────────────────────────────────────────────────────
+    $('#allPmtClearBtn').on('click', function () {
+        _allPmtPage.clearFilters();
+        $('#allPmtSearch').val('');
+        $('#allPmtDateLabel').text('All Dates');
         $('.date-option').removeClass('active');
         $('.date-option[data-range=""]').addClass('active');
-        $('.pmt-tab').removeClass('active');
-        $('.pmt-tab[data-tab="Success"]').addClass('active');
-        PmtPageNo = 1;
-        getPaymentsDetails(1);
+        $('.allpmt-status-tab').removeClass('active').addClass('text-muted');
+        $('.allpmt-status-tab[data-status=""]').addClass('active').removeClass('text-muted');
+        $('.allpmt-dir-pill').removeClass('active').addClass('text-muted');
+        _allPmtPage.loadData(1);
     });
 
-    // ── Payment A4 Print ─────────────────────────────────────────────────────
+    // ── View payment detail (reads from data-* on <tr>) ─────────────────────
+    $(document).on('click', '.viewPaymentDetail', function () {
+        var $row = $(this).closest('tr.pmt-row');
+        var fmt  = function (v) {
+            return sym + ' ' + parseFloat(v || 0).toLocaleString('en-IN', {
+                minimumFractionDigits: dec, maximumFractionDigits: dec
+            });
+        };
+
+        var dir = ($row.data('direction') || 'In');
+        var $modal = $('#paymentDetailModal');
+        $modal.attr('data-pdt-theme', dir === 'Out' ? 'out' : 'in');
+
+        $('#pdUniqueNumber').text($row.data('unique-number') || '—');
+        var dateStr = ($row.data('payment-date') || '').toString().slice(0, 10);
+        if (dateStr) {
+            var p = dateStr.split('-'), mo = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            dateStr = p[2] + ' ' + mo[parseInt(p[1], 10) - 1] + ' ' + p[0];
+        }
+        $('#pdDateLabel').text(dateStr || '—');
+        $('#pdAmount').text(fmt($row.data('raw-amount')));
+
+        var modeMap = { 'cash':'#e8f5e9|#2e7d32','upi':'#ede7f6|#4527a0','card':'#e3f2fd|#1565c0','net banking':'#fff8e1|#f57f17','cheque':'#fce4ec|#880e4f','emi':'#e0f7fa|#00695c','tds':'#f3e5f5|#6a1b9a' };
+        var modeKey = ($row.data('payment-type') || '').toLowerCase().trim();
+        var mc = modeMap[modeKey] ? modeMap[modeKey].split('|') : ['#f0f0f0','#555'];
+        $('#pdModeBadge').html('<span class="pmt-mode-badge" style="background:' + mc[0] + ';color:' + mc[1] + ';">' + ($row.data('payment-type') || '—') + '</span>');
+
+        var mobile = $row.data('party-mobile') || '';
+        $('#pdParty').text($row.data('party-name') || '—');
+        $('#pdPartyMobile').text(mobile).toggle(!!mobile);
+        $('#pdTransNumber').text($row.data('trans-number') || '—');
+
+        var bankName = $row.data('bank-name') || '';
+        if (bankName && !$row.data('is-cash')) {
+            var acctName = $row.data('account-name') || '';
+            $('#pdBankName').text(bankName + (acctName ? ' (' + acctName + ')' : ''));
+            $('#pdAccountNumber').text($row.data('account-number') || '—');
+            var ifsc = $row.data('ifsc') || '', branch = $row.data('branch') || '';
+            $('#pdIfsc').text(ifsc);   $('#pdIfscWrap').toggle(!!ifsc);
+            $('#pdBranch').text(branch); $('#pdBranchWrap').toggle(!!branch);
+            $('#pdBankSection').show();
+        } else {
+            $('#pdBankSection').hide();
+        }
+
+        $('#pdReference').text($row.data('reference') || '—');
+        $('#pdCreatedBy').text($row.data('created-by') || '—');
+        var notes = $row.data('notes') || '';
+        $('#pdNotes').text(notes);
+        $('#pdNotesWrap').toggle(!!notes);
+
+        $modal.modal('show');
+    });
+
+    // ── Cancel payment (In direction) ────────────────────────────────────────
+    $(document).on('click', '.cancelPayment', function () {
+        var paymentUID = $(this).data('payment-uid');
+        var $row = $(this).closest('tr');
+        Swal.fire({
+            title: 'Cancel Payment?',
+            text : 'This payment will be marked as cancelled and the linked document balance will be restored.',
+            icon : 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Cancel it',
+            confirmButtonColor: '#f59e0b',
+        }).then(function (result) {
+            if (result.isConfirmed) { _doPaymentCancel(paymentUID, $row); }
+        });
+    });
+
+    // ── Cancel payment (Out direction) ───────────────────────────────────────
+    $(document).on('click', '.cancelPaymentOut', function () {
+        var paymentUID = $(this).data('payment-uid');
+        var $row = $(this).closest('tr');
+        Swal.fire({
+            title: 'Cancel Payment?',
+            text : 'This payment will be cancelled and the linked document balance restored.',
+            icon : 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Cancel it',
+            confirmButtonColor: '#f59e0b',
+        }).then(function (result) {
+            if (result.isConfirmed) { _doPaymentCancel(paymentUID, $row); }
+        });
+    });
+
+    // ── Delete payment ───────────────────────────────────────────────────────
+    $(document).on('click', '.deletePayment, .deletePaymentOut', function () {
+        var paymentUID = $(this).data('payment-uid');
+        var $row = $(this).closest('tr');
+        Swal.fire({
+            title: 'Delete Payment?',
+            text : 'This will permanently remove the payment record.',
+            icon : 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Delete',
+            confirmButtonColor: '#d33',
+        }).then(function (result) {
+            if (result.isConfirmed) { _doPaymentCancel(paymentUID, $row); }
+        });
+    });
+
+    // ── A4 Print ─────────────────────────────────────────────────────────────
     $(document).on('click', '.pmtA4Print', function () {
         var paymentUID = $(this).data('payment-uid');
         _pmtLoadPrintData(paymentUID, 'a4', function (resp) {
             if (!resp.PrintHtml) {
                 $('#a4PrintModal').modal('hide');
-                showToastNotification('No print template is configured for Payments. Please set one up in Settings > Print Themes.', 'error');
+                showToastNotification('No print template configured for Payments.', 'error');
                 return;
             }
             _a4Html  = resp.PrintHtml;
@@ -330,7 +575,7 @@ $(function () {
         _a4SetLoading(true);
     });
 
-    // ── Payment Download PDF (direct) ────────────────────────────────────────
+    // ── Download PDF ─────────────────────────────────────────────────────────
     $(document).on('click', '.pmtDownloadPdf', function () {
         var paymentUID = $(this).data('payment-uid');
         var form = document.createElement('form');
@@ -348,7 +593,6 @@ $(function () {
         document.body.removeChild(form);
     });
 
-    // Override download button for payments (POST to payments/downloadPaymentPdf)
     $('#a4DownloadBtn').off('click.pmt').on('click.pmt', function () {
         if (!_a4Html || !_a4DownloadUid) return;
         var size = $('input[name="a4PaperSize"]:checked').val() || 'A4';
@@ -367,141 +611,27 @@ $(function () {
         document.body.removeChild(form);
     });
 
-    // ── Payment Thermal Print — handled by thermal_print.js ─────────────────
+    // ── WhatsApp link helper ─────────────────────────────────────────────────
+    $(document).on('click', '.pmt-wa-link', function (e) {
+        e.preventDefault();
+        var url = $(this).data('wa-url');
+        if (!url) return;
+        var win = window.open('about:blank', '_blank');
+        win.location.href = url;
+    });
 
-    // View payment detail — reads from data-* on the <tr>, zero AJAX
-    $(document).on('click', '.viewPaymentDetail', function () {
-        var $row = $(this).closest('tr.pmt-row');
-        var sym  = '<?php echo addslashes($cur); ?>';
-        var dec  = <?php echo $dec; ?>;
-        var fmt  = function (v) {
-            return sym + ' ' + parseFloat(v || 0).toLocaleString('en-IN', { minimumFractionDigits: dec, maximumFractionDigits: dec });
-        };
-
-        // Banner
-        $('#pdUniqueNumber').text($row.data('unique-number') || '—');
-        var dateStr = ($row.data('payment-date') || '').toString().slice(0, 10);
-        if (dateStr) {
-            var p = dateStr.split('-'), mo = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-            dateStr = p[2] + ' ' + mo[parseInt(p[1], 10) - 1] + ' ' + p[0];
+    // ── Pre-apply dir=out if URL param present ───────────────────────────────
+    (function () {
+        var params = new URLSearchParams(window.location.search);
+        if ((params.get('dir') || '').toLowerCase() === 'out') {
+            $('.allpmt-dir-pill[data-dir="Out"]').trigger('click');
         }
-        $('#pdDateLabel').text(dateStr || '—');
-        $('#pdAmount').text(fmt($row.data('raw-amount')));
-
-        // Mode badge
-        var modeMap = { 'cash':'#e8f5e9|#2e7d32','upi':'#ede7f6|#4527a0','card':'#e3f2fd|#1565c0','net banking':'#fff8e1|#f57f17','cheque':'#fce4ec|#880e4f','emi':'#e0f7fa|#00695c','tds':'#f3e5f5|#6a1b9a' };
-        var modeKey = ($row.data('payment-type') || '').toLowerCase().trim();
-        var mc = modeMap[modeKey] ? modeMap[modeKey].split('|') : ['#f0f0f0','#555'];
-        $('#pdModeBadge').html('<span class="pmt-mode-badge" style="background:' + mc[0] + ';color:' + mc[1] + ';">' + ($row.data('payment-type') || '—') + '</span>');
-
-        // Party
-        var mobile = $row.data('party-mobile') || '';
-        $('#pdParty').text($row.data('party-name') || '—');
-        $('#pdPartyMobile').text(mobile).toggle(!!mobile);
-        $('#pdTransNumber').text($row.data('trans-number') || '—');
-
-        // Bank
-        var bankName = $row.data('bank-name') || '';
-        if (bankName && !$row.data('is-cash')) {
-            var acctName = $row.data('account-name') || '';
-            $('#pdBankName').text(bankName + (acctName ? ' (' + acctName + ')' : ''));
-            $('#pdAccountNumber').text($row.data('account-number') || '—');
-            var ifsc = $row.data('ifsc') || '', branch = $row.data('branch') || '';
-            $('#pdIfsc').text(ifsc);   $('#pdIfscWrap').toggle(!!ifsc);
-            $('#pdBranch').text(branch); $('#pdBranchWrap').toggle(!!branch);
-            $('#pdBankSection').show();
-        } else {
-            $('#pdBankSection').hide();
-        }
-
-        // Reference / By / Notes
-        $('#pdReference').text($row.data('reference') || '—');
-        $('#pdCreatedBy').text($row.data('created-by') || '—');
-        var notes = $row.data('notes') || '';
-        $('#pdNotes').text(notes);
-        $('#pdNotesWrap').toggle(!!notes);
-
-        $('#paymentDetailModal').modal('show');
-    });
-
-    // Cancel payment
-    $(document).on('click', '.cancelPayment', function () {
-        var paymentUID = $(this).data('payment-uid');
-        var $row = $(this).closest('tr');
-        Swal.fire({
-            title: 'Cancel Payment?',
-            text : 'This payment will be marked as cancelled and the invoice balance will be restored.',
-            icon : 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'Yes, Cancel it',
-            confirmButtonColor: '#f59e0b',
-        }).then(function (result) {
-            if (result.isConfirmed) doPaymentRemove(paymentUID, $row);
-        });
-    });
-
-    // Delete payment
-    $(document).on('click', '.deletePayment', function () {
-        var paymentUID = $(this).data('payment-uid');
-        var $row = $(this).closest('tr');
-        Swal.fire({
-            title: 'Delete Payment?',
-            text : 'This will permanently remove the payment record and restore the invoice balance.',
-            icon : 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'Delete',
-            confirmButtonColor: '#d33',
-        }).then(function (result) {
-            if (result.isConfirmed) doPaymentRemove(paymentUID, $row);
-        });
-    });
+    }());
 
 });
 
-function getPaymentsDetails(pageNo, append) {
-    pageNo = pageNo || 1;
-    PmtPageNo = pageNo;
-    $.ajax({
-        url    : '/payments/getPaymentsPageDetails/' + pageNo,
-        method : 'POST',
-        data   : { RowLimit: PmtLimit, Filter: PmtFilter, [CsrfName]: CsrfToken },
-        success: function (resp) {
-            if (!resp.Error) {
-                $('#paymentsTableBody').html(resp.RecordHtmlData);
-                $('#pmtPagination').html(
-                    '<span class="text-muted" style="font-size:.78rem;">Total: <strong id="pmtTotalCount">' +
-                    Number(resp.TotalCount).toLocaleString() + '</strong></span>' +
-                    (resp.Pagination || '')
-                );
-                if (resp.Totals) {
-                    var sym = '<?php echo addslashes($cur); ?>';
-                    var dec = <?php echo $dec; ?>;
-                    var fmt = function(v) { return sym + ' ' + parseFloat(v).toLocaleString('en-IN', {minimumFractionDigits: dec, maximumFractionDigits: dec}); };
-                    $('#pmtFooterReceived').text(fmt(resp.Totals.TotalReceived || 0));
-                    $('#pmtFooterPaid').text(fmt(resp.Totals.TotalPaid || 0));
-                    $('#pmtFooterNet').text(fmt((resp.Totals.TotalReceived || 0) - (resp.Totals.TotalPaid || 0)));
-                }
-            }
-        }
-    });
-}
-
-// ── WhatsApp: always open a fresh window to clear previous pre-filled text ──
-$(document).on('click', '.pmt-wa-link', function (e) {
-    e.preventDefault();
-    var url = $(this).data('wa-url');
-    if (!url) return;
-    var win = window.open('about:blank', '_blank');
-    win.location.href = url;
-});
-
-// Shared helper: call deletePayment endpoint and handle response
-function doPaymentRemove(paymentUID, $row) {
-    var sym = '<?php echo addslashes($cur); ?>';
-    var dec = <?php echo $dec; ?>;
-    var fmt = function (v) {
-        return sym + ' ' + parseFloat(v || 0).toLocaleString('en-IN', { minimumFractionDigits: dec, maximumFractionDigits: dec });
-    };
+// ── Shared helper: cancel / delete a payment ─────────────────────────────
+function _doPaymentCancel(paymentUID, $row) {
     $.ajax({
         url   : '/payments/deletePayment',
         method: 'POST',
@@ -509,19 +639,9 @@ function doPaymentRemove(paymentUID, $row) {
         success: function (resp) {
             if (!resp.Error) {
                 $row.fadeOut(300, function () { $(this).remove(); });
-                if (resp.NewBalanceAmount !== undefined) {
-                    var statusColor = resp.NewStatus === 'Unpaid' ? 'secondary' : 'warning';
-                    Swal.fire({
-                        icon : 'success',
-                        title: 'Done',
-                        html : 'Transaction balance updated.<br>' +
-                                '<strong>Remaining Balance:</strong> ' + fmt(resp.NewBalanceAmount) +
-                                ' &nbsp;|&nbsp; Status: <span class="badge bg-label-' + statusColor + '">' +
-                                resp.NewStatus + '</span>',
-                        timer: 3000,
-                        showConfirmButton: false,
-                    });
-                }
+                // Refresh stats to reflect the change
+                _allPmtPage.loadStats();
+                Swal.fire({ icon: 'success', text: resp.Message, timer: 1800, showConfirmButton: false });
             } else {
                 Swal.fire('Error', resp.Message, 'error');
             }

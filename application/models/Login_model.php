@@ -63,16 +63,10 @@ class Login_model extends CI_Model {
                 ? $productSettingsResult->Data[0]
                 : new stdClass();
 
-            // Transaction Settings (OrgTransactionSettingsTbl) — stored in main JWT payload
+            // Transaction Settings (TransactionSettingsTbl) — stored in main JWT payload
             $transSettingsResult = $this->getOrgTransactionSettings($UserData->UserOrgUID);
             $TransSettings = (!$transSettingsResult->Error && !empty($transSettingsResult->Data))
                 ? $transSettingsResult->Data[0]
-                : new stdClass();
-
-            // Transaction General Settings (OrgTransGeneralSettingsTbl) — T&C and date overrides
-            $transGenResult = $this->getOrgTransGeneralSettings($UserData->UserOrgUID);
-            $TransGenSettings = (!$transGenResult->Error && !empty($transGenResult->Data))
-                ? $transGenResult->Data[0]
                 : new stdClass();
 
             // Build flat permissions map: ControllerName => {CanView,CanCreate,CanEdit,CanDelete}
@@ -88,7 +82,7 @@ class Login_model extends CI_Model {
                 }
             }
 
-            $jwtPayload = array('User' => $JwtUserData, 'Org' => $JwtOrgData, 'UserMainModule' => $MainModule, 'UserSubModule' => $SubModule, 'Permissions' => $Permissions, 'GenSettings' => $GeneralSettings, 'ProdSettings' => $ProductSettings, 'TransSettings' => $TransSettings, 'TransGenSettings' => $TransGenSettings, 'ModuleInfo' => $ModuleInfo);
+            $jwtPayload = array('User' => $JwtUserData, 'Org' => $JwtOrgData, 'UserMainModule' => $MainModule, 'UserSubModule' => $SubModule, 'Permissions' => $Permissions, 'GenSettings' => $GeneralSettings, 'ProdSettings' => $ProductSettings, 'TransSettings' => $TransSettings, 'ModuleInfo' => $ModuleInfo);
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Message = 'Success';
@@ -264,13 +258,23 @@ class Login_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
             $this->ReadDb->db_debug = FALSE;
-            $this->ReadDb->select('InvoiceCancelAction');
-            $this->ReadDb->from('Settings.OrgTransactionSettingsTbl');
+            $this->ReadDb->select('*');
+            $this->ReadDb->from('Settings.TransactionSettingsTbl');
             $this->ReadDb->where('OrgUID', (int) $OrgUID);
             $this->ReadDb->limit(1);
             $query = $this->ReadDb->get();
+            $rows  = ($query && $query->num_rows() > 0) ? $query->result() : [];
+            $row   = !empty($rows) ? $rows[0] : new stdClass();
+
+            // Fill defaults for any column not yet present in the table
+            if (!isset($row->InvoiceCancelAction))     $row->InvoiceCancelAction    = 'ask';
+            if (!isset($row->SalesReturnCancelAction)) $row->SalesReturnCancelAction = 'ask';
+            if (!isset($row->SalesReturnItemMethod))   $row->SalesReturnItemMethod   = 'Manual';
+            if (!isset($row->TermsAndConditions))      $row->TermsAndConditions      = '';
+            if (!isset($row->HideNavOnTransForm))      $row->HideNavOnTransForm      = 0;
+
             $this->EndReturnData->Error = FALSE;
-            $this->EndReturnData->Data  = $query ? $query->result() : [];
+            $this->EndReturnData->Data  = [$row];
             return $this->EndReturnData;
         } catch (Exception $e) {
             $this->EndReturnData->Error   = TRUE;
@@ -279,25 +283,6 @@ class Login_model extends CI_Model {
             return $this->EndReturnData;
         }
 
-    }
-
-    public function getOrgTransGeneralSettings($OrgUID) {
-        $this->EndReturnData = new stdClass();
-        try {
-            $this->ReadDb->db_debug = FALSE;
-            $this->ReadDb->select('TermsAndConditions, HideNavOnTransForm');
-            $this->ReadDb->from('Settings.OrgTransGeneralSettingsTbl');
-            $this->ReadDb->where('OrgUID', (int) $OrgUID);
-            $this->ReadDb->limit(1);
-            $query = $this->ReadDb->get();
-            $this->EndReturnData->Error = FALSE;
-            $this->EndReturnData->Data  = $query ? $query->result() : [];
-            return $this->EndReturnData;
-        } catch (Exception $e) {
-            $this->EndReturnData->Error = TRUE;
-            $this->EndReturnData->Data  = [];
-            return $this->EndReturnData;
-        }
     }
 
     public function getModuleDetails($OrgUID) {

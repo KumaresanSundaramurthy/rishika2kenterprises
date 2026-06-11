@@ -85,11 +85,9 @@ class Storage extends MY_Controller {
             'StorageTypeUID' => getPostValue($postData, 'StorageTypeUID', '', null),
             'Description'    => getPostValue($postData, 'Description') ?: null,
             'UpdatedBy'      => $this->pageData['JwtData']->User->UserUID,
-            'UpdatedOn'      => time(),
         ];
         if ($isCreate) {
             $data['CreatedBy'] = $this->pageData['JwtData']->User->UserUID;
-            $data['CreatedOn'] = time();
         }
         if (isset($data['StorageTypeUID']) && $data['StorageTypeUID'] !== null) {
             $data['StorageTypeUID'] = (int) $data['StorageTypeUID'];

@@ -462,6 +462,36 @@ class Organisation_model extends CI_Model {
 
     }
 
+    /** Look up a print theme config by ModuleUID — avoids string-matching on TransType. */
+    public function getPrintThemeByModule($orgUID, $moduleUID) {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $this->ReadDb->select([
+                'TC.*',
+                'PT.HtmlContent   AS TemplateHtmlContent',
+                'PT.PreviewImage  AS TemplatePreviewImage',
+                'PT.TemplateName  AS TemplateName',
+            ]);
+            $this->ReadDb->from('Settings.PrintThemeConfigTbl TC');
+            $this->ReadDb->join('Settings.PrintTemplatesTbl PT', 'PT.TemplateUID = TC.TemplateUID AND PT.IsDeleted = 0', 'left');
+            $this->ReadDb->where(['TC.OrgUID' => (int) $orgUID, 'TC.ModuleUID' => (int) $moduleUID, 'TC.IsDeleted' => 0]);
+            $this->ReadDb->limit(1);
+            $row = $this->ReadDb->get()->row();
+
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Data  = $row;
+            return $this->EndReturnData;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+            throw new Exception($this->EndReturnData->Message);
+        }
+
+    }
+
     /** Paginated list of print theme configs for an org. */
     public function getPrintThemeConfigsPaginated($orgUID, $limit, $offset, $search = '') {
 
@@ -865,6 +895,24 @@ class Organisation_model extends CI_Model {
             $this->EndReturnData->Data  = $this->ReadDb->get()->result();
         } catch (Exception $e) {
             log_message('error', 'Organisation_model::getPrefixModules — ' . $e->getMessage());
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        return $this->EndReturnData;
+    }
+
+    /** Get all modules that support print templates (IsPrintTemplate = 1). */
+    public function getPrintTemplateModules() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $this->ReadDb->select('ModuleUID, Name, DisplayName');
+            $this->ReadDb->from('Modules.ModuleTbl');
+            $this->ReadDb->where(['IsPrintTemplate' => 1, 'IsActive' => 1, 'IsDeleted' => 0]);
+            $this->ReadDb->order_by('Sorting', 'ASC');
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Data  = $this->ReadDb->get()->result();
+        } catch (Exception $e) {
+            log_message('error', 'Organisation_model::getPrintTemplateModules — ' . $e->getMessage());
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }

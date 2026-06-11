@@ -74,7 +74,7 @@
 </head>
 <body>
 <?php
-$_hideNavOnTransForm = (int)(isset($JwtData) ? ($JwtData->TransGenSettings->HideNavOnTransForm ?? 0) : 0);
+$_hideNavOnTransForm = (int)(isset($JwtData) ? ($JwtData->TransSettings->HideNavOnTransForm ?? 0) : 0);
 // Only apply on create/edit form pages, not on view/detail pages.
 if ($_hideNavOnTransForm) {
     $_ci     = &get_instance();

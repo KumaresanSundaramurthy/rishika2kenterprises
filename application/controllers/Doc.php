@@ -36,17 +36,10 @@ class Doc extends CI_Controller {
             return;
         }
 
-        $this->load->database();
         $this->load->model('transactions_model');
         $this->load->model('organisation_model');
 
-        // Public lookup by TransToken — no OrgUID needed
-        $stub = $this->db
-            ->select('TransUID, OrgUID, ModuleUID, DocStatus, TransType, UniqueNumber, NetAmount, PaidAmount, BalanceAmount, PartyType')
-            ->from('Transaction.TransactionsTbl')
-            ->where(['TransToken' => $token, 'IsDeleted' => 0, 'IsActive' => 1])
-            ->limit(1)
-            ->get()->row();
+        $stub = $this->transactions_model->getTransactionStubByToken($token);
 
         if (!$stub) {
             $this->_showError('Document not found. The link may be invalid or the document has been deleted.');
@@ -172,15 +165,9 @@ HTML;
             return;
         }
 
-        $this->load->database();
         $this->load->model('transactions_model');
 
-        $stub = $this->db
-            ->select('TransUID, OrgUID, ModuleUID, DocStatus, UniqueNumber')
-            ->from('Transaction.TransactionsTbl')
-            ->where(['TransToken' => $token, 'IsDeleted' => 0, 'IsActive' => 1])
-            ->limit(1)
-            ->get()->row();
+        $stub = $this->transactions_model->getTransactionStubByToken($token);
 
         if (!$stub || $stub->DocStatus === 'Draft') {
             show_404();

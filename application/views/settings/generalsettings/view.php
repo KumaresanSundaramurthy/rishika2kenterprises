@@ -431,6 +431,13 @@
                                                 <i class="bx bx-receipt me-2"></i>Invoice
                                             </a>
 
+                                            <a class="nav-link gs-tab-link px-4 py-3" id="tab-sales-return-settings-tab"
+                                                data-bs-toggle="pill" data-bs-target="#tab-sales-return-settings"
+                                                role="tab" aria-controls="tab-sales-return-settings" aria-selected="false"
+                                                href="javascript:void(0);">
+                                                <i class="bx bx-undo me-2"></i>Sales Return
+                                            </a>
+
                                         </div>
                                     </div>
                                     <!-- / Left Side -->
@@ -441,7 +448,7 @@
 
                                             <!-- Sub-Tab: General (T&C) -->
                                             <?php
-                                            $tgs = $TransGenSettings ?? new stdClass();
+                                            $tgs = $TransSettings ?? new stdClass();
                                             $tgsTerms       = htmlspecialchars($tgs->TermsAndConditions ?? '', ENT_QUOTES);
                                             $tgsHideNav     = !empty($tgs->HideNavOnTransForm) ? (int)$tgs->HideNavOnTransForm : 0;
                                             ?>
@@ -558,6 +565,110 @@
 
                                             </div>
                                             <!-- / Sub-Tab: Invoice -->
+
+                                            <!-- Sub-Tab: Sales Return -->
+                                            <?php
+                                            $srMethod       = $ts->SalesReturnItemMethod   ?? 'Manual';
+                                            $srCancelAction = $ts->SalesReturnCancelAction ?? 'ask';
+                                            ?>
+                                            <div class="tab-pane fade" id="tab-sales-return-settings" role="tabpanel" aria-labelledby="tab-sales-return-settings-tab">
+
+                                                <h6 class="fw-semibold mb-1">Sales Return</h6>
+                                                <p class="text-muted small mb-4">Configure default behaviours for sales return operations.</p>
+
+                                                <div class="row g-4">
+                                                    <div class="col-12">
+                                                        <label class="form-label fw-semibold">Cancelling a Sales Return with Refund <span class="text-danger">*</span></label>
+                                                        <p class="text-muted small mb-3">When a sales return that already has a <strong>cash or bank refund paid out</strong> is cancelled, define what should happen to that refund amount.</p>
+
+                                                        <div class="row g-3">
+
+                                                            <div class="col-md-4">
+                                                                <div class="border rounded p-3 h-100 <?php echo $srCancelAction === 'ask' ? 'border-primary bg-label-primary' : ''; ?>" style="cursor:pointer;" onclick="selectSRCancelAction('ask')">
+                                                                    <div class="d-flex align-items-center gap-2 mb-2">
+                                                                        <input class="form-check-input mt-0" type="radio" name="SalesReturnCancelAction" id="srca_ask" value="ask" <?php echo $srCancelAction === 'ask' ? 'checked' : ''; ?>>
+                                                                        <label class="fw-semibold mb-0" for="srca_ask" style="cursor:pointer;">Always Ask</label>
+                                                                    </div>
+                                                                    <p class="text-muted small mb-0">Show a prompt every time so the user can choose — recover from the customer or write off the refund. Best for teams that handle each case individually.</p>
+                                                                </div>
+                                                            </div>
+
+                                                            <div class="col-md-4">
+                                                                <div class="border rounded p-3 h-100 <?php echo $srCancelAction === 'recover' ? 'border-primary bg-label-primary' : ''; ?>" style="cursor:pointer;" onclick="selectSRCancelAction('recover')">
+                                                                    <div class="d-flex align-items-center gap-2 mb-2">
+                                                                        <input class="form-check-input mt-0" type="radio" name="SalesReturnCancelAction" id="srca_recover" value="recover" <?php echo $srCancelAction === 'recover' ? 'checked' : ''; ?>>
+                                                                        <label class="fw-semibold mb-0" for="srca_recover" style="cursor:pointer;">Recover from Customer</label>
+                                                                    </div>
+                                                                    <p class="text-muted small mb-0">The previously refunded amount is recorded as due from the customer. Their balance will reflect what they need to return to you. Physical recovery must be arranged separately.</p>
+                                                                </div>
+                                                            </div>
+
+                                                            <div class="col-md-4">
+                                                                <div class="border rounded p-3 h-100 <?php echo $srCancelAction === 'writeoff' ? 'border-primary bg-label-primary' : ''; ?>" style="cursor:pointer;" onclick="selectSRCancelAction('writeoff')">
+                                                                    <div class="d-flex align-items-center gap-2 mb-2">
+                                                                        <input class="form-check-input mt-0" type="radio" name="SalesReturnCancelAction" id="srca_writeoff" value="writeoff" <?php echo $srCancelAction === 'writeoff' ? 'checked' : ''; ?>>
+                                                                        <label class="fw-semibold mb-0" for="srca_writeoff" style="cursor:pointer;">Write Off</label>
+                                                                    </div>
+                                                                    <p class="text-muted small mb-0">Accept the refund already paid as a business loss. Payment records are marked as written off and no recovery is attempted. Use when you know the money will not come back.</p>
+                                                                </div>
+                                                            </div>
+
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <hr class="my-4">
+
+                                                <div class="row g-4">
+                                                    <div class="col-12">
+                                                        <label class="form-label fw-semibold">Sales Return Item Method <span class="text-danger">*</span></label>
+                                                        <p class="text-muted small mb-3">Controls how products are added when creating a sales return. Choose whether staff must pick items manually from an invoice, have them filled automatically, or allow both approaches.</p>
+
+                                                        <div class="row g-3">
+
+                                                            <div class="col-md-4">
+                                                                <div class="border rounded p-3 h-100 <?php echo $srMethod === 'Manual' ? 'border-primary bg-label-primary' : ''; ?>" style="cursor:pointer;" onclick="selectSRMethod('Manual')">
+                                                                    <div class="d-flex align-items-center gap-2 mb-2">
+                                                                        <input class="form-check-input mt-0" type="radio" name="SalesReturnItemMethod" id="srm_manual" value="Manual" <?php echo $srMethod === 'Manual' ? 'checked' : ''; ?>>
+                                                                        <label class="fw-semibold mb-0" for="srm_manual" style="cursor:pointer;">Manual</label>
+                                                                    </div>
+                                                                    <p class="text-muted small mb-0">Staff must select a customer and explicitly choose items from one of their past invoices. Products are never pre-filled. Best when you want full control over what is returned and from which invoice.</p>
+                                                                </div>
+                                                            </div>
+
+                                                            <div class="col-md-4">
+                                                                <div class="border rounded p-3 h-100 <?php echo $srMethod === 'Automatic' ? 'border-primary bg-label-primary' : ''; ?>" style="cursor:pointer;" onclick="selectSRMethod('Automatic')">
+                                                                    <div class="d-flex align-items-center gap-2 mb-2">
+                                                                        <input class="form-check-input mt-0" type="radio" name="SalesReturnItemMethod" id="srm_automatic" value="Automatic" <?php echo $srMethod === 'Automatic' ? 'checked' : ''; ?>>
+                                                                        <label class="fw-semibold mb-0" for="srm_automatic" style="cursor:pointer;">Automatic</label>
+                                                                    </div>
+                                                                    <p class="text-muted small mb-0">Once a customer is selected and an invoice is picked, all items from that invoice are automatically loaded into the return form. Staff can adjust quantities but cannot add items outside the invoice.</p>
+                                                                </div>
+                                                            </div>
+
+                                                            <div class="col-md-4">
+                                                                <div class="border rounded p-3 h-100 <?php echo $srMethod === 'Both' ? 'border-primary bg-label-primary' : ''; ?>" style="cursor:pointer;" onclick="selectSRMethod('Both')">
+                                                                    <div class="d-flex align-items-center gap-2 mb-2">
+                                                                        <input class="form-check-input mt-0" type="radio" name="SalesReturnItemMethod" id="srm_both" value="Both" <?php echo $srMethod === 'Both' ? 'checked' : ''; ?>>
+                                                                        <label class="fw-semibold mb-0" for="srm_both" style="cursor:pointer;">Both</label>
+                                                                    </div>
+                                                                    <p class="text-muted small mb-0">Combines Manual and Automatic. Staff can load items from an invoice automatically and also add extra products manually. Suitable when returns sometimes include items not tied to a specific invoice.</p>
+                                                                </div>
+                                                            </div>
+
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="mt-4 d-flex gap-2">
+                                                    <button type="button" class="btn btn-primary" id="btnSaveSalesReturnSettings">
+                                                        <span class="spinner-border spinner-border-sm me-1 d-none" id="srSpinner"></span>
+                                                        Save Changes
+                                                    </button>
+                                                </div>
+
+                                            </div>
+                                            <!-- / Sub-Tab: Sales Return -->
 
                                         </div>
                                     </div>
@@ -704,12 +815,15 @@ $(document).ready(function () {
         $spinner.removeClass('d-none');
 
         $.ajax({
-            url    : '/settings/updateTransactionGeneralSettings',
+            url    : '/settings/updateTransactionSettings',
             method : 'POST',
             data   : {
-                TermsAndConditions : $('#txn_TermsAndConditions').val(),
-                HideNavOnTransForm : $('#txn_HideNavOnTransForm').is(':checked') ? 1 : 0,
-                [CsrfName]         : CsrfToken,
+                TermsAndConditions      : $('#txn_TermsAndConditions').val(),
+                HideNavOnTransForm      : $('#txn_HideNavOnTransForm').is(':checked') ? 1 : 0,
+                InvoiceCancelAction     : $('input[name="InvoiceCancelAction"]:checked').val()     || 'ask',
+                SalesReturnCancelAction : $('input[name="SalesReturnCancelAction"]:checked').val() || 'ask',
+                SalesReturnItemMethod   : $('input[name="SalesReturnItemMethod"]:checked').val()   || 'Manual',
+                [CsrfName]              : CsrfToken,
             },
             success: function (resp) {
                 showToastNotification(resp.Message, resp.Error ? 'error' : 'success');
@@ -734,6 +848,26 @@ $(document).ready(function () {
             .closest('.border').addClass('border-primary bg-label-primary');
     };
 
+    // ── Sales Return cancel action card selection ─────────────────────────────
+    window.selectSRCancelAction = function (value) {
+        $('input[name="SalesReturnCancelAction"]').val([value]);
+        $('input[name="SalesReturnCancelAction"]').closest('.border').each(function () {
+            $(this).removeClass('border-primary bg-label-primary');
+        });
+        $('input[name="SalesReturnCancelAction"][value="' + value + '"]')
+            .closest('.border').addClass('border-primary bg-label-primary');
+    };
+
+    // ── Sales Return method card selection ────────────────────────────────────
+    window.selectSRMethod = function (value) {
+        $('input[name="SalesReturnItemMethod"]').val([value]);
+        $('input[name="SalesReturnItemMethod"]').closest('.border').each(function () {
+            $(this).removeClass('border-primary bg-label-primary');
+        });
+        $('input[name="SalesReturnItemMethod"][value="' + value + '"]')
+            .closest('.border').addClass('border-primary bg-label-primary');
+    };
+
     // ── Save Transaction Settings ─────────────────────────────────────────────
     // ── Transaction General Settings (date formats) save ─────────────────────
 
@@ -754,8 +888,50 @@ $(document).ready(function () {
             url    : '/settings/updateTransactionSettings',
             method : 'POST',
             data   : {
-                InvoiceCancelAction : action,
-                [CsrfName]          : CsrfToken,
+                InvoiceCancelAction     : action,
+                SalesReturnCancelAction : $('input[name="SalesReturnCancelAction"]:checked').val() || 'ask',
+                SalesReturnItemMethod   : $('input[name="SalesReturnItemMethod"]:checked').val()   || 'Manual',
+                TermsAndConditions      : $('#txn_TermsAndConditions').val(),
+                HideNavOnTransForm      : $('#txn_HideNavOnTransForm').is(':checked') ? 1 : 0,
+                [CsrfName]              : CsrfToken,
+            },
+            success: function (resp) {
+                showToastNotification(resp.Message, resp.Error ? 'error' : 'success');
+            },
+            error: function () {
+                showToastNotification('Request failed. Please try again.', 'error');
+            },
+            complete: function () {
+                $btn.prop('disabled', false);
+                $spinner.addClass('d-none');
+            }
+        });
+    });
+
+    // ── Save Sales Return Settings ───────────────────────────────────────────
+    $('#btnSaveSalesReturnSettings').on('click', function () {
+        var $btn     = $(this);
+        var $spinner = $('#srSpinner');
+        var method   = $('input[name="SalesReturnItemMethod"]:checked').val();
+
+        if (!method) {
+            showToastNotification('Please select a sales return item method.', 'error');
+            return;
+        }
+
+        $btn.prop('disabled', true);
+        $spinner.removeClass('d-none');
+
+        $.ajax({
+            url    : '/settings/updateTransactionSettings',
+            method : 'POST',
+            data   : {
+                InvoiceCancelAction     : $('input[name="InvoiceCancelAction"]:checked').val()     || 'ask',
+                SalesReturnCancelAction : $('input[name="SalesReturnCancelAction"]:checked').val() || 'ask',
+                SalesReturnItemMethod   : method,
+                TermsAndConditions      : $('#txn_TermsAndConditions').val(),
+                HideNavOnTransForm      : $('#txn_HideNavOnTransForm').is(':checked') ? 1 : 0,
+                [CsrfName]              : CsrfToken,
             },
             success: function (resp) {
                 showToastNotification(resp.Message, resp.Error ? 'error' : 'success');

@@ -186,12 +186,6 @@ class Products extends MY_Controller {
                 $this->pageData['ModPagination'] = '';
             }
 
-            $this->pageData['PrimaryUnitInfo'] = $this->global_model->getPrimaryUnitInfo()->Data ?? [];
-            $this->pageData['DiscTypeInfo']    = $this->global_model->getDiscountTypeInfo()->Data ?? [];
-            $this->pageData['ProdTypeInfo']    = $this->global_model->getProductTypeInfo()->Data ?? [];
-            $this->pageData['ProdTaxInfo']     = $this->global_model->getProductTaxInfo()->Data ?? [];
-            $this->pageData['TaxDetInfo']      = $this->global_model->getTaxDetailsInfo()->Data ?? [];
-
             $OrgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
 
             $this->load->model('customers_model');
@@ -1243,6 +1237,75 @@ class Products extends MY_Controller {
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Options = [];
         }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    public function getDropdownCache() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+            $keys = [
+                'primaryUnit' => $this->redisservice->orgKey('primary-unit'),
+                'discType'    => $this->redisservice->orgKey('disc-type'),
+                'prodType'    => $this->redisservice->orgKey('prod-type'),
+                'prodTax'     => $this->redisservice->orgKey('prod-tax'),
+                'taxDetails'  => $this->redisservice->orgKey('tax-details'),
+                'categories'  => $this->redisservice->orgKey('org-categories'),
+            ];
+
+            $fieldNames  = array_keys($keys);
+            $cmds        = array_map(fn($k) => ['GET', $k], array_values($keys));
+            $pipeResults = $this->upstashservice->pipeline($cmds);
+
+            $data         = [];
+            $missingFields = [];
+
+            foreach ($pipeResults as $i => $result) {
+                $field = $fieldNames[$i];
+                $raw   = $result['result'] ?? null;
+                if ($raw !== null) {
+                    $decoded   = json_decode($raw, true);
+                    $data[$field] = is_array($decoded)
+                        ? array_map(fn($r) => is_array($r) ? (object) $r : $r, $decoded)
+                        : $decoded;
+                } else {
+                    $missingFields[] = $field;
+                }
+            }
+
+            // Fetch any missing fields from DB (model methods also write back to Upstash)
+            foreach ($missingFields as $field) {
+                switch ($field) {
+                    case 'primaryUnit': $data['primaryUnit'] = $this->global_model->getPrimaryUnitInfo()->Data  ?? []; break;
+                    case 'discType':    $data['discType']    = $this->global_model->getDiscountTypeInfo()->Data ?? []; break;
+                    case 'prodType':    $data['prodType']    = $this->global_model->getProductTypeInfo()->Data  ?? []; break;
+                    case 'prodTax':     $data['prodTax']     = $this->global_model->getProductTaxInfo()->Data   ?? []; break;
+                    case 'taxDetails':  $data['taxDetails']  = $this->global_model->getTaxDetailsInfo()->Data   ?? []; break;
+                    case 'categories':  $data['categories']  = $this->products_model->getCategoriesDetails([])  ?? []; break;
+                }
+            }
+
+            // Pipeline returned empty (Upstash disabled or error) — fetch all
+            if (empty($pipeResults)) {
+                $data = [
+                    'primaryUnit' => $this->global_model->getPrimaryUnitInfo()->Data  ?? [],
+                    'discType'    => $this->global_model->getDiscountTypeInfo()->Data  ?? [],
+                    'prodType'    => $this->global_model->getProductTypeInfo()->Data   ?? [],
+                    'prodTax'     => $this->global_model->getProductTaxInfo()->Data    ?? [],
+                    'taxDetails'  => $this->global_model->getTaxDetailsInfo()->Data    ?? [],
+                    'categories'  => $this->products_model->getCategoriesDetails([])   ?? [],
+                ];
+            }
+
+            $this->EndReturnData->Error = false;
+            $this->EndReturnData->Data  = $data;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
         $this->globalservice->sendJsonResponse($this->EndReturnData);
 
     }

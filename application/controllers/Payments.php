@@ -281,14 +281,7 @@ class Payments extends MY_Controller {
             }
 
             // Guard 2 — Block cancellation of source On Account if applied child payments exist
-            $wDB = $this->load->database('WriteDB', TRUE);
-            $wDB->db_debug = FALSE;
-            $wDB->select('P.PaymentUID, T.UniqueNumber');
-            $wDB->from('Transaction.PaymentsTbl P');
-            $wDB->join('Transaction.TransactionsTbl T', 'T.TransUID = P.TransUID', 'left');
-            $wDB->where(['P.OnAccountSourcePaymentUID' => $paymentUID, 'P.IsCancelled' => 0, 'P.IsDeleted' => 0]);
-            $wDB->limit(1);
-            $appliedChild = $wDB->get()->row();
+            $appliedChild = $this->dbwrite_model->getAppliedChildPayment($paymentUID, $orgUID);
             if ($appliedChild) {
                 throw new Exception(
                     'This On Account payment has been applied to Invoice ' .
@@ -301,6 +294,27 @@ class Payments extends MY_Controller {
             $existingPaid = ($transUID > 0)
                 ? $this->transactions_model->getSumPaidForTransaction($transUID, $orgUID)
                 : 0;
+
+            // Guard 3 — SR payment: block if linked Credit Note is already Applied to an invoice
+            $srCN = null;
+            if ($transUID > 0 && (int)($payment->ModuleUID ?? 0) === 106) {
+                $readDb = $this->load->database('ReadDB', TRUE);
+                $readDb->db_debug = FALSE;
+                $readDb->from('Transaction.CustomerCreditNoteTbl');
+                $readDb->where([
+                    'SourceTransUID'  => $transUID,
+                    'SourceModuleUID' => 106,
+                    'IsDeleted'       => 0,
+                    'IsCancelled'     => 0,
+                ]);
+                $srCN = $readDb->get()->row();
+                if ($srCN && $srCN->Status === 'Applied') {
+                    throw new Exception(
+                        'This credit note has been applied to an invoice. ' .
+                        'Please reverse the credit allocation before deleting this payment.'
+                    );
+                }
+            }
 
             $this->dbwrite_model->startTransaction();
 
@@ -324,7 +338,7 @@ class Payments extends MY_Controller {
 
                     $this->dbwrite_model->updateTransIsFullyPaid($transUID, $isFullyPaid, $newTotalPaid, $balanceAmount, $userUID);
 
-                    if ($newTotalPaid <= 0)  $newStatus = 'Issued';
+                    if ($newTotalPaid <= 0)  $newStatus = ((int)$trans->ModuleUID === 106) ? 'Approved' : 'Issued';
                     elseif ($isFullyPaid)    $newStatus = 'Paid';
                     else                     $newStatus = 'Partial';
 
@@ -336,24 +350,26 @@ class Payments extends MY_Controller {
                 }
             }
 
-            // 3b. If this payment was created from an On Account source, restore the source
+            // 3b. SR-specific: restore linked Credit Note amount when a payment is cancelled
+            if ($srCN && $srCN->Status === 'Pending') {
+                $newCNAmount = round((float)$srCN->Amount + (float)$payment->Amount, 2);
+                $wdb = $this->dbwrite_model->getWriteDb();
+                $wdb->db_debug = FALSE;
+                $wdb->where('CreditNoteUID', (int)$srCN->CreditNoteUID);
+                $wdb->update('Transaction.CustomerCreditNoteTbl', [
+                    'Amount'         => $newCNAmount,
+                    'PaymentCleared' => 0,
+                    'UpdatedBy'      => $userUID,
+                ]);
+            }
+
+            // 3c. If this payment was created from an On Account source, restore the source
             $sourceOAUID = (int)($payment->OnAccountSourcePaymentUID ?? 0);
             if ($sourceOAUID > 0) {
-                $wDB2 = $this->load->database('WriteDB', TRUE);
-                $wDB2->db_debug = FALSE;
-                $wDB2->select('PaymentUID, Amount, IsOnAccount');
-                $wDB2->from('Transaction.PaymentsTbl');
-                $wDB2->where(['PaymentUID' => $sourceOAUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
-                $sourceOA = $wDB2->get()->row();
+                $sourceOA = $this->dbwrite_model->getOnAccountSourcePayment($sourceOAUID, $orgUID);
                 if ($sourceOA) {
                     $restoredAmount = round((float)$sourceOA->Amount + (float)$payment->Amount, 2);
-                    $wDB2->where(['PaymentUID' => $sourceOAUID, 'OrgUID' => $orgUID]);
-                    $wDB2->update('Transaction.PaymentsTbl', [
-                        'Amount'                   => $restoredAmount,
-                        'IsOnAccount'              => 1,
-                        'OnAccountAppliedTransUID' => NULL,
-                        'UpdatedBy'                => $userUID,
-                    ]);
+                    $this->dbwrite_model->restoreOnAccountPayment($sourceOAUID, $orgUID, $restoredAmount, $userUID);
                 }
             }
 

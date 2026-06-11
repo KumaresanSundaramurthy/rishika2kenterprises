@@ -67,9 +67,7 @@ class Transactions extends CI_Controller {
                 'Separator'        => getPostValue($PostData, 'prefixSeparator') ?: '-',
                 'NumberPadding'    => (int)(getPostValue($PostData, 'numberPadding') ?: 1),
                 'CreatedBy'        => $userUID,
-                'CreatedOn'        => $now,
                 'UpdatedBy'        => $userUID,
-                'UpdatedOn'        => $now,
             ];
 
             $this->load->model('dbwrite_model');
@@ -174,7 +172,7 @@ class Transactions extends CI_Controller {
             $this->load->model('dbwrite_model');
             $resp = $this->dbwrite_model->updateData(
                 'Settings', 'TransactionPrefixTbl',
-                ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID, 'UpdatedOn' => time()],
+                ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
                 ['PrefixUID' => $prefixUID, 'OrgUID' => $orgUID]
             );
             if ($resp->Error) throw new Exception($resp->Message);
@@ -216,14 +214,14 @@ class Transactions extends CI_Controller {
             // Clear default flag for all org prefixes, then set the chosen one
             $resp = $this->dbwrite_model->updateData(
                 'Settings', 'TransactionPrefixTbl',
-                ['IsDefault' => 0, 'UpdatedBy' => $userUID, 'UpdatedOn' => time()],
+                ['IsDefault' => 0, 'UpdatedBy' => $userUID],
                 ['OrgUID' => $orgUID]
             );
             if ($resp->Error) throw new Exception($resp->Message);
 
             $updresp = $this->dbwrite_model->updateData(
                 'Settings', 'TransactionPrefixTbl',
-                ['IsDefault' => 1, 'UpdatedBy' => $userUID, 'UpdatedOn' => time()],
+                ['IsDefault' => 1, 'UpdatedBy' => $userUID],
                 ['PrefixUID' => $prefixUID, 'OrgUID' => $orgUID]
             );
             if ($updresp->Error) throw new Exception($updresp->Message);
@@ -377,7 +375,7 @@ class Transactions extends CI_Controller {
 
             // PrintTheme and PrintHtml are only needed for A4/A5 preview — skip for thermal
             if (!$isThermal) {
-                $printThemeResult = $this->organisation_model->getPrintThemeByType($orgUID, $header->TransType);
+                $printThemeResult = $this->organisation_model->getPrintThemeByModule($orgUID, $moduleUID);
                 $printBankAccount = $this->transactions_model->getPrintBankAccount($orgUID);
                 $this->EndReturnData->PrintTheme = $printThemeResult->Data ?? null;
                 $this->EndReturnData->PrintHtml  = null;
@@ -530,7 +528,7 @@ class Transactions extends CI_Controller {
 
             // Verify a print template is configured for this transaction type
             $this->load->model('organisation_model');
-            $themeResult = $this->organisation_model->getPrintThemeByType($orgUID, $header->TransType);
+            $themeResult = $this->organisation_model->getPrintThemeByModule($orgUID, $moduleUID);
             if (empty($themeResult->Data) || empty($themeResult->Data->TemplateHtmlContent)) {
                 throw new Exception('Print template not configured for "' . $header->TransType . '". Please set it up in Settings → Print Templates before sending.');
             }

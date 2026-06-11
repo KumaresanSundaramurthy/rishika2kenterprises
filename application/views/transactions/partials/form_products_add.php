@@ -1,6 +1,6 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed');
 // Shared product section (search bar, bill table, notes/terms, summary) for all CREATE forms.
-// Required (from controller pageData): $JwtData, $TaxDetInfo, $DiscTypeInfo
+// Required (from controller pageData): $JwtData
 // Optional variables (pass via load->view second arg):
 //   $transProductSectionTitle  — default: 'Product &amp; Services Details'
 //   $transNotesPlaceholder     — default: 'Enter your notes, say thanks, or anything else'
@@ -16,8 +16,9 @@ $_notesVal  = isset($transNotesContent)        ? htmlspecialchars($transNotesCon
 $_termsVal  = isset($transTermsContent)        ? htmlspecialchars($transTermsContent) : '';
 $_dropzone    = !empty($transShowDropzone);
 $_chargesBd   = !empty($transShowChargesBreakdown);
-$_hideAddProd = !empty($transHideAddProduct);
-$_paymentVars = isset($transPaymentVars) ? $transPaymentVars : null;
+$_hideAddProd    = !empty($transHideAddProduct);
+$_hideSearchCard = !empty($transHideProductSearch);
+$_paymentVars    = isset($transPaymentVars) ? $transPaymentVars : null;
 ?>
 <div class="card-header modal-header-center-sticky p-1 mb-3 d-flex align-items-center justify-content-between">
     <!-- Left: title + add button -->
@@ -44,6 +45,7 @@ $_paymentVars = isset($transPaymentVars) ? $transPaymentVars : null;
 </div>
 <div class="row">
 
+    <?php if (!$_hideSearchCard): ?>
     <div class="card prod-header-static trans-theme p-1">
         <div class="d-flex align-items-center gap-2 mb-1">
             <div style="width: 20%;">
@@ -71,6 +73,7 @@ $_paymentVars = isset($transPaymentVars) ? $transPaymentVars : null;
             </div>
         </div>
     </div>
+    <?php endif; ?>
 
     <div class="card mb-5 p-0">
         <div class="table-responsive">
@@ -152,9 +155,6 @@ $_paymentVars = isset($transPaymentVars) ? $transPaymentVars : null;
                                                 <td>Delivery / Shipping Charges</td>
                                                 <td>
                                                     <select class="form-select form-select-sm additional-charge-tax" id="shippingCharges" name="shippingCharges" data-type="shipping" data-field="tax">
-                                                    <?php foreach ($TaxDetInfo as $TaxInfo) { ?>
-                                                        <option value="<?php echo $TaxInfo->TaxDetailsUID; ?>" data-percent="<?php echo smartDecimal($TaxInfo->Percentage); ?>" <?php echo smartDecimal($TaxInfo->Percentage) == 0 ? 'selected' : ''; ?>><?php echo smartDecimal($TaxInfo->Percentage); ?></option>
-                                                    <?php } ?>
                                                     </select>
                                                 </td>
                                                 <td><input type="text" class="form-control form-control-sm additional-charge-percent" data-type="shipping" data-field="percent" name="shippingPercent" id="shippingPercent" min="0" placeholder="Enter Percentage" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" maxLength="6" value="0" /></td>
@@ -165,9 +165,6 @@ $_paymentVars = isset($transPaymentVars) ? $transPaymentVars : null;
                                                 <td>Packaging Charges</td>
                                                 <td>
                                                     <select class="form-select form-select-sm additional-charge-tax" id="packingCharges" name="packingCharges" data-type="packing" data-field="tax">
-                                                    <?php foreach ($TaxDetInfo as $TaxInfo) { ?>
-                                                        <option value="<?php echo $TaxInfo->TaxDetailsUID; ?>" data-percent="<?php echo smartDecimal($TaxInfo->Percentage); ?>" <?php echo smartDecimal($TaxInfo->Percentage) == 0 ? 'selected' : ''; ?>><?php echo smartDecimal($TaxInfo->Percentage); ?></option>
-                                                    <?php } ?>
                                                     </select>
                                                 </td>
                                                 <td><input type="text" class="form-control form-control-sm additional-charge-percent" name="packingPercent" data-type="packing" data-field="percent" id="packingPercent" min="0" placeholder="Enter Percentage" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" maxLength="6" value="0" /></td>
@@ -307,9 +304,6 @@ $_paymentVars = isset($transPaymentVars) ? $transPaymentVars : null;
                         </div>
                         <div class="input-group input-group-merge w-70">
                             <select class="form-select form-select-sm" id="extDiscountType" name="extDiscountType">
-                            <?php foreach ($DiscTypeInfo as $DiscType) { ?>
-                                <option value="<?php echo $DiscType->Name; ?>"><?php echo $DiscType->Symbol; ?></option>
-                            <?php } ?>
                             </select>
                             <input class="form-control form-control-sm ps-1 w-30" type="text" id="extraDiscount" name="extraDiscount" min="0" step="0.01" placeholder="Extra Discount" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo $JwtData->GenSettings->PriceMaxLength; ?>, <?php echo $JwtData->GenSettings->DecimalPoints; ?>)" maxlength="<?php echo $JwtData->GenSettings->PriceMaxLength; ?>" value="0">
                         </div>

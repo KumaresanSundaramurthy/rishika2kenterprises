@@ -306,6 +306,7 @@ if (!empty($DataLists)):
                         <i class="bx bx-dots-vertical-rounded fs-5"></i>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:.82rem;min-width:160px;">
+                        <?php $ddHasItems = false; ?>
 
                         <?php if (!$isDraft): ?>
                         <li>
@@ -318,10 +319,16 @@ if (!empty($DataLists)):
                                 <i class="bx bx-printer me-2 text-primary"></i>Print / Download
                             </button>
                         </li>
-                        <li><hr class="dropdown-divider my-1"></li>
+                        <li>
+                            <button class="dropdown-item downloadPdfTransaction" data-uid="<?php echo (int)$list->TransUID; ?>" data-module="<?php echo (int)$list->ModuleUID; ?>">
+                                <i class="bx bx-download me-2 text-success"></i>Download PDF
+                            </button>
+                        </li>
+                        <?php $ddHasItems = true; ?>
                         <?php endif; ?>
 
                         <?php if ($showPending): ?>
+                        <?php if ($ddHasItems): ?><li><hr class="dropdown-divider my-1"></li><?php endif; ?>
                         <li>
                             <button class="dropdown-item srReceivePayment"
                                     data-uid="<?php echo (int)$list->TransUID; ?>"
@@ -344,11 +351,11 @@ if (!empty($DataLists)):
                                 <i class="bx bx-credit-card me-2 text-primary"></i>Apply Credit to Invoice
                             </button>
                         </li>
-                        <li><hr class="dropdown-divider my-1"></li>
+                        <?php $ddHasItems = true; ?>
                         <?php endif; ?>
 
                         <?php if (!$isDraft && ($hasMobile || $hasEmail)): ?>
-                        <li><hr class="dropdown-divider my-1"></li>
+                        <?php if ($ddHasItems): ?><li><hr class="dropdown-divider my-1"></li><?php endif; ?>
                         <?php if ($hasMobile): ?>
                         <li>
                             <a class="dropdown-item inv-wa-link"
@@ -388,15 +395,19 @@ if (!empty($DataLists)):
                             </button>
                         </li>
                         <?php endif; ?>
+                        <?php $ddHasItems = true; ?>
                         <?php endif; ?>
 
                         <?php if (!$isCancelled): ?>
-                        <li><hr class="dropdown-divider my-1"></li>
+                        <?php if ($ddHasItems): ?><li><hr class="dropdown-divider my-1"></li><?php endif; ?>
                         <?php if (!$isDraft): ?>
                         <li>
                             <button class="dropdown-item text-warning sr-status-update"
                                     data-uid="<?php echo (int)$list->TransUID; ?>"
                                     data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
+                                    data-paid="<?php echo $paidAmt; ?>"
+                                    data-refund="<?php echo (float)($list->CancelCashRefunded ?? 0); ?>"
+                                    data-credit-applied="<?php echo ($list->CancelCreditApplied ?? 0) > 0 ? 1 : 0; ?>"
                                     data-status="Cancelled">
                                 <i class="bx bx-x-circle me-2"></i>Cancel
                             </button>

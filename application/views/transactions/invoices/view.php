@@ -103,17 +103,12 @@ $this->load->view('common/transactions/header'); ?>
                                     <li class="nav-item"><a class="nav-link inv-status-tab" data-status="Paid" href="javascript:void(0);">Paid <span class="inv-tab-count ms-1 d-none"></span></a></li>
                                     <li class="nav-item"><a class="nav-link inv-status-tab" data-status="Cancelled" href="javascript:void(0);">Cancelled <span class="inv-tab-count ms-1 d-none"></span></a></li>
                                     <li class="nav-item"><a class="nav-link inv-status-tab" data-status="Draft" href="javascript:void(0);">Drafts <span class="inv-tab-count ms-1 d-none"></span></a></li>
+                                    <li class="nav-item"><a class="nav-link inv-status-tab inv-cn-tab" data-status="CreditNotes" href="javascript:void(0);"><i class="bx bx-transfer-alt me-1"></i>Credit Notes <span class="inv-cn-count ms-1 d-none"></span></a></li>
                                 </ul>
                             </div>
                             <div class="trans-toolbar-actions">
                                 <a href="javascript:void(0);" class="r2k-icon-btn pageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
-                                <div class="dropdown">
-                                    <button class="r2k-dd-btn<?php echo (!empty($SavedDateRange) && $SavedDateRange !== 'all') ? ' r2k-date-active' : ''; ?>" type="button" id="dateFilterBtn" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
-                                        <i class="bx bx-calendar"></i> <span id="dateFilterLabel"><?php echo htmlspecialchars($SavedDateLabel ?? 'All Dates'); ?></span><?php if (!empty($SavedDateFromDisplay ?? '')): ?> <strong id="dateFilterDates" class="r2k-df-dates"><?php echo $SavedDateFromDisplay === $SavedDateToDisplay ? $SavedDateFromDisplay : $SavedDateFromDisplay . ' – ' . $SavedDateToDisplay; ?></strong><?php else: ?><strong id="dateFilterDates" class="r2k-df-dates" style="display:none;"></strong><?php endif; ?> <i class="bx bx-chevron-down" style="font-size:.75rem;"></i>
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-end shadow" id="dateFilterMenu" style="width:240px;max-height:420px;overflow-y:auto;font-size:.82rem;z-index:9999;">
-                                    </ul>
-                                </div>
+                                <?php $this->load->view('common/transactions/date_filter_btn'); ?>
                                 <?php $this->load->view('common/transactions/filter_bar', [
                                     'FilterBarConfig' => [
                                         'paymentStatus' => false,
@@ -132,70 +127,111 @@ $this->load->view('common/transactions/header'); ?>
                             </div>
                         </div>
 
-                        <!-- Table -->
-                        <div class="table-responsive">
-                            <table class="table trans-table table-hover MainviewTable mb-0" id="invTable">
-                                <thead class="r2k-thead">
-                                    <tr>
-                                        <th style="width:36px">
-                                            <div class="form-check mb-0">
-                                                <input class="form-check-input table-chkbox invHeaderCheck" type="checkbox">
-                                            </div>
-                                        </th>
-                                        <th class="<?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?> table-serialno" style="width:44px">S.No</th>
-                                        <th class="col-sortable cursor-pointer user-select-none" data-sort="Number">
-                                            # Bill <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Number"></i>
-                                        </th>
-                                        <th class="col-sortable cursor-pointer user-select-none" data-sort="Amount">
-                                            Amount <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Amount"></i>
-                                        </th>
-                                        <th>
-                                            Payment Status
-                                            <a href="javascript:void(0);" id="invPayStatusFilter" class="text-body ms-1"
-                                               data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by Payment Status"
-                                               style="font-size:.85rem;">
-                                                <i class="bx bx-filter-alt align-middle"></i>
-                                            </a>
-                                        </th>
-                                        <th>
-                                            Payment Mode
-                                            <a href="javascript:void(0);" id="invPayModeFilter" class="text-body ms-1"
-                                               data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by Payment Mode"
-                                               style="font-size:.85rem;">
-                                                <i class="bx bx-filter-alt align-middle"></i>
-                                            </a>
-                                        </th>
-                                        <th>
-                                            Customer
-                                            <a href="javascript:void(0);" id="invPartyFilterTrigger" class="text-body ms-1"
-                                               data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by Customer"
-                                               style="font-size:.85rem;">
-                                                <i class="bx bx-filter-alt align-middle"></i>
-                                            </a>
-                                        </th>
-                                        <th>
-                                            Last Updated
-                                            <?php if (count($OrgUsers ?? []) > 1): ?>
-                                            <a href="javascript:void(0);" id="invCreatedByFilter" class="text-body ms-1"
-                                               data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by User"
-                                               style="font-size:.85rem;">
-                                                <i class="bx bx-filter-alt align-middle"></i>
-                                            </a>
-                                            <?php endif; ?>
-                                        </th>
-                                        <th style="width:50px"></th>
-                                    </tr>
-                                </thead>
-                                <tbody class="r2k-tbody table-border-bottom-0">
-                                    <?php echo $ModRowData; ?>
-                                </tbody>
-                            </table>
+                        <!-- Invoice Table (hidden when Credit Notes tab is active) -->
+                        <div id="invTableSection">
+                            <div class="table-responsive">
+                                <table class="table trans-table table-hover MainviewTable mb-0" id="invTable">
+                                    <thead class="r2k-thead">
+                                        <tr>
+                                            <th style="width:36px">
+                                                <div class="form-check mb-0">
+                                                    <input class="form-check-input table-chkbox invHeaderCheck" type="checkbox">
+                                                </div>
+                                            </th>
+                                            <th class="<?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?> table-serialno" style="width:44px">S.No</th>
+                                            <th class="col-sortable cursor-pointer user-select-none" data-sort="Number">
+                                                # Bill <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Number"></i>
+                                            </th>
+                                            <th class="col-sortable cursor-pointer user-select-none" data-sort="Amount">
+                                                Amount <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Amount"></i>
+                                            </th>
+                                            <th>
+                                                Payment Status
+                                                <a href="javascript:void(0);" id="invPayStatusFilter" class="text-body ms-1"
+                                                   data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by Payment Status"
+                                                   style="font-size:.85rem;">
+                                                    <i class="bx bx-filter-alt align-middle"></i>
+                                                </a>
+                                            </th>
+                                            <th>
+                                                Payment Mode
+                                                <a href="javascript:void(0);" id="invPayModeFilter" class="text-body ms-1"
+                                                   data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by Payment Mode"
+                                                   style="font-size:.85rem;">
+                                                    <i class="bx bx-filter-alt align-middle"></i>
+                                                </a>
+                                            </th>
+                                            <th>
+                                                Customer
+                                                <a href="javascript:void(0);" id="invPartyFilterTrigger" class="text-body ms-1"
+                                                   data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by Customer"
+                                                   style="font-size:.85rem;">
+                                                    <i class="bx bx-filter-alt align-middle"></i>
+                                                </a>
+                                            </th>
+                                            <th>
+                                                Last Updated
+                                                <?php if (count($OrgUsers ?? []) > 1): ?>
+                                                <a href="javascript:void(0);" id="invCreatedByFilter" class="text-body ms-1"
+                                                   data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by User"
+                                                   style="font-size:.85rem;">
+                                                    <i class="bx bx-filter-alt align-middle"></i>
+                                                </a>
+                                                <?php endif; ?>
+                                            </th>
+                                            <th style="width:50px"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="r2k-tbody table-border-bottom-0">
+                                        <?php echo $ModRowData; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Pagination -->
+                            <hr class="my-0">
+                            <div class="row mx-3 my-2 justify-content-between align-items-center invPagination" id="invPagination">
+                                <?php echo $ModPagination ?: ''; ?>
+                            </div>
                         </div>
 
-                        <!-- Pagination -->
-                        <hr class="my-0">
-                        <div class="row mx-3 my-2 justify-content-between align-items-center invPagination" id="invPagination">
-                            <?php echo $ModPagination ?: ''; ?>
+                        <!-- Credit Notes Table (shown only when Credit Notes tab is active) -->
+                        <div id="invCNSection" style="display:none;">
+                            <div class="px-3 py-2 d-flex align-items-center gap-2 border-bottom">
+                                <div class="r2k-search-wrap">
+                                    <i class="bx bx-search r2k-si"></i>
+                                    <input type="text" id="cnSearchInput" placeholder="CN # or customer...">
+                                    <i class="bx bx-x r2k-clear d-none"></i>
+                                </div>
+                                <select id="cnStatusFilter" class="form-select form-select-sm" style="width:140px;">
+                                    <option value="All">All Status</option>
+                                    <option value="Pending">Pending</option>
+                                    <option value="Applied">Applied</option>
+                                    <option value="Refunded">Refunded</option>
+                                </select>
+                                <a href="javascript:void(0);" id="cnRefreshBtn" class="r2k-icon-btn ms-1" title="Refresh"><i class="bx bx-refresh"></i></a>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table trans-table table-hover mb-0" id="cnTable">
+                                    <thead class="r2k-thead">
+                                        <tr>
+                                            <th style="width:44px">S.No</th>
+                                            <th>CN Number</th>
+                                            <th>Customer</th>
+                                            <th>Source SR</th>
+                                            <th>SR Date</th>
+                                            <th>Amount</th>
+                                            <th>Status</th>
+                                            <th>Created On</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="cnTableBody" class="r2k-tbody table-border-bottom-0">
+                                        <tr><td colspan="8" class="text-center py-4 text-muted">Loading...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <hr class="my-0">
+                            <div class="row mx-3 my-2 justify-content-between align-items-center" id="cnPagination"></div>
                         </div>
 
                     </div>
@@ -414,14 +450,9 @@ $(function () {
     }, 1500));
 
     // Date filter
-    $(document).on('click', '.date-option', function () {
-        $('.date-option').removeClass('active');
-        $(this).addClass('active');
-        var range = $(this).data('range') || '';
-        var dates = getDateRange(range);
-        $('#dateFilterLabel').text($.trim($(this).text()));
-        Filter.DateFrom = dates.from;
-        Filter.DateTo   = dates.to;
+    $(document).on('r2k:datechange', function (e, dr) {
+        Filter.DateFrom = dr.from;
+        Filter.DateTo   = dr.to;
         PageNo = 1;
         getInvoicesDetails();
     });
@@ -742,4 +773,140 @@ function updateInvoiceRow(invoice, payments, paidTotal) {
     $row.find('.inv-payment-mode').html(paymentHtml);
 
 }
+
+// ── Credit Notes tab ─────────────────────────────────────────────────────────
+var _cnPageNo    = 1;
+var _cnRowLimit  = 10;
+var _cnStatus    = 'All';
+var _cnSearch    = '';
+var _cnLoading   = false;
+
+function loadCreditNotes(pageNo) {
+    if (_cnLoading) return;
+    _cnLoading = true;
+    pageNo = pageNo || _cnPageNo;
+    var $tbody = $('#cnTableBody');
+    $tbody.html('<tr><td colspan="8" class="text-center py-4"><i class="bx bx-loader-alt bx-spin me-1"></i> Loading...</td></tr>');
+
+    $.ajax({
+        url  : '/invoices/getCreditNotesList',
+        type : 'POST',
+        data : {
+            PageNo   : pageNo,
+            RowLimit : _cnRowLimit,
+            Status   : _cnStatus,
+            Search   : _cnSearch,
+            [CsrfName]: CsrfToken,
+        },
+        success: function (resp) {
+            _cnLoading = false;
+            if (resp.Error) {
+                $tbody.html('<tr><td colspan="8" class="text-center py-3 text-danger">' + (resp.Message || 'Error loading credit notes') + '</td></tr>');
+                return;
+            }
+            _cnPageNo = resp.PageNo || pageNo;
+            var rows  = resp.Data  || [];
+            var cur   = '<?php echo addslashes($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>';
+            var dec   = <?php echo (int)($JwtData->GenSettings->DecimalPoints ?? 2); ?>;
+
+            if (!rows.length) {
+                $tbody.html('<tr><td colspan="8" class="text-center py-4 text-muted">No credit notes found.</td></tr>');
+                $('#cnPagination').empty();
+                return;
+            }
+
+            var html = '';
+            $.each(rows, function (i, cn) {
+                var statusBadge = '';
+                if (cn.Status === 'Pending')  statusBadge = '<span class="badge bg-label-warning">Pending</span>';
+                if (cn.Status === 'Applied')  statusBadge = '<span class="badge bg-label-success">Applied</span>';
+                if (cn.Status === 'Refunded') statusBadge = '<span class="badge bg-label-secondary">Refunded</span>';
+                if (cn.Status === 'Cancelled') statusBadge = '<span class="badge bg-label-danger">Cancelled</span>';
+
+                var createdOn = cn.CreatedOn ? new Date(parseInt(cn.CreatedOn) * 1000).toLocaleDateString('en-IN') : '—';
+                var srcDate   = cn.SourceTransDate ? new Date(cn.SourceTransDate).toLocaleDateString('en-IN') : '—';
+                var amt       = parseFloat(cn.Amount || 0).toLocaleString('en-IN', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+
+                html += '<tr>';
+                html += '<td class="text-muted">' + ((_cnPageNo - 1) * _cnRowLimit + i + 1) + '</td>';
+                html += '<td><span class="fw-semibold text-primary">' + (cn.CreditNoteNumber || '—') + '</span></td>';
+                html += '<td>' + (cn.CustomerName ? '<div class="fw-semibold">' + cn.CustomerName + '</div>' : '—') + (cn.MobileNo ? '<small class="text-muted d-block">' + cn.MobileNo + '</small>' : '') + '</td>';
+                html += '<td>' + (cn.SourceTransNumber || '—') + '</td>';
+                html += '<td>' + srcDate + '</td>';
+                html += '<td class="fw-semibold">' + cur + ' ' + amt + '</td>';
+                html += '<td>' + statusBadge + '</td>';
+                html += '<td class="text-muted">' + createdOn + '</td>';
+                html += '</tr>';
+            });
+            $tbody.html(html);
+
+            // Build simple pagination
+            var total    = resp.TotalCount || 0;
+            var lastPage = Math.ceil(total / _cnRowLimit) || 1;
+            var pagHtml  = '';
+            if (lastPage > 1) {
+                pagHtml += '<div class="col-auto text-muted small">Showing ' + ((_cnPageNo - 1) * _cnRowLimit + 1) + '–' + Math.min(_cnPageNo * _cnRowLimit, total) + ' of ' + total + '</div>';
+                pagHtml += '<div class="col-auto"><ul class="pagination pagination-sm mb-0">';
+                pagHtml += '<li class="page-item' + (_cnPageNo <= 1 ? ' disabled' : '') + '"><a class="page-link cn-page-link" href="#" data-page="' + (_cnPageNo - 1) + '">&laquo;</a></li>';
+                for (var p = Math.max(1, _cnPageNo - 2); p <= Math.min(lastPage, _cnPageNo + 2); p++) {
+                    pagHtml += '<li class="page-item' + (p === _cnPageNo ? ' active' : '') + '"><a class="page-link cn-page-link" href="#" data-page="' + p + '">' + p + '</a></li>';
+                }
+                pagHtml += '<li class="page-item' + (_cnPageNo >= lastPage ? ' disabled' : '') + '"><a class="page-link cn-page-link" href="#" data-page="' + (_cnPageNo + 1) + '">&raquo;</a></li>';
+                pagHtml += '</ul></div>';
+            } else {
+                pagHtml = '<div class="col-auto text-muted small">' + total + ' record' + (total !== 1 ? 's' : '') + '</div>';
+            }
+            $('#cnPagination').html(pagHtml);
+
+            // Update tab count badge
+            $('.inv-cn-count').removeClass('d-none').text(total);
+        },
+        error: function () {
+            _cnLoading = false;
+            $('#cnTableBody').html('<tr><td colspan="8" class="text-center py-3 text-danger">Request failed.</td></tr>');
+        }
+    });
+}
+
+// Tab click — toggle invoice vs credit notes sections
+$(document).on('click', '.inv-status-tab', function () {
+    var status = $(this).data('status');
+    if (status === 'CreditNotes') {
+        $('#invTableSection').hide();
+        $('#invCNSection').show();
+        if (_cnPageNo === 1) loadCreditNotes(1);
+    } else {
+        $('#invCNSection').hide();
+        $('#invTableSection').show();
+    }
+});
+
+// CN status filter
+$('#cnStatusFilter').on('change', function () {
+    _cnStatus = $(this).val();
+    _cnPageNo = 1;
+    loadCreditNotes(1);
+});
+
+// CN search
+var _cnSearchTimer;
+$('#cnSearchInput').on('input', function () {
+    clearTimeout(_cnSearchTimer);
+    var val = $.trim($(this).val());
+    _cnSearchTimer = setTimeout(function () {
+        _cnSearch = val;
+        _cnPageNo = 1;
+        loadCreditNotes(1);
+    }, 600);
+});
+
+// CN refresh
+$('#cnRefreshBtn').on('click', function () { loadCreditNotes(_cnPageNo); });
+
+// CN pagination
+$(document).on('click', '.cn-page-link', function (e) {
+    e.preventDefault();
+    var page = parseInt($(this).data('page'));
+    if (page > 0) { _cnPageNo = page; loadCreditNotes(page); }
+});
 </script>

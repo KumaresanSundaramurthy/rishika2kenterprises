@@ -187,15 +187,8 @@ class Subscription extends CI_Controller {
                 return;
             }
 
-            // Get subscription history
-            $this->db->select('*');
-            $this->db->from('Users.SubscriptionHistoryTbl');
-            $this->db->where('UserUID', $userUID);
-            $this->db->order_by('CreatedOn', 'DESC');
-            $this->db->limit(50);
-            $query = $this->db->get();
-
-            $this->pageData['History'] = $query->result();
+            $this->load->model('subscription_model');
+            $this->pageData['History'] = $this->subscription_model->getUserSubscriptionHistory($userUID);
             $this->pageData['SubscriptionInfo'] = $this->subscription->checkSubscription($userUID);
 
             $this->load->view('subscription/history', $this->pageData);

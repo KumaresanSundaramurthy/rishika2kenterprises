@@ -124,7 +124,7 @@ class Invoices extends MY_Controller {
             $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
 
             $this->load->model('formvalidation_model');
-            $ErrorInForm = $this->formvalidation_model->quotationValidateForm($PostData);
+            $ErrorInForm = $this->formvalidation_model->transactionValidateForm($PostData);
             if (!empty($ErrorInForm)) throw new Exception($ErrorInForm);
 
             $itemsJson   = getPostValue($PostData, 'Items');
@@ -269,8 +269,6 @@ class Invoices extends MY_Controller {
                 if ($onAccountJson) {
                     $onAccountItems = json_decode($onAccountJson, true);
                     if (is_array($onAccountItems) && count($onAccountItems) > 0) {
-                        $wOA = $this->load->database('WriteDB', TRUE);
-                        $wOA->db_debug = FALSE;
                         $onAccountAppliedTotal = 0;
                         $now = time();
 
@@ -279,21 +277,14 @@ class Invoices extends MY_Controller {
                             $applyAmount = round((float)($item['ApplyAmount'] ?? 0), 2);
                             if ($sourceUID <= 0 || $applyAmount <= 0) continue;
 
-                            // Fetch source On Account payment from WriteDB
-                            $wOA->select('PaymentUID, Amount, PartyUID');
-                            $wOA->from('Transaction.PaymentsTbl');
-                            $wOA->where(['PaymentUID' => $sourceUID, 'OrgUID' => $orgUID,
-                                         'IsOnAccount' => 1, 'IsDeleted' => 0, 'IsCancelled' => 0]);
-                            $source = $wOA->get()->row();
+                            $source = $this->dbwrite_model->getOnAccountPayment($sourceUID, $orgUID);
                             if (!$source) continue;
 
-                            $sourceAmount = round((float)$source->Amount, 2);
-                            // Cap apply amount at source amount
-                            $applyAmount  = min($applyAmount, $sourceAmount);
+                            $sourceAmount   = round((float)$source->Amount, 2);
+                            $applyAmount    = min($applyAmount, $sourceAmount);
                             $isFullyApplied = ($applyAmount >= $sourceAmount);
 
-                            // Create a new payment record linked to this invoice
-                            $wOA->insert('Transaction.PaymentsTbl', [
+                            $this->dbwrite_model->insertData('Transaction', 'PaymentsTbl', [
                                 'OrgUID'                    => $orgUID,
                                 'TransUID'                  => $transUID,
                                 'PartyUID'                  => $customerUID,
@@ -307,26 +298,20 @@ class Invoices extends MY_Controller {
                                 'IsCancelled'               => 0,
                                 'IsDeleted'                 => 0,
                                 'IsActive'                  => 1,
-                                'CreatedOn'                 => $now,
                                 'CreatedBy'                 => $userUID,
                                 'UpdatedBy'                 => $userUID,
                             ]);
 
                             if ($isFullyApplied) {
-                                // Fully used — mark source as applied
-                                $wOA->where(['PaymentUID' => $sourceUID, 'OrgUID' => $orgUID]);
-                                $wOA->update('Transaction.PaymentsTbl', [
-                                    'IsOnAccount'              => 0,
-                                    'OnAccountAppliedTransUID' => $transUID,
-                                    'UpdatedBy'                => $userUID,
-                                ]);
+                                $this->dbwrite_model->updateData('Transaction', 'PaymentsTbl',
+                                    ['IsOnAccount' => 0, 'OnAccountAppliedTransUID' => $transUID, 'UpdatedBy' => $userUID],
+                                    ['PaymentUID' => $sourceUID, 'OrgUID' => $orgUID]
+                                );
                             } else {
-                                // Partially used (Option A) — reduce source amount, stays On Account
-                                $wOA->where(['PaymentUID' => $sourceUID, 'OrgUID' => $orgUID]);
-                                $wOA->update('Transaction.PaymentsTbl', [
-                                    'Amount'    => round($sourceAmount - $applyAmount, 2),
-                                    'UpdatedBy' => $userUID,
-                                ]);
+                                $this->dbwrite_model->updateData('Transaction', 'PaymentsTbl',
+                                    ['Amount' => round($sourceAmount - $applyAmount, 2), 'UpdatedBy' => $userUID],
+                                    ['PaymentUID' => $sourceUID, 'OrgUID' => $orgUID]
+                                );
                             }
 
                             $onAccountAppliedTotal += $applyAmount;
@@ -423,7 +408,7 @@ class Invoices extends MY_Controller {
             if ($transUID <= 0) throw new Exception('Invoice ID is required.');
 
             $this->load->model('formvalidation_model');
-            $headerError = $this->formvalidation_model->quotationValidateForm($PostData);
+            $headerError = $this->formvalidation_model->transactionValidateForm($PostData);
             if (!empty($headerError)) throw new Exception($headerError);
 
             $itemsJson  = getPostValue($PostData, 'Items');
@@ -991,9 +976,6 @@ class Invoices extends MY_Controller {
                     $cancelAction = $postAction;
                 }
 
-                $writeDB = $this->load->database('WriteDB', TRUE);
-                $writeDB->db_debug = FALSE;
-
                 // For credit_note: create the credit note BEFORE marking IsDeleted=1 so that
                 // createCreditNote() can still find payments (it filters IsDeleted=0).
                 // For refund / cancel_only: no credit note — IsDeleted=1 alone is sufficient.
@@ -1004,15 +986,7 @@ class Invoices extends MY_Controller {
                 }
 
                 // DELETE rule: mark all payments as IsDeleted = 1
-                $writeDB->where([
-                    'TransUID'         => $transUID,
-                    'PartyType'        => 'C',
-                    'PaymentDirection' => 'In',
-                    'IsDeleted'        => 0,
-                ])->update('Transaction.PaymentsTbl', [
-                    'IsDeleted' => 1,
-                    'UpdatedBy' => $userUID,
-                ]);
+                $this->dbwrite_model->markPaymentsDeletedForTrans($transUID, $orgUID, $userUID);
             }
 
             if ($existing->PartyType === 'C') {
@@ -1229,19 +1203,15 @@ class Invoices extends MY_Controller {
 
             // Cascade IsCancelled = 1 to all child records
             if ($newStatus === 'Cancelled') {
-                $writeDB = $this->load->database('WriteDB', TRUE);
-                $writeDB->db_debug = FALSE;
-                $childFlag = ['IsCancelled' => 1, 'UpdatedBy' => $userUID];
-                $writeDB->where('TransUID', $transUID)->update('Transaction.TransDetailTbl',      $childFlag);
-                $writeDB->where('TransUID', $transUID)->update('Transaction.TransProductsTbl',    $childFlag);
-                $writeDB->where('TransUID', $transUID)->update('Transaction.TransProductBOMTbl',  $childFlag);
-                $writeDB->where('TransUID', $transUID)->update('Transaction.TransAttachmentsTbl', $childFlag);
+                $this->dbwrite_model->cancelTransactionChildRecords($transUID, $userUID);
 
                 // Mark payments IsCancelled = 1 when "Mark Refund" is selected
                 $cancelPaymentAction = trim($this->input->post('CancelPaymentAction') ?? '');
                 if ($cancelPaymentAction === 'refund') {
-                    $writeDB->where(['TransUID' => $transUID, 'IsDeleted' => 0])
-                            ->update('Transaction.PaymentsTbl', $childFlag);
+                    $this->dbwrite_model->updateData('Transaction', 'PaymentsTbl',
+                        ['IsCancelled' => 1, 'UpdatedBy' => $userUID],
+                        ['TransUID' => $transUID, 'IsDeleted' => 0]
+                    );
                 }
             }
 
@@ -1273,33 +1243,12 @@ class Invoices extends MY_Controller {
 
                 if ($cancelAction === 'cancel_only') {
                     // Mark payments as On Account — money held by org, reusable on a future invoice
-                    $wdbOA = $this->load->database('WriteDB', TRUE);
-                    $wdbOA->db_debug = FALSE;
-                    $wdbOA->where([
-                        'TransUID'         => $transUID,
-                        'PartyType'        => 'C',
-                        'PaymentDirection' => 'In',
-                        'IsDeleted'        => 0,
-                        'IsCancelled'      => 0,
-                    ])->update('Transaction.PaymentsTbl', [
-                        'IsOnAccount' => 1,
-                        'UpdatedBy'   => $userUID,
-                    ]);
+                    $this->dbwrite_model->markPaymentsOnAccount($transUID, $orgUID, $userUID);
 
                 } elseif ($cancelAction === 'refund') {
                     // Directly set IsCancelled = 1 on all payments for this invoice.
                     // Excludes them from TotalReceived → balance returns to pre-invoice state.
-                    $wdb = $this->load->database('WriteDB', TRUE);
-                    $wdb->db_debug = FALSE;
-                    $wdb->where([
-                        'TransUID'         => $transUID,
-                        'PartyType'        => 'C',
-                        'PaymentDirection' => 'In',
-                        'IsDeleted'        => 0,
-                    ])->update('Transaction.PaymentsTbl', [
-                        'IsCancelled' => 1,
-                        'UpdatedBy'   => $userUID,
-                    ]);
+                    $this->dbwrite_model->markPaymentsRefunded($transUID, $orgUID, $userUID);
 
                 } else {
                     // credit_note / ask → create a Pending credit note for the paid portion
@@ -1682,16 +1631,6 @@ class Invoices extends MY_Controller {
 
             $this->_getDispatchAddresses($orgUID);
             
-            $this->load->model('global_model');
-            $this->pageData['TaxDetInfo'] = $this->global_model->getTaxDetailsInfo()->Data ?? [];
-            $this->pageData['DiscTypeInfo']    = $this->global_model->getDiscountTypeInfo()->Data ?? [];
-            $this->pageData['ProdTypeInfo']    = $this->global_model->getProductTypeInfo()->Data ?? [];
-            $this->pageData['ProdTaxInfo']     = $this->global_model->getProductTaxInfo()->Data ?? [];
-            $this->pageData['PrimaryUnitInfo'] = $this->global_model->getPrimaryUnitInfo()->Data ?? [];
-
-            $this->load->model('products_model');
-            $this->pageData['fltCategoryData'] = $this->products_model->getCategoriesDetails([]) ?? [];
-
             $this->pageData['PaymentTypes']  = $this->transactions_model->getPaymentTypesList();
             $this->pageData['BankAccounts']  = $this->transactions_model->getOrgBankAccounts($orgUID);
 
@@ -1743,30 +1682,6 @@ class Invoices extends MY_Controller {
             $this->pageData['NextNumberMap'] = $nextNumberMap;
 
             $this->_getDispatchAddresses($orgUID);
-
-            $this->load->model('global_model');
-            $GetCountryInfo = $this->global_model->getCountryInfo();
-            $this->pageData['CountryInfo'] = $GetCountryInfo->Error === FALSE ? $GetCountryInfo->Data : [];
-
-            $this->pageData['StateData'] = [];
-            $this->pageData['CityData']  = [];
-
-            $OrgCountryISO2 = $this->pageData['JwtData']->Org->OrgCISO2;
-            if (!empty($OrgCountryISO2)) {
-                $StateInfo = $this->global_model->getStateofCountry($OrgCountryISO2);
-                if ($StateInfo->Error === FALSE) $this->pageData['StateData'] = $StateInfo->Data;
-                $CityInfo = $this->global_model->getCityofCountry($OrgCountryISO2);
-                if ($CityInfo->Error === FALSE) $this->pageData['CityData'] = $CityInfo->Data;
-            }
-
-            $this->pageData['PrimaryUnitInfo'] = $this->global_model->getPrimaryUnitInfo()->Data ?? [];
-            $this->pageData['DiscTypeInfo']    = $this->global_model->getDiscountTypeInfo()->Data ?? [];
-            $this->pageData['ProdTypeInfo']    = $this->global_model->getProductTypeInfo()->Data ?? [];
-            $this->pageData['ProdTaxInfo']     = $this->global_model->getProductTaxInfo()->Data ?? [];
-            $this->pageData['TaxDetInfo']      = $this->global_model->getTaxDetailsInfo()->Data ?? [];
-
-            $this->load->model('products_model');
-            $this->pageData['fltCategoryData'] = $this->products_model->getCategoriesDetails([]) ?? [];
 
             $this->pageData['PaymentTypes']    = $this->transactions_model->getPaymentTypesList();
             $this->pageData['BankAccounts']     = $this->transactions_model->getOrgBankAccounts($orgUID);
@@ -1881,6 +1796,87 @@ class Invoices extends MY_Controller {
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Data  = $notes;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    // ── Paginated credit notes list for the invoice page tab ─────────────────
+
+    public function getCreditNotesList() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID  = $this->pageData['JwtData']->Org->OrgUID;
+            $pageNo  = max(1, (int)($this->input->post('PageNo') ?: 1));
+            $limit   = max(1, (int)($this->input->post('RowLimit') ?: 10));
+            $offset  = ($pageNo - 1) * $limit;
+            $status  = trim($this->input->post('Status') ?: '');
+            $search  = trim($this->input->post('Search') ?: '');
+
+            $this->load->model('transactions_model');
+            $readDb = $this->load->database('ReadDB', TRUE);
+            $readDb->db_debug = FALSE;
+
+            $baseWhere = ['CN.OrgUID' => (int)$orgUID, 'CN.IsDeleted' => 0, 'CN.PaymentCleared' => 0];
+            if ($status !== '' && $status !== 'All') {
+                $baseWhere['CN.Status'] = $status;
+            }
+
+            // Count
+            $readDb->select('COUNT(*) AS total');
+            $readDb->from('Transaction.CustomerCreditNoteTbl CN');
+            $readDb->join('Customers.CustomersTbl C', 'C.CustomerUID = CN.CustomerUID', 'left');
+            $readDb->where($baseWhere);
+            if ($search !== '') {
+                $readDb->group_start();
+                $readDb->like('CN.CreditNoteNumber', $search);
+                $readDb->or_like('C.CustomerName', $search);
+                $readDb->or_like('CN.SourceTransNumber', $search);
+                $readDb->group_end();
+            }
+            $totalCount = (int)($readDb->get()->row()->total ?? 0);
+
+            // Data
+            $readDb->select([
+                'CN.CreditNoteUID',
+                'CN.CreditNoteNumber',
+                'CN.CreditNoteToken',
+                'CN.CreditNoteType',
+                'CN.SourceTransUID',
+                'CN.SourceTransNumber',
+                'CN.SourceModuleUID',
+                'CN.Amount',
+                'CN.Status',
+                'CN.Notes',
+                'CN.CreatedOn',
+                'C.CustomerUID',
+                'C.CustomerName',
+                'C.MobileNo',
+                'T.TransDate AS SourceTransDate',
+            ]);
+            $readDb->from('Transaction.CustomerCreditNoteTbl CN');
+            $readDb->join('Customers.CustomersTbl C',    'C.CustomerUID = CN.CustomerUID',    'left');
+            $readDb->join('Transaction.TransactionsTbl T', 'T.TransUID = CN.SourceTransUID AND T.IsDeleted = 0', 'left');
+            $readDb->where($baseWhere);
+            if ($search !== '') {
+                $readDb->group_start();
+                $readDb->like('CN.CreditNoteNumber', $search);
+                $readDb->or_like('C.CustomerName', $search);
+                $readDb->or_like('CN.SourceTransNumber', $search);
+                $readDb->group_end();
+            }
+            $readDb->order_by('CN.CreatedOn', 'DESC');
+            $readDb->limit($limit, $offset);
+            $rows = $readDb->get()->result();
+
+            $this->EndReturnData->Error      = FALSE;
+            $this->EndReturnData->Data       = $rows;
+            $this->EndReturnData->TotalCount = $totalCount;
+            $this->EndReturnData->PageNo     = $pageNo;
+            $this->EndReturnData->RowLimit   = $limit;
 
         } catch (Exception $e) {
             $this->EndReturnData->Error   = TRUE;

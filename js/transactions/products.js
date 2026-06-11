@@ -63,7 +63,10 @@ $(document).ready(function () {
     $(document).on('click', '#addTransProduct', function(e) {
         e.preventDefault();
         prodOpenCloseDefActions();
-        $('#itemsModal').modal('show');
+        DropdownCache.ready().then(function(data) {
+            DropdownCache.populateProductModal(data);
+            $('#itemsModal').modal('show');
+        });
     });
 
     $('#itemsModal').on('shown.bs.modal', function() {
@@ -222,6 +225,9 @@ function retrieveProductDetails(ItemUID, CloneFlag = false) {
                     $('.AddEditProductBtn').text('Update');
                 }
                 clearItemValues();
+                DropdownCache.ready().then(function(data) {
+                    DropdownCache.populateProductModal(data);
+                });
                 $('#itemsModal').modal('show');
 
                 if (CloneFlag) {

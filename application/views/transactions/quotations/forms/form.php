@@ -54,7 +54,7 @@ if (!empty($DispatchAddress)) {
 }
 
 $_notesVal = '';
-$_jwtTerms = $JwtData->TransGenSettings->TermsAndConditions ?? '';
+$_jwtTerms = $JwtData->TransSettings->TermsAndConditions ?? '';
 $_termsVal = $_jwtTerms;
 if (!$isEdit) {
     $_notesVal = !empty($CloneData->Notes) ? $CloneData->Notes : '';
@@ -135,7 +135,8 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
                                         <li><button type="submit" class="dropdown-item py-1" name="action" value="save_thermal"><i class="bx bx-receipt text-success me-2"></i>Save &amp; Print Thermal</button></li>
                                     </ul>
                                 </div>
-                                <a href="/quotations" class="btn btn-sm btn-outline-danger px-3"><i class="bx bx-x me-1"></i>Close</a>
+                                <?php $_hideNav = (int)($JwtData->TransSettings->HideNavOnTransForm ?? 0); ?>
+                                <a href="/quotations" class="btn btn-sm btn-outline-danger px-3<?php echo $_hideNav ? ' d-none' : ''; ?>"><i class="bx bx-x me-1"></i>Close</a>
                             </div>
                         </div>
                         <?php else: ?>
@@ -191,7 +192,7 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
                                 <?php if ($isDraftEdit): ?>
                                 <button type="submit" name="action" value="draft" class="btn btn-outline-secondary">Save as Draft</button>
                                 <?php endif; ?>
-                                <a href="/quotations" class="btn btn-label-danger">Close</a>
+                                <a href="/quotations" class="btn btn-label-danger<?php echo $_hideNav ? ' d-none' : ''; ?>">Close</a>
                             </div>
                         </div>
                         <?php endif; ?>
@@ -389,8 +390,6 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
 <script src="/js/transactions/attachments.js"></script>
 
 <script>
-const StateInfo     = <?php echo json_encode($StateData); ?>;
-const CityInfo      = <?php echo json_encode($CityData); ?>;
 const EnableStorage = <?php echo $JwtData->GenSettings->EnableStorage; ?>;
 var _isEdit    = <?php echo $isEdit ? 'true' : 'false'; ?>;
 var _orgState         = '<?php echo addslashes($DispatchAddress->StateText ?? ''); ?>';

@@ -54,7 +54,7 @@ if (!empty($DispatchAddress)) {
 }
 
 $_notesVal = '';
-$_jwtTerms = $JwtData->TransGenSettings->TermsAndConditions ?? '';
+$_jwtTerms = $JwtData->TransSettings->TermsAndConditions ?? '';
 $_termsVal = $_jwtTerms;
 if (!$isEdit) {
     if (!empty($SalesOrderData->Notes)) $_notesVal = $SalesOrderData->Notes;
@@ -218,7 +218,8 @@ if ($isEdit) {
                                     <?php endif; ?>
                                     <button type="submit" name="action" value="save" class="btn btn-sm btn-primary px-3"><i class="bx bx-check me-1"></i><?php echo $isDraftEdit ? 'Save' : 'Update'; ?></button>
                                 <?php endif; ?>
-                                <a href="/invoices" class="btn btn-sm btn-outline-danger px-3"><i class="bx bx-x me-1"></i>Close</a>
+                                <?php $_hideNav = (int)($JwtData->TransSettings->HideNavOnTransForm ?? 0); ?>
+                                <a href="/invoices" class="btn btn-sm btn-outline-danger px-3<?php echo $_hideNav ? ' d-none' : ''; ?>"><i class="bx bx-x me-1"></i>Close</a>
                             </div>
                         </div>
 

@@ -110,23 +110,7 @@ $this->load->view('common/transactions/header'); ?>
                             </div>
                             <div class="trans-toolbar-actions">
                                 <a href="javascript:void(0);" class="r2k-icon-btn pageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
-                                <div class="dropdown">
-                                    <button class="r2k-dd-btn<?php echo (!empty($SavedDateRange) && $SavedDateRange !== 'all') ? ' r2k-date-active' : ''; ?>" type="button" id="dateFilterBtn" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
-                                        <i class="bx bx-calendar"></i> <span id="dateFilterLabel"><?php echo htmlspecialchars($SavedDateLabel ?? 'All Dates'); ?></span><?php if (!empty($SavedDateFromDisplay ?? '')): ?> <strong id="dateFilterDates" class="r2k-df-dates"><?php echo $SavedDateFromDisplay === $SavedDateToDisplay ? $SavedDateFromDisplay : $SavedDateFromDisplay . ' – ' . $SavedDateToDisplay; ?></strong><?php else: ?><strong id="dateFilterDates" class="r2k-df-dates" style="display:none;"></strong><?php endif; ?> <i class="bx bx-chevron-down" style="font-size:.75rem;"></i>
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-end shadow" id="dateFilterMenu" style="width:240px;max-height:420px;overflow-y:auto;font-size:.82rem;z-index:9999;">
-                                    </ul>
-                                </div>
-                                <?php $this->load->view('common/transactions/filter_bar', [
-                                    'FilterBarConfig' => [
-                                        'paymentStatus' => false,
-                                        'paymentMode'   => true,
-                                        'party'         => false,
-                                        'lastUpdated'   => false,
-                                        'PaymentTypes'  => $PaymentTypes ?? [],
-                                        'OrgUsers'      => $OrgUsers     ?? [],
-                                    ],
-                                ]); ?>
+                                <?php $this->load->view('common/transactions/date_filter_btn'); ?>
                                 <div class="r2k-search-wrap">
                                     <i class="bx bx-search r2k-si"></i>
                                     <input type="text" id="searchTransactionData" placeholder="Return # or customer...">
@@ -415,11 +399,6 @@ $(function () {
     Filter['Status'] = 'All';
     initExport({ moduleUID: 106, getFilters: function () { return Filter; } });
 
-    // ── Filter bar ──────────────────────────────────────────────────────
-    var tfb = (typeof TransFilterBar !== 'undefined')
-        ? new TransFilterBar({ onChange: function () { PageNo = 1; getSalesReturnsDetails(); } })
-        : null;
-
     // ── Column-level Payment Status filter ──────────────────────────────
     var payStatusFilter = new TransColFilter({
         boxId     : 'srPayStatusFilterBox',
@@ -455,7 +434,6 @@ $(function () {
     var _origGetSalesReturnsDetails = getSalesReturnsDetails;
     getSalesReturnsDetails = function (pageNo, rowLimit, filter) {
         var f = $.extend({}, filter || Filter,
-            tfb               ? tfb.getState()               : {},
             payStatusFilter   ? payStatusFilter.getState()   : {},
             payModeFilter     ? payModeFilter.getState()     : {},
             srCreatedByFilter ? srCreatedByFilter.getState() : {},
@@ -498,11 +476,8 @@ $(function () {
         Filter.Name = $.trim($(this).val()); PageNo = 1; getSalesReturnsDetails();
     }, 1500));
 
-    $(document).on('click', '.date-option', function () {
-        $('.date-option').removeClass('active'); $(this).addClass('active');
-        var dates = getDateRange($(this).data('range') || '');
-        $('#dateFilterLabel').text($.trim($(this).text()));
-        Filter.DateFrom = dates.from; Filter.DateTo = dates.to;
+    $(document).on('r2k:datechange', function (e, dr) {
+        Filter.DateFrom = dr.from; Filter.DateTo = dr.to;
         PageNo = 1; getSalesReturnsDetails();
     });
 
@@ -521,50 +496,183 @@ $(function () {
         if (match) { PageNo = parseInt(match[1]); getSalesReturnsDetails(); }
     });
 
+    // ── Cancel Sales Return ─────────────────────────────────────────────────────
+    var _srCancelSetting = '<?php echo addslashes($JwtData->TransSettings->SalesReturnCancelAction ?? 'ask'); ?>';
+
+    var _srCancelActionMeta = {
+        recover : {
+            label: 'Recover from Customer',
+            desc : 'The refunded amount will be recorded as <strong>due from the customer</strong>. Their balance will reflect what they need to return. Physical recovery must be arranged separately.'
+        },
+        writeoff: {
+            label: 'Write Off',
+            desc : 'The refunded amount is <strong>accepted as a business loss</strong>. No recovery will be attempted. The SR is cancelled and the payment records are marked as written off.'
+        }
+    };
+
+    function _buildSRPaymentActionHtml(defaultAction) {
+        var isAsk = (defaultAction === 'ask');
+        var html  = '';
+
+        if (isAsk) {
+            html += '<div class="mt-3 text-start">';
+            html += '<label class="form-label fw-semibold small mb-1">Select action for the paid-out refund:</label>';
+            html += '<select class="form-select form-select-sm" id="swalSRCancelAction">';
+            html += '<option value="">— Choose an action —</option>';
+            $.each(_srCancelActionMeta, function (val, m) {
+                html += '<option value="' + val + '">' + m.label + '</option>';
+            });
+            html += '</select>';
+            html += '<div id="swalSRCancelDesc" class="text-muted small mt-2 p-2 rounded" style="background:#f8f9fa;min-height:36px;"></div>';
+            html += '</div>';
+        } else {
+            var meta = _srCancelActionMeta[defaultAction] || {};
+            html += '<div class="mt-3 text-start" id="swalSRPresetWrap">';
+            html += '<div class="p-2 rounded small" style="background:#f0f4ff;border-left:3px solid #696cff;">';
+            html += meta.desc || '';
+            html += '</div>';
+            html += '<a href="javascript:void(0)" class="small text-primary mt-2 d-inline-block" id="swalSRChangeAction">&#9998; Click here to change</a>';
+            html += '</div>';
+            html += '<div class="mt-2 text-start d-none" id="swalSRChangeWrap">';
+            html += '<label class="form-label fw-semibold small mb-1">Select a different action:</label>';
+            html += '<select class="form-select form-select-sm" id="swalSRCancelAction">';
+            $.each(_srCancelActionMeta, function (val, m) {
+                html += '<option value="' + val + '"' + (val === defaultAction ? ' selected' : '') + '>' + m.label + '</option>';
+            });
+            html += '</select>';
+            html += '<div id="swalSRCancelDesc" class="text-muted small mt-2 p-2 rounded" style="background:#f8f9fa;">' + meta.desc + '</div>';
+            html += '</div>';
+        }
+        return html;
+    }
+
     $(document).on('click', '.sr-status-update', function () {
-        var uid = $(this).data('uid'), status = $(this).data('status');
-        if ($(this).data('_confirmed')) {
-            $(this).removeData('_confirmed');
-        } else if (status === 'Cancelled') {
-            var num = $(this).data('num') || '';
-            var lbl = num ? '<strong>' + $('<span>').text(num).html() + '</strong>' : 'this sales return';
-            var $btn = $(this);
-            Swal.fire({ title: 'Cancel Sales Return?', html: 'Are you sure you want to cancel ' + lbl + '? This cannot be undone.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', cancelButtonColor: '#6c757d', confirmButtonText: 'Yes, Cancel It', cancelButtonText: 'No, Keep It' }).then(function (r) { if (!r.isConfirmed) return; $btn.data('_confirmed', true).trigger('click'); });
+        var uid    = $(this).data('uid');
+        var status = $(this).data('status');
+        var num    = $(this).data('num') || '';
+
+        if (status !== 'Cancelled') {
+            showProcessing('Updating Status…');
+            $.ajax({
+                url: '/salesreturns/updateSalesReturnStatus', method: 'POST',
+                data: { TransUID: uid, Status: status, [CsrfName]: CsrfToken },
+                success: function (resp) {
+                    hideProcessing();
+                    if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); }
+                    else { getSalesReturnsDetails(); }
+                },
+                error: function () { hideProcessing(); Swal.fire({ icon: 'error', text: 'Request failed. Try again.' }); }
+            });
             return;
         }
-        var procMsg = status === 'Cancelled' ? 'Cancelling Sales Return…' : 'Updating Status…';
-        showProcessing(procMsg);
-        $.ajax({
-            url: '/salesreturns/updateSalesReturnStatus', method: 'POST',
-            data: { TransUID: uid, Status: status, [CsrfName]: CsrfToken },
-            success: function (resp) {
-                hideProcessing();
-                if (resp.Error) {
-                    Swal.fire({ icon: 'error', text: resp.Message });
-                } else {
-                    getSalesReturnsDetails();
-                    if (status === 'Cancelled' && resp.CustomerBalance !== undefined) {
-                        var sym = '<?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? "₹"); ?>';
-                        var bal = parseFloat(resp.CustomerBalance).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                        var typ = resp.CustomerBalanceType === 'Debit' ? 'receivable <small>(customer owes you)</small>' : 'advance <small>(you owe customer)</small>';
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Sales Return Cancelled',
-                            html: 'Sales return cancelled successfully.<br><br>'
-                                + '<div style="background:#f8f9fa;border-radius:10px;padding:14px 20px;margin-top:4px;display:inline-block;min-width:220px;">'
-                                + '<div style="font-size:12px;color:#6c757d;margin-bottom:4px;">Updated Customer Balance</div>'
-                                + '<div style="font-size:22px;font-weight:700;color:' + (resp.CustomerBalanceType === 'Debit' ? '#dc3545' : '#198754') + ';">'
-                                + sym + bal + '</div>'
-                                + '<div style="font-size:11px;color:#6c757d;margin-top:2px;">' + typ + '</div>'
-                                + '</div>',
-                            confirmButtonColor: '#0d6efd'
-                        });
-                    }
-                }
-            },
-            error: function () { hideProcessing(); Swal.fire({ icon: 'error', text: 'Request failed. Try again.' }); }
-        });
+
+        // Dependencies pre-loaded at page load — read from data attributes
+        var deps = {
+            HasCreditApplied : parseInt($(this).data('credit-applied')) === 1,
+            HasRefunds       : parseFloat($(this).data('refund')) > 0,
+            RefundAmount     : parseFloat($(this).data('refund')) || 0
+        };
+
+        if (deps.HasCreditApplied) {
+            Swal.fire({
+                icon             : 'error',
+                title            : 'Cannot Cancel',
+                html             : 'This Sales Return has already been applied to one or more invoices.<br><br>'
+                                 + '<span class="text-muted small">Please reverse the credit allocations before cancelling.</span>',
+                confirmButtonColor: '#dc3545'
+            });
+            return;
+        }
+        _showSRCancelDialog(uid, num, deps);
     });
+
+    function _showSRCancelDialog(uid, num, deps) {
+        var sym      = '<?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? "₹"); ?>';
+        var safeNum  = num ? '<strong>' + $('<span>').text(num).html() + '</strong>' : 'this sales return';
+        var html     = 'Cancel ' + safeNum + '? This cannot be undone.';
+
+        if (deps.HasRefunds) {
+            var fmtAmt = parseFloat(deps.RefundAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+            html += '<div class="mt-3 p-2 rounded text-start" style="background:#fff3cd;border-left:3px solid #ffc107;">'
+                  + '<div class="small fw-semibold mb-1">Refund Already Paid</div>'
+                  + '<div class="small text-muted">Amount <strong>' + sym + fmtAmt + '</strong> was refunded to the customer.</div>'
+                  + '</div>';
+            html += _buildSRPaymentActionHtml(_srCancelSetting);
+        }
+
+        Swal.fire({
+            title             : 'Cancel Sales Return?',
+            html              : html,
+            icon              : 'warning',
+            showCancelButton  : true,
+            confirmButtonText : 'Yes, Cancel It',
+            confirmButtonColor: '#fd7e14',
+            cancelButtonText  : 'No, Keep It',
+            didOpen: function () {
+                var $icon = $(Swal.getIcon());
+                $icon.css({ width: '3em', height: '3em', borderWidth: '2px' });
+                $icon.find('.swal2-icon-content').css({ fontSize: '1.5em' });
+                $(document).on('change', '#swalSRCancelAction', function () {
+                    var val  = $(this).val();
+                    var desc = val && _srCancelActionMeta[val] ? _srCancelActionMeta[val].desc : '';
+                    $('#swalSRCancelDesc').html(desc);
+                });
+                $(document).on('click', '#swalSRChangeAction', function () {
+                    $('#swalSRPresetWrap').addClass('d-none');
+                    $('#swalSRChangeWrap').removeClass('d-none');
+                });
+            },
+            willClose: function () {
+                $(document).off('change', '#swalSRCancelAction');
+                $(document).off('click', '#swalSRChangeAction');
+            },
+            preConfirm: function () {
+                if (!deps.HasRefunds) return '';
+                if (_srCancelSetting !== 'ask') return _srCancelSetting;
+                var chosen = $('#swalSRCancelAction').val();
+                if (!chosen) {
+                    Swal.showValidationMessage('Please select an action for the paid-out refund.');
+                    return false;
+                }
+                return chosen;
+            }
+        }).then(function (r) {
+            if (!r.isConfirmed) return;
+            showProcessing('Cancelling Sales Return…');
+            $.ajax({
+                url   : '/salesreturns/updateSalesReturnStatus',
+                method: 'POST',
+                data  : { TransUID: uid, Status: 'Cancelled', CancelPaymentAction: r.value || '', [CsrfName]: CsrfToken },
+                success: function (resp) {
+                    hideProcessing();
+                    if (resp.Error) {
+                        Swal.fire({ icon: 'error', title: 'Cannot Cancel', html: resp.Message, confirmButtonColor: '#dc3545' });
+                    } else {
+                        getSalesReturnsDetails();
+                        if (resp.CustomerBalance !== undefined) {
+                            var bal = parseFloat(resp.CustomerBalance).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                            var typ = resp.CustomerBalanceType === 'Debit' ? 'receivable <small>(customer owes you)</small>' : 'advance <small>(you owe customer)</small>';
+                            Swal.fire({
+                                icon : 'success',
+                                title: 'Sales Return Cancelled',
+                                html : 'Sales return cancelled successfully.<br><br>'
+                                     + '<div style="background:#f8f9fa;border-radius:10px;padding:14px 20px;margin-top:4px;display:inline-block;min-width:220px;">'
+                                     + '<div style="font-size:12px;color:#6c757d;margin-bottom:4px;">Updated Customer Balance</div>'
+                                     + '<div style="font-size:22px;font-weight:700;color:' + (resp.CustomerBalanceType === 'Debit' ? '#dc3545' : '#198754') + ';">'
+                                     + sym + bal + '</div>'
+                                     + '<div style="font-size:11px;color:#6c757d;margin-top:2px;">' + typ + '</div>'
+                                     + '</div>',
+                                confirmButtonColor: '#0d6efd'
+                            });
+                        } else {
+                            showToastNotification('Sales Return cancelled successfully.', 'success');
+                        }
+                    }
+                },
+                error: function () { hideProcessing(); Swal.fire({ icon: 'error', text: 'Request failed. Try again.' }); }
+            });
+        });
+    }
 
     $(document).on('click', '.deleteSalesReturn', function () {
         var uid = $(this).data('uid'), num = $(this).data('num') || '';
@@ -679,16 +787,21 @@ function _buildSrDetailHtml(resp) {
         } else {
             _fpInstance.setDate(new Date(), false);
         }
-        if (!_rpDropzone && typeof Dropzone !== 'undefined') {
-            Dropzone.autoDiscover = false;
-            _rpDropzone = new Dropzone('#rpAttachDropzone', {
-                url: '#', autoProcessQueue: false, maxFiles: 3, maxFilesize: 3,
-                acceptedFiles: '.pdf,.jpg,.jpeg,.png', parallelUploads: 3, clickable: true,
-                previewTemplate: '<div class="dz-preview dz-file-preview"><div class="dz-details"><div class="dz-filename"><span data-dz-name></span></div><div class="dz-size"><span data-dz-size></span></div></div><div class="dz-error-message"><span data-dz-errormessage></span></div><a class="dz-remove" href="javascript:undefined;" data-dz-remove>Remove</a></div>',
-                init: function () {
-                    this.on('maxfilesexceeded', function (file) { this.removeFile(file); Swal.fire({ icon: 'warning', text: 'Maximum 3 attachments allowed.' }); });
-                }
-            });
+        if (typeof Dropzone !== 'undefined') {
+            var _dzEl = document.querySelector('#rpAttachDropzone');
+            if (_dzEl && _dzEl.dropzone) {
+                _rpDropzone = _dzEl.dropzone;
+            } else if (!_rpDropzone) {
+                Dropzone.autoDiscover = false;
+                _rpDropzone = new Dropzone('#rpAttachDropzone', {
+                    url: '#', autoProcessQueue: false, maxFiles: 3, maxFilesize: 3,
+                    acceptedFiles: '.pdf,.jpg,.jpeg,.png', parallelUploads: 3, clickable: true,
+                    previewTemplate: '<div class="dz-preview dz-file-preview"><div class="dz-details"><div class="dz-filename"><span data-dz-name></span></div><div class="dz-size"><span data-dz-size></span></div></div><div class="dz-error-message"><span data-dz-errormessage></span></div><a class="dz-remove" href="javascript:undefined;" data-dz-remove>Remove</a></div>',
+                    init: function () {
+                        this.on('maxfilesexceeded', function (file) { this.removeFile(file); Swal.fire({ icon: 'warning', text: 'Maximum 3 attachments allowed.' }); });
+                    }
+                });
+            }
         }
         renderPaymentTypes();
     });

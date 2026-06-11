@@ -30,6 +30,9 @@ class Salesreturns extends MY_Controller {
             $this->pageData['SavedDateRange'] = $datePref['range'];
             $this->pageData['SavedDateLabel'] = $datePref['label'];
 
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
+            $this->_annotateSRListWithCancelDeps($allData, $orgUID);
+
             $this->pageData['ModRowData']    = $this->load->view('transactions/salesreturns/list', ['DataLists' => $allData, 'SerialNumber' => 0, 'JwtData' => $this->pageData['JwtData']], TRUE);
             $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/salesreturns/getSalesReturnsPageDetails', $allDataCount, 1, $limit);
             $this->pageData['ModAllCount']   = $allDataCount;
@@ -61,6 +64,7 @@ class Salesreturns extends MY_Controller {
             $allData      = $this->transactions_model->getTransactionPageList($limit, $offset, $this->pageModuleUID, $filter, 0);
             $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, $filter);
 
+            $this->_annotateSRListWithCancelDeps($allData, $this->pageData['JwtData']->Org->OrgUID);
 
             $rowHtml = $this->load->view('transactions/salesreturns/list', [
                 'DataLists'    => $allData,
@@ -92,7 +96,7 @@ class Salesreturns extends MY_Controller {
             $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
 
             $this->load->model('formvalidation_model');
-            $ErrorInForm = $this->formvalidation_model->quotationValidateForm($PostData);
+            $ErrorInForm = $this->formvalidation_model->transactionValidateForm($PostData);
             if (!empty($ErrorInForm)) throw new Exception($ErrorInForm);
 
             $itemsJson   = getPostValue($PostData, 'Items');
@@ -120,6 +124,14 @@ class Salesreturns extends MY_Controller {
             $prefix = null;
             $isDraft                = getPostValue($PostData, 'action') === 'draft';
             $status                 = $isDraft ? 'Draft' : 'Approved';
+
+            // Log customer balance before SR creation
+            $this->load->model('customers_model');
+            $_preSR = $this->customers_model->getCustomerOpeningBalance($orgUID, $customerUID);
+            log_message('debug', '[SR-CREATE-BEFORE] CustomerUID=' . $customerUID . ' OrgUID=' . $orgUID
+                . ' SRAmount=' . $netAmount
+                . ' PendingBalance=' . ($_preSR ? $_preSR->PendingBalance : 'NULL')
+                . ' PendingBalType=' . ($_preSR ? $_preSR->PendingBalType : 'NULL'));
 
             $financialYear = (int) date('Y', strtotime($transDate));
             $this->load->model('transactions_model');
@@ -171,6 +183,7 @@ class Salesreturns extends MY_Controller {
                 'ExtraDiscAmount'   => $extraDiscount,
                 'ExtraDiscType'     => getPostValue($PostData, 'extDiscountType') ?: NULL,
                 'NetAmount'         => $netAmount,
+                'BalanceAmount'     => NULL,
                 'DocStatus'         => $status,
                 'TransToken'        => generate_uuid4(),
                 'IsActive'          => 1,
@@ -213,12 +226,14 @@ class Salesreturns extends MY_Controller {
             $this->dbwrite_model->commitTransaction();
 
             $this->_saveAttachments($transUID);
-            $this->cachehelper->touchCustomer($customerUID);
+            if ($isDraft) $this->cachehelper->touchCustomer($customerUID);
 
             // ── Save payment if recorded on create ──────────────────
+            $hasPayment = false;
             if (!$isDraft && (int) getPostValue($PostData, 'RecordPayment') === 1) {
                 $payResult = $this->_savePaymentRecord($transUID, $orgUID, $userUID, 'C', $customerUID, $netAmount, $PostData, $transDate);
                 if ($payResult['totalPaid'] > 0) {
+                    $hasPayment    = true;
                     $isFullyPaid   = ($netAmount > 0 && round($netAmount - $payResult['totalPaid'], 4) <= 0) ? 1 : 0;
                     $balanceAmount = max(0, round($netAmount - $payResult['totalPaid'], 2));
                     $this->dbwrite_model->updateTransIsFullyPaid($transUID, $isFullyPaid, $payResult['totalPaid'], $balanceAmount, $userUID);
@@ -231,11 +246,52 @@ class Salesreturns extends MY_Controller {
             }
 
             if (!$isDraft) {
+                log_message('debug', '[SR-CN-TRACE] Step1: TransUID=' . $transUID
+                    . ' hasPayment=' . ($hasPayment ? 'true' : 'false')
+                    . ' netAmount=' . $netAmount
+                    . ' uniqueNumber=' . $uniqueNumber
+                    . ' customerUID=' . $customerUID
+                    . ' orgUID=' . $orgUID
+                    . ' RecordPayment_POST=' . (int)getPostValue($PostData, 'RecordPayment'));
+
+                // ── Create credit note for the outstanding balance ──────────────
+                // No payment  → CN for full NetAmount
+                // Partial pay → CN for remaining BalanceAmount
+                // Full pay    → no CN (balanceAmount = 0)
+                $cnAmount = $hasPayment ? ($balanceAmount ?? 0) : $netAmount;
+                log_message('debug', '[SR-CN-TRACE] Step2: cnAmount=' . $cnAmount
+                    . ' hasPayment=' . ($hasPayment ? 'true' : 'false')
+                    . ' netAmount=' . $netAmount
+                    . ' balanceAmount=' . ($balanceAmount ?? 'N/A'));
+
+                if ($cnAmount > 0) {
+                    log_message('debug', '[SR-CN-TRACE] Step2: Calling createSalesReturnCreditNote');
+                    $this->load->library('customerbalance');
+                    $cnResult = $this->customerbalance->createSalesReturnCreditNote(
+                        $orgUID, $customerUID, $transUID, $uniqueNumber, $cnAmount, $userUID, $transDate
+                    );
+                    log_message('debug', '[SR-CN-TRACE] Step3: createSalesReturnCreditNote returned=' . ($cnResult ? json_encode($cnResult) : 'NULL — check error log for DB failure'));
+                    if ($cnResult) {
+                        $this->EndReturnData->CreditNoteUID    = $cnResult['creditNoteUID'];
+                        $this->EndReturnData->CreditNoteNumber = $cnResult['creditNoteNumber'];
+                    } else {
+                        log_message('error', '[SR-CN-TRACE] CN creation FAILED for SR=' . $uniqueNumber . ' Amount=' . $cnAmount);
+                    }
+                } else {
+                    log_message('debug', '[SR-CN-TRACE] Step2: CN creation SKIPPED — fully paid (cnAmount=0)');
+                }
+
                 $balResult = $this->_recalcCustomerBalance($orgUID, $customerUID, $userUID);
                 if ($balResult) {
                     $this->EndReturnData->CustomerBalance     = $balResult['balance'];
                     $this->EndReturnData->CustomerBalanceType = $balResult['type'];
+                    log_message('debug', '[SR-CN-TRACE] Step4-Balance: CustomerUID=' . $customerUID
+                        . ' NewBalance=' . $balResult['balance'] . '(' . $balResult['type'] . ')');
+                } else {
+                    log_message('error', '[SR-CN-TRACE] Step4-Balance: recalcAndSync returned null for CustomerUID=' . $customerUID);
                 }
+            } else {
+                log_message('debug', '[SR-CN-TRACE] Step1: isDraft=true — whole CN+balance block skipped');
             }
 
             $this->EndReturnData->Error    = FALSE;
@@ -262,7 +318,7 @@ class Salesreturns extends MY_Controller {
             if ($transUID <= 0) throw new Exception('Sales Return ID is required.');
 
             $this->load->model('formvalidation_model');
-            $headerError = $this->formvalidation_model->quotationValidateForm($PostData);
+            $headerError = $this->formvalidation_model->transactionValidateForm($PostData);
             if (!empty($headerError)) throw new Exception($headerError);
             $itemsJson  = getPostValue($PostData, 'Items');
             $itemsError = $this->formvalidation_model->validateQuotationItems($itemsJson);
@@ -493,7 +549,6 @@ class Salesreturns extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
             $this->load->model('dbwrite_model');
-            $this->dbwrite_model->startTransaction();
             $PostData = $this->input->post();
             $userUID  = $this->pageData['JwtData']->User->UserUID;
             $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
@@ -503,19 +558,76 @@ class Salesreturns extends MY_Controller {
             $existing = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
             if (!$existing) throw new Exception('Sales Return not found.');
 
+            if (!in_array($existing->DocStatus, ['Draft', 'Approved', 'Partial', 'Paid'])) {
+                throw new Exception('Only Draft, Approved, Partial, or fully paid sales returns can be deleted.');
+            }
+
+            // Check 1: block if credit was applied via applyCredit() — PaymentsTbl path
+            $creditApplied = $this->_getSRCreditApplied($existing->UniqueNumber, $orgUID);
+            if ($creditApplied > 0) {
+                throw new Exception(
+                    'This Sales Return has already been applied to one or more invoices. ' .
+                    'Please reverse the credit allocations before deleting.'
+                );
+            }
+
+            // Check 2: block if CN was applied via applyCreditNote() — CN Status path
+            $readDb = $this->load->database('ReadDB', TRUE);
+            $readDb->db_debug = FALSE;
+            $readDb->from('Transaction.CustomerCreditNoteTbl');
+            $readDb->where([
+                'SourceTransUID'  => $transUID,
+                'SourceModuleUID' => 106,
+                'IsDeleted'       => 0,
+                'IsCancelled'     => 0,
+                'Status'          => 'Applied',
+            ]);
+            if ($readDb->get()->num_rows() > 0) {
+                throw new Exception(
+                    'This Sales Return\'s credit note has been applied to an invoice. ' .
+                    'Please reverse the credit allocation before deleting.'
+                );
+            }
+
+            $this->dbwrite_model->startTransaction();
+
             $this->dbwrite_model->reverseStockMovements($transUID, $orgUID, $userUID);
 
-            $now = time();
-            $this->dbwrite_model->updateData('Transaction', 'TransProductsTbl', ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID, 'UpdatedOn' => $now], ['TransUID' => $transUID, 'IsDeleted' => 0]);
+            $this->dbwrite_model->updateData(
+                'Transaction', 'PaymentsTbl',
+                ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
+                ['TransUID' => $transUID, 'IsDeleted' => 0]
+            );
+
+            $this->_reverseCreditPayments($existing, $orgUID, $userUID);
+
+            // Soft-delete any pending credit note that was auto-created for this SR
+            $wdb = $this->dbwrite_model->getWriteDb();
+            $wdb->db_debug = FALSE;
+            $wdb->where([
+                'SourceTransUID'  => $transUID,
+                'SourceModuleUID' => 106,
+                'Status'          => 'Pending',
+                'IsCancelled'     => 0,
+                'IsDeleted'       => 0,
+            ])->update('Transaction.CustomerCreditNoteTbl', [
+                'IsDeleted' => 1,
+                'UpdatedBy' => $userUID,
+            ]);
+
+            $this->dbwrite_model->updateData('Transaction', 'TransProductsTbl', ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID], ['TransUID' => $transUID, 'IsDeleted' => 0]);
             $deleteData = $this->globalservice->baseDeleteArrayDetails();
             $deleteData['IsActive'] = 0;
             $deleteResp = $this->dbwrite_model->updateData('Transaction', 'TransactionsTbl', $deleteData, ['TransUID' => $transUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
             if ($deleteResp->Error) throw new Exception($deleteResp->Message);
             $this->dbwrite_model->commitTransaction();
+
+            $this->_recalcCustomerBalance($orgUID, (int)$existing->PartyUID, $userUID);
+
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Sales Return deleted successfully.';
         } catch (Exception $e) {
-            $this->dbwrite_model->rollbackTransaction();
+            if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -646,8 +758,6 @@ class Salesreturns extends MY_Controller {
                     'IsDeleted'         => 0,
                     'CreatedBy'         => $userUID,
                     'UpdatedBy'         => $userUID,
-                    'CreatedOn'         => $now,
-                    'UpdatedOn'         => $now,
                 ];
                 $this->dbwrite_model->insertData('Transaction', 'TransProductsTbl', $itemRow);
             }
@@ -688,12 +798,47 @@ class Salesreturns extends MY_Controller {
             ];
 
             $this->load->model('transactions_model');
+            $this->load->model('customers_model');
+
             $existing = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
             if (!$existing) throw new Exception('Sales Return not found.');
             $current = $existing->DocStatus;
             if (!in_array($newStatus, $validTransitions[$current] ?? [])) throw new Exception("Cannot change status from {$current} to {$newStatus}.");
 
             $this->dbwrite_model->startTransaction();
+
+            // ── Pre-cancel dependency checks (before any DB write) ───────────────
+            $hasCashRefunds = false;
+            $cancelAction   = '';
+            $totalRefunded  = 0;
+
+            if ($newStatus === 'Cancelled') {
+                // Priority 1: Block if this SR's credit is still applied to any invoice.
+                // User must manually reverse those allocations before cancelling.
+                $creditApplied = $this->_getSRCreditApplied($existing->UniqueNumber, $orgUID);
+                if ($creditApplied > 0) {
+                    throw new Exception(
+                        'This Sales Return has already been applied to one or more invoices. ' .
+                        'Please reverse the credit allocations before cancelling.'
+                    );
+                }
+
+                // Priority 2: Cash/bank refunds require an explicit action (recover or write off).
+                $totalRefunded  = $this->_getSRTotalRefunded($transUID, $orgUID);
+                $hasCashRefunds = $totalRefunded > 0;
+                if ($hasCashRefunds) {
+                    $cancelAction = trim($this->input->post('CancelPaymentAction') ?? '');
+                    if (!in_array($cancelAction, ['recover', 'writeoff'])) {
+                        // No valid action supplied — tell the frontend to show the action dialog.
+                        $this->dbwrite_model->rollbackTransaction();
+                        $this->EndReturnData->Error          = FALSE;
+                        $this->EndReturnData->RequiresAction = TRUE;
+                        $this->EndReturnData->RefundAmount   = $totalRefunded;
+                        $this->globalservice->sendJsonResponse($this->EndReturnData);
+                        return;
+                    }
+                }
+            }
 
             // Update DocStatus
             $resp = $this->dbwrite_model->updateData('Transaction', 'TransactionsTbl',
@@ -702,29 +847,70 @@ class Salesreturns extends MY_Controller {
             );
             if ($resp->Error) throw new Exception($resp->Message);
 
-            // On cancellation — void line items, void payments, reverse stock, reset balance, recalc customer balance
             if ($newStatus === 'Cancelled') {
-                // Soft-delete all sales return line items
+                // Soft-delete all line items
                 $this->dbwrite_model->updateData(
                     'Transaction', 'TransProductsTbl',
                     ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID, 'UpdatedOn' => date('Y-m-d H:i:s')],
                     ['TransUID' => $transUID, 'IsDeleted' => 0]
                 );
 
-                // Void all refund payments linked to this sales return
-                $this->dbwrite_model->updateData(
-                    'Transaction', 'PaymentsTbl',
-                    ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
-                    ['TransUID' => $transUID, 'IsDeleted' => 0]
-                );
+                // Handle cash/bank refund payments per the chosen action
+                if ($hasCashRefunds) {
+                    $wdb = $this->dbwrite_model->getWriteDb();
+                    $wdb->db_debug = FALSE;
+                    if ($cancelAction === 'writeoff') {
+                        // Accept the refund as a business loss — mark payments written off
+                        $wdb->where(['TransUID' => $transUID, 'IsDeleted' => 0])
+                            ->where('PaymentTypeUID !=', 0)
+                            ->update('Transaction.PaymentsTbl', ['IsCancelled' => 1, 'UpdatedBy' => $userUID]);
+                    } else {
+                        // Recover: void the refund payments; recovery amount added to customer balance below
+                        $wdb->where(['TransUID' => $transUID, 'IsDeleted' => 0])
+                            ->where('PaymentTypeUID !=', 0)
+                            ->update('Transaction.PaymentsTbl', ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID]);
+                    }
+                }
 
-                // Reverse stock that came in when the return was created
+                // Reverse stock that came in when the SR was approved
                 $this->dbwrite_model->reverseStockMovements($transUID, $orgUID, $userUID);
 
-                // Reset payment counters — refund is void, nothing was paid out
+                // Reset SR payment counters
                 $this->dbwrite_model->updateTransIsFullyPaid($transUID, 0, 0, 0, $userUID);
 
-                // Recalculate customer account balance (cancelled return is excluded from credit)
+                // Recover: create a formal debit note so the customer owes back the refunded amount.
+                // Must happen inside the transaction so it is atomic with the cancellation.
+                if ($cancelAction === 'recover' && $hasCashRefunds) {
+                    $this->load->library('customerbalance');
+                    $this->customerbalance->createDebitNote(
+                        $orgUID, (int)$existing->PartyUID, $transUID,
+                        $existing->UniqueNumber ?? '', $totalRefunded, $userUID,
+                        $this->dbwrite_model->getWriteDb()
+                    );
+                }
+
+                // Cancel any pending credit note that was auto-created when this SR had no payment.
+                // Without this, the cancelled SR stays out of totalReturned but its CN stays in
+                // pendingCreditNotes, wrongly reducing the customer balance.
+                $wdb = $this->dbwrite_model->getWriteDb();
+                $wdb->db_debug = FALSE;
+                $wdb->where([
+                    'SourceTransUID'  => $transUID,
+                    'SourceModuleUID' => 106,
+                    'Status'          => 'Pending',
+                    'IsCancelled'     => 0,
+                    'IsDeleted'       => 0,
+                ])->update('Transaction.CustomerCreditNoteTbl', [
+                    'IsCancelled' => 1,
+                    'UpdatedBy'   => $userUID,
+                ]);
+            }
+
+            // Commit BEFORE recalculating balance so ReadDB sees DocStatus='Cancelled'
+            // and getCustomerTotalReturned correctly excludes the cancelled SR.
+            $this->dbwrite_model->commitTransaction();
+
+            if ($newStatus === 'Cancelled') {
                 $balResult = $this->_recalcCustomerBalance($orgUID, (int)$existing->PartyUID, $userUID);
                 if ($balResult) {
                     $this->EndReturnData->CustomerBalance     = $balResult['balance'];
@@ -732,13 +918,37 @@ class Salesreturns extends MY_Controller {
                 }
             }
 
-            $this->dbwrite_model->commitTransaction();
-
             $this->EndReturnData->Error     = FALSE;
             $this->EndReturnData->Message   = 'Status updated.';
             $this->EndReturnData->NewStatus = $newStatus;
         } catch (Exception $e) {
             $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    public function getSRCancelDependencies() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $transUID = (int) $this->input->post('TransUID');
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
+            if ($transUID <= 0) throw new Exception('Invalid sales return.');
+
+            $this->load->model('transactions_model');
+            $existing = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
+            if (!$existing) throw new Exception('Sales Return not found.');
+
+            $creditApplied = $this->_getSRCreditApplied($existing->UniqueNumber, $orgUID);
+            $totalRefunded = $this->_getSRTotalRefunded($transUID, $orgUID);
+
+            $this->EndReturnData->Error            = FALSE;
+            $this->EndReturnData->HasCreditApplied = $creditApplied > 0;
+            $this->EndReturnData->CreditAmount     = $creditApplied;
+            $this->EndReturnData->HasRefunds       = $totalRefunded > 0;
+            $this->EndReturnData->RefundAmount     = $totalRefunded;
+        } catch (Exception $e) {
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
@@ -784,6 +994,18 @@ class Salesreturns extends MY_Controller {
             if (!$header) throw new Exception('Invoice not found.');
             $items  = $this->transactions_model->getTransactionItems($transUID, $orgUID);
 
+            // Annotate each item with how much quantity has already been returned
+            if (!empty($items)) {
+                $transProdUIDs = array_map(fn($i) => (int)$i->TransProdUID, $items);
+                $returnedMap   = $this->transactions_model->getReturnedQtyMapForItems($transProdUIDs, $orgUID);
+                foreach ($items as $item) {
+                    $item->ReturnedQty  = $returnedMap[(int)$item->TransProdUID] ?? 0;
+                    $item->RemainingQty = max(0, (float)$item->Quantity - $item->ReturnedQty);
+                }
+                // Filter out fully-returned items
+                $items = array_values(array_filter($items, fn($i) => $i->RemainingQty > 0));
+            }
+
             $this->EndReturnData->Error   = false;
             $this->EndReturnData->Header  = $header;
             $this->EndReturnData->Items   = $items;
@@ -802,29 +1024,9 @@ class Salesreturns extends MY_Controller {
             if ($customerUID <= 0) throw new Exception('Invalid customer.');
 
             $this->load->model('transactions_model');
-            $this->ReadDb = $this->load->database('ReadDB', TRUE);
-            $this->ReadDb->select([
-                'Ts.TransUID',
-                'Ts.UniqueNumber',
-                'Ts.TransDate',
-                'Ts.NetAmount',
-                'Ts.DocStatus',
-            ]);
-            $this->ReadDb->from('Transaction.TransactionsTbl AS Ts');
-            $this->ReadDb->where([
-                'Ts.PartyUID'  => $customerUID,
-                'Ts.PartyType' => 'C',
-                'Ts.ModuleUID' => 103,
-                'Ts.OrgUID'    => $orgUID,
-                'Ts.IsDeleted' => 0,
-                'Ts.IsActive'  => 1,
-            ]);
-            $this->ReadDb->where_not_in('Ts.DocStatus', ['Draft', 'Cancelled']);
-            $this->ReadDb->order_by('Ts.TransUID', 'DESC');
-            $query = $this->ReadDb->get();
 
             $this->EndReturnData->Error    = false;
-            $this->EndReturnData->Invoices = $query->result();
+            $this->EndReturnData->Invoices = $this->transactions_model->getCustomerInvoicesWithReturnableItems($customerUID, $orgUID);
         } catch (Exception $e) {
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
@@ -848,25 +1050,6 @@ class Salesreturns extends MY_Controller {
 
             $this->_getDispatchAddresses($orgUID);
 
-            $this->load->model('global_model');
-            $GetCountryInfo = $this->global_model->getCountryInfo();
-            $this->pageData['CountryInfo'] = $GetCountryInfo->Error === FALSE ? $GetCountryInfo->Data : [];
-            $this->pageData['StateData']   = [];
-            $this->pageData['CityData']    = [];
-            $OrgCountryISO2 = $this->pageData['JwtData']->Org->OrgCISO2;
-            if (!empty($OrgCountryISO2)) {
-                $StateInfo = $this->global_model->getStateofCountry($OrgCountryISO2);
-                if ($StateInfo->Error === FALSE) $this->pageData['StateData'] = $StateInfo->Data;
-                $CityInfo = $this->global_model->getCityofCountry($OrgCountryISO2);
-                if ($CityInfo->Error === FALSE) $this->pageData['CityData'] = $CityInfo->Data;
-            }
-            $this->pageData['PrimaryUnitInfo'] = $this->global_model->getPrimaryUnitInfo()->Data ?? [];
-            $this->pageData['DiscTypeInfo']    = $this->global_model->getDiscountTypeInfo()->Data ?? [];
-            $this->pageData['ProdTypeInfo']    = $this->global_model->getProductTypeInfo()->Data ?? [];
-            $this->pageData['ProdTaxInfo']     = $this->global_model->getProductTaxInfo()->Data ?? [];
-            $this->pageData['TaxDetInfo']      = $this->global_model->getTaxDetailsInfo()->Data ?? [];
-            $this->load->model('products_model');
-            $this->pageData['fltCategoryData'] = $this->products_model->getCategoriesDetails([]) ?? [];
             $this->pageData['PaymentTypes']    = $this->transactions_model->getPaymentTypesList();
             $this->pageData['BankAccounts']    = $this->transactions_model->getOrgBankAccounts($orgUID);
 
@@ -900,26 +1083,6 @@ class Salesreturns extends MY_Controller {
             $this->pageData['NextNumberMap'] = $nextNumberMap;
 
             $this->_getDispatchAddresses($orgUID);
-
-            $this->load->model('global_model');
-            $GetCountryInfo = $this->global_model->getCountryInfo();
-            $this->pageData['CountryInfo'] = $GetCountryInfo->Error === FALSE ? $GetCountryInfo->Data : [];
-            $this->pageData['StateData']   = [];
-            $this->pageData['CityData']    = [];
-            $OrgCountryISO2 = $this->pageData['JwtData']->Org->OrgCISO2;
-            if (!empty($OrgCountryISO2)) {
-                $StateInfo = $this->global_model->getStateofCountry($OrgCountryISO2);
-                if ($StateInfo->Error === FALSE) $this->pageData['StateData'] = $StateInfo->Data;
-                $CityInfo = $this->global_model->getCityofCountry($OrgCountryISO2);
-                if ($CityInfo->Error === FALSE) $this->pageData['CityData'] = $CityInfo->Data;
-            }
-            $this->pageData['PrimaryUnitInfo'] = $this->global_model->getPrimaryUnitInfo()->Data ?? [];
-            $this->pageData['DiscTypeInfo']    = $this->global_model->getDiscountTypeInfo()->Data ?? [];
-            $this->pageData['ProdTypeInfo']    = $this->global_model->getProductTypeInfo()->Data ?? [];
-            $this->pageData['ProdTaxInfo']     = $this->global_model->getProductTaxInfo()->Data ?? [];
-            $this->pageData['TaxDetInfo']      = $this->global_model->getTaxDetailsInfo()->Data ?? [];
-            $this->load->model('products_model');
-            $this->pageData['fltCategoryData'] = $this->products_model->getCategoriesDetails([]) ?? [];
 
             $this->load->view('transactions/salesreturns/forms/form', $this->pageData);
         } catch (Exception $e) {
@@ -1042,8 +1205,7 @@ class Salesreturns extends MY_Controller {
             if ($existing->DocStatus === 'Draft')                          throw new Exception('Cannot record payment for a Draft.');
             if (in_array($existing->DocStatus, ['Cancelled', 'Rejected'])) throw new Exception('Sales Return is cancelled.');
 
-            $payments    = $this->transactions_model->getTransactionPayments($transUID, $orgUID);
-            $alreadyPaid = array_sum(array_column((array) $payments, 'Amount'));
+            $alreadyPaid = $this->transactions_model->getSumPaidForTransaction($transUID, $orgUID);
             $pending     = max(0, round((float)$existing->NetAmount - $alreadyPaid, 2));
 
             if ($amount > $pending + 0.01) {
@@ -1112,6 +1274,30 @@ class Salesreturns extends MY_Controller {
             $balanceAmount = max(0, round((float)$existing->NetAmount - $newTotalPaid, 2));
             $this->dbwrite_model->updateTransIsFullyPaid($transUID, $isFullyPaid, $newTotalPaid, $balanceAmount, $userUID);
             $this->dbwrite_model->updateTransDocStatus($transUID, $orgUID, $newStatus, $userUID);
+
+            // ── Reduce linked Credit Note by the payment amount ──────────────
+            // Only acts when a Pending CN exists (partial SR scenario).
+            // Full-payment SR never has a CN, so this block is a no-op there.
+            $wdb = $this->dbwrite_model->getWriteDb();
+            $wdb->db_debug = FALSE;
+            $wdb->from('Transaction.CustomerCreditNoteTbl');
+            $wdb->where([
+                'SourceTransUID'  => $transUID,
+                'SourceModuleUID' => 106,
+                'Status'          => 'Pending',
+                'IsCancelled'     => 0,
+                'IsDeleted'       => 0,
+            ]);
+            $cn = $wdb->get()->row();
+            if ($cn) {
+                $newCNAmount = round(max(0, (float)$cn->Amount - $amount), 2);
+                $wdb->where('CreditNoteUID', (int)$cn->CreditNoteUID);
+                $wdb->update('Transaction.CustomerCreditNoteTbl', [
+                    'Amount'         => $newCNAmount,
+                    'PaymentCleared' => ($newCNAmount <= 0) ? 1 : 0,
+                    'UpdatedBy'      => $userUID,
+                ]);
+            }
 
             $this->dbwrite_model->commitTransaction();
 
@@ -1235,31 +1421,8 @@ class Salesreturns extends MY_Controller {
 
             $customerUID = (int) $sr->PartyUID;
 
-            $this->ReadDb = $this->load->database('ReadDB', TRUE);
-            $this->ReadDb->select([
-                'Ts.TransUID',
-                'Ts.UniqueNumber',
-                'Ts.TransDate',
-                'Ts.NetAmount',
-                'COALESCE(Ts.PaidAmount, 0) AS PaidAmount',
-                'COALESCE(Ts.BalanceAmount, 0) AS BalanceAmount',
-            ]);
-            $this->ReadDb->from('Transaction.TransactionsTbl AS Ts');
-            $this->ReadDb->where([
-                'Ts.PartyUID'  => $customerUID,
-                'Ts.PartyType' => 'C',
-                'Ts.ModuleUID' => 103,
-                'Ts.OrgUID'    => $orgUID,
-                'Ts.IsDeleted' => 0,
-                'Ts.IsActive'  => 1,
-            ]);
-            $this->ReadDb->where_not_in('Ts.DocStatus', ['Draft', 'Cancelled', 'Paid']);
-            $this->ReadDb->where('COALESCE(Ts.BalanceAmount, Ts.NetAmount) >', 0);
-            $this->ReadDb->order_by('Ts.TransUID', 'DESC');
-            $query = $this->ReadDb->get();
-
             $this->EndReturnData->Error    = false;
-            $this->EndReturnData->Invoices = $query->result();
+            $this->EndReturnData->Invoices = $this->transactions_model->getPendingInvoicesForCustomer($customerUID, $orgUID);
         } catch (Exception $e) {
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();
@@ -1434,25 +1597,74 @@ class Salesreturns extends MY_Controller {
         }
     }
 
-    private function _recalcCustomerBalance($orgUID, $custUID, $userUID) {
-        $this->load->model('customers_model');
-        $custRows = $this->customers_model->getCustomersWithLedgerForBalance($orgUID, $custUID);
-        if (empty($custRows)) return null;
-        $cust          = $custRows[0];
-        $totalInvoiced = $this->customers_model->getCustomerTotalInvoiced($orgUID, $custUID);
-        $totalReceived = $this->customers_model->getCustomerTotalReceived($orgUID, $custUID);
-        $totalReturned = $this->customers_model->getCustomerTotalReturned($orgUID, $custUID);
-        $signedOpening = ($cust->OpeningBalType === 'Debit')
-            ? (float)$cust->OpeningBalance
-            : -(float)$cust->OpeningBalance;
-        $signedBalance  = round($signedOpening + $totalInvoiced - $totalReceived - $totalReturned, 2);
-        $newBalance     = abs($signedBalance);
-        $newBalanceType = ($signedBalance >= 0) ? 'Debit' : 'Credit';
-        if (!empty($cust->LedgerUID)) {
-            $this->customers_model->updateCustomerBalanceInLedger($cust->LedgerUID, $newBalance, $newBalanceType, $userUID);
+    private function _annotateSRListWithCancelDeps(array &$rows, $orgUID) {
+        if (empty($rows)) return;
+
+        $transUIDs     = array_map(fn($r) => (int)$r->TransUID, $rows);
+        $uniqueNumbers = array_values(array_filter(array_map(fn($r) => $r->UniqueNumber ?? null, $rows)));
+
+        foreach ($rows as $r) {
+            $r->CancelCashRefunded  = 0;
+            $r->CancelCreditApplied = 0;
         }
-        $this->customers_model->updateCustomerPendingBalance($orgUID, $custUID, $newBalance, $newBalanceType, $userUID);
-        return ['balance' => $newBalance, 'type' => $newBalanceType];
+
+        $this->load->model('transactions_model');
+        $deps = $this->transactions_model->getSRCancelDepsMap($transUIDs, $uniqueNumbers);
+
+        foreach ($rows as $r) {
+            $r->CancelCashRefunded  = $deps['cashMap'][(int)$r->TransUID]        ?? 0;
+            $r->CancelCreditApplied = $deps['creditMap'][$r->UniqueNumber ?? ''] ?? 0;
+        }
+    }
+
+    private function _getSRCreditApplied($srUniqueNumber, $orgUID) {
+        return $this->transactions_model->getSRCreditApplied($srUniqueNumber);
+    }
+
+    private function _getSRTotalRefunded($transUID, $orgUID) {
+        return $this->transactions_model->getSRTotalRefunded($transUID);
+    }
+
+    private function _reverseCreditPayments($sr, $orgUID, $userUID) {
+        $this->load->model('transactions_model');
+        $creditPayments = $this->transactions_model->getSRCreditPayments($sr->UniqueNumber);
+
+        if (empty($creditPayments)) return;
+
+        $this->load->model('transactions_model');
+
+        foreach ($creditPayments as $cp) {
+            $invoiceUID = (int)$cp->TransUID;
+            $creditAmt  = (float)$cp->Amount;
+
+            $this->dbwrite_model->updateData(
+                'Transaction', 'PaymentsTbl',
+                ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
+                ['PaymentUID' => (int)$cp->PaymentUID, 'IsDeleted' => 0]
+            );
+
+            $invoice = $this->transactions_model->getTransactionById($invoiceUID, $orgUID, 103);
+            if (!$invoice) continue;
+
+            $newPaid     = max(0, round((float)($invoice->PaidAmount ?? 0) - $creditAmt, 2));
+            $newBalance  = max(0, round((float)$invoice->NetAmount - $newPaid, 2));
+            $isFullyPaid = ($invoice->NetAmount > 0 && $newBalance <= 0) ? 1 : 0;
+            if ($newBalance <= 0) {
+                $newStatus = 'Paid';
+            } elseif ($newPaid > 0) {
+                $newStatus = 'Partial';
+            } else {
+                $newStatus = 'Approved';
+            }
+
+            $this->dbwrite_model->updateTransIsFullyPaid($invoiceUID, $isFullyPaid, $newPaid, $newBalance, $userUID);
+            $this->dbwrite_model->updateTransDocStatus($invoiceUID, $orgUID, $newStatus, $userUID);
+        }
+    }
+
+    private function _recalcCustomerBalance($orgUID, $custUID, $userUID) {
+        $this->load->library('customerbalance');
+        return $this->customerbalance->recalcAndSync($orgUID, $custUID, $userUID);
     }
 
 }

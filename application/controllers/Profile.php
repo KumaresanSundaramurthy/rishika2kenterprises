@@ -68,7 +68,6 @@ class Profile extends MY_Controller {
                 'CountryISO2'       => getPostValue($PostData, 'CountryISO2'),
                 'MobileNumber'      => getPostValue($PostData, 'MobileNumber', 'Array', NULL, false),
                 'UpdatedBy'         => $userUID,
-                'UpdatedOn'         => $now,
             ];
             if (!empty($PostData['ImageRemoved'])) $updateProfData['Image'] = NULL;
             if (!empty($PostData['IsPasswordUpdate']) && $PostData['IsPasswordUpdate'] == 1) {

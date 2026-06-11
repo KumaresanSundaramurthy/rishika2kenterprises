@@ -5,27 +5,7 @@ class PrintThemes extends MY_Controller {
     public  $pageData = [];
     private $EndReturnData;
 
-    private static $TRANSACTION_TYPES = [
-        'Quotation'     => 'Quotation',
-        'Invoice'       => 'Invoice',
-        'SalesOrder'    => 'Sales Order',
-        'PurchaseOrder' => 'Purchase Order',
-        'Purchase'      => 'Purchase',
-        'Payment'       => 'Payment (Received)',
-        'PaymentOut'    => 'Payment (Out)',
-        'DeliveryNote'  => 'Delivery Note',
-    ];
-
-    private static $MODULE_IDS = [
-        'Quotation'     => 101,
-        'SalesOrder'    => 102,
-        'Invoice'       => 103,
-        'PurchaseOrder' => 104,
-        'Purchase'      => 105,
-        'Payment'       => 110,
-        'PaymentOut'    => 111,
-        'DeliveryNote'  => 0,
-    ];
+    private $_printModules = null;
 
     public function __construct() {
         parent::__construct();
@@ -34,6 +14,21 @@ class PrintThemes extends MY_Controller {
     }
 
     // ── Private helpers ──────────────────────────────────────────────────────
+
+    /** Returns ['types' => [Name=>DisplayName], 'ids' => [Name=>ModuleUID]] from Modules.ModuleTbl where IsPrintTemplate=1. Result is cached per request. */
+    private function _loadPrintModules() {
+        if ($this->_printModules === null) {
+            $rows  = $this->organisation_model->getPrintTemplateModules()->Data ?? [];
+            $types = [];
+            $ids   = [];
+            foreach ($rows as $r) {
+                $types[$r->Name] = $r->DisplayName;
+                $ids[$r->Name]   = (int) $r->ModuleUID;
+            }
+            $this->_printModules = ['types' => $types, 'ids' => $ids];
+        }
+        return $this->_printModules;
+    }
 
     private function sanitizeTabInput($tab) {
         $tab = strtolower($tab ?: 'themes');
@@ -55,7 +50,7 @@ class PrintThemes extends MY_Controller {
         $rowHtml = $this->load->view('printthemes/themes/list', [
             'DataLists'        => $result->rows,
             'StartFrom'        => $offset,
-            'TransactionTypes' => self::$TRANSACTION_TYPES,
+            'TransactionTypes' => $this->_loadPrintModules()['types'],
             'JwtData'          => $this->pageData['JwtData'],
         ], TRUE);
 
@@ -120,7 +115,7 @@ class PrintThemes extends MY_Controller {
             // Load templates for the theme-creation carousel
             $this->pageData['Templates'] = $this->organisation_model->getPrintTemplatesAll()->Data ?? [];
 
-            $this->pageData['TransactionTypes'] = self::$TRANSACTION_TYPES;
+            $this->pageData['TransactionTypes'] = $this->_loadPrintModules()['types'];
 
             // Used types (for disabling in add form)
             $orgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
@@ -192,11 +187,12 @@ class PrintThemes extends MY_Controller {
             $transactionType = trim(getPostValue($PostData, 'TransactionType'));
             $templateUID     = (int) getPostValue($PostData, 'TemplateUID');
 
-            if (!array_key_exists($transactionType, self::$TRANSACTION_TYPES)) {
+            $printModules = $this->_loadPrintModules();
+            if (!array_key_exists($transactionType, $printModules['types'])) {
                 throw new Exception('Invalid transaction type.');
             }
 
-            $moduleUID = self::$MODULE_IDS[$transactionType] ?? 0;
+            $moduleUID = $printModules['ids'][$transactionType] ?? 0;
 
             // Validate hex colors
             $primaryColor = trim(getPostValue($PostData, 'PrimaryColor') ?: '#1a3c6e');
@@ -248,7 +244,7 @@ class PrintThemes extends MY_Controller {
             } else {
                 $existing = $this->organisation_model->getPrintThemeByType($orgUID, $transactionType);
                 if (!empty($existing->Data)) {
-                    throw new Exception(self::$TRANSACTION_TYPES[$transactionType] . ' already has a theme configured. Edit it instead.');
+                    throw new Exception($printModules['types'][$transactionType] . ' already has a theme configured. Edit it instead.');
                 }
                 $configData['OrgUID']    = $orgUID;
                 $configData['CreatedBy'] = $userUID;

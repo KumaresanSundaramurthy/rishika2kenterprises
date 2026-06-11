@@ -11,8 +11,10 @@ class Dbwrite_model extends CI_Model {
 
         $this->EndReturnData = new stdclass();
         $this->WriteDB = $this->load->database('WriteDB', TRUE);
-        
+
     }
+
+    public function getWriteDb() { return $this->WriteDB; }
 
     public function startTransaction() {
         $this->WriteDB->trans_start();
@@ -424,6 +426,36 @@ class Dbwrite_model extends CI_Model {
             }
         }
 
+        // Batch-fetch IsComposite flag + snapshot columns for all items in one query,
+        // eliminating the N individual per-item SELECTs that cause N+1 round trips.
+        $productUIDs = [];
+        foreach ($items as $item) {
+            $pid = isset($item['id']) ? (int)$item['id'] : 0;
+            if ($pid > 0 && strtolower($item['productType'] ?? '') !== 'service') {
+                $productUIDs[] = $pid;
+            }
+        }
+        $productDataMap = [];
+        if (!empty($productUIDs)) {
+            $ph = implode(',', array_fill(0, count($productUIDs), '?'));
+            $pdQuery = $this->WriteDB->query(
+                "SELECT p.ProductUID, p.IsComposite,
+                        p.ItemName, p.MRP, p.CGST, p.SGST, p.IGST, p.TaxPercentage,
+                        p.CategoryUID, c.Name AS CategoryName,
+                        p.PurchasePrice, p.PartNumber, p.Description, p.Image
+                 FROM Products.ProductTbl p
+                 LEFT JOIN Products.CategoryTbl c
+                        ON c.CategoryUID = p.CategoryUID AND c.IsDeleted = 0
+                 WHERE p.ProductUID IN ({$ph}) AND p.OrgUID = ? AND p.IsDeleted = 0",
+                array_merge($productUIDs, [(int)$orgUID])
+            );
+            if ($pdQuery) {
+                foreach ($pdQuery->result() as $pd) {
+                    $productDataMap[(int)$pd->ProductUID] = $pd;
+                }
+            }
+        }
+
         foreach ($items as $item) {
             $productUID  = isset($item['id'])          ? (int)   $item['id']          : 0;
             $qty         = isset($item['quantity'])     ? (float) $item['quantity']    : 0;
@@ -438,13 +470,9 @@ class Dbwrite_model extends CI_Model {
             $sellingPrice = $tpInfo ? $tpInfo['sellingPrice'] : null;
             $taxAmount    = $tpInfo ? $tpInfo['taxAmount']    : null;
 
-            // For composite products expand to BOM components; reduce components, not the combo itself
-            $this->WriteDB->db_debug = FALSE;
-            $this->WriteDB->select('IsComposite');
-            $this->WriteDB->from('Products.ProductTbl');
-            $this->WriteDB->where(['ProductUID' => $productUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
-            $prodRow     = $this->WriteDB->get()->row();
-            $isComposite = $prodRow && (int)$prodRow->IsComposite === 1;
+            // Use pre-fetched product data (avoids a per-item SELECT on every iteration)
+            $prodData    = $productDataMap[$productUID] ?? null;
+            $isComposite = $prodData && (int)$prodData->IsComposite === 1;
 
             if ($isComposite) {
                 $this->WriteDB->select('ChildProductUID, Quantity');
@@ -548,28 +576,31 @@ class Dbwrite_model extends CI_Model {
                     }
                 }
             } else {
-                $this->_applyStockMovement($transUID, $moduleUID, $orgUID, $userUID, $productUID, $qty, $unitCost, $movementType, $transProdUID, $sellingPrice, $taxAmount);
+                $this->_applyStockMovement($transUID, $moduleUID, $orgUID, $userUID, $productUID, $qty, $unitCost, $movementType, $transProdUID, $sellingPrice, $taxAmount, $prodData);
             }
         }
 
     }
 
-    private function _applyStockMovement($transUID, $moduleUID, $orgUID, $userUID, $productUID, $qty, $unitCost, $movementType, $transProdUID = null, $sellingPrice = null, $taxAmount = null) {
+    private function _applyStockMovement($transUID, $moduleUID, $orgUID, $userUID, $productUID, $qty, $unitCost, $movementType, $transProdUID = null, $sellingPrice = null, $taxAmount = null, $snap = null) {
 
         $this->WriteDB->db_debug = FALSE;
 
-        // Fetch product snapshot at the moment of this movement
-        $snap = $this->WriteDB->query(
-            "SELECT p.ItemName, p.MRP, p.CGST, p.SGST, p.IGST, p.TaxPercentage,
-                    p.CategoryUID, c.Name AS CategoryName,
-                    p.PurchasePrice, p.PartNumber, p.Description, p.Image
-             FROM Products.ProductTbl p
-             LEFT JOIN Products.CategoryTbl c
-                    ON c.CategoryUID = p.CategoryUID AND c.IsDeleted = 0
-             WHERE p.ProductUID = ? AND p.IsDeleted = 0
-             LIMIT 1",
-            [(int)$productUID]
-        )->row();
+        // Fetch product snapshot only when the caller did not pre-fetch it (e.g. manual stock adjustments).
+        // saveStockMovements passes a pre-fetched $snap to avoid a per-item SELECT round trip.
+        if ($snap === null) {
+            $snap = $this->WriteDB->query(
+                "SELECT p.ItemName, p.MRP, p.CGST, p.SGST, p.IGST, p.TaxPercentage,
+                        p.CategoryUID, c.Name AS CategoryName,
+                        p.PurchasePrice, p.PartNumber, p.Description, p.Image
+                 FROM Products.ProductTbl p
+                 LEFT JOIN Products.CategoryTbl c
+                        ON c.CategoryUID = p.CategoryUID AND c.IsDeleted = 0
+                 WHERE p.ProductUID = ? AND p.IsDeleted = 0
+                 LIMIT 1",
+                [(int)$productUID]
+            )->row();
+        }
 
         $insOk = $this->WriteDB->insert('Products.StockLedgerTbl', [
             'OrgUID'             => $orgUID,
@@ -710,6 +741,38 @@ class Dbwrite_model extends CI_Model {
 
     }
 
+    // Checks whether reversing the 'IN' stock movements for a transaction would push any
+    // product's AvailableQty below zero. Throws if it would, so the caller can abort cleanly.
+    public function checkStockForReversal($transUID, $orgUID) {
+        $this->WriteDB->db_debug = FALSE;
+        $sql = "
+            SELECT SL.SnapItemName, SL.Quantity, PS.AvailableQty
+              FROM Products.StockLedgerTbl SL
+              JOIN Products.ProductStockTbl PS ON PS.ProductUID = SL.ProductUID
+             WHERE SL.TransUID    = ?
+               AND SL.OrgUID      = ?
+               AND SL.IsDeleted   = 0
+               AND SL.MovementType = 'IN'
+               AND (CAST(PS.AvailableQty AS SIGNED) - SL.Quantity) < 0
+        ";
+        $query = $this->WriteDB->query($sql, [(int)$transUID, (int)$orgUID]);
+        if (!$query) {
+            $err = $this->WriteDB->error();
+            throw new Exception('Stock pre-check failed: ' . ($err['message'] ?? 'unknown error'));
+        }
+        $rows = $query->result();
+        if (!empty($rows)) {
+            $details = array_map(
+                fn($r) => ($r->SnapItemName ?? 'Unknown') . ' (available: ' . $r->AvailableQty . ', to reverse: ' . $r->Quantity . ')',
+                $rows
+            );
+            throw new Exception(
+                'Cannot cancel: reversing stock would result in negative quantity for — ' .
+                implode('; ', $details) . '. Please adjust stock manually first.'
+            );
+        }
+    }
+
     // Soft-deletes a transaction row using a raw parameterized query.
     // Required because CI3's Active Record query builder has escaping issues
     // with bit(1) fields and partitioned tables on TransactionsTbl.
@@ -829,6 +892,156 @@ class Dbwrite_model extends CI_Model {
     public function insertAuditLog(array $data) {
         $this->WriteDB->db_debug = FALSE;
         $this->WriteDB->insert('Security.UserAuditLogTbl', $data);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Payment read helpers (use WriteDB to avoid read-replica lag)
+
+    public function getOnAccountPayment($paymentUID, $orgUID) {
+        $this->WriteDB->db_debug = FALSE;
+        $this->WriteDB->from('Transaction.PaymentsTbl');
+        $this->WriteDB->where(['PaymentUID' => (int)$paymentUID, 'OrgUID' => (int)$orgUID, 'IsOnAccount' => 1, 'IsDeleted' => 0, 'IsCancelled' => 0]);
+        return $this->WriteDB->get()->row();
+    }
+
+    public function getAppliedChildPayment($paymentUID, $orgUID) {
+        $this->WriteDB->db_debug = FALSE;
+        $this->WriteDB->select('P.PaymentUID, T.UniqueNumber');
+        $this->WriteDB->from('Transaction.PaymentsTbl P');
+        $this->WriteDB->join('Transaction.TransactionsTbl T', 'T.TransUID = P.TransUID', 'left');
+        $this->WriteDB->where(['P.OnAccountSourcePaymentUID' => (int)$paymentUID, 'P.OrgUID' => (int)$orgUID, 'P.IsCancelled' => 0, 'P.IsDeleted' => 0]);
+        $this->WriteDB->limit(1);
+        return $this->WriteDB->get()->row();
+    }
+
+    public function getOnAccountSourcePayment($paymentUID, $orgUID) {
+        $this->WriteDB->db_debug = FALSE;
+        $this->WriteDB->select('PaymentUID, Amount, IsOnAccount');
+        $this->WriteDB->from('Transaction.PaymentsTbl');
+        $this->WriteDB->where(['PaymentUID' => (int)$paymentUID, 'OrgUID' => (int)$orgUID, 'IsDeleted' => 0]);
+        return $this->WriteDB->get()->row();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Payment write helpers
+
+    public function restoreOnAccountPayment($sourceOAUID, $orgUID, $restoredAmount, $userUID) {
+        $this->WriteDB->db_debug = FALSE;
+        $this->WriteDB->where(['PaymentUID' => (int)$sourceOAUID, 'OrgUID' => (int)$orgUID]);
+        $this->WriteDB->update('Transaction.PaymentsTbl', [
+            'Amount'                   => $restoredAmount,
+            'IsOnAccount'              => 1,
+            'OnAccountAppliedTransUID' => NULL,
+            'UpdatedBy'                => (int)$userUID,
+        ]);
+    }
+
+    public function applyOnAccountPayment($paymentUID, $orgUID, $transUID, $userUID) {
+        $this->WriteDB->db_debug = FALSE;
+        $this->WriteDB->where(['PaymentUID' => (int)$paymentUID, 'OrgUID' => (int)$orgUID]);
+        $this->WriteDB->update('Transaction.PaymentsTbl', [
+            'TransUID'                 => (int)$transUID,
+            'IsOnAccount'              => 0,
+            'OnAccountAppliedTransUID' => (int)$transUID,
+            'UpdatedBy'                => (int)$userUID,
+        ]);
+    }
+
+    public function markPaymentsDeletedForTrans($transUID, $orgUID, $userUID) {
+        $this->WriteDB->db_debug = FALSE;
+        $this->WriteDB->where([
+            'TransUID'         => (int)$transUID,
+            'PartyType'        => 'C',
+            'PaymentDirection' => 'In',
+            'IsDeleted'        => 0,
+        ])->update('Transaction.PaymentsTbl', [
+            'IsDeleted' => 1,
+            'UpdatedBy' => (int)$userUID,
+        ]);
+    }
+
+    public function cancelTransactionChildRecords($transUID, $userUID) {
+        $this->WriteDB->db_debug = FALSE;
+        $flag = ['IsCancelled' => 1, 'UpdatedBy' => (int)$userUID];
+        $this->WriteDB->where('TransUID', (int)$transUID)->update('Transaction.TransDetailTbl',      $flag);
+        $this->WriteDB->where('TransUID', (int)$transUID)->update('Transaction.TransProductsTbl',    $flag);
+        $this->WriteDB->where('TransUID', (int)$transUID)->update('Transaction.TransProductBOMTbl',  $flag);
+        $this->WriteDB->where('TransUID', (int)$transUID)->update('Transaction.TransAttachmentsTbl', $flag);
+    }
+
+    public function markPaymentsOnAccount($transUID, $orgUID, $userUID) {
+        $this->WriteDB->db_debug = FALSE;
+        $this->WriteDB->where([
+            'TransUID'         => (int)$transUID,
+            'PartyType'        => 'C',
+            'PaymentDirection' => 'In',
+            'IsDeleted'        => 0,
+            'IsCancelled'      => 0,
+        ])->update('Transaction.PaymentsTbl', [
+            'IsOnAccount' => 1,
+            'UpdatedBy'   => (int)$userUID,
+        ]);
+    }
+
+    public function markPaymentsRefunded($transUID, $orgUID, $userUID) {
+        $this->WriteDB->db_debug = FALSE;
+        $this->WriteDB->where([
+            'TransUID'         => (int)$transUID,
+            'PartyType'        => 'C',
+            'PaymentDirection' => 'In',
+            'IsDeleted'        => 0,
+        ])->update('Transaction.PaymentsTbl', [
+            'IsCancelled' => 1,
+            'UpdatedBy'   => (int)$userUID,
+        ]);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Settings upserts
+
+    public function upsertProductSettings($orgUID, $productTypeUID, $discountTypeUID, $productTaxUID, $taxDetailUID, $userUID) {
+        $this->WriteDB->db_debug = FALSE;
+        $sql = "INSERT INTO Settings.OrgProductSettingsTbl
+                    (OrgUID, DefaultProductTypeUID, DefaultDiscountTypeUID, DefaultProductTaxUID, DefaultTaxDetailUID, UpdatedBy)
+                VALUES (?, ?, ?, ?, ?, ?)
+                ON DUPLICATE KEY UPDATE
+                    DefaultProductTypeUID  = VALUES(DefaultProductTypeUID),
+                    DefaultDiscountTypeUID = VALUES(DefaultDiscountTypeUID),
+                    DefaultProductTaxUID   = VALUES(DefaultProductTaxUID),
+                    DefaultTaxDetailUID    = VALUES(DefaultTaxDetailUID),
+                    UpdatedBy              = VALUES(UpdatedBy)";
+        $ok = $this->WriteDB->query($sql, [
+            (int)$orgUID, (int)$productTypeUID, (int)$discountTypeUID,
+            (int)$productTaxUID, (int)$taxDetailUID, (int)$userUID,
+        ]);
+        if (!$ok) {
+            $err = $this->WriteDB->error();
+            throw new Exception($err['message'] ?? 'Failed to save product settings.');
+        }
+        return true;
+    }
+
+    public function upsertTransactionSettings($orgUID, $invoiceCancelAction, $srCancelAction, $srItemMethod, $termsAndConditions, $hideNav, $userUID) {
+        $this->WriteDB->db_debug = FALSE;
+        $sql = "INSERT INTO Settings.TransactionSettingsTbl
+                    (OrgUID, InvoiceCancelAction, SalesReturnCancelAction, SalesReturnItemMethod, TermsAndConditions, HideNavOnTransForm, UpdatedBy)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                ON DUPLICATE KEY UPDATE
+                    InvoiceCancelAction      = VALUES(InvoiceCancelAction),
+                    SalesReturnCancelAction  = VALUES(SalesReturnCancelAction),
+                    SalesReturnItemMethod    = VALUES(SalesReturnItemMethod),
+                    TermsAndConditions       = VALUES(TermsAndConditions),
+                    HideNavOnTransForm       = VALUES(HideNavOnTransForm),
+                    UpdatedBy                = VALUES(UpdatedBy)";
+        $ok = $this->WriteDB->query($sql, [
+            (int)$orgUID, $invoiceCancelAction, $srCancelAction,
+            $srItemMethod, $termsAndConditions, (int)$hideNav, (int)$userUID,
+        ]);
+        if (!$ok) {
+            $err = $this->WriteDB->error();
+            throw new Exception($err['message'] ?? 'Failed to save transaction settings.');
+        }
+        return true;
     }
 
     public function insertConversionRecord($orgUID, $sourceUID, $sourceModuleUID, $targetUID, $targetModuleUID, $conversionType, $userUID) {

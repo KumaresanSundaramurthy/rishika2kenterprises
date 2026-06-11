@@ -1834,6 +1834,9 @@ $(document).ready(function () {
                         '</div>';
                 },
                 noResults: function () {
+                    if (typeof window._custSearchHideCreate !== 'undefined' && window._custSearchHideCreate) {
+                        return '<div style="text-align:center;padding:20px 0;color:#6c757d;font-size:.85rem;">No categories found</div>';
+                    }
                     return '<div style="text-align:center;padding:20px 0;">' +
                         '<div style="color:#6c757d;font-size:.85rem;margin-bottom:12px;">No results — create Category</div>' +
                         '<span class="btn btn-primary btn-sm px-3 select2-create-category-btn" style="cursor:pointer;">' +
@@ -1928,10 +1931,15 @@ $(document).ready(function () {
     })();
     searchProductInfo();
 
-    // "Add Product" button on transaction form → open common product modal
+    // "Add Product" button on transaction form → ensure dropdown data is ready, then open modal
     $(document).on('click', '#addTransProduct', function (e) {
         e.preventDefault();
-        if (typeof ProductForm !== 'undefined') {
+        if (typeof ProductForm === 'undefined') return;
+
+        var _openModal = function (data) {
+            if (typeof DropdownCache !== 'undefined' && data) {
+                DropdownCache.populateProductModal(data);
+            }
             ProductForm.open('add', null, {
                 onSaveSuccess: function (response) {
                     if (!response || !response.Product) return;
@@ -1949,6 +1957,12 @@ $(document).ready(function () {
                     $('#prodQuantity').focus();
                 }
             });
+        };
+
+        if (typeof DropdownCache !== 'undefined') {
+            DropdownCache.ready().then(_openModal);
+        } else {
+            _openModal(null);
         }
     });
 
@@ -2625,6 +2639,9 @@ function searchCustomers(key) {
                     '</div>';
             },
             noResults: function () {
+                if (typeof window._custSearchHideCreate !== 'undefined' && window._custSearchHideCreate) {
+                    return '<div style="text-align:center;padding:20px 0;color:#6c757d;font-size:.85rem;">No customers found</div>';
+                }
                 return '<div style="text-align:center;padding:20px 0;">' +
                     '<div style="color:#6c757d;font-size:.85rem;margin-bottom:12px;">No results — create Customer</div>' +
                     '<span class="btn btn-primary btn-sm px-3 select2-create-customer-btn" style="cursor:pointer;">' +
@@ -3005,6 +3022,9 @@ function searchProductInfo() {
                     '</div>';
             },
             noResults: function () {
+                if (typeof window._custSearchHideCreate !== 'undefined' && window._custSearchHideCreate) {
+                    return '<div style="text-align:center;padding:20px 0;color:#6c757d;font-size:.85rem;">No products found</div>';
+                }
                 return '<div style="text-align:center;padding:20px 0;">' +
                     '<div style="color:#6c757d;font-size:.85rem;margin-bottom:12px;">No results — create Product</div>' +
                     '<span class="btn btn-primary btn-sm px-3 select2-create-product-btn" style="cursor:pointer;">' +
@@ -3910,17 +3930,45 @@ function showFormError(message) {
 }
 
 function setFormLoading(formName, isLoading, action) {
-    var $btns = $(formName + ' button[type="submit"]');
+    var $btns        = $(formName + ' button[type="submit"]');
+    var $stickySave  = $('#stickySaveBtn');
+    var $stickyDraft = $('#stickyDraftBtn');
+    var $inlineSave  = $('#inlineSaveBtn');
+    var $inlineDraft = $('#inlineDraftBtn');
+
     if (isLoading) {
+        // Top submit buttons — disable all, spinner on the active one
         $btns.prop('disabled', true);
-        var $activeBtn = action === 'draft'
-            ? $btns.filter('[value="draft"]')
-            : $btns.filter('[value="save"]');
-        $activeBtn.html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
+        var $activeSubmit = action === 'draft' ? $btns.filter('[value="draft"]') : $btns.filter('[value="save"]');
+        $activeSubmit.html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
+
+        // Sticky & inline buttons — save original HTML then disable all
+        [$stickySave, $stickyDraft, $inlineSave, $inlineDraft].forEach(function($btn) {
+            if ($btn.length) $btn.data('orig-html', $btn.html()).prop('disabled', true);
+        });
+
+        // Spinner on the matching sticky/inline button
+        if (action === 'draft') {
+            $stickyDraft.html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
+            $inlineDraft.html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
+        } else {
+            $stickySave.html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
+            $inlineSave.html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
+        }
     } else {
+        // Restore top submit buttons
         $btns.prop('disabled', false);
         $btns.filter('[value="save"]').text('Save');
         $btns.filter('[value="draft"]').text('Save as Draft');
+
+        // Restore sticky & inline buttons from saved HTML
+        [$stickySave, $stickyDraft, $inlineSave, $inlineDraft].forEach(function($btn) {
+            if ($btn.length) {
+                var orig = $btn.data('orig-html');
+                if (orig) $btn.html(orig);
+                $btn.prop('disabled', false);
+            }
+        });
     }
 }
 

@@ -40,7 +40,7 @@
                                     <input type="checkbox" id="invItemsSelectAll" class="form-check-input" title="Select All">
                                 </th>
                                 <th>Product</th>
-                                <th class="text-center" style="width:90px;">Qty</th>
+                                <th class="text-center" style="width:110px;">Returnable Qty</th>
                                 <th class="text-end" style="width:110px;">Unit Price</th>
                                 <th class="text-end" style="width:110px;">Tax</th>
                                 <th class="text-end" style="width:120px;">Discount</th>

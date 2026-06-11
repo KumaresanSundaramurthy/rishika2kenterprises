@@ -37,6 +37,7 @@
 
     <script type="text/javascript" src="/assets/js/services/upstash-service.js"></script>
     <script type="text/javascript" src="/js/common/categoryappend.js"></script>
+    <script type="text/javascript" src="/js/common/dropdown_cache.js"></script>
     <script type="text/javascript" src="/js/common/default.js"></script>
     <script type="text/javascript" src="/js/internet_monitor.js"></script>
 

@@ -61,18 +61,10 @@ class Settings extends MY_Controller {
             }
             $this->pageData['ProdSettings'] = $prodSettings;
 
-            // ── Transaction Settings — read from JWT payload ──────────────────
-            $transSettings = $this->pageData['JwtData']->TransSettings ?? null;
-            if (empty($transSettings)) {
-                $result        = $this->login_model->getOrgTransactionSettings($orgUID);
-                $transSettings = (!$result->Error && !empty($result->Data)) ? $result->Data[0] : new stdClass();
-            }
+            // ── Transaction Settings — always read from DB on the settings page ──
+            $result        = $this->login_model->getOrgTransactionSettings($orgUID);
+            $transSettings = (!$result->Error && !empty($result->Data)) ? $result->Data[0] : new stdClass();
             $this->pageData['TransSettings'] = $transSettings;
-
-            // ── Transaction General Settings (T&C etc.) — always read from DB on settings page ──
-            $result           = $this->login_model->getOrgTransGeneralSettings($orgUID);
-            $transGenSettings = (!$result->Error && !empty($result->Data)) ? $result->Data[0] : new stdClass();
-            $this->pageData['TransGenSettings'] = $transGenSettings;
 
             // ── Lookup dropdowns for Product Settings ─────────────────────────
             $this->load->model('global_model');
@@ -115,27 +107,8 @@ class Settings extends MY_Controller {
                 'UpdatedBy'              => $userUID,
             ];
 
-            // Upsert via INSERT ... ON DUPLICATE KEY UPDATE
-            // OrgUID is the PRIMARY KEY — single safe query, no existence check needed
-            $writeDB = $this->load->database('WriteDB', TRUE);
-            $writeDB->db_debug = FALSE;
-            $sql = "INSERT INTO Settings.OrgProductSettingsTbl
-                        (OrgUID, DefaultProductTypeUID, DefaultDiscountTypeUID, DefaultProductTaxUID, DefaultTaxDetailUID, UpdatedBy)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                    ON DUPLICATE KEY UPDATE
-                        DefaultProductTypeUID  = VALUES(DefaultProductTypeUID),
-                        DefaultDiscountTypeUID = VALUES(DefaultDiscountTypeUID),
-                        DefaultProductTaxUID   = VALUES(DefaultProductTaxUID),
-                        DefaultTaxDetailUID    = VALUES(DefaultTaxDetailUID),
-                        UpdatedBy              = VALUES(UpdatedBy)";
-
-            $ok = $writeDB->query($sql, [
-                $orgUID, $productTypeUID, $discountTypeUID, $productTaxUID, $taxDetailUID, $userUID
-            ]);
-            if (!$ok) {
-                $err = $writeDB->error();
-                throw new Exception($err['message'] ?? 'Failed to save product settings.');
-            }
+            $this->load->model('dbwrite_model');
+            $this->dbwrite_model->upsertProductSettings($orgUID, $productTypeUID, $discountTypeUID, $productTaxUID, $taxDetailUID, $userUID);
 
             // Patch ONLY ProdSettings in the main JWT payload — takes effect on very next request
             $this->load->model('login_model');
@@ -267,7 +240,7 @@ class Settings extends MY_Controller {
 
     }
 
-    /** AJAX POST: save Transaction Settings (OrgTransactionSettingsTbl) */
+    /** AJAX POST: save Transaction Settings (TransactionSettingsTbl) */
     public function updateTransactionSettings() {
 
         $this->EndReturnData = new stdClass();
@@ -276,26 +249,29 @@ class Settings extends MY_Controller {
             $userUID = (int) $this->pageData['JwtData']->User->UserUID;
             $post    = $this->input->post();
 
-            $validActions = ['ask', 'credit_note', 'refund', 'cancel_only'];
+            $validInvActions = ['ask', 'credit_note', 'refund', 'cancel_only'];
             $invoiceCancelAction = getPostValue($post, 'InvoiceCancelAction');
-            if (!in_array($invoiceCancelAction, $validActions)) {
+            if (!in_array($invoiceCancelAction, $validInvActions)) {
                 $invoiceCancelAction = 'ask';
             }
 
-            $writeDB = $this->load->database('WriteDB', TRUE);
-            $writeDB->db_debug = FALSE;
-            $sql = "INSERT INTO Settings.OrgTransactionSettingsTbl
-                        (OrgUID, InvoiceCancelAction, UpdatedBy)
-                    VALUES (?, ?, ?)
-                    ON DUPLICATE KEY UPDATE
-                        InvoiceCancelAction = VALUES(InvoiceCancelAction),
-                        UpdatedBy           = VALUES(UpdatedBy)";
-
-            $ok = $writeDB->query($sql, [$orgUID, $invoiceCancelAction, $userUID]);
-            if (!$ok) {
-                $err = $writeDB->error();
-                throw new Exception($err['message'] ?? 'Failed to save transaction settings.');
+            $validSRCancelActions = ['ask', 'recover', 'writeoff'];
+            $srCancelAction = getPostValue($post, 'SalesReturnCancelAction');
+            if (!in_array($srCancelAction, $validSRCancelActions)) {
+                $srCancelAction = 'ask';
             }
+
+            $validMethods = ['Manual', 'Automatic', 'Both'];
+            $salesReturnItemMethod = getPostValue($post, 'SalesReturnItemMethod');
+            if (!in_array($salesReturnItemMethod, $validMethods)) {
+                $salesReturnItemMethod = 'Manual';
+            }
+
+            $termsAndConditions = trim($this->input->post('TermsAndConditions') ?? '');
+            $hideNavOnTransForm = $this->input->post('HideNavOnTransForm') ? 1 : 0;
+
+            $this->load->model('dbwrite_model');
+            $this->dbwrite_model->upsertTransactionSettings($orgUID, $invoiceCancelAction, $srCancelAction, $salesReturnItemMethod, $termsAndConditions, $hideNavOnTransForm, $userUID);
 
             // Patch only TransSettings in JWT payload
             $this->load->model('login_model');
@@ -311,59 +287,6 @@ class Settings extends MY_Controller {
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Transaction settings saved successfully.';
-
-        } catch (Exception $e) {
-            $this->EndReturnData->Error   = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-        }
-
-        $this->globalservice->sendJsonResponse($this->EndReturnData);
-
-    }
-
-    /** AJAX POST: save Transaction General Settings (OrgTransGeneralSettingsTbl) */
-    public function updateTransactionGeneralSettings() {
-
-        $this->EndReturnData = new stdClass();
-        try {
-            $orgUID  = (int) $this->pageData['JwtData']->Org->OrgUID;
-            $userUID = (int) $this->pageData['JwtData']->User->UserUID;
-            $post    = $this->input->post();
-
-            $termsAndConditions  = trim($this->input->post('TermsAndConditions') ?? '');
-            $hideNavOnTransForm  = $this->input->post('HideNavOnTransForm') ? 1 : 0;
-
-            $writeDB = $this->load->database('WriteDB', TRUE);
-            $writeDB->db_debug = FALSE;
-            $sql = "INSERT INTO Settings.OrgTransGeneralSettingsTbl
-                        (OrgUID, TermsAndConditions, HideNavOnTransForm, UpdatedBy)
-                    VALUES (?, ?, ?, ?)
-                    ON DUPLICATE KEY UPDATE
-                        TermsAndConditions = VALUES(TermsAndConditions),
-                        HideNavOnTransForm = VALUES(HideNavOnTransForm),
-                        UpdatedBy          = VALUES(UpdatedBy)";
-
-            $ok = $writeDB->query($sql, [$orgUID, $termsAndConditions, $hideNavOnTransForm, $userUID]);
-            if (!$ok) {
-                $err = $writeDB->error();
-                throw new Exception($err['message'] ?? 'Failed to save transaction general settings.');
-            }
-
-            // Patch TransGenSettings in JWT Redis cache
-            $jwtKey       = $this->pageData['JwtUserKey'] ?? null;
-            $redisPayload = $jwtKey ? $this->redisservice->getCache($jwtKey) : null;
-            if ($redisPayload && !$redisPayload->Error && !empty($redisPayload->Value)) {
-                $tgs = $redisPayload->Value->TransGenSettings ?? new stdClass();
-                $tgs->TermsAndConditions = $termsAndConditions;
-                $tgs->HideNavOnTransForm = $hideNavOnTransForm;
-                $redisPayload->Value->TransGenSettings = $tgs;
-                $this->redisservice->setCache($jwtKey, $redisPayload->Value, $redisPayload->TTL);
-            }
-
-            $this->EndReturnData->Error              = FALSE;
-            $this->EndReturnData->Message            = 'Transaction general settings saved successfully.';
-            $this->EndReturnData->TermsAndConditions = $termsAndConditions;
-            $this->EndReturnData->HideNavOnTransForm = $hideNavOnTransForm;
 
         } catch (Exception $e) {
             $this->EndReturnData->Error   = TRUE;
@@ -1166,7 +1089,7 @@ class Settings extends MY_Controller {
             $this->load->model('dbwrite_model');
             $resp = $this->dbwrite_model->updateData(
                 'Settings', 'TransactionPrefixTbl',
-                ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID, 'UpdatedOn' => time()],
+                ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
                 ['PrefixUID' => $prefixUID, 'OrgUID' => $orgUID]
             );
             if ($resp->Error) throw new Exception($resp->Message);
@@ -1193,12 +1116,12 @@ class Settings extends MY_Controller {
             $this->load->model('dbwrite_model');
             $this->dbwrite_model->updateData(
                 'Settings', 'TransactionPrefixTbl',
-                ['IsDefault' => 0, 'UpdatedBy' => $userUID, 'UpdatedOn' => time()],
+                ['IsDefault' => 0, 'UpdatedBy' => $userUID],
                 ['OrgUID' => $orgUID, 'IsDeleted' => 0]
             );
             $resp = $this->dbwrite_model->updateData(
                 'Settings', 'TransactionPrefixTbl',
-                ['IsDefault' => 1, 'UpdatedBy' => $userUID, 'UpdatedOn' => time()],
+                ['IsDefault' => 1, 'UpdatedBy' => $userUID],
                 ['PrefixUID' => $prefixUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
             );
             if ($resp->Error) throw new Exception($resp->Message);

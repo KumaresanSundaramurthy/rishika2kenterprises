@@ -93,7 +93,7 @@ class Purchasereturns extends MY_Controller {
             $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
 
             $this->load->model('formvalidation_model');
-            $ErrorInForm = $this->formvalidation_model->quotationValidateForm($PostData);
+            $ErrorInForm = $this->formvalidation_model->transactionValidateForm($PostData);
             if (!empty($ErrorInForm)) throw new Exception($ErrorInForm);
 
             $itemsJson   = getPostValue($PostData, 'Items');
@@ -239,7 +239,7 @@ class Purchasereturns extends MY_Controller {
             if ($transUID <= 0) throw new Exception('Purchase Return ID is required.');
 
             $this->load->model('formvalidation_model');
-            $headerError = $this->formvalidation_model->quotationValidateForm($PostData);
+            $headerError = $this->formvalidation_model->transactionValidateForm($PostData);
             if (!empty($headerError)) throw new Exception($headerError);
             $itemsJson  = getPostValue($PostData, 'Items');
             $itemsError = $this->formvalidation_model->validateQuotationItems($itemsJson);
@@ -480,7 +480,7 @@ class Purchasereturns extends MY_Controller {
             $this->dbwrite_model->reverseStockMovements($transUID, $orgUID, $userUID);
 
             $now = time();
-            $this->dbwrite_model->updateData('Transaction', 'TransProductsTbl', ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID, 'UpdatedOn' => $now], ['TransUID' => $transUID, 'IsDeleted' => 0]);
+            $this->dbwrite_model->updateData('Transaction', 'TransProductsTbl', ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID], ['TransUID' => $transUID, 'IsDeleted' => 0]);
             $deleteData = $this->globalservice->baseDeleteArrayDetails();
             $deleteData['IsActive'] = 0;
             $deleteResp = $this->dbwrite_model->updateData('Transaction', 'TransactionsTbl', $deleteData, ['TransUID' => $transUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
@@ -619,8 +619,6 @@ class Purchasereturns extends MY_Controller {
                     'IsDeleted'         => 0,
                     'CreatedBy'         => $userUID,
                     'UpdatedBy'         => $userUID,
-                    'CreatedOn'         => $now,
-                    'UpdatedOn'         => $now,
                 ];
                 $this->dbwrite_model->insertData('Transaction', 'TransProductsTbl', $itemRow);
             }
@@ -718,25 +716,7 @@ class Purchasereturns extends MY_Controller {
             }
             $this->pageData['NextNumberMap'] = $nextNumberMap;
 
-            $this->load->model('global_model');
-            $GetCountryInfo = $this->global_model->getCountryInfo();
-            $this->pageData['CountryInfo'] = $GetCountryInfo->Error === FALSE ? $GetCountryInfo->Data : [];
-            $this->pageData['StateData']   = [];
-            $this->pageData['CityData']    = [];
-            $OrgCountryISO2 = $this->pageData['JwtData']->Org->OrgCISO2;
-            if (!empty($OrgCountryISO2)) {
-                $StateInfo = $this->global_model->getStateofCountry($OrgCountryISO2);
-                if ($StateInfo->Error === FALSE) $this->pageData['StateData'] = $StateInfo->Data;
-                $CityInfo = $this->global_model->getCityofCountry($OrgCountryISO2);
-                if ($CityInfo->Error === FALSE) $this->pageData['CityData'] = $CityInfo->Data;
-            }
-            $this->pageData['PrimaryUnitInfo'] = $this->global_model->getPrimaryUnitInfo()->Data ?? [];
-            $this->pageData['DiscTypeInfo']    = $this->global_model->getDiscountTypeInfo()->Data ?? [];
-            $this->pageData['ProdTypeInfo']    = $this->global_model->getProductTypeInfo()->Data ?? [];
-            $this->pageData['ProdTaxInfo']     = $this->global_model->getProductTaxInfo()->Data ?? [];
-            $this->pageData['TaxDetInfo']      = $this->global_model->getTaxDetailsInfo()->Data ?? [];
-            $this->load->model('products_model');
-            $this->pageData['fltCategoryData'] = $this->products_model->getCategoriesDetails([]) ?? [];
+            $this->_loadUpstashConfig();
 
             $this->load->view('transactions/purchasereturns/forms/form', $this->pageData);
         } catch (Exception $e) {
@@ -767,25 +747,7 @@ class Purchasereturns extends MY_Controller {
             }
             $this->pageData['NextNumberMap'] = $nextNumberMap;
 
-            $this->load->model('global_model');
-            $GetCountryInfo = $this->global_model->getCountryInfo();
-            $this->pageData['CountryInfo'] = $GetCountryInfo->Error === FALSE ? $GetCountryInfo->Data : [];
-            $this->pageData['StateData']   = [];
-            $this->pageData['CityData']    = [];
-            $OrgCountryISO2 = $this->pageData['JwtData']->Org->OrgCISO2;
-            if (!empty($OrgCountryISO2)) {
-                $StateInfo = $this->global_model->getStateofCountry($OrgCountryISO2);
-                if ($StateInfo->Error === FALSE) $this->pageData['StateData'] = $StateInfo->Data;
-                $CityInfo = $this->global_model->getCityofCountry($OrgCountryISO2);
-                if ($CityInfo->Error === FALSE) $this->pageData['CityData'] = $CityInfo->Data;
-            }
-            $this->pageData['PrimaryUnitInfo'] = $this->global_model->getPrimaryUnitInfo()->Data ?? [];
-            $this->pageData['DiscTypeInfo']    = $this->global_model->getDiscountTypeInfo()->Data ?? [];
-            $this->pageData['ProdTypeInfo']    = $this->global_model->getProductTypeInfo()->Data ?? [];
-            $this->pageData['ProdTaxInfo']     = $this->global_model->getProductTaxInfo()->Data ?? [];
-            $this->pageData['TaxDetInfo']      = $this->global_model->getTaxDetailsInfo()->Data ?? [];
-            $this->load->model('products_model');
-            $this->pageData['fltCategoryData'] = $this->products_model->getCategoriesDetails([]) ?? [];
+            $this->_loadUpstashConfig();
 
             $this->load->view('transactions/purchasereturns/forms/form', $this->pageData);
         } catch (Exception $e) {
@@ -926,31 +888,8 @@ class Purchasereturns extends MY_Controller {
 
             $vendorUID = (int) $pr->PartyUID;
 
-            $this->ReadDb = $this->load->database('ReadDB', TRUE);
-            $this->ReadDb->select([
-                'Ts.TransUID',
-                'Ts.UniqueNumber',
-                'Ts.TransDate',
-                'Ts.NetAmount',
-                'COALESCE(Ts.PaidAmount, 0) AS PaidAmount',
-                'COALESCE(Ts.BalanceAmount, 0) AS BalanceAmount',
-            ]);
-            $this->ReadDb->from('Transaction.TransactionsTbl AS Ts');
-            $this->ReadDb->where([
-                'Ts.PartyUID'  => $vendorUID,
-                'Ts.PartyType' => 'S',
-                'Ts.ModuleUID' => 105,
-                'Ts.OrgUID'    => $orgUID,
-                'Ts.IsDeleted' => 0,
-                'Ts.IsActive'  => 1,
-            ]);
-            $this->ReadDb->where_not_in('Ts.DocStatus', ['Draft', 'Cancelled', 'Paid']);
-            $this->ReadDb->where('COALESCE(Ts.BalanceAmount, Ts.NetAmount) >', 0);
-            $this->ReadDb->order_by('Ts.TransUID', 'DESC');
-            $query = $this->ReadDb->get();
-
             $this->EndReturnData->Error     = false;
-            $this->EndReturnData->Purchases = $query->result();
+            $this->EndReturnData->Purchases = $this->transactions_model->getVendorPendingPurchases($vendorUID, $orgUID);
         } catch (Exception $e) {
             $this->EndReturnData->Error   = true;
             $this->EndReturnData->Message = $e->getMessage();

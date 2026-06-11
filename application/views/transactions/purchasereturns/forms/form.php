@@ -130,7 +130,8 @@ $editPrefixSeg = ($isEdit && $isDraftEdit) ? buildPRPrefixSegment($editPrefixCon
                                 <?php else: ?>
                                     <button type="submit" name="action" value="save" class="btn btn-primary">Update</button>
                                 <?php endif; ?>
-                                <a href="/purchasereturns" class="btn btn-label-danger">Close</a>
+                                <?php $_hideNav = (int)($JwtData->TransSettings->HideNavOnTransForm ?? 0); ?>
+                                <a href="/purchasereturns" class="btn btn-label-danger<?php echo $_hideNav ? ' d-none' : ''; ?>">Close</a>
                             </div>
                         </div>
 
@@ -173,11 +174,48 @@ $editPrefixSeg = ($isEdit && $isDraftEdit) ? buildPRPrefixSegment($editPrefixCon
                                 'transProductSectionTitle' => 'Returned Products',
                                 'transNotesPlaceholder'    => 'Reason for return',
                                 'transNotesContent'        => $isEdit ? ($PRData->Notes ?? '') : '',
-                                'transTermsContent'        => $isEdit ? ($PRData->TermsConditions ?? '') : ($JwtData->TransGenSettings->TermsAndConditions ?? ''),
+                                'transTermsContent'        => $isEdit ? ($PRData->TermsConditions ?? '') : ($JwtData->TransSettings->TermsAndConditions ?? ''),
                                 'transShowDropzone'        => true,
                                 'transSignatureUID'        => $isEdit ? (int)($PRData->SignatureUID ?? 0) : 0,
                             ]); ?>
 
+                            <!-- ── Inline full-width summary ── -->
+                            <?php $cur = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>
+                            <div id="inlineSummaryBar" class="sticky-bottom-bar mt-3" style="padding:10px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;border-radius:8px;">
+                                <div class="d-flex align-items-stretch gap-0">
+                                    <div style="padding-right:20px;">
+                                        <div class="fw-bold" style="font-size:.95rem;">TOTAL &nbsp;<span style="color:#0d6efd;" id="inlineGrandTotal"><?php echo $cur; ?> 0.00</span></div>
+                                        <div class="text-muted" style="font-size:.74rem;">Includes Total Tax &nbsp;<span id="inlineTotalTax">0.00</span></div>
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <?php if (!$isEdit || $isDraftEdit): ?>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="inlineDraftBtn"><i class="bx bx-save me-1"></i>Draft</button>
+                                    <?php endif; ?>
+                                    <button type="button" class="btn btn-sm btn-primary px-3" id="inlineSaveBtn">
+                                        <i class="bx bx-check me-1"></i><?php echo ($isEdit && !$isDraftEdit) ? 'Update' : 'Save'; ?>
+                                    </button>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- ── Sticky bottom summary bar ── -->
+                    <div id="stickyBottomBar" class="sticky-bottom-bar" style="position:fixed;bottom:0;right:0;z-index:1040;padding:10px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;">
+                        <div class="d-flex align-items-stretch gap-0">
+                            <div style="padding-right:20px;">
+                                <div class="fw-bold" style="font-size:.95rem;">TOTAL &nbsp;<span style="color:#0d6efd;" id="stickyGrandTotal"><?php echo $cur; ?> 0.00</span></div>
+                                <div class="text-muted" style="font-size:.74rem;">Includes Total Tax &nbsp;<span id="stickyTotalTax">0.00</span></div>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <?php if (!$isEdit || $isDraftEdit): ?>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="stickyDraftBtn"><i class="bx bx-save me-1"></i>Draft</button>
+                            <?php endif; ?>
+                            <button type="button" class="btn btn-sm btn-primary px-3" id="stickySaveBtn">
+                                <i class="bx bx-check me-1"></i><?php echo ($isEdit && !$isDraftEdit) ? 'Update' : 'Save'; ?>
+                            </button>
                         </div>
                     </div>
 
@@ -208,8 +246,6 @@ $editPrefixSeg = ($isEdit && $isDraftEdit) ? buildPRPrefixSegment($editPrefixCon
 <script src="/js/transactions/attachments.js"></script>
 
 <script>
-const StateInfo     = <?php echo json_encode($StateData); ?>;
-const CityInfo      = <?php echo json_encode($CityData); ?>;
 const EnableStorage = <?php echo $JwtData->GenSettings->EnableStorage; ?>;
 var _isEdit   = <?php echo $isEdit ? 'true' : 'false'; ?>;
 var _transUID = <?php echo $transUID; ?>;
@@ -259,6 +295,7 @@ $(function() {
     <?php endif; ?>
 
     searchVendors('vendorSearch');
+    window._custSearchHideCreate = true;
     <?php if ($isEdit && !empty($PRData->PartyUID)): ?>
     $('#vendorSearch').append(new Option('<?php echo addslashes($PRData->PartyName ?? ''); ?>', <?php echo (int)$PRData->PartyUID; ?>, true, true)).trigger('change');
     <?php endif; ?>
@@ -398,4 +435,75 @@ $(function() {
 
     }
 });
+</script>
+<script>
+(function () {
+    var _formEl   = document.getElementById('<?php echo $formId; ?>');
+    var _barEl    = document.getElementById('stickyBottomBar');
+    var _inlineEl = document.getElementById('inlineSummaryBar');
+    if (!_barEl || !_inlineEl) return;
+
+    var cur = '<?php echo addslashes($JwtData->GenSettings->CurrenySymbol ?? "₹"); ?>';
+    var dec = 2;
+    function _r2(n) { return Math.round(n * 100) / 100; }
+    function _fmt(n) { return cur + ' ' + _r2(n).toFixed(dec); }
+
+    function _alignStickyBar() {
+        if (!_formEl) return;
+        var rect = _formEl.getBoundingClientRect();
+        var vpW  = document.documentElement.clientWidth;
+        _barEl.style.left  = rect.left + 'px';
+        _barEl.style.right = (vpW - rect.right) + 'px';
+        _barEl.style.width = 'auto';
+    }
+
+    function _sync() {
+        if (typeof billManager === 'undefined') return;
+        var grand = (billManager.summary && billManager.summary.totals)
+            ? (billManager.summary.totals.grandTotal || 0) : 0;
+        var tax   = (billManager.summary && billManager.summary.taxTotals)
+            ? (billManager.summary.taxTotals.totalTax || 0) : 0;
+        ['stickyGrandTotal','inlineGrandTotal'].forEach(function (id) {
+            var el = document.getElementById(id); if (el) el.textContent = _fmt(grand);
+        });
+        ['stickyTotalTax','inlineTotalTax'].forEach(function (id) {
+            var el = document.getElementById(id); if (el) el.textContent = _fmt(tax);
+        });
+    }
+
+    var _obs = new IntersectionObserver(function (entries) {
+        if (!entries[0].isIntersecting) { _alignStickyBar(); _barEl.style.display = 'flex'; }
+        else { _barEl.style.display = 'none'; }
+    }, { threshold: 0.1 });
+    _obs.observe(_inlineEl);
+    _barEl.style.display = 'none';
+    window.addEventListener('resize', _alignStickyBar);
+
+    function _delegate(val) {
+        var sel = (val === 'save' || !val)
+            ? 'button[name="action"][value="save"][type="submit"]'
+            : 'button[name="action"][value="' + val + '"]';
+        var btn = _formEl && _formEl.querySelector(sel);
+        if (!btn && (val === 'save' || !val)) btn = _formEl && _formEl.querySelector('button[name="action"][value="save"]');
+        if (btn) btn.click();
+    }
+
+    ['stickySaveBtn','inlineSaveBtn'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.addEventListener('click', function () { _delegate('save'); });
+    });
+    ['stickyDraftBtn','inlineDraftBtn'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.addEventListener('click', function () { _delegate('draft'); });
+    });
+    document.addEventListener('click', function (e) {
+        var t = e.target.closest('[data-sticky-action],[data-inline-action]');
+        if (!t) return;
+        _delegate(t.dataset.stickyAction || t.dataset.inlineAction);
+    });
+
+    var _totEl = document.getElementById('bill_tot_amt');
+    if (_totEl) new MutationObserver(_sync).observe(_totEl, { childList: true, subtree: true, characterData: true });
+    _sync();
+})();
 </script>

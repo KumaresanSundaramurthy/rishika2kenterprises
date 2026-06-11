@@ -1,7 +1,7 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <!-- Customer Search Modal -->
-<div class="modal fade" id="customerSearchModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="customerSearchModal" tabindex="-1" aria-hidden="true"<?php if (!empty($hideCreate)): ?> data-hide-create="1"<?php endif; ?>>
     <div class="modal-dialog modal-lg modal-dialog-scrollable" style="height:90vh;max-height:90vh;">
         <div class="modal-content" style="height:100%;">
 

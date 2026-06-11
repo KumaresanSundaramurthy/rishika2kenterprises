@@ -105,29 +105,9 @@ class Deliverychallans extends MY_Controller {
 
             $this->_getDispatchAddresses($orgUID);
 
-            $this->load->model('global_model');
-            $GetCountryInfo = $this->global_model->getCountryInfo();
-            $this->pageData['CountryInfo'] = $GetCountryInfo->Error === FALSE ? $GetCountryInfo->Data : [];
-            $this->pageData['StateData']   = [];
-            $this->pageData['CityData']    = [];
-            $OrgCountryISO2 = $this->pageData['JwtData']->Org->OrgCISO2;
-            if (!empty($OrgCountryISO2)) {
-                $StateInfo = $this->global_model->getStateofCountry($OrgCountryISO2);
-                if ($StateInfo->Error === FALSE) $this->pageData['StateData'] = $StateInfo->Data;
-                $CityInfo = $this->global_model->getCityofCountry($OrgCountryISO2);
-                if ($CityInfo->Error === FALSE) $this->pageData['CityData'] = $CityInfo->Data;
-            }
-
-            $this->pageData['PrimaryUnitInfo'] = $this->global_model->getPrimaryUnitInfo()->Data ?? [];
-            $this->pageData['DiscTypeInfo']    = $this->global_model->getDiscountTypeInfo()->Data ?? [];
-            $this->pageData['ProdTypeInfo']    = $this->global_model->getProductTypeInfo()->Data ?? [];
-            $this->pageData['ProdTaxInfo']     = $this->global_model->getProductTaxInfo()->Data ?? [];
-            $this->pageData['TaxDetInfo']      = $this->global_model->getTaxDetailsInfo()->Data ?? [];
-
             $this->load->model('products_model');
             $this->pageData['SizeInfo']        = $this->products_model->getSizeDetails([]) ?? [];
             $this->pageData['BrandInfo']       = $this->products_model->getBrandDetails([]) ?? [];
-            $this->pageData['fltCategoryData'] = $this->products_model->getCategoriesDetails([]) ?? [];
             $this->pageData['fltStorageData']  = [];
             if (!empty($this->pageData['JwtData']->GenSettings->EnableStorage)) {
                 $this->load->model('storage_model');
@@ -174,29 +154,9 @@ class Deliverychallans extends MY_Controller {
 
             $this->_getDispatchAddresses($orgUID);
 
-            $this->load->model('global_model');
-            $GetCountryInfo = $this->global_model->getCountryInfo();
-            $this->pageData['CountryInfo'] = $GetCountryInfo->Error === FALSE ? $GetCountryInfo->Data : [];
-            $this->pageData['StateData']   = [];
-            $this->pageData['CityData']    = [];
-            $OrgCountryISO2 = $this->pageData['JwtData']->Org->OrgCISO2;
-            if (!empty($OrgCountryISO2)) {
-                $StateInfo = $this->global_model->getStateofCountry($OrgCountryISO2);
-                if ($StateInfo->Error === FALSE) $this->pageData['StateData'] = $StateInfo->Data;
-                $CityInfo = $this->global_model->getCityofCountry($OrgCountryISO2);
-                if ($CityInfo->Error === FALSE) $this->pageData['CityData'] = $CityInfo->Data;
-            }
-
-            $this->pageData['PrimaryUnitInfo'] = $this->global_model->getPrimaryUnitInfo()->Data ?? [];
-            $this->pageData['DiscTypeInfo']    = $this->global_model->getDiscountTypeInfo()->Data ?? [];
-            $this->pageData['ProdTypeInfo']    = $this->global_model->getProductTypeInfo()->Data ?? [];
-            $this->pageData['ProdTaxInfo']     = $this->global_model->getProductTaxInfo()->Data ?? [];
-            $this->pageData['TaxDetInfo']      = $this->global_model->getTaxDetailsInfo()->Data ?? [];
-
             $this->load->model('products_model');
             $this->pageData['SizeInfo']        = $this->products_model->getSizeDetails([]) ?? [];
             $this->pageData['BrandInfo']       = $this->products_model->getBrandDetails([]) ?? [];
-            $this->pageData['fltCategoryData'] = $this->products_model->getCategoriesDetails([]) ?? [];
             $this->pageData['fltStorageData']  = [];
             if (!empty($this->pageData['JwtData']->GenSettings->EnableStorage)) {
                 $this->load->model('storage_model');
@@ -222,7 +182,7 @@ class Deliverychallans extends MY_Controller {
             $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
 
             $this->load->model('formvalidation_model');
-            $ErrorInForm = $this->formvalidation_model->quotationValidateForm($PostData);
+            $ErrorInForm = $this->formvalidation_model->transactionValidateForm($PostData);
             if (!empty($ErrorInForm)) throw new Exception($ErrorInForm);
 
             $itemsJson   = getPostValue($PostData, 'Items');
@@ -379,7 +339,7 @@ class Deliverychallans extends MY_Controller {
             if ($transUID <= 0) throw new Exception('Delivery Challan ID is required.');
 
             $this->load->model('formvalidation_model');
-            $headerError = $this->formvalidation_model->quotationValidateForm($PostData);
+            $headerError = $this->formvalidation_model->transactionValidateForm($PostData);
             if (!empty($headerError)) throw new Exception($headerError);
 
             $itemsJson  = getPostValue($PostData, 'Items');
@@ -600,7 +560,7 @@ class Deliverychallans extends MY_Controller {
 
             $now = time();
             $this->dbwrite_model->updateData('Transaction', 'TransProductsTbl',
-                ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID, 'UpdatedOn' => $now],
+                ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
                 ['TransUID' => $transUID, 'IsDeleted' => 0]
             );
 
@@ -738,7 +698,6 @@ class Deliverychallans extends MY_Controller {
                     'TaxAmount' => $item->TaxAmount, 'DiscountAmount' => $item->DiscountAmount,
                     'NetAmount' => $item->NetAmount, 'QuantityConverted' => 0,
                     'IsActive' => 1, 'IsDeleted' => 0, 'CreatedBy' => $userUID, 'UpdatedBy' => $userUID,
-                    'CreatedOn' => $now, 'UpdatedOn' => $now,
                 ]);
             }
 

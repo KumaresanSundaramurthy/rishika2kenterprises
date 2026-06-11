@@ -204,7 +204,7 @@ class Users extends MY_Controller {
                 foreach ($uidArr as $addrUID) {
                     if ($addrUID > 0) {
                         $this->dbwrite_model->updateData('Users', 'UserAddressTbl',
-                            ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $JwtData->User->UserUID, 'UpdatedOn' => $now],
+                            ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $JwtData->User->UserUID],
                             ['AddressUID' => $addrUID, 'UserUID' => $UserUID]
                         );
                     }
@@ -212,7 +212,7 @@ class Users extends MY_Controller {
             }
 
             // Save addresses
-            $ReadDb = $this->load->database('ReadDB', TRUE);
+            $this->load->model('users_model');
             foreach (['Current', 'Permanent'] as $type) {
                 $prefix = $type === 'Current' ? 'Curr' : 'Perm';
                 $line1  = trim($PostData[$prefix . 'AddressLine1'] ?? '');
@@ -235,17 +235,9 @@ class Users extends MY_Controller {
                     'IsActive'     => 1,
                     'IsDeleted'    => 0,
                     'UpdatedBy'    => $JwtData->User->UserUID,
-                    'UpdatedOn'    => $now,
                 ];
 
-                // Check if a live (non-deleted) address row exists for this type
-                $ReadDb->select('AddressUID');
-                $ReadDb->from('Users.UserAddressTbl');
-                $ReadDb->where('UserUID',     $UserUID);
-                $ReadDb->where('AddressType', $type);
-                $ReadDb->where('IsDeleted',   0);
-                $ReadDb->limit(1);
-                $existing = $ReadDb->get()->row();
+                $existing = $this->users_model->getUserAddressForType($UserUID, $type);
 
                 if ($existing) {
                     $this->dbwrite_model->updateData('Users', 'UserAddressTbl', $addrData,

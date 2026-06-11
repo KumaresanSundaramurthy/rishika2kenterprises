@@ -147,6 +147,16 @@ class Payroll_model extends CI_Model {
         return $this->ReadDb->get()->row();
     }
 
+    public function getUnsettledAdvances($empUID, $orgUID) {
+        $this->WriteDb->db_debug = FALSE;
+        $this->WriteDb->select('AdvanceUID, BalancePending');
+        $this->WriteDb->from('Transaction.SalaryAdvanceTbl');
+        $this->WriteDb->where(['EmployeeUID' => (int)$empUID, 'OrgUID' => (int)$orgUID, 'IsDeleted' => 0, 'IsSettled' => 0]);
+        $this->WriteDb->where('BalancePending >', 0);
+        $this->WriteDb->order_by('AdvanceUID', 'ASC');
+        return $this->WriteDb->get()->result();
+    }
+
     public function getWorkingDaysInMonth($year, $month) {
         // Count calendar days in month excluding Sundays
         $daysInMonth = cal_days_in_month(CAL_GREGORIAN, $month, $year);

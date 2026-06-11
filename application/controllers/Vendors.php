@@ -1083,6 +1083,118 @@ class Vendors extends MY_Controller {
 
     }
 
+    public function getVendorSearchList() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+
+            $pageNo = (int) $this->input->post('PageNo') ?: 1;
+            $limit  = (int) $this->input->post('RowLimit') ?: 10;
+            $search = strtolower(trim($this->input->post('Search') ?? ''));
+
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
+            $offset = max(0, ($pageNo - 1) * $limit);
+
+            // Try Upstash cache first (org:{orgUID}:vendors HSET)
+            $cacheKey = $this->redisservice->orgKey('vendors');
+            $cached   = $this->upstashservice->hgetall($cacheKey);
+
+            if (!empty($cached)) {
+                $all = array_values($cached);
+
+                // Filter by search term across name, mobile, area, company, contact
+                if ($search !== '') {
+                    $all = array_values(array_filter($all, function($v) use ($search) {
+                        return strpos(strtolower($v['Name']          ?? ''), $search) !== false
+                            || strpos(strtolower($v['MobileNumber']  ?? ''), $search) !== false
+                            || strpos(strtolower($v['Area']          ?? ''), $search) !== false
+                            || strpos(strtolower($v['CompanyName']   ?? ''), $search) !== false
+                            || strpos(strtolower($v['ContactPerson'] ?? ''), $search) !== false;
+                    }));
+                }
+
+                // Sort alphabetically by Name
+                usort($all, function($a, $b) {
+                    return strcasecmp($a['Name'] ?? '', $b['Name'] ?? '');
+                });
+
+                $total = count($all);
+                $page  = array_slice($all, $offset, $limit);
+
+                $this->EndReturnData->Vendors = array_map(function($v) {
+                    $billingAddr = null;
+                    foreach (($v['Address'] ?? []) as $addr) {
+                        if (($addr['AddressType'] ?? '') === 'Billing') {
+                            $billingAddr = [
+                                'Line1'   => $addr['Line1']     ?? '',
+                                'Line2'   => $addr['Line2']     ?? '',
+                                'City'    => $addr['CityText']  ?? '',
+                                'State'   => $addr['StateText'] ?? '',
+                                'Pincode' => $addr['Pincode']   ?? '',
+                            ];
+                            break;
+                        }
+                    }
+                    return [
+                        'VendorUID'    => $v['VendorUID'],
+                        'Name'         => $v['Name']           ?? '',
+                        'Area'         => $v['Area']           ?? '',
+                        'MobileNumber' => $v['MobileNumber']   ?? '',
+                        'Balance'      => $v['OpeningBalance'] ?? 0,
+                        'BalanceType'  => $v['OpeningBalType'] ?? 'Credit',
+                        'address'      => $billingAddr,
+                    ];
+                }, $page);
+                $this->EndReturnData->TotalCount = $total;
+
+            } else {
+                // DB fallback when cache is empty
+                $filter = [];
+                if ($search !== '') {
+                    $filter['SearchAllData'] = $search;
+                }
+
+                $this->load->model('vendors_model');
+                $result = $this->vendors_model->getVendorListPaginated($orgUID, $limit, $offset, $filter);
+
+                $this->EndReturnData->Vendors = array_map(function($row) {
+                    $vend = [
+                        'VendorUID'    => $row->VendorUID,
+                        'Name'         => $row->Name,
+                        'Area'         => $row->Area          ?? '',
+                        'MobileNumber' => $row->MobileNumber  ?? '',
+                        'Balance'      => $row->ClosingBalance     ?? 0,
+                        'BalanceType'  => $row->ClosingBalanceType ?? 'Credit',
+                    ];
+                    $addrInfo = $this->vendors_model->getVendorAddress(['VendAddress.VendorUID' => $row->VendorUID]);
+                    foreach ($addrInfo as $addr) {
+                        if ($addr->AddressType === 'Billing') {
+                            $vend['address'] = [
+                                'Line1'   => $addr->Line1     ?? '',
+                                'Line2'   => $addr->Line2     ?? '',
+                                'City'    => $addr->CityText  ?? '',
+                                'State'   => $addr->StateText ?? '',
+                                'Pincode' => $addr->Pincode   ?? '',
+                            ];
+                            break;
+                        }
+                    }
+                    return $vend;
+                }, $result->rows ?? []);
+                $this->EndReturnData->TotalCount = $result->totalCount ?? 0;
+            }
+
+            $this->EndReturnData->Error = false;
+
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
     public function updateVendorBalance() {
 
         $this->EndReturnData = new stdClass();

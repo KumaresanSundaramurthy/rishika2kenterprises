@@ -37,6 +37,39 @@ class Upstashservice {
     // ── Public API ────────────────────────────────────────────────────────────
 
     /**
+     * Execute multiple commands in a single HTTP round trip via Upstash pipeline.
+     * POST body: JSON array of command arrays, e.g. [["GET","k1"],["GET","k2"]]
+     * Returns array of {"result":...,"error":...} objects, or [] on failure.
+     *
+     * @param  array $commands  Array of command arrays.
+     * @return array
+     */
+    public function pipeline(array $commands): array {
+        if (!$this->enabled || empty($commands)) return [];
+        $pipelineUrl = rtrim($this->url, '/') . '/pipeline';
+        $ch = curl_init($pipelineUrl);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST           => true,
+            CURLOPT_POSTFIELDS     => json_encode(array_values($commands)),
+            CURLOPT_HTTPHEADER     => [
+                'Authorization: Bearer ' . $this->token,
+                'Content-Type: application/json',
+            ],
+            CURLOPT_TIMEOUT        => 4,
+            CURLOPT_CONNECTTIMEOUT => 2,
+            CURLOPT_SSL_VERIFYPEER => true,
+        ]);
+        $body    = curl_exec($ch);
+        $status  = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlErr = curl_error($ch);
+        curl_close($ch);
+        if ($curlErr || $status !== 200) return [];
+        $decoded = json_decode($body, true);
+        return is_array($decoded) ? $decoded : [];
+    }
+
+    /**
      * GET a cached value.
      *
      * @param  string $key
@@ -277,8 +310,8 @@ class Upstashservice {
                 'Authorization: Bearer ' . $this->token,
                 'Content-Type: application/json',
             ],
-            CURLOPT_TIMEOUT        => 5,
-            CURLOPT_CONNECTTIMEOUT => 3,
+            CURLOPT_TIMEOUT        => 3,
+            CURLOPT_CONNECTTIMEOUT => 2,
             CURLOPT_SSL_VERIFYPEER => true,
         ]);
 

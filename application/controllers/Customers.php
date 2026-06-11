@@ -1237,25 +1237,12 @@ class Customers extends MY_Controller {
             $this->load->model('dbwrite_model');
             $this->load->model('transactions_model');
 
-            $writeDB = $this->load->database('WriteDB', TRUE);
-            $writeDB->db_debug = FALSE;
-
-            // Fetch the On Account payment
-            $writeDB->from('Transaction.PaymentsTbl');
-            $writeDB->where(['PaymentUID' => $paymentUID, 'OrgUID' => $orgUID, 'IsOnAccount' => 1, 'IsDeleted' => 0, 'IsCancelled' => 0]);
-            $payment = $writeDB->get()->row();
+            $payment = $this->dbwrite_model->getOnAccountPayment($paymentUID, $orgUID);
             if (!$payment) throw new Exception('On Account payment not found or already applied.');
 
             $this->dbwrite_model->startTransaction();
 
-            // Link payment to the new invoice and clear On Account flag
-            $writeDB->where(['PaymentUID' => $paymentUID, 'OrgUID' => $orgUID]);
-            $writeDB->update('Transaction.PaymentsTbl', [
-                'TransUID'                => $transUID,
-                'IsOnAccount'             => 0,
-                'OnAccountAppliedTransUID'=> $transUID,
-                'UpdatedBy'               => $userUID,
-            ]);
+            $this->dbwrite_model->applyOnAccountPayment($paymentUID, $orgUID, $transUID, $userUID);
 
             // Update invoice paid/balance
             $existingPaid = $this->transactions_model->getSumPaidForTransaction($transUID, $orgUID);

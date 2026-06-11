@@ -74,8 +74,6 @@ class Cachehelper {
             }, $onAccountRows);
 
             $cacheKey = $CI->redisservice->orgKey('customers');
-            $existing = $CI->upstashservice->hget($cacheKey, (string)$uid);
-            $lastTxAt = is_array($existing) ? ($existing['LastTransactionAt'] ?? '') : '';
 
             $entry = [
                 'CustomerUID'     => $uid,
@@ -102,13 +100,14 @@ class Cachehelper {
                 'Notes'           => $cust->Notes ?? '',
                 'Image'           => $cust->Image ?? '',
                 'Address'         => $addressList,
+                'LastTransactionAt' => date('c'),
             ];
-            if ($lastTxAt) $entry['LastTransactionAt'] = $lastTxAt;
 
-            $CI->upstashservice->hset($cacheKey, (string)$uid, $entry);
-
-            // Invalidate individual modal cache — stale after any field change
-            $CI->upstashservice->del(Upstashservice::keyCustomer($uid));
+            // Write the updated entry and invalidate the individual modal cache in one pipeline call
+            $CI->upstashservice->pipeline([
+                ['HSET', $cacheKey, (string)$uid, json_encode($entry, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)],
+                ['DEL',  Upstashservice::keyCustomer($uid)],
+            ]);
 
         } catch (Exception $e) {}
     }
@@ -134,13 +133,12 @@ class Cachehelper {
     public function touchCustomer($customerUID) {
         try {
             $CI       =& get_instance();
-            $uid      = (string)(int)$customerUID;
+            $uid      = (int)$customerUID;
             $cacheKey = $CI->redisservice->orgKey('customers');
-            $entry    = $CI->upstashservice->hget($cacheKey, $uid);
-            if (is_array($entry)) {
-                $entry['LastTransactionAt'] = date('c');
-                $CI->upstashservice->hset($cacheKey, $uid, $entry);
-            }
+            $CI->upstashservice->pipeline([
+                ['HDEL', $cacheKey, (string)$uid],
+                ['DEL',  Upstashservice::keyCustomer($uid)],
+            ]);
         } catch (Exception $e) {}
     }
 
@@ -184,33 +182,32 @@ class Cachehelper {
             $openingBalType = $obRow ? $obRow->OpeningBalType        : 'Credit';
 
             $cacheKey = $CI->redisservice->orgKey('vendors');
-            $existing = $CI->upstashservice->hget($cacheKey, (string)$uid);
-            $lastTxAt = is_array($existing) ? ($existing['LastTransactionAt'] ?? '') : '';
 
             $entry = [
-                'VendorUID'     => $uid,
-                'Name'          => $vend->Name          ?? '',
-                'CompanyName'   => $vend->CompanyName   ?? '',
-                'ContactPerson' => $vend->ContactPerson ?? '',
-                'MobileNumber'  => $vend->MobileNumber  ?? '',
-                'CountryCode'   => $vend->CountryCode   ?? '',
-                'CountryISO2'   => $vend->CountryISO2   ?? '',
-                'EmailAddress'  => $vend->EmailAddress  ?? '',
-                'GSTIN'         => $vend->GSTIN         ?? '',
-                'PANNumber'     => $vend->PANNumber     ?? '',
-                'OpeningBalance'=> $openingBalance,
-                'OpeningBalType'=> $openingBalType,
-                'Area'          => $vend->Area          ?? '',
-                'Notes'         => $vend->Notes         ?? '',
-                'Image'         => $vend->Image         ?? '',
-                'Address'       => $addressList,
+                'VendorUID'       => $uid,
+                'Name'            => $vend->Name          ?? '',
+                'CompanyName'     => $vend->CompanyName   ?? '',
+                'ContactPerson'   => $vend->ContactPerson ?? '',
+                'MobileNumber'    => $vend->MobileNumber  ?? '',
+                'CountryCode'     => $vend->CountryCode   ?? '',
+                'CountryISO2'     => $vend->CountryISO2   ?? '',
+                'EmailAddress'    => $vend->EmailAddress  ?? '',
+                'GSTIN'           => $vend->GSTIN         ?? '',
+                'PANNumber'       => $vend->PANNumber     ?? '',
+                'OpeningBalance'  => $openingBalance,
+                'OpeningBalType'  => $openingBalType,
+                'Area'            => $vend->Area          ?? '',
+                'Notes'           => $vend->Notes         ?? '',
+                'Image'           => $vend->Image         ?? '',
+                'Address'         => $addressList,
+                'LastTransactionAt' => date('c'),
             ];
-            if ($lastTxAt) $entry['LastTransactionAt'] = $lastTxAt;
 
-            $CI->upstashservice->hset($cacheKey, (string)$uid, $entry);
-
-            // Invalidate individual modal cache — stale after any field change
-            $CI->upstashservice->del(Upstashservice::keyVendor($uid));
+            // Write the updated entry and invalidate the individual modal cache in one pipeline call
+            $CI->upstashservice->pipeline([
+                ['HSET', $cacheKey, (string)$uid, json_encode($entry, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)],
+                ['DEL',  Upstashservice::keyVendor($uid)],
+            ]);
 
         } catch (Exception $e) {}
     }
@@ -239,13 +236,12 @@ class Cachehelper {
     public function touchVendor($vendorUID) {
         try {
             $CI       =& get_instance();
-            $uid      = (string)(int)$vendorUID;
+            $uid      = (int)$vendorUID;
             $cacheKey = $CI->redisservice->orgKey('vendors');
-            $entry    = $CI->upstashservice->hget($cacheKey, $uid);
-            if (is_array($entry)) {
-                $entry['LastTransactionAt'] = date('c');
-                $CI->upstashservice->hset($cacheKey, $uid, $entry);
-            }
+            $CI->upstashservice->pipeline([
+                ['HDEL', $cacheKey, (string)$uid],
+                ['DEL',  Upstashservice::keyVendor($uid)],
+            ]);
         } catch (Exception $e) {}
     }
 
@@ -306,8 +302,10 @@ class Cachehelper {
                 'Image'                      => $prod->Image                      ?? '',
             ];
 
-            $CI->upstashservice->hset($cacheKey, (string)$uid, $entry);
-            $CI->upstashservice->del(Upstashservice::keyProduct($uid));
+            $CI->upstashservice->pipeline([
+                ['HSET', $cacheKey, (string)$uid, json_encode($entry, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)],
+                ['DEL',  Upstashservice::keyProduct($uid)],
+            ]);
 
         } catch (Exception $e) {}
     }
@@ -350,13 +348,15 @@ class Cachehelper {
             if (!$cat) return;
 
             $cacheKey = $CI->redisservice->orgKey('categories');
-            $CI->upstashservice->hset($cacheKey, (string)$uid, [
-                'CategoryUID' => $uid,
-                'Name'        => $cat->Name        ?? '',
-                'Description' => $cat->Description ?? '',
-                'Image'       => $cat->Image       ?? '',
+            $CI->upstashservice->pipeline([
+                ['HSET', $cacheKey, (string)$uid, json_encode([
+                    'CategoryUID' => $uid,
+                    'Name'        => $cat->Name        ?? '',
+                    'Description' => $cat->Description ?? '',
+                    'Image'       => $cat->Image       ?? '',
+                ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)],
+                ['DEL', Upstashservice::keyCategory($uid)],
             ]);
-            $CI->upstashservice->del(Upstashservice::keyCategory($uid));
 
         } catch (Exception $e) {}
     }

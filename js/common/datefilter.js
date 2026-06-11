@@ -185,14 +185,25 @@ $(document).ready(function () {
     }
 });
 
-// ── Persist date filter preference + update bold date range display ───────────
+// ── Date range selection — single global handler, fires r2k:datechange event ──
+// All per-page code should listen to $(document).on('r2k:datechange', fn)
+// instead of registering their own .date-option click handlers.
 var _r2kAllDatesSkipConfirm = false;
 
 $(document).on('click', '.date-option[data-range]', function (e) {
     var $btn = $('#dateFilterBtn');
     if (!$btn.length) return;
     var range = $(this).data('range');
-    if (range === 'custom') return;
+
+    // Toggle custom date picker panel; all other logic is in the Apply/Clear handlers
+    if (range === 'custom') {
+        e.stopPropagation();
+        $('#r2k-custom-date-picker').toggleClass('d-none');
+        return;
+    }
+
+    // Close custom picker when any standard range is selected
+    $('#r2k-custom-date-picker').addClass('d-none');
 
     // Confirm before removing the date filter — loading all records can be slow
     if ((range === '' || range === 'all') && !_r2kAllDatesSkipConfirm) {
@@ -216,123 +227,121 @@ $(document).on('click', '.date-option[data-range]', function (e) {
         return;
     }
 
-    // Active button styling
-    if (range && range !== '' && range !== 'all') {
+    // Active item + clean label (strip hover-preview span before reading text)
+    $('.date-option').removeClass('active');
+    $(this).addClass('active');
+    var _cleanLabel = $.trim($(this).clone().children('.df-date-preview').remove().end().text());
+    if (_cleanLabel) $('#dateFilterLabel').text(_cleanLabel);
+
+    // Compute dates once
+    var dr = (range && range !== '' && range !== 'all') ? getDateRange(range) : { from: '', to: '' };
+
+    // Button state + bold date display
+    if (dr.from) {
         $btn.addClass('r2k-date-active');
+        var f = formatDateDisplay(dr.from);
+        var t = formatDateDisplay(dr.to);
+        $('#dateFilterDates').text(dr.from === dr.to ? f : f + ' – ' + t).show();
     } else {
         $btn.removeClass('r2k-date-active');
+        $('#dateFilterDates').text('').hide();
     }
 
-    // Bold date range display
-    var $dates = $('#dateFilterDates');
-    if (range && range !== '' && range !== 'all') {
-        var dr = getDateRange(range);
-        if (dr.from) {
-            var f = formatDateDisplay(dr.from);
-            var t = formatDateDisplay(dr.to);
-            $dates.text(dr.from === dr.to ? f : f + ' – ' + t).show();
-        }
-    } else {
-        $dates.text('').hide();
-    }
+    // Close dropdown (data-bs-auto-close="outside" keeps it open on inner clicks)
+    var _ddInst = bootstrap.Dropdown.getInstance($btn[0]);
+    if (_ddInst) _ddInst.hide();
 
+    // Persist preference
     var pageKey = location.pathname.split('/').filter(Boolean)[0] || '';
-    if (!pageKey) return;
-    var data = { PreferenceKey: 'df_' + pageKey, PreferenceValue: String(range) };
-    if (typeof CsrfName !== 'undefined') data[CsrfName] = CsrfToken;
-    $.post('/userpreferences/save', data);
+    if (pageKey) {
+        var _prefData = { PreferenceKey: 'df_' + pageKey, PreferenceValue: String(range) };
+        if (typeof CsrfName !== 'undefined') _prefData[CsrfName] = CsrfToken;
+        $.post('/userpreferences/save', _prefData);
+    }
+
+    // Broadcast to page-level listeners
+    $(document).trigger('r2k:datechange', [{ range: range, from: dr.from, to: dr.to }]);
+});
+
+// ── Custom range Apply ────────────────────────────────────────────────────────
+$(document).on('click', '#r2k-custom-apply', function () {
+    var $picker = $('#r2k-custom-date-picker');
+    var $inputs = $picker.find('input[type="date"]');
+    var from    = $inputs.eq(0).val();
+    var to      = $inputs.eq(1).val();
+    if (!from || !to) { alert('Please select both From and To dates.'); return; }
+    if (from > to)    { alert('From date cannot be after To date.'); return; }
+
+    var f     = formatDateDisplay(from);
+    var t     = formatDateDisplay(to);
+    var label = from === to ? f : f + ' – ' + t;
+    $('#dateFilterLabel').text('Custom');
+    $('#dateFilterDates').text(label).show();
+    $('#dateFilterBtn').addClass('r2k-date-active');
+    $('.date-option').removeClass('active');
+    $('.date-option[data-range="custom"]').addClass('active');
+    $picker.addClass('d-none');
+
+    var _ddInst = bootstrap.Dropdown.getInstance($('#dateFilterBtn')[0]);
+    if (_ddInst) _ddInst.hide();
+
+    $(document).trigger('r2k:datechange', [{ range: 'custom', from: from, to: to }]);
+});
+
+// ── Custom range Clear ────────────────────────────────────────────────────────
+$(document).on('click', '#r2k-custom-clear', function () {
+    var $picker = $('#r2k-custom-date-picker');
+    $picker.find('input[type="date"]').val('');
+    $picker.addClass('d-none');
+    $('#dateFilterLabel').text('All Dates');
+    $('#dateFilterDates').text('').hide();
+    $('#dateFilterBtn').removeClass('r2k-date-active');
+    $('.date-option').removeClass('active');
+    $('.date-option[data-range=""]').addClass('active');
+
+    var _ddInst = bootstrap.Dropdown.getInstance($('#dateFilterBtn')[0]);
+    if (_ddInst) _ddInst.hide();
+
+    $(document).trigger('r2k:datechange', [{ range: '', from: '', to: '' }]);
 });
 
 // ── initDateFilter ────────────────────────────────────────────────────────────
 /**
- * Wires up the custom-range picker and onApply callback for a date filter.
- * The hover preview and standard item click handling are already global above.
- * Call this only when you need an onApply callback or custom date range support.
+ * Optional helper — only needed when the page uses non-default custom picker
+ * input IDs, or has a legacy onApply callback.
+ *
+ * All display logic, active state, and preference saving are handled globally
+ * above. Per-page code should listen to the r2k:datechange event:
+ *
+ *   $(document).on('r2k:datechange', function (e, dr) {
+ *       Filter.DateFrom = dr.from;
+ *       Filter.DateTo   = dr.to;
+ *       PageNo = 1;
+ *       loadMyData();
+ *   });
  *
  * @param {object} opts
- *   btnId        {string}   id of the dropdown toggle button          (default: 'dateFilterBtn')
- *   labelId      {string}   id of the span showing selected label     (default: 'dateFilterLabel')
- *   fromId       {string}   id of hidden from-date input (custom)     (default: 'customDateFrom')
- *   toId         {string}   id of hidden to-date input   (custom)     (default: 'customDateTo')
- *   onApply      {function} callback(from, to, label) when a range is selected
+ *   fromId   {string}   id of the from-date input for custom range (default: 'customDateFrom')
+ *   toId     {string}   id of the to-date input for custom range   (default: 'customDateTo')
+ *   onApply  {function} legacy callback(from, to) — prefer r2k:datechange instead
  */
 function initDateFilter(opts) {
     opts = opts || {};
-    var btnId   = opts.btnId   || 'dateFilterBtn';
-    var labelId = opts.labelId || 'dateFilterLabel';
-    var fromId  = opts.fromId  || 'customDateFrom';
-    var toId    = opts.toId    || 'customDateTo';
-    var onApply = opts.onApply || function () {};
+    var fromId = opts.fromId || 'customDateFrom';
+    var toId   = opts.toId   || 'customDateTo';
 
-    // Re-populate with correct fromId/toId for this page's custom picker
-    var $menu = $('#' + btnId).closest('.dropdown').find('ul.dropdown-menu').first();
-    if ($menu.length) $menu.html(buildDateFilterHtml(fromId, toId));
+    // Rebuild menu only when non-default input IDs are needed
+    if (fromId !== 'customDateFrom' || toId !== 'customDateTo') {
+        var $menu = $('#dateFilterBtn').closest('.dropdown').find('ul.dropdown-menu').first();
+        if ($menu.length) $menu.html(buildDateFilterHtml(fromId, toId));
+    }
 
-    // ── Option click ─────────────────────────────────────────────────────────
-    $(document).on('click', '.date-option[data-range]', function (e) {
-        e.stopPropagation();
-        var range = $(this).data('range');
-
-        if (range === 'custom') {
-            $('#r2k-custom-date-picker').toggleClass('d-none');
-            return;
-        }
-
-        $('#r2k-custom-date-picker').addClass('d-none');
-
-        var dates = getDateRange(range);
-        var label = $.trim($(this).clone().children('.df-date-preview').remove().end().text());
-
-        $('.date-option').removeClass('active');
-        $(this).addClass('active');
-        $('#' + labelId).text(label);
-
-        var $btn = $('#' + btnId);
-        var dd   = bootstrap.Dropdown.getInstance($btn[0]);
-        if (dd) dd.hide();
-
-        onApply(dates.from, dates.to, label);
-    });
-
-    // ── Custom date apply ────────────────────────────────────────────────────
-    $(document).on('click', '#r2k-custom-apply', function () {
-        var from  = $('#' + fromId).val();
-        var to    = $('#' + toId).val();
-        if (!from || !to) { alert('Please select both From and To dates.'); return; }
-        if (from > to)    { alert('From date cannot be after To date.'); return; }
-
-        var f     = formatDateDisplay(from);
-        var t     = formatDateDisplay(to);
-        var label = f + ' – ' + t;
-        $('#' + labelId).text('Custom');
-        $('#dateFilterDates').text(label).show();
-        $('#dateFilterBtn').addClass('r2k-date-active');
-        $('.date-option').removeClass('active');
-        $('.date-option[data-range="custom"]').addClass('active');
-
-        var $btn = $('#' + btnId);
-        var dd   = bootstrap.Dropdown.getInstance($btn[0]);
-        if (dd) dd.hide();
-        $('#r2k-custom-date-picker').addClass('d-none');
-
-        onApply(from, to, label);
-    });
-
-    // ── Custom date clear ────────────────────────────────────────────────────
-    $(document).on('click', '#r2k-custom-clear', function () {
-        $('#' + fromId).val('');
-        $('#' + toId).val('');
-        $('#r2k-custom-date-picker').addClass('d-none');
-        $('#' + labelId).text('All Dates');
-        $('.date-option').removeClass('active');
-        $('.date-option[data-range=""]').addClass('active');
-
-        var $btn = $('#' + btnId);
-        var dd   = bootstrap.Dropdown.getInstance($btn[0]);
-        if (dd) dd.hide();
-
-        onApply('', '', 'All Dates');
-    });
+    // Legacy onApply — bridged via event for backward compatibility
+    if (typeof opts.onApply === 'function') {
+        $(document).on('r2k:datechange', function (e, dr) {
+            opts.onApply(dr.from, dr.to);
+        });
+    }
 }
 
 // ── buildDateFilterHtml ───────────────────────────────────────────────────────

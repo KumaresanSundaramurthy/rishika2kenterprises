@@ -2,11 +2,9 @@
 
 class Setpassword extends CI_Controller {
 
-    private $WriteDb;
-
     public function __construct() {
         parent::__construct();
-        $this->WriteDb = $this->load->database('WriteDB', TRUE);
+        $this->load->model('users_model');
         $this->load->helper('url');
     }
 
@@ -17,7 +15,7 @@ class Setpassword extends CI_Controller {
             return;
         }
 
-        $user = $this->_getUserByToken($token);
+        $user = $this->users_model->getUserByPasswordToken($token);
 
         if (!$user) {
             $this->load->view('setpassword/index', ['state' => 'invalid']);
@@ -45,7 +43,7 @@ class Setpassword extends CI_Controller {
         $pwd   = $this->input->post('Password');
         $cpwd  = $this->input->post('ConfirmPassword');
 
-        $user = $token ? $this->_getUserByToken($token) : null;
+        $user = $token ? $this->users_model->getUserByPasswordToken($token) : null;
 
         if (!$user) {
             $this->load->view('setpassword/index', ['state' => 'invalid']);
@@ -80,31 +78,11 @@ class Setpassword extends CI_Controller {
             return;
         }
 
-        $this->WriteDb->where('UserUID', $user->UserUID);
-        $this->WriteDb->update('Users.UserTbl', [
-            'Password'      => base64_encode($pwd),
-            'IsPasswordSet' => 1,
-            'UpdatedOn'     => date('Y-m-d H:i:s'),
-        ]);
+        $this->users_model->updateUserPassword($user->UserUID, $pwd);
 
         $this->load->view('setpassword/index', [
             'state' => 'success',
             'user'  => $user,
         ]);
-    }
-
-    // ── Private ───────────────────────────────────────────────────────────────
-    private function _getUserByToken($token) {
-        try {
-            $this->WriteDb->select('UserUID, FirstName, EmailAddress, IsPasswordSet');
-            $this->WriteDb->from('Users.UserTbl');
-            $this->WriteDb->where('PasswordSetToken', $token);
-            $this->WriteDb->where('IsDeleted', 0);
-            $this->WriteDb->limit(1);
-            return $this->WriteDb->get()->row();
-        } catch (Throwable $e) {
-            log_message('error', 'Setpassword::_getUserByToken — ' . $e->getMessage());
-            return null;
-        }
     }
 }

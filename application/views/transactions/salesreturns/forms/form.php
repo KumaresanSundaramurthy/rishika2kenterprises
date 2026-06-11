@@ -5,6 +5,7 @@ $isDraftEdit = $isEdit && ($SRData->DocStatus === 'Draft');
 $transUID    = $isEdit ? (int)$SRData->TransUID : 0;
 $formId      = 'srForm';
 $formAction  = $isEdit ? 'salesreturns/updateSalesReturn' : 'salesreturns/addSalesReturn';
+$_srMethod   = $JwtData->TransSettings->SalesReturnItemMethod ?? 'Manual';
 
 if ($isEdit && !function_exists('buildSRPrefixSegment')) {
     function buildSRPrefixSegment($cfg) {
@@ -176,18 +177,46 @@ if ($isEdit) {
                                     <?php endif; ?>
                                     <button type="submit" name="action" value="save" class="btn btn-sm btn-primary px-3"><i class="bx bx-check me-1"></i><?php echo $isDraftEdit ? 'Save' : 'Update'; ?></button>
                                 <?php endif; ?>
-                                <a href="/salesreturns" class="btn btn-sm btn-outline-danger px-3"><i class="bx bx-x me-1"></i>Close</a>
+                                <?php $_hideNav = (int)($JwtData->TransSettings->HideNavOnTransForm ?? 0); ?>
+                                <a href="/salesreturns" class="btn btn-sm btn-outline-danger px-3<?php echo $_hideNav ? ' d-none' : ''; ?>"><i class="bx bx-x me-1"></i>Close</a>
                             </div>
                         </div>
 
-                        <div class="card-body card-body-form-static p-4">
+                        <div class="card-body card-body-form-static p-3">
 
-                            <div class="card-header modal-header-center-sticky p-1 mb-3">
-                                <h5 class="modal-title mb-0"><i class="bx bx-user me-1"></i> Customer Details</h5>
+                            <!-- ── Toolbar: Type & Accepted At ─────────────────────────────── -->
+                            <div class="d-flex align-items-center gap-4 mb-3 pb-2 border-bottom">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="text-muted" style="font-size:.78rem;white-space:nowrap;">Type</span>
+                                    <select class="form-select form-select-sm border-0 bg-transparent fw-semibold"
+                                            id="invoiceType" name="returnType" style="min-width:110px;cursor:pointer;"
+                                            <?php echo ($isEdit && !$isDraftEdit) ? 'disabled' : ''; ?>>
+                                        <option value="Regular"     <?php echo ($SRData->QuotationType ?? '') !== 'Without_GST' ? 'selected' : ''; ?>>Regular</option>
+                                        <option value="Without_GST" <?php echo ($SRData->QuotationType ?? '') === 'Without_GST' ? 'selected' : ''; ?>>Without GST</option>
+                                    </select>
+                                    <?php if ($isEdit && !$isDraftEdit): ?>
+                                    <input type="hidden" name="returnType" value="<?php echo htmlspecialchars($SRData->QuotationType ?? 'Regular'); ?>" />
+                                    <?php endif; ?>
+                                </div>
+                                <?php if (!empty($DispatchAddresses)): ?>
+                                <div class="d-flex align-items-center gap-2 dispatch-from-grp" style="max-width:360px;">
+                                    <span class="text-muted" style="font-size:.78rem;white-space:nowrap;">Accepted At</span>
+                                    <?php $this->load->view('common/transactions/_dispatch_from'); ?>
+                                </div>
+                                <?php endif; ?>
+                                <div class="ms-auto d-flex align-items-center gap-2">
+                                    <div id="custTypeIndicator" class="d-none"></div>
+                                    <div id="srOnAccountBadge" class="d-none"
+                                         style="font-size:.78rem;color:#856404;background:#fff8e1;border:1px solid #ffc107;padding:3px 12px;border-radius:20px;white-space:nowrap;">
+                                        <i class="bx bx-wallet" style="font-size:.88rem;"></i>
+                                        On Account: <strong id="srOnAccountAmt" style="margin-left:3px;"></strong>
+                                    </div>
+
+                                </div>
                             </div>
 
-                            <!-- Row 1: Customer | From Invoice | Return Date -->
-                            <div class="row g-2 align-items-end">
+                            <!-- ── Row 1: Customer | From Invoice | Return Date | Reference ── -->
+                            <div class="row g-2 align-items-end mb-2">
                                 <div class="col-md-4">
                                     <?php if ($isEdit && !$isDraftEdit): ?>
                                         <label class="trans-field-label mb-1">Customer</label>
@@ -198,60 +227,62 @@ if ($isEdit) {
                                         </div>
                                         <input type="hidden" id="customerSearch" name="customerSearch" value="<?php echo (int)$SRData->PartyUID; ?>" />
                                     <?php else: ?>
-                                        <div class="d-flex align-items-center gap-2 mb-1">
-                                            <label for="customerSearch" class="trans-field-label mb-0">Select Customer <span class="text-danger">*</span></label>
+                                        <div class="d-flex align-items-center justify-content-between mb-1">
+                                            <label for="customerSearch" class="trans-field-label mb-0">Customer <span class="text-danger">*</span></label>
                                         </div>
                                         <select id="customerSearch" name="customerSearch" class="form-select form-select-sm"></select>
                                     <?php endif; ?>
                                 </div>
+                                <?php if ($_srMethod !== 'Manual'): ?>
                                 <div class="col-md-3">
                                     <label for="fromInvoiceUID" class="trans-field-label">From Invoice</label>
                                     <select id="fromInvoiceUID" name="fromInvoiceUID" class="form-select form-select-sm" disabled>
                                         <option value="">-- Select Customer First --</option>
                                     </select>
                                 </div>
-                                <div class="col-md-2">
+                                <?php endif; ?>
+                                <div class="col-auto" style="min-width:155px;">
                                     <label for="transDate" class="trans-field-label">Return Date <span class="text-danger">*</span></label>
                                     <?php if ($isEdit && !$isDraftEdit): ?>
                                         <input type="hidden" name="transDate" value="<?php echo htmlspecialchars(format_datedisplay($SRData->TransDate, 'Y-m-d')); ?>" />
                                         <div class="input-group input-group-sm input-group-merge">
-                                            <span class="input-group-text"><i class="icon-base bx bx-calendar"></i></span>
-                                            <input type="text" class="form-control form-control-sm bg-light text-muted" style="cursor:default;"
+                                            <span class="input-group-text bg-white"><i class="icon-base bx bx-calendar"></i></span>
+                                            <input type="text" class="form-control form-control-sm bg-white text-muted" style="cursor:default;"
                                                 value="<?php echo htmlspecialchars(format_datedisplay($SRData->TransDate)); ?>" readonly tabindex="-1" />
                                         </div>
                                     <?php else: ?>
                                         <div class="input-group input-group-sm input-group-merge">
-                                            <span class="input-group-text"><i class="icon-base bx bx-calendar"></i></span>
-                                            <input type="text" class="form-control form-control-sm" id="transDate" name="transDate" readonly="readonly"
+                                            <span class="input-group-text bg-white"><i class="icon-base bx bx-calendar"></i></span>
+                                            <input type="text" class="form-control form-control-sm bg-white" id="transDate" name="transDate" readonly="readonly"
                                                 value="<?php echo $isEdit ? htmlspecialchars(format_datedisplay($SRData->TransDate, 'Y-m-d')) : format_datedisplay(time(), 'Y-m-d'); ?>"
                                                 required />
                                         </div>
                                     <?php endif; ?>
                                 </div>
-                            </div>
-
-                            <!-- Row 2: Address box | Reference -->
-                            <div class="row g-2 mt-2">
-                                <div class="col-md-4">
-                                    <div id="customerAddressBox" class="p-2 border border-secondary trans-border-dotted rounded small d-none"></div>
-                                    <div id="custTypeIndicator" class="mt-1 d-none"></div>
-                                </div>
-                                <div class="col-md-4">
+                                <div class="col">
                                     <label for="referenceDetails" class="trans-field-label">Reference</label>
                                     <input type="text" id="referenceDetails" name="referenceDetails" class="form-control form-control-sm"
                                         placeholder="Invoice No, Ref No..." maxlength="100"
                                         value="<?php echo $isEdit ? htmlspecialchars($SRData->Reference ?? '') : ''; ?>" />
                                 </div>
                             </div>
-                            <hr class="mt-3"/>
+
+                            <!-- Address box (below customer column) -->
+                            <div class="row g-2 mb-3">
+                                <div class="col-md-4">
+                                    <div id="customerAddressBox" class="p-2 border border-secondary trans-border-dotted rounded small d-none"></div>
+                                </div>
+                            </div>
+                            <hr class="mt-2 mb-3"/>
 
                             <?php $this->load->view('transactions/partials/form_products_add', [
                                 'transProductSectionTitle' => 'Returned Products',
                                 'transNotesPlaceholder'    => 'Enter notes or reason for return',
                                 'transShowDropzone'        => true,
                                 'transHideAddProduct'      => true,
+                                'transHideProductSearch'    => $_srMethod === 'Automatic',
                                 'transNotesContent'        => $isEdit ? ($SRData->Notes ?? '') : '',
-                                'transTermsContent'        => $isEdit ? ($SRData->TermsConditions ?? '') : ($JwtData->TransGenSettings->TermsAndConditions ?? ''),
+                                'transTermsContent'        => $isEdit ? ($SRData->TermsConditions ?? '') : ($JwtData->TransSettings->TermsAndConditions ?? ''),
                                 'transSignatureUID'        => $isEdit ? (int)($SRData->SignatureUID ?? 0) : 0,
                                 'transSignatures'          => $JwtData->User->Signatures ?? [],
                                 'transPaymentVars'         => !$isEdit ? [
@@ -262,6 +293,111 @@ if ($isEdit) {
                                 ] : null,
                             ]); ?>
 
+                            <!-- ── Inline full-width summary ────────────────────────────────── -->
+                            <?php $cur = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>
+                            <div id="inlineSummaryBar" class="sticky-bottom-bar mt-3" style="padding:10px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;border-radius:8px;">
+                                <div class="d-flex align-items-stretch gap-0">
+                                    <div style="padding-right:20px;">
+                                        <div class="fw-bold" style="font-size:.95rem;">TOTAL &nbsp;<span style="color:#0d6efd;" id="inlineGrandTotal"><?php echo $cur; ?> 0.00</span></div>
+                                        <div class="text-muted" style="font-size:.74rem;">Includes Total Tax &nbsp;<span id="inlineTotalTax">0.00</span></div>
+                                    </div>
+                                    <div id="inlinePaidGroup" class="d-none d-flex align-items-stretch">
+                                        <div style="width:1px;background:#c5dcff;margin:0 20px;flex-shrink:0;"></div>
+                                        <div>
+                                            <div style="font-size:.74rem;color:#198754;font-weight:600;"><i class="bx bx-check-circle me-1"></i>Total Paid</div>
+                                            <div class="fw-bold" style="font-size:.92rem;color:#198754;"><span id="inlineTotalPaid"><?php echo $cur; ?> 0.00</span></div>
+                                        </div>
+                                    </div>
+                                    <div id="inlineBalanceGroup" class="d-none d-flex align-items-stretch">
+                                        <div style="width:1px;background:#c5dcff;margin:0 20px;flex-shrink:0;"></div>
+                                        <div>
+                                            <div style="font-size:.74rem;color:#dc3545;font-weight:600;"><i class="bx bx-wallet me-1"></i>Balance</div>
+                                            <div class="fw-bold" style="font-size:.92rem;color:#dc3545;"><span id="inlineBalanceAmt"><?php echo $cur; ?> 0.00</span></div>
+                                        </div>
+                                    </div>
+                                    <div id="inlineExcessGroup" class="d-none d-flex align-items-stretch">
+                                        <div style="width:1px;background:#c5dcff;margin:0 20px;flex-shrink:0;"></div>
+                                        <div>
+                                            <div style="font-size:.74rem;color:#f59e0b;font-weight:600;"><i class="bx bx-error-circle me-1"></i>Excess</div>
+                                            <div class="fw-bold" style="font-size:.92rem;color:#f59e0b;"><span id="inlineExcessAmt"><?php echo $cur; ?> 0.00</span></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <?php if (!$isEdit || $isDraftEdit): ?>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="inlineDraftBtn"><i class="bx bx-save me-1"></i>Draft</button>
+                                    <?php endif; ?>
+                                    <div class="btn-group">
+                                        <button type="button" class="btn btn-sm btn-primary px-3" id="inlineSaveBtn">
+                                            <i class="bx bx-check me-1"></i><?php echo ($isEdit && !$isDraftEdit) ? 'Update' : 'Save'; ?>
+                                        </button>
+                                        <?php if (!$isEdit || $isDraftEdit): ?>
+                                        <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split ps-2 pe-2" data-bs-toggle="dropdown" aria-expanded="false">
+                                            <span class="visually-hidden">Save options</span>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end shadow dropup" style="min-width:195px;font-size:.82rem;">
+                                            <li><span class="dropdown-header py-1" style="font-size:.65rem;letter-spacing:.4px;">SAVE &amp; PRINT</span></li>
+                                            <li><button type="button" class="dropdown-item py-1" data-inline-action="save_a4"><i class="bx bx-file text-primary me-2"></i>Save &amp; Print A4</button></li>
+                                            <li><button type="button" class="dropdown-item py-1" data-inline-action="save_a5"><i class="bx bx-file-blank text-info me-2"></i>Save &amp; Print A5</button></li>
+                                            <li><button type="button" class="dropdown-item py-1" data-inline-action="save_thermal"><i class="bx bx-receipt text-success me-2"></i>Save &amp; Print Thermal</button></li>
+                                        </ul>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- ── Sticky bottom summary bar ────────────────────────────────── -->
+                    <div id="stickyBottomBar" class="sticky-bottom-bar" style="position:fixed;bottom:0;right:0;z-index:1040;padding:10px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;">
+                        <div class="d-flex align-items-stretch gap-0">
+                            <div style="padding-right:20px;">
+                                <div class="fw-bold" style="font-size:.95rem;">TOTAL &nbsp;<span style="color:#0d6efd;" id="stickyGrandTotal"><?php echo $cur; ?> 0.00</span></div>
+                                <div class="text-muted" style="font-size:.74rem;">Includes Total Tax &nbsp;<span id="stickyTotalTax">0.00</span></div>
+                            </div>
+                            <div id="stickyPaidGroup" class="d-none d-flex align-items-stretch">
+                                <div style="width:1px;background:#c5dcff;margin:0 20px;flex-shrink:0;"></div>
+                                <div>
+                                    <div style="font-size:.74rem;color:#198754;font-weight:600;"><i class="bx bx-check-circle me-1"></i>Total Paid</div>
+                                    <div class="fw-bold" style="font-size:.92rem;color:#198754;"><span id="stickyTotalPaid"><?php echo $cur; ?> 0.00</span></div>
+                                </div>
+                            </div>
+                            <div id="stickyBalanceGroup" class="d-none d-flex align-items-stretch">
+                                <div style="width:1px;background:#c5dcff;margin:0 20px;flex-shrink:0;"></div>
+                                <div>
+                                    <div style="font-size:.74rem;color:#dc3545;font-weight:600;"><i class="bx bx-wallet me-1"></i>Balance</div>
+                                    <div class="fw-bold" style="font-size:.92rem;color:#dc3545;"><span id="stickyBalanceAmt"><?php echo $cur; ?> 0.00</span></div>
+                                </div>
+                            </div>
+                            <div id="stickyExcessGroup" class="d-none d-flex align-items-stretch">
+                                <div style="width:1px;background:#c5dcff;margin:0 20px;flex-shrink:0;"></div>
+                                <div>
+                                    <div style="font-size:.74rem;color:#f59e0b;font-weight:600;"><i class="bx bx-error-circle me-1"></i>Excess</div>
+                                    <div class="fw-bold" style="font-size:.92rem;color:#f59e0b;"><span id="stickyExcessAmt"><?php echo $cur; ?> 0.00</span></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <?php if (!$isEdit || $isDraftEdit): ?>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="stickyDraftBtn"><i class="bx bx-save me-1"></i>Draft</button>
+                            <?php endif; ?>
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-sm btn-primary px-3" id="stickySaveBtn">
+                                    <i class="bx bx-check me-1"></i><?php echo ($isEdit && !$isDraftEdit) ? 'Update' : 'Save'; ?>
+                                </button>
+                                <?php if (!$isEdit || $isDraftEdit): ?>
+                                <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split ps-2 pe-2" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <span class="visually-hidden">Save options</span>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end shadow dropup" style="min-width:195px;font-size:.82rem;">
+                                    <li><span class="dropdown-header py-1" style="font-size:.65rem;letter-spacing:.4px;">SAVE &amp; PRINT</span></li>
+                                    <li><button type="button" class="dropdown-item py-1" data-sticky-action="save_a4"><i class="bx bx-file text-primary me-2"></i>Save &amp; Print A4</button></li>
+                                    <li><button type="button" class="dropdown-item py-1" data-sticky-action="save_a5"><i class="bx bx-file-blank text-info me-2"></i>Save &amp; Print A5</button></li>
+                                    <li><button type="button" class="dropdown-item py-1" data-sticky-action="save_thermal"><i class="bx bx-receipt text-success me-2"></i>Save &amp; Print Thermal</button></li>
+                                </ul>
+                                <?php endif; ?>
+                            </div>
                         </div>
                     </div>
 
@@ -272,7 +408,7 @@ if ($isEdit) {
 
             <?php $this->load->view('common/transactions/transprefix'); ?>
             <?php $this->load->view('common/modals/customer_form'); ?>
-            <?php $this->load->view('transactions/modals/customer_search'); ?>
+            <?php $this->load->view('transactions/modals/customer_search', ['hideCreate' => true]); ?>
             <?php $this->load->view('transactions/modals/invoice_items_select'); ?>
             <?php $this->load->view('transactions/modals/taxdetails'); ?>
             <?php $this->load->view('common/modals/category_form'); ?>
@@ -303,14 +439,14 @@ if ($isEdit) {
 <script src="/js/transactions/attachments.js"></script>
 
 <script>
-const StateInfo     = <?php echo json_encode($StateData); ?>;
-const CityInfo      = <?php echo json_encode($CityData); ?>;
 const EnableStorage = <?php echo $JwtData->GenSettings->EnableStorage; ?>;
 
-var _isEdit = <?php echo $isEdit ? 'true' : 'false'; ?>;
+var _isEdit       = <?php echo $isEdit ? 'true' : 'false'; ?>;
+var _orgDateFmt   = '<?php echo addslashes($JwtData->GenSettings->ListDateFormat ?? 'd M Y'); ?>';
 var _upstashUrl       = '<?php echo addslashes($UpstashReadUrl   ?? ''); ?>';
 var _upstashReadToken = '<?php echo addslashes($UpstashReadToken ?? ''); ?>';
 var _custCacheKey     = '<?php echo addslashes($CustomerCacheKey ?? ''); ?>';
+var _srItemMethod     = '<?php echo $_srMethod; ?>';
 
 <?php if ($isEdit): ?>
 var _editItems = <?php echo json_encode(array_map(function($item) {
@@ -350,17 +486,22 @@ $(function() {
     'use strict'
 
     <?php if (!$isEdit || $isDraftEdit): ?>
+    window._custSearchHideCreate = true;
     searchCustomers('customerSearch');
     <?php endif; ?>
     transDatePickr('#transDate', false, 'Y-m-d', false, true, true, true, 'd-m-Y');
 
-    // Load invoices when customer is selected
-    $('#customerSearch').on('select2:select', function() {
+    // Load invoices when customer is selected (only in Automatic / Both modes)
+    // Fix 4: show On Account balance next to cust-type indicator
+    $('#customerSearch').on('select2:select', function(e) {
         var custUID = parseInt($(this).val(), 10);
         if (!custUID || custUID <= 0) return;
-        loadCustomerInvoices(custUID);
+        if (_srItemMethod !== 'Manual') loadCustomerInvoices(custUID);
+        var data = e.params && e.params.data ? e.params.data : {};
+        _showSROnAccountBadge(data.onAccountBalance || 0);
     }).on('select2:clear', function() {
-        resetInvoiceDropdown();
+        if (_srItemMethod !== 'Manual') resetInvoiceDropdown();
+        $('#srOnAccountBadge').addClass('d-none');
     });
 
     function loadCustomerInvoices(custUID) {
@@ -381,7 +522,11 @@ $(function() {
                 var opts = '<option value="">-- Select Invoice --</option>';
                 res.Invoices.forEach(function(inv) {
                     var d = inv.TransDate ? inv.TransDate.split('-') : [];
-                    var dateLabel = d.length === 3 ? (d[2].replace(/^0/,'') + ' ' + _months[parseInt(d[1],10)-1] + ' ' + d[0]) : (inv.TransDate || '');
+                    var dateLabel = (function() {
+                        if (d.length !== 3) return inv.TransDate || '';
+                        var fmt = _orgDateFmt || 'd M Y';
+                        return fmt.replace('Y', d[0]).replace('m', d[1]).replace('d', d[2]).replace('M', _months[parseInt(d[1],10)-1]);
+                    })();
                     var label = inv.UniqueNumber + ' | ' + dateLabel + ' | \u20b9' + parseFloat(inv.NetAmount).toFixed(2);
                     opts += '<option value="' + inv.TransUID + '">' + label + '</option>';
                 });
@@ -396,6 +541,14 @@ $(function() {
 
     function resetInvoiceDropdown() {
         $('#fromInvoiceUID').html('<option value="">-- Select Customer First --</option>').prop('disabled', true);
+    }
+
+    function _showSROnAccountBadge(balance) {
+        var $badge = $('#srOnAccountBadge');
+        if (!$badge.length || !(parseFloat(balance) > 0)) { $badge.addClass('d-none'); return; }
+        var cur = (typeof genSettings !== 'undefined' && genSettings.CurrenySymbol) ? genSettings.CurrenySymbol : '\u20b9';
+        $('#srOnAccountAmt').text(cur + ' ' + parseFloat(balance).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+        $badge.removeClass('d-none');
     }
 
     // ── Invoice items modal ──────────────────────────────────────────────────
@@ -476,7 +629,7 @@ $(function() {
                             (item.PartNumber ? '<div class="small text-muted">Part#: ' + item.PartNumber + '</div>' : '') +
                             (inCart ? '<div class="small text-success"><i class="bx bx-check-circle me-1"></i>Added to cart</div>' : '') +
                         '</td>' +
-                        '<td class="text-center">' + smartDecimal(item.Quantity) + ' ' + (item.PrimaryUnitName || '') + '</td>' +
+                        '<td class="text-center">' + smartDecimal(item.RemainingQty) + ' ' + (item.PrimaryUnitName || '') + '</td>' +
                         '<td class="text-end">' + cur + ' ' + smartDecimal(item.UnitPrice, 2, true) + '</td>' +
                         '<td class="text-end">' + taxCell + '</td>' +
                         '<td class="text-end">' + discCell + '</td>' +
@@ -530,13 +683,15 @@ $(function() {
                 id               : parseInt(item.ProductUID, 10),
                 text             : item.ProductName,
                 itemName         : item.ProductName,
+                description      : item.Description      || '',
                 unitPrice        : parseFloat(item.UnitPrice)        || 0,
                 sellingPrice     : parseFloat(item.SellingPrice)     || 0,
+                purchasePrice    : parseFloat(item.PurchasePrice)    || 0,
                 taxAmount        : parseFloat(item.TaxAmount)        || 0,
-                purchasePrice    : 0,
                 availableQuantity: 0,
-                hsnCode          : '',
+                hsnCode          : item.HSNCode           || '',
                 categoryUID      : item.CategoryUID  ? parseInt(item.CategoryUID)  : null,
+                categoryName     : item.CategoryName     || '',
                 storageUID       : item.StorageUID   ? parseInt(item.StorageUID)   : null,
                 taxPercent       : parseFloat(item.TaxPercentage)    || 0,
                 cgstPercent      : parseFloat(item.CGST)             || 0,
@@ -555,7 +710,8 @@ $(function() {
             };
 
             if (typeof billManager !== 'undefined' && typeof formationTableBillItems === 'function') {
-                var result = billManager.addItem(productData, parseFloat(item.Quantity) || 1);
+                var qty = parseFloat(item.RemainingQty > 0 ? item.RemainingQty : item.Quantity) || 1;
+                var result = billManager.addItem(productData, qty);
                 if (result !== false) {
                     formationTableBillItems(billManager.getItemById(productData.id));
                     added++;
@@ -570,47 +726,20 @@ $(function() {
 
         $('#invoiceItemsModal').modal('hide');
 
-        // Bug 1: Always clear the selected option after pushing to cart
-        $('#fromInvoiceUID').val('');
-
-        // Bug 2: If ALL items of this invoice are now in cart, disable its dropdown option
-        if (_lastInvoiceUID > 0 && _invoiceTotalItems[_lastInvoiceUID]) {
-            var totalForInvoice = _invoiceTotalItems[_lastInvoiceUID];
-            var inCartCount = 0;
-            (_invoiceItems || []).forEach(function(item) {
-                if (typeof billManager !== 'undefined' && billManager.getItemById(item.ProductUID) !== null) {
-                    inCartCount++;
-                }
-            });
-            if (inCartCount >= totalForInvoice) {
-                $('#fromInvoiceUID option[value="' + _lastInvoiceUID + '"]').prop('disabled', true);
-            }
-        }
-
+        // Reset invoice dropdown after converting to cart
+        var $inv = $('#fromInvoiceUID');
+        $inv.val(null).trigger('change');
         _lastInvoiceUID = 0;
     });
 
-    // Watch for cart row removals — re-enable invoice option if any item is removed
-    var _cartObserver = new MutationObserver(function() {
-        Object.keys(_invoiceProductUIDs).forEach(function(uid) {
-            var transUID = parseInt(uid, 10);
-            var $opt = $('#fromInvoiceUID option[value="' + transUID + '"]');
-            if (!$opt.prop('disabled')) return; // already enabled, skip
-            var productUIDs = _invoiceProductUIDs[transUID] || [];
-            var allInCart = productUIDs.every(function(pid) {
-                return typeof billManager !== 'undefined' && billManager.getItemById(pid) !== null;
-            });
-            if (!allInCart) {
-                $opt.prop('disabled', false);
-            }
-        });
+    // Reset invoice dropdown when modal is dismissed without adding to cart (Fix 2)
+    $('#invoiceItemsModal').on('hidden.bs.modal', function() {
+        var $inv = $('#fromInvoiceUID');
+        if ($inv.val()) {
+            $inv.val(null).trigger('change');
+        }
+        _lastInvoiceUID = 0;
     });
-
-    // Start observing once DOM is ready
-    var _billTableBody = document.getElementById('billTableBody');
-    if (_billTableBody) {
-        _cartObserver.observe(_billTableBody, { childList: true, subtree: false });
-    }
 
     <?php if ($isEdit): ?>
     initTransAttachments(<?php echo $transUID; ?>, '/transactions/getAttachments', 106);
@@ -621,7 +750,7 @@ $(function() {
         <?php echo (int)$SRData->PartyUID; ?>, true, true
     )).trigger('change');
     <?php elseif (!$isDraftEdit && !empty($SRData->PartyUID)): ?>
-    loadCustomerInvoices(<?php echo (int)$SRData->PartyUID; ?>);
+    if (_srItemMethod !== 'Manual') loadCustomerInvoices(<?php echo (int)$SRData->PartyUID; ?>);
     <?php endif; ?>
 
     $('#extraDiscount').val('<?php echo smartDecimal($SRData->ExtraDiscount ?? 0); ?>');
@@ -703,6 +832,8 @@ $(function() {
                 transDate              : transDate,
                 customerSearch         : customerUID,
                 fromInvoiceUID         : parseInt($('#fromInvoiceUID').val(), 10) || 0,
+                returnType             : $('[name="returnType"]').val() || 'Regular',
+                dispatchFrom           : $('[name="dispatchFrom"]').val() || '',
                 referenceDetails       : $.trim($('#referenceDetails').val()),
                 transNotes             : $.trim($('#transNotes').val()),
                 transTermsCond         : $.trim($('#transTermsCond').val()),
@@ -799,4 +930,137 @@ $(function() {
     }
 
 });
+</script>
+
+<script>
+// ── Sticky bottom bar — total sync + button delegation ─────────────────────
+(function() {
+    var cur = '<?php echo addslashes($JwtData->GenSettings->CurrenySymbol ?? "₹"); ?>';
+    var dec = <?php echo (int)($JwtData->GenSettings->DecimalPoints ?? 2); ?>;
+
+    function _alignStickyBar() {
+        var bar  = document.getElementById('stickyBottomBar');
+        var form = document.getElementById('<?php echo $formId; ?>');
+        if (bar && form) {
+            var rect        = form.getBoundingClientRect();
+            var clientWidth = document.documentElement.clientWidth;
+            bar.style.left  = Math.round(rect.left)               + 'px';
+            bar.style.right = Math.round(clientWidth - rect.right) + 'px';
+        }
+    }
+    document.addEventListener('DOMContentLoaded', _alignStickyBar);
+    window.addEventListener('resize', _alignStickyBar);
+
+    document.addEventListener('DOMContentLoaded', function() {
+        _alignStickyBar();
+        var inlineBar = document.getElementById('inlineSummaryBar');
+        if (inlineBar) {
+            new IntersectionObserver(function(entries) {
+                var sticky = document.getElementById('stickyBottomBar');
+                if (sticky) sticky.style.display = entries[0].isIntersecting ? 'none' : 'flex';
+            }, { threshold: 0.1 }).observe(inlineBar);
+        }
+    });
+
+    function _r2(v) { return Math.round(v * 100) / 100; }
+
+    function _toggleGroup(ids, show, amtIds, amtValue) {
+        ids.forEach(function(id) {
+            var el = document.getElementById(id);
+            if (!el) return;
+            el.classList.toggle('d-none', !show);
+            el.classList.toggle('d-flex', show);
+        });
+        if (amtIds) amtIds.forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el) el.textContent = cur + ' ' + (amtValue || 0).toFixed(dec);
+        });
+    }
+
+    function _syncStickyTotals() {
+        if (typeof billManager === 'undefined') return;
+
+        var grand = billManager.summary && billManager.summary.totals
+            ? (billManager.summary.totals.grandTotal || 0) : 0;
+        var tax = billManager.summary && billManager.summary.taxTotals
+            ? (billManager.summary.taxTotals.totalTax || 0) : 0;
+
+        var rowsPaid = 0;
+        document.querySelectorAll('#paymentRowsBody tr .pay-amount-inp').forEach(function(inp) {
+            rowsPaid += parseFloat(inp.value) || 0;
+        });
+
+        var oaPaid = 0;
+        try {
+            var oaEl = document.getElementById('OnAccountApplyJson');
+            if (oaEl && oaEl.value) {
+                (JSON.parse(oaEl.value) || []).forEach(function(x) { oaPaid += parseFloat(x.ApplyAmount) || 0; });
+            }
+        } catch(e) {}
+
+        var paid    = _r2(rowsPaid + oaPaid);
+        var balance = grand > 0 ? Math.max(0, _r2(grand - paid)) : 0;
+        var excess  = grand > 0 ? Math.max(0, _r2(paid - grand)) : 0;
+
+        ['stickyGrandTotal','inlineGrandTotal'].forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el) el.textContent = cur + ' ' + grand.toFixed(dec);
+        });
+        ['stickyTotalTax','inlineTotalTax'].forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el) el.textContent = cur + ' ' + tax.toFixed(dec);
+        });
+
+        _toggleGroup(['stickyPaidGroup','inlinePaidGroup'],
+            paid > 0, ['stickyTotalPaid','inlineTotalPaid'], paid);
+        _toggleGroup(['stickyBalanceGroup','inlineBalanceGroup'],
+            grand > 0 && balance > 0 && excess === 0,
+            ['stickyBalanceAmt','inlineBalanceAmt'], balance);
+        _toggleGroup(['stickyExcessGroup','inlineExcessGroup'],
+            excess > 0, ['stickyExcessAmt','inlineExcessAmt'], excess);
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        var billTotEl = document.querySelector('.bill_tot_amt');
+        if (billTotEl) {
+            new MutationObserver(function() {
+                if (typeof updatePaymentSummary === 'function') updatePaymentSummary();
+                _syncStickyTotals();
+            }).observe(billTotEl, { childList: true, characterData: true, subtree: true });
+        }
+
+        document.addEventListener('input', function(e) {
+            if (e.target && e.target.classList.contains('pay-amount-inp')) _syncStickyTotals();
+        });
+
+        var oaJsonEl = document.getElementById('OnAccountApplyJson');
+        if (oaJsonEl) {
+            new MutationObserver(_syncStickyTotals).observe(oaJsonEl, { attributes: true, attributeFilter: ['value'] });
+        }
+
+        _syncStickyTotals();
+
+        var d = document.getElementById('stickyDraftBtn');
+        var s = document.getElementById('stickySaveBtn');
+        if (d) d.addEventListener('click', function() { var o = document.querySelector('[name="action"][value="draft"]'); if (o) o.click(); });
+        if (s) s.addEventListener('click', function() { var o = document.querySelector('[name="action"][value="save"]');  if (o) o.click(); });
+        document.querySelectorAll('[data-sticky-action]').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var o = document.querySelector('[name="action"][value="' + this.getAttribute('data-sticky-action') + '"]');
+                if (o) o.click();
+            });
+        });
+
+        var id = document.getElementById('inlineDraftBtn');
+        var is = document.getElementById('inlineSaveBtn');
+        if (id) id.addEventListener('click', function() { var o = document.querySelector('[name="action"][value="draft"]'); if (o) o.click(); });
+        if (is) is.addEventListener('click', function() { var o = document.querySelector('[name="action"][value="save"]');  if (o) o.click(); });
+        document.querySelectorAll('[data-inline-action]').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var o = document.querySelector('[name="action"][value="' + this.getAttribute('data-inline-action') + '"]');
+                if (o) o.click();
+            });
+        });
+    });
+}());
 </script>

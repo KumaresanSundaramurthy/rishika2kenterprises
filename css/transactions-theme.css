@@ -112,7 +112,7 @@
 .category-search-group .select2-container--default .select2-selection--single,
 .dispatch-from-grp     .select2-container--default .select2-selection--single,
 .input-group-sm        .select2-container--default .select2-selection--single {
-    height: 32px !important;
+    height: 36px !important;
     padding-top:    0.3rem !important;
     padding-bottom: 0.3rem !important;
 }

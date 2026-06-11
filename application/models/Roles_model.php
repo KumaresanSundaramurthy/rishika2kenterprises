@@ -153,7 +153,6 @@ class Roles_model extends CI_Model {
                 'IsActive'   => 1,
                 'IsDeleted'  => 0,
                 'UpdatedBy'  => $UserUID,
-                'UpdatedOn'  => $now,
             ];
 
             if ($existing) {
@@ -161,7 +160,6 @@ class Roles_model extends CI_Model {
                     ->update('UserRole.RoleMainMenusTbl', $row);
             } else {
                 $row['CreatedBy'] = $UserUID;
-                $row['CreatedOn'] = $now;
                 $WriteDb->insert('UserRole.RoleMainMenusTbl', $row);
             }
         }
@@ -206,7 +204,6 @@ class Roles_model extends CI_Model {
                 'IsActive'       => 1,
                 'IsDeleted'      => 0,
                 'UpdatedBy'      => $UserUID,
-                'UpdatedOn'      => $now,
             ];
 
             if ($existing) {
@@ -214,7 +211,6 @@ class Roles_model extends CI_Model {
                     ->update('UserRole.RoleSubMenusTbl', $row);
             } else {
                 $row['CreatedBy'] = $UserUID;
-                $row['CreatedOn'] = $now;
                 $WriteDb->insert('UserRole.RoleSubMenusTbl', $row);
             }
         }

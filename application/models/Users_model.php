@@ -3,10 +3,12 @@
 class Users_model extends CI_Model {
 
     private $ReadDb;
+    private $WriteDb;
 
     public function __construct() {
         parent::__construct();
-        $this->ReadDb = $this->load->database('ReadDB', TRUE);
+        $this->ReadDb  = $this->load->database('ReadDB',  TRUE);
+        $this->WriteDb = $this->load->database('WriteDB', TRUE);
     }
 
     // ── Org users list for cache (user filter across all pages) ──────────────
@@ -118,6 +120,47 @@ class Users_model extends CI_Model {
             log_message('error', 'Users_model::getUserAddresses — ' . $e->getMessage());
             return ['Current' => null, 'Temporary' => null];
         }
+    }
+
+    public function getUserAddressForType($userUID, $addressType) {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('AddressUID');
+            $this->ReadDb->from('Users.UserAddressTbl');
+            $this->ReadDb->where('UserUID',     (int)$userUID);
+            $this->ReadDb->where('AddressType', $addressType);
+            $this->ReadDb->where('IsDeleted',   0);
+            $this->ReadDb->limit(1);
+            return $this->ReadDb->get()->row();
+        } catch (Exception $e) {
+            log_message('error', 'Users_model::getUserAddressForType — ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    public function getUserByPasswordToken($token) {
+        try {
+            $this->WriteDb->db_debug = FALSE;
+            $this->WriteDb->select('UserUID, FirstName, EmailAddress, IsPasswordSet');
+            $this->WriteDb->from('Users.UserTbl');
+            $this->WriteDb->where('PasswordSetToken', $token);
+            $this->WriteDb->where('IsDeleted', 0);
+            $this->WriteDb->limit(1);
+            return $this->WriteDb->get()->row();
+        } catch (Throwable $e) {
+            log_message('error', 'Users_model::getUserByPasswordToken — ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    public function updateUserPassword($userUID, $password) {
+        $this->WriteDb->db_debug = FALSE;
+        $this->WriteDb->where('UserUID', (int)$userUID);
+        $this->WriteDb->update('Users.UserTbl', [
+            'Password'      => base64_encode($password),
+            'IsPasswordSet' => 1,
+            'UpdatedOn'     => date('Y-m-d H:i:s'),
+        ]);
     }
 
     // ── Private filter helper ─────────────────────────────────────────────────

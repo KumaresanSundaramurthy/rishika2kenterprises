@@ -1,7 +1,7 @@
 ﻿<?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Transactions_model extends CI_Model {
-    
+
     private $EndReturnData;
     private $ReadDb;
 
@@ -11,6 +11,8 @@ class Transactions_model extends CI_Model {
 		$this->ReadDb = $this->load->database('ReadDB', TRUE);
 
     }
+
+    public function getReadDb() { return $this->ReadDb; }
 
     public function getTransactionPageList($limit, $offset, $ModuleUID, $filter, $isCount = false) {
 
@@ -479,7 +481,7 @@ class Transactions_model extends CI_Model {
      * Returns the next sequential TransNumber for a given prefix + org + module.
      * Result = MAX(TransNumber) + 1, or 1 if no records exist yet.
      */
-    public function getNextTransactionNumber($prefixUID, $orgUID, $moduleUID) {
+    public function getNextTransactionNumber($prefixUID, $orgUID, $moduleUID = 0) {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select_max('TransNumber', 'MaxNumber');
@@ -543,6 +545,40 @@ class Transactions_model extends CI_Model {
             return 1;
         }
 
+    }
+
+    /**
+     * Returns the next CreditNoteSeq for a given org.
+     * Scans ALL rows (including soft-deleted) so a previously-used seq is never re-issued.
+     */
+    public function getNextCreditNoteNumber($orgUID) {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select_max('CreditNoteSeq', 'MaxSeq');
+            $this->ReadDb->from('Transaction.CustomerCreditNoteTbl');
+            $this->ReadDb->where('OrgUID', (int)$orgUID);
+            $result = $this->ReadDb->get()->row();
+            return $result ? ((int)($result->MaxSeq ?? 0) + 1) : 1;
+        } catch (Exception $e) {
+            return 1;
+        }
+    }
+
+    /**
+     * Returns the next DebitNoteSeq for a given org.
+     * Scans ALL rows (including soft-deleted) so a previously-used seq is never re-issued.
+     */
+    public function getNextDebitNoteNumber($orgUID) {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select_max('DebitNoteSeq', 'MaxSeq');
+            $this->ReadDb->from('Transaction.CustomerDebitNoteTbl');
+            $this->ReadDb->where('OrgUID', (int)$orgUID);
+            $result = $this->ReadDb->get()->row();
+            return $result ? ((int)($result->MaxSeq ?? 0) + 1) : 1;
+        } catch (Exception $e) {
+            return 1;
+        }
     }
 
     /**
@@ -906,7 +942,7 @@ class Transactions_model extends CI_Model {
     /** Single payment row for pre-deletion checks (no joins). */
     public function getPaymentRow($paymentUID, $orgUID) {
         $this->ReadDb->db_debug = FALSE;
-        $this->ReadDb->select('PaymentUID, TransUID, Amount, PartyType, PartyUID, IsOnAccount, OnAccountAppliedTransUID, OnAccountSourcePaymentUID');
+        $this->ReadDb->select('PaymentUID, TransUID, ModuleUID, Amount, PartyType, PartyUID, IsOnAccount, OnAccountAppliedTransUID, OnAccountSourcePaymentUID');
         $this->ReadDb->from('Transaction.PaymentsTbl');
         $this->ReadDb->where(['PaymentUID' => $paymentUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
         $query = $this->ReadDb->get();
@@ -924,10 +960,10 @@ class Transactions_model extends CI_Model {
         return $row ? (float) $row->TotalPaid : 0;
     }
 
-    /** Minimal transaction header: NetAmount + DocStatus + UniqueNumber (for balance recalculation). */
+    /** Minimal transaction header: NetAmount + DocStatus + UniqueNumber + ModuleUID (for balance recalculation). */
     public function getTransactionBasicInfo($transUID, $orgUID) {
         $this->ReadDb->db_debug = FALSE;
-        $this->ReadDb->select('TransUID, NetAmount, DocStatus, UniqueNumber');
+        $this->ReadDb->select('TransUID, ModuleUID, NetAmount, DocStatus, UniqueNumber');
         $this->ReadDb->from('Transaction.TransactionsTbl');
         $this->ReadDb->where(['TransUID' => $transUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
         $query = $this->ReadDb->get();
@@ -2021,7 +2057,7 @@ class Transactions_model extends CI_Model {
 
         $this->load->model('organisation_model');
         $orgInfo          = $this->organisation_model->getOrgInfoCached($orgUID);
-        $printThemeResult = $this->organisation_model->getPrintThemeByType($orgUID, $header->TransType);
+        $printThemeResult = $this->organisation_model->getPrintThemeByModule($orgUID, $moduleUID);
         $printBankAccount = $this->getPrintBankAccount($orgUID);
 
         $html = $this->_renderA4Html($moduleUID, $header, $items, $orgInfo->Data ?? null, $printThemeResult->Data ?? null, $printBankAccount);
@@ -2361,25 +2397,7 @@ class Transactions_model extends CI_Model {
     }
 
     public function _generateReceiptToken() {
-
-        $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-        do {
-
-            $token = '';
-            $bytes = random_bytes(10);
-
-            for ($i = 0; $i < 10; $i++) {
-                $token .= $chars[ord($bytes[$i]) % 62];
-            }
-
-            $exists = $this->ReadDb
-                ->where('ReceiptToken', $token)
-                ->count_all_results('Transaction.PaymentsTbl');
-
-        } while ($exists > 0);
-
-        return $token;
-
+        return generate_uuid4();
     }
 
     // ── Build signature HTML for {{SIGNATURE_SPACE}} token ────────────────────
@@ -2431,6 +2449,211 @@ class Transactions_model extends CI_Model {
         } catch (Exception $e) {
             return '<div style="min-height:65px;"></div>';
         }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // SR / Sales Return query helpers
+
+    public function getSRCreditApplied($srUniqueNumber) {
+        $this->ReadDb->db_debug = FALSE;
+        $this->ReadDb->select('COALESCE(SUM(Amount), 0) AS Total');
+        $this->ReadDb->from('Transaction.PaymentsTbl');
+        $this->ReadDb->where([
+            'ReferenceNo'      => $srUniqueNumber,
+            'PaymentTypeUID'   => 0,
+            'PaymentDirection' => 'In',
+            'IsDeleted'        => 0,
+        ]);
+        $row = $this->ReadDb->get()->row();
+        return (float)($row->Total ?? 0);
+    }
+
+    public function getSRTotalRefunded($transUID) {
+        $this->ReadDb->db_debug = FALSE;
+        $this->ReadDb->select('COALESCE(SUM(Amount), 0) AS Total');
+        $this->ReadDb->from('Transaction.PaymentsTbl');
+        $this->ReadDb->where(['TransUID' => (int)$transUID, 'IsDeleted' => 0]);
+        $this->ReadDb->where('PaymentTypeUID !=', 0);
+        $this->ReadDb->where('IFNULL(IsCancelled, 0) !=', 1);
+        $row = $this->ReadDb->get()->row();
+        return (float)($row->Total ?? 0);
+    }
+
+    public function getSRCancelDepsMap(array $transUIDs, array $uniqueNumbers) {
+        $this->ReadDb->db_debug = FALSE;
+        $cashMap = [];
+        if (!empty($transUIDs)) {
+            $this->ReadDb->select('TransUID, COALESCE(SUM(Amount), 0) AS Total');
+            $this->ReadDb->from('Transaction.PaymentsTbl');
+            $this->ReadDb->where_in('TransUID', $transUIDs);
+            $this->ReadDb->where(['IsDeleted' => 0]);
+            $this->ReadDb->where('PaymentTypeUID !=', 0);
+            $this->ReadDb->where('IFNULL(IsCancelled, 0) !=', 1);
+            $this->ReadDb->group_by('TransUID');
+            foreach ($this->ReadDb->get()->result() as $cr) {
+                $cashMap[(int)$cr->TransUID] = (float)$cr->Total;
+            }
+        }
+        $creditMap = [];
+        if (!empty($uniqueNumbers)) {
+            $this->ReadDb->select('ReferenceNo, COALESCE(SUM(Amount), 0) AS Total');
+            $this->ReadDb->from('Transaction.PaymentsTbl');
+            $this->ReadDb->where_in('ReferenceNo', $uniqueNumbers);
+            $this->ReadDb->where(['PaymentTypeUID' => 0, 'PaymentDirection' => 'In', 'IsDeleted' => 0]);
+            $this->ReadDb->group_by('ReferenceNo');
+            foreach ($this->ReadDb->get()->result() as $cr) {
+                $creditMap[$cr->ReferenceNo] = (float)$cr->Total;
+            }
+        }
+        return ['cashMap' => $cashMap, 'creditMap' => $creditMap];
+    }
+
+    public function getSRCreditPayments($srUniqueNumber) {
+        $this->ReadDb->db_debug = FALSE;
+        $this->ReadDb->select('PaymentUID, TransUID, Amount');
+        $this->ReadDb->from('Transaction.PaymentsTbl');
+        $this->ReadDb->where([
+            'ReferenceNo'      => $srUniqueNumber,
+            'PaymentTypeUID'   => 0,
+            'PaymentDirection' => 'In',
+            'IsDeleted'        => 0,
+        ]);
+        return $this->ReadDb->get()->result();
+    }
+
+    public function getReturnedQtyMapForItems(array $transProdUIDs, $orgUID) {
+        if (empty($transProdUIDs)) return [];
+        $this->ReadDb->db_debug = FALSE;
+        $this->ReadDb->select('SourceTransProdUID, SUM(Quantity) AS ReturnedQty');
+        $this->ReadDb->from('Transaction.TransProductsTbl');
+        $this->ReadDb->where_in('SourceTransProdUID', $transProdUIDs);
+        $this->ReadDb->where(['OrgUID' => (int)$orgUID, 'IsDeleted' => 0, 'IsActive' => 1]);
+        $this->ReadDb->group_by('SourceTransProdUID');
+        $map = [];
+        foreach ($this->ReadDb->get()->result() as $r) {
+            $map[(int)$r->SourceTransProdUID] = (float)$r->ReturnedQty;
+        }
+        return $map;
+    }
+
+    public function getCustomerInvoicesWithReturnableItems($customerUID, $orgUID) {
+        $this->ReadDb->db_debug = FALSE;
+        $sql = "
+            SELECT Ts.TransUID, Ts.UniqueNumber, Ts.TransDate, Ts.NetAmount, Ts.DocStatus
+            FROM Transaction.TransactionsTbl AS Ts
+            WHERE Ts.PartyUID  = ?
+              AND Ts.PartyType = 'C'
+              AND Ts.ModuleUID = 103
+              AND Ts.OrgUID    = ?
+              AND Ts.IsDeleted = 0
+              AND Ts.IsActive  = 1
+              AND Ts.DocStatus NOT IN ('Draft','Cancelled')
+              AND EXISTS (
+                  SELECT 1
+                  FROM Transaction.TransProductsTbl AS IP
+                  WHERE IP.TransUID   = Ts.TransUID
+                    AND IP.OrgUID     = Ts.OrgUID
+                    AND IP.IsDeleted  = 0
+                    AND IP.IsActive   = 1
+                    AND IP.Quantity > COALESCE((
+                        SELECT SUM(RP.Quantity)
+                        FROM Transaction.TransProductsTbl AS RP
+                        WHERE RP.SourceTransProdUID = IP.TransProdUID
+                          AND RP.OrgUID             = Ts.OrgUID
+                          AND RP.IsDeleted          = 0
+                          AND RP.IsActive           = 1
+                    ), 0)
+              )
+            ORDER BY Ts.TransUID DESC
+        ";
+        $query = $this->ReadDb->query($sql, [(int)$customerUID, (int)$orgUID]);
+        return $query ? $query->result() : [];
+    }
+
+    public function getPendingInvoicesForCustomer($customerUID, $orgUID) {
+        $this->ReadDb->db_debug = FALSE;
+        $this->ReadDb->select([
+            'Ts.TransUID',
+            'Ts.UniqueNumber',
+            'Ts.TransDate',
+            'Ts.NetAmount',
+            'COALESCE(Ts.PaidAmount, 0) AS PaidAmount',
+            'COALESCE(Ts.BalanceAmount, 0) AS BalanceAmount',
+        ]);
+        $this->ReadDb->from('Transaction.TransactionsTbl AS Ts');
+        $this->ReadDb->where([
+            'Ts.PartyUID'  => (int)$customerUID,
+            'Ts.PartyType' => 'C',
+            'Ts.ModuleUID' => 103,
+            'Ts.OrgUID'    => (int)$orgUID,
+            'Ts.IsDeleted' => 0,
+            'Ts.IsActive'  => 1,
+        ]);
+        $this->ReadDb->where_not_in('Ts.DocStatus', ['Draft', 'Cancelled', 'Paid']);
+        $this->ReadDb->where('COALESCE(Ts.BalanceAmount, Ts.NetAmount) >', 0);
+        $this->ReadDb->order_by('Ts.TransUID', 'DESC');
+        return $this->ReadDb->get()->result();
+    }
+
+    public function getVendorPendingPurchases($vendorUID, $orgUID) {
+        $this->ReadDb->db_debug = FALSE;
+        $this->ReadDb->select([
+            'Ts.TransUID',
+            'Ts.UniqueNumber',
+            'Ts.TransDate',
+            'Ts.NetAmount',
+            'COALESCE(Ts.PaidAmount, 0) AS PaidAmount',
+            'COALESCE(Ts.BalanceAmount, 0) AS BalanceAmount',
+        ]);
+        $this->ReadDb->from('Transaction.TransactionsTbl AS Ts');
+        $this->ReadDb->where([
+            'Ts.PartyUID'  => (int)$vendorUID,
+            'Ts.PartyType' => 'S',
+            'Ts.ModuleUID' => 105,
+            'Ts.OrgUID'    => (int)$orgUID,
+            'Ts.IsDeleted' => 0,
+            'Ts.IsActive'  => 1,
+        ]);
+        $this->ReadDb->where_not_in('Ts.DocStatus', ['Draft', 'Cancelled', 'Paid']);
+        $this->ReadDb->where('COALESCE(Ts.BalanceAmount, Ts.NetAmount) >', 0);
+        $this->ReadDb->order_by('Ts.TransUID', 'DESC');
+        return $this->ReadDb->get()->result();
+    }
+
+    public function getTransactionStubByToken($token) {
+        $this->ReadDb->db_debug = FALSE;
+        $this->ReadDb->select('TransUID, OrgUID, ModuleUID, DocStatus, TransType, UniqueNumber, NetAmount, PaidAmount, BalanceAmount, PartyType');
+        $this->ReadDb->from('Transaction.TransactionsTbl');
+        $this->ReadDb->where(['TransToken' => $token, 'IsDeleted' => 0, 'IsActive' => 1]);
+        $this->ReadDb->limit(1);
+        return $this->ReadDb->get()->row();
+    }
+
+    public function getPaymentByReceiptToken($token) {
+        $this->ReadDb->db_debug = FALSE;
+        $this->ReadDb->select([
+            'P.PaymentUID', 'P.OrgUID', 'P.TransUID', 'P.PartyType',
+            'P.Amount', 'P.ExcessAmount', 'P.IsFullyPaid',
+            'P.ReferenceNo', 'P.Notes', 'P.PaymentDate', 'P.CreatedOn',
+            'P.UniqueNumber', 'P.PaymentNumber', 'P.ReceiptToken',
+            'PT.Name AS PaymentTypeName', 'PT.IsCash',
+            'T.UniqueNumber AS TransNumber', 'T.TransDate', 'T.NetAmount AS BillAmount',
+            "CASE WHEN P.PartyType = 'C' THEN C.Name ELSE V.Name END AS PartyName",
+            "CASE WHEN P.PartyType = 'C' THEN C.MobileNumber ELSE V.MobileNumber END AS PartyMobile",
+            "CASE WHEN P.PartyType = 'C' THEN C.EmailAddress ELSE V.EmailAddress END AS PartyEmail",
+            'BA.AccountName', 'BA.BankName', 'BA.AccountNumber', 'BA.IFSC', 'BA.BranchName',
+            "CONCAT(CrUser.FirstName, ' ', CrUser.LastName) AS CreatedByName",
+        ]);
+        $this->ReadDb->from('Transaction.PaymentsTbl AS P');
+        $this->ReadDb->join('Global.PaymentTypesTbl AS PT', 'PT.PaymentTypeUID = P.PaymentTypeUID', 'LEFT');
+        $this->ReadDb->join('Transaction.TransactionsTbl AS T', 'T.TransUID = P.TransUID AND T.IsDeleted = 0', 'LEFT');
+        $this->ReadDb->join('Customers.CustomerTbl AS C', "C.CustomerUID = P.PartyUID AND P.PartyType = 'C'", 'LEFT');
+        $this->ReadDb->join('Vendors.VendorTbl AS V', "V.VendorUID = P.PartyUID AND P.PartyType = 'S'", 'LEFT');
+        $this->ReadDb->join('Organisation.OrgBankAccountsTbl AS BA', 'BA.BankAccountUID = P.BankAccountUID', 'LEFT');
+        $this->ReadDb->join('Users.UserTbl AS CrUser', 'CrUser.UserUID = P.CreatedBy', 'LEFT');
+        $this->ReadDb->where(['P.ReceiptToken' => $token, 'P.IsDeleted' => 0]);
+        $this->ReadDb->limit(1);
+        return $this->ReadDb->get()->row();
     }
 
 }

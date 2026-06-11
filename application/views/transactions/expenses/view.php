@@ -922,10 +922,9 @@ $(function () {
     }, 1500));
 
     $(document).on('click', '.date-option', function () {
-        $('.date-option').removeClass('active');
-        $(this).addClass('active');
-        var dates = getDateRange($(this).data('range') || '');
-        $('#dateFilterLabel').text($.trim($(this).text()));
+        var range = $(this).data('range') || '';
+        if (range === 'custom') return;
+        var dates = getDateRange(range);
         Filter.DateFrom = dates.from; Filter.DateTo = dates.to;
         PageNo = 1; getExpensesDetails();
     });

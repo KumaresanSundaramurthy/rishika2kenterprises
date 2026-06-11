@@ -218,16 +218,8 @@ class Payroll extends MY_Controller {
 
     private function _applyAdvanceRecovery($empUID, $orgUID, $amount, $userUID) {
         $this->load->model('attendance_model');
-        // Get unsettled advances for this employee, oldest first
-        $this->load->database('WriteDB', FALSE);
-        $db = $this->load->database('WriteDB', TRUE);
-        $db->db_debug = FALSE;
-        $db->select('AdvanceUID, BalancePending');
-        $db->from('Transaction.SalaryAdvanceTbl');
-        $db->where(['EmployeeUID' => $empUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0, 'IsSettled' => 0]);
-        $db->where('BalancePending >', 0);
-        $db->order_by('AdvanceUID', 'ASC');
-        $advances = $db->get()->result();
+        $this->load->model('payroll_model');
+        $advances = $this->payroll_model->getUnsettledAdvances($empUID, $orgUID);
 
         $remaining = $amount;
         foreach ($advances as $adv) {

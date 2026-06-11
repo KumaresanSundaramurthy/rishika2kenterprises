@@ -7,10 +7,32 @@ class Customers_model extends CI_Model {
 
 	function __construct() {
         parent::__construct();
-        
+
         $this->ReadDb  = $this->load->database('ReadDB',  TRUE);
         $this->WriteDb = $this->load->database('WriteDB', TRUE);
 
+    }
+
+    public function getReadDb()  { return $this->ReadDb;  }
+    public function getWriteDb() { return $this->WriteDb; }
+
+    public function getCustomerPendingNoteTotals($orgUID, $customerUID) {
+        try {
+            $this->WriteDb->db_debug = FALSE;
+            $result = $this->WriteDb->query(
+                "SELECT
+                    COALESCE((SELECT SUM(Amount) FROM Transaction.CustomerCreditNoteTbl
+                              WHERE OrgUID=? AND CustomerUID=? AND Status='Pending' AND IsCancelled=0 AND IsDeleted=0 AND PaymentCleared=0), 0) AS CreditTotal,
+                    COALESCE((SELECT SUM(Amount) FROM Transaction.CustomerDebitNoteTbl
+                              WHERE OrgUID=? AND CustomerUID=? AND Status='Pending' AND IsDeleted=0), 0) AS DebitTotal",
+                [(int)$orgUID, (int)$customerUID, (int)$orgUID, (int)$customerUID]
+            );
+            $row = $result ? $result->row() : null;
+            return [(float)($row->CreditTotal ?? 0), (float)($row->DebitTotal ?? 0)];
+        } catch (Exception $e) {
+            log_message('error', 'Customers_model::getCustomerPendingNoteTotals failed: ' . $e->getMessage());
+            return [0.0, 0.0];
+        }
     }
 
     public function custFilterFormation($moduleInfo, array $filter = []) {
@@ -323,8 +345,8 @@ class Customers_model extends CI_Model {
                 'Customers.CreatedOn AS CreatedOn',
                 'Customers.UpdatedOn AS UpdatedOn',
                 "CONCAT(User.FirstName, ' ', User.LastName) AS UpdatedBy",
-                'IFNULL(COA.CurrentBalance, 0.00) AS ClosingBalance',
-                "IFNULL(COA.CurrentBalanceType, 'Debit') AS ClosingBalanceType",
+                'IFNULL(COB.PendingBalance, 0.00) AS ClosingBalance',
+                "IFNULL(COB.PendingBalType, 'Debit') AS ClosingBalanceType",
                 'CT.TypeName AS CustomerTypeName',
                 'ShipAddr.Line1 AS ShipLine1',
                 'ShipAddr.Line2 AS ShipLine2',
@@ -352,6 +374,11 @@ class Customers_model extends CI_Model {
             $this->ReadDb->join(
                 'Customers.CustAddressTbl as ShipAddr',
                 "ShipAddr.CustomerUID = Customers.CustomerUID AND ShipAddr.AddressType = 'Shipping' AND ShipAddr.IsDeleted = 0 AND ShipAddr.IsActive = 1",
+                'left'
+            );
+            $this->ReadDb->join(
+                'Customers.CustOpeningBalanceTbl as COB',
+                'COB.CustomerUID = Customers.CustomerUID AND COB.OrgUID = Customers.OrgUID AND COB.IsDeleted = 0',
                 'left'
             );
             $this->ReadDb->where($baseWhere);
@@ -564,6 +591,34 @@ class Customers_model extends CI_Model {
         }
     }
 
+    public function getCustomerSRCoveredByCreditNote($orgUID, $customerUID) {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('COALESCE(SUM(COALESCE(T.BalanceAmount, T.NetAmount)), 0) AS total');
+            $this->ReadDb->from('`Transaction`.TransactionsTbl T');
+            $this->ReadDb->join(
+                '`Transaction`.CustomerCreditNoteTbl CN',
+                'CN.SourceTransUID = T.TransUID AND CN.SourceModuleUID = 106 AND CN.IsDeleted = 0 AND CN.OrgUID = ' . (int)$orgUID,
+                'inner'
+            );
+            $this->ReadDb->where([
+                'T.OrgUID'    => (int)$orgUID,
+                'T.PartyUID'  => (int)$customerUID,
+                'T.PartyType' => 'C',
+                'T.IsDeleted' => 0,
+                'T.ModuleUID' => 106,
+            ]);
+            $this->ReadDb->where_not_in('T.DocStatus', ['Cancelled', 'Rejected']);
+            $this->ReadDb->where('CN.IsCancelled', 0);
+            $query = $this->ReadDb->get();
+            if (!$query) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
+            return (float)$query->row()->total;
+        } catch (Exception $e) {
+            log_message('error', 'Customers_model::getCustomerSRCoveredByCreditNote failed: ' . $e->getMessage());
+            return 0.0;
+        }
+    }
+
     public function getCustomerTotalPendingCreditNotes($orgUID, $customerUID) {
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -688,27 +743,24 @@ class Customers_model extends CI_Model {
     public function updateCustomerPendingBalance($orgUID, $customerUID, $pendingBalance, $pendingBalType, $userUID) {
         try {
             $this->WriteDb->db_debug = FALSE;
-            $this->WriteDb->where(['OrgUID' => (int)$orgUID, 'CustomerUID' => (int)$customerUID, 'IsDeleted' => 0]);
-            $this->WriteDb->update('Customers.CustOpeningBalanceTbl', [
-                'PendingBalance' => (float)$pendingBalance,
-                'PendingBalType' => $pendingBalType,
-                'UpdatedBy'      => (int)$userUID,
-            ]);
-            // If no row existed, seed one so the pending balance is visible on the customer page
-            if ($this->WriteDb->affected_rows() === 0) {
-                $this->WriteDb->insert('Customers.CustOpeningBalanceTbl', [
-                    'OrgUID'         => (int)$orgUID,
-                    'CustomerUID'    => (int)$customerUID,
-                    'OpeningBalance' => 0.00,
-                    'OpeningBalType' => 'Debit',
-                    'PendingBalance' => (float)$pendingBalance,
-                    'PendingBalType' => $pendingBalType,
-                    'IsActive'       => 1,
-                    'IsDeleted'      => 0,
-                    'CreatedBy'      => (int)$userUID,
-                    'UpdatedBy'      => (int)$userUID,
-                ]);
-            }
+            // UPSERT: inserts if no row exists, updates if it does (handles "no change" case without duplicate key error)
+            $this->WriteDb->query(
+                "INSERT INTO Customers.CustOpeningBalanceTbl
+                    (OrgUID, CustomerUID, OpeningBalance, OpeningBalType, PendingBalance, PendingBalType, IsActive, IsDeleted, CreatedBy, UpdatedBy)
+                 VALUES (?, ?, 0.00, 'Debit', ?, ?, 1, 0, ?, ?)
+                 ON DUPLICATE KEY UPDATE
+                    PendingBalance = VALUES(PendingBalance),
+                    PendingBalType = VALUES(PendingBalType),
+                    UpdatedBy      = VALUES(UpdatedBy)",
+                [
+                    (int)$orgUID,
+                    (int)$customerUID,
+                    (float)$pendingBalance,
+                    $pendingBalType,
+                    (int)$userUID,
+                    (int)$userUID,
+                ]
+            );
         } catch (Exception $e) {
             throw new Exception($e->getMessage());
         }

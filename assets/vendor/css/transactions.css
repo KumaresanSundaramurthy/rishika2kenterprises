@@ -410,6 +410,7 @@ tr:hover .inv-row-action {
 /* Pull dropdown up to overlap the selection field — combobox style (transaction pages only) */
 .transactionPage .select2-container--default .select2-dropdown--below {
     margin-top: -38px;
+    margin-left: 3px;
     border-radius: 6px !important;
     border-color: #86b7fe !important;
     box-shadow: 0 0 0 0.18rem rgba(13,110,253,.15), 0 4px 18px rgba(0,0,0,.08) !important;

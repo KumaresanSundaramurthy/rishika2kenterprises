@@ -404,7 +404,7 @@ class Formvalidation_model extends CI_Model {
 
     }
 
-    public function quotationValidateForm($data) {
+    public function transactionValidateForm($data) {
 
         $this->form_validation->set_data($data);
 

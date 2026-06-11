@@ -99,6 +99,22 @@ class Subscription_model extends CI_Model {
         return $result;
     }
 
+    public function getUserSubscriptionHistory($userUID, $limit = 50) {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('*');
+            $this->ReadDb->from('Users.SubscriptionHistoryTbl');
+            $this->ReadDb->where('UserUID', (int)$userUID);
+            $this->ReadDb->order_by('CreatedOn', 'DESC');
+            $this->ReadDb->limit((int)$limit);
+            $query = $this->ReadDb->get();
+            return $query ? $query->result() : [];
+        } catch (Exception $e) {
+            log_message('error', 'Subscription_model::getUserSubscriptionHistory — ' . $e->getMessage());
+            return [];
+        }
+    }
+
     // ── Single active plan by plan code ──────────────────────────────────────
     public function getPlanByCode($planCode) {
         $result = new stdClass();

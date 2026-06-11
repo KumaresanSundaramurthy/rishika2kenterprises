@@ -1,7 +1,6 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php
 $CI =& get_instance();
-$CI->load->model('global_model');
 $CI->load->model('customers_model');
 
 $_orgUID          = (int)($CI->pageData['JwtData']->Org->OrgUID ?? 0);
@@ -12,11 +11,6 @@ $_defDiscTypeUID  = (int)($_ps->DefaultDiscountTypeUID ?? 0);
 $_defProdTaxUID   = (int)($_ps->DefaultProductTaxUID   ?? 0);
 $_defTaxDetailUID = (int)($_ps->DefaultTaxDetailUID    ?? 0);
 
-$_ProdTypeInfo     = $CI->global_model->getProductTypeInfo()->Data ?? [];
-$_ProdTaxInfo      = $CI->global_model->getProductTaxInfo()->Data ?? [];
-$_TaxDetInfo       = $CI->global_model->getTaxDetailsInfo()->Data ?? [];
-$_PrimaryUnitInfo  = $CI->global_model->getPrimaryUnitInfo()->Data ?? [];
-$_DiscTypeInfo     = $CI->global_model->getDiscountTypeInfo()->Data ?? [];
 $_CustomerTypeInfo = $CI->customers_model->getCustomerTypeList($_orgUID) ?? [];
 
 $_fltStorageData = [];
@@ -24,19 +18,6 @@ if (!empty($_JwtData->GenSettings->EnableStorage)) {
     $CI->load->model('storage_model');
     $_fltStorageData = $CI->storage_model->getStorageDetails([]) ?? [];
 }
-
-// Compute JS defaults (fallback to first matching option if settings not set)
-$_pfDefProdTypeName = 'Product';
-foreach ($_ProdTypeInfo as $_pt) {
-    if ($_defProdTypeUID > 0 && (int)$_pt->ProductTypeUID === $_defProdTypeUID) {
-        $_pfDefProdTypeName = $_pt->Name; break;
-    }
-}
-$_pfDefDiscUID    = $_defDiscTypeUID;
-$_pfDefProdTaxUID = $_defProdTaxUID;
-$_pfDefTaxDetUID  = $_defTaxDetailUID;
-if ($_pfDefDiscUID === 0)    foreach ($_DiscTypeInfo as $_dt) { if (stripos($_dt->Name, 'Percentage') !== false) { $_pfDefDiscUID    = (int)$_dt->DiscountTypeUID; break; } }
-if ($_pfDefProdTaxUID === 0) foreach ($_ProdTaxInfo  as $_px) { if (stripos($_px->Name, 'With Tax')   !== false) { $_pfDefProdTaxUID = (int)$_px->ProductTaxUID;  break; } }
 ?>
 
 <?php $FormAttribute = array('id' => 'AddEditItemForm', 'name' => 'AddEditItemForm', 'class' => '', 'autocomplete' => 'off');
@@ -77,13 +58,6 @@ if ($_pfDefProdTaxUID === 0) foreach ($_ProdTaxInfo  as $_px) { if (stripos($_px
                 <div class="mb-3 col-md-6">
                     <label for="ProductType" class="form-label">Product Type <span style="color:red">*</span></label>
                     <select class="select2 form-select" id="ProductType" name="ProductType" required>
-                        <?php foreach ($_ProdTypeInfo as $_pt):
-                            $isSelected = $_defProdTypeUID > 0
-                                ? ($_pt->ProductTypeUID == $_defProdTypeUID)
-                                : ($_pt->Name === 'Product');
-                        ?>
-                            <option value="<?= $_pt->Name ?>" <?= $isSelected ? 'selected' : '' ?>><?= $_pt->Name ?></option>
-                        <?php endforeach; ?>
                     </select>
                 </div>
                 <div class="mb-3 col-md-6">
@@ -98,13 +72,6 @@ if ($_pfDefProdTaxUID === 0) foreach ($_ProdTaxInfo  as $_px) { if (stripos($_px
                             onpaste="handlePricePaste(event, <?= $_JwtData->GenSettings->PriceMaxLength ?>, <?= $_JwtData->GenSettings->DecimalPoints ?>)"
                             ondrop="handlePriceDrop(event, <?= $_JwtData->GenSettings->PriceMaxLength ?>, <?= $_JwtData->GenSettings->DecimalPoints ?>)" required />
                         <select class="form-select tax-option-select" id="SellingTaxOption" name="SellingTaxOption">
-                            <?php foreach ($_ProdTaxInfo as $_pt):
-                                $isSelected = $_defProdTaxUID > 0
-                                    ? ($_pt->ProductTaxUID == $_defProdTaxUID)
-                                    : (stripos($_pt->Name, 'With Tax') !== false);
-                            ?>
-                                <option value="<?= $_pt->ProductTaxUID ?>" <?= $isSelected ? 'selected' : '' ?>><?= $_pt->Name ?></option>
-                            <?php endforeach; ?>
                         </select>
                     </div>
                 </div>
@@ -133,13 +100,6 @@ if ($_pfDefProdTaxUID === 0) foreach ($_ProdTaxInfo  as $_px) { if (stripos($_px
                             onpaste="handlePricePaste(event, <?= $_JwtData->GenSettings->PriceMaxLength ?>, <?= $_JwtData->GenSettings->DecimalPoints ?>)"
                             ondrop="handlePriceDrop(event, <?= $_JwtData->GenSettings->PriceMaxLength ?>, <?= $_JwtData->GenSettings->DecimalPoints ?>)" />
                         <select class="form-select tax-option-select" id="PurchaseTaxOption" name="PurchaseTaxOption">
-                            <?php foreach ($_ProdTaxInfo as $_pt):
-                                $isSelected = $_defProdTaxUID > 0
-                                    ? ($_pt->ProductTaxUID == $_defProdTaxUID)
-                                    : (stripos($_pt->Name, 'With Tax') !== false);
-                            ?>
-                                <option value="<?= $_pt->ProductTaxUID ?>" <?= $isSelected ? 'selected' : '' ?>><?= $_pt->Name ?></option>
-                            <?php endforeach; ?>
                         </select>
                     </div>
                 </div>
@@ -147,25 +107,12 @@ if ($_pfDefProdTaxUID === 0) foreach ($_ProdTaxInfo  as $_px) { if (stripos($_px
                     <label class="form-label" for="TaxPercentage">Tax % <span style="color:red">*</span></label>
                     <select id="TaxPercentage" name="TaxPercentage" class="select2 form-select" required>
                         <option value=""></option>
-                        <?php foreach ($_TaxDetInfo as $_tax):
-                            $isSelected = ($_defTaxDetailUID > 0 && $_tax->TaxDetailsUID == $_defTaxDetailUID);
-                        ?>
-                            <option value="<?= $_tax->TaxDetailsUID ?>"
-                                    data-left="<?= smartDecimal($_tax->Percentage) ?>"
-                                    data-right="<?= $_tax->TaxName ?>"
-                                    <?= $isSelected ? 'selected' : '' ?>>
-                                <?= $_tax->TaxName ?>
-                            </option>
-                        <?php endforeach; ?>
                     </select>
                 </div>
                 <div class="mb-3 col-md-6">
                     <label class="form-label" for="PrimaryUnit">Primary Unit <span style="color:red">*</span></label>
                     <select id="PrimaryUnit" name="PrimaryUnit" class="select2 form-select" required>
                         <option value=""></option>
-                        <?php foreach ($_PrimaryUnitInfo as $_pu): ?>
-                            <option value="<?= $_pu->PrimaryUnitUID ?>"><?= $_pu->Name . ' (' . $_pu->ShortName . ')' ?></option>
-                        <?php endforeach; ?>
                     </select>
                 </div>
                 <div class="mb-3 col-md-6">
@@ -301,13 +248,6 @@ if ($_pfDefProdTaxUID === 0) foreach ($_ProdTaxInfo  as $_px) { if (stripos($_px
                             onpaste="handleDiscountPaste(event, <?= $_JwtData->GenSettings->PriceMaxLength ?>, <?= $_JwtData->GenSettings->DecimalPoints ?>)"
                             ondrop="handleDiscountDrop(event, <?= $_JwtData->GenSettings->PriceMaxLength ?>, <?= $_JwtData->GenSettings->DecimalPoints ?>)" value="0" />
                         <select class="form-select w-30" id="DiscountOption" name="DiscountOption">
-                            <?php foreach ($_DiscTypeInfo as $_disc):
-                                $isSelected = $_defDiscTypeUID > 0
-                                    ? ($_disc->DiscountTypeUID == $_defDiscTypeUID)
-                                    : (stripos($_disc->Name, 'Percentage') !== false);
-                            ?>
-                                <option value="<?= $_disc->DiscountTypeUID ?>" <?= $isSelected ? 'selected' : '' ?>><?= $_disc->DisplayName ?></option>
-                            <?php endforeach; ?>
                         </select>
                     </div>
                 </div>
@@ -418,9 +358,10 @@ if ($_pfDefProdTaxUID === 0) foreach ($_ProdTaxInfo  as $_px) { if (stripos($_px
 <?php echo form_close(); ?>
 
 <script>
-var _pfDefProductType  = '<?= htmlspecialchars($_pfDefProdTypeName, ENT_QUOTES) ?>';
-var _pfDefDiscTypeUID  = <?= (int)$_pfDefDiscUID ?>;
-var _pfDefProdTaxUID   = <?= (int)$_pfDefProdTaxUID ?>;
-var _pfDefTaxDetailUID = <?= (int)$_pfDefTaxDetUID ?>;
+var _pfDefProdTypeUID  = <?= (int)$_defProdTypeUID ?>;
+var _pfDefProductType  = ''; // resolved by DropdownCache after data loads
+var _pfDefDiscTypeUID  = <?= (int)$_defDiscTypeUID ?>;
+var _pfDefProdTaxUID   = <?= (int)$_defProdTaxUID ?>;
+var _pfDefTaxDetailUID = <?= (int)$_defTaxDetailUID ?>;
 var _pfEnableStorage   = <?= !empty($_JwtData->GenSettings->EnableStorage) ? 1 : 0 ?>;
 </script>

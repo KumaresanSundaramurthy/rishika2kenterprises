@@ -18,7 +18,7 @@ function searchVendors(key) {
 
     if (!$el.closest('.vendor-search-group').length) {
         $el.wrap('<div class="input-group input-group-sm input-group-merge vendor-search-group" id="' + wrapId + '"></div>');
-        $('<span class="input-group-text p-2"><i class="icon-base bx bx-search"></i></span>').insertBefore($el);
+        $('<span class="input-group-text p-2 cursor-pointer" id="openVendorSearchModal" style="background:#f0ebff;border-color:#d9d0ff;color:#6f42c1;"><i class="icon-base bx bx-search"></i></span>').insertBefore($el);
     }
 
     $el.select2({

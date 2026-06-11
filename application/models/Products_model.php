@@ -270,6 +270,17 @@ class Products_model extends CI_Model {
         $this->EndReturnData = new StdClass();
         try {
 
+            // Cache all-categories (no filter) in Upstash for 1 hour
+            $cacheKey = null;
+            if (empty($FilterArray)) {
+                $cacheKey = $this->redisservice->orgKey('org-categories');
+                $cached   = $this->upstashservice->get($cacheKey);
+                if ($cached !== null) {
+                    $this->EndReturnData->Data = array_map(fn($r) => is_array($r) ? (object) $r : $r, (array)$cached);
+                    return $this->EndReturnData->Data;
+                }
+            }
+
             $this->ReadDb->db_debug = FALSE;
             $select_ary = array(
                 'Category.CategoryUID AS CategoryUID',
@@ -291,7 +302,7 @@ class Products_model extends CI_Model {
                 $this->ReadDb->where($FilterArray);
             }
             $this->ReadDb->order_by('Category.CategoryUID', 'ASC');
-            
+
             $query = $this->ReadDb->get();
             $error = $this->ReadDb->error();
             if ($error['code']) {
@@ -299,13 +310,18 @@ class Products_model extends CI_Model {
             } else {
                 $this->EndReturnData->Data = $query->result();
             }
+
+            if ($cacheKey !== null) {
+                $this->upstashservice->set($cacheKey, $this->EndReturnData->Data, 3600);
+            }
+
             return $this->EndReturnData->Data;
         } catch (Exception $e) {
             $this->EndReturnData->Error = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
             throw new Exception($this->EndReturnData->Message);
         }
-        
+
     }
 
     public function sizeFilterFormation($ModuleInfoData, $Filter) {

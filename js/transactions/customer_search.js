@@ -15,6 +15,7 @@
         currentPage = 1;
         searchTerm = '';
         $('#custSearchInput').val('');
+        $('#btnCreateCustomerFromSearch').toggleClass('d-none', _isCreateHidden());
         $('#customerSearchModal').modal('show');
         loadCustomers();
     });
@@ -94,6 +95,10 @@
         }
     });
 
+    function _isCreateHidden() {
+        return $('#customerSearchModal').data('hide-create') == 1;
+    }
+
     // Load customers function
     function loadCustomers() {
         const $results = $('#custSearchResults');
@@ -121,10 +126,11 @@
                     var noResHtml =
                         '<div class="text-center py-4 text-muted">' +
                             '<i class="bx bx-user-x fs-3 d-block mb-2"></i>' +
-                            '<div class="mb-3" style="font-size:.9rem;">No results — create Customer</div>' +
-                            '<button type="button" class="btn btn-primary btn-sm px-3" id="custSearchCreateBtn">' +
-                                '<i class="bx bx-plus me-1"></i>Create Customer' +
-                            '</button>' +
+                            '<div style="font-size:.9rem;"' + (_isCreateHidden() ? '' : ' class="mb-3"') + '>No customers found</div>' +
+                            (!_isCreateHidden() ?
+                                '<button type="button" class="btn btn-primary btn-sm px-3" id="custSearchCreateBtn">' +
+                                    '<i class="bx bx-plus me-1"></i>Create Customer' +
+                                '</button>' : '') +
                         '</div>';
                     $results.html(noResHtml);
                     $('#custSearchPagination').html('');

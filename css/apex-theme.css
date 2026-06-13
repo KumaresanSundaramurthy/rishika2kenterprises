@@ -10,6 +10,14 @@
     padding: 0 !important;
 }
 
+/* Suppress Sneat horizontal-menu placeholder padding that creates blank space */
+.layout-menu-fixed .layout-horizontal .layout-page .menu-horizontal {
+    display: none !important;
+}
+.layout-menu-fixed .layout-horizontal .layout-page .menu-horizontal + [class*=container-] {
+    padding-block-start: 0 !important;
+}
+
 /* ══════════════════════════════════════════════════════════════════
    Page Header
    ══════════════════════════════════════════════════════════════════ */
@@ -473,6 +481,28 @@
 }
 .apex-filter-spacer {
     flex: 1;
+}
+.apex-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: #64748b;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background .12s, color .12s;
+    flex-shrink: 0;
+}
+.apex-icon-btn:hover {
+    background: #f1f5f9;
+    color: #334155;
+}
+.apex-icon-btn i {
+    font-size: 1.2rem;
 }
 /* Date filter button adapts to apex style when inside filter row */
 .apex-filter-row .r2k-dd-btn {

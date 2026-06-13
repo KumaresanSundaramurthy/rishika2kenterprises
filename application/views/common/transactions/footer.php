@@ -22,28 +22,27 @@
 
     <script src="/assets/vendor/libs/dropzone/dropzone.js"></script>
 
-    <!-- Main JS -->
-    <script type="text/javascript" src="/assets/js/main.js"></script>
+    <!-- Main JS (versioned) -->
+    <script type="text/javascript" src="<?php echo _assetV('/assets/js/main.js'); ?>"></script>
 
     <script type="text/javascript" src="/assets/vendor/libs/flatpickr/flatpickr.js"></script>
 
-    <!-- Vendors JS -->
-    
+    <!-- Vendors JS (vendor — no versioning needed) -->
     <script src="/assets/vendor/libs/sweetalert2/sweetalert2.js"></script>
-    
     <script type="text/javascript" src="/bootstrap/js/jquery.blockUI.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
-
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.3/Sortable.min.js"></script>
-    <script type="text/javascript" src="/assets/js/services/upstash-service.js"></script>
-    <script type="text/javascript" src="/js/common/categoryappend.js"></script>
-    <script type="text/javascript" src="/js/common/productappend.js"></script>
-    <script type="text/javascript" src="/js/common/dropdown_cache.js"></script>
-    <script type="text/javascript" src="/js/common/default.js"></script>
-    <script type="text/javascript" src="/js/common/datefilter.js"></script>
-    <script type="text/javascript" src="/js/common/export.js"></script>
-    <script type="text/javascript" src="/js/transactions/common.js"></script>
-    <script type="text/javascript" src="/js/transactions/thermal_print.js"></script>
+
+    <!-- App JS (versioned) -->
+    <script type="text/javascript" src="<?php echo _assetV('/assets/js/services/upstash-service.js'); ?>"></script>
+    <script type="text/javascript" src="<?php echo _assetV('/js/common/categoryappend.js'); ?>"></script>
+    <script type="text/javascript" src="<?php echo _assetV('/js/common/productappend.js'); ?>"></script>
+    <script type="text/javascript" src="<?php echo _assetV('/js/common/dropdown_cache.js'); ?>"></script>
+    <script type="text/javascript" src="<?php echo _assetV('/js/common/default.js'); ?>"></script>
+    <script type="text/javascript" src="<?php echo _assetV('/js/common/datefilter.js'); ?>"></script>
+    <script type="text/javascript" src="<?php echo _assetV('/js/common/export.js'); ?>"></script>
+    <script type="text/javascript" src="<?php echo _assetV('/js/transactions/common.js'); ?>"></script>
+    <script type="text/javascript" src="<?php echo _assetV('/js/transactions/thermal_print.js'); ?>"></script>
 
     <?php $this->load->view('common/transactions/remove_cart_modal'); ?>
     <?php $this->load->view('common/transactions/trans_footer_script'); ?>

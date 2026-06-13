@@ -34,14 +34,17 @@
     <!-- Icons. Uncomment required icon fonts -->
     <link rel="stylesheet" href="/assets/vendor/fonts/boxicons.css" />
     
-    <!-- Core CSS -->
+    <!-- Core CSS (vendor — no versioning needed) -->
     <link rel="stylesheet" href="/assets/vendor/libs/pickr/pickr-themes.css">
     <link rel="stylesheet" href="/assets/vendor/css/core.css" class="template-customizer-core-css" />
     <link rel="stylesheet" href="/assets/vendor/css/theme-default.css" class="template-customizer-theme-css" />
-    <link rel="stylesheet" href="/assets/css/demo.css" />
     <link rel="stylesheet" href="/assets/vendor/css/transactions.css" />
 
-    <!-- Vendors CSS -->
+    <!-- App CSS (versioned) -->
+    <link rel="stylesheet" href="<?php echo _assetV('/assets/css/demo.css'); ?>" />
+    <link rel="stylesheet" href="<?php echo _assetV('/assets/css/core.css'); ?>" />
+
+    <!-- Vendors CSS (vendor — no versioning needed) -->
     <link rel="stylesheet" href="/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css" />
     <link rel="stylesheet" href="/assets/vendor/libs/flatpickr/flatpickr.css" />
     <link rel="stylesheet" href="/assets/vendor/libs/sweetalert2/sweetalert2.css">
@@ -50,20 +53,14 @@
     <link rel="stylesheet" href="/assets/vendor/libs/quill/katex.css">
     <link rel="stylesheet" href="/assets/vendor/libs/quill/editor.css">
 
-    <!-- Select2 CSS -->
-    <!-- <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" /> -->
     <link rel="stylesheet" href="/assets/vendor/libs/select2/select2.css">
-
     <link rel="stylesheet" href="/assets/vendor/libs/dropzone/dropzone.css">
 
-    <!-- Project core overrides (profile, select2, etc.) -->
-    <link rel="stylesheet" href="/assets/css/core.css" />
+    <!-- Transaction theme (versioned) -->
+    <link rel="stylesheet" href="<?php echo _assetV('/css/transactions-theme.css'); ?>">
 
-    <!-- Transaction theme -->
-    <link rel="stylesheet" href="/css/transactions-theme.css">
-
-    <!-- Apex Theme -->
-    <link rel="stylesheet" href="/css/apex-theme.css">
+    <!-- Apex Theme (versioned) -->
+    <link rel="stylesheet" href="<?php echo _assetV('/css/apex-theme.css'); ?>">
 
     <!-- Helpers -->
     <script src="/assets/vendor/js/helpers.js"></script>
@@ -73,7 +70,7 @@
     <script src="/assets/vendor/js/template-customizer.js"></script>
 
     <!--? Config:  Mandatory theme config file contain global vars & default theme options, Set your preferred theme option in this file.  -->
-    <script src="/assets/js/config.js"></script>
+    <script src="<?php echo _assetV('/assets/js/config.js'); ?>"></script>
     
 </head>
 <body>

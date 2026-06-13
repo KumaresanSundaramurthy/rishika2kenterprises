@@ -1,4 +1,6 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?><!doctype html>
+<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+
+<!doctype html>
 <html lang="en" class="layout-navbar-fixed layout-menu-fixed layout-compact" data-layout="horizontal" data-topbar="dark" data-sidebar-size="lg" data-sidebar="light" data-sidebar-image="none" data-preloader="disable" dir="ltr" data-skin="default" data-assets-path="/assets/" data-template="vertical-menu-template" data-bs-theme="light">
 
 <head>
@@ -36,15 +38,17 @@ unset($_sc, $_tk, $_env, $_envMap);
     <!-- Icons. Uncomment required icon fonts -->
     <link rel="stylesheet" href="/assets/vendor/fonts/boxicons.css" />
     
-    <!-- Core CSS -->
+    <!-- Core CSS (vendor — no versioning needed) -->
     <link rel="stylesheet" href="/assets/vendor/libs/pickr/pickr-themes.css">
     <link rel="stylesheet" href="/assets/vendor/css/core.css" class="template-customizer-core-css" />
     <link rel="stylesheet" href="/assets/vendor/css/theme-default.css" class="template-customizer-theme-css" />
-    <link rel="stylesheet" href="/assets/css/demo.css" />
-    <link rel="stylesheet" href="/assets/css/core.css" />
     <link rel="stylesheet" href="/assets/vendor/css/form-hover.css" />
 
-    <!-- Vendors CSS -->
+    <!-- App CSS (versioned) -->
+    <link rel="stylesheet" href="<?php echo _assetV('/assets/css/demo.css'); ?>" />
+    <link rel="stylesheet" href="<?php echo _assetV('/assets/css/core.css'); ?>" />
+
+    <!-- Vendors CSS (vendor — no versioning needed) -->
     <link rel="stylesheet" href="/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css" />
     <link rel="stylesheet" href="/assets/vendor/libs/flatpickr/flatpickr.css" />
     <link rel="stylesheet" href="/assets/vendor/libs/sweetalert2/sweetalert2.css">
@@ -53,14 +57,11 @@ unset($_sc, $_tk, $_env, $_envMap);
     <link rel="stylesheet" href="/assets/vendor/libs/quill/katex.css">
     <link rel="stylesheet" href="/assets/vendor/libs/quill/editor.css">
 
-    <!-- Select2 CSS -->
-    <!-- <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" /> -->
     <link rel="stylesheet" href="/assets/vendor/libs/select2/select2.css">
-
     <link rel="stylesheet" href="/assets/vendor/libs/dropzone/dropzone.css">
 
-    <!-- Apex Theme -->
-    <link rel="stylesheet" href="/css/apex-theme.css">
+    <!-- Apex Theme (versioned) -->
+    <link rel="stylesheet" href="<?php echo _assetV('/css/apex-theme.css'); ?>">
 
     <!-- Page CSS -->
 
@@ -72,7 +73,7 @@ unset($_sc, $_tk, $_env, $_envMap);
     <script src="/assets/vendor/js/template-customizer.js"></script>
 
     <!--? Config:  Mandatory theme config file contain global vars & default theme options, Set your preferred theme option in this file.  -->
-    <script src="/assets/js/config.js"></script>
+    <script src="<?php echo _assetV('/assets/js/config.js'); ?>"></script>
 
 
 </head>

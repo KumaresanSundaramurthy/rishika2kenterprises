@@ -2,17 +2,20 @@
 
 <?php $this->load->view('common/header'); ?>
 
-<!-- Layout wrapper -->
-<div class="layout-wrapper layout-horizontal basic-form-page layout-content-navbar">
+<div class="layout-wrapper layout-horizontal layout-content-navbar">
     <div class="layout-container">
 
         <?php $this->load->view('common/menu_view'); ?>
 
-        <!-- Layout container -->
         <div class="layout-page">
-
-            <!-- Content wrapper -->
-            <div class="content-wrapper">
+            <div class="content-wrapper apex-content">
+                <?php $this->load->view('common/apex/page_header', [
+                    'pageIcon'        => 'bx-buildings',
+                    'pageIconBg'      => '#eff6ff',
+                    'pageIconColor'   => '#2563eb',
+                    'pageTitle'       => $PageTitle       ?? 'Organisation',
+                    'pageDescription' => $PageDescription ?? '',
+                ]); ?>
 
                 <div class="container-xxl flex-grow-1 container-p-y">
 
@@ -279,13 +282,11 @@
 
                 </div>
             </div>
-            <!-- Content wrapper -->
 
             <?php $this->load->view('common/form/address_form'); ?>
             <?php $this->load->view('common/footer_desc'); ?>
 
         </div>
-
     </div>
 </div>
 

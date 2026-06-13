@@ -69,10 +69,10 @@ $this->load->view('common/transactions/header'); ?>
 
                         <!-- ── Filter Row ─────────────────────────────────── -->
                         <div class="apex-filter-row">
-                            <div class="apex-search-wrap">
-                                <i class="bx bx-search apex-search-icon"></i>
-                                <input type="text" id="searchTransactionData" class="apex-search-input" placeholder="Quot. # or customer...">
-                                <i class="bx bx-x apex-search-clear d-none" id="clearQuotSearch"></i>
+                            <div class="r2k-search-wrap">
+                                <i class="bx bx-search r2k-si"></i>
+                                <input type="text" id="searchTransactionData" placeholder="Quot. # or customer...">
+                                <i class="bx bx-x r2k-clear d-none" id="clearQuotSearch"></i>
                             </div>
                             <?php $this->load->view('common/transactions/date_filter_btn'); ?>
                             <div class="apex-filter-spacer"></div>
@@ -102,36 +102,6 @@ $this->load->view('common/transactions/header'); ?>
 
                     <!-- ── Main Card ─────────────────────────────────────── -->
                     <div class="card">
-
-                        <!-- Toolbar -->
-                        <div class="trans-toolbar">
-                            <div class="trans-toolbar-tabs">
-                                <ul class="nav trans-status-tabs" id="quotStatusTabs" role="tablist">
-                                    <li class="nav-item"><a class="nav-link active quot-status-tab" data-status="All" href="javascript:void(0);">All <span class="trans-tab-count"><?php echo $ModAllCount; ?></span></a></li>
-                                    <li class="nav-item"><a class="nav-link quot-status-tab" data-status="Cancelled" href="javascript:void(0);">Cancelled <span class="trans-tab-count d-none"></span></a></li>
-                                    <li class="nav-item"><a class="nav-link quot-status-tab" data-status="Draft" href="javascript:void(0);">Draft <span class="trans-tab-count d-none"></span></a></li>
-                                </ul>
-                            </div>
-                            <div class="trans-toolbar-actions">
-                                <a href="javascript:void(0);" class="r2k-icon-btn pageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
-                                <?php $this->load->view('common/transactions/date_filter_btn'); ?>
-                                <?php $this->load->view('common/transactions/filter_bar', [
-                                    'FilterBarConfig' => [
-                                        'paymentStatus' => false,
-                                        'paymentMode'   => false,
-                                        'party'         => false,
-                                        'lastUpdated'   => false,
-                                        'PaymentTypes'  => [],
-                                        'OrgUsers'      => $OrgUsers ?? [],
-                                    ],
-                                ]); ?>
-                                <div class="r2k-search-wrap">
-                                    <i class="bx bx-search r2k-si"></i>
-                                    <input type="text" id="searchTransactionData" placeholder="Quot. # or customer...">
-                                    <i class="bx bx-x r2k-clear d-none" id="clearQuotSearch"></i>
-                                </div>
-                            </div>
-                        </div>
 
                         <!-- Table -->
                         <div class="table-responsive">

@@ -173,6 +173,7 @@ class Settings extends MY_Controller {
             $enableStorage    = getPostValue($post, 'EnableStorage')    ? 1 : 0;
             $mandatoryStorage = getPostValue($post, 'MandatoryStorage') ? 1 : 0;
             if (!$enableStorage) $mandatoryStorage = 0;
+            $statsDefaultOpen = getPostValue($post, 'StatsDefaultOpen') ? 1 : 0;
 
             // Validate date/datetime formats before building $data
             $validFormats   = ['d-m-Y', 'd/m/Y', 'Y-m-d', 'Y/m/d', 'd.m.Y', 'm/d/Y', 'd M Y'];
@@ -210,6 +211,7 @@ class Settings extends MY_Controller {
                 'ListDateTimeFormat'   => $listDtFormat,
                 'PrintDateTimeFormat'  => $printDtFormat,
                 'DefaultSalutationUID' => $defaultSalutationUID,
+                'StatsDefaultOpen'     => $statsDefaultOpen,
             ];
 
             $this->load->model('dbwrite_model');

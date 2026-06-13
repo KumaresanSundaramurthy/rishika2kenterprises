@@ -74,9 +74,9 @@ $this->load->view('common/transactions/header'); ?>
 
                         <!-- Filter Row -->
                         <div class="apex-filter-row">
-                            <div class="apex-search-wrap">
-                                <i class="bx bx-search apex-search-icon"></i>
-                                <input type="text" class="apex-search-input" id="rntSearchInput" placeholder="Rental #, customer...">
+                            <div class="r2k-search-wrap">
+                                <i class="bx bx-search r2k-si"></i>
+                                <input type="text" id="rntSearchInput" placeholder="Rental #, customer...">
                             </div>
                             <div class="apex-filter-spacer"></div>
                             <a href="javascript:void(0);" class="apex-icon-btn pageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>

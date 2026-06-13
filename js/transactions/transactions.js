@@ -2628,7 +2628,12 @@ function searchCustomers(key) {
         },
         templateSelection: function (d) {
             if (!d.id) return d.text;
-            if (d.name) return d.area ? d.name + ' (' + d.area + ')' : d.name;
+            if (d.name) {
+                var label = d.name;
+                if (d.area)   label += ', ' + d.area;
+                if (d.mobile) label += ' (' + d.mobile + ')';
+                return label;
+            }
             return d.text;
         },
         language: {
@@ -2838,6 +2843,7 @@ function searchCustomers(key) {
         $("#customerAddressBox").addClass('d-none').empty();
         $("#custTypeIndicator").addClass('d-none').empty();
         if (typeof billManager !== 'undefined') billManager.setInterState(false);
+        if (typeof _showOnAccountBanner === 'function') _showOnAccountBanner(0, [], 0);
     }).on('select2:close', function () {
         AjaxLoading = 1;
     });

@@ -530,7 +530,6 @@ if ($isEdit) {
 
             <?php $this->load->view('common/transactions/transprefix'); ?>
             <?php $this->load->view('common/modals/customer_form'); ?>
-            <?php $this->load->view('transactions/modals/customer_search'); ?>
             <?php $this->load->view('transactions/modals/taxdetails'); ?>
             <?php $this->load->view('common/modals/category_form'); ?>
             <?php $this->load->view('common/modals/product_form'); ?>
@@ -549,7 +548,6 @@ if ($isEdit) {
 <script src="/js/common/customer_form.js"></script>
 <script src="/js/transactions/invoices.js"></script>
 <script src="/js/transactions/transactions.js"></script>
-<script src="/js/transactions/customer_search.js"></script>
 <script src="/js/transactions/transprefix.js"></script>
 <script src="/js/transactions/modaladdress.js"></script>
 <script src="/js/common/category_form.js"></script>

@@ -97,9 +97,9 @@
 
                         <!-- Filter Row -->
                         <div class="apex-filter-row">
-                            <div class="apex-search-wrap">
-                                <i class="bx bx-search apex-search-icon"></i>
-                                <input type="text" class="apex-search-input" id="poutSearch" placeholder="Vendor, amount, ref…">
+                            <div class="r2k-search-wrap">
+                                <i class="bx bx-search r2k-si"></i>
+                                <input type="text" id="poutSearch" placeholder="Vendor, amount, ref…">
                             </div>
                             <div class="dropdown">
                                 <button class="apex-filter-btn dropdown-toggle" type="button" id="poutDateFilterBtn" data-bs-toggle="dropdown" aria-expanded="false">

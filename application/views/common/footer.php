@@ -37,7 +37,9 @@
     <script type="text/javascript" src="<?php echo _assetV('/assets/js/services/upstash-service.js'); ?>"></script>
     <script type="text/javascript" src="<?php echo _assetV('/js/common/categoryappend.js'); ?>"></script>
     <script type="text/javascript" src="<?php echo _assetV('/js/common/dropdown_cache.js'); ?>"></script>
+    <script>var R2K_STATS_DEFAULT_OPEN = <?php echo json_encode(isset($JwtData->GenSettings->StatsDefaultOpen) ? (bool)$JwtData->GenSettings->StatsDefaultOpen : true); ?>;</script>
     <script type="text/javascript" src="<?php echo _assetV('/js/common/default.js'); ?>"></script>
+    <script type="text/javascript" src="<?php echo _assetV('/js/transactions/customer_search.js'); ?>"></script>
     <script type="text/javascript" src="<?php echo _assetV('/js/internet_monitor.js'); ?>"></script>
 
     <?php $this->load->view('common/footer_script'); ?>

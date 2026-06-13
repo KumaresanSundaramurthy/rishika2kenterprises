@@ -91,9 +91,9 @@
 
                         <!-- Filter Row -->
                         <div class="apex-filter-row">
-                            <div class="apex-search-wrap">
-                                <i class="bx bx-search apex-search-icon"></i>
-                                <input type="text" class="apex-search-input SearchDetails" id="SearchDetails" placeholder="Search items...">
+                            <div class="r2k-search-wrap">
+                                <i class="bx bx-search r2k-si"></i>
+                                <input type="text" class="SearchDetails" id="SearchDetails" placeholder="Search items...">
                                 <i class="bx bx-x r2k-clear d-none" id="clearSearch"></i>
                             </div>
                             <div class="apex-filter-spacer"></div>

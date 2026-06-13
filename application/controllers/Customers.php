@@ -368,35 +368,51 @@ class Customers extends MY_Controller {
                     ];
                 }
 
-                // Fetch current opening balance
+                // Closing balance = outstanding after all invoices & payments
+                // (same logic as Cachehelper::upsertCustomer — PendingBalance is computed by the ledger query)
                 $obRow          = $this->customers_model->getCustomerOpeningBalance($orgUID, $uid);
-                $openingBalance = $obRow ? (float)$obRow->OpeningBalance : 0.0;
-                $openingBalType = $obRow ? $obRow->OpeningBalType        : 'Debit';
+                $closingBalance = $obRow ? (float)($obRow->PendingBalance ?? $obRow->OpeningBalance) : 0.0;
+                $closingBalType = $obRow ? ($obRow->PendingBalType        ?? $obRow->OpeningBalType)  : 'Debit';
 
-                // Build customer entry
+                // On-account = unapplied credits from cancelled invoices
+                $onAccountRows    = $this->customers_model->getCustomerOnAccountPayments($orgUID, $uid);
+                $onAccountBalance = round(array_sum(array_column($onAccountRows, 'Amount')), 2);
+                $onAccountRecords = array_map(function ($r) {
+                    return [
+                        'PaymentUID'          => (int)$r['PaymentUID'],
+                        'Amount'              => (float)$r['Amount'],
+                        'CreatedOn'           => $r['CreatedOn']           ?? '',
+                        'SourceInvoiceNumber' => $r['SourceInvoiceNumber'] ?? '—',
+                    ];
+                }, $onAccountRows);
+
+                // Build customer entry — identical shape to Cachehelper::upsertCustomer
                 $newMap[(string)$uid] = [
-                    'CustomerUID'     => $uid,
-                    'Name'            => $cust->Name            ?? '',
-                    'CompanyName'     => $cust->CompanyName     ?? '',
-                    'ContactPerson'   => $cust->ContactPerson   ?? '',
-                    'MobileNumber'    => $cust->MobileNumber    ?? '',
-                    'CountryCode'     => $cust->CountryCode     ?? '',
-                    'CountryISO2'     => $cust->CountryISO2     ?? '',
-                    'EmailAddress'    => $cust->EmailAddress    ?? '',
-                    'CCEmails'        => $cust->CCEmails        ?? '',
-                    'GSTIN'           => $cust->GSTIN           ?? '',
-                    'PANNumber'       => $cust->PANNumber       ?? '',
-                    'CustomerTypeUID' => (int)($cust->CustomerTypeUID ?? 0),
-                    'DiscountPercent' => (float)($cust->DiscountPercent ?? 0),
-                    'CreditPeriod'    => (int)($cust->CreditPeriod     ?? 0),
-                    'CreditLimit'     => (float)($cust->CreditLimit    ?? 0),
-                    'OpeningBalance'  => $openingBalance,
-                    'OpeningBalType'  => $openingBalType,
-                    'Area'            => $cust->Area   ?? '',
-                    'Tags'            => $cust->Tags   ?? '',
-                    'Notes'           => $cust->Notes  ?? '',
-                    'Image'           => $cust->Image  ?? '',
-                    'Address'         => $addressList,
+                    'CustomerUID'      => $uid,
+                    'Name'             => $cust->Name            ?? '',
+                    'CompanyName'      => $cust->CompanyName     ?? '',
+                    'ContactPerson'    => $cust->ContactPerson   ?? '',
+                    'MobileNumber'     => $cust->MobileNumber    ?? '',
+                    'CountryCode'      => $cust->CountryCode     ?? '',
+                    'CountryISO2'      => $cust->CountryISO2     ?? '',
+                    'EmailAddress'     => $cust->EmailAddress    ?? '',
+                    'CCEmails'         => $cust->CCEmails        ?? '',
+                    'GSTIN'            => $cust->GSTIN           ?? '',
+                    'PANNumber'        => $cust->PANNumber       ?? '',
+                    'CustomerTypeUID'  => (int)($cust->CustomerTypeUID  ?? 0),
+                    'DiscountPercent'  => (float)($cust->DiscountPercent ?? 0),
+                    'CreditPeriod'     => (int)($cust->CreditPeriod     ?? 0),
+                    'CreditLimit'      => (float)($cust->CreditLimit    ?? 0),
+                    'ClosingBalance'   => $closingBalance,
+                    'ClosingBalType'   => $closingBalType,
+                    'OnAccountBalance' => $onAccountBalance,
+                    'OnAccountRecords' => $onAccountRecords,
+                    'Area'             => $cust->Area   ?? '',
+                    'Tags'             => $cust->Tags   ?? '',
+                    'Notes'            => $cust->Notes  ?? '',
+                    'Image'            => $cust->Image  ?? '',
+                    'Address'          => $addressList,
+                    'LastTransactionAt' => date('c'),
                 ];
             }
 
@@ -1144,7 +1160,7 @@ class Customers extends MY_Controller {
         try {
 
             $pageNo = (int) $this->input->post('PageNo') ?: 1;
-            $limit  = (int) $this->input->post('RowLimit') ?: 10;
+            $limit  = (int) $this->input->post('RowLimit') ?: 20;
             $search = trim($this->input->post('Search') ?? '');
 
             $orgUID = $this->pageData['JwtData']->Org->OrgUID;

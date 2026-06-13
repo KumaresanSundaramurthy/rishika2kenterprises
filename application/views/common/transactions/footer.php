@@ -38,7 +38,9 @@
     <script type="text/javascript" src="<?php echo _assetV('/js/common/categoryappend.js'); ?>"></script>
     <script type="text/javascript" src="<?php echo _assetV('/js/common/productappend.js'); ?>"></script>
     <script type="text/javascript" src="<?php echo _assetV('/js/common/dropdown_cache.js'); ?>"></script>
+    <script>var R2K_STATS_DEFAULT_OPEN = <?php echo json_encode(isset($JwtData->GenSettings->StatsDefaultOpen) ? (bool)$JwtData->GenSettings->StatsDefaultOpen : true); ?>;</script>
     <script type="text/javascript" src="<?php echo _assetV('/js/common/default.js'); ?>"></script>
+    <script type="text/javascript" src="<?php echo _assetV('/js/transactions/customer_search.js'); ?>"></script>
     <script type="text/javascript" src="<?php echo _assetV('/js/common/datefilter.js'); ?>"></script>
     <script type="text/javascript" src="<?php echo _assetV('/js/common/export.js'); ?>"></script>
     <script type="text/javascript" src="<?php echo _assetV('/js/transactions/common.js'); ?>"></script>

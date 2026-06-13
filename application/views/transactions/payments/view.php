@@ -160,9 +160,9 @@
 
                         <!-- Filter Row -->
                         <div class="apex-filter-row">
-                            <div class="apex-search-wrap">
-                                <i class="bx bx-search apex-search-icon"></i>
-                                <input type="text" class="apex-search-input" id="allPmtSearch" placeholder="Party, ref, amount…">
+                            <div class="r2k-search-wrap">
+                                <i class="bx bx-search r2k-si"></i>
+                                <input type="text" id="allPmtSearch" placeholder="Party, ref, amount…">
                             </div>
                             <div class="dropdown">
                                 <button class="apex-filter-btn dropdown-toggle" type="button" id="allPmtDateBtn" data-bs-toggle="dropdown" aria-expanded="false">

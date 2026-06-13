@@ -88,10 +88,10 @@ $this->load->view('common/transactions/header'); ?>
                             <?php endif; ?>
 
                             <!-- Data search -->
-                            <div class="apex-search-wrap" style="flex-shrink:0;">
-                                <i class="bx bx-search apex-search-icon"></i>
-                                <input type="text" id="poSearchInput" class="apex-search-input" placeholder="Search PO #, vendor..." style="width:190px;">
-                                <i class="bx bx-x apex-search-clear d-none"></i>
+                            <div class="r2k-search-wrap" style="flex-shrink:0;">
+                                <i class="bx bx-search r2k-si"></i>
+                                <input type="text" id="poSearchInput" placeholder="Search PO #, vendor...">
+                                <i class="bx bx-x r2k-clear d-none"></i>
                             </div>
 
                             <?php $this->load->view('common/transactions/date_filter_btn'); ?>

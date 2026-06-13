@@ -408,7 +408,6 @@ if ($isEdit) {
 
             <?php $this->load->view('common/transactions/transprefix'); ?>
             <?php $this->load->view('common/modals/customer_form'); ?>
-            <?php $this->load->view('transactions/modals/customer_search', ['hideCreate' => true]); ?>
             <?php $this->load->view('transactions/modals/invoice_items_select'); ?>
             <?php $this->load->view('transactions/modals/taxdetails'); ?>
             <?php $this->load->view('common/modals/category_form'); ?>
@@ -428,7 +427,7 @@ if ($isEdit) {
 <script src="/js/common/customer_form.js"></script>
 <script src="/js/transactions/salesreturns.js"></script>
 <script src="/js/transactions/transactions.js"></script>
-<script src="/js/transactions/customer_search.js"></script>
+<script>window.R2K_CUST_HIDE_CREATE = true;</script>
 <script src="/js/transactions/transprefix.js"></script>
 <script src="/js/transactions/modaladdress.js"></script>
 <script src="/js/common/category_form.js"></script>

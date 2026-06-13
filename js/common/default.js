@@ -1363,11 +1363,105 @@ function toastError(msg) {
 var ApexHeader = (function ($) {
     'use strict';
 
+    // Per-section color palette (cycles if there are more sections than entries)
+    var _pal = [
+        { c: '#696cff', bg: 'rgba(105,108,255,.10)' },
+        { c: '#3b82f6', bg: 'rgba(59,130,246,.10)'  },
+        { c: '#10b981', bg: 'rgba(16,185,129,.10)'  },
+        { c: '#f97316', bg: 'rgba(249,115,22,.10)'  },
+        { c: '#8b5cf6', bg: 'rgba(139,92,246,.10)'  },
+        { c: '#f59e0b', bg: 'rgba(245,158,11,.10)'  },
+        { c: '#14b8a6', bg: 'rgba(20,184,166,.10)'  },
+        { c: '#ef4444', bg: 'rgba(239,68,68,.10)'   },
+        { c: '#ec4899', bg: 'rgba(236,72,153,.10)'  },
+        { c: '#0ea5e9', bg: 'rgba(14,165,233,.10)'  },
+    ];
+
+    function _esc(s) {
+        return String(s || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
     function _setUserDropdown(open) {
         $('#apexUserDropdown').toggleClass('open', open);
         $('#apexUserBtn .apex-user-caret')
             .toggleClass('bx-chevron-up',   open)
             .toggleClass('bx-chevron-down', !open);
+    }
+
+    function _buildQAContent() {
+        var data = (typeof window._APEX_QA_DATA !== 'undefined') ? window._APEX_QA_DATA : [];
+        var $body = $('#apexQABody');
+        if (!$body.length) return;
+        if (!data || !data.length) {
+            $body.html('<div class="r2k-qs-empty"><i class="bx bx-grid-alt"></i><p>No modules available.</p></div>');
+            return;
+        }
+        var html = '';
+        for (var i = 0; i < data.length; i++) {
+            var sec  = data[i];
+            var pal  = _pal[i % _pal.length];
+            var mods = sec.modules || [];
+            if (!mods.length) continue;
+            var secIcon = sec.icon || 'bx bx-grid-alt';
+            html += '<div class="r2k-qs-section" data-section-idx="' + i + '" style="--qs-clr:' + pal.c + ';--qs-clr-bg:' + pal.bg + ';">';
+            html +=   '<div class="r2k-qs-section-head">';
+            html +=     '<div class="r2k-qs-section-icon"><i class="' + _esc(secIcon) + '"></i></div>';
+            html +=     '<div class="r2k-qs-section-name">' + _esc(sec.name) + '</div>';
+            html +=     '<div class="r2k-qs-section-badge">' + mods.length + '</div>';
+            html +=   '</div>';
+            html +=   '<div class="r2k-qs-grid">';
+            for (var j = 0; j < mods.length; j++) {
+                var mod  = mods[j];
+                var icon = mod.icon || 'bx bx-file-blank';
+                html += '<a href="' + _esc(mod.url) + '" class="r2k-qs-item" data-name="' + _esc(mod.name.toLowerCase()) + '">';
+                html +=   '<div class="r2k-qs-item-icon"><i class="' + _esc(icon) + '"></i></div>';
+                html +=   '<div class="r2k-qs-item-name">' + _esc(mod.name) + '</div>';
+                html += '</a>';
+            }
+            html +=   '</div>';
+            html += '</div>';
+        }
+        $body.html(html || '<div class="r2k-qs-empty"><i class="bx bx-search-alt"></i><p>No modules found.</p></div>');
+    }
+
+    function _filterQA(q) {
+        var term = (q || '').toLowerCase().trim();
+        var $body = $('#apexQABody');
+        if (!$body.length) return;
+
+        if (!term) {
+            $body.find('.r2k-qs-section').show();
+            $body.find('.r2k-qs-item').show();
+            $body.find('.r2k-qs-empty-search').remove();
+            return;
+        }
+
+        var anyVisible = false;
+        $body.find('.r2k-qs-section').each(function () {
+            var $sec       = $(this);
+            var secName    = $sec.find('.r2k-qs-section-name').text().toLowerCase();
+            var secMatch   = secName.indexOf(term) !== -1;
+            var anyItemVis = false;
+
+            $sec.find('.r2k-qs-item').each(function () {
+                var $item     = $(this);
+                var itemMatch = $item.data('name').indexOf(term) !== -1;
+                $item.toggle(secMatch || itemMatch);
+                if (secMatch || itemMatch) anyItemVis = true;
+            });
+
+            $sec.toggle(anyItemVis);
+            if (anyItemVis) anyVisible = true;
+        });
+
+        $body.find('.r2k-qs-empty-search').remove();
+        if (!anyVisible) {
+            $body.append('<div class="r2k-qs-empty r2k-qs-empty-search"><i class="bx bx-search-alt"></i><p>No results for &ldquo;' + _esc(q) + '&rdquo;</p></div>');
+        }
     }
 
     function _openQA() {
@@ -1380,11 +1474,16 @@ var ApexHeader = (function ($) {
 
     function _closeQA() {
         $('#apexQuickAccessModal').removeClass('open');
-        $('#apexQuickSearchInput').val('');
+        var $inp = $('#apexQuickSearchInput');
+        $inp.val('');
+        _filterQA('');
     }
 
     function init() {
         if (!$('#apexUserBtn').length && !$('#apexHeaderSearch').length) return;
+
+        // Build Quick Access content from pre-loaded PHP data
+        _buildQAContent();
 
         // ── User dropdown ────────────────────────────────────────────────
         $(document).on('click', '#apexUserBtn', function (e) {
@@ -1407,6 +1506,11 @@ var ApexHeader = (function ($) {
             if (e.key === 'Escape' && $('#apexQuickAccessModal').hasClass('open')) {
                 _closeQA();
             }
+        });
+
+        // ── Quick Access: real-time search ──────────────────────────────
+        $(document).on('input', '#apexQuickSearchInput', function () {
+            _filterQA($(this).val());
         });
 
         // ── Quick Access: close ──────────────────────────────────────────
@@ -1481,4 +1585,54 @@ $(document).on('click', '.r2k-clear', function () {
         // No page-specific clear handler — fire input to trigger the search reload
         $input.trigger('input');
     }
+});
+
+// ── Stats strip toggle ────────────────────────────────────────────────
+$(function () {
+    var $strip = $('.apex-stats-strip');
+    if (!$strip.length) return;
+
+    var isOpen = (typeof R2K_STATS_DEFAULT_OPEN !== 'undefined') ? !!R2K_STATS_DEFAULT_OPEN : true;
+
+    // Two-level wrap:
+    //   .apex-stats-wrap  → position:relative anchor for the toggle buttons
+    //     .apex-stats-outer → plain block div; THIS gets animated by jQuery
+    //       .apex-stats-strip → always display:flex; never touched by jQuery
+    // Animating a block div avoids the jQuery slideDown bug where it restores
+    // display:flex elements as display:block, breaking the horizontal flex layout.
+    $strip.wrap('<div class="apex-stats-outer"></div>');
+    var $outer = $strip.parent('.apex-stats-outer');
+    $outer.wrap('<div class="apex-stats-wrap"></div>');
+    var $wrap = $outer.parent('.apex-stats-wrap');
+
+    var $openBtn  = $('<button type="button" class="apex-stats-toggle" id="statsOpenToggle"  title="Show stats"><i class="bx bx-chevron-down"></i></button>');
+    var $closeBtn = $('<button type="button" class="apex-stats-toggle" id="statsCloseToggle" title="Hide stats"><i class="bx bx-chevron-up"></i></button>');
+
+    $('.apex-page-header').append($openBtn);
+    $wrap.append($closeBtn);
+
+    if (isOpen) {
+        // Strip visible from server render — just wire the buttons
+        $openBtn.hide();
+        $closeBtn.show();
+    } else {
+        // Server-side CSS already hides the strip (no flash).
+        // Restore strip to flex inline so it renders correctly inside the outer when later shown,
+        // then hide the outer — both run synchronously before first paint.
+        $strip.css('display', 'flex');
+        $outer.hide();
+        $openBtn.show();
+        $closeBtn.hide();
+    }
+
+    // Animate the outer block wrapper — strip's display:flex is never changed
+    $openBtn.on('click', function () {
+        $openBtn.hide();
+        $outer.slideDown(240, function () { $closeBtn.show(); });
+    });
+
+    $closeBtn.on('click', function () {
+        $closeBtn.hide();
+        $outer.slideUp(240, function () { $openBtn.show(); });
+    });
 });

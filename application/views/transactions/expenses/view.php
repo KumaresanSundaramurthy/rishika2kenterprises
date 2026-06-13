@@ -84,9 +84,9 @@ $this->load->view('common/transactions/header'); ?>
 
                         <!-- Filter Row -->
                         <div class="apex-filter-row">
-                            <div class="apex-search-wrap">
-                                <i class="bx bx-search apex-search-icon"></i>
-                                <input type="text" class="apex-search-input" id="searchExpenseData" placeholder="Expense # or category...">
+                            <div class="r2k-search-wrap">
+                                <i class="bx bx-search r2k-si"></i>
+                                <input type="text" id="searchExpenseData" placeholder="Expense # or category...">
                             </div>
                             <div class="dropdown">
                                 <button class="apex-filter-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">

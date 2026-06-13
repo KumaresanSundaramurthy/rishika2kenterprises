@@ -27387,7 +27387,8 @@ body:not(.modal-open) .layout-content-navbar .layout-navbar {
 
 :not(.layout-menu)>.menu-vertical.menu-collapsed:not(.layout-menu):not(:hover) .app-brand-logo~.app-brand-text,.layout-menu-collapsed:not(.layout-menu-hover):not(.layout-menu-offcanvas):not(.layout-menu-fixed-offcanvas) .layout-menu .app-brand-logo~.app-brand-text {
     overflow: hidden;
-    opacity: 0;
+    /* opacity: 0; */
+    display: none !important;
     text-overflow: ellipsis;
     white-space: nowrap
 }

@@ -59,10 +59,10 @@ $this->load->view('common/transactions/header'); ?>
 
                         <!-- ── Filter Row ─────────────────────────────────── -->
                         <div class="apex-filter-row">
-                            <div class="apex-search-wrap">
-                                <i class="bx bx-search apex-search-icon"></i>
-                                <input type="text" id="searchTransactionData" class="apex-search-input" placeholder="Return # or vendor...">
-                                <i class="bx bx-x apex-search-clear d-none"></i>
+                            <div class="r2k-search-wrap">
+                                <i class="bx bx-search r2k-si"></i>
+                                <input type="text" id="searchTransactionData" placeholder="Return # or vendor...">
+                                <i class="bx bx-x r2k-clear d-none"></i>
                             </div>
                             <?php $this->load->view('common/transactions/date_filter_btn'); ?>
                             <?php $this->load->view('common/transactions/filter_bar', [

@@ -42,7 +42,8 @@
         </li>
 
         <?php if (count($UserMainModule) > 0) {
-            $lastSettings = count($UserMainModule) - 1;
+            $lastSettings    = count($UserMainModule) - 1;
+            $menuActiveFound = false; // ensure only ONE main menu item is ever highlighted
             foreach ($UserMainModule as $MMKey => $MMVal) {
 
                 if ($MMKey === $lastSettings) continue;
@@ -50,9 +51,17 @@
                 $SubMenuData  = (count($UserSubModule) > 0) ? filterByMainMenuUID($UserSubModule, $MMVal->MainMenuUID) : [];
                 $isDirectLink = !empty($MMVal->IsDirectLink);
                 $directUrl    = $isDirectLink ? ('/' . ltrim($MMVal->DirectUrl ?? '', '/')) : null;
-                $isMenuActive = $isDirectLink
-                    ? (strtolower($ControllerName) === strtolower(basename($MMVal->DirectUrl ?? '')))
-                    : in_array(strtolower($ControllerName), array_column($SubMenuData, 'ControllerName'));
+
+                // Only leaf (non-parent) submenu items represent actual pages — parent/group items
+                // can carry a ControllerName that falsely matches another page's controller.
+                $leafSubMenus = array_values(array_filter($SubMenuData, fn($sm) => empty($sm->IsParent)));
+
+                // Use $firstSeg (URL path) for matching; lowercase both sides for reliability.
+                // Stop after the first match so only one main menu item is ever active.
+                $isMenuActive = !$menuActiveFound && ($isDirectLink
+                    ? ($firstSeg === strtolower(ltrim($MMVal->DirectUrl ?? '', '/')))
+                    : in_array($firstSeg, array_map('strtolower', array_column($leafSubMenus, 'ControllerName'))));
+                if ($isMenuActive) $menuActiveFound = true;
                 ?>
 
                 <!-- All Pages -->

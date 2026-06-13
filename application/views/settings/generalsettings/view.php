@@ -99,6 +99,7 @@
                                             $gsFYMonth       = (int)($gs->FYStartMonth   ?? 4);
                                             $gsEnableStorage = !empty($gs->EnableStorage);
                                             $gsMandatory     = !empty($gs->MandatoryStorage);
+                                            $gsStatsDefault  = isset($gs->StatsDefaultOpen) ? !empty($gs->StatsDefaultOpen) : true;
                                             $gsQtyMax        = (int)($gs->QtyMaxLength   ?? 6);
                                             $gsPriceMax      = (int)($gs->PriceMaxLength ?? 12);
                                             ?>
@@ -308,6 +309,15 @@
                                                             <label class="form-check-label fw-semibold" for="gs_MandatoryStorage">Make Storage Selection Mandatory</label>
                                                         </div>
                                                         <div class="form-text ms-4 ps-2">When enabled, users must select a storage location before saving a transaction. Requires "Enable Storage" to be turned on. Ensures every stock movement is traceable to a specific location.</div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <div class="form-check form-switch">
+                                                            <input class="form-check-input" type="checkbox" role="switch"
+                                                                   id="gs_StatsDefaultOpen" name="StatsDefaultOpen"
+                                                                   <?php echo $gsStatsDefault ? 'checked' : ''; ?>>
+                                                            <label class="form-check-label fw-semibold" for="gs_StatsDefaultOpen">Stats Panel Open by Default</label>
+                                                        </div>
+                                                        <div class="form-text ms-4 ps-2">When enabled, the summary stats panel is expanded by default on all list pages. Users can still collapse or expand it per session.</div>
                                                     </div>
                                                 </div>
 

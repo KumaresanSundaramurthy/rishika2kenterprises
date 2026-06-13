@@ -1,11 +1,35 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php if (!(isset($JwtData->GenSettings->StatsDefaultOpen) ? (bool)$JwtData->GenSettings->StatsDefaultOpen : true)): ?>
+<style>.apex-stats-strip{display:none}</style>
+<?php endif; ?>
 <?php
 $_icon    = $pageIcon        ?? 'bx-file-blank';
 $_iconBg  = $pageIconBg      ?? '#eef2ff';
 $_iconClr = $pageIconColor   ?? '#696cff';
 $_title   = $pageTitle       ?? 'Page';
 $_desc    = $pageDescription ?? '';
+
+// ── Quick Access palette data — built once at render, zero AJAX on open ──────
+$_qaMenus    = $this->redisservice->getUserCache('menus')    ?? [];
+$_qaSubMenus = $this->redisservice->getUserCache('submenus') ?? [];
+$_qaData = [];
+foreach ($_qaMenus as $_qaMM) {
+    if (empty($_qaMM->MainMenuUID)) continue;
+    $_leaves = [];
+    foreach ($_qaSubMenus as $_qaSM) {
+        if ($_qaSM->MainMenuUID != $_qaMM->MainMenuUID) continue;
+        if (!empty($_qaSM->IsParent))                   continue;
+        $_smName = $_qaSM->SubMenuName ?? ($_qaSM->Name  ?? '');
+        if (empty($_smName))                            continue;
+        $_smIcon = $_qaSM->SubMenuIcon ?? ($_qaSM->Icon  ?? ($_qaSM->icon ?? ''));
+        $_smUrl  = $_qaSM->UrlPath     ?? ($_qaSM->ControllerName ?? '');
+        $_leaves[] = ['name' => $_smName, 'icon' => trim($_smIcon), 'url' => '/' . ltrim($_smUrl, '/')];
+    }
+    if (empty($_leaves)) continue;
+    $_qaData[] = ['name' => $_qaMM->MainMenuName ?? '', 'icon' => trim($_qaMM->MainMenuIcons ?? 'bx bx-grid-alt'), 'modules' => $_leaves];
+}
 ?>
+<script>window._APEX_QA_DATA=<?php echo json_encode($_qaData, JSON_UNESCAPED_UNICODE); ?>;</script>
 <div class="apex-page-header">
     <div class="apex-page-header-left">
         <div class="apex-page-icon" style="background:<?php echo $_iconBg; ?>;">
@@ -35,10 +59,6 @@ $_desc    = $pageDescription ?? '';
             <i class="bx bx-bell"></i>
             <span class="apex-notif-badge" id="apexNotifCount" style="display:none;">0</span>
         </button>
-        <!-- Settings -->
-        <a href="/settings" class="apex-nav-btn" title="Settings">
-            <i class="bx bx-cog"></i>
-        </a>
         <!-- User Dropdown -->
         <div class="apex-user-wrap" id="apexUserWrap">
             <button class="apex-user-btn" id="apexUserBtn" type="button">
@@ -66,7 +86,7 @@ $_desc    = $pageDescription ?? '';
                 <a href="/settings/profile" class="apex-user-dd-item">
                     <i class="bx bx-user"></i> My Profile
                 </a>
-                <a href="/settings" class="apex-user-dd-item">
+                <a href="/settings/generalsettings" class="apex-user-dd-item">
                     <i class="bx bx-cog"></i> Settings
                 </a>
                 <button class="apex-user-dd-item ChangePasswordBtn" type="button">
@@ -83,31 +103,24 @@ $_desc    = $pageDescription ?? '';
 
 <!-- ── Quick Access Modal ────────────────────────────────────────────────── -->
 <div class="apex-qa-overlay" id="apexQuickAccessModal">
-    <div class="apex-qa-box">
-        <div class="apex-qa-header">
-            <div>
-                <div class="apex-qa-title">Quick Access</div>
-                <div class="apex-qa-subtitle">Search or go to any module</div>
-            </div>
-            <button class="apex-qa-close" id="apexQuickAccessClose" type="button">
+    <div class="r2k-qs-box">
+        <div class="r2k-qs-search-row">
+            <i class="bx bx-search r2k-qs-search-icon"></i>
+            <input type="text" id="apexQuickSearchInput" class="r2k-qs-search-input"
+                   placeholder="Search modules, pages..." autocomplete="off" spellcheck="false">
+            <button class="r2k-qs-close" id="apexQuickAccessClose" type="button" title="Close">
                 <i class="bx bx-x"></i>
             </button>
         </div>
-        <div class="apex-qa-search-wrap">
-            <i class="bx bx-search apex-qa-search-icon"></i>
-            <input type="text" id="apexQuickSearchInput" class="apex-qa-search-input"
-                   placeholder="Search or go to a module..." autocomplete="off">
+        <div class="r2k-qs-body" id="apexQABody">
+            <!-- built by ApexHeader on DOMReady -->
         </div>
-        <div class="apex-qa-body" id="apexQABody">
-            <div class="apex-qa-section-label">All Modules</div>
-            <div class="apex-qa-modules-grid" id="apexQAModulesGrid">
-                <!-- Populated by ApexHeader.loadModules() -->
-            </div>
-        </div>
-        <div class="apex-qa-footer">
-            <i class="bx bx-bulb"></i>
-            <span>Tip: You can also use <kbd>Ctrl</kbd> <kbd>K</kbd> anywhere to open Quick Access</span>
-            <span class="ms-auto"><kbd>ESC</kbd> to close</span>
+        <div class="r2k-qs-footer">
+            <span><kbd>↑↓</kbd> navigate</span>
+            <span><kbd>Enter</kbd> open</span>
+            <span><kbd>Ctrl K</kbd> toggle</span>
+            <span class="r2k-qs-footer-sep"></span>
+            <span><kbd>ESC</kbd> close</span>
         </div>
     </div>
 </div>

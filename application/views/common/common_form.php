@@ -131,6 +131,8 @@
     </div>
 </div>
 
+<?php $this->load->view('transactions/modals/customer_search'); ?>
+
 <!-- Export modal -->
 <div class="modal fade" id="exportPagesModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="exportPagesModal">
     <div class="modal-dialog">

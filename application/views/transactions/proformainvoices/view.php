@@ -7,115 +7,85 @@ $this->load->view('common/transactions/header'); ?>
         <?php $this->load->view('common/menu_view'); ?>
 
         <div class="layout-page">
-            <div class="content-wrapper">
-                <div class="container-xxl flex-grow-1 container-p-y">
+            <div class="content-wrapper apex-content">
+                <?php $this->load->view('common/apex/page_header', [
+                    'pageIcon'        => 'bx-file-blank',
+                    'pageIconBg'      => '#f5f3ff',
+                    'pageIconColor'   => '#8b5cf6',
+                    'pageTitle'       => $PageTitle       ?? 'Proforma Invoices',
+                    'pageDescription' => $PageDescription ?? 'Create proforma invoices for customers',
+                ]); ?>
+                <?php
+                $stats        = $SummaryStats ?? [];
+                $cur          = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
+                $dec          = $JwtData->GenSettings->DecimalPoints ?? 2;
 
-                    <?php
-                    $stats        = $SummaryStats ?? [];
-                    $cur          = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-                    $dec          = $JwtData->GenSettings->DecimalPoints ?? 2;
+                $cntAll       = array_sum(array_column(
+                    array_filter($stats, fn($k) => !in_array($k, ['Draft','Cancelled','Expired']), ARRAY_FILTER_USE_KEY),
+                    'count'
+                ));
+                $amtAll       = array_sum(array_column(
+                    array_filter($stats, fn($k) => !in_array($k, ['Draft','Cancelled','Expired']), ARRAY_FILTER_USE_KEY),
+                    'amount'
+                ));
+                $cntSent      = $stats['Sent']['count']      ?? 0;
+                $amtSent      = $stats['Sent']['amount']     ?? 0;
+                $cntConverted = $stats['Converted']['count'] ?? 0;
+                $cntDraft     = $stats['Draft']['count']     ?? 0;
 
-                    $cntAll       = array_sum(array_column(
-                        array_filter($stats, fn($k) => !in_array($k, ['Draft','Cancelled','Expired']), ARRAY_FILTER_USE_KEY),
-                        'count'
-                    ));
-                    $amtAll       = array_sum(array_column(
-                        array_filter($stats, fn($k) => !in_array($k, ['Draft','Cancelled','Expired']), ARRAY_FILTER_USE_KEY),
-                        'amount'
-                    ));
-                    $cntSent      = $stats['Sent']['count']      ?? 0;
-                    $amtSent      = $stats['Sent']['amount']     ?? 0;
-                    $cntConverted = $stats['Converted']['count'] ?? 0;
-                    $cntDraft     = $stats['Draft']['count']     ?? 0;
-
-                    function fmtAmt($val, $sym, $dec) {
-                        return $sym . ' ' . number_format((float)$val, $dec, '.', ',');
-                    }
-                    ?>
-
-                    <!-- ── Page Header ──────────────────────────────────────── -->
-                    <div class="trans-page-header">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="trans-ph-icon" style="background:#ede9fe;">
-                                <i class="bx bx-file-blank" style="color:#7c3aed;"></i>
-                            </div>
-                            <div>
-                                <h5 class="trans-ph-title mb-0"><?php echo htmlspecialchars($PageTitle ?? 'Pro Forma Invoices'); ?></h5>
-                                <?php if (!empty($PageDescription)): ?>
-                                <div class="text-muted" style="font-size:.76rem;"><?php echo htmlspecialchars($PageDescription); ?></div>
-                                <?php endif; ?>
-                            </div>
+                $statsItems = [
+                    ['label' => 'All Pro Formas', 'status' => 'All',       'icon' => 'bx-file-blank',   'iconBg' => '#f5f3ff', 'iconColor' => '#8b5cf6', 'count' => $cntAll,       'amount' => $amtAll],
+                    ['label' => 'Sent',           'status' => 'Sent',      'icon' => 'bx-send',         'iconBg' => '#eef2ff', 'iconColor' => '#696cff', 'count' => $cntSent,      'amount' => $amtSent],
+                    ['label' => 'Converted',      'status' => 'Converted', 'icon' => 'bx-transfer-alt', 'iconBg' => '#dcfce7', 'iconColor' => '#16a34a', 'count' => $cntConverted, 'amount' => 0],
+                    ['label' => 'Drafts',         'status' => 'Draft',     'icon' => 'bx-edit',          'iconBg' => '#f1f5f9', 'iconColor' => '#64748b', 'count' => $cntDraft,     'amount' => 0],
+                ];
+                ?>
+                <div class="apex-stats-strip">
+                    <?php foreach ($statsItems as $stat): ?>
+                    <div class="apex-stat-item <?php echo $stat['status'] === 'All' ? 'active' : ''; ?>" data-status="<?php echo $stat['status']; ?>" data-stat-filter="<?php echo $stat['status']; ?>" style="--stat-color:<?php echo $stat['iconColor']; ?>">
+                        <div class="apex-stat-icon" style="background:<?php echo $stat['iconBg']; ?>;">
+                            <i class="bx <?php echo $stat['icon']; ?>" style="color:<?php echo $stat['iconColor']; ?>;"></i>
                         </div>
-                        <div class="d-flex align-items-center gap-2">
-                            <?php $this->load->view('common/partials/export_btn'); ?>
-                            <a href="/proforma/create" class="btn btn-primary">
-                                <i class="bx bx-plus me-1"></i>New Pro Forma
-                            </a>
+                        <div class="apex-stat-body">
+                            <div class="apex-stat-label"><?php echo $stat['label']; ?></div>
+                            <div class="apex-stat-bottom">
+                                <span class="apex-stat-count"><?php echo $stat['count']; ?></span>
+                                <span class="apex-stat-amount"><?php echo $cur . ' ' . number_format((float)$stat['amount'], $dec); ?></span>
+                            </div>
                         </div>
                     </div>
+                    <?php endforeach; ?>
+                </div>
 
-                    <!-- ── Stat Cards ─────────────────────────────────────── -->
-                    <div class="trans-stats-section">
-                        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
-                            <a href="javascript:void(0);" class="trans-stat-card stat-all active-stat" data-stat-filter="All">
-                                <div class="tsc-icon-wrap"><i class="bx bx-file-blank"></i></div>
-                                <div class="tsc-body">
-                                    <div class="trans-stat-label">All Pro Formas</div>
-                                    <div class="trans-stat-count"><?php echo number_format($cntAll); ?></div>
-                                    <div class="trans-stat-amount"><?php echo fmtAmt($amtAll, $cur, $dec); ?></div>
-                                </div>
-                            </a>
-                            <a href="javascript:void(0);" class="trans-stat-card stat-active" data-stat-filter="Sent">
-                                <div class="tsc-icon-wrap"><i class="bx bx-send"></i></div>
-                                <div class="tsc-body">
-                                    <div class="trans-stat-label">Sent</div>
-                                    <div class="trans-stat-count"><?php echo number_format($cntSent); ?></div>
-                                    <div class="trans-stat-amount"><?php echo fmtAmt($amtSent, $cur, $dec); ?></div>
-                                </div>
-                            </a>
-                            <a href="javascript:void(0);" class="trans-stat-card" data-stat-filter="Converted">
-                                <div class="tsc-icon-wrap"><i class="bx bx-transfer-alt"></i></div>
-                                <div class="tsc-body">
-                                    <div class="trans-stat-label">Converted</div>
-                                    <div class="trans-stat-count"><?php echo number_format($cntConverted); ?></div>
-                                    <div class="trans-stat-amount">&nbsp;</div>
-                                </div>
-                            </a>
-                            <a href="javascript:void(0);" class="trans-stat-card stat-draft" data-stat-filter="Draft">
-                                <div class="tsc-icon-wrap"><i class="bx bx-pencil"></i></div>
-                                <div class="tsc-body">
-                                    <div class="trans-stat-label">Drafts</div>
-                                    <div class="trans-stat-count"><?php echo number_format($cntDraft); ?></div>
-                                    <div class="trans-stat-amount">&nbsp;</div>
-                                </div>
-                            </a>
-                        </div>
-                    </div>
+                <div class="container-xxl flex-grow-1 py-3">
 
                     <!-- ── Main Card ──────────────────────────────────────── -->
                     <div class="card">
 
-                        <!-- Toolbar -->
-                        <div class="trans-toolbar">
-                            <div class="trans-toolbar-tabs">
-                                <ul class="nav trans-status-tabs" id="pfStatusTabs" role="tablist">
-                                    <li class="nav-item"><a class="nav-link active pf-status-tab" data-status="All" href="javascript:void(0);">All <span class="trans-tab-count ms-1"><?php echo $ModAllCount; ?></span></a></li>
-                                    <li class="nav-item"><a class="nav-link pf-status-tab" data-status="Sent" href="javascript:void(0);">Sent <span class="pf-tab-count trans-tab-count ms-1 d-none"></span></a></li>
-                                    <li class="nav-item"><a class="nav-link pf-status-tab" data-status="Converted" href="javascript:void(0);">Converted <span class="pf-tab-count trans-tab-count ms-1 d-none"></span></a></li>
-                                    <li class="nav-item"><a class="nav-link pf-status-tab" data-status="Expired" href="javascript:void(0);">Expired <span class="pf-tab-count trans-tab-count ms-1 d-none"></span></a></li>
-                                    <li class="nav-item"><a class="nav-link pf-status-tab" data-status="Cancelled" href="javascript:void(0);">Cancelled <span class="pf-tab-count trans-tab-count ms-1 d-none"></span></a></li>
-                                    <li class="nav-item"><a class="nav-link pf-status-tab" data-status="Draft" href="javascript:void(0);">Drafts <span class="pf-tab-count trans-tab-count ms-1 d-none"></span></a></li>
-                                </ul>
+                        <!-- ── Filter Row ─────────────────────────────────── -->
+                        <div class="apex-filter-row">
+                            <div class="apex-search-wrap">
+                                <i class="bx bx-search apex-search-icon"></i>
+                                <input type="text" id="searchTransactionData" class="apex-search-input" placeholder="PF # or customer...">
+                                <i class="bx bx-x apex-search-clear d-none"></i>
                             </div>
-                            <div class="trans-toolbar-actions">
-                                <a href="javascript:void(0);" class="r2k-icon-btn pageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
-                                <?php $this->load->view('common/transactions/date_filter_btn'); ?>
-                                <div class="r2k-search-wrap">
-                                    <i class="bx bx-search r2k-si"></i>
-                                    <input type="text" id="searchTransactionData" placeholder="PF # or customer...">
-                                    <i class="bx bx-x r2k-clear d-none"></i>
-                                </div>
-                            </div>
+                            <?php $this->load->view('common/transactions/date_filter_btn'); ?>
+                            <div class="apex-filter-spacer"></div>
+                            <a href="javascript:void(0);" class="apex-filter-btn pageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
+                            <?php $this->load->view('common/partials/export_btn'); ?>
+                            <a href="/proforma/create" class="btn btn-sm btn-primary"><i class="bx bx-plus me-1"></i>New Pro Forma</a>
+                        </div>
+
+                        <!-- ── Tabs Row ──────────────────────────────────── -->
+                        <div class="apex-tabs-row">
+                            <ul class="nav trans-status-tabs" id="pfStatusTabs" role="tablist">
+                                <li class="nav-item"><a class="nav-link active pf-status-tab" data-status="All" href="javascript:void(0);">All <span class="trans-tab-count ms-1"><?php echo $ModAllCount; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link pf-status-tab" data-status="Sent" href="javascript:void(0);">Sent <span class="pf-tab-count trans-tab-count ms-1 d-none"></span></a></li>
+                                <li class="nav-item"><a class="nav-link pf-status-tab" data-status="Converted" href="javascript:void(0);">Converted <span class="pf-tab-count trans-tab-count ms-1 d-none"></span></a></li>
+                                <li class="nav-item"><a class="nav-link pf-status-tab" data-status="Expired" href="javascript:void(0);">Expired <span class="pf-tab-count trans-tab-count ms-1 d-none"></span></a></li>
+                                <li class="nav-item"><a class="nav-link pf-status-tab" data-status="Cancelled" href="javascript:void(0);">Cancelled <span class="pf-tab-count trans-tab-count ms-1 d-none"></span></a></li>
+                                <li class="nav-item"><a class="nav-link pf-status-tab" data-status="Draft" href="javascript:void(0);">Drafts <span class="pf-tab-count trans-tab-count ms-1 d-none"></span></a></li>
+                            </ul>
                         </div>
 
                         <!-- Table -->
@@ -228,8 +198,8 @@ $(function () {
 
     $(document).on('click', '[data-stat-filter]', function () {
         var status = $(this).data('stat-filter') || 'All';
-        $('.trans-stat-card').removeClass('active-stat');
-        $(this).addClass('active-stat');
+        $('.apex-stat-item').removeClass('active');
+        $(this).addClass('active');
         $('.pf-status-tab').removeClass('active');
         $('.pf-status-tab[data-status="' + status + '"]').addClass('active');
         Filter.Status = status; PageNo = 1; getProFormaInvoicesDetails();
@@ -239,9 +209,9 @@ $(function () {
         e.preventDefault();
         $('.pf-status-tab').removeClass('active');
         $(this).addClass('active');
-        $('.trans-stat-card').removeClass('active-stat');
+        $('.apex-stat-item').removeClass('active');
         var status = $(this).data('status') || 'All';
-        $('[data-stat-filter="' + status + '"]').addClass('active-stat');
+        $('.apex-stat-item[data-stat-filter="' + status + '"]').addClass('active');
         Filter.Status = status; PageNo = 1; getProFormaInvoicesDetails();
     });
 

@@ -12,24 +12,16 @@
         <div class="layout-page">
 
             <!-- Content wrapper -->
-            <div class="content-wrapper">
+            <div class="content-wrapper apex-content">
+                <?php $this->load->view('common/apex/page_header', [
+                    'pageIcon'        => 'bx-cog',
+                    'pageIconBg'      => '#e0f2fe',
+                    'pageIconColor'   => '#0284c7',
+                    'pageTitle'       => $PageTitle       ?? 'Settings',
+                    'pageDescription' => $PageDescription ?? '',
+                ]); ?>
 
                 <div class="container-xxl flex-grow-1 container-p-y">
-
-                    <!-- ── Page Header ── -->
-                    <div class="trans-page-header">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="trans-ph-icon" style="background:#e0f2fe;">
-                                <i class="bx bx-cog" style="color:#0284c7;"></i>
-                            </div>
-                            <div>
-                                <h5 class="trans-ph-title mb-0"><?php echo htmlspecialchars($PageTitle ?? 'Settings'); ?></h5>
-                                <?php if (!empty($PageDescription)): ?>
-                                <div class="text-muted" style="font-size:.76rem;"><?php echo htmlspecialchars($PageDescription); ?></div>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                    </div>
 
                     <div class="card">
 
@@ -155,6 +147,21 @@
                                                             <?php endforeach; ?>
                                                         </select>
                                                         <div class="form-text">Transaction sequence numbers (INV-001, PO-001 etc.) reset to 1 when the new FY begins.</div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">Default Salutation</label>
+                                                        <select class="form-select" id="gs_DefaultSalutationUID" name="DefaultSalutationUID">
+                                                            <option value="">— None —</option>
+                                                            <?php
+                                                            $gsDefaultSal = (int)($gs->DefaultSalutationUID ?? 0);
+                                                            foreach ($SalutationList ?? [] as $sal):
+                                                            ?>
+                                                            <option value="<?php echo (int)$sal->SalutationUID; ?>" <?php echo $gsDefaultSal === (int)$sal->SalutationUID ? 'selected' : ''; ?>>
+                                                                <?php echo htmlspecialchars($sal->SalutationName); ?>
+                                                            </option>
+                                                            <?php endforeach; ?>
+                                                        </select>
+                                                        <div class="form-text">Default salutation pre-selected when creating a new customer or vendor.</div>
                                                     </div>
                                                 </div>
 
@@ -438,6 +445,20 @@
                                                 <i class="bx bx-undo me-2"></i>Sales Return
                                             </a>
 
+                                            <a class="nav-link gs-tab-link px-4 py-3" id="tab-purchase-return-settings-tab"
+                                                data-bs-toggle="pill" data-bs-target="#tab-purchase-return-settings"
+                                                role="tab" aria-controls="tab-purchase-return-settings" aria-selected="false"
+                                                href="javascript:void(0);">
+                                                <i class="bx bx-undo me-2"></i>Purchase Return
+                                            </a>
+
+                                            <a class="nav-link gs-tab-link px-4 py-3" id="tab-purchase-settings-tab"
+                                                data-bs-toggle="pill" data-bs-target="#tab-purchase-settings"
+                                                role="tab" aria-controls="tab-purchase-settings" aria-selected="false"
+                                                href="javascript:void(0);">
+                                                <i class="bx bx-cart me-2"></i>Purchase
+                                            </a>
+
                                         </div>
                                     </div>
                                     <!-- / Left Side -->
@@ -451,6 +472,7 @@
                                             $tgs = $TransSettings ?? new stdClass();
                                             $tgsTerms       = htmlspecialchars($tgs->TermsAndConditions ?? '', ENT_QUOTES);
                                             $tgsHideNav     = !empty($tgs->HideNavOnTransForm) ? (int)$tgs->HideNavOnTransForm : 0;
+                                            $tgsShowDesc    = isset($tgs->ShowProductDescription) ? (int)$tgs->ShowProductDescription : 1;
                                             ?>
                                             <div class="tab-pane fade show active" id="tab-txn-general" role="tabpanel" aria-labelledby="tab-txn-general-tab">
 
@@ -472,6 +494,23 @@
                                                                     Hide sidebar &amp; show Back button
                                                                 </label>
                                                                 <div class="form-text mt-0">When enabled, hides the sidebar navigation and adds a Back button on all transaction create / edit pages.</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="col-12">
+                                                        <label class="form-label fw-semibold">Show Description</label>
+                                                        <div class="d-flex align-items-center gap-3 p-3 border rounded">
+                                                            <div class="form-check form-switch mb-0">
+                                                                <input class="form-check-input" type="checkbox"
+                                                                       id="txn_ShowProductDescription" name="ShowProductDescription"
+                                                                       value="1" <?php echo $tgsShowDesc ? 'checked' : ''; ?>>
+                                                            </div>
+                                                            <div>
+                                                                <label class="form-check-label fw-semibold mb-0" for="txn_ShowProductDescription">
+                                                                    Show Description checkbox on transaction forms
+                                                                </label>
+                                                                <div class="form-text mt-0">When enabled, a "Show Description" checkbox appears on all transaction create/edit pages allowing users to toggle the product description row.</div>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -670,6 +709,164 @@
                                             </div>
                                             <!-- / Sub-Tab: Sales Return -->
 
+                                            <!-- Sub-Tab: Purchase Return -->
+                                            <?php
+                                            $prMethod       = $ts->PurchaseReturnItemMethod   ?? 'Manual';
+                                            $prCancelAction = $ts->PurchaseReturnCancelAction ?? 'ask';
+                                            ?>
+                                            <div class="tab-pane fade" id="tab-purchase-return-settings" role="tabpanel" aria-labelledby="tab-purchase-return-settings-tab">
+
+                                                <h6 class="fw-semibold mb-1">Purchase Return</h6>
+                                                <p class="text-muted small mb-4">Configure default behaviours for purchase return operations.</p>
+
+                                                <div class="row g-4">
+                                                    <div class="col-12">
+                                                        <label class="form-label fw-semibold">Cancelling a Purchase Return with Refund <span class="text-danger">*</span></label>
+                                                        <p class="text-muted small mb-3">When a purchase return that already has a <strong>cash or bank refund received from vendor</strong> is cancelled, define what should happen to that refund amount.</p>
+
+                                                        <div class="row g-3">
+
+                                                            <div class="col-md-4">
+                                                                <div class="border rounded p-3 h-100 <?php echo $prCancelAction === 'ask' ? 'border-primary bg-label-primary' : ''; ?>" style="cursor:pointer;" onclick="selectPRCancelAction('ask')">
+                                                                    <div class="d-flex align-items-center gap-2 mb-2">
+                                                                        <input class="form-check-input mt-0" type="radio" name="PurchaseReturnCancelAction" id="prca_ask" value="ask" <?php echo $prCancelAction === 'ask' ? 'checked' : ''; ?>>
+                                                                        <label class="fw-semibold mb-0" for="prca_ask" style="cursor:pointer;">Always Ask</label>
+                                                                    </div>
+                                                                    <p class="text-muted small mb-0">Show a prompt every time so the user can choose — recover the refund by paying the vendor back, or write it off as a business gain. Best for teams that handle each case individually.</p>
+                                                                </div>
+                                                            </div>
+
+                                                            <div class="col-md-4">
+                                                                <div class="border rounded p-3 h-100 <?php echo $prCancelAction === 'recover' ? 'border-primary bg-label-primary' : ''; ?>" style="cursor:pointer;" onclick="selectPRCancelAction('recover')">
+                                                                    <div class="d-flex align-items-center gap-2 mb-2">
+                                                                        <input class="form-check-input mt-0" type="radio" name="PurchaseReturnCancelAction" id="prca_recover" value="recover" <?php echo $prCancelAction === 'recover' ? 'checked' : ''; ?>>
+                                                                        <label class="fw-semibold mb-0" for="prca_recover" style="cursor:pointer;">Pay Vendor Back</label>
+                                                                    </div>
+                                                                    <p class="text-muted small mb-0">The previously received refund is recorded as payable back to the vendor. A vendor credit note is created to track what you owe them. Physical payment must be arranged separately.</p>
+                                                                </div>
+                                                            </div>
+
+                                                            <div class="col-md-4">
+                                                                <div class="border rounded p-3 h-100 <?php echo $prCancelAction === 'writeoff' ? 'border-primary bg-label-primary' : ''; ?>" style="cursor:pointer;" onclick="selectPRCancelAction('writeoff')">
+                                                                    <div class="d-flex align-items-center gap-2 mb-2">
+                                                                        <input class="form-check-input mt-0" type="radio" name="PurchaseReturnCancelAction" id="prca_writeoff" value="writeoff" <?php echo $prCancelAction === 'writeoff' ? 'checked' : ''; ?>>
+                                                                        <label class="fw-semibold mb-0" for="prca_writeoff" style="cursor:pointer;">Write Off</label>
+                                                                    </div>
+                                                                    <p class="text-muted small mb-0">Accept the refund already received as a business gain. Payment records are marked as written off and no payback to the vendor is recorded. Use when the vendor agrees to let you keep the refund.</p>
+                                                                </div>
+                                                            </div>
+
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="col-12">
+                                                        <label class="form-label fw-semibold">Purchase Return Item Method <span class="text-danger">*</span></label>
+                                                        <p class="text-muted small mb-3">Controls how items are added to a purchase return form — manually, automatically from the original purchase bill, or both.</p>
+
+                                                        <div class="row g-3">
+
+                                                            <div class="col-md-4">
+                                                                <div class="border rounded p-3 h-100 <?php echo $prMethod === 'Manual' ? 'border-primary bg-label-primary' : ''; ?>" style="cursor:pointer;" onclick="selectPRMethod('Manual')">
+                                                                    <div class="d-flex align-items-center gap-2 mb-2">
+                                                                        <input class="form-check-input mt-0" type="radio" name="PurchaseReturnItemMethod" id="prm_manual" value="Manual" <?php echo $prMethod === 'Manual' ? 'checked' : ''; ?>>
+                                                                        <label class="fw-semibold mb-0" for="prm_manual" style="cursor:pointer;">Manual</label>
+                                                                    </div>
+                                                                    <p class="text-muted small mb-0">Staff selects a vendor and adds items manually without referencing a specific purchase bill. Best when full control is needed over what is returned.</p>
+                                                                </div>
+                                                            </div>
+
+                                                            <div class="col-md-4">
+                                                                <div class="border rounded p-3 h-100 <?php echo $prMethod === 'Automatic' ? 'border-primary bg-label-primary' : ''; ?>" style="cursor:pointer;" onclick="selectPRMethod('Automatic')">
+                                                                    <div class="d-flex align-items-center gap-2 mb-2">
+                                                                        <input class="form-check-input mt-0" type="radio" name="PurchaseReturnItemMethod" id="prm_automatic" value="Automatic" <?php echo $prMethod === 'Automatic' ? 'checked' : ''; ?>>
+                                                                        <label class="fw-semibold mb-0" for="prm_automatic" style="cursor:pointer;">Automatic</label>
+                                                                    </div>
+                                                                    <p class="text-muted small mb-0">Once a vendor is selected and a purchase bill is picked, all items from that bill are automatically loaded. Staff can adjust quantities but cannot add items outside the bill.</p>
+                                                                </div>
+                                                            </div>
+
+                                                            <div class="col-md-4">
+                                                                <div class="border rounded p-3 h-100 <?php echo $prMethod === 'Both' ? 'border-primary bg-label-primary' : ''; ?>" style="cursor:pointer;" onclick="selectPRMethod('Both')">
+                                                                    <div class="d-flex align-items-center gap-2 mb-2">
+                                                                        <input class="form-check-input mt-0" type="radio" name="PurchaseReturnItemMethod" id="prm_both" value="Both" <?php echo $prMethod === 'Both' ? 'checked' : ''; ?>>
+                                                                        <label class="fw-semibold mb-0" for="prm_both" style="cursor:pointer;">Both</label>
+                                                                    </div>
+                                                                    <p class="text-muted small mb-0">Combines Manual and Automatic. Staff can load items from a purchase bill automatically and also add extra products manually. Suitable when returns sometimes include items not in the original bill.</p>
+                                                                </div>
+                                                            </div>
+
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="mt-4 d-flex gap-2">
+                                                    <button type="button" class="btn btn-primary" id="btnSavePurchaseReturnSettings">
+                                                        <span class="spinner-border spinner-border-sm me-1 d-none" id="prSpinner"></span>
+                                                        Save Changes
+                                                    </button>
+                                                </div>
+
+                                            </div>
+                                            <!-- / Sub-Tab: Purchase Return -->
+
+                                            <!-- Sub-Tab: Purchase -->
+                                            <?php
+                                            $purchaseShowSignature = !empty($ts->PurchaseShowSignature) ? (int)$ts->PurchaseShowSignature : 0;
+                                            $purchaseShowTerms     = !empty($ts->PurchaseShowTerms)     ? (int)$ts->PurchaseShowTerms     : 0;
+                                            ?>
+                                            <div class="tab-pane fade" id="tab-purchase-settings" role="tabpanel" aria-labelledby="tab-purchase-settings-tab">
+
+                                                <h6 class="fw-semibold mb-1">Purchase</h6>
+                                                <p class="text-muted small mb-4">Configure default behaviours for purchase bill operations.</p>
+
+                                                <div class="row g-3">
+
+                                                    <div class="col-12">
+                                                        <label class="form-label fw-semibold">Print / PDF Options</label>
+                                                        <div class="d-flex align-items-center gap-3 p-3 border rounded">
+                                                            <div class="form-check form-switch mb-0">
+                                                                <input class="form-check-input" type="checkbox"
+                                                                       id="purch_ShowSignature" name="PurchaseShowSignature"
+                                                                       value="1" <?php echo $purchaseShowSignature ? 'checked' : ''; ?>>
+                                                            </div>
+                                                            <div>
+                                                                <label class="form-check-label fw-semibold mb-0" for="purch_ShowSignature">
+                                                                    Show signature on purchase form
+                                                                </label>
+                                                                <div class="form-text mt-0">When enabled, a signature section (authorised signatory line) is printed at the bottom of purchase bill PDFs and print layouts.</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="col-12">
+                                                        <label class="form-label fw-semibold">Terms &amp; Conditions</label>
+                                                        <div class="d-flex align-items-center gap-3 p-3 border rounded">
+                                                            <div class="form-check form-switch mb-0">
+                                                                <input class="form-check-input" type="checkbox"
+                                                                       id="purch_ShowTerms" name="PurchaseShowTerms"
+                                                                       value="1" <?php echo $purchaseShowTerms ? 'checked' : ''; ?>>
+                                                            </div>
+                                                            <div>
+                                                                <label class="form-check-label fw-semibold mb-0" for="purch_ShowTerms">
+                                                                    Show T&amp;C field on purchase forms
+                                                                </label>
+                                                                <div class="form-text mt-0">When enabled, a Terms &amp; Conditions text box is shown on purchase bill and purchase return forms.</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                </div>
+
+                                                <div class="mt-4 d-flex gap-2">
+                                                    <button type="button" class="btn btn-primary" id="btnSavePurchaseSettings">
+                                                        <span class="spinner-border spinner-border-sm me-1 d-none" id="purchSpinner"></span>
+                                                        Save Changes
+                                                    </button>
+                                                </div>
+
+                                            </div>
+                                            <!-- / Sub-Tab: Purchase -->
+
                                         </div>
                                     </div>
                                     <!-- / Right Side -->
@@ -818,12 +1015,17 @@ $(document).ready(function () {
             url    : '/settings/updateTransactionSettings',
             method : 'POST',
             data   : {
-                TermsAndConditions      : $('#txn_TermsAndConditions').val(),
-                HideNavOnTransForm      : $('#txn_HideNavOnTransForm').is(':checked') ? 1 : 0,
-                InvoiceCancelAction     : $('input[name="InvoiceCancelAction"]:checked').val()     || 'ask',
-                SalesReturnCancelAction : $('input[name="SalesReturnCancelAction"]:checked').val() || 'ask',
-                SalesReturnItemMethod   : $('input[name="SalesReturnItemMethod"]:checked').val()   || 'Manual',
-                [CsrfName]              : CsrfToken,
+                TermsAndConditions         : $('#txn_TermsAndConditions').val(),
+                HideNavOnTransForm         : $('#txn_HideNavOnTransForm').is(':checked') ? 1 : 0,
+                ShowProductDescription     : $('#txn_ShowProductDescription').is(':checked') ? 1 : 0,
+                InvoiceCancelAction        : $('input[name="InvoiceCancelAction"]:checked').val()        || 'ask',
+                SalesReturnCancelAction    : $('input[name="SalesReturnCancelAction"]:checked').val()    || 'ask',
+                SalesReturnItemMethod      : $('input[name="SalesReturnItemMethod"]:checked').val()      || 'Manual',
+                PurchaseReturnCancelAction : $('input[name="PurchaseReturnCancelAction"]:checked').val() || 'ask',
+                PurchaseReturnItemMethod   : $('input[name="PurchaseReturnItemMethod"]:checked').val()   || 'Manual',
+                PurchaseShowSignature      : $('#purch_ShowSignature').is(':checked') ? 1 : 0,
+                PurchaseShowTerms          : $('#purch_ShowTerms').is(':checked')    ? 1 : 0,
+                [CsrfName]                 : CsrfToken,
             },
             success: function (resp) {
                 showToastNotification(resp.Message, resp.Error ? 'error' : 'success');
@@ -868,6 +1070,69 @@ $(document).ready(function () {
             .closest('.border').addClass('border-primary bg-label-primary');
     };
 
+    // ── Purchase Return cancel action card selection ──────────────────────────
+    window.selectPRCancelAction = function (value) {
+        $('input[name="PurchaseReturnCancelAction"]').val([value]);
+        $('input[name="PurchaseReturnCancelAction"]').closest('.border').each(function () {
+            $(this).removeClass('border-primary bg-label-primary');
+        });
+        $('input[name="PurchaseReturnCancelAction"][value="' + value + '"]')
+            .closest('.border').addClass('border-primary bg-label-primary');
+    };
+
+    // ── Purchase Return method card selection ─────────────────────────────────
+    window.selectPRMethod = function (value) {
+        $('input[name="PurchaseReturnItemMethod"]').val([value]);
+        $('input[name="PurchaseReturnItemMethod"]').closest('.border').each(function () {
+            $(this).removeClass('border-primary bg-label-primary');
+        });
+        $('input[name="PurchaseReturnItemMethod"][value="' + value + '"]')
+            .closest('.border').addClass('border-primary bg-label-primary');
+    };
+
+    // ── Save Purchase Return Settings ─────────────────────────────────────────
+    $('#btnSavePurchaseReturnSettings').on('click', function () {
+        var $btn    = $(this);
+        var $spinner = $('#prSpinner');
+        var method  = $('input[name="PurchaseReturnItemMethod"]:checked').val();
+
+        if (!method) {
+            showToastNotification('Please select a purchase return item method.', 'error');
+            return;
+        }
+
+        $btn.prop('disabled', true);
+        $spinner.removeClass('d-none');
+
+        $.ajax({
+            url    : '/settings/updateTransactionSettings',
+            method : 'POST',
+            data   : {
+                InvoiceCancelAction        : $('input[name="InvoiceCancelAction"]:checked').val()        || 'ask',
+                SalesReturnCancelAction    : $('input[name="SalesReturnCancelAction"]:checked').val()    || 'ask',
+                SalesReturnItemMethod      : $('input[name="SalesReturnItemMethod"]:checked').val()      || 'Manual',
+                PurchaseReturnCancelAction : $('input[name="PurchaseReturnCancelAction"]:checked').val() || 'ask',
+                PurchaseReturnItemMethod   : method,
+                TermsAndConditions         : $('#txn_TermsAndConditions').val(),
+                HideNavOnTransForm         : $('#txn_HideNavOnTransForm').is(':checked') ? 1 : 0,
+                ShowProductDescription     : $('#txn_ShowProductDescription').is(':checked') ? 1 : 0,
+                PurchaseShowSignature      : $('#purch_ShowSignature').is(':checked') ? 1 : 0,
+                PurchaseShowTerms          : $('#purch_ShowTerms').is(':checked')    ? 1 : 0,
+                [CsrfName]                 : CsrfToken,
+            },
+            success: function (resp) {
+                showToastNotification(resp.Message, resp.Error ? 'error' : 'success');
+            },
+            error: function () {
+                showToastNotification('Request failed. Please try again.', 'error');
+            },
+            complete: function () {
+                $btn.prop('disabled', false);
+                $spinner.addClass('d-none');
+            }
+        });
+    });
+
     // ── Save Transaction Settings ─────────────────────────────────────────────
     // ── Transaction General Settings (date formats) save ─────────────────────
 
@@ -888,12 +1153,54 @@ $(document).ready(function () {
             url    : '/settings/updateTransactionSettings',
             method : 'POST',
             data   : {
-                InvoiceCancelAction     : action,
-                SalesReturnCancelAction : $('input[name="SalesReturnCancelAction"]:checked').val() || 'ask',
-                SalesReturnItemMethod   : $('input[name="SalesReturnItemMethod"]:checked').val()   || 'Manual',
-                TermsAndConditions      : $('#txn_TermsAndConditions').val(),
-                HideNavOnTransForm      : $('#txn_HideNavOnTransForm').is(':checked') ? 1 : 0,
-                [CsrfName]              : CsrfToken,
+                InvoiceCancelAction        : action,
+                SalesReturnCancelAction    : $('input[name="SalesReturnCancelAction"]:checked').val()    || 'ask',
+                SalesReturnItemMethod      : $('input[name="SalesReturnItemMethod"]:checked').val()      || 'Manual',
+                PurchaseReturnCancelAction : $('input[name="PurchaseReturnCancelAction"]:checked').val() || 'ask',
+                PurchaseReturnItemMethod   : $('input[name="PurchaseReturnItemMethod"]:checked').val()   || 'Manual',
+                TermsAndConditions         : $('#txn_TermsAndConditions').val(),
+                HideNavOnTransForm         : $('#txn_HideNavOnTransForm').is(':checked') ? 1 : 0,
+                ShowProductDescription     : $('#txn_ShowProductDescription').is(':checked') ? 1 : 0,
+                PurchaseShowSignature      : $('#purch_ShowSignature').is(':checked') ? 1 : 0,
+                PurchaseShowTerms          : $('#purch_ShowTerms').is(':checked')    ? 1 : 0,
+                [CsrfName]                 : CsrfToken,
+            },
+            success: function (resp) {
+                showToastNotification(resp.Message, resp.Error ? 'error' : 'success');
+            },
+            error: function () {
+                showToastNotification('Request failed. Please try again.', 'error');
+            },
+            complete: function () {
+                $btn.prop('disabled', false);
+                $spinner.addClass('d-none');
+            }
+        });
+    });
+
+    // ── Save Purchase Settings ───────────────────────────────────────────────
+    $('#btnSavePurchaseSettings').on('click', function () {
+        var $btn     = $(this);
+        var $spinner = $('#purchSpinner');
+
+        $btn.prop('disabled', true);
+        $spinner.removeClass('d-none');
+
+        $.ajax({
+            url    : '/settings/updateTransactionSettings',
+            method : 'POST',
+            data   : {
+                PurchaseShowSignature      : $('#purch_ShowSignature').is(':checked') ? 1 : 0,
+                PurchaseShowTerms          : $('#purch_ShowTerms').is(':checked')    ? 1 : 0,
+                InvoiceCancelAction        : $('input[name="InvoiceCancelAction"]:checked').val()        || 'ask',
+                SalesReturnCancelAction    : $('input[name="SalesReturnCancelAction"]:checked').val()    || 'ask',
+                SalesReturnItemMethod      : $('input[name="SalesReturnItemMethod"]:checked').val()      || 'Manual',
+                PurchaseReturnCancelAction : $('input[name="PurchaseReturnCancelAction"]:checked').val() || 'ask',
+                PurchaseReturnItemMethod   : $('input[name="PurchaseReturnItemMethod"]:checked').val()   || 'Manual',
+                TermsAndConditions         : $('#txn_TermsAndConditions').val(),
+                HideNavOnTransForm         : $('#txn_HideNavOnTransForm').is(':checked') ? 1 : 0,
+                ShowProductDescription     : $('#txn_ShowProductDescription').is(':checked') ? 1 : 0,
+                [CsrfName]                 : CsrfToken,
             },
             success: function (resp) {
                 showToastNotification(resp.Message, resp.Error ? 'error' : 'success');
@@ -926,12 +1233,17 @@ $(document).ready(function () {
             url    : '/settings/updateTransactionSettings',
             method : 'POST',
             data   : {
-                InvoiceCancelAction     : $('input[name="InvoiceCancelAction"]:checked').val()     || 'ask',
-                SalesReturnCancelAction : $('input[name="SalesReturnCancelAction"]:checked').val() || 'ask',
-                SalesReturnItemMethod   : method,
-                TermsAndConditions      : $('#txn_TermsAndConditions').val(),
-                HideNavOnTransForm      : $('#txn_HideNavOnTransForm').is(':checked') ? 1 : 0,
-                [CsrfName]              : CsrfToken,
+                InvoiceCancelAction        : $('input[name="InvoiceCancelAction"]:checked').val()        || 'ask',
+                SalesReturnCancelAction    : $('input[name="SalesReturnCancelAction"]:checked').val()    || 'ask',
+                SalesReturnItemMethod      : method,
+                PurchaseReturnCancelAction : $('input[name="PurchaseReturnCancelAction"]:checked').val() || 'ask',
+                PurchaseReturnItemMethod   : $('input[name="PurchaseReturnItemMethod"]:checked').val()   || 'Manual',
+                TermsAndConditions         : $('#txn_TermsAndConditions').val(),
+                HideNavOnTransForm         : $('#txn_HideNavOnTransForm').is(':checked') ? 1 : 0,
+                ShowProductDescription     : $('#txn_ShowProductDescription').is(':checked') ? 1 : 0,
+                PurchaseShowSignature      : $('#purch_ShowSignature').is(':checked') ? 1 : 0,
+                PurchaseShowTerms          : $('#purch_ShowTerms').is(':checked')    ? 1 : 0,
+                [CsrfName]                 : CsrfToken,
             },
             success: function (resp) {
                 showToastNotification(resp.Message, resp.Error ? 'error' : 'success');

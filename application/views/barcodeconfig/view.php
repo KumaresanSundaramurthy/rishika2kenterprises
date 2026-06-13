@@ -30,22 +30,17 @@
     <div class="layout-container">
         <?php $this->load->view('common/menu_view'); ?>
         <div class="layout-page">
-            <div class="content-wrapper">
+            <div class="content-wrapper apex-content">
+                <?php $this->load->view('common/apex/page_header', [
+                    'pageIcon'        => 'bx-barcode',
+                    'pageIconBg'      => '#e8f0fe',
+                    'pageIconColor'   => '#3b82f6',
+                    'pageTitle'       => $PageTitle       ?? 'Barcode &amp; QR Code Config',
+                    'pageDescription' => $PageDescription ?? '',
+                ]); ?>
                 <div class="container-xxl flex-grow-1 container-p-y">
 
-                    <!-- ── Page Header ── -->
-                    <div class="trans-page-header">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="trans-ph-icon" style="background:#e8f0fe;">
-                                <i class="bx bx-barcode" style="color:#3b82f6;"></i>
-                            </div>
-                            <div>
-                                <h5 class="trans-ph-title mb-0"><?php echo htmlspecialchars($PageTitle ?? 'Barcode &amp; QR Code Config'); ?></h5>
-                                <?php if (!empty($PageDescription)): ?>
-                                <div class="text-muted" style="font-size:.76rem;"><?php echo htmlspecialchars($PageDescription); ?></div>
-                                <?php endif; ?>
-                            </div>
-                        </div>
+                    <div class="d-flex justify-content-end mb-3">
                         <a href="/products" class="btn btn-outline-secondary btn-sm"><i class="bx bx-package me-1"></i>Products</a>
                     </div>
 

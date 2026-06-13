@@ -3075,7 +3075,7 @@ function searchProductInfo() {
                 </div>`;
 
             // ── Combo item ───────────────────────────────────────────
-            if (data.isComboItem) {
+            if (data.isComposite) {
                 const count = data.comboItemCount || 0;
                 return $(`
                     <div class="d-flex justify-content-between align-items-center">
@@ -3198,8 +3198,93 @@ function pushBillItems(productData, qty) {
         return false;
     } else {
         billManager.addItem(productData, qty);
-        formationTableBillItems(billManager.getItemById(productData.id));
+        var item = billManager.getItemById(productData.id);
+        formationTableBillItems(item);
+        if (item && item.isComposite) {
+            _fetchAndAttachBOM(item);
+        }
     }
+}
+
+function _applyBOMComponents(item, components) {
+    var comboPrice = parseFloat(item.sellingPrice) || 0;
+    var origTotal  = components.reduce(function(s, c) {
+        return s + (parseFloat(c.SellingPrice) || 0) * (parseFloat(c.Quantity) || 1);
+    }, 0);
+    var ratio = origTotal > 0 ? comboPrice / origTotal : 1;
+    item.bomComponents = components.map(function(c) {
+        var origSp = parseFloat(c.SellingPrice) || 0;
+        return {
+            childProductUID : parseInt(c.ChildProductUID, 10),
+            itemName        : c.ItemName,
+            quantity        : parseFloat(c.Quantity) || 1,
+            unitPrice       : Math.round(origSp * ratio * 100000) / 100000,
+            origUnitPrice   : origSp
+        };
+    });
+    billManager.updateItemInStorage(parseInt(item.id, 10), item);
+}
+
+function _fetchBOMFromServer(item, callback) {
+    $.post('/products/getTransComboComponents', { ProductUID: item.id }, function(resp) {
+        if (!resp.Error && resp.Components && resp.Components.length) {
+            _applyBOMComponents(item, resp.Components);
+        }
+        if (typeof callback === 'function') callback();
+    });
+}
+
+function _fetchAndAttachBOM(item, callback) {
+    if (!UpstashService.isEnabled()) {
+        _fetchBOMFromServer(item, callback);
+        return;
+    }
+
+    var productsKey = UpstashService.orgKey('products');
+
+    // Step 1 — read the combo product entry from the products hash (has "items" attribute)
+    UpstashService.hget(productsKey, String(item.id)).then(function(comboData) {
+        if (!comboData || !Array.isArray(comboData.items) || !comboData.items.length) {
+            _fetchBOMFromServer(item, callback);
+            return;
+        }
+
+        // Step 2 — pipeline HGET for each component from the same products hash
+        var bomItems = comboData.items;
+        var cmds = bomItems.map(function(bi) {
+            return ['HGET', productsKey, String(bi.uid)];
+        });
+
+        UpstashService.pipeline(cmds).then(function(results) {
+            var components = [];
+            bomItems.forEach(function(bi, i) {
+                var raw = results[i];
+                if (raw === null || raw === undefined) return;
+                var p = null;
+                try { p = (typeof raw === 'object') ? raw : JSON.parse(raw); } catch(e) {}
+                if (!p) return;
+                components.push({
+                    ChildProductUID : bi.uid,
+                    ItemName        : p.ItemName || '',
+                    Quantity        : bi.qty,
+                    SellingPrice    : parseFloat(p.SellingPrice || 0),
+                });
+            });
+
+            if (components.length === bomItems.length) {
+                _applyBOMComponents(item, components);
+                if (typeof callback === 'function') callback();
+            } else {
+                // One or more component products missing from cache — fall back to server
+                _fetchBOMFromServer(item, callback);
+            }
+        }).catch(function() {
+            _fetchBOMFromServer(item, callback);
+        });
+
+    }).catch(function() {
+        _fetchBOMFromServer(item, callback);
+    });
 }
 
 function formationTableBillItems(productRow) {
@@ -3207,9 +3292,13 @@ function formationTableBillItems(productRow) {
     let rowCount = $('#billTableBody tr[data-id]').length;
 
     const hsnText  = productRow.hsnCode    ? `<div class="transtext-small text-muted"><span style="font-weight:600;color:#495057;">HSN:</span> ${productRow.hsnCode}</div>` : '';
+    const _descEnabled = window._showProductDescription !== false;
+    const _descHidden  = _descEnabled && !$('#chkShowDesc').is(':checked') ? ' d-none' : '';
     const _escapedDesc = (productRow.description || '').replace(/"/g, '&quot;');
-    const descText = productRow.description
-        ? `<div class="bill-desc-wrap d-flex align-items-start gap-1 mt-1">
+    const descText = !_descEnabled
+        ? ''
+        : productRow.description
+        ? `<div class="bill-desc-wrap d-flex align-items-start gap-1 mt-1${_descHidden}">
              <button type="button" class="btn p-0 editable-description" data-id="${productRow.id}"
                      title="Edit description"
                      style="flex-shrink:0;color:#8592a3;font-size:12px;line-height:1;margin-top:2px;">
@@ -3219,7 +3308,7 @@ function formationTableBillItems(productRow) {
                    style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-style:italic;line-height:1.4;word-break:break-word;"
                    title="${_escapedDesc}">${productRow.description}</span>
            </div>`
-        : `<div class="bill-desc-wrap d-flex align-items-start gap-1 mt-1">
+        : `<div class="bill-desc-wrap d-flex align-items-start gap-1 mt-1${_descHidden}">
              <button type="button" class="btn p-0 editable-description" data-id="${productRow.id}"
                      title="Add description"
                      style="flex-shrink:0;color:#adb5bd;font-size:12px;line-height:1;margin-top:2px;">
@@ -3244,13 +3333,21 @@ function formationTableBillItems(productRow) {
 
     let discBfrPrice = parseInt(productRow.discount, 10) ? '' : 'd-none';
 
+    const comboBOMBtn = productRow.isComposite
+        ? `<button type="button" class="btn p-0 ms-1 combo-bom-btn" data-id="${productRow.id}"
+               title="View / edit combo breakdown"
+               style="color:#7c3aed;font-size:13px;line-height:1;vertical-align:middle;">
+               <i class="bx bx-layer"></i>
+           </button>`
+        : '';
+
     let tableData = `
         <tr data-id="${productRow.id}">
             <td class="drag-handle" style="width:30px;vertical-align:middle;text-align:center;cursor:grab;" title="Drag to reorder">
                 <i class="bx bx-grid-vertical" style="font-size:1.1rem;color:#c0c7cf;"></i>
             </td>
             <td>
-                <div class="text-primary fw-semibold">${productRow.text}</div>
+                <div class="text-primary fw-semibold">${productRow.text}${comboBOMBtn}</div>
                 <div class="transtext-small text-muted">#<span id="sequenceId_${productRow.id}">${rowCount+1}</span>
                     ${productRow.productType === 'Service'
                         ? '<span class="text-muted">Service</span>'
@@ -4132,4 +4229,109 @@ function showToastNotification(message, type = 'success') {
 // not restore focus to the search input and no re-search fires.
 $(window).on('blur', function() {
     try { $('.select2-hidden-accessible').select2('close'); } catch(e) {}
+});
+
+// ── Combo BOM Breakdown Modal ──────────────────────────────────────────────────
+
+function _bomEscapeHtml(str) {
+    return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function _renderBOMModal(item) {
+    var dp    = (typeof genSettings !== 'undefined' && genSettings.DecimalPoints) ? genSettings.DecimalPoints : 2;
+    var comps = item.bomComponents || [];
+
+    if (!comps.length) {
+        $('#comboBOMRows').html('<tr><td colspan="4" class="text-center py-3 text-muted" style="font-size:.8rem;"><i class="bx bx-loader-alt bx-spin me-1"></i>Loading components…</td></tr>');
+        $('#comboBOMTotal').text('—');
+        if (item.isComposite) {
+            _fetchAndAttachBOM(item, function() {
+                var updated = billManager.getItemById(parseInt(item.id, 10));
+                if (updated) _renderBOMModal(updated);
+            });
+        }
+        return;
+    }
+
+    var cur   = (typeof genSettings !== 'undefined' && genSettings.CurrenySymbol) ? genSettings.CurrenySymbol : '₹';
+    var total = 0;
+    var rows  = comps.map(function(c, i) {
+        var price = parseFloat(c.unitPrice) || 0;
+        var qty   = parseFloat(c.quantity) || 1;
+        var amt   = price * qty;
+        total += amt;
+        var rowBg = i % 2 === 0 ? '' : 'background:#fdfcff;';
+        return '<tr style="' + rowBg + 'border-bottom:1px solid #f1eeff;">' +
+            '<td class="ps-4 align-middle py-3" style="font-size:.85rem;color:#374151;font-weight:500;">' + _bomEscapeHtml(c.itemName) + '</td>' +
+            '<td class="text-center align-middle py-3" style="font-size:.85rem;color:#64748b;font-weight:600;">' + smartDecimal(qty) + '</td>' +
+            '<td class="align-middle py-3 pe-2">' +
+                '<div class="input-group input-group-sm" style="max-width:150px;">' +
+                    '<span class="input-group-text" style="background:#f0edff;border-color:#d9d0ff;color:#7c3aed;font-weight:600;font-size:.8rem;">' + _bomEscapeHtml(cur) + '</span>' +
+                    '<input type="number" class="form-control text-end bom-comp-price" ' +
+                        'data-idx="' + i + '" data-qty="' + qty + '" ' +
+                        'value="' + smartDecimal(price, dp) + '" min="0" step="0.01" ' +
+                        'style="border-color:#d9d0ff;font-size:.85rem;">' +
+                '</div>' +
+            '</td>' +
+            '<td class="text-end pe-4 align-middle py-3 bom-comp-amt" style="font-size:.88rem;font-weight:600;color:#374151;">' +
+                cur + ' ' + smartDecimal(amt, dp) +
+            '</td>' +
+            '</tr>';
+    }).join('');
+
+    $('#comboBOMRows').html(rows);
+    var cur2 = (typeof genSettings !== 'undefined' && genSettings.CurrenySymbol) ? genSettings.CurrenySymbol : '₹';
+    $('#comboBOMTotal').text(cur2 + ' ' + smartDecimal(total, dp));
+}
+
+$(document).on('click', '.combo-bom-btn', function() {
+    var id   = parseInt($(this).data('id'), 10);
+    var item = billManager.getItemById(id);
+    if (!item) return;
+
+    $('#comboBOMModal').data('item-id', id);
+    $('#comboBOMModalProductName').text(item.text || '');
+    _renderBOMModal(item);
+
+    var modalEl = document.getElementById('comboBOMModal');
+    if (modalEl) bootstrap.Modal.getOrCreateInstance(modalEl).show();
+});
+
+$(document).on('input', '#comboBOMRows .bom-comp-price', function() {
+    var dp  = (typeof genSettings !== 'undefined' && genSettings.DecimalPoints) ? genSettings.DecimalPoints : 2;
+    var cur = (typeof genSettings !== 'undefined' && genSettings.CurrenySymbol) ? genSettings.CurrenySymbol : '₹';
+    var total = 0;
+    $('#comboBOMRows .bom-comp-price').each(function() {
+        var price = parseFloat($(this).val()) || 0;
+        var qty   = parseFloat($(this).data('qty')) || 1;
+        var amt   = price * qty;
+        total += amt;
+        $(this).closest('tr').find('.bom-comp-amt').text(cur + ' ' + smartDecimal(amt, dp));
+    });
+    $('#comboBOMTotal').text(cur + ' ' + smartDecimal(total, dp));
+});
+
+$(document).on('click', '#comboBOMSubmitBtn', function() {
+    var id   = parseInt($('#comboBOMModal').data('item-id'), 10);
+    var item = billManager.getItemById(id);
+    if (!item) return;
+
+    var dp       = (typeof genSettings !== 'undefined' && genSettings.DecimalPoints) ? genSettings.DecimalPoints : 2;
+    var newTotal = 0;
+
+    $('#comboBOMRows .bom-comp-price').each(function() {
+        var idx   = parseInt($(this).data('idx'), 10);
+        var price = parseFloat($(this).val()) || 0;
+        var qty   = parseFloat($(this).data('qty')) || 1;
+        newTotal += price * qty;
+        if (item.bomComponents && item.bomComponents[idx] !== undefined) {
+            item.bomComponents[idx].unitPrice = price;
+        }
+    });
+
+    billManager.updateItemInStorage(id, item);
+    billManager.updateItem(id, 'sellingPrice', Math.round(newTotal * Math.pow(10, dp)) / Math.pow(10, dp));
+
+    var modalEl = document.getElementById('comboBOMModal');
+    if (modalEl) bootstrap.Modal.getOrCreateInstance(modalEl).hide();
 });

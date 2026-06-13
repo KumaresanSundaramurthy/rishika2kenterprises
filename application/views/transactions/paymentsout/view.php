@@ -7,8 +7,15 @@
         <?php $this->load->view('common/menu_view'); ?>
 
         <div class="layout-page">
-            <div class="content-wrapper">
-                <div class="container-xxl flex-grow-1 container-p-y">
+            <div class="content-wrapper apex-content">
+                <?php $this->load->view('common/apex/page_header', [
+                    'pageIcon'        => 'bx-credit-card-front',
+                    'pageIconBg'      => '#fee2e2',
+                    'pageIconColor'   => '#ef4444',
+                    'pageTitle'       => $PageTitle       ?? 'Payments Out',
+                    'pageDescription' => $PageDescription ?? '',
+                ]); ?>
+                <div class="container-xxl flex-grow-1 py-3">
 
                     <?php
                     $cur       = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
@@ -22,21 +29,6 @@
                         return $sym . ' ' . number_format((float)$val, 2, '.', ',');
                     }
                     ?>
-
-                    <!-- ── Page Header ──────────────────────────────────────── -->
-                    <div class="trans-page-header">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="trans-ph-icon" style="background:#fee2e2;">
-                                <i class="bx bx-credit-card-front" style="color:#ef4444;"></i>
-                            </div>
-                            <div>
-                                <h5 class="trans-ph-title mb-0"><?php echo htmlspecialchars($PageTitle ?? 'Payments Out'); ?></h5>
-                                <?php if (!empty($PageDescription)): ?>
-                                <div class="text-muted" style="font-size:.76rem;"><?php echo htmlspecialchars($PageDescription); ?></div>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                    </div>
                     <!-- ── Balance Summary ─────────────────────────────────── -->
                     <div class="trans-stats-section mb-4">
                         <div class="d-flex gap-3 flex-wrap" id="poutSummaryCards">
@@ -103,39 +95,27 @@
                     <!-- ── Main Card ──────────────────────────────────────── -->
                     <div class="card border-0 shadow-sm">
 
-                        <!-- Toolbar -->
-                        <div class="trans-toolbar d-flex align-items-center justify-content-between flex-wrap gap-2">
-
-                            <!-- Tabs -->
-                            <ul class="nav trans-status-tabs gap-1" id="poutStatusTabs">
-                                <li class="nav-item">
-                                    <a class="nav-link pout-tab active fw-semibold px-3 py-1" data-tab="Success" href="javascript:void(0);">
-                                        Success <span class="badge bg-danger ms-1" id="poutTabCountSuccess"><?php echo number_format($ModAllCount); ?></span>
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link pout-tab fw-semibold px-3 py-1 text-muted" data-tab="Cancelled" href="javascript:void(0);">
-                                        Cancelled <span class="badge bg-secondary ms-1" id="poutTabCountCancelled">0</span>
-                                    </a>
-                                </li>
-                            </ul>
-
-                            <!-- Right controls -->
-                            <div class="d-flex align-items-center gap-2 flex-wrap py-2">
-                                <div class="input-group input-group-sm" style="width:210px;">
-                                    <span class="input-group-text bg-white border-end-0"><i class="bx bx-search text-muted"></i></span>
-                                    <input type="text" class="form-control border-start-0" id="poutSearch"
-                                           placeholder="Vendor, amount, ref…">
-                                </div>
-                                <div class="dropdown">
-                                    <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button"
-                                            id="poutDateFilterBtn" data-bs-toggle="dropdown" aria-expanded="false">
-                                        <i class="bx bx-calendar me-1"></i><span id="poutDateFilterLabel">All Dates</span>
-                                    </button>
-                                    <ul class="dropdown-menu shadow" id="poutDateFilterMenu"
-                                        style="width:220px;max-height:360px;overflow-y:auto;font-size:.82rem;"></ul>
-                                </div>
+                        <!-- Filter Row -->
+                        <div class="apex-filter-row">
+                            <div class="apex-search-wrap">
+                                <i class="bx bx-search apex-search-icon"></i>
+                                <input type="text" class="apex-search-input" id="poutSearch" placeholder="Vendor, amount, ref…">
                             </div>
+                            <div class="dropdown">
+                                <button class="apex-filter-btn dropdown-toggle" type="button" id="poutDateFilterBtn" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="bx bx-calendar"></i><span id="poutDateFilterLabel" class="ms-1">All Dates</span>
+                                </button>
+                                <ul class="dropdown-menu shadow" id="poutDateFilterMenu" style="width:220px;max-height:360px;overflow-y:auto;font-size:.82rem;"></ul>
+                            </div>
+                            <div class="apex-filter-spacer"></div>
+                        </div>
+
+                        <!-- Tabs Row -->
+                        <div class="apex-tabs-row">
+                            <ul class="nav trans-status-tabs gap-1" id="poutStatusTabs">
+                                <li class="nav-item"><a class="nav-link pout-tab active" data-tab="Success"   href="javascript:void(0);">Success   <span class="badge bg-danger    ms-1" id="poutTabCountSuccess"><?php echo number_format($ModAllCount); ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link pout-tab"        data-tab="Cancelled" href="javascript:void(0);">Cancelled <span class="badge bg-secondary ms-1" id="poutTabCountCancelled">0</span></a></li>
+                            </ul>
                         </div>
 
                         <!-- Table -->

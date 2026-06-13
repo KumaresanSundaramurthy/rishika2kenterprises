@@ -7,66 +7,121 @@ $this->load->view('common/transactions/header'); ?>
         <?php $this->load->view('common/menu_view'); ?>
 
         <div class="layout-page">
+            <div class="content-wrapper apex-content">
 
-            <div class="content-wrapper">
-                <div class="container-xxl flex-grow-1 container-p-y">
+                <!-- ── Apex Page Header ──────────────────────────────────── -->
+                <?php $this->load->view('common/apex/page_header', [
+                    'pageIcon'        => 'bx-cart',
+                    'pageIconBg'      => '#ffedd5',
+                    'pageIconColor'   => '#f97316',
+                    'pageTitle'       => $PageTitle       ?? 'Purchase Orders',
+                    'pageDescription' => $PageDescription ?? 'Create and manage purchase orders sent to suppliers',
+                ]); ?>
 
-                    <!-- ── Page Header ──────────────────────────────────────── -->
-                    <div class="trans-page-header">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="trans-ph-icon" style="background:#ffedd5;">
-                                <i class="bx bx-cart" style="color:#f97316;"></i>
-                            </div>
-                            <div>
-                                <h5 class="trans-ph-title mb-0"><?php echo htmlspecialchars($PageTitle ?? 'Purchase Orders'); ?></h5>
-                                <?php if (!empty($PageDescription)): ?>
-                                <div class="text-muted" style="font-size:.76rem;"><?php echo htmlspecialchars($PageDescription); ?></div>
-                                <?php endif; ?>
-                            </div>
+                <!-- ── Apex Stats Strip ──────────────────────────────────── -->
+                <?php
+                $poStats   = $POStats ?? [];
+                $allCount  = array_sum(array_column($poStats, 'count'));
+                $allAmount = array_sum(array_column($poStats, 'amount'));
+                $cur       = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
+                $dec       = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
+
+                $statsItems = [
+                    ['label' => 'All Purchase Orders', 'status' => 'All',       'icon' => 'bx-file-blank',   'iconBg' => '#eef2ff', 'iconColor' => '#696cff', 'count' => $allCount,                              'amount' => $allAmount],
+                    ['label' => 'Received',            'status' => 'Received',  'icon' => 'bx-download',     'iconBg' => '#e0f5f2', 'iconColor' => '#17a2b8', 'count' => $poStats['Received']['count']  ?? 0,    'amount' => $poStats['Received']['amount']  ?? 0],
+                    ['label' => 'Closed',              'status' => 'Closed',    'icon' => 'bx-check-circle', 'iconBg' => '#d1e7dd', 'iconColor' => '#198754', 'count' => $poStats['Closed']['count']    ?? 0,    'amount' => $poStats['Closed']['amount']    ?? 0],
+                    ['label' => 'Cancelled',           'status' => 'Cancelled', 'icon' => 'bx-x-circle',     'iconBg' => '#f8d7da', 'iconColor' => '#dc3545', 'count' => $poStats['Cancelled']['count'] ?? 0,    'amount' => $poStats['Cancelled']['amount'] ?? 0],
+                    ['label' => 'Drafts',              'status' => 'Draft',     'icon' => 'bx-edit',         'iconBg' => '#f1f3f5', 'iconColor' => '#6c757d', 'count' => $poStats['Draft']['count']     ?? 0,    'amount' => $poStats['Draft']['amount']     ?? 0],
+                ];
+                ?>
+                <div class="apex-stats-strip">
+                    <?php foreach ($statsItems as $stat): ?>
+                    <div class="apex-stat-item <?php echo $stat['status'] === 'All' ? 'active' : ''; ?>" data-status="<?php echo $stat['status']; ?>" style="--stat-color:<?php echo $stat['iconColor']; ?>">
+                        <div class="apex-stat-icon" style="background:<?php echo $stat['iconBg']; ?>;">
+                            <i class="bx <?php echo $stat['icon']; ?>" style="color:<?php echo $stat['iconColor']; ?>;"></i>
                         </div>
-                        <div class="d-flex align-items-center gap-2">
-                            <?php $this->load->view('common/partials/export_btn'); ?>
-                            <a href="/purchaseorders/create" class="btn btn-primary me-1">
-                                <i class="bx bx-plus me-1"></i>New Purchase Order
-                            </a>
+                        <div class="apex-stat-body">
+                            <div class="apex-stat-label"><?php echo $stat['label']; ?></div>
+                            <div class="apex-stat-bottom">
+                                <span class="apex-stat-count"><?php echo $stat['count']; ?></span>
+                                <span class="apex-stat-amount"><?php echo $cur . ' ' . number_format($stat['amount'], $dec); ?></span>
+                            </div>
                         </div>
                     </div>
+                    <?php endforeach; ?>
+                </div>
+
+                <div class="container-xxl flex-grow-1 py-3">
 
                     <div class="card">
 
-                        <!-- Toolbar -->
-                        <div class="trans-toolbar">
-                            <div class="trans-toolbar-tabs">
-                                <ul class="nav trans-status-tabs" id="poStatusTabs" role="tablist">
-                                    <li class="nav-item"><a class="nav-link active po-status-tab" data-status="All" href="javascript:void(0);">All <span class="trans-tab-count ms-1 po-tab-count"><?php echo $ModAllCount; ?></span></a></li>
-                                    <li class="nav-item"><a class="nav-link po-status-tab" data-status="Received" href="javascript:void(0);">Received <span class="trans-tab-count ms-1 po-tab-count d-none"></span></a></li>
-                                    <li class="nav-item"><a class="nav-link po-status-tab" data-status="Closed" href="javascript:void(0);">Closed <span class="trans-tab-count ms-1 po-tab-count d-none"></span></a></li>
-                                    <li class="nav-item"><a class="nav-link po-status-tab" data-status="Cancelled" href="javascript:void(0);">Cancelled <span class="trans-tab-count ms-1 po-tab-count d-none"></span></a></li>
-                                    <li class="nav-item"><a class="nav-link po-status-tab" data-status="Draft" href="javascript:void(0);">Drafts <span class="trans-tab-count ms-1 po-tab-count d-none"></span></a></li>
+                        <!-- ── Apex Filter Row ───────────────────────────── -->
+                        <div class="apex-filter-row">
+
+                            <button class="apex-filter-btn" id="poVendorFilterBtn">
+                                <i class="bx bx-store"></i>
+                                <span id="poVendorFilterLabel">All Vendors</span>
+                                <i class="bx bx-chevron-down"></i>
+                            </button>
+
+                            <div class="dropdown">
+                                <button class="apex-filter-btn" id="poStatusFilterBtn" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="bx bx-filter-alt"></i>
+                                    <span id="poStatusFilterLabel">All Status</span>
+                                    <i class="bx bx-chevron-down"></i>
+                                </button>
+                                <ul class="dropdown-menu shadow-sm" style="font-size:.82rem;min-width:160px;">
+                                    <li><button class="dropdown-item po-status-filter-opt" data-status="All">All Status</button></li>
+                                    <li><button class="dropdown-item po-status-filter-opt" data-status="Received">Received</button></li>
+                                    <li><button class="dropdown-item po-status-filter-opt" data-status="Closed">Closed</button></li>
+                                    <li><button class="dropdown-item po-status-filter-opt" data-status="Cancelled">Cancelled</button></li>
+                                    <li><button class="dropdown-item po-status-filter-opt" data-status="Draft">Drafts</button></li>
                                 </ul>
                             </div>
-                            <div class="trans-toolbar-actions">
-                                <a href="javascript:void(0);" class="r2k-icon-btn pageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
-                                <?php $this->load->view('common/transactions/date_filter_btn'); ?>
-                                <?php $this->load->view('common/transactions/filter_bar', [
-                                    'FilterBarConfig' => [
-                                        'paymentStatus' => false,
-                                        'paymentMode'   => false,
-                                        'party'         => false,
-                                        'lastUpdated'   => false,
-                                        'PaymentTypes'  => [],
-                                        'OrgUsers'      => $OrgUsers ?? [],
-                                    ],
-                                ]); ?>
-                                <div class="r2k-search-wrap">
-                                    <i class="bx bx-search r2k-si"></i>
-                                    <input type="text" id="searchTransactionData" placeholder="PO # or vendor...">
-                                    <i class="bx bx-x r2k-clear d-none"></i>
-                                </div>
+
+                            <?php if (count($OrgUsers ?? []) > 1): ?>
+                            <button class="apex-filter-btn" id="poUserFilterBtn">
+                                <i class="bx bx-user"></i>
+                                <span id="poUserFilterLabel">All Users</span>
+                                <i class="bx bx-chevron-down"></i>
+                            </button>
+                            <?php endif; ?>
+
+                            <!-- Data search -->
+                            <div class="apex-search-wrap" style="flex-shrink:0;">
+                                <i class="bx bx-search apex-search-icon"></i>
+                                <input type="text" id="poSearchInput" class="apex-search-input" placeholder="Search PO #, vendor..." style="width:190px;">
+                                <i class="bx bx-x apex-search-clear d-none"></i>
                             </div>
+
+                            <?php $this->load->view('common/transactions/date_filter_btn'); ?>
+
+                            <div class="apex-filter-spacer"></div>
+
+                            <a href="javascript:void(0);" class="apex-filter-btn pageRefresh" title="Refresh">
+                                <i class="bx bx-refresh"></i>
+                            </a>
+
+                            <?php $this->load->view('common/partials/export_btn'); ?>
+
+                            <a href="/purchaseorders/create" class="btn btn-sm btn-primary">
+                                <i class="bx bx-plus me-1"></i>New Purchase Order
+                            </a>
+
                         </div>
 
-                        <!-- ── Table ───────────────────────────────── -->
+                        <!-- ── Tabs Row ──────────────────────────────────── -->
+                        <div class="apex-tabs-row">
+                            <ul class="nav trans-status-tabs" id="poStatusTabs" role="tablist">
+                                <li class="nav-item"><a class="nav-link active po-status-tab" data-status="All" href="javascript:void(0);">All <span class="trans-tab-count ms-1 po-tab-count"><?php echo $ModAllCount; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link po-status-tab" data-status="Received" href="javascript:void(0);">Received <span class="trans-tab-count ms-1 po-tab-count d-none"></span></a></li>
+                                <li class="nav-item"><a class="nav-link po-status-tab" data-status="Closed" href="javascript:void(0);">Closed <span class="trans-tab-count ms-1 po-tab-count d-none"></span></a></li>
+                                <li class="nav-item"><a class="nav-link po-status-tab" data-status="Cancelled" href="javascript:void(0);">Cancelled <span class="trans-tab-count ms-1 po-tab-count d-none"></span></a></li>
+                                <li class="nav-item"><a class="nav-link po-status-tab" data-status="Draft" href="javascript:void(0);">Drafts <span class="trans-tab-count ms-1 po-tab-count d-none"></span></a></li>
+                            </ul>
+                        </div>
+
+                        <!-- ── Table ───────────────────────────────────── -->
                         <div class="table-responsive text-nowrap">
                             <table class="table table-hover MainviewTable mb-0" id="poTable">
                                 <thead class="r2k-thead bg-body-tertiary">
@@ -115,7 +170,7 @@ $this->load->view('common/transactions/header'); ?>
                             </table>
                         </div>
 
-                        <!-- ── Pagination ──────────────────────────── -->
+                        <!-- ── Pagination ──────────────────────────────── -->
                         <hr class="my-0">
                         <div class="row mx-3 my-2 justify-content-between align-items-center poPagination" id="poPagination">
                             <?php echo $ModPagination ? $ModPagination : ''; ?>
@@ -126,6 +181,7 @@ $this->load->view('common/transactions/header'); ?>
                     <?php $this->load->view('common/transactions/print_modals'); ?>
 
                 </div>
+
             </div>
 
             <?php $this->load->view('common/footer_desc'); ?>
@@ -176,10 +232,7 @@ $(function () {
     Filter['Status'] = 'All';
     initExport({ moduleUID: 104, getFilters: function () { return Filter; } });
 
-    // ── Filter bar ──────────────────────────────────────────────────────
-    var tfb = (typeof TransFilterBar !== 'undefined')
-        ? new TransFilterBar({ onChange: function () { PageNo = 1; getPurchaseOrdersDetails(); } })
-        : null;
+    var tfb = null; // TransFilterBar not used for PO (all options disabled)
 
     var poCreatedByFilter = (document.getElementById('poCreatedByFilterBox'))
         ? new TransColFilter({
@@ -201,14 +254,13 @@ $(function () {
     var _origGetPurchaseOrdersDetails = getPurchaseOrdersDetails;
     getPurchaseOrdersDetails = function (pageNo, rowLimit, filter) {
         var f = $.extend({}, filter || Filter,
-            tfb               ? tfb.getState()               : {},
             poCreatedByFilter ? poCreatedByFilter.getState() : {},
             poPartyFilter     ? poPartyFilter.getState()     : {}
         );
         _origGetPurchaseOrdersDetails(pageNo, rowLimit, f);
     };
 
-    // ── Status tabs ─────────────────────────────────────
+    // ── Status tabs ─────────────────────────────────────────────────────────
     $(document).on('click', '.po-status-tab', function (e) {
         e.preventDefault();
         $('.po-status-tab').removeClass('active');
@@ -218,18 +270,50 @@ $(function () {
         getPurchaseOrdersDetails();
     });
 
+    // ── Apex: keep stat strip + status btn in sync with active tab ──────────
+    $(document).on('click', '.po-status-tab', function () {
+        var s = $(this).data('status') || 'All';
+        $('.apex-stat-item').removeClass('active');
+        $('.apex-stat-item[data-status="' + s + '"]').addClass('active');
+        var lbl = s === 'All' ? 'All Status' : s === 'Draft' ? 'Drafts' : s;
+        $('#poStatusFilterLabel').text(lbl);
+        $('#poStatusFilterBtn').toggleClass('has-filter', s !== 'All');
+    });
+
+    // ── Apex: click stat item → activate corresponding tab ──────────────────
+    $(document).on('click', '.apex-stat-item', function () {
+        $('.po-status-tab[data-status="' + $(this).data('status') + '"]').trigger('click');
+    });
+
+    // ── Apex: status dropdown in filter row → trigger tab ───────────────────
+    $(document).on('click', '.po-status-filter-opt', function () {
+        $('.po-status-tab[data-status="' + $(this).data('status') + '"]').trigger('click');
+    });
+
+    // ── Apex: vendor filter btn → trigger existing popup ────────────────────
+    $('#poVendorFilterBtn').on('click', function (e) {
+        e.preventDefault();
+        $('#poPartyFilterTrigger').trigger('click');
+    });
+
+    // ── Apex: user filter btn → trigger existing popup ───────────────────────
+    $('#poUserFilterBtn').on('click', function (e) {
+        e.preventDefault();
+        $('#poCreatedByFilter').trigger('click');
+    });
+
     $(document).on('click', '.pageRefresh', function (e) {
         e.preventDefault();
         PageNo = 1;
         getPurchaseOrdersDetails();
     });
 
-    // Search
-    $('#searchTransactionData').on('input', debounce(function () {
+    // Data search (filter row)
+    $('#poSearchInput').on('input', debounce(function () {
         Filter.Name = $.trim($(this).val());
         PageNo = 1;
         getPurchaseOrdersDetails();
-    }, 1500));
+    }, 500));
 
     // Date filter
     $(document).on('r2k:datechange', function (e, dr) {
@@ -266,11 +350,11 @@ $(function () {
         }
     });
 
-    // ── Inline status update ────────────────────────────
+    // ── Inline status update ─────────────────────────────────────────────────
     $(document).on('click', '.po-status-update', function () {
         var uid    = $(this).data('uid');
         var status = $(this).data('status');
-                if ($(this).data('_confirmed')) { $(this).removeData('_confirmed'); return; }
+        if ($(this).data('_confirmed')) { $(this).removeData('_confirmed'); return; }
         if (status === 'Cancelled') {
             var num = $(this).data('num') || '';
             var lbl = num ? '<strong>' + $('<span>').text(num).html() + '</strong>' : 'this purchase order';
@@ -278,23 +362,18 @@ $(function () {
             Swal.fire({ title: 'Cancel Purchase Order?', html: 'Are you sure you want to cancel ' + lbl + '? This cannot be undone.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', cancelButtonColor: '#6c757d', confirmButtonText: 'Yes, Cancel It', cancelButtonText: 'No, Keep It' }).then(function (r) { if (!r.isConfirmed) return; $btn.data('_confirmed', true).trigger('click'); });
             return;
         }
-$.ajax({
+        $.ajax({
             url   : '/purchaseorders/updatePurchaseOrderStatus',
             method: 'POST',
             data  : { TransUID: uid, Status: status, [CsrfName]: CsrfToken },
             success: function (resp) {
-                if (resp.Error) {
-                    Swal.fire({ icon: 'error', text: resp.Message });
-                } else {
-                    getPurchaseOrdersDetails();
-                }
+                if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); }
+                else            { getPurchaseOrdersDetails(); }
             }
         });
     });
 
-    // View modal — handled by /js/transactions/viewmodal.js (.viewTransaction)
-
-    // ── A4 Print ─────────────────────────────────────────
+    // ── A4 Print ─────────────────────────────────────────────────────────────
     $(document).on('click', '.a4PrintPO', function () {
         var uid = $(this).data('uid');
         $('#a4ModalTitle').text('Purchase Order Preview');
@@ -318,8 +397,7 @@ $.ajax({
 
     $('input[name="a4PaperSize"]').on('change', function () {
         if (!window._poLastPrintData) return;
-        var size = $(this).val();
-        $("#a4PreviewStage").html(_buildA4Html(window._poLastPrintData, size));
+        $("#a4PreviewStage").html(_buildA4Html(window._poLastPrintData, $(this).val()));
     });
 
     $('#a4PrintBtn').on('click', function () {
@@ -338,7 +416,7 @@ $.ajax({
         frame.onload = function () { frame.contentWindow.print(); };
     });
 
-    // ── Delete ───────────────────────────────────────────
+    // ── Delete ────────────────────────────────────────────────────────────────
     $(document).on('click', '.deletePO', function () {
         var uid = $(this).data('uid');
         var num = $(this).data('num') || '';
@@ -356,21 +434,16 @@ $.ajax({
                 method: 'POST',
                 data  : { TransUID: uid, [CsrfName]: CsrfToken },
                 success: function (resp) {
-                    if (resp.Error) {
-                        Swal.fire({ icon: 'error', text: resp.Message });
-                    } else {
-                        getPurchaseOrdersDetails();
-                        Swal.fire({ icon: 'success', text: resp.Message, timer: 1500, showConfirmButton: false });
-                    }
+                    if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); }
+                    else { getPurchaseOrdersDetails(); Swal.fire({ icon: 'success', text: resp.Message, timer: 1500, showConfirmButton: false }); }
                 }
             });
         });
     });
 
-
 });
 
-// ── Detail view HTML builder ──────────────────────────────
+// ── Detail view HTML builder ──────────────────────────────────────────────
 function _buildPODetailHtml(resp) {
     window._poLastPrintData = resp;
     return _buildTransDetailHtml(resp, {

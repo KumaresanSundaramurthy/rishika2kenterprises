@@ -176,6 +176,7 @@ class Vendors extends MY_Controller {
             'GSTIN'             => getPostValue($postData, 'GSTIN'),
             'CompanyName'       => getPostValue($postData, 'CompanyName'),
             'Notes'             => getPostValue($postData, 'Notes'),
+            'SalutationUID'     => (int) getPostValue($postData, 'SalutationUID') ?: null,
             'UpdatedBy'         => $this->pageData['JwtData']->User->UserUID,
         ];
         if ($isCreate) {

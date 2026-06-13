@@ -30,10 +30,13 @@ $_paymentVars    = isset($transPaymentVars) ? $transPaymentVars : null;
     </div>
     <!-- Right: controls -->
     <div class="d-flex align-items-center gap-3">
+        <?php if (!empty($JwtData->TransSettings->ShowProductDescription)): ?>
         <div class="form-check form-check-inline mb-0">
             <input class="form-check-input" type="checkbox" id="chkShowDesc" checked>
             <label class="form-check-label small" for="chkShowDesc" style="cursor:pointer;">Show Description</label>
         </div>
+        <?php endif; ?>
+<script>window._showProductDescription = <?= !empty($JwtData->TransSettings->ShowProductDescription) ? 'true' : 'false'; ?>;</script>
         <div class="form-check form-check-inline mb-0">
             <input class="form-check-input" type="checkbox" id="chkReverseOrder">
             <label class="form-check-label small" for="chkReverseOrder" style="cursor:pointer;">Reverse Order</label>
@@ -366,10 +369,75 @@ $_paymentVars    = isset($transPaymentVars) ? $transPaymentVars : null;
         </div>
         <?php endif; ?>
 
+        <?php if (!isset($transShowSignature) || $transShowSignature): ?>
         <?php $this->load->view('transactions/partials/form_signature', [
             'transSignatureUID'  => isset($transSignatureUID) ? (int)$transSignatureUID : 0,
             'transSignatures'    => isset($transSignatures) ? $transSignatures : null,
         ]); ?>
+        <?php endif; ?>
     </div>
 
+</div>
+
+<!-- Combo BOM Breakdown Modal -->
+<div class="modal fade" id="comboBOMModal" tabindex="-1" aria-labelledby="comboBOMModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-top">
+        <div class="modal-content" style="border:none;box-shadow:0 20px 60px rgba(108,99,255,.14);">
+
+            <!-- Header — brand accent left bar + icon -->
+            <div class="modal-header py-3 pe-3" style="border-bottom:1px solid #e8e5ff;border-left:4px solid #7c3aed;background:linear-gradient(135deg,#faf8ff 0%,#fff 65%);">
+                <div class="d-flex align-items-center gap-3 flex-grow-1">
+                    <div style="width:40px;height:40px;border-radius:10px;background:#f0edff;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        <i class="bx bx-package" style="color:#7c3aed;font-size:1.2rem;"></i>
+                    </div>
+                    <div>
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <span style="font-size:.6rem;font-weight:700;letter-spacing:.5px;padding:2px 7px;border-radius:4px;background:#f0edff;color:#7c3aed;border:1px solid #d9d0ff;">COMBO</span>
+                            <span id="comboBOMModalProductName" class="fw-bold" style="font-size:.94rem;color:#2d3748;"></span>
+                        </div>
+                        <div style="font-size:.72rem;color:#94a3b8;margin-top:2px;"><i class="bx bx-edit-alt me-1"></i>Edit component prices · totals update live</div>
+                    </div>
+                </div>
+                <button type="button" class="btn-close ms-2" data-bs-dismiss="modal"></button>
+            </div>
+
+            <!-- Body -->
+            <div class="modal-body p-0">
+                <div class="table-responsive">
+                    <table class="table mb-0" id="comboBOMTable">
+                        <thead>
+                            <tr style="background:#f8f7ff;border-bottom:2px solid #e8e5ff;">
+                                <th class="ps-4 py-3" style="font-size:.68rem;text-transform:uppercase;letter-spacing:.55px;color:#64748b;font-weight:600;">Component</th>
+                                <th class="text-center py-3" style="width:72px;font-size:.68rem;text-transform:uppercase;letter-spacing:.55px;color:#64748b;font-weight:600;">Qty</th>
+                                <th class="py-3" style="width:180px;font-size:.68rem;text-transform:uppercase;letter-spacing:.55px;color:#64748b;font-weight:600;">Selling Price</th>
+                                <th class="text-end pe-4 py-3" style="width:120px;font-size:.68rem;text-transform:uppercase;letter-spacing:.55px;color:#64748b;font-weight:600;">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody id="comboBOMRows"></tbody>
+                        <tfoot>
+                            <tr style="background:#f3f0ff;border-top:2px solid #d9d0ff;">
+                                <td colspan="3" class="ps-4 py-3" style="font-size:.88rem;font-weight:700;color:#7c3aed;">
+                                    <i class="bx bx-calculator me-1" style="vertical-align:middle;"></i>Combo Total
+                                </td>
+                                <td class="text-end pe-4 py-3" style="font-size:1rem;font-weight:700;color:#7c3aed;" id="comboBOMTotal">0.00</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                <div class="px-4 py-2 d-flex align-items-center gap-2" style="background:#fffbeb;border-top:1px solid #fde68a;font-size:.73rem;color:#92400e;">
+                    <i class="bx bx-bulb" style="font-size:15px;flex-shrink:0;color:#d97706;"></i>
+                    Change any component's selling price — the <strong>Combo Total</strong> updates instantly. Click <strong>Apply to Bill</strong> to save changes back to the bill row.
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="modal-footer py-2 px-3" style="border-top:1px solid #e2e8f0;background:#fafafa;">
+                <button type="button" class="btn btn-outline-secondary btn-sm px-3" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary btn-sm px-4" id="comboBOMSubmitBtn">
+                    <i class="bx bx-check me-1"></i>Apply to Bill
+                </button>
+            </div>
+
+        </div>
+    </div>
 </div>

@@ -10,19 +10,18 @@ $period = ($months[(int)($s->PayrollMonth ?? 0)] ?? '—') . ' ' . ($s->PayrollY
   <div class="layout-container">
     <?php $this->load->view('common/menu_view'); ?>
     <div class="layout-page">
-      <div class="content-wrapper">
+      <div class="content-wrapper apex-content">
+        <?php $this->load->view('common/apex/page_header', [
+          'pageIcon'        => 'bx-file',
+          'pageIconBg'      => '#ecfeff',
+          'pageIconColor'   => '#0891b2',
+          'pageTitle'       => 'Payslip — ' . htmlspecialchars($s->EmployeeName ?? ''),
+          'pageDescription' => $period,
+        ]); ?>
         <div class="container-xxl flex-grow-1 container-p-y">
-          <div class="trans-page-header">
-            <div class="d-flex align-items-center gap-3">
-              <div class="trans-ph-icon" style="background:linear-gradient(135deg,#06b6d4,#0e7490)">
-                <i class="bx bx-file" style="color:#fff;font-size:1.4rem;"></i>
-              </div>
-              <div><h5 class="trans-ph-title mb-0">Payslip — <?php echo htmlspecialchars($s->EmployeeName ?? ''); ?></h5><div class="text-muted" style="font-size:.76rem;"><?php echo $period; ?></div></div>
-            </div>
-            <div class="d-flex gap-2">
-              <a href="/payslips/print/<?php echo (int)($s->PayrollLineUID ?? 0); ?>" class="btn btn-sm btn-outline-secondary" target="_blank"><i class="bx bx-printer me-1"></i>Print</a>
-              <a href="/payslips" class="btn btn-sm btn-outline-secondary"><i class="bx bx-arrow-back me-1"></i>Back</a>
-            </div>
+          <div class="d-flex justify-content-end mb-3 gap-2">
+            <a href="/payslips/print/<?php echo (int)($s->PayrollLineUID ?? 0); ?>" class="btn btn-sm btn-outline-secondary" target="_blank"><i class="bx bx-printer me-1"></i>Print</a>
+            <a href="/payslips" class="btn btn-sm btn-outline-secondary"><i class="bx bx-arrow-back me-1"></i>Back</a>
           </div>
 
           <div class="card" style="max-width:720px;margin:0 auto;">

@@ -142,9 +142,6 @@ $(document).ready(function () {
     initCategorySelect2();
     loadSelect2Field('#CustomerTypeSelect', '-- Select Customer Type --', '#itemsModal');
 
-    // Product Type — simple dropdown, no placeholder needed
-    $('#ProductType').select2({ width: '100%', minimumResultsForSearch: Infinity, dropdownParent: $('#itemsModal') });
-
     QuillEditor('.ql-toolbar', 'Enter product description...');
 
     // ──────────────────────────────────────────────

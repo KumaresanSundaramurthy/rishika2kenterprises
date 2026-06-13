@@ -4,15 +4,16 @@
   <div class="layout-container">
     <?php $this->load->view('common/menu_view'); ?>
     <div class="layout-page">
-      <div class="content-wrapper">
+      <div class="content-wrapper apex-content">
+        <?php $this->load->view('common/apex/page_header', [
+          'pageIcon'        => 'bx-buildings',
+          'pageIconBg'      => '#e0f2fe',
+          'pageIconColor'   => '#0284c7',
+          'pageTitle'       => 'Departments',
+          'pageDescription' => 'Manage departments',
+        ]); ?>
         <div class="container-xxl flex-grow-1 container-p-y">
-          <div class="trans-page-header">
-            <div class="d-flex align-items-center gap-3">
-              <div class="trans-ph-icon" style="background:linear-gradient(135deg,#0ea5e9,#0284c7)">
-                <i class="bx bx-buildings" style="color:#fff;font-size:1.4rem;"></i>
-              </div>
-              <div><h5 class="trans-ph-title mb-0">Departments</h5><div class="text-muted" style="font-size:.76rem;">Manage departments</div></div>
-            </div>
+          <div class="d-flex justify-content-end mb-3">
             <button class="btn btn-sm btn-primary" id="btnNewDept"><i class="bx bx-plus me-1"></i>New Department</button>
           </div>
           <div class="card">

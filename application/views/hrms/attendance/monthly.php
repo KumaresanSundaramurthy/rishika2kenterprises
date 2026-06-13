@@ -11,32 +11,31 @@ $statusMap    = ['Present'=>'P','Absent'=>'A','HalfDay'=>'H','Leave'=>'L','Holid
   <div class="layout-container">
     <?php $this->load->view('common/menu_view'); ?>
     <div class="layout-page">
-      <div class="content-wrapper">
+      <div class="content-wrapper apex-content">
+        <?php $this->load->view('common/apex/page_header', [
+          'pageIcon'        => 'bx-calendar',
+          'pageIconBg'      => '#d1fae5',
+          'pageIconColor'   => '#059669',
+          'pageTitle'       => 'Monthly Attendance — ' . date('F Y', mktime(0,0,0,$Month,1,$Year)),
+          'pageDescription' => 'Summary grid for all employees',
+        ]); ?>
         <div class="container-xxl flex-grow-1 container-p-y">
 
-          <div class="trans-page-header">
-            <div class="d-flex align-items-center gap-3">
-              <div class="trans-ph-icon" style="background:linear-gradient(135deg,#10b981,#059669)">
-                <i class="bx bx-calendar" style="color:#fff;font-size:1.4rem;"></i>
-              </div>
-              <div><h5 class="trans-ph-title mb-0">Monthly Attendance — <?php echo date('F Y', mktime(0,0,0,$Month,1,$Year)); ?></h5><div class="text-muted" style="font-size:.76rem;">Summary grid for all employees</div></div>
-            </div>
-            <div class="d-flex align-items-center gap-2">
-              <form method="get" class="d-flex gap-2">
-                <select name="month" class="form-select form-select-sm" style="width:120px;">
-                  <?php for ($m = 1; $m <= 12; $m++): ?>
-                  <option value="<?php echo $m; ?>" <?php echo $m == $Month ? 'selected' : ''; ?>><?php echo date('F', mktime(0,0,0,$m,1)); ?></option>
-                  <?php endfor; ?>
-                </select>
-                <select name="year" class="form-select form-select-sm" style="width:90px;">
-                  <?php for ($y = date('Y') + 1; $y >= date('Y') - 2; $y--): ?>
-                  <option value="<?php echo $y; ?>" <?php echo $y == $Year ? 'selected' : ''; ?>><?php echo $y; ?></option>
-                  <?php endfor; ?>
-                </select>
-                <button class="btn btn-sm btn-primary" type="submit"><i class="bx bx-search"></i></button>
-              </form>
-              <a href="/attendance" class="btn btn-sm btn-outline-secondary"><i class="bx bx-list-ul me-1"></i>Daily View</a>
-            </div>
+          <div class="d-flex justify-content-end mb-3 gap-2">
+            <form method="get" class="d-flex gap-2">
+              <select name="month" class="form-select form-select-sm" style="width:120px;">
+                <?php for ($m = 1; $m <= 12; $m++): ?>
+                <option value="<?php echo $m; ?>" <?php echo $m == $Month ? 'selected' : ''; ?>><?php echo date('F', mktime(0,0,0,$m,1)); ?></option>
+                <?php endfor; ?>
+              </select>
+              <select name="year" class="form-select form-select-sm" style="width:90px;">
+                <?php for ($y = date('Y') + 1; $y >= date('Y') - 2; $y--): ?>
+                <option value="<?php echo $y; ?>" <?php echo $y == $Year ? 'selected' : ''; ?>><?php echo $y; ?></option>
+                <?php endfor; ?>
+              </select>
+              <button class="btn btn-sm btn-primary" type="submit"><i class="bx bx-search"></i></button>
+            </form>
+            <a href="/attendance" class="btn btn-sm btn-outline-secondary"><i class="bx bx-list-ul me-1"></i>Daily View</a>
           </div>
 
           <!-- Legend -->

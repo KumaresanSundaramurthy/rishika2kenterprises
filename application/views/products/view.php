@@ -12,167 +12,161 @@
         <div class="layout-page">
 
             <!-- Content wrapper -->
-            <div class="content-wrapper">
+            <div class="content-wrapper apex-content">
+                <?php $this->load->view('common/apex/page_header', [
+                    'pageIcon'        => 'bx-cube',
+                    'pageIconBg'      => '#ecfdf5',
+                    'pageIconColor'   => '#059669',
+                    'pageTitle'       => $PageTitle       ?? 'Products',
+                    'pageDescription' => $PageDescription ?? '',
+                ]); ?>
 
-                <div class="container-xxl flex-grow-1 container-p-y">
+                <?php
+                $s   = $ProductStats ?? null;
+                $cur = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
+                ?>
 
-                    <!-- ── Page Header ── -->
-                    <div class="trans-page-header">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="trans-ph-icon ph-icon-products">
-                                <i class="bx bx-package"></i>
+                <!-- ── Stats Strip ───────────────────────────────────────────── -->
+                <div class="apex-stats-strip<?php echo $ActiveTabData == 'group' ? ' d-none' : ''; ?>" id="ProductStatsRow">
+                    <div class="apex-stat-item" style="--stat-color:#059669;cursor:default;pointer-events:none">
+                        <div class="apex-stat-icon" style="background:#ecfdf5"><i class="bx bx-package" style="color:#059669"></i></div>
+                        <div class="apex-stat-body">
+                            <div class="apex-stat-label">Total Products</div>
+                            <div class="apex-stat-bottom">
+                                <span class="apex-stat-count"><?php echo number_format((int)($s->TotalProducts ?? 0)); ?></span>
+                                <span class="apex-stat-amount" style="font-size:.72rem">
+                                    <span class="text-success"><?php echo number_format((int)($s->ActiveCount ?? 0)); ?> Active</span>
+                                    &nbsp;|&nbsp;
+                                    <span class="text-danger"><?php echo number_format((int)($s->InActiveCount ?? 0)); ?> In-Active</span>
+                                </span>
                             </div>
-                            <div>
-                                <h5 class="trans-ph-title mb-0"><?php echo htmlspecialchars($PageTitle ?? 'Products'); ?></h5>
-                                <?php if (!empty($PageDescription)): ?>
-                                <div class="text-muted" style="font-size:.76rem;"><?php echo htmlspecialchars($PageDescription); ?></div>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                        <div class="d-flex align-items-center gap-2 me-1">
-                            <a href="javascript:void(0);" class="r2k-create-btn addItem <?php echo $ActiveTabData == 'item' ? '' : 'd-none'; ?>" id="NewItem"><i class="bx bx-plus"></i> Create Item</a>
-                            <a href="javascript:void(0);" class="r2k-create-btn <?php echo $ActiveTabData == 'group' ? '' : 'd-none'; ?>" id="NewComboItem"><i class="bx bx-git-merge"></i> Create Group</a>
-                            <a href="javascript:void(0);" class="r2k-create-btn addCategory <?php echo $ActiveTabData == 'category' ? '' : 'd-none'; ?>" id="NewCategory"><i class="bx bx-plus"></i> Create Category</a>
-                            <a href="javascript:void(0);" class="r2k-create-btn addSizes <?php echo $ActiveTabData == 'size' ? '' : 'd-none'; ?>" id="NewSizes"><i class="bx bx-plus"></i> Create Size</a>
-                            <a href="javascript:void(0);" class="r2k-create-btn addBrands <?php echo $ActiveTabData == 'brand' ? '' : 'd-none'; ?>" id="NewBrands"><i class="bx bx-plus"></i> Create Brand</a>
                         </div>
                     </div>
-
-                    <!-- ── Product Stats ── -->
-                    <?php $s = $ProductStats ?? null; ?>
-                    <div class="row g-3 mb-3">
-
-                        <!-- Total Products -->
-                        <div class="col-6 col-md">
-                            <div class="trans-stat-card stat-all">
-                                <div class="trans-stat-label">Total Products</div>
-                                <div class="trans-stat-count"><?php echo number_format((int)($s->TotalProducts ?? 0)); ?></div>
-                                <div class="trans-stat-amount">
-                                    <span class="text-success me-2"><i class="bx bx-check-circle"></i> <?php echo number_format((int)($s->ActiveCount ?? 0)); ?> Active</span>
-                                    <span class="text-danger"><i class="bx bx-x-circle"></i> <?php echo number_format((int)($s->InActiveCount ?? 0)); ?> In-Active</span>
-                                </div>
-                                <i class="bx bx-package trans-stat-icon"></i>
+                    <div class="apex-stat-item" style="--stat-color:#0ea5e9;cursor:default;pointer-events:none">
+                        <div class="apex-stat-icon" style="background:#e0f2fe"><i class="bx bx-rupee" style="color:#0ea5e9"></i></div>
+                        <div class="apex-stat-body">
+                            <div class="apex-stat-label">Stock Value</div>
+                            <div class="apex-stat-bottom">
+                                <span class="apex-stat-count"><?php echo $cur . ' ' . number_format((float)($s->TotalStockValue ?? 0), 2); ?></span>
+                                <span class="apex-stat-amount">&nbsp;</span>
                             </div>
                         </div>
-
-                        <!-- Total Stock Value -->
-                        <div class="col-6 col-md">
-                            <div class="trans-stat-card stat-paid">
-                                <div class="trans-stat-label">Stock Value</div>
-                                <div class="trans-stat-count"><?php echo $JwtData->GenSettings->CurrenySymbol . ' ' . number_format((float)($s->TotalStockValue ?? 0), 2); ?></div>
-                                <div class="trans-stat-amount">&nbsp;</div>
-                                <i class="bx bx-rupee trans-stat-icon"></i>
+                    </div>
+                    <div class="apex-stat-item" style="--stat-color:#8b5cf6;cursor:default;pointer-events:none">
+                        <div class="apex-stat-icon" style="background:#ede9fe"><i class="bx bx-calendar-plus" style="color:#8b5cf6"></i></div>
+                        <div class="apex-stat-body">
+                            <div class="apex-stat-label">Added</div>
+                            <div class="apex-stat-bottom" style="gap:8px">
+                                <span style="font-size:.72rem"><span class="fw-bold"><?php echo number_format((int)($s->AddedThisMonth ?? 0)); ?></span> Month</span>
+                                <span style="font-size:.72rem"><span class="fw-bold"><?php echo number_format((int)($s->AddedThisFY ?? 0)); ?></span> FY</span>
+                                <span style="font-size:.72rem"><span class="fw-bold"><?php echo number_format((int)($s->RecentlyUpdated ?? 0)); ?></span> 7d</span>
                             </div>
                         </div>
-
-                        <!-- Added (Month / FY / Recent) -->
-                        <div class="col-6 col-md">
-                            <div class="trans-stat-card stat-active">
-                                <div class="trans-stat-label">Added</div>
-                                <div class="trans-stat-count"><?php echo number_format((int)($s->AddedThisMonth ?? 0)); ?> <span style="font-size:.7rem;font-weight:400;">this month</span></div>
-                                <div class="trans-stat-amount">
-                                    <?php echo number_format((int)($s->AddedThisFY ?? 0)); ?> this FY &nbsp;|&nbsp;
-                                    <?php echo number_format((int)($s->RecentlyUpdated ?? 0)); ?> updated (7d)
-                                </div>
-                                <i class="bx bx-calendar-plus trans-stat-icon"></i>
+                    </div>
+                    <div class="apex-stat-item" style="--stat-color:#ef4444;cursor:default;pointer-events:none">
+                        <div class="apex-stat-icon" style="background:#fee2e2"><i class="bx bx-error" style="color:#ef4444"></i></div>
+                        <div class="apex-stat-body">
+                            <div class="apex-stat-label">Low Stock</div>
+                            <div class="apex-stat-bottom">
+                                <span class="apex-stat-count"><?php echo number_format((int)($s->LowStockItems ?? 0)); ?></span>
+                                <span class="apex-stat-amount">&nbsp;</span>
                             </div>
                         </div>
-
-                        <!-- Low Stock -->
-                        <div class="col-6 col-md">
-                            <div class="trans-stat-card stat-draft">
-                                <div class="trans-stat-label">Low Stock</div>
-                                <div class="trans-stat-count"><?php echo number_format((int)($s->LowStockItems ?? 0)); ?></div>
-                                <div class="trans-stat-amount">&nbsp;</div>
-                                <i class="bx bx-error trans-stat-icon"></i>
+                    </div>
+                    <div class="apex-stat-item" style="--stat-color:#64748b;cursor:default;pointer-events:none">
+                        <div class="apex-stat-icon" style="background:#f1f5f9"><i class="bx bx-block" style="color:#64748b"></i></div>
+                        <div class="apex-stat-body">
+                            <div class="apex-stat-label">Not For Sale</div>
+                            <div class="apex-stat-bottom">
+                                <span class="apex-stat-count"><?php echo number_format((int)($s->NotForSale ?? 0)); ?></span>
+                                <span class="apex-stat-amount">&nbsp;</span>
                             </div>
                         </div>
+                    </div>
+                </div>
 
-                        <!-- Not For Sale -->
-                        <div class="col-6 col-md">
-                            <div class="trans-stat-card stat-converted">
-                                <div class="trans-stat-label">Not For Sale</div>
-                                <div class="trans-stat-count"><?php echo number_format((int)($s->NotForSale ?? 0)); ?></div>
-                                <div class="trans-stat-amount">&nbsp;</div>
-                                <i class="bx bx-block trans-stat-icon"></i>
-                            </div>
-                        </div>
-
-                    </div><!-- /stats row -->
+                <div class="container-xxl flex-grow-1 py-3">
 
                     <div class="card">
+
+                        <!-- Filter Row -->
+                        <div class="apex-filter-row">
+                            <div class="apex-search-wrap">
+                                <i class="bx bx-search apex-search-icon"></i>
+                                <input type="text" class="apex-search-input SearchDetails" id="SearchDetails" placeholder="Search items...">
+                                <i class="bx bx-x r2k-clear d-none" id="clearSearch"></i>
+                            </div>
+                            <div class="apex-filter-spacer"></div>
+                            <a href="javascript:void(0);" class="apex-icon-btn PageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
+                            <a href="javascript:void(0);" class="apex-icon-btn <?php echo ($ActiveTabData == 'item' || $ActiveTabData == 'group') ? '' : 'd-none'; ?>" id="btnSyncProductsCache" title="Sync Items Cache"><i class="bx bx-planet"></i></a>
+                            <a href="javascript:void(0);" class="apex-icon-btn <?php echo $ActiveTabData == 'category' ? '' : 'd-none'; ?>" id="btnSyncCategoriesCache" title="Sync Categories Cache"><i class="bx bx-planet"></i></a>
+                            <div class="btn-group" id="ActionsDD-Div">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="actionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="bx bx-slider-alt"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="actionsDropdown">
+                                    <li class="d-none" id="CloneOption">
+                                        <a class="dropdown-item" href="javascript:void(0);" id="btnClone"><i class="bx bx-duplicate me-1"></i> Clone</a>
+                                    </li>
+                                    <li class="d-none" id="DeleteOption">
+                                        <a class="dropdown-item text-danger" href="javascript:void(0);" id="btnDelete"><i class="bx bx-trash me-1"></i> Delete</a>
+                                    </li>
+                                    <li class="dropdown-submenu">
+                                        <a class="dropdown-item" href="javascript:void(0);"><i class="bx bx-export me-1"></i> Export</a>
+                                        <ul class="dropdown-menu">
+                                            <li><a class="dropdown-item" href="javascript:void(0);" id="btnExportPrint"><i class="bx bx-printer me-1"></i> Print</a></li>
+                                            <li><a class="dropdown-item" href="javascript:void(0);" id="btnExportCSV"><i class="bx bx-file me-1"></i> CSV</a></li>
+                                            <li><a class="dropdown-item" href="javascript:void(0);" id="btnExportExcel"><i class="bx bxs-file-export me-1"></i> Excel</a></li>
+                                            <li><a class="dropdown-item" href="javascript:void(0);" id="btnExportPDF"><i class="bx bxs-file-pdf me-1"></i> PDF</a></li>
+                                        </ul>
+                                    </li>
+                                </ul>
+                            </div>
+                            <a href="javascript:void(0);" class="btn btn-primary btn-sm addItem <?php echo $ActiveTabData == 'item' ? '' : 'd-none'; ?>" id="NewItem"><i class="bx bx-plus me-1"></i> Create Item</a>
+                            <a href="javascript:void(0);" class="btn btn-primary btn-sm <?php echo $ActiveTabData == 'group' ? '' : 'd-none'; ?>" id="NewComboItem"><i class="bx bx-git-merge me-1"></i> Create Group</a>
+                            <a href="javascript:void(0);" class="btn btn-primary btn-sm addCategory <?php echo $ActiveTabData == 'category' ? '' : 'd-none'; ?>" id="NewCategory"><i class="bx bx-plus me-1"></i> Create Category</a>
+                            <a href="javascript:void(0);" class="btn btn-primary btn-sm addSizes <?php echo $ActiveTabData == 'size' ? '' : 'd-none'; ?>" id="NewSizes"><i class="bx bx-plus me-1"></i> Create Size</a>
+                            <a href="javascript:void(0);" class="btn btn-primary btn-sm addBrands <?php echo $ActiveTabData == 'brand' ? '' : 'd-none'; ?>" id="NewBrands"><i class="bx bx-plus me-1"></i> Create Brand</a>
+                        </div>
+
+                        <!-- Tabs Row -->
+                        <div class="apex-tabs-row">
+                            <ul class="nav trans-status-tabs" role="tablist">
+                                <li class="nav-item">
+                                    <a class="nav-link <?php echo $ActiveTabData == 'item' ? 'active' : ''; ?> TabPane disabled" data-id="Item" role="tab" data-bs-toggle="tab" data-bs-target="#NavItemPage" href="javascript:void(0);">
+                                        <i class="bx bx-package me-1"></i> Items
+                                        <span class="trans-tab-count" id="productTotalCount"><?php echo $ProductTotalCount; ?></span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link <?php echo $ActiveTabData == 'group' ? 'active' : ''; ?> TabPane disabled" data-id="Groups" role="tab" data-bs-toggle="tab" data-bs-target="#NavGroupsPage" href="javascript:void(0);">
+                                        <i class="bx bx-git-merge me-1"></i> Groups
+                                        <span class="trans-tab-count d-none" id="groupTotalCount"></span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link <?php echo $ActiveTabData == 'category' ? 'active' : ''; ?> TabPane disabled" data-id="Categories" role="tab" data-bs-toggle="tab" data-bs-target="#NavCategoriesPage" href="javascript:void(0);">
+                                        <i class="bx bx-layer me-1"></i> Categories
+                                        <span class="trans-tab-count d-none"></span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link TabPane disabled d-none" data-id="Sizes" role="tab" data-bs-toggle="tab" data-bs-target="#NavSizesPage" href="javascript:void(0);">
+                                        <i class="bx bx-ruler me-1"></i> Sizes
+                                        <span class="trans-tab-count d-none"></span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link TabPane disabled d-none" data-id="Brands" role="tab" data-bs-toggle="tab" data-bs-target="#NavBrandsPage" href="javascript:void(0);">
+                                        <i class="bx bx-badge-check me-1"></i> Brands
+                                        <span class="trans-tab-count d-none"></span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+
                         <div class="row">
                             <div class="col-md-12">
-
-                                <!-- Toolbar -->
-                                <div class="trans-toolbar">
-                                    <div class="trans-toolbar-tabs">
-                                        <ul class="nav trans-status-tabs" role="tablist">
-                                            <li class="nav-item">
-                                                <a class="nav-link <?php echo $ActiveTabData == 'item' ? 'active' : ''; ?> TabPane disabled" data-id="Item" role="tab" data-bs-toggle="tab" data-bs-target="#NavItemPage" href="javascript:void(0);">
-                                                    <i class="bx bx-package me-1"></i> Items
-                                                    <span class="trans-tab-count" id="productTotalCount"><?php echo $ProductTotalCount; ?></span>
-                                                </a>
-                                            </li>
-                                            <li class="nav-item">
-                                                <a class="nav-link <?php echo $ActiveTabData == 'group' ? 'active' : ''; ?> TabPane disabled" data-id="Groups" role="tab" data-bs-toggle="tab" data-bs-target="#NavGroupsPage" href="javascript:void(0);">
-                                                    <i class="bx bx-git-merge me-1"></i> Groups
-                                                    <span class="trans-tab-count d-none" id="groupTotalCount"></span>
-                                                </a>
-                                            </li>
-                                            <li class="nav-item">
-                                                <a class="nav-link <?php echo $ActiveTabData == 'category' ? 'active' : ''; ?> TabPane disabled" data-id="Categories" role="tab" data-bs-toggle="tab" data-bs-target="#NavCategoriesPage" href="javascript:void(0);">
-                                                    <i class="bx bx-layer me-1"></i> Categories
-                                                    <span class="trans-tab-count d-none"></span>
-                                                </a>
-                                            </li>
-                                            <li class="nav-item">
-                                                <a class="nav-link TabPane disabled d-none" data-id="Sizes" role="tab" data-bs-toggle="tab" data-bs-target="#NavSizesPage" href="javascript:void(0);">
-                                                    <i class="bx bx-ruler me-1"></i> Sizes
-                                                    <span class="trans-tab-count d-none"></span>
-                                                </a>
-                                            </li>
-                                            <li class="nav-item">
-                                                <a class="nav-link TabPane disabled d-none" data-id="Brands" role="tab" data-bs-toggle="tab" data-bs-target="#NavBrandsPage" href="javascript:void(0);">
-                                                    <i class="bx bx-badge-check me-1"></i> Brands
-                                                    <span class="trans-tab-count d-none"></span>
-                                                </a>
-                                            </li>
-                                        </ul>
-                                    </div>
-                                    <div class="trans-toolbar-actions">
-                                        <a href="javascript:void(0);" class="r2k-icon-btn PageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
-                                        <a href="javascript:void(0);" class="r2k-icon-btn <?php echo ($ActiveTabData == 'item' || $ActiveTabData == 'group') ? '' : 'd-none'; ?>" id="btnSyncProductsCache" title="Sync Items Cache"><i class="bx bx-planet"></i></a>
-                                        <a href="javascript:void(0);" class="r2k-icon-btn <?php echo $ActiveTabData == 'category' ? '' : 'd-none'; ?>" id="btnSyncCategoriesCache" title="Sync Categories Cache"><i class="bx bx-planet"></i></a>
-                                        <div class="r2k-search-wrap">
-                                            <i class="bx bx-search r2k-si"></i>
-                                            <input type="text" class="SearchDetails" id="SearchDetails" placeholder="Search items...">
-                                            <i class="bx bx-x r2k-clear d-none" id="clearSearch"></i>
-                                        </div>
-                                        <div class="btn-group r2k-toolbar-actions" id="ActionsDD-Div">
-                                            <button class="r2k-dd-btn dropdown-toggle" type="button" id="actionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                                                <i class="bx bx-slider-alt"></i>
-                                            </button>
-                                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="actionsDropdown">
-                                                <li class="d-none" id="CloneOption">
-                                                    <a class="dropdown-item" href="javascript:void(0);" id="btnClone"><i class="bx bx-duplicate me-1"></i> Clone</a>
-                                                </li>
-                                                <li class="d-none" id="DeleteOption">
-                                                    <a class="dropdown-item text-danger" href="javascript:void(0);" id="btnDelete"><i class="bx bx-trash me-1"></i> Delete</a>
-                                                </li>
-                                                <li class="dropdown-submenu">
-                                                    <a class="dropdown-item" href="javascript:void(0);"><i class="bx bx-export me-1"></i> Export</a>
-                                                    <ul class="dropdown-menu">
-                                                        <li><a class="dropdown-item" href="javascript:void(0);" id="btnExportPrint"><i class="bx bx-printer me-1"></i> Print</a></li>
-                                                        <li><a class="dropdown-item" href="javascript:void(0);" id="btnExportCSV"><i class="bx bx-file me-1"></i> CSV</a></li>
-                                                        <li><a class="dropdown-item" href="javascript:void(0);" id="btnExportExcel"><i class="bx bxs-file-export me-1"></i> Excel</a></li>
-                                                        <li><a class="dropdown-item" href="javascript:void(0);" id="btnExportPDF"><i class="bx bxs-file-pdf me-1"></i> PDF</a></li>
-                                                    </ul>
-                                                </li>
-                                            </ul>
-                                        </div>
-                                    </div>
-                                </div>
                                 <div class="tab-content p-0">
 
                                     <div class="tab-pane fade <?php echo $ActiveTabData == 'item' ? 'show active' : ''; ?>" id="NavItemPage" role="tabpanel">
@@ -489,6 +483,7 @@ $(function() {
             SelectedUIDs = [];
             ActiveTabId = TabValue;
             ActiveTabModuleId = $(this).data('moduleid');
+            $('#ProductStatsRow').toggleClass('d-none', TabValue === 'Groups');
             $('#NewItem,#NewComboItem,#NewCategory,#NewSizes,#NewBrands,#CloneOption,#ItemCategory-Div').addClass('d-none');
             $('#SearchDetails').val('');
             PageNo = 0;
@@ -924,6 +919,12 @@ $(function() {
                 retrieveProductDetails(getValue, false);
             }
         }
+    });
+
+    $(document).on('click', '.CloneProduct', function(e) {
+        e.preventDefault();
+        var uid = $(this).data('uid');
+        if (uid) { retrieveProductDetails(uid, true); }
     });
 
     $('#btnClone').click(function(e) {

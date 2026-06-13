@@ -9,7 +9,8 @@ if (!empty($DataLists)):
     foreach ($DataLists as $list):
         $SerialNumber++;
         $uid    = (int)$list->TablePrimaryUID;
-        $name   = htmlspecialchars($list->Name ?? '—');
+        $_sal   = !empty($list->SalutationName) ? htmlspecialchars($list->SalutationName) . '. ' : '';
+        $name   = $_sal . htmlspecialchars($list->Name ?? '—');
         $imgSrc = !empty($list->Image) ? $cdnUrl . $list->Image : null;
 
         // 2-letter initials

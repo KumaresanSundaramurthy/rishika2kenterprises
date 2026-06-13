@@ -139,9 +139,36 @@ const UpstashService = (() => {
         return (await _cmd(['HDEL', key, ...fields])) > 0;
     }
 
+    /**
+     * PIPELINE — execute multiple commands in one HTTP round-trip.
+     * commands: [['GET','key1'], ['GET','key2'], ...]
+     * Returns an array of raw result values (null on miss or error).
+     * Mirrors PHP Upstashservice::pipeline().
+     */
+    async function pipeline(commands) {
+        if (!_on || !commands.length) return commands.map(() => null);
+        try {
+            const res = await fetch(_url.replace(/\/$/, '') + '/pipeline', {
+                method:  'POST',
+                headers: {
+                    'Authorization': 'Bearer ' + _token,
+                    'Content-Type':  'application/json',
+                },
+                body: JSON.stringify(commands),
+            });
+            if (!res.ok) return commands.map(() => null);
+            const json = await res.json();
+            return Array.isArray(json)
+                ? json.map(r => (r && r.result !== undefined) ? r.result : null)
+                : commands.map(() => null);
+        } catch {
+            return commands.map(() => null);
+        }
+    }
+
     /** True when Upstash URL + token are configured. */
     function isEnabled() { return _on; }
 
-    return { get, set, del, hgetall, hget, hset, hdel, orgKey, isEnabled };
+    return { get, set, del, hgetall, hget, hset, hdel, pipeline, orgKey, isEnabled };
 
 })();

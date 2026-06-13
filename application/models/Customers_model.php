@@ -21,10 +21,10 @@ class Customers_model extends CI_Model {
             $this->WriteDb->db_debug = FALSE;
             $result = $this->WriteDb->query(
                 "SELECT
-                    COALESCE((SELECT SUM(Amount) FROM Transaction.CustomerCreditNoteTbl
-                              WHERE OrgUID=? AND CustomerUID=? AND Status='Pending' AND IsCancelled=0 AND IsDeleted=0 AND PaymentCleared=0), 0) AS CreditTotal,
-                    COALESCE((SELECT SUM(Amount) FROM Transaction.CustomerDebitNoteTbl
-                              WHERE OrgUID=? AND CustomerUID=? AND Status='Pending' AND IsDeleted=0), 0) AS DebitTotal",
+                    COALESCE((SELECT SUM(Amount) FROM Transaction.TransCreditNoteTbl
+                              WHERE OrgUID=? AND PartyUID=? AND PartyType='C' AND Status='Pending' AND IsCancelled=0 AND IsDeleted=0 AND PaymentCleared=0), 0) AS CreditTotal,
+                    COALESCE((SELECT SUM(Amount) FROM Transaction.TransDebitNoteTbl
+                              WHERE OrgUID=? AND PartyUID=? AND PartyType='C' AND Status='Pending' AND IsDeleted=0), 0) AS DebitTotal",
                 [(int)$orgUID, (int)$customerUID, (int)$orgUID, (int)$customerUID]
             );
             $row = $result ? $result->row() : null;
@@ -320,6 +320,8 @@ class Customers_model extends CI_Model {
                 'Customers.CustomerUID AS TablePrimaryUID',
                 'Customers.CustomerUID AS CustomerUID',
                 'Customers.OrgUID AS OrgUID',
+                'Customers.SalutationUID AS SalutationUID',
+                'Sal.SalutationName AS SalutationName',
                 'Customers.Name AS Name',
                 'Customers.Area AS Area',
                 'Customers.CountryISO2 AS CountryISO2',
@@ -379,6 +381,11 @@ class Customers_model extends CI_Model {
             $this->ReadDb->join(
                 'Customers.CustOpeningBalanceTbl as COB',
                 'COB.CustomerUID = Customers.CustomerUID AND COB.OrgUID = Customers.OrgUID AND COB.IsDeleted = 0',
+                'left'
+            );
+            $this->ReadDb->join(
+                'Global.SalutationTbl as Sal',
+                'Sal.SalutationUID = Customers.SalutationUID AND Sal.IsDeleted = 0',
                 'left'
             );
             $this->ReadDb->where($baseWhere);
@@ -597,7 +604,7 @@ class Customers_model extends CI_Model {
             $this->ReadDb->select('COALESCE(SUM(COALESCE(T.BalanceAmount, T.NetAmount)), 0) AS total');
             $this->ReadDb->from('`Transaction`.TransactionsTbl T');
             $this->ReadDb->join(
-                '`Transaction`.CustomerCreditNoteTbl CN',
+                '`Transaction`.TransCreditNoteTbl CN',
                 'CN.SourceTransUID = T.TransUID AND CN.SourceModuleUID = 106 AND CN.IsDeleted = 0 AND CN.OrgUID = ' . (int)$orgUID,
                 'inner'
             );
@@ -623,12 +630,13 @@ class Customers_model extends CI_Model {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('COALESCE(SUM(Amount), 0) AS total');
-            $this->ReadDb->from('Transaction.CustomerCreditNoteTbl');
+            $this->ReadDb->from('Transaction.TransCreditNoteTbl');
             $this->ReadDb->where([
-                'OrgUID'      => (int)$orgUID,
-                'CustomerUID' => (int)$customerUID,
-                'Status'      => 'Pending',
-                'IsDeleted'   => 0,
+                'OrgUID'     => (int)$orgUID,
+                'PartyUID'   => (int)$customerUID,
+                'PartyType'  => 'C',
+                'Status'     => 'Pending',
+                'IsDeleted'  => 0,
             ]);
             $query = $this->ReadDb->get();
             if (!$query) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');

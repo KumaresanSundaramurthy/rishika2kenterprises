@@ -8,123 +8,82 @@ $this->load->view('common/transactions/header'); ?>
 
         <div class="layout-page">
 
-            <div class="content-wrapper">
-                <div class="container-xxl flex-grow-1 container-p-y">
+            <div class="content-wrapper apex-content">
+                <?php $this->load->view('common/apex/page_header', [
+                    'pageIcon'        => 'bx-file-text',
+                    'pageIconBg'      => '#fef3c7',
+                    'pageIconColor'   => '#f59e0b',
+                    'pageTitle'       => $PageTitle       ?? 'Sales Invoices',
+                    'pageDescription' => $PageDescription ?? 'Create and manage customer invoices',
+                ]); ?>
+                <?php
+                // ── Build summary numbers ─────────────────────────
+                $stats       = $SummaryStats ?? [];
+                $cur         = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
+                $dec         = $JwtData->GenSettings->DecimalPoints ?? 2;
 
-                    <?php
-                    // ── Build summary numbers ─────────────────────────
-                    $stats       = $SummaryStats ?? [];
-                    $cur         = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-                    $dec         = $JwtData->GenSettings->DecimalPoints ?? 2;
+                $activeInvStatuses = ['Issued', 'Partial', 'Paid'];
+                $cntAll     = array_sum(array_map(fn($s) => $stats[$s]['count']  ?? 0, $activeInvStatuses));
+                $amtAll     = array_sum(array_map(fn($s) => $stats[$s]['amount'] ?? 0, $activeInvStatuses));
+                $cntPending = ($stats['Issued']['count']   ?? 0) + ($stats['Partial']['count'] ?? 0);
+                $amtPending = ($stats['Issued']['amount']  ?? 0) + ($stats['Partial']['amount'] ?? 0);
+                $cntPaid    = $stats['Paid']['count']  ?? 0;
+                $amtPaid    = $stats['Paid']['amount'] ?? 0;
+                $cntDraft   = $stats['Draft']['count'] ?? 0;
 
-                    $activeInvStatuses = ['Issued', 'Partial', 'Paid'];
-                    $cntAll      = array_sum(array_map(fn($s) => $stats[$s]['count']  ?? 0, $activeInvStatuses));
-                    $amtAll      = array_sum(array_map(fn($s) => $stats[$s]['amount'] ?? 0, $activeInvStatuses));
-                    $cntPending  = ($stats['Issued']['count']   ?? 0) + ($stats['Partial']['count'] ?? 0);
-                    $amtPending  = ($stats['Issued']['amount']  ?? 0) + ($stats['Partial']['amount'] ?? 0);
-                    $cntPaid     = $stats['Paid']['count']      ?? 0;
-                    $amtPaid     = $stats['Paid']['amount']     ?? 0;
-                    $cntDraft    = $stats['Draft']['count']     ?? 0;
-                    $cntOverdue  = $stats['Overdue']['count']   ?? 0;
-
-                    function fmtAmt($val, $sym, $dec) {
-                        return $sym . ' ' . number_format((float)$val, $dec, '.', ',');
-                    }
-                    ?>
-
-                    <!-- ── Page Header ──────────────────────────────────────── -->
-                    <div class="trans-page-header">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="trans-ph-icon" style="background:#dbeafe;">
-                                <i class="bx bx-receipt" style="color:#3b82f6;"></i>
-                            </div>
-                            <div>
-                                <h5 class="trans-ph-title mb-0"><?php echo htmlspecialchars($PageTitle ?? 'Invoices'); ?></h5>
-                                <?php if (!empty($PageDescription)): ?>
-                                <div class="text-muted" style="font-size:.76rem;"><?php echo htmlspecialchars($PageDescription); ?></div>
-                                <?php endif; ?>
-                            </div>
+                $statsItems = [
+                    ['label' => 'All Invoices', 'status' => 'All',        'icon' => 'bx-receipt',      'iconBg' => '#fef3c7', 'iconColor' => '#f59e0b', 'count' => $cntAll,     'amount' => $amtAll],
+                    ['label' => 'Pending',      'status' => 'InvPending', 'icon' => 'bx-time-five',    'iconBg' => '#fff7ed', 'iconColor' => '#f97316', 'count' => $cntPending, 'amount' => $amtPending],
+                    ['label' => 'Paid',         'status' => 'Paid',       'icon' => 'bx-check-circle', 'iconBg' => '#dcfce7', 'iconColor' => '#16a34a', 'count' => $cntPaid,    'amount' => $amtPaid],
+                    ['label' => 'Drafts',       'status' => 'Draft',      'icon' => 'bx-edit',          'iconBg' => '#f1f5f9', 'iconColor' => '#64748b', 'count' => $cntDraft,   'amount' => 0],
+                ];
+                ?>
+                <div class="apex-stats-strip">
+                    <?php foreach ($statsItems as $stat): ?>
+                    <div class="apex-stat-item <?php echo $stat['status'] === 'All' ? 'active' : ''; ?>" data-status="<?php echo $stat['status']; ?>" data-stat-filter="<?php echo $stat['status']; ?>" style="--stat-color:<?php echo $stat['iconColor']; ?>">
+                        <div class="apex-stat-icon" style="background:<?php echo $stat['iconBg']; ?>;">
+                            <i class="bx <?php echo $stat['icon']; ?>" style="color:<?php echo $stat['iconColor']; ?>;"></i>
                         </div>
-                        <div class="d-flex align-items-center gap-2">
-                            <?php $this->load->view('common/partials/export_btn'); ?>
-                            <a href="/invoices/create" class="btn btn-primary me-1">
-                                <i class="bx bx-plus me-1"></i>New Invoice
-                            </a>
+                        <div class="apex-stat-body">
+                            <div class="apex-stat-label"><?php echo $stat['label']; ?></div>
+                            <div class="apex-stat-bottom">
+                                <span class="apex-stat-count"><?php echo $stat['count']; ?></span>
+                                <span class="apex-stat-amount"><?php echo $cur . ' ' . number_format((float)$stat['amount'], $dec); ?></span>
+                            </div>
                         </div>
                     </div>
+                    <?php endforeach; ?>
+                </div>
 
-                    <!-- ── Stat Cards ──────────────────────────────────────── -->
-                    <div class="trans-stats-section">
-                        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
-                            <a href="javascript:void(0);" class="trans-stat-card stat-all active-stat" data-stat-filter="All">
-                                <div class="tsc-icon-wrap"><i class="bx bx-receipt"></i></div>
-                                <div class="tsc-body">
-                                    <div class="trans-stat-label">All Invoices</div>
-                                    <div class="trans-stat-count"><?php echo number_format($cntAll); ?></div>
-                                    <div class="trans-stat-amount"><?php echo fmtAmt($amtAll, $cur, $dec); ?></div>
-                                </div>
-                            </a>
-                            <a href="javascript:void(0);" class="trans-stat-card stat-active" data-stat-filter="InvPending">
-                                <div class="tsc-icon-wrap"><i class="bx bx-time-five"></i></div>
-                                <div class="tsc-body">
-                                    <div class="trans-stat-label">Pending</div>
-                                    <div class="trans-stat-count"><?php echo number_format($cntPending); ?></div>
-                                    <div class="trans-stat-amount"><?php echo fmtAmt($amtPending, $cur, $dec); ?></div>
-                                </div>
-                            </a>
-                            <a href="javascript:void(0);" class="trans-stat-card stat-paid" data-stat-filter="Paid">
-                                <div class="tsc-icon-wrap"><i class="bx bx-check-circle"></i></div>
-                                <div class="tsc-body">
-                                    <div class="trans-stat-label">Paid</div>
-                                    <div class="trans-stat-count"><?php echo number_format($cntPaid); ?></div>
-                                    <div class="trans-stat-amount"><?php echo fmtAmt($amtPaid, $cur, $dec); ?></div>
-                                </div>
-                            </a>
-                            <a href="javascript:void(0);" class="trans-stat-card stat-draft" data-stat-filter="Draft">
-                                <div class="tsc-icon-wrap"><i class="bx bx-pencil"></i></div>
-                                <div class="tsc-body">
-                                    <div class="trans-stat-label">Drafts</div>
-                                    <div class="trans-stat-count"><?php echo number_format($cntDraft); ?></div>
-                                    <div class="trans-stat-amount">&nbsp;</div>
-                                </div>
-                            </a>
-                        </div>
-                    </div>
+                <div class="container-xxl flex-grow-1 py-3">
 
                     <!-- ── Main Card ───────────────────────────────────────── -->
                     <div class="card">
 
-                        <!-- Toolbar -->
-                        <div class="trans-toolbar">
-                            <div class="trans-toolbar-tabs">
-                                <ul class="nav trans-status-tabs" id="invStatusTabs" role="tablist">
-                                    <li class="nav-item"><a class="nav-link active inv-status-tab" data-status="All" href="javascript:void(0);">All <span class="inv-tab-count ms-1"><?php echo $ModAllCount; ?></span></a></li>
-                                    <li class="nav-item"><a class="nav-link inv-status-tab" data-status="InvPending" href="javascript:void(0);">Pending <span class="inv-tab-count ms-1 d-none"></span></a></li>
-                                    <li class="nav-item"><a class="nav-link inv-status-tab" data-status="Paid" href="javascript:void(0);">Paid <span class="inv-tab-count ms-1 d-none"></span></a></li>
-                                    <li class="nav-item"><a class="nav-link inv-status-tab" data-status="Cancelled" href="javascript:void(0);">Cancelled <span class="inv-tab-count ms-1 d-none"></span></a></li>
-                                    <li class="nav-item"><a class="nav-link inv-status-tab" data-status="Draft" href="javascript:void(0);">Drafts <span class="inv-tab-count ms-1 d-none"></span></a></li>
-                                    <li class="nav-item"><a class="nav-link inv-status-tab inv-cn-tab" data-status="CreditNotes" href="javascript:void(0);"><i class="bx bx-transfer-alt me-1"></i>Credit Notes <span class="inv-cn-count ms-1 d-none"></span></a></li>
-                                </ul>
+                        <!-- ── Filter Row ─────────────────────────────────── -->
+                        <div class="apex-filter-row">
+                            <div class="apex-search-wrap">
+                                <i class="bx bx-search apex-search-icon"></i>
+                                <input type="text" id="searchTransactionData" class="apex-search-input" placeholder="Invoice # or customer...">
+                                <i class="bx bx-x apex-search-clear d-none"></i>
                             </div>
-                            <div class="trans-toolbar-actions">
-                                <a href="javascript:void(0);" class="r2k-icon-btn pageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
-                                <?php $this->load->view('common/transactions/date_filter_btn'); ?>
-                                <?php $this->load->view('common/transactions/filter_bar', [
-                                    'FilterBarConfig' => [
-                                        'paymentStatus' => false,
-                                        'paymentMode'   => false,
-                                        'party'         => false,
-                                        'lastUpdated'   => false,
-                                        'PaymentTypes'  => $PaymentTypes ?? [],
-                                        'OrgUsers'      => $OrgUsers     ?? [],
-                                    ],
-                                ]); ?>
-                                <div class="r2k-search-wrap">
-                                    <i class="bx bx-search r2k-si"></i>
-                                    <input type="text" id="searchTransactionData" placeholder="Invoice # or customer...">
-                                    <i class="bx bx-x r2k-clear d-none"></i>
-                                </div>
-                            </div>
+                            <?php $this->load->view('common/transactions/date_filter_btn'); ?>
+                            <div class="apex-filter-spacer"></div>
+                            <a href="javascript:void(0);" class="apex-filter-btn pageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
+                            <?php $this->load->view('common/partials/export_btn'); ?>
+                            <a href="/invoices/create" class="btn btn-sm btn-primary"><i class="bx bx-plus me-1"></i>New Invoice</a>
+                        </div>
+
+                        <!-- ── Tabs Row ──────────────────────────────────── -->
+                        <div class="apex-tabs-row">
+                            <ul class="nav trans-status-tabs" id="invStatusTabs" role="tablist">
+                                <li class="nav-item"><a class="nav-link active inv-status-tab" data-status="All" href="javascript:void(0);">All <span class="inv-tab-count ms-1"><?php echo $ModAllCount; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link inv-status-tab" data-status="InvPending" href="javascript:void(0);">Pending <span class="inv-tab-count ms-1 d-none"></span></a></li>
+                                <li class="nav-item"><a class="nav-link inv-status-tab" data-status="Paid" href="javascript:void(0);">Paid <span class="inv-tab-count ms-1 d-none"></span></a></li>
+                                <li class="nav-item"><a class="nav-link inv-status-tab" data-status="Cancelled" href="javascript:void(0);">Cancelled <span class="inv-tab-count ms-1 d-none"></span></a></li>
+                                <li class="nav-item"><a class="nav-link inv-status-tab" data-status="Draft" href="javascript:void(0);">Drafts <span class="inv-tab-count ms-1 d-none"></span></a></li>
+                                <li class="nav-item"><a class="nav-link inv-status-tab inv-cn-tab" data-status="CreditNotes" href="javascript:void(0);"><i class="bx bx-transfer-alt me-1"></i>Credit Notes <span class="inv-cn-count ms-1 d-none"></span></a></li>
+                            </ul>
                         </div>
 
                         <!-- Invoice Table (hidden when Credit Notes tab is active) -->
@@ -413,8 +372,8 @@ $(function () {
     // ── Stat card click → filter by status ─────────────────
     $(document).on('click', '[data-stat-filter]', function () {
         var status = $(this).data('stat-filter') || 'All';
-        $('.trans-stat-card').removeClass('active-stat');
-        $(this).addClass('active-stat');
+        $('.apex-stat-item').removeClass('active');
+        $(this).addClass('active');
         // Sync tabs
         $('.inv-status-tab').removeClass('active');
         $('.inv-status-tab[data-status="' + status + '"]').addClass('active');
@@ -428,9 +387,9 @@ $(function () {
         e.preventDefault();
         $('.inv-status-tab').removeClass('active');
         $(this).addClass('active');
-        $('.trans-stat-card').removeClass('active-stat');
+        $('.apex-stat-item').removeClass('active');
         var status = $(this).data('status') || 'All';
-        $('[data-stat-filter="' + status + '"]').addClass('active-stat');
+        $('.apex-stat-item[data-stat-filter="' + status + '"]').addClass('active');
         Filter.Status = status;
         PageNo = 1;
         getInvoicesDetails();
@@ -682,13 +641,13 @@ function updateSummaryStats(stats) {
     var cntPaid    = cnt('Paid'),  amtPaid  = amt('Paid');
     var cntDraft   = cnt('Draft');
 
-    $('.stat-all    .trans-stat-count').text(cntAll.toLocaleString());
-    $('.stat-all    .trans-stat-amount').text(fmtAmt(amtAll));
-    $('.stat-active .trans-stat-count').text(cntPending.toLocaleString());
-    $('.stat-active .trans-stat-amount').text(fmtAmt(amtPending));
-    $('.stat-paid   .trans-stat-count').text(cntPaid.toLocaleString());
-    $('.stat-paid   .trans-stat-amount').text(fmtAmt(amtPaid));
-    $('.stat-draft  .trans-stat-count').text(cntDraft.toLocaleString());
+    $('.apex-stat-item[data-stat-filter="All"]        .apex-stat-count').text(cntAll.toLocaleString());
+    $('.apex-stat-item[data-stat-filter="All"]        .apex-stat-amount').text(fmtAmt(amtAll));
+    $('.apex-stat-item[data-stat-filter="InvPending"] .apex-stat-count').text(cntPending.toLocaleString());
+    $('.apex-stat-item[data-stat-filter="InvPending"] .apex-stat-amount').text(fmtAmt(amtPending));
+    $('.apex-stat-item[data-stat-filter="Paid"]       .apex-stat-count').text(cntPaid.toLocaleString());
+    $('.apex-stat-item[data-stat-filter="Paid"]       .apex-stat-amount').text(fmtAmt(amtPaid));
+    $('.apex-stat-item[data-stat-filter="Draft"]      .apex-stat-count').text(cntDraft.toLocaleString());
 }
 
 // ── Detail HTML builder ─────────────────────────────────────────

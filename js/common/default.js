@@ -195,6 +195,8 @@ $(document).ready(function () {
         }
     });
 
+    ApexHeader.init();
+
     $(document).on('click', '.preview-image', function() {
         var imageSrc = $(this).data('src');
         if (imageSrc) {
@@ -1353,6 +1355,74 @@ function toastSuccess(msg) {
 function toastError(msg) {
     Swal.fire({ toast: true, position: 'top-end', icon: 'error', title: msg, showConfirmButton: false, timer: 3000 });
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   ApexHeader — User dropdown + Quick Access modal (Ctrl+K)
+   Encapsulates all apex page-header behaviour; loaded once via default.js.
+   ══════════════════════════════════════════════════════════════════ */
+var ApexHeader = (function ($) {
+    'use strict';
+
+    function _setUserDropdown(open) {
+        $('#apexUserDropdown').toggleClass('open', open);
+        $('#apexUserBtn .apex-user-caret')
+            .toggleClass('bx-chevron-up',   open)
+            .toggleClass('bx-chevron-down', !open);
+    }
+
+    function _openQA() {
+        $('#apexQuickAccessModal').addClass('open');
+        setTimeout(function () {
+            var el = document.getElementById('apexQuickSearchInput');
+            if (el) el.focus();
+        }, 60);
+    }
+
+    function _closeQA() {
+        $('#apexQuickAccessModal').removeClass('open');
+        $('#apexQuickSearchInput').val('');
+    }
+
+    function init() {
+        if (!$('#apexUserBtn').length && !$('#apexHeaderSearch').length) return;
+
+        // ── User dropdown ────────────────────────────────────────────────
+        $(document).on('click', '#apexUserBtn', function (e) {
+            e.stopPropagation();
+            _setUserDropdown(!$('#apexUserDropdown').hasClass('open'));
+        });
+        $(document).on('click.apexUserClose', function (e) {
+            if (!$(e.target).closest('#apexUserWrap').length) {
+                _setUserDropdown(false);
+            }
+        });
+
+        // ── Quick Access: open ───────────────────────────────────────────
+        $(document).on('click', '#apexHeaderSearch', _openQA);
+        $(document).on('keydown.apexQA', function (e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                _openQA();
+            }
+            if (e.key === 'Escape' && $('#apexQuickAccessModal').hasClass('open')) {
+                _closeQA();
+            }
+        });
+
+        // ── Quick Access: close ──────────────────────────────────────────
+        $(document).on('click', '#apexQuickAccessClose', _closeQA);
+        $(document).on('click', '#apexQuickAccessModal', function (e) {
+            if ($(e.target).is('#apexQuickAccessModal')) _closeQA();
+        });
+    }
+
+    return {
+        init            : init,
+        openQuickAccess : _openQA,
+        closeQuickAccess: _closeQA
+    };
+
+}(jQuery));
 
 // ── Auto-dropup for 3-dot actions menus ──────────────────────────────────
 // When the dropdown would overflow the bottom of the viewport, flip it upward.

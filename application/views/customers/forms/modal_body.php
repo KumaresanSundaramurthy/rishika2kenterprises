@@ -23,6 +23,12 @@ $d       = $FormData; // shorthand, null for add
             <h5 class="modal-title mb-0">General Details</h5>
         </div>
         <div class="row">
+            <div class="mb-3 col-md-2">
+                <label for="CM_SalutationUID" class="form-label">Salutation</label>
+                <select class="form-select" id="CM_SalutationUID" name="SalutationUID">
+                    <option value="">—</option>
+                </select>
+            </div>
             <div class="mb-3 col-md-4">
                 <label for="CM_Name" class="form-label">Customer Name <span class="text-danger">*</span></label>
                 <input class="form-control" type="text" id="CM_Name" name="Name" placeholder="Name" maxlength="100" required

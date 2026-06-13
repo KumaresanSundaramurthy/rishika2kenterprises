@@ -293,11 +293,10 @@ class Global_model extends CI_Model {
 
         $this->EndReturnData = new stdClass();
         try {
-            
-            $TPDIKey    = $this->redisservice->orgKey('tax-per-detail-' . md5(json_encode($WhereArrayCondition)));
-            $TPDICached = $this->upstashservice->get($TPDIKey);
-            if ($TPDICached !== null) {
-                $this->EndReturnData->Data = array_map(fn($r) => is_array($r) ? (object) $r : $r, (array)$TPDICached);
+            $cacheKey = $this->redisservice->orgKey('tax-per-detail');
+            $cached   = $this->upstashservice->get($cacheKey);
+            if ($cached !== null) {
+                $all = array_map(fn($r) => is_array($r) ? (object) $r : $r, (array)$cached);
             } else {
                 $this->ReadDb->db_debug = FALSE;
                 $this->ReadDb->select([
@@ -311,19 +310,27 @@ class Global_model extends CI_Model {
                 ]);
                 $this->ReadDb->from('Global.TaxDetailsTbl as TaxDetail');
                 $this->ReadDb->where(['TaxDetail.IsDeleted' => 0, 'TaxDetail.IsActive' => 1]);
-                if (sizeof($WhereArrayCondition) > 0) {
-                    $this->ReadDb->where($WhereArrayCondition);
-                }
                 $this->ReadDb->order_by('TaxDetail.Sorting', 'ASC');
                 $query = $this->ReadDb->get();
                 if (!$query) {
                     $error = $this->ReadDb->error();
                     throw new Exception($error['message']);
                 }
-                $this->EndReturnData->Data = $query->result();
-                $this->upstashservice->set($TPDIKey, $this->EndReturnData->Data, (int)getenv('ONEYEAR_EXPIRE_SECS'));
+                $all = $query->result();
+                $this->upstashservice->set($cacheKey, $all, (int)getenv('ONEYEAR_EXPIRE_SECS'));
             }
 
+            if (!empty($WhereArrayCondition)) {
+                $all = array_values(array_filter($all, function ($row) use ($WhereArrayCondition) {
+                    foreach ($WhereArrayCondition as $col => $val) {
+                        $field = strpos($col, '.') !== false ? explode('.', $col)[1] : $col;
+                        if (!isset($row->$field) || $row->$field != $val) return false;
+                    }
+                    return true;
+                }));
+            }
+
+            $this->EndReturnData->Data  = $all;
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Message = 'Data Retrieved Successfully';
 
@@ -334,6 +341,26 @@ class Global_model extends CI_Model {
 
         return $this->EndReturnData;
 
+    }
+
+    public function getSalutations() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('SalutationUID, SalutationName, Sorting');
+            $this->ReadDb->from('Global.SalutationTbl');
+            $this->ReadDb->where(['IsDeleted' => 0, 'IsActive' => 1]);
+            $this->ReadDb->order_by('Sorting', 'ASC');
+            $query = $this->ReadDb->get();
+            if (!$query) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
+            $this->EndReturnData->Data    = $query->result();
+            $this->EndReturnData->Error   = false;
+            $this->EndReturnData->Message = 'Success';
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        return $this->EndReturnData;
     }
 
     public function getStorageTypeData() {

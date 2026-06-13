@@ -9,16 +9,17 @@ $existingStatus = $ExistingPayroll->PayrollStatus ?? '';
   <div class="layout-container">
     <?php $this->load->view('common/menu_view'); ?>
     <div class="layout-page">
-      <div class="content-wrapper">
+      <div class="content-wrapper apex-content">
+        <?php $this->load->view('common/apex/page_header', [
+          'pageIcon'        => 'bx-calculator',
+          'pageIconBg'      => '#eff6ff',
+          'pageIconColor'   => '#2563eb',
+          'pageTitle'       => 'Process Payroll',
+          'pageDescription' => 'Calculate &amp; finalize monthly salaries',
+        ]); ?>
         <div class="container-xxl flex-grow-1 container-p-y">
 
-          <div class="trans-page-header">
-            <div class="d-flex align-items-center gap-3">
-              <div class="trans-ph-icon" style="background:linear-gradient(135deg,#3b82f6,#1d4ed8)">
-                <i class="bx bx-calculator" style="color:#fff;font-size:1.4rem;"></i>
-              </div>
-              <div><h5 class="trans-ph-title mb-0">Process Payroll</h5><div class="text-muted" style="font-size:.76rem;">Calculate &amp; finalize monthly salaries</div></div>
-            </div>
+          <div class="d-flex justify-content-end mb-3">
             <a href="/payroll" class="btn btn-sm btn-outline-secondary"><i class="bx bx-arrow-back me-1"></i>Back to Payroll</a>
           </div>
 

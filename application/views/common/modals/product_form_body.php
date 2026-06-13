@@ -57,7 +57,7 @@ if (!empty($_JwtData->GenSettings->EnableStorage)) {
                 </div>
                 <div class="mb-3 col-md-6">
                     <label for="ProductType" class="form-label">Product Type <span style="color:red">*</span></label>
-                    <select class="select2 form-select" id="ProductType" name="ProductType" required>
+                    <select class="form-select" id="ProductType" name="ProductType" required>
                     </select>
                 </div>
                 <div class="mb-3 col-md-6">
@@ -314,7 +314,7 @@ if (!empty($_JwtData->GenSettings->EnableStorage)) {
             <div class="row mb-3">
                 <div class="col-md-7">
                     <label class="form-label">Customer Type</label>
-                    <select id="CustomerTypeSelect" class="select2 form-select">
+                    <select id="CustomerTypeSelect" class="form-select">
                         <option value="">-- Select Customer Type --</option>
                         <?php foreach ($_CustomerTypeInfo as $_ct): ?>
                             <option value="<?= $_ct->CustomerTypeUID ?>"><?= $_ct->TypeName ?></option>

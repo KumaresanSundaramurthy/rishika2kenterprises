@@ -325,6 +325,8 @@ class Vendors_model extends CI_Model {
                 'Vendors.VendorUID AS TablePrimaryUID',
                 'Vendors.VendorUID AS VendorUID',
                 'Vendors.OrgUID AS OrgUID',
+                'Vendors.SalutationUID AS SalutationUID',
+                'Sal.SalutationName AS SalutationName',
                 'Vendors.Name AS Name',
                 'Vendors.Area AS Area',
                 'Vendors.CountryISO2 AS CountryISO2',
@@ -357,6 +359,11 @@ class Vendors_model extends CI_Model {
             $this->ReadDb->join(
                 'Accounting.ChartOfAccounts as COA',
                 'COA.LedgerUID = ELM.LedgerUID AND COA.IsDeleted = 0',
+                'left'
+            );
+            $this->ReadDb->join(
+                'Global.SalutationTbl as Sal',
+                'Sal.SalutationUID = Vendors.SalutationUID AND Sal.IsDeleted = 0',
                 'left'
             );
             $this->ReadDb->where($baseWhere);

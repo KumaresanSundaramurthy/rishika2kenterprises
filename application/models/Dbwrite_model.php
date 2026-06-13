@@ -509,6 +509,17 @@ class Dbwrite_model extends CI_Model {
                         }
                     }
 
+                    // Build lookup of user-adjusted component prices passed from the transaction form
+                    $passedCompPrices = [];
+                    if (!empty($item['bomComponents']) && is_array($item['bomComponents'])) {
+                        foreach ($item['bomComponents'] as $pc) {
+                            $pcUID = (int)($pc['childProductUID'] ?? 0);
+                            if ($pcUID > 0) {
+                                $passedCompPrices[$pcUID] = (float)($pc['unitPrice'] ?? 0);
+                            }
+                        }
+                    }
+
                     foreach ($bomRows as $bom) {
                         $componentUID = (int)$bom->ChildProductUID;
                         $componentQty = round((float)$bom->Quantity * $qty, 5);
@@ -519,7 +530,10 @@ class Dbwrite_model extends CI_Model {
 
                         // Insert BOM snapshot — full component details frozen at transaction time
                         if ($transProdUID !== null && $cd !== null) {
-                            $sp      = (float)($cd->SellingPrice  ?? 0);
+                            // Use user-adjusted price from transaction form if available; fall back to master price
+                            $sp      = isset($passedCompPrices[$componentUID])
+                                        ? $passedCompPrices[$componentUID]
+                                        : (float)($cd->SellingPrice ?? 0);
                             $pp      = (float)($cd->PurchasePrice ?? 0);
                             $cgstPct = (float)($cd->CGST          ?? 0);
                             $sgstPct = (float)($cd->SGST          ?? 0);
@@ -1021,21 +1035,27 @@ class Dbwrite_model extends CI_Model {
         return true;
     }
 
-    public function upsertTransactionSettings($orgUID, $invoiceCancelAction, $srCancelAction, $srItemMethod, $termsAndConditions, $hideNav, $userUID) {
+    public function upsertTransactionSettings($orgUID, $invoiceCancelAction, $srCancelAction, $srItemMethod, $termsAndConditions, $hideNav, $purchaseShowSignature, $purchaseShowTerms, $prCancelAction, $prItemMethod, $showProductDescription, $userUID) {
         $this->WriteDB->db_debug = FALSE;
         $sql = "INSERT INTO Settings.TransactionSettingsTbl
-                    (OrgUID, InvoiceCancelAction, SalesReturnCancelAction, SalesReturnItemMethod, TermsAndConditions, HideNavOnTransForm, UpdatedBy)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                    (OrgUID, InvoiceCancelAction, SalesReturnCancelAction, SalesReturnItemMethod, TermsAndConditions, HideNavOnTransForm, PurchaseShowSignature, PurchaseShowTerms, PurchaseReturnCancelAction, PurchaseReturnItemMethod, ShowProductDescription, UpdatedBy)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON DUPLICATE KEY UPDATE
-                    InvoiceCancelAction      = VALUES(InvoiceCancelAction),
-                    SalesReturnCancelAction  = VALUES(SalesReturnCancelAction),
-                    SalesReturnItemMethod    = VALUES(SalesReturnItemMethod),
-                    TermsAndConditions       = VALUES(TermsAndConditions),
-                    HideNavOnTransForm       = VALUES(HideNavOnTransForm),
-                    UpdatedBy                = VALUES(UpdatedBy)";
+                    InvoiceCancelAction        = VALUES(InvoiceCancelAction),
+                    SalesReturnCancelAction    = VALUES(SalesReturnCancelAction),
+                    SalesReturnItemMethod      = VALUES(SalesReturnItemMethod),
+                    TermsAndConditions         = VALUES(TermsAndConditions),
+                    HideNavOnTransForm         = VALUES(HideNavOnTransForm),
+                    PurchaseShowSignature      = VALUES(PurchaseShowSignature),
+                    PurchaseShowTerms          = VALUES(PurchaseShowTerms),
+                    PurchaseReturnCancelAction = VALUES(PurchaseReturnCancelAction),
+                    PurchaseReturnItemMethod   = VALUES(PurchaseReturnItemMethod),
+                    ShowProductDescription     = VALUES(ShowProductDescription),
+                    UpdatedBy                  = VALUES(UpdatedBy)";
         $ok = $this->WriteDB->query($sql, [
             (int)$orgUID, $invoiceCancelAction, $srCancelAction,
-            $srItemMethod, $termsAndConditions, (int)$hideNav, (int)$userUID,
+            $srItemMethod, $termsAndConditions, (int)$hideNav, (int)$purchaseShowSignature, (int)$purchaseShowTerms,
+            $prCancelAction, $prItemMethod, (int)$showProductDescription, (int)$userUID,
         ]);
         if (!$ok) {
             $err = $this->WriteDB->error();

@@ -39,6 +39,7 @@ class Purchaseorders extends MY_Controller {
             $this->pageData['ModRowData']    = $this->load->view('transactions/purchaseorders/list', ['DataLists' => $allData, 'SerialNumber' => 0, 'JwtData' => $this->pageData['JwtData']], TRUE);
             $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/purchaseorders/getPurchaseOrdersPageDetails', $allDataCount, 1, $limit);
             $this->pageData['ModAllCount']   = $allDataCount;
+            $this->pageData['POStats']       = $this->transactions_model->getSimpleTransactionStats($this->pageModuleUID, $this->pageData['JwtData']->Org->OrgUID, $initFilter);
 
             $this->_loadUpstashConfig();
 
@@ -164,7 +165,7 @@ class Purchaseorders extends MY_Controller {
                 'UniqueNumber'          => $uniqueNumber,
                 'TransType'             => 'PurchaseOrder',
                 'TransNumber'           => $transNumber,
-                'PartyType'             => 'V',
+                'PartyType'             => 'S',
                 'PartyUID'              => $vendorUID,
                 'TransDate'             => $transDate,
                 'TransYear'             => $financialYear,
@@ -330,7 +331,7 @@ class Purchaseorders extends MY_Controller {
             $commonHeader = [
                 'OrgUID'            => $orgUID,
                 'ModuleUID'         => $this->pageModuleUID,
-                'PartyType'         => 'V',
+                'PartyType'         => 'S',
                 'PartyUID'          => $vendorUID,
                 'TransDate'         => $transDate,
                 'TransYear'         => $financialYear,
@@ -606,7 +607,7 @@ class Purchaseorders extends MY_Controller {
                 'UniqueNumber'      => $uniqueNumber,
                 'TransType'         => 'PurchaseOrder',
                 'TransNumber'       => $nextNumber,
-                'PartyType'         => 'V',
+                'PartyType'         => 'S',
                 'PartyUID'          => $src->PartyUID,
                 'TransDate'         => $today,
                 'TransYear'         => (int) date('Y'),

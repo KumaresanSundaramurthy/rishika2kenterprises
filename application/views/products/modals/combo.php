@@ -58,20 +58,12 @@
                             <label for="ComboTaxPercentage" class="form-label">Tax %</label>
                             <select id="ComboTaxPercentage" name="ComboTaxPercentage" class="select2 form-select">
                                 <option value=""></option>
-                                <?php if (sizeof($TaxDetInfo) > 0) {
-                                    foreach ($TaxDetInfo as $TaxInfo) { ?>
-                                        <option value="<?php echo $TaxInfo->TaxDetailsUID; ?>" data-left="<?php echo smartDecimal($TaxInfo->Percentage); ?>" data-right="<?php echo $TaxInfo->TaxName; ?>"><?php echo $TaxInfo->TaxName; ?></option>
-                                <?php }
-                                } ?>
                             </select>
                         </div>
                         <div class="mb-3 col-md-6">
                             <label for="ComboPrimaryUnit" class="form-label">Primary Unit</label>
                             <select id="ComboPrimaryUnit" name="ComboPrimaryUnit" class="select2 form-select">
-                                <option value="">-- Select Unit --</option>
-                                <?php if (!empty($PrimaryUnitInfo)): foreach ($PrimaryUnitInfo as $unit): ?>
-                                    <option value="<?php echo (int)$unit->PrimaryUnitUID; ?>"><?php echo htmlspecialchars($unit->ShortName . ' — ' . $unit->Name); ?></option>
-                                <?php endforeach; endif; ?>
+                                <option value=""></option>
                             </select>
                         </div>
                         <div class="mb-3 col-md-6">

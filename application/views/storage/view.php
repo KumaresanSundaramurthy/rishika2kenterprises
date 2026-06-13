@@ -12,23 +12,15 @@
         <div class="layout-page">
 
             <!-- Content wrapper -->
-            <div class="content-wrapper">
+            <div class="content-wrapper apex-content">
+                <?php $this->load->view('common/apex/page_header', [
+                    'pageIcon'        => 'bx-server',
+                    'pageIconBg'      => '#f1f5f9',
+                    'pageIconColor'   => '#475569',
+                    'pageTitle'       => $PageTitle       ?? 'Storage',
+                    'pageDescription' => $PageDescription ?? '',
+                ]); ?>
                 <div class="container-xxl flex-grow-1 container-p-y">
-
-                    <!-- ── Page Header ── -->
-                    <div class="trans-page-header">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="trans-ph-icon ph-icon-storage">
-                                <i class="bx bx-server"></i>
-                            </div>
-                            <div>
-                                <h5 class="trans-ph-title mb-0"><?php echo htmlspecialchars($PageTitle ?? 'Storage'); ?></h5>
-                                <?php if (!empty($PageDescription)): ?>
-                                <div class="text-muted" style="font-size:.76rem;"><?php echo htmlspecialchars($PageDescription); ?></div>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                    </div>
 
                     <div class="card">
                         <div class="row">

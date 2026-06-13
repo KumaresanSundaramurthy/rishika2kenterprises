@@ -36,11 +36,27 @@
         if ((type === 'edit' || type === 'clone') && uid) {
             _loadForEdit(uid, type === 'clone');
         } else {
+            // Show modal immediately — DropdownCache.ready() fetches from Upstash (JS pipeline,
+            // no AJAX). Only calls /products/getDropdownCache if Upstash is cold, which also
+            // writes the data back so the next open is always instant.
+            // DropdownCache handles ALL dropdowns including #Category (via data.categories),
+            // so no separate CategoryAppend call is needed here.
             _resetProductModal();
             if (opts.prefillName) { $('#ItemName').val(opts.prefillName); }
-            CategoryAppend.populateSelect('#Category', function () {
-                $('#ProductFormModal').modal('show');
-                setTimeout(function () { $('#ItemName').focus(); }, 300);
+            $('#ProductFormModal').modal('show');
+            setTimeout(function () { $('#ItemName').focus(); }, 300);
+
+            DropdownCache.ready().then(function (data) {
+                if (!data) return;
+                DropdownCache.populateProductModal(data);
+                // _resetProductModal triggered .trigger('change') before options existed —
+                // re-apply now so label helpers (Inclusive/Exclusive, discount label) render.
+                var defTax  = (typeof _pfDefProdTaxUID   !== 'undefined' && _pfDefProdTaxUID)   ? _pfDefProdTaxUID   : 1;
+                var defDisc = (typeof _pfDefDiscTypeUID  !== 'undefined' && _pfDefDiscTypeUID)  ? _pfDefDiscTypeUID  : 1;
+                var defTaxD = (typeof _pfDefTaxDetailUID !== 'undefined' && _pfDefTaxDetailUID) ? _pfDefTaxDetailUID : null;
+                $('#SellingTaxOption,#PurchaseTaxOption').val(defTax).trigger('change');
+                $('#DiscountOption').val(defDisc).trigger('change');
+                if (defTaxD) { $('#TaxPercentage').val(defTaxD).trigger('change'); }
             });
         }
     }
@@ -105,9 +121,6 @@
         // Unit / CustomerType
         loadSelect2Field('#PrimaryUnit',        '-- Select Primary Unit --',   '#ProductFormModal');
         loadSelect2Field('#CustomerTypeSelect', '-- Select Customer Type --',  '#ProductFormModal');
-
-        // Product Type
-        $('#ProductType').select2({ width: '100%', minimumResultsForSearch: Infinity, dropdownParent: $modal });
 
         // Category with inline "+ Create"
         _initPFCategorySelect2();
@@ -221,7 +234,8 @@
                     Swal.fire({ icon: 'error', title: 'Oops...', text: response.Message });
                     return;
                 }
-                CategoryAppend.populateSelect('#Category', function () {
+                DropdownCache.ready().then(function (data) {
+                    if (data) DropdownCache.populateProductModal(data);
                     _resetProductModal();
                     _pfFillForm(response, isClone);
                     $('#ProductFormModal').modal('show');
@@ -448,7 +462,7 @@
         var $btn = $('.AddEditProductBtn');
         $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
 
-        var url = (productUID == 0) ? '/products/addProductData' : '/products/editProductData';
+        var url = (productUID == 0) ? '/products/addProductData' : '/products/updateProductData';
 
         $.ajax({
             url         : url,

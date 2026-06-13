@@ -13,27 +13,20 @@
         <div class="layout-page">
 
             <!-- Content wrapper -->
-            <div class="content-wrapper">
+            <div class="content-wrapper apex-content">
+                <?php $this->load->view('common/apex/page_header', [
+                    'pageIcon'        => 'bx-user-circle',
+                    'pageIconBg'      => '#ede9fe',
+                    'pageIconColor'   => '#7c3aed',
+                    'pageTitle'       => $PageTitle       ?? 'Profile',
+                    'pageDescription' => $PageDescription ?? '',
+                ]); ?>
                 <div class="container-xxl flex-grow-1 container-p-y">
 
-                    <!-- ── Page Header ── -->
-                    <div class="trans-page-header">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="trans-ph-icon ph-icon-users">
-                                <i class="bx bx-user-circle"></i>
-                            </div>
-                            <div>
-                                <h5 class="trans-ph-title mb-0"><?php echo htmlspecialchars($PageTitle ?? 'Profile'); ?></h5>
-                                <?php if (!empty($PageDescription)): ?>
-                                <div class="text-muted" style="font-size:.76rem;"><?php echo htmlspecialchars($PageDescription); ?></div>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                        <div id="profileHeaderActions" class="me-1">
-                            <button type="button" class="btn btn-primary" id="btnUpdateProfile">
-                                <i class="bx bx-save me-1"></i>Update
-                            </button>
-                        </div>
+                    <div class="d-flex justify-content-end mb-3" id="profileHeaderActions">
+                        <button type="button" class="btn btn-primary" id="btnUpdateProfile">
+                            <i class="bx bx-save me-1"></i>Update
+                        </button>
                     </div>
 
                     <div class="card">

@@ -4,16 +4,17 @@
   <div class="layout-container">
     <?php $this->load->view('common/menu_view'); ?>
     <div class="layout-page">
-      <div class="content-wrapper">
+      <div class="content-wrapper apex-content">
+        <?php $this->load->view('common/apex/page_header', [
+          'pageIcon'        => 'bx-calculator',
+          'pageIconBg'      => '#eff6ff',
+          'pageIconColor'   => '#2563eb',
+          'pageTitle'       => 'Payroll',
+          'pageDescription' => 'Process monthly salaries',
+        ]); ?>
         <div class="container-xxl flex-grow-1 container-p-y">
 
-          <div class="trans-page-header">
-            <div class="d-flex align-items-center gap-3">
-              <div class="trans-ph-icon" style="background:linear-gradient(135deg,#3b82f6,#1d4ed8)">
-                <i class="bx bx-calculator" style="color:#fff;font-size:1.4rem;"></i>
-              </div>
-              <div><h5 class="trans-ph-title mb-0">Payroll</h5><div class="text-muted" style="font-size:.76rem;">Process monthly salaries</div></div>
-            </div>
+          <div class="d-flex justify-content-end mb-3">
             <a href="/payroll/process" class="btn btn-sm btn-primary"><i class="bx bx-plus me-1"></i>Process Payroll</a>
           </div>
 

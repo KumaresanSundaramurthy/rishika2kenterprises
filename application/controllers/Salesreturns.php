@@ -574,7 +574,7 @@ class Salesreturns extends MY_Controller {
             // Check 2: block if CN was applied via applyCreditNote() — CN Status path
             $readDb = $this->load->database('ReadDB', TRUE);
             $readDb->db_debug = FALSE;
-            $readDb->from('Transaction.CustomerCreditNoteTbl');
+            $readDb->from('Transaction.TransCreditNoteTbl');
             $readDb->where([
                 'SourceTransUID'  => $transUID,
                 'SourceModuleUID' => 106,
@@ -610,7 +610,7 @@ class Salesreturns extends MY_Controller {
                 'Status'          => 'Pending',
                 'IsCancelled'     => 0,
                 'IsDeleted'       => 0,
-            ])->update('Transaction.CustomerCreditNoteTbl', [
+            ])->update('Transaction.TransCreditNoteTbl', [
                 'IsDeleted' => 1,
                 'UpdatedBy' => $userUID,
             ]);
@@ -900,7 +900,7 @@ class Salesreturns extends MY_Controller {
                     'Status'          => 'Pending',
                     'IsCancelled'     => 0,
                     'IsDeleted'       => 0,
-                ])->update('Transaction.CustomerCreditNoteTbl', [
+                ])->update('Transaction.TransCreditNoteTbl', [
                     'IsCancelled' => 1,
                     'UpdatedBy'   => $userUID,
                 ]);
@@ -1280,7 +1280,7 @@ class Salesreturns extends MY_Controller {
             // Full-payment SR never has a CN, so this block is a no-op there.
             $wdb = $this->dbwrite_model->getWriteDb();
             $wdb->db_debug = FALSE;
-            $wdb->from('Transaction.CustomerCreditNoteTbl');
+            $wdb->from('Transaction.TransCreditNoteTbl');
             $wdb->where([
                 'SourceTransUID'  => $transUID,
                 'SourceModuleUID' => 106,
@@ -1292,7 +1292,7 @@ class Salesreturns extends MY_Controller {
             if ($cn) {
                 $newCNAmount = round(max(0, (float)$cn->Amount - $amount), 2);
                 $wdb->where('CreditNoteUID', (int)$cn->CreditNoteUID);
-                $wdb->update('Transaction.CustomerCreditNoteTbl', [
+                $wdb->update('Transaction.TransCreditNoteTbl', [
                     'Amount'         => $newCNAmount,
                     'PaymentCleared' => ($newCNAmount <= 0) ? 1 : 0,
                     'UpdatedBy'      => $userUID,

@@ -95,7 +95,11 @@ if (!empty($DataLists)):
                     <li>
                         <button class="dropdown-item pr-status-update"
                                 data-uid="<?php echo (int)$list->TransUID; ?>"
-                                data-status="<?php echo htmlspecialchars($t['db']); ?>">
+                                data-status="<?php echo htmlspecialchars($t['db']); ?>"
+                                <?php if ($t['db'] === 'Cancelled'): ?>
+                                data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
+                                data-refund="<?php echo (float)($list->CancelCashRefunded ?? 0); ?>"
+                                <?php endif; ?>>
                             <?php echo htmlspecialchars($t['label']); ?>
                         </button>
                     </li>

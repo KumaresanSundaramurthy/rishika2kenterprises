@@ -4,20 +4,19 @@
   <div class="layout-container">
     <?php $this->load->view('common/menu_view'); ?>
     <div class="layout-page">
-      <div class="content-wrapper">
+      <div class="content-wrapper apex-content">
+        <?php $this->load->view('common/apex/page_header', [
+          'pageIcon'        => 'bx-calendar-check',
+          'pageIconBg'      => '#d1fae5',
+          'pageIconColor'   => '#059669',
+          'pageTitle'       => 'Daily Attendance',
+          'pageDescription' => 'Mark &amp; view day-wise attendance',
+        ]); ?>
         <div class="container-xxl flex-grow-1 container-p-y">
 
-          <div class="trans-page-header">
-            <div class="d-flex align-items-center gap-3">
-              <div class="trans-ph-icon" style="background:linear-gradient(135deg,#10b981,#059669)">
-                <i class="bx bx-calendar-check" style="color:#fff;font-size:1.4rem;"></i>
-              </div>
-              <div><h5 class="trans-ph-title mb-0">Daily Attendance</h5><div class="text-muted" style="font-size:.76rem;">Mark &amp; view day-wise attendance</div></div>
-            </div>
-            <div class="d-flex align-items-center gap-2">
-              <input type="text" class="form-control form-control-sm flatpickr-date" id="attendanceDatePicker" value="<?php echo date('Y-m-d'); ?>" style="width:140px;">
-              <a href="/attendance/monthly" class="btn btn-sm btn-outline-secondary"><i class="bx bx-calendar me-1"></i>Monthly View</a>
-            </div>
+          <div class="d-flex justify-content-end mb-3 gap-2">
+            <input type="text" class="form-control form-control-sm flatpickr-date" id="attendanceDatePicker" value="<?php echo date('Y-m-d'); ?>" style="width:140px;">
+            <a href="/attendance/monthly" class="btn btn-sm btn-outline-secondary"><i class="bx bx-calendar me-1"></i>Monthly View</a>
           </div>
 
           <!-- Stat cards -->

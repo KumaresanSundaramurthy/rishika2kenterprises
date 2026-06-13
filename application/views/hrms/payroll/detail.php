@@ -12,22 +12,21 @@ $badge = $statusColors[$p->PayrollStatus ?? 'Draft'] ?? 'secondary';
   <div class="layout-container">
     <?php $this->load->view('common/menu_view'); ?>
     <div class="layout-page">
-      <div class="content-wrapper">
+      <div class="content-wrapper apex-content">
+        <?php $this->load->view('common/apex/page_header', [
+          'pageIcon'        => 'bx-calculator',
+          'pageIconBg'      => '#eff6ff',
+          'pageIconColor'   => '#2563eb',
+          'pageTitle'       => 'Payroll — ' . $period,
+          'pageDescription' => 'Payroll detail &amp; payslip generation',
+        ]); ?>
         <div class="container-xxl flex-grow-1 container-p-y">
 
-          <div class="trans-page-header">
-            <div class="d-flex align-items-center gap-3">
-              <div class="trans-ph-icon" style="background:linear-gradient(135deg,#3b82f6,#1d4ed8)">
-                <i class="bx bx-calculator" style="color:#fff;font-size:1.4rem;"></i>
-              </div>
-              <div><h5 class="trans-ph-title mb-0">Payroll — <?php echo $period; ?></h5><div class="text-muted" style="font-size:.76rem;">Payroll detail &amp; payslip generation</div></div>
-            </div>
-            <div class="d-flex gap-2">
-              <?php if (($p->PayrollStatus ?? '') === 'Processed'): ?>
-              <button class="btn btn-sm btn-success" id="btnMarkPaid" data-uid="<?php echo (int)$p->PayrollUID; ?>"><i class="bx bx-check-circle me-1"></i>Mark as Paid</button>
-              <?php endif; ?>
-              <a href="/payroll" class="btn btn-sm btn-outline-secondary"><i class="bx bx-arrow-back me-1"></i>Back</a>
-            </div>
+          <div class="d-flex justify-content-end mb-3 gap-2">
+            <?php if (($p->PayrollStatus ?? '') === 'Processed'): ?>
+            <button class="btn btn-sm btn-success" id="btnMarkPaid" data-uid="<?php echo (int)$p->PayrollUID; ?>"><i class="bx bx-check-circle me-1"></i>Mark as Paid</button>
+            <?php endif; ?>
+            <a href="/payroll" class="btn btn-sm btn-outline-secondary"><i class="bx bx-arrow-back me-1"></i>Back</a>
           </div>
 
           <!-- Header info -->

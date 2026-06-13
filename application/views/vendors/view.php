@@ -12,26 +12,106 @@
         <div class="layout-page">
 
             <!-- Content wrapper -->
-            <div class="content-wrapper">
+            <div class="content-wrapper apex-content">
+                <?php $this->load->view('common/apex/page_header', [
+                    'pageIcon'        => 'bxs-store',
+                    'pageIconBg'      => '#fef9c3',
+                    'pageIconColor'   => '#ca8a04',
+                    'pageTitle'       => $PageTitle       ?? 'Vendors',
+                    'pageDescription' => $PageDescription ?? '',
+                ]); ?>
 
-                <div class="container-xxl flex-grow-1 container-p-y">
+                <?php
+                $s   = $VendStats ?? null;
+                $cur = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
+                $dec = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
+                ?>
 
-                    <!-- ── Page Header ── -->
-                    <div class="trans-page-header">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="trans-ph-icon ph-icon-vendors">
-                                <i class="bx bxs-store"></i>
-                            </div>
-                            <div>
-                                <h5 class="trans-ph-title mb-0"><?php echo htmlspecialchars($PageTitle ?? 'Vendors'); ?></h5>
-                                <?php if (!empty($PageDescription)): ?>
-                                <div class="text-muted" style="font-size:.76rem;"><?php echo htmlspecialchars($PageDescription); ?></div>
-                                <?php endif; ?>
+                <!-- ── Stats Strip ───────────────────────────────────────────── -->
+                <div class="apex-stats-strip">
+                    <a href="javascript:void(0);" class="apex-stat-item active" data-status="All" data-stat-filter="All" style="--stat-color:#ca8a04">
+                        <div class="apex-stat-icon" style="background:#fef9c3"><i class="bx bxs-store" style="color:#ca8a04"></i></div>
+                        <div class="apex-stat-body">
+                            <div class="apex-stat-label">Total Vendors</div>
+                            <div class="apex-stat-bottom">
+                                <span class="apex-stat-count vend-stat-total"><?php echo number_format((int)($s->TotalCount ?? 0)); ?></span>
+                                <span class="apex-stat-amount">&nbsp;</span>
                             </div>
                         </div>
-                        <div class="d-flex align-items-center gap-2">
+                    </a>
+                    <a href="javascript:void(0);" class="apex-stat-item" data-status="Active" data-stat-filter="Active" style="--stat-color:#10b981">
+                        <div class="apex-stat-icon" style="background:#dcfce7"><i class="bx bx-check-circle" style="color:#10b981"></i></div>
+                        <div class="apex-stat-body">
+                            <div class="apex-stat-label">Active</div>
+                            <div class="apex-stat-bottom">
+                                <span class="apex-stat-count vend-stat-active"><?php echo number_format((int)($s->ActiveCount ?? 0)); ?></span>
+                                <span class="apex-stat-amount">&nbsp;</span>
+                            </div>
+                        </div>
+                    </a>
+                    <a href="javascript:void(0);" class="apex-stat-item" data-status="ToCollect" data-stat-filter="ToCollect" style="--stat-color:#3b82f6">
+                        <div class="apex-stat-icon" style="background:#eff6ff"><i class="bx bx-arrow-to-bottom" style="color:#3b82f6"></i></div>
+                        <div class="apex-stat-body">
+                            <div class="apex-stat-label">To Collect</div>
+                            <div class="apex-stat-bottom">
+                                <span class="apex-stat-count vend-stat-tocollect"><?php echo number_format((int)($s->ToCollectCount ?? 0)); ?></span>
+                                <span class="apex-stat-amount"><?php echo $cur . ' ' . number_format((float)($s->ToCollectAmount ?? 0), $dec); ?></span>
+                            </div>
+                        </div>
+                    </a>
+                    <a href="javascript:void(0);" class="apex-stat-item" data-status="ToPay" data-stat-filter="ToPay" style="--stat-color:#f97316">
+                        <div class="apex-stat-icon" style="background:#fff7ed"><i class="bx bx-arrow-from-bottom" style="color:#f97316"></i></div>
+                        <div class="apex-stat-body">
+                            <div class="apex-stat-label">To Pay</div>
+                            <div class="apex-stat-bottom">
+                                <span class="apex-stat-count vend-stat-topay"><?php echo number_format((int)($s->ToPayCount ?? 0)); ?></span>
+                                <span class="apex-stat-amount"><?php echo $cur . ' ' . number_format((float)($s->ToPayAmount ?? 0), $dec); ?></span>
+                            </div>
+                        </div>
+                    </a>
+                    <div class="apex-stat-item" style="--stat-color:#94a3b8;cursor:default;pointer-events:none">
+                        <div class="apex-stat-icon" style="background:#f8fafc"><i class="bx bx-bar-chart-alt-2" style="color:#94a3b8"></i></div>
+                        <div class="apex-stat-body">
+                            <div class="apex-stat-label">Combined Stats</div>
+                            <div class="apex-stat-bottom" style="gap:8px">
+                                <span style="font-size:.72rem"><span class="vend-stat-month fw-bold"><?php echo number_format((int)($s->MonthCount ?? 0)); ?></span> Month</span>
+                                <span style="font-size:.72rem"><span class="vend-stat-lastmonth fw-bold"><?php echo number_format((int)($s->LastMonthCount ?? 0)); ?></span> Last</span>
+                                <span style="font-size:.72rem"><span class="vend-stat-fy fw-bold"><?php echo number_format((int)($s->FYCount ?? 0)); ?></span> FY</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="container-xxl flex-grow-1 py-3">
+
+                    <?php $showUserBtn = isset($OrgUsers) && is_array($OrgUsers) && count($OrgUsers) > 1; ?>
+
+                    <!-- ── Main Card ── -->
+                    <div class="card">
+
+                        <!-- Filter Row -->
+                        <div class="apex-filter-row">
+                            <div class="apex-search-wrap">
+                                <i class="bx bx-search apex-search-icon"></i>
+                                <input type="text" class="apex-search-input" id="SearchDetails" placeholder="Name, mobile, GSTIN...">
+                                <i class="bx bx-x r2k-clear d-none" id="clearSearch"></i>
+                            </div>
+                            <div class="apex-filter-spacer"></div>
+                            <a href="javascript:void(0);" class="apex-icon-btn PageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
+                            <a href="javascript:void(0);" class="apex-icon-btn" id="btnSyncVendorsCache" title="Sync Cache"><i class="bx bx-planet"></i></a>
+                            <div class="btn-group d-none" id="ActionsDD-Div">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="actionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="bx bx-slider-alt"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="actionsDropdown">
+                                    <li class="d-none" id="CloneOption"><a class="dropdown-item" href="javascript:void(0);" id="btnClone"><i class="bx bx-duplicate me-1"></i> Clone</a></li>
+                                    <li class="d-none" id="DeleteOption"><a class="dropdown-item text-danger" href="javascript:void(0);" id="btnDelete"><i class="bx bx-trash me-1"></i> Delete</a></li>
+                                    <li class="d-none" id="BulkSmsOption"><a class="dropdown-item" href="javascript:void(0);" id="btnBulkSms"><i class="bx bx-message-rounded me-1 text-info"></i> Send SMS</a></li>
+                                    <li class="d-none" id="BulkEmailOption"><a class="dropdown-item" href="javascript:void(0);" id="btnBulkEmail"><i class="bx bx-envelope me-1 text-primary"></i> Send Email</a></li>
+                                </ul>
+                            </div>
                             <div class="dropdown">
-                                <button class="btn btn-outline-secondary dropdown-toggle btn-sm" type="button" id="vendExportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="vendExportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                                     <i class="bx bx-export me-1"></i>Export
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="vendExportDropdown">
@@ -45,123 +125,14 @@
                                 <i class="bx bx-plus me-1"></i>New Vendor
                             </a>
                         </div>
-                    </div>
 
-                    <!-- ── Stat Cards ── -->
-                    <?php
-                        $s   = $VendStats ?? null;
-                        $cur = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-                        $dec = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
-                    ?>
-                    <div class="row g-3 mb-3">
-
-                        <!-- 1. Total Vendors — clickable -->
-                        <div class="col-6 col-md">
-                            <div class="trans-stat-card stat-all vend-stat-clickable" data-filter="All" style="cursor:pointer;">
-                                <div class="trans-stat-label">Total Vendors</div>
-                                <div class="trans-stat-count vend-stat-total"><?php echo number_format((int)($s->TotalCount ?? 0)); ?></div>
-                                <div class="trans-stat-amount">&nbsp;</div>
-                                <i class="bx bxs-store trans-stat-icon"></i>
-                            </div>
-                        </div>
-
-                        <!-- 2. Active — clickable -->
-                        <div class="col-6 col-md">
-                            <div class="trans-stat-card stat-active vend-stat-clickable" data-filter="Active" style="cursor:pointer;">
-                                <div class="trans-stat-label">Active</div>
-                                <div class="trans-stat-count vend-stat-active"><?php echo number_format((int)($s->ActiveCount ?? 0)); ?></div>
-                                <div class="trans-stat-amount">&nbsp;</div>
-                                <i class="bx bx-check-circle trans-stat-icon"></i>
-                            </div>
-                        </div>
-
-                        <!-- 3. To Collect — clickable -->
-                        <div class="col-6 col-md">
-                            <div class="trans-stat-card stat-paid vend-stat-clickable" data-filter="ToCollect" style="cursor:pointer;">
-                                <div class="trans-stat-label">To Collect</div>
-                                <div class="trans-stat-count vend-stat-tocollect"><?php echo number_format((int)($s->ToCollectCount ?? 0)); ?></div>
-                                <div class="trans-stat-amount"><?php echo $cur . ' ' . number_format((float)($s->ToCollectAmount ?? 0), $dec); ?></div>
-                                <i class="bx bx-arrow-to-bottom trans-stat-icon"></i>
-                            </div>
-                        </div>
-
-                        <!-- 4. To Pay — clickable -->
-                        <div class="col-6 col-md">
-                            <div class="trans-stat-card stat-converted vend-stat-clickable" data-filter="ToPay" style="cursor:pointer;">
-                                <div class="trans-stat-label">To Pay</div>
-                                <div class="trans-stat-count vend-stat-topay"><?php echo number_format((int)($s->ToPayCount ?? 0)); ?></div>
-                                <div class="trans-stat-amount"><?php echo $cur . ' ' . number_format((float)($s->ToPayAmount ?? 0), $dec); ?></div>
-                                <i class="bx bx-arrow-from-bottom trans-stat-icon"></i>
-                            </div>
-                        </div>
-
-                        <!-- 5. Combined Stats — NOT clickable -->
-                        <div class="col-6 col-md">
-                            <div class="trans-stat-card stat-draft" style="cursor:default;">
-                                <div class="trans-stat-label">Combined Stats</div>
-                                <div class="d-flex justify-content-between mt-1" style="font-size:.72rem;color:#6c757d;gap:6px;">
-                                    <div class="text-center">
-                                        <div style="font-size:.95rem;font-weight:700;color:#334155;" class="vend-stat-month"><?php echo number_format((int)($s->MonthCount ?? 0)); ?></div>
-                                        <div>This Month</div>
-                                    </div>
-                                    <div class="text-center">
-                                        <div style="font-size:.95rem;font-weight:700;color:#334155;" class="vend-stat-lastmonth"><?php echo number_format((int)($s->LastMonthCount ?? 0)); ?></div>
-                                        <div>Last Month</div>
-                                    </div>
-                                    <div class="text-center">
-                                        <div style="font-size:.95rem;font-weight:700;color:#334155;" class="vend-stat-fy"><?php echo number_format((int)($s->FYCount ?? 0)); ?></div>
-                                        <div>This FY</div>
-                                    </div>
-                                </div>
-                                <i class="bx bx-bar-chart-alt-2 trans-stat-icon"></i>
-                            </div>
-                        </div>
-
-                    </div>
-
-                    <?php $showUserBtn = isset($OrgUsers) && is_array($OrgUsers) && count($OrgUsers) > 1; ?>
-
-                    <!-- ── Main Card ── -->
-                    <div class="card">
-
-                        <!-- Toolbar -->
-                        <div class="trans-toolbar">
-                            <div class="trans-toolbar-tabs">
-                                <ul class="nav trans-status-tabs" id="vendStatusTabs" role="tablist">
-                                    <li class="nav-item"><a class="nav-link active vend-tab" data-status="All" href="javascript:void(0);">All <span class="trans-tab-count"><?php echo $VendStats->TotalCount ?? 0; ?></span></a></li>
-                                    <li class="nav-item"><a class="nav-link vend-tab" data-status="Active" href="javascript:void(0);">Active <span class="trans-tab-count d-none"></span></a></li>
-                                    <li class="nav-item"><a class="nav-link vend-tab" data-status="Inactive" href="javascript:void(0);">Inactive <span class="trans-tab-count d-none"></span></a></li>
-                                </ul>
-                            </div>
-                            <div class="trans-toolbar-actions">
-                                <a href="javascript:void(0);" class="r2k-icon-btn PageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
-                                <a href="javascript:void(0);" class="r2k-icon-btn" id="btnSyncVendorsCache" title="⊙"><i class="bx bx-planet"></i></a>
-                                <!-- <a href="javascript:void(0);" id="btnPageSettings" class="r2k-icon-btn" title="Column Settings"><i class="bx bx-cog"></i></a> -->
-                                <div class="r2k-search-wrap">
-                                    <i class="bx bx-search r2k-si"></i>
-                                    <input type="text" id="SearchDetails" placeholder="Name, mobile, GSTIN...">
-                                    <i class="bx bx-x r2k-clear d-none" id="clearSearch"></i>
-                                </div>
-                                <div class="btn-group r2k-toolbar-actions d-none" id="ActionsDD-Div">
-                                    <button class="r2k-dd-btn dropdown-toggle" type="button" id="actionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                                        <i class="bx bx-slider-alt"></i>
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="actionsDropdown">
-                                        <li class="d-none" id="CloneOption">
-                                            <a class="dropdown-item" href="javascript:void(0);" id="btnClone"><i class="bx bx-duplicate me-1"></i> Clone</a>
-                                        </li>
-                                        <li class="d-none" id="DeleteOption">
-                                            <a class="dropdown-item text-danger" href="javascript:void(0);" id="btnDelete"><i class="bx bx-trash me-1"></i> Delete</a>
-                                        </li>
-                                        <li class="d-none" id="BulkSmsOption">
-                                            <a class="dropdown-item" href="javascript:void(0);" id="btnBulkSms"><i class="bx bx-message-rounded me-1 text-info"></i> Send SMS</a>
-                                        </li>
-                                        <li class="d-none" id="BulkEmailOption">
-                                            <a class="dropdown-item" href="javascript:void(0);" id="btnBulkEmail"><i class="bx bx-envelope me-1 text-primary"></i> Send Email</a>
-                                        </li>
-                                    </ul>
-                                </div>
-                            </div>
+                        <!-- Tabs Row -->
+                        <div class="apex-tabs-row">
+                            <ul class="nav trans-status-tabs" id="vendStatusTabs" role="tablist">
+                                <li class="nav-item"><a class="nav-link active vend-tab" data-status="All"      href="javascript:void(0);">All      <span class="trans-tab-count"><?php echo $VendStats->TotalCount ?? 0; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link vend-tab"        data-status="Active"   href="javascript:void(0);">Active   <span class="trans-tab-count d-none"></span></a></li>
+                                <li class="nav-item"><a class="nav-link vend-tab"        data-status="Inactive" href="javascript:void(0);">Inactive <span class="trans-tab-count d-none"></span></a></li>
+                            </ul>
                         </div>
 
                         <!-- Table -->
@@ -374,11 +345,11 @@ $(function() {
     _toggleVendSticky();
 
     // ── Stat card clicks ──
-    $(document).on('click', '.vend-stat-clickable', function () {
-        var filterType = $(this).data('filter');
+    $(document).on('click', '.apex-stat-item[data-stat-filter]', function () {
+        var filterType = $(this).data('stat-filter');
         delete Filter['IsActive'];
         delete Filter['BalanceType'];
-        $('.vend-stat-clickable').removeClass('active');
+        $('.apex-stat-item').removeClass('active');
         $(this).addClass('active');
 
         if (filterType === 'All')            { /* no filter */ }
@@ -399,8 +370,9 @@ $(function() {
         e.preventDefault();
         $('.vend-tab').removeClass('active');
         $(this).addClass('active');
-        $('.vend-stat-clickable').removeClass('active');
+        $('.apex-stat-item').removeClass('active');
         var status = $(this).data('status') || 'All';
+        $('.apex-stat-item[data-stat-filter="' + status + '"]').addClass('active');
         delete Filter['IsActive'];
         delete Filter['BalanceType'];
         if (status === 'All')           { /* no filter */ }

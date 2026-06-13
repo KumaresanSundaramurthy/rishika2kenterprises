@@ -4,15 +4,16 @@
   <div class="layout-container">
     <?php $this->load->view('common/menu_view'); ?>
     <div class="layout-page">
-      <div class="content-wrapper">
+      <div class="content-wrapper apex-content">
+        <?php $this->load->view('common/apex/page_header', [
+          'pageIcon'        => 'bx-badge',
+          'pageIconBg'      => '#f5f3ff',
+          'pageIconColor'   => '#7c3aed',
+          'pageTitle'       => 'Designations',
+          'pageDescription' => 'Manage job designations',
+        ]); ?>
         <div class="container-xxl flex-grow-1 container-p-y">
-          <div class="trans-page-header">
-            <div class="d-flex align-items-center gap-3">
-              <div class="trans-ph-icon" style="background:linear-gradient(135deg,#8b5cf6,#6d28d9)">
-                <i class="bx bx-badge" style="color:#fff;font-size:1.4rem;"></i>
-              </div>
-              <div><h5 class="trans-ph-title mb-0">Designations</h5><div class="text-muted" style="font-size:.76rem;">Manage job designations</div></div>
-            </div>
+          <div class="d-flex justify-content-end mb-3">
             <button class="btn btn-sm btn-primary" id="btnNewDesig"><i class="bx bx-plus me-1"></i>New Designation</button>
           </div>
           <div class="card">

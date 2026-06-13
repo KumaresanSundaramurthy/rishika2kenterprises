@@ -8,110 +8,80 @@ $this->load->view('common/transactions/header'); ?>
 
         <div class="layout-page">
 
-            <div class="content-wrapper">
-                <div class="container-xxl flex-grow-1 container-p-y">
+            <div class="content-wrapper apex-content">
+                <?php $this->load->view('common/apex/page_header', [
+                    'pageIcon'        => 'bx-package',
+                    'pageIconBg'      => '#fff7ed',
+                    'pageIconColor'   => '#f97316',
+                    'pageTitle'       => $PageTitle       ?? 'Delivery Challans',
+                    'pageDescription' => $PageDescription ?? 'Manage goods delivery notes',
+                ]); ?>
+                <?php
+                $stats         = $SummaryStats ?? [];
+                $cur           = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
+                $dec           = $JwtData->GenSettings->DecimalPoints ?? 2;
 
-                    <?php
-                    $stats         = $SummaryStats ?? [];
-                    $cur           = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-                    $dec           = $JwtData->GenSettings->DecimalPoints ?? 2;
+                $cntAll        = array_sum(array_column($stats, 'count'));
+                $cntDispatched = $stats['Dispatched']['count']  ?? 0;
+                $cntDelivered  = $stats['Delivered']['count']   ?? 0;
+                $cntDraft      = $stats['Draft']['count']       ?? 0;
 
-                    $cntAll        = array_sum(array_column($stats, 'count'));
-                    $cntDispatched = $stats['Dispatched']['count']  ?? 0;
-                    $cntDelivered  = $stats['Delivered']['count']   ?? 0;
-                    $cntDraft      = $stats['Draft']['count']        ?? 0;
+                $amtAll        = array_sum(array_column($stats, 'amount'));
+                $amtDispatched = $stats['Dispatched']['amount'] ?? 0;
 
-                    $amtAll        = array_sum(array_column($stats, 'amount'));
-                    $amtDispatched = $stats['Dispatched']['amount'] ?? 0;
-
-                    function fmtAmt($val, $sym, $dec) {
-                        return $sym . ' ' . number_format((float)$val, $dec, '.', ',');
-                    }
-                    ?>
-
-                    <!-- ── Page Header ──────────────────────────────────────── -->
-                    <div class="trans-page-header">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="trans-ph-icon" style="background:#dcfce7;">
-                                <i class="bx bx-package" style="color:#16a34a;"></i>
-                            </div>
-                            <div>
-                                <h5 class="trans-ph-title mb-0"><?php echo htmlspecialchars($PageTitle ?? 'Delivery Challans'); ?></h5>
-                                <?php if (!empty($PageDescription)): ?>
-                                <div class="text-muted" style="font-size:.76rem;"><?php echo htmlspecialchars($PageDescription); ?></div>
-                                <?php endif; ?>
-                            </div>
+                $statsItems = [
+                    ['label' => 'All Challans', 'status' => 'All',        'icon' => 'bx-package',     'iconBg' => '#eef2ff', 'iconColor' => '#696cff', 'count' => $cntAll,        'amount' => $amtAll],
+                    ['label' => 'Dispatched',   'status' => 'Dispatched', 'icon' => 'bx-time',         'iconBg' => '#fff7ed', 'iconColor' => '#f97316', 'count' => $cntDispatched, 'amount' => $amtDispatched],
+                    ['label' => 'Delivered',    'status' => 'Delivered',  'icon' => 'bx-check-circle', 'iconBg' => '#dcfce7', 'iconColor' => '#16a34a', 'count' => $cntDelivered,  'amount' => 0],
+                    ['label' => 'Drafts',       'status' => 'Draft',      'icon' => 'bx-edit',          'iconBg' => '#f1f5f9', 'iconColor' => '#64748b', 'count' => $cntDraft,      'amount' => 0],
+                ];
+                ?>
+                <div class="apex-stats-strip">
+                    <?php foreach ($statsItems as $stat): ?>
+                    <div class="apex-stat-item <?php echo $stat['status'] === 'All' ? 'active' : ''; ?>" data-status="<?php echo $stat['status']; ?>" data-stat-filter="<?php echo $stat['status']; ?>" style="--stat-color:<?php echo $stat['iconColor']; ?>">
+                        <div class="apex-stat-icon" style="background:<?php echo $stat['iconBg']; ?>;">
+                            <i class="bx <?php echo $stat['icon']; ?>" style="color:<?php echo $stat['iconColor']; ?>;"></i>
                         </div>
-                        <div class="d-flex align-items-center gap-2">
-                            <?php $this->load->view('common/partials/export_btn'); ?>
-                            <a href="/deliverychallan/create" class="btn btn-primary">
-                                <i class="bx bx-plus me-1"></i>New Delivery Challan
-                            </a>
+                        <div class="apex-stat-body">
+                            <div class="apex-stat-label"><?php echo $stat['label']; ?></div>
+                            <div class="apex-stat-bottom">
+                                <span class="apex-stat-count"><?php echo $stat['count']; ?></span>
+                                <span class="apex-stat-amount"><?php echo $cur . ' ' . number_format((float)$stat['amount'], $dec); ?></span>
+                            </div>
                         </div>
                     </div>
+                    <?php endforeach; ?>
+                </div>
 
-                    <!-- ── Stat Cards ────────────────────────────────────── -->
-                    <div class="trans-stats-section">
-                        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
-                            <a href="javascript:void(0);" class="trans-stat-card stat-all active-stat" data-stat-filter="All">
-                                <div class="tsc-icon-wrap"><i class="bx bx-package"></i></div>
-                                <div class="tsc-body">
-                                    <div class="trans-stat-label">All Challans</div>
-                                    <div class="trans-stat-count"><?php echo number_format($cntAll); ?></div>
-                                    <div class="trans-stat-amount"><?php echo fmtAmt($amtAll, $cur, $dec); ?></div>
-                                </div>
-                            </a>
-                            <a href="javascript:void(0);" class="trans-stat-card stat-active" data-stat-filter="Dispatched">
-                                <div class="tsc-icon-wrap"><i class="bx bx-time"></i></div>
-                                <div class="tsc-body">
-                                    <div class="trans-stat-label">Dispatched</div>
-                                    <div class="trans-stat-count"><?php echo number_format($cntDispatched); ?></div>
-                                    <div class="trans-stat-amount"><?php echo fmtAmt($amtDispatched, $cur, $dec); ?></div>
-                                </div>
-                            </a>
-                            <a href="javascript:void(0);" class="trans-stat-card" data-stat-filter="Delivered">
-                                <div class="tsc-icon-wrap"><i class="bx bx-check-circle"></i></div>
-                                <div class="tsc-body">
-                                    <div class="trans-stat-label">Delivered</div>
-                                    <div class="trans-stat-count"><?php echo number_format($cntDelivered); ?></div>
-                                    <div class="trans-stat-amount">&nbsp;</div>
-                                </div>
-                            </a>
-                            <a href="javascript:void(0);" class="trans-stat-card stat-draft" data-stat-filter="Draft">
-                                <div class="tsc-icon-wrap"><i class="bx bx-pencil"></i></div>
-                                <div class="tsc-body">
-                                    <div class="trans-stat-label">Drafts</div>
-                                    <div class="trans-stat-count"><?php echo number_format($cntDraft); ?></div>
-                                    <div class="trans-stat-amount">&nbsp;</div>
-                                </div>
-                            </a>
-                        </div>
-                    </div>
+                <div class="container-xxl flex-grow-1 py-3">
 
                     <!-- ── Main Card ─────────────────────────────────────── -->
                     <div class="card">
 
-                        <!-- Toolbar -->
-                        <div class="trans-toolbar">
-                            <div class="trans-toolbar-tabs">
-                                <ul class="nav trans-status-tabs" id="dcStatusTabs" role="tablist">
-                                    <li class="nav-item"><a class="nav-link active dc-status-tab" data-status="All" href="javascript:void(0);">All <span class="trans-tab-count ms-1"><?php echo $ModAllCount; ?></span></a></li>
-                                    <li class="nav-item"><a class="nav-link dc-status-tab" data-status="Dispatched" href="javascript:void(0);">Dispatched <span class="dc-tab-count trans-tab-count ms-1 d-none"></span></a></li>
-                                    <li class="nav-item"><a class="nav-link dc-status-tab" data-status="Delivered" href="javascript:void(0);">Delivered <span class="dc-tab-count trans-tab-count ms-1 d-none"></span></a></li>
-                                    <li class="nav-item"><a class="nav-link dc-status-tab" data-status="Converted" href="javascript:void(0);">Converted <span class="dc-tab-count trans-tab-count ms-1 d-none"></span></a></li>
-                                    <li class="nav-item"><a class="nav-link dc-status-tab" data-status="Cancelled" href="javascript:void(0);">Cancelled <span class="dc-tab-count trans-tab-count ms-1 d-none"></span></a></li>
-                                    <li class="nav-item"><a class="nav-link dc-status-tab" data-status="Draft" href="javascript:void(0);">Drafts <span class="dc-tab-count trans-tab-count ms-1 d-none"></span></a></li>
-                                </ul>
+                        <!-- ── Filter Row ─────────────────────────────────── -->
+                        <div class="apex-filter-row">
+                            <div class="apex-search-wrap">
+                                <i class="bx bx-search apex-search-icon"></i>
+                                <input type="text" id="searchTransactionData" class="apex-search-input" placeholder="Challan # or customer...">
+                                <i class="bx bx-x apex-search-clear d-none"></i>
                             </div>
-                            <div class="trans-toolbar-actions">
-                                <a href="javascript:void(0);" class="r2k-icon-btn pageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
-                                <?php $this->load->view('common/transactions/date_filter_btn'); ?>
-                                <div class="r2k-search-wrap">
-                                    <i class="bx bx-search r2k-si"></i>
-                                    <input type="text" id="searchTransactionData" placeholder="Challan # or customer...">
-                                    <i class="bx bx-x r2k-clear d-none"></i>
-                                </div>
-                            </div>
+                            <?php $this->load->view('common/transactions/date_filter_btn'); ?>
+                            <div class="apex-filter-spacer"></div>
+                            <a href="javascript:void(0);" class="apex-filter-btn pageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
+                            <?php $this->load->view('common/partials/export_btn'); ?>
+                            <a href="/deliverychallan/create" class="btn btn-sm btn-primary"><i class="bx bx-plus me-1"></i>New Delivery Challan</a>
+                        </div>
+
+                        <!-- ── Tabs Row ──────────────────────────────────── -->
+                        <div class="apex-tabs-row">
+                            <ul class="nav trans-status-tabs" id="dcStatusTabs" role="tablist">
+                                <li class="nav-item"><a class="nav-link active dc-status-tab" data-status="All" href="javascript:void(0);">All <span class="trans-tab-count ms-1"><?php echo $ModAllCount; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link dc-status-tab" data-status="Dispatched" href="javascript:void(0);">Dispatched <span class="dc-tab-count trans-tab-count ms-1 d-none"></span></a></li>
+                                <li class="nav-item"><a class="nav-link dc-status-tab" data-status="Delivered" href="javascript:void(0);">Delivered <span class="dc-tab-count trans-tab-count ms-1 d-none"></span></a></li>
+                                <li class="nav-item"><a class="nav-link dc-status-tab" data-status="Converted" href="javascript:void(0);">Converted <span class="dc-tab-count trans-tab-count ms-1 d-none"></span></a></li>
+                                <li class="nav-item"><a class="nav-link dc-status-tab" data-status="Cancelled" href="javascript:void(0);">Cancelled <span class="dc-tab-count trans-tab-count ms-1 d-none"></span></a></li>
+                                <li class="nav-item"><a class="nav-link dc-status-tab" data-status="Draft" href="javascript:void(0);">Drafts <span class="dc-tab-count trans-tab-count ms-1 d-none"></span></a></li>
+                            </ul>
                         </div>
 
                         <!-- Table -->
@@ -241,8 +211,8 @@ $(function () {
     // ── Stat card click ─────────────────────────────────────
     $(document).on('click', '[data-stat-filter]', function () {
         var status = $(this).data('stat-filter') || 'All';
-        $('.trans-stat-card').removeClass('active-stat');
-        $(this).addClass('active-stat');
+        $('.apex-stat-item').removeClass('active');
+        $(this).addClass('active');
         $('.dc-status-tab').removeClass('active');
         $('.dc-status-tab[data-status="' + status + '"]').addClass('active');
         Filter.Status = status;
@@ -255,9 +225,9 @@ $(function () {
         e.preventDefault();
         $('.dc-status-tab').removeClass('active');
         $(this).addClass('active');
-        $('.trans-stat-card').removeClass('active-stat');
+        $('.apex-stat-item').removeClass('active');
         var status = $(this).data('status') || 'All';
-        $('[data-stat-filter="' + status + '"]').addClass('active-stat');
+        $('.apex-stat-item[data-stat-filter="' + status + '"]').addClass('active');
         Filter.Status = status;
         PageNo = 1;
         getDeliveryChallansDetails();

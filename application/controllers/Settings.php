@@ -68,10 +68,11 @@ class Settings extends MY_Controller {
 
             // ── Lookup dropdowns for Product Settings ─────────────────────────
             $this->load->model('global_model');
-            $this->pageData['DiscTypeInfo'] = $this->global_model->getDiscountTypeInfo()->Data ?? [];
-            $this->pageData['ProdTypeInfo'] = $this->global_model->getProductTypeInfo()->Data  ?? [];
-            $this->pageData['ProdTaxInfo']  = $this->global_model->getProductTaxInfo()->Data   ?? [];
-            $this->pageData['TaxDetInfo']   = $this->global_model->getTaxDetailsInfo()->Data   ?? [];
+            $this->pageData['DiscTypeInfo']    = $this->global_model->getDiscountTypeInfo()->Data ?? [];
+            $this->pageData['ProdTypeInfo']    = $this->global_model->getProductTypeInfo()->Data  ?? [];
+            $this->pageData['ProdTaxInfo']     = $this->global_model->getProductTaxInfo()->Data   ?? [];
+            $this->pageData['TaxDetInfo']      = $this->global_model->getTaxDetailsInfo()->Data   ?? [];
+            $this->pageData['SalutationList']  = $this->global_model->getSalutations()->Data      ?? [];
 
             $this->load->view('settings/generalsettings/view', $this->pageData);
         } catch (Exception $e) {
@@ -189,23 +190,26 @@ class Settings extends MY_Controller {
             if (!in_array($listDtFormat,    $validDtFormats)) $listDtFormat    = 'd-m-Y H:i';
             if (!in_array($printDtFormat,   $validDtFormats)) $printDtFormat   = 'd-m-Y H:i';
 
+            $defaultSalutationUID = (int)getPostValue($post, 'DefaultSalutationUID') ?: null;
+
             $data = [
-                'DecimalPoints'       => $decimalPoints,
-                'CurrenySymbol'       => $currencySymbol,
-                'SerialNoDisplay'     => $serialNoDisplay,
-                'FYStartMonth'        => $fyStartMonth,
-                'RowLimit'            => $rowLimit,
-                'QtyMaxLength'        => $qtyMaxLength,
-                'PriceMaxLength'      => $priceMaxLength,
-                'EnableStorage'       => $enableStorage,
-                'MandatoryStorage'    => $mandatoryStorage,
-                'MaxShippingAddr'     => $maxShippingAddr,
-                'FormDateFormat'      => $formDateFormat,
-                'ListDateFormat'      => $listDateFormat,
-                'PrintDateFormat'     => $printDateFormat,
-                'FormDateTimeFormat'  => $formDtFormat,
-                'ListDateTimeFormat'  => $listDtFormat,
-                'PrintDateTimeFormat' => $printDtFormat,
+                'DecimalPoints'        => $decimalPoints,
+                'CurrenySymbol'        => $currencySymbol,
+                'SerialNoDisplay'      => $serialNoDisplay,
+                'FYStartMonth'         => $fyStartMonth,
+                'RowLimit'             => $rowLimit,
+                'QtyMaxLength'         => $qtyMaxLength,
+                'PriceMaxLength'       => $priceMaxLength,
+                'EnableStorage'        => $enableStorage,
+                'MandatoryStorage'     => $mandatoryStorage,
+                'MaxShippingAddr'      => $maxShippingAddr,
+                'FormDateFormat'       => $formDateFormat,
+                'ListDateFormat'       => $listDateFormat,
+                'PrintDateFormat'      => $printDateFormat,
+                'FormDateTimeFormat'   => $formDtFormat,
+                'ListDateTimeFormat'   => $listDtFormat,
+                'PrintDateTimeFormat'  => $printDtFormat,
+                'DefaultSalutationUID' => $defaultSalutationUID,
             ];
 
             $this->load->model('dbwrite_model');
@@ -240,6 +244,30 @@ class Settings extends MY_Controller {
 
     }
 
+    /** AJAX GET: return salutation list — cache in Upstash on first call */
+    public function getSalutationList() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $cacheKey = $this->redisservice->orgKey('salutation');
+            $cached   = $this->upstashservice->get($cacheKey);
+            if ($cached !== null) {
+                $list = array_map(fn($r) => is_array($r) ? (object)$r : $r, (array)$cached);
+            } else {
+                $this->load->model('global_model');
+                $result = $this->global_model->getSalutations();
+                if ($result->Error) throw new Exception($result->Message);
+                $list = $result->Data;
+                $this->upstashservice->set($cacheKey, $list, (int)getenv('ONEYEAR_EXPIRE_SECS'));
+            }
+            $this->EndReturnData->Error = false;
+            $this->EndReturnData->Data  = $list;
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
     /** AJAX POST: save Transaction Settings (TransactionSettingsTbl) */
     public function updateTransactionSettings() {
 
@@ -267,11 +295,26 @@ class Settings extends MY_Controller {
                 $salesReturnItemMethod = 'Manual';
             }
 
-            $termsAndConditions = trim($this->input->post('TermsAndConditions') ?? '');
-            $hideNavOnTransForm = $this->input->post('HideNavOnTransForm') ? 1 : 0;
+            $termsAndConditions   = trim($this->input->post('TermsAndConditions') ?? '');
+            $hideNavOnTransForm   = $this->input->post('HideNavOnTransForm')      ? 1 : 0;
+            $purchaseShowSignature = $this->input->post('PurchaseShowSignature')  ? 1 : 0;
+            $purchaseShowTerms     = $this->input->post('PurchaseShowTerms')      ? 1 : 0;
+
+            $validPRCancelActions = ['ask', 'recover', 'writeoff'];
+            $prCancelAction = getPostValue($post, 'PurchaseReturnCancelAction');
+            if (!in_array($prCancelAction, $validPRCancelActions)) {
+                $prCancelAction = 'ask';
+            }
+
+            $purchaseReturnItemMethod = getPostValue($post, 'PurchaseReturnItemMethod');
+            if (!in_array($purchaseReturnItemMethod, $validMethods)) {
+                $purchaseReturnItemMethod = 'Manual';
+            }
+
+            $showProductDescription = $this->input->post('ShowProductDescription') ? 1 : 0;
 
             $this->load->model('dbwrite_model');
-            $this->dbwrite_model->upsertTransactionSettings($orgUID, $invoiceCancelAction, $srCancelAction, $salesReturnItemMethod, $termsAndConditions, $hideNavOnTransForm, $userUID);
+            $this->dbwrite_model->upsertTransactionSettings($orgUID, $invoiceCancelAction, $srCancelAction, $salesReturnItemMethod, $termsAndConditions, $hideNavOnTransForm, $purchaseShowSignature, $purchaseShowTerms, $prCancelAction, $purchaseReturnItemMethod, $showProductDescription, $userUID);
 
             // Patch only TransSettings in JWT payload
             $this->load->model('login_model');

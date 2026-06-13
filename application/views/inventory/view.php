@@ -7,7 +7,14 @@ $this->load->view('common/transactions/header'); ?>
         <?php $this->load->view('common/menu_view'); ?>
 
         <div class="layout-page">
-            <div class="content-wrapper">
+            <div class="content-wrapper apex-content">
+                <?php $this->load->view('common/apex/page_header', [
+                    'pageIcon'        => 'bx-package',
+                    'pageIconBg'      => '#e0f2fe',
+                    'pageIconColor'   => '#0284c7',
+                    'pageTitle'       => $PageTitle       ?? 'Inventory',
+                    'pageDescription' => $PageDescription ?? 'Stock levels · Adjustments · History',
+                ]); ?>
                 <div class="container-xxl flex-grow-1 container-p-y">
 
                     <?php
@@ -30,44 +37,28 @@ $this->load->view('common/transactions/header'); ?>
                     }
                     ?>
 
-                    <!-- ── Page Header ────────────────────────────────────── -->
-                    <div class="trans-page-header">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="trans-ph-icon" style="background:#e0f2fe;">
-                                <i class="bx bx-package" style="color:#0284c7;"></i>
-                            </div>
-                            <div>
-                                <h5 class="trans-ph-title mb-0"><?php echo htmlspecialchars($PageTitle ?? 'Inventory'); ?></h5>
-                                <?php if (!empty($PageDescription)): ?>
-                                <div class="text-muted" style="font-size:.76rem;"><?php echo htmlspecialchars($PageDescription); ?></div>
-                                <?php else: ?>
-                                <div class="text-muted" style="font-size:.76rem;">Stock levels · Adjustments · History</div>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                        <div class="d-flex align-items-center gap-2">
-                            <!-- Export dropdown -->
-                            <div class="dropdown">
-                                <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="bx bx-export me-1"></i>Export
-                                </button>
-                                <ul class="dropdown-menu dropdown-menu-end">
-                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="invExport('Print')"><i class="bx bx-printer me-1"></i>Print</a></li>
-                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="invExport('CSV')"><i class="bx bx-file me-1"></i>CSV</a></li>
-                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="invExport('Excel')"><i class="bx bxs-file-export me-1"></i>Excel</a></li>
-                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="invExport('Pdf')"><i class="bx bxs-file-pdf me-1"></i>PDF</a></li>
-                                </ul>
-                            </div>
-                            <a href="/inventory/timeline" class="btn btn-sm btn-outline-primary me-1">
-                                <i class="bx bx-history me-1"></i>Timeline
-                            </a>
-                            <button type="button" class="btn btn-sm btn-outline-danger" id="invBulkStockOutBtn" style="display:none;">
-                                <i class="bx bx-minus-circle me-1"></i>Bulk Stock Out
+                    <div class="d-flex justify-content-end mb-3 gap-2">
+                        <!-- Export dropdown -->
+                        <div class="dropdown">
+                            <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bx bx-export me-1"></i>Export
                             </button>
-                            <button type="button" class="btn btn-sm btn-outline-success" id="invBulkStockInBtn" style="display:none;">
-                                <i class="bx bx-plus-circle me-1"></i>Bulk Stock In
-                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="javascript:void(0);" onclick="invExport('Print')"><i class="bx bx-printer me-1"></i>Print</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);" onclick="invExport('CSV')"><i class="bx bx-file me-1"></i>CSV</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);" onclick="invExport('Excel')"><i class="bx bxs-file-export me-1"></i>Excel</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);" onclick="invExport('Pdf')"><i class="bx bxs-file-pdf me-1"></i>PDF</a></li>
+                            </ul>
                         </div>
+                        <a href="/inventory/timeline" class="btn btn-sm btn-outline-primary me-1">
+                            <i class="bx bx-history me-1"></i>Timeline
+                        </a>
+                        <button type="button" class="btn btn-sm btn-outline-danger" id="invBulkStockOutBtn" style="display:none;">
+                            <i class="bx bx-minus-circle me-1"></i>Bulk Stock Out
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-success" id="invBulkStockInBtn" style="display:none;">
+                            <i class="bx bx-plus-circle me-1"></i>Bulk Stock In
+                        </button>
                     </div>
 
                     <!-- ── Stat Cards ─────────────────────────────────────── -->

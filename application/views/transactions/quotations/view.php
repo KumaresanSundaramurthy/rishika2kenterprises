@@ -8,65 +8,77 @@ $this->load->view('common/transactions/header'); ?>
 
         <div class="layout-page">
 
-            <div class="content-wrapper">
-                <div class="container-xxl flex-grow-1 container-p-y">
+            <div class="content-wrapper apex-content">
+                <?php $this->load->view('common/apex/page_header', [
+                    'pageIcon'        => 'bx-notepad',
+                    'pageIconBg'      => '#f0fdf4',
+                    'pageIconColor'   => '#22c55e',
+                    'pageTitle'       => $PageTitle       ?? 'Quotations',
+                    'pageDescription' => $PageDescription ?? 'Create and send sales quotations to customers',
+                ]); ?>
+                <?php
+                $stats        = $SummaryStats ?? [];
+                $cur          = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
+                $dec          = $JwtData->GenSettings->DecimalPoints ?? 2;
 
-                    <?php
-                    $stats        = $SummaryStats ?? [];
-                    $cur          = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-                    $dec          = $JwtData->GenSettings->DecimalPoints ?? 2;
+                $cntAll       = array_sum(array_column(
+                    array_filter($stats, fn($k) => !in_array($k, ['Draft','Cancelled','Rejected']), ARRAY_FILTER_USE_KEY),
+                    'count'
+                ));
+                $amtAll       = array_sum(array_column(
+                    array_filter($stats, fn($k) => !in_array($k, ['Draft','Cancelled','Rejected']), ARRAY_FILTER_USE_KEY),
+                    'amount'
+                ));
+                $cntOpen      = $stats['Pending']['count']    ?? 0;
+                $amtOpen      = $stats['Pending']['amount']   ?? 0;
+                $cntAccepted  = $stats['Accepted']['count']   ?? 0;
+                $amtAccepted  = $stats['Accepted']['amount']  ?? 0;
+                $cntConverted = $stats['Converted']['count']  ?? 0;
+                $amtConverted = $stats['Converted']['amount'] ?? 0;
+                $cntDraft     = $stats['Draft']['count']      ?? 0;
 
-                    // All = everything except Draft, Cancelled, Rejected
-                    $cntAll       = array_sum(array_column(
-                        array_filter($stats, fn($k) => !in_array($k, ['Draft','Cancelled','Rejected']), ARRAY_FILTER_USE_KEY),
-                        'count'
-                    ));
-                    $amtAll       = array_sum(array_column(
-                        array_filter($stats, fn($k) => !in_array($k, ['Draft','Cancelled','Rejected']), ARRAY_FILTER_USE_KEY),
-                        'amount'
-                    ));
-
-                    // Open = Pending
-                    $cntOpen      = $stats['Pending']['count']   ?? 0;
-                    $amtOpen      = $stats['Pending']['amount']  ?? 0;
-
-                    // Accepted
-                    $cntAccepted  = $stats['Accepted']['count']  ?? 0;
-                    $amtAccepted  = $stats['Accepted']['amount'] ?? 0;
-
-                    // Draft
-                    $cntDraft     = $stats['Draft']['count']     ?? 0;
-
-                    // Converted
-                    $cntConverted = $stats['Converted']['count']  ?? 0;
-                    $amtConverted = $stats['Converted']['amount'] ?? 0;
-
-                    // Cancelled = Cancelled + Rejected combined
-                    $cntCancelled = ($stats['Cancelled']['count'] ?? 0) + ($stats['Rejected']['count'] ?? 0);
-
-                    function fmtAmt($val, $sym, $dec) {
-                        return $sym . ' ' . number_format((float)$val, $dec, '.', ',');
-                    }
-                    ?>
-
-                    <!-- ── Page Header ──────────────────────────────────────── -->
-                    <div class="trans-page-header">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="trans-ph-icon" style="background:#fef3c7;">
-                                <i class="bx bx-file-blank" style="color:#f59e0b;"></i>
-                            </div>
-                            <div>
-                                <h5 class="trans-ph-title mb-0"><?php echo htmlspecialchars($PageTitle ?? 'Quotations'); ?></h5>
-                                <?php if (!empty($PageDescription)): ?>
-                                <div class="text-muted" style="font-size:.76rem;"><?php echo htmlspecialchars($PageDescription); ?></div>
-                                <?php endif; ?>
+                $statsItems = [
+                    ['label' => 'All Quotations', 'status' => 'All',       'icon' => 'bx-file',         'iconBg' => '#f0fdf4', 'iconColor' => '#22c55e', 'count' => $cntAll,       'amount' => $amtAll],
+                    ['label' => 'Open',           'status' => 'Open',      'icon' => 'bx-send',         'iconBg' => '#eef2ff', 'iconColor' => '#696cff', 'count' => $cntOpen,      'amount' => $amtOpen],
+                    ['label' => 'Accepted',       'status' => 'Accepted',  'icon' => 'bx-check-circle', 'iconBg' => '#dcfce7', 'iconColor' => '#16a34a', 'count' => $cntAccepted,  'amount' => $amtAccepted],
+                    ['label' => 'Converted',      'status' => 'Converted', 'icon' => 'bx-transfer-alt', 'iconBg' => '#fff7ed', 'iconColor' => '#f97316', 'count' => $cntConverted, 'amount' => $amtConverted],
+                    ['label' => 'Drafts',         'status' => 'Draft',     'icon' => 'bx-edit',          'iconBg' => '#f1f5f9', 'iconColor' => '#64748b', 'count' => $cntDraft,     'amount' => 0],
+                ];
+                ?>
+                <div class="apex-stats-strip">
+                    <?php foreach ($statsItems as $stat): ?>
+                    <div class="apex-stat-item <?php echo $stat['status'] === 'All' ? 'active' : ''; ?>" data-status="<?php echo $stat['status']; ?>" data-stat-filter="<?php echo $stat['status']; ?>" style="--stat-color:<?php echo $stat['iconColor']; ?>">
+                        <div class="apex-stat-icon" style="background:<?php echo $stat['iconBg']; ?>;">
+                            <i class="bx <?php echo $stat['icon']; ?>" style="color:<?php echo $stat['iconColor']; ?>;"></i>
+                        </div>
+                        <div class="apex-stat-body">
+                            <div class="apex-stat-label"><?php echo $stat['label']; ?></div>
+                            <div class="apex-stat-bottom">
+                                <span class="apex-stat-count"><?php echo $stat['count']; ?></span>
+                                <span class="apex-stat-amount"><?php echo $cur . ' ' . number_format((float)$stat['amount'], $dec); ?></span>
                             </div>
                         </div>
-                        <div class="d-flex align-items-center gap-2">
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+
+                <div class="container-xxl flex-grow-1 py-3">
+
+                    <!-- ── Main Card ────────────────────────────────────── -->
+                    <div class="card">
+
+                        <!-- ── Filter Row ─────────────────────────────────── -->
+                        <div class="apex-filter-row">
+                            <div class="apex-search-wrap">
+                                <i class="bx bx-search apex-search-icon"></i>
+                                <input type="text" id="searchTransactionData" class="apex-search-input" placeholder="Quot. # or customer...">
+                                <i class="bx bx-x apex-search-clear d-none" id="clearQuotSearch"></i>
+                            </div>
+                            <?php $this->load->view('common/transactions/date_filter_btn'); ?>
+                            <div class="apex-filter-spacer"></div>
+                            <a href="javascript:void(0);" class="apex-filter-btn pageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
                             <div class="dropdown">
-                                <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="bx bx-export me-1"></i>Export
-                                </button>
+                                <button type="button" class="apex-filter-btn dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="Export"><i class="bx bx-export"></i></button>
                                 <ul class="dropdown-menu dropdown-menu-end">
                                     <li><a class="dropdown-item" href="javascript:void(0);" onclick="quotExport('Print')"><i class="bx bx-printer me-2 text-secondary"></i>Print</a></li>
                                     <li><hr class="dropdown-divider my-1"></li>
@@ -75,55 +87,16 @@ $this->load->view('common/transactions/header'); ?>
                                     <li><a class="dropdown-item" href="javascript:void(0);" onclick="quotExport('Pdf')"><i class="bx bxs-file-pdf me-2 text-danger"></i>PDF</a></li>
                                 </ul>
                             </div>
-                            <a href="/quotations/create" class="btn btn-primary me-1">
-                                <i class="bx bx-plus me-1"></i>New Quotation
-                            </a>
+                            <a href="/quotations/create" class="btn btn-sm btn-primary"><i class="bx bx-plus me-1"></i>New Quotation</a>
                         </div>
-                    </div>
 
-                    <!-- ── Stat Cards ────────────────────────────────────── -->
-                    <div class="trans-stats-section">
-                        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;">
-                            <a href="javascript:void(0);" class="trans-stat-card stat-all active-stat" data-stat-filter="All">
-                                <div class="tsc-icon-wrap"><i class="bx bx-file"></i></div>
-                                <div class="tsc-body">
-                                    <div class="trans-stat-label">All Quotations</div>
-                                    <div class="trans-stat-count"><?php echo number_format($cntAll); ?></div>
-                                    <div class="trans-stat-amount"><?php echo fmtAmt($amtAll, $cur, $dec); ?></div>
-                                </div>
-                            </a>
-                            <a href="javascript:void(0);" class="trans-stat-card stat-active" data-stat-filter="Open">
-                                <div class="tsc-icon-wrap"><i class="bx bx-send"></i></div>
-                                <div class="tsc-body">
-                                    <div class="trans-stat-label">Open</div>
-                                    <div class="trans-stat-count"><?php echo number_format($cntOpen); ?></div>
-                                    <div class="trans-stat-amount"><?php echo fmtAmt($amtOpen, $cur, $dec); ?></div>
-                                </div>
-                            </a>
-                            <a href="javascript:void(0);" class="trans-stat-card stat-paid" data-stat-filter="Accepted">
-                                <div class="tsc-icon-wrap"><i class="bx bx-check-circle"></i></div>
-                                <div class="tsc-body">
-                                    <div class="trans-stat-label">Accepted</div>
-                                    <div class="trans-stat-count"><?php echo number_format($cntAccepted); ?></div>
-                                    <div class="trans-stat-amount"><?php echo fmtAmt($amtAccepted, $cur, $dec); ?></div>
-                                </div>
-                            </a>
-                            <a href="javascript:void(0);" class="trans-stat-card stat-converted" data-stat-filter="Converted">
-                                <div class="tsc-icon-wrap"><i class="bx bx-transfer-alt"></i></div>
-                                <div class="tsc-body">
-                                    <div class="trans-stat-label">Converted</div>
-                                    <div class="trans-stat-count"><?php echo number_format($cntConverted); ?></div>
-                                    <div class="trans-stat-amount"><?php echo fmtAmt($amtConverted, $cur, $dec); ?></div>
-                                </div>
-                            </a>
-                            <a href="javascript:void(0);" class="trans-stat-card stat-draft" data-stat-filter="Draft">
-                                <div class="tsc-icon-wrap"><i class="bx bx-pencil"></i></div>
-                                <div class="tsc-body">
-                                    <div class="trans-stat-label">Drafts</div>
-                                    <div class="trans-stat-count"><?php echo number_format($cntDraft); ?></div>
-                                    <div class="trans-stat-amount">&nbsp;</div>
-                                </div>
-                            </a>
+                        <!-- ── Tabs Row ──────────────────────────────────── -->
+                        <div class="apex-tabs-row">
+                            <ul class="nav trans-status-tabs" id="quotStatusTabs" role="tablist">
+                                <li class="nav-item"><a class="nav-link active quot-status-tab" data-status="All" href="javascript:void(0);">All <span class="trans-tab-count"><?php echo $ModAllCount; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link quot-status-tab" data-status="Cancelled" href="javascript:void(0);">Cancelled <span class="trans-tab-count d-none"></span></a></li>
+                                <li class="nav-item"><a class="nav-link quot-status-tab" data-status="Draft" href="javascript:void(0);">Draft <span class="trans-tab-count d-none"></span></a></li>
+                            </ul>
                         </div>
                     </div>
 
@@ -369,8 +342,8 @@ $(function () {
     // ── Stat card click ─────────────────────────────────────
     $(document).on('click', '[data-stat-filter]', function () {
         var statFilter = $(this).data('stat-filter') || 'All';
-        $('.trans-stat-card').removeClass('active-stat');
-        $(this).addClass('active-stat');
+        $('.apex-stat-item').removeClass('active');
+        $(this).addClass('active');
         // Always clear column status filter UI when clicking a stat card
         $('.quot-status-chk').prop('checked', false);
         $('#quotStatusFilter').removeClass('text-primary');
@@ -407,9 +380,9 @@ $(function () {
         e.preventDefault();
         $('.quot-status-tab').removeClass('active');
         $(this).addClass('active');
-        $('.trans-stat-card').removeClass('active-stat');
+        $('.apex-stat-item').removeClass('active');
         var status = $(this).data('status') || 'All';
-        $('[data-stat-filter="' + status + '"]').addClass('active-stat');
+        $('.apex-stat-item[data-stat-filter="' + status + '"]').addClass('active');
         Filter.Status = status;
         // Clear column status filter when switching tabs
         delete Filter['StatusList'];

@@ -17,27 +17,20 @@ $_fyLong  = $_fyStart . '-' . ($_fyStart + 1);
         <?php $this->load->view('common/menu_view'); ?>
 
         <div class="layout-page">
-            <div class="content-wrapper">
+            <div class="content-wrapper apex-content">
+                <?php $this->load->view('common/apex/page_header', [
+                    'pageIcon'        => 'bx-hash',
+                    'pageIconBg'      => '#ede9fe',
+                    'pageIconColor'   => '#7c3aed',
+                    'pageTitle'       => $PageTitle       ?? 'Prefix Configuration',
+                    'pageDescription' => $PageDescription ?? '',
+                ]); ?>
                 <div class="container-xxl flex-grow-1 container-p-y">
 
-                    <!-- Page Header -->
-                    <div class="trans-page-header d-flex align-items-center justify-content-between">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="trans-ph-icon" style="background:#ede9fe;">
-                                <i class="bx bx-hash" style="color:#7c3aed;"></i>
-                            </div>
-                            <div>
-                                <h5 class="trans-ph-title mb-0"><?php echo htmlspecialchars($PageTitle ?? 'Prefix Configuration'); ?></h5>
-                                <?php if (!empty($PageDescription)): ?>
-                                <div class="text-muted" style="font-size:.76rem;"><?php echo htmlspecialchars($PageDescription); ?></div>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                        <div class="d-flex align-items-center gap-2">
-                            <button class="btn btn-primary btn-sm px-3" id="btnAddPrefixConfig">
-                                <i class="bx bx-plus me-1"></i>Add Prefix
-                            </button>
-                        </div>
+                    <div class="d-flex justify-content-end mb-3">
+                        <button class="btn btn-primary btn-sm px-3" id="btnAddPrefixConfig">
+                            <i class="bx bx-plus me-1"></i>Add Prefix
+                        </button>
                     </div>
 
                     <div class="card">

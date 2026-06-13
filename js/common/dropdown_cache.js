@@ -13,29 +13,81 @@ window.DropdownCache = (function ($) {
     var _data    = null;
     var _promise = null;
 
-    // ── Fetch ─────────────────────────────────────────────────────────────────
+    // ── Upstash key map (mirrors PHP getDropdownCache) ────────────────────────
+
+    var _keyMap = {
+        primaryUnit : 'primary-unit',
+        discType    : 'disc-type',
+        prodType    : 'prod-type',
+        prodTax     : 'prod-tax',
+        taxDetails  : 'tax-details',
+        categories  : 'org-categories',
+    };
+    var _fields = Object.keys(_keyMap);
+
+    // ── Tier 2: AJAX fallback (server fetches missing from DB → writes Upstash) ─
+
+    function _fetchFromServer(resolve) {
+        $.ajax({
+            url      : '/products/getDropdownCache',
+            type     : 'GET',
+            dataType : 'json',
+            cache    : false,
+            success  : function (res) {
+                if (res && !res.Error && res.Data) {
+                    _data = res.Data;
+                    _populatePageSelects(_data);
+                    resolve(_data);
+                } else {
+                    resolve(null);
+                }
+            },
+            error: function () { resolve(null); }
+        });
+    }
+
+    // ── Tier 1: pipeline-read all keys from Upstash in one HTTP call ──────────
 
     function _fetch() {
         if (_promise) return _promise;
 
         _promise = new Promise(function (resolve) {
-            $.ajax({
-                url      : '/products/getDropdownCache',
-                type     : 'GET',
-                dataType : 'json',
-                cache    : false,
-                success  : function (res) {
-                    if (res && !res.Error && res.Data) {
-                        _data = res.Data;
-                        _populatePageSelects(_data);
-                        resolve(_data);
+
+            if (!UpstashService.isEnabled()) {
+                _fetchFromServer(resolve);
+                return;
+            }
+
+            var cmds = _fields.map(function (f) {
+                return ['GET', UpstashService.orgKey(_keyMap[f])];
+            });
+
+            UpstashService.pipeline(cmds).then(function (results) {
+                var data   = {};
+                var allHit = true;
+
+                _fields.forEach(function (field, i) {
+                    var raw = results[i];
+                    if (raw !== null && raw !== undefined) {
+                        try   { data[field] = JSON.parse(raw); }
+                        catch { data[field] = raw; }
+                        if (!Array.isArray(data[field])) data[field] = [];
                     } else {
-                        resolve(null);
+                        allHit = false;
                     }
-                },
-                error: function () {
-                    resolve(null);
+                });
+
+                if (allHit) {
+                    _data = data;
+                    _populatePageSelects(_data);
+                    resolve(_data);
+                } else {
+                    // One or more keys are cold — server will DB-fetch missing
+                    // fields and write them back to Upstash automatically
+                    _fetchFromServer(resolve);
                 }
+            }).catch(function () {
+                _fetchFromServer(resolve);
             });
         });
 
@@ -124,6 +176,47 @@ window.DropdownCache = (function ($) {
                       + _esc(u.Name) + ' (' + _esc(u.ShortName) + ')</option>';
             });
             $pu.html(html);
+        }
+
+        // Category
+        var $cat = $('#Category');
+        if ($cat.length && $cat.find('option[value!=""]').length === 0) {
+            var cats = (data.categories || []).slice().sort(function (a, b) {
+                return (a.Name || '').localeCompare(b.Name || '');
+            });
+            var html = '<option value=""></option>';
+            $.each(cats, function (_, c) {
+                html += '<option value="' + parseInt(c.CategoryUID) + '">' + _esc(c.Name) + '</option>';
+            });
+            $cat.html(html);
+            if ($cat.hasClass('select2-hidden-accessible')) $cat.trigger('change');
+        }
+
+        // ComboTaxPercentage (combo modal — same data as TaxPercentage)
+        var $ctax = $('#ComboTaxPercentage');
+        if ($ctax.length && $ctax.find('option[value!=""]').length === 0) {
+            var html = '<option value=""></option>';
+            $.each(data.taxDetails || [], function (_, t) {
+                var pct = parseFloat(t.Percentage) || 0;
+                html += '<option value="' + t.TaxDetailsUID
+                      + '" data-left="' + pct
+                      + '" data-right="' + _esc(t.TaxName) + '">'
+                      + _esc(t.TaxName) + '</option>';
+            });
+            $ctax.html(html);
+            if ($ctax.hasClass('select2-hidden-accessible')) $ctax.trigger('change');
+        }
+
+        // ComboPrimaryUnit (combo modal — same data as PrimaryUnit)
+        var $cpu = $('#ComboPrimaryUnit');
+        if ($cpu.length && $cpu.find('option[value!=""]').length === 0) {
+            var html = '<option value=""></option>';
+            $.each(data.primaryUnit || [], function (_, u) {
+                html += '<option value="' + u.PrimaryUnitUID + '">'
+                      + _esc(u.Name) + ' (' + _esc(u.ShortName) + ')</option>';
+            });
+            $cpu.html(html);
+            if ($cpu.hasClass('select2-hidden-accessible')) $cpu.trigger('change');
         }
 
         // DiscountOption

@@ -22,7 +22,10 @@ class Products_model extends CI_Model {
             $sortOperation = [];
             if(!empty($Filter)) {
                 if (array_key_exists('SearchAllData', $Filter)) {
-                    $SearchDirectQuery .= "((". $ModuleInfoData->TableAliasName.".ItemName LIKE '%".$Filter['SearchAllData']."%' ) OR (".$ModuleInfoData->TableAliasName.".HSNSACCode LIKE '%".$Filter['SearchAllData']."%') OR (".$ModuleInfoData->TableAliasName.".PartNumber LIKE '%".$Filter['SearchAllData']."%') OR (".$ModuleInfoData->TableAliasName.".Description LIKE '%".$Filter['SearchAllData']."%'))";
+                    $s = $this->ReadDb->escape_like_str($Filter['SearchAllData']);
+                    $t = $ModuleInfoData->TableAliasName;
+                    // Description excluded — it stores Quill HTML (can be KB per row) and leading-wildcard LIKE on it is a full scan killer
+                    $SearchDirectQuery .= "({$t}.ItemName LIKE '%{$s}%' OR {$t}.HSNSACCode LIKE '%{$s}%' OR {$t}.PartNumber LIKE '%{$s}%')";
                 }
                 if (array_key_exists('ProductType', $Filter)) {
                     if($SearchDirectQuery != '') {
@@ -444,6 +447,7 @@ class Products_model extends CI_Model {
                 'Comp.ChildProductUID AS ChildProductUID',
                 'Prod.ItemName AS ItemName',
                 'Comp.Quantity AS Quantity',
+                'Prod.SellingPrice AS SellingPrice',
             ]);
             $this->ReadDb->from('Products.ProductBOMTbl as Comp');
             $this->ReadDb->join('Products.ProductTbl as Prod', 'Prod.ProductUID = Comp.ChildProductUID', 'left');
@@ -532,10 +536,9 @@ class Products_model extends CI_Model {
                 'Products.OrgUID'    => (int) $OrgUID,
             ];
 
-            // Count query
-            $this->ReadDb->select('COUNT(DISTINCT Products.ProductUID) AS TotalCount');
+            // Count query — no CategoryTbl join needed; category filter uses Products.CategoryUID directly
+            $this->ReadDb->select('COUNT(*) AS TotalCount');
             $this->ReadDb->from('Products.ProductTbl as Products');
-            $this->ReadDb->join('Products.CategoryTbl as Category', 'Category.CategoryUID = Products.CategoryUID', 'left');
             $this->ReadDb->where($baseWhere);
             if (!empty($searchQuery)) { $this->ReadDb->where($searchQuery, null, false); }
             $countQuery = $this->ReadDb->get();
@@ -842,6 +845,68 @@ class Products_model extends CI_Model {
             $error = $this->ReadDb->error();
             if ($error['code']) throw new Exception($error['message']);
             return $query->result();
+
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+
+    }
+
+    /**
+     * Fetch a single active product for Upstash HSET (avoids loading the full catalogue).
+     * Same columns as getProductsForCache but scoped to one ProductUID.
+     */
+    public function getProductForCache($orgUID, $productUID) {
+
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select([
+                'p.ProductUID',
+                'p.ItemName',
+                'p.ProductType',
+                'p.CategoryUID',
+                'cat.Name              AS CategoryName',
+                'p.HSNSACCode',
+                'p.PartNumber',
+                'p.SKU',
+                'p.Description',
+                'p.PrimaryUnitUID',
+                'pu.ShortName          AS PrimaryUnitName',
+                'p.MRP',
+                'p.SellingPrice',
+                'p.PurchasePrice',
+                'p.SellingProductTaxUID',
+                'p.PurchasePriceProductTaxUID',
+                'p.TaxDetailsUID',
+                'p.TaxPercentage',
+                'p.CGST',
+                'p.SGST',
+                'p.IGST',
+                'COALESCE(ps.AvailableQty, 0) AS AvailableQuantity',
+                'p.Discount',
+                'p.DiscountTypeUID',
+                'p.LowStockAlertAt',
+                'p.NotForSale',
+                'p.IsComboItem',
+                'p.IsComposite',
+                'p.IsSerialTracked',
+                'p.Image',
+            ]);
+            $this->ReadDb->from('Products.ProductTbl p');
+            $this->ReadDb->join('Products.CategoryTbl cat',    'cat.CategoryUID = p.CategoryUID',      'left');
+            $this->ReadDb->join('Global.PrimaryUnitTbl pu',    'pu.PrimaryUnitUID = p.PrimaryUnitUID', 'left');
+            $this->ReadDb->join('Products.ProductStockTbl ps', 'ps.ProductUID = p.ProductUID',         'left');
+            $this->ReadDb->where([
+                'p.ProductUID' => (int)$productUID,
+                'p.OrgUID'     => (int)$orgUID,
+                'p.IsDeleted'  => 0,
+            ]);
+            $this->ReadDb->limit(1);
+
+            $query = $this->ReadDb->get();
+            $error = $this->ReadDb->error();
+            if ($error['code']) throw new Exception($error['message']);
+            return $query->row();
 
         } catch (Exception $e) {
             throw new Exception($e->getMessage());

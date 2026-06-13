@@ -5,30 +5,23 @@
     <div class="layout-container">
         <?php $this->load->view('common/menu_view'); ?>
         <div class="layout-page">
-            <div class="content-wrapper">
+            <div class="content-wrapper apex-content">
+                <?php $this->load->view('common/apex/page_header', [
+                    'pageIcon'        => 'bx-palette',
+                    'pageIconBg'      => '#fef3c7',
+                    'pageIconColor'   => '#f59e0b',
+                    'pageTitle'       => $PageTitle       ?? 'Print Themes',
+                    'pageDescription' => $PageDescription ?? '',
+                ]); ?>
                 <div class="container-xxl flex-grow-1 container-p-y">
 
-                    <!-- ── Page Header ── -->
-                    <div class="trans-page-header d-flex align-items-center justify-content-between">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="trans-ph-icon" style="background:#fef3c7;">
-                                <i class="bx bx-palette" style="color:#f59e0b;"></i>
-                            </div>
-                            <div>
-                                <h5 class="trans-ph-title mb-0"><?php echo htmlspecialchars($PageTitle ?? 'Print Themes'); ?></h5>
-                                <?php if (!empty($PageDescription)): ?>
-                                <div class="text-muted" style="font-size:.76rem;"><?php echo htmlspecialchars($PageDescription); ?></div>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                        <div class="d-flex align-items-center gap-2">
-                            <button class="btn btn-primary btn-sm px-3 <?php echo $ActiveTabData === 'themes'    ? '' : 'd-none'; ?>" id="btnNewTheme">
-                                <i class="bx bx-plus me-1"></i>Add Theme
-                            </button>
-                            <button class="btn btn-primary btn-sm px-3 <?php echo $ActiveTabData === 'templates' ? '' : 'd-none'; ?>" id="btnNewTemplate">
-                                <i class="bx bx-plus me-1"></i>Add Template
-                            </button>
-                        </div>
+                    <div class="d-flex justify-content-end mb-3 gap-2">
+                        <button class="btn btn-primary btn-sm px-3 <?php echo $ActiveTabData === 'themes'    ? '' : 'd-none'; ?>" id="btnNewTheme">
+                            <i class="bx bx-plus me-1"></i>Add Theme
+                        </button>
+                        <button class="btn btn-primary btn-sm px-3 <?php echo $ActiveTabData === 'templates' ? '' : 'd-none'; ?>" id="btnNewTemplate">
+                            <i class="bx bx-plus me-1"></i>Add Template
+                        </button>
                     </div>
 
                     <div class="card">

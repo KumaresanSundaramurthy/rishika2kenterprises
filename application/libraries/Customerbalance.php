@@ -64,9 +64,10 @@ class Customerbalance {
             ]);
 
             // Create the credit note record
-            $writeDb->insert('Transaction.CustomerCreditNoteTbl', [
+            $writeDb->insert('Transaction.TransCreditNoteTbl', [
                 'OrgUID'         => (int)$orgUID,
-                'CustomerUID'    => (int)$customerUID,
+                'PartyUID'       => (int)$customerUID,
+                'PartyType'      => 'C',
                 'SourceTransUID' => (int)$transUID,
                 'Amount'         => $paidTotal,
                 'Status'         => 'Pending',
@@ -143,7 +144,8 @@ class Customerbalance {
 
             $insertData = [
                 'OrgUID'             => (int)$orgUID,
-                'CustomerUID'        => (int)$customerUID,
+                'PartyUID'           => (int)$customerUID,
+                'PartyType'          => 'C',
                 'SourceTransUID'     => (int)$srTransUID,
                 'SourceTransNumber'  => (string)$srUniqueNumber,
                 'SourceModuleUID'    => 106,
@@ -160,9 +162,9 @@ class Customerbalance {
                 'IsActive'           => 1,
                 'IsDeleted'          => 0,
             ];
-            log_message('debug', '[CN-TRACE] About to INSERT into Transaction.CustomerCreditNoteTbl with columns: ' . implode(', ', array_keys($insertData)));
+            log_message('debug', '[CN-TRACE] About to INSERT into Transaction.TransCreditNoteTbl with columns: ' . implode(', ', array_keys($insertData)));
 
-            $insertOk = $writeDb->insert('Transaction.CustomerCreditNoteTbl', $insertData);
+            $insertOk = $writeDb->insert('Transaction.TransCreditNoteTbl', $insertData);
             $dbErr    = $writeDb->error();
 
             if (!$insertOk || !empty($dbErr['code'])) {
@@ -225,11 +227,13 @@ class Customerbalance {
             }
             $writeDb->db_debug = FALSE;
 
-            $writeDb->insert('Transaction.CustomerDebitNoteTbl', [
+            $writeDb->insert('Transaction.TransDebitNoteTbl', [
                 'OrgUID'            => (int)$orgUID,
-                'CustomerUID'       => (int)$customerUID,
+                'PartyUID'          => (int)$customerUID,
+                'PartyType'         => 'C',
                 'SourceTransUID'    => (int)$sourceTransUID,
                 'SourceTransNumber' => (string)$sourceTransNumber,
+                'SourceModuleUID'   => 106,
                 'DebitNoteNumber'   => $dnNumber,
                 'DebitNoteToken'    => generate_uuid4(),
                 'DebitNoteSeq'      => $seq,
@@ -260,13 +264,14 @@ class Customerbalance {
             $readDb = $this->CI->load->database('ReadDB', TRUE);
             $readDb->db_debug = FALSE;
             $readDb->select('DN.*, T.UniqueNumber AS SourceSRNumber');
-            $readDb->from('Transaction.CustomerDebitNoteTbl DN');
+            $readDb->from('Transaction.TransDebitNoteTbl DN');
             $readDb->join('Transaction.TransactionsTbl T', 'T.TransUID = DN.SourceTransUID', 'left');
             $readDb->where([
-                'DN.OrgUID'      => (int)$orgUID,
-                'DN.CustomerUID' => (int)$customerUID,
-                'DN.Status'      => 'Pending',
-                'DN.IsDeleted'   => 0,
+                'DN.OrgUID'     => (int)$orgUID,
+                'DN.PartyUID'   => (int)$customerUID,
+                'DN.PartyType'  => 'C',
+                'DN.Status'     => 'Pending',
+                'DN.IsDeleted'  => 0,
             ]);
             return $readDb->get()->result();
         } catch (Exception $e) {
@@ -283,7 +288,7 @@ class Customerbalance {
             $writeDb->db_debug = FALSE;
 
             // Use WriteDB to fetch — ensures we always see the latest committed data
-            $writeDb->from('Transaction.CustomerCreditNoteTbl');
+            $writeDb->from('Transaction.TransCreditNoteTbl');
             $writeDb->where(['CreditNoteUID' => (int)$creditNoteUID, 'Status' => 'Pending', 'IsDeleted' => 0]);
             $cn = $writeDb->get()->row();
             if (!$cn) throw new Exception('Credit note not found or already used.');
@@ -292,7 +297,7 @@ class Customerbalance {
             $writeDb->insert('Transaction.PaymentsTbl', [
                 'OrgUID'                    => (int)$orgUID,
                 'TransUID'                  => (int)$targetTransUID,
-                'PartyUID'                  => (int)$cn->CustomerUID,
+                'PartyUID'                  => (int)$cn->PartyUID,
                 'PartyType'                 => 'C',
                 'Amount'                    => (float)$cn->Amount,
                 'PaymentDirection'          => 'In',
@@ -307,7 +312,7 @@ class Customerbalance {
 
             // Mark credit note as Applied
             $writeDb->where('CreditNoteUID', (int)$creditNoteUID);
-            $writeDb->update('Transaction.CustomerCreditNoteTbl', [
+            $writeDb->update('Transaction.TransCreditNoteTbl', [
                 'Status'           => 'Applied',
                 'AppliedTransUID'  => (int)$targetTransUID,
                 'AppliedPaymentUID'=> $paymentUID,
@@ -315,7 +320,7 @@ class Customerbalance {
             ]);
 
             // Recalc balance
-            $this->recalcAndSync($orgUID, $cn->CustomerUID, $userUID);
+            $this->recalcAndSync($orgUID, $cn->PartyUID, $userUID);
 
             return ['paymentUID' => $paymentUID];
 
@@ -334,13 +339,13 @@ class Customerbalance {
 
             // Use WriteDB (not ReadDB) to look up the credit note — guarantees
             // we see our own writes when called immediately after createCreditNote()
-            $writeDb->from('Transaction.CustomerCreditNoteTbl');
+            $writeDb->from('Transaction.TransCreditNoteTbl');
             $writeDb->where(['CreditNoteUID' => (int)$creditNoteUID, 'Status' => 'Pending', 'IsDeleted' => 0]);
             $cn = $writeDb->get()->row();
             if (!$cn) throw new Exception('Credit note not found or already used.');
 
             $writeDb->where('CreditNoteUID', (int)$creditNoteUID);
-            $writeDb->update('Transaction.CustomerCreditNoteTbl', [
+            $writeDb->update('Transaction.TransCreditNoteTbl', [
                 'Status'    => 'Refunded',
                 'Notes'     => 'Refunded to customer',
                 'UpdatedBy' => (int)$userUID,
@@ -359,7 +364,7 @@ class Customerbalance {
             ]);
 
             // Recalc balance
-            $this->recalcAndSync($orgUID, $cn->CustomerUID, $userUID);
+            $this->recalcAndSync($orgUID, $cn->PartyUID, $userUID);
 
             return true;
 
@@ -376,14 +381,15 @@ class Customerbalance {
             $readDb = $this->CI->load->database('ReadDB', TRUE);
             $readDb->db_debug = FALSE;
             $readDb->select('CN.*, T.UniqueNumber AS SourceInvoiceNumber');
-            $readDb->from('Transaction.CustomerCreditNoteTbl CN');
+            $readDb->from('Transaction.TransCreditNoteTbl CN');
             $readDb->join('Transaction.TransactionsTbl T', 'T.TransUID = CN.SourceTransUID', 'left');
             $readDb->where([
-                'CN.OrgUID'          => (int)$orgUID,
-                'CN.CustomerUID'     => (int)$customerUID,
-                'CN.Status'          => 'Pending',
-                'CN.IsDeleted'       => 0,
-                'CN.PaymentCleared'  => 0,
+                'CN.OrgUID'         => (int)$orgUID,
+                'CN.PartyUID'       => (int)$customerUID,
+                'CN.PartyType'      => 'C',
+                'CN.Status'         => 'Pending',
+                'CN.IsDeleted'      => 0,
+                'CN.PaymentCleared' => 0,
             ]);
             return $readDb->get()->result();
         } catch (Exception $e) {

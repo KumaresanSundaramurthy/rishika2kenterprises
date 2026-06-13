@@ -4,15 +4,16 @@
   <div class="layout-container">
     <?php $this->load->view('common/menu_view'); ?>
     <div class="layout-page">
-      <div class="content-wrapper">
+      <div class="content-wrapper apex-content">
+        <?php $this->load->view('common/apex/page_header', [
+          'pageIcon'        => 'bx-money-withdraw',
+          'pageIconBg'      => '#ffe4e6',
+          'pageIconColor'   => '#e11d48',
+          'pageTitle'       => 'Salary Advances',
+          'pageDescription' => 'Track advance payments &amp; recoveries',
+        ]); ?>
         <div class="container-xxl flex-grow-1 container-p-y">
-          <div class="trans-page-header">
-            <div class="d-flex align-items-center gap-3">
-              <div class="trans-ph-icon" style="background:linear-gradient(135deg,#ef4444,#b91c1c)">
-                <i class="bx bx-money-withdraw" style="color:#fff;font-size:1.4rem;"></i>
-              </div>
-              <div><h5 class="trans-ph-title mb-0">Salary Advances</h5><div class="text-muted" style="font-size:.76rem;">Track advance payments &amp; recoveries</div></div>
-            </div>
+          <div class="d-flex justify-content-end mb-3">
             <button class="btn btn-sm btn-primary" id="btnNewAdvance"><i class="bx bx-plus me-1"></i>New Advance</button>
           </div>
 

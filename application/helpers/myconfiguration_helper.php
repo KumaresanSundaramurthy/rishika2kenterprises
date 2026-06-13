@@ -70,14 +70,18 @@ function changeTimeZonefromDateTime($DateTimeVal, $TimeZone, $FormatType = 1) {
     $DateTime = new DateTime($DateTimeVal);
     $DateTime->setTimezone(new DateTimeZone($TimeZone));
 
-    // Read date/datetime formats from JWT GenSettings (set in General Settings)
-    try {
-        $CI             = &get_instance();
-        $_dateFmt       = $CI->pageData['JwtData']->GenSettings->ListDateFormat      ?? 'd M Y';
-        $_dateTimeFmt   = $CI->pageData['JwtData']->GenSettings->ListDateTimeFormat  ?? 'd M Y h:i A';
-    } catch (Exception $_) {
-        $_dateFmt     = 'd M Y';
-        $_dateTimeFmt = 'd M Y h:i A';
+    // Cache format strings across calls — avoids get_instance() on every row in list views
+    static $_dateFmt     = null;
+    static $_dateTimeFmt = null;
+    if ($_dateFmt === null) {
+        try {
+            $CI          = &get_instance();
+            $_dateFmt    = $CI->pageData['JwtData']->GenSettings->ListDateFormat     ?? 'd M Y';
+            $_dateTimeFmt= $CI->pageData['JwtData']->GenSettings->ListDateTimeFormat ?? 'd M Y h:i A';
+        } catch (Exception $_) {
+            $_dateFmt     = 'd M Y';
+            $_dateTimeFmt = 'd M Y h:i A';
+        }
     }
 
     switch($FormatType) {
@@ -139,20 +143,6 @@ function smartDecimal($number, $maxDecimals = 6, $digReq = false) {
     }
     // Otherwise trim unnecessary zeros and decimal point
     return rtrim(rtrim($formatted, '0'), '.');
-}
-
-function getModuleUIDByName($modules, $name) {
-
-	$filtered = array_filter($modules, function($module) use ($name) {
-		return $module->Name === $name;
-	});
-    
-	if (!empty($filtered)) {
-		return array_values($filtered)[0]->ModuleUID;
-	}
-
-	return 0;
-
 }
 
 function filterViewDataColumns($originalArray, $WhereField) {

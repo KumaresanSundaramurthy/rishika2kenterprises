@@ -43,7 +43,10 @@ $(document).ready(function () {
         clearComboForm();
         $('#ComboModalTitle').text('Add Combo Item');
         $('.AddEditComboBtn').text('Save');
-        $('#comboItemModal').modal('show');
+        DropdownCache.ready().then(function (data) {
+            DropdownCache.populateProductModal(data);
+            $('#comboItemModal').modal('show');
+        });
     });
 
     // ──────────────────────────────────────────────
@@ -313,12 +316,6 @@ function loadComboForEdit(comboUID) {
             $('#ComboSellingPrice').val(smartDecimal(d.SellingPrice));
             $('#ComboMRP').val(smartDecimal(d.MRP || 0));
             $('#ComboDescription').val(d.Description || '');
-            if (d.TaxDetailsUID) {
-                $('#ComboTaxPercentage').val(d.TaxDetailsUID).trigger('change');
-            }
-            if (d.PrimaryUnitUID) {
-                $('#ComboPrimaryUnit').val(d.PrimaryUnitUID).trigger('change');
-            }
 
             // Load BOM components
             if (response.Components && response.Components.length > 0) {
@@ -330,7 +327,13 @@ function loadComboForEdit(comboUID) {
 
             $('#ComboModalTitle').text('Edit Combo Item');
             $('.AddEditComboBtn').text('Update');
-            $('#comboItemModal').modal('show');
+
+            DropdownCache.ready().then(function (data) {
+                DropdownCache.populateProductModal(data);
+                if (d.TaxDetailsUID) $('#ComboTaxPercentage').val(d.TaxDetailsUID).trigger('change');
+                if (d.PrimaryUnitUID) $('#ComboPrimaryUnit').val(d.PrimaryUnitUID).trigger('change');
+                $('#comboItemModal').modal('show');
+            });
         }
     });
 }
@@ -353,6 +356,7 @@ function addComboItemData(formData) {
                 inlineMessageAlert('.comboFormAlert', 'danger', response.Message, false, false);
             } else {
                 $('#comboItemModal').modal('hide');
+                showToastNotification(response.Message, 'success');
                 clearComboForm();
                 if (typeof executeProdPagnFunc === 'function') {
                     executeProdPagnFunc(response, true);
@@ -380,6 +384,7 @@ function editComboItemData(formData) {
                 inlineMessageAlert('.comboFormAlert', 'danger', response.Message, false, false);
             } else {
                 $('#comboItemModal').modal('hide');
+                showToastNotification(response.Message, 'success');
                 clearComboForm();
                 if (typeof executeProdPagnFunc === 'function') {
                     executeProdPagnFunc(response, true);

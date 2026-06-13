@@ -8,7 +8,7 @@ class Products extends MY_Controller {
     public function __construct() {
         parent::__construct();
 
-        $this->load->model(['global_model', 'products_model']);
+        $this->load->model(['products_model']);
 
     }
 
@@ -17,37 +17,6 @@ class Products extends MY_Controller {
         $tab = strtolower($tab ?: 'item');
         $allowedTabs = ['item', 'group', 'category', 'size', 'brand'];
         return in_array($tab, $allowedTabs) ? $tab : 'item';
-
-    }
-
-    private function getModuleInfo($controllerName) {
-
-        $getModuleInfo = $this->redisservice->getUserCache('modules') ?? [];
-        $ModuleInfo = array_values(array_filter($getModuleInfo, fn($m) => $m->ControllerName === $controllerName));
-        
-        if (empty($ModuleInfo)) {
-            throw new Exception("Module information not found for controller: {$controllerName}");
-        }
-        
-        return $ModuleInfo;
-
-    }
-
-    private function getModuleListData($moduleName) {
-
-        $ModuleInfo = $this->getModuleInfo(strtolower($this->router->fetch_class()));
-        $ModuleId   = getModuleUIDByName($ModuleInfo, $moduleName);
-
-        if (!$ModuleId) {
-            throw new Exception("Module not configured: {$moduleName}");
-        }
-
-        $pageNo = (int) $this->input->post('PageNo') ?: 1;
-        $limit  = (int) $this->input->post('RowLimit') ?: 10;
-        $offset = ($pageNo - 1) * $limit;
-        $filter = $this->input->post('Filter') ?: [];
-
-        return $this->globalservice->getBaseMainPageTablePagination($ModuleId, $pageNo, $limit, $offset, $filter, [], 'Ajax');
 
     }
 
@@ -187,21 +156,13 @@ class Products extends MY_Controller {
             }
 
             $OrgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
-
-            $this->load->model('customers_model');
-            $this->pageData['CustomerTypeInfo'] = $this->customers_model->getCustomerTypeList($OrgUID) ?? [];
             
             $this->pageData['ActiveTabData']  = $activeTab;
             $this->pageData['ActiveTabName']  = ucfirst($activeTab);
             $this->pageData['ActiveModuleId'] = 4;
 
-            if (!empty($this->pageData['JwtData']->GenSettings->EnableStorage)) {
-                $this->load->model('storage_model');
-                $this->pageData['fltStorageData'] = $this->storage_model->getStorageDetails([]) ?? [];
-            }
-
             $this->pageData['ProductStats'] = $this->products_model->getProductStats($OrgUID);
-            
+
             $this->load->view('products/view', $this->pageData);
 
         } catch (Exception $e) {
@@ -945,6 +906,8 @@ class Products extends MY_Controller {
             $this->saveProductBOM($InsertResp->ID, $PostData);
             $this->dbwrite_model->commitTransaction();
 
+            $this->cachehelper->upsertComboProduct($InsertResp->ID);
+
             $this->EndReturnData->Error   = false;
             $this->EndReturnData->Message = 'Combo item created successfully';
 
@@ -1028,6 +991,8 @@ class Products extends MY_Controller {
             $this->saveProductBOM($comboUID, $PostData);
             $this->dbwrite_model->commitTransaction();
 
+            $this->cachehelper->upsertComboProduct($comboUID);
+
             if (getPostValue($PostData, 'getTableDetails') == 1) {
                 $pageNo  = (int) $this->input->post('PageNo') ?: 1;
                 $getResp = $this->fetchProductTableData($pageNo, 0, 1); // editComboItem — always groups
@@ -1078,6 +1043,21 @@ class Products extends MY_Controller {
 
     }
 
+    /** Lightweight BOM fetch for transaction forms — returns components with SellingPrice */
+    public function getTransComboComponents() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $productUID = (int) $this->input->post('ProductUID');
+            if (!$productUID) throw new Exception('Invalid product.');
+            $this->EndReturnData->Error      = false;
+            $this->EndReturnData->Components = $this->products_model->getProductBOM($productUID);
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
     /** Delete combo (soft delete) */
     public function deleteComboItem() {
 
@@ -1103,6 +1083,8 @@ class Products extends MY_Controller {
             );
 
             $this->dbwrite_model->commitTransaction();
+
+            $this->cachehelper->removeProduct($comboUID);
 
             $pageNo  = (int) $this->input->post('PageNo') ?: 1;
             $getResp = $this->fetchProductTableData($pageNo, 0, 1); // deleteComboItem — always groups
@@ -1273,6 +1255,8 @@ class Products extends MY_Controller {
                     $missingFields[] = $field;
                 }
             }
+
+            $this->load->model('global_model');
 
             // Fetch any missing fields from DB (model methods also write back to Upstash)
             foreach ($missingFields as $field) {

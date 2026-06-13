@@ -361,9 +361,11 @@ if ($isEdit) {
 
                             <?php $this->load->view('transactions/partials/form_products_add', [
                                 'transNotesPlaceholder' => 'Enter notes or anything else',
-                                'transHideTerms'        => true,
                                 'transNotesContent'     => $isEdit ? $_userNotes : '',
+                                'transHideTerms'        => empty($JwtData->TransSettings->PurchaseShowTerms),
+                                'transTermsContent'     => $isEdit ? ($PurchData->TermsConditions ?? '') : ($JwtData->TransSettings->TermsAndConditions ?? ''),
                                 'transShowDropzone'     => true,
+                                'transShowSignature'    => !empty($JwtData->TransSettings->PurchaseShowSignature),
                                 'transSignatureUID'     => $isEdit ? (int)($PurchData->SignatureUID ?? 0) : 0,
                                 'transPaymentVars'      => !$isEdit ? [
                                     'PaymentTypes'     => $PaymentTypes ?? [],
@@ -522,6 +524,7 @@ var _vendorState    = '<?php echo isset($VendorAddr) ? addslashes($VendorAddr->S
 var _upstashUrl       = '<?php echo addslashes($UpstashReadUrl  ?? ''); ?>';
 var _upstashReadToken = '<?php echo addslashes($UpstashReadToken ?? ''); ?>';
 var _vendorCacheKey   = '<?php echo addslashes($VendorCacheKey  ?? ''); ?>';
+window._productPurchaseMode = true;
 
 <?php if ($isEdit): ?>
 var _editItems = <?php echo json_encode(array_map(function($item) {
@@ -603,6 +606,21 @@ $(function() {
     <?php endif; ?>
     transDatePickr('#transDate', false, 'Y-m-d', false, true, true, true, 'd-m-Y');
     transDatePickr('#billDueDate', false, 'Y-m-d', false, false, <?php echo $isEdit ? 'false' : 'true'; ?>, true, 'd-m-Y', '#transDate');
+
+    // Keep billDueDate minDate in sync whenever supplier invoice date changes
+    (function () {
+        var transEl   = document.querySelector('#transDate');
+        var dueEl     = document.querySelector('#billDueDate');
+        if (!transEl || !dueEl || !transEl._flatpickr || !dueEl._flatpickr) return;
+        var transFp = transEl._flatpickr;
+        var dueFp   = dueEl._flatpickr;
+        transFp.config.onChange.push(function (selectedDates) {
+            if (!selectedDates.length) return;
+            dueFp.set('minDate', selectedDates[0]);
+            var current = dueFp.selectedDates[0];
+            if (current && current < selectedDates[0]) { dueFp.clear(); }
+        });
+    }());
 
     <?php if ($isEdit): ?>
     // Vendor is pre-set via hidden input — no select2 needed

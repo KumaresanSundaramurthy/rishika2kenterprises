@@ -241,9 +241,9 @@ if (!empty($DataLists)) {
 
                             <!-- Item actions group -->
                             <li>
-                                <a class="dropdown-item" href="/products/<?php echo $uid; ?>/clone">
+                                <button class="dropdown-item CloneProduct" data-uid="<?php echo $uid; ?>">
                                     <i class="bx bx-copy me-2 text-secondary"></i>Clone
-                                </a>
+                                </button>
                             </li>
                             <li><hr class="dropdown-divider my-1"></li>
 

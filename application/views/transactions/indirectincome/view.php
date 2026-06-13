@@ -7,45 +7,113 @@ $this->load->view('common/transactions/header'); ?>
         <?php $this->load->view('common/menu_view'); ?>
 
         <div class="layout-page">
-            <div class="content-wrapper">
-                <div class="container-xxl flex-grow-1 container-p-y">
+            <div class="content-wrapper apex-content">
+                <?php $this->load->view('common/apex/page_header', [
+                    'pageIcon'        => 'bx-trending-up',
+                    'pageIconBg'      => '#f0fdfa',
+                    'pageIconColor'   => '#14b8a6',
+                    'pageTitle'       => $PageTitle       ?? 'Indirect Income',
+                    'pageDescription' => $PageDescription ?? 'Record and manage indirect income entries',
+                ]); ?>
+                <?php
+                $stats   = $SummaryStats ?? [];
+                $cur     = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
+                $dec     = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
 
-                    <?php
-                    $stats   = $SummaryStats ?? [];
-                    $cur     = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-                    $dec     = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
+                $cntPending   = ($stats['Pending']['count']  ?? 0) + ($stats['Partial']['count']  ?? 0);
+                $amtPending   = ($stats['Pending']['amount'] ?? 0) + ($stats['Partial']['amount'] ?? 0);
+                $cntReceived  = $stats['Received']['count']  ?? 0;
+                $amtReceived  = $stats['Received']['amount'] ?? 0;
+                $cntCancelled = $stats['Cancelled']['count'] ?? 0;
+                $cntAll       = $cntPending + $cntReceived + $cntCancelled;
+                $amtAll       = $amtPending + $amtReceived;
 
-                    $cntPending   = ($stats['Pending']['count']  ?? 0) + ($stats['Partial']['count']  ?? 0);
-                    $amtPending   = ($stats['Pending']['amount'] ?? 0) + ($stats['Partial']['amount'] ?? 0);
-                    $cntReceived  = $stats['Received']['count']  ?? 0;
-                    $amtReceived  = $stats['Received']['amount'] ?? 0;
-                    $cntCancelled = $stats['Cancelled']['count'] ?? 0;
-                    $cntAll       = $cntPending + $cntReceived + $cntCancelled;
-                    $amtAll       = $amtPending + $amtReceived;
+                $categories   = $Categories   ?? [];
+                $paymentTypes = $PaymentTypes ?? [];
+                $bankAccounts = $BankAccounts ?? [];
+                ?>
 
-                    $categories   = $Categories   ?? [];
-                    $paymentTypes = $PaymentTypes ?? [];
-                    $bankAccounts = $BankAccounts ?? [];
-
-                    function incFmt($val, $sym, $dec) {
-                        return $sym . ' ' . number_format((float)$val, $dec, '.', ',');
-                    }
-                    ?>
-
-                    <!-- ── Page Header ────────────────────────────────────── -->
-                    <div class="trans-page-header">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="trans-ph-icon" style="background:#d1fae5;">
-                                <i class="bx bx-trending-up" style="color:#059669;"></i>
-                            </div>
-                            <div>
-                                <h5 class="trans-ph-title mb-0"><?php echo htmlspecialchars($PageTitle ?? 'Indirect Income'); ?></h5>
-                                <?php if (!empty($PageDescription)): ?>
-                                <div class="text-muted" style="font-size:.76rem;"><?php echo htmlspecialchars($PageDescription); ?></div>
-                                <?php endif; ?>
+                <!-- ── Stats Strip ───────────────────────────────────────────── -->
+                <div class="apex-stats-strip">
+                    <a href="javascript:void(0);" class="apex-stat-item active" data-status="All" data-stat-filter="All" style="--stat-color:#14b8a6">
+                        <div class="apex-stat-icon" style="background:#f0fdfa"><i class="bx bx-trending-up" style="color:#14b8a6"></i></div>
+                        <div class="apex-stat-body">
+                            <div class="apex-stat-label">All Income</div>
+                            <div class="apex-stat-bottom">
+                                <span class="apex-stat-count"><?php echo number_format($cntAll); ?></span>
+                                <span class="apex-stat-amount"><?php echo $cur . ' ' . number_format((float)$amtAll, $dec, '.', ','); ?></span>
                             </div>
                         </div>
-                        <div class="d-flex align-items-center gap-2">
+                    </a>
+                    <a href="javascript:void(0);" class="apex-stat-item" data-status="Pending" data-stat-filter="Pending" style="--stat-color:#f97316">
+                        <div class="apex-stat-icon" style="background:#fff7ed"><i class="bx bx-time" style="color:#f97316"></i></div>
+                        <div class="apex-stat-body">
+                            <div class="apex-stat-label">Pending</div>
+                            <div class="apex-stat-bottom">
+                                <span class="apex-stat-count"><?php echo number_format($cntPending); ?></span>
+                                <span class="apex-stat-amount"><?php echo $cur . ' ' . number_format((float)$amtPending, $dec, '.', ','); ?></span>
+                            </div>
+                        </div>
+                    </a>
+                    <a href="javascript:void(0);" class="apex-stat-item" data-status="Received" data-stat-filter="Received" style="--stat-color:#16a34a">
+                        <div class="apex-stat-icon" style="background:#dcfce7"><i class="bx bx-check-circle" style="color:#16a34a"></i></div>
+                        <div class="apex-stat-body">
+                            <div class="apex-stat-label">Received</div>
+                            <div class="apex-stat-bottom">
+                                <span class="apex-stat-count"><?php echo number_format($cntReceived); ?></span>
+                                <span class="apex-stat-amount"><?php echo $cur . ' ' . number_format((float)$amtReceived, $dec, '.', ','); ?></span>
+                            </div>
+                        </div>
+                    </a>
+                    <a href="javascript:void(0);" class="apex-stat-item" data-status="Cancelled" data-stat-filter="Cancelled" style="--stat-color:#64748b">
+                        <div class="apex-stat-icon" style="background:#f1f5f9"><i class="bx bx-x-circle" style="color:#64748b"></i></div>
+                        <div class="apex-stat-body">
+                            <div class="apex-stat-label">Cancelled</div>
+                            <div class="apex-stat-bottom">
+                                <span class="apex-stat-count"><?php echo number_format($cntCancelled); ?></span>
+                                <span class="apex-stat-amount">&nbsp;</span>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+                <div class="container-xxl flex-grow-1 py-3">
+
+                    <!-- ── Main Card ──────────────────────────────────────── -->
+                    <div class="card">
+
+                        <!-- Filter Row -->
+                        <div class="apex-filter-row">
+                            <div class="apex-search-wrap">
+                                <i class="bx bx-search apex-search-icon"></i>
+                                <input type="text" class="apex-search-input" id="searchIncomeData" placeholder="Income # or category...">
+                            </div>
+                            <div class="dropdown">
+                                <button class="apex-filter-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="bx bx-calendar"></i><span id="dateFilterLabel" class="ms-1">All Dates</span>
+                                </button>
+                                <ul class="dropdown-menu shadow" style="width:210px;max-height:300px;overflow-y:auto;font-size:.82rem;">
+                                    <li><a class="dropdown-item date-option" data-range=""><i class="bx bx-list-ul me-2"></i>All Dates</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item date-option" data-range="today">Today</a></li>
+                                    <li><a class="dropdown-item date-option" data-range="yesterday">Yesterday</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item date-option" data-range="this_week">This Week</a></li>
+                                    <li><a class="dropdown-item date-option" data-range="last_week">Last Week</a></li>
+                                    <li><a class="dropdown-item date-option" data-range="last_7_days">Last 7 Days</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item date-option" data-range="this_month">This Month</a></li>
+                                    <li><a class="dropdown-item date-option" data-range="previous_month">Previous Month</a></li>
+                                    <li><a class="dropdown-item date-option" data-range="last_30_days">Last 30 Days</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item date-option" data-range="this_year">This Year</a></li>
+                                    <li><a class="dropdown-item date-option" data-range="last_year">Last Year</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item date-option fw-bold" data-range="fy_25_26"><i class="bx bxs-star text-warning me-1"></i>FY 25-26</a></li>
+                                </ul>
+                            </div>
+                            <div class="apex-filter-spacer"></div>
+                            <a href="javascript:void(0);" class="apex-icon-btn pageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
                             <button type="button" class="btn btn-sm btn-outline-secondary" id="incManageCatBtn">
                                 <i class="bx bx-category me-1"></i>Categories
                             </button>
@@ -53,89 +121,15 @@ $this->load->view('common/transactions/header'); ?>
                                 <i class="bx bx-plus me-1"></i>Add Income
                             </button>
                         </div>
-                    </div>
 
-                    <!-- ── Stat Cards ─────────────────────────────────────── -->
-                    <div class="trans-stats-section">
-                        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
-                            <a href="javascript:void(0);" class="trans-stat-card stat-all active-stat" data-stat-filter="All">
-                                <div class="tsc-icon-wrap"><i class="bx bx-trending-up"></i></div>
-                                <div class="tsc-body">
-                                    <div class="trans-stat-label">All Income</div>
-                                    <div class="trans-stat-count"><?php echo number_format($cntAll); ?></div>
-                                    <div class="trans-stat-amount"><?php echo incFmt($amtAll, $cur, $dec); ?></div>
-                                </div>
-                            </a>
-                            <a href="javascript:void(0);" class="trans-stat-card stat-active" data-stat-filter="Pending">
-                                <div class="tsc-icon-wrap"><i class="bx bx-time"></i></div>
-                                <div class="tsc-body">
-                                    <div class="trans-stat-label">Pending</div>
-                                    <div class="trans-stat-count"><?php echo number_format($cntPending); ?></div>
-                                    <div class="trans-stat-amount"><?php echo incFmt($amtPending, $cur, $dec); ?></div>
-                                </div>
-                            </a>
-                            <a href="javascript:void(0);" class="trans-stat-card" data-stat-filter="Received">
-                                <div class="tsc-icon-wrap"><i class="bx bx-check-circle"></i></div>
-                                <div class="tsc-body">
-                                    <div class="trans-stat-label">Received</div>
-                                    <div class="trans-stat-count"><?php echo number_format($cntReceived); ?></div>
-                                    <div class="trans-stat-amount"><?php echo incFmt($amtReceived, $cur, $dec); ?></div>
-                                </div>
-                            </a>
-                            <a href="javascript:void(0);" class="trans-stat-card stat-draft" data-stat-filter="Cancelled">
-                                <div class="tsc-icon-wrap"><i class="bx bx-x-circle"></i></div>
-                                <div class="tsc-body">
-                                    <div class="trans-stat-label">Cancelled</div>
-                                    <div class="trans-stat-count"><?php echo number_format($cntCancelled); ?></div>
-                                    <div class="trans-stat-amount">&nbsp;</div>
-                                </div>
-                            </a>
-                        </div>
-                    </div>
-
-                    <!-- ── Main Card ──────────────────────────────────────── -->
-                    <div class="card">
-
-                        <!-- Toolbar -->
-                        <div class="trans-toolbar">
+                        <!-- Tabs Row -->
+                        <div class="apex-tabs-row">
                             <ul class="nav trans-status-tabs gap-1" id="incStatusTabs" role="tablist">
-                                <li class="nav-item"><a class="nav-link active inc-status-tab" data-status="All"       href="javascript:void(0);">All      <span class="trans-tab-count ms-1"><?php echo $ModAllCount; ?></span></a></li>
-                                <li class="nav-item"><a class="nav-link inc-status-tab"       data-status="Pending"   href="javascript:void(0);">Pending   <span class="inc-tab-count trans-tab-count ms-1 d-none"></span></a></li>
-                                <li class="nav-item"><a class="nav-link inc-status-tab"       data-status="Received"  href="javascript:void(0);">Received  <span class="inc-tab-count trans-tab-count ms-1 d-none"></span></a></li>
-                                <li class="nav-item"><a class="nav-link inc-status-tab"       data-status="Cancelled" href="javascript:void(0);">Cancelled <span class="inc-tab-count trans-tab-count ms-1 d-none"></span></a></li>
+                                <li class="nav-item"><a class="nav-link active inc-status-tab" data-status="All"       href="javascript:void(0);">All       <span class="trans-tab-count ms-1"><?php echo $ModAllCount; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link inc-status-tab"        data-status="Pending"   href="javascript:void(0);">Pending   <span class="inc-tab-count trans-tab-count ms-1 d-none"></span></a></li>
+                                <li class="nav-item"><a class="nav-link inc-status-tab"        data-status="Received"  href="javascript:void(0);">Received  <span class="inc-tab-count trans-tab-count ms-1 d-none"></span></a></li>
+                                <li class="nav-item"><a class="nav-link inc-status-tab"        data-status="Cancelled" href="javascript:void(0);">Cancelled <span class="inc-tab-count trans-tab-count ms-1 d-none"></span></a></li>
                             </ul>
-
-                            <div class="d-flex align-items-center gap-2 flex-wrap">
-                                <a href="javascript:void(0);" class="btn btn-sm btn-outline-secondary p-1 pageRefresh" title="Refresh"><i class="bx bx-refresh fs-5"></i></a>
-                                <div class="input-group input-group-sm" style="width:210px">
-                                    <span class="input-group-text bg-transparent border-end-0"><i class="bx bx-search text-muted"></i></span>
-                                    <input type="text" class="form-control border-start-0" id="searchIncomeData" placeholder="Income # or category...">
-                                </div>
-                                <div class="dropdown">
-                                    <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                        <i class="bx bx-calendar me-1"></i><span id="dateFilterLabel">All Dates</span>
-                                    </button>
-                                    <ul class="dropdown-menu shadow" style="width:210px;max-height:300px;overflow-y:auto;font-size:.82rem;">
-                                        <li><a class="dropdown-item date-option" data-range=""><i class="bx bx-list-ul me-2"></i>All Dates</a></li>
-                                        <li><hr class="dropdown-divider"></li>
-                                        <li><a class="dropdown-item date-option" data-range="today">Today</a></li>
-                                        <li><a class="dropdown-item date-option" data-range="yesterday">Yesterday</a></li>
-                                        <li><hr class="dropdown-divider"></li>
-                                        <li><a class="dropdown-item date-option" data-range="this_week">This Week</a></li>
-                                        <li><a class="dropdown-item date-option" data-range="last_week">Last Week</a></li>
-                                        <li><a class="dropdown-item date-option" data-range="last_7_days">Last 7 Days</a></li>
-                                        <li><hr class="dropdown-divider"></li>
-                                        <li><a class="dropdown-item date-option" data-range="this_month">This Month</a></li>
-                                        <li><a class="dropdown-item date-option" data-range="previous_month">Previous Month</a></li>
-                                        <li><a class="dropdown-item date-option" data-range="last_30_days">Last 30 Days</a></li>
-                                        <li><hr class="dropdown-divider"></li>
-                                        <li><a class="dropdown-item date-option" data-range="this_year">This Year</a></li>
-                                        <li><a class="dropdown-item date-option" data-range="last_year">Last Year</a></li>
-                                        <li><hr class="dropdown-divider"></li>
-                                        <li><a class="dropdown-item date-option fw-bold" data-range="fy_25_26"><i class="bx bxs-star text-warning me-1"></i>FY 25-26</a></li>
-                                    </ul>
-                                </div>
-                            </div>
                         </div>
 
                         <!-- Table -->
@@ -628,13 +622,13 @@ $(function () {
         var allCount  = pendingCount + received.count + cancelled.count;
         var allAmount = pendingAmount + received.amount;
 
-        $('[data-stat-filter="All"]      .trans-stat-count').text(allCount);
-        $('[data-stat-filter="All"]      .trans-stat-amount').text(incCurSymbol + ' ' + _fmtNum(allAmount));
-        $('[data-stat-filter="Pending"]  .trans-stat-count').text(pendingCount);
-        $('[data-stat-filter="Pending"]  .trans-stat-amount').text(incCurSymbol + ' ' + _fmtNum(pendingAmount));
-        $('[data-stat-filter="Received"] .trans-stat-count').text(received.count);
-        $('[data-stat-filter="Received"] .trans-stat-amount').text(incCurSymbol + ' ' + _fmtNum(received.amount));
-        $('[data-stat-filter="Cancelled"].trans-stat-count').text(cancelled.count);
+        $('[data-stat-filter="All"]      .apex-stat-count').text(allCount);
+        $('[data-stat-filter="All"]      .apex-stat-amount').text(incCurSymbol + ' ' + _fmtNum(allAmount));
+        $('[data-stat-filter="Pending"]  .apex-stat-count').text(pendingCount);
+        $('[data-stat-filter="Pending"]  .apex-stat-amount').text(incCurSymbol + ' ' + _fmtNum(pendingAmount));
+        $('[data-stat-filter="Received"] .apex-stat-count').text(received.count);
+        $('[data-stat-filter="Received"] .apex-stat-amount').text(incCurSymbol + ' ' + _fmtNum(received.amount));
+        $('[data-stat-filter="Cancelled"] .apex-stat-count').text(cancelled.count);
     }
 
     function _fmtNum(val) {
@@ -904,10 +898,10 @@ $(function () {
     }
 
     // ── Stat card click ──────────────────────────────────────
-    $(document).on('click', '[data-stat-filter]', function () {
+    $(document).on('click', '.apex-stat-item[data-stat-filter]', function () {
         var status = $(this).data('stat-filter') || 'All';
-        $('.trans-stat-card').removeClass('active-stat');
-        $(this).addClass('active-stat');
+        $('.apex-stat-item').removeClass('active');
+        $(this).addClass('active');
         $('.inc-status-tab').removeClass('active');
         $('.inc-status-tab[data-status="' + status + '"]').addClass('active');
         _clearIncStatusFilter();
@@ -917,11 +911,11 @@ $(function () {
     // ── Status tab click ─────────────────────────────────────
     $(document).on('click', '.inc-status-tab', function (e) {
         e.preventDefault();
+        var status = $(this).data('status') || 'All';
         $('.inc-status-tab').removeClass('active');
         $(this).addClass('active');
-        $('.trans-stat-card').removeClass('active-stat');
-        var status = $(this).data('status') || 'All';
-        $('[data-stat-filter="' + status + '"]').addClass('active-stat');
+        $('.apex-stat-item').removeClass('active');
+        $('.apex-stat-item[data-stat-filter="' + status + '"]').addClass('active');
         _clearIncStatusFilter();
         Filter.Status = status; PageNo = 1; getIncomeDetails();
     });

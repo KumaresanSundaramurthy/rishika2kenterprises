@@ -224,7 +224,6 @@ function retrieveProductDetails(ItemUID, CloneFlag = false) {
                     $('#ItemModalTitle').text('Edit Item');
                     $('.AddEditProductBtn').text('Update');
                 }
-                clearItemValues();
                 DropdownCache.ready().then(function(data) {
                     DropdownCache.populateProductModal(data);
                 });
@@ -318,7 +317,6 @@ function editProductData(formdata) {
                 quill.setContents([]);
                 $('#AddEditItemForm').trigger('reset');
                 $('#itemsModal').modal('hide');
-                clearItemValues();
                 executeProdPagnFunc(response, true);
             }
         }

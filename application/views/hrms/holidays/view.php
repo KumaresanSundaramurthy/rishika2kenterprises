@@ -4,15 +4,16 @@
   <div class="layout-container">
     <?php $this->load->view('common/menu_view'); ?>
     <div class="layout-page">
-      <div class="content-wrapper">
+      <div class="content-wrapper apex-content">
+        <?php $this->load->view('common/apex/page_header', [
+          'pageIcon'        => 'bx-calendar-event',
+          'pageIconBg'      => '#fef3c7',
+          'pageIconColor'   => '#d97706',
+          'pageTitle'       => 'Holidays',
+          'pageDescription' => 'Manage holiday calendar',
+        ]); ?>
         <div class="container-xxl flex-grow-1 container-p-y">
-          <div class="trans-page-header">
-            <div class="d-flex align-items-center gap-3">
-              <div class="trans-ph-icon" style="background:linear-gradient(135deg,#f59e0b,#d97706)">
-                <i class="bx bx-calendar-event" style="color:#fff;font-size:1.4rem;"></i>
-              </div>
-              <div><h5 class="trans-ph-title mb-0">Holidays</h5><div class="text-muted" style="font-size:.76rem;">Manage holiday calendar</div></div>
-            </div>
+          <div class="d-flex justify-content-end mb-3">
             <button class="btn btn-sm btn-primary" id="btnNewHoliday"><i class="bx bx-plus me-1"></i>Add Holiday</button>
           </div>
 

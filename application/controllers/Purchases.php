@@ -347,6 +347,7 @@ class Purchases extends MY_Controller {
 
             $this->_saveAttachments($transUID);
             $this->_touchVendorCache($vendorUID);
+            if (!$isDraft) { $this->_refreshProductCache($items); }
 
             $this->EndReturnData->Error    = FALSE;
             $this->EndReturnData->Message  = 'Purchase bill recorded successfully.';
@@ -493,9 +494,12 @@ class Purchases extends MY_Controller {
                 'IsForeignCustomer' => NULL,
             ];
 
-            $wasNonDraft   = ($existing->DocStatus !== 'Draft');
+            $wasNonDraft    = ($existing->DocStatus !== 'Draft');
             $activeTransUID = $transUID;
+            $_cacheUIDs     = [];
             if ($wasNonDraft) {
+                $oldItems = $this->transactions_model->getTransactionItems($transUID, $orgUID);
+                foreach ($oldItems as $_oi) { $u = (int)$_oi->ProductUID; if ($u > 0) $_cacheUIDs[$u] = true; }
                 $this->dbwrite_model->reverseStockMovements($transUID, $orgUID, $userUID);
             }
 
@@ -658,6 +662,10 @@ class Purchases extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
             $this->_touchVendorCache($vendorUID);
+            if (!$isDraft) {
+                foreach ($items as $_item) { $u = (int)($_item['id'] ?? 0); if ($u > 0) $_cacheUIDs[$u] = true; }
+                foreach (array_keys($_cacheUIDs) as $_uid) { $this->cachehelper->upsertProduct($_uid); }
+            }
             $this->transactions_model->generateAndStorePdf(isset($newTransUID) ? $newTransUID : $transUID, $orgUID, $this->pageModuleUID);
 
             $this->EndReturnData->Error   = FALSE;
@@ -1238,6 +1246,17 @@ class Purchases extends MY_Controller {
 
     private function _touchVendorCache($vendorUID) {
         $this->cachehelper->touchVendor($vendorUID);
+    }
+
+    private function _refreshProductCache(array $items) {
+        $seen = [];
+        foreach ($items as $item) {
+            $uid = (int)($item['id'] ?? 0);
+            if ($uid > 0 && !isset($seen[$uid])) {
+                $seen[$uid] = true;
+                $this->cachehelper->upsertProduct($uid);
+            }
+        }
     }
 
 

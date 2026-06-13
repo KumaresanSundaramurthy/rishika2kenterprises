@@ -36,25 +36,20 @@ $noBankTypes  = ['Cash'];
         <?php $this->load->view('common/menu_view'); ?>
 
         <div class="layout-page">
-            <div class="content-wrapper">
+            <div class="content-wrapper apex-content">
+                <?php $this->load->view('common/apex/page_header', [
+                    'pageIcon'        => 'bx-receipt',
+                    'pageIconBg'      => '#fef3c7',
+                    'pageIconColor'   => '#d97706',
+                    'pageTitle'       => $pageTitle,
+                    'pageDescription' => $PageDescription ?? '',
+                ]); ?>
                 <div class="container-xxl flex-grow-1 container-p-y">
 
-                    <!-- ── Page Header ─────────────────────────────────── -->
-                    <div class="trans-page-header mb-3">
-                        <div class="d-flex align-items-center gap-3">
-                            <a href="/expenses" class="btn btn-sm btn-outline-secondary">
-                                <i class="bx bx-arrow-back me-1"></i>Back
-                            </a>
-                            <div class="trans-ph-icon" style="background:#fef3c7;">
-                                <i class="bx bx-receipt" style="color:#d97706;"></i>
-                            </div>
-                            <div>
-                                <h5 class="trans-ph-title mb-0"><?php echo $pageTitle; ?></h5>
-                                <?php if (!empty($PageDescription)): ?>
-                                <div class="text-muted" style="font-size:.76rem;"><?php echo htmlspecialchars($PageDescription); ?></div>
-                                <?php endif; ?>
-                            </div>
-                        </div>
+                    <div class="mb-3">
+                        <a href="/expenses" class="btn btn-sm btn-outline-secondary">
+                            <i class="bx bx-arrow-back me-1"></i>Back
+                        </a>
                     </div>
 
                     <form id="expenseForm" action="<?php echo $formAction; ?>" method="post" autocomplete="off">

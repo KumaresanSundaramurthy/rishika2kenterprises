@@ -4,16 +4,15 @@
   <div class="layout-container">
     <?php $this->load->view('common/menu_view'); ?>
     <div class="layout-page">
-      <div class="content-wrapper">
+      <div class="content-wrapper apex-content">
+        <?php $this->load->view('common/apex/page_header', [
+          'pageIcon'        => 'bx-file',
+          'pageIconBg'      => '#ecfeff',
+          'pageIconColor'   => '#0891b2',
+          'pageTitle'       => 'Payslips',
+          'pageDescription' => 'Employee salary slips',
+        ]); ?>
         <div class="container-xxl flex-grow-1 container-p-y">
-          <div class="trans-page-header">
-            <div class="d-flex align-items-center gap-3">
-              <div class="trans-ph-icon" style="background:linear-gradient(135deg,#06b6d4,#0e7490)">
-                <i class="bx bx-file" style="color:#fff;font-size:1.4rem;"></i>
-              </div>
-              <div><h5 class="trans-ph-title mb-0">Payslips</h5><div class="text-muted" style="font-size:.76rem;">Employee salary slips</div></div>
-            </div>
-          </div>
 
           <!-- Filters -->
           <div class="row g-2 mb-3">

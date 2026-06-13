@@ -7,8 +7,15 @@
         <?php $this->load->view('common/menu_view'); ?>
 
         <div class="layout-page">
-            <div class="content-wrapper">
-                <div class="container-xxl flex-grow-1 container-p-y">
+            <div class="content-wrapper apex-content">
+                <?php $this->load->view('common/apex/page_header', [
+                    'pageIcon'        => 'bx-wallet',
+                    'pageIconBg'      => '#f0fdf4',
+                    'pageIconColor'   => '#10b981',
+                    'pageTitle'       => $PageTitle       ?? 'Payments',
+                    'pageDescription' => $PageDescription ?? 'Track payments received and made',
+                ]); ?>
+                <div class="container-xxl flex-grow-1 py-3">
 
                     <?php
                     $cur     = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
@@ -26,18 +33,6 @@
                     }
                     ?>
 
-                    <!-- ── Page Header ──────────────────────────────────────── -->
-                    <div class="trans-page-header">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="trans-ph-icon" style="background:#f0f4ff;">
-                                <i class="bx bx-wallet-alt" style="color:#4f46e5;"></i>
-                            </div>
-                            <div>
-                                <h5 class="trans-ph-title mb-0">Payments</h5>
-                                <div class="text-muted" style="font-size:.76rem;">All money received and paid out — in one place</div>
-                            </div>
-                        </div>
-                    </div>
 
                     <!-- ── Stats Bar: Balance | In | Out ────────────────────── -->
                     <div class="row g-3 mb-4">
@@ -163,55 +158,32 @@
                     <!-- ── Main Card ──────────────────────────────────────── -->
                     <div class="card border-0 shadow-sm">
 
-                        <!-- Toolbar -->
-                        <div class="trans-toolbar d-flex align-items-center justify-content-between flex-wrap gap-2">
-
-                            <!-- Left: All, In, Out, Cancelled -->
-                            <ul class="nav trans-status-tabs" id="allPmtStatusTabs">
-                                <li class="nav-item">
-                                    <a class="nav-link allpmt-status-tab active" data-status="" href="javascript:void(0);">
-                                        All <span class="trans-tab-count ms-1" id="allPmtTabCountActive"><?php echo number_format($ModAllCount); ?></span>
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link allpmt-dir-pill" data-dir="In" href="javascript:void(0);">
-                                        <i class="bx bx-up-arrow-alt text-success"></i> In
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link allpmt-dir-pill" data-dir="Out" href="javascript:void(0);">
-                                        <i class="bx bx-down-arrow-alt text-danger"></i> Out
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link allpmt-status-tab" data-status="Cancelled" href="javascript:void(0);">
-                                        Cancelled <span class="trans-tab-count ms-1" id="allPmtTabCountCancelled">0</span>
-                                    </a>
-                                </li>
-                            </ul>
-
-                            <!-- Right: Search + Date + Clear -->
-                            <div class="d-flex align-items-center gap-2 flex-wrap py-2">
-                                <div class="input-group input-group-sm" style="width:210px;">
-                                    <span class="input-group-text bg-white border-end-0">
-                                        <i class="bx bx-search text-muted"></i>
-                                    </span>
-                                    <input type="text" class="form-control border-start-0" id="allPmtSearch"
-                                           placeholder="Party, ref, amount…">
-                                </div>
-                                <div class="dropdown">
-                                    <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button"
-                                            id="allPmtDateBtn" data-bs-toggle="dropdown" aria-expanded="false">
-                                        <i class="bx bx-calendar me-1"></i>
-                                        <span id="allPmtDateLabel">All Dates</span>
-                                    </button>
-                                    <ul class="dropdown-menu shadow" id="allPmtDateMenu"
-                                        style="width:220px;max-height:360px;overflow-y:auto;font-size:.82rem;"></ul>
-                                </div>
-                                <button class="btn btn-outline-secondary btn-sm" id="allPmtClearBtn" title="Clear all filters">
-                                    <i class="bx bx-x me-1"></i>Clear
-                                </button>
+                        <!-- Filter Row -->
+                        <div class="apex-filter-row">
+                            <div class="apex-search-wrap">
+                                <i class="bx bx-search apex-search-icon"></i>
+                                <input type="text" class="apex-search-input" id="allPmtSearch" placeholder="Party, ref, amount…">
                             </div>
+                            <div class="dropdown">
+                                <button class="apex-filter-btn dropdown-toggle" type="button" id="allPmtDateBtn" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="bx bx-calendar"></i><span id="allPmtDateLabel" class="ms-1">All Dates</span>
+                                </button>
+                                <ul class="dropdown-menu shadow" id="allPmtDateMenu" style="width:220px;max-height:360px;overflow-y:auto;font-size:.82rem;"></ul>
+                            </div>
+                            <div class="apex-filter-spacer"></div>
+                            <button class="btn btn-sm btn-outline-secondary" id="allPmtClearBtn" title="Clear all filters">
+                                <i class="bx bx-x me-1"></i>Clear
+                            </button>
+                        </div>
+
+                        <!-- Tabs Row -->
+                        <div class="apex-tabs-row">
+                            <ul class="nav trans-status-tabs" id="allPmtStatusTabs">
+                                <li class="nav-item"><a class="nav-link allpmt-status-tab active" data-status=""          href="javascript:void(0);">All       <span class="trans-tab-count ms-1" id="allPmtTabCountActive"><?php echo number_format($ModAllCount); ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link allpmt-dir-pill"          data-dir="In"           href="javascript:void(0);"><i class="bx bx-up-arrow-alt text-success"></i> In</a></li>
+                                <li class="nav-item"><a class="nav-link allpmt-dir-pill"          data-dir="Out"          href="javascript:void(0);"><i class="bx bx-down-arrow-alt text-danger"></i> Out</a></li>
+                                <li class="nav-item"><a class="nav-link allpmt-status-tab"        data-status="Cancelled" href="javascript:void(0);">Cancelled <span class="trans-tab-count ms-1" id="allPmtTabCountCancelled">0</span></a></li>
+                            </ul>
                         </div>
 
                         <!-- Table -->

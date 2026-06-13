@@ -259,13 +259,7 @@ class Cachehelper {
             if ($uid <= 0) return;
 
             $CI->load->model('products_model');
-            $rows = $CI->products_model->getProductsForCache($orgUID);
-            if (empty($rows)) return;
-
-            $prod = null;
-            foreach ($rows as $row) {
-                if ((int)$row->ProductUID === $uid) { $prod = $row; break; }
-            }
+            $prod = $CI->products_model->getProductForCache($orgUID, $uid);
             if (!$prod) return;
 
             $cacheKey = $CI->redisservice->orgKey('products');
@@ -321,6 +315,83 @@ class Cachehelper {
             $cacheKey = $CI->redisservice->orgKey('products');
             $CI->upstashservice->hdel($cacheKey, (string)$uid);
             $CI->upstashservice->del(Upstashservice::keyProduct($uid));
+        } catch (Exception $e) {}
+    }
+
+    // ── Composite product ─────────────────────────────────────────────────────
+
+    /**
+     * Write a composite product into the same orgKey('products') hash used by
+     * normal products, adding an extra "items" attribute for BOM components.
+     *
+     * Stored JSON shape (same as upsertProduct + items):
+     *   { ...all standard product fields..., "items": [ {"uid":N,"qty":N}, ... ] }
+     *
+     * Component uid+qty only — name/price are always read live from the products
+     * hash entries of the child products, so they never go stale.
+     *
+     * Call after addComboItem / editComboItem (post-commit so ReadDB sees new rows).
+     * For delete, call the existing removeProduct() — it handles HDEL from the same hash.
+     */
+    public function upsertComboProduct($productUID) {
+        try {
+            $CI     =& get_instance();
+            $orgUID = (int) $CI->pageData['JwtData']->Org->OrgUID;
+            $uid    = (int) $productUID;
+            if ($uid <= 0) return;
+
+            $CI->load->model('products_model');
+            $prod = $CI->products_model->getProductForCache($orgUID, $uid);
+            if (!$prod) return;
+
+            $rows  = $CI->products_model->getProductBOM($uid);
+            $items = array_map(function ($r) {
+                return [
+                    'uid' => (int)   $r->ChildProductUID,
+                    'qty' => (float) $r->Quantity,
+                ];
+            }, $rows ?: []);
+
+            $cacheKey = $CI->redisservice->orgKey('products');
+            $entry = [
+                'ProductUID'                 => $uid,
+                'ItemName'                   => $prod->ItemName                   ?? '',
+                'ProductType'                => $prod->ProductType                ?? '',
+                'CategoryUID'                => (int)($prod->CategoryUID          ?? 0),
+                'CategoryName'               => $prod->CategoryName               ?? '',
+                'HSNSACCode'                 => $prod->HSNSACCode                 ?? '',
+                'PartNumber'                 => $prod->PartNumber                 ?? '',
+                'SKU'                        => $prod->SKU                        ?? '',
+                'Description'                => $prod->Description                ?? '',
+                'PrimaryUnitUID'             => (int)($prod->PrimaryUnitUID       ?? 0),
+                'PrimaryUnitName'            => $prod->PrimaryUnitName            ?? '',
+                'MRP'                        => (float)($prod->MRP                ?? 0),
+                'SellingPrice'               => (float)($prod->SellingPrice       ?? 0),
+                'PurchasePrice'              => (float)($prod->PurchasePrice      ?? 0),
+                'SellingProductTaxUID'       => (int)($prod->SellingProductTaxUID ?? 0),
+                'PurchasePriceProductTaxUID' => (int)($prod->PurchasePriceProductTaxUID ?? 0),
+                'TaxDetailsUID'              => (int)($prod->TaxDetailsUID        ?? 0),
+                'TaxPercentage'              => (float)($prod->TaxPercentage      ?? 0),
+                'CGST'                       => (float)($prod->CGST               ?? 0),
+                'SGST'                       => (float)($prod->SGST               ?? 0),
+                'IGST'                       => (float)($prod->IGST               ?? 0),
+                'AvailableQuantity'          => (float)($prod->AvailableQuantity  ?? 0),
+                'Discount'                   => (float)($prod->Discount           ?? 0),
+                'DiscountTypeUID'            => (int)($prod->DiscountTypeUID      ?? 0),
+                'LowStockAlertAt'            => (float)($prod->LowStockAlertAt    ?? 0),
+                'NotForSale'                 => (int)($prod->NotForSale           ?? 0),
+                'IsComboItem'                => (int)($prod->IsComboItem          ?? 0),
+                'IsComposite'                => (int)($prod->IsComposite          ?? 0),
+                'IsSerialTracked'            => (int)($prod->IsSerialTracked      ?? 0),
+                'Image'                      => $prod->Image                      ?? '',
+                'items'                      => $items,
+            ];
+
+            $CI->upstashservice->pipeline([
+                ['HSET', $cacheKey, (string)$uid, json_encode($entry, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)],
+                ['DEL',  Upstashservice::keyProduct($uid)],
+            ]);
+
         } catch (Exception $e) {}
     }
 

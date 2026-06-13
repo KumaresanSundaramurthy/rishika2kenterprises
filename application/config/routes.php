@@ -300,6 +300,9 @@ $route['purchasereturns/getPurchaseReturnDetail']                  = 'purchasere
 $route['purchasereturns/recordPayment']                            = 'purchasereturns/recordPayment';
 $route['purchasereturns/getPendingPurchases']                      = 'purchasereturns/getPendingPurchases';
 $route['purchasereturns/applyDebit']                               = 'purchasereturns/applyDebit';
+$route['purchasereturns/getVendorPurchases']                       = 'purchasereturns/getVendorPurchases';
+$route['purchasereturns/getPurchaseItems']                         = 'purchasereturns/getPurchaseItems';
+$route['purchasereturns/getPRCancelDependencies']                  = 'purchasereturns/getPRCancelDependencies';
 
 // Payments
 $route['payments']                                     = 'payments/index';

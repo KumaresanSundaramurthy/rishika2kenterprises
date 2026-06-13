@@ -210,7 +210,7 @@ class Login_model extends CI_Model {
         $this->EndReturnData = new stdClass();
         try {
 
-            $this->ReadDb->select("GeneralSettg.DecimalPoints, GeneralSettg.CurrenySymbol, GeneralSettg.PriceMaxLength, GeneralSettg.RowLimit, GeneralSettg.EnableStorage, GeneralSettg.MandatoryStorage, GeneralSettg.SerialNoDisplay, GeneralSettg.QtyMaxLength, GeneralSettg.FYStartMonth, GeneralSettg.MaxShippingAddr, COALESCE(GeneralSettg.FormDateFormat,'d-m-Y') AS FormDateFormat, COALESCE(GeneralSettg.ListDateFormat,'d-m-Y') AS ListDateFormat, COALESCE(GeneralSettg.PrintDateFormat,'d-m-Y') AS PrintDateFormat, COALESCE(GeneralSettg.FormDateTimeFormat,'d-m-Y H:i') AS FormDateTimeFormat, COALESCE(GeneralSettg.ListDateTimeFormat,'d-m-Y H:i') AS ListDateTimeFormat, COALESCE(GeneralSettg.PrintDateTimeFormat,'d-m-Y H:i') AS PrintDateTimeFormat");
+            $this->ReadDb->select("GeneralSettg.DecimalPoints, GeneralSettg.CurrenySymbol, GeneralSettg.PriceMaxLength, GeneralSettg.RowLimit, GeneralSettg.EnableStorage, GeneralSettg.MandatoryStorage, GeneralSettg.SerialNoDisplay, GeneralSettg.QtyMaxLength, GeneralSettg.FYStartMonth, GeneralSettg.MaxShippingAddr, GeneralSettg.DefaultSalutationUID, COALESCE(GeneralSettg.FormDateFormat,'d-m-Y') AS FormDateFormat, COALESCE(GeneralSettg.ListDateFormat,'d-m-Y') AS ListDateFormat, COALESCE(GeneralSettg.PrintDateFormat,'d-m-Y') AS PrintDateFormat, COALESCE(GeneralSettg.FormDateTimeFormat,'d-m-Y H:i') AS FormDateTimeFormat, COALESCE(GeneralSettg.ListDateTimeFormat,'d-m-Y H:i') AS ListDateTimeFormat, COALESCE(GeneralSettg.PrintDateTimeFormat,'d-m-Y H:i') AS PrintDateTimeFormat");
             $this->ReadDb->from('Settings.OrgSettingsTbl as GeneralSettg');
             $this->ReadDb->where('GeneralSettg.OrgUID', $OrgUID);
             $this->ReadDb->limit(1);
@@ -271,7 +271,8 @@ class Login_model extends CI_Model {
             if (!isset($row->SalesReturnCancelAction)) $row->SalesReturnCancelAction = 'ask';
             if (!isset($row->SalesReturnItemMethod))   $row->SalesReturnItemMethod   = 'Manual';
             if (!isset($row->TermsAndConditions))      $row->TermsAndConditions      = '';
-            if (!isset($row->HideNavOnTransForm))      $row->HideNavOnTransForm      = 0;
+            if (!isset($row->HideNavOnTransForm))        $row->HideNavOnTransForm        = 0;
+            if (!isset($row->ShowProductDescription)) $row->ShowProductDescription  = 1;
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Data  = [$row];

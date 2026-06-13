@@ -5,25 +5,20 @@
   <div class="layout-container">
     <?php $this->load->view('common/menu_view'); ?>
     <div class="layout-page">
-      <div class="content-wrapper">
+      <div class="content-wrapper apex-content">
+        <?php $this->load->view('common/apex/page_header', [
+          'pageIcon'        => 'bx-group',
+          'pageIconBg'      => '#ede9fe',
+          'pageIconColor'   => '#7c3aed',
+          'pageTitle'       => $PageTitle ?? 'Employees',
+          'pageDescription' => 'Manage your team members',
+        ]); ?>
         <div class="container-xxl flex-grow-1 container-p-y">
 
-          <!-- Page Header -->
-          <div class="trans-page-header">
-            <div class="d-flex align-items-center gap-3">
-              <div class="trans-ph-icon" style="background:linear-gradient(135deg,#4f46e5,#7c3aed)">
-                <i class="bx bx-group" style="color:#fff;font-size:1.4rem;"></i>
-              </div>
-              <div>
-                <h5 class="trans-ph-title mb-0"><?php echo htmlspecialchars($PageTitle ?? 'Employees'); ?></h5>
-                <div class="text-muted" style="font-size:.76rem;">Manage your team members</div>
-              </div>
-            </div>
-            <div class="d-flex align-items-center gap-2">
-              <a href="/employees" class="btn btn-sm btn-primary" id="btnNewEmployee">
-                <i class="bx bx-plus me-1"></i>New Employee
-              </a>
-            </div>
+          <div class="d-flex justify-content-end mb-3">
+            <a href="/employees" class="btn btn-sm btn-primary" id="btnNewEmployee">
+              <i class="bx bx-plus me-1"></i>New Employee
+            </a>
           </div>
 
           <!-- Stat Cards -->

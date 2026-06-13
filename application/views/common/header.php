@@ -59,12 +59,16 @@ unset($_sc, $_tk, $_env, $_envMap);
 
     <link rel="stylesheet" href="/assets/vendor/libs/dropzone/dropzone.css">
 
+    <!-- Apex Theme -->
+    <link rel="stylesheet" href="/css/apex-theme.css">
+
     <!-- Page CSS -->
 
     <!-- Helpers -->
     <script src="/assets/vendor/js/helpers.js"></script>
 
     <!--! Template customizer & Theme config files MUST be included after core stylesheets and helpers.js in the <head> section -->
+    <script src="/assets/vendor/libs/pickr/pickr.js"></script>
     <script src="/assets/vendor/js/template-customizer.js"></script>
 
     <!--? Config:  Mandatory theme config file contain global vars & default theme options, Set your preferred theme option in this file.  -->

@@ -8,27 +8,20 @@
         <?php $this->load->view('common/menu_view'); ?>
 
         <div class="layout-page">
-            <div class="content-wrapper">
+            <div class="content-wrapper apex-content">
+                <?php $this->load->view('common/apex/page_header', [
+                    'pageIcon'        => 'bx-printer',
+                    'pageIconBg'      => '#f0fdf4',
+                    'pageIconColor'   => '#16a34a',
+                    'pageTitle'       => $PageTitle       ?? 'Thermal Print Config',
+                    'pageDescription' => $PageDescription ?? '',
+                ]); ?>
                 <div class="container-xxl flex-grow-1 container-p-y">
 
-                    <!-- Page Header -->
-                    <div class="trans-page-header d-flex align-items-center justify-content-between">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="trans-ph-icon" style="background:#f0fdf4;">
-                                <i class="bx bx-printer" style="color:#16a34a;"></i>
-                            </div>
-                            <div>
-                                <h5 class="trans-ph-title mb-0"><?php echo htmlspecialchars($PageTitle ?? 'Thermal Print Config'); ?></h5>
-                                <?php if (!empty($PageDescription)): ?>
-                                <div class="text-muted" style="font-size:.76rem;"><?php echo htmlspecialchars($PageDescription); ?></div>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                        <div class="d-flex align-items-center gap-2">
-                            <button class="btn btn-primary btn-sm px-3" id="btnAddThermalConfig">
-                                <i class="bx bx-plus me-1"></i>Add Config
-                            </button>
-                        </div>
+                    <div class="d-flex justify-content-end mb-3">
+                        <button class="btn btn-primary btn-sm px-3" id="btnAddThermalConfig">
+                            <i class="bx bx-plus me-1"></i>Add Config
+                        </button>
                     </div>
 
                     <div class="card">

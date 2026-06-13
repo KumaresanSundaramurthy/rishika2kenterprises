@@ -151,6 +151,7 @@ class Customers extends MY_Controller {
             'Tags'              => getPostValue($postData, 'Tags', 'Comma'),
             'CCEmails'          => getPostValue($postData, 'CCEmails', 'Comma'),
             'CustomerTypeUID'   => (int) getPostValue($postData, 'CustomerTypeUID', '', 0),
+            'SalutationUID'     => (int) getPostValue($postData, 'SalutationUID') ?: null,
             'UpdatedBy'         => $this->pageData['JwtData']->User->UserUID,
         ];
         if ($isCreate) {

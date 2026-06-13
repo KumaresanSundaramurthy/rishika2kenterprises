@@ -56,31 +56,54 @@
 </div>
 
 <style>
-.vend-search-item {
-    padding: 12px 16px;
-    border-bottom: 1px solid #e7e9ed;
-    cursor: pointer;
-    transition: background-color 0.2s;
+/* ── Vendor search table ─────────────────────────────────────────────────── */
+.vend-search-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .85rem;
 }
-.vend-search-item:hover { background-color: #f8f9fa; }
-.vend-search-item:last-child { border-bottom: none; }
-.vend-serial {
-    min-width: 26px;
-    height: 26px;
-    background: #f0ebff;
-    color: #6f42c1;
-    border-radius: 50%;
+.vend-search-table thead tr {
+    background: #f5f2ff;
+    border-bottom: 2px solid #e0d8ff;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+.vend-search-table thead th {
+    padding: 9px 12px;
     font-size: .72rem;
     font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    margin-top: 2px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: #6f42c1;
+    white-space: nowrap;
 }
-.vend-name  { font-size: 0.9rem;  font-weight: 600; color: #566a7f; }
-.vend-meta  { font-size: 0.75rem; color: #8592a3;   margin-top: 2px; }
-.vend-balance { font-size: 0.85rem; font-weight: 600; }
+.vend-search-table thead th.col-balance { text-align: right; }
+
+.vend-search-item {
+    border-bottom: 1px solid #eeebf7;
+    cursor: pointer;
+    transition: background .15s;
+}
+.vend-search-item:last-child { border-bottom: none; }
+.vend-search-item:hover { background: #f9f7ff; }
+.vend-search-item td { padding: 10px 12px; vertical-align: middle; }
+
+.col-serial  { width: 42px; }
+.col-mobile  { width: 130px; }
+.col-balance { width: 120px; text-align: right; }
+
+.vend-serial {
+    width: 26px; height: 26px;
+    background: #f0ebff; color: #6f42c1;
+    border-radius: 50%;
+    font-size: .7rem; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+}
+.vend-name    { font-size: .88rem; font-weight: 600; color: #566a7f; }
+.vend-meta    { font-size: .75rem; color: #8592a3; margin-top: 2px; }
+.vend-sep     { color: #c9c0e8; margin: 0 4px; }
+.vend-balance { font-size: .85rem; font-weight: 600; }
 .vend-balance.credit { color: #dc3545; }
 .vend-balance.debit  { color: #28a745; }
 </style>

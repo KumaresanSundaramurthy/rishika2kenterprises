@@ -8,21 +8,15 @@
         <?php $this->load->view('common/menu_view'); ?>
 
         <div class="layout-page">
-            <div class="content-wrapper">
+            <div class="content-wrapper apex-content">
+                <?php $this->load->view('common/apex/page_header', [
+                    'pageIcon'        => 'bx-data',
+                    'pageIconBg'      => '#eef2ff',
+                    'pageIconColor'   => '#4f46e5',
+                    'pageTitle'       => 'Cache Monitor',
+                    'pageDescription' => 'Redis &amp; Upstash cache inspector — developer access only',
+                ]); ?>
                 <div class="container-xxl flex-grow-1 container-p-y">
-
-                    <!-- Page Header -->
-                    <div class="trans-page-header mb-4">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="trans-ph-icon" style="background:linear-gradient(135deg,#6366f1,#4f46e5);">
-                                <i class="bx bx-data" style="color:#fff;"></i>
-                            </div>
-                            <div>
-                                <h5 class="trans-ph-title mb-0">Cache Monitor</h5>
-                                <div class="text-muted" style="font-size:.76rem;">Redis &amp; Upstash cache inspector — developer access only</div>
-                            </div>
-                        </div>
-                    </div>
 
                     <!-- ── Password Gate (skipped in development environment) ── -->
                     <div id="cm-password-gate" <?php if ($IsDevEnv): ?>class="d-none"<?php endif; ?>>

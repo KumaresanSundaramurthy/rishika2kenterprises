@@ -1827,8 +1827,8 @@ class Invoices extends MY_Controller {
 
             // Count
             $readDb->select('COUNT(*) AS total');
-            $readDb->from('Transaction.CustomerCreditNoteTbl CN');
-            $readDb->join('Customers.CustomersTbl C', 'C.CustomerUID = CN.CustomerUID', 'left');
+            $readDb->from('Transaction.TransCreditNoteTbl CN');
+            $readDb->join('Customers.CustomersTbl C', 'C.CustomerUID = CN.PartyUID', 'left');
             $readDb->where($baseWhere);
             if ($search !== '') {
                 $readDb->group_start();
@@ -1857,8 +1857,8 @@ class Invoices extends MY_Controller {
                 'C.MobileNo',
                 'T.TransDate AS SourceTransDate',
             ]);
-            $readDb->from('Transaction.CustomerCreditNoteTbl CN');
-            $readDb->join('Customers.CustomersTbl C',    'C.CustomerUID = CN.CustomerUID',    'left');
+            $readDb->from('Transaction.TransCreditNoteTbl CN');
+            $readDb->join('Customers.CustomersTbl C',    'C.CustomerUID = CN.PartyUID',    'left');
             $readDb->join('Transaction.TransactionsTbl T', 'T.TransUID = CN.SourceTransUID AND T.IsDeleted = 0', 'left');
             $readDb->where($baseWhere);
             if ($search !== '') {

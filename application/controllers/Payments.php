@@ -300,7 +300,7 @@ class Payments extends MY_Controller {
             if ($transUID > 0 && (int)($payment->ModuleUID ?? 0) === 106) {
                 $readDb = $this->load->database('ReadDB', TRUE);
                 $readDb->db_debug = FALSE;
-                $readDb->from('Transaction.CustomerCreditNoteTbl');
+                $readDb->from('Transaction.TransCreditNoteTbl');
                 $readDb->where([
                     'SourceTransUID'  => $transUID,
                     'SourceModuleUID' => 106,
@@ -356,7 +356,7 @@ class Payments extends MY_Controller {
                 $wdb = $this->dbwrite_model->getWriteDb();
                 $wdb->db_debug = FALSE;
                 $wdb->where('CreditNoteUID', (int)$srCN->CreditNoteUID);
-                $wdb->update('Transaction.CustomerCreditNoteTbl', [
+                $wdb->update('Transaction.TransCreditNoteTbl', [
                     'Amount'         => $newCNAmount,
                     'PaymentCleared' => 0,
                     'UpdatedBy'      => $userUID,

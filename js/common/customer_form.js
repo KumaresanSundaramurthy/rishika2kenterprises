@@ -50,22 +50,72 @@
         if (typeof reinitDropzoneOne === 'function') reinitDropzoneOne('#CustomerFormModalBody #DropzoneOneBasic');
     }
 
+    // ── Salutation helpers ────────────────────────────────────────────────────
+
+    function _populateSalutationDropdown(list) {
+        var $sel = $('#CM_SalutationUID');
+        var html = '<option value="">—</option>';
+        $.each(list, function (_, s) {
+            html += '<option value="' + parseInt(s.SalutationUID, 10) + '">' + $('<span>').text(s.SalutationName).html() + '</option>';
+        });
+        $sel.html(html);
+    }
+
+    function _applyDefaultSalutation() {
+        var defaultUID = (typeof JwtData !== 'undefined' && JwtData.GenSettings && JwtData.GenSettings.DefaultSalutationUID)
+            ? parseInt(JwtData.GenSettings.DefaultSalutationUID, 10) : 0;
+        var $sel = $('#CM_SalutationUID');
+        if (defaultUID > 0) {
+            $sel.val(defaultUID);
+        } else {
+            $sel.find('option:not([value=""])').first().prop('selected', true);
+        }
+    }
+
+    function _fetchSalutationsFromServer(callback) {
+        $.ajax({
+            url: '/settings/getSalutationList', method: 'GET', cache: false,
+            success: function (resp) {
+                if (!resp.Error && resp.Data && resp.Data.length) {
+                    _populateSalutationDropdown(resp.Data);
+                }
+                callback();
+            },
+            error: function () { callback(); }
+        });
+    }
+
+    function _ensureSalutations(callback) {
+        if ($('#CM_SalutationUID option').length > 1) { callback(); return; }
+        if (typeof UpstashService !== 'undefined' && UpstashService.isEnabled()) {
+            UpstashService.get(UpstashService.orgKey('salutation')).then(function (data) {
+                if (data && Array.isArray(data) && data.length > 0) {
+                    _populateSalutationDropdown(data);
+                    callback();
+                } else {
+                    _fetchSalutationsFromServer(callback);
+                }
+            }).catch(function () { _fetchSalutationsFromServer(callback); });
+        } else {
+            _fetchSalutationsFromServer(callback);
+        }
+    }
+
     // ── Open after body is ready ──────────────────────────────────────────────
     function _doOpen(type, uid, opts) {
         $('#CustomerModalForm').data('mode', type);
         _resetCustomerModal();
 
-        if (opts && opts.prefillName) {
-            var val = opts.prefillName;
-            if (/^\d+$/.test(val)) {
-                $('#CM_MobileNumber').val(val);
-            } else {
-                $('#CM_Name').val(val);
-            }
-        }
-
         if (type === 'add') {
-            $('#CustomerFormModal').modal('show');
+            if (opts && opts.prefillName) {
+                var val = opts.prefillName;
+                if (/^\d+$/.test(val)) { $('#CM_MobileNumber').val(val); }
+                else                   { $('#CM_Name').val(val); }
+            }
+            _ensureSalutations(function () {
+                _applyDefaultSalutation();
+                $('#CustomerFormModal').modal('show');
+            });
             return;
         }
 
@@ -80,8 +130,10 @@
                     showAlertMessageSwal('error', '', response.Message || 'Failed to load customer.');
                     return;
                 }
-                _populateCustomerModal(type, response);
-                $('#CustomerFormModal').modal('show');
+                _ensureSalutations(function () {
+                    _populateCustomerModal(type, response);
+                    $('#CustomerFormModal').modal('show');
+                });
             },
             error: function () {
                 showAlertMessageSwal('error', '', 'Failed to load customer.');
@@ -125,6 +177,7 @@
 
         _editUID = isClone ? 0 : (d.CustomerUID || 0);
 
+        $('#CM_SalutationUID').val(d.SalutationUID || '');
         $('#CM_Name').val(d.Name || '');
         $('#CM_Area').val(d.Area || '');
         $('#CM_MobileNumber').val(d.MobileNumber || '');

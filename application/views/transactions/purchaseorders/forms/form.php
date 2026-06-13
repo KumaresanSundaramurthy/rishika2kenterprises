@@ -65,8 +65,7 @@ $editPrefixSeg = ($isEdit && $isDraftEdit) ? buildPOPrefixSegment($editPrefixCon
 
                     <div class="card mb-3">
 
-                        <?php if (!$isEdit): ?>
-                        <!-- Add mode: styled header with icon -->
+                        <!-- ── Card Header ── -->
                         <div class="card-header bg-white border-bottom d-flex align-items-center justify-content-between px-3 py-2 trans-header-static trans-theme modal-header-center-sticky">
                             <div class="d-flex align-items-center gap-3" id="transHeaderInfo">
                                 <div class="trans-doc-icon" style="background-color:#e0f5f2;">
@@ -74,144 +73,194 @@ $editPrefixSeg = ($isEdit && $isDraftEdit) ? buildPOPrefixSegment($editPrefixCon
                                 </div>
                                 <div>
                                     <div class="d-flex align-items-center flex-wrap gap-2">
-                                        <span class="fw-bold" style="font-size:.92rem;">Create Purchase Order</span>
-                                        <?php $this->load->view('transactions/partials/form_prefix_add'); ?>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="d-flex align-items-center gap-2">
-                                <button type="submit" name="action" value="draft" class="btn btn-sm btn-outline-secondary"><i class="bx bx-save me-1"></i>Draft</button>
-                                <div class="btn-group">
-                                    <button type="submit" name="action" value="save" class="btn btn-sm btn-primary px-3"><i class="bx bx-check me-1"></i>Save</button>
-                                    <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split ps-2 pe-2" data-bs-toggle="dropdown" aria-expanded="false">
-                                        <span class="visually-hidden">Save options</span>
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-end shadow" style="min-width:195px;font-size:.82rem;">
-                                        <li><span class="dropdown-header py-1" style="font-size:.65rem;letter-spacing:.4px;">SAVE &amp; PRINT</span></li>
-                                        <li><button type="submit" class="dropdown-item py-1" name="action" value="save_a4"><i class="bx bx-file text-primary me-2"></i>Save &amp; Print A4</button></li>
-                                        <li><button type="submit" class="dropdown-item py-1" name="action" value="save_a5"><i class="bx bx-file-blank text-info me-2"></i>Save &amp; Print A5</button></li>
-                                        <li><button type="submit" class="dropdown-item py-1" name="action" value="save_thermal"><i class="bx bx-receipt text-success me-2"></i>Save &amp; Print Thermal</button></li>
-                                    </ul>
-                                </div>
-                                <?php $_hideNav = (int)($JwtData->TransSettings->HideNavOnTransForm ?? 0); ?>
-                                <a href="/purchaseorders" class="btn btn-sm btn-outline-danger px-3<?php echo $_hideNav ? ' d-none' : ''; ?>"><i class="bx bx-x me-1"></i>Close</a>
-                            </div>
-                        </div>
-                        <?php else: ?>
-                        <!-- Edit mode: simple gray header -->
-                        <div class="card-header bg-body-tertiary trans-header-static trans-theme modal-header-center-sticky d-flex justify-content-between align-items-center pb-3">
-                            <div class="d-flex flex-wrap align-items-center gap-3" id="transHeaderInfo">
-                                <h5 class="modal-title mb-0 ms-2">
-                                    <?php echo $isDraftEdit ? '' : 'Edit'; ?> Purchase Order
-                                </h5>
-                                <?php if (!$isDraftEdit && !empty($POData->UniqueNumber)): ?>
-                                    <span class="trans-form-doc-number"><?php echo htmlspecialchars($POData->UniqueNumber); ?></span>
-                                <?php endif; ?>
-                                <div class="d-flex align-items-center gap-1">
-                                    <div class="input-group w-auto <?php echo (!$isDraftEdit ? 'd-none' : ''); ?>">
-                                        <select id="transPrefixSelect" name="transPrefixSelect" class="select2 form-select form-select-sm" <?php echo (!$isDraftEdit ? 'disabled' : 'required'); ?>>
-                                        <?php try {
-                                            if (empty($PrefixData)) throw new Exception();
-                                            foreach ($PrefixData as $preData) {
-                                                $isSelected = (int)$preData->PrefixUID === (int)$POData->PrefixUID ? 'selected' : '';
-                                            ?>
-                                            <option value="<?php echo (int)$preData->PrefixUID; ?>"
-                                                data-sep="<?php echo htmlspecialchars($preData->Separator ?? '-'); ?>"
-                                                data-fiscal="<?php echo !empty($preData->IncludeFiscalYear) ? '1' : '0'; ?>"
-                                                data-fiscal-format="<?php echo htmlspecialchars($preData->FiscalYearFormat ?? 'SHORT'); ?>"
-                                                data-inc-short="<?php echo !empty($preData->IncludeShortName) ? '1' : '0'; ?>"
-                                                data-short-name="<?php echo htmlspecialchars($preData->ShortName ?? ''); ?>"
-                                                data-padding="<?php echo (int)($preData->NumberPadding ?? 3); ?>"
-                                                data-next-number="<?php echo (int)($NextNumberMap[(int)$preData->PrefixUID] ?? 1); ?>"
-                                                <?php echo $isSelected; ?>
-                                            ><?php echo htmlspecialchars($preData->Name); ?></option>
-                                            <?php }
-                                        } catch (Exception $e) { ?>
-                                            <option value="">Error loading prefixes</option>
-                                        <?php } ?>
-                                        </select>
-                                        <?php if ($isDraftEdit): ?>
-                                        <button type="button" class="btn btn-outline-secondary" id="addTransPrefixBtn" title="Configure Prefix"><i class="bx bx-cog"></i></button>
+                                        <span class="fw-bold" style="font-size:.92rem;">
+                                            <?php echo $isEdit ? (($isDraftEdit ? '' : 'Edit ') . 'Purchase Order') : 'Create Purchase Order'; ?>
+                                        </span>
+                                        <?php if ($isEdit && !$isDraftEdit && !empty($POData->UniqueNumber)): ?>
+                                            <span class="trans-form-doc-number"><?php echo htmlspecialchars($POData->UniqueNumber); ?></span>
+                                        <?php endif; ?>
+
+                                        <!-- Prefix / number block -->
+                                        <?php if (!$isEdit): ?>
+                                            <?php $this->load->view('transactions/partials/form_prefix_add'); ?>
+                                        <?php else: ?>
+                                            <div class="d-flex align-items-center gap-1">
+                                                <div class="input-group w-auto <?php echo (!$isDraftEdit ? 'd-none' : ''); ?>">
+                                                    <select id="transPrefixSelect" name="transPrefixSelect" class="select2 form-select form-select-sm" <?php echo (!$isDraftEdit ? 'disabled' : 'required'); ?>>
+                                                    <?php try {
+                                                        if (empty($PrefixData)) throw new Exception();
+                                                        foreach ($PrefixData as $preData) {
+                                                            $isSelected = (int)$preData->PrefixUID === (int)$POData->PrefixUID ? 'selected' : '';
+                                                        ?>
+                                                        <option value="<?php echo (int)$preData->PrefixUID; ?>"
+                                                            data-sep="<?php echo htmlspecialchars($preData->Separator ?? '-'); ?>"
+                                                            data-fiscal="<?php echo !empty($preData->IncludeFiscalYear) ? '1' : '0'; ?>"
+                                                            data-fiscal-format="<?php echo htmlspecialchars($preData->FiscalYearFormat ?? 'SHORT'); ?>"
+                                                            data-inc-short="<?php echo !empty($preData->IncludeShortName) ? '1' : '0'; ?>"
+                                                            data-short-name="<?php echo htmlspecialchars($preData->ShortName ?? ''); ?>"
+                                                            data-padding="<?php echo (int)($preData->NumberPadding ?? 3); ?>"
+                                                            data-next-number="<?php echo (int)($NextNumberMap[(int)$preData->PrefixUID] ?? 1); ?>"
+                                                            <?php echo $isSelected; ?>
+                                                        ><?php echo htmlspecialchars($preData->Name); ?></option>
+                                                        <?php }
+                                                    } catch (Exception $e) { ?>
+                                                        <option value="">Error loading prefixes</option>
+                                                    <?php } ?>
+                                                    </select>
+                                                    <?php if ($isDraftEdit): ?>
+                                                    <button type="button" class="btn btn-outline-secondary" id="addTransPrefixBtn" title="Configure Prefix"><i class="bx bx-cog"></i></button>
+                                                    <?php endif; ?>
+                                                </div>
+                                                <div class="input-group input-group-sm w-auto <?php echo (!$isDraftEdit ? 'd-none' : ''); ?>">
+                                                    <span class="input-group-text cursor-pointer fw-semibold text-primary" id="appendPrefixVal"><?php echo htmlspecialchars($editPrefixSeg); ?></span>
+                                                    <input type="number" id="transNumber" name="transNumber"
+                                                        class="form-control transAutoGenNumber stop-incre-indicator"
+                                                        maxLength="20"
+                                                        onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))"
+                                                        oninput="this.value=this.value.slice(0,this.maxLength)"
+                                                        pattern="[0-9]*"
+                                                        value="<?php echo $editTransNumber; ?>"
+                                                        <?php echo (!$isDraftEdit ? 'disabled' : 'required'); ?> />
+                                                </div>
+                                                <?php if (!$isDraftEdit): ?>
+                                                <input type="hidden" name="transPrefixSelect" value="<?php echo (int)$POData->PrefixUID; ?>" />
+                                                <input type="hidden" name="transNumber" value="<?php echo (int)$POData->TransNumber; ?>" />
+                                                <?php endif; ?>
+                                            </div>
                                         <?php endif; ?>
                                     </div>
-                                    <div class="input-group input-group-sm w-auto <?php echo (!$isDraftEdit ? 'd-none' : ''); ?>">
-                                        <span class="input-group-text cursor-pointer fw-semibold text-primary" id="appendPrefixVal"><?php echo htmlspecialchars($editPrefixSeg); ?></span>
-                                        <input type="number" id="transNumber" name="transNumber"
-                                            class="form-control transAutoGenNumber stop-incre-indicator"
-                                            maxLength="20"
-                                            onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))"
-                                            oninput="this.value=this.value.slice(0,this.maxLength)"
-                                            pattern="[0-9]*"
-                                            value="<?php echo $editTransNumber; ?>"
-                                            <?php echo (!$isDraftEdit ? 'disabled' : 'required'); ?> />
+                                    <?php if ($isEdit && !$isDraftEdit && !empty($POData->TransDate)): ?>
+                                    <div class="d-flex align-items-center gap-2 mt-1">
+                                        <span style="font-size:.7rem;color:#8592a3;">PO Date</span>
+                                        <span style="font-size:.78rem;color:#566a7f;"><?php echo htmlspecialchars(format_datedisplay($POData->TransDate)); ?></span>
                                     </div>
-                                    <?php if (!$isDraftEdit): ?>
-                                    <input type="hidden" name="transPrefixSelect" value="<?php echo (int)$POData->PrefixUID; ?>" />
-                                    <input type="hidden" name="transNumber" value="<?php echo (int)$POData->TransNumber; ?>" />
                                     <?php endif; ?>
                                 </div>
                             </div>
                             <div class="d-flex align-items-center gap-2">
-                                <button type="submit" name="action" value="save" class="btn btn-primary"><?php echo $isDraftEdit ? 'Save' : 'Update'; ?></button>
-                                <?php if ($isDraftEdit): ?>
-                                <button type="submit" name="action" value="draft" class="btn btn-outline-secondary">Save as Draft</button>
+                                <?php $_hideNav = (int)($JwtData->TransSettings->HideNavOnTransForm ?? 0); ?>
+                                <?php if (!$isEdit): ?>
+                                    <button type="submit" name="action" value="draft" class="btn btn-sm btn-outline-secondary"><i class="bx bx-save me-1"></i>Draft</button>
+                                    <div class="btn-group">
+                                        <button type="submit" name="action" value="save" class="btn btn-sm btn-primary px-3"><i class="bx bx-check me-1"></i>Save</button>
+                                        <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split ps-2 pe-2" data-bs-toggle="dropdown" aria-expanded="false">
+                                            <span class="visually-hidden">Save options</span>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end shadow" style="min-width:195px;font-size:.82rem;">
+                                            <li><span class="dropdown-header py-1" style="font-size:.65rem;letter-spacing:.4px;">SAVE &amp; PRINT</span></li>
+                                            <li><button type="submit" class="dropdown-item py-1" name="action" value="save_a4"><i class="bx bx-file text-primary me-2"></i>Save &amp; Print A4</button></li>
+                                            <li><button type="submit" class="dropdown-item py-1" name="action" value="save_a5"><i class="bx bx-file-blank text-info me-2"></i>Save &amp; Print A5</button></li>
+                                            <li><button type="submit" class="dropdown-item py-1" name="action" value="save_thermal"><i class="bx bx-receipt text-success me-2"></i>Save &amp; Print Thermal</button></li>
+                                        </ul>
+                                    </div>
+                                <?php elseif ($isDraftEdit): ?>
+                                    <button type="submit" name="action" value="save" class="btn btn-sm btn-primary"><i class="bx bx-check me-1"></i>Save</button>
+                                    <button type="submit" name="action" value="draft" class="btn btn-sm btn-outline-secondary"><i class="bx bx-save me-1"></i>Save as Draft</button>
+                                <?php else: ?>
+                                    <button type="submit" name="action" value="save" class="btn btn-sm btn-primary"><i class="bx bx-check me-1"></i>Update</button>
                                 <?php endif; ?>
-                                <a href="/purchaseorders" class="btn btn-label-danger<?php echo $_hideNav ? ' d-none' : ''; ?>">Close</a>
+                                <a href="/purchaseorders" class="btn btn-sm btn-outline-danger px-3<?php echo $_hideNav ? ' d-none' : ''; ?>"><i class="bx bx-x me-1"></i>Close</a>
                             </div>
                         </div>
-                        <?php endif; ?>
 
-                        <div class="card-body card-body-form-static p-4">
+                        <div class="card-body card-body-form-static p-3">
 
-                            <div class="card-header modal-header-center-sticky p-1 mb-3">
-                                <h5 class="modal-title mb-0"><i class="bx bx-store me-1"></i> Vendor Details</h5>
+                            <!-- ── Toolbar: Type & Deliver To ──────────────────────────────── -->
+                            <div class="d-flex align-items-center gap-4 mb-3 pb-2 border-bottom">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="text-muted" style="font-size:.78rem;white-space:nowrap;">Type</span>
+                                    <select class="form-select form-select-sm border-0 bg-transparent fw-semibold"
+                                            id="poType" name="poType" style="min-width:110px;cursor:pointer;"
+                                            <?php echo ($isEdit && !$isDraftEdit) ? 'disabled' : 'required'; ?>>
+                                        <option value="Regular" <?php echo (!$isEdit || ($POData->QuotationType ?? '') === 'Regular' || empty($POData->QuotationType ?? '')) ? 'selected' : ''; ?>>Regular</option>
+                                        <option value="Without_GST" <?php echo ($isEdit && ($POData->QuotationType ?? '') === 'Without_GST') ? 'selected' : ''; ?>>Without GST</option>
+                                    </select>
+                                    <?php if ($isEdit && !$isDraftEdit): ?>
+                                    <input type="hidden" name="poType" value="<?php echo htmlspecialchars($POData->QuotationType ?? 'Regular'); ?>" />
+                                    <?php endif; ?>
+                                </div>
+                                <?php if (!empty($DispatchAddresses)): ?>
+                                <div class="d-flex align-items-center gap-2 dispatch-from-grp" style="max-width:360px;">
+                                    <span class="text-muted" style="font-size:.78rem;white-space:nowrap;">Deliver To</span>
+                                    <?php $this->load->view('common/transactions/_dispatch_from'); ?>
+                                </div>
+                                <?php endif; ?>
                             </div>
 
-                            <div class="row">
-                                <div class="col-md-3 trans-right-border">
-                                    <div class="mb-2">
-                                        <label for="poType" class="form-label small fw-semibold">Type <span class="text-danger">*</span></label>
-                                        <select id="poType" name="poType" class="form-select form-select-sm" required>
-                                            <option value="Regular" <?php echo (!$isEdit || $POData->QuotationType === 'Regular' || empty($POData->QuotationType)) ? 'selected' : ''; ?>>Regular</option>
-                                            <option value="Without_GST" <?php echo ($isEdit && $POData->QuotationType === 'Without_GST') ? 'selected' : ''; ?>>Without GST</option>
-                                        </select>
+                            <!-- ── Row 1: Vendor | PO Date | Expected Delivery Date | Reference ── -->
+                            <div class="row g-2 align-items-end mb-2">
+
+                                <div class="col-md-4">
+                                    <?php if ($isEdit && !$isDraftEdit): ?>
+                                        <label class="trans-field-label">Vendor</label>
+                                        <div class="trans-vendor-card">
+                                            <div class="trans-vendor-card-name"><i class="bx bx-store me-1"></i><?php echo htmlspecialchars($POData->PartyName ?? '—'); ?></div>
+                                            <?php if (!empty($POData->PartyMobile)): ?>
+                                            <div class="trans-vendor-card-meta"><i class="bx bx-phone me-1"></i><?php echo htmlspecialchars($POData->PartyMobile); ?></div>
+                                            <?php endif; ?>
+                                            <?php if (!empty($POData->PartyGSTIN)): ?>
+                                            <div class="trans-vendor-card-meta"><i class="bx bx-id-card me-1"></i><?php echo htmlspecialchars($POData->PartyGSTIN); ?></div>
+                                            <?php endif; ?>
+                                            <?php
+                                                $_vParts = isset($VendorAddr) ? array_filter([
+                                                    $VendorAddr->Line1     ?? '',
+                                                    $VendorAddr->CityText  ?? '',
+                                                    $VendorAddr->StateText ?? '',
+                                                ]) : [];
+                                                if (!empty($_vParts)):
+                                            ?>
+                                            <div class="trans-vendor-card-meta"><i class="bx bx-map me-1"></i><?php echo htmlspecialchars(implode(', ', $_vParts)); ?></div>
+                                            <?php endif; ?>
+                                        </div>
+                                        <input type="hidden" id="vendorSearch" name="vendorSearch" value="<?php echo (int)$POData->PartyUID; ?>" />
+                                    <?php else: ?>
+                                        <div class="d-flex align-items-center justify-content-between mb-2">
+                                            <label for="vendorSearch" class="trans-field-label mb-0">Vendor <span class="text-danger">*</span></label>
+                                            <button type="button" id="addTransVendor" class="trans-add-btn btn btn-outline-primary btn-sm" style="font-size:.72rem;white-space:nowrap;"><i class="bx bx-plus-circle me-1"></i>Add Vendor</button>
+                                        </div>
+                                        <select id="vendorSearch" name="vendorSearch" class="form-select form-select-sm"></select>
+                                    <?php endif; ?>
+                                </div>
+
+                                <!-- PO Date -->
+                                <div class="col-auto" style="min-width:160px;">
+                                    <label for="transDate" class="trans-field-label">PO Date <span class="text-danger">*</span></label>
+                                    <div class="input-group input-group-sm input-group-merge">
+                                        <span class="input-group-text bg-white"><i class="icon-base bx bx-calendar"></i></span>
+                                        <input type="text" class="form-control form-control-sm bg-white" id="transDate" name="transDate" readonly="readonly"
+                                            value="<?php echo $isEdit ? htmlspecialchars(format_datedisplay($POData->TransDate, 'Y-m-d')) : format_datedisplay(time(), 'Y-m-d'); ?>"
+                                            required />
                                     </div>
                                 </div>
-                                <div class="col-md-6 border-end pe-3">
-                                    <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
-                                        <label for="vendorSearch" class="form-label small fw-semibold mb-0">Select Vendor <span class="text-danger">*</span></label>
+
+                                <!-- Expected Delivery Date -->
+                                <div class="col-auto" style="min-width:160px;">
+                                    <label for="expectedDate" class="trans-field-label">Expected Delivery Date</label>
+                                    <div class="input-group input-group-sm input-group-merge">
+                                        <span class="input-group-text bg-white"><i class="icon-base bx bx-calendar"></i></span>
+                                        <input type="text" class="form-control form-control-sm bg-white" id="expectedDate" name="expectedDate" readonly="readonly"
+                                            value="<?php echo ($isEdit && !empty($POData->ValidityDate)) ? htmlspecialchars(format_datedisplay($POData->ValidityDate, 'Y-m-d')) : ''; ?>" />
                                     </div>
-                                    <select id="vendorSearch" name="vendorSearch" class="form-select form-select-sm"></select>
-                                    <div id="vendorAddressBox" class="mt-2 p-2 border border-secondary trans-border-dotted rounded small d-none"></div>
                                 </div>
-                                <div class="col-md-3">
-                                    <div class="mb-2">
-                                        <label for="transDate" class="form-label small fw-semibold">PO Date <span class="text-danger">*</span></label>
-                                        <div class="input-group input-group-merge">
-                                            <span class="input-group-text"><i class="icon-base bx bx-calendar"></i></span>
-                                            <input type="text" class="form-control form-control-sm" id="transDate" name="transDate" readonly="readonly"
-                                                value="<?php echo $isEdit ? htmlspecialchars(format_datedisplay($POData->TransDate, 'Y-m-d')) : format_datedisplay(time(), 'Y-m-d'); ?>"
-                                                required />
-                                        </div>
-                                    </div>
-                                    <div class="mb-2">
-                                        <label for="expectedDate" class="form-label small fw-semibold">Expected Delivery Date</label>
-                                        <div class="input-group input-group-merge">
-                                            <span class="input-group-text"><i class="icon-base bx bx-calendar"></i></span>
-                                            <input type="text" class="form-control form-control-sm" id="expectedDate" name="expectedDate" readonly="readonly"
-                                                value="<?php echo ($isEdit && !empty($POData->ValidityDate)) ? htmlspecialchars(format_datedisplay($POData->ValidityDate, 'Y-m-d')) : ''; ?>" />
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label for="referenceDetails" class="form-label small fw-semibold">Reference</label>
-                                        <input type="text" id="referenceDetails" name="referenceDetails" class="form-control form-control-sm"
-                                            placeholder="Ref No, Order No..."
-                                            maxlength="100"
-                                            value="<?php echo $isEdit ? htmlspecialchars($POData->Reference ?? '') : ''; ?>" />
-                                    </div>
+
+                                <!-- Reference — takes remaining width -->
+                                <div class="col">
+                                    <label for="referenceDetails" class="trans-field-label">Reference</label>
+                                    <input type="text" id="referenceDetails" name="referenceDetails" class="form-control form-control-sm"
+                                        placeholder="Ref No, Order No..."
+                                        maxlength="100"
+                                        value="<?php echo $isEdit ? htmlspecialchars($POData->Reference ?? '') : ''; ?>" />
+                                </div>
+
+                            </div>
+
+                            <!-- Vendor address box -->
+                            <div class="row g-2 mb-3">
+                                <div class="col-md-4">
+                                    <div id="vendorAddressBox" class="p-2 border border-secondary trans-border-dotted rounded small d-none"></div>
                                 </div>
                             </div>
-                            <hr/>
+                            <hr class="mt-2 mb-3"/>
 
                             <?php $this->load->view('transactions/partials/form_products_add', [
                                 'transNotesPlaceholder' => 'Enter notes or anything else',
@@ -293,6 +342,7 @@ $editPrefixSeg = ($isEdit && $isDraftEdit) ? buildPOPrefixSegment($editPrefixCon
             </div>
 
             <?php $this->load->view('common/transactions/transprefix'); ?>
+            <?php $this->load->view('transactions/modals/vendor_search'); ?>
             <?php $this->load->view('transactions/modals/taxdetails'); ?>
             <?php $this->load->view('common/modals/category_form'); ?>
             <?php $this->load->view('common/modals/product_form'); ?>
@@ -306,6 +356,7 @@ $editPrefixSeg = ($isEdit && $isDraftEdit) ? buildPOPrefixSegment($editPrefixCon
 <?php $this->load->view('common/transactions/footer'); ?>
 
 <script src="/js/transactions/purchaseorders.js"></script>
+<script src="/js/transactions/vendor_search.js"></script>
 <script src="/js/transactions/transactions.js"></script>
 <script src="/js/transactions/transprefix.js"></script>
 <script src="/js/transactions/modaladdress.js"></script>
@@ -322,6 +373,7 @@ var _vendorState    = '<?php echo $isEdit && isset($VendorAddr) ? addslashes($Ve
 var _upstashUrl       = '<?php echo addslashes($UpstashReadUrl  ?? ''); ?>';
 var _upstashReadToken = '<?php echo addslashes($UpstashReadToken ?? ''); ?>';
 var _vendorCacheKey   = '<?php echo addslashes($VendorCacheKey  ?? ''); ?>';
+window._productPurchaseMode = true;
 
 <?php if ($isEdit): ?>
 var _editItems = <?php echo json_encode(array_map(function($item) {

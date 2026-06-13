@@ -36,9 +36,24 @@ if (!empty($DataLists)) {
         $badge       = $statusBadge[$list->Status] ?? 'bg-label-secondary';
         $transitions = $statusTransitions[$list->Status] ?? [];
 
-        $expectedClass = '';
-        if ($list->Status === 'Received' && !empty($list->ValidityDate) && strtotime($list->ValidityDate) < time()) {
-            $expectedClass = 'text-danger fw-semibold';
+        $edLabel = '';
+        $edClass = '';
+        if (!$isDraft && !empty($list->ValidityDate)) {
+            $valTs    = strtotime($list->ValidityDate);
+            $todayTs  = strtotime(date('Y-m-d'));
+            $diffDays = (int)(($valTs - $todayTs) / 86400);
+            if ($isClosed) {
+                $edLabel = 'Completed'; $edClass = 'text-success';
+            } elseif ($isCancelled) {
+                $edLabel = 'Cancelled'; $edClass = 'text-danger';
+            } elseif ($diffDays < 0) {
+                $edLabel = 'Overdue'; $edClass = 'text-danger';
+            } elseif ($diffDays === 0) {
+                $edLabel = 'Today'; $edClass = 'text-warning';
+            } else {
+                $edLabel = 'in ' . $diffDays . ' day' . ($diffDays > 1 ? 's' : '');
+                $edClass = 'text-primary';
+            }
         }
 ?>
         <tr>
@@ -51,15 +66,21 @@ if (!empty($DataLists)) {
 
             <!-- # PO Number -->
             <td>
-                <?php if ($isDraft || empty($list->UniqueNumber)): ?>
-                    <span class="text-muted fst-italic small">—</span>
+                <?php if (!$isDraft && !empty($list->UniqueNumber)): ?>
+                    <a href="javascript:void(0)" class="fw-semibold text-primary text-decoration-underline viewTransaction d-block lh-sm"
+                       data-uid="<?php echo (int) $list->TransUID; ?>"
+                       data-module="<?php echo (int) $list->ModuleUID; ?>"
+                       data-type="purchaseorder"
+                       data-number="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
+                       data-date="<?php echo htmlspecialchars($list->TransDate ?? ''); ?>"
+                       data-status="<?php echo htmlspecialchars($list->Status ?? ''); ?>">
+                        <?php echo htmlspecialchars($list->UniqueNumber); ?>
+                    </a>
                 <?php else: ?>
-                    <span class="fw-semibold text-primary">
-                        <a href="javascript:void(0)" class="text-decoration-underline viewTransaction" data-uid="<?php echo (int) $list->TransUID; ?>" data-module="<?php echo (int) $list->ModuleUID; ?>" data-type="purchaseorder" data-number="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>" data-date="<?php echo htmlspecialchars($list->TransDate ?? ''); ?>" data-status="<?php echo htmlspecialchars($list->Status ?? ''); ?>">
-                            <?php echo htmlspecialchars($list->UniqueNumber); ?>
-                        </a>
-                    </span>
+                    <span class="text-muted fst-italic" style="font-size:.82rem;">Draft</span>
                 <?php endif; ?>
+                <div class="apex-doc-meta"><?php echo htmlspecialchars(format_datedisplay($list->TransDate)); ?></div>
+                <div class="apex-doc-meta">by <?php echo htmlspecialchars($list->CreatedBy ?? '—'); ?></div>
             </td>
 
             <!-- Amount -->
@@ -101,22 +122,54 @@ if (!empty($DataLists)) {
 
             <!-- Vendor -->
             <td>
-                <div class="d-flex align-items-center gap-2">
-                    <?php partyAvatar($list->PartyName, $list->PartyImage ?? null, $cdnUrl); ?>
-                    <div>
-                        <div class="fw-semibold lh-sm mb-1"><?php echo htmlspecialchars($list->PartyName ?? '—'); ?></div>
-                        <?php if (!empty($list->MobileNumber)): ?>
-                        <div class="trans-party-mobile d-flex align-items-center gap-1">
-                            <span class="copy-mobile cursor-pointer" data-mobile="<?php echo htmlspecialchars($list->MobileNumber); ?>" title="Click to copy">
-                                <?php echo ($list->CountryCode ? htmlspecialchars($list->CountryCode) . ' ' : '') . htmlspecialchars($list->MobileNumber); ?>
-                            </span>
-                            <a href="https://wa.me/<?php echo preg_replace('/[^0-9]/', '', ($list->CountryCode ?? '') . $list->MobileNumber); ?>?text=Hi"
-                               target="_blank" class="text-success" title="WhatsApp" style="line-height:1;">
-                                <i class="bx bxl-whatsapp fs-6"></i>
-                            </a>
+                <div class="apex-party-cell">
+                    <div class="d-flex align-items-center gap-2">
+                        <?php partyAvatar($list->PartyName, $list->PartyImage ?? null, $cdnUrl); ?>
+                        <div class="apex-party-info">
+                            <div class="apex-party-name"><?php echo htmlspecialchars($list->PartyName ?? '—'); ?></div>
+                            <?php if (!empty($list->PartyArea)): ?>
+                            <div class="apex-party-sub">
+                                <i class="bx bx-map-pin text-muted"></i>
+                                <?php echo htmlspecialchars($list->PartyArea); ?>
+                            </div>
+                            <?php endif; ?>
+                            <?php if (!empty($list->MobileNumber)): ?>
+                            <div class="apex-party-sub">
+                                <span class="copy-mobile cursor-pointer" data-mobile="<?php echo htmlspecialchars($list->MobileNumber); ?>" title="Click to copy">
+                                    <?php echo ($list->CountryCode ? htmlspecialchars($list->CountryCode) . ' ' : '') . htmlspecialchars($list->MobileNumber); ?>
+                                </span>
+                            </div>
+                            <?php endif; ?>
                         </div>
+                    </div>
+                    <!-- Hover actions -->
+                    <?php $hasMobile = !empty($list->MobileNumber); $hasEmail = !empty($list->EmailAddress); ?>
+                    <?php if ($hasMobile || $hasEmail): ?>
+                    <div class="apex-party-actions">
+                        <?php if ($hasMobile): ?>
+                        <a href="https://wa.me/<?php echo preg_replace('/[^0-9]/', '', ($list->CountryCode ?? '') . $list->MobileNumber); ?>?text=Hi"
+                           target="_blank" class="apex-party-action wa" title="WhatsApp">
+                            <i class="bx bxl-whatsapp"></i>
+                        </a>
+                        <button class="apex-party-action sms comm-send-single"
+                                data-commtype="SMS"
+                                data-recipienttype="Vendor"
+                                data-uid="<?php echo (int) $list->PartyUID; ?>"
+                                data-name="<?php echo htmlspecialchars($list->PartyName ?? ''); ?>"
+                                data-mobile="<?php echo htmlspecialchars($list->MobileNumber); ?>"
+                                data-email="<?php echo htmlspecialchars($list->EmailAddress ?? ''); ?>"
+                                title="Send SMS">
+                            <i class="bx bx-message-rounded"></i>
+                        </button>
+                        <?php endif; ?>
+                        <?php if ($hasEmail): ?>
+                        <a href="mailto:<?php echo htmlspecialchars($list->EmailAddress); ?>"
+                           class="apex-party-action em" title="Send Email">
+                            <i class="bx bx-envelope"></i>
+                        </a>
                         <?php endif; ?>
                     </div>
+                    <?php endif; ?>
                 </div>
             </td>
 
@@ -124,10 +177,12 @@ if (!empty($DataLists)) {
             <td><?php echo htmlspecialchars(format_datedisplay($list->TransDate)); ?></td>
 
             <!-- Expected Date -->
-            <td class="<?php echo $expectedClass; ?>">
+            <td>
                 <?php if (!$isDraft && !empty($list->ValidityDate)): ?>
-                    <?php echo format_datedisplay($list->ValidityDate); ?>
-                    <?php if ($expectedClass): ?><br><small>Overdue</small><?php endif; ?>
+                    <div style="font-size:.82rem;"><?php echo format_datedisplay($list->ValidityDate); ?></div>
+                    <?php if ($edLabel): ?>
+                    <div class="apex-ed-label <?php echo $edClass; ?>"><?php echo $edLabel; ?></div>
+                    <?php endif; ?>
                 <?php else: ?>
                     <span class="text-muted">—</span>
                 <?php endif; ?>

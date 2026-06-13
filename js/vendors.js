@@ -196,6 +196,57 @@ function _smartDecimalV(val) {
     return n === 0 ? '0' : String(parseFloat(n.toFixed(6)));
 }
 
+// ── Salutation helpers (vendor) ───────────────────────────────────────────
+
+function _populateSalVendor(list) {
+    var $sel = $('#VM_SalutationUID');
+    var html = '<option value=””>—</option>';
+    $.each(list, function (_, s) {
+        html += '<option value=”' + parseInt(s.SalutationUID, 10) + '”>' + $('<span>').text(s.SalutationName).html() + '</option>';
+    });
+    $sel.html(html);
+}
+
+function _applyDefaultSalutationVendor() {
+    var defaultUID = (typeof JwtData !== 'undefined' && JwtData.GenSettings && JwtData.GenSettings.DefaultSalutationUID)
+        ? parseInt(JwtData.GenSettings.DefaultSalutationUID, 10) : 0;
+    var $sel = $('#VM_SalutationUID');
+    if (defaultUID > 0) {
+        $sel.val(defaultUID);
+    } else {
+        $sel.find('option:not([value=””])').first().prop('selected', true);
+    }
+}
+
+function _fetchSalVendorFromServer(callback) {
+    $.ajax({
+        url: '/settings/getSalutationList', method: 'GET', cache: false,
+        success: function (resp) {
+            if (!resp.Error && resp.Data && resp.Data.length) {
+                _populateSalVendor(resp.Data);
+            }
+            callback();
+        },
+        error: function () { callback(); }
+    });
+}
+
+function _ensureSalVendor(callback) {
+    if ($('#VM_SalutationUID option').length > 1) { callback(); return; }
+    if (typeof UpstashService !== 'undefined' && UpstashService.isEnabled()) {
+        UpstashService.get(UpstashService.orgKey('salutation')).then(function (data) {
+            if (data && Array.isArray(data) && data.length > 0) {
+                _populateSalVendor(data);
+                callback();
+            } else {
+                _fetchSalVendorFromServer(callback);
+            }
+        }).catch(function () { _fetchSalVendorFromServer(callback); });
+    } else {
+        _fetchSalVendorFromServer(callback);
+    }
+}
+
 function openVendorModal(type, uid) {
     var titles = { add: 'Create Vendor', edit: 'Update Vendor', clone: 'Clone Vendor' };
     $('#VendorFormModalTitle').text(titles[type] || 'Vendor');
@@ -204,10 +255,13 @@ function openVendorModal(type, uid) {
     if (type === 'add') {
         $('#CustomerLinkingDiv').removeClass('d-none');
         searchCustomers('VM_Customers');
-        $('#VendorFormModal').modal('show');
+        _ensureSalVendor(function () {
+            _applyDefaultSalutationVendor();
+            $('#VendorFormModal').modal('show');
+        });
         return;
     }
-    // edit / clone â€” fetch data first, show modal only after populated
+    // edit / clone — fetch data first, show modal only after populated
     $.ajax({
         url: '/vendors/getVendorForModal/' + uid,
         method: 'GET', cache: false,
@@ -216,8 +270,10 @@ function openVendorModal(type, uid) {
                 showAlertMessageSwal('error', '', response.Message || 'Failed to load vendor.');
                 return;
             }
-            _populateVendorModal(type, response);
-            $('#VendorFormModal').modal('show');
+            _ensureSalVendor(function () {
+                _populateVendorModal(type, response);
+                $('#VendorFormModal').modal('show');
+            });
         },
         error: function () {
             showAlertMessageSwal('error', '', 'Failed to load vendor.');
@@ -245,6 +301,7 @@ function _resetVendorModal() {
 function _populateVendorModal(type, response) {
     var d = response.Data; var isClone = (type === 'clone');
     _editVendorUID = isClone ? 0 : (d.VendorUID || 0);
+    $('#VM_SalutationUID').val(d.SalutationUID || '');
     $('#VM_Name').val(d.Name || '');
     $('#VM_Area').val(d.Area || '');
     $('#VM_MobileNumber').val(d.MobileNumber || '');

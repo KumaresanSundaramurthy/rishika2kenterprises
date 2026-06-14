@@ -103,10 +103,14 @@
                             </div>
                             <div class="dropdown">
                                 <button class="apex-filter-btn dropdown-toggle" type="button" id="poutDateFilterBtn" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="bx bx-calendar"></i><span id="poutDateFilterLabel" class="ms-1">All Dates</span>
+                                    <i class="bx bx-calendar"></i><span id="poutDateFilterLabel" class="ms-1">This Month</span><strong id="poutDateFilterDates" class="r2k-df-dates" style="display:none;"></strong>
                                 </button>
                                 <ul class="dropdown-menu shadow" id="poutDateFilterMenu" style="width:220px;max-height:360px;overflow-y:auto;font-size:.82rem;"></ul>
                             </div>
+                            <a href="javascript:void(0);" id="poutPayModeFilter" class="apex-filter-btn" title="Filter by Payment Mode"><i class="bx bx-credit-card me-1"></i>Pay Mode</a>
+                            <?php if (count($OrgUsers ?? []) > 1): ?>
+                            <a href="javascript:void(0);" id="poutCreatedByFilter" class="apex-filter-btn" title="Filter by User"><i class="bx bx-user me-1"></i>Recorded By</a>
+                            <?php endif; ?>
                             <div class="apex-filter-spacer"></div>
                         </div>
 
@@ -125,26 +129,10 @@
                                     <tr>
                                         <th class="ps-3" style="width:140px;">Ref No</th>
                                         <th class="ps-3" style="width:140px;">Amount Paid</th>
-                                        <th style="width:150px;">
-                                            Mode / Bank
-                                            <a href="javascript:void(0);" id="poutPayModeFilter" class="text-body ms-1"
-                                               data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by Payment Mode"
-                                               style="font-size:.85rem;">
-                                                <i class="bx bx-filter-alt align-middle"></i>
-                                            </a>
-                                        </th>
+                                        <th style="width:150px;">Mode / Bank</th>
                                         <th style="width:140px;">Linked Bill</th>
                                         <th>Vendor</th>
-                                        <th style="width:160px;">
-                                            Recorded By
-                                            <?php if (count($OrgUsers ?? []) > 1): ?>
-                                            <a href="javascript:void(0);" id="poutCreatedByFilter" class="text-body ms-1"
-                                               data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by User"
-                                               style="font-size:.85rem;">
-                                                <i class="bx bx-filter-alt align-middle"></i>
-                                            </a>
-                                            <?php endif; ?>
-                                        </th>
+                                        <th style="width:160px;">Recorded By</th>
                                         <th style="width:80px;" class="text-end pe-3">Actions</th>
                                     </tr>
                                 </thead>
@@ -233,18 +221,20 @@ var PoutPageNo = 1;
 var PoutLimit  = 10;
 
 var poutPayModeFilter = new TransColFilter({
-    boxId     : 'poutPayModeFilterBox',
-    triggerId : 'poutPayModeFilter',
-    filterKey : 'PaymentMode',
-    onApply   : function () { getPaymentsOut(1); }
+    boxId       : 'poutPayModeFilterBox',
+    triggerId   : 'poutPayModeFilter',
+    filterKey   : 'PaymentMode',
+    activeClass : 'has-filter',
+    onApply     : function () { getPaymentsOut(1); }
 });
 
 var poutCreatedByFilter = (document.getElementById('poutCreatedByFilterBox'))
     ? new TransColFilter({
-        boxId     : 'poutCreatedByFilterBox',
-        triggerId : 'poutCreatedByFilter',
-        filterKey : 'UpdatedByUIDs',
-        onApply   : function () { getPaymentsOut(1); }
+        boxId       : 'poutCreatedByFilterBox',
+        triggerId   : 'poutCreatedByFilter',
+        filterKey   : 'UpdatedByUIDs',
+        activeClass : 'has-filter',
+        onApply     : function () { getPaymentsOut(1); }
     })
     : null;
 
@@ -311,8 +301,7 @@ $(function () {
         }, 1500);
     });
 
-    // Date filter
-    $('#poutDateFilterMenu').html(buildDateFilterHtml('poutCustomDateFrom', 'poutCustomDateTo'));
+    // Date filter — defaults to This Month
     initDateFilter({
         btnId  : 'poutDateFilterBtn',
         labelId: 'poutDateFilterLabel',
@@ -324,6 +313,11 @@ $(function () {
             getPaymentsOut(1);
         }
     });
+    var _poutInitDr = getDateRange('this_month');
+    PoutFilter.DateFrom = _poutInitDr.from;
+    PoutFilter.DateTo   = _poutInitDr.to;
+    $('#poutDateFilterBtn').addClass('r2k-date-active');
+    $('#poutDateFilterDates').text(formatDateDisplay(_poutInitDr.from) + ' – ' + formatDateDisplay(_poutInitDr.to)).show();
     $(document).on('shown.bs.dropdown', '#poutDateFilterBtn', function () {
         if (!$('#poutCustomDateFrom').data('fpInit')) {
             flatpickr('#poutCustomDateFrom', { dateFormat: 'Y-m-d', altInput: true, altFormat: 'd M Y', maxDate: 'today', disableMobile: true });

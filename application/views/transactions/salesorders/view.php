@@ -10,9 +10,6 @@ $this->load->view('common/transactions/header'); ?>
 
             <div class="content-wrapper apex-content">
                 <?php $this->load->view('common/apex/page_header', [
-                    'pageIcon'        => 'bx-cart-alt',
-                    'pageIconBg'      => '#eff6ff',
-                    'pageIconColor'   => '#3b82f6',
                     'pageTitle'       => $PageTitle       ?? 'Sales Orders',
                     'pageDescription' => $PageDescription ?? 'Manage and track customer sales orders',
                 ]); ?>
@@ -66,6 +63,10 @@ $this->load->view('common/transactions/header'); ?>
                                 <input type="text" id="searchTransactionData" placeholder="Order # or customer...">
                                 <i class="bx bx-x r2k-clear d-none"></i>
                             </div>
+                            <?php if (count($OrgUsers ?? []) > 1): ?>
+                            <a href="javascript:void(0);" id="soCreatedByFilter" class="apex-filter-btn" title="Filter by User"><i class="bx bx-user me-1"></i>Updated By</a>
+                            <?php endif; ?>
+                            <a href="javascript:void(0);" id="soPartyFilterTrigger" class="apex-filter-btn" title="Filter by Customer"><i class="bx bx-store me-1"></i>Customer</a>
                             <?php $this->load->view('common/transactions/date_filter_btn'); ?>
                             <div class="apex-filter-spacer"></div>
                             <a href="javascript:void(0);" class="apex-filter-btn pageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
@@ -102,27 +103,11 @@ $this->load->view('common/transactions/header'); ?>
                                             Amount <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Amount"></i>
                                         </th>
                                         <th>Status</th>
-                                        <th>
-                                            Customer
-                                            <a href="javascript:void(0);" id="soPartyFilterTrigger" class="text-body ms-1"
-                                               data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by Customer"
-                                               style="font-size:.85rem;">
-                                                <i class="bx bx-filter-alt align-middle"></i>
-                                            </a>
-                                        </th>
+                                        <th>Customer</th>
                                         <th class="col-sortable cursor-pointer user-select-none" data-sort="Date">
                                             Expected Delivery <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Date"></i>
                                         </th>
-                                        <th>
-                                            Last Updated
-                                            <?php if (count($OrgUsers ?? []) > 1): ?>
-                                            <a href="javascript:void(0);" id="soCreatedByFilter" class="text-body ms-1"
-                                               data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by User"
-                                               style="font-size:.85rem;">
-                                                <i class="bx bx-filter-alt align-middle"></i>
-                                            </a>
-                                            <?php endif; ?>
-                                        </th>
+                                        <th>Last Updated</th>
                                         <th style="width:50px"></th>
                                     </tr>
                                 </thead>
@@ -229,10 +214,11 @@ $(function () {
 
     var soCreatedByFilter = (document.getElementById('soCreatedByFilterBox'))
         ? new TransColFilter({
-            boxId     : 'soCreatedByFilterBox',
-            triggerId : 'soCreatedByFilter',
-            filterKey : 'UpdatedByUIDs',
-            onApply   : function () { PageNo = 1; getSalesOrdersDetails(); }
+            boxId       : 'soCreatedByFilterBox',
+            triggerId   : 'soCreatedByFilter',
+            filterKey   : 'UpdatedByUIDs',
+            activeClass : 'has-filter',
+            onApply     : function () { PageNo = 1; getSalesOrdersDetails(); }
         })
         : null;
 

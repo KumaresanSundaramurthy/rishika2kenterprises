@@ -10,9 +10,6 @@ $this->load->view('common/transactions/header'); ?>
 
             <div class="content-wrapper apex-content">
                 <?php $this->load->view('common/apex/page_header', [
-                    'pageIcon'        => 'bx-package',
-                    'pageIconBg'      => '#fff7ed',
-                    'pageIconColor'   => '#f97316',
                     'pageTitle'       => $PageTitle       ?? 'Delivery Challans',
                     'pageDescription' => $PageDescription ?? 'Manage goods delivery notes',
                 ]); ?>

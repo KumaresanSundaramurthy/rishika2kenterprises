@@ -14,9 +14,6 @@
             <!-- Content wrapper -->
             <div class="content-wrapper apex-content">
                 <?php $this->load->view('common/apex/page_header', [
-                    'pageIcon'        => 'bx-cube',
-                    'pageIconBg'      => '#ecfdf5',
-                    'pageIconColor'   => '#059669',
                     'pageTitle'       => $PageTitle       ?? 'Products',
                     'pageDescription' => $PageDescription ?? '',
                 ]); ?>
@@ -96,6 +93,9 @@
                                 <input type="text" class="SearchDetails" id="SearchDetails" placeholder="Search items...">
                                 <i class="bx bx-x r2k-clear d-none" id="clearSearch"></i>
                             </div>
+                            <a href="javascript:void(0);" id="productTypeFilter" class="apex-filter-btn <?php echo $ActiveTabData == 'item' ? '' : 'd-none'; ?>" onclick="toggleProductTypeFilter(); event.stopPropagation();" title="Filter by Product Type"><i class="bx bx-box me-1"></i>Type</a>
+                            <a href="javascript:void(0);" id="statusFilter" class="apex-filter-btn <?php echo $ActiveTabData == 'item' ? '' : 'd-none'; ?>" onclick="toggleStatusFilter(); event.stopPropagation();" title="Filter by Status"><i class="bx bx-transfer me-1"></i>Status</a>
+                            <a href="javascript:void(0);" id="categoryFilter" class="apex-filter-btn <?php echo $ActiveTabData == 'item' ? '' : 'd-none'; ?>" onclick="toggleCategoryFilter(); event.stopPropagation();" title="Filter by Category"><i class="bx bx-layer me-1"></i>Category</a>
                             <div class="apex-filter-spacer"></div>
                             <a href="javascript:void(0);" class="apex-icon-btn PageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
                             <a href="javascript:void(0);" class="apex-icon-btn <?php echo ($ActiveTabData == 'item' || $ActiveTabData == 'group') ? '' : 'd-none'; ?>" id="btnSyncProductsCache" title="Sync Items Cache"><i class="bx bx-planet"></i></a>
@@ -183,20 +183,13 @@
                                                         <th class="table-serialno <?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>">S.No</th>
                                                         <th class="name-sortable position-relative" id="sortName" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">
                                                             <span class="sort-label cursor-pointer">Item <i class="bx bx-sort sort-icon ms-1"></i></span>
-                                                            <a href="javascript:void(0);" id="productTypeFilter" class="text-body ms-1" onclick="toggleProductTypeFilter(); event.stopPropagation();" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by Product Type"><i class="bx bx-filter-alt fs-6 align-middle"></i></a>
                                                         </th>
                                                         <th class="col-sortable cursor-pointer position-relative" data-filterkey="StatusSorting" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">
                                                             Status <i class="bx bx-sort sort-icon ms-1"></i>
-                                                            <a href="javascript:void(0);" id="statusFilter" class="text-body ms-1" onclick="toggleStatusFilter(); event.stopPropagation();" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by Status"><i class="bx bx-filter-alt fs-6 align-middle"></i></a>
                                                         </th>
                                                         <th class="col-sortable cursor-pointer position-relative" data-filterkey="CategorySorting" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">
                                                             Category <i class="bx bx-sort sort-icon ms-1"></i>
-                                                            <span id="ItemCategory-Div" class="<?php echo $ActiveTabData == 'item' ? '' : 'd-none'; ?>">
-                                                                <a href="javascript:void(0);" id="categoryFilter" class="text-body ms-1" onclick="toggleCategoryFilter(); event.stopPropagation();" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by Category">
-                                                                    <i class="bx bx-filter-alt fs-6 align-middle"></i>
-                                                                </a>
-                                                                <div id="categoryFilterBox" class="card mp-filterbox" style="min-width:260px;z-index:9999;display:none;position:fixed;"></div>
-                                                            </span>
+                                                            <div id="categoryFilterBox" class="card mp-filterbox" style="min-width:260px;z-index:9999;display:none;position:fixed;"></div>
                                                         </th>
                                                         <th class="col-sortable cursor-pointer" data-filterkey="QtySorting" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">Qty <i class="bx bx-sort sort-icon ms-1"></i></th>
                                                         <th class="col-sortable cursor-pointer" data-filterkey="MRPSorting" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">MRP <i class="bx bx-sort sort-icon ms-1"></i></th>

@@ -10,21 +10,18 @@
         <div class="layout-page">
             <div class="content-wrapper apex-content">
                 <?php $this->load->view('common/apex/page_header', [
-                    'pageIcon'        => 'bx-message-square-edit',
-                    'pageIconBg'      => '#fdf4ff',
-                    'pageIconColor'   => '#9333ea',
                     'pageTitle'       => $PageTitle       ?? 'Message Templates',
                     'pageDescription' => $PageDescription ?? '',
                 ]); ?>
                 <div class="container-xxl flex-grow-1 container-p-y">
 
-                    <div class="d-flex justify-content-end mb-3">
-                        <button class="btn btn-primary btn-sm px-3 me-1" id="btnAddMsgTemplate">
-                            <i class="bx bx-plus me-1"></i>Add Template
-                        </button>
-                    </div>
-
                     <div class="card">
+
+                        <div class="d-flex justify-content-end mb-3">
+                            <button class="btn btn-primary btn-sm px-3 me-1" id="btnAddMsgTemplate">
+                                <i class="bx bx-plus me-1"></i>Add Template
+                            </button>
+                        </div>
 
                         <!-- Table -->
                         <div class="table-responsive">

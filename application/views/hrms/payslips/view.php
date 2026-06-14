@@ -6,9 +6,6 @@
     <div class="layout-page">
       <div class="content-wrapper apex-content">
         <?php $this->load->view('common/apex/page_header', [
-          'pageIcon'        => 'bx-file',
-          'pageIconBg'      => '#ecfeff',
-          'pageIconColor'   => '#0891b2',
           'pageTitle'       => 'Payslips',
           'pageDescription' => 'Employee salary slips',
         ]); ?>

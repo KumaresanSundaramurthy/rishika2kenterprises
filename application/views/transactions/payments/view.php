@@ -9,9 +9,6 @@
         <div class="layout-page">
             <div class="content-wrapper apex-content">
                 <?php $this->load->view('common/apex/page_header', [
-                    'pageIcon'        => 'bx-wallet',
-                    'pageIconBg'      => '#f0fdf4',
-                    'pageIconColor'   => '#10b981',
                     'pageTitle'       => $PageTitle       ?? 'Payments',
                     'pageDescription' => $PageDescription ?? 'Track payments received and made',
                 ]); ?>
@@ -34,126 +31,61 @@
                     ?>
 
 
-                    <!-- ── Stats Bar: Balance | In | Out ────────────────────── -->
-                    <div class="row g-3 mb-4">
-
-                        <!-- Balance -->
-                        <div class="col-md-4">
-                            <div class="card border-0 shadow-sm h-100">
-                                <div class="card-body py-3 px-4">
-                                    <div class="d-flex align-items-center justify-content-between mb-3">
-                                        <span class="fw-bold" style="font-size:.82rem;color:#374151;">Current Balance</span>
-                                        <div class="rounded-circle d-flex align-items-center justify-content-center"
-                                             style="width:34px;height:34px;background:#f0f4ff;">
-                                            <i class="bx bx-wallet fs-5" style="color:#4f46e5;"></i>
-                                        </div>
-                                    </div>
-                                    <div class="d-flex justify-content-between align-items-center mb-2">
-                                        <span class="text-muted" style="font-size:.75rem;">
-                                            <i class="bx bx-money me-1 text-success" style="font-size:.8rem;"></i>Cash
-                                        </span>
-                                        <span class="fw-semibold" style="font-size:.82rem;" id="statCashBalance">
-                                            <?php echo allPmtFmt($cashIn - $cashOut, $cur, $dec); ?>
-                                        </span>
-                                    </div>
-                                    <div class="d-flex justify-content-between align-items-center mb-2">
-                                        <span class="text-muted" style="font-size:.75rem;">
-                                            <i class="bx bx-building-house me-1 text-primary" style="font-size:.8rem;"></i>Bank
-                                        </span>
-                                        <span class="fw-semibold" style="font-size:.82rem;" id="statBankBalance">
-                                            <?php echo allPmtFmt($bankIn - $bankOut, $cur, $dec); ?>
-                                        </span>
-                                    </div>
-                                    <div class="border-top pt-2 mt-1 d-flex justify-content-between align-items-center">
-                                        <span class="text-muted" style="font-size:.73rem;">Net</span>
-                                        <span class="fw-bold" style="font-size:.9rem;color:#4f46e5;" id="statNetBalance">
-                                            <?php echo allPmtFmt(($cashIn + $bankIn) - ($cashOut + $bankOut), $cur, $dec); ?>
-                                        </span>
-                                    </div>
+                    <!-- ── Stats Bar (apex-stats-strip = visibility controlled by StatsDefaultOpen setting) ── -->
+                    <div class="apex-stats-strip mb-3" style="border-radius:.5rem;border:0;box-shadow:0 1px 4px rgba(0,0,0,.07);">
+                        <!-- Current Balance -->
+                        <div class="d-flex align-items-center gap-3 px-4 border-end" style="flex:1;min-width:0;padding-top:14px;padding-bottom:14px;">
+                            <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                                 style="width:36px;height:36px;background:#f0f4ff;">
+                                <i class="bx bx-wallet" style="color:#4f46e5;font-size:1.05rem;"></i>
+                            </div>
+                            <div style="min-width:0;">
+                                <div class="text-muted" style="font-size:.69rem;text-transform:uppercase;letter-spacing:.05em;">Current Balance</div>
+                                <div class="fw-bold" style="font-size:.95rem;color:#4f46e5;" id="statNetBalance">
+                                    <?php echo allPmtFmt(($cashIn+$bankIn)-($cashOut+$bankOut),$cur,$dec); ?>
                                 </div>
                             </div>
+                            <div class="ms-auto text-end flex-shrink-0" style="font-size:.73rem;">
+                                <div class="text-muted mb-1"><i class="bx bx-money me-1 text-success"></i>Cash&nbsp;<span class="fw-semibold text-body" id="statCashBalance"><?php echo allPmtFmt($cashIn-$cashOut,$cur,$dec); ?></span></div>
+                                <div class="text-muted"><i class="bx bx-building-house me-1 text-primary"></i>Bank&nbsp;<span class="fw-semibold text-body" id="statBankBalance"><?php echo allPmtFmt($bankIn-$bankOut,$cur,$dec); ?></span></div>
+                            </div>
                         </div>
-
                         <!-- Money In -->
-                        <div class="col-md-4">
-                            <div class="card border-0 shadow-sm h-100" style="border-left:3px solid #22c55e!important;">
-                                <div class="card-body py-3 px-4">
-                                    <div class="d-flex align-items-center justify-content-between mb-3">
-                                        <span class="fw-bold" style="font-size:.82rem;color:#374151;">
-                                            <i class="bx bx-up-arrow-alt text-success me-1 fs-5"></i>Money In
-                                        </span>
-                                        <div class="rounded-circle d-flex align-items-center justify-content-center"
-                                             style="width:34px;height:34px;background:#dcfce7;">
-                                            <i class="bx bx-log-in-circle fs-5 text-success"></i>
-                                        </div>
-                                    </div>
-                                    <div class="d-flex justify-content-between align-items-center mb-2">
-                                        <span class="text-muted" style="font-size:.75rem;">
-                                            <i class="bx bx-money me-1 text-success" style="font-size:.8rem;"></i>Cash
-                                        </span>
-                                        <span class="fw-semibold text-success" style="font-size:.82rem;" id="statCashIn">
-                                            <?php echo allPmtFmt($cashIn, $cur, $dec); ?>
-                                        </span>
-                                    </div>
-                                    <div class="d-flex justify-content-between align-items-center mb-2">
-                                        <span class="text-muted" style="font-size:.75rem;">
-                                            <i class="bx bx-building-house me-1 text-primary" style="font-size:.8rem;"></i>Bank
-                                        </span>
-                                        <span class="fw-semibold text-success" style="font-size:.82rem;" id="statBankIn">
-                                            <?php echo allPmtFmt($bankIn, $cur, $dec); ?>
-                                        </span>
-                                    </div>
-                                    <div class="border-top pt-2 mt-1 d-flex justify-content-between align-items-center">
-                                        <span class="text-muted" style="font-size:.73rem;">Total In</span>
-                                        <span class="fw-bold text-success" style="font-size:.9rem;" id="statTotalIn">
-                                            <?php echo allPmtFmt($cashIn + $bankIn, $cur, $dec); ?>
-                                        </span>
-                                    </div>
+                        <div class="d-flex align-items-center gap-3 px-4 border-end" style="flex:1;min-width:0;padding-top:14px;padding-bottom:14px;">
+                            <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                                 style="width:36px;height:36px;background:#dcfce7;">
+                                <i class="bx bx-log-in-circle text-success" style="font-size:1.05rem;"></i>
+                            </div>
+                            <div style="min-width:0;">
+                                <div class="text-muted" style="font-size:.69rem;text-transform:uppercase;letter-spacing:.05em;"><i class="bx bx-up-arrow-alt text-success"></i>&nbsp;Money In</div>
+                                <div class="fw-bold text-success" style="font-size:.95rem;" id="statTotalIn">
+                                    <?php echo allPmtFmt($cashIn+$bankIn,$cur,$dec); ?>
                                 </div>
                             </div>
+                            <div class="ms-auto text-end flex-shrink-0" style="font-size:.73rem;">
+                                <div class="text-muted mb-1"><i class="bx bx-money me-1 text-success"></i>Cash&nbsp;<span class="fw-semibold text-success" id="statCashIn"><?php echo allPmtFmt($cashIn,$cur,$dec); ?></span></div>
+                                <div class="text-muted"><i class="bx bx-building-house me-1 text-primary"></i>Bank&nbsp;<span class="fw-semibold text-success" id="statBankIn"><?php echo allPmtFmt($bankIn,$cur,$dec); ?></span></div>
+                            </div>
                         </div>
-
                         <!-- Money Out -->
-                        <div class="col-md-4">
-                            <div class="card border-0 shadow-sm h-100" style="border-left:3px solid #ef4444!important;">
-                                <div class="card-body py-3 px-4">
-                                    <div class="d-flex align-items-center justify-content-between mb-3">
-                                        <span class="fw-bold" style="font-size:.82rem;color:#374151;">
-                                            <i class="bx bx-down-arrow-alt text-danger me-1 fs-5"></i>Money Out
-                                        </span>
-                                        <div class="rounded-circle d-flex align-items-center justify-content-center"
-                                             style="width:34px;height:34px;background:#fee2e2;">
-                                            <i class="bx bx-log-out-circle fs-5 text-danger"></i>
-                                        </div>
-                                    </div>
-                                    <div class="d-flex justify-content-between align-items-center mb-2">
-                                        <span class="text-muted" style="font-size:.75rem;">
-                                            <i class="bx bx-money me-1 text-success" style="font-size:.8rem;"></i>Cash
-                                        </span>
-                                        <span class="fw-semibold text-danger" style="font-size:.82rem;" id="statCashOut">
-                                            <?php echo allPmtFmt($cashOut, $cur, $dec); ?>
-                                        </span>
-                                    </div>
-                                    <div class="d-flex justify-content-between align-items-center mb-2">
-                                        <span class="text-muted" style="font-size:.75rem;">
-                                            <i class="bx bx-building-house me-1 text-primary" style="font-size:.8rem;"></i>Bank
-                                        </span>
-                                        <span class="fw-semibold text-danger" style="font-size:.82rem;" id="statBankOut">
-                                            <?php echo allPmtFmt($bankOut, $cur, $dec); ?>
-                                        </span>
-                                    </div>
-                                    <div class="border-top pt-2 mt-1 d-flex justify-content-between align-items-center">
-                                        <span class="text-muted" style="font-size:.73rem;">Total Out</span>
-                                        <span class="fw-bold text-danger" style="font-size:.9rem;" id="statTotalOut">
-                                            <?php echo allPmtFmt($cashOut + $bankOut, $cur, $dec); ?>
-                                        </span>
-                                    </div>
+                        <div class="d-flex align-items-center gap-3 px-4" style="flex:1;min-width:0;padding-top:14px;padding-bottom:14px;">
+                            <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                                 style="width:36px;height:36px;background:#fee2e2;">
+                                <i class="bx bx-log-out-circle text-danger" style="font-size:1.05rem;"></i>
+                            </div>
+                            <div style="min-width:0;">
+                                <div class="text-muted" style="font-size:.69rem;text-transform:uppercase;letter-spacing:.05em;"><i class="bx bx-down-arrow-alt text-danger"></i>&nbsp;Money Out</div>
+                                <div class="fw-bold text-danger" style="font-size:.95rem;" id="statTotalOut">
+                                    <?php echo allPmtFmt($cashOut+$bankOut,$cur,$dec); ?>
                                 </div>
                             </div>
+                            <div class="ms-auto text-end flex-shrink-0" style="font-size:.73rem;">
+                                <div class="text-muted mb-1"><i class="bx bx-money me-1 text-success"></i>Cash&nbsp;<span class="fw-semibold text-danger" id="statCashOut"><?php echo allPmtFmt($cashOut,$cur,$dec); ?></span></div>
+                                <div class="text-muted"><i class="bx bx-building-house me-1 text-primary"></i>Bank&nbsp;<span class="fw-semibold text-danger" id="statBankOut"><?php echo allPmtFmt($bankOut,$cur,$dec); ?></span></div>
+                            </div>
                         </div>
-
                     </div>
-                    <!-- /.row stats -->
+                    <!-- /.stats -->
 
                     <!-- ── Main Card ──────────────────────────────────────── -->
                     <div class="card border-0 shadow-sm">
@@ -164,9 +96,13 @@
                                 <i class="bx bx-search r2k-si"></i>
                                 <input type="text" id="allPmtSearch" placeholder="Party, ref, amount…">
                             </div>
+                            <a href="javascript:void(0);" id="allPmtModeFilter" class="apex-filter-btn" title="Filter by Payment Mode"><i class="bx bx-credit-card me-1"></i>Pay Mode</a>
+                            <?php if (count($OrgUsers ?? []) > 1): ?>
+                            <a href="javascript:void(0);" id="allPmtCreatedByFilter" class="apex-filter-btn" title="Filter by User"><i class="bx bx-user me-1"></i>Updated By</a>
+                            <?php endif; ?>
                             <div class="dropdown">
                                 <button class="apex-filter-btn dropdown-toggle" type="button" id="allPmtDateBtn" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="bx bx-calendar"></i><span id="allPmtDateLabel" class="ms-1">All Dates</span>
+                                    <i class="bx bx-calendar"></i><span id="allPmtDateLabel" class="ms-1">This Month</span><strong id="allPmtDateDates" class="r2k-df-dates" style="display:none;"></strong>
                                 </button>
                                 <ul class="dropdown-menu shadow" id="allPmtDateMenu" style="width:220px;max-height:360px;overflow-y:auto;font-size:.82rem;"></ul>
                             </div>
@@ -194,26 +130,10 @@
                                         <th class="ps-3" style="width:160px;">Date / Ref No</th>
                                         <th style="width:70px;">Type</th>
                                         <th style="width:140px;">Amount</th>
-                                        <th style="width:160px;">
-                                            Mode / Bank
-                                            <a href="javascript:void(0);" id="allPmtModeFilter" class="text-body ms-1"
-                                               data-bs-toggle="tooltip" data-bs-placement="top"
-                                               data-bs-title="Filter by Payment Mode" style="font-size:.85rem;">
-                                                <i class="bx bx-filter-alt align-middle"></i>
-                                            </a>
-                                        </th>
+                                        <th style="width:160px;">Mode / Bank</th>
                                         <th>Party</th>
                                         <th style="width:140px;">Linked Doc</th>
-                                        <th style="width:170px;">
-                                            Created By
-                                            <?php if (count($OrgUsers ?? []) > 1): ?>
-                                            <a href="javascript:void(0);" id="allPmtCreatedByFilter" class="text-body ms-1"
-                                               data-bs-toggle="tooltip" data-bs-placement="top"
-                                               data-bs-title="Filter by User" style="font-size:.85rem;">
-                                                <i class="bx bx-filter-alt align-middle"></i>
-                                            </a>
-                                            <?php endif; ?>
-                                        </th>
+                                        <th style="width:170px;">Created By</th>
                                         <th style="width:80px;" class="text-end pe-3">Actions</th>
                                     </tr>
                                 </thead>
@@ -317,18 +237,20 @@ $('#viewTransEditBtn').data('hide-edit', true);
 var _allPmtPage;
 
 var allPmtPayModeFilter = new TransColFilter({
-    boxId     : 'allPmtModeFilterBox',
-    triggerId : 'allPmtModeFilter',
-    filterKey : 'PaymentMode',
-    onApply   : function () { _allPmtPage.loadData(1); }
+    boxId       : 'allPmtModeFilterBox',
+    triggerId   : 'allPmtModeFilter',
+    filterKey   : 'PaymentMode',
+    activeClass : 'has-filter',
+    onApply     : function () { _allPmtPage.loadData(1); }
 });
 
 var allPmtCreatedByFilter = (document.getElementById('allPmtCreatedByFilterBox'))
     ? new TransColFilter({
-        boxId     : 'allPmtCreatedByFilterBox',
-        triggerId : 'allPmtCreatedByFilter',
-        filterKey : 'UpdatedByUIDs',
-        onApply   : function () { _allPmtPage.loadData(1); }
+        boxId       : 'allPmtCreatedByFilterBox',
+        triggerId   : 'allPmtCreatedByFilter',
+        filterKey   : 'UpdatedByUIDs',
+        activeClass : 'has-filter',
+        onApply     : function () { _allPmtPage.loadData(1); }
     })
     : null;
 
@@ -389,8 +311,7 @@ $(function () {
         }, 1500);
     });
 
-    // ── Date filter ──────────────────────────────────────────────────────────
-    $('#allPmtDateMenu').html(buildDateFilterHtml('allPmtDateFrom', 'allPmtDateTo'));
+    // ── Date filter — defaults to This Month ─────────────────────────────────
     initDateFilter({
         btnId  : 'allPmtDateBtn',
         labelId: 'allPmtDateLabel',
@@ -402,6 +323,12 @@ $(function () {
             _allPmtPage.loadData(1);
         }
     });
+    // Seed filter with This Month so initial load is date-scoped
+    var _pmtInitDr = getDateRange('this_month');
+    _allPmtPage._filter.DateFrom = _pmtInitDr.from;
+    _allPmtPage._filter.DateTo   = _pmtInitDr.to;
+    $('#allPmtDateBtn').addClass('r2k-date-active');
+    $('#allPmtDateDates').text(formatDateDisplay(_pmtInitDr.from) + ' – ' + formatDateDisplay(_pmtInitDr.to)).show();
     $(document).on('shown.bs.dropdown', '#allPmtDateBtn', function () {
         if (!$('#allPmtDateFrom').data('fpInit')) {
             flatpickr('#allPmtDateFrom', { dateFormat: 'Y-m-d', altInput: true, altFormat: 'd M Y', maxDate: 'today', disableMobile: true });
@@ -410,13 +337,18 @@ $(function () {
         }
     });
 
-    // ── Clear all filters ────────────────────────────────────────────────────
+    // ── Clear all filters — date resets to This Month ───────────────────────
     $('#allPmtClearBtn').on('click', function () {
         _allPmtPage.clearFilters();
         $('#allPmtSearch').val('');
-        $('#allPmtDateLabel').text('All Dates');
-        $('.date-option').removeClass('active');
-        $('.date-option[data-range=""]').addClass('active');
+        var _clrDr = getDateRange('this_month');
+        _allPmtPage._filter.DateFrom = _clrDr.from;
+        _allPmtPage._filter.DateTo   = _clrDr.to;
+        $('#allPmtDateLabel').text('This Month');
+        $('#allPmtDateDates').text(formatDateDisplay(_clrDr.from) + ' – ' + formatDateDisplay(_clrDr.to)).show();
+        $('#allPmtDateBtn').addClass('r2k-date-active');
+        $('#allPmtDateMenu').find('.date-option').removeClass('active');
+        $('#allPmtDateMenu').find('.date-option[data-range="this_month"]').addClass('active');
         $('.allpmt-status-tab').removeClass('active').addClass('text-muted');
         $('.allpmt-status-tab[data-status=""]').addClass('active').removeClass('text-muted');
         $('.allpmt-dir-pill').removeClass('active').addClass('text-muted');

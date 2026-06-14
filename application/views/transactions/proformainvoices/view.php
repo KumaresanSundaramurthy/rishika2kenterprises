@@ -9,9 +9,6 @@ $this->load->view('common/transactions/header'); ?>
         <div class="layout-page">
             <div class="content-wrapper apex-content">
                 <?php $this->load->view('common/apex/page_header', [
-                    'pageIcon'        => 'bx-file-blank',
-                    'pageIconBg'      => '#f5f3ff',
-                    'pageIconColor'   => '#8b5cf6',
                     'pageTitle'       => $PageTitle       ?? 'Proforma Invoices',
                     'pageDescription' => $PageDescription ?? 'Create proforma invoices for customers',
                 ]); ?>

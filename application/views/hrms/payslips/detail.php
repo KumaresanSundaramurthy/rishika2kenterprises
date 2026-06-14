@@ -12,9 +12,6 @@ $period = ($months[(int)($s->PayrollMonth ?? 0)] ?? '—') . ' ' . ($s->PayrollY
     <div class="layout-page">
       <div class="content-wrapper apex-content">
         <?php $this->load->view('common/apex/page_header', [
-          'pageIcon'        => 'bx-file',
-          'pageIconBg'      => '#ecfeff',
-          'pageIconColor'   => '#0891b2',
           'pageTitle'       => 'Payslip — ' . htmlspecialchars($s->EmployeeName ?? ''),
           'pageDescription' => $period,
         ]); ?>

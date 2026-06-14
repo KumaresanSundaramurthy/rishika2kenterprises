@@ -6,9 +6,6 @@
     <div class="layout-page">
       <div class="content-wrapper apex-content">
         <?php $this->load->view('common/apex/page_header', [
-          'pageIcon'        => 'bx-calendar-check',
-          'pageIconBg'      => '#d1fae5',
-          'pageIconColor'   => '#059669',
           'pageTitle'       => 'Daily Attendance',
           'pageDescription' => 'Mark &amp; view day-wise attendance',
         ]); ?>

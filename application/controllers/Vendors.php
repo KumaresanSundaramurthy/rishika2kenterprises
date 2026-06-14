@@ -940,6 +940,294 @@ class Vendors extends MY_Controller {
         return (date('n') >= 4) ? (int)date('Y') : (int)date('Y') - 1;
     }
 
+    // ══════════════════════════════════════════════════════════════════
+    // Vendor Group methods
+    // ══════════════════════════════════════════════════════════════════
+
+    private function _vendorGroupTypesList() {
+        return [
+            'Business Group', 'Branch Group', 'Family Group',
+            'Corporate Group', 'Dealer Network', 'Franchise Group', 'Custom',
+        ];
+    }
+
+    private function _fetchVendorGroupsTableData($pageNo, $limit, $filter = []) {
+        $orgUID  = $this->pageData['JwtData']->Org->OrgUID;
+        $offset  = max(0, ($pageNo - 1) * $limit);
+        $this->load->model('vendors_model');
+        $result  = $this->vendors_model->getVendorGroupListPaginated($orgUID, $limit, $offset, $filter);
+        $rowHtml = $this->load->view('vendors/groups/list', [
+            'DataLists'    => $result->rows,
+            'SerialNumber' => $offset,
+            'JwtData'      => $this->pageData['JwtData'],
+        ], true);
+        $resp                 = new stdClass();
+        $resp->RecordHtmlData = $rowHtml;
+        $resp->Pagination     = $this->globalservice->buildPagePaginationHtml('/vendors/getGroupsData', $result->totalCount, $pageNo, $limit);
+        $resp->TotalCount     = $result->totalCount;
+        return $resp;
+    }
+
+    public function searchVendors() {
+        $this->EndReturnData       = new stdClass();
+        $this->EndReturnData->Error = false;
+        $this->EndReturnData->Lists = [];
+        try {
+            $term = trim($this->input->get('term'));
+            if ($term) {
+                $this->load->model('vendors_model');
+                $rows = $this->vendors_model->searchVendorsForGroup($term);
+                foreach ($rows as $v) {
+                    $this->EndReturnData->Lists[] = [
+                        'id'   => $v->VendorUID,
+                        'text' => $v->Area ? $v->Name . ' (' . $v->Area . ')' : $v->Name,
+                    ];
+                }
+            }
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = 'Unable to fetch vendors at the moment.';
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    public function getGroupsData($pageNo = 0) {
+        $this->EndReturnData = new stdClass();
+        try {
+            $pageNo   = max(1, (int) $pageNo);
+            $filter   = $this->input->post('Filter') ?: [];
+            $this->_initModule();
+            $limit    = (int)($this->input->post('RowLimit') ?: $this->pageData['Limit']);
+            $pageData = $this->_fetchVendorGroupsTableData($pageNo, $limit, $filter);
+            $this->load->model('vendors_model');
+            $this->EndReturnData->Error          = false;
+            $this->EndReturnData->RecordHtmlData = $pageData->RecordHtmlData;
+            $this->EndReturnData->Pagination     = $pageData->Pagination;
+            $this->EndReturnData->TotalCount     = $pageData->TotalCount;
+            $this->EndReturnData->Stats          = $this->vendors_model->getVendorGroupStats($this->pageData['JwtData']->Org->OrgUID);
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    public function getGroupForModal($groupUID = 0) {
+        $this->EndReturnData = new stdClass();
+        try {
+            $groupUID = (int)$groupUID;
+            if (!$groupUID) throw new Exception('Group ID is missing.');
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
+            $this->load->model('vendors_model');
+            $group   = $this->vendors_model->getVendorGroupByUID($orgUID, $groupUID);
+            if (!$group) throw new Exception('Group not found.');
+            $members = $this->vendors_model->getVendorGroupMembers($orgUID, $groupUID);
+            $this->EndReturnData->Error      = false;
+            $this->EndReturnData->Data       = $group;
+            $this->EndReturnData->Members    = $members;
+            $this->EndReturnData->GroupTypes = $this->_vendorGroupTypesList();
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    public function addGroupData() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $this->load->model('dbwrite_model');
+            $this->dbwrite_model->startTransaction();
+            $post      = $this->input->post();
+            $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
+            $userUID   = $this->pageData['JwtData']->User->UserUID;
+            $groupName = trim($post['GroupName'] ?? '');
+            if (!$groupName) throw new InvalidArgumentException('Group Name is required.');
+            $validTypes = $this->_vendorGroupTypesList();
+            $data = [
+                'OrgUID'        => $orgUID,
+                'GroupCode'     => trim($post['GroupCode']     ?? '') ?: null,
+                'GroupName'     => $groupName,
+                'GroupType'     => in_array($post['GroupType'] ?? '', $validTypes) ? $post['GroupType'] : 'Business Group',
+                'ContactPerson' => trim($post['ContactPerson'] ?? '') ?: null,
+                'Mobile'        => trim($post['Mobile']        ?? '') ?: null,
+                'Email'         => trim($post['Email']         ?? '') ?: null,
+                'GSTNo'         => trim($post['GSTNo']         ?? '') ?: null,
+                'Address'       => trim($post['Address']       ?? '') ?: null,
+                'City'          => trim($post['City']          ?? '') ?: null,
+                'State'         => trim($post['State']         ?? '') ?: null,
+                'Country'       => trim($post['Country']       ?? 'India') ?: 'India',
+                'Notes'         => trim($post['Notes']         ?? '') ?: null,
+                'IsActive'      => 1,
+                'CreatedBy'     => $userUID,
+                'UpdatedBy'     => $userUID,
+            ];
+            $resp = $this->dbwrite_model->insertData('Vendors', 'VendorGroupTbl', $data);
+            if ($resp->Error) throw new Exception($resp->Message);
+            $groupUID   = $resp->ID;
+            $memberUIDs = array_values(array_filter(array_map('intval', (array)($post['MemberUIDs'] ?? []))));
+            $primaryUID = (int)($post['PrimaryUID'] ?? 0);
+            if (!empty($memberUIDs)) {
+                $this->load->model('vendors_model');
+                $this->vendors_model->assignVendorGroupMembers($orgUID, $groupUID, $memberUIDs, $primaryUID, $userUID);
+            }
+            $this->dbwrite_model->commitTransaction();
+            $this->EndReturnData->Error    = false;
+            $this->EndReturnData->Message  = 'Vendor Group created successfully.';
+            $this->EndReturnData->GroupUID = $groupUID;
+            $limit    = isset($this->pageData['Limit']) ? (int)$this->pageData['Limit'] : 25;
+            $pageData = $this->_fetchVendorGroupsTableData(1, $limit);
+            $this->load->model('vendors_model');
+            $this->EndReturnData->RecordHtmlData = $pageData->RecordHtmlData;
+            $this->EndReturnData->Pagination     = $pageData->Pagination;
+            $this->EndReturnData->TotalCount     = $pageData->TotalCount;
+            $this->EndReturnData->Stats          = $this->vendors_model->getVendorGroupStats($orgUID);
+        } catch (InvalidArgumentException $e) {
+            if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        } catch (Exception $e) {
+            if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    public function updateGroupData() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $this->load->model('dbwrite_model');
+            $this->dbwrite_model->startTransaction();
+            $post      = $this->input->post();
+            $groupUID  = (int)($post['GroupUID'] ?? 0);
+            $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
+            $userUID   = $this->pageData['JwtData']->User->UserUID;
+            if (!$groupUID) throw new Exception('Group ID is missing.');
+            $groupName = trim($post['GroupName'] ?? '');
+            if (!$groupName) throw new InvalidArgumentException('Group Name is required.');
+            $validTypes = $this->_vendorGroupTypesList();
+            $data = [
+                'GroupCode'     => trim($post['GroupCode']     ?? '') ?: null,
+                'GroupName'     => $groupName,
+                'GroupType'     => in_array($post['GroupType'] ?? '', $validTypes) ? $post['GroupType'] : 'Business Group',
+                'ContactPerson' => trim($post['ContactPerson'] ?? '') ?: null,
+                'Mobile'        => trim($post['Mobile']        ?? '') ?: null,
+                'Email'         => trim($post['Email']         ?? '') ?: null,
+                'GSTNo'         => trim($post['GSTNo']         ?? '') ?: null,
+                'Address'       => trim($post['Address']       ?? '') ?: null,
+                'City'          => trim($post['City']          ?? '') ?: null,
+                'State'         => trim($post['State']         ?? '') ?: null,
+                'Country'       => trim($post['Country']       ?? 'India') ?: 'India',
+                'Notes'         => trim($post['Notes']         ?? '') ?: null,
+                'UpdatedBy'     => $userUID,
+            ];
+            $resp = $this->dbwrite_model->updateData('Vendors', 'VendorGroupTbl', $data, ['GroupUID' => $groupUID, 'OrgUID' => $orgUID]);
+            if ($resp->Error) throw new Exception($resp->Message);
+            $memberUIDs = array_values(array_filter(array_map('intval', (array)($post['MemberUIDs'] ?? []))));
+            $primaryUID = (int)($post['PrimaryUID'] ?? 0);
+            $this->load->model('vendors_model');
+            $this->vendors_model->syncVendorGroupMembers($orgUID, $groupUID, $memberUIDs, $primaryUID, $userUID);
+            $this->dbwrite_model->commitTransaction();
+            $this->EndReturnData->Error    = false;
+            $this->EndReturnData->Message  = 'Vendor Group updated successfully.';
+            $this->EndReturnData->GroupUID = $groupUID;
+            $limit    = isset($this->pageData['Limit']) ? (int)$this->pageData['Limit'] : 25;
+            $pageData = $this->_fetchVendorGroupsTableData(1, $limit);
+            $this->EndReturnData->RecordHtmlData = $pageData->RecordHtmlData;
+            $this->EndReturnData->Pagination     = $pageData->Pagination;
+            $this->EndReturnData->TotalCount     = $pageData->TotalCount;
+            $this->EndReturnData->Stats          = $this->vendors_model->getVendorGroupStats($orgUID);
+        } catch (InvalidArgumentException $e) {
+            if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        } catch (Exception $e) {
+            if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    public function deleteGroup() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $groupUID = (int) $this->input->post('GroupUID');
+            $pageNo   = (int)($this->input->post('PageNo') ?: 1);
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
+            $userUID  = $this->pageData['JwtData']->User->UserUID;
+            if (!$groupUID) throw new Exception('Group ID is missing.');
+            $this->load->model('dbwrite_model');
+            $this->load->model('vendors_model');
+            $this->dbwrite_model->startTransaction();
+            $this->vendors_model->unlinkAllVendorGroupMembers($orgUID, $groupUID, $userUID);
+            $resp = $this->dbwrite_model->updateData('Vendors', 'VendorGroupTbl',
+                ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
+                ['GroupUID' => $groupUID, 'OrgUID' => $orgUID]
+            );
+            if ($resp->Error) throw new Exception($resp->Message);
+            $this->dbwrite_model->commitTransaction();
+            $this->_initModule();
+            $pageData = $this->_fetchVendorGroupsTableData($pageNo, $this->pageData['Limit']);
+            $this->EndReturnData->Error          = false;
+            $this->EndReturnData->Message        = 'Group deleted successfully.';
+            $this->EndReturnData->RecordHtmlData = $pageData->RecordHtmlData;
+            $this->EndReturnData->Pagination     = $pageData->Pagination;
+            $this->EndReturnData->Stats          = $this->vendors_model->getVendorGroupStats($orgUID);
+        } catch (Exception $e) {
+            if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    public function toggleGroupStatus() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $groupUID  = (int) $this->input->post('GroupUID');
+            $newStatus = (int) $this->input->post('IsActive');
+            $pageNo    = (int)($this->input->post('PageNo') ?: 1);
+            $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
+            $userUID   = $this->pageData['JwtData']->User->UserUID;
+            if (!$groupUID) throw new Exception('Group ID is missing.');
+            if (!in_array($newStatus, [0, 1])) throw new Exception('Invalid status value.');
+            $this->load->model('dbwrite_model');
+            $resp = $this->dbwrite_model->updateData('Vendors', 'VendorGroupTbl',
+                ['IsActive' => $newStatus, 'UpdatedBy' => $userUID],
+                ['GroupUID' => $groupUID, 'OrgUID' => $orgUID]
+            );
+            if ($resp->Error) throw new Exception($resp->Message);
+            $this->_initModule();
+            $pageData = $this->_fetchVendorGroupsTableData($pageNo, $this->pageData['Limit']);
+            $this->load->model('vendors_model');
+            $this->EndReturnData->Error          = false;
+            $this->EndReturnData->Message        = 'Status updated successfully.';
+            $this->EndReturnData->RecordHtmlData = $pageData->RecordHtmlData;
+            $this->EndReturnData->Pagination     = $pageData->Pagination;
+            $this->EndReturnData->Stats          = $this->vendors_model->getVendorGroupStats($orgUID);
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    public function getGroupsForDropdown() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
+            $this->load->model('vendors_model');
+            $this->EndReturnData->Error  = false;
+            $this->EndReturnData->Groups = $this->vendors_model->getActiveVendorGroupsForDropdown($orgUID);
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
     // ── Send SMS / Email ─────────────────────────────────────────────────────
     public function sendCommunication() {
 

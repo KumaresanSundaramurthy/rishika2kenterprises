@@ -31,7 +31,7 @@ $items      = $cfg['items'] ?? [];
      data-trigger-id="<?php echo $triggerId; ?>"
      data-filter-key="<?php echo $filterKey; ?>"
      data-chk-class="<?php echo $chkClass; ?>"
-     style="min-width:190px;z-index:9999;display:none;position:fixed;">
+     style="z-index:9999;display:none;position:fixed;">
 
     <!-- Header -->
     <div class="catg-filter-header">
@@ -50,10 +50,12 @@ $items      = $cfg['items'] ?? [];
 
     <!-- Search -->
     <div class="catg-filter-search-wrap">
-        <div class="input-group input-group-sm">
-            <span class="input-group-text"><i class="bx bx-search"></i></span>
-            <input type="text" class="form-control tcf-search-input"
+        <div class="catg-search-inner">
+            <input type="text" class="form-control form-control-sm tcf-search-input"
                    placeholder="Search <?php echo strtolower($title); ?>...">
+            <button type="button" class="catg-search-clear" title="Clear" style="display:none;">
+                <i class="bx bx-x"></i>
+            </button>
         </div>
     </div>
 

@@ -32,9 +32,6 @@
         <div class="layout-page">
             <div class="content-wrapper apex-content">
                 <?php $this->load->view('common/apex/page_header', [
-                    'pageIcon'        => 'bx-barcode',
-                    'pageIconBg'      => '#e8f0fe',
-                    'pageIconColor'   => '#3b82f6',
                     'pageTitle'       => $PageTitle       ?? 'Barcode &amp; QR Code Config',
                     'pageDescription' => $PageDescription ?? '',
                 ]); ?>

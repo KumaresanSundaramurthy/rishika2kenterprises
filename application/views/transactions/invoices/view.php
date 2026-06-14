@@ -10,9 +10,6 @@ $this->load->view('common/transactions/header'); ?>
 
             <div class="content-wrapper apex-content">
                 <?php $this->load->view('common/apex/page_header', [
-                    'pageIcon'        => 'bx-file-text',
-                    'pageIconBg'      => '#fef3c7',
-                    'pageIconColor'   => '#f59e0b',
                     'pageTitle'       => $PageTitle       ?? 'Sales Invoices',
                     'pageDescription' => $PageDescription ?? 'Create and manage customer invoices',
                 ]); ?>
@@ -67,6 +64,12 @@ $this->load->view('common/transactions/header'); ?>
                                 <input type="text" id="searchTransactionData" placeholder="Invoice # or customer...">
                                 <i class="bx bx-x r2k-clear d-none"></i>
                             </div>
+                            <a href="javascript:void(0);" id="invPayStatusFilter" class="apex-filter-btn" title="Filter by Payment Status"><i class="bx bx-wallet-alt me-1"></i>Pay Status</a>
+                            <a href="javascript:void(0);" id="invPayModeFilter" class="apex-filter-btn" title="Filter by Payment Mode"><i class="bx bx-credit-card me-1"></i>Pay Mode</a>
+                            <?php if (count($OrgUsers ?? []) > 1): ?>
+                            <a href="javascript:void(0);" id="invCreatedByFilter" class="apex-filter-btn" title="Filter by User"><i class="bx bx-user me-1"></i>Updated By</a>
+                            <?php endif; ?>
+                            <a href="javascript:void(0);" id="invPartyFilterTrigger" class="apex-filter-btn" title="Filter by Customer"><i class="bx bx-store me-1"></i>Customer</a>
                             <?php $this->load->view('common/transactions/date_filter_btn'); ?>
                             <div class="apex-filter-spacer"></div>
                             <a href="javascript:void(0);" class="apex-filter-btn pageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
@@ -104,40 +107,10 @@ $this->load->view('common/transactions/header'); ?>
                                             <th class="col-sortable cursor-pointer user-select-none" data-sort="Amount">
                                                 Amount <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Amount"></i>
                                             </th>
-                                            <th>
-                                                Payment Status
-                                                <a href="javascript:void(0);" id="invPayStatusFilter" class="text-body ms-1"
-                                                   data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by Payment Status"
-                                                   style="font-size:.85rem;">
-                                                    <i class="bx bx-filter-alt align-middle"></i>
-                                                </a>
-                                            </th>
-                                            <th>
-                                                Payment Mode
-                                                <a href="javascript:void(0);" id="invPayModeFilter" class="text-body ms-1"
-                                                   data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by Payment Mode"
-                                                   style="font-size:.85rem;">
-                                                    <i class="bx bx-filter-alt align-middle"></i>
-                                                </a>
-                                            </th>
-                                            <th>
-                                                Customer
-                                                <a href="javascript:void(0);" id="invPartyFilterTrigger" class="text-body ms-1"
-                                                   data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by Customer"
-                                                   style="font-size:.85rem;">
-                                                    <i class="bx bx-filter-alt align-middle"></i>
-                                                </a>
-                                            </th>
-                                            <th>
-                                                Last Updated
-                                                <?php if (count($OrgUsers ?? []) > 1): ?>
-                                                <a href="javascript:void(0);" id="invCreatedByFilter" class="text-body ms-1"
-                                                   data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by User"
-                                                   style="font-size:.85rem;">
-                                                    <i class="bx bx-filter-alt align-middle"></i>
-                                                </a>
-                                                <?php endif; ?>
-                                            </th>
+                                            <th>Payment Status</th>
+                                            <th>Payment Mode</th>
+                                            <th>Customer</th>
+                                            <th>Last Updated</th>
                                             <th style="width:50px"></th>
                                         </tr>
                                     </thead>
@@ -210,10 +183,10 @@ $this->load->view('common/transactions/header'); ?>
             <?php $this->load->view('common/imagepreview_modal'); ?>
 
             <?php
-            $rpAccentColor = '#0d6efd'; $rpAccentBg = '#e8f0fe';
-            $rpPartyIcon   = 'bx-user';  $rpDocLabel  = 'Invoice';
-            $rpTotalIcon   = 'bx-receipt';
-            $this->load->view('common/transactions/payment_modal');
+                $rpAccentColor = '#0d6efd'; $rpAccentBg = '#e8f0fe';
+                $rpPartyIcon   = 'bx-user';  $rpDocLabel  = 'Invoice';
+                $rpTotalIcon   = 'bx-receipt';
+                $this->load->view('common/transactions/payment_modal');
             ?>
 
             <?php $this->load->view('common/modals/send_communication'); ?>
@@ -312,25 +285,28 @@ $(function () {
 
     // ── Column-level Payment Status filter ──────────────────────────────
     var payStatusFilter = new TransColFilter({
-        boxId     : 'invPayStatusFilterBox',
-        triggerId : 'invPayStatusFilter',
-        filterKey : 'PaymentStatus',
-        onApply   : function () { PageNo = 1; getInvoicesDetails(); }
+        boxId       : 'invPayStatusFilterBox',
+        triggerId   : 'invPayStatusFilter',
+        filterKey   : 'PaymentStatus',
+        activeClass : 'has-filter',
+        onApply     : function () { PageNo = 1; getInvoicesDetails(); }
     });
 
     var payModeFilter = new TransColFilter({
-        boxId     : 'invPayModeFilterBox',
-        triggerId : 'invPayModeFilter',
-        filterKey : 'PaymentMode',
-        onApply   : function () { PageNo = 1; getInvoicesDetails(); }
+        boxId       : 'invPayModeFilterBox',
+        triggerId   : 'invPayModeFilter',
+        filterKey   : 'PaymentMode',
+        activeClass : 'has-filter',
+        onApply     : function () { PageNo = 1; getInvoicesDetails(); }
     });
 
     var invCreatedByFilter = (document.getElementById('invCreatedByFilterBox'))
         ? new TransColFilter({
-            boxId     : 'invCreatedByFilterBox',
-            triggerId : 'invCreatedByFilter',
-            filterKey : 'UpdatedByUIDs',
-            onApply   : function () { PageNo = 1; getInvoicesDetails(); }
+            boxId       : 'invCreatedByFilterBox',
+            triggerId   : 'invCreatedByFilter',
+            filterKey   : 'UpdatedByUIDs',
+            activeClass : 'has-filter',
+            onApply     : function () { PageNo = 1; getInvoicesDetails(); }
         })
         : null;
 

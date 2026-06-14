@@ -14,9 +14,6 @@ $badge = $statusColors[$p->PayrollStatus ?? 'Draft'] ?? 'secondary';
     <div class="layout-page">
       <div class="content-wrapper apex-content">
         <?php $this->load->view('common/apex/page_header', [
-          'pageIcon'        => 'bx-calculator',
-          'pageIconBg'      => '#eff6ff',
-          'pageIconColor'   => '#2563eb',
           'pageTitle'       => 'Payroll — ' . $period,
           'pageDescription' => 'Payroll detail &amp; payslip generation',
         ]); ?>

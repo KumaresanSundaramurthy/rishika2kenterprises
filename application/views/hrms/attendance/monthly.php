@@ -13,9 +13,6 @@ $statusMap    = ['Present'=>'P','Absent'=>'A','HalfDay'=>'H','Leave'=>'L','Holid
     <div class="layout-page">
       <div class="content-wrapper apex-content">
         <?php $this->load->view('common/apex/page_header', [
-          'pageIcon'        => 'bx-calendar',
-          'pageIconBg'      => '#d1fae5',
-          'pageIconColor'   => '#059669',
           'pageTitle'       => 'Monthly Attendance — ' . date('F Y', mktime(0,0,0,$Month,1,$Year)),
           'pageDescription' => 'Summary grid for all employees',
         ]); ?>

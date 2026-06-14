@@ -17,7 +17,7 @@
                     'pageDescription' => $PageDescription ?? '',
                 ]); ?>
 
-                <div class="container-xxl flex-grow-1 container-p-y">
+                <div class="container-xxl flex-grow-1 container-p-y pt-2">
 
                     <!-- Org Details -->
                     <?php $FormAttribute = array('id' => 'OrganisationForm', 'name' => 'OrganisationForm', 'class' => '', 'autocomplete' => 'off');
@@ -233,7 +233,7 @@
                     </div>
 
                     <!-- ── Shipping Addresses card ────────────────────────────────────── -->
-                    <div class="card mb-3">
+                    <div class="card">
                         <div class="card-header modal-header-center-sticky p-3 d-flex justify-content-between align-items-center">
                             <h5 class="mb-0">Shipping Addresses</h5>
                             <span class="badge bg-label-secondary" id="orgShipCount">

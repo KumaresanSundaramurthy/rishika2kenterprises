@@ -10,9 +10,6 @@ $this->load->view('common/transactions/header'); ?>
 
             <div class="content-wrapper apex-content">
                 <?php $this->load->view('common/apex/page_header', [
-                    'pageIcon'        => 'bx-notepad',
-                    'pageIconBg'      => '#f0fdf4',
-                    'pageIconColor'   => '#22c55e',
                     'pageTitle'       => $PageTitle       ?? 'Quotations',
                     'pageDescription' => $PageDescription ?? 'Create and send sales quotations to customers',
                 ]); ?>
@@ -74,6 +71,11 @@ $this->load->view('common/transactions/header'); ?>
                                 <input type="text" id="searchTransactionData" placeholder="Quot. # or customer...">
                                 <i class="bx bx-x r2k-clear d-none" id="clearQuotSearch"></i>
                             </div>
+                            <a href="javascript:void(0);" id="quotStatusFilter" class="apex-filter-btn" onclick="toggleQuotStatusFilter(); event.stopPropagation();" title="Filter by Status"><i class="bx bx-transfer-alt me-1"></i>Status</a>
+                            <?php if (count($OrgUsers ?? []) > 1): ?>
+                            <a href="javascript:void(0);" id="quotCreatedByFilter" class="apex-filter-btn" title="Filter by User"><i class="bx bx-user me-1"></i>Updated By</a>
+                            <?php endif; ?>
+                            <a href="javascript:void(0);" id="quotPartyFilterTrigger" class="apex-filter-btn" title="Filter by Customer"><i class="bx bx-store me-1"></i>Customer</a>
                             <?php $this->load->view('common/transactions/date_filter_btn'); ?>
                             <div class="apex-filter-spacer"></div>
                             <a href="javascript:void(0);" class="apex-filter-btn pageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
@@ -120,31 +122,12 @@ $this->load->view('common/transactions/header'); ?>
                                         <th class="col-sortable cursor-pointer user-select-none" data-sort="Amount">
                                             Amount <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Amount"></i>
                                         </th>
-                                        <th>
-                                            Status
-                                            <a href="javascript:void(0);" id="quotStatusFilter" class="text-body ms-1" onclick="toggleQuotStatusFilter(); event.stopPropagation();" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by Status"><i class="bx bx-filter-alt fs-6 align-middle"></i></a>
-                                        </th>
-                                        <th>
-                                            Customer
-                                            <a href="javascript:void(0);" id="quotPartyFilterTrigger" class="text-body ms-1"
-                                               data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by Customer"
-                                               style="font-size:.85rem;">
-                                                <i class="bx bx-filter-alt align-middle"></i>
-                                            </a>
-                                        </th>
+                                        <th>Status</th>
+                                        <th>Customer</th>
                                         <th class="col-sortable cursor-pointer user-select-none" data-sort="Date">
                                             Valid Until <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Date"></i>
                                         </th>
-                                        <th>
-                                            Last Updated
-                                            <?php if (count($OrgUsers ?? []) > 1): ?>
-                                            <a href="javascript:void(0);" id="quotCreatedByFilter" class="text-body ms-1"
-                                               data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by User"
-                                               style="font-size:.85rem;">
-                                                <i class="bx bx-filter-alt align-middle"></i>
-                                            </a>
-                                            <?php endif; ?>
-                                        </th>
+                                        <th>Last Updated</th>
                                         <th style="width:50px">Actions</th>
                                     </tr>
                                 </thead>
@@ -270,10 +253,11 @@ $(function () {
 
     var quotCreatedByFilter = (document.getElementById('quotCreatedByFilterBox'))
         ? new TransColFilter({
-            boxId     : 'quotCreatedByFilterBox',
-            triggerId : 'quotCreatedByFilter',
-            filterKey : 'UpdatedByUIDs',
-            onApply   : function () { PageNo = 1; getQuotationsDetails(); }
+            boxId       : 'quotCreatedByFilterBox',
+            triggerId   : 'quotCreatedByFilter',
+            filterKey   : 'UpdatedByUIDs',
+            activeClass : 'has-filter',
+            onApply     : function () { PageNo = 1; getQuotationsDetails(); }
         })
         : null;
 

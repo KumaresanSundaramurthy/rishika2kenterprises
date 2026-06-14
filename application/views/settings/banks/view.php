@@ -10,9 +10,6 @@
         <div class="layout-page">
             <div class="content-wrapper apex-content">
                 <?php $this->load->view('common/apex/page_header', [
-                    'pageIcon'        => 'bx-buildings',
-                    'pageIconBg'      => '#eff6ff',
-                    'pageIconColor'   => '#2563eb',
                     'pageTitle'       => $PageTitle       ?? 'Bank Accounts',
                     'pageDescription' => $PageDescription ?? '',
                 ]); ?>

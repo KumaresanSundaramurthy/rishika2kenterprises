@@ -15,19 +15,10 @@ if (!isset($ModPagination)){ $ModPagination = ''; }
         <div class="layout-page">
             <div class="content-wrapper apex-content">
                 <?php $this->load->view('common/apex/page_header', [
-                    'pageIcon'        => 'bx-user',
-                    'pageIconBg'      => '#ede9fe',
-                    'pageIconColor'   => '#7c3aed',
                     'pageTitle'       => $PageTitle       ?? 'Users',
                     'pageDescription' => $PageDescription ?? '',
                 ]); ?>
-                <div class="container-xxl flex-grow-1 container-p-y">
-
-                    <div class="d-flex justify-content-end mb-3">
-                        <button type="button" class="btn btn-primary me-1" id="addUserBtn">
-                            <i class="bx bx-plus me-1"></i>Create User
-                        </button>
-                    </div>
+                <div class="container-xxl flex-grow-1 container-p-y pt-2">
 
                     <!-- ── Main Card ── -->
                     <div class="card">
@@ -48,6 +39,9 @@ if (!isset($ModPagination)){ $ModPagination = ''; }
                                     <span class="input-group-text bg-transparent border-end-0"><i class="bx bx-search text-muted"></i></span>
                                     <input type="text" class="form-control border-start-0" id="searchUserData" placeholder="Name, email or username...">
                                 </div>
+                                <button type="button" class="btn btn-primary" id="addUserBtn">
+                                    <i class="bx bx-plus me-1"></i>Create User
+                                </button>
                             </div>
                         </div>
 

@@ -10,9 +10,6 @@ $this->load->view('common/transactions/header'); ?>
 
             <div class="content-wrapper apex-content">
                 <?php $this->load->view('common/apex/page_header', [
-                    'pageIcon'        => 'bx-redo',
-                    'pageIconBg'      => '#fff7ed',
-                    'pageIconColor'   => '#f97316',
                     'pageTitle'       => $PageTitle       ?? 'Purchase Returns',
                     'pageDescription' => $PageDescription ?? 'Manage goods returned to vendors',
                 ]); ?>
@@ -64,7 +61,6 @@ $this->load->view('common/transactions/header'); ?>
                                 <input type="text" id="searchTransactionData" placeholder="Return # or vendor...">
                                 <i class="bx bx-x r2k-clear d-none"></i>
                             </div>
-                            <?php $this->load->view('common/transactions/date_filter_btn'); ?>
                             <?php $this->load->view('common/transactions/filter_bar', [
                                 'FilterBarConfig' => [
                                     'paymentStatus' => true,
@@ -75,6 +71,11 @@ $this->load->view('common/transactions/header'); ?>
                                     'OrgUsers'      => $OrgUsers     ?? [],
                                 ],
                             ]); ?>
+                            <?php if (count($OrgUsers ?? []) > 1): ?>
+                            <a href="javascript:void(0);" id="prCreatedByFilter" class="apex-filter-btn" title="Filter by User"><i class="bx bx-user me-1"></i>Updated By</a>
+                            <?php endif; ?>
+                            <a href="javascript:void(0);" id="prPartyFilterTrigger" class="apex-filter-btn" title="Filter by Vendor"><i class="bx bx-store me-1"></i>Vendor</a>
+                            <?php $this->load->view('common/transactions/date_filter_btn'); ?>
                             <div class="apex-filter-spacer"></div>
                             <a href="javascript:void(0);" class="apex-filter-btn pageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
                             <?php $this->load->view('common/partials/export_btn'); ?>
@@ -111,27 +112,11 @@ $this->load->view('common/transactions/header'); ?>
                                         </th>
                                         <th>Refund Status</th>
                                         <th>Status</th>
-                                        <th>
-                                            Vendor
-                                            <a href="javascript:void(0);" id="prPartyFilterTrigger" class="text-body ms-1"
-                                               data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by Vendor"
-                                               style="font-size:.85rem;">
-                                                <i class="bx bx-filter-alt align-middle"></i>
-                                            </a>
-                                        </th>
+                                        <th>Vendor</th>
                                         <th class="col-sortable cursor-pointer user-select-none" data-sort="Date">
                                             Return Date <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Date"></i>
                                         </th>
-                                        <th>
-                                            Last Updated
-                                            <?php if (count($OrgUsers ?? []) > 1): ?>
-                                            <a href="javascript:void(0);" id="prCreatedByFilter" class="text-body ms-1"
-                                               data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by User"
-                                               style="font-size:.85rem;">
-                                                <i class="bx bx-filter-alt align-middle"></i>
-                                            </a>
-                                            <?php endif; ?>
-                                        </th>
+                                        <th>Last Updated</th>
                                         <th style="width:110px"></th>
                                     </tr>
                                 </thead>
@@ -306,10 +291,11 @@ $(function () {
 
     var prCreatedByFilter = (document.getElementById('prCreatedByFilterBox'))
         ? new TransColFilter({
-            boxId     : 'prCreatedByFilterBox',
-            triggerId : 'prCreatedByFilter',
-            filterKey : 'UpdatedByUIDs',
-            onApply   : function () { PageNo = 1; getPurchaseReturnsDetails(); }
+            boxId       : 'prCreatedByFilterBox',
+            triggerId   : 'prCreatedByFilter',
+            filterKey   : 'UpdatedByUIDs',
+            activeClass : 'has-filter',
+            onApply     : function () { PageNo = 1; getPurchaseReturnsDetails(); }
         })
         : null;
 

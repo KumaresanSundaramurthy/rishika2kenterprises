@@ -10,14 +10,13 @@ class Global_model extends CI_Model {
         $this->ReadDb = $this->load->database('ReadDB', TRUE);
     }
 
-    public function getTimezoneDetails($FilterArray) {
+    public function getTimezoneDetails($FilterArray = []) {
 
         $this->EndReturnData = new stdClass();
         try {
 
-            $filterHash = empty($FilterArray) ? 'all' : md5(json_encode($FilterArray));
-            $key        = $this->redisservice->orgKey('loc-timezone-' . $filterHash);
-            $cached     = $this->upstashservice->get($key);
+            $key    = $this->redisservice->orgKey('loc-timezones');
+            $cached = $this->upstashservice->get($key);
             if ($cached !== null) {
                 $this->EndReturnData->Error   = FALSE;
                 $this->EndReturnData->Message = 'Success';
@@ -36,7 +35,7 @@ class Global_model extends CI_Model {
                 'Tzone.RawOffset as RawOffset',
             ]);
             $this->ReadDb->from('Global.TimezoneTbl as Tzone');
-            if (sizeof($FilterArray) > 0) {
+            if (!empty($FilterArray)) {
                 $this->ReadDb->where($FilterArray);
             }
             $query = $this->ReadDb->get();
@@ -53,7 +52,7 @@ class Global_model extends CI_Model {
             $this->EndReturnData->Data    = $data;
 
         } catch (Exception $e) {
-            $this->EndReturnData->Error = TRUE;
+            $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
 

@@ -9,9 +9,6 @@ $this->load->view('common/transactions/header'); ?>
         <div class="layout-page">
             <div class="content-wrapper apex-content">
                 <?php $this->load->view('common/apex/page_header', [
-                    'pageIcon'        => 'bx-receipt',
-                    'pageIconBg'      => '#fdf4ff',
-                    'pageIconColor'   => '#a855f7',
                     'pageTitle'       => $PageTitle       ?? 'Expenses',
                     'pageDescription' => $PageDescription ?? 'Track and manage business expenses',
                 ]); ?>
@@ -88,13 +85,17 @@ $this->load->view('common/transactions/header'); ?>
                                 <i class="bx bx-search r2k-si"></i>
                                 <input type="text" id="searchExpenseData" placeholder="Expense # or category...">
                             </div>
+                            <a href="javascript:void(0);" id="expCatFilterBtn" class="apex-filter-btn" onclick="toggleExpCatFilter(); event.stopPropagation();" title="Filter by Category"><i class="bx bx-category me-1"></i>Category</a>
+                            <a href="javascript:void(0);" id="expStatusFilterBtn" class="apex-filter-btn" onclick="toggleExpStatusFilter(); event.stopPropagation();" title="Filter by Status"><i class="bx bx-transfer me-1"></i>Status</a>
+                            <a href="javascript:void(0);" id="expModeFilterBtn" class="apex-filter-btn" onclick="toggleExpModeFilter(); event.stopPropagation();" title="Filter by Mode"><i class="bx bx-credit-card me-1"></i>Mode</a>
+                            <?php if (count($OrgUsers ?? []) > 1): ?>
+                            <a href="javascript:void(0);" id="expUserFilterBtn" class="apex-filter-btn" onclick="toggleExpUserFilter(); event.stopPropagation();" title="Filter by User"><i class="bx bx-user me-1"></i>Updated By</a>
+                            <?php endif; ?>
                             <div class="dropdown">
                                 <button class="apex-filter-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="bx bx-calendar"></i><span id="dateFilterLabel" class="ms-1">All Dates</span>
+                                    <i class="bx bx-calendar"></i><span id="dateFilterLabel" class="ms-1">This Month</span>
                                 </button>
                                 <ul class="dropdown-menu shadow" style="width:210px;max-height:300px;overflow-y:auto;font-size:.82rem;">
-                                    <li><a class="dropdown-item date-option" data-range=""><i class="bx bx-list-ul me-2"></i>All Dates</a></li>
-                                    <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item date-option" data-range="today">Today</a></li>
                                     <li><a class="dropdown-item date-option" data-range="yesterday">Yesterday</a></li>
                                     <li><hr class="dropdown-divider"></li>
@@ -102,7 +103,7 @@ $this->load->view('common/transactions/header'); ?>
                                     <li><a class="dropdown-item date-option" data-range="last_week">Last Week</a></li>
                                     <li><a class="dropdown-item date-option" data-range="last_7_days">Last 7 Days</a></li>
                                     <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item date-option" data-range="this_month">This Month</a></li>
+                                    <li><a class="dropdown-item date-option active" data-range="this_month">This Month</a></li>
                                     <li><a class="dropdown-item date-option" data-range="previous_month">Previous Month</a></li>
                                     <li><a class="dropdown-item date-option" data-range="last_30_days">Last 30 Days</a></li>
                                     <li><hr class="dropdown-divider"></li>
@@ -141,10 +142,10 @@ $this->load->view('common/transactions/header'); ?>
                                         <th class="<?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?> table-serialno" style="width:44px">S.No</th>
                                         <th class="col-sortable cursor-pointer user-select-none" data-sort="Number">Expense # <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Number"></i></th>
                                         <th class="col-sortable cursor-pointer user-select-none" data-sort="Amount">Amount <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Amount"></i></th>
-                                        <th class="position-relative">Category / Notes <a href="javascript:void(0);" id="expCatFilterBtn" class="text-body ms-1" onclick="toggleExpCatFilter(); event.stopPropagation();" title="Filter by Category"><i class="bx bx-filter-alt fs-6 align-middle"></i></a></th>
-                                        <th class="position-relative">Status <a href="javascript:void(0);" id="expStatusFilterBtn" class="text-body ms-1" onclick="toggleExpStatusFilter();event.stopPropagation();" title="Filter by Status"><i class="bx bx-filter-alt fs-6 align-middle"></i></a></th>
-                                        <th class="position-relative">Mode <a href="javascript:void(0);" id="expModeFilterBtn" class="text-body ms-1" onclick="toggleExpModeFilter();event.stopPropagation();" title="Filter by Mode"><i class="bx bx-filter-alt fs-6 align-middle"></i></a></th>
-                                        <th class="position-relative">Last Updated <?php if (count($OrgUsers ?? []) > 1): ?><a href="javascript:void(0);" id="expUserFilterBtn" class="text-body ms-1" onclick="toggleExpUserFilter();event.stopPropagation();" title="Filter by User"><i class="bx bx-filter-alt fs-6 align-middle"></i></a><?php endif; ?></th>
+                                        <th>Category / Notes</th>
+                                        <th>Status</th>
+                                        <th>Mode</th>
+                                        <th>Last Updated</th>
                                         <th style="width:50px"></th>
                                     </tr>
                                 </thead>
@@ -915,11 +916,19 @@ $(function () {
         Filter.Name = $.trim($(this).val()); PageNo = 1; getExpensesDetails();
     }, 1500));
 
+    // Seed filter with This Month for initial AJAX calls
+    var _expInitDr = getDateRange('this_month');
+    Filter.DateFrom = _expInitDr.from;
+    Filter.DateTo   = _expInitDr.to;
+
     $(document).on('click', '.date-option', function () {
         var range = $(this).data('range') || '';
         if (range === 'custom') return;
         var dates = getDateRange(range);
         Filter.DateFrom = dates.from; Filter.DateTo = dates.to;
+        var _lbl = $.trim($(this).clone().children('.df-date-preview').remove().end().text());
+        if (_lbl) $('#dateFilterLabel').text(_lbl);
+        $('.date-option').removeClass('active'); $(this).addClass('active');
         PageNo = 1; getExpensesDetails();
     });
 

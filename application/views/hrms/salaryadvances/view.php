@@ -6,9 +6,6 @@
     <div class="layout-page">
       <div class="content-wrapper apex-content">
         <?php $this->load->view('common/apex/page_header', [
-          'pageIcon'        => 'bx-money-withdraw',
-          'pageIconBg'      => '#ffe4e6',
-          'pageIconColor'   => '#e11d48',
           'pageTitle'       => 'Salary Advances',
           'pageDescription' => 'Track advance payments &amp; recoveries',
         ]); ?>

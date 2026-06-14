@@ -9,9 +9,6 @@ $this->load->view('common/transactions/header'); ?>
         <div class="layout-page">
             <div class="content-wrapper apex-content">
                 <?php $this->load->view('common/apex/page_header', [
-                    'pageIcon'        => 'bx-package',
-                    'pageIconBg'      => '#e0f2fe',
-                    'pageIconColor'   => '#0284c7',
                     'pageTitle'       => $PageTitle       ?? 'Inventory',
                     'pageDescription' => $PageDescription ?? 'Stock levels · Adjustments · History',
                 ]); ?>
@@ -37,33 +34,9 @@ $this->load->view('common/transactions/header'); ?>
                     }
                     ?>
 
-                    <div class="d-flex justify-content-end mb-3 gap-2">
-                        <!-- Export dropdown -->
-                        <div class="dropdown">
-                            <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="bx bx-export me-1"></i>Export
-                            </button>
-                            <ul class="dropdown-menu dropdown-menu-end">
-                                <li><a class="dropdown-item" href="javascript:void(0);" onclick="invExport('Print')"><i class="bx bx-printer me-1"></i>Print</a></li>
-                                <li><a class="dropdown-item" href="javascript:void(0);" onclick="invExport('CSV')"><i class="bx bx-file me-1"></i>CSV</a></li>
-                                <li><a class="dropdown-item" href="javascript:void(0);" onclick="invExport('Excel')"><i class="bx bxs-file-export me-1"></i>Excel</a></li>
-                                <li><a class="dropdown-item" href="javascript:void(0);" onclick="invExport('Pdf')"><i class="bx bxs-file-pdf me-1"></i>PDF</a></li>
-                            </ul>
-                        </div>
-                        <a href="/inventory/timeline" class="btn btn-sm btn-outline-primary me-1">
-                            <i class="bx bx-history me-1"></i>Timeline
-                        </a>
-                        <button type="button" class="btn btn-sm btn-outline-danger" id="invBulkStockOutBtn" style="display:none;">
-                            <i class="bx bx-minus-circle me-1"></i>Bulk Stock Out
-                        </button>
-                        <button type="button" class="btn btn-sm btn-outline-success" id="invBulkStockInBtn" style="display:none;">
-                            <i class="bx bx-plus-circle me-1"></i>Bulk Stock In
-                        </button>
-                    </div>
-
-                    <!-- ── Stat Cards ─────────────────────────────────────── -->
-                    <div class="trans-stats-section">
-                        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+                    <!-- ── Stat Cards (visibility controlled by StatsDefaultOpen setting via apex-stats-strip) ── -->
+                    <div class="apex-stats-strip mb-3" id="invStatsSection" style="border:0;border-radius:12px;overflow:visible;">
+                        <div style="flex:1;display:grid;grid-template-columns:repeat(4,1fr);gap:12px;background:#f4f5f8;padding:14px 16px;border-radius:12px;">
 
                             <div class="trans-stat-card inv-stat-positive" id="statPositive" style="cursor:default;">
                                 <div class="tsc-icon-wrap" style="background:#dcfce7;color:#16a34a;">
@@ -115,8 +88,8 @@ $this->load->view('common/transactions/header'); ?>
                     <!-- ── Main Card ──────────────────────────────────────── -->
                     <div class="card">
 
-                        <!-- Toolbar -->
-                        <div class="trans-toolbar">
+                        <!-- Tabs Row -->
+                        <div class="apex-tabs-row">
                             <ul class="nav trans-status-tabs gap-1" id="invStatusTabs" role="tablist">
                                 <li class="nav-item">
                                     <a class="nav-link active inv-status-tab" data-status="" href="javascript:void(0);">
@@ -139,19 +112,42 @@ $this->load->view('common/transactions/header'); ?>
                                     </a>
                                 </li>
                             </ul>
+                        </div>
 
-                            <div class="d-flex align-items-center gap-2 flex-wrap">
-                                <a href="javascript:void(0);" class="btn btn-sm btn-outline-secondary p-1 pageRefresh" title="Refresh">
-                                    <i class="bx bx-refresh fs-5"></i>
-                                </a>
-                                <!-- Search -->
-                                <div class="input-group input-group-sm" style="width:210px;">
-                                    <span class="input-group-text bg-transparent border-end-0">
-                                        <i class="bx bx-search text-muted"></i>
-                                    </span>
-                                    <input type="text" class="form-control border-start-0" id="invSearchInput" placeholder="Item name or part #...">
-                                </div>
+                        <!-- Filter Row -->
+                        <div class="apex-filter-row">
+                            <div class="r2k-search-wrap">
+                                <i class="bx bx-search r2k-si"></i>
+                                <input type="text" id="invSearchInput" placeholder="Item name or part #...">
                             </div>
+                            <a href="javascript:void(0);" id="invProdTypeFilterBtn" class="apex-filter-btn" onclick="invToggleProdTypeFilter(); event.stopPropagation();" title="Filter by Item Type">
+                                <i class="bx bx-box me-1" id="invProdTypeFilterIcon"></i>Item Type
+                            </a>
+                            <a href="javascript:void(0);" id="invCategoryFilterBtn" class="apex-filter-btn" onclick="invToggleCategoryFilter(); event.stopPropagation();" title="Filter by Category">
+                                <i class="bx bx-category me-1" id="invCatFilterIcon"></i>Category
+                            </a>
+                            <a href="javascript:void(0);" id="invStatusFilterBtn" class="apex-filter-btn" onclick="invToggleStatusFilter(); event.stopPropagation();" title="Filter by Status">
+                                <i class="bx bx-transfer me-1" id="invStatusFilterIcon"></i>Status
+                            </a>
+                            <a href="javascript:void(0);" id="invUpdatedByFilterBtn" class="apex-filter-btn" onclick="invToggleUpdatedByFilter(); event.stopPropagation();" title="Filter by Updated By">
+                                <i class="bx bx-user me-1" id="invUpdatedByFilterIcon"></i>Updated By
+                            </a>
+                            <div class="apex-filter-spacer"></div>
+                            <a href="javascript:void(0);" class="apex-icon-btn pageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
+                            <div class="dropdown">
+                                <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="bx bx-export me-1"></i>Export
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="invExport('Print')"><i class="bx bx-printer me-1"></i>Print</a></li>
+                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="invExport('CSV')"><i class="bx bx-file me-1"></i>CSV</a></li>
+                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="invExport('Excel')"><i class="bx bxs-file-export me-1"></i>Excel</a></li>
+                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="invExport('Pdf')"><i class="bx bxs-file-pdf me-1"></i>PDF</a></li>
+                                </ul>
+                            </div>
+                            <a href="/inventory/timeline" class="btn btn-sm btn-outline-primary"><i class="bx bx-history me-1"></i>Timeline</a>
+                            <button type="button" class="btn btn-sm btn-outline-danger" id="invBulkStockOutBtn" style="display:none;"><i class="bx bx-minus-circle me-1"></i>Bulk Stock Out</button>
+                            <button type="button" class="btn btn-sm btn-outline-success" id="invBulkStockInBtn" style="display:none;"><i class="bx bx-plus-circle me-1"></i>Bulk Stock In</button>
                         </div>
 
                         <!-- Table -->
@@ -160,33 +156,13 @@ $this->load->view('common/transactions/header'); ?>
                                 <thead class="r2k-thead">
                                     <tr>
                                         <th class="<?php echo $showSno ? '' : 'd-none'; ?> table-serialno" style="width:44px">S.No</th>
-                                        <th style="white-space:nowrap;">
-                                            <span class="inv-sort-th" data-sort="ItemName" style="cursor:pointer;">Item <i class="bx bx-sort inv-sort-icon ms-1" data-col="ItemName"></i></span>
-                                            <a href="javascript:void(0);" id="invProdTypeFilterBtn" onclick="invToggleProdTypeFilter()" title="Filter by Item Type" style="color:#64748b;margin-left:4px;font-size:.8rem;vertical-align:middle;">
-                                                <i class="bx bx-filter-alt" id="invProdTypeFilterIcon"></i>
-                                            </a>
-                                        </th>
-                                        <th style="white-space:nowrap;">
-                                            <span class="inv-sort-th" data-sort="CategoryName" style="cursor:pointer;">Category <i class="bx bx-sort inv-sort-icon ms-1" data-col="CategoryName"></i></span>
-                                            <a href="javascript:void(0);" id="invCategoryFilterBtn" onclick="invToggleCategoryFilter()" title="Filter by Category" style="color:#64748b;margin-left:4px;font-size:.8rem;vertical-align:middle;">
-                                                <i class="bx bx-filter-alt" id="invCatFilterIcon"></i>
-                                            </a>
-                                        </th>
+                                        <th class="inv-sort-th" data-sort="ItemName" style="cursor:pointer;white-space:nowrap;">Item <i class="bx bx-sort inv-sort-icon ms-1" data-col="ItemName"></i></th>
+                                        <th class="inv-sort-th" data-sort="CategoryName" style="cursor:pointer;white-space:nowrap;">Category <i class="bx bx-sort inv-sort-icon ms-1" data-col="CategoryName"></i></th>
                                         <th class="inv-sort-th" data-sort="Qty" style="cursor:pointer;white-space:nowrap;">Qty <i class="bx bx-sort inv-sort-icon ms-1" data-col="Qty"></i></th>
-                                        <th style="white-space:nowrap;">
-                                            Status
-                                            <a href="javascript:void(0);" id="invStatusFilterBtn" onclick="invToggleStatusFilter()" title="Filter by Status" style="color:#64748b;margin-left:4px;font-size:.8rem;vertical-align:middle;">
-                                                <i class="bx bx-filter-alt" id="invStatusFilterIcon"></i>
-                                            </a>
-                                        </th>
+                                        <th style="white-space:nowrap;">Status</th>
                                         <th class="inv-sort-th" data-sort="PurchasePrice" style="cursor:pointer;white-space:nowrap;">Purchase Price <i class="bx bx-sort inv-sort-icon ms-1" data-col="PurchasePrice"></i></th>
                                         <th class="inv-sort-th" data-sort="SellingPrice" style="cursor:pointer;white-space:nowrap;">Sale Price <i class="bx bx-sort inv-sort-icon ms-1" data-col="SellingPrice"></i></th>
-                                        <th style="white-space:nowrap;">
-                                            Last Updated
-                                            <a href="javascript:void(0);" id="invUpdatedByFilterBtn" onclick="invToggleUpdatedByFilter()" title="Filter by User" style="color:#64748b;margin-left:4px;font-size:.8rem;vertical-align:middle;">
-                                                <i class="bx bx-filter-alt" id="invUpdatedByFilterIcon"></i>
-                                            </a>
-                                        </th>
+                                        <th style="white-space:nowrap;">Last Updated</th>
                                         <th style="width:130px;">Actions</th>
                                     </tr>
                                 </thead>

@@ -65,7 +65,7 @@
                                 <div class="dropdown">
                                     <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button"
                                             id="ppDateFilterBtn" data-bs-toggle="dropdown" aria-expanded="false">
-                                        <i class="bx bx-calendar me-1"></i><span id="ppDateFilterLabel">All Dates</span>
+                                        <i class="bx bx-calendar me-1"></i><span id="ppDateFilterLabel">This Month</span><strong id="ppDateFilterDates" class="r2k-df-dates" style="display:none;"></strong>
                                     </button>
                                     <ul class="dropdown-menu shadow" id="ppDateFilterMenu"
                                         style="width:220px;max-height:360px;overflow-y:auto;font-size:.82rem;"></ul>
@@ -260,8 +260,7 @@ $(function () {
         }, 400);
     });
 
-    // Date filter
-    $('#ppDateFilterMenu').html(buildDateFilterHtml('ppCustomDateFrom', 'ppCustomDateTo'));
+    // Date filter — defaults to This Month
     initDateFilter({
         btnId  : 'ppDateFilterBtn',
         labelId: 'ppDateFilterLabel',
@@ -273,6 +272,11 @@ $(function () {
             getPurchasePayments(1);
         }
     });
+    var _ppInitDr = getDateRange('this_month');
+    PpFilter.DateFrom = _ppInitDr.from;
+    PpFilter.DateTo   = _ppInitDr.to;
+    $('#ppDateFilterBtn').addClass('r2k-date-active');
+    $('#ppDateFilterDates').text(formatDateDisplay(_ppInitDr.from) + ' – ' + formatDateDisplay(_ppInitDr.to)).show();
     $(document).on('shown.bs.dropdown', '#ppDateFilterBtn', function () {
         if (!$('#ppCustomDateFrom').data('fpInit')) {
             flatpickr('#ppCustomDateFrom', { dateFormat: 'Y-m-d', altInput: true, altFormat: 'd M Y', maxDate: 'today', disableMobile: true });

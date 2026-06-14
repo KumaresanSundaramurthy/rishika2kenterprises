@@ -6,9 +6,6 @@
     <div class="layout-page">
       <div class="content-wrapper apex-content">
         <?php $this->load->view('common/apex/page_header', [
-          'pageIcon'        => 'bx-badge',
-          'pageIconBg'      => '#f5f3ff',
-          'pageIconColor'   => '#7c3aed',
           'pageTitle'       => 'Designations',
           'pageDescription' => 'Manage job designations',
         ]); ?>

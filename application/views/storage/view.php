@@ -14,9 +14,6 @@
             <!-- Content wrapper -->
             <div class="content-wrapper apex-content">
                 <?php $this->load->view('common/apex/page_header', [
-                    'pageIcon'        => 'bx-server',
-                    'pageIconBg'      => '#f1f5f9',
-                    'pageIconColor'   => '#475569',
                     'pageTitle'       => $PageTitle       ?? 'Storage',
                     'pageDescription' => $PageDescription ?? '',
                 ]); ?>

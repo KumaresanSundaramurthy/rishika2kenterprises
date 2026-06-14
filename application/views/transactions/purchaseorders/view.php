@@ -11,9 +11,6 @@ $this->load->view('common/transactions/header'); ?>
 
                 <!-- ── Apex Page Header ──────────────────────────────────── -->
                 <?php $this->load->view('common/apex/page_header', [
-                    'pageIcon'        => 'bx-cart',
-                    'pageIconBg'      => '#ffedd5',
-                    'pageIconColor'   => '#f97316',
                     'pageTitle'       => $PageTitle       ?? 'Purchase Orders',
                     'pageDescription' => $PageDescription ?? 'Create and manage purchase orders sent to suppliers',
                 ]); ?>
@@ -58,11 +55,12 @@ $this->load->view('common/transactions/header'); ?>
                         <!-- ── Apex Filter Row ───────────────────────────── -->
                         <div class="apex-filter-row">
 
-                            <button class="apex-filter-btn" id="poVendorFilterBtn">
-                                <i class="bx bx-store"></i>
-                                <span id="poVendorFilterLabel">All Vendors</span>
-                                <i class="bx bx-chevron-down"></i>
-                            </button>
+                            <!-- Data search -->
+                            <div class="r2k-search-wrap" style="flex-shrink:0;">
+                                <i class="bx bx-search r2k-si"></i>
+                                <input type="text" id="poSearchInput" placeholder="Search PO #, vendor...">
+                                <i class="bx bx-x r2k-clear d-none"></i>
+                            </div>
 
                             <div class="dropdown">
                                 <button class="apex-filter-btn" id="poStatusFilterBtn" data-bs-toggle="dropdown" aria-expanded="false">
@@ -87,12 +85,11 @@ $this->load->view('common/transactions/header'); ?>
                             </button>
                             <?php endif; ?>
 
-                            <!-- Data search -->
-                            <div class="r2k-search-wrap" style="flex-shrink:0;">
-                                <i class="bx bx-search r2k-si"></i>
-                                <input type="text" id="poSearchInput" placeholder="Search PO #, vendor...">
-                                <i class="bx bx-x r2k-clear d-none"></i>
-                            </div>
+                            <button class="apex-filter-btn" id="poVendorFilterBtn">
+                                <i class="bx bx-store"></i>
+                                <span id="poVendorFilterLabel">All Vendors</span>
+                                <i class="bx bx-chevron-down"></i>
+                            </button>
 
                             <?php $this->load->view('common/transactions/date_filter_btn'); ?>
 
@@ -139,28 +136,12 @@ $this->load->view('common/transactions/header'); ?>
                                             Amount <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Amount"></i>
                                         </th>
                                         <th>Status</th>
-                                        <th>
-                                            Vendor
-                                            <a href="javascript:void(0);" id="poPartyFilterTrigger" class="text-body ms-1"
-                                               data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by Vendor"
-                                               style="font-size:.85rem;">
-                                                <i class="bx bx-filter-alt align-middle"></i>
-                                            </a>
-                                        </th>
+                                        <th>Vendor</th>
                                         <th class="col-sortable cursor-pointer user-select-none" data-sort="Date">
                                             PO Date <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Date"></i>
                                         </th>
                                         <th>Expected Date</th>
-                                        <th>
-                                            Last Updated
-                                            <?php if (count($OrgUsers ?? []) > 1): ?>
-                                            <a href="javascript:void(0);" id="poCreatedByFilter" class="text-body ms-1"
-                                               data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by User"
-                                               style="font-size:.85rem;">
-                                                <i class="bx bx-filter-alt align-middle"></i>
-                                            </a>
-                                            <?php endif; ?>
-                                        </th>
+                                        <th>Last Updated</th>
                                         <th style="width:50px">Actions</th>
                                     </tr>
                                 </thead>
@@ -194,7 +175,7 @@ $this->load->view('common/transactions/header'); ?>
 <?php $this->load->view('common/transactions/col_user_filter_box', [
     'ColUserFilterConfig' => [
         'id'         => 'poCreatedByFilterBox',
-        'triggerId'  => 'poCreatedByFilter',
+        'triggerId'  => 'poUserFilterBtn',
         'checkClass' => 'po-user-chk',
         'OrgUsers'   => $OrgUsers ?? [],
     ],
@@ -236,16 +217,17 @@ $(function () {
 
     var poCreatedByFilter = (document.getElementById('poCreatedByFilterBox'))
         ? new TransColFilter({
-            boxId     : 'poCreatedByFilterBox',
-            triggerId : 'poCreatedByFilter',
-            filterKey : 'UpdatedByUIDs',
-            onApply   : function () { PageNo = 1; getPurchaseOrdersDetails(); }
+            boxId       : 'poCreatedByFilterBox',
+            triggerId   : 'poUserFilterBtn',
+            filterKey   : 'UpdatedByUIDs',
+            activeClass : 'has-filter',
+            onApply     : function () { PageNo = 1; getPurchaseOrdersDetails(); }
         })
         : null;
 
     var poPartyFilter = new TransPartyColFilter({
         boxId     : 'poPartyFilterBox',
-        triggerId : 'poPartyFilterTrigger',
+        triggerId : 'poVendorFilterBtn',
         partyType : 'vendor',
         filterKey : 'PartyUID',
         onApply   : function () { PageNo = 1; getPurchaseOrdersDetails(); }
@@ -288,18 +270,6 @@ $(function () {
     // ── Apex: status dropdown in filter row → trigger tab ───────────────────
     $(document).on('click', '.po-status-filter-opt', function () {
         $('.po-status-tab[data-status="' + $(this).data('status') + '"]').trigger('click');
-    });
-
-    // ── Apex: vendor filter btn → trigger existing popup ────────────────────
-    $('#poVendorFilterBtn').on('click', function (e) {
-        e.preventDefault();
-        $('#poPartyFilterTrigger').trigger('click');
-    });
-
-    // ── Apex: user filter btn → trigger existing popup ───────────────────────
-    $('#poUserFilterBtn').on('click', function (e) {
-        e.preventDefault();
-        $('#poCreatedByFilter').trigger('click');
     });
 
     $(document).on('click', '.pageRefresh', function (e) {

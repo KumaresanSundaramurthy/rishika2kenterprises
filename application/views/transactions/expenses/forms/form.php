@@ -38,9 +38,6 @@ $noBankTypes  = ['Cash'];
         <div class="layout-page">
             <div class="content-wrapper apex-content">
                 <?php $this->load->view('common/apex/page_header', [
-                    'pageIcon'        => 'bx-receipt',
-                    'pageIconBg'      => '#fef3c7',
-                    'pageIconColor'   => '#d97706',
                     'pageTitle'       => $pageTitle,
                     'pageDescription' => $PageDescription ?? '',
                 ]); ?>

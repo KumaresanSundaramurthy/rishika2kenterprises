@@ -7,9 +7,6 @@
     <div class="layout-page">
       <div class="content-wrapper apex-content">
         <?php $this->load->view('common/apex/page_header', [
-          'pageIcon'        => 'bx-group',
-          'pageIconBg'      => '#ede9fe',
-          'pageIconColor'   => '#7c3aed',
           'pageTitle'       => $PageTitle ?? 'Employees',
           'pageDescription' => 'Manage your team members',
         ]); ?>

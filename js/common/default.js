@@ -89,9 +89,9 @@ $(document).ready(function () {
     const BLUR_ID = 'modal-blur-layer';
 
     $('[data-toggle="tooltip"]').tooltip();
-    // Bootstrap 5 tooltips
+    // Bootstrap 5 tooltips — container:'body' prevents stuck tooltips inside overflow containers
     document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function(el) {
-        new bootstrap.Tooltip(el);
+        new bootstrap.Tooltip(el, { container: 'body', trigger: 'hover' });
     });
 
     $("input[type=number]").click(function () {

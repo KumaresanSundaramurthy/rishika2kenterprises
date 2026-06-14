@@ -13,16 +13,7 @@
                     'pageTitle'       => $PageTitle       ?? 'Print Themes',
                     'pageDescription' => $PageDescription ?? '',
                 ]); ?>
-                <div class="container-xxl flex-grow-1 container-p-y">
-
-                    <div class="d-flex justify-content-end mb-3 gap-2">
-                        <button class="btn btn-primary btn-sm px-3 <?php echo $ActiveTabData === 'themes'    ? '' : 'd-none'; ?>" id="btnNewTheme">
-                            <i class="bx bx-plus me-1"></i>Add Theme
-                        </button>
-                        <button class="btn btn-primary btn-sm px-3 <?php echo $ActiveTabData === 'templates' ? '' : 'd-none'; ?>" id="btnNewTemplate">
-                            <i class="bx bx-plus me-1"></i>Add Template
-                        </button>
-                    </div>
+                <div class="container-xxl flex-grow-1 container-p-y pt-2">
 
                     <div class="card">
                         <div class="row">
@@ -53,6 +44,12 @@
                                             <input type="text" class="form-control SearchDetails" id="SearchDetails" placeholder="Search..." style="min-width:200px;">
                                             <i class="bx bx-x position-absolute top-50 end-0 translate-middle-y me-3 text-muted cursor-pointer d-none" id="clearSearch"></i>
                                         </div>
+                                        <button class="btn btn-primary btn-sm px-3 <?php echo $ActiveTabData === 'themes'    ? '' : 'd-none'; ?>" id="btnNewTheme">
+                                            <i class="bx bx-plus me-1"></i>Add Theme
+                                        </button>
+                                        <button class="btn btn-primary btn-sm px-3 <?php echo $ActiveTabData === 'templates' ? '' : 'd-none'; ?>" id="btnNewTemplate">
+                                            <i class="bx bx-plus me-1"></i>Add Template
+                                        </button>
                                     </div>
                                 </div>
 

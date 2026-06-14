@@ -3,11 +3,11 @@
 <style>.apex-stats-strip{display:none}</style>
 <?php endif; ?>
 <?php
-$_icon    = $pageIcon        ?? 'bx-file-blank';
-$_iconBg  = $pageIconBg      ?? '#eef2ff';
-$_iconClr = $pageIconColor   ?? '#696cff';
-$_title   = $pageTitle       ?? 'Page';
-$_desc    = $pageDescription ?? '';
+$_icon    = !empty($pageIcon)      ? $pageIcon      : ($PageIcon      ?? 'bx-file-blank');
+$_iconBg  = !empty($pageIconBg)    ? $pageIconBg    : ($PageIconBg    ?? '#eef2ff');
+$_iconClr = !empty($pageIconColor) ? $pageIconColor : ($PageIconColor ?? '#696cff');
+$_title   = $pageTitle       ?? ($PageTitle       ?? 'Page');
+$_desc    = $pageDescription ?? ($PageDescription ?? '');
 
 // ── Quick Access palette data — built once at render, zero AJAX on open ──────
 $_qaMenus    = $this->redisservice->getUserCache('menus')    ?? [];
@@ -104,23 +104,31 @@ foreach ($_qaMenus as $_qaMM) {
 <!-- ── Quick Access Modal ────────────────────────────────────────────────── -->
 <div class="apex-qa-overlay" id="apexQuickAccessModal">
     <div class="r2k-qs-box">
-        <div class="r2k-qs-search-row">
-            <i class="bx bx-search r2k-qs-search-icon"></i>
-            <input type="text" id="apexQuickSearchInput" class="r2k-qs-search-input"
-                   placeholder="Search modules, pages..." autocomplete="off" spellcheck="false">
+        <!-- Header: title + subtitle + close -->
+        <div class="r2k-qs-header">
+            <div>
+                <div class="r2k-qs-title">Quick Access</div>
+                <div class="r2k-qs-subtitle">Search or go to any module</div>
+            </div>
             <button class="r2k-qs-close" id="apexQuickAccessClose" type="button" title="Close">
                 <i class="bx bx-x"></i>
             </button>
+        </div>
+        <!-- Search bar with Ctrl K badge -->
+        <div class="r2k-qs-search-row">
+            <i class="bx bx-search r2k-qs-search-icon"></i>
+            <input type="text" id="apexQuickSearchInput" class="r2k-qs-search-input"
+                   placeholder="Search or go to a module..." autocomplete="off" spellcheck="false">
+            <span class="r2k-qs-kbd-badge"><kbd>Ctrl</kbd><kbd>K</kbd></span>
         </div>
         <div class="r2k-qs-body" id="apexQABody">
             <!-- built by ApexHeader on DOMReady -->
         </div>
         <div class="r2k-qs-footer">
-            <span><kbd>↑↓</kbd> navigate</span>
-            <span><kbd>Enter</kbd> open</span>
-            <span><kbd>Ctrl K</kbd> toggle</span>
+            <i class="bx bx-bulb r2k-qs-footer-tip-icon"></i>
+            <span>Tip: Press <kbd>Ctrl K</kbd> anywhere to open Quick Access</span>
             <span class="r2k-qs-footer-sep"></span>
-            <span><kbd>ESC</kbd> close</span>
+            <span><kbd>ESC</kbd> to close</span>
         </div>
     </div>
 </div>

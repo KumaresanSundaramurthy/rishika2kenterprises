@@ -9,9 +9,6 @@ $this->load->view('common/transactions/header'); ?>
         <div class="layout-page">
             <div class="content-wrapper apex-content">
                 <?php $this->load->view('common/apex/page_header', [
-                    'pageIcon'        => 'bx-history',
-                    'pageIconBg'      => '#e0f2fe',
-                    'pageIconColor'   => '#0284c7',
                     'pageTitle'       => $PageTitle,
                     'pageDescription' => $PageDescription ?? '',
                 ]); ?>

@@ -11,13 +11,10 @@
 
             <div class="content-wrapper apex-content">
                 <?php $this->load->view('common/apex/page_header', [
-                    'pageIcon'        => 'bx-shield-alt-2',
-                    'pageIconBg'      => '#ede9fe',
-                    'pageIconColor'   => '#7c3aed',
                     'pageTitle'       => $PageTitle       ?? 'Roles &amp; Permissions',
                     'pageDescription' => $PageDescription ?? '',
                 ]); ?>
-                <div class="container-xxl flex-grow-1 container-p-y">
+                <div class="container-xxl flex-grow-1 container-p-y pt-2">
 
                     <div class="row g-3">
 

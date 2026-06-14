@@ -75,6 +75,7 @@
         this._setTriggerActive(false);
         this._$box.find('.tpcf-item').removeClass('tpcf-selected');
         this._$box.find('.tpcf-search-input').val('');
+        this._$box.find('.catg-search-clear').hide();
         this._$box.find('.tpcf-hint').text('Scroll to load more');
         this._$box.find('.tpcf-clear-btn').hide();
         this._$box.hide();
@@ -131,7 +132,13 @@
         // Search input — filter the in-memory cache, re-render list
         this._$box.on('input', '.tpcf-search-input', function () {
             self._searchTerm = $(this).val().trim().toLowerCase();
+            $(this).siblings('.catg-search-clear').toggle(self._searchTerm !== '');
             if (self._cache !== null) self._applySearch();
+        });
+
+        // Clear search button
+        this._$box.on('click', '.catg-search-clear', function () {
+            $(this).siblings('.tpcf-search-input').val('').trigger('input');
         });
 
         // Scroll to bottom → load next page (respects filtered cache)
@@ -263,6 +270,7 @@
         this._searchTerm    = '';
         this._filteredCache = this._cache;
         this._$box.find('.tpcf-search-input').val('');
+        this._$box.find('.catg-search-clear').hide();
         this._page = 0;
         this._$box.find('.tpcf-list').empty();
 

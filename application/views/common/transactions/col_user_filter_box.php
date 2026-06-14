@@ -15,16 +15,17 @@ $cfg       = $ColUserFilterConfig ?? [];
 $boxId     = htmlspecialchars($cfg['id']         ?? 'colUserFilterBox');
 $triggerId = htmlspecialchars($cfg['triggerId']  ?? 'colUserFilterTrigger');
 $chkClass  = htmlspecialchars($cfg['checkClass'] ?? 'col-user-filter-chk');
+$panelTitle = htmlspecialchars($cfg['title']     ?? 'Created By');
 $orgUsers  = $cfg['OrgUsers'] ?? [];
 ?>
 <div id="<?php echo $boxId; ?>"
      class="card mp-filterbox trans-col-filterbox"
      data-trigger-id="<?php echo $triggerId; ?>"
      data-chk-class="<?php echo $chkClass; ?>"
-     style="min-width:220px;z-index:9999;display:none;position:fixed;">
+     style="z-index:9999;display:none;position:fixed;">
 
     <div class="catg-filter-header">
-        <span class="catg-filter-title"><i class="bx bx-user me-1"></i>Created By</span>
+        <span class="catg-filter-title"><i class="bx bx-user me-1"></i><?php echo $panelTitle; ?></span>
         <div class="d-flex align-items-center gap-2">
             <?php if (!empty($orgUsers)): ?>
             <span class="badge"><?php echo count($orgUsers); ?></span>
@@ -37,9 +38,11 @@ $orgUsers  = $cfg['OrgUsers'] ?? [];
 
     <!-- Search -->
     <div class="catg-filter-search-wrap">
-        <div class="input-group input-group-sm">
-            <span class="input-group-text"><i class="bx bx-search"></i></span>
-            <input type="text" class="form-control tcf-search-input" placeholder="Search users...">
+        <div class="catg-search-inner">
+            <input type="text" class="form-control form-control-sm tcf-search-input" placeholder="Search users...">
+            <button type="button" class="catg-search-clear" title="Clear" style="display:none;">
+                <i class="bx bx-x"></i>
+            </button>
         </div>
     </div>
 

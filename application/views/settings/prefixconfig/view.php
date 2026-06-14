@@ -1,12 +1,12 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php
-// Fiscal year for server-side hint text in the modal
-$_month   = (int)date('m');
-$_yr      = (int)date('Y');
-$_fyStart = $_month >= 4 ? $_yr : $_yr - 1;
-$_fyShort = str_pad($_fyStart % 100, 2, '0', STR_PAD_LEFT) . '-' . str_pad(($_fyStart + 1) % 100, 2, '0', STR_PAD_LEFT);
-$_fyLong  = $_fyStart . '-' . ($_fyStart + 1);
+    // Fiscal year for server-side hint text in the modal
+    $_month   = (int)date('m');
+    $_yr      = (int)date('Y');
+    $_fyStart = $_month >= 4 ? $_yr : $_yr - 1;
+    $_fyShort = str_pad($_fyStart % 100, 2, '0', STR_PAD_LEFT) . '-' . str_pad(($_fyStart + 1) % 100, 2, '0', STR_PAD_LEFT);
+    $_fyLong  = $_fyStart . '-' . ($_fyStart + 1);
 ?>
 
 <?php $this->load->view('common/header'); ?>
@@ -19,19 +19,10 @@ $_fyLong  = $_fyStart . '-' . ($_fyStart + 1);
         <div class="layout-page">
             <div class="content-wrapper apex-content">
                 <?php $this->load->view('common/apex/page_header', [
-                    'pageIcon'        => 'bx-hash',
-                    'pageIconBg'      => '#ede9fe',
-                    'pageIconColor'   => '#7c3aed',
                     'pageTitle'       => $PageTitle       ?? 'Prefix Configuration',
                     'pageDescription' => $PageDescription ?? '',
                 ]); ?>
-                <div class="container-xxl flex-grow-1 container-p-y">
-
-                    <div class="d-flex justify-content-end mb-3">
-                        <button class="btn btn-primary btn-sm px-3" id="btnAddPrefixConfig">
-                            <i class="bx bx-plus me-1"></i>Add Prefix
-                        </button>
-                    </div>
+                <div class="container-xxl flex-grow-1 container-p-y pt-2">
 
                     <div class="card">
 
@@ -44,6 +35,11 @@ $_fyLong  = $_fyStart . '-' . ($_fyStart + 1);
                             <span class="badge bg-label-primary d-inline-flex align-items-center gap-1" style="font-size:.78rem;font-weight:500;" id="pcModuleCountBadge">
                                 <?php echo (int)$PrefixModuleCount; ?> module<?php echo $PrefixModuleCount != 1 ? 's' : ''; ?> support prefix numbering
                             </span>
+                            <div class="ms-auto">
+                                <button class="btn btn-primary btn-sm px-3" id="btnAddPrefixConfig">
+                                    <i class="bx bx-plus me-1"></i>Add Prefix
+                                </button>
+                            </div>
                         </div>
 
                         <!-- Table -->

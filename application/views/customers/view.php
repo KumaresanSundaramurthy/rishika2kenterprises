@@ -11,9 +11,6 @@
 
             <div class="content-wrapper apex-content">
                 <?php $this->load->view('common/apex/page_header', [
-                    'pageIcon'        => 'bxs-group',
-                    'pageIconBg'      => '#fce7f3',
-                    'pageIconColor'   => '#db2777',
                     'pageTitle'       => $PageTitle       ?? 'Customers',
                     'pageDescription' => $PageDescription ?? '',
                 ]); ?>
@@ -92,10 +89,33 @@
                                 <input type="text" id="SearchDetails" placeholder="Name, mobile, GSTIN...">
                                 <i class="bx bx-x r2k-clear d-none" id="clearSearch"></i>
                             </div>
+                            <?php if (!empty($Tags)): ?>
+                            <a href="javascript:void(0);" id="custTagFilterBtn" class="apex-filter-btn" title="Filter by Tag">
+                                <i class="bx bx-purchase-tag"></i>Tags
+                            </a>
+                            <?php endif; ?>
+                            <?php if (!empty($CustomerTypeList)): ?>
+                            <a href="javascript:void(0);" id="custTypeFilterBtn" class="apex-filter-btn" title="Filter by Customer Type">
+                                <i class="bx bx-user-pin"></i>Type
+                            </a>
+                            <?php endif; ?>
+                            <?php if ($showUserBtn): ?>
+                            <a href="javascript:void(0);" id="custUserFilterBtn" class="apex-filter-btn cust-only-ctrl" title="Filter by User">
+                                <i class="bx bx-user"></i>Updated By
+                            </a>
+                            <?php endif; ?>
+                            <a href="javascript:void(0);" id="custStatusFilterBtn" class="apex-filter-btn cust-only-ctrl" title="Filter by Status">
+                                <i class="bx bx-toggle-left me-1"></i>Status
+                            </a>
+                            <!-- Group-only filter chip -->
+                            <a href="javascript:void(0);" id="grpTypeFilterBtn" class="apex-filter-btn grp-only-ctrl d-none" title="Filter by Group Type">
+                                <i class="bx bx-category"></i>Type
+                            </a>
                             <div class="apex-filter-spacer"></div>
                             <a href="javascript:void(0);" class="apex-icon-btn PageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
-                            <a href="javascript:void(0);" class="apex-icon-btn" id="btnSyncCustomersCache" title="Sync Cache"><i class="bx bx-planet"></i></a>
-                            <div class="btn-group d-none" id="ActionsDD-Div">
+                            <!-- Customer-only controls -->
+                            <a href="javascript:void(0);" class="apex-icon-btn cust-only-ctrl" id="btnSyncCustomersCache" title="Sync Cache"><i class="bx bx-planet"></i></a>
+                            <div class="btn-group d-none cust-only-ctrl" id="ActionsDD-Div">
                                 <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="actionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                                     <i class="bx bx-slider-alt"></i>
                                 </button>
@@ -106,7 +126,7 @@
                                     <li class="d-none" id="BulkEmailOption"><a class="dropdown-item" href="javascript:void(0);" id="btnBulkEmail"><i class="bx bx-envelope me-1 text-primary"></i> Send Email</a></li>
                                 </ul>
                             </div>
-                            <div class="dropdown">
+                            <div class="dropdown cust-only-ctrl">
                                 <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
                                     <i class="bx bx-export me-1"></i>Export
                                 </button>
@@ -117,21 +137,37 @@
                                     <li><a class="dropdown-item" href="javascript:void(0);" onclick="custExport('Pdf')"><i class="bx bxs-file-pdf me-1"></i>PDF</a></li>
                                 </ul>
                             </div>
-                            <a href="javascript:void(0);" class="btn btn-primary" id="btnCreateCustomerHeader">
+                            <a href="javascript:void(0);" class="btn btn-primary cust-only-ctrl" id="btnCreateCustomerHeader">
                                 <i class="bx bx-plus me-1"></i>New Customer
                             </a>
+                            <!-- Group-only button -->
+                            <button type="button" id="btnNewGroup" class="btn btn-primary grp-only-ctrl d-none">
+                                <i class="bx bx-plus me-1"></i>New Group
+                            </button>
                         </div>
 
                         <!-- Tabs Row -->
                         <div class="apex-tabs-row">
                             <ul class="nav trans-status-tabs" id="custStatusTabs" role="tablist">
-                                <li class="nav-item"><a class="nav-link active cust-tab" data-status="All"      href="javascript:void(0);">All      <span class="trans-tab-count"><?php echo $CustStats->TotalCount ?? 0; ?></span></a></li>
-                                <li class="nav-item"><a class="nav-link cust-tab"        data-status="Active"   href="javascript:void(0);">Active   <span class="trans-tab-count d-none"></span></a></li>
-                                <li class="nav-item"><a class="nav-link cust-tab"        data-status="Inactive" href="javascript:void(0);">Inactive <span class="trans-tab-count d-none"></span></a></li>
+                                <li class="nav-item"><a class="nav-link active cust-tab" data-status="All" href="javascript:void(0);"><i class="bx bxs-group me-1" style="font-size:.85rem;"></i>All <span class="trans-tab-count"><?php echo $CustStats->TotalCount ?? 0; ?></span></a></li>
+                                <li class="nav-item">
+                                    <a class="nav-link grp-view-tab" href="javascript:void(0);" id="groupsViewTab">
+                                        <i class="bx bxs-layer me-1" style="font-size:.85rem;"></i>Groups
+                                        <span class="trans-tab-count d-none" id="grpTabCount"></span>
+                                    </a>
+                                </li>
+                                <!-- Group stats — visible only in groups mode -->
+                                <li id="grpTabStats" class="d-none align-items-center gap-3 ms-auto pe-2" style="font-size:.81rem;list-style:none;">
+                                    <span class="text-muted">Total: <strong class="cg-stat-total text-body">—</strong></span>
+                                    <span class="text-muted">Active: <strong class="cg-stat-active text-success">—</strong></span>
+                                    <span class="text-muted">Inactive: <strong class="cg-stat-inactive text-danger">—</strong></span>
+                                    <span class="text-muted">Members: <strong class="cg-stat-members text-body">—</strong></span>
+                                </li>
                             </ul>
                         </div>
 
-                        <!-- Table -->
+                        <!-- Customer table section -->
+                        <div id="custTableSection">
                         <div class="table-responsive">
                             <table class="table trans-table MainviewTable mb-0" id="CustomersTable">
                                 <thead class="r2k-thead">
@@ -142,28 +178,15 @@
                                             </div>
                                         </th>
                                         <th class="th-sno <?php echo $JwtData->GenSettings->SerialNoDisplay == 1 ? '' : 'd-none'; ?>" style="width:44px">#</th>
-                                        <th class="cust-name-sortable position-relative cursor-pointer" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">
+                                        <th class="cust-name-sortable cursor-pointer" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">
                                             <span class="sort-label">Customer <i class="bx bx-sort sort-icon ms-1"></i></span>
-                                            <a href="javascript:void(0);" id="custTagFilter" class="text-body ms-1" onclick="toggleCustTagFilter(); event.stopPropagation();" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by Tag"><i class="bx bx-filter-alt fs-6 align-middle"></i></a>
                                         </th>
                                         <th class="cust-area-sortable cursor-pointer" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">Area <i class="bx bx-sort sort-icon ms-1"></i></th>
                                         <th>Mobile</th>
                                         <th>GSTIN / Company</th>
                                         <th class="cust-bal-sortable cursor-pointer" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">Balance <i class="bx bx-sort sort-icon ms-1"></i></th>
-                                        <th class="position-relative">
-                                            Customer Type
-                                            <a href="javascript:void(0);" id="custTypeFilter" class="text-body ms-1" onclick="toggleCustTypeFilter(); event.stopPropagation();" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by Customer Type"><i class="bx bx-filter-alt fs-6 align-middle"></i></a>
-                                        </th>
-                                        <th>
-                                            Last Updated
-                                            <?php if ($showUserBtn): ?>
-                                            <a href="javascript:void(0);" id="custUserFilterBtn" class="text-body ms-1"
-                                               data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by User"
-                                               style="font-size:.85rem;vertical-align:middle;">
-                                                <i class="bx bx-filter-alt align-middle"></i>
-                                            </a>
-                                            <?php endif; ?>
-                                        </th>
+                                        <th>Customer Type</th>
+                                        <th>Last Updated</th>
                                         <th class="th-act" style="width:80px">Actions</th>
                                     </tr>
                                 </thead>
@@ -178,6 +201,37 @@
                         <div class="row mx-3 my-2 justify-content-between align-items-center CustomersPagination" id="CustomersPagination">
                             <?php echo $ModPagination; ?>
                         </div>
+                        </div><!-- /#custTableSection -->
+
+                        <!-- Groups table section (hidden by default) -->
+                        <div id="grpTableSection" style="display:none;">
+                            <div class="table-responsive">
+                                <table class="table trans-table MainviewTable mb-0" id="GroupsTable">
+                                    <thead class="r2k-thead">
+                                        <tr>
+                                            <th class="th-chk" style="width:36px">
+                                                <div class="form-check mb-0">
+                                                    <input class="form-check-input table-chkbox grpHeaderCheck" type="checkbox">
+                                                </div>
+                                            </th>
+                                            <th>Group Name</th>
+                                            <th style="width:110px;">Code</th>
+                                            <th style="width:140px;">Type</th>
+                                            <th class="text-center" style="width:90px;">Members</th>
+                                            <th style="width:150px;">Contact</th>
+                                            <th class="text-end" style="width:140px;">Outstanding</th>
+                                            <th style="width:90px;">Status</th>
+                                            <th style="width:100px;">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="GroupsTableBody">
+                                        <tr><td colspan="9" class="text-center py-4 text-muted">Loading groups…</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <hr class="my-0">
+                            <div class="row mx-3 my-2 justify-content-between align-items-center" id="GroupsPagination"></div>
+                        </div><!-- /#grpTableSection -->
 
                     </div>
 
@@ -196,26 +250,76 @@
             <?php $this->load->view('common/modals/send_communication'); ?>
 
             <?php $this->load->view('common/modals/customer_form'); ?>
+            <?php $this->load->view('common/modals/customer_group_form'); ?>
             <?php $this->load->view('common/footer_desc'); ?>
         </div>
 
     </div>
 </div>
 
-<!-- Filter boxes (body-level to avoid overflow clipping) -->
-<div id="custTagFilterBox" class="card mp-filterbox" style="min-width:220px;z-index:9999;display:none;position:fixed;"><?php $this->load->view('customers/tagfilter', ['Tags' => $Tags]); ?></div>
-<div id="custTypeFilterBox" class="card mp-filterbox" style="min-width:220px;z-index:9999;display:none;position:fixed;"><?php $this->load->view('customers/typefilter', ['CustomerTypeList' => $CustomerTypeList]); ?></div>
-
+<!-- Filter panels (body-level to avoid overflow clipping) -->
+<?php if (!empty($Tags)): ?>
+<?php $this->load->view('common/filter_panels/checklist_filter', [
+    'ChecklistFilterConfig' => [
+        'id'                => 'custTagFilterBox',
+        'triggerId'         => 'custTagFilterBtn',
+        'checkClass'        => 'cust-tag-chk',
+        'title'             => 'Tag Filter',
+        'icon'              => 'bx-purchase-tag',
+        'searchPlaceholder' => 'Search tags...',
+        'items'             => array_map(function ($t) { return ['value' => $t, 'label' => $t]; }, $Tags),
+    ],
+]); ?>
+<?php endif; ?>
+<?php if (!empty($CustomerTypeList)): ?>
+<?php $this->load->view('common/filter_panels/checklist_filter', [
+    'ChecklistFilterConfig' => [
+        'id'                => 'custTypeFilterBox',
+        'triggerId'         => 'custTypeFilterBtn',
+        'checkClass'        => 'cust-type-chk',
+        'title'             => 'Customer Type',
+        'icon'              => 'bx-user-pin',
+        'searchPlaceholder' => 'Search types...',
+        'items'             => array_map(function ($t) { return ['value' => $t->CustomerTypeUID, 'label' => $t->TypeName]; }, $CustomerTypeList),
+    ],
+]); ?>
+<?php endif; ?>
 <?php if ($showUserBtn): ?>
 <?php $this->load->view('common/transactions/col_user_filter_box', [
     'ColUserFilterConfig' => [
         'id'         => 'custUserFilterBox',
         'triggerId'  => 'custUserFilterBtn',
         'checkClass' => 'cust-user-chk',
+        'title'      => 'Updated By',
         'OrgUsers'   => $OrgUsers,
     ],
 ]); ?>
 <?php endif; ?>
+<?php $this->load->view('common/filter_panels/checklist_filter', [
+    'ChecklistFilterConfig' => [
+        'id'                => 'grpTypeFilterBox',
+        'triggerId'         => 'grpTypeFilterBtn',
+        'checkClass'        => 'grp-type-chk',
+        'title'             => 'Group Type',
+        'icon'              => 'bx-category',
+        'searchPlaceholder' => 'Search types...',
+        'items'             => array_map(function ($t) { return ['value' => $t, 'label' => $t]; }, $GroupTypes ?? []),
+    ],
+]); ?>
+<?php $this->load->view('common/filter_panels/checklist_filter', [
+    'ChecklistFilterConfig' => [
+        'id'                => 'custStatusFilterBox',
+        'triggerId'         => 'custStatusFilterBtn',
+        'checkClass'        => 'cust-status-chk',
+        'title'             => 'Status',
+        'icon'              => 'bx-toggle-left',
+        'searchPlaceholder' => 'Search...',
+        'items'             => [
+            ['value' => '1', 'label' => 'Active'],
+            ['value' => '0', 'label' => 'Inactive'],
+        ],
+    ],
+]); ?>
 
 <?php $this->load->view('common/footer'); ?>
 
@@ -223,6 +327,7 @@
 <script src="/js/common/bankdetails.js"></script>
 <script src="/js/common/gstin_fetch.js"></script>
 <script src="/js/common/customer_form.js"></script>
+<script src="/js/common/customer_group_form.js"></script>
 <script src="/js/transactions/col_filter.js"></script>
 <script src="/js/customers.js"></script>
 <script src="/js/common/pagecheckbox.js"></script>
@@ -247,6 +352,12 @@ var CustShowUserFilter = <?php echo $showUserBtn ? 'true' : 'false'; ?>;
 
 $(function () {
     'use strict';
+
+    // ── Groups mode state ──
+    var _inGroupsMode = false;
+    var _grpPageNo    = 1;
+    var _grpFilter    = {};
+    var _grpLoaded    = false;
 
     $('#SearchDetails').val('');
     $(ModuleRow).prop('checked', false).trigger('change');
@@ -334,36 +445,44 @@ $(function () {
         $('.apex-stat-item').removeClass('active');
         $(this).addClass('active');
 
-        if (filterType === 'All')           { /* no filter */ }
-        else if (filterType === 'Active')   { Filter['IsActive'] = 1; }
-        else if (filterType === 'ToCollect'){ Filter['BalanceType'] = 'Debit'; }
-        else if (filterType === 'ToPay')    { Filter['BalanceType'] = 'Credit'; }
-
-        $('.cust-tab').removeClass('active');
-        if (filterType === 'All') {
-            $('.cust-tab[data-status="All"]').addClass('active');
-        } else if (filterType === 'Active') {
-            $('.cust-tab[data-status="Active"]').addClass('active');
+        if (filterType === 'Active') {
+            Filter['IsActive'] = 1;
+            if (custStatusFilter) custStatusFilter.setState(['1']);
+        } else if (filterType === 'ToCollect') {
+            Filter['BalanceType'] = 'Debit';
+            if (custStatusFilter) custStatusFilter.reset();
+        } else if (filterType === 'ToPay') {
+            Filter['BalanceType'] = 'Credit';
+            if (custStatusFilter) custStatusFilter.reset();
+        } else {
+            if (custStatusFilter) custStatusFilter.reset();
         }
 
         PageNo = 0;
         getCustomersDetails(PageNo, RowLimit, Filter);
     });
 
-    // ── Status tabs ──
+    // ── All tab click (also exits groups mode) ──
     $(document).on('click', '.cust-tab', function (e) {
         e.preventDefault();
+        if (_inGroupsMode) {
+            _inGroupsMode = false;
+            $('.cust-only-ctrl').removeClass('d-none');
+            $('.grp-only-ctrl').addClass('d-none');
+            $('#SearchDetails').attr('placeholder', 'Name, mobile, GSTIN...').val('');
+            delete _grpFilter['SearchAllData'];
+            $('#clearSearch').addClass('d-none');
+            $('#custTableSection').show();
+            $('#grpTableSection').hide();
+            $('#grpTabStats').removeClass('d-flex').addClass('d-none');
+        }
         $('.cust-tab').removeClass('active');
         $(this).addClass('active');
         $('.apex-stat-item').removeClass('active');
-        var status = $(this).data('status') || 'All';
-        $('.apex-stat-item[data-stat-filter="' + status + '"]').addClass('active');
-        // Clear all stat-related filters
+        $('.apex-stat-item[data-stat-filter="All"]').addClass('active');
         delete Filter['IsActive'];
         delete Filter['BalanceType'];
-        if (status === 'All')           { /* no filter */ }
-        else if (status === 'Active')   { Filter['IsActive'] = 1; }
-        else if (status === 'Inactive') { Filter['IsActive'] = 0; }
+        if (custStatusFilter) custStatusFilter.reset();
         PageNo = 0;
         getCustomersDetails(PageNo, RowLimit, Filter);
     });
@@ -372,6 +491,12 @@ $(function () {
     $('#SearchDetails').on('input', inputDelay(function () {
         var val = $.trim($(this).val());
         $('#clearSearch').toggleClass('d-none', !val);
+        if (_inGroupsMode) {
+            delete _grpFilter['SearchAllData'];
+            if (val.length >= 3) _grpFilter['SearchAllData'] = val;
+            if (val.length === 0 || val.length >= 3) { _grpReload(1); }
+            return;
+        }
         delete Filter['SearchAllData'];
         if (val.length >= 3) Filter['SearchAllData'] = val;
         if (val.length === 0 || val.length >= 3) { PageNo = 0; getCustomersDetails(PageNo, RowLimit, Filter); }
@@ -380,6 +505,11 @@ $(function () {
     $('#clearSearch').on('click', function () {
         $('#SearchDetails').val('');
         $(this).addClass('d-none');
+        if (_inGroupsMode) {
+            delete _grpFilter['SearchAllData'];
+            _grpReload(1);
+            return;
+        }
         delete Filter['SearchAllData'];
         PageNo = 0; getCustomersDetails(PageNo, RowLimit, Filter);
     });
@@ -453,7 +583,7 @@ $(function () {
             $(this).attr('data-bs-title', 'Click for ascending order');
             delete Filter['NameSorting'];
         }
-        var _tt = bootstrap.Tooltip.getInstance(this); if (_tt) _tt.dispose(); new bootstrap.Tooltip(this);
+        var _tt = bootstrap.Tooltip.getInstance(this); if (_tt) { _tt.hide(); _tt.dispose(); } new bootstrap.Tooltip(this, { container: 'body', trigger: 'hover' });
         PageNo = 0; getCustomersDetails(PageNo, RowLimit, Filter);
     });
 
@@ -520,88 +650,36 @@ $(function () {
     });
 
     // ── Tag filter ──
-    window.toggleCustTagFilter = function () {
-        var $box = $('#custTagFilterBox');
-        if ($box.is(':visible')) { $box.hide(); return; }
-        $('#custTypeFilterBox').hide();
-        var rect = document.getElementById('custTagFilter').getBoundingClientRect();
-        $box.css({ top: (rect.bottom + 4) + 'px', left: rect.left + 'px' }).show();
-    };
-    window.closeCustTagFilter = function () { $('#custTagFilterBox').hide(); };
-    window.toggleAllCustTags = function (el) {
-        var checked = $(el).is(':checked');
-        $('#custTagList .cust-tag-chk').prop('checked', checked);
-        $('#custTagSelectAllLabel').text(checked ? 'Deselect All' : 'Select All');
-    };
-    window.applyCustTagFilter = function () {
-        var selected = $('.cust-tag-chk:checked').map(function () { return $(this).val(); }).get();
-        if (selected.length) Filter['Tags'] = selected; else delete Filter['Tags'];
-        $('#custTagFilterBox').hide();
-        $('#custTagFilter').toggleClass('text-primary', !!selected.length);
-        PageNo = 0; getCustomersDetails(PageNo, RowLimit, Filter);
-    };
-    window.resetCustTagFilter = function () {
-        $('.cust-tag-chk').prop('checked', false);
-        $('#selectAllCustTags').prop('checked', false);
-        $('#custTagSelectAllLabel').text('Select All');
-        delete Filter['Tags'];
-        $('#custTagFilterBox').hide();
-        $('#custTagFilter').removeClass('text-primary');
-        PageNo = 0; getCustomersDetails(PageNo, RowLimit, Filter);
-    };
-    $(document).on('input', '#custTagSearch', function () {
-        var term = $(this).val().toLowerCase();
-        $('#custTagList .catg-list-item').each(function () {
-            $(this).toggle($(this).text().toLowerCase().includes(term));
-        });
+    <?php if (!empty($Tags)): ?>
+    var custTagFilter = new TransColFilter({
+        boxId       : 'custTagFilterBox',
+        triggerId   : 'custTagFilterBtn',
+        filterKey   : 'Tags',
+        activeClass : 'has-filter',
+        onApply     : function () {
+            var state = custTagFilter.getState();
+            if (state.Tags && state.Tags.length) Filter.Tags = state.Tags;
+            else delete Filter.Tags;
+            PageNo = 0; getCustomersDetails(PageNo, RowLimit, Filter);
+        }
     });
-    $(document).on('change', '.cust-tag-chk', function () {
-        var total = $('.cust-tag-chk').length, checked = $('.cust-tag-chk:checked').length;
-        $('#selectAllCustTags').prop('checked', total === checked && total > 0);
-        $('#custTagSelectAllLabel').text(total === checked && total > 0 ? 'Deselect All' : 'Select All');
-    });
+    <?php endif; ?>
 
     // ── Customer Type filter ──
-    window.toggleCustTypeFilter = function () {
-        var $box = $('#custTypeFilterBox');
-        if ($box.is(':visible')) { $box.hide(); return; }
-        $('#custTagFilterBox').hide();
-        var rect = document.getElementById('custTypeFilter').getBoundingClientRect();
-        $box.css({ top: (rect.bottom + 4) + 'px', left: rect.left + 'px' }).show();
-    };
-    window.closeCustTypeFilter = function () { $('#custTypeFilterBox').hide(); };
-    window.toggleAllCustTypes = function (el) {
-        var checked = $(el).is(':checked');
-        $('#custTypeList .cust-type-chk').prop('checked', checked);
-        $('#custTypeSelectAllLabel').text(checked ? 'Deselect All' : 'Select All');
-    };
-    window.applyCustTypeFilter = function () {
-        var selected = $('.cust-type-chk:checked').map(function () { return $(this).val(); }).get();
-        if (selected.length) Filter['CustomerTypeUIDs'] = selected; else delete Filter['CustomerTypeUIDs'];
-        $('#custTypeFilterBox').hide();
-        $('#custTypeFilter').toggleClass('text-primary', !!selected.length);
-        PageNo = 0; getCustomersDetails(PageNo, RowLimit, Filter);
-    };
-    window.resetCustTypeFilter = function () {
-        $('.cust-type-chk').prop('checked', false);
-        $('#selectAllCustTypes').prop('checked', false);
-        $('#custTypeSelectAllLabel').text('Select All');
-        delete Filter['CustomerTypeUIDs'];
-        $('#custTypeFilterBox').hide();
-        $('#custTypeFilter').removeClass('text-primary');
-        PageNo = 0; getCustomersDetails(PageNo, RowLimit, Filter);
-    };
-    $(document).on('input', '#custTypeSearch', function () {
-        var term = $(this).val().toLowerCase();
-        $('#custTypeList .catg-list-item').each(function () {
-            $(this).toggle($(this).text().toLowerCase().includes(term));
-        });
+    <?php if (!empty($CustomerTypeList)): ?>
+    var custTypeFilter = new TransColFilter({
+        boxId       : 'custTypeFilterBox',
+        triggerId   : 'custTypeFilterBtn',
+        filterKey   : 'CustomerTypeUIDs',
+        activeClass : 'has-filter',
+        onApply     : function () {
+            var state = custTypeFilter.getState();
+            if (state.CustomerTypeUIDs && state.CustomerTypeUIDs.length) Filter.CustomerTypeUIDs = state.CustomerTypeUIDs;
+            else delete Filter.CustomerTypeUIDs;
+            PageNo = 0; getCustomersDetails(PageNo, RowLimit, Filter);
+        }
     });
-    $(document).on('change', '.cust-type-chk', function () {
-        var total = $('.cust-type-chk').length, checked = $('.cust-type-chk:checked').length;
-        $('#selectAllCustTypes').prop('checked', total === checked && total > 0);
-        $('#custTypeSelectAllLabel').text(total === checked && total > 0 ? 'Deselect All' : 'Select All');
-    });
+    <?php endif; ?>
 
     // ── Status toggle ──
     $(document).on('click', '.cust-status-toggle', function (e) {
@@ -621,29 +699,212 @@ $(function () {
         });
     });
 
-    // ── User filter (OOP — TransColFilter drives toggle/apply/reset) ──
+    // ── User filter ──
     if (CustShowUserFilter) {
         var custUserFilter = new TransColFilter({
-            boxId     : 'custUserFilterBox',
-            triggerId : 'custUserFilterBtn',
-            filterKey : 'UpdatedByUIDs',
-            onApply   : function () {
+            boxId       : 'custUserFilterBox',
+            triggerId   : 'custUserFilterBtn',
+            filterKey   : 'UpdatedByUIDs',
+            activeClass : 'has-filter',
+            onApply     : function () {
                 var state = custUserFilter.getState();
-                if (state.UpdatedByUIDs && state.UpdatedByUIDs.length) {
-                    Filter.UpdatedByUIDs = state.UpdatedByUIDs;
-                } else {
-                    delete Filter.UpdatedByUIDs;
-                }
+                if (state.UpdatedByUIDs && state.UpdatedByUIDs.length) Filter.UpdatedByUIDs = state.UpdatedByUIDs;
+                else delete Filter.UpdatedByUIDs;
                 PageNo = 0;
                 getCustomersDetails(PageNo, RowLimit, Filter);
             }
         });
     }
 
-    // ── Close filter boxes on outside click ──
-    $(document).on('click', function (e) {
-        if (!$(e.target).closest('#custTagFilterBox, #custTagFilter').length)   $('#custTagFilterBox').hide();
-        if (!$(e.target).closest('#custTypeFilterBox, #custTypeFilter').length) $('#custTypeFilterBox').hide();
+    // ── Status filter ──
+    var custStatusFilter = new TransColFilter({
+        boxId      : 'custStatusFilterBox',
+        triggerId  : 'custStatusFilterBtn',
+        filterKey  : 'IsActive',
+        activeClass: 'has-filter',
+        onApply    : function () {
+            var state = custStatusFilter.getState();
+            delete Filter['IsActive'];
+            if (state.IsActive && state.IsActive.length === 1) {
+                Filter['IsActive'] = parseInt(state.IsActive[0], 10);
+            }
+            PageNo = 0; getCustomersDetails(PageNo, RowLimit, Filter);
+        }
+    });
+
+    // ══════════════════════════════════════════════════════════════
+    // GROUPS TAB
+    // ══════════════════════════════════════════════════════════════
+
+    // ── Groups tab click ──
+    $(document).on('click', '.grp-view-tab', function (e) {
+        e.preventDefault();
+        if (_inGroupsMode) return;
+        _inGroupsMode = true;
+        $('.cust-tab').removeClass('active');
+        $('.grp-view-tab').addClass('active');
+        $('.cust-only-ctrl').addClass('d-none');
+        $('.grp-only-ctrl').removeClass('d-none');
+        $('#SearchDetails').attr('placeholder', 'Group name, code, type...');
+        $('#custTableSection').hide();
+        $('#grpTableSection').show();
+        $('#grpTabStats').removeClass('d-none').addClass('d-flex');
+        if (!_grpLoaded) { _grpLoaded = true; _grpReload(1); }
+    });
+
+    // ── Apply groups response data to DOM ──
+    function _applyGrpData(res) {
+        _grpPageNo = 1;
+        $('#GroupsTableBody').html(res.RecordHtmlData);
+        $('#GroupsPagination').html(res.Pagination);
+        _updateGrpStats(res.Stats);
+        var cnt = res.TotalCount || 0;
+        $('#grpTabCount').text(cnt > 0 ? cnt : '').toggleClass('d-none', cnt === 0);
+    }
+
+    // ── Groups AJAX reload ──
+    function _grpReload(page) {
+        _grpPageNo = page || 1;
+        $('#GroupsTableBody').html('<tr><td colspan="9" class="text-center py-4"><span class="spinner-border spinner-border-sm text-primary" role="status"></span></td></tr>');
+        AjaxLoading = 0;
+        $.ajax({
+            url   : '/customers/getGroupsData/' + _grpPageNo,
+            method: 'POST',
+            data  : { Filter: _grpFilter, [CsrfName]: CsrfToken },
+            success: function (res) {
+                AjaxLoading = 1;
+                CsrfToken = res.NewCsrfToken || CsrfToken;
+                if (res.Error) { showToastNotification(res.Message, 'error'); return; }
+                $('#GroupsTableBody').html(res.RecordHtmlData);
+                $('#GroupsPagination').html(res.Pagination);
+                _updateGrpStats(res.Stats);
+                var cnt = res.TotalCount || 0;
+                $('#grpTabCount').text(cnt > 0 ? cnt : '').toggleClass('d-none', cnt === 0);
+            },
+            error: function () { AjaxLoading = 1; }
+        });
+    }
+
+    // ── Groups stats update ──
+    function _updateGrpStats(s) {
+        if (!s) return;
+        $('.cg-stat-total').text(s.TotalCount   || 0);
+        $('.cg-stat-active').text(s.ActiveCount  || 0);
+        $('.cg-stat-inactive').text(s.InactiveCount || 0);
+        $('.cg-stat-members').text(s.TotalMembers || 0);
+    }
+
+    // ── Groups pagination ──
+    $(document).on('click', '#GroupsPagination .pagination .page-link', function (e) {
+        e.preventDefault();
+        var pg = parseInt($(this).data('page'), 10);
+        if (!isNaN(pg) && pg !== _grpPageNo) _grpReload(pg);
+    });
+
+    // ── Groups header checkbox ──
+    $(document).on('change', '.grpHeaderCheck', function () {
+        $('#GroupsTable tbody .grpRowCheck').prop('checked', $(this).is(':checked'))
+            .closest('tr').toggleClass('row-sel', $(this).is(':checked'));
+    });
+    $(document).on('change', '.grpRowCheck', function () {
+        $(this).closest('tr').toggleClass('row-sel', $(this).is(':checked'));
+        var total   = $('#GroupsTable tbody .grpRowCheck').length;
+        var checked = $('#GroupsTable tbody .grpRowCheck:checked').length;
+        $('.grpHeaderCheck').prop('checked', total > 0 && checked === total)
+                            .prop('indeterminate', checked > 0 && checked < total);
+    });
+
+    // ── Group status toggle ──
+    $(document).on('click', '.grp-status-toggle', function (e) {
+        e.preventDefault();
+        var $btn      = $(this);
+        var uid       = $btn.data('uid');
+        var newStatus = $btn.data('newstatus');
+        var label     = newStatus == 1 ? 'Active' : 'Inactive';
+        Swal.fire({
+            title: 'Change group status to ' + label + '?',
+            icon: 'question', showCancelButton: true,
+            confirmButtonColor: '#0d6efd', cancelButtonColor: '#64748b',
+            confirmButtonText: 'Yes, change it',
+        }).then(function (r) {
+            if (!r.isConfirmed) return;
+            $('#GroupsTableBody').html('<tr><td colspan="9" class="text-center py-4"><span class="spinner-border spinner-border-sm text-primary" role="status"></span></td></tr>');
+            AjaxLoading = 0;
+            $.ajax({
+                url   : '/customers/toggleGroupStatus',
+                method: 'POST',
+                data  : { GroupUID: uid, IsActive: newStatus, [CsrfName]: CsrfToken },
+                success: function (res) {
+                    CsrfToken = res.NewCsrfToken || CsrfToken;
+                    if (res.Error) { showToastNotification(res.Message, 'error'); return; }
+                    showToastNotification(res.Message, 'success');
+                    $('#GroupsTableBody').html(res.RecordHtmlData);
+                    $('#GroupsPagination').html(res.Pagination);
+                    _updateGrpStats(res.Stats);
+                },
+                error: function () { showToastNotification('Failed to update status.', 'error'); }
+            });
+        });
+    });
+
+    // ── Group delete ──
+    $(document).on('click', '.grp-delete-btn', function (e) {
+        e.preventDefault();
+        var uid = $(this).data('uid');
+        if (!uid) return;
+        Swal.fire({
+            title: 'Delete this group?',
+            text : 'Members will be unlinked. This cannot be undone.',
+            icon : 'warning', showCancelButton: true,
+            confirmButtonColor: '#dc2626', cancelButtonColor: '#64748b',
+            confirmButtonText : 'Yes, delete',
+        }).then(function (r) {
+            if (!r.isConfirmed) return;
+            $('#GroupsTableBody').html('<tr><td colspan="9" class="text-center py-4"><span class="spinner-border spinner-border-sm text-danger" role="status"></span></td></tr>');
+            AjaxLoading = 0;
+            $.ajax({
+                url   : '/customers/deleteGroup',
+                method: 'POST',
+                data  : { GroupUID: uid, [CsrfName]: CsrfToken },
+                success: function (res) {
+                    CsrfToken = res.NewCsrfToken || CsrfToken;
+                    if (res.Error) { showToastNotification(res.Message, 'error'); return; }
+                    showToastNotification(res.Message, 'success');
+                    $('#GroupsTableBody').html(res.RecordHtmlData);
+                    $('#GroupsPagination').html(res.Pagination);
+                    _updateGrpStats(res.Stats);
+                    var cnt = res.TotalCount || 0;
+                    $('#grpTabCount').text(cnt > 0 ? cnt : '').toggleClass('d-none', cnt === 0);
+                },
+                error: function () { showToastNotification('Delete failed.', 'error'); }
+            });
+        });
+    });
+
+    // ── New Group button (toolbar) ──
+    $(document).on('click', '#btnNewGroup, .btn-new-group', function () {
+        CustomerGroupForm.open('add', null, { onSaveSuccess: function (res) { _applyGrpData(res); } });
+    });
+
+    // ── Edit Group button (from groups list) ──
+    $(document).on('click', '.grp-edit-btn', function () {
+        var uid = parseInt($(this).data('uid'));
+        if (!uid) return;
+        CustomerGroupForm.open('edit', uid, { onSaveSuccess: function (res) { _applyGrpData(res); } });
+    });
+
+    // ── Group Type filter ──
+    var GrpTypeFilter = new TransColFilter({
+        boxId       : 'grpTypeFilterBox',
+        triggerId   : 'grpTypeFilterBtn',
+        filterKey   : 'GroupType',
+        activeClass : 'has-filter',
+        onApply     : function () {
+            var state = GrpTypeFilter.getState();
+            if (state.GroupType && state.GroupType.length) _grpFilter.GroupType = state.GroupType;
+            else delete _grpFilter.GroupType;
+            _grpReload(1);
+        }
     });
 
 });

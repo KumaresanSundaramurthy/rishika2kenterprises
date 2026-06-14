@@ -43,7 +43,7 @@ var _vendorCacheKey   = '<?php echo addslashes($VendorCacheKey   ?? ''); ?>';
 
 <div id="<?php echo $boxId; ?>"
      class="card tpcf-box"
-     style="min-width:300px;z-index:9999;display:none;position:fixed;">
+     style="z-index:9999;display:none;position:fixed;">
 
     <!-- Header -->
     <div class="catg-filter-header">
@@ -58,10 +58,12 @@ var _vendorCacheKey   = '<?php echo addslashes($VendorCacheKey   ?? ''); ?>';
 
     <!-- Search -->
     <div class="catg-filter-search-wrap">
-        <div class="input-group input-group-sm">
-            <span class="input-group-text"><i class="bx bx-search"></i></span>
-            <input type="text" class="form-control tpcf-search-input"
+        <div class="catg-search-inner">
+            <input type="text" class="form-control form-control-sm tpcf-search-input"
                    placeholder="Search <?php echo strtolower(str_replace('Filter by ', '', $title)); ?>...">
+            <button type="button" class="catg-search-clear" title="Clear" style="display:none;">
+                <i class="bx bx-x"></i>
+            </button>
         </div>
     </div>
 

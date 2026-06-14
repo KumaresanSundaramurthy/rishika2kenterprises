@@ -6,9 +6,6 @@
     <div class="layout-page">
       <div class="content-wrapper apex-content">
         <?php $this->load->view('common/apex/page_header', [
-          'pageIcon'        => 'bx-buildings',
-          'pageIconBg'      => '#e0f2fe',
-          'pageIconColor'   => '#0284c7',
           'pageTitle'       => 'Departments',
           'pageDescription' => 'Manage departments',
         ]); ?>

@@ -3,7 +3,7 @@
  * Partial view — customers modal form body.
  * Variables: $FormMode ('add'|'edit'|'clone'), $FormData (object|null),
  *            $BankDetails, $BillingAddr, $ShippingAddr,
- *            $CustomerTypeList, $CountryInfo, $JwtData
+ *            $CustomerTypeList, $CustomerGroupList, $CountryInfo, $JwtData
  */
 $isEdit  = ($FormMode === 'edit');
 $isClone = ($FormMode === 'clone');
@@ -107,6 +107,21 @@ $d       = $FormData; // shorthand, null for add
                             <?php echo htmlspecialchars($ct->TypeName); ?>
                         </option>
                     <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="mb-3 col-md-4">
+                <label for="CM_GroupUID" class="form-label">Customer Group
+                    <a href="javascript:void(0);" class="ms-1 text-primary" style="font-size:.72rem;" title="Create new group"
+                       onclick="CustomerGroupForm.open('add', null, { onSaveSuccess: function(r){ if(r.GroupUID) $('#CM_GroupUID').append(new Option('', r.GroupUID, true, true)).val(r.GroupUID); } })">+ New</a>
+                </label>
+                <select id="CM_GroupUID" name="GroupUID" class="form-select">
+                    <option value="">— No Group —</option>
+                    <?php if (!empty($CustomerGroupList)): foreach ($CustomerGroupList as $cg): ?>
+                        <option value="<?php echo $cg->GroupUID; ?>"
+                            <?php echo ($isEdit || $isClone) && isset($d->GroupUID) && $d->GroupUID == $cg->GroupUID ? 'selected' : ''; ?>>
+                            <?php echo htmlspecialchars($cg->GroupName); ?>
+                        </option>
+                    <?php endforeach; endif; ?>
                 </select>
             </div>
         </div>

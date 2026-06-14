@@ -14,14 +14,11 @@
             <!-- Content wrapper -->
             <div class="content-wrapper apex-content">
                 <?php $this->load->view('common/apex/page_header', [
-                    'pageIcon'        => 'bx-cog',
-                    'pageIconBg'      => '#e0f2fe',
-                    'pageIconColor'   => '#0284c7',
                     'pageTitle'       => $PageTitle       ?? 'Settings',
                     'pageDescription' => $PageDescription ?? '',
                 ]); ?>
 
-                <div class="container-xxl flex-grow-1 container-p-y">
+                <div class="container-xxl flex-grow-1 container-p-y pt-2">
 
                     <div class="card">
 

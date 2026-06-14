@@ -10,28 +10,24 @@
         <div class="layout-page">
             <div class="content-wrapper apex-content">
                 <?php $this->load->view('common/apex/page_header', [
-                    'pageIcon'        => 'bx-printer',
-                    'pageIconBg'      => '#f0fdf4',
-                    'pageIconColor'   => '#16a34a',
                     'pageTitle'       => $PageTitle       ?? 'Thermal Print Config',
                     'pageDescription' => $PageDescription ?? '',
                 ]); ?>
-                <div class="container-xxl flex-grow-1 container-p-y">
-
-                    <div class="d-flex justify-content-end mb-3">
-                        <button class="btn btn-primary btn-sm px-3" id="btnAddThermalConfig">
-                            <i class="bx bx-plus me-1"></i>Add Config
-                        </button>
-                    </div>
+                <div class="container-xxl flex-grow-1 container-p-y pt-2">
 
                     <div class="card">
 
                         <!-- Info bar -->
-                        <div class="px-3 py-2 border-bottom">
+                        <div class="px-3 py-2 border-bottom justify-content-between d-flex align-items-center">
                             <span class="badge bg-label-secondary d-inline-flex align-items-center gap-1" style="font-size:.78rem;font-weight:500;">
                                 <i class="bx bx-info-circle"></i>
                                 One configuration per transaction type &nbsp;&bull;&nbsp; Max <?php echo $ThermalTypeCount; ?> records
                             </span>
+                            <div class="ms-auto">
+                                <button class="btn btn-primary btn-sm px-3" id="btnAddThermalConfig">
+                                    <i class="bx bx-plus me-1"></i>Add Config
+                                </button>
+                            </div>
                         </div>
 
                         <!-- Table -->

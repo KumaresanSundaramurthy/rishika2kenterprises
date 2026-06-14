@@ -57,6 +57,7 @@ class Customers extends MY_Controller {
             $this->pageData['CustStats']        = $this->customers_model->getCustomerStats($this->pageData['JwtData']->Org->OrgUID);
             $this->pageData['CustomerTypeList'] = $this->customers_model->getCustomerTypeList($this->pageData['JwtData']->Org->OrgUID);
             $this->pageData['Tags']             = $this->customers_model->getCustomerTags($this->pageData['JwtData']->Org->OrgUID);
+            $this->pageData['GroupTypes']       = $this->_groupTypesList();
 
             // Resolve org phone country code from JwtData (sourced from OrganisationTbl at login)
             $this->pageData['OrgCCode'] = $this->pageData['JwtData']->Org->OrgCCode  ?? '';
@@ -151,6 +152,8 @@ class Customers extends MY_Controller {
             'Tags'              => getPostValue($postData, 'Tags', 'Comma'),
             'CCEmails'          => getPostValue($postData, 'CCEmails', 'Comma'),
             'CustomerTypeUID'   => (int) getPostValue($postData, 'CustomerTypeUID', '', 0),
+            'GroupUID'          => (int) getPostValue($postData, 'GroupUID', '', 0) ?: null,
+            'IsGroupPrimary'    => 0,
             'SalutationUID'     => (int) getPostValue($postData, 'SalutationUID') ?: null,
             'UpdatedBy'         => $this->pageData['JwtData']->User->UserUID,
         ];
@@ -285,8 +288,11 @@ class Customers extends MY_Controller {
             $type = in_array($type, ['add', 'edit', 'clone']) ? $type : 'add';
             $uid  = (int) $uid;
 
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
             $this->load->model('customers_model');
-            $this->pageData['CustomerTypeList'] = $this->customers_model->getCustomerTypeList($this->pageData['JwtData']->Org->OrgUID);
+            $this->pageData['CustomerTypeList'] = $this->customers_model->getCustomerTypeList($orgUID);
+
+            $this->pageData['CustomerGroupList'] = $this->customers_model->getActiveGroupsForDropdown($orgUID);
 
             $formData     = null;
             $bankDetails  = [];
@@ -307,15 +313,16 @@ class Customers extends MY_Controller {
             }
 
             $html = $this->load->view('customers/forms/modal_body', [
-                'FormMode'         => $type,
-                'FormData'         => $formData,
-                'BankDetails'      => $bankDetails,
-                'BillingAddr'      => $billingAddr,
-                'ShippingAddr'     => $shippingAddr,
-                'CustomerTypeList' => $this->pageData['CustomerTypeList'],
-                'OrgCCode'         => $this->pageData['JwtData']->Org->OrgCCode  ?? '',
-                'OrgCISO2'         => $this->pageData['JwtData']->Org->OrgCISO2  ?? '',
-                'JwtData'          => $this->pageData['JwtData'],
+                'FormMode'          => $type,
+                'FormData'          => $formData,
+                'BankDetails'       => $bankDetails,
+                'BillingAddr'       => $billingAddr,
+                'ShippingAddr'      => $shippingAddr,
+                'CustomerTypeList'  => $this->pageData['CustomerTypeList'],
+                'CustomerGroupList' => $this->pageData['CustomerGroupList'],
+                'OrgCCode'          => $this->pageData['JwtData']->Org->OrgCCode  ?? '',
+                'OrgCISO2'          => $this->pageData['JwtData']->Org->OrgCISO2  ?? '',
+                'JwtData'           => $this->pageData['JwtData'],
             ], TRUE);
 
             $this->EndReturnData->Error        = FALSE;
@@ -1297,5 +1304,331 @@ class Customers extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
 
     }
+
+    // ══════════════════════════════════════════════════════════════════
+    // Customer Group methods
+    // ══════════════════════════════════════════════════════════════════
+
+    private function _groupTypesList() {
+        return [
+            'Business Group', 'Branch Group', 'Family Group',
+            'Corporate Group', 'Dealer Network', 'Franchise Group', 'Custom',
+        ];
+    }
+
+    private function _fetchGroupsTableData($pageNo, $limit, $filter = []) {
+        $orgUID  = $this->pageData['JwtData']->Org->OrgUID;
+        $offset  = max(0, ($pageNo - 1) * $limit);
+        $this->load->model('customers_model');
+        $result  = $this->customers_model->getGroupListPaginated($orgUID, $limit, $offset, $filter);
+        $rowHtml = $this->load->view('customers/groups/list', [
+            'DataLists'    => $result->rows,
+            'SerialNumber' => $offset,
+            'JwtData'      => $this->pageData['JwtData'],
+        ], true);
+        $resp                 = new stdClass();
+        $resp->RecordHtmlData = $rowHtml;
+        $resp->Pagination     = $this->globalservice->buildPagePaginationHtml('/customers/getGroupsData', $result->totalCount, $pageNo, $limit);
+        $resp->TotalCount     = $result->totalCount;
+        return $resp;
+    }
+
+    public function getGroupsData($pageNo = 0) {
+        $this->EndReturnData = new stdClass();
+        try {
+            $pageNo   = max(1, (int) $pageNo);
+            $filter   = $this->input->post('Filter') ?: [];
+            $this->_initModule();
+            $limit    = (int)($this->input->post('RowLimit') ?: $this->pageData['Limit']);
+            $pageData = $this->_fetchGroupsTableData($pageNo, $limit, $filter);
+            $this->load->model('customers_model');
+            $this->EndReturnData->Error          = false;
+            $this->EndReturnData->RecordHtmlData = $pageData->RecordHtmlData;
+            $this->EndReturnData->Pagination     = $pageData->Pagination;
+            $this->EndReturnData->TotalCount     = $pageData->TotalCount;
+            $this->EndReturnData->Stats          = $this->customers_model->getGroupStats($this->pageData['JwtData']->Org->OrgUID);
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    public function getGroupForModal($groupUID = 0) {
+        $this->EndReturnData = new stdClass();
+        try {
+            $groupUID = (int)$groupUID;
+            if (!$groupUID) throw new Exception('Group ID is missing.');
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
+            $this->load->model('customers_model');
+            $group   = $this->customers_model->getGroupByUID($orgUID, $groupUID);
+            if (!$group) throw new Exception('Group not found.');
+            $members = $this->customers_model->getGroupMembers($orgUID, $groupUID);
+            $this->EndReturnData->Error      = false;
+            $this->EndReturnData->Data       = $group;
+            $this->EndReturnData->Members    = $members;
+            $this->EndReturnData->GroupTypes = $this->_groupTypesList();
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    public function addGroup() {
+        if (!$this->_loadPageTitle()) { redirect('customers'); return; }
+        $this->pageData['FormMode']   = 'add';
+        $this->pageData['FormData']   = null;
+        $this->pageData['Members']    = [];
+        $this->pageData['GroupTypes'] = $this->_groupTypesList();
+        $this->load->view('customers/groups/form', $this->pageData);
+    }
+
+    public function addGroupData() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $this->load->model('dbwrite_model');
+            $this->dbwrite_model->startTransaction();
+            $post      = $this->input->post();
+            $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
+            $userUID   = $this->pageData['JwtData']->User->UserUID;
+            $groupName = trim($post['GroupName'] ?? '');
+            if (!$groupName) throw new InvalidArgumentException('Group Name is required.');
+            $validTypes = $this->_groupTypesList();
+            $data = [
+                'OrgUID'        => $orgUID,
+                'GroupCode'     => trim($post['GroupCode']     ?? '') ?: null,
+                'GroupName'     => $groupName,
+                'GroupType'     => in_array($post['GroupType'] ?? '', $validTypes) ? $post['GroupType'] : 'Business Group',
+                'ContactPerson' => trim($post['ContactPerson'] ?? '') ?: null,
+                'Mobile'        => trim($post['Mobile']        ?? '') ?: null,
+                'Email'         => trim($post['Email']         ?? '') ?: null,
+                'GSTNo'         => trim($post['GSTNo']         ?? '') ?: null,
+                'Address'       => trim($post['Address']       ?? '') ?: null,
+                'City'          => trim($post['City']          ?? '') ?: null,
+                'State'         => trim($post['State']         ?? '') ?: null,
+                'Country'       => trim($post['Country']       ?? 'India') ?: 'India',
+                'Notes'         => trim($post['Notes']         ?? '') ?: null,
+                'IsActive'      => 1,
+                'CreatedBy'     => $userUID,
+                'UpdatedBy'     => $userUID,
+            ];
+            $resp = $this->dbwrite_model->insertData('Customers', 'CustomerGroupTbl', $data);
+            if ($resp->Error) throw new Exception($resp->Message);
+            $groupUID   = $resp->ID;
+            $memberUIDs = array_values(array_filter(array_map('intval', (array)($post['MemberUIDs'] ?? []))));
+            $primaryUID = (int)($post['PrimaryUID'] ?? 0);
+            if (!empty($memberUIDs)) {
+                $this->load->model('customers_model');
+                $this->customers_model->assignGroupMembers($orgUID, $groupUID, $memberUIDs, $primaryUID, $userUID);
+            }
+            $this->dbwrite_model->commitTransaction();
+            $this->EndReturnData->Error    = false;
+            $this->EndReturnData->Message  = 'Customer Group created successfully.';
+            $this->EndReturnData->GroupUID = $groupUID;
+            $limit    = isset($this->pageData['Limit']) ? (int)$this->pageData['Limit'] : 25;
+            $pageData = $this->_fetchGroupsTableData(1, $limit);
+            $this->load->model('customers_model');
+            $this->EndReturnData->RecordHtmlData = $pageData->RecordHtmlData;
+            $this->EndReturnData->Pagination     = $pageData->Pagination;
+            $this->EndReturnData->TotalCount     = $pageData->TotalCount;
+            $this->EndReturnData->Stats          = $this->customers_model->getGroupStats($orgUID);
+        } catch (InvalidArgumentException $e) {
+            if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        } catch (Exception $e) {
+            if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    public function groupEdit($groupUID = 0) {
+        $groupUID = (int) $groupUID;
+        if (!$groupUID) { redirect('customers'); return; }
+        if (!$this->_loadPageTitle()) { redirect('customers'); return; }
+        try {
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
+            $this->load->model('customers_model');
+            $group = $this->customers_model->getGroupByUID($orgUID, $groupUID);
+            if (!$group) { redirect('customers'); return; }
+            $this->pageData['FormMode']   = 'edit';
+            $this->pageData['FormData']   = $group;
+            $this->pageData['Members']    = $this->customers_model->getGroupMembers($orgUID, $groupUID);
+            $this->pageData['GroupTypes'] = $this->_groupTypesList();
+            $this->load->view('customers/groups/form', $this->pageData);
+        } catch (Exception $e) {
+            redirect('customers');
+        }
+    }
+
+    public function updateGroupData() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $this->load->model('dbwrite_model');
+            $this->dbwrite_model->startTransaction();
+            $post      = $this->input->post();
+            $groupUID  = (int)($post['GroupUID'] ?? 0);
+            $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
+            $userUID   = $this->pageData['JwtData']->User->UserUID;
+            if (!$groupUID) throw new Exception('Group ID is missing.');
+            $groupName = trim($post['GroupName'] ?? '');
+            if (!$groupName) throw new InvalidArgumentException('Group Name is required.');
+            $validTypes = $this->_groupTypesList();
+            $data = [
+                'GroupCode'     => trim($post['GroupCode']     ?? '') ?: null,
+                'GroupName'     => $groupName,
+                'GroupType'     => in_array($post['GroupType'] ?? '', $validTypes) ? $post['GroupType'] : 'Business Group',
+                'ContactPerson' => trim($post['ContactPerson'] ?? '') ?: null,
+                'Mobile'        => trim($post['Mobile']        ?? '') ?: null,
+                'Email'         => trim($post['Email']         ?? '') ?: null,
+                'GSTNo'         => trim($post['GSTNo']         ?? '') ?: null,
+                'Address'       => trim($post['Address']       ?? '') ?: null,
+                'City'          => trim($post['City']          ?? '') ?: null,
+                'State'         => trim($post['State']         ?? '') ?: null,
+                'Country'       => trim($post['Country']       ?? 'India') ?: 'India',
+                'Notes'         => trim($post['Notes']         ?? '') ?: null,
+                'UpdatedBy'     => $userUID,
+            ];
+            $resp = $this->dbwrite_model->updateData('Customers', 'CustomerGroupTbl', $data, ['GroupUID' => $groupUID, 'OrgUID' => $orgUID]);
+            if ($resp->Error) throw new Exception($resp->Message);
+            $memberUIDs = array_values(array_filter(array_map('intval', (array)($post['MemberUIDs'] ?? []))));
+            $primaryUID = (int)($post['PrimaryUID'] ?? 0);
+            $this->load->model('customers_model');
+            $this->customers_model->syncGroupMembers($orgUID, $groupUID, $memberUIDs, $primaryUID, $userUID);
+            $this->dbwrite_model->commitTransaction();
+            $this->EndReturnData->Error    = false;
+            $this->EndReturnData->Message  = 'Customer Group updated successfully.';
+            $this->EndReturnData->GroupUID = $groupUID;
+            $limit    = isset($this->pageData['Limit']) ? (int)$this->pageData['Limit'] : 25;
+            $pageData = $this->_fetchGroupsTableData(1, $limit);
+            $this->EndReturnData->RecordHtmlData = $pageData->RecordHtmlData;
+            $this->EndReturnData->Pagination     = $pageData->Pagination;
+            $this->EndReturnData->TotalCount     = $pageData->TotalCount;
+            $this->EndReturnData->Stats          = $this->customers_model->getGroupStats($orgUID);
+        } catch (InvalidArgumentException $e) {
+            if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        } catch (Exception $e) {
+            if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    public function deleteGroup() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $groupUID = (int) $this->input->post('GroupUID');
+            $pageNo   = (int)($this->input->post('PageNo') ?: 1);
+            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
+            $userUID  = $this->pageData['JwtData']->User->UserUID;
+            if (!$groupUID) throw new Exception('Group ID is missing.');
+            $this->load->model('dbwrite_model');
+            $this->load->model('customers_model');
+            $this->dbwrite_model->startTransaction();
+            $this->customers_model->unlinkAllGroupMembers($orgUID, $groupUID, $userUID);
+            $resp = $this->dbwrite_model->updateData('Customers', 'CustomerGroupTbl',
+                ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
+                ['GroupUID' => $groupUID, 'OrgUID' => $orgUID]
+            );
+            if ($resp->Error) throw new Exception($resp->Message);
+            $this->dbwrite_model->commitTransaction();
+            $this->_initModule();
+            $pageData = $this->_fetchGroupsTableData($pageNo, $this->pageData['Limit']);
+            $this->EndReturnData->Error          = false;
+            $this->EndReturnData->Message        = 'Group deleted successfully.';
+            $this->EndReturnData->RecordHtmlData = $pageData->RecordHtmlData;
+            $this->EndReturnData->Pagination     = $pageData->Pagination;
+            $this->EndReturnData->Stats          = $this->customers_model->getGroupStats($orgUID);
+        } catch (Exception $e) {
+            if (isset($this->dbwrite_model)) $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    public function toggleGroupStatus() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $groupUID  = (int) $this->input->post('GroupUID');
+            $newStatus = (int) $this->input->post('IsActive');
+            $pageNo    = (int)($this->input->post('PageNo') ?: 1);
+            $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
+            $userUID   = $this->pageData['JwtData']->User->UserUID;
+            if (!$groupUID) throw new Exception('Group ID is missing.');
+            if (!in_array($newStatus, [0, 1])) throw new Exception('Invalid status value.');
+            $this->load->model('dbwrite_model');
+            $resp = $this->dbwrite_model->updateData('Customers', 'CustomerGroupTbl',
+                ['IsActive' => $newStatus, 'UpdatedBy' => $userUID],
+                ['GroupUID' => $groupUID, 'OrgUID' => $orgUID]
+            );
+            if ($resp->Error) throw new Exception($resp->Message);
+            $this->_initModule();
+            $pageData = $this->_fetchGroupsTableData($pageNo, $this->pageData['Limit']);
+            $this->load->model('customers_model');
+            $this->EndReturnData->Error          = false;
+            $this->EndReturnData->Message        = 'Status updated successfully.';
+            $this->EndReturnData->RecordHtmlData = $pageData->RecordHtmlData;
+            $this->EndReturnData->Pagination     = $pageData->Pagination;
+            $this->EndReturnData->Stats          = $this->customers_model->getGroupStats($orgUID);
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    public function groupDetail($groupUID = 0) {
+        $groupUID = (int) $groupUID;
+        if (!$groupUID) { redirect('customers'); return; }
+        if (!$this->_loadPageTitle()) { redirect('customers'); return; }
+        try {
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
+            $this->load->model('customers_model');
+            $group = $this->customers_model->getGroupByUID($orgUID, $groupUID);
+            if (!$group) { redirect('customers'); return; }
+            $this->pageData['GroupData']     = $group;
+            $this->pageData['Members']       = $this->customers_model->getGroupMembers($orgUID, $groupUID);
+            $this->pageData['GroupOverview'] = $this->customers_model->getGroupOverview($orgUID, $groupUID);
+            $this->load->view('customers/groups/detail', $this->pageData);
+        } catch (Exception $e) {
+            redirect('customers');
+        }
+    }
+
+    public function getGroupOutstanding($groupUID = 0) {
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
+            $this->load->model('customers_model');
+            $this->EndReturnData->Error = false;
+            $this->EndReturnData->Data  = $this->customers_model->getGroupOutstanding($orgUID, (int)$groupUID);
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    public function getGroupsForDropdown() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
+            $this->load->model('customers_model');
+            $this->EndReturnData->Error  = false;
+            $this->EndReturnData->Groups = $this->customers_model->getActiveGroupsForDropdown($orgUID);
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
 
 }

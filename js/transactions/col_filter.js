@@ -31,10 +31,11 @@
             return;
         }
 
-        this._boxId     = opts.boxId;
-        this._triggerId = opts.triggerId  || '';
-        this._filterKey = opts.filterKey  || 'Filter';
-        this._onApply   = opts.onApply    || null;
+        this._boxId      = opts.boxId;
+        this._triggerId  = opts.triggerId   || '';
+        this._filterKey  = opts.filterKey   || 'Filter';
+        this._onApply    = opts.onApply     || null;
+        this._activeClass = opts.activeClass || 'text-primary';
 
         this._$box      = $('#' + this._boxId);
         this._$trigger  = this._triggerId ? $('#' + this._triggerId) : $();
@@ -72,6 +73,27 @@
         this._$box.hide();
     };
 
+    /**
+     * Programmatically checks specific values without firing onApply.
+     * Used to sync visual state from external controls (e.g. stat card clicks).
+     * @param {Array} values  Array of string values to check.
+     */
+    TransColFilter.prototype.setState = function (values) {
+        var self = this;
+        this._clearSelection();
+        if (!Array.isArray(values)) values = values ? [String(values)] : [];
+        values.forEach(function (v) {
+            self._$box.find('.' + self._chkClass + '[value="' + v + '"]').prop('checked', true);
+        });
+        this._syncSelectAll();
+        if (values.length > 0) {
+            this._state[this._filterKey] = values;
+        } else {
+            delete this._state[this._filterKey];
+        }
+        this._setTriggerActive(values.length > 0);
+    };
+
     /* ===================================================================
      * Private — event binding
      * =================================================================== */
@@ -106,11 +128,17 @@
         // ── Search — live-filter visible items ───────────────────────
         this._$box.on('input', '.tcf-search-input', function () {
             var q = $(this).val().trim().toLowerCase();
+            $(this).siblings('.catg-search-clear').toggle(q !== '');
             self._$box.find('.catg-list-item').each(function () {
                 var text = $(this).find('span').text().toLowerCase();
                 $(this).toggle(q === '' || text.indexOf(q) !== -1);
             });
             self._syncSelectAll();
+        });
+
+        // ── Clear search button ───────────────────────────────────
+        this._$box.on('click', '.catg-search-clear', function () {
+            $(this).siblings('.tcf-search-input').val('').trigger('input');
         });
 
         // ── Select All toggle ────────────────────────────────────────
@@ -192,6 +220,7 @@
         this._$box.find('.' + this._chkClass).prop('checked', false);
         this._$box.find('.tcf-select-all').prop('checked', false).prop('indeterminate', false);
         this._$box.find('.tcf-search-input').val('');
+        this._$box.find('.catg-search-clear').hide();
         this._$box.find('.catg-list-item').show();
     };
 
@@ -212,7 +241,7 @@
 
     TransColFilter.prototype._setTriggerActive = function (active) {
         if (!this._$trigger.length) return;
-        this._$trigger.toggleClass('text-primary', active);
+        this._$trigger.toggleClass(this._activeClass, active);
     };
 
     /* ===================================================================

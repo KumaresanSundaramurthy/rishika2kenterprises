@@ -150,6 +150,8 @@ class Profile extends MY_Controller {
 
         try {
 
+            $this->load->helper('transaction');
+
             $userUID = $this->pageData['JwtData']->User->UserUID;
             $orgUID  = $this->pageData['JwtData']->Org->OrgUID;
 

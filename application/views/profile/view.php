@@ -21,13 +21,7 @@
                     'pageTitle'       => $PageTitle       ?? 'Profile',
                     'pageDescription' => $PageDescription ?? '',
                 ]); ?>
-                <div class="container-xxl flex-grow-1 container-p-y">
-
-                    <div class="d-flex justify-content-end mb-3" id="profileHeaderActions">
-                        <button type="button" class="btn btn-primary" id="btnUpdateProfile">
-                            <i class="bx bx-save me-1"></i>Update
-                        </button>
-                    </div>
+                <div class="container-xxl flex-grow-1 container-p-y p-2">
 
                     <div class="card">
 
@@ -49,9 +43,17 @@
                                     </button>
                                 </li>
                             </ul>
-                            <a href="javascript:void(0);" class="btn btn-outline-secondary btn-sm px-3 ChangePasswordBtn" id="btnChangePassword">
-                                <i class="bx bx-lock-alt me-1"></i>Change Password
-                            </a>
+                            <div class="d-flex gap-2">
+                                <a href="javascript:void(0);" class="btn btn-outline-secondary btn-sm px-3 ChangePasswordBtn" id="btnChangePassword">
+                                    <i class="bx bx-lock-alt me-1"></i>Change Password
+                                </a>
+                                <button type="button" class="btn btn-primary" id="btnUpdateProfile">
+                                    <i class="bx bx-save me-1"></i>Update
+                                </button>
+                                <button class="btn btn-primary btn-sm px-3 d-none" id="btnAddSignature" type="button">
+                                    <i class="bx bx-plus me-1"></i>Add Signature
+                                </button>
+                            </div>
                         </div>
 
                         <!-- ── Tab Content ── -->
@@ -98,14 +100,13 @@
                                                     <div class="d-flex gap-2">
                                                         <select id="CountryCode" name="CountryCode" class="select2 form-select">
                                                             <option label="-- Select Country Code --"></option>
-                                                            <?php if (sizeof($CountryInfo) > 0) {
+                                                            <?php if (!empty($CountryInfo)) {
                                                                 foreach ($CountryInfo as $Country) { ?>
                                                                     <option
-                                                                        value="<?php echo $Country->phone[0]; ?>"
-                                                                        data-region="<?php echo $Country->region; ?>"
-                                                                        data-ccode="<?php echo $Country->iso->{'alpha-2'}; ?>"
-                                                                        <?php echo ($Country->phone[0] == $userInfo->UserCountryCode) ? 'selected' : ''; ?>>
-                                                                        <?php echo '(' . $Country->phone[0] . ') ' . $Country->name; ?>
+                                                                        value="<?php echo htmlspecialchars($Country['phonecode']); ?>"
+                                                                        data-ccode="<?php echo htmlspecialchars($Country['iso2']); ?>"
+                                                                        <?php echo ($Country['phonecode'] == $userInfo->UserCountryCode) ? 'selected' : ''; ?>>
+                                                                        <?php echo '(' . htmlspecialchars($Country['phonecode']) . ') ' . htmlspecialchars($Country['name']); ?>
                                                                     </option>
                                                             <?php }
                                                             } ?>
@@ -149,12 +150,10 @@
                             <!-- ════ Signatures Tab ════ -->
                             <div class="tab-pane fade" id="pane-signatures" role="tabpanel">
 
-                                <!-- Signatures action bar -->
-                                <div class="d-flex justify-content-between align-items-center px-3 py-3 border-bottom gap-2 flex-wrap">
-                                    <span class="text-muted small">Your digital signatures — used on invoices and documents. Only one can be set as default.</span>
-                                    <button class="btn btn-primary btn-sm px-3" id="btnAddSignature">
-                                        <i class="bx bx-plus me-1"></i>Add Signature
-                                    </button>
+                                <!-- Signatures info banner -->
+                                <div class="alert alert-info d-flex align-items-center" role="alert">
+                                    <i class="bx bx-info-circle flex-shrink-0" style="font-size:1.1rem;"></i>
+                                    <span>Your digital signatures are used on invoices and documents. Only one signature can be set as default.</span>
                                 </div>
 
                                 <!-- Signature cards container (lazy loaded) -->
@@ -374,16 +373,20 @@ $(function() {
         updateProfileForm(formData);
     });
 
-    // ── Tab: show/hide Update button ──────────────────────────────────────
+    // ── Tab: toggle action buttons per tab ───────────────────────────────
     $('#tab-signatures').on('shown.bs.tab', function() {
-        $('#profileHeaderActions').hide();
+        $('#btnUpdateProfile').hide();
+        $('#btnChangePassword').hide();
+        $('#btnAddSignature').removeClass('d-none');
         if (!sigListLoaded) {
             loadSignatureList();
             sigListLoaded = true;
         }
     });
     $('#tab-profile').on('shown.bs.tab', function() {
-        $('#profileHeaderActions').show();
+        $('#btnUpdateProfile').show();
+        $('#btnChangePassword').show();
+        $('#btnAddSignature').addClass('d-none');
     });
 
     // ── Signatures: Load list ─────────────────────────────────────────────

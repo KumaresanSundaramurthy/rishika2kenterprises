@@ -11,9 +11,6 @@ $existingStatus = $ExistingPayroll->PayrollStatus ?? '';
     <div class="layout-page">
       <div class="content-wrapper apex-content">
         <?php $this->load->view('common/apex/page_header', [
-          'pageIcon'        => 'bx-calculator',
-          'pageIconBg'      => '#eff6ff',
-          'pageIconColor'   => '#2563eb',
           'pageTitle'       => 'Process Payroll',
           'pageDescription' => 'Calculate &amp; finalize monthly salaries',
         ]); ?>

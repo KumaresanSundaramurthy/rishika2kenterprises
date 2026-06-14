@@ -10,9 +10,6 @@ $this->load->view('common/transactions/header'); ?>
 
             <div class="content-wrapper apex-content">
                 <?php $this->load->view('common/apex/page_header', [
-                    'pageIcon'        => 'bx-store',
-                    'pageIconBg'      => '#ecfeff',
-                    'pageIconColor'   => '#06b6d4',
                     'pageTitle'       => $PageTitle       ?? 'Purchases',
                     'pageDescription' => $PageDescription ?? 'Record and track vendor purchase bills',
                 ]); ?>
@@ -66,6 +63,12 @@ $this->load->view('common/transactions/header'); ?>
                                 <input type="text" id="searchTransactionData" placeholder="Bill # or vendor...">
                                 <i class="bx bx-x r2k-clear d-none"></i>
                             </div>
+                            <a href="javascript:void(0);" id="purchPayStatusFilter" class="apex-filter-btn" title="Filter by Payment Status"><i class="bx bx-wallet-alt me-1"></i>Pay Status</a>
+                            <a href="javascript:void(0);" id="purchPayModeFilter" class="apex-filter-btn" title="Filter by Payment Mode"><i class="bx bx-credit-card me-1"></i>Pay Mode</a>
+                            <?php if (count($OrgUsers ?? []) > 1): ?>
+                            <a href="javascript:void(0);" id="purchCreatedByFilter" class="apex-filter-btn" title="Filter by User"><i class="bx bx-user me-1"></i>Updated By</a>
+                            <?php endif; ?>
+                            <a href="javascript:void(0);" id="purchPartyFilterTrigger" class="apex-filter-btn" title="Filter by Vendor"><i class="bx bx-store me-1"></i>Vendor</a>
                             <?php $this->load->view('common/transactions/date_filter_btn'); ?>
                             <div class="apex-filter-spacer"></div>
                             <a href="javascript:void(0);" class="apex-filter-btn pageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
@@ -101,40 +104,10 @@ $this->load->view('common/transactions/header'); ?>
                                         <th class="col-sortable cursor-pointer user-select-none" data-sort="Amount">
                                             Amount <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Amount"></i>
                                         </th>
-                                        <th>
-                                            Payment Status
-                                            <a href="javascript:void(0);" id="purchPayStatusFilter" class="text-body ms-1"
-                                               data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by Payment Status"
-                                               style="font-size:.85rem;">
-                                                <i class="bx bx-filter-alt align-middle"></i>
-                                            </a>
-                                        </th>
-                                        <th>
-                                            Payment Mode
-                                            <a href="javascript:void(0);" id="purchPayModeFilter" class="text-body ms-1"
-                                               data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by Payment Mode"
-                                               style="font-size:.85rem;">
-                                                <i class="bx bx-filter-alt align-middle"></i>
-                                            </a>
-                                        </th>
-                                        <th>
-                                            Vendor
-                                            <a href="javascript:void(0);" id="purchPartyFilterTrigger" class="text-body ms-1"
-                                               data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by Vendor"
-                                               style="font-size:.85rem;">
-                                                <i class="bx bx-filter-alt align-middle"></i>
-                                            </a>
-                                        </th>
-                                        <th>
-                                            Last Updated
-                                            <?php if (count($OrgUsers ?? []) > 1): ?>
-                                            <a href="javascript:void(0);" id="purchCreatedByFilter" class="text-body ms-1"
-                                               data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by User"
-                                               style="font-size:.85rem;">
-                                                <i class="bx bx-filter-alt align-middle"></i>
-                                            </a>
-                                            <?php endif; ?>
-                                        </th>
+                                        <th>Payment Status</th>
+                                        <th>Payment Mode</th>
+                                        <th>Vendor</th>
+                                        <th>Last Updated</th>
                                         <th style="width:50px"></th>
                                     </tr>
                                 </thead>
@@ -264,25 +237,28 @@ $(function () {
 
     // ── Column-level Payment Status filter ──────────────────────────────
     var payStatusFilter = new TransColFilter({
-        boxId     : 'purchPayStatusFilterBox',
-        triggerId : 'purchPayStatusFilter',
-        filterKey : 'PaymentStatus',
-        onApply   : function () { PageNo = 1; getPurchasesDetails(); }
+        boxId       : 'purchPayStatusFilterBox',
+        triggerId   : 'purchPayStatusFilter',
+        filterKey   : 'PaymentStatus',
+        activeClass : 'has-filter',
+        onApply     : function () { PageNo = 1; getPurchasesDetails(); }
     });
 
     var payModeFilter = new TransColFilter({
-        boxId     : 'purchPayModeFilterBox',
-        triggerId : 'purchPayModeFilter',
-        filterKey : 'PaymentMode',
-        onApply   : function () { PageNo = 1; getPurchasesDetails(); }
+        boxId       : 'purchPayModeFilterBox',
+        triggerId   : 'purchPayModeFilter',
+        filterKey   : 'PaymentMode',
+        activeClass : 'has-filter',
+        onApply     : function () { PageNo = 1; getPurchasesDetails(); }
     });
 
     var purchCreatedByFilter = (document.getElementById('purchCreatedByFilterBox'))
         ? new TransColFilter({
-            boxId     : 'purchCreatedByFilterBox',
-            triggerId : 'purchCreatedByFilter',
-            filterKey : 'UpdatedByUIDs',
-            onApply   : function () { PageNo = 1; getPurchasesDetails(); }
+            boxId       : 'purchCreatedByFilterBox',
+            triggerId   : 'purchCreatedByFilter',
+            filterKey   : 'UpdatedByUIDs',
+            activeClass : 'has-filter',
+            onApply     : function () { PageNo = 1; getPurchasesDetails(); }
         })
         : null;
 

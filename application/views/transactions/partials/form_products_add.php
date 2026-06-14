@@ -58,7 +58,7 @@ $_paymentVars    = isset($transPaymentVars) ? $transPaymentVars : null;
             </div>
             <div style="width: 35%;">
                 <div class="input-group input-group-sm input-group-merge" id="searchProductGroup">
-                    <span class="input-group-text p-2" style="background:#f0efff !important;border-color:#d9d8ff;color:#696cff;"><i class="icon-base bx bx-search"></i></span>
+                    <span class="input-group-text p-2 cursor-pointer" id="openProdSearchModal" style="background:#f0efff !important;border-color:#d9d8ff;color:#696cff;"><i class="icon-base bx bx-search"></i></span>
                     <select id="searchProductInfo" name="searchProductInfo" class="form-select form-select-sm">
                         <option label="-- Select Product --"></option>
                     </select>

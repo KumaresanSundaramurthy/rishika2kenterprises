@@ -12,78 +12,71 @@ $this->load->view('common/transactions/header'); ?>
                     'pageTitle'       => $PageTitle       ?? 'Inventory',
                     'pageDescription' => $PageDescription ?? 'Stock levels · Adjustments · History',
                 ]); ?>
-                <div class="container-xxl flex-grow-1 container-p-y">
+                <?php
+                $stats    = $Stats ?? null;
+                $cur      = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
+                $dec      = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
+                $showSno  = $JwtData->GenSettings->SerialNoDisplay == 1;
 
-                    <?php
-                    $stats    = $Stats ?? null;
-                    $cur      = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-                    $dec      = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
-                    $showSno  = $JwtData->GenSettings->SerialNoDisplay == 1;
+                $posCount   = (int)($stats->positiveCount  ?? 0);
+                $posQty     = (float)($stats->positiveQty   ?? 0);
+                $lowCount   = (int)($stats->lowStockCount  ?? 0);
+                $lowQty     = (float)($stats->lowStockQty   ?? 0);
+                $saleVal    = (float)($stats->saleValue     ?? 0);
+                $purchVal   = (float)($stats->purchaseValue ?? 0);
 
-                    $posCount   = (int)($stats->positiveCount  ?? 0);
-                    $posQty     = (float)($stats->positiveQty   ?? 0);
-                    $lowCount   = (int)($stats->lowStockCount  ?? 0);
-                    $lowQty     = (float)($stats->lowStockQty   ?? 0);
-                    $saleVal    = (float)($stats->saleValue     ?? 0);
-                    $purchVal   = (float)($stats->purchaseValue ?? 0);
+                $categories = $Categories ?? [];
 
-                    $categories = $Categories ?? [];
+                function invFmt($val, $sym, $dec) {
+                    return $sym . ' ' . number_format((float)$val, $dec, '.', ',');
+                }
+                ?>
 
-                    function invFmt($val, $sym, $dec) {
-                        return $sym . ' ' . number_format((float)$val, $dec, '.', ',');
-                    }
-                    ?>
-
-                    <!-- ── Stat Cards (visibility controlled by StatsDefaultOpen setting via apex-stats-strip) ── -->
-                    <div class="apex-stats-strip mb-3" id="invStatsSection" style="border:0;border-radius:12px;overflow:visible;">
-                        <div style="flex:1;display:grid;grid-template-columns:repeat(4,1fr);gap:12px;background:#f4f5f8;padding:14px 16px;border-radius:12px;">
-
-                            <div class="trans-stat-card inv-stat-positive" id="statPositive" style="cursor:default;">
-                                <div class="tsc-icon-wrap" style="background:#dcfce7;color:#16a34a;">
-                                    <i class="bx bx-check-circle"></i>
-                                </div>
-                                <div class="tsc-body">
-                                    <div class="trans-stat-label">Positive Stock</div>
-                                    <div class="trans-stat-count" id="statPositiveCount"><?php echo number_format($posCount); ?> Items</div>
-                                    <div class="trans-stat-amount" id="statPositiveQty"><?php echo number_format($posQty, $dec); ?> Qty</div>
-                                </div>
+                <!-- ── Stats Strip (outside container; visibility via StatsDefaultOpen → apex-stats-strip) ── -->
+                <div class="apex-stats-strip" id="invStatsSection">
+                    <div class="apex-stat-item" style="cursor:default;pointer-events:none;--stat-color:#16a34a">
+                        <div class="apex-stat-icon" style="background:#dcfce7"><i class="bx bx-check-circle" style="color:#16a34a"></i></div>
+                        <div class="apex-stat-body">
+                            <div class="apex-stat-label">Positive Stock</div>
+                            <div class="apex-stat-bottom">
+                                <span class="apex-stat-count" id="statPositiveCount"><?php echo number_format($posCount); ?> Items</span>
+                                <span class="apex-stat-amount" id="statPositiveQty"><?php echo number_format($posQty, $dec); ?> Qty</span>
                             </div>
-
-                            <div class="trans-stat-card inv-stat-low" id="statLow" style="cursor:default;">
-                                <div class="tsc-icon-wrap" style="background:#fef3c7;color:#d97706;">
-                                    <i class="bx bx-error-circle"></i>
-                                </div>
-                                <div class="tsc-body">
-                                    <div class="trans-stat-label">Low / Out of Stock</div>
-                                    <div class="trans-stat-count" id="statLowCount"><?php echo number_format($lowCount); ?> Items</div>
-                                    <div class="trans-stat-amount" id="statLowQty"><?php echo number_format($lowQty, $dec); ?> Qty</div>
-                                </div>
-                            </div>
-
-                            <div class="trans-stat-card" style="cursor:default;">
-                                <div class="tsc-icon-wrap" style="background:#dbeafe;color:#1d4ed8;">
-                                    <i class="bx bx-trending-up"></i>
-                                </div>
-                                <div class="tsc-body">
-                                    <div class="trans-stat-label">Stock Value (Sale)</div>
-                                    <div class="trans-stat-count" id="statSaleValue"><?php echo invFmt($saleVal, $cur, $dec); ?></div>
-                                    <div class="trans-stat-amount">at selling price</div>
-                                </div>
-                            </div>
-
-                            <div class="trans-stat-card" style="cursor:default;">
-                                <div class="tsc-icon-wrap" style="background:#fce7f3;color:#be185d;">
-                                    <i class="bx bx-wallet"></i>
-                                </div>
-                                <div class="tsc-body">
-                                    <div class="trans-stat-label">Stock Value (Purchase)</div>
-                                    <div class="trans-stat-count" id="statPurchaseValue"><?php echo invFmt($purchVal, $cur, $dec); ?></div>
-                                    <div class="trans-stat-amount">at purchase price</div>
-                                </div>
-                            </div>
-
                         </div>
                     </div>
+                    <div class="apex-stat-item" style="cursor:default;pointer-events:none;--stat-color:#d97706">
+                        <div class="apex-stat-icon" style="background:#fef3c7"><i class="bx bx-error-circle" style="color:#d97706"></i></div>
+                        <div class="apex-stat-body">
+                            <div class="apex-stat-label">Low / Out of Stock</div>
+                            <div class="apex-stat-bottom">
+                                <span class="apex-stat-count" id="statLowCount"><?php echo number_format($lowCount); ?> Items</span>
+                                <span class="apex-stat-amount" id="statLowQty"><?php echo number_format($lowQty, $dec); ?> Qty</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="apex-stat-item" style="cursor:default;pointer-events:none;--stat-color:#1d4ed8">
+                        <div class="apex-stat-icon" style="background:#dbeafe"><i class="bx bx-trending-up" style="color:#1d4ed8"></i></div>
+                        <div class="apex-stat-body">
+                            <div class="apex-stat-label">Stock Value (Sale)</div>
+                            <div class="apex-stat-bottom">
+                                <span class="apex-stat-count" id="statSaleValue"><?php echo invFmt($saleVal, $cur, $dec); ?></span>
+                                <span class="apex-stat-amount">at selling price</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="apex-stat-item" style="cursor:default;pointer-events:none;--stat-color:#be185d">
+                        <div class="apex-stat-icon" style="background:#fce7f3"><i class="bx bx-wallet" style="color:#be185d"></i></div>
+                        <div class="apex-stat-body">
+                            <div class="apex-stat-label">Stock Value (Purchase)</div>
+                            <div class="apex-stat-bottom">
+                                <span class="apex-stat-count" id="statPurchaseValue"><?php echo invFmt($purchVal, $cur, $dec); ?></span>
+                                <span class="apex-stat-amount">at purchase price</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="container-xxl flex-grow-1 container-p-y">
 
                     <!-- ── Main Card ──────────────────────────────────────── -->
                     <div class="card">
@@ -120,18 +113,20 @@ $this->load->view('common/transactions/header'); ?>
                                 <i class="bx bx-search r2k-si"></i>
                                 <input type="text" id="invSearchInput" placeholder="Item name or part #...">
                             </div>
-                            <a href="javascript:void(0);" id="invProdTypeFilterBtn" class="apex-filter-btn" onclick="invToggleProdTypeFilter(); event.stopPropagation();" title="Filter by Item Type">
-                                <i class="bx bx-box me-1" id="invProdTypeFilterIcon"></i>Item Type
+                            <a href="javascript:void(0);" id="invItemFilterBtn" class="apex-filter-btn" onclick="invToggleItemFilter(); event.stopPropagation();" title="Filter by Item">
+                                <i class="bx bx-package me-1" id="invItemFilterIcon"></i>Item
                             </a>
                             <a href="javascript:void(0);" id="invCategoryFilterBtn" class="apex-filter-btn" onclick="invToggleCategoryFilter(); event.stopPropagation();" title="Filter by Category">
                                 <i class="bx bx-category me-1" id="invCatFilterIcon"></i>Category
                             </a>
-                            <a href="javascript:void(0);" id="invStatusFilterBtn" class="apex-filter-btn" onclick="invToggleStatusFilter(); event.stopPropagation();" title="Filter by Status">
+                            <a href="javascript:void(0);" id="invStatusFilterBtn" class="apex-filter-btn" title="Filter by Status">
                                 <i class="bx bx-transfer me-1" id="invStatusFilterIcon"></i>Status
                             </a>
-                            <a href="javascript:void(0);" id="invUpdatedByFilterBtn" class="apex-filter-btn" onclick="invToggleUpdatedByFilter(); event.stopPropagation();" title="Filter by Updated By">
+                            <?php if (!empty($ShowUserFilter)): ?>
+                            <a href="javascript:void(0);" id="invUpdatedByFilterBtn" class="apex-filter-btn" title="Filter by Updated By">
                                 <i class="bx bx-user me-1" id="invUpdatedByFilterIcon"></i>Updated By
                             </a>
+                            <?php endif; ?>
                             <div class="apex-filter-spacer"></div>
                             <a href="javascript:void(0);" class="apex-icon-btn pageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
                             <div class="dropdown">
@@ -191,72 +186,38 @@ $this->load->view('common/transactions/header'); ?>
 <!-- ── Category Filter Box ────────────────────────────────────────────────── -->
 <div id="invCategoryFilterBox" class="mp-filterbox" style="display:none;position:fixed;z-index:9999;width:250px;max-height:340px;flex-direction:column;"></div>
 
-<!-- ── Item Type Filter Box ───────────────────────────────────────────────── -->
-<div id="invProdTypeFilterBox" class="mp-filterbox" style="display:none;position:fixed;z-index:9999;width:190px;flex-direction:column;">
-    <div class="catg-filter-header">
-        <span class="catg-filter-title"><i class="bx bx-category me-1"></i>Item Type</span>
-        <button type="button" class="catg-filter-close-btn" onclick="invToggleProdTypeFilter()" title="Close">&times;</button>
-    </div>
-    <div class="catg-list" style="padding:4px 0;">
-        <label class="catg-list-item">
-            <input class="form-check-input inv-prodtype-checkbox" type="checkbox" value="Product">
-            <span><span class="badge bg-label-primary" style="font-size:.7rem;">Product</span></span>
-        </label>
-        <label class="catg-list-item">
-            <input class="form-check-input inv-prodtype-checkbox" type="checkbox" value="Service">
-            <span><span class="badge bg-label-info" style="font-size:.7rem;">Service</span></span>
-        </label>
-    </div>
-    <div class="catg-filter-footer">
-        <button type="button" class="btn btn-primary" onclick="invApplyProdTypeFilter()"><i class="bx bx-check me-1"></i>Apply</button>
-        <button type="button" class="btn btn-outline-secondary" onclick="invResetProdTypeFilter()"><i class="bx bx-reset me-1"></i>Reset</button>
-    </div>
-</div>
+<!-- ── Item Filter Box ─────────────────────────────────────────────────────── -->
+<div id="invItemFilterBox" class="mp-filterbox" style="display:none;position:fixed;z-index:9999;width:260px;max-height:360px;flex-direction:column;"></div>
 
 <!-- ── Status Filter Box ──────────────────────────────────────────────────── -->
-<div id="invStatusFilterBox" class="mp-filterbox" style="display:none;position:fixed;z-index:9999;width:210px;flex-direction:column;">
-    <div class="catg-filter-header">
-        <span class="catg-filter-title"><i class="bx bx-signal-5 me-1"></i>Status Filter</span>
-        <button type="button" class="catg-filter-close-btn" onclick="invToggleStatusFilter()" title="Close">&times;</button>
-    </div>
-    <div class="catg-list" style="flex:1;min-height:0;overflow-y:auto;padding:4px 0;">
-        <label class="catg-list-item">
-            <input class="form-check-input inv-status-radio" type="radio" name="invStatusRadio" value="">
-            <span>All</span>
-        </label>
-        <label class="catg-list-item">
-            <input class="form-check-input inv-status-radio" type="radio" name="invStatusRadio" value="Positive">
-            <span>In Stock</span>
-        </label>
-        <label class="catg-list-item">
-            <input class="form-check-input inv-status-radio" type="radio" name="invStatusRadio" value="LowStock">
-            <span>Low Stock</span>
-        </label>
-        <label class="catg-list-item">
-            <input class="form-check-input inv-status-radio" type="radio" name="invStatusRadio" value="OutOfStock">
-            <span>Out of Stock</span>
-        </label>
-    </div>
-    <div class="catg-filter-footer">
-        <button type="button" class="btn btn-primary" onclick="invApplyStatusFilter()"><i class="bx bx-check me-1"></i>Apply</button>
-        <button type="button" class="btn btn-outline-secondary" onclick="invResetStatusFilter()"><i class="bx bx-reset me-1"></i>Reset</button>
-    </div>
-</div>
+<?php $this->load->view('common/transactions/col_filter_box', [
+    'ColFilterConfig' => [
+        'id'         => 'invStatusFilterBox',
+        'triggerId'  => 'invStatusFilterBtn',
+        'title'      => 'Stock Status',
+        'icon'       => 'bx-transfer',
+        'filterKey'  => 'StockStatus',
+        'checkClass' => 'inv-status-chk',
+        'items'      => [
+            ['value' => 'Positive',   'label' => 'In Stock'],
+            ['value' => 'LowStock',   'label' => 'Low Stock'],
+            ['value' => 'OutOfStock', 'label' => 'Out of Stock'],
+        ],
+    ],
+]); ?>
 
 <!-- ── Updated By Filter Box ──────────────────────────────────────────────── -->
-<div id="invUpdatedByFilterBox" class="mp-filterbox" style="display:none;position:fixed;z-index:9999;width:230px;max-height:320px;flex-direction:column;">
-    <div class="catg-filter-header">
-        <span class="catg-filter-title"><i class="bx bx-user me-1"></i>Updated By</span>
-        <button type="button" class="catg-filter-close-btn" onclick="invToggleUpdatedByFilter()" title="Close">&times;</button>
-    </div>
-    <div id="invUpdatedByList" class="catg-list" style="flex:1;min-height:0;overflow-y:auto;">
-        <div class="text-muted small text-center py-2">Loading...</div>
-    </div>
-    <div class="catg-filter-footer">
-        <button type="button" class="btn btn-primary" onclick="invApplyUpdatedByFilter()"><i class="bx bx-check me-1"></i>Apply</button>
-        <button type="button" class="btn btn-outline-secondary" onclick="invResetUpdatedByFilter()"><i class="bx bx-reset me-1"></i>Reset</button>
-    </div>
-</div>
+<?php if (!empty($ShowUserFilter)): ?>
+<?php $this->load->view('common/partials/col_user_filter_box', [
+    'ColUserFilterConfig' => [
+        'id'         => 'invUpdatedByFilterBox',
+        'triggerId'  => 'invUpdatedByFilterBtn',
+        'checkClass' => 'inv-updatedby-checkbox',
+        'title'      => 'Updated By',
+        'OrgUsers'   => $OrgUsers ?? [],
+    ]
+]); ?>
+<?php endif; ?>
 
 <!-- ── Modals ─────────────────────────────────────────────────────────────── -->
 <?php
@@ -284,10 +245,58 @@ $this->load->view('inventory/partials/_timeline_modal');
 </div>
 
 <script src="/js/common/pagecheckbox.js"></script>
+<script src="/js/common/productappend.js"></script>
+<script src="/js/common/item_filter.js"></script>
+<script src="/js/transactions/col_filter.js"></script>
 <script src="/js/inventory.js"></script>
 
 <script>
 const InvCurrency   = <?php echo json_encode($cur); ?>;
 const InvDecimals   = <?php echo (int)$dec; ?>;
 const InvShowSerial = <?php echo $showSno ? 'true' : 'false'; ?>;
+
+// ── Status filter (TransColFilter) ───────────────────────────────────────────
+var invStatusFilter = new TransColFilter({
+    boxId       : 'invStatusFilterBox',
+    triggerId   : 'invStatusFilterBtn',
+    filterKey   : 'StockStatus',
+    activeClass : 'has-filter',
+    onApply     : function () {
+        var vals = invStatusFilter.getState()['StockStatus'] || [];
+        if (vals.length === 1) {
+            _invFilter['StockStatus'] = vals[0];
+        } else {
+            delete _invFilter['StockStatus'];
+        }
+        invLoadPage(1);
+    }
+});
+
+// Close old-style item/category boxes when status filter opens
+$('#invStatusFilterBtn').on('click', function () {
+    $('#invCategoryFilterBox, #invItemFilterBox').hide();
+});
+
+<?php if (!empty($ShowUserFilter)): ?>
+// Close custom boxes when Updated By filter opens (TransColFilter handles invStatusFilterBox automatically)
+$('#invUpdatedByFilterBtn').on('click', function () {
+    $('#invCategoryFilterBox, #invItemFilterBox').hide();
+});
+
+// ── Updated By filter (TransColFilter) ───────────────────────────────────────
+var invUpdatedByFilter = new TransColFilter({
+    boxId    : 'invUpdatedByFilterBox',
+    triggerId: 'invUpdatedByFilterBtn',
+    filterKey: 'UpdatedBy',
+    onApply  : function() {
+        var state = invUpdatedByFilter.getState();
+        if (state.UpdatedBy && state.UpdatedBy.length) {
+            _invFilter.UpdatedBy = state.UpdatedBy;
+        } else {
+            delete _invFilter.UpdatedBy;
+        }
+        invLoadPage(1);
+    }
+});
+<?php endif; ?>
 </script>

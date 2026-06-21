@@ -36,9 +36,9 @@ class Attendance extends MY_Controller {
             $this->pageData['ModPagination'] = $pd->Pagination;
 
             $this->load->model('attendance_model');
-            $this->load->model('employees_model');
+            $this->load->model('users_model');
             $this->pageData['DailyStats']   = $this->attendance_model->getDailyStats($this->_orgUID(), $today);
-            $this->pageData['EmployeeList'] = $this->employees_model->getEmployeeDropdownList($this->_orgUID());
+            $this->pageData['EmployeeList'] = $this->users_model->getEmployeeDropdownList($this->_orgUID());
             $this->pageData['TodayDate']    = $today;
             $this->load->view('hrms/attendance/view', $this->pageData);
         } catch (Exception $e) { redirect('dashboard', 'refresh'); }
@@ -52,15 +52,15 @@ class Attendance extends MY_Controller {
             $month = (int)($this->input->get('month') ?: date('m'));
             $year  = (int)($this->input->get('year')  ?: date('Y'));
             $this->load->model('attendance_model');
-            $this->load->model('employees_model');
+            $this->load->model('users_model');
             $this->load->model('payroll_model');
 
             $this->pageData['AttendanceData'] = $this->attendance_model->getMonthlyAttendance($this->_orgUID(), $year, $month);
-            $this->pageData['EmployeeList']   = $this->employees_model->getEmployeeDropdownList($this->_orgUID());
-            $this->pageData['HolidayDates']   = $this->employees_model->getHolidayDatesForMonth($this->_orgUID(), $year, $month);
+            $this->pageData['EmployeeList']   = $this->users_model->getEmployeeDropdownList($this->_orgUID());
+            $this->pageData['HolidayDates']   = $this->attendance_model->getHolidayDatesForMonth($this->_orgUID(), $year, $month);
             $this->pageData['Month']          = $month;
             $this->pageData['Year']           = $year;
-            $this->pageData['DaysInMonth']    = cal_days_in_month(CAL_GREGORIAN, $month, $year);
+            $this->pageData['DaysInMonth']    = (int)date('t', mktime(0, 0, 0, $month, 1, $year));
             $this->load->view('hrms/attendance/monthly', $this->pageData);
         } catch (Exception $e) { redirect('attendance', 'refresh'); }
     }
@@ -104,7 +104,7 @@ class Attendance extends MY_Controller {
             $data = [
                 'OrgUID'         => $this->_orgUID(),
                 'BranchUID'      => $this->_branchUID(),
-                'EmployeeUID'    => (int)$p['EmployeeUID'],
+                'UserUID'        => (int)$p['EmployeeUID'],
                 'AttendanceDate' => $p['AttendanceDate'],
                 'Status'         => $p['Status'],
                 'CheckInTime'    => $cin,
@@ -141,7 +141,7 @@ class Attendance extends MY_Controller {
             $this->load->model('dbwrite_model');
             foreach ($records as $r) {
                 if (empty($r['EmployeeUID']) || empty($r['AttendanceDate']) || empty($r['Status'])) continue;
-                $data = ['OrgUID' => $orgUID, 'BranchUID' => $branchUID, 'EmployeeUID' => (int)$r['EmployeeUID'], 'AttendanceDate' => $r['AttendanceDate'], 'Status' => $r['Status'], 'Remarks' => trim($r['Remarks'] ?? ''), 'UpdatedBy' => $userUID];
+                $data = ['OrgUID' => $orgUID, 'BranchUID' => $branchUID, 'UserUID' => (int)$r['EmployeeUID'], 'AttendanceDate' => $r['AttendanceDate'], 'Status' => $r['Status'], 'Remarks' => trim($r['Remarks'] ?? ''), 'UpdatedBy' => $userUID];
                 $uid  = (int)($r['AttendanceUID'] ?? 0);
                 if ($uid) {
                     $this->dbwrite_model->updateData('Transaction', 'AttendanceTbl', $data, ['AttendanceUID' => $uid, 'OrgUID' => $orgUID]);

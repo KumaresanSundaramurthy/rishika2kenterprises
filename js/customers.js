@@ -21,6 +21,7 @@ function _smartDecimal(val) {
 }
 
 function getCustomersDetails(PageNo, RowLimit, Filter) {
+    $('#custStickyPagination').stop(true, true).hide();
     $.ajax({
         url: '/customers/getCustomersPageDetails/' + PageNo,
         method: 'POST',
@@ -33,7 +34,6 @@ function getCustomersDetails(PageNo, RowLimit, Filter) {
             } else {
                 $(ModulePag).html(response.Pagination);
                 $(ModuleTable + ' tbody').html(response.RecordHtmlData);
-                // Keep sticky pagination in sync with the updated static one
                 $('#custStickyPagination .CustomersPagination').html(response.Pagination);
                 $(window).trigger('scroll');
             }

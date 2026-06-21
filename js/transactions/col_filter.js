@@ -175,8 +175,8 @@
             return;
         }
 
-        // Close any other open col-filter boxes first
-        $('.trans-col-filterbox').not(this._$box).hide();
+        // Close any other open col-filter boxes first (including party filter boxes)
+        $('.trans-col-filterbox, .tpcf-box').not(this._$box).hide();
 
         var rect   = triggerEl.getBoundingClientRect();
         var boxW   = this._$box.outerWidth() || 190;

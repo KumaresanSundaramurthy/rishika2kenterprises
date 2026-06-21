@@ -76,6 +76,8 @@ $this->load->view('common/transactions/header'); ?>
 
                 <div class="container-xxl flex-grow-1 py-3">
 
+                    <?php $showUserBtn = is_array($OrgUsers) && count($OrgUsers) > 1; ?>
+
                     <!-- ── Main Card ──────────────────────────────────────── -->
                     <div class="card">
 
@@ -86,33 +88,13 @@ $this->load->view('common/transactions/header'); ?>
                                 <input type="text" id="searchExpenseData" placeholder="Expense # or category...">
                             </div>
                             <a href="javascript:void(0);" id="expCatFilterBtn" class="apex-filter-btn" onclick="toggleExpCatFilter(); event.stopPropagation();" title="Filter by Category"><i class="bx bx-category me-1"></i>Category</a>
-                            <a href="javascript:void(0);" id="expStatusFilterBtn" class="apex-filter-btn" onclick="toggleExpStatusFilter(); event.stopPropagation();" title="Filter by Status"><i class="bx bx-transfer me-1"></i>Status</a>
-                            <a href="javascript:void(0);" id="expModeFilterBtn" class="apex-filter-btn" onclick="toggleExpModeFilter(); event.stopPropagation();" title="Filter by Mode"><i class="bx bx-credit-card me-1"></i>Mode</a>
+                            <a href="javascript:void(0);" id="expStatusFilterBtn" class="apex-filter-btn" title="Filter by Status"><i class="bx bx-transfer me-1"></i>Status</a>
+                            <a href="javascript:void(0);" id="expModeFilterBtn" class="apex-filter-btn" title="Filter by Mode"><i class="bx bx-credit-card me-1"></i> Payment Mode</a>
                             <?php if (count($OrgUsers ?? []) > 1): ?>
-                            <a href="javascript:void(0);" id="expUserFilterBtn" class="apex-filter-btn" onclick="toggleExpUserFilter(); event.stopPropagation();" title="Filter by User"><i class="bx bx-user me-1"></i>Updated By</a>
+                            <a href="javascript:void(0);" id="expUserFilterBtn" class="apex-filter-btn" title="Filter by User">
+                                <i class="bx bx-user me-1"></i>Updated By</a>
                             <?php endif; ?>
-                            <div class="dropdown">
-                                <button class="apex-filter-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="bx bx-calendar"></i><span id="dateFilterLabel" class="ms-1">This Month</span>
-                                </button>
-                                <ul class="dropdown-menu shadow" style="width:210px;max-height:300px;overflow-y:auto;font-size:.82rem;">
-                                    <li><a class="dropdown-item date-option" data-range="today">Today</a></li>
-                                    <li><a class="dropdown-item date-option" data-range="yesterday">Yesterday</a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item date-option" data-range="this_week">This Week</a></li>
-                                    <li><a class="dropdown-item date-option" data-range="last_week">Last Week</a></li>
-                                    <li><a class="dropdown-item date-option" data-range="last_7_days">Last 7 Days</a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item date-option active" data-range="this_month">This Month</a></li>
-                                    <li><a class="dropdown-item date-option" data-range="previous_month">Previous Month</a></li>
-                                    <li><a class="dropdown-item date-option" data-range="last_30_days">Last 30 Days</a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item date-option" data-range="this_year">This Year</a></li>
-                                    <li><a class="dropdown-item date-option" data-range="last_year">Last Year</a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item date-option fw-bold" data-range="fy_25_26"><i class="bx bxs-star text-warning me-1"></i>FY 25-26</a></li>
-                                </ul>
-                            </div>
+                            <?php $this->load->view('common/transactions/date_filter_btn'); ?>
                             <div class="apex-filter-spacer"></div>
                             <a href="javascript:void(0);" class="apex-icon-btn pageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
                             <button type="button" class="btn btn-sm btn-outline-secondary" id="expManageCatBtn">
@@ -451,10 +433,7 @@ $this->load->view('common/transactions/payment_modal');
         </div>
     </div>
     <div class="catg-filter-search-wrap">
-        <div class="input-group input-group-sm">
-            <span class="input-group-text"><i class="bx bx-search"></i></span>
-            <input type="text" id="expCatFilterSearch" class="form-control" placeholder="Search categories...">
-        </div>
+        <input type="text" id="expCatFilterSearch" class="form-control form-control-sm" placeholder="Search categories...">
     </div>
     <div class="catg-select-all-wrap">
         <input type="checkbox" class="form-check-input" id="expCatSelectAll" onchange="toggleAllExpCats(this)">
@@ -468,72 +447,52 @@ $this->load->view('common/transactions/payment_modal');
 </div>
 
 <!-- ── Status Filter Box ─────────────────────────────────────────────────── -->
-<div id="expStatusFilterBox" class="card mp-filterbox" style="min-width:200px;z-index:9999;display:none;position:fixed;">
-    <div class="catg-filter-header">
-        <span class="catg-filter-title"><i class="bx bx-check-circle me-1"></i> Status</span>
-        <div class="d-flex align-items-center gap-2">
-            <span class="badge bg-primary" id="expStatusFilterCount" style="display:none;"></span>
-            <button type="button" class="catg-filter-close-btn" onclick="closeExpStatusFilter()" title="Close">&times;</button>
-        </div>
-    </div>
-    <div class="catg-select-all-wrap">
-        <input type="checkbox" class="form-check-input" id="expStatusSelectAll" onchange="toggleAllExpStatuses(this)">
-        <label class="small fw-semibold mb-0" for="expStatusSelectAll" id="expStatusSelectAllLabel">Select All</label>
-    </div>
-    <div id="expStatusList" class="catg-list" style="max-height:160px;overflow-y:auto;">
-        <label class="catg-list-item"><input class="form-check-input exp-sf-chk" type="checkbox" value="Pending"><span>Pending</span></label>
-        <label class="catg-list-item"><input class="form-check-input exp-sf-chk" type="checkbox" value="Partial"><span>Partial</span></label>
-        <label class="catg-list-item"><input class="form-check-input exp-sf-chk" type="checkbox" value="Paid"><span>Paid</span></label>
-        <label class="catg-list-item"><input class="form-check-input exp-sf-chk" type="checkbox" value="Cancelled"><span>Cancelled</span></label>
-    </div>
-    <div class="catg-filter-footer">
-        <button type="button" class="btn btn-primary btn-sm" onclick="applyExpStatusFilter()"><i class="bx bx-check me-1"></i>Apply</button>
-        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="resetExpStatusFilter()"><i class="bx bx-reset me-1"></i>Reset</button>
-    </div>
-</div>
+<?php $this->load->view('common/transactions/col_filter_box', [
+    'ColFilterConfig' => [
+        'id'         => 'expStatusFilterBox',
+        'triggerId'  => 'expStatusFilterBtn',
+        'title'      => 'Status',
+        'icon'       => 'bx-check-circle',
+        'filterKey'  => 'StatusList',
+        'checkClass' => 'exp-sf-chk',
+        'items'      => [
+            ['value' => 'Pending',   'label' => 'Pending'],
+            ['value' => 'Partial',   'label' => 'Partial'],
+            ['value' => 'Paid',      'label' => 'Paid'],
+            ['value' => 'Cancelled', 'label' => 'Cancelled'],
+        ],
+    ],
+]); ?>
 
 <!-- ── Mode Filter Box ───────────────────────────────────────────────────── -->
-<div id="expModeFilterBox" class="card mp-filterbox" style="min-width:200px;z-index:9999;display:none;position:fixed;">
-    <div class="catg-filter-header">
-        <span class="catg-filter-title"><i class="bx bx-credit-card me-1"></i> Mode</span>
-        <div class="d-flex align-items-center gap-2">
-            <span class="badge bg-primary" id="expModeFilterCount" style="display:none;"></span>
-            <button type="button" class="catg-filter-close-btn" onclick="closeExpModeFilter()" title="Close">&times;</button>
-        </div>
-    </div>
-    <div class="catg-select-all-wrap">
-        <input type="checkbox" class="form-check-input" id="expModeSelectAll" onchange="toggleAllExpModes(this)">
-        <label class="small fw-semibold mb-0" for="expModeSelectAll" id="expModeSelectAllLabel">Select All</label>
-    </div>
-    <div id="expModeList" class="catg-list" style="max-height:180px;overflow-y:auto;"></div>
-    <div class="catg-filter-footer">
-        <button type="button" class="btn btn-primary btn-sm" onclick="applyExpModeFilter()"><i class="bx bx-check me-1"></i>Apply</button>
-        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="resetExpModeFilter()"><i class="bx bx-reset me-1"></i>Reset</button>
-    </div>
-</div>
+<?php $this->load->view('common/transactions/col_filter_box', [
+    'ColFilterConfig' => [
+        'id'         => 'expModeFilterBox',
+        'triggerId'  => 'expModeFilterBtn',
+        'title'      => 'Payment Mode',
+        'icon'       => 'bx-credit-card',
+        'filterKey'  => 'PaymentTypeUIDs',
+        'checkClass' => 'exp-mf-chk',
+        'items'      => array_map(function($t) {
+            return ['value' => (string)$t->PaymentTypeUID, 'label' => $t->PaymentTypeName];
+        }, $paymentTypes ?? []),
+    ],
+]); ?>
 
-<!-- ── User Filter Box ───────────────────────────────────────────────────── -->
-<?php if (count($OrgUsers ?? []) > 1): ?>
-<div id="expUserFilterBox" class="card mp-filterbox" style="min-width:200px;z-index:9999;display:none;position:fixed;">
-    <div class="catg-filter-header">
-        <span class="catg-filter-title"><i class="bx bx-user me-1"></i> User</span>
-        <div class="d-flex align-items-center gap-2">
-            <span class="badge bg-primary" id="expUserFilterCount" style="display:none;"></span>
-            <button type="button" class="catg-filter-close-btn" onclick="closeExpUserFilter()" title="Close">&times;</button>
-        </div>
-    </div>
-    <div class="catg-select-all-wrap">
-        <input type="checkbox" class="form-check-input" id="expUserSelectAll" onchange="toggleAllExpUsers(this)">
-        <label class="small fw-semibold mb-0" for="expUserSelectAll" id="expUserSelectAllLabel">Select All</label>
-    </div>
-    <div id="expUserList" class="catg-list" style="max-height:180px;overflow-y:auto;"></div>
-    <div class="catg-filter-footer">
-        <button type="button" class="btn btn-primary btn-sm" onclick="applyExpUserFilter()"><i class="bx bx-check me-1"></i>Apply</button>
-        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="resetExpUserFilter()"><i class="bx bx-reset me-1"></i>Reset</button>
-    </div>
-</div>
+<!-- Filter panels (body-level to avoid overflow clipping) -->
+<?php if ($showUserBtn): ?>
+<?php $this->load->view('common/partials/col_user_filter_box', [
+    'ColUserFilterConfig' => [
+        'id'         => 'expUserFilterBox',
+        'triggerId'  => 'expUserFilterBtn',
+        'checkClass' => 'exp-user-chk',
+        'title'      => 'Updated By',
+        'OrgUsers'   => $OrgUsers,
+    ],
+]); ?>
 <?php endif; ?>
 
+<script src="/js/transactions/col_filter.js"></script>
 <script src="/js/transactions/expenses.js"></script>
 
 <script>
@@ -624,167 +583,49 @@ $(function () {
     _buildExpCatList(_expCatData);
     // ────────────────────────────────────────────────────────────────────────
 
-    // ── Expense Status Filter ────────────────────────────────────────────────
-    window.toggleExpStatusFilter = function () {
-        var $box = $('#expStatusFilterBox');
-        if ($box.is(':visible')) { $box.hide(); return; }
-        var rect = document.getElementById('expStatusFilterBtn').getBoundingClientRect();
-        $box.css({ top: (rect.bottom + 4) + 'px', left: Math.max(4, rect.right - 200) + 'px' }).show();
-    };
-    window.closeExpStatusFilter = function () { $('#expStatusFilterBox').hide(); };
-    window.toggleAllExpStatuses = function (el) {
-        var checked = $(el).is(':checked');
-        $('.exp-sf-chk').prop('checked', checked);
-        $('#expStatusSelectAllLabel').text(checked ? 'Deselect All' : 'Select All');
-    };
-    window.applyExpStatusFilter = function () {
-        var sel = $('.exp-sf-chk:checked').map(function () { return $(this).val(); }).get();
-        if (sel.length) { Filter['StatusList'] = sel; } else { delete Filter['StatusList']; }
-        $('#expStatusFilterBox').hide();
-        var active = sel.length > 0;
-        $('#expStatusFilterBtn').toggleClass('text-primary', active);
-        $('#expStatusFilterCount').text(sel.length).toggle(active);
-        PageNo = 1; getExpensesDetails();
-    };
-    window.resetExpStatusFilter = function () {
-        $('.exp-sf-chk').prop('checked', false);
-        $('#expStatusSelectAll').prop('checked', false);
-        $('#expStatusSelectAllLabel').text('Select All');
-        delete Filter['StatusList'];
-        $('#expStatusFilterBox').hide();
-        $('#expStatusFilterBtn').removeClass('text-primary');
-        $('#expStatusFilterCount').hide().text('');
-        PageNo = 1; getExpensesDetails();
-    };
-    $(document).on('change', '.exp-sf-chk', function () {
-        var total = $('.exp-sf-chk').length, chkd = $('.exp-sf-chk:checked').length;
-        $('#expStatusSelectAll').prop('checked', total > 0 && total === chkd);
-        $('#expStatusSelectAllLabel').text(total > 0 && total === chkd ? 'Deselect All' : 'Select All');
-    });
-    $(document).on('click', function (e) {
-        if (!$(e.target).closest('#expStatusFilterBox, #expStatusFilterBtn').length) $('#expStatusFilterBox').hide();
-    });
-    // ────────────────────────────────────────────────────────────────────────
-
-    // ── Expense Mode Filter ──────────────────────────────────────────────────
-    var _expModeData = <?php echo json_encode(array_map(function($t) {
-        return ['uid' => (int)$t->PaymentTypeUID, 'name' => (string)$t->PaymentTypeName];
-    }, $paymentTypes ?? [])); ?>;
-
-    (function () {
-        if (!_expModeData.length) {
-            $('#expModeList').html('<div class="text-muted text-center py-3" style="font-size:.8rem;">No data</div>');
-            return;
+    // ── Status filter (TransColFilter) ───────────────────────────────────────
+    var expStatusFilter = new TransColFilter({
+        boxId       : 'expStatusFilterBox',
+        triggerId   : 'expStatusFilterBtn',
+        filterKey   : 'StatusList',
+        activeClass : 'has-filter',
+        onApply     : function () {
+            var vals = expStatusFilter.getState()['StatusList'] || [];
+            if (vals.length) Filter['StatusList'] = vals; else delete Filter['StatusList'];
+            PageNo = 1; getExpensesDetails();
         }
-        var html = '';
-        _expModeData.forEach(function (m) {
-            html += '<label class="catg-list-item">' +
-                        '<input class="form-check-input exp-mf-chk" type="checkbox" value="' + m.uid + '">' +
-                        '<span>' + $('<span>').text(m.name).html() + '</span>' +
-                    '</label>';
-        });
-        $('#expModeList').html(html);
-    })();
-
-    window.toggleExpModeFilter = function () {
-        var $box = $('#expModeFilterBox');
-        if ($box.is(':visible')) { $box.hide(); return; }
-        var rect = document.getElementById('expModeFilterBtn').getBoundingClientRect();
-        $box.css({ top: (rect.bottom + 4) + 'px', left: Math.max(4, rect.right - 200) + 'px' }).show();
-    };
-    window.closeExpModeFilter = function () { $('#expModeFilterBox').hide(); };
-    window.toggleAllExpModes  = function (el) {
-        var checked = $(el).is(':checked');
-        $('.exp-mf-chk').prop('checked', checked);
-        $('#expModeSelectAllLabel').text(checked ? 'Deselect All' : 'Select All');
-    };
-    window.applyExpModeFilter = function () {
-        var sel = $('.exp-mf-chk:checked').map(function () { return $(this).val(); }).get();
-        if (sel.length) { Filter['PaymentTypeUIDs'] = sel; } else { delete Filter['PaymentTypeUIDs']; }
-        $('#expModeFilterBox').hide();
-        var active = sel.length > 0;
-        $('#expModeFilterBtn').toggleClass('text-primary', active);
-        $('#expModeFilterCount').text(sel.length).toggle(active);
-        PageNo = 1; getExpensesDetails();
-    };
-    window.resetExpModeFilter = function () {
-        $('.exp-mf-chk').prop('checked', false);
-        $('#expModeSelectAll').prop('checked', false);
-        $('#expModeSelectAllLabel').text('Select All');
-        delete Filter['PaymentTypeUIDs'];
-        $('#expModeFilterBox').hide();
-        $('#expModeFilterBtn').removeClass('text-primary');
-        $('#expModeFilterCount').hide().text('');
-        PageNo = 1; getExpensesDetails();
-    };
-    $(document).on('change', '.exp-mf-chk', function () {
-        var total = $('.exp-mf-chk').length, chkd = $('.exp-mf-chk:checked').length;
-        $('#expModeSelectAll').prop('checked', total > 0 && total === chkd);
-        $('#expModeSelectAllLabel').text(total > 0 && total === chkd ? 'Deselect All' : 'Select All');
     });
-    $(document).on('click', function (e) {
-        if (!$(e.target).closest('#expModeFilterBox, #expModeFilterBtn').length) $('#expModeFilterBox').hide();
-    });
-    // ────────────────────────────────────────────────────────────────────────
 
-    // ── Expense User Filter ──────────────────────────────────────────────────
-    var _expUserData = <?php echo json_encode(array_map(function($u) {
-        return ['uid' => (int)$u->UserUID, 'name' => (string)$u->FullName];
-    }, $OrgUsers ?? [])); ?>;
-
-    if (_expUserData.length > 1) {
-        (function () {
-            var html = '';
-            _expUserData.forEach(function (u) {
-                html += '<label class="catg-list-item">' +
-                            '<input class="form-check-input exp-uf-chk" type="checkbox" value="' + u.uid + '">' +
-                            '<span>' + $('<span>').text(u.name).html() + '</span>' +
-                        '</label>';
-            });
-            $('#expUserList').html(html);
-        })();
-    }
-
-    window.toggleExpUserFilter = function () {
-        var $box = $('#expUserFilterBox');
-        if (!$box.length || $box.is(':visible')) { if ($box.length) $box.hide(); return; }
-        var rect = document.getElementById('expUserFilterBtn').getBoundingClientRect();
-        $box.css({ top: (rect.bottom + 4) + 'px', left: Math.max(4, rect.right - 200) + 'px' }).show();
-    };
-    window.closeExpUserFilter = function () { $('#expUserFilterBox').hide(); };
-    window.toggleAllExpUsers  = function (el) {
-        var checked = $(el).is(':checked');
-        $('.exp-uf-chk').prop('checked', checked);
-        $('#expUserSelectAllLabel').text(checked ? 'Deselect All' : 'Select All');
-    };
-    window.applyExpUserFilter = function () {
-        var sel = $('.exp-uf-chk:checked').map(function () { return $(this).val(); }).get();
-        if (sel.length) { Filter['UpdatedByUIDs'] = sel; } else { delete Filter['UpdatedByUIDs']; }
-        $('#expUserFilterBox').hide();
-        var active = sel.length > 0;
-        $('#expUserFilterBtn').toggleClass('text-primary', active);
-        $('#expUserFilterCount').text(sel.length).toggle(active);
-        PageNo = 1; getExpensesDetails();
-    };
-    window.resetExpUserFilter = function () {
-        $('.exp-uf-chk').prop('checked', false);
-        $('#expUserSelectAll').prop('checked', false);
-        $('#expUserSelectAllLabel').text('Select All');
-        delete Filter['UpdatedByUIDs'];
-        $('#expUserFilterBox').hide();
-        $('#expUserFilterBtn').removeClass('text-primary');
-        $('#expUserFilterCount').hide().text('');
-        PageNo = 1; getExpensesDetails();
-    };
-    $(document).on('change', '.exp-uf-chk', function () {
-        var total = $('.exp-uf-chk').length, chkd = $('.exp-uf-chk:checked').length;
-        $('#expUserSelectAll').prop('checked', total > 0 && total === chkd);
-        $('#expUserSelectAllLabel').text(total > 0 && total === chkd ? 'Deselect All' : 'Select All');
+    // ── Payment Mode filter (TransColFilter) ─────────────────────────────────
+    var expModeFilter = new TransColFilter({
+        boxId       : 'expModeFilterBox',
+        triggerId   : 'expModeFilterBtn',
+        filterKey   : 'PaymentTypeUIDs',
+        activeClass : 'has-filter',
+        onApply     : function () {
+            var vals = expModeFilter.getState()['PaymentTypeUIDs'] || [];
+            if (vals.length) Filter['PaymentTypeUIDs'] = vals; else delete Filter['PaymentTypeUIDs'];
+            PageNo = 1; getExpensesDetails();
+        }
     });
-    $(document).on('click', function (e) {
-        if (!$(e.target).closest('#expUserFilterBox, #expUserFilterBtn').length) $('#expUserFilterBox').hide();
+
+    // ── Updated By filter (TransColFilter) ───────────────────────────────────
+    var expUserFilter = new TransColFilter({
+        boxId       : 'expUserFilterBox',
+        triggerId   : 'expUserFilterBtn',
+        filterKey   : 'UpdatedByUIDs',
+        activeClass : 'has-filter',
+        onApply     : function () {
+            var vals = expUserFilter.getState()['UpdatedByUIDs'] || [];
+            if (vals.length) Filter['UpdatedByUIDs'] = vals; else delete Filter['UpdatedByUIDs'];
+            PageNo = 1; getExpensesDetails();
+        }
     });
-    // ────────────────────────────────────────────────────────────────────────
+
+    // Close old-style category box when any TransColFilter box opens
+    $('#expStatusFilterBtn, #expModeFilterBtn, #expUserFilterBtn').on('click', function () {
+        $('#expCatFilterBox').hide();
+    });
 
     var expCurSymbol    = '<?php echo addslashes($cur); ?>';
     var expDecPoints    = <?php echo (int)$dec; ?>;
@@ -878,11 +719,7 @@ $(function () {
 
     function _clearExpStatusFilter() {
         delete Filter['StatusList'];
-        $('.exp-sf-chk').prop('checked', false);
-        $('#expStatusSelectAll').prop('checked', false);
-        $('#expStatusSelectAllLabel').text('Select All');
-        $('#expStatusFilterBtn').removeClass('text-primary');
-        $('#expStatusFilterCount').hide().text('');
+        expStatusFilter.reset();
     }
 
     // ── Stat card click ──────────────────────────────────────

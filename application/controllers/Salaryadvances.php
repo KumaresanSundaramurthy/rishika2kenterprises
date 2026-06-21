@@ -30,8 +30,8 @@ class Salaryadvances extends MY_Controller {
             $pd = $this->_fetchTableData(1, $this->_limit());
             $this->pageData['ModRowData']    = $pd->RecordHtmlData;
             $this->pageData['ModPagination'] = $pd->Pagination;
-            $this->load->model('employees_model');
-            $this->pageData['EmployeeList'] = $this->employees_model->getEmployeeDropdownList($this->_orgUID());
+            $this->load->model('users_model');
+            $this->pageData['EmployeeList'] = $this->users_model->getEmployeeDropdownList($this->_orgUID());
             $this->load->view('hrms/salaryadvances/view', $this->pageData);
         } catch (Exception $e) { redirect('dashboard', 'refresh'); }
     }
@@ -58,7 +58,7 @@ class Salaryadvances extends MY_Controller {
             $amt = (float)($p['AdvanceAmount'] ?? 0);
             if ($amt <= 0) throw new Exception('Amount must be greater than 0.');
             $this->load->model('dbwrite_model');
-            $data = ['OrgUID' => $this->_orgUID(), 'BranchUID' => $this->_branchUID(), 'EmployeeUID' => (int)$p['EmployeeUID'], 'AdvanceDate' => $p['AdvanceDate'], 'AdvanceAmount' => $amt, 'Reason' => trim($p['Reason'] ?? ''), 'BalancePending' => $amt, 'IsSettled' => 0, 'UpdatedBy' => $this->_userUID()];
+            $data = ['OrgUID' => $this->_orgUID(), 'BranchUID' => $this->_branchUID(), 'UserUID' => (int)$p['EmployeeUID'], 'AdvanceDate' => $p['AdvanceDate'], 'AdvanceAmount' => $amt, 'Reason' => trim($p['Reason'] ?? ''), 'BalancePending' => $amt, 'IsSettled' => 0, 'UpdatedBy' => $this->_userUID()];
             if ($uid === 0) {
                 $data['CreatedBy'] = $this->_userUID();
                 $res = $this->dbwrite_model->insertData('Transaction', 'SalaryAdvanceTbl', $data);

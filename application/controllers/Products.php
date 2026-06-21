@@ -1227,59 +1227,85 @@ class Products extends MY_Controller {
 
         $this->EndReturnData = new stdClass();
         try {
-            $keys = [
+            // All known fields and their Upstash keys
+            $allKeyMap = [
                 'primaryUnit' => $this->redisservice->orgKey('primary-unit'),
                 'discType'    => $this->redisservice->orgKey('disc-type'),
                 'prodType'    => $this->redisservice->orgKey('prod-type'),
                 'prodTax'     => $this->redisservice->orgKey('prod-tax'),
                 'taxDetails'  => $this->redisservice->orgKey('tax-details'),
-                'categories'  => $this->redisservice->orgKey('org-categories'),
+                'categories'  => $this->redisservice->orgKey('categories'),
             ];
 
-            $fieldNames  = array_keys($keys);
-            $cmds        = array_map(fn($k) => ['GET', $k], array_values($keys));
-            $pipeResults = $this->upstashservice->pipeline($cmds);
+            // JS sends fields[] when only some keys were missing in the client-side
+            // Upstash check — limit processing to only those fields.
+            $requestedFields = $this->input->post('fields');
+            if (!empty($requestedFields) && is_array($requestedFields)) {
+                $keys = array_intersect_key($allKeyMap, array_flip(
+                    array_intersect($requestedFields, array_keys($allKeyMap))
+                ));
+            } else {
+                $keys = $allKeyMap;
+            }
 
+            $fieldNames   = array_keys($keys);
             $data         = [];
-            $missingFields = [];
+            $missingFields = $fieldNames; // assume all missing until pipeline says otherwise
 
-            foreach ($pipeResults as $i => $result) {
-                $field = $fieldNames[$i];
-                $raw   = $result['result'] ?? null;
-                if ($raw !== null) {
-                    $decoded   = json_decode($raw, true);
-                    $data[$field] = is_array($decoded)
-                        ? array_map(fn($r) => is_array($r) ? (object) $r : $r, $decoded)
-                        : $decoded;
-                } else {
-                    $missingFields[] = $field;
+            // Try Upstash pipeline for the requested fields
+            // 'categories' is a Redis hash → HGETALL; all others are strings → GET
+            if (!empty($fieldNames)) {
+                $cmds = array_map(function ($field, $key) {
+                    return $field === 'categories' ? ['HGETALL', $key] : ['GET', $key];
+                }, $fieldNames, array_values($keys));
+                $pipeResults = $this->upstashservice->pipeline($cmds);
+
+                if (!empty($pipeResults)) {
+                    $missingFields = [];
+                    foreach ($pipeResults as $i => $result) {
+                        $field = $fieldNames[$i];
+                        $raw   = $result['result'] ?? null;
+
+                        if ($field === 'categories') {
+                            // HGETALL → flat [uid, jsonStr, uid, jsonStr, ...] array
+                            if (is_array($raw) && count($raw) >= 2) {
+                                $cats = [];
+                                for ($j = 0; $j + 1 < count($raw); $j += 2) {
+                                    $decoded = json_decode($raw[$j + 1], true);
+                                    if ($decoded) $cats[] = (object)$decoded;
+                                }
+                                if (!empty($cats)) { $data[$field] = $cats; continue; }
+                            }
+                            $missingFields[] = $field;
+                        } else {
+                            if ($raw !== null) {
+                                $decoded      = json_decode($raw, true);
+                                $data[$field] = is_array($decoded)
+                                    ? array_map(fn($r) => is_array($r) ? (object) $r : $r, $decoded)
+                                    : $decoded;
+                            } else {
+                                $missingFields[] = $field;
+                            }
+                        }
+                    }
                 }
+                // If pipeResults is empty → Upstash disabled/error → missingFields = all requested
             }
 
-            $this->load->model('global_model');
-
-            // Fetch any missing fields from DB (model methods also write back to Upstash)
-            foreach ($missingFields as $field) {
-                switch ($field) {
-                    case 'primaryUnit': $data['primaryUnit'] = $this->global_model->getPrimaryUnitInfo()->Data  ?? []; break;
-                    case 'discType':    $data['discType']    = $this->global_model->getDiscountTypeInfo()->Data ?? []; break;
-                    case 'prodType':    $data['prodType']    = $this->global_model->getProductTypeInfo()->Data  ?? []; break;
-                    case 'prodTax':     $data['prodTax']     = $this->global_model->getProductTaxInfo()->Data   ?? []; break;
-                    case 'taxDetails':  $data['taxDetails']  = $this->global_model->getTaxDetailsInfo()->Data   ?? []; break;
-                    case 'categories':  $data['categories']  = $this->products_model->getCategoriesDetails([])  ?? []; break;
+            // DB fallback for every field not found in Upstash
+            // (model methods also write the result back to Upstash)
+            if (!empty($missingFields)) {
+                $this->load->model('global_model');
+                foreach ($missingFields as $field) {
+                    switch ($field) {
+                        case 'primaryUnit': $data['primaryUnit'] = $this->global_model->getPrimaryUnitInfo()->Data  ?? []; break;
+                        case 'discType':    $data['discType']    = $this->global_model->getDiscountTypeInfo()->Data ?? []; break;
+                        case 'prodType':    $data['prodType']    = $this->global_model->getProductTypeInfo()->Data  ?? []; break;
+                        case 'prodTax':     $data['prodTax']     = $this->global_model->getProductTaxInfo()->Data   ?? []; break;
+                        case 'taxDetails':  $data['taxDetails']  = $this->global_model->getTaxDetailsInfo()->Data   ?? []; break;
+                        case 'categories':  $data['categories']  = $this->products_model->getCategoriesDetails([])  ?? []; break;
+                    }
                 }
-            }
-
-            // Pipeline returned empty (Upstash disabled or error) — fetch all
-            if (empty($pipeResults)) {
-                $data = [
-                    'primaryUnit' => $this->global_model->getPrimaryUnitInfo()->Data  ?? [],
-                    'discType'    => $this->global_model->getDiscountTypeInfo()->Data  ?? [],
-                    'prodType'    => $this->global_model->getProductTypeInfo()->Data   ?? [],
-                    'prodTax'     => $this->global_model->getProductTaxInfo()->Data    ?? [],
-                    'taxDetails'  => $this->global_model->getTaxDetailsInfo()->Data    ?? [],
-                    'categories'  => $this->products_model->getCategoriesDetails([])   ?? [],
-                ];
             }
 
             $this->EndReturnData->Error = false;
@@ -2179,6 +2205,10 @@ class Products extends MY_Controller {
             $newMap = [];
 
             foreach ($products as $prod) {
+                $isComposite = (int)($prod->IsComposite ?? 0);
+                $notForSale  = (int)($prod->NotForSale  ?? 0);
+                if (!$isComposite && $notForSale) continue;
+
                 $uid = (int) $prod->ProductUID;
                 $newMap[(string)$uid] = [
                     'ProductUID'                  => $uid,
@@ -2246,17 +2276,15 @@ class Products extends MY_Controller {
             $cacheKey = $this->redisservice->orgKey('categories');
             $this->upstashservice->del($cacheKey);
             $newMap = [];
-
             foreach ($categories as $cat) {
-                $uid = (int) $cat->CategoryUID;
+                $uid = (int)$cat->CategoryUID;
                 $newMap[(string)$uid] = [
-                    'CategoryUID'  => $uid,
-                    'Name'         => $cat->Name        ?? '',
-                    'Description'  => $cat->Description ?? '',
-                    'Image'        => $cat->Image       ?? '',
+                    'CategoryUID' => $uid,
+                    'Name'        => $cat->Name        ?? '',
+                    'Description' => $cat->Description ?? '',
+                    'Image'       => $cat->Image       ?? '',
                 ];
             }
-
             $this->upstashservice->hmset($cacheKey, $newMap);
 
             $this->EndReturnData->Error   = FALSE;

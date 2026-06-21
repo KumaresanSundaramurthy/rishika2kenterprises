@@ -126,10 +126,7 @@ window.CategoryFilterBox = (function () {
                 '</div>' +
             '</div>' +
             '<div class="catg-filter-search-wrap">' +
-                '<div class="input-group input-group-sm">' +
-                    '<span class="input-group-text"><i class="bx bx-search"></i></span>' +
-                    '<input type="text" class="form-control cfb-search" data-box="' + boxSel + '" placeholder="Search categories...">' +
-                '</div>' +
+                '<input type="text" class="form-control form-control-sm cfb-search" data-box="' + boxSel + '" placeholder="Search categories...">' +
             '</div>' +
             '<div class="catg-select-all-wrap">' +
                 '<input type="checkbox" class="form-check-input cfb-sel-all" id="cfbSelAll_' + uid + '" ' +

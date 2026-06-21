@@ -265,7 +265,7 @@ if (!empty($DataLists)) {
 
         <?php if ($row->IsComposite): ?>
         <tr id="combo-bom-row-<?php echo $uid; ?>" class="d-none combo-bom-row">
-            <td colspan="10" class="p-0">
+            <td colspan="11" class="p-0">
                 <div class="combo-bom-content px-3 py-0" style="border-left:4px solid #fd7e14;background:linear-gradient(to right,rgba(253,126,20,.06),transparent 60%);">
                     <div class="combo-bom-loading text-muted small py-2 ps-1">
                         <i class="bx bx-loader-alt bx-spin me-1"></i> Loading components...
@@ -279,7 +279,7 @@ if (!empty($DataLists)) {
 } else { ?>
 
     <tr>
-        <td colspan="10">
+        <td colspan="11">
             <div class="d-flex justify-content-center align-items-center vh-50">
                 <div class="d-flex flex-column align-items-center w-100" style="max-width:500px;">
                     <div class="w-100 mb-3 d-flex justify-content-center align-items-center flex-grow-1">

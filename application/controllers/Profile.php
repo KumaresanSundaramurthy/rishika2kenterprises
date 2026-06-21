@@ -13,12 +13,19 @@ class Profile extends MY_Controller {
 
         try {
 
-            $this->load->model('global_model');
-            $GetCountryInfo = $this->global_model->getCountryInfo();
-            $this->pageData['CountryInfo'] = $GetCountryInfo->Error === FALSE ? $GetCountryInfo->Data : [];
-
             $this->load->model('user_model');
             $this->pageData['userInfo'] = $this->user_model->getUserByUserInfo(['User.UserUID' => $this->pageData['JwtData']->User->UserUID])->Data[0];
+
+            $userUID = (int)$this->pageData['JwtData']->User->UserUID;
+            $orgUID  = (int)$this->pageData['JwtData']->Org->OrgUID;
+
+            $this->load->model('users_model');
+            $this->pageData['userFullData']       = $this->users_model->getUserById($userUID, $orgUID);
+            $this->pageData['userAttachments']    = $this->users_model->getUserAttachments($userUID, $orgUID);
+            $this->pageData['DepartmentsList']    = $this->users_model->getDepartmentList($orgUID);
+            $this->pageData['DesignationsList']   = $this->users_model->getDesignationList($orgUID);
+            $this->pageData['OrgUsersList']       = $this->users_model->getOrgUsersForDropdown($orgUID);
+            $this->pageData['bankDetails']        = $this->users_model->getBankDetails($userUID);
 
             $this->load->view('profile/view', $this->pageData);
 
@@ -26,6 +33,213 @@ class Profile extends MY_Controller {
             redirect('dashboard', 'refresh');
         }
 
+    }
+
+    // ── Save profile addresses ────────────────────────────────────────────────
+    public function saveProfileAddress() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $JwtData = $this->pageData['JwtData'];
+            $userUID = (int)$JwtData->User->UserUID;
+            $now     = date('Y-m-d H:i:s');
+            $p       = $this->input->post();
+
+            $this->load->model('users_model');
+            $this->load->model('dbwrite_model');
+
+            $saved = 0;
+            foreach (['Current', 'Permanent'] as $type) {
+                $pfx   = $type === 'Current' ? 'Curr' : 'Perm';
+                $line1 = trim($p[$pfx . 'AddressLine1'] ?? '');
+                $city  = trim($p[$pfx . 'City']         ?? '');
+                $state = trim($p[$pfx . 'State']        ?? '');
+                $pin   = trim($p[$pfx . 'PinCode']      ?? '');
+                if (!$line1 && !$city && !$state && !$pin) continue;
+
+                $country = trim($p[$pfx . 'Country'] ?? 'India') ?: 'India';
+
+                $addrData = [
+                    'UserUID'      => $userUID,
+                    'AddressType'  => $type,
+                    'AddressLine1' => $line1   ?: null,
+                    'AddressLine2' => trim($p[$pfx . 'AddressLine2'] ?? '') ?: null,
+                    'City'         => $city    ?: null,
+                    'State'        => $state   ?: null,
+                    'PinCode'      => $pin     ?: null,
+                    'Country'      => $country,
+                    'IsActive'     => 1,
+                    'IsDeleted'    => 0,
+                    'UpdatedBy'    => $userUID,
+                ];
+
+                $existing = $this->users_model->getUserAddressForType($userUID, $type);
+                if ($existing) {
+                    $this->dbwrite_model->updateData('Users', 'UserAddressTbl', $addrData, ['AddressUID' => $existing->AddressUID]);
+                } else {
+                    $addrData['CreatedBy'] = $userUID;
+                    $addrData['CreatedOn'] = $now;
+                    $this->dbwrite_model->insertData('Users', 'UserAddressTbl', $addrData);
+                }
+                $saved++;
+            }
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = $saved ? 'Address saved successfully.' : 'Nothing to save.';
+
+        } catch (Throwable $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    // ── Save work information ─────────────────────────────────────────────────
+    public function saveProfileWorkInfo() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $JwtData = $this->pageData['JwtData'];
+            $userUID = (int)$JwtData->User->UserUID;
+            $orgUID  = (int)$JwtData->Org->OrgUID;
+            $p       = $this->input->post();
+
+            $deptUID        = (int)($p['DepartmentUID']       ?? 0);
+            $desigUID       = (int)($p['DesignationUID']      ?? 0);
+            $empStatus      = trim($p['EmployeeStatus']       ?? 'Active');
+            $doj            = trim($p['DateOfJoining']        ?? '');
+            $employmentType = trim($p['EmploymentType']       ?? '');
+            $workEmail      = trim($p['WorkEmail']            ?? '');
+            $workPhone      = trim($p['WorkPhone']            ?? '');
+            $probEndDate    = trim($p['ProbationEndDate']     ?? '');
+            $noticeDays     = strlen(trim($p['NoticePeriodDays'] ?? '')) ? (int)$p['NoticePeriodDays'] : null;
+            $mgrUID         = (int)($p['ReportingManagerUID'] ?? 0);
+            $lastWorkDate   = trim($p['LastWorkingDate']      ?? '');
+            $exitReason     = trim($p['ExitReason']           ?? '');
+
+            $validStatuses = ['Active', 'Resigned', 'Terminated', 'OnLeave'];
+            if (!in_array($empStatus, $validStatuses)) $empStatus = 'Active';
+
+            $validEmpTypes = ['Permanent', 'Contract', 'Part-time', 'Intern', 'Consultant', ''];
+            if (!in_array($employmentType, $validEmpTypes)) $employmentType = '';
+
+            // Role 1 is always Active
+            $this->load->model('users_model');
+            $currentUser = $this->users_model->getUserById($userUID, $orgUID);
+            if ($currentUser && (int)$currentUser->RoleUID === 1) $empStatus = 'Active';
+
+            $data = ['UpdatedBy' => $userUID, 'UpdatedOn' => date('Y-m-d H:i:s')];
+
+            if ($deptUID  > 0) $data['DepartmentUID']  = $deptUID;
+            if ($desigUID > 0) $data['DesignationUID'] = $desigUID;
+            $data['EmployeeStatus'] = $empStatus;
+            $data['EmploymentType'] = $employmentType ?: null;
+            $data['WorkEmail']      = $workEmail      ?: null;
+            $data['WorkPhone']      = $workPhone      ?: null;
+            $data['NoticePeriodDays'] = $noticeDays;
+            $data['ReportingManagerUID'] = ($mgrUID > 0 && $mgrUID !== $userUID) ? $mgrUID : null;
+            $data['ExitReason']     = $exitReason     ?: null;
+
+            if (!empty($doj)          && strtotime($doj))          $data['DateOfJoining']    = date('Y-m-d', strtotime($doj));
+            if (!empty($probEndDate)  && strtotime($probEndDate))  $data['ProbationEndDate'] = date('Y-m-d', strtotime($probEndDate));
+            else                                                    $data['ProbationEndDate'] = null;
+            if (!empty($lastWorkDate) && strtotime($lastWorkDate)) $data['LastWorkingDate']  = date('Y-m-d', strtotime($lastWorkDate));
+            else                                                    $data['LastWorkingDate']  = null;
+
+            $this->load->model('dbwrite_model');
+            $res = $this->dbwrite_model->updateData('Users', 'UserTbl', $data, ['UserUID' => $userUID, 'OrgUID' => $orgUID]);
+            if ($res->Error) throw new Exception($res->Message);
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Work information saved successfully.';
+
+        } catch (Throwable $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+
+    // ── Upload own document/attachment ────────────────────────────────────────
+    public function saveProfileAttachment() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $JwtData = $this->pageData['JwtData'];
+            $userUID = (int)$JwtData->User->UserUID;
+            $orgUID  = (int)$JwtData->Org->OrgUID;
+            $docType = trim($this->input->post('DocType') ?: 'General');
+
+            $file = $_FILES['AttachFile'] ?? null;
+            if (empty($file) || ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+                throw new Exception('No file received or upload error.');
+            }
+            if ($file['size'] > 5 * 1024 * 1024) throw new Exception('File size must be under 5 MB.');
+
+            $origName    = basename($file['name']);
+            $safeName    = time() . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $origName);
+            $storagePath = 'employees/' . $userUID . '/' . $safeName;
+
+            $this->load->library('fileupload');
+            $uploadResult = $this->fileupload->fileUpload('file', $storagePath, $file['tmp_name']);
+            if ($uploadResult->Error) throw new Exception('Upload failed: ' . $uploadResult->Message);
+
+            $filePath = '/' . ltrim($uploadResult->Path, '/');
+
+            $this->load->model('dbwrite_model');
+            $res = $this->dbwrite_model->insertData('Users', 'UserAttachmentTbl', [
+                'UserUID'   => $userUID,
+                'OrgUID'    => $orgUID,
+                'FileName'  => $origName,
+                'FilePath'  => $filePath,
+                'FileType'  => $file['type'],
+                'FileSize'  => (int)$file['size'],
+                'DocType'   => $docType,
+                'IsActive'  => 1,
+                'IsDeleted' => 0,
+                'CreatedBy' => $userUID,
+                'CreatedOn' => date('Y-m-d H:i:s'),
+            ]);
+            if ($res->Error) throw new Exception($res->Message);
+
+            $this->load->model('users_model');
+            $this->EndReturnData->Error       = FALSE;
+            $this->EndReturnData->Message     = 'File uploaded successfully.';
+            $this->EndReturnData->Attachments = $this->users_model->getUserAttachments($userUID, $orgUID);
+
+        } catch (Throwable $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    // ── Delete own attachment ─────────────────────────────────────────────────
+    public function deleteProfileAttachment() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $JwtData   = $this->pageData['JwtData'];
+            $userUID   = (int)$JwtData->User->UserUID;
+            $orgUID    = (int)$JwtData->Org->OrgUID;
+            $attachUID = (int)($this->input->post('AttachUID') ?: 0);
+
+            if ($attachUID <= 0) throw new Exception('Invalid attachment.');
+
+            $this->load->model('dbwrite_model');
+            $res = $this->dbwrite_model->updateData('Users', 'UserAttachmentTbl',
+                ['IsDeleted' => 1, 'IsActive' => 0],
+                ['AttachUID' => $attachUID, 'UserUID' => $userUID, 'OrgUID' => $orgUID]
+            );
+            if ($res->Error) throw new Exception($res->Message);
+
+            $this->load->model('users_model');
+            $this->EndReturnData->Error       = FALSE;
+            $this->EndReturnData->Message     = 'Deleted.';
+            $this->EndReturnData->Attachments = $this->users_model->getUserAttachments($userUID, $orgUID);
+
+        } catch (Throwable $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
     public function updateProfileDetails() {
@@ -427,6 +641,364 @@ class Profile extends MY_Controller {
 
         $this->globalservice->sendJsonResponse($this->EndReturnData);
 
+    }
+
+    // ── Emergency Contacts ────────────────────────────────────────────────────
+    public function getEmergencyContacts() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $userUID = (int)$this->pageData['JwtData']->User->UserUID;
+            $this->load->model('users_model');
+            $this->EndReturnData->Error    = FALSE;
+            $this->EndReturnData->Contacts = $this->users_model->getEmergencyContacts($userUID);
+        } catch (Throwable $e) {
+            $this->EndReturnData->Error    = TRUE;
+            $this->EndReturnData->Message  = $e->getMessage();
+            $this->EndReturnData->Contacts = [];
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    public function saveEmergencyContact() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $userUID   = (int)$this->pageData['JwtData']->User->UserUID;
+            $p         = $this->input->post();
+            $emgUID    = (int)($p['EmgContactUID'] ?? 0);
+            $name      = trim($p['Name']         ?? '');
+            $relation  = trim($p['Relationship'] ?? '');
+            $phone     = trim($p['PhoneNumber']  ?? '');
+            if (!$name)     throw new Exception('Name is required.');
+            if (!$relation) throw new Exception('Relationship is required.');
+            if (!$phone)    throw new Exception('Phone number is required.');
+            $isPrimary = (int)($p['IsPrimary'] ?? 0) ? 1 : 0;
+            $now       = date('Y-m-d H:i:s');
+
+            $this->load->model('dbwrite_model');
+
+            // If marking as primary — clear existing primary for this user first
+            if ($isPrimary) {
+                $this->dbwrite_model->updateData('Users', 'UserEmergencyContactTbl',
+                    ['IsPrimary' => 0, 'UpdatedBy' => $userUID, 'UpdatedOn' => $now],
+                    ['UserUID' => $userUID, 'IsDeleted' => 0]
+                );
+            }
+
+            $data = [
+                'Name'         => substr($name,     0, 100),
+                'Relationship' => substr($relation, 0, 100),
+                'PhoneNumber'  => substr($phone,    0, 20),
+                'EmailAddress' => substr(trim($p['EmailAddress'] ?? ''), 0, 150) ?: null,
+                'AddressLine1' => substr(trim($p['AddressLine1'] ?? ''), 0, 200) ?: null,
+                'AddressLine2' => substr(trim($p['AddressLine2'] ?? ''), 0, 200) ?: null,
+                'City'         => substr(trim($p['City']         ?? ''), 0, 100) ?: null,
+                'State'        => substr(trim($p['State']        ?? ''), 0, 100) ?: null,
+                'Country'      => substr(trim($p['Country']      ?? ''), 0, 100) ?: null,
+                'IsPrimary'    => $isPrimary,
+                'UpdatedBy'    => $userUID,
+                'UpdatedOn'    => $now,
+            ];
+
+            if ($emgUID > 0) {
+                $res = $this->dbwrite_model->updateData('Users', 'UserEmergencyContactTbl', $data, ['EmgContactUID' => $emgUID, 'UserUID' => $userUID]);
+            } else {
+                $data['UserUID']   = $userUID;
+                $data['IsActive']  = 1;
+                $data['IsDeleted'] = 0;
+                $data['CreatedBy'] = $userUID;
+                $data['CreatedOn'] = $now;
+                $res = $this->dbwrite_model->insertData('Users', 'UserEmergencyContactTbl', $data);
+            }
+            if ($res->Error) throw new Exception($res->Message);
+
+            $this->load->model('users_model');
+            $this->EndReturnData->Error    = FALSE;
+            $this->EndReturnData->Message  = $emgUID > 0 ? 'Contact updated.' : 'Contact added.';
+            $this->EndReturnData->Contacts = $this->users_model->getEmergencyContacts($userUID);
+        } catch (Throwable $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    public function deleteEmergencyContact() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $userUID = (int)$this->pageData['JwtData']->User->UserUID;
+            $emgUID  = (int)($this->input->post('EmgContactUID') ?? 0);
+            if ($emgUID <= 0) throw new Exception('Invalid record.');
+            $this->load->model('dbwrite_model');
+            $res = $this->dbwrite_model->updateData('Users', 'UserEmergencyContactTbl',
+                ['IsDeleted' => 1, 'IsActive' => 0, 'IsPrimary' => 0, 'UpdatedBy' => $userUID, 'UpdatedOn' => date('Y-m-d H:i:s')],
+                ['EmgContactUID' => $emgUID, 'UserUID' => $userUID]
+            );
+            if ($res->Error) throw new Exception($res->Message);
+            $this->load->model('users_model');
+            $this->EndReturnData->Error    = FALSE;
+            $this->EndReturnData->Message  = 'Contact deleted.';
+            $this->EndReturnData->Contacts = $this->users_model->getEmergencyContacts($userUID);
+        } catch (Throwable $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    public function setPrimaryContact() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $userUID = (int)$this->pageData['JwtData']->User->UserUID;
+            $emgUID  = (int)($this->input->post('EmgContactUID') ?? 0);
+            if ($emgUID <= 0) throw new Exception('Invalid contact.');
+
+            $this->load->model('dbwrite_model');
+            $db  = $this->dbwrite_model->getWriteDb();
+            $now = date('Y-m-d H:i:s');
+
+            $db->trans_start();
+
+            // Step 1: clear all primaries for this user
+            $db->where(['UserUID' => $userUID, 'IsDeleted' => 0]);
+            $db->update('Users.UserEmergencyContactTbl',
+                ['IsPrimary' => 0, 'UpdatedBy' => $userUID, 'UpdatedOn' => $now]);
+
+            // Step 2: set the chosen contact as primary
+            $db->where(['EmgContactUID' => $emgUID, 'UserUID' => $userUID]);
+            $db->update('Users.UserEmergencyContactTbl',
+                ['IsPrimary' => 1, 'UpdatedBy' => $userUID, 'UpdatedOn' => $now]);
+
+            $db->trans_complete();
+
+            if ($db->trans_status() === FALSE) {
+                throw new Exception('DB error while updating primary contact.');
+            }
+
+            $this->load->model('users_model');
+            $this->EndReturnData->Error    = FALSE;
+            $this->EndReturnData->Message  = 'Primary contact updated.';
+            $this->EndReturnData->Contacts = $this->users_model->getEmergencyContacts($userUID);
+        } catch (Throwable $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    // ── Bank Details ─────────────────────────────────────────────────────────
+    public function getBankDetails() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $userUID = (int)$this->pageData['JwtData']->User->UserUID;
+            $this->load->model('users_model');
+            $this->EndReturnData->Error  = FALSE;
+            $this->EndReturnData->Data   = $this->users_model->getBankDetails($userUID);
+        } catch (Throwable $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+            $this->EndReturnData->Data    = null;
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    public function saveBankDetails() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $userUID      = (int)$this->pageData['JwtData']->User->UserUID;
+            $p            = $this->input->post();
+            $bankDetailUID = (int)($p['BankDetailUID'] ?? 0);
+            $now          = date('Y-m-d H:i:s');
+
+            $data = [
+                'BankName'      => substr(trim($p['BankName']      ?? ''), 0, 100) ?: null,
+                'BranchName'    => substr(trim($p['BranchName']    ?? ''), 0, 100) ?: null,
+                'IFSCCode'      => strtoupper(substr(trim($p['IFSCCode'] ?? ''), 0, 50)) ?: null,
+                'AccountNumber' => substr(trim($p['AccountNumber'] ?? ''), 0, 50)  ?: null,
+                'AccountType'   => substr(trim($p['AccountType']   ?? ''), 0, 20)  ?: null,
+                'AccountHolder' => substr(trim($p['AccountHolder'] ?? ''), 0, 100) ?: null,
+                'UpiId'         => substr(trim($p['UpiId']         ?? ''), 0, 100) ?: null,
+                'UpiNumber'     => substr(trim($p['UpiNumber']     ?? ''), 0, 20)  ?: null,
+                'UpdatedBy'     => $userUID,
+                'UpdatedOn'     => $now,
+            ];
+
+            $this->load->model('dbwrite_model');
+            if ($bankDetailUID > 0) {
+                $res = $this->dbwrite_model->updateData('Users', 'UserBankDetailsTbl', $data,
+                    ['BankDetailUID' => $bankDetailUID, 'UserUID' => $userUID]);
+            } else {
+                $data['UserUID']   = $userUID;
+                $data['IsActive']  = 1;
+                $data['IsDeleted'] = 0;
+                $data['CreatedBy'] = $userUID;
+                $data['CreatedOn'] = $now;
+                $res = $this->dbwrite_model->insertData('Users', 'UserBankDetailsTbl', $data);
+            }
+            if ($res->Error) throw new Exception($res->Message);
+
+            $this->load->model('users_model');
+            $this->EndReturnData->Error  = FALSE;
+            $this->EndReturnData->Message = 'Bank details saved.';
+            $this->EndReturnData->Data    = $this->users_model->getBankDetails($userUID);
+        } catch (Throwable $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    // ── Education & Experience ────────────────────────────────────────────────
+    public function getEduExp() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $userUID = (int)$this->pageData['JwtData']->User->UserUID;
+            $this->load->model('users_model');
+            $this->EndReturnData->Error      = FALSE;
+            $this->EndReturnData->Education  = $this->users_model->getEducationList($userUID);
+            $this->EndReturnData->Experience = $this->users_model->getExperienceList($userUID);
+        } catch (Throwable $e) {
+            $this->EndReturnData->Error      = TRUE;
+            $this->EndReturnData->Message    = $e->getMessage();
+            $this->EndReturnData->Education  = [];
+            $this->EndReturnData->Experience = [];
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    public function saveEducation() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $userUID = (int)$this->pageData['JwtData']->User->UserUID;
+            $p       = $this->input->post();
+            $eduUID  = (int)($p['EduUID'] ?? 0);
+            $inst    = trim($p['Institution'] ?? '');
+            if (!$inst) throw new Exception('Institution name is required.');
+            $degree  = trim($p['Degree']           ?? '');
+            $field   = trim($p['FieldOfStudy']     ?? '');
+            $cgpa    = trim($p['CGPA']             ?? '');
+            $doc     = trim($p['DateOfCompletion'] ?? '');
+            $now     = date('Y-m-d H:i:s');
+            $data    = [
+                'Institution'      => substr($inst,   0, 200),
+                'Degree'           => substr($degree, 0, 100) ?: null,
+                'FieldOfStudy'     => substr($field,  0, 100) ?: null,
+                'CGPA'             => substr($cgpa,   0, 20)  ?: null,
+                'DateOfCompletion' => ($doc && strtotime($doc)) ? date('Y-m-d', strtotime($doc)) : null,
+                'UpdatedBy'        => $userUID,
+                'UpdatedOn'        => $now,
+            ];
+            $this->load->model('dbwrite_model');
+            if ($eduUID > 0) {
+                $res = $this->dbwrite_model->updateData('Users', 'UserEducationTbl', $data, ['EduUID' => $eduUID, 'UserUID' => $userUID]);
+            } else {
+                $data['UserUID']   = $userUID;
+                $data['IsActive']  = 1;
+                $data['IsDeleted'] = 0;
+                $data['CreatedBy'] = $userUID;
+                $data['CreatedOn'] = $now;
+                $res = $this->dbwrite_model->insertData('Users', 'UserEducationTbl', $data);
+            }
+            if ($res->Error) throw new Exception($res->Message);
+            $this->load->model('users_model');
+            $this->EndReturnData->Error     = FALSE;
+            $this->EndReturnData->Message   = $eduUID > 0 ? 'Education updated.' : 'Education added.';
+            $this->EndReturnData->Education = $this->users_model->getEducationList($userUID);
+        } catch (Throwable $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    public function deleteEducation() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $userUID = (int)$this->pageData['JwtData']->User->UserUID;
+            $eduUID  = (int)($this->input->post('EduUID') ?? 0);
+            if ($eduUID <= 0) throw new Exception('Invalid record.');
+            $this->load->model('dbwrite_model');
+            $res = $this->dbwrite_model->updateData('Users', 'UserEducationTbl',
+                ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID, 'UpdatedOn' => date('Y-m-d H:i:s')],
+                ['EduUID' => $eduUID, 'UserUID' => $userUID]
+            );
+            if ($res->Error) throw new Exception($res->Message);
+            $this->load->model('users_model');
+            $this->EndReturnData->Error     = FALSE;
+            $this->EndReturnData->Message   = 'Deleted.';
+            $this->EndReturnData->Education = $this->users_model->getEducationList($userUID);
+        } catch (Throwable $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    public function saveExperience() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $userUID   = (int)$this->pageData['JwtData']->User->UserUID;
+            $p         = $this->input->post();
+            $expUID    = (int)($p['ExpUID'] ?? 0);
+            $employer  = trim($p['EmployerName']   ?? '');
+            if (!$employer) throw new Exception('Employer name is required.');
+            $jobTitle  = trim($p['JobTitle']       ?? '');
+            $startDate = trim($p['StartDate']      ?? '');
+            $endDate   = trim($p['EndDate']        ?? '');
+            $jobDesc   = trim($p['JobDescription'] ?? '');
+            $now       = date('Y-m-d H:i:s');
+            $data      = [
+                'EmployerName'   => substr($employer, 0, 200),
+                'JobTitle'       => substr($jobTitle, 0, 100) ?: null,
+                'StartDate'      => ($startDate && strtotime($startDate)) ? date('Y-m-d', strtotime($startDate)) : null,
+                'EndDate'        => ($endDate   && strtotime($endDate))   ? date('Y-m-d', strtotime($endDate))   : null,
+                'JobDescription' => $jobDesc ?: null,
+                'UpdatedBy'      => $userUID,
+                'UpdatedOn'      => $now,
+            ];
+            $this->load->model('dbwrite_model');
+            if ($expUID > 0) {
+                $res = $this->dbwrite_model->updateData('Users', 'UserExperienceTbl', $data, ['ExpUID' => $expUID, 'UserUID' => $userUID]);
+            } else {
+                $data['UserUID']   = $userUID;
+                $data['IsActive']  = 1;
+                $data['IsDeleted'] = 0;
+                $data['CreatedBy'] = $userUID;
+                $data['CreatedOn'] = $now;
+                $res = $this->dbwrite_model->insertData('Users', 'UserExperienceTbl', $data);
+            }
+            if ($res->Error) throw new Exception($res->Message);
+            $this->load->model('users_model');
+            $this->EndReturnData->Error      = FALSE;
+            $this->EndReturnData->Message    = $expUID > 0 ? 'Experience updated.' : 'Experience added.';
+            $this->EndReturnData->Experience = $this->users_model->getExperienceList($userUID);
+        } catch (Throwable $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    public function deleteExperience() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $userUID = (int)$this->pageData['JwtData']->User->UserUID;
+            $expUID  = (int)($this->input->post('ExpUID') ?? 0);
+            if ($expUID <= 0) throw new Exception('Invalid record.');
+            $this->load->model('dbwrite_model');
+            $res = $this->dbwrite_model->updateData('Users', 'UserExperienceTbl',
+                ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID, 'UpdatedOn' => date('Y-m-d H:i:s')],
+                ['ExpUID' => $expUID, 'UserUID' => $userUID]
+            );
+            if ($res->Error) throw new Exception($res->Message);
+            $this->load->model('users_model');
+            $this->EndReturnData->Error      = FALSE;
+            $this->EndReturnData->Message    = 'Deleted.';
+            $this->EndReturnData->Experience = $this->users_model->getExperienceList($userUID);
+        } catch (Throwable $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
     // ── Patch User.Signatures in the JWT Redis payload ────────────────────────

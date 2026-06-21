@@ -255,38 +255,38 @@ class MY_Controller extends CI_Controller {
         }
 
         return '<!DOCTYPE html><html><head><meta charset="utf-8">
-<title>' . htmlspecialchars($orgName ?: $previewName) . '</title>
-<style>
-*{box-sizing:border-box;margin:0;padding:0;}
-@page{size:A4 landscape;margin:10mm 15mm;}
-body{font-family:Arial,Helvetica,sans-serif;font-size:9px;}
-.org-header{text-align:center;border-bottom:2px solid #334155;padding-bottom:8px;margin-bottom:8px;}
-.org-logo{margin-bottom:4px;}
-.org-name{font-size:14px;font-weight:700;color:#1e293b;margin-bottom:2px;}
-.org-addr{color:#475569;font-size:8px;margin-bottom:2px;}
-.org-contact{color:#475569;font-size:8px;}
-.report-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
-.report-bar h4{margin:0;font-size:11px;font-weight:700;color:#1e293b;}
-.report-bar .gen-date{font-size:8px;color:#64748b;}
-table{width:100%;border-collapse:collapse;table-layout:' . $tableLayout . ';}
-th{background:#e2e8f0;padding:5px 6px;text-align:left;border:1px solid #cbd5e1;font-size:8.5px;color:#1e293b;font-weight:700;white-space:nowrap;overflow:hidden;}
-td{padding:4px 6px;border:1px solid #e2e8f0;font-size:8px;color:#334155;word-break:break-word;overflow-wrap:break-word;}
-tr:nth-child(even) td{background:#f8fafc;}
-@media print{@page{size:A4 landscape;margin:10mm 15mm;}}
-</style>
-</head><body>
-<div class="org-header">
-  ' . ($logoHtml ? '<div class="org-logo">' . $logoHtml . '</div>' : '') . '
-  <div class="org-name">' . htmlspecialchars($orgName) . '</div>
-  ' . (!empty($addrParts) ? '<div class="org-addr">' . implode(', ', $addrParts) . '</div>' : '') . '
-  ' . (!empty($contactParts) ? '<div class="org-contact">' . implode(' &nbsp;|&nbsp; ', $contactParts) . '</div>' : '') . '
-</div>
-<div class="report-bar">
-  <h4>' . htmlspecialchars($previewName) . '</h4>
-  <span class="gen-date">Generated: ' . $date . '</span>
-</div>
-<table>' . $colGroup . '<thead><tr>' . $th . '</tr></thead><tbody>' . $tb . '</tbody></table>
-</body></html>';
+                <title>' . htmlspecialchars($orgName ?: $previewName) . '</title>
+                <style>
+                *{box-sizing:border-box;margin:0;padding:0;}
+                @page{size:A4 landscape;margin:10mm 15mm;}
+                body{font-family:Arial,Helvetica,sans-serif;font-size:9px;}
+                .org-header{text-align:center;border-bottom:2px solid #334155;padding-bottom:8px;margin-bottom:8px;}
+                .org-logo{margin-bottom:4px;}
+                .org-name{font-size:14px;font-weight:700;color:#1e293b;margin-bottom:2px;}
+                .org-addr{color:#475569;font-size:8px;margin-bottom:2px;}
+                .org-contact{color:#475569;font-size:8px;}
+                .report-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+                .report-bar h4{margin:0;font-size:11px;font-weight:700;color:#1e293b;}
+                .report-bar .gen-date{font-size:8px;color:#64748b;}
+                table{width:100%;border-collapse:collapse;table-layout:' . $tableLayout . ';}
+                th{background:#e2e8f0;padding:5px 6px;text-align:left;border:1px solid #cbd5e1;font-size:8.5px;color:#1e293b;font-weight:700;white-space:nowrap;overflow:hidden;}
+                td{padding:4px 6px;border:1px solid #e2e8f0;font-size:8px;color:#334155;word-break:break-word;overflow-wrap:break-word;}
+                tr:nth-child(even) td{background:#f8fafc;}
+                @media print{@page{size:A4 landscape;margin:10mm 15mm;}}
+                </style>
+                </head><body>
+                <div class="org-header">
+                ' . ($logoHtml ? '<div class="org-logo">' . $logoHtml . '</div>' : '') . '
+                <div class="org-name">' . htmlspecialchars($orgName) . '</div>
+                ' . (!empty($addrParts) ? '<div class="org-addr">' . implode(', ', $addrParts) . '</div>' : '') . '
+                ' . (!empty($contactParts) ? '<div class="org-contact">' . implode(' &nbsp;|&nbsp; ', $contactParts) . '</div>' : '') . '
+                </div>
+                <div class="report-bar">
+                <h4>' . htmlspecialchars($previewName) . '</h4>
+                <span class="gen-date">Generated: ' . $date . '</span>
+                </div>
+                <table>' . $colGroup . '<thead><tr>' . $th . '</tr></thead><tbody>' . $tb . '</tbody></table>
+                </body></html>';
     }
 
 

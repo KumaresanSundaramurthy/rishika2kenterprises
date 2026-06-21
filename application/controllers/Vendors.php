@@ -945,10 +945,20 @@ class Vendors extends MY_Controller {
     // ══════════════════════════════════════════════════════════════════
 
     private function _vendorGroupTypesList() {
-        return [
-            'Business Group', 'Branch Group', 'Family Group',
-            'Corporate Group', 'Dealer Network', 'Franchise Group', 'Custom',
-        ];
+        $this->load->model('vendors_model');
+        return $this->vendors_model->getGroupTypes('vendors');
+    }
+
+    public function getGroupTypes() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $this->EndReturnData->Error = false;
+            $this->EndReturnData->Data  = $this->_vendorGroupTypesList();
+        } catch (Exception $e) {
+            $this->EndReturnData->Error = true;
+            $this->EndReturnData->Data  = [];
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
     private function _fetchVendorGroupsTableData($pageNo, $limit, $filter = []) {
@@ -1045,22 +1055,25 @@ class Vendors extends MY_Controller {
             if (!$groupName) throw new InvalidArgumentException('Group Name is required.');
             $validTypes = $this->_vendorGroupTypesList();
             $data = [
-                'OrgUID'        => $orgUID,
-                'GroupCode'     => trim($post['GroupCode']     ?? '') ?: null,
-                'GroupName'     => $groupName,
-                'GroupType'     => in_array($post['GroupType'] ?? '', $validTypes) ? $post['GroupType'] : 'Business Group',
-                'ContactPerson' => trim($post['ContactPerson'] ?? '') ?: null,
-                'Mobile'        => trim($post['Mobile']        ?? '') ?: null,
-                'Email'         => trim($post['Email']         ?? '') ?: null,
-                'GSTNo'         => trim($post['GSTNo']         ?? '') ?: null,
-                'Address'       => trim($post['Address']       ?? '') ?: null,
-                'City'          => trim($post['City']          ?? '') ?: null,
-                'State'         => trim($post['State']         ?? '') ?: null,
-                'Country'       => trim($post['Country']       ?? 'India') ?: 'India',
-                'Notes'         => trim($post['Notes']         ?? '') ?: null,
-                'IsActive'      => 1,
-                'CreatedBy'     => $userUID,
-                'UpdatedBy'     => $userUID,
+                'OrgUID'            => $orgUID,
+                'GroupCode'         => trim($post['GroupCode']         ?? '') ?: null,
+                'GroupName'         => $groupName,
+                'GroupType'         => in_array($post['GroupType'] ?? '', $validTypes) ? $post['GroupType'] : 'Business Group',
+                'ContactPerson'     => trim($post['ContactPerson']     ?? '') ?: null,
+                'Mobile'            => trim($post['Mobile']            ?? '') ?: null,
+                'MobileCountryCode' => trim($post['MobileCountryCode'] ?? '') ?: null,
+                'Email'             => trim($post['Email']             ?? '') ?: null,
+                'GSTNo'             => trim($post['GSTNo']             ?? '') ?: null,
+                'AddrLine1'         => trim($post['AddrLine1']         ?? '') ?: null,
+                'AddrLine2'         => trim($post['AddrLine2']         ?? '') ?: null,
+                'AddrCity'          => trim($post['AddrCity']          ?? '') ?: null,
+                'AddrState'         => trim($post['AddrState']         ?? '') ?: null,
+                'AddrStateCode'     => trim($post['AddrStateCode']     ?? '') ?: null,
+                'AddrPincode'       => trim($post['AddrPincode']       ?? '') ?: null,
+                'Notes'             => trim($post['Notes']             ?? '') ?: null,
+                'IsActive'          => 1,
+                'CreatedBy'         => $userUID,
+                'UpdatedBy'         => $userUID,
             ];
             $resp = $this->dbwrite_model->insertData('Vendors', 'VendorGroupTbl', $data);
             if ($resp->Error) throw new Exception($resp->Message);
@@ -1108,19 +1121,22 @@ class Vendors extends MY_Controller {
             if (!$groupName) throw new InvalidArgumentException('Group Name is required.');
             $validTypes = $this->_vendorGroupTypesList();
             $data = [
-                'GroupCode'     => trim($post['GroupCode']     ?? '') ?: null,
-                'GroupName'     => $groupName,
-                'GroupType'     => in_array($post['GroupType'] ?? '', $validTypes) ? $post['GroupType'] : 'Business Group',
-                'ContactPerson' => trim($post['ContactPerson'] ?? '') ?: null,
-                'Mobile'        => trim($post['Mobile']        ?? '') ?: null,
-                'Email'         => trim($post['Email']         ?? '') ?: null,
-                'GSTNo'         => trim($post['GSTNo']         ?? '') ?: null,
-                'Address'       => trim($post['Address']       ?? '') ?: null,
-                'City'          => trim($post['City']          ?? '') ?: null,
-                'State'         => trim($post['State']         ?? '') ?: null,
-                'Country'       => trim($post['Country']       ?? 'India') ?: 'India',
-                'Notes'         => trim($post['Notes']         ?? '') ?: null,
-                'UpdatedBy'     => $userUID,
+                'GroupCode'         => trim($post['GroupCode']         ?? '') ?: null,
+                'GroupName'         => $groupName,
+                'GroupType'         => in_array($post['GroupType'] ?? '', $validTypes) ? $post['GroupType'] : 'Business Group',
+                'ContactPerson'     => trim($post['ContactPerson']     ?? '') ?: null,
+                'Mobile'            => trim($post['Mobile']            ?? '') ?: null,
+                'MobileCountryCode' => trim($post['MobileCountryCode'] ?? '') ?: null,
+                'Email'             => trim($post['Email']             ?? '') ?: null,
+                'GSTNo'             => trim($post['GSTNo']             ?? '') ?: null,
+                'AddrLine1'         => trim($post['AddrLine1']         ?? '') ?: null,
+                'AddrLine2'         => trim($post['AddrLine2']         ?? '') ?: null,
+                'AddrCity'          => trim($post['AddrCity']          ?? '') ?: null,
+                'AddrState'         => trim($post['AddrState']         ?? '') ?: null,
+                'AddrStateCode'     => trim($post['AddrStateCode']     ?? '') ?: null,
+                'AddrPincode'       => trim($post['AddrPincode']       ?? '') ?: null,
+                'Notes'             => trim($post['Notes']             ?? '') ?: null,
+                'UpdatedBy'         => $userUID,
             ];
             $resp = $this->dbwrite_model->updateData('Vendors', 'VendorGroupTbl', $data, ['GroupUID' => $groupUID, 'OrgUID' => $orgUID]);
             if ($resp->Error) throw new Exception($resp->Message);

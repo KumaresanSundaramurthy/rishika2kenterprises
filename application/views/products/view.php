@@ -93,14 +93,14 @@
                                 <input type="text" class="SearchDetails" id="SearchDetails" placeholder="Search items...">
                                 <i class="bx bx-x r2k-clear d-none" id="clearSearch"></i>
                             </div>
-                            <a href="javascript:void(0);" id="productTypeFilter" class="apex-filter-btn <?php echo $ActiveTabData == 'item' ? '' : 'd-none'; ?>" onclick="toggleProductTypeFilter(); event.stopPropagation();" title="Filter by Product Type"><i class="bx bx-box me-1"></i>Type</a>
-                            <a href="javascript:void(0);" id="statusFilter" class="apex-filter-btn <?php echo $ActiveTabData == 'item' ? '' : 'd-none'; ?>" onclick="toggleStatusFilter(); event.stopPropagation();" title="Filter by Status"><i class="bx bx-transfer me-1"></i>Status</a>
+                            <a href="javascript:void(0);" id="productTypeFilter" class="apex-filter-btn <?php echo $ActiveTabData == 'item' ? '' : 'd-none'; ?>" title="Filter by Product Type"><i class="bx bx-box me-1"></i>Type</a>
+                            <a href="javascript:void(0);" id="statusFilter" class="apex-filter-btn <?php echo $ActiveTabData == 'item' ? '' : 'd-none'; ?>" title="Filter by Status"><i class="bx bx-transfer me-1"></i>Status</a>
                             <a href="javascript:void(0);" id="categoryFilter" class="apex-filter-btn <?php echo $ActiveTabData == 'item' ? '' : 'd-none'; ?>" onclick="toggleCategoryFilter(); event.stopPropagation();" title="Filter by Category"><i class="bx bx-layer me-1"></i>Category</a>
                             <div class="apex-filter-spacer"></div>
                             <a href="javascript:void(0);" class="apex-icon-btn PageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
                             <a href="javascript:void(0);" class="apex-icon-btn <?php echo ($ActiveTabData == 'item' || $ActiveTabData == 'group') ? '' : 'd-none'; ?>" id="btnSyncProductsCache" title="Sync Items Cache"><i class="bx bx-planet"></i></a>
                             <a href="javascript:void(0);" class="apex-icon-btn <?php echo $ActiveTabData == 'category' ? '' : 'd-none'; ?>" id="btnSyncCategoriesCache" title="Sync Categories Cache"><i class="bx bx-planet"></i></a>
-                            <div class="btn-group" id="ActionsDD-Div">
+                            <div class="btn-group d-none" id="ActionsDD-Div">
                                 <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="actionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                                     <i class="bx bx-slider-alt"></i>
                                 </button>
@@ -111,15 +111,19 @@
                                     <li class="d-none" id="DeleteOption">
                                         <a class="dropdown-item text-danger" href="javascript:void(0);" id="btnDelete"><i class="bx bx-trash me-1"></i> Delete</a>
                                     </li>
-                                    <li class="dropdown-submenu">
-                                        <a class="dropdown-item" href="javascript:void(0);"><i class="bx bx-export me-1"></i> Export</a>
-                                        <ul class="dropdown-menu">
-                                            <li><a class="dropdown-item" href="javascript:void(0);" id="btnExportPrint"><i class="bx bx-printer me-1"></i> Print</a></li>
-                                            <li><a class="dropdown-item" href="javascript:void(0);" id="btnExportCSV"><i class="bx bx-file me-1"></i> CSV</a></li>
-                                            <li><a class="dropdown-item" href="javascript:void(0);" id="btnExportExcel"><i class="bx bxs-file-export me-1"></i> Excel</a></li>
-                                            <li><a class="dropdown-item" href="javascript:void(0);" id="btnExportPDF"><i class="bx bxs-file-pdf me-1"></i> PDF</a></li>
-                                        </ul>
-                                    </li>
+                                </ul>
+                            </div>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
+                                        data-bs-toggle="dropdown" data-bs-auto-close="true" aria-expanded="false" title="Export">
+                                    <i class="bx bx-export me-1"></i>Export
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end shadow" style="min-width:160px;font-size:.83rem;">
+                                    <li><a class="dropdown-item" href="javascript:void(0);" id="btnExportPrint"><i class="bx bx-printer me-2 text-secondary"></i>Print Preview</a></li>
+                                    <li><hr class="dropdown-divider my-1"></li>
+                                    <li><a class="dropdown-item" href="javascript:void(0);" id="btnExportCSV"><i class="bx bx-file me-2 text-success"></i>CSV</a></li>
+                                    <li><a class="dropdown-item" href="javascript:void(0);" id="btnExportExcel"><i class="bx bxs-file-export me-2 text-success"></i>Excel</a></li>
+                                    <li><a class="dropdown-item" href="javascript:void(0);" id="btnExportPDF"><i class="bx bxs-file-pdf me-2 text-danger"></i>PDF</a></li>
                                 </ul>
                             </div>
                             <a href="javascript:void(0);" class="btn btn-primary btn-sm addItem <?php echo $ActiveTabData == 'item' ? '' : 'd-none'; ?>" id="NewItem"><i class="bx bx-plus me-1"></i> Create Item</a>
@@ -135,7 +139,7 @@
                                 <li class="nav-item">
                                     <a class="nav-link <?php echo $ActiveTabData == 'item' ? 'active' : ''; ?> TabPane disabled" data-id="Item" role="tab" data-bs-toggle="tab" data-bs-target="#NavItemPage" href="javascript:void(0);">
                                         <i class="bx bx-package me-1"></i> Items
-                                        <span class="trans-tab-count" id="productTotalCount"><?php echo $ProductTotalCount; ?></span>
+                                        <span class="trans-tab-count<?php echo $ActiveTabData != 'item' ? ' d-none' : ''; ?>" id="productTotalCount"><?php echo $ProductTotalCount; ?></span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
@@ -147,27 +151,25 @@
                                 <li class="nav-item">
                                     <a class="nav-link <?php echo $ActiveTabData == 'category' ? 'active' : ''; ?> TabPane disabled" data-id="Categories" role="tab" data-bs-toggle="tab" data-bs-target="#NavCategoriesPage" href="javascript:void(0);">
                                         <i class="bx bx-layer me-1"></i> Categories
-                                        <span class="trans-tab-count d-none"></span>
+                                        <span class="trans-tab-count d-none" id="categoryTotalCount"></span>
                                     </a>
                                 </li>
-                                <li class="nav-item">
-                                    <a class="nav-link TabPane disabled d-none" data-id="Sizes" role="tab" data-bs-toggle="tab" data-bs-target="#NavSizesPage" href="javascript:void(0);">
+                                <li class="nav-item d-none">
+                                    <a class="nav-link TabPane disabled" data-id="Sizes" role="tab" data-bs-toggle="tab" data-bs-target="#NavSizesPage" href="javascript:void(0);">
                                         <i class="bx bx-ruler me-1"></i> Sizes
-                                        <span class="trans-tab-count d-none"></span>
+                                        <span class="trans-tab-count d-none" id="sizeTotalCount"></span>
                                     </a>
                                 </li>
-                                <li class="nav-item">
-                                    <a class="nav-link TabPane disabled d-none" data-id="Brands" role="tab" data-bs-toggle="tab" data-bs-target="#NavBrandsPage" href="javascript:void(0);">
+                                <li class="nav-item d-none">
+                                    <a class="nav-link TabPane disabled" data-id="Brands" role="tab" data-bs-toggle="tab" data-bs-target="#NavBrandsPage" href="javascript:void(0);">
                                         <i class="bx bx-badge-check me-1"></i> Brands
-                                        <span class="trans-tab-count d-none"></span>
+                                        <span class="trans-tab-count d-none" id="brandTotalCount"></span>
                                     </a>
                                 </li>
                             </ul>
                         </div>
 
-                        <div class="row">
-                            <div class="col-md-12">
-                                <div class="tab-content p-0">
+                        <div class="tab-content p-0">
 
                                     <div class="tab-pane fade <?php echo $ActiveTabData == 'item' ? 'show active' : ''; ?>" id="NavItemPage" role="tabpanel">
 
@@ -189,7 +191,6 @@
                                                         </th>
                                                         <th class="col-sortable cursor-pointer position-relative" data-filterkey="CategorySorting" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">
                                                             Category <i class="bx bx-sort sort-icon ms-1"></i>
-                                                            <div id="categoryFilterBox" class="card mp-filterbox" style="min-width:260px;z-index:9999;display:none;position:fixed;"></div>
                                                         </th>
                                                         <th class="col-sortable cursor-pointer" data-filterkey="QtySorting" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">Qty <i class="bx bx-sort sort-icon ms-1"></i></th>
                                                         <th class="col-sortable cursor-pointer" data-filterkey="MRPSorting" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Click for ascending order">MRP <i class="bx bx-sort sort-icon ms-1"></i></th>
@@ -357,8 +358,6 @@
 
                                     </div>
 
-                                </div>
-                            </div>
                         </div>
                     </div>
 
@@ -376,6 +375,7 @@
             <?php $this->load->view('common/imagepreview_modal'); ?>
 
             <?php $this->load->view('common/modals/product_form'); ?>
+            <?php $this->load->view('common/modals/category_form'); ?>
             <?php $this->load->view('products/modals/combo'); ?>
             <?php $this->load->view('products/modals/category'); ?>
             <?php $this->load->view('products/modals/sizes'); ?>
@@ -409,9 +409,37 @@
     </div>
 </div>
 
-<!-- Filter boxes (body-level to avoid overflow clipping) -->
-<div id="productTypeFilterBox" class="card mp-filterbox" style="min-width:200px;z-index:9999;display:none;position:fixed;"><?php $this->load->view('products/items/ptypefilter'); ?></div>
-<div id="statusFilterBox" class="card mp-filterbox" style="min-width:200px;z-index:9999;display:none;position:fixed;"><?php $this->load->view('products/items/statusfilter'); ?></div>
+<?php $this->load->view('common/transactions/col_filter_box', [
+    'ColFilterConfig' => [
+        'id'         => 'productTypeFilterBox',
+        'triggerId'  => 'productTypeFilter',
+        'title'      => 'Product Type',
+        'icon'       => 'bx-box',
+        'filterKey'  => 'ProductType',
+        'checkClass' => 'ptype-checkbox',
+        'items'      => [
+            ['value' => 'Product', 'label' => 'Product'],
+            ['value' => 'Service', 'label' => 'Service'],
+        ],
+    ],
+]); ?>
+<?php $this->load->view('common/transactions/col_filter_box', [
+    'ColFilterConfig' => [
+        'id'         => 'statusFilterBox',
+        'triggerId'  => 'statusFilter',
+        'title'      => 'Status',
+        'icon'       => 'bx-transfer',
+        'filterKey'  => 'StatusFilter',
+        'checkClass' => 'status-checkbox',
+        'items'      => [
+            ['value' => '1', 'label' => 'Active'],
+            ['value' => '0', 'label' => 'In-Active'],
+        ],
+    ],
+]); ?>
+
+<!-- Category filter box — must live at body level so position:fixed works correctly -->
+<div id="categoryFilterBox" class="mp-filterbox" style="display:none;position:fixed;z-index:9999;width:280px;"></div>
 
 <?php $this->load->view('common/footer'); ?>
 
@@ -423,6 +451,7 @@
 <script src="/js/common/customer_form.js"></script>
 <script src="/js/common/category_form.js"></script>
 <script src="/js/common/product_form.js"></script>
+<script src="/js/transactions/col_filter.js"></script>
 <script src="/js/products.js"></script>
 <script src="/js/combinemodules/combo.js"></script>
 <script src="/js/common/pagecheckbox.js"></script>
@@ -458,13 +487,30 @@ let ActiveTabModuleId = 4
 var EnableStorage = <?php echo $JwtData->GenSettings->EnableStorage; ?>;
 var CommonRowColumnDisp = 1;
 let imgData;
+var _prodTabUrlMap = { 'Item': 'item', 'Groups': 'group', 'Categories': 'category', 'Sizes': 'size', 'Brands': 'brand' };
 let sortState = 0;
 let catgSortState = 0;
 let sizeSortState = 0;
 let brandSortState = 0;
+var _catgListDirty = false;
 let colSortStates = {};
 $(function() {
-    'use strict'
+    'use strict';
+
+    // Auto-show/hide Actions gear button when options become visible or hidden
+    (function () {
+        var $dd = $('#ActionsDD-Div');
+        function syncDD() {
+            var anyVisible = $('#CloneOption,#DeleteOption')
+                .filter(function () { return !$(this).hasClass('d-none'); }).length > 0;
+            $dd.toggleClass('d-none', !anyVisible);
+        }
+        var observer = new MutationObserver(syncDD);
+        ['CloneOption', 'DeleteOption'].forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el) observer.observe(el, { attributes: true, attributeFilter: ['class'] });
+        });
+    })();
 
     $('#SearchDetails').val('');
     $(ProdHeader + ',' + ProdRow).prop('checked', false).trigger('change');
@@ -476,8 +522,15 @@ $(function() {
             SelectedUIDs = [];
             ActiveTabId = TabValue;
             ActiveTabModuleId = $(this).data('moduleid');
+            var _tabParam = _prodTabUrlMap[TabValue] || TabValue.toLowerCase();
+            var _tabUrl = '/products?tab=' + _tabParam;
+            if (window.location.pathname + window.location.search !== _tabUrl) {
+                history.pushState({ tab: _tabParam }, '', _tabUrl);
+            }
             $('#ProductStatsRow').toggleClass('d-none', TabValue === 'Groups');
-            $('#NewItem,#NewComboItem,#NewCategory,#NewSizes,#NewBrands,#CloneOption,#ItemCategory-Div').addClass('d-none');
+            $('#NewItem,#NewComboItem,#NewCategory,#NewSizes,#NewBrands,#CloneOption,#DeleteOption,#ItemCategory-Div').addClass('d-none');
+            $('#ActionsDD-Div').addClass('d-none');
+            $('#categoryFilter,#productTypeFilter,#statusFilter').toggleClass('d-none', TabValue !== 'Item');
             $('#SearchDetails').val('');
             PageNo = 0;
             Filter = {};
@@ -513,7 +566,8 @@ $(function() {
                 $('#NewCategory').removeClass('d-none');
                 $('#btnSyncCategoriesCache').removeClass('d-none');
                 var catgLen = $(CatgTable + ' ' + CatgRow).length;
-                if (catgLen == 0) {
+                if (catgLen == 0 || _catgListDirty) {
+                    _catgListDirty = false;
                     getCategoriesDetails(PageNo, RowLimit, Filter);
                 } else {
                     $(CatgHeader).prop('checked', false);
@@ -756,80 +810,38 @@ $(function() {
         });
     };
 
-    /** ProductType filter functions */
-    window.toggleProductTypeFilter = function() {
-        var $target = $('#productTypeFilterBox');
-        if ($target.is(':visible')) { $target.hide(); return; }
-        $('.mp-filterbox').not($target).hide();
-        var rect = document.getElementById('productTypeFilter').getBoundingClientRect();
-        $target.css({ top: (rect.bottom + 4) + 'px', left: rect.left + 'px' }).show();
-    };
-    window.closeProductTypeFilter = function() {
-        $('#productTypeFilterBox').hide();
-    };
-    window.applyProductTypeFilter = function() {
-        delete Filter['ProductType'];
-        let selected = $('.ptype-checkbox:checked').map(function() { return $(this).val(); }).get();
-        if (selected.length > 0) {
-            Filter['ProductType'] = selected;
-        }
-        $('#productTypeFilterBox').hide();
-        PageNo = 0;
-        showProductPageDetails();
-    };
-    window.resetProductTypeFilter = function() {
-        $('.ptype-checkbox').prop('checked', false);
-        if (Filter.ProductType) {
-            delete Filter['ProductType'];
+    var prodTypeFilter = new TransColFilter({
+        boxId       : 'productTypeFilterBox',
+        triggerId   : 'productTypeFilter',
+        filterKey   : 'ProductType',
+        activeClass : 'has-filter',
+        onApply     : function () {
+            var vals = prodTypeFilter.getState()['ProductType'] || [];
+            if (vals.length) Filter['ProductType'] = vals; else delete Filter['ProductType'];
+            updateColumnHighlights();
             PageNo = 0;
             showProductPageDetails();
-        } else {
-            $('#productTypeFilterBox').hide();
         }
-    };
+    });
 
-    /** Status filter functions */
-    window.toggleStatusFilter = function() {
-        var $target = $('#statusFilterBox');
-        if ($target.is(':visible')) { $target.hide(); return; }
-        $('.mp-filterbox').not($target).hide();
-        var rect = document.getElementById('statusFilter').getBoundingClientRect();
-        $target.css({ top: (rect.bottom + 4) + 'px', left: rect.left + 'px' }).show();
-    };
-    window.closeStatusFilter = function() {
-        $('#statusFilterBox').hide();
-    };
-    window.applyStatusFilter = function() {
-        delete Filter['StatusFilter'];
-        let selected = $('.status-checkbox:checked').map(function() { return $(this).val(); }).get();
-        if (selected.length > 0) {
-            Filter['StatusFilter'] = selected;
-        }
-        $('#statusFilterBox').hide();
-        PageNo = 0;
-        showProductPageDetails();
-    };
-    window.resetStatusFilter = function() {
-        $('.status-checkbox').prop('checked', false);
-        if (Filter.StatusFilter) {
-            delete Filter['StatusFilter'];
+    var prodStatusFilter = new TransColFilter({
+        boxId       : 'statusFilterBox',
+        triggerId   : 'statusFilter',
+        filterKey   : 'StatusFilter',
+        activeClass : 'has-filter',
+        onApply     : function () {
+            var vals = prodStatusFilter.getState()['StatusFilter'] || [];
+            if (vals.length) Filter['StatusFilter'] = vals; else delete Filter['StatusFilter'];
+            updateColumnHighlights();
             PageNo = 0;
             showProductPageDetails();
-        } else {
-            $('#statusFilterBox').hide();
         }
-    };
+    });
 
-    // Close filter boxes on outside click
+    // Close category filter box on outside click (categoryFilterBox is inside the table header)
     $(document).on('click', function(e) {
         if (!$(e.target).closest('#categoryFilterBox, #categoryFilter').length) {
             $('#categoryFilterBox').hide();
-        }
-        if (!$(e.target).closest('#productTypeFilterBox, #productTypeFilter').length) {
-            $('#productTypeFilterBox').hide();
-        }
-        if (!$(e.target).closest('#statusFilterBox, #statusFilter').length) {
-            $('#statusFilterBox').hide();
         }
     });
 
@@ -1376,6 +1388,22 @@ $(document).on('click', '.catg-prod-count-btn', function () {
             $('#catgProductsModalBody').html('<div class="alert alert-danger m-3">Failed to load products.</div>');
         }
     });
+});
+
+// ── Client-side tab switching (menu interceptor + browser back/forward) ───────
+var _paramToTabId = { 'item': 'Item', 'group': 'Groups', 'category': 'Categories', 'size': 'Sizes', 'brand': 'Brands' };
+
+$(document).on('samePageTabSwitch', function (e, tabParam) {
+    var tabId = _paramToTabId[(tabParam || '').toLowerCase()];
+    if (!tabId) return;
+    var $tab = $('.TabPane[data-id="' + tabId + '"]');
+    if ($tab.length && !$tab.hasClass('active') && $tab[0]) $tab[0].click();
+});
+
+$(window).on('popstate', function () {
+    var m = window.location.search.match(/[?&]tab=([^&]+)/i);
+    var tabParam = m ? m[1].toLowerCase() : 'item';
+    $(document).trigger('samePageTabSwitch', [tabParam]);
 });
 
 // Sync Items Cache

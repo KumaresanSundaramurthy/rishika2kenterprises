@@ -118,6 +118,14 @@ class Inventory_model extends CI_Model {
                 : [(int)$filter['CategoryUID']];
             $this->ReadDb->where_in('p.CategoryUID', $uids);
         }
+        if (!empty($filter['ProductUID'])) {
+            $uids = array_filter(array_map('intval',
+                is_array($filter['ProductUID']) ? $filter['ProductUID'] : [$filter['ProductUID']]
+            ));
+            if (!empty($uids)) {
+                $this->ReadDb->where_in('p.ProductUID', $uids);
+            }
+        }
         if (!empty($filter['ProductType'])) {
             $allowed = ['Product', 'Service'];
             $types   = array_values(array_intersect(
@@ -422,8 +430,12 @@ class Inventory_model extends CI_Model {
 
         $where = '';
         if (!empty($filter['ProductUID'])) {
-            $where   .= ' AND sl.ProductUID = ?';
-            $params[] = (int)$filter['ProductUID'];
+            $uids = is_array($filter['ProductUID']) ? array_map('intval', $filter['ProductUID']) : [(int)$filter['ProductUID']];
+            $uids = array_values(array_filter($uids));
+            if ($uids) {
+                $where .= ' AND sl.ProductUID IN (' . implode(',', array_fill(0, count($uids), '?')) . ')';
+                foreach ($uids as $u) $params[] = $u;
+            }
         }
         if (!empty($filter['DateFrom'])) {
             $where   .= ' AND COALESCE(ts.TransDate, sa.RecordDate, DATE(sl.CreatedOn)) >= ?';

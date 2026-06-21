@@ -193,6 +193,15 @@ class Settings extends MY_Controller {
 
             $defaultSalutationUID = (int)getPostValue($post, 'DefaultSalutationUID') ?: null;
 
+            $empCodePrefix = strtoupper(trim(getPostValue($post, 'EmpCodePrefix') ?: 'EMP'));
+            if (!$empCodePrefix || !preg_match('/^[A-Z0-9]{1,10}$/', $empCodePrefix)) $empCodePrefix = 'EMP';
+
+            $empCodeSeparator = getPostValue($post, 'EmpCodeSeparator') ?: '-';
+            if (!in_array($empCodeSeparator, ['-', '/', 'none'])) $empCodeSeparator = '-';
+
+            $empCodeDigits = (int)getPostValue($post, 'EmpCodeDigits');
+            if (!in_array($empCodeDigits, [3, 4, 5, 6])) $empCodeDigits = 4;
+
             $data = [
                 'DecimalPoints'        => $decimalPoints,
                 'CurrenySymbol'        => $currencySymbol,
@@ -212,6 +221,9 @@ class Settings extends MY_Controller {
                 'PrintDateTimeFormat'  => $printDtFormat,
                 'DefaultSalutationUID' => $defaultSalutationUID,
                 'StatsDefaultOpen'     => $statsDefaultOpen,
+                'EmpCodePrefix'        => $empCodePrefix,
+                'EmpCodeSeparator'     => $empCodeSeparator,
+                'EmpCodeDigits'        => $empCodeDigits,
             ];
 
             $this->load->model('dbwrite_model');

@@ -26,7 +26,7 @@ class Expenses extends MY_Controller {
             $limit  = $GeneralSettings->RowLimit ?? 10;
             $orgUID = $this->pageData['JwtData']->Org->OrgUID;
 
-            $filter = ['Status' => 'All'];
+            $filter = ['Status' => 'All', 'DateFrom' => date('Y-m-01'), 'DateTo' => date('Y-m-t')];
 
             $allData      = $this->expenses_model->getExpenseList($orgUID, $filter, $limit, 0);
             $allDataCount = $this->expenses_model->getExpenseCount($orgUID, $filter);
@@ -47,8 +47,10 @@ class Expenses extends MY_Controller {
             $this->pageData['BankAccounts'] = $this->expenses_model->getBankAccounts($orgUID);
 
             // Org users for column filter
-            $this->load->model('users_model');
-            $this->pageData['OrgUsers'] = $this->users_model->getOrgUsersForCache($orgUID);
+            $orgUsers = $this->_requireCache($this->redisservice->orgKey('org_users'));
+            if (!$orgUsers) return;
+            $this->pageData['OrgUsers']      = $orgUsers;
+            $this->pageData['ShowUserFilter'] = count($orgUsers) > 1;
 
             $this->load->view('transactions/expenses/view', $this->pageData);
 

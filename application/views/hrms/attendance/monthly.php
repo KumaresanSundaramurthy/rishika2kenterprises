@@ -1,7 +1,7 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed');
 $cur  = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
 $tz   = $JwtData->Org->TimeZone ?? 'Asia/Kolkata';
-$days = cal_days_in_month(CAL_GREGORIAN, $Month, $Year);
+$days = (int)date('t', mktime(0, 0, 0, $Month, 1, $Year));
 $statusColors = ['P'=>'#10b981','A'=>'#ef4444','H'=>'#f59e0b','L'=>'#3b82f6','Ho'=>'#94a3b8','W'=>'#94a3b8',''=>'#e2e8f0'];
 $statusLabels = ['P'=>'P','A'=>'A','H'=>'H','L'=>'L','Ho'=>'Ho','W'=>'W'];
 $statusMap    = ['Present'=>'P','Absent'=>'A','HalfDay'=>'H','Leave'=>'L','Holiday'=>'Ho','WeekOff'=>'W'];

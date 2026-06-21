@@ -54,8 +54,9 @@ class User_model extends CI_Model {
             $this->ReadDb->where('User.UserName', $identifier);
             $this->ReadDb->or_where('User.EmailAddress', $identifier);
             $this->ReadDb->group_end();
-            $this->ReadDb->where('User.IsActive', 1);
-            $this->ReadDb->where('User.IsDeleted', 0);
+            $this->ReadDb->where('User.IsActive',       1);
+            $this->ReadDb->where('User.IsDeleted',      0);
+            $this->ReadDb->where('User.HasLoginAccess', 1);
             $query = $this->ReadDb->get();
             if (!$query) {
                 $error = $this->ReadDb->error();

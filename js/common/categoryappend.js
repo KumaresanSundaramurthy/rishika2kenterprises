@@ -98,10 +98,7 @@ window.CategoryAppend = (function () {
                 '</div>' +
             '</div>' +
             '<div class="catg-filter-search-wrap">' +
-                '<div class="input-group input-group-sm">' +
-                    '<span class="input-group-text"><i class="bx bx-search"></i></span>' +
-                    '<input type="text" class="form-control ca-search" data-box="' + boxId + '" placeholder="Search categories...">' +
-                '</div>' +
+                '<input type="text" class="form-control form-control-sm ca-search" data-box="' + boxId + '" placeholder="Search categories...">' +
             '</div>' +
             '<div class="catg-select-all-wrap">' +
                 '<input type="checkbox" class="form-check-input ca-sel-all" id="caSelAll_' + uid + '" ' +

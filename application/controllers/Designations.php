@@ -13,8 +13,8 @@ class Designations extends MY_Controller {
 
     private function _fetchTableData($pageNo, $limit, $filter = []) {
         $offset = max(0, ($pageNo - 1) * $limit);
-        $this->load->model('employees_model');
-        $result  = $this->employees_model->getDesignationListPaginated($this->_orgUID(), $limit, $offset, $filter);
+        $this->load->model('users_model');
+        $result  = $this->users_model->getDesignationListPaginated($this->_orgUID(), $limit, $offset, $filter);
         $rowHtml = $this->load->view('hrms/designations/list', ['DataLists' => $result->rows, 'SerialNumber' => $offset, 'JwtData' => $this->pageData['JwtData']], TRUE);
         $r = new stdClass();
         $r->RecordHtmlData = $rowHtml;
@@ -83,9 +83,9 @@ class Designations extends MY_Controller {
     public function getList() {
         $this->EndReturnData = new stdClass();
         try {
-            $this->load->model('employees_model');
+            $this->load->model('users_model');
             $this->EndReturnData->Error = FALSE;
-            $this->EndReturnData->Data  = $this->employees_model->getDesignationList($this->_orgUID());
+            $this->EndReturnData->Data  = $this->users_model->getDesignationList($this->_orgUID());
         } catch (Exception $e) { $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }

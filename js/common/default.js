@@ -89,9 +89,56 @@ $(document).ready(function () {
     const BLUR_ID = 'modal-blur-layer';
 
     $('[data-toggle="tooltip"]').tooltip();
-    // Bootstrap 5 tooltips — container:'body' prevents stuck tooltips inside overflow containers
-    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function(el) {
+
+    // ── Bootstrap 5 tooltip lifecycle ─────────────────────────────────────────
+    // Single init function used everywhere — disposes any existing instance first
+    // to prevent the double-init bug (main.js also calls new bootstrap.Tooltip).
+    function _bsTooltipInit(el) {
+        var ex = bootstrap.Tooltip.getInstance(el);
+        if (ex) ex.dispose();
         new bootstrap.Tooltip(el, { container: 'body', trigger: 'hover' });
+    }
+
+    // Page-load init for all static elements
+    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(_bsTooltipInit);
+
+    // MutationObserver: auto-dispose when trigger leaves DOM (prevents stuck tooltips
+    // after AJAX re-renders rows), auto-init when new trigger elements arrive.
+    (new MutationObserver(function (mutations) {
+        for (var i = 0; i < mutations.length; i++) {
+            var m = mutations[i];
+            // Removed nodes — dispose their tooltip instances
+            for (var j = 0; j < m.removedNodes.length; j++) {
+                var rn = m.removedNodes[j];
+                if (rn.nodeType !== 1) continue;
+                var remove = [];
+                if (rn.getAttribute && rn.getAttribute('data-bs-toggle') === 'tooltip') remove.push(rn);
+                if (rn.querySelectorAll) {
+                    rn.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (c) { remove.push(c); });
+                }
+                remove.forEach(function (el) {
+                    var t = bootstrap.Tooltip.getInstance(el);
+                    if (t) { try { t.dispose(); } catch (e) {} }
+                });
+            }
+            // Added nodes — initialize tooltips on them
+            for (var k = 0; k < m.addedNodes.length; k++) {
+                var an = m.addedNodes[k];
+                if (an.nodeType !== 1) continue;
+                var add = [];
+                if (an.getAttribute && an.getAttribute('data-bs-toggle') === 'tooltip') add.push(an);
+                if (an.querySelectorAll) {
+                    an.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (c) { add.push(c); });
+                }
+                add.forEach(_bsTooltipInit);
+            }
+        }
+    })).observe(document.body, { childList: true, subtree: true });
+
+    // Safety net: before any AJAX call, forcibly remove any tooltip div still showing
+    // in body (covers edge cases where dispose() didn't clean up in time).
+    $(document).ajaxSend(function () {
+        document.querySelectorAll('body > .tooltip.show').forEach(function (tip) { tip.remove(); });
     });
 
     $("input[type=number]").click(function () {
@@ -196,6 +243,25 @@ $(document).ready(function () {
     });
 
     ApexHeader.init();
+
+    // ── Same-controller menu link interceptor ──────────────────────────────────
+    // When a menu link points to the same base path as the current page but with
+    // a different ?tab= query, prevent a full page reload and fire a custom event
+    // instead. Pages that support client-side tab switching listen for this event.
+    $(document).on('click', '#layout-menu a.menu-link', function (e) {
+        var href = $.trim($(this).attr('href') || '');
+        if (!href || /^javascript/i.test(href) || href === '#') return;
+        var qIdx = href.indexOf('?');
+        if (qIdx === -1) return; // no query string — let normal navigation happen
+        var hrefPath = href.substring(0, qIdx).replace(/^\/+/, '');
+        var hrefQuery = href.substring(qIdx);
+        var currPath  = window.location.pathname.replace(/^\/+/, '');
+        if (hrefPath !== currPath) return; // different page — let navigate
+        e.preventDefault();
+        history.pushState(null, '', '/' + hrefPath + hrefQuery);
+        var m = hrefQuery.match(/[?&]tab=([^&]+)/i);
+        if (m) $(document).trigger('samePageTabSwitch', [m[1].toLowerCase()]);
+    });
 
     $(document).on('click', '.preview-image', function() {
         var imageSrc = $(this).data('src');

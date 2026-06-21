@@ -100,7 +100,22 @@ $route['settings/profile/getSignatureList']     = 'profile/getSignatureList';
 $route['settings/profile/saveSignature']        = 'profile/saveSignature';
 $route['settings/profile/updateSignature']      = 'profile/updateSignature';
 $route['settings/profile/deleteSignature']      = 'profile/deleteSignature';
-$route['settings/profile/setDefaultSignature']  = 'profile/setDefaultSignature';
+$route['settings/profile/setDefaultSignature']   = 'profile/setDefaultSignature';
+$route['settings/profile/saveProfileAddress']    = 'profile/saveProfileAddress';
+$route['settings/profile/saveProfileWorkInfo']   = 'profile/saveProfileWorkInfo';
+$route['settings/profile/saveProfileAttachment']   = 'profile/saveProfileAttachment';
+$route['settings/profile/deleteProfileAttachment'] = 'profile/deleteProfileAttachment';
+$route['settings/profile/getEduExp']               = 'profile/getEduExp';
+$route['settings/profile/saveEducation']           = 'profile/saveEducation';
+$route['settings/profile/deleteEducation']         = 'profile/deleteEducation';
+$route['settings/profile/saveExperience']            = 'profile/saveExperience';
+$route['settings/profile/deleteExperience']          = 'profile/deleteExperience';
+$route['settings/profile/getBankDetails']             = 'profile/getBankDetails';
+$route['settings/profile/saveBankDetails']            = 'profile/saveBankDetails';
+$route['settings/profile/getEmergencyContacts']      = 'profile/getEmergencyContacts';
+$route['settings/profile/saveEmergencyContact']      = 'profile/saveEmergencyContact';
+$route['settings/profile/deleteEmergencyContact']    = 'profile/deleteEmergencyContact';
+$route['settings/profile/setPrimaryContact']         = 'profile/setPrimaryContact';
 $route['settings/organisation']      = 'organisation';
 $route['setpassword/submit']   = 'setpassword/submit';
 $route['setpassword/(:any)']   = 'setpassword/index/$1';
@@ -112,7 +127,11 @@ $route['settings/users/getPageDetails']               = 'users/getPageDetails';
 $route['settings/users/getUserDetail']                = 'users/getUserDetail';
 $route['settings/users/toggleStatus']                 = 'users/toggleStatus';
 $route['settings/users/saveUser']                     = 'users/saveUser';
+$route['settings/users/getUserAttachments']           = 'users/getUserAttachments';
+$route['settings/users/saveUserAttachment']           = 'users/saveUserAttachment';
+$route['settings/users/deleteUserAttachment']         = 'users/deleteUserAttachment';
 $route['users/getOrgUsers']                           = 'users/getOrgUsers';
+$route['users/getEmployeeList']                       = 'users/getEmployeeList';
 $route['settings/generalsettings']           = 'settings/generalsettings';
 $route['settings/updateGeneralSettings']     = 'settings/updateGeneralSettings';
 $route['settings/updateProductSettings']     = 'settings/updateProductSettings';
@@ -320,11 +339,6 @@ $route['payments/setDefaultBank']                      = 'payments/setDefaultBan
 $route['payments/getBanksList']                        = 'payments/getBanksList';
 $route['payments/getPaymentDetail']                    = 'payments/getPaymentDetail';
 
-// Payments Out (Purchase / Vendor payments)
-$route['paymentsout']                                  = 'paymentsout/index';
-$route['paymentsout/getPageDetails/(:num)']            = 'paymentsout/getPageDetails/$1';
-$route['paymentsout/getPageDetails']                   = 'paymentsout/getPageDetails';
-
 // Customers
 $route['customers/(:num)/edit'] = 'customers/edit/$1';
 $route['customers/(:num)/clone'] = 'customers/clonecustomer/$1';
@@ -383,14 +397,9 @@ $route['reports'] = 'reports/index';
 // Barcode & QR Code Config
 $route['settings/barcodeconfig'] = 'barcodeconfig/index';
 
-// ── HRMS — Employees ─────────────────────────────────────────────────────────
-$route['employees']                               = 'employees/index';
-$route['employees/getPageDetails/(:num)']         = 'employees/getPageDetails/$1';
-$route['employees/save']                          = 'employees/save';
-$route['employees/delete']                        = 'employees/delete';
-$route['employees/toggleStatus']                  = 'employees/toggleStatus';
-$route['employees/getEmployee/(:num)']            = 'employees/getEmployee/$1';
-$route['employees/getEmployeeList']               = 'employees/getEmployeeList';
+// ── HRMS — Employees (merged into Users — kept as redirects for backwards compat)
+$route['employees']                               = 'users/index';
+$route['employees/getEmployeeList']               = 'users/getEmployeeList';
 
 // ── HRMS — Departments ────────────────────────────────────────────────────────
 $route['departments']                             = 'departments/index';

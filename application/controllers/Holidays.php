@@ -13,8 +13,8 @@ class Holidays extends MY_Controller {
 
     private function _fetchTableData($pageNo, $limit, $filter = []) {
         $offset = max(0, ($pageNo - 1) * $limit);
-        $this->load->model('employees_model');
-        $result  = $this->employees_model->getHolidayListPaginated($this->_orgUID(), $limit, $offset, $filter);
+        $this->load->model('users_model');
+        $result  = $this->users_model->getHolidayListPaginated($this->_orgUID(), $limit, $offset, $filter);
         $rowHtml = $this->load->view('hrms/holidays/list', ['DataLists' => $result->rows, 'SerialNumber' => $offset, 'JwtData' => $this->pageData['JwtData']], TRUE);
         $r = new stdClass();
         $r->RecordHtmlData = $rowHtml;
@@ -51,12 +51,15 @@ class Holidays extends MY_Controller {
     public function save() {
         $this->EndReturnData = new stdClass();
         try {
-            $p   = $this->input->post();
-            $uid = (int)($p['HolidayUID'] ?? 0);
-            if (empty(trim($p['HolidayName'] ?? '')))  throw new Exception('Holiday name is required.');
-            if (empty($p['HolidayDate']))               throw new Exception('Holiday date is required.');
+            $p      = $this->input->post();
+            $uid    = (int)($p['HolidayUID'] ?? 0);
+            $pageNo = max(1, (int)($p['CurrentPage'] ?? 1));
+            $filter = is_array($p['Filter'] ?? null) ? $p['Filter'] : [];
+            if (empty($filter['Year'])) $filter['Year'] = date('Y');
+            if (empty(trim($p['HolidayName'] ?? ''))) throw new Exception('Holiday name is required.');
+            if (empty($p['HolidayDate']))              throw new Exception('Holiday date is required.');
             $this->load->model('dbwrite_model');
-            $data = ['OrgUID' => $this->_orgUID(), 'HolidayName' => trim($p['HolidayName']), 'HolidayDate' => $p['HolidayDate'], 'Description' => trim($p['Description'] ?? ''), 'IsActive' => 1, 'UpdatedBy' => $this->_userUID()];
+            $data = ['OrgUID' => $this->_orgUID(), 'HolidayName' => trim($p['HolidayName']), 'HolidayDate' => $p['HolidayDate'], 'Description' => trim($p['Description'] ?? ''), 'IsOptional' => (int)($p['IsOptional'] ?? 0), 'IsActive' => 1, 'UpdatedBy' => $this->_userUID()];
             if ($uid === 0) {
                 $data['CreatedBy'] = $this->_userUID();
                 $res = $this->dbwrite_model->insertData('Organisation', 'HolidayTbl', $data);
@@ -64,7 +67,12 @@ class Holidays extends MY_Controller {
                 $res = $this->dbwrite_model->updateData('Organisation', 'HolidayTbl', $data, ['HolidayUID' => $uid, 'OrgUID' => $this->_orgUID()]);
             }
             if ($res->Error) throw new Exception($res->Message);
-            $this->EndReturnData->Error = FALSE; $this->EndReturnData->Message = $uid ? 'Updated.' : 'Holiday added.';
+            $pd = $this->_fetchTableData($pageNo, $this->_limit(), $filter);
+            $this->EndReturnData->Error          = FALSE;
+            $this->EndReturnData->Message        = $uid ? 'Updated.' : 'Holiday added.';
+            $this->EndReturnData->RecordHtmlData = $pd->RecordHtmlData;
+            $this->EndReturnData->Pagination     = $pd->Pagination;
+            $this->EndReturnData->TotalCount     = $pd->TotalCount;
         } catch (Exception $e) { $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
@@ -72,12 +80,21 @@ class Holidays extends MY_Controller {
     public function delete() {
         $this->EndReturnData = new stdClass();
         try {
-            $uid = (int)$this->input->post('HolidayUID');
+            $p      = $this->input->post();
+            $uid    = (int)($p['HolidayUID'] ?? 0);
+            $pageNo = max(1, (int)($p['CurrentPage'] ?? 1));
+            $filter = is_array($p['Filter'] ?? null) ? $p['Filter'] : [];
+            if (empty($filter['Year'])) $filter['Year'] = date('Y');
             if (!$uid) throw new Exception('Invalid.');
             $this->load->model('dbwrite_model');
             $res = $this->dbwrite_model->updateData('Organisation', 'HolidayTbl', ['IsDeleted' => 1, 'UpdatedBy' => $this->_userUID()], ['HolidayUID' => $uid, 'OrgUID' => $this->_orgUID()]);
             if ($res->Error) throw new Exception($res->Message);
-            $this->EndReturnData->Error = FALSE; $this->EndReturnData->Message = 'Deleted.';
+            $pd = $this->_fetchTableData($pageNo, $this->_limit(), $filter);
+            $this->EndReturnData->Error          = FALSE;
+            $this->EndReturnData->Message        = 'Deleted.';
+            $this->EndReturnData->RecordHtmlData = $pd->RecordHtmlData;
+            $this->EndReturnData->Pagination     = $pd->Pagination;
+            $this->EndReturnData->TotalCount     = $pd->TotalCount;
         } catch (Exception $e) { $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }

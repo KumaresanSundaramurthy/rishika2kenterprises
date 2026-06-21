@@ -13,8 +13,8 @@ class Departments extends MY_Controller {
 
     private function _fetchTableData($pageNo, $limit, $filter = []) {
         $offset = max(0, ($pageNo - 1) * $limit);
-        $this->load->model('employees_model');
-        $result  = $this->employees_model->getDepartmentListPaginated($this->_orgUID(), $limit, $offset, $filter);
+        $this->load->model('users_model');
+        $result  = $this->users_model->getDepartmentListPaginated($this->_orgUID(), $limit, $offset, $filter);
         $rowHtml = $this->load->view('hrms/departments/list', ['DataLists' => $result->rows, 'SerialNumber' => $offset, 'JwtData' => $this->pageData['JwtData']], TRUE);
         $r = new stdClass();
         $r->RecordHtmlData = $rowHtml;
@@ -49,20 +49,37 @@ class Departments extends MY_Controller {
     public function save() {
         $this->EndReturnData = new stdClass();
         try {
-            $p   = $this->input->post();
-            $uid = (int)($p['DepartmentUID'] ?? 0);
-            if (empty(trim($p['DepartmentName'] ?? ''))) throw new Exception('Department name is required.');
+            $p        = $this->input->post();
+            $uid      = (int)($p['DepartmentUID'] ?? 0);
+            $isSystem = (int)($p['IsSystem'] ?? 0);
+            $pageNo   = max(1, (int)($p['CurrentPage'] ?? 1));
+            $filter   = is_array($p['Filter'] ?? null) ? $p['Filter'] : [];
+
             $this->load->model('dbwrite_model');
-            $data = ['OrgUID' => $this->_orgUID(), 'DepartmentName' => trim($p['DepartmentName']), 'Description' => trim($p['Description'] ?? ''), 'IsActive' => 1, 'UpdatedBy' => $this->_userUID()];
-            if ($uid === 0) {
-                $data['CreatedBy'] = $this->_userUID();
-                $res = $this->dbwrite_model->insertData('Organisation', 'DepartmentTbl', $data);
+
+            if ($isSystem && $uid > 0) {
+                $data = ['Description' => trim($p['Description'] ?? ''), 'UpdatedBy' => $this->_userUID()];
+                $res  = $this->dbwrite_model->updateData('Organisation', 'DepartmentTbl', $data, ['DepartmentUID' => $uid, 'OrgUID' => 0]);
+                if ($res->Error) throw new Exception($res->Message);
+                $this->EndReturnData->Message = 'Description updated.';
             } else {
-                $res = $this->dbwrite_model->updateData('Organisation', 'DepartmentTbl', $data, ['DepartmentUID' => $uid, 'OrgUID' => $this->_orgUID()]);
+                if (empty(trim($p['DepartmentName'] ?? ''))) throw new Exception('Department name is required.');
+                $data = ['OrgUID' => $this->_orgUID(), 'DepartmentName' => trim($p['DepartmentName']), 'Description' => trim($p['Description'] ?? ''), 'IsActive' => 1, 'UpdatedBy' => $this->_userUID()];
+                if ($uid === 0) {
+                    $data['CreatedBy'] = $this->_userUID();
+                    $res = $this->dbwrite_model->insertData('Organisation', 'DepartmentTbl', $data);
+                } else {
+                    $res = $this->dbwrite_model->updateData('Organisation', 'DepartmentTbl', $data, ['DepartmentUID' => $uid, 'OrgUID' => $this->_orgUID()]);
+                }
+                if ($res->Error) throw new Exception($res->Message);
+                $this->EndReturnData->Message = $uid ? 'Updated.' : 'Created.';
             }
-            if ($res->Error) throw new Exception($res->Message);
-            $this->EndReturnData->Error   = FALSE;
-            $this->EndReturnData->Message = $uid ? 'Updated.' : 'Created.';
+
+            $pd = $this->_fetchTableData($pageNo, $this->_limit(), $filter);
+            $this->EndReturnData->Error          = FALSE;
+            $this->EndReturnData->RecordHtmlData = $pd->RecordHtmlData;
+            $this->EndReturnData->Pagination     = $pd->Pagination;
+            $this->EndReturnData->TotalCount     = $pd->TotalCount;
         } catch (Exception $e) { $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
@@ -83,9 +100,9 @@ class Departments extends MY_Controller {
     public function getList() {
         $this->EndReturnData = new stdClass();
         try {
-            $this->load->model('employees_model');
+            $this->load->model('users_model');
             $this->EndReturnData->Error = FALSE;
-            $this->EndReturnData->Data  = $this->employees_model->getDepartmentList($this->_orgUID());
+            $this->EndReturnData->Data  = $this->users_model->getDepartmentList($this->_orgUID());
         } catch (Exception $e) { $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }

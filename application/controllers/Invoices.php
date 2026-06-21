@@ -36,6 +36,7 @@ class Invoices extends MY_Controller {
             $this->load->model('transactions_model');
             $datePref   = $this->getDateFilterPreference('invoices');
             $initFilter = $datePref['from'] ? ['DateFrom' => $datePref['from'], 'DateTo' => $datePref['to']] : [];
+            
             $allData      = $this->transactions_model->getTransactionPageList($limit, 0, $this->pageModuleUID, $initFilter, 0);
             $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, $initFilter);
             $this->pageData['SavedDateRange'] = $datePref['range'];

@@ -5,19 +5,22 @@ defined('BASEPATH') or exit('No direct script access allowed');
  * Loaded by customer_group_form.php — no external variables required.
  * Reads org data directly from CI instance.
  */
-$CI       =& get_instance();
-$_orgCCode = $CI->pageData['JwtData']->Org->OrgCCode  ?? '+91';
-$_orgCISO2 = $CI->pageData['JwtData']->Org->OrgCISO2  ?? 'IN';
-
-$_groupTypes = [
-    'Business Group', 'Branch Group', 'Family Group',
-    'Corporate Group', 'Dealer Network', 'Franchise Group', 'Custom',
-];
+$CI        =& get_instance();
+$_orgCCode = $CI->pageData['JwtData']->Org->OrgCCode ?? '+91';
+$_orgCISO2 = $CI->pageData['JwtData']->Org->OrgCISO2 ?? 'IN';
 ?>
 
 <form id="CGroupModalForm" data-mode="add" autocomplete="off" novalidate>
-    <input type="hidden" id="CGroupUID"      name="GroupUID" value="">
-    <input type="hidden" id="CG_CountryISO2" value="<?php echo htmlspecialchars($_orgCISO2); ?>">
+    <input type="hidden" id="CGroupUID"          name="GroupUID"          value="">
+    <input type="hidden" id="CG_CountryISO2"                              value="<?php echo htmlspecialchars($_orgCISO2); ?>">
+    <input type="hidden" name="MobileCountryCode" id="CG_MobileCountryCode" value="<?php echo htmlspecialchars($_orgCCode); ?>">
+    <!-- Address hidden fields — populated by address modal save -->
+    <input type="hidden" name="AddrLine1"    id="CG_AddrLine1"    value="">
+    <input type="hidden" name="AddrLine2"    id="CG_AddrLine2"    value="">
+    <input type="hidden" name="AddrPincode"  id="CG_AddrPincode"  value="">
+    <input type="hidden" name="AddrState"    id="CG_AddrState"    value="">
+    <input type="hidden" name="AddrStateCode" id="CG_AddrStateCode" value="">
+    <input type="hidden" name="AddrCity"     id="CG_AddrCity"     value="">
 
     <div class="p-4">
 
@@ -41,9 +44,7 @@ $_groupTypes = [
             <div class="mb-3 col-md-4">
                 <label class="form-label">Group Type</label>
                 <select class="form-select" id="CG_GroupType" name="GroupType">
-                    <?php foreach ($_groupTypes as $t): ?>
-                    <option value="<?php echo htmlspecialchars($t); ?>"><?php echo htmlspecialchars($t); ?></option>
-                    <?php endforeach; ?>
+                    <option value="">Loading...</option>
                 </select>
             </div>
 
@@ -52,51 +53,60 @@ $_groupTypes = [
                 <input type="text" class="form-control" id="CG_ContactPerson" name="ContactPerson"
                        maxlength="150" placeholder="Name">
             </div>
+
+            <!-- Mobile with searchable country-code dropdown -->
             <div class="mb-3 col-md-4">
                 <label class="form-label">Mobile</label>
-                <div class="input-group">
-                    <span class="input-group-text fw-semibold" id="CG_MobilePrefix"><?php echo htmlspecialchars($_orgCCode); ?></span>
-                    <input type="hidden" name="MobileCountryCode" id="CG_MobileCountryCode" value="<?php echo htmlspecialchars($_orgCCode); ?>">
+                <div class="input-group position-relative">
+                    <button type="button" class="btn btn-outline-secondary fw-semibold flex-shrink-0"
+                            id="CG_MobileCCBtn" tabindex="-1"
+                            style="border-top-right-radius:0;border-bottom-right-radius:0;min-width:60px;">
+                        <?php echo htmlspecialchars($_orgCCode); ?>
+                    </button>
+                    <!-- Country-code dropdown panel -->
+                    <div id="CG_CCDropdown"
+                         style="display:none;position:absolute;top:100%;left:0;min-width:270px;z-index:9999;
+                                background:#fff;border:1px solid #dee2e6;border-radius:4px;
+                                box-shadow:0 4px 14px rgba(0,0,0,.12);">
+                        <div class="p-2 border-bottom">
+                            <input type="text" class="form-control form-control-sm" id="CG_CCSearch"
+                                   placeholder="Search country..." autocomplete="off">
+                        </div>
+                        <div id="CG_CCList" style="max-height:180px;overflow-y:auto;"></div>
+                    </div>
                     <input type="text" class="form-control" id="CG_Mobile" name="Mobile"
                            maxlength="15" placeholder="9999 000 000"
                            onkeypress="return (event.charCode!=8 && event.charCode==0 || (event.charCode>=48 && event.charCode<=57))"
                            oninput="this.value=this.value.slice(0,this.maxLength)">
                 </div>
+                <div class="text-danger small mt-1" id="CG_MobileErr" style="display:none;">Enter a valid mobile number (min 7 digits).</div>
             </div>
+
             <div class="mb-3 col-md-4">
                 <label class="form-label">Email</label>
                 <input type="email" class="form-control" id="CG_Email" name="Email"
                        maxlength="150" placeholder="email@example.com">
+                <div class="invalid-feedback">Enter a valid email address.</div>
             </div>
 
-            <div class="mb-3 col-md-3">
+            <div class="mb-3 col-md-6">
                 <label class="form-label">GST No</label>
-                <input type="text" class="form-control" id="CG_GSTNo" name="GSTNo"
-                       maxlength="20" placeholder="27XXXXX...">
-            </div>
-            <div class="mb-3 col-md-3">
-                <label class="form-label">Country</label>
-                <input type="text" class="form-control bg-body-secondary" id="CG_Country" name="Country"
-                       maxlength="100" readonly placeholder="Loading...">
-            </div>
-            <div class="mb-3 col-md-3">
-                <label class="form-label">State</label>
-                <select class="form-select" id="CG_State" name="State">
-                    <option value="">-- Select State --</option>
-                </select>
-            </div>
-            <div class="mb-3 col-md-3">
-                <label class="form-label">City</label>
-                <select class="form-select" id="CG_City" name="City">
-                    <option value="">-- Select City --</option>
-                </select>
+                <div class="input-group">
+                    <input type="text" class="form-control" id="CG_GSTNo" name="GSTNo"
+                           maxlength="20" placeholder="27XXXXX...">
+                    <button type="button" class="btn btn-outline-secondary" id="CG_GSTFetchBtn">Fetch</button>
+                </div>
             </div>
 
+            <!-- Address click-box — opens address modal -->
             <div class="mb-3 col-md-12">
                 <label class="form-label">Address</label>
-                <textarea class="form-control" id="CG_Address" name="Address" rows="2"
-                          placeholder="Group head office address"></textarea>
+                <div id="CG_AddrBox" class="form-control"
+                     style="cursor:pointer;min-height:58px;display:flex;align-items:center;font-size:.875rem;line-height:1.4;user-select:none;">
+                    <span style="color:#adb5bd;"><i class="bx bx-map-pin me-1"></i>Click to add address...</span>
+                </div>
             </div>
+
             <div class="mb-3 col-md-12">
                 <label class="form-label">Notes</label>
                 <textarea class="form-control" id="CG_Notes" name="Notes" rows="2"
@@ -117,13 +127,19 @@ $_groupTypes = [
 
         <div class="row g-2 mb-3">
             <div class="col-md-9">
-                <select id="CG_MemberSearch" class="form-select" style="width:100%;">
-                    <option value="">Search &amp; add customer...</option>
-                </select>
+                <div class="position-relative">
+                    <input type="text" class="form-control" id="CG_MemberSearch"
+                           placeholder="Search &amp; add customer..." autocomplete="off">
+                    <div id="CG_MemberDropdown"
+                         style="display:none;position:absolute;top:100%;left:0;width:100%;max-height:220px;
+                                overflow-y:auto;z-index:1055;background:#fff;border:1px solid #dee2e6;
+                                border-radius:4px;box-shadow:0 4px 8px rgba(0,0,0,.1);margin-top:2px;">
+                    </div>
+                </div>
             </div>
             <div class="col-md-3">
                 <button type="button" class="btn btn-outline-primary w-100" id="CG_BtnAddMember">
-                    <i class="bx bx-user-plus me-1"></i>Add to Group
+                    <i class="bx bx-user-plus me-1"></i>Add
                 </button>
             </div>
         </div>

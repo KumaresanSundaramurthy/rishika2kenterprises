@@ -86,33 +86,12 @@ $this->load->view('common/transactions/header'); ?>
                                 <input type="text" id="searchIncomeData" placeholder="Income # or category...">
                             </div>
                             <a href="javascript:void(0);" id="incCatFilterBtn" class="apex-filter-btn" onclick="toggleIncCatFilter(); event.stopPropagation();" title="Filter by Category"><i class="bx bx-category me-1"></i>Category</a>
-                            <a href="javascript:void(0);" id="incStatusFilterBtn" class="apex-filter-btn" onclick="toggleIncStatusFilter(); event.stopPropagation();" title="Filter by Status"><i class="bx bx-transfer me-1"></i>Status</a>
-                            <a href="javascript:void(0);" id="incModeFilterBtn" class="apex-filter-btn" onclick="toggleIncModeFilter(); event.stopPropagation();" title="Filter by Mode"><i class="bx bx-credit-card me-1"></i>Mode</a>
+                            <a href="javascript:void(0);" id="incStatusFilterBtn" class="apex-filter-btn" title="Filter by Status"><i class="bx bx-transfer me-1"></i>Status</a>
+                            <a href="javascript:void(0);" id="incModeFilterBtn" class="apex-filter-btn" title="Filter by Mode"><i class="bx bx-credit-card me-1"></i>Mode</a>
                             <?php if (count($OrgUsers ?? []) > 1): ?>
-                            <a href="javascript:void(0);" id="incUserFilterBtn" class="apex-filter-btn" onclick="toggleIncUserFilter(); event.stopPropagation();" title="Filter by User"><i class="bx bx-user me-1"></i>Updated By</a>
+                            <a href="javascript:void(0);" id="incUserFilterBtn" class="apex-filter-btn" title="Filter by User"><i class="bx bx-user me-1"></i>Updated By</a>
                             <?php endif; ?>
-                            <div class="dropdown">
-                                <button class="apex-filter-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="bx bx-calendar"></i><span id="dateFilterLabel" class="ms-1">This Month</span>
-                                </button>
-                                <ul class="dropdown-menu shadow" style="width:210px;max-height:300px;overflow-y:auto;font-size:.82rem;">
-                                    <li><a class="dropdown-item date-option" data-range="today">Today</a></li>
-                                    <li><a class="dropdown-item date-option" data-range="yesterday">Yesterday</a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item date-option" data-range="this_week">This Week</a></li>
-                                    <li><a class="dropdown-item date-option" data-range="last_week">Last Week</a></li>
-                                    <li><a class="dropdown-item date-option" data-range="last_7_days">Last 7 Days</a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item date-option active" data-range="this_month">This Month</a></li>
-                                    <li><a class="dropdown-item date-option" data-range="previous_month">Previous Month</a></li>
-                                    <li><a class="dropdown-item date-option" data-range="last_30_days">Last 30 Days</a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item date-option" data-range="this_year">This Year</a></li>
-                                    <li><a class="dropdown-item date-option" data-range="last_year">Last Year</a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item date-option fw-bold" data-range="fy_25_26"><i class="bx bxs-star text-warning me-1"></i>FY 25-26</a></li>
-                                </ul>
-                            </div>
+                            <?php $this->load->view('common/transactions/date_filter_btn'); ?>
                             <div class="apex-filter-spacer"></div>
                             <a href="javascript:void(0);" class="apex-icon-btn pageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
                             <button type="button" class="btn btn-sm btn-outline-secondary" id="incManageCatBtn">
@@ -448,70 +427,49 @@ $this->load->view('common/transactions/payment_modal');
 </div>
 
 <!-- ── Status Filter Box ─────────────────────────────────────────────────── -->
-<div id="incStatusFilterBox" class="card mp-filterbox" style="min-width:200px;z-index:9999;display:none;position:fixed;">
-    <div class="catg-filter-header">
-        <span class="catg-filter-title"><i class="bx bx-check-circle me-1"></i> Status</span>
-        <div class="d-flex align-items-center gap-2">
-            <span class="badge bg-primary" id="incStatusFilterCount" style="display:none;"></span>
-            <button type="button" class="catg-filter-close-btn" onclick="closeIncStatusFilter()" title="Close">&times;</button>
-        </div>
-    </div>
-    <div class="catg-select-all-wrap">
-        <input type="checkbox" class="form-check-input" id="incStatusSelectAll" onchange="toggleAllIncStatuses(this)">
-        <label class="small fw-semibold mb-0" for="incStatusSelectAll" id="incStatusSelectAllLabel">Select All</label>
-    </div>
-    <div id="incStatusList" class="catg-list" style="max-height:160px;overflow-y:auto;">
-        <label class="catg-list-item"><input class="form-check-input inc-sf-chk" type="checkbox" value="Pending"><span>Pending</span></label>
-        <label class="catg-list-item"><input class="form-check-input inc-sf-chk" type="checkbox" value="Partial"><span>Partial</span></label>
-        <label class="catg-list-item"><input class="form-check-input inc-sf-chk" type="checkbox" value="Received"><span>Received</span></label>
-        <label class="catg-list-item"><input class="form-check-input inc-sf-chk" type="checkbox" value="Cancelled"><span>Cancelled</span></label>
-    </div>
-    <div class="catg-filter-footer">
-        <button type="button" class="btn btn-primary btn-sm" onclick="applyIncStatusFilter()"><i class="bx bx-check me-1"></i>Apply</button>
-        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="resetIncStatusFilter()"><i class="bx bx-reset me-1"></i>Reset</button>
-    </div>
-</div>
+<?php $this->load->view('common/transactions/col_filter_box', [
+    'ColFilterConfig' => [
+        'id'         => 'incStatusFilterBox',
+        'triggerId'  => 'incStatusFilterBtn',
+        'title'      => 'Status',
+        'icon'       => 'bx-check-circle',
+        'filterKey'  => 'StatusList',
+        'checkClass' => 'inc-sf-chk',
+        'items'      => [
+            ['value' => 'Pending',   'label' => 'Pending'],
+            ['value' => 'Partial',   'label' => 'Partial'],
+            ['value' => 'Received',  'label' => 'Received'],
+            ['value' => 'Cancelled', 'label' => 'Cancelled'],
+        ],
+    ],
+]); ?>
 
 <!-- ── Mode Filter Box ───────────────────────────────────────────────────── -->
-<div id="incModeFilterBox" class="card mp-filterbox" style="min-width:200px;z-index:9999;display:none;position:fixed;">
-    <div class="catg-filter-header">
-        <span class="catg-filter-title"><i class="bx bx-credit-card me-1"></i> Mode</span>
-        <div class="d-flex align-items-center gap-2">
-            <span class="badge bg-primary" id="incModeFilterCount" style="display:none;"></span>
-            <button type="button" class="catg-filter-close-btn" onclick="closeIncModeFilter()" title="Close">&times;</button>
-        </div>
-    </div>
-    <div class="catg-select-all-wrap">
-        <input type="checkbox" class="form-check-input" id="incModeSelectAll" onchange="toggleAllIncModes(this)">
-        <label class="small fw-semibold mb-0" for="incModeSelectAll" id="incModeSelectAllLabel">Select All</label>
-    </div>
-    <div id="incModeList" class="catg-list" style="max-height:180px;overflow-y:auto;"></div>
-    <div class="catg-filter-footer">
-        <button type="button" class="btn btn-primary btn-sm" onclick="applyIncModeFilter()"><i class="bx bx-check me-1"></i>Apply</button>
-        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="resetIncModeFilter()"><i class="bx bx-reset me-1"></i>Reset</button>
-    </div>
-</div>
+<?php $this->load->view('common/transactions/col_filter_box', [
+    'ColFilterConfig' => [
+        'id'         => 'incModeFilterBox',
+        'triggerId'  => 'incModeFilterBtn',
+        'title'      => 'Payment Mode',
+        'icon'       => 'bx-credit-card',
+        'filterKey'  => 'PaymentTypeUIDs',
+        'checkClass' => 'inc-mf-chk',
+        'items'      => array_map(function($t) {
+            return ['value' => (string)$t->PaymentTypeUID, 'label' => $t->PaymentTypeName];
+        }, $paymentTypes ?? []),
+    ],
+]); ?>
 
 <!-- ── User Filter Box ───────────────────────────────────────────────────── -->
 <?php if (count($OrgUsers ?? []) > 1): ?>
-<div id="incUserFilterBox" class="card mp-filterbox" style="min-width:200px;z-index:9999;display:none;position:fixed;">
-    <div class="catg-filter-header">
-        <span class="catg-filter-title"><i class="bx bx-user me-1"></i> User</span>
-        <div class="d-flex align-items-center gap-2">
-            <span class="badge bg-primary" id="incUserFilterCount" style="display:none;"></span>
-            <button type="button" class="catg-filter-close-btn" onclick="closeIncUserFilter()" title="Close">&times;</button>
-        </div>
-    </div>
-    <div class="catg-select-all-wrap">
-        <input type="checkbox" class="form-check-input" id="incUserSelectAll" onchange="toggleAllIncUsers(this)">
-        <label class="small fw-semibold mb-0" for="incUserSelectAll" id="incUserSelectAllLabel">Select All</label>
-    </div>
-    <div id="incUserList" class="catg-list" style="max-height:180px;overflow-y:auto;"></div>
-    <div class="catg-filter-footer">
-        <button type="button" class="btn btn-primary btn-sm" onclick="applyIncUserFilter()"><i class="bx bx-check me-1"></i>Apply</button>
-        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="resetIncUserFilter()"><i class="bx bx-reset me-1"></i>Reset</button>
-    </div>
-</div>
+<?php $this->load->view('common/partials/col_user_filter_box', [
+    'ColUserFilterConfig' => [
+        'id'         => 'incUserFilterBox',
+        'triggerId'  => 'incUserFilterBtn',
+        'checkClass' => 'inc-uf-chk',
+        'title'      => 'Updated By',
+        'OrgUsers'   => $OrgUsers ?? [],
+    ],
+]); ?>
 <?php endif; ?>
 
 <!-- ── Category Filter Box ──────────────────────────────────────────────── -->
@@ -524,10 +482,7 @@ $this->load->view('common/transactions/payment_modal');
         </div>
     </div>
     <div class="catg-filter-search-wrap">
-        <div class="input-group input-group-sm">
-            <span class="input-group-text"><i class="bx bx-search"></i></span>
-            <input type="text" id="incCatFilterSearch" class="form-control" placeholder="Search..." oninput="_filterIncCatList(this.value)">
-        </div>
+        <input type="text" id="incCatFilterSearch" class="form-control form-control-sm" placeholder="Search..." oninput="_filterIncCatList(this.value)">
     </div>
     <div class="catg-select-all-wrap">
         <input type="checkbox" class="form-check-input" id="incCatSelectAll" onchange="toggleAllIncCats(this)">
@@ -549,6 +504,7 @@ $this->load->view('common/transactions/payment_modal');
     </div>
 </div>
 
+<script src="/js/transactions/col_filter.js"></script>
 <script src="/js/transactions/indirectincome.js"></script>
 
 <script>
@@ -653,167 +609,49 @@ $(function () {
         });
     }
 
-    // ── Income Status Filter ─────────────────────────────────────────────────
-    window.toggleIncStatusFilter = function () {
-        var $box = $('#incStatusFilterBox');
-        if ($box.is(':visible')) { $box.hide(); return; }
-        var rect = document.getElementById('incStatusFilterBtn').getBoundingClientRect();
-        $box.css({ top: (rect.bottom + 4) + 'px', left: Math.max(4, rect.right - 200) + 'px' }).show();
-    };
-    window.closeIncStatusFilter = function () { $('#incStatusFilterBox').hide(); };
-    window.toggleAllIncStatuses = function (el) {
-        var checked = $(el).is(':checked');
-        $('.inc-sf-chk').prop('checked', checked);
-        $('#incStatusSelectAllLabel').text(checked ? 'Deselect All' : 'Select All');
-    };
-    window.applyIncStatusFilter = function () {
-        var sel = $('.inc-sf-chk:checked').map(function () { return $(this).val(); }).get();
-        if (sel.length) { Filter['StatusList'] = sel; } else { delete Filter['StatusList']; }
-        $('#incStatusFilterBox').hide();
-        var active = sel.length > 0;
-        $('#incStatusFilterBtn').toggleClass('text-primary', active);
-        $('#incStatusFilterCount').text(sel.length).toggle(active);
-        PageNo = 1; getIncomeDetails();
-    };
-    window.resetIncStatusFilter = function () {
-        $('.inc-sf-chk').prop('checked', false);
-        $('#incStatusSelectAll').prop('checked', false);
-        $('#incStatusSelectAllLabel').text('Select All');
-        delete Filter['StatusList'];
-        $('#incStatusFilterBox').hide();
-        $('#incStatusFilterBtn').removeClass('text-primary');
-        $('#incStatusFilterCount').hide().text('');
-        PageNo = 1; getIncomeDetails();
-    };
-    $(document).on('change', '.inc-sf-chk', function () {
-        var total = $('.inc-sf-chk').length, chkd = $('.inc-sf-chk:checked').length;
-        $('#incStatusSelectAll').prop('checked', total > 0 && total === chkd);
-        $('#incStatusSelectAllLabel').text(total > 0 && total === chkd ? 'Deselect All' : 'Select All');
-    });
-    $(document).on('click', function (e) {
-        if (!$(e.target).closest('#incStatusFilterBox, #incStatusFilterBtn').length) $('#incStatusFilterBox').hide();
-    });
-    // ────────────────────────────────────────────────────────────────────────
-
-    // ── Income Mode Filter ───────────────────────────────────────────────────
-    var _incModeData = <?php echo json_encode(array_map(function($t) {
-        return ['uid' => (int)$t->PaymentTypeUID, 'name' => (string)$t->PaymentTypeName];
-    }, $paymentTypes ?? [])); ?>;
-
-    (function () {
-        if (!_incModeData.length) {
-            $('#incModeList').html('<div class="text-muted text-center py-3" style="font-size:.8rem;">No data</div>');
-            return;
+    // ── Status filter (TransColFilter) ───────────────────────────────────────
+    var incStatusFilter = new TransColFilter({
+        boxId       : 'incStatusFilterBox',
+        triggerId   : 'incStatusFilterBtn',
+        filterKey   : 'StatusList',
+        activeClass : 'has-filter',
+        onApply     : function () {
+            var vals = incStatusFilter.getState()['StatusList'] || [];
+            if (vals.length) Filter['StatusList'] = vals; else delete Filter['StatusList'];
+            PageNo = 1; getIncomeDetails();
         }
-        var html = '';
-        _incModeData.forEach(function (m) {
-            html += '<label class="catg-list-item">' +
-                        '<input class="form-check-input inc-mf-chk" type="checkbox" value="' + m.uid + '">' +
-                        '<span>' + $('<span>').text(m.name).html() + '</span>' +
-                    '</label>';
-        });
-        $('#incModeList').html(html);
-    })();
-
-    window.toggleIncModeFilter = function () {
-        var $box = $('#incModeFilterBox');
-        if ($box.is(':visible')) { $box.hide(); return; }
-        var rect = document.getElementById('incModeFilterBtn').getBoundingClientRect();
-        $box.css({ top: (rect.bottom + 4) + 'px', left: Math.max(4, rect.right - 200) + 'px' }).show();
-    };
-    window.closeIncModeFilter = function () { $('#incModeFilterBox').hide(); };
-    window.toggleAllIncModes  = function (el) {
-        var checked = $(el).is(':checked');
-        $('.inc-mf-chk').prop('checked', checked);
-        $('#incModeSelectAllLabel').text(checked ? 'Deselect All' : 'Select All');
-    };
-    window.applyIncModeFilter = function () {
-        var sel = $('.inc-mf-chk:checked').map(function () { return $(this).val(); }).get();
-        if (sel.length) { Filter['PaymentTypeUIDs'] = sel; } else { delete Filter['PaymentTypeUIDs']; }
-        $('#incModeFilterBox').hide();
-        var active = sel.length > 0;
-        $('#incModeFilterBtn').toggleClass('text-primary', active);
-        $('#incModeFilterCount').text(sel.length).toggle(active);
-        PageNo = 1; getIncomeDetails();
-    };
-    window.resetIncModeFilter = function () {
-        $('.inc-mf-chk').prop('checked', false);
-        $('#incModeSelectAll').prop('checked', false);
-        $('#incModeSelectAllLabel').text('Select All');
-        delete Filter['PaymentTypeUIDs'];
-        $('#incModeFilterBox').hide();
-        $('#incModeFilterBtn').removeClass('text-primary');
-        $('#incModeFilterCount').hide().text('');
-        PageNo = 1; getIncomeDetails();
-    };
-    $(document).on('change', '.inc-mf-chk', function () {
-        var total = $('.inc-mf-chk').length, chkd = $('.inc-mf-chk:checked').length;
-        $('#incModeSelectAll').prop('checked', total > 0 && total === chkd);
-        $('#incModeSelectAllLabel').text(total > 0 && total === chkd ? 'Deselect All' : 'Select All');
     });
-    $(document).on('click', function (e) {
-        if (!$(e.target).closest('#incModeFilterBox, #incModeFilterBtn').length) $('#incModeFilterBox').hide();
-    });
-    // ────────────────────────────────────────────────────────────────────────
 
-    // ── Income User Filter ───────────────────────────────────────────────────
-    var _incUserData = <?php echo json_encode(array_map(function($u) {
-        return ['uid' => (int)$u->UserUID, 'name' => (string)$u->FullName];
-    }, $OrgUsers ?? [])); ?>;
-
-    if (_incUserData.length > 1) {
-        (function () {
-            var html = '';
-            _incUserData.forEach(function (u) {
-                html += '<label class="catg-list-item">' +
-                            '<input class="form-check-input inc-uf-chk" type="checkbox" value="' + u.uid + '">' +
-                            '<span>' + $('<span>').text(u.name).html() + '</span>' +
-                        '</label>';
-            });
-            $('#incUserList').html(html);
-        })();
-    }
-
-    window.toggleIncUserFilter = function () {
-        var $box = $('#incUserFilterBox');
-        if (!$box.length || $box.is(':visible')) { if ($box.length) $box.hide(); return; }
-        var rect = document.getElementById('incUserFilterBtn').getBoundingClientRect();
-        $box.css({ top: (rect.bottom + 4) + 'px', left: Math.max(4, rect.right - 200) + 'px' }).show();
-    };
-    window.closeIncUserFilter = function () { $('#incUserFilterBox').hide(); };
-    window.toggleAllIncUsers  = function (el) {
-        var checked = $(el).is(':checked');
-        $('.inc-uf-chk').prop('checked', checked);
-        $('#incUserSelectAllLabel').text(checked ? 'Deselect All' : 'Select All');
-    };
-    window.applyIncUserFilter = function () {
-        var sel = $('.inc-uf-chk:checked').map(function () { return $(this).val(); }).get();
-        if (sel.length) { Filter['UpdatedByUIDs'] = sel; } else { delete Filter['UpdatedByUIDs']; }
-        $('#incUserFilterBox').hide();
-        var active = sel.length > 0;
-        $('#incUserFilterBtn').toggleClass('text-primary', active);
-        $('#incUserFilterCount').text(sel.length).toggle(active);
-        PageNo = 1; getIncomeDetails();
-    };
-    window.resetIncUserFilter = function () {
-        $('.inc-uf-chk').prop('checked', false);
-        $('#incUserSelectAll').prop('checked', false);
-        $('#incUserSelectAllLabel').text('Select All');
-        delete Filter['UpdatedByUIDs'];
-        $('#incUserFilterBox').hide();
-        $('#incUserFilterBtn').removeClass('text-primary');
-        $('#incUserFilterCount').hide().text('');
-        PageNo = 1; getIncomeDetails();
-    };
-    $(document).on('change', '.inc-uf-chk', function () {
-        var total = $('.inc-uf-chk').length, chkd = $('.inc-uf-chk:checked').length;
-        $('#incUserSelectAll').prop('checked', total > 0 && total === chkd);
-        $('#incUserSelectAllLabel').text(total > 0 && total === chkd ? 'Deselect All' : 'Select All');
+    // ── Payment Mode filter (TransColFilter) ─────────────────────────────────
+    var incModeFilter = new TransColFilter({
+        boxId       : 'incModeFilterBox',
+        triggerId   : 'incModeFilterBtn',
+        filterKey   : 'PaymentTypeUIDs',
+        activeClass : 'has-filter',
+        onApply     : function () {
+            var vals = incModeFilter.getState()['PaymentTypeUIDs'] || [];
+            if (vals.length) Filter['PaymentTypeUIDs'] = vals; else delete Filter['PaymentTypeUIDs'];
+            PageNo = 1; getIncomeDetails();
+        }
     });
-    $(document).on('click', function (e) {
-        if (!$(e.target).closest('#incUserFilterBox, #incUserFilterBtn').length) $('#incUserFilterBox').hide();
+
+    // ── Updated By filter (TransColFilter) ───────────────────────────────────
+    var incUserFilter = new TransColFilter({
+        boxId       : 'incUserFilterBox',
+        triggerId   : 'incUserFilterBtn',
+        filterKey   : 'UpdatedByUIDs',
+        activeClass : 'has-filter',
+        onApply     : function () {
+            var vals = incUserFilter.getState()['UpdatedByUIDs'] || [];
+            if (vals.length) Filter['UpdatedByUIDs'] = vals; else delete Filter['UpdatedByUIDs'];
+            PageNo = 1; getIncomeDetails();
+        }
     });
-    // ────────────────────────────────────────────────────────────────────────
+
+    // Close old-style category box when any TransColFilter box opens
+    $('#incStatusFilterBtn, #incModeFilterBtn, #incUserFilterBtn').on('click', function () {
+        $('#incCatFilterBox').hide();
+    });
 
     // ── Income Category Filter ────────────────────────────────────────────────
     window._filterIncCatList = function (term) {
@@ -891,11 +729,7 @@ $(function () {
 
     function _clearIncStatusFilter() {
         delete Filter['StatusList'];
-        $('.inc-sf-chk').prop('checked', false);
-        $('#incStatusSelectAll').prop('checked', false);
-        $('#incStatusSelectAllLabel').text('Select All');
-        $('#incStatusFilterBtn').removeClass('text-primary');
-        $('#incStatusFilterCount').hide().text('');
+        incStatusFilter.reset();
     }
 
     // ── Stat card click ──────────────────────────────────────

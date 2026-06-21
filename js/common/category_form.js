@@ -57,6 +57,9 @@
         }
 
         var formData = new FormData(this);
+        if (typeof CsrfName !== 'undefined' && typeof CsrfToken !== 'undefined') {
+            formData.append(CsrfName, CsrfToken);
+        }
         var $btn = $('#CategoryFormSaveBtn');
         $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
 
@@ -68,6 +71,7 @@
             contentType : false,
             success: function (response) {
                 $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i>Save');
+                if (response.NewCsrfToken && typeof CsrfToken !== 'undefined') CsrfToken = response.NewCsrfToken;
                 if (response.Error) {
                     showAlertMessageSwal('error', '', response.Message);
                     return;

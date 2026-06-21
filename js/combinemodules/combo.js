@@ -1,34 +1,78 @@
+// ──────────────────────────────────────────────────
+// Combo item search — local Upstash cache
+// ──────────────────────────────────────────────────
+var _comboItemsCache = null; // null = not loaded yet
+
+function _loadComboItemsCache() {
+    if (_comboItemsCache !== null) return Promise.resolve(_comboItemsCache);
+    if (!window.UpstashService || !UpstashService.isEnabled()) {
+        _comboItemsCache = [];
+        return Promise.resolve(_comboItemsCache);
+    }
+    return UpstashService.hgetall(UpstashService.orgKey('products')).then(function (map) {
+        var items = [];
+        if (map && typeof map === 'object') {
+            Object.keys(map).forEach(function (uid) {
+                var p = map[uid];
+                if (p && !parseInt(p.IsComposite)) {
+                    items.push({ id: parseInt(p.ProductUID), text: p.ItemName });
+                }
+            });
+            items.sort(function (a, b) { return (a.text || '').localeCompare(b.text || ''); });
+        }
+        _comboItemsCache = items;
+        return _comboItemsCache;
+    }).catch(function () {
+        _comboItemsCache = [];
+        return _comboItemsCache;
+    });
+}
+
+function _reinitComboItemSearch() {
+    var $el = $('#ComboItemSearch');
+    if ($el.hasClass('select2-hidden-accessible')) {
+        $el.select2('destroy');
+    }
+    if (_comboItemsCache && _comboItemsCache.length > 0) {
+        $el.select2({
+            placeholder     : '-- Search & Select Item --',
+            allowClear      : true,
+            width           : '100%',
+            minimumInputLength: 1,
+            dropdownParent  : $('#comboItemModal'),
+            data            : [{ id: '', text: '' }].concat(_comboItemsCache)
+        });
+    } else {
+        $el.select2({
+            placeholder     : '-- Search & Select Item --',
+            allowClear      : true,
+            width           : '100%',
+            dropdownParent  : $('#comboItemModal'),
+            minimumInputLength: 1,
+            ajax: {
+                url         : '/products/getItemsForBOM',
+                method      : 'POST',
+                dataType    : 'json',
+                delay       : 250,
+                data        : function (params) {
+                    return { search: params.term, [CsrfName]: CsrfToken };
+                },
+                processResults: function (data) {
+                    if (data.Error) return { results: [] };
+                    return {
+                        results: data.Items.map(function (item) {
+                            return { id: item.ProductUID, text: item.ItemName };
+                        })
+                    };
+                },
+                cache: true
+            }
+        });
+    }
+}
+
 $(document).ready(function () {
     'use strict';
-
-    // ──────────────────────────────────────────────
-    // Select2 — Item search (AJAX) for components
-    // ──────────────────────────────────────────────
-    $('#ComboItemSearch').select2({
-        placeholder: '-- Search & Select Item --',
-        allowClear: true,
-        width: '100%',
-        dropdownParent: $('#comboItemModal'),
-        minimumInputLength: 1,
-        ajax: {
-            url: '/products/getItemsForBOM',
-            method: 'POST',
-            dataType: 'json',
-            delay: 250,
-            data: function (params) {
-                return { search: params.term, [CsrfName]: CsrfToken };
-            },
-            processResults: function (data) {
-                if (data.Error) return { results: [] };
-                return {
-                    results: data.Items.map(function (item) {
-                        return { id: item.ProductUID, text: item.ItemName };
-                    })
-                };
-            },
-            cache: true
-        }
-    });
 
     // Tax % — styled with left (percentage) / right (tax name) templates
     loadComboTaxSelect2();
@@ -43,8 +87,9 @@ $(document).ready(function () {
         clearComboForm();
         $('#ComboModalTitle').text('Add Combo Item');
         $('.AddEditComboBtn').text('Save');
-        DropdownCache.ready().then(function (data) {
-            DropdownCache.populateProductModal(data);
+        Promise.all([DropdownCache.ready(), _loadComboItemsCache()]).then(function (results) {
+            DropdownCache.populateProductModal(results[0]);
+            _reinitComboItemSearch();
             $('#comboItemModal').modal('show');
         });
     });
@@ -172,26 +217,58 @@ $(document).ready(function () {
                     content.html('<span class="text-muted small py-2 d-block">No components found.</span>');
                     return;
                 }
-                var html = '<div class="py-2">'
-                         + '<div class="d-flex align-items-center mb-2" style="font-size:0.78rem;">'
-                         + '<i class="bx bx-package text-warning me-1 fs-6"></i>'
-                         + '<span class="fw-semibold text-warning">Combo Components</span>'
-                         + '<span class="badge bg-label-warning ms-2" style="font-size:0.7rem;">' + response.Components.length + ' item' + (response.Components.length > 1 ? 's' : '') + '</span>'
-                         + '</div>'
-                         + '<table class="table table-sm table-borderless mb-0" style="font-size:0.81rem; max-width:500px;">'
-                         + '<thead><tr>'
-                         + '<th class="text-muted fw-normal ps-0" style="width:36px;">#</th>'
-                         + '<th class="text-muted fw-normal">Component Item</th>'
-                         + '<th class="text-muted fw-normal text-end" style="width:80px;">Qty</th>'
-                         + '</tr></thead><tbody>';
+                var sym   = (typeof currencySymbol !== 'undefined') ? currencySymbol : '';
+                var count = response.Components.length;
+                var html  = '<div style="padding:10px 16px 6px 16px;">'
+                          + '<div class="d-flex align-items-center gap-2 mb-1" style="font-size:0.78rem;">'
+                          + '<i class="bx bx-package text-warning fs-6"></i>'
+                          + '<span class="fw-semibold text-warning">Combo Components</span>'
+                          + '<span class="badge bg-label-warning" style="font-size:0.7rem;">' + count + ' item' + (count !== 1 ? 's' : '') + '</span>'
+                          + '</div>'
+                          + '<div style="border-top:1px solid rgba(0,0,0,0.07); margin-top:6px;">';
+
                 $.each(response.Components, function (i, comp) {
-                    html += '<tr style="border-bottom: 1px solid rgba(0,0,0,0.05);">'
-                          + '<td class="text-muted ps-0">' + (i + 1) + '</td>'
-                          + '<td><i class="bx bx-cube text-secondary me-1" style="font-size:0.85rem;"></i>' + $('<span>').text(comp.ItemName).html() + '</td>'
-                          + '<td class="text-center fw-semibold">' + smartDecimal(comp.Quantity) + '</td>'
-                          + '</tr>';
+                    var mrp      = parseFloat(comp.MRP)          || 0;
+                    var selling  = parseFloat(comp.SellingPrice)  || 0;
+                    var purchase = parseFloat(comp.PurchasePrice) || 0;
+                    var name     = $('<span>').text(comp.ItemName).html();
+
+                    html += '<div class="d-flex align-items-center gap-3 py-2" style="border-bottom:1px solid rgba(0,0,0,0.05); font-size:0.82rem;">'
+
+                          // Serial number
+                          + '<span class="text-muted fw-normal" style="min-width:20px; text-align:right;">' + (i + 1) + '</span>'
+
+                          // Item name — takes remaining space
+                          + '<div class="d-flex align-items-center gap-1 flex-grow-1" style="min-width:0;">'
+                          + '<i class="bx bx-cube text-secondary flex-shrink-0" style="font-size:0.9rem;"></i>'
+                          + '<span class="fw-medium text-truncate">' + name + '</span>'
+                          + '</div>'
+
+                          // Price chips
+                          + '<div class="d-flex align-items-center gap-2 flex-shrink-0">'
+                          + '<div class="d-flex align-items-center gap-1">'
+                          + '<span class="text-muted" style="font-size:0.72rem;">MRP</span>'
+                          + '<span class="fw-semibold">' + (mrp > 0 ? sym + smartDecimal(mrp) : '<span class="text-muted">—</span>') + '</span>'
+                          + '</div>'
+                          + '<span class="text-muted">|</span>'
+                          + '<div class="d-flex align-items-center gap-1">'
+                          + '<span class="text-muted" style="font-size:0.72rem;">Sell</span>'
+                          + '<span class="fw-semibold text-primary">' + (selling > 0 ? sym + smartDecimal(selling) : '<span class="text-muted">—</span>') + '</span>'
+                          + '</div>'
+                          + '<span class="text-muted">|</span>'
+                          + '<div class="d-flex align-items-center gap-1">'
+                          + '<span class="text-muted" style="font-size:0.72rem;">Purchase</span>'
+                          + '<span class="fw-semibold">' + (purchase > 0 ? sym + smartDecimal(purchase) : '<span class="text-muted">—</span>') + '</span>'
+                          + '</div>'
+                          + '</div>'
+
+                          // Qty badge
+                          + '<span class="badge bg-label-secondary flex-shrink-0" style="font-size:0.78rem; min-width:36px;">×' + smartDecimal(comp.Quantity) + '</span>'
+
+                          + '</div>';
                 });
-                html += '</tbody></table></div>';
+
+                html += '</div></div>';
                 content.html(html);
             },
             error: function () {
@@ -328,8 +405,9 @@ function loadComboForEdit(comboUID) {
             $('#ComboModalTitle').text('Edit Combo Item');
             $('.AddEditComboBtn').text('Update');
 
-            DropdownCache.ready().then(function (data) {
-                DropdownCache.populateProductModal(data);
+            Promise.all([DropdownCache.ready(), _loadComboItemsCache()]).then(function (results) {
+                DropdownCache.populateProductModal(results[0]);
+                _reinitComboItemSearch();
                 if (d.TaxDetailsUID) $('#ComboTaxPercentage').val(d.TaxDetailsUID).trigger('change');
                 if (d.PrimaryUnitUID) $('#ComboPrimaryUnit').val(d.PrimaryUnitUID).trigger('change');
                 $('#comboItemModal').modal('show');

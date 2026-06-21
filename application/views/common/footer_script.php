@@ -35,6 +35,11 @@ const currencySymbol = '<?php echo $JwtData->GenSettings->CurrenySymbol ?? '₹'
 $(function() {
 	'use strict'
 
+    // Bootstrap tooltips — init all [data-bs-toggle="tooltip"] elements on page
+    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (el) {
+        new bootstrap.Tooltip(el, { trigger: 'hover' });
+    });
+
     // Settings menu toggle
     $('#SettingsMenuBarBtn').click(function() {
         $('#ModulesMenuBar').addClass('d-none');
@@ -61,27 +66,6 @@ $(function() {
         }
     });
 
-    // Profile dropdown toggle
-    $('#ProfileDropdownMenu, #ProfileDropdownMenuSettings').hide();
-    $(document).on('click', '#ProfileDropdownToggle, #ProfileDropdownToggleSettings', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        var $li   = $(this).closest('.user-profile-item');
-        var $menu = $li.find('ul').first();
-        if ($li.hasClass('profile-open')) {
-            $menu.slideUp(160);
-            $li.removeClass('profile-open');
-        } else {
-            $menu.slideDown(160);
-            $li.addClass('profile-open');
-        }
-    });
-    $(document).on('click', function(e) {
-        if (!$(e.target).closest('.user-profile-item').length) {
-            $('#ProfileDropdownMenu, #ProfileDropdownMenuSettings').slideUp(160);
-            $('.user-profile-item').removeClass('profile-open');
-        }
-    });
 
     $('.ChangePasswordBtn').click(function(e) {
         e.preventDefault();

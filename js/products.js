@@ -46,6 +46,9 @@ function getProductDetails(PageNo, RowLimit, Filter) {
             } else {
                 $(ProdPag).html(response.Pagination);
                 $(ProdTable + ' tbody').html(response.List);
+                if (typeof response.TotalCount !== 'undefined') {
+                    updateProductCount(response.TotalCount);
+                }
             }
             executeProdPagnFunc(response, false);
         },
@@ -71,8 +74,7 @@ function getGroupDetails(PageNo, RowLimit, Filter) {
                 $(GroupPag).html(response.Pagination);
                 $(GroupTable + ' tbody').html(response.List);
                 if (typeof response.TotalCount !== 'undefined') {
-                    var $badge = $('#groupTotalCount');
-                    if ($badge.length) { $badge.text(response.TotalCount).removeClass('d-none'); }
+                    updateGroupCount(response.TotalCount);
                 }
             }
             headerCheckboxTrueFalse(GroupTable, GroupHeader, ProdRow);
@@ -151,8 +153,7 @@ function executeProdPagnFunc(response, tableinfo = false, silent = false) {
             $(GroupPag).html(response.Pagination);
             $(GroupTable + ' tbody').html(response.List);
             if (typeof response.TotalCount !== 'undefined') {
-                var $groupBadge = $('#groupTotalCount');
-                if ($groupBadge.length) { $groupBadge.text(response.TotalCount).removeClass('d-none'); }
+                updateGroupCount(response.TotalCount);
             }
         } else {
             $(ProdPag).html(response.Pagination);
@@ -178,9 +179,23 @@ function executeProdPagnFunc(response, tableinfo = false, silent = false) {
 
 function updateProductCount(count) {
     var $badge = $('#productTotalCount');
-    if ($badge.length) {
-        $badge.text(count);
-    }
+    if ($badge.length) { $badge.text(count); }
+}
+function updateGroupCount(count) {
+    var $badge = $('#groupTotalCount');
+    if ($badge.length) { $badge.text(count).removeClass('d-none'); }
+}
+function updateCategoryCount(count) {
+    var $badge = $('#categoryTotalCount');
+    if ($badge.length) { $badge.text(count).removeClass('d-none'); }
+}
+function updateSizeCount(count) {
+    var $badge = $('#sizeTotalCount');
+    if ($badge.length) { $badge.text(count).removeClass('d-none'); }
+}
+function updateBrandCount(count) {
+    var $badge = $('#brandTotalCount');
+    if ($badge.length) { $badge.text(count).removeClass('d-none'); }
 }
 
 function updateProductStats(stats) {
@@ -224,6 +239,9 @@ function getCategoriesDetails(PageNo, RowLimit, Filter) {
             } else {
                 $(CatgPag).html(response.Pagination);
                 $(CatgTable + ' tbody').html(response.List);
+                if (typeof response.TotalCount !== 'undefined') {
+                    updateCategoryCount(response.TotalCount);
+                }
             }
             executeCatgPagnFunc(response, false);
         },
@@ -389,6 +407,9 @@ function executeCatgPagnFunc(response, tableinfo = false) {
     if (tableinfo) {
         $(CatgPag).html(response.Pagination);
         $(CatgTable + ' tbody').html(response.List);
+        if (typeof response.TotalCount !== 'undefined') {
+            updateCategoryCount(response.TotalCount);
+        }
         showToastNotification(response.Message, 'success');
     }
     headerCheckboxTrueFalse(CatgTable, CatgHeader, CatgRow);
@@ -417,6 +438,9 @@ function getSizesDetails(PageNo, RowLimit, Filter) {
             } else {
                 $(SizePag).html(response.Pagination);
                 $(SizeTable + ' tbody').html(response.List);
+                if (typeof response.TotalCount !== 'undefined') {
+                    updateSizeCount(response.TotalCount);
+                }
             }
             executeSizePagnFunc(response, false);
         },
@@ -565,6 +589,9 @@ function executeSizePagnFunc(response, tableinfo = false) {
     if (tableinfo) {
         $(SizePag).html(response.Pagination);
         $(SizeTable + ' tbody').html(response.List);
+        if (typeof response.TotalCount !== 'undefined') {
+            updateSizeCount(response.TotalCount);
+        }
         showToastNotification(response.Message, 'success');
     }
     headerCheckboxTrueFalse(SizeTable, SizeHeader, SizeRow);
@@ -593,6 +620,9 @@ function getBrandsDetails(PageNo, RowLimit, Filter) {
             } else {
                 $(BrandPag).html(response.Pagination);
                 $(BrandTable + ' tbody').html(response.List);
+                if (typeof response.TotalCount !== 'undefined') {
+                    updateBrandCount(response.TotalCount);
+                }
             }
             executeBrandPagnFunc(response, false);
         },
@@ -740,6 +770,9 @@ function executeBrandPagnFunc(response, tableinfo = false) {
     if (tableinfo) {
         $(BrandPag).html(response.Pagination);
         $(BrandTable + ' tbody').html(response.List);
+        if (typeof response.TotalCount !== 'undefined') {
+            updateBrandCount(response.TotalCount);
+        }
         showToastNotification(response.Message, 'success');
     }
     headerCheckboxTrueFalse(BrandTable, BrandHeader, BrandRow);
@@ -1112,15 +1145,19 @@ function applyCategoryFilter() {
 function updateCategoryOptions(fields, type) {
     if (type == 'insert') {
         $('#AddEditItemForm #Category').append('<option value="' + fields.InsertId + '">' + fields.CategoryName + '</option>');
+        if (typeof DropdownCache !== 'undefined') DropdownCache.patchCategories('insert', fields);
     } else if (type == 'update') {
         var idStr = String(fields.UpdateId).trim();
         $("#AddEditItemForm #Category option[value='" + idStr + "']").text(fields.CategoryName);
+        if (typeof DropdownCache !== 'undefined') DropdownCache.patchCategories('update', fields);
     } else if (type == 'delete') {
         $.each(fields.UpdateId, function (i, id) {
             $('#AddEditItemForm #Category option[value="' + id + '"]').remove();
         });
+        if (typeof DropdownCache !== 'undefined') DropdownCache.patchCategories('delete', fields);
     }
     $('#categoryFilterBox').empty(); // force re-render on next open
+    window._catgListDirty = true;   // mark category tab stale so next switch refreshes
 }
 
 function updateSizeOptions(fields, type) {

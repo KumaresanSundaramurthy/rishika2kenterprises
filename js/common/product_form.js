@@ -21,6 +21,7 @@
     var _onSaveSuccess = null;
     var _pfImgData     = '';
     var _pfInitDone    = false;
+    var _pfOrigHsnCode = '';
 
     window.ProductForm = { open: openProductModal };
 
@@ -36,29 +37,52 @@
         if ((type === 'edit' || type === 'clone') && uid) {
             _loadForEdit(uid, type === 'clone');
         } else {
-            // Show modal immediately — DropdownCache.ready() fetches from Upstash (JS pipeline,
-            // no AJAX). Only calls /products/getDropdownCache if Upstash is cold, which also
-            // writes the data back so the next open is always instant.
-            // DropdownCache handles ALL dropdowns including #Category (via data.categories),
-            // so no separate CategoryAppend call is needed here.
             _resetProductModal();
             if (opts.prefillName) { $('#ItemName').val(opts.prefillName); }
-            $('#ProductFormModal').modal('show');
-            setTimeout(function () { $('#ItemName').focus(); }, 300);
 
-            DropdownCache.ready().then(function (data) {
-                if (!data) return;
-                DropdownCache.populateProductModal(data);
-                // _resetProductModal triggered .trigger('change') before options existed —
-                // re-apply now so label helpers (Inclusive/Exclusive, discount label) render.
-                var defTax  = (typeof _pfDefProdTaxUID   !== 'undefined' && _pfDefProdTaxUID)   ? _pfDefProdTaxUID   : 1;
-                var defDisc = (typeof _pfDefDiscTypeUID  !== 'undefined' && _pfDefDiscTypeUID)  ? _pfDefDiscTypeUID  : 1;
-                var defTaxD = (typeof _pfDefTaxDetailUID !== 'undefined' && _pfDefTaxDetailUID) ? _pfDefTaxDetailUID : null;
-                $('#SellingTaxOption,#PurchaseTaxOption').val(defTax).trigger('change');
-                $('#DiscountOption').val(defDisc).trigger('change');
-                if (defTaxD) { $('#TaxPercentage').val(defTaxD).trigger('change'); }
+            DropdownCache.openForProductForm({
+
+                // Case A: all 6 keys were in Upstash — populate first, then show modal.
+                // User sees the form already fully loaded on open.
+                onReady: function (data) {
+                    DropdownCache.populateProductModal(data);
+                    _pfApplyDefaults();
+                    $('#ProductFormModal').modal('show');
+                    setTimeout(function () { $('#ItemName').focus(); }, 300);
+                },
+
+                // Case B: some/none in Upstash — show modal now, populate whatever was found.
+                onPartial: function (foundData) {
+                    if (Object.keys(foundData).length > 0) {
+                        DropdownCache.populateProductModal(foundData);
+                        _pfApplyDefaults();
+                    }
+                    $('#ProductFormModal').modal('show');
+                    setTimeout(function () { $('#ItemName').focus(); }, 300);
+                },
+
+                // Case B continued: missing fields arrived from server — fill the blanks.
+                // populateProductModal's "no options yet" guards prevent double-populating
+                // the fields that were already filled in onPartial.
+                onMissingReady: function (allData) {
+                    DropdownCache.populateProductModal(allData);
+                    _pfApplyDefaults();
+                }
             });
         }
+    }
+
+    // ── Re-apply default selections after dropdowns are populated ────────
+    // _resetProductModal() fires .trigger('change') before options exist, so
+    // label helpers (Inclusive/Exclusive, discount label) don't render then.
+    // Call this after populateProductModal() so the triggers have options to act on.
+    function _pfApplyDefaults() {
+        var defTax  = (typeof _pfDefProdTaxUID   !== 'undefined' && _pfDefProdTaxUID)   ? _pfDefProdTaxUID   : 1;
+        var defDisc = (typeof _pfDefDiscTypeUID  !== 'undefined' && _pfDefDiscTypeUID)  ? _pfDefDiscTypeUID  : 1;
+        var defTaxD = (typeof _pfDefTaxDetailUID !== 'undefined' && _pfDefTaxDetailUID) ? _pfDefTaxDetailUID : null;
+        $('#SellingTaxOption,#PurchaseTaxOption').val(defTax).trigger('change');
+        $('#DiscountOption').val(defDisc).trigger('change');
+        if (defTaxD) { $('#TaxPercentage').val(defTaxD).trigger('change'); }
     }
 
     // ── Tax % Select2 (always scoped to #ProductFormModal) ───────────────
@@ -195,7 +219,8 @@
 
     // ── Reset form to blank / defaults ────────────────────────────────────
     function _resetProductModal() {
-        _pfImgData = '';
+        _pfImgData     = '';
+        _pfOrigHsnCode = '';
         $('#AddEditItemForm')[0].reset();
         $('#ItemModalTitle').text('Create Item');
         $('.AddEditProductBtn').text('Save');
@@ -272,6 +297,7 @@
             $('#StorageUID').val(d.StorageUID).trigger('change');
         }
         $('#HSNCode').val(d.HSNSACCode);
+        _pfOrigHsnCode = d.HSNSACCode || '';
         $('#PartNumber').val(d.PartNumber);
         $('#SKU').val(d.SKU);
 
@@ -414,8 +440,8 @@
     $(document).on('submit', '#AddEditItemForm', function (e) {
         e.preventDefault();
 
-        var formData = new FormData(this);
-        var productUID = $('#HProductUID').val();
+        var formData   = new FormData(this);
+        var productUID = parseInt($('#HProductUID').val()) || 0;
 
         if (typeof myOneDropzone !== 'undefined' && myOneDropzone.files.length > 0) {
             var file = myOneDropzone.files[0];
@@ -449,8 +475,8 @@
 
         if (_onSaveSuccess && _onSaveSuccess._needsList) {
             formData.append('returnList', 1);
-            if (typeof PageNo    !== 'undefined') { formData.append('PageNo',   PageNo); }
-            if (typeof RowLimit  !== 'undefined') { formData.append('RowLimit', RowLimit); }
+            if (typeof PageNo       !== 'undefined') { formData.append('PageNo',   PageNo); }
+            if (typeof RowLimit     !== 'undefined') { formData.append('RowLimit', RowLimit); }
             if (typeof ItemModuleId !== 'undefined') { formData.append('ModuleId', ItemModuleId); }
             if (typeof Filter !== 'undefined' && Object.keys(Filter).length > 0) {
                 formData.append('Filter', JSON.stringify(Filter));
@@ -459,10 +485,35 @@
 
         updateCustomerPricingData();
 
+        if (productUID > 0) {
+            var currentHsn = $.trim($('#HSNCode').val());
+            var hsnChanged = ($.trim(_pfOrigHsnCode) !== currentHsn);
+            var message    = hsnChanged
+                ? 'You have updated the HSN/SAC code. This change will be reflected in all future transactions. Do you want to save?'
+                : 'Your changes will be saved and updated. Do you want to continue?';
+
+            Swal.fire({
+                icon              : 'warning',
+                title             : 'Confirm Update',
+                text              : message,
+                showCancelButton  : true,
+                confirmButtonText : 'Yes, Save',
+                cancelButtonText  : 'Cancel'
+            }).then(function (result) {
+                if (result.isConfirmed) {
+                    _doProductSave(formData, productUID);
+                }
+            });
+        } else {
+            _doProductSave(formData, productUID);
+        }
+    });
+
+    function _doProductSave(formData, productUID) {
         var $btn = $('.AddEditProductBtn');
         $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
 
-        var url = (productUID == 0) ? '/products/addProductData' : '/products/updateProductData';
+        var url = (productUID === 0) ? '/products/addProductData' : '/products/updateProductData';
 
         $.ajax({
             url         : url,
@@ -488,7 +539,7 @@
                 Swal.fire({ icon: 'error', title: 'Oops...', text: 'Failed to save product.' });
             }
         });
-    });
+    }
 
 })(window, jQuery);
 

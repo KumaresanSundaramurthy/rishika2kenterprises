@@ -27,8 +27,11 @@ class Payments extends MY_Controller {
 
             $orgUID = $this->pageData['JwtData']->Org->OrgUID;
 
-            // No direction or module filter — unified list shows both In and Out
-            $filter = [];
+            // Default to This Month so the initial server render is date-scoped
+            $filter = [
+                'DateFrom' => date('Y-m-01'),
+                'DateTo'   => date('Y-m-t'),
+            ];
 
             $this->load->model('transactions_model');
             $allData      = $this->transactions_model->getPaymentsList($limit, 0, $orgUID, $filter);

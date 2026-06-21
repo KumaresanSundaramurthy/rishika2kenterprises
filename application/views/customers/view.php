@@ -96,7 +96,7 @@
                             <?php endif; ?>
                             <?php if (!empty($CustomerTypeList)): ?>
                             <a href="javascript:void(0);" id="custTypeFilterBtn" class="apex-filter-btn" title="Filter by Customer Type">
-                                <i class="bx bx-user-pin"></i>Type
+                                <i class="bx bx-user-pin me-1"></i>Customer Type
                             </a>
                             <?php endif; ?>
                             <?php if ($showUserBtn): ?>
@@ -109,7 +109,7 @@
                             </a>
                             <!-- Group-only filter chip -->
                             <a href="javascript:void(0);" id="grpTypeFilterBtn" class="apex-filter-btn grp-only-ctrl d-none" title="Filter by Group Type">
-                                <i class="bx bx-category"></i>Type
+                                <i class="bx bx-category"></i> Group Type
                             </a>
                             <div class="apex-filter-spacer"></div>
                             <a href="javascript:void(0);" class="apex-icon-btn PageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
@@ -285,7 +285,7 @@
 ]); ?>
 <?php endif; ?>
 <?php if ($showUserBtn): ?>
-<?php $this->load->view('common/transactions/col_user_filter_box', [
+<?php $this->load->view('common/partials/col_user_filter_box', [
     'ColUserFilterConfig' => [
         'id'         => 'custUserFilterBox',
         'triggerId'  => 'custUserFilterBtn',
@@ -421,10 +421,10 @@ $(function () {
     }
 
     function toggleStickyPagination() {
+        if (_inGroupsMode) { $stickyPag.stop(true, true).hide(); return; }
         if (!$staticPag.length) return;
         var rect = $staticPag[0].getBoundingClientRect();
         var windowHeight = $(window).height();
-        // Show sticky bar when the static pagination is fully below the visible viewport
         var staticVisible = rect.top < windowHeight && rect.bottom > 0;
         if (staticVisible) {
             $stickyPag.stop(true, true).fadeOut(150);
@@ -465,7 +465,9 @@ $(function () {
     // ── All tab click (also exits groups mode) ──
     $(document).on('click', '.cust-tab', function (e) {
         e.preventDefault();
+
         if (_inGroupsMode) {
+            // Switching Groups → All: restore UI, do NOT reload (data already in table)
             _inGroupsMode = false;
             $('.cust-only-ctrl').removeClass('d-none');
             $('.grp-only-ctrl').addClass('d-none');
@@ -475,7 +477,14 @@ $(function () {
             $('#custTableSection').show();
             $('#grpTableSection').hide();
             $('#grpTabStats').removeClass('d-flex').addClass('d-none');
+            $('.grp-view-tab').removeClass('active');
+            $('.cust-tab').removeClass('active');
+            $(this).addClass('active');
+            toggleStickyPagination();
+            return;
         }
+
+        // Already in customer mode — reset filters and reload
         $('.cust-tab').removeClass('active');
         $(this).addClass('active');
         $('.apex-stat-item').removeClass('active');
@@ -741,6 +750,7 @@ $(function () {
         e.preventDefault();
         if (_inGroupsMode) return;
         _inGroupsMode = true;
+        toggleStickyPagination();
         $('.cust-tab').removeClass('active');
         $('.grp-view-tab').addClass('active');
         $('.cust-only-ctrl').addClass('d-none');
@@ -766,13 +776,11 @@ $(function () {
     function _grpReload(page) {
         _grpPageNo = page || 1;
         $('#GroupsTableBody').html('<tr><td colspan="9" class="text-center py-4"><span class="spinner-border spinner-border-sm text-primary" role="status"></span></td></tr>');
-        AjaxLoading = 0;
         $.ajax({
             url   : '/customers/getGroupsData/' + _grpPageNo,
             method: 'POST',
             data  : { Filter: _grpFilter, [CsrfName]: CsrfToken },
             success: function (res) {
-                AjaxLoading = 1;
                 CsrfToken = res.NewCsrfToken || CsrfToken;
                 if (res.Error) { showToastNotification(res.Message, 'error'); return; }
                 $('#GroupsTableBody').html(res.RecordHtmlData);

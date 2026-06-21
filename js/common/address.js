@@ -76,7 +76,7 @@ function csc_loadStates(selectId, countryISO2, selectedVal, onDone) {
 
 // ── Populate city dropdown per state ─────────────────────────────────────────
 // Flow: session cache → Upstash (loc-cities-by-state map) → AJAX (PHP stores in Upstash)
-function csc_loadCities(selectId, countryISO2, stateISO2, selectedVal, selectedName) {
+function csc_loadCities(selectId, countryISO2, stateISO2, selectedVal, selectedName, onDone) {
     var $sel = $('#' + selectId);
     if (!stateISO2) {
         $sel.empty().append('<option value="">-- Select City --</option>');
@@ -111,6 +111,7 @@ function csc_loadCities(selectId, countryISO2, stateISO2, selectedVal, selectedN
                 }
             });
         }
+        if (typeof onDone === 'function') onDone();
     }
 
     function _ajaxFallback() {

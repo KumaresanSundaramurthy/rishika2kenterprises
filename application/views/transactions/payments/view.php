@@ -208,7 +208,7 @@ $this->load->view('common/transactions/payment_modal');
 ]); ?>
 
 <?php if (count($OrgUsers ?? []) > 1): ?>
-<?php $this->load->view('common/transactions/col_user_filter_box', [
+<?php $this->load->view('common/partials/col_user_filter_box', [
     'ColUserFilterConfig' => [
         'id'         => 'allPmtCreatedByFilterBox',
         'triggerId'  => 'allPmtCreatedByFilter',
@@ -524,7 +524,7 @@ $(function () {
         win.location.href = url;
     });
 
-    // ── Pre-apply dir=out if URL param present ───────────────────────────────
+    // ── Handle optional dir=out URL param ───────────────────────────────────
     (function () {
         var params = new URLSearchParams(window.location.search);
         if ((params.get('dir') || '').toLowerCase() === 'out') {

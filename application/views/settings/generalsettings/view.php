@@ -318,6 +318,59 @@
                                                     </div>
                                                 </div>
 
+                                                <!-- ── HRMS ── -->
+                                                <?php
+                                                $gsEmpPrefix    = htmlspecialchars($gs->EmpCodePrefix    ?? 'EMP');
+                                                $gsEmpSeparator = $gs->EmpCodeSeparator ?? '-';
+                                                $gsEmpDigits    = (int)($gs->EmpCodeDigits ?? 4);
+                                                ?>
+                                                <p class="text-muted fw-semibold mb-2 mt-1" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;">HRMS</p>
+
+                                                <div class="border rounded p-3 mb-4">
+                                                    <div class="d-flex align-items-center gap-2 mb-1">
+                                                        <i class="bx bx-id-card text-primary" style="font-size:1rem;"></i>
+                                                        <span class="fw-semibold" style="font-size:.88rem;">Employee Code Format</span>
+                                                    </div>
+                                                    <p class="text-muted mb-3" style="font-size:.78rem;">Define how auto-generated employee codes are structured. The code is built as <strong>Prefix + Separator + Number</strong>.</p>
+
+                                                    <div class="row g-3 align-items-end">
+                                                        <div class="col-md-4">
+                                                            <label class="form-label">Prefix <span class="text-danger">*</span></label>
+                                                            <input type="text" class="form-control text-uppercase" id="gs_EmpCodePrefix" name="EmpCodePrefix"
+                                                                   placeholder="e.g. EMP" value="<?php echo $gsEmpPrefix; ?>"
+                                                                   maxlength="10" style="text-transform:uppercase;" />
+                                                            <div class="form-text">Short code that appears before the number (max 10 chars, letters &amp; digits only).</div>
+                                                        </div>
+                                                        <div class="col-md-4">
+                                                            <label class="form-label">Separator</label>
+                                                            <select class="form-select" id="gs_EmpCodeSeparator" name="EmpCodeSeparator">
+                                                                <option value="-"    <?php echo $gsEmpSeparator === '-'    ? 'selected' : ''; ?>>&#8211; &nbsp;Hyphen &nbsp;(EMP-0001)</option>
+                                                                <option value="/"    <?php echo $gsEmpSeparator === '/'    ? 'selected' : ''; ?>>/  &nbsp;Slash &nbsp;&nbsp;(EMP/0001)</option>
+                                                                <option value="none" <?php echo $gsEmpSeparator === 'none' ? 'selected' : ''; ?>>&#8709; &nbsp;None &nbsp;&nbsp;&nbsp;(EMP0001)</option>
+                                                            </select>
+                                                            <div class="form-text">Character placed between the prefix and the number.</div>
+                                                        </div>
+                                                        <div class="col-md-4">
+                                                            <label class="form-label">Number of Digits</label>
+                                                            <select class="form-select" id="gs_EmpCodeDigits" name="EmpCodeDigits">
+                                                                <option value="3" <?php echo $gsEmpDigits === 3 ? 'selected' : ''; ?>>3 digits &nbsp;(001 → 999)</option>
+                                                                <option value="4" <?php echo $gsEmpDigits === 4 ? 'selected' : ''; ?>>4 digits &nbsp;(0001 → 9999)</option>
+                                                                <option value="5" <?php echo $gsEmpDigits === 5 ? 'selected' : ''; ?>>5 digits &nbsp;(00001 → 99999)</option>
+                                                                <option value="6" <?php echo $gsEmpDigits === 6 ? 'selected' : ''; ?>>6 digits &nbsp;(000001 → 999999)</option>
+                                                            </select>
+                                                            <div class="form-text">How many digits the sequence number occupies (zero-padded).</div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="mt-3 d-flex align-items-center gap-2">
+                                                        <span class="text-muted" style="font-size:.78rem;">Preview:</span>
+                                                        <span id="empCodePreview" class="badge bg-label-primary fw-semibold px-3 py-2" style="font-size:.82rem; letter-spacing:.5px; font-family:monospace;"><?php
+                                                            $sep = $gsEmpSeparator === 'none' ? '' : $gsEmpSeparator;
+                                                            echo $gsEmpPrefix . $sep . str_pad('1', $gsEmpDigits, '0', STR_PAD_LEFT);
+                                                        ?></span>
+                                                    </div>
+                                                </div>
+
                                                 <div class="mt-4 d-flex gap-2">
                                                     <button type="button" class="btn btn-primary" id="btnSaveGeneralSettings">
                                                         <span class="spinner-border spinner-border-sm me-1 d-none" id="gsSpinner"></span>
@@ -903,24 +956,6 @@
 
 <?php $this->load->view('common/footer'); ?>
 
-<style>
-/* ── Top-level horizontal tabs ─────────────────────────── */
-.gs-top-tabs { border-bottom: none; }
-.gs-top-tabs .gs-top-link {
-    color: var(--bs-body-color); border-radius: 0;
-    border-bottom: 3px solid transparent;
-    padding: 0.65rem 1.1rem; font-size: 0.9rem;
-    transition: color 0.15s, border-color 0.15s;
-}
-.gs-top-tabs .gs-top-link:hover  { color: var(--bs-primary); border-bottom-color: var(--bs-primary); background: transparent; }
-.gs-top-tabs .gs-top-link.active { color: var(--bs-primary); border-bottom: 3px solid var(--bs-primary); background: transparent; font-weight: 600; }
-
-/* ── Left vertical sub-tabs ────────────────────────────── */
-.gs-nav-pills .gs-tab-link { border-radius: 0; color: var(--bs-body-color); font-size: 0.875rem; border-left: 3px solid transparent; transition: background 0.15s, border-color 0.15s; text-align: left; justify-content: flex-start; }
-.gs-nav-pills .gs-tab-link:hover  { background-color: var(--bs-gray-100); }
-.gs-nav-pills .gs-tab-link.active { background-color: rgba(var(--bs-primary-rgb), 0.08); color: var(--bs-primary); border-left-color: var(--bs-primary); font-weight: 600; }
-
-</style>
 
 <script>
 var CsrfName  = '<?php echo $this->security->get_csrf_token_name(); ?>';
@@ -936,6 +971,12 @@ $(document).ready(function () {
         var currency = $('#gs_CurrenySymbol').val().trim();
         if (!currency) {
             showToastNotification('Currency symbol is required.', 'error');
+            return;
+        }
+
+        var empPrefix = $('#gs_EmpCodePrefix').val().trim().toUpperCase();
+        if (!empPrefix || !/^[A-Z0-9]{1,10}$/.test(empPrefix)) {
+            showToastNotification('Employee code prefix must be 1–10 letters/digits.', 'error');
             return;
         }
 
@@ -958,6 +999,9 @@ $(document).ready(function () {
                 FormDateTimeFormat  : $('#FormDateTimeFormat').val(),
                 ListDateTimeFormat  : $('#ListDateTimeFormat').val(),
                 PrintDateTimeFormat : $('#PrintDateTimeFormat').val(),
+                EmpCodePrefix    : empPrefix,
+                EmpCodeSeparator : $('#gs_EmpCodeSeparator').val(),
+                EmpCodeDigits    : $('#gs_EmpCodeDigits').val(),
                 [CsrfName]      : CsrfToken,
             },
             success: function (resp) {
@@ -972,6 +1016,18 @@ $(document).ready(function () {
             }
         });
     });
+
+    // ── Employee Code live preview ────────────────────────────────────────────
+    function _updateEmpCodePreview() {
+        var prefix = $('#gs_EmpCodePrefix').val().trim().toUpperCase() || 'EMP';
+        var sep    = $('#gs_EmpCodeSeparator').val();
+        var digits = parseInt($('#gs_EmpCodeDigits').val(), 10) || 4;
+        var num    = String(1).padStart(digits, '0');
+        $('#empCodePreview').text(prefix + (sep === 'none' ? '' : sep) + num);
+    }
+
+    $('#gs_EmpCodePrefix').on('input', _updateEmpCodePreview);
+    $('#gs_EmpCodeSeparator, #gs_EmpCodeDigits').on('change', _updateEmpCodePreview);
 
     // ── Product Settings save ─────────────────────────────────────────────────
     $('#btnSaveProductSettings').on('click', function () {

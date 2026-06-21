@@ -74,6 +74,7 @@ $this->load->view('common/transactions/header'); ?>
                             <?php if (count($OrgUsers ?? []) > 1): ?>
                             <a href="javascript:void(0);" id="prCreatedByFilter" class="apex-filter-btn" title="Filter by User"><i class="bx bx-user me-1"></i>Updated By</a>
                             <?php endif; ?>
+                            <a href="javascript:void(0);" id="prStatusFilterTrigger" class="apex-filter-btn" title="Filter by Status"><i class="bx bx-filter-alt me-1"></i>Status</a>
                             <a href="javascript:void(0);" id="prPartyFilterTrigger" class="apex-filter-btn" title="Filter by Vendor"><i class="bx bx-store me-1"></i>Vendor</a>
                             <?php $this->load->view('common/transactions/date_filter_btn'); ?>
                             <div class="apex-filter-spacer"></div>
@@ -242,7 +243,7 @@ $this->load->view('common/transactions/header'); ?>
 </div>
 
 <?php if (count($OrgUsers ?? []) > 1): ?>
-<?php $this->load->view('common/transactions/col_user_filter_box', [
+<?php $this->load->view('common/partials/col_user_filter_box', [
     'ColUserFilterConfig' => [
         'id'         => 'prCreatedByFilterBox',
         'triggerId'  => 'prCreatedByFilter',
@@ -251,6 +252,23 @@ $this->load->view('common/transactions/header'); ?>
     ],
 ]); ?>
 <?php endif; ?>
+
+<?php $this->load->view('common/transactions/col_filter_box', [
+    'ColFilterConfig' => [
+        'id'         => 'prStatusFilterBox',
+        'triggerId'  => 'prStatusFilterTrigger',
+        'title'      => 'Status',
+        'icon'       => 'bx-filter-alt',
+        'filterKey'  => 'Status',
+        'checkClass' => 'pr-status-chk',
+        'items'      => [
+            ['value' => 'PRPending',  'label' => 'Pending Refund'],
+            ['value' => 'Paid',       'label' => 'Settled'],
+            ['value' => 'Cancelled',  'label' => 'Cancelled'],
+            ['value' => 'Draft',      'label' => 'Draft'],
+        ],
+    ],
+]); ?>
 
 <?php $this->load->view('common/transactions/col_party_filter_box', [
     'ColPartyFilterConfig' => [
@@ -288,6 +306,23 @@ $(function () {
     var tfb = (typeof TransFilterBar !== 'undefined')
         ? new TransFilterBar({ onChange: function () { PageNo = 1; getPurchaseReturnsDetails(); } })
         : null;
+
+    var prStatusFilter = new TransColFilter({
+        boxId       : 'prStatusFilterBox',
+        triggerId   : 'prStatusFilterTrigger',
+        filterKey   : 'Status',
+        activeClass : 'has-filter',
+        onApply     : function () {
+            var vals = prStatusFilter.getState()['Status'] || [];
+            Filter.Status = (vals.length === 1) ? vals[0] : 'All';
+            $('.pr-status-tab').removeClass('active');
+            $('.pr-status-tab[data-status="' + Filter.Status + '"]').addClass('active');
+            $('.apex-stat-item').removeClass('active');
+            $('.apex-stat-item[data-stat-filter="' + Filter.Status + '"]').addClass('active');
+            PageNo = 1;
+            getPurchaseReturnsDetails();
+        }
+    });
 
     var prCreatedByFilter = (document.getElementById('prCreatedByFilterBox'))
         ? new TransColFilter({
@@ -327,6 +362,7 @@ $(function () {
         $('.apex-stat-item').removeClass('active'); $(this).addClass('active');
         $('.pr-status-tab').removeClass('active');
         $('.pr-status-tab[data-status="' + status + '"]').addClass('active');
+        prStatusFilter.reset();
         Filter.Status = status; PageNo = 1; getPurchaseReturnsDetails();
     });
 
@@ -336,6 +372,7 @@ $(function () {
         $('.apex-stat-item').removeClass('active');
         var status = $(this).data('status') || 'All';
         $('.apex-stat-item[data-stat-filter="' + status + '"]').addClass('active');
+        prStatusFilter.reset();
         Filter.Status = status; PageNo = 1; getPurchaseReturnsDetails();
     });
 

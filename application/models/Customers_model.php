@@ -973,11 +973,17 @@ class Customers_model extends CI_Model {
     // Customer Group methods
     // ══════════════════════════════════════════════════════════════════
 
-    public static function getGroupTypes() {
-        return [
-            'Business Group', 'Branch Group', 'Family Group',
-            'Corporate Group', 'Dealer Network', 'Franchise Group', 'Custom',
-        ];
+    public function getGroupTypes($module = 'customers') {
+        try {
+            $query = $this->ReadDb->query(
+                "SELECT TypeName FROM Global.GroupTypesTbl WHERE Module=? AND IsActive=1 ORDER BY SortOrder",
+                [$module]
+            );
+            $rows = $query ? $query->result_array() : [];
+            if ($rows) return array_column($rows, 'TypeName');
+        } catch (Exception $e) {}
+        return ['Business Group', 'Branch Group', 'Family Group',
+                'Corporate Group', 'Dealer Network', 'Franchise Group', 'Custom'];
     }
 
     public function getGroupListPaginated($orgUID, $limit, $offset, $filter = []) {

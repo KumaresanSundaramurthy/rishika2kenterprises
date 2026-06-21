@@ -273,13 +273,16 @@ class Products_model extends CI_Model {
         $this->EndReturnData = new StdClass();
         try {
 
-            // Cache all-categories (no filter) in Upstash for 1 hour
+            // Cache all-categories (no filter) in Upstash as a hash keyed by CategoryUID
             $cacheKey = null;
             if (empty($FilterArray)) {
-                $cacheKey = $this->redisservice->orgKey('org-categories');
-                $cached   = $this->upstashservice->get($cacheKey);
-                if ($cached !== null) {
-                    $this->EndReturnData->Data = array_map(fn($r) => is_array($r) ? (object) $r : $r, (array)$cached);
+                $cacheKey = $this->redisservice->orgKey('categories');
+                $cached   = $this->upstashservice->hgetall($cacheKey);
+                if (!empty($cached)) {
+                    $this->EndReturnData->Data = array_values(array_map(
+                        fn($v) => is_array($v) ? (object)$v : $v,
+                        $cached
+                    ));
                     return $this->EndReturnData->Data;
                 }
             }
@@ -315,7 +318,21 @@ class Products_model extends CI_Model {
             }
 
             if ($cacheKey !== null) {
-                $this->upstashservice->set($cacheKey, $this->EndReturnData->Data, 3600);
+                $newMap = [];
+                foreach ($this->EndReturnData->Data as $cat) {
+                    $uid = (int)($cat->CategoryUID ?? 0);
+                    if ($uid > 0) {
+                        $newMap[(string)$uid] = [
+                            'CategoryUID' => $uid,
+                            'Name'        => $cat->Name        ?? '',
+                            'Description' => $cat->Description ?? '',
+                            'Image'       => $cat->Image       ?? '',
+                        ];
+                    }
+                }
+                if (!empty($newMap)) {
+                    $this->upstashservice->hmset($cacheKey, $newMap);
+                }
             }
 
             return $this->EndReturnData->Data;
@@ -447,7 +464,9 @@ class Products_model extends CI_Model {
                 'Comp.ChildProductUID AS ChildProductUID',
                 'Prod.ItemName AS ItemName',
                 'Comp.Quantity AS Quantity',
+                'Prod.MRP AS MRP',
                 'Prod.SellingPrice AS SellingPrice',
+                'Prod.PurchasePrice AS PurchasePrice',
             ]);
             $this->ReadDb->from('Products.ProductBOMTbl as Comp');
             $this->ReadDb->join('Products.ProductTbl as Prod', 'Prod.ProductUID = Comp.ChildProductUID', 'left');

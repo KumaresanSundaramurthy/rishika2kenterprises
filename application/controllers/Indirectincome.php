@@ -26,7 +26,7 @@ class Indirectincome extends MY_Controller {
             $limit  = $GeneralSettings->RowLimit ?? 10;
             $orgUID = $this->pageData['JwtData']->Org->OrgUID;
 
-            $filter = ['Status' => 'All'];
+            $filter = ['Status' => 'All', 'DateFrom' => date('Y-m-01'), 'DateTo' => date('Y-m-t')];
 
             $allData      = $this->indirectincome_model->getIncomeList($orgUID, $filter, $limit, 0);
             $allDataCount = $this->indirectincome_model->getIncomeCount($orgUID, $filter);

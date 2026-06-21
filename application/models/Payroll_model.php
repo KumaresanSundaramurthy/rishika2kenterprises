@@ -61,15 +61,17 @@ class Payroll_model extends CI_Model {
     public function getPayrollLines($payrollUID) {
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->select([
-            'PL.*', 'E.EmployeeName', 'E.EmployeeCode',
+            'PL.*',
+            "CONCAT(U.FirstName, ' ', U.LastName) AS EmployeeName",
+            'U.EmployeeCode',
             'D.DepartmentName', 'DS.DesignationName',
         ]);
         $this->ReadDb->from('Transaction.PayrollLineTbl PL');
-        $this->ReadDb->join('Organisation.EmployeeTbl  E',  'E.EmployeeUID     = PL.EmployeeUID AND E.IsDeleted  = 0');
-        $this->ReadDb->join('Organisation.DepartmentTbl D',  'D.DepartmentUID  = E.DepartmentUID  AND D.IsDeleted  = 0', 'left');
-        $this->ReadDb->join('Organisation.DesignationTbl DS','DS.DesignationUID = E.DesignationUID AND DS.IsDeleted = 0', 'left');
+        $this->ReadDb->join('Users.UserTbl U',                'U.UserUID         = PL.EmployeeUID  AND U.IsDeleted  = 0');
+        $this->ReadDb->join('Organisation.DepartmentTbl D',   'D.DepartmentUID   = U.DepartmentUID  AND D.IsDeleted  = 0', 'left');
+        $this->ReadDb->join('Organisation.DesignationTbl DS', 'DS.DesignationUID = U.DesignationUID AND DS.IsDeleted = 0', 'left');
         $this->ReadDb->where(['PL.PayrollUID' => $payrollUID, 'PL.IsDeleted' => 0]);
-        $this->ReadDb->order_by('E.EmployeeName', 'ASC');
+        $this->ReadDb->order_by('EmployeeName', 'ASC');
         return $this->ReadDb->get()->result();
     }
 
@@ -104,24 +106,26 @@ class Payroll_model extends CI_Model {
         $this->ReadDb->select([
             'PL.PayrollLineUID AS TablePrimaryUID',
             'PL.PayrollUID', 'P.PayrollMonth', 'P.PayrollYear', 'P.PayrollStatus',
-            'PL.EmployeeUID', 'E.EmployeeName', 'E.EmployeeCode',
+            'PL.EmployeeUID',
+            "CONCAT(U.FirstName, ' ', U.LastName) AS EmployeeName",
+            'U.EmployeeCode',
             'D.DepartmentName', 'DS.DesignationName',
             'PL.SalaryType', 'PL.GrossSalary', 'PL.NetSalary',
             'PL.PresentDays', 'PL.AbsentDays', 'PL.WorkingDays',
             'PL.AdvanceRecovery', 'PL.SalaryDeduction',
         ]);
         $this->ReadDb->from('Transaction.PayrollLineTbl PL');
-        $this->ReadDb->join('Transaction.PayrollTbl P', 'P.PayrollUID = PL.PayrollUID AND P.IsDeleted = 0');
-        $this->ReadDb->join('Organisation.EmployeeTbl  E',  'E.EmployeeUID     = PL.EmployeeUID AND E.IsDeleted  = 0');
-        $this->ReadDb->join('Organisation.DepartmentTbl D',  'D.DepartmentUID  = E.DepartmentUID  AND D.IsDeleted  = 0', 'left');
-        $this->ReadDb->join('Organisation.DesignationTbl DS','DS.DesignationUID = E.DesignationUID AND DS.IsDeleted = 0', 'left');
+        $this->ReadDb->join('Transaction.PayrollTbl P',      'P.PayrollUID      = PL.PayrollUID   AND P.IsDeleted  = 0');
+        $this->ReadDb->join('Users.UserTbl U',               'U.UserUID         = PL.EmployeeUID  AND U.IsDeleted  = 0');
+        $this->ReadDb->join('Organisation.DepartmentTbl D',  'D.DepartmentUID   = U.DepartmentUID  AND D.IsDeleted  = 0', 'left');
+        $this->ReadDb->join('Organisation.DesignationTbl DS','DS.DesignationUID = U.DesignationUID AND DS.IsDeleted = 0', 'left');
         $this->ReadDb->where($where);
         if (!empty($filter['EmployeeUID'])) $this->ReadDb->where('PL.EmployeeUID', (int)$filter['EmployeeUID']);
         if (!empty($filter['Year']))        $this->ReadDb->where('P.PayrollYear',  (int)$filter['Year']);
         if (!empty($filter['Month']))       $this->ReadDb->where('P.PayrollMonth', (int)$filter['Month']);
         $this->ReadDb->order_by('P.PayrollYear',  'DESC');
         $this->ReadDb->order_by('P.PayrollMonth', 'DESC');
-        $this->ReadDb->order_by('E.EmployeeName', 'ASC');
+        $this->ReadDb->order_by('EmployeeName',   'ASC');
         $this->ReadDb->limit($limit, $offset);
         $rows = $this->ReadDb->get()->result();
 
@@ -135,14 +139,15 @@ class Payroll_model extends CI_Model {
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->select([
             'PL.*', 'P.PayrollMonth', 'P.PayrollYear', 'P.PayrollStatus',
-            'E.EmployeeName', 'E.EmployeeCode', 'E.Mobile', 'E.Email', 'E.DateOfJoining',
+            "CONCAT(U.FirstName, ' ', U.LastName) AS EmployeeName",
+            'U.EmployeeCode', 'U.MobileNumber AS Mobile', 'U.EmailAddress AS Email', 'U.DateOfJoining',
             'D.DepartmentName', 'DS.DesignationName',
         ]);
         $this->ReadDb->from('Transaction.PayrollLineTbl PL');
-        $this->ReadDb->join('Transaction.PayrollTbl P', 'P.PayrollUID = PL.PayrollUID AND P.IsDeleted = 0');
-        $this->ReadDb->join('Organisation.EmployeeTbl  E',  'E.EmployeeUID     = PL.EmployeeUID AND E.IsDeleted  = 0');
-        $this->ReadDb->join('Organisation.DepartmentTbl D',  'D.DepartmentUID  = E.DepartmentUID  AND D.IsDeleted  = 0', 'left');
-        $this->ReadDb->join('Organisation.DesignationTbl DS','DS.DesignationUID = E.DesignationUID AND DS.IsDeleted = 0', 'left');
+        $this->ReadDb->join('Transaction.PayrollTbl P',      'P.PayrollUID      = PL.PayrollUID   AND P.IsDeleted  = 0');
+        $this->ReadDb->join('Users.UserTbl U',               'U.UserUID         = PL.EmployeeUID  AND U.IsDeleted  = 0');
+        $this->ReadDb->join('Organisation.DepartmentTbl D',  'D.DepartmentUID   = U.DepartmentUID  AND D.IsDeleted  = 0', 'left');
+        $this->ReadDb->join('Organisation.DesignationTbl DS','DS.DesignationUID = U.DesignationUID AND DS.IsDeleted = 0', 'left');
         $this->ReadDb->where(['PL.PayrollLineUID' => $payrollLineUID, 'P.OrgUID' => $orgUID, 'PL.IsDeleted' => 0]);
         return $this->ReadDb->get()->row();
     }
@@ -151,7 +156,7 @@ class Payroll_model extends CI_Model {
         $this->WriteDb->db_debug = FALSE;
         $this->WriteDb->select('AdvanceUID, BalancePending');
         $this->WriteDb->from('Transaction.SalaryAdvanceTbl');
-        $this->WriteDb->where(['EmployeeUID' => (int)$empUID, 'OrgUID' => (int)$orgUID, 'IsDeleted' => 0, 'IsSettled' => 0]);
+        $this->WriteDb->where(['UserUID' => (int)$empUID, 'OrgUID' => (int)$orgUID, 'IsDeleted' => 0, 'IsSettled' => 0]);
         $this->WriteDb->where('BalancePending >', 0);
         $this->WriteDb->order_by('AdvanceUID', 'ASC');
         return $this->WriteDb->get()->result();
@@ -159,7 +164,7 @@ class Payroll_model extends CI_Model {
 
     public function getWorkingDaysInMonth($year, $month) {
         // Count calendar days in month excluding Sundays
-        $daysInMonth = cal_days_in_month(CAL_GREGORIAN, $month, $year);
+        $daysInMonth = (int)date('t', mktime(0, 0, 0, $month, 1, $year));
         $working = 0;
         for ($d = 1; $d <= $daysInMonth; $d++) {
             $dow = date('N', mktime(0, 0, 0, $month, $d, $year));

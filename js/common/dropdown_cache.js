@@ -1,100 +1,126 @@
 /**
- * DropdownCache — lazy-loads product-form dropdown data after page render.
+ * DropdownCache — product-form dropdown data manager.
  *
- * On page ready: fires a single background AJAX GET to /products/getDropdownCache
- * and immediately populates extra-discount and additional-charges tax selects.
+ * Implements the decided pattern (see memory: product_add_form_memory.md):
  *
- * Before the product modal opens: call DropdownCache.ready().then(fn) to ensure
- * all modal selects are populated.
+ *   Case A (all 6 keys found in Upstash):
+ *     Populate all dropdowns → then show modal. User sees a fully-loaded form instantly.
+ *
+ *   Case B (some or none found in Upstash):
+ *     Show modal immediately → populate whatever was found → fire ONE server call
+ *     for the missing fields only → when response arrives, fill the blanks.
+ *
+ *   Subsequent opens (JS in-memory cache warm):
+ *     No network call at all. Populate + show in the same tick.
+ *
+ * Public API:
+ *   DropdownCache.openForProductForm({ onReady, onPartial, onMissingReady })
+ *   DropdownCache.populateProductModal(data)
+ *   DropdownCache.ready()   ← legacy, resolves when ALL data available
+ *   DropdownCache.init()    ← pre-warm in background (optional)
  */
 window.DropdownCache = (function ($) {
     'use strict';
 
-    var _data    = null;
-    var _promise = null;
+    var _data    = null;   // complete in-memory cache — null means cold
+    var _promise = null;   // set once all data is complete; used by legacy ready()
 
-    // ── Upstash key map (mirrors PHP getDropdownCache) ────────────────────────
-
+    // Upstash key map — mirrors PHP getDropdownCache()
     var _keyMap = {
         primaryUnit : 'primary-unit',
         discType    : 'disc-type',
         prodType    : 'prod-type',
         prodTax     : 'prod-tax',
         taxDetails  : 'tax-details',
-        categories  : 'org-categories',
+        categories  : 'categories',   // Redis HASH — HGETALL
     };
     var _fields = Object.keys(_keyMap);
 
-    // ── Tier 2: AJAX fallback (server fetches missing from DB → writes Upstash) ─
+    // ── Step 1: pipeline-check all 6 keys in one Upstash HTTP call ───────────
 
-    function _fetchFromServer(resolve) {
-        $.ajax({
-            url      : '/products/getDropdownCache',
-            type     : 'GET',
-            dataType : 'json',
-            cache    : false,
-            success  : function (res) {
-                if (res && !res.Error && res.Data) {
-                    _data = res.Data;
-                    _populatePageSelects(_data);
-                    resolve(_data);
-                } else {
-                    resolve(null);
-                }
-            },
-            error: function () { resolve(null); }
+    function _checkUpstash() {
+        if (!UpstashService.isEnabled()) {
+            return Promise.resolve({ found: {}, missing: _fields.slice() });
+        }
+
+        // 'categories' is a Redis hash → HGETALL; all others are strings → GET
+        var cmds = _fields.map(function (f) {
+            return f === 'categories'
+                ? ['HGETALL', UpstashService.orgKey(_keyMap[f])]
+                : ['GET',     UpstashService.orgKey(_keyMap[f])];
         });
-    }
 
-    // ── Tier 1: pipeline-read all keys from Upstash in one HTTP call ──────────
+        return UpstashService.pipeline(cmds).then(function (results) {
+            var found   = {};
+            var missing = [];
 
-    function _fetch() {
-        if (_promise) return _promise;
+            _fields.forEach(function (field, i) {
+                var raw = results[i];
 
-        _promise = new Promise(function (resolve) {
-
-            if (!UpstashService.isEnabled()) {
-                _fetchFromServer(resolve);
-                return;
-            }
-
-            var cmds = _fields.map(function (f) {
-                return ['GET', UpstashService.orgKey(_keyMap[f])];
-            });
-
-            UpstashService.pipeline(cmds).then(function (results) {
-                var data   = {};
-                var allHit = true;
-
-                _fields.forEach(function (field, i) {
-                    var raw = results[i];
-                    if (raw !== null && raw !== undefined) {
-                        try   { data[field] = JSON.parse(raw); }
-                        catch { data[field] = raw; }
-                        if (!Array.isArray(data[field])) data[field] = [];
-                    } else {
-                        allHit = false;
+                if (field === 'categories') {
+                    // HGETALL → flat [uid, jsonStr, uid, jsonStr, ...] array
+                    if (Array.isArray(raw) && raw.length >= 2) {
+                        var cats = [];
+                        for (var j = 0; j + 1 < raw.length; j += 2) {
+                            try {
+                                var val = raw[j + 1];
+                                cats.push(typeof val === 'string' ? JSON.parse(val) : val);
+                            } catch (e) {}
+                        }
+                        if (cats.length > 0) { found[field] = cats; return; }
                     }
-                });
-
-                if (allHit) {
-                    _data = data;
-                    _populatePageSelects(_data);
-                    resolve(_data);
-                } else {
-                    // One or more keys are cold — server will DB-fetch missing
-                    // fields and write them back to Upstash automatically
-                    _fetchFromServer(resolve);
+                    missing.push(field);
+                    return;
                 }
-            }).catch(function () {
-                _fetchFromServer(resolve);
-            });
-        });
 
-        return _promise;
+                if (raw !== null && raw !== undefined) {
+                    try {
+                        var parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+                        if (Array.isArray(parsed) && parsed.length > 0) {
+                            found[field] = parsed;
+                            return;
+                        }
+                    } catch (e) {}
+                }
+                missing.push(field);
+            });
+
+            return { found: found, missing: missing };
+        }).catch(function () {
+            return { found: {}, missing: _fields.slice() };
+        });
     }
 
-    // ── Page-level selects (visible before modal opens) ───────────────────────
+    // ── Step 2 (Case B only): fetch missing fields from server ────────────────
+    // Server does DB query → writes each missing field back to Upstash → returns data.
+    // Endpoint accepts fields[] POST param so only the missing fields are processed.
+
+    function _fetchMissing(missingFields) {
+        return new Promise(function (resolve) {
+            if (!missingFields.length) { resolve({}); return; }
+
+            var postData = {};
+            postData[CsrfName] = CsrfToken;
+            missingFields.forEach(function (f, i) {
+                postData['fields[' + i + ']'] = f;
+            });
+
+            $.ajax({
+                url      : '/products/getDropdownCache',
+                type     : 'POST',
+                data     : postData,
+                dataType : 'json',
+                cache    : false,
+                success  : function (res) {
+                    if (res && res.NewCsrfToken) CsrfToken = res.NewCsrfToken;
+                    resolve((res && !res.Error && res.Data) ? res.Data : {});
+                },
+                error: function () { resolve({}); }
+            });
+        });
+    }
+
+    // ── Page-level selects (transaction page extras — ex-discount, tax) ───────
 
     function _populatePageSelects(data) {
         _populateExtDiscountType(data.discType || []);
@@ -125,12 +151,14 @@ window.DropdownCache = (function ($) {
         });
     }
 
-    // ── Product modal selects (called before modal shows) ─────────────────────
+    // ── Product modal selects ─────────────────────────────────────────────────
+    // Each block guards with a "no options yet" check so calling this twice
+    // (once with partial data, once with the rest) is safe — found ones are skipped.
 
     function populateProductModal(data) {
         if (!data) return;
 
-        // ProductType — value is the name string, not UID
+        // ProductType
         var $pt = $('#ProductType');
         if ($pt.length && !$pt.find('option').length) {
             var html = '';
@@ -152,7 +180,7 @@ window.DropdownCache = (function ($) {
             }
         });
 
-        // TaxPercentage — value is TaxDetailsUID, data-left/right for template
+        // TaxPercentage (Select2 with custom template)
         var $tax = $('#TaxPercentage');
         if ($tax.length && $tax.find('option[value!=""]').length === 0) {
             var html = '<option value=""></option>';
@@ -229,17 +257,14 @@ window.DropdownCache = (function ($) {
             $do.html(html);
         }
 
-        // Resolve defaults that required data lookups
         _resolveDefaults(data);
     }
 
-    // Set _pfDefProductType (name string) from UID, and fill fallback UIDs when 0
     function _resolveDefaults(data) {
         var defTypeUID = (typeof _pfDefProdTypeUID !== 'undefined') ? parseInt(_pfDefProdTypeUID) : 0;
         var defDiscUID = (typeof _pfDefDiscTypeUID !== 'undefined') ? parseInt(_pfDefDiscTypeUID) : 0;
         var defTaxUID  = (typeof _pfDefProdTaxUID  !== 'undefined') ? parseInt(_pfDefProdTaxUID)  : 0;
 
-        // Product type name from UID
         if (!window._pfDefProductType || window._pfDefProductType === '') {
             var found = '';
             $.each(data.prodType || [], function (_, t) {
@@ -252,7 +277,6 @@ window.DropdownCache = (function ($) {
             window._pfDefProductType = found || 'Product';
         }
 
-        // Fallback discount UID to first "Percentage" type
         if (!defDiscUID || defDiscUID === 0) {
             $.each(data.discType || [], function (_, d) {
                 if (d.Name && d.Name.toLowerCase().indexOf('percentage') !== -1) {
@@ -261,7 +285,6 @@ window.DropdownCache = (function ($) {
             });
         }
 
-        // Fallback prod-tax UID to first "With Tax" type
         if (!defTaxUID || defTaxUID === 0) {
             $.each(data.prodTax || [], function (_, t) {
                 if (t.Name && t.Name.toLowerCase().indexOf('with tax') !== -1) {
@@ -271,23 +294,100 @@ window.DropdownCache = (function ($) {
         }
     }
 
-    // ── Public API ────────────────────────────────────────────────────────────
+    // ── openForProductForm — the decided pattern ──────────────────────────────
 
-    function init() {
-        _fetch();
+    function openForProductForm(callbacks) {
+        callbacks = callbacks || {};
+        var onReady        = callbacks.onReady        || function () {};
+        var onPartial      = callbacks.onPartial      || function () {};
+        var onMissingReady = callbacks.onMissingReady || function () {};
+
+        // JS cache warm — no network call at all
+        if (_data) {
+            onReady(_data);
+            return;
+        }
+
+        _checkUpstash().then(function (result) {
+
+            if (result.missing.length === 0) {
+                // ── Case A: all 6 found — populate first, then open modal ──
+                _data    = result.found;
+                _promise = Promise.resolve(_data);
+                _populatePageSelects(_data);
+                onReady(_data);
+
+            } else {
+                // ── Case B: some/none found — open modal now ───────────────
+                // Populate whatever was found immediately (guards in populateProductModal
+                // ensure already-populated fields are never overwritten on the 2nd call).
+                _populatePageSelects(result.found);
+                onPartial(result.found);
+
+                // Fetch ONLY the missing fields from the server in one batch call.
+                _fetchMissing(result.missing).then(function (missingData) {
+                    var complete = $.extend({}, result.found, missingData);
+                    _data    = complete;
+                    _promise = Promise.resolve(_data);
+                    _populatePageSelects(_data);
+                    onMissingReady(_data);
+                });
+            }
+        });
     }
 
+    // ── ready() — legacy API, resolves only when ALL data is complete ─────────
+
     function ready() {
-        if (!_promise) init();
+        if (_promise) return _promise;
+        _promise = new Promise(function (resolve) {
+            if (_data) { resolve(_data); return; }
+            _checkUpstash().then(function (result) {
+                if (result.missing.length === 0) {
+                    _data = result.found;
+                    _populatePageSelects(_data);
+                    resolve(_data);
+                } else {
+                    _populatePageSelects(result.found);
+                    _fetchMissing(result.missing).then(function (missingData) {
+                        _data = $.extend({}, result.found, missingData);
+                        _populatePageSelects(_data);
+                        resolve(_data);
+                    });
+                }
+            });
+        });
         return _promise;
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    function init() {
+        if (!_promise) ready();
+    }
 
     function _esc(str) {
         return $('<span>').text(str || '').html();
     }
 
-    return { init: init, ready: ready, populateProductModal: populateProductModal };
+    // ── patchCategories — keep _data.categories in sync after CRUD ────────────
+    // Called by updateCategoryOptions so the in-memory cache stays consistent
+    // without requiring a full re-fetch.
+    function patchCategories(action, fields) {
+        if (!_data || !Array.isArray(_data.categories)) return;
+        if (action === 'insert') {
+            _data.categories.push({ CategoryUID: parseInt(fields.InsertId), Name: fields.CategoryName });
+        } else if (action === 'update') {
+            var uid = String(fields.UpdateId).trim();
+            _data.categories.forEach(function (c) {
+                if (String(c.CategoryUID) === uid) { c.Name = fields.CategoryName; }
+            });
+        } else if (action === 'delete') {
+            var ids = (Array.isArray(fields.UpdateId) ? fields.UpdateId : [fields.UpdateId]).map(String);
+            _data.categories = _data.categories.filter(function (c) {
+                return ids.indexOf(String(c.CategoryUID)) === -1;
+            });
+        }
+    }
+
+    return { init: init, ready: ready, openForProductForm: openForProductForm, populateProductModal: populateProductModal, patchCategories: patchCategories };
 
 }(jQuery));

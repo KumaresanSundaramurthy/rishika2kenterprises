@@ -28,8 +28,8 @@ class Payslips extends MY_Controller {
             $pd = $this->_fetchTableData(1, $this->_limit());
             $this->pageData['ModRowData']    = $pd->RecordHtmlData;
             $this->pageData['ModPagination'] = $pd->Pagination;
-            $this->load->model('employees_model');
-            $this->pageData['EmployeeList'] = $this->employees_model->getEmployeeDropdownList($this->_orgUID());
+            $this->load->model('users_model');
+            $this->pageData['EmployeeList'] = $this->users_model->getEmployeeDropdownList($this->_orgUID());
             $this->load->view('hrms/payslips/view', $this->pageData);
         } catch (Exception $e) { redirect('dashboard', 'refresh'); }
     }

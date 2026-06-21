@@ -10,6 +10,14 @@
 
     $currentSettingsController = $isSettingsPage ? ucfirst($secondSeg) : null;
 
+    // Full current path including query string — used for exact URL-based active matching.
+    // Prevents multiple items that share the same ControllerName (e.g. Products list vs
+    // Products?tab=category) from all being marked active at once.
+    $_reqUri         = $CI->input->server('REQUEST_URI') ?? '';
+    $_parsedPath     = ltrim(parse_url($_reqUri, PHP_URL_PATH) ?? $firstSeg, '/');
+    $_parsedQuery    = parse_url($_reqUri, PHP_URL_QUERY) ?? '';
+    $currentPathFull = strtolower($_parsedPath . ($_parsedQuery ? '?' . $_parsedQuery : ''));
+
     $UserMainModule = $this->redisservice->getUserCache('menus') ?? [];
     $UserSubModule = $this->redisservice->getUserCache('submenus') ?? [];
 ?>
@@ -78,7 +86,7 @@
                         </a>
                         <?php if (count($SubMenuData) > 0): ?>
                         <ul class="menu-sub">
-                            <?php $this->globalservice->renderSubMenu($ControllerName, $SubMenuData, null); ?>
+                            <?php $this->globalservice->renderSubMenu($ControllerName, $SubMenuData, null, $currentPathFull); ?>
                         </ul>
                         <?php endif; ?>
                     <?php endif; ?>
@@ -94,27 +102,6 @@
             </a>
         </li>
 
-        <!-- Profile Section -->
-        <li class="menu-item user-profile-item">
-            <a class="menu-link d-flex align-items-center" style="margin-inline: 0.5rem;" id="ProfileDropdownToggle" href="javascript:void(0);">
-                <span class="profile-avatar-wrap">
-                    <img src="<?php echo $JwtData->User->UserImage ? getenv('CFLARE_R2_CDN').$JwtData->User->UserImage : '/images/logo/avathar_user.png'; ?>"
-                        alt="<?php echo htmlspecialchars($JwtData->User->FirstName); ?>" />
-                </span>
-                <div class="profile-text-info ms-2 flex-grow-1">
-                    <div class="profile-name"><?php echo strtoupper($JwtData->User->FirstName); ?></div>
-                    <div class="profile-role"><?php echo strtoupper($JwtData->User->RoleName); ?></div>
-                </div>
-                <i class="bx bx-chevron-down profile-caret"></i>
-            </a>
-            <ul id="ProfileDropdownMenu" style="display:none;">
-                <li><a class="dropdown-item" href="/settings/profile"><i class="bx bx-user"></i> My Profile</a></li>
-                <li><a class="dropdown-item ChangePasswordBtn" href="javascript:void(0);"><i class="bx bx-lock"></i> Change Password</a></li>
-                <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item" href="/logout"><i class="bx bx-power-off"></i> Log Out</a></li>
-            </ul>
-        </li>
-
     </ul>
 
     <ul id="SettingsMenuBar" style="margin-top: 0 !important;" class="menu-inner py-1 flex-grow-1 overflow-auto <?php echo $isSettingsPage ? '' : 'd-none'; ?>">
@@ -128,7 +115,6 @@
 
     <?php
         $SubMenuData = [];
-        $currentPath = trim($firstSeg . ($secondSeg ? '/' . $secondSeg : ''), '/');
         if (count($UserSubModule) > 0) {
             $SubMenuData = filterByMainMenuUID($UserSubModule, $UserMainModule[count($UserMainModule) - 1]->MainMenuUID);
         }
@@ -137,7 +123,7 @@
         foreach ($topItems as $item):
             $icon = !empty($item->SubMenuIcon) ? '<i class="menu-icon tf-icons ' . htmlspecialchars($item->SubMenuIcon) . '"></i>' : '';
             if (!empty($item->IsParent)):
-                $isAnyChildActive = $this->globalservice->hasActiveDescendant($SubMenuData, $item->SubMenuUID, $ControllerName, $currentPath);
+                $isAnyChildActive = $this->globalservice->hasActiveDescendant($SubMenuData, $item->SubMenuUID, $ControllerName, $currentPathFull);
                 $liClass = $isAnyChildActive ? 'menu-item open active' : 'menu-item';
     ?>
             <li class="<?php echo $liClass; ?>">
@@ -146,13 +132,13 @@
                     <div data-i18n="<?php echo htmlspecialchars($item->SubMenuName); ?>"><?php echo htmlspecialchars($item->SubMenuName); ?></div>
                 </a>
                 <ul class="menu-sub">
-                    <?php $this->globalservice->renderSubMenu($ControllerName, $SubMenuData, $item->SubMenuUID, $currentPath); ?>
+                    <?php $this->globalservice->renderSubMenu($ControllerName, $SubMenuData, $item->SubMenuUID, $currentPathFull); ?>
                 </ul>
             </li>
     <?php
             else:
                 $itemPath = ltrim($item->UrlPath ?? $item->ControllerName, '/');
-                $isActive = ($itemPath === $currentPath);
+                $isActive = (strtolower($itemPath) === $currentPathFull);
                 $liClass  = $isActive ? 'menu-item active' : 'menu-item';
                 $href     = $isActive ? 'javascript:void(0);' : '/' . htmlspecialchars($itemPath);
     ?>
@@ -166,27 +152,6 @@
             endif;
         endforeach;
     ?>
-
-        <!-- Profile Section -->
-        <li class="menu-item user-profile-item mt-auto">
-            <a class="menu-link d-flex align-items-center" style="margin-inline: 0.5rem;" id="ProfileDropdownToggleSettings" href="javascript:void(0);">
-                <span class="profile-avatar-wrap">
-                    <img src="<?php echo $JwtData->User->UserImage ? getenv('CFLARE_R2_CDN').$JwtData->User->UserImage : '/images/logo/avathar_user.png'; ?>"
-                        alt="<?php echo htmlspecialchars($JwtData->User->FirstName); ?>" />
-                </span>
-                <div class="profile-text-info ms-2 flex-grow-1">
-                    <div class="profile-name"><?php echo strtoupper($JwtData->User->FirstName); ?></div>
-                    <div class="profile-role"><?php echo strtoupper($JwtData->User->RoleName); ?></div>
-                </div>
-                <i class="bx bx-chevron-down profile-caret"></i>
-            </a>
-            <ul id="ProfileDropdownMenuSettings" style="display:none;">
-                <li><a class="dropdown-item" href="/settings/profile"><i class="bx bx-user"></i> My Profile</a></li>
-                <li><a class="dropdown-item ChangePasswordBtn" href="javascript:void(0);"><i class="bx bx-lock"></i> Change Password</a></li>
-                <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item" href="/logout"><i class="bx bx-power-off"></i> Log Out</a></li>
-            </ul>
-        </li>
 
     </ul>
 

@@ -110,7 +110,7 @@ if (!empty($_JwtData->GenSettings->EnableStorage)) {
                     </select>
                 </div>
                 <div class="mb-3 col-md-6">
-                    <label class="form-label" for="PrimaryUnit">Primary Unit <span style="color:red">*</span></label>
+                    <label class="form-label" for="PrimaryUnit">Primary Unit <span style="color:red">*</span> <span class="form-help-icon" data-bs-toggle="tooltip" data-bs-placement="top" title="The base unit of measurement for this product — e.g. Nos, Kg, Ltr, Box. All stock quantities and sale/purchase entries will be recorded in this unit. Pick carefully; changing it later may affect existing inventory figures.">?</span></label>
                     <select id="PrimaryUnit" name="PrimaryUnit" class="select2 form-select" required>
                         <option value=""></option>
                     </select>
@@ -156,7 +156,7 @@ if (!empty($_JwtData->GenSettings->EnableStorage)) {
                             <input type="text" class="form-control" placeholder="Enter HSN / SAC" name="HSNCode" id="HSNCode" maxlength="100" />
                         </div>
                         <div class="mb-3 col-md-6">
-                            <label for="SKU" class="form-label">SKU</label>
+                            <label for="SKU" class="form-label">SKU <span class="form-help-icon" data-bs-toggle="tooltip" data-bs-placement="top" title="A unique code you assign to identify this product — e.g. TSHRT-BLK-L. Helps in fast lookups, barcode scanning, and stock reconciliation. Leave blank if you don't use SKUs.">?</span></label>
                             <input type="text" class="form-control" placeholder="Enter SKU" name="SKU" id="SKU" maxlength="50" />
                         </div>
                         <div class="mb-3 col-md-12">

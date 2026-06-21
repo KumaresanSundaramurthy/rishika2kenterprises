@@ -1,15 +1,8 @@
 'use strict';
 
-var _tlFilter     = {};
-var _tlProdCache  = null;
-var _tlUsersCache = null;
-
-var _tlCfbConfig = {
-    checkClass : 'tl-category-checkbox',
-    applyFn    : 'tlApplyCategoryFilter',
-    resetFn    : 'tlResetCategoryFilter',
-    uid        : 'timeline'
-};
+var _tlFilter      = {};
+var _tlProdCache   = null;
+var _tlItemsLoaded = false;
 
 // ── Load page ─────────────────────────────────────────────────────────────────
 function tlLoadPage(pageNo) {
@@ -49,159 +42,6 @@ function tlFmtDate(d) {
     return y + '-' + m + '-' + day;
 }
 
-// ── Close all filter boxes ────────────────────────────────────────────────────
-function tlCloseAllFilterBoxes() {
-    $('#tlCategoryFilterBox, #tlSourceFilterBox, #tlUserFilterBox').hide();
-}
-
-// ── Category filter box ───────────────────────────────────────────────────────
-function tlToggleCategoryFilter() {
-    var $box = $('#tlCategoryFilterBox');
-    if ($box.is(':visible')) { $box.hide(); return; }
-    tlCloseAllFilterBoxes();
-    var btn  = document.getElementById('tlCategoryFilterBtn');
-    var rect = btn.getBoundingClientRect();
-    $box.css({
-        top:  (rect.bottom + window.scrollY + 4) + 'px',
-        left: Math.max(4, rect.left + window.scrollX - 60) + 'px',
-        display: 'flex',
-    });
-    CategoryAppend.filterBox('#tlCategoryFilterBox', _tlCfbConfig, _tlFilter.CategoryUID || []);
-}
-
-function tlApplyCategoryFilter() {
-    var uids = [];
-    $('#tlCategoryFilterBox .tl-category-checkbox:checked').each(function () {
-        uids.push(parseInt($(this).val()));
-    });
-    if (uids.length) { _tlFilter['CategoryUID'] = uids; $('#tlCatFilterIcon').css('color', '#0284c7'); }
-    else             { delete _tlFilter['CategoryUID']; $('#tlCatFilterIcon').css('color', ''); }
-    $('#tlCategoryFilterBox').hide();
-    tlLoadPage(1);
-}
-
-function tlResetCategoryFilter() {
-    $('#tlCategoryFilterBox .tl-category-checkbox').prop('checked', false);
-    $('#tlCategoryFilterBox .ca-sel-all').prop('checked', false);
-    $('#tlCategoryFilterBox .ca-sel-all-label').text('Select All');
-    delete _tlFilter['CategoryUID'];
-    $('#tlCatFilterIcon').css('color', '');
-    $('#tlCategoryFilterBox').hide();
-    tlLoadPage(1);
-}
-
-// ── Source filter box ─────────────────────────────────────────────────────────
-function tlToggleSourceFilter() {
-    var $box = $('#tlSourceFilterBox');
-    if ($box.is(':visible')) { $box.hide(); return; }
-    tlCloseAllFilterBoxes();
-    var btn  = document.getElementById('tlSourceFilterBtn');
-    var rect = btn.getBoundingClientRect();
-    $box.css({
-        top:  (rect.bottom + window.scrollY + 4) + 'px',
-        left: Math.max(4, rect.left + window.scrollX - 60) + 'px',
-        display: 'flex',
-    });
-}
-
-function tlApplySourceFilter() {
-    var uids = [];
-    $('.tl-source-checkbox:checked').each(function () {
-        uids.push(parseInt($(this).val()));
-    });
-    if (uids.length) {
-        _tlFilter['ModuleUID'] = uids;
-        $('#tlSourceFilterIcon').css('color', '#0284c7');
-    } else {
-        delete _tlFilter['ModuleUID'];
-        $('#tlSourceFilterIcon').css('color', '');
-    }
-    $('#tlSourceFilterBox').hide();
-    tlLoadPage(1);
-}
-
-function tlResetSourceFilter() {
-    $('.tl-source-checkbox').prop('checked', false);
-    delete _tlFilter['ModuleUID'];
-    $('#tlSourceFilterIcon').css('color', '');
-    $('#tlSourceFilterBox').hide();
-    tlLoadPage(1);
-}
-
-// ── User filter (cache-first) ─────────────────────────────────────────────────
-function _tlFetchUsersCache(onSuccess, onMiss) {
-    if (_tlUsersCache !== null) { onSuccess(_tlUsersCache); return; }
-    if (!UpstashService.isEnabled()) { onMiss(); return; }
-    UpstashService.get(UpstashService.orgKey('org_users')).then(function (data) {
-        if (!Array.isArray(data) || !data.length) { onMiss(); return; }
-        _tlUsersCache = data;
-        onSuccess(_tlUsersCache);
-    }).catch(function () { onMiss(); });
-}
-
-function _tlRenderUserList(users) {
-    var $list = $('#tlUserFilterBox .catg-list');
-    $list.empty();
-    if (!users || users.length <= 1) {
-        $('#tlUserFilterBtn').hide();
-        return;
-    }
-    users.forEach(function (u) {
-        var name = u.FullName || ((u.FirstName || '') + ' ' + (u.LastName || '')).trim() || 'User';
-        $list.append(
-            '<label class="catg-list-item">' +
-            '<input class="form-check-input tl-user-checkbox" type="checkbox" value="' + (u.UserUID || 0) + '">' +
-            '<span>' + $('<span>').text(name).html() + '</span>' +
-            '</label>'
-        );
-    });
-}
-
-function _tlEnsureUserList() {
-    if ($('#tlUserFilterBox .catg-list-item').length > 0) return;
-    _tlFetchUsersCache(
-        function (users) { _tlRenderUserList(users); },
-        function ()      { /* cache miss — box stays empty */ }
-    );
-}
-
-function tlToggleUserFilter() {
-    var $box = $('#tlUserFilterBox');
-    if ($box.is(':visible')) { $box.hide(); return; }
-    tlCloseAllFilterBoxes();
-    var btn  = document.getElementById('tlUserFilterBtn');
-    var rect = btn.getBoundingClientRect();
-    $box.css({
-        top:  (rect.bottom + window.scrollY + 4) + 'px',
-        left: Math.max(4, rect.left + window.scrollX - 80) + 'px',
-        display: 'flex',
-    });
-    _tlEnsureUserList();
-}
-
-function tlApplyUserFilter() {
-    var uids = [];
-    $('.tl-user-checkbox:checked').each(function () {
-        uids.push($(this).val());
-    });
-    if (uids.length) {
-        _tlFilter['CreatedByUID'] = uids;
-        $('#tlUserFilterIcon').css('color', '#0284c7');
-    } else {
-        delete _tlFilter['CreatedByUID'];
-        $('#tlUserFilterIcon').css('color', '');
-    }
-    $('#tlUserFilterBox').hide();
-    tlLoadPage(1);
-}
-
-function tlResetUserFilter() {
-    $('.tl-user-checkbox').prop('checked', false);
-    delete _tlFilter['CreatedByUID'];
-    $('#tlUserFilterIcon').css('color', '');
-    $('#tlUserFilterBox').hide();
-    tlLoadPage(1);
-}
 
 // ── Product search (cache-first) ──────────────────────────────────────────────
 function _tlFetchProdCache(onSuccess, onMiss) {
@@ -219,84 +59,57 @@ function _tlFetchProdCache(onSuccess, onMiss) {
     }).catch(function () { onMiss(); });
 }
 
-function _tlProductSearchTemplate(item) {
-    if (!item.id) return item.text;
-    var $el = $('<div style="padding:2px 0;"><div style="font-size:.85rem;font-weight:500;">' + $('<span>').text(item.text).html() + '</div></div>');
-    if (item.category) {
-        $el.append('<div style="font-size:.7rem;color:#6c757d;">' + $('<span>').text(item.category).html() + '</div>');
-    }
-    return $el;
-}
+// ── Item filter box — populate from Upstash cache on first open ───────────────
+function _tlLoadItemsIntoBox() {
+    if (_tlItemsLoaded) return;
+    var $list = $('#tlItemList');
+    $list.html('<div class="text-center py-3 text-muted"><div class="spinner-border spinner-border-sm text-primary"></div></div>');
 
-function _tlInitProductSearch() {
-    var prodCache = null;
-    var PAGE_SIZE = 30;
-
-    function _paginate(list, term, page) {
-        var filtered = term
-            ? list.filter(function (p) { return p.text.toLowerCase().includes(term.toLowerCase()); })
-            : list;
-        var start = (page - 1) * PAGE_SIZE;
-        return { results: filtered.slice(start, start + PAGE_SIZE), pagination: { more: (start + PAGE_SIZE) < filtered.length } };
-    }
-
-    $('#tlProductSearch').select2({
-        placeholder        : 'Select Item',
-        allowClear         : true,
-        minimumInputLength : 0,
-        width              : 'resolve',
-        containerCssClass  : ':el',
-        dropdownParent     : $('body'),
-        templateResult     : _tlProductSearchTemplate,
-        ajax: {
-            transport: function (params, success, failure) {
-                var term = (params.data.term || '').trim();
-                var page = params.data.page || 1;
-
-                if (prodCache) {
-                    success(_paginate(prodCache, term, page));
-                    return;
-                }
-
-                _tlFetchProdCache(
-                    function (products) {
-                        prodCache = products;
-                        success(_paginate(prodCache, term, page));
-                    },
-                    function () {
-                        // AJAX fallback
-                        $.ajax({
-                            url : '/inventory/searchProducts',
-                            type: 'POST',
-                            data: { Term: term, [CsrfName]: CsrfToken },
-                            success: function (data) {
-                                if (data.Error) { success({ results: [] }); return; }
-                                prodCache = (data.Products || []).map(function (p) {
-                                    return { id: p.ProductUID, text: p.ItemName, category: p.CategoryName || '' };
-                                });
-                                success(_paginate(prodCache, term, page));
-                            },
-                            error: function () { failure(); }
-                        });
-                    }
+    _tlFetchProdCache(
+        function (products) {
+            _tlItemsLoaded = true;
+            if (!products || !products.length) {
+                $list.html('<div class="text-center py-3 text-muted" style="font-size:.8rem;">No items found</div>');
+                return;
+            }
+            $list.empty();
+            products.forEach(function (p) {
+                $list.append(
+                    '<label class="catg-list-item">' +
+                    '<input class="form-check-input tl-item-chk" type="checkbox" value="' + p.id + '">' +
+                    '<span>' + $('<span>').text(p.text).html() + '</span>' +
+                    '</label>'
                 );
-            },
-            data: function (params) {
-                return { term: params.term || '', page: params.page || 1 };
-            },
-            processResults: function (data) {
-                return data; // already shaped by transport
-            },
-            cache: false
+            });
+        },
+        function () {
+            // Upstash miss — fall back to AJAX
+            $.ajax({
+                url : '/inventory/searchProducts',
+                type: 'POST',
+                data: { Term: '', [CsrfName]: CsrfToken },
+                success: function (data) {
+                    _tlItemsLoaded = true;
+                    $list.empty();
+                    if (!data.Error && data.Products && data.Products.length) {
+                        data.Products.forEach(function (p) {
+                            $list.append(
+                                '<label class="catg-list-item">' +
+                                '<input class="form-check-input tl-item-chk" type="checkbox" value="' + p.ProductUID + '">' +
+                                '<span>' + $('<span>').text(p.ItemName).html() + '</span>' +
+                                '</label>'
+                            );
+                        });
+                    } else {
+                        $list.html('<div class="text-center py-3 text-muted" style="font-size:.8rem;">No items found</div>');
+                    }
+                },
+                error: function () {
+                    $list.html('<div class="text-center py-3 text-danger" style="font-size:.8rem;">Failed to load items</div>');
+                }
+            });
         }
-    });
-
-    $('#tlProductSearch').on('select2:open', function () {
-        prodCache = null; // clear so every open fetches fresh from Upstash
-    }).on('change', function () {
-        _tlFilter['ProductUID'] = $(this).val() || '';
-        tlLoadPage(1);
-    });
+    );
 }
 
 // ── DOM ready ─────────────────────────────────────────────────────────────────
@@ -309,36 +122,28 @@ $(document).ready(function () {
 
     var _tlDateFmt = (typeof _transFormDateFormat !== 'undefined') ? _transFormDateFormat : 'd-m-Y';
 
-    // Date From picker
-    flatpickr('#tlDateFrom', {
+    // Date range picker — two months side by side, appended to body to avoid clipping
+    flatpickr('#tlDateRange', {
+        mode:        'range',
+        showMonths:  2,
         dateFormat:  'Y-m-d',
         altInput:    true,
         altFormat:   _tlDateFmt,
-        defaultDate: TlDefaultDateFrom,
+        defaultDate: [TlDefaultDateFrom, TlDefaultDateTo],
+        appendTo:    document.body,
         onChange: function (dates) {
-            if (dates.length) {
+            if (dates.length === 2) {
                 _tlFilter['DateFrom'] = tlFmtDate(dates[0]);
+                _tlFilter['DateTo']   = tlFmtDate(dates[1]);
                 tlLoadPage(1);
             }
         }
     });
 
-    // Date To picker
-    flatpickr('#tlDateTo', {
-        dateFormat:  'Y-m-d',
-        altInput:    true,
-        altFormat:   _tlDateFmt,
-        defaultDate: TlDefaultDateTo,
-        onChange: function (dates) {
-            if (dates.length) {
-                _tlFilter['DateTo'] = tlFmtDate(dates[0]);
-                tlLoadPage(1);
-            }
-        }
+    // Populate item filter box on first open
+    $(document).on('click', '#tlItemFilterBtn', function () {
+        _tlLoadItemsIntoBox();
     });
-
-    // Item search (cache-first: Upstash → AJAX fallback)
-    _tlInitProductSearch();
 
     // Movement type filter
     $('#tlMovementFilter').on('change', function () {
@@ -359,13 +164,6 @@ $(document).ready(function () {
         var $icon = $(this).find('.tl-sort-icon');
         $icon.removeClass('bx-sort').addClass(_tlFilter['SortDir'] === 'ASC' ? 'bx-sort-up' : 'bx-sort-down').css('opacity', '1');
         tlLoadPage(1);
-    });
-
-    // Close filter boxes when clicking outside
-    $(document).on('click', function (e) {
-        if (!$(e.target).closest('#tlCategoryFilterBox, #tlCategoryFilterBtn, #tlSourceFilterBox, #tlSourceFilterBtn, #tlUserFilterBox, #tlUserFilterBtn').length) {
-            tlCloseAllFilterBoxes();
-        }
     });
 
     // Pagination

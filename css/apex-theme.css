@@ -3,6 +3,15 @@
  * Global UI theme applied page-by-page. Not transaction-specific.
  */
 
+/* ── All modals open from the top (never vertically centered) ────────────────
+   Override Bootstrap's flex centering so every modal dialog sits at the top.
+   This applies project-wide — do not use modal-dialog-centered anywhere. */
+.modal-dialog-centered {
+    align-items: flex-start !important;
+    min-height: unset !important;
+}
+.modal { --bs-modal-margin: 1.75rem; }
+
 /* ══════════════════════════════════════════════════════════════════
    Layout
    ══════════════════════════════════════════════════════════════════ */
@@ -22,6 +31,15 @@
 }
 .layout-menu-fixed .layout-horizontal .layout-page .menu-horizontal + [class*=container-] {
     padding-block-start: 0 !important;
+}
+
+/* Fix: horizontal page-level scroll caused by flex overflow.
+   Without min-width:0, flex items default to min-width:auto (content size), so a wide
+   table pushes .layout-page beyond its allocated width and the page scrolls instead of
+   the table-responsive container. Applies to ALL pages globally. */
+.layout-page,
+.content-wrapper {
+    min-width: 0;
 }
 
 /* Transaction form pages use container-xxl which caps at 1320px and centers on wide screens,
@@ -71,7 +89,8 @@
     line-height: 1.2;
 }
 .apex-page-desc {
-    font-size: 0.72rem;
+    /* font-size: 0.72rem; */
+    font-size: 0.8rem;
     color: #94a3b8;
     margin-top: 2px;
     line-height: 1.3;
@@ -872,6 +891,11 @@ tr:hover .apex-party-actions {
     object-fit: cover;
     flex-shrink: 0;
 }
+
+/* Double-ring border on the header nav profile avatar */
+.navbar-dropdown.dropdown-user .avatar img.w-px-40 {
+    box-shadow: 0 0 0 2px #696cff, 0 0 0 3.5px #fff, 0 0 0 5.5px #696cff !important;
+}
 .apex-user-initials {
     width: 36px;
     height: 36px;
@@ -992,4 +1016,94 @@ tr:hover .apex-party-actions {
 .apex-user-dd-logout:hover {
     background: #fff5f5;
     color: #dc3545;
+}
+
+/* ── Form field help icon (? badge) ────────────────────────────────────── */
+.form-help-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    border: 1.5px solid #a8aaae;
+    font-size: 9px;
+    font-weight: 700;
+    color: #a8aaae;
+    cursor: help;
+    vertical-align: middle;
+    margin-left: 4px;
+    line-height: 1;
+    user-select: none;
+    transition: border-color 0.15s ease, color 0.15s ease;
+}
+.form-help-icon:hover {
+    border-color: #696cff;
+    color: #696cff;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   Sidebar nav — sub-menu icon alignment
+   ══════════════════════════════════════════════════════════════════ */
+/* The theme renders a ::before dot-bullet for every sub-menu link.
+   When the link also contains a .menu-icon, the dot and the icon both
+   appear — dot is absolute (not centered), icon is flex-centered —
+   creating a visible vertical misalignment. Hide the dot when an icon
+   is already present so only the icon acts as the visual marker. */
+.menu-vertical .menu-sub .menu-item .menu-link:has(.menu-icon)::before {
+    display: none !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   General Settings page — tab navigation
+   Defined here (loaded in <head>) to prevent FOUC where Bootstrap's
+   default center-aligned .nav-link renders before the override fires.
+   ══════════════════════════════════════════════════════════════════ */
+.gs-top-tabs { border-bottom: none; }
+.gs-top-tabs .gs-top-link {
+    color: var(--bs-body-color);
+    border-radius: 0;
+    border-bottom: 3px solid transparent;
+    padding: 0.65rem 1.1rem;
+    font-size: 0.9rem;
+    transition: color 0.15s, border-color 0.15s;
+}
+.gs-top-tabs .gs-top-link:hover {
+    color: var(--bs-primary);
+    border-bottom-color: var(--bs-primary);
+    background: transparent;
+}
+.gs-top-tabs .gs-top-link.active {
+    color: var(--bs-primary);
+    border-bottom: 3px solid var(--bs-primary);
+    background: transparent;
+    font-weight: 600;
+}
+
+.gs-nav-pills .gs-tab-link {
+    border-radius: 0;
+    color: var(--bs-body-color);
+    font-size: 0.875rem;
+    border-left: 3px solid transparent;
+    text-align: left;
+    justify-content: flex-start;
+    transition: background 0.15s, border-color 0.15s;
+}
+.gs-nav-pills .gs-tab-link:hover  { background-color: var(--bs-gray-100); }
+.gs-nav-pills .gs-tab-link.active {
+    background-color: rgba(var(--bs-primary-rgb), 0.08);
+    color: var(--bs-primary);
+    border-left-color: var(--bs-primary);
+    font-weight: 600;
+}
+
+/* ── Groups tab: hide Category (5), Qty (6), Purchase Price (9) ────────── */
+/* Use > (direct child) to avoid hiding columns inside nested BOM sub-tables */
+#GroupsTable > thead > tr > th:nth-child(5),
+#GroupsTable > thead > tr > th:nth-child(6),
+#GroupsTable > thead > tr > th:nth-child(9),
+#GroupsTable > tbody > tr > td:nth-child(5),
+#GroupsTable > tbody > tr > td:nth-child(6),
+#GroupsTable > tbody > tr > td:nth-child(9) {
+    display: none !important;
 }

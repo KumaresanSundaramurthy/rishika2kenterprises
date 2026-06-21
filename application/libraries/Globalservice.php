@@ -83,9 +83,8 @@ Class Globalservice {
             } else {
                 $urlPath = '/' . ltrim($subMenu->UrlPath ?? $subMenu->ControllerName, '/');
                 if ($currentUrlPath !== null) {
-                    // URL-based active check (used for settings pages where multiple items share the same ControllerName)
-                    $itemPath = ltrim($subMenu->UrlPath ?? $subMenu->ControllerName, '/');
-                    $isActive = ($itemPath === ltrim($currentUrlPath, '/'));
+                    $itemPath = strtolower(ltrim($subMenu->UrlPath ?? $subMenu->ControllerName, '/'));
+                    $isActive = ($itemPath === strtolower(ltrim($currentUrlPath, '/')));
                 } else {
                     $isActive = (strtolower($ControllerName) == strtolower($subMenu->ControllerName));
                 }
@@ -113,8 +112,8 @@ Class Globalservice {
                 if ($this->_hasActiveDescendant($allSubMenus, $sm->SubMenuUID, $ControllerName, $currentUrlPath)) return true;
             } else {
                 if ($currentUrlPath !== null) {
-                    $itemPath = ltrim($sm->UrlPath ?? $sm->ControllerName, '/');
-                    if ($itemPath === ltrim($currentUrlPath, '/')) return true;
+                    $itemPath = strtolower(ltrim($sm->UrlPath ?? $sm->ControllerName, '/'));
+                    if ($itemPath === strtolower(ltrim($currentUrlPath, '/'))) return true;
                 } else {
                     if (strtolower($ControllerName) == strtolower($sm->ControllerName)) return true;
                 }

@@ -23,19 +23,21 @@ class Attendance_model extends CI_Model {
 
         $this->ReadDb->select([
             'A.AttendanceUID AS TablePrimaryUID',
+            'A.UserUID AS EmployeeUID',
             'A.AttendanceDate', 'A.Status', 'A.CheckInTime', 'A.CheckOutTime',
             'A.WorkingHours', 'A.Remarks',
-            'E.EmployeeName', 'E.EmployeeCode',
+            "CONCAT(U.FirstName, ' ', U.LastName) AS EmployeeName",
+            'U.EmployeeCode',
             'D.DepartmentName', 'DS.DesignationName',
         ]);
         $this->ReadDb->from('Transaction.AttendanceTbl A');
-        $this->ReadDb->join('Organisation.EmployeeTbl  E',  'E.EmployeeUID    = A.EmployeeUID AND E.IsDeleted  = 0');
-        $this->ReadDb->join('Organisation.DepartmentTbl D',  'D.DepartmentUID  = E.DepartmentUID AND D.IsDeleted = 0', 'left');
-        $this->ReadDb->join('Organisation.DesignationTbl DS','DS.DesignationUID = E.DesignationUID AND DS.IsDeleted = 0', 'left');
+        $this->ReadDb->join('Users.UserTbl U',            'U.UserUID        = A.UserUID        AND U.IsDeleted  = 0');
+        $this->ReadDb->join('Organisation.DepartmentTbl D',  'D.DepartmentUID  = U.DepartmentUID  AND D.IsDeleted = 0', 'left');
+        $this->ReadDb->join('Organisation.DesignationTbl DS','DS.DesignationUID = U.DesignationUID AND DS.IsDeleted = 0', 'left');
         $this->ReadDb->where($where);
         $this->_applyAttFilter($filter);
         $this->ReadDb->order_by('A.AttendanceDate', 'DESC');
-        $this->ReadDb->order_by('E.EmployeeName',   'ASC');
+        $this->ReadDb->order_by('EmployeeName',     'ASC');
         $this->ReadDb->limit($limit, $offset);
         $rows = $this->ReadDb->get()->result();
 
@@ -46,8 +48,8 @@ class Attendance_model extends CI_Model {
     }
 
     private function _applyAttFilter($filter) {
-        if (!empty($filter['EmployeeUID']))   $this->ReadDb->where('A.EmployeeUID',    (int)$filter['EmployeeUID']);
-        if (!empty($filter['Status']))        $this->ReadDb->where('A.Status',          $filter['Status']);
+        if (!empty($filter['EmployeeUID']))   $this->ReadDb->where('A.UserUID',          (int)$filter['EmployeeUID']);
+        if (!empty($filter['Status']))        $this->ReadDb->where('A.Status',            $filter['Status']);
         if (!empty($filter['DateFrom']))      $this->ReadDb->where('A.AttendanceDate >=', $filter['DateFrom']);
         if (!empty($filter['DateTo']))        $this->ReadDb->where('A.AttendanceDate <=', $filter['DateTo']);
         if (!empty($filter['Month']))         $this->ReadDb->where('MONTH(A.AttendanceDate)', (int)$filter['Month']);
@@ -57,14 +59,14 @@ class Attendance_model extends CI_Model {
     public function getMonthlyAttendance($orgUID, $year, $month) {
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->select([
-            'A.AttendanceUID', 'A.EmployeeUID', 'A.AttendanceDate', 'A.Status',
+            'A.AttendanceUID', 'A.UserUID AS EmployeeUID', 'A.AttendanceDate', 'A.Status',
             'A.CheckInTime', 'A.CheckOutTime', 'A.WorkingHours', 'A.Remarks',
         ]);
         $this->ReadDb->from('Transaction.AttendanceTbl A');
         $this->ReadDb->where(['A.OrgUID' => $orgUID, 'A.IsDeleted' => 0]);
         $this->ReadDb->where('YEAR(A.AttendanceDate)',  $year);
         $this->ReadDb->where('MONTH(A.AttendanceDate)', $month);
-        $this->ReadDb->order_by('A.EmployeeUID', 'ASC');
+        $this->ReadDb->order_by('A.UserUID', 'ASC');
         $this->ReadDb->order_by('A.AttendanceDate', 'ASC');
         return $this->ReadDb->get()->result();
     }
@@ -76,7 +78,7 @@ class Attendance_model extends CI_Model {
             'SUM(CASE WHEN A.Status = \'Absent\'   THEN 1 ELSE 0 END) AS AbsentCount',
             'SUM(CASE WHEN A.Status = \'Leave\'    THEN 1 ELSE 0 END) AS LeaveCount',
             'SUM(CASE WHEN A.Status = \'HalfDay\'  THEN 1 ELSE 0 END) AS HalfDayCount',
-            'COUNT(DISTINCT A.EmployeeUID) AS MarkedCount',
+            'COUNT(DISTINCT A.UserUID) AS MarkedCount',
         ]);
         $this->ReadDb->from('Transaction.AttendanceTbl A');
         $this->ReadDb->where(['A.OrgUID' => $orgUID, 'A.AttendanceDate' => $date, 'A.IsDeleted' => 0]);
@@ -86,7 +88,7 @@ class Attendance_model extends CI_Model {
     public function getAttendanceSummaryForPayroll($orgUID, $year, $month) {
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->select([
-            'A.EmployeeUID',
+            'A.UserUID AS EmployeeUID',
             'SUM(CASE WHEN A.Status = \'Present\'  THEN 1.0 ELSE 0 END) +
              SUM(CASE WHEN A.Status = \'HalfDay\'  THEN 0.5 ELSE 0 END) AS PresentDays',
             'SUM(CASE WHEN A.Status = \'Absent\'   THEN 1.0 ELSE 0 END) AS AbsentDays',
@@ -96,7 +98,7 @@ class Attendance_model extends CI_Model {
         $this->ReadDb->where(['A.OrgUID' => $orgUID, 'A.IsDeleted' => 0]);
         $this->ReadDb->where('YEAR(A.AttendanceDate)',  $year);
         $this->ReadDb->where('MONTH(A.AttendanceDate)', $month);
-        $this->ReadDb->group_by('A.EmployeeUID');
+        $this->ReadDb->group_by('A.UserUID');
         return $this->ReadDb->get()->result();
     }
 
@@ -107,6 +109,19 @@ class Attendance_model extends CI_Model {
         return $this->ReadDb->get()->row();
     }
 
+    public function getHolidayDatesForMonth($orgUID, $year, $month) {
+        $firstDay = sprintf('%04d-%02d-01', $year, $month);
+        $lastDay  = date('Y-m-t', strtotime($firstDay));
+        $this->ReadDb->db_debug = FALSE;
+        $this->ReadDb->select('HolidayDate');
+        $this->ReadDb->from('Organisation.HolidayTbl');
+        $this->ReadDb->where('OrgUID', $orgUID);
+        $this->ReadDb->where('IsDeleted', 0);
+        $this->ReadDb->where('HolidayDate >=', $firstDay);
+        $this->ReadDb->where('HolidayDate <=', $lastDay);
+        return array_column($this->ReadDb->get()->result_array(), 'HolidayDate');
+    }
+
     // Salary Advances
     public function getAdvanceListPaginated($orgUID, $limit, $offset, $filter = []) {
         $this->ReadDb->db_debug = FALSE;
@@ -115,20 +130,22 @@ class Attendance_model extends CI_Model {
         $this->ReadDb->select('COUNT(*) AS cnt');
         $this->ReadDb->from('Transaction.SalaryAdvanceTbl SA');
         $this->ReadDb->where($where);
-        if (!empty($filter['EmployeeUID'])) $this->ReadDb->where('SA.EmployeeUID', (int)$filter['EmployeeUID']);
-        if (isset($filter['IsSettled']))    $this->ReadDb->where('SA.IsSettled',   (int)$filter['IsSettled']);
+        if (!empty($filter['EmployeeUID'])) $this->ReadDb->where('SA.UserUID',   (int)$filter['EmployeeUID']);
+        if (isset($filter['IsSettled']))    $this->ReadDb->where('SA.IsSettled', (int)$filter['IsSettled']);
         $total = (int)($this->ReadDb->get()->row()->cnt ?? 0);
 
         $this->ReadDb->select([
-            'SA.AdvanceUID AS TablePrimaryUID', 'SA.AdvanceDate', 'SA.AdvanceAmount',
+            'SA.AdvanceUID AS TablePrimaryUID', 'SA.UserUID AS EmployeeUID',
+            'SA.AdvanceDate', 'SA.AdvanceAmount',
             'SA.Reason', 'SA.BalancePending', 'SA.IsSettled',
-            'E.EmployeeName', 'E.EmployeeCode',
+            "CONCAT(U.FirstName, ' ', U.LastName) AS EmployeeName",
+            'U.EmployeeCode',
         ]);
         $this->ReadDb->from('Transaction.SalaryAdvanceTbl SA');
-        $this->ReadDb->join('Organisation.EmployeeTbl E', 'E.EmployeeUID = SA.EmployeeUID AND E.IsDeleted = 0');
+        $this->ReadDb->join('Users.UserTbl U', 'U.UserUID = SA.UserUID AND U.IsDeleted = 0');
         $this->ReadDb->where($where);
-        if (!empty($filter['EmployeeUID'])) $this->ReadDb->where('SA.EmployeeUID', (int)$filter['EmployeeUID']);
-        if (isset($filter['IsSettled']))    $this->ReadDb->where('SA.IsSettled',   (int)$filter['IsSettled']);
+        if (!empty($filter['EmployeeUID'])) $this->ReadDb->where('SA.UserUID', (int)$filter['EmployeeUID']);
+        if (isset($filter['IsSettled']))    $this->ReadDb->where('SA.IsSettled', (int)$filter['IsSettled']);
         $this->ReadDb->order_by('SA.AdvanceUID', 'DESC');
         $this->ReadDb->limit($limit, $offset);
         $rows = $this->ReadDb->get()->result();
@@ -143,7 +160,7 @@ class Attendance_model extends CI_Model {
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->select('IFNULL(SUM(BalancePending), 0) AS TotalPending');
         $this->ReadDb->from('Transaction.SalaryAdvanceTbl');
-        $this->ReadDb->where(['EmployeeUID' => $employeeUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0, 'IsSettled' => 0]);
+        $this->ReadDb->where(['UserUID' => $employeeUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0, 'IsSettled' => 0]);
         return (float)($this->ReadDb->get()->row()->TotalPending ?? 0);
     }
 }

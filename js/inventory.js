@@ -18,6 +18,13 @@ var _invCfbConfig = {
     resetFn    : 'invResetCategoryFilter',
     uid        : 'inventory'
 };
+
+var _invItemCfgConfig = {
+    checkClass : 'inv-item-checkbox',
+    applyFn    : 'invApplyItemFilter',
+    resetFn    : 'invResetItemFilter',
+    uid        : 'inventory'
+};
 var _invTimelineFilter = {};
 var _siDateFp = null; // flatpickr instance for Stock In record date
 var _soDateFp = null; // flatpickr instance for Stock Out record date
@@ -380,7 +387,8 @@ function invSmartQty(val) {
 function invToggleCategoryFilter() {
     var $box = $('#invCategoryFilterBox');
     if ($box.is(':visible')) { $box.hide(); return; }
-    $('#invStatusFilterBox').hide();
+    $('#invStatusFilterBox, #invItemFilterBox').hide();
+    $('.trans-col-filterbox').hide();
     var btn  = document.getElementById('invCategoryFilterBtn');
     var rect = btn.getBoundingClientRect();
     $box.css({
@@ -419,7 +427,8 @@ function invToggleStatusFilter() {
         $box.hide();
         return;
     }
-    $('#invCategoryFilterBox').hide();
+    $('#invCategoryFilterBox, #invItemFilterBox').hide();
+    $('.trans-col-filterbox').hide();
     var btn = document.getElementById('invStatusFilterBtn');
     var rect = btn.getBoundingClientRect();
     $box.css({
@@ -453,51 +462,6 @@ function invApplyStatusFilter() {
     invLoadPage(1);
 }
 
-// ── Item Type filter box ──────────────────────────────────────────────────────
-function invToggleProdTypeFilter() {
-    var $box = $('#invProdTypeFilterBox');
-    if ($box.is(':visible')) {
-        $box.hide();
-        return;
-    }
-    $('#invCategoryFilterBox').hide();
-    $('#invStatusFilterBox').hide();
-    var btn = document.getElementById('invProdTypeFilterBtn');
-    var rect = btn.getBoundingClientRect();
-    $box.css({
-        top:  (rect.bottom + window.scrollY + 4) + 'px',
-        left: Math.max(4, rect.left + window.scrollX - 40) + 'px',
-        display: 'flex',
-    });
-    // Pre-tick current selections
-    var cur = _invFilter['ProductType'] || [];
-    $box.find('.inv-prodtype-checkbox').each(function () {
-        $(this).prop('checked', cur.indexOf($(this).val()) !== -1);
-    });
-}
-
-function invApplyProdTypeFilter() {
-    var types = [];
-    $('.inv-prodtype-checkbox:checked').each(function () {
-        types.push($(this).val());
-    });
-    if (types.length) {
-        _invFilter['ProductType'] = types;
-    } else {
-        delete _invFilter['ProductType'];
-    }
-    $('#invProdTypeFilterIcon').css('color', types.length ? '#0284c7' : '');
-    $('#invProdTypeFilterBox').hide();
-    invLoadPage(1);
-}
-
-function invResetProdTypeFilter() {
-    $('.inv-prodtype-checkbox').prop('checked', false);
-    delete _invFilter['ProductType'];
-    $('#invProdTypeFilterIcon').css('color', '');
-    $('#invProdTypeFilterBox').hide();
-    invLoadPage(1);
-}
 
 function invResetStatusFilter() {
     $('input.inv-status-radio[value=""]').prop('checked', true);
@@ -509,94 +473,53 @@ function invResetStatusFilter() {
     invLoadPage(1);
 }
 
-// ── Updated By filter box ─────────────────────────────────────────────────────
-var _invOrgUsers = null;
-
-function invToggleUpdatedByFilter() {
-    var $box = $('#invUpdatedByFilterBox');
-    if ($box.is(':visible')) {
-        $box.hide();
-        return;
-    }
-    $('#invCategoryFilterBox').hide();
-    $('#invStatusFilterBox').hide();
-    $('#invProdTypeFilterBox').hide();
-    var btn = document.getElementById('invUpdatedByFilterBtn');
+// ── Item filter box ───────────────────────────────────────────────────────────
+function invToggleItemFilter() {
+    var $box = $('#invItemFilterBox');
+    if ($box.is(':visible')) { $box.hide(); return; }
+    $('#invCategoryFilterBox, #invStatusFilterBox').hide();
+    $('.trans-col-filterbox').hide();
+    var btn  = document.getElementById('invItemFilterBtn');
     var rect = btn.getBoundingClientRect();
+    var boxW = 260;
+    var left = Math.min(rect.left + window.scrollX, window.innerWidth - boxW - 16);
     $box.css({
-        top:  (rect.bottom + window.scrollY + 4) + 'px',
-        left: Math.max(4, rect.left + window.scrollX - 80) + 'px',
+        top:     (rect.bottom + window.scrollY + 4) + 'px',
+        left:    Math.max(4, left) + 'px',
         display: 'flex',
     });
-    invRenderUserFilterList();
+    ItemFilter.filterBox('#invItemFilterBox', _invItemCfgConfig, _invFilter.ProductUID || []);
 }
 
-function invRenderUserFilterList() {
-    var $list = $('#invUpdatedByList');
-    if (_invOrgUsers !== null) {
-        invBuildUserCheckboxes($list);
-        return;
-    }
-    $list.html('<div class="text-muted small text-center py-2">Loading...</div>');
-    $.ajax({
-        url: '/users/getOrgUsers',
-        method: 'POST',
-        data: { [CsrfName]: CsrfToken },
-        success: function (r) {
-            if (!r.Error && r.Users) {
-                _invOrgUsers = r.Users;
-                invBuildUserCheckboxes($list);
-            } else {
-                $list.html('<div class="text-muted small text-center py-2">No users found.</div>');
-            }
-        },
-        error: function () {
-            $list.html('<div class="text-danger small text-center py-2">Failed to load users.</div>');
-        }
-    });
-}
-
-function invBuildUserCheckboxes($list) {
-    var cur = _invFilter['UpdatedBy'] || [];
-    var html = '';
-    $.each(_invOrgUsers, function (i, u) {
-        var checked = cur.indexOf(String(u.UserUID)) !== -1 ? ' checked' : '';
-        html += '<label class="catg-list-item">' +
-            '<input class="form-check-input inv-updatedby-checkbox" type="checkbox" value="' + u.UserUID + '"' + checked + '>' +
-            '<span>' + $('<span>').text(u.FullName || (u.FirstName + ' ' + u.LastName)).html() + '</span>' +
-            '</label>';
-    });
-    $list.html(html || '<div class="text-muted small text-center py-2">No users found.</div>');
-}
-
-function invApplyUpdatedByFilter() {
+function invApplyItemFilter() {
     var uids = [];
-    $('.inv-updatedby-checkbox:checked').each(function () {
-        uids.push($(this).val());
+    $('.inv-item-checkbox:checked').each(function () {
+        uids.push(parseInt($(this).val(), 10));
     });
     if (uids.length) {
-        _invFilter['UpdatedBy'] = uids;
+        _invFilter.ProductUID = uids;
     } else {
-        delete _invFilter['UpdatedBy'];
+        delete _invFilter.ProductUID;
     }
-    $('#invUpdatedByFilterIcon').css('color', uids.length ? '#0284c7' : '');
-    $('#invUpdatedByFilterBox').hide();
+    $('#invItemFilterIcon').css('color', uids.length ? '#0284c7' : '');
+    $('#invItemFilterBox').hide();
     invLoadPage(1);
 }
 
-function invResetUpdatedByFilter() {
-    $('.inv-updatedby-checkbox').prop('checked', false);
-    delete _invFilter['UpdatedBy'];
-    $('#invUpdatedByFilterIcon').css('color', '');
-    $('#invUpdatedByFilterBox').hide();
+function invResetItemFilter() {
+    $('.inv-item-checkbox').prop('checked', false);
+    delete _invFilter.ProductUID;
+    $('#invItemFilterIcon').css('color', '');
+    $('#invItemFilterBox').hide();
     invLoadPage(1);
 }
 
 // ── Tooltip init (called after every page load) ───────────────────────────────
 function invInitTooltips() {
+    // MutationObserver in default.js handles auto-init; this is a safety call.
     $('#invTableBody [data-bs-toggle="tooltip"]').each(function () {
         if (!bootstrap.Tooltip.getInstance(this)) {
-            new bootstrap.Tooltip(this, { trigger: 'hover', html: false });
+            new bootstrap.Tooltip(this, { container: 'body', trigger: 'hover' });
         }
     });
 }
@@ -661,19 +584,17 @@ $(document).ready(function () {
         invLoadPage(1);
     });
 
-    // Close filter boxes on outside click
+    // Close all custom filter boxes on outside click
     $(document).on('click', function (e) {
-        if (!$(e.target).closest('#invCategoryFilterBox, #invCategoryFilterBtn').length) {
+        var $t = $(e.target);
+        if (!$t.closest('#invCategoryFilterBox, #invCategoryFilterBtn').length) {
             $('#invCategoryFilterBox').hide();
         }
-        if (!$(e.target).closest('#invStatusFilterBox, #invStatusFilterBtn').length) {
+        if (!$t.closest('#invStatusFilterBox, #invStatusFilterBtn').length) {
             $('#invStatusFilterBox').hide();
         }
-        if (!$(e.target).closest('#invProdTypeFilterBox, #invProdTypeFilterBtn').length) {
-            $('#invProdTypeFilterBox').hide();
-        }
-        if (!$(e.target).closest('#invUpdatedByFilterBox, #invUpdatedByFilterBtn').length) {
-            $('#invUpdatedByFilterBox').hide();
+        if (!$t.closest('#invItemFilterBox, #invItemFilterBtn').length) {
+            $('#invItemFilterBox').hide();
         }
     });
 

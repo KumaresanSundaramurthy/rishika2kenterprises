@@ -62,20 +62,9 @@ $this->load->view('common/transactions/header'); ?>
                                 <i class="bx bx-x r2k-clear d-none"></i>
                             </div>
 
-                            <div class="dropdown">
-                                <button class="apex-filter-btn" id="poStatusFilterBtn" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="bx bx-filter-alt"></i>
-                                    <span id="poStatusFilterLabel">All Status</span>
-                                    <i class="bx bx-chevron-down"></i>
-                                </button>
-                                <ul class="dropdown-menu shadow-sm" style="font-size:.82rem;min-width:160px;">
-                                    <li><button class="dropdown-item po-status-filter-opt" data-status="All">All Status</button></li>
-                                    <li><button class="dropdown-item po-status-filter-opt" data-status="Received">Received</button></li>
-                                    <li><button class="dropdown-item po-status-filter-opt" data-status="Closed">Closed</button></li>
-                                    <li><button class="dropdown-item po-status-filter-opt" data-status="Cancelled">Cancelled</button></li>
-                                    <li><button class="dropdown-item po-status-filter-opt" data-status="Draft">Drafts</button></li>
-                                </ul>
-                            </div>
+                            <a href="javascript:void(0);" id="poStatusFilterTrigger" class="apex-filter-btn" title="Filter by Status">
+                                <i class="bx bx-filter-alt me-1"></i>Status
+                            </a>
 
                             <?php if (count($OrgUsers ?? []) > 1): ?>
                             <button class="apex-filter-btn" id="poUserFilterBtn">
@@ -172,7 +161,7 @@ $this->load->view('common/transactions/header'); ?>
 </div>
 
 <?php if (count($OrgUsers ?? []) > 1): ?>
-<?php $this->load->view('common/transactions/col_user_filter_box', [
+<?php $this->load->view('common/partials/col_user_filter_box', [
     'ColUserFilterConfig' => [
         'id'         => 'poCreatedByFilterBox',
         'triggerId'  => 'poUserFilterBtn',
@@ -181,6 +170,23 @@ $this->load->view('common/transactions/header'); ?>
     ],
 ]); ?>
 <?php endif; ?>
+
+<?php $this->load->view('common/transactions/col_filter_box', [
+    'ColFilterConfig' => [
+        'id'         => 'poStatusFilterBox',
+        'triggerId'  => 'poStatusFilterTrigger',
+        'title'      => 'Status',
+        'icon'       => 'bx-filter-alt',
+        'filterKey'  => 'Status',
+        'checkClass' => 'po-status-chk',
+        'items'      => [
+            ['value' => 'Received',  'label' => 'Received'],
+            ['value' => 'Closed',    'label' => 'Closed'],
+            ['value' => 'Cancelled', 'label' => 'Cancelled'],
+            ['value' => 'Draft',     'label' => 'Draft'],
+        ],
+    ],
+]); ?>
 
 <?php $this->load->view('common/transactions/col_party_filter_box', [
     'ColPartyFilterConfig' => [
@@ -215,6 +221,24 @@ $(function () {
 
     var tfb = null; // TransFilterBar not used for PO (all options disabled)
 
+    var poStatusFilter = new TransColFilter({
+        boxId       : 'poStatusFilterBox',
+        triggerId   : 'poStatusFilterTrigger',
+        filterKey   : 'Status',
+        activeClass : 'has-filter',
+        onApply     : function () {
+            var vals = poStatusFilter.getState()['Status'] || [];
+            // Backend expects a single string; use first selection or 'All'
+            Filter.Status = (vals.length === 1) ? vals[0] : 'All';
+            $('.po-status-tab').removeClass('active');
+            $('.po-status-tab[data-status="' + Filter.Status + '"]').addClass('active');
+            $('.apex-stat-item').removeClass('active');
+            $('.apex-stat-item[data-status="' + Filter.Status + '"]').addClass('active');
+            PageNo = 1;
+            getPurchaseOrdersDetails();
+        }
+    });
+
     var poCreatedByFilter = (document.getElementById('poCreatedByFilterBox'))
         ? new TransColFilter({
             boxId       : 'poCreatedByFilterBox',
@@ -247,28 +271,17 @@ $(function () {
         e.preventDefault();
         $('.po-status-tab').removeClass('active');
         $(this).addClass('active');
-        Filter.Status = $(this).data('status') || 'All';
+        var s = $(this).data('status') || 'All';
+        Filter.Status = s;
+        $('.apex-stat-item').removeClass('active');
+        $('.apex-stat-item[data-status="' + s + '"]').addClass('active');
+        poStatusFilter.reset();
         PageNo = 1;
         getPurchaseOrdersDetails();
     });
 
-    // ── Apex: keep stat strip + status btn in sync with active tab ──────────
-    $(document).on('click', '.po-status-tab', function () {
-        var s = $(this).data('status') || 'All';
-        $('.apex-stat-item').removeClass('active');
-        $('.apex-stat-item[data-status="' + s + '"]').addClass('active');
-        var lbl = s === 'All' ? 'All Status' : s === 'Draft' ? 'Drafts' : s;
-        $('#poStatusFilterLabel').text(lbl);
-        $('#poStatusFilterBtn').toggleClass('has-filter', s !== 'All');
-    });
-
-    // ── Apex: click stat item → activate corresponding tab ──────────────────
+    // ── Stat strip click → trigger corresponding tab ─────────────────────────
     $(document).on('click', '.apex-stat-item', function () {
-        $('.po-status-tab[data-status="' + $(this).data('status') + '"]').trigger('click');
-    });
-
-    // ── Apex: status dropdown in filter row → trigger tab ───────────────────
-    $(document).on('click', '.po-status-filter-opt', function () {
         $('.po-status-tab[data-status="' + $(this).data('status') + '"]').trigger('click');
     });
 

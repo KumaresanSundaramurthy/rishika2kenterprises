@@ -71,7 +71,7 @@ $this->load->view('common/transactions/header'); ?>
                                 <input type="text" id="searchTransactionData" placeholder="Quot. # or customer...">
                                 <i class="bx bx-x r2k-clear d-none" id="clearQuotSearch"></i>
                             </div>
-                            <a href="javascript:void(0);" id="quotStatusFilter" class="apex-filter-btn" onclick="toggleQuotStatusFilter(); event.stopPropagation();" title="Filter by Status"><i class="bx bx-transfer-alt me-1"></i>Status</a>
+                            <a href="javascript:void(0);" id="quotStatusFilter" class="apex-filter-btn" title="Filter by Status"><i class="bx bx-transfer-alt me-1"></i>Status</a>
                             <?php if (count($OrgUsers ?? []) > 1): ?>
                             <a href="javascript:void(0);" id="quotCreatedByFilter" class="apex-filter-btn" title="Filter by User"><i class="bx bx-user me-1"></i>Updated By</a>
                             <?php endif; ?>
@@ -79,16 +79,7 @@ $this->load->view('common/transactions/header'); ?>
                             <?php $this->load->view('common/transactions/date_filter_btn'); ?>
                             <div class="apex-filter-spacer"></div>
                             <a href="javascript:void(0);" class="apex-filter-btn pageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
-                            <div class="dropdown">
-                                <button type="button" class="apex-filter-btn dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="Export"><i class="bx bx-export"></i></button>
-                                <ul class="dropdown-menu dropdown-menu-end">
-                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="quotExport('Print')"><i class="bx bx-printer me-2 text-secondary"></i>Print</a></li>
-                                    <li><hr class="dropdown-divider my-1"></li>
-                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="quotExport('CSV')"><i class="bx bx-file me-2 text-success"></i>CSV</a></li>
-                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="quotExport('Excel')"><i class="bx bxs-file-export me-2 text-success"></i>Excel</a></li>
-                                    <li><a class="dropdown-item" href="javascript:void(0);" onclick="quotExport('Pdf')"><i class="bx bxs-file-pdf me-2 text-danger"></i>PDF</a></li>
-                                </ul>
-                            </div>
+                            <?php $this->load->view('common/partials/export_btn'); ?>
                             <a href="/quotations/create" class="btn btn-sm btn-primary"><i class="bx bx-plus me-1"></i>New Quotation</a>
                         </div>
 
@@ -164,25 +155,24 @@ $this->load->view('common/transactions/header'); ?>
     </div>
 </div>
 
-<!-- Quotation Status Filter Box (body-level to avoid overflow clipping) -->
-<div id="quotStatusFilterBox" class="card mp-filterbox" style="min-width:200px;z-index:9999;display:none;position:fixed;">
-    <div class="catg-filter-header">
-        <span class="catg-filter-title"><i class="bx bx-transfer me-1"></i> Status</span>
-        <button type="button" class="catg-filter-close-btn" onclick="closeQuotStatusFilter()" title="Close">&times;</button>
-    </div>
-    <div id="quotStatusList" class="catg-list" style="max-height:200px;">
-        <label class="catg-list-item"><input class="form-check-input quot-status-chk" type="checkbox" value="Pending"> <span>Pending</span></label>
-        <label class="catg-list-item"><input class="form-check-input quot-status-chk" type="checkbox" value="Accepted"> <span>Accepted</span></label>
-        <label class="catg-list-item"><input class="form-check-input quot-status-chk" type="checkbox" value="Converted"> <span>Converted</span></label>
-    </div>
-    <div class="catg-filter-footer">
-        <button type="button" class="btn btn-primary" onclick="applyQuotStatusFilter()"><i class="bx bx-check me-1"></i>Apply</button>
-        <button type="button" class="btn btn-outline-secondary" onclick="resetQuotStatusFilter()"><i class="bx bx-reset me-1"></i>Reset</button>
-    </div>
-</div>
+<?php $this->load->view('common/transactions/col_filter_box', [
+    'ColFilterConfig' => [
+        'id'         => 'quotStatusFilterBox',
+        'triggerId'  => 'quotStatusFilter',
+        'title'      => 'Status',
+        'icon'       => 'bx-transfer-alt',
+        'filterKey'  => 'StatusList',
+        'checkClass' => 'quot-status-chk',
+        'items'      => [
+            ['value' => 'Pending',   'label' => 'Pending'],
+            ['value' => 'Accepted',  'label' => 'Accepted'],
+            ['value' => 'Converted', 'label' => 'Converted'],
+        ],
+    ],
+]); ?>
 
 <?php if (count($OrgUsers ?? []) > 1): ?>
-<?php $this->load->view('common/transactions/col_user_filter_box', [
+<?php $this->load->view('common/partials/col_user_filter_box', [
     'ColUserFilterConfig' => [
         'id'         => 'quotCreatedByFilterBox',
         'triggerId'  => 'quotCreatedByFilter',
@@ -251,6 +241,19 @@ $(function () {
         ? new TransFilterBar({ onChange: function () { PageNo = 1; getQuotationsDetails(); } })
         : null;
 
+    var quotStatusFilter = new TransColFilter({
+        boxId       : 'quotStatusFilterBox',
+        triggerId   : 'quotStatusFilter',
+        filterKey   : 'StatusList',
+        activeClass : 'has-filter',
+        onApply     : function () {
+            var vals = quotStatusFilter.getState()['StatusList'] || [];
+            if (vals.length) Filter['StatusList'] = vals; else delete Filter['StatusList'];
+            PageNo = 1;
+            getQuotationsDetails();
+        }
+    });
+
     var quotCreatedByFilter = (document.getElementById('quotCreatedByFilterBox'))
         ? new TransColFilter({
             boxId       : 'quotCreatedByFilterBox',
@@ -273,6 +276,7 @@ $(function () {
     getQuotationsDetails = function (pageNo, rowLimit, filter) {
         var f = $.extend({}, filter || Filter,
             tfb                 ? tfb.getState()                 : {},
+            quotStatusFilter    ? quotStatusFilter.getState()    : {},
             quotCreatedByFilter ? quotCreatedByFilter.getState() : {},
             quotPartyFilter     ? quotPartyFilter.getState()     : {}
         );
@@ -298,31 +302,21 @@ $(function () {
         var statFilter = $(this).data('stat-filter') || 'All';
         $('.apex-stat-item').removeClass('active');
         $(this).addClass('active');
-        // Always clear column status filter UI when clicking a stat card
-        $('.quot-status-chk').prop('checked', false);
-        $('#quotStatusFilter').removeClass('text-primary');
         delete Filter['StatusList'];
+        Filter.Status = 'All';
+        $('.quot-status-tab').removeClass('active');
         if (statFilter === 'Cancelled' || statFilter === 'Draft') {
             Filter.Status = statFilter;
-            $('.quot-status-tab').removeClass('active');
+            quotStatusFilter.reset();
             $('.quot-status-tab[data-status="' + statFilter + '"]').addClass('active');
         } else if (statFilter === 'Open') {
-            Filter.Status = 'All';
-            Filter['StatusList'] = ['Pending'];
-            $('.quot-status-chk[value="Pending"]').prop('checked', true);
-            $('#quotStatusFilter').addClass('text-primary');
-            $('.quot-status-tab').removeClass('active');
+            quotStatusFilter.setState(['Pending']);
             $('.quot-status-tab[data-status="All"]').addClass('active');
         } else if (statFilter === 'Accepted' || statFilter === 'Converted') {
-            Filter.Status = 'All';
-            Filter['StatusList'] = [statFilter];
-            $('.quot-status-chk[value="' + statFilter + '"]').prop('checked', true);
-            $('#quotStatusFilter').addClass('text-primary');
-            $('.quot-status-tab').removeClass('active');
+            quotStatusFilter.setState([statFilter]);
             $('.quot-status-tab[data-status="All"]').addClass('active');
         } else {
-            Filter.Status = 'All';
-            $('.quot-status-tab').removeClass('active');
+            quotStatusFilter.reset();
             $('.quot-status-tab[data-status="All"]').addClass('active');
         }
         PageNo = 1;
@@ -338,10 +332,7 @@ $(function () {
         var status = $(this).data('status') || 'All';
         $('.apex-stat-item[data-stat-filter="' + status + '"]').addClass('active');
         Filter.Status = status;
-        // Clear column status filter when switching tabs
-        delete Filter['StatusList'];
-        $('.quot-status-chk').prop('checked', false);
-        $('#quotStatusFilter').removeClass('text-primary');
+        quotStatusFilter.reset();
         PageNo = 1;
         getQuotationsDetails();
     });
@@ -473,33 +464,6 @@ $(function () {
         $('.quotationCheck').prop('checked', $(this).is(':checked'));
     });
 
-    // ── Status column filter ─────────────────────────────────
-    window.toggleQuotStatusFilter = function () {
-        var $box = $('#quotStatusFilterBox');
-        if ($box.is(':visible')) { $box.hide(); return; }
-        var rect = document.getElementById('quotStatusFilter').getBoundingClientRect();
-        $box.css({ top: (rect.bottom + 4) + 'px', left: rect.left + 'px' }).show();
-    };
-    window.closeQuotStatusFilter = function () { $('#quotStatusFilterBox').hide(); };
-    window.applyQuotStatusFilter = function () {
-        var selected = $('.quot-status-chk:checked').map(function () { return $(this).val(); }).get();
-        if (selected.length) Filter['StatusList'] = selected; else delete Filter['StatusList'];
-        $('#quotStatusFilterBox').hide();
-        $('#quotStatusFilter').toggleClass('text-primary', !!selected.length);
-        PageNo = 1;
-        getQuotationsDetails();
-    };
-    window.resetQuotStatusFilter = function () {
-        $('.quot-status-chk').prop('checked', false);
-        delete Filter['StatusList'];
-        $('#quotStatusFilterBox').hide();
-        $('#quotStatusFilter').removeClass('text-primary');
-        PageNo = 1;
-        getQuotationsDetails();
-    };
-    $(document).on('click', function (e) {
-        if (!$(e.target).closest('#quotStatusFilterBox, #quotStatusFilter').length) $('#quotStatusFilterBox').hide();
-    });
 
 });
 
@@ -518,18 +482,5 @@ function _buildQuotDetailHtml(resp) {
 function _stripHtml(v) {
     if (!v) return '';
     return $('<div>').html(String(v)).text().trim();
-}
-
-// ── Export ────────────────────────────────────────────────────────────────────
-function quotExport(type) {
-    var url = '/quotations/exportQuotations?Type=' + encodeURIComponent(type);
-    if (typeof Filter !== 'undefined' && !$.isEmptyObject(Filter)) {
-        url += '&Filter=' + encodeURIComponent(JSON.stringify(Filter));
-    }
-    if (type === 'Print') {
-        printPreviewRecords(url, function () {});
-    } else {
-        window.location.href = url;
-    }
 }
 </script>

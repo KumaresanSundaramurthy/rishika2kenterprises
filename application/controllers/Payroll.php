@@ -56,8 +56,8 @@ class Payroll extends MY_Controller {
     public function process() {
         if (!$this->_loadPageTitle()) { $this->load->view('common/module_error', $this->pageData); return; }
         try {
-            $this->load->model('employees_model');
-            $this->pageData['EmployeeCount'] = count($this->employees_model->getEmployeeDropdownList($this->_orgUID()));
+            $this->load->model('users_model');
+            $this->pageData['EmployeeCount'] = count($this->users_model->getEmployeeDropdownList($this->_orgUID()));
             $this->pageData['CurrentMonth']  = (int)date('m');
             $this->pageData['CurrentYear']   = (int)date('Y');
             $this->load->view('hrms/payroll/process', $this->pageData);
@@ -75,14 +75,14 @@ class Payroll extends MY_Controller {
             $branchUID = $this->_branchUID();
             if (!$month || !$year) throw new Exception('Month and Year are required.');
 
-            $this->load->model('employees_model');
+            $this->load->model('users_model');
             $this->load->model('attendance_model');
             $this->load->model('payroll_model');
 
             // Check if payroll already exists
             $existing = $this->payroll_model->getPayrollExists($orgUID, $branchUID, $month, $year);
 
-            $employees  = $this->employees_model->getEmployeeDropdownList($orgUID);
+            $employees  = $this->users_model->getEmployeeDropdownList($orgUID);
             $attSummary = $this->attendance_model->getAttendanceSummaryForPayroll($orgUID, $year, $month);
             $workDays   = $this->payroll_model->getWorkingDaysInMonth($year, $month);
 

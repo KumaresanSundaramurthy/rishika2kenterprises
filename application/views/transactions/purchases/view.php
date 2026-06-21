@@ -187,7 +187,7 @@ $this->load->view('common/transactions/header'); ?>
 ]); ?>
 
 <?php if (count($OrgUsers ?? []) > 1): ?>
-<?php $this->load->view('common/transactions/col_user_filter_box', [
+<?php $this->load->view('common/partials/col_user_filter_box', [
     'ColUserFilterConfig' => [
         'id'         => 'purchCreatedByFilterBox',
         'triggerId'  => 'purchCreatedByFilter',

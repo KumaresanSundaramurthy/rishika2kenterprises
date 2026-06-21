@@ -4,8 +4,12 @@
 //           ModuleTable, ModulePag, CsrfName, CsrfToken
 
 function initTooltips() {
+    // MutationObserver in default.js auto-inits newly added tooltip elements,
+    // so this is a no-op safety call for pages that invoke it explicitly after AJAX.
     document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (el) {
-        if (!bootstrap.Tooltip.getInstance(el)) new bootstrap.Tooltip(el);
+        if (!bootstrap.Tooltip.getInstance(el)) {
+            new bootstrap.Tooltip(el, { container: 'body', trigger: 'hover' });
+        }
     });
 }
 

@@ -307,7 +307,7 @@
 ]); ?>
 <?php endif; ?>
 <?php if ($showUserBtn): ?>
-<?php $this->load->view('common/transactions/col_user_filter_box', [
+<?php $this->load->view('common/partials/col_user_filter_box', [
     'ColUserFilterConfig' => [
         'id'         => 'vendUserFilterBox',
         'triggerId'  => 'vendUserFilterBtn',
@@ -436,6 +436,7 @@ $(function() {
     var $vStickyPag = $('#vendStickyPagination');
     function _syncVendSticky() { $vStickyPag.find('.VendorsPagination').html($vStaticPag.html()); }
     function _toggleVendSticky() {
+        if (_inVgrpMode) { $vStickyPag.stop(true, true).hide(); return; }
         if (!$vStaticPag.length) return;
         var r = $vStaticPag[0].getBoundingClientRect();
         var visible = r.top < $(window).height() && r.bottom > 0;
@@ -473,7 +474,9 @@ $(function() {
     // ── All tab click (also exits groups mode) ──
     $(document).on('click', '.vend-tab', function (e) {
         e.preventDefault();
+
         if (_inVgrpMode) {
+            // Switching Groups → All: restore UI, do NOT reload (data already in table)
             _inVgrpMode = false;
             $('.vend-only-ctrl').removeClass('d-none');
             $('.vgrp-only-ctrl').addClass('d-none');
@@ -483,7 +486,14 @@ $(function() {
             $('#vendTableSection').show();
             $('#vgrpTableSection').hide();
             $('#vgrpTabStats').removeClass('d-flex').addClass('d-none');
+            $('.vgrp-view-tab').removeClass('active');
+            $('.vend-tab').removeClass('active');
+            $(this).addClass('active');
+            _toggleVendSticky();
+            return;
         }
+
+        // Already in vendor mode — reset filters and reload
         $('.vend-tab').removeClass('active');
         $(this).addClass('active');
         $('.apex-stat-item').removeClass('active');
@@ -684,6 +694,7 @@ $(function() {
         e.preventDefault();
         if (_inVgrpMode) return;
         _inVgrpMode = true;
+        _toggleVendSticky();
         $('.vend-tab').removeClass('active');
         $('.vgrp-view-tab').addClass('active');
         $('.vend-only-ctrl').addClass('d-none');
@@ -721,13 +732,11 @@ $(function() {
     function _vgrpReload(page) {
         _vgrpPageNo = page || 1;
         $('#VendorGroupsTableBody').html('<tr><td colspan="9" class="text-center py-4"><span class="spinner-border spinner-border-sm text-primary" role="status"></span></td></tr>');
-        AjaxLoading = 0;
         $.ajax({
             url   : '/vendors/getGroupsData/' + _vgrpPageNo,
             method: 'POST',
             data  : { Filter: _vgrpFilter, [CsrfName]: CsrfToken },
             success: function (res) {
-                AjaxLoading = 1;
                 CsrfToken = res.NewCsrfToken || CsrfToken;
                 if (res.Error) { showToastNotification(res.Message, 'error'); return; }
                 $('#VendorGroupsTableBody').html(res.RecordHtmlData);
@@ -736,7 +745,6 @@ $(function() {
                 var cnt = res.TotalCount || 0;
                 $('#vgrpTabCount').text(cnt > 0 ? cnt : '').toggleClass('d-none', cnt === 0);
             },
-            error: function () { AjaxLoading = 1; }
         });
     }
 

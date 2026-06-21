@@ -878,6 +878,19 @@ class Vendors_model extends CI_Model {
         }
     }
 
+    public function getGroupTypes($module = 'vendors') {
+        try {
+            $query = $this->ReadDb->query(
+                "SELECT TypeName FROM Global.GroupTypesTbl WHERE Module=? AND IsActive=1 ORDER BY SortOrder",
+                [$module]
+            );
+            $rows = $query ? $query->result_array() : [];
+            if ($rows) return array_column($rows, 'TypeName');
+        } catch (Exception $e) {}
+        return ['Business Group', 'Branch Group', 'Family Group',
+                'Corporate Group', 'Dealer Network', 'Franchise Group', 'Custom'];
+    }
+
     public function getVendorGroupByUID($orgUID, $groupUID) {
         try {
             $this->ReadDb->db_debug = FALSE;

@@ -130,22 +130,31 @@ class Attendance_model extends CI_Model {
         $this->ReadDb->select('COUNT(*) AS cnt');
         $this->ReadDb->from('Transaction.SalaryAdvanceTbl SA');
         $this->ReadDb->where($where);
-        if (!empty($filter['EmployeeUID'])) $this->ReadDb->where('SA.UserUID',   (int)$filter['EmployeeUID']);
-        if (isset($filter['IsSettled']))    $this->ReadDb->where('SA.IsSettled', (int)$filter['IsSettled']);
+        if (!empty($filter['EmployeeUID']))   $this->ReadDb->where('SA.UserUID', (int)$filter['EmployeeUID']);
+        if (!empty($filter['AdvanceStatus'])) $this->ReadDb->where('SA.AdvanceStatus', $filter['AdvanceStatus']);
+        if (!empty($filter['SearchAllData'])) {
+            $s = $this->ReadDb->escape_like_str($filter['SearchAllData']);
+            $this->ReadDb->where("(CONCAT(U2.FirstName,' ',U2.LastName) LIKE '%{$s}%' OR SA.Reason LIKE '%{$s}%')", null, false);
+            $this->ReadDb->join('Users.UserTbl U2', 'U2.UserUID = SA.UserUID AND U2.IsDeleted = 0', 'left');
+        }
         $total = (int)($this->ReadDb->get()->row()->cnt ?? 0);
 
         $this->ReadDb->select([
             'SA.AdvanceUID AS TablePrimaryUID', 'SA.UserUID AS EmployeeUID',
-            'SA.AdvanceDate', 'SA.AdvanceAmount',
-            'SA.Reason', 'SA.BalancePending', 'SA.IsSettled',
+            'SA.AdvanceDate', 'SA.AdvanceAmount', 'SA.AdvanceStatus',
+            'SA.Reason AS Remarks', 'SA.BalancePending', 'SA.IsSettled',
             "CONCAT(U.FirstName, ' ', U.LastName) AS EmployeeName",
-            'U.EmployeeCode',
+            'U.UserCode AS EmployeeCode',
         ]);
         $this->ReadDb->from('Transaction.SalaryAdvanceTbl SA');
         $this->ReadDb->join('Users.UserTbl U', 'U.UserUID = SA.UserUID AND U.IsDeleted = 0');
         $this->ReadDb->where($where);
-        if (!empty($filter['EmployeeUID'])) $this->ReadDb->where('SA.UserUID', (int)$filter['EmployeeUID']);
-        if (isset($filter['IsSettled']))    $this->ReadDb->where('SA.IsSettled', (int)$filter['IsSettled']);
+        if (!empty($filter['EmployeeUID']))   $this->ReadDb->where('SA.UserUID', (int)$filter['EmployeeUID']);
+        if (!empty($filter['AdvanceStatus'])) $this->ReadDb->where('SA.AdvanceStatus', $filter['AdvanceStatus']);
+        if (!empty($filter['SearchAllData'])) {
+            $s = $this->ReadDb->escape_like_str($filter['SearchAllData']);
+            $this->ReadDb->where("(CONCAT(U.FirstName,' ',U.LastName) LIKE '%{$s}%' OR SA.Reason LIKE '%{$s}%')", null, false);
+        }
         $this->ReadDb->order_by('SA.AdvanceUID', 'DESC');
         $this->ReadDb->limit($limit, $offset);
         $rows = $this->ReadDb->get()->result();
@@ -154,6 +163,24 @@ class Attendance_model extends CI_Model {
         $r->rows       = $rows;
         $r->totalCount = $total;
         return $r;
+    }
+
+    public function getAdvanceStats($orgUID) {
+        $this->ReadDb->db_debug = FALSE;
+        $this->ReadDb->select("
+            COUNT(*) AS TotalCount,
+            SUM(AdvanceStatus = 'Requested') AS RequestedCount,
+            SUM(AdvanceStatus = 'Approved')  AS ApprovedCount,
+            SUM(AdvanceStatus = 'Settled')   AS SettledCount,
+            SUM(AdvanceStatus = 'Rejected')  AS RejectedCount,
+            IFNULL(SUM(AdvanceAmount), 0) AS TotalAmount,
+            IFNULL(SUM(CASE WHEN AdvanceStatus = 'Requested' THEN AdvanceAmount ELSE 0 END), 0) AS RequestedAmount,
+            IFNULL(SUM(CASE WHEN AdvanceStatus = 'Approved'  THEN BalancePending ELSE 0 END), 0) AS ApprovedAmount,
+            IFNULL(SUM(CASE WHEN AdvanceStatus = 'Settled'   THEN AdvanceAmount  ELSE 0 END), 0) AS SettledAmount
+        ");
+        $this->ReadDb->from('Transaction.SalaryAdvanceTbl');
+        $this->ReadDb->where(['OrgUID' => (int)$orgUID, 'IsDeleted' => 0]);
+        return $this->ReadDb->get()->row() ?? new stdClass();
     }
 
     public function getPendingAdvanceBalance($employeeUID, $orgUID) {

@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+﻿<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php
 // ── PHP helpers ───────────────────────────────────────────────────────────────
@@ -162,6 +162,9 @@ $attachments = $userAttachments ?? [];
                                     </a>
                                     <a href="javascript:void(0)" id="nav-bankdetails" class="profile-nav-link" data-section="bankdetails">
                                         <i class="bx bx-credit-card"></i><span>Bank Details</span>
+                                    </a>
+                                    <a href="javascript:void(0)" id="nav-expenses" class="profile-nav-link" data-section="expenses">
+                                        <i class="bx bx-receipt"></i><span>Expenses</span>
                                     </a>
 
                                     <div class="profile-nav-label mt-2">Career</div>
@@ -444,28 +447,49 @@ $attachments = $userAttachments ?? [];
                                         </div>
                                     </div>
 
-                                    <!-- Upload bar -->
-                                    <div class="d-flex align-items-center gap-2 flex-wrap p-3 rounded border bg-light mb-2">
-                                        <select class="form-select form-select-sm" id="profileAttachDocType" style="width:140px;flex-shrink:0;">
-                                            <option value="ID Proof">ID Proof</option>
-                                            <option value="Resume">Resume</option>
-                                            <option value="Certificate">Certificate</option>
-                                            <option value="Other">Other</option>
-                                        </select>
-                                        <label class="btn btn-sm btn-outline-primary mb-0" for="profileAttachFile" style="cursor:pointer;flex-shrink:0;">
-                                            <i class="bx bx-upload me-1"></i>Choose File
-                                        </label>
-                                        <input type="file" id="profileAttachFile" class="d-none" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx">
-                                        <span id="profileAttachFileName" class="text-muted text-truncate" style="font-size:.8rem;flex:1;min-width:0;">No file chosen</span>
-                                        <button type="button" class="btn btn-sm btn-success d-none" id="btnUploadProfileAttach" style="flex-shrink:0;">
-                                            <span class="spinner-border spinner-border-sm me-1 d-none" id="spinnerProfileAttach"></span>
-                                            <i class="bx bx-cloud-upload me-1" id="iconProfileAttach"></i>Upload
-                                        </button>
+                                    <!-- Upload Zone -->
+                                    <style>
+                                    .doc-upload-zone{border:2px dashed #c8cfe3;border-radius:10px;background:#f8f9ff;text-align:center;padding:14px 24px 12px;cursor:pointer;transition:border-color .2s,background .2s;position:relative;margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:12px;}
+                                    .doc-upload-zone:hover,.doc-upload-zone.dz-over{border-color:#7367f0;background:#f0effe;}
+                                    .doc-upload-zone input[type=file]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;}
+                                    .doc-upload-zone .dz-icon{font-size:2rem;color:#7367f0;flex-shrink:0;line-height:1;}
+                                    .doc-upload-zone .dz-body{text-align:left;}
+                                    .doc-upload-zone .dz-title{font-size:.88rem;font-weight:600;color:#2d2d3b;margin-bottom:1px;}
+                                    .doc-upload-zone .dz-sub{font-size:.78rem;color:#7367f0;margin-bottom:2px;}
+                                    .doc-upload-zone .dz-hint{font-size:.69rem;color:#a4afc5;}
+                                    .doc-queue-item .progress{height:3px;}
+                                    </style>
+                                    <div class="doc-upload-zone" id="docUploadZone">
+                                        <i class="bx bx-cloud-upload dz-icon"></i>
+                                        <div class="dz-body">
+                                            <div class="dz-title">Drag &amp; drop files here</div>
+                                            <div class="dz-sub">or click to browse</div>
+                                            <div class="dz-hint">JPG &nbsp;&bull;&nbsp; PNG &nbsp;&bull;&nbsp; PDF &nbsp;&bull;&nbsp; DOC &nbsp;&bull;&nbsp; DOCX &nbsp;&nbsp;&mdash;&nbsp;&nbsp; Max 5 MB per file &nbsp;&bull;&nbsp; Multiple files allowed</div>
+                                        </div>
+                                        <input type="file" id="profileAttachFile" multiple accept=".jpg,.jpeg,.png,.pdf,.doc,.docx">
                                     </div>
-                                    <div class="text-muted mb-3" style="font-size:.73rem;"><i class="bx bx-info-circle me-1"></i>Allowed: JPG, PNG, PDF, DOC, DOCX &nbsp;·&nbsp; Max 5 MB per file</div>
 
-                                    <!-- Document list — rendered by JS -->
-                                    <div id="profileAttachList"></div>
+                                    <!-- Per-file upload progress queue -->
+                                    <div id="docUploadQueue" class="mb-3"></div>
+
+                                    <!-- Documents table -->
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-hover align-middle mb-0" id="docTable">
+                                            <thead class="r2k-thead">
+                                                <tr>
+                                                    <th style="width:36px;text-align:center;">#</th>
+                                                    <th>File Name</th>
+                                                    <th style="width:105px;">Type</th>
+                                                    <th style="width:72px;text-align:right;">Size</th>
+                                                    <th style="width:120px;">Uploaded On</th>
+                                                    <th style="width:80px;text-align:center;">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="docTableBody">
+                                                <tr><td colspan="6" class="text-center py-4"><span class="spinner-border spinner-border-sm text-primary"></span></td></tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                                 <!-- /Documents -->
 
@@ -510,8 +534,19 @@ $attachments = $userAttachments ?? [];
                                             </button>
                                         </div>
                                         <div id="eduTableWrap">
-                                            <div class="text-center text-muted py-4">
-                                                <span class="spinner-border spinner-border-sm me-2"></span>Loading...
+                                            <div class="table-responsive">
+                                                <table class="table table-sm table-bordered table-hover align-middle mb-0" style="font-size:.84rem;">
+                                                    <thead class="r2k-thead">
+                                                        <tr>
+                                                            <th style="width:36px;text-align:center;">#</th>
+                                                            <th>Institution</th><th>Degree</th><th>Field of Study</th><th>CGPA</th><th>Completion</th>
+                                                            <th style="width:80px;text-align:center;">Actions</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody id="eduTbody">
+                                                        <tr><td colspan="7" class="text-center py-4"><span class="spinner-border spinner-border-sm text-primary"></span></td></tr>
+                                                    </tbody>
+                                                </table>
                                             </div>
                                         </div>
                                     </div>
@@ -525,8 +560,19 @@ $attachments = $userAttachments ?? [];
                                             </button>
                                         </div>
                                         <div id="expTableWrap">
-                                            <div class="text-center text-muted py-4">
-                                                <span class="spinner-border spinner-border-sm me-2"></span>Loading...
+                                            <div class="table-responsive">
+                                                <table class="table table-sm table-bordered table-hover align-middle mb-0" style="font-size:.84rem;">
+                                                    <thead class="r2k-thead">
+                                                        <tr>
+                                                            <th style="width:36px;text-align:center;">#</th>
+                                                            <th>Employer Name</th><th>Job Title</th><th>Start Date</th><th>End Date</th><th>Job Description</th>
+                                                            <th style="width:80px;text-align:center;">Actions</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody id="workExpTbody">
+                                                        <tr><td colspan="7" class="text-center py-4"><span class="spinner-border spinner-border-sm text-primary"></span></td></tr>
+                                                    </tbody>
+                                                </table>
                                             </div>
                                         </div>
                                     </div>
@@ -642,6 +688,42 @@ $attachments = $userAttachments ?? [];
                                     </div>
                                 </div>
                                 <!-- /Bank Details -->
+
+                                <!-- ─── SECTION: Expenses & Reimbursements ────── -->
+                                <div class="profile-section d-none p-4" id="section-expenses">
+                                    <div class="profile-section-hdr">
+                                        <div>
+                                            <h5>Expenses &amp; Reimbursements</h5>
+                                            <p>Track and submit your expense claims for reimbursement</p>
+                                        </div>
+                                        <button type="button" class="btn btn-primary btn-sm px-3" id="btnAddExpense">
+                                            <i class="bx bx-plus me-1"></i>Add Expense
+                                        </button>
+                                    </div>
+
+                                    <div id="expListWrap">
+                                        <table class="table table-sm table-hover mb-0" id="expTable">
+                                            <thead class="r2k-thead">
+                                                <tr>
+                                                    <th>Date</th>
+                                                    <th>Type</th>
+                                                    <th>Category</th>
+                                                    <th>Merchant</th>
+                                                    <th class="text-end">Amount</th>
+                                                    <th class="text-center">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="expTableBody">
+                                                <tr id="expLoadingRow">
+                                                    <td colspan="6" class="text-center py-4">
+                                                        <span class="spinner-border spinner-border-sm text-primary"></span>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                <!-- /Expenses -->
 
                             </div>
                             <!-- /RIGHT CONTENT -->
@@ -1004,6 +1086,124 @@ $attachments = $userAttachments ?? [];
 </div>
 <!-- /Experience Modal -->
 
+<!-- ══ Expense Modal ═════════════════════════════════════════════════════════ -->
+<div class="modal fade" id="expenseModal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="vtm-banner" style="--vtm-color:#696cff;--vtm-bg:#eff0ff;--vtm-icon-bg:rgba(105,108,255,.13);">
+                <div class="vtm-banner-inner">
+                    <div class="vtm-banner-left">
+                        <div class="vtm-banner-icon"><i class="bx bx-receipt"></i></div>
+                        <div>
+                            <div class="vtm-doc-number" id="expModalTitle">Add Expense</div>
+                            <div class="vtm-doc-meta" id="expModalMeta">Fill in your expense details below</div>
+                        </div>
+                    </div>
+                    <div class="vtm-banner-right">
+                        <button type="button" class="vtm-close-btn" data-bs-dismiss="modal" aria-label="Close"><i class="bx bx-x"></i></button>
+                    </div>
+                </div>
+            </div>
+            <input type="hidden" id="expUID" value="0">
+            <div class="modal-body p-4">
+                <div class="row g-3">
+                    <!-- Reimbursement Type (full width) -->
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">Reimbursement Type <span class="text-danger">*</span></label>
+                        <select id="expReimType" class="form-select">
+                            <option value="">-- Select Reimbursement Type --</option>
+                            <option value="Travel">Travel</option>
+                            <option value="Medical">Medical</option>
+                            <option value="Food &amp; Entertainment">Food &amp; Entertainment</option>
+                            <option value="Accommodation">Accommodation</option>
+                            <option value="Communication">Communication</option>
+                            <option value="Office Supplies">Office Supplies</option>
+                            <option value="Others">Others</option>
+                        </select>
+                    </div>
+                    <!-- Category | Merchant -->
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Category <span class="text-danger">*</span></label>
+                        <input type="text" id="expCategory" class="form-control" placeholder="e.g. Air Ticket, Hotel, Food" maxlength="100">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Merchant</label>
+                        <input type="text" id="expMerchant" class="form-control" placeholder="e.g. IndiGo, Swiggy, Uber" maxlength="100">
+                    </div>
+                    <!-- Amount | Date of Expense -->
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Amount <span class="text-danger">*</span></label>
+                        <div class="input-group input-group-merge">
+                            <span class="input-group-text"><?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?></span>
+                            <input type="text" class="form-control" id="expAmount" placeholder="0"
+                                onkeydown="return handleDotOnly(event)"
+                                oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, <?php echo (int)($JwtData->GenSettings->PriceMaxLength ?? 12); ?>, <?php echo (int)($JwtData->GenSettings->DecimalPoints ?? 2); ?>)"
+                                maxlength="<?php echo (int)($JwtData->GenSettings->PriceMaxLength ?? 12); ?>"
+                                onpaste="handlePricePaste(event, <?php echo (int)($JwtData->GenSettings->PriceMaxLength ?? 12); ?>, <?php echo (int)($JwtData->GenSettings->DecimalPoints ?? 2); ?>)"
+                                ondrop="handlePriceDrop(event, <?php echo (int)($JwtData->GenSettings->PriceMaxLength ?? 12); ?>, <?php echo (int)($JwtData->GenSettings->DecimalPoints ?? 2); ?>)"
+                                value="">
+                        </div>
+                    </div>
+                    <!-- Date of Expense — flatpickr -->
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Date of Expense <span class="text-danger">*</span></label>
+                        <input type="text" id="expDate" class="form-control" placeholder="Select date" readonly autocomplete="off">
+                    </div>
+                    <!-- Reference (full) -->
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">Reference</label>
+                        <input type="text" id="expReference" class="form-control" placeholder="Invoice / Bill / Booking reference number" maxlength="200">
+                    </div>
+                    <!-- Description (full) -->
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">Description</label>
+                        <textarea id="expDescription" class="form-control" rows="3" placeholder="Brief description of the expense"></textarea>
+                    </div>
+                    <!-- Receipts -->
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">Receipts</label>
+                        <div class="doc-upload-zone" id="expReceiptZone" style="margin-bottom:10px;">
+                            <i class="bx bx-receipt dz-icon"></i>
+                            <div class="dz-body">
+                                <div class="dz-title">Drag &amp; drop receipts here</div>
+                                <div class="dz-sub">or click to browse</div>
+                                <div class="dz-hint">JPG &nbsp;&bull;&nbsp; PNG &nbsp;&bull;&nbsp; PDF &nbsp;&bull;&nbsp; Max 5 MB each</div>
+                            </div>
+                            <input type="file" id="expReceiptInput" multiple accept=".jpg,.jpeg,.png,.pdf">
+                        </div>
+                        <!-- Per-file upload progress queue -->
+                        <div id="expReceiptQueue" class="mb-2"></div>
+                        <!-- Receipts table (edit mode only) -->
+                        <div class="table-responsive" id="expReceiptTableWrap">
+                            <table class="table table-sm table-hover align-middle mb-0">
+                                <thead class="r2k-thead">
+                                    <tr>
+                                        <th style="width:30px;text-align:center;">#</th>
+                                        <th>File</th>
+                                        <th style="width:65px;text-align:right;">Size</th>
+                                        <th style="width:70px;text-align:center;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="expReceiptTbody">
+                                    <tr><td colspan="4" class="text-center py-3 text-muted" style="font-size:.82rem;">No receipts attached yet.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-label-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="btnSubmitExp">
+                    <span class="spinner-border spinner-border-sm me-1 d-none" id="spinnerExpSubmit"></span>
+                    <i class="bx bx-save me-1" id="iconExpSubmit"></i>Save Expense
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- /Expense Modal -->
+
 <?php $this->load->view('common/form/address_form'); ?>
 
 <?php $this->load->view('common/footer'); ?>
@@ -1029,7 +1229,7 @@ var _bankServerData  = <?php echo json_encode($bankDetails ?? null, JSON_HEX_TAG
 $(function () {
 
     // ── Section switching ─────────────────────────────────────────────────────
-    var _profileSections = ['personal','workinfo','addresses','documents','signatures','bankdetails','education','emergency'];
+    var _profileSections = ['personal','workinfo','addresses','documents','signatures','bankdetails','education','emergency','expenses'];
     var _currentSection  = 'personal';
     var _sigListLoaded   = false;
     var _addrInitDone    = false;
@@ -1037,6 +1237,7 @@ $(function () {
     var _eduListLoaded   = false;
     var _emgListLoaded   = false;
     var _bankLoaded      = false;
+    var _expLoaded       = false;
     var _isInitialLoad   = true;
 
     function switchSection(id) {
@@ -1073,6 +1274,10 @@ $(function () {
                 // User switched to this tab — fetch fresh data via AJAX
                 _loadBankDetails();
             }
+        }
+        if (id === 'expenses' && !_expLoaded) {
+            _expLoaded = true;
+            _loadExpenses();
         }
     }
 
@@ -1490,66 +1695,47 @@ $(function () {
         catch (e) { return s; }
     }
 
-    function _renderProfileAttachments(list) {
+    function _renderDocTable(list) {
         var cdnUrl = (typeof CDN_URL !== 'undefined' && CDN_URL) ? CDN_URL : '';
-        var $wrap  = $('#profileAttachList').empty();
 
         if (!list || list.length === 0) {
-            $wrap.html(
-                '<div class="text-center text-muted py-5">' +
-                '<i class="bx bx-folder-open" style="font-size:3rem;display:block;margin-bottom:8px;opacity:.35;"></i>' +
-                '<div style="font-size:.84rem;">No documents uploaded yet.</div>' +
-                '</div>'
+            $('#docTableBody').html(
+                '<tr><td colspan="6" class="text-center text-muted py-5">' +
+                '<i class="bx bx-folder-open d-block mx-auto mb-2" style="font-size:2.5rem;opacity:.35;"></i>' +
+                '<span style="font-size:.84rem;">No documents uploaded yet. Drag &amp; drop or click above to upload.</span>' +
+                '</td></tr>'
             );
             return;
         }
 
-        // Group by DocType, ordered
-        var groups = {};
-        list.forEach(function (a) { var g = a.DocType || 'Other'; if (!groups[g]) groups[g] = []; groups[g].push(a); });
-        var keys = _docTypeOrder.filter(function (k) { return groups[k]; });
-        Object.keys(groups).forEach(function (k) { if (keys.indexOf(k) === -1) keys.push(k); });
+        var html = '';
+        list.forEach(function (a, i) {
+            var name     = a.FileName || '';
+            var safeName = $('<s>').text(name).html();
+            var fullUrl  = cdnUrl + (a.FilePath || '');
+            var encUrl   = encodeURIComponent(fullUrl);
+            var ftype    = _docFileType(a.FileType || '', name);
+            var iconCls  = _docFileIcon(a.FileType || '', name);
+            var docType  = a.DocType || 'Other';
+            var color    = _docTypeColor[docType] || 'secondary';
+            var safeType = $('<s>').text(docType).html();
 
-        var serial = 1;
-        keys.forEach(function (grp) {
-            var items = groups[grp];
-            var color = _docTypeColor[grp] || 'secondary';
-            var safeGrp = $('<s>').text(grp).html();
-
-            $wrap.append(
-                '<div class="d-flex align-items-center gap-2 mb-2 ' + (serial > 1 ? 'mt-4' : 'mt-1') + '">' +
-                '<span class="badge bg-label-' + color + '" style="font-size:.73rem;padding:.3em .75em;">' + safeGrp + '</span>' +
-                '<span class="text-muted" style="font-size:.74rem;">' + items.length + ' file' + (items.length !== 1 ? 's' : '') + '</span>' +
-                '<div class="flex-grow-1 border-top ms-1" style="opacity:.4;"></div>' +
-                '</div>'
-            );
-
-            items.forEach(function (a) {
-                var name     = a.FileName || '';
-                var safeName = $('<s>').text(name).html();
-                var fullUrl  = cdnUrl + (a.FilePath || '');
-                var encUrl   = encodeURIComponent(fullUrl);
-                var ftype    = _docFileType(a.FileType || '', name);
-                var iconCls  = _docFileIcon(a.FileType || '', name);
-                var meta     = [_docFormatSize(a.FileSize), _docFormatDate(a.CreatedOn)].filter(Boolean).join(' · ');
-
-                $wrap.append(
-                    '<div class="d-flex align-items-center gap-2 border rounded px-3 py-2 mb-2 profile-attach-item" data-uid="' + a.AttachUID + '" style="font-size:.82rem;">' +
-                    '<span class="text-muted fw-semibold" style="width:20px;font-size:.72rem;flex-shrink:0;text-align:center;">' + serial + '</span>' +
-                    '<i class="bx ' + iconCls + ' flex-shrink-0 profile-attach-preview-btn" data-enc="' + encUrl + '" data-ftype="' + ftype + '" data-fname="' + safeName + '" style="font-size:1.35rem;cursor:pointer;" title="Preview"></i>' +
-                    '<div style="flex:1;min-width:0;">' +
-                    '<div class="text-truncate fw-medium profile-attach-preview-btn" data-enc="' + encUrl + '" data-ftype="' + ftype + '" data-fname="' + safeName + '" style="cursor:pointer;" title="' + safeName + '">' + safeName + '</div>' +
-                    (meta ? '<div class="text-muted" style="font-size:.71rem;">' + meta + '</div>' : '') +
-                    '</div>' +
-                    '<div class="d-flex gap-1 ms-auto flex-shrink-0">' +
-                    '<button type="button" class="btn btn-sm btn-outline-secondary profile-attach-preview-btn" data-enc="' + encUrl + '" data-ftype="' + ftype + '" data-fname="' + safeName + '" title="Preview" style="padding:2px 6px;line-height:1;"><i class="bx bx-show" style="font-size:.9rem;"></i></button>' +
-                    '<button type="button" class="btn btn-sm btn-outline-danger profile-attach-delete-btn" data-uid="' + a.AttachUID + '" title="Delete" style="padding:2px 6px;line-height:1;"><i class="bx bx-trash" style="font-size:.9rem;"></i></button>' +
-                    '</div>' +
-                    '</div>'
-                );
-                serial++;
-            });
+            html += '<tr>';
+            html += '<td class="text-center" style="font-size:.78rem;color:#a4afc5;">' + (i + 1) + '</td>';
+            html += '<td><div class="d-flex align-items-center gap-2">';
+            html += '<i class="bx ' + iconCls + ' profile-attach-preview-btn flex-shrink-0" data-enc="' + encUrl + '" data-ftype="' + ftype + '" data-fname="' + safeName + '" style="font-size:1.3rem;cursor:pointer;" title="Preview"></i>';
+            html += '<span class="text-truncate profile-attach-preview-btn fw-medium" data-enc="' + encUrl + '" data-ftype="' + ftype + '" data-fname="' + safeName + '" style="cursor:pointer;font-size:.83rem;max-width:220px;" title="' + safeName + '">' + safeName + '</span>';
+            html += '</div></td>';
+            html += '<td><span class="badge bg-label-' + color + '" style="font-size:.7rem;">' + safeType + '</span></td>';
+            html += '<td class="text-end" style="font-size:.78rem;color:#6c757d;">' + (_docFormatSize(a.FileSize) || '—') + '</td>';
+            html += '<td style="font-size:.78rem;color:#6c757d;">' + (_docFormatDate(a.CreatedOn) || '—') + '</td>';
+            html += '<td class="text-center"><div class="d-flex align-items-center justify-content-center gap-1">';
+            html += '<button type="button" class="btn btn-icon btn-sm text-warning profile-attach-preview-btn" data-enc="' + encUrl + '" data-ftype="' + ftype + '" data-fname="' + safeName + '" title="Preview"><i class="bx bx-show"></i></button>';
+            html += '<button type="button" class="btn btn-icon btn-sm text-danger profile-attach-delete-btn" data-uid="' + a.AttachUID + '" title="Delete"><i class="bx bx-trash"></i></button>';
+            html += '</div></td>';
+            html += '</tr>';
         });
+        $('#docTableBody').html(html);
     }
 
     function _openProfileAttachPreview(encUrl, type, name) {
@@ -1581,56 +1767,100 @@ $(function () {
     }
 
     // Init: render from PHP-injected data
-    _renderProfileAttachments(_profileInitAttachments);
+    _renderDocTable(_profileInitAttachments);
     _updateDocBadge(_profileInitAttachments.length);
 
-    // File chosen
-    $('#profileAttachFile').on('change', function () {
-        var name = this.files.length ? this.files[0].name : '';
-        $('#profileAttachFileName').text(name || 'No file chosen');
-        $('#btnUploadProfileAttach').toggleClass('d-none', !name);
-    });
+    // Upload queue
+    var _docUploadQueue  = [];
+    var _docUploading    = false;
 
-    // Upload
-    $('#btnUploadProfileAttach').on('click', function () {
-        var fileEl = document.getElementById('profileAttachFile');
-        if (!fileEl || !fileEl.files.length) return;
-        if (fileEl.files[0].size > 5 * 1024 * 1024) { showToastNotification('File size must be under 5 MB.', 'error'); return; }
+    function _docQueueAdd(file) {
+        var id       = 'dq-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6);
+        var iconCls  = _docFileIcon(file.type, file.name);
+        var safeName = $('<s>').text(file.name).html();
+        $('#docUploadQueue').append(
+            '<div class="d-flex align-items-center gap-2 border rounded px-3 py-2 mb-2 doc-queue-item" id="' + id + '" style="font-size:.82rem;">' +
+            '<i class="bx ' + iconCls + ' flex-shrink-0" style="font-size:1.25rem;"></i>' +
+            '<div style="flex:1;min-width:0;">' +
+            '<div class="text-truncate fw-medium">' + safeName + '</div>' +
+            '<div class="progress mt-1"><div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" style="width:100%;"></div></div>' +
+            '</div>' +
+            '<span class="badge bg-label-primary flex-shrink-0" id="' + id + '-st">Uploading</span>' +
+            '</div>'
+        );
+        return id;
+    }
 
-        var fd = new FormData();
-        fd.append('DocType',    $('#profileAttachDocType').val());
-        fd.append('AttachFile', fileEl.files[0]);
+    function _docQueueDone(id, success) {
+        var $item = $('#' + id);
+        $item.find('.progress').remove();
+        if (success) {
+            $item.find('#' + id + '-st').removeClass('bg-label-primary').addClass('bg-label-success').text('Done');
+            setTimeout(function () { $item.fadeOut(300, function () { $(this).remove(); }); }, 1400);
+        } else {
+            $item.find('#' + id + '-st').removeClass('bg-label-primary').addClass('bg-label-danger').text('Failed');
+        }
+    }
+
+    function _docProcessQueue() {
+        if (_docUploading || !_docUploadQueue.length) return;
+        var file = _docUploadQueue.shift();
+        _docUploading = true;
+        var qId = _docQueueAdd(file);
+        var fd  = new FormData();
+        fd.append('DocType',    'Other');
+        fd.append('AttachFile', file);
         fd.append(CsrfName, CsrfToken);
-
-        var $btn = $(this).prop('disabled', true);
-        $('#spinnerProfileAttach').removeClass('d-none');
-        $('#iconProfileAttach').addClass('d-none');
-
         $.ajax({
             url: '/settings/profile/saveProfileAttachment', method: 'POST',
             data: fd, processData: false, contentType: false,
             success: function (resp) {
                 CsrfToken = resp.NewCsrfToken || CsrfToken;
-                $btn.prop('disabled', false);
-                $('#spinnerProfileAttach').addClass('d-none');
-                $('#iconProfileAttach').removeClass('d-none');
-                if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
-                fileEl.value = '';
-                $('#profileAttachFileName').text('No file chosen');
-                $btn.addClass('d-none');
-                var list = Array.isArray(resp.Attachments) ? resp.Attachments : [];
-                _renderProfileAttachments(list);
-                _updateDocBadge(list.length);
-                showToastNotification('File uploaded successfully.', 'success');
+                if (resp.Error) {
+                    _docQueueDone(qId, false);
+                    showToastNotification(resp.Message || 'Upload failed.', 'error');
+                } else {
+                    _docQueueDone(qId, true);
+                    var list = Array.isArray(resp.Attachments) ? resp.Attachments : [];
+                    _renderDocTable(list);
+                    _updateDocBadge(list.length);
+                }
             },
             error: function () {
-                $btn.prop('disabled', false);
-                $('#spinnerProfileAttach').addClass('d-none');
-                $('#iconProfileAttach').removeClass('d-none');
+                _docQueueDone(qId, false);
                 showToastNotification('Upload failed. Please try again.', 'error');
+            },
+            complete: function () {
+                _docUploading = false;
+                _docProcessQueue();
             }
         });
+    }
+
+    // File input (click-to-browse)
+    $('#profileAttachFile').on('change', function () {
+        var files = Array.from(this.files || []);
+        this.value = '';
+        files.forEach(function (f) {
+            if (f.size > 5 * 1024 * 1024) { showToastNotification(f.name + ': exceeds 5 MB limit.', 'error'); return; }
+            _docUploadQueue.push(f);
+        });
+        _docProcessQueue();
     });
+
+    // Drag & drop
+    $('#docUploadZone')
+        .on('dragover dragenter', function (e) { e.preventDefault(); $(this).addClass('dz-over'); })
+        .on('dragleave',          function (e) { e.preventDefault(); $(this).removeClass('dz-over'); })
+        .on('drop',               function (e) {
+            e.preventDefault(); $(this).removeClass('dz-over');
+            var files = Array.from(e.originalEvent.dataTransfer.files || []);
+            files.forEach(function (f) {
+                if (f.size > 5 * 1024 * 1024) { showToastNotification(f.name + ': exceeds 5 MB limit.', 'error'); return; }
+                _docUploadQueue.push(f);
+            });
+            _docProcessQueue();
+        });
 
     // Delete attachment
     $(document).on('click', '.profile-attach-delete-btn', function () {
@@ -1643,7 +1873,7 @@ $(function () {
                 CsrfToken = resp.NewCsrfToken || CsrfToken;
                 if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
                 var list = Array.isArray(resp.Attachments) ? resp.Attachments : [];
-                _renderProfileAttachments(list);
+                _renderDocTable(list);
                 _updateDocBadge(list.length);
                 showToastNotification('Document deleted.', 'success');
             }
@@ -1658,6 +1888,7 @@ $(function () {
 
     function _loadSignatureList() {
         $('#signaturesContainer').html('<div class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Loading...</div>');
+        ajaxLoading(0);
         $.post('/settings/profile/getSignatureList', { [CsrfName]: CsrfToken })
             .done(function (html) {
                 CsrfToken = (html.match(/data-csrf-token="([^"]+)"/) || [])[1] || CsrfToken;
@@ -1665,6 +1896,9 @@ $(function () {
             })
             .fail(function () {
                 $('#signaturesContainer').html('<div class="text-danger text-center py-4">Unable to load signatures.</div>');
+            })
+            .always(function () {
+                ajaxLoading(1);
             });
     }
 
@@ -2003,12 +2237,15 @@ $(function () {
 
     function _loadEmgContacts() {
         $('#emgContactTableWrap').html('<div class="text-center text-muted py-4"><span class="spinner-border spinner-border-sm me-2"></span>Loading...</div>');
+        ajaxLoading(0);
         $.post('/settings/profile/getEmergencyContacts', { [CsrfName]: CsrfToken }, function (resp) {
             CsrfToken = resp.NewCsrfToken || CsrfToken;
             if (resp.Error) { $('#emgContactTableWrap').html('<div class="text-danger text-center py-3">Unable to load contacts.</div>'); return; }
             _renderEmgTable(resp.Contacts || []);
         }).fail(function () {
             $('#emgContactTableWrap').html('<div class="text-danger text-center py-3">Network error.</div>');
+        }).always(function () {
+            ajaxLoading(1);
         });
     }
 
@@ -2133,24 +2370,16 @@ $(function () {
         catch (e) { return s; }
     }
 
+    var _spinnerRow7 = '<tr><td colspan="7" class="text-center py-4"><span class="spinner-border spinner-border-sm text-primary"></span></td></tr>';
+
     function _renderEduTable(list) {
         _eduData = {};
-        var $wrap = $('#eduTableWrap').empty();
+        var $tbody = $('#eduTbody');
         if (!list || list.length === 0) {
-            $wrap.html(
-                '<div class="text-center text-muted py-5">' +
-                '<i class="bx bx-book-open" style="font-size:3rem;display:block;opacity:.3;margin-bottom:8px;"></i>' +
-                '<div style="font-size:.84rem;">No education records added yet.</div>' +
-                '</div>'
-            );
+            $tbody.html('<tr><td colspan="7" class="text-center text-muted py-5"><i class="bx bx-book-open d-block mx-auto mb-2" style="font-size:2.5rem;opacity:.3;"></i><span style="font-size:.84rem;">No education records added yet.</span></td></tr>');
             return;
         }
-        var html = '<div class="table-responsive"><table class="table table-sm table-bordered table-hover align-middle mb-0" style="font-size:.84rem;">' +
-            '<thead class="r2k-thead"><tr>' +
-            '<th style="width:36px;text-align:center;">#</th>' +
-            '<th>Institution</th><th>Degree</th><th>Field of Study</th><th>CGPA</th><th>Completion</th>' +
-            '<th style="width:80px;text-align:center;">Actions</th>' +
-            '</tr></thead><tbody>';
+        var html = '';
         list.forEach(function (r, i) {
             _eduData[r.EduUID] = r;
             html += '<tr>' +
@@ -2160,33 +2389,22 @@ $(function () {
                 '<td>'                  + $('<s>').text(r.FieldOfStudy  || '—').html() + '</td>' +
                 '<td>'                  + $('<s>').text(r.CGPA          || '—').html() + '</td>' +
                 '<td>'                  + _fmtEduDate(r.DateOfCompletion) + '</td>' +
-                '<td class="text-center">' +
-                '<button type="button" class="btn btn-sm btn-outline-primary editEduBtn py-0 px-1 me-1" data-uid="' + r.EduUID + '" title="Edit"><i class="bx bx-edit-alt"></i></button>' +
-                '<button type="button" class="btn btn-sm btn-outline-danger delEduBtn py-0 px-1"         data-uid="' + r.EduUID + '" title="Delete"><i class="bx bx-trash"></i></button>' +
-                '</td></tr>';
+                '<td class="text-center"><div class="d-flex align-items-center justify-content-center gap-1">' +
+                '<button type="button" class="btn btn-icon btn-sm text-warning editEduBtn" data-uid="' + r.EduUID + '" title="Edit"><i class="bx bx-edit"></i></button>' +
+                '<button type="button" class="btn btn-icon btn-sm text-danger delEduBtn" data-uid="' + r.EduUID + '" title="Delete"><i class="bx bx-trash"></i></button>' +
+                '</div></td></tr>';
         });
-        html += '</tbody></table></div>';
-        $wrap.html(html);
+        $tbody.html(html);
     }
 
-    function _renderExpTable(list) {
+    function _renderWorkExpTable(list) {
         _expData = {};
-        var $wrap = $('#expTableWrap').empty();
+        var $tbody = $('#workExpTbody');
         if (!list || list.length === 0) {
-            $wrap.html(
-                '<div class="text-center text-muted py-5">' +
-                '<i class="bx bx-briefcase" style="font-size:3rem;display:block;opacity:.3;margin-bottom:8px;"></i>' +
-                '<div style="font-size:.84rem;">No experience records added yet.</div>' +
-                '</div>'
-            );
+            $tbody.html('<tr><td colspan="7" class="text-center text-muted py-5"><i class="bx bx-briefcase d-block mx-auto mb-2" style="font-size:2.5rem;opacity:.3;"></i><span style="font-size:.84rem;">No experience records added yet.</span></td></tr>');
             return;
         }
-        var html = '<div class="table-responsive"><table class="table table-sm table-bordered table-hover align-middle mb-0" style="font-size:.84rem;">' +
-            '<thead class="r2k-thead"><tr>' +
-            '<th style="width:36px;text-align:center;">#</th>' +
-            '<th>Employer Name</th><th>Job Title</th><th>Start Date</th><th>End Date</th><th>Job Description</th>' +
-            '<th style="width:80px;text-align:center;">Actions</th>' +
-            '</tr></thead><tbody>';
+        var html = '';
         list.forEach(function (r, i) {
             _expData[r.ExpUID] = r;
             var endDt = r.EndDate
@@ -2200,28 +2418,32 @@ $(function () {
                 '<td>'                  + _fmtEduDate(r.StartDate) + '</td>' +
                 '<td>'                  + endDt + '</td>' +
                 '<td class="text-truncate" style="max-width:200px;" title="' + $('<s>').text(r.JobDescription || '').html() + '">' + descText + '</td>' +
-                '<td class="text-center">' +
-                '<button type="button" class="btn btn-sm btn-outline-primary editExpBtn py-0 px-1 me-1" data-uid="' + r.ExpUID + '" title="Edit"><i class="bx bx-edit-alt"></i></button>' +
-                '<button type="button" class="btn btn-sm btn-outline-danger delExpBtn py-0 px-1"         data-uid="' + r.ExpUID + '" title="Delete"><i class="bx bx-trash"></i></button>' +
-                '</td></tr>';
+                '<td class="text-center"><div class="d-flex align-items-center justify-content-center gap-1">' +
+                '<button type="button" class="btn btn-icon btn-sm text-warning editWorkExpBtn" data-uid="' + r.ExpUID + '" title="Edit"><i class="bx bx-edit"></i></button>' +
+                '<button type="button" class="btn btn-icon btn-sm text-danger delWorkExpBtn" data-uid="' + r.ExpUID + '" title="Delete"><i class="bx bx-trash"></i></button>' +
+                '</div></td></tr>';
         });
-        html += '</tbody></table></div>';
-        $wrap.html(html);
+        $tbody.html(html);
     }
 
     function _loadEduExpList() {
-        $('#eduTableWrap').html('<div class="text-center text-muted py-4"><span class="spinner-border spinner-border-sm me-2"></span>Loading...</div>');
-        $('#expTableWrap').html('<div class="text-center text-muted py-4"><span class="spinner-border spinner-border-sm me-2"></span>Loading...</div>');
+        $('#eduTbody').html(_spinnerRow7);
+        $('#workExpTbody').html(_spinnerRow7);
+        ajaxLoading(0);
         $.post('/settings/profile/getEduExp', { [CsrfName]: CsrfToken }, function (resp) {
             CsrfToken = resp.NewCsrfToken || CsrfToken;
             if (resp.Error) {
-                $('#eduTableWrap,#expTableWrap').html('<div class="text-danger text-center py-3">Unable to load records.</div>');
+                var errRow = '<tr><td colspan="7" class="text-center text-danger py-3">Unable to load records.</td></tr>';
+                $('#eduTbody,#workExpTbody').html(errRow);
                 return;
             }
-            _renderEduTable(resp.Education  || []);
-            _renderExpTable(resp.Experience || []);
+            _renderEduTable(resp.Education   || []);
+            _renderWorkExpTable(resp.Experience || []);
         }).fail(function () {
-            $('#eduTableWrap,#expTableWrap').html('<div class="text-danger text-center py-3">Network error.</div>');
+            var errRow = '<tr><td colspan="7" class="text-center text-danger py-3">Network error.</td></tr>';
+            $('#eduTbody,#workExpTbody').html(errRow);
+        }).always(function () {
+            ajaxLoading(1);
         });
     }
 
@@ -2343,7 +2565,7 @@ $(function () {
     });
 
     $(document).on('click', '#btnAddExp', function () { _openExpModal(0); });
-    $(document).on('click', '.editExpBtn', function () { _openExpModal(parseInt($(this).data('uid')) || 0); });
+    $(document).on('click', '.editWorkExpBtn', function () { _openExpModal(parseInt($(this).data('uid')) || 0); });
 
     $('#btnSaveExp').on('click', function () {
         var employer = $.trim($('#expEmployerName').val());
@@ -2367,7 +2589,7 @@ $(function () {
                 $('#spinnerExp').addClass('d-none'); $('#iconExp').removeClass('d-none');
                 if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
                 $('#experienceModal').modal('hide');
-                _renderExpTable(resp.Experience || []);
+                _renderWorkExpTable(resp.Experience || []);
                 showToastNotification(resp.Message, 'success');
             },
             error: function () {
@@ -2378,7 +2600,7 @@ $(function () {
         });
     });
 
-    $(document).on('click', '.delExpBtn', function () {
+    $(document).on('click', '.delWorkExpBtn', function () {
         var uid = parseInt($(this).data('uid')) || 0;
         if (!uid) return;
         Swal.fire({
@@ -2389,7 +2611,7 @@ $(function () {
             $.post('/settings/profile/deleteExperience', { ExpUID: uid, [CsrfName]: CsrfToken }, function (resp) {
                 CsrfToken = resp.NewCsrfToken || CsrfToken;
                 if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
-                _renderExpTable(resp.Experience || []);
+                _renderWorkExpTable(resp.Experience || []);
                 showToastNotification('Experience record deleted.', 'success');
             });
         });
@@ -2511,7 +2733,7 @@ $(function () {
         $.post('/settings/profile/getBankDetails', { [CsrfName]: CsrfToken }, function (resp) {
             CsrfToken = resp.NewCsrfToken || CsrfToken;
             if (!resp.Error) _fillBankForm(resp.Data);
-        });
+        })
     }
 
     $('#btnSaveBankDetails').on('click', function () {
@@ -2560,6 +2782,287 @@ $(function () {
             $('#spinnerBank').addClass('d-none');
             $('#iconBank').removeClass('d-none');
             $('#btnSaveBankDetails').prop('disabled', false);
+        });
+    });
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // EXPENSES & REIMBURSEMENTS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    var _expList         = [];
+    var _expEditUID      = 0;
+    var _expReceiptFiles = [];
+    var _fpExpDate       = null;
+    var _expPendingDate  = null;
+
+    // Init flatpickr on modal open (once), then apply any pending date
+    $('#expenseModal').on('shown.bs.modal', function () {
+        if (!_fpExpDate) {
+            _fpExpDate = flatpickr('#expDate', _fpConfig);
+        }
+        if (_expPendingDate) {
+            _fpExpDate.setDate(_expPendingDate);
+            _expPendingDate = null;
+        }
+    });
+
+    function _renderExpReceiptTable(list) {
+        var cdnUrl = (typeof CDN_URL !== 'undefined' && CDN_URL) ? CDN_URL : '';
+        if (!list || list.length === 0) {
+            $('#expReceiptTbody').html('<tr><td colspan="4" class="text-center py-3 text-muted" style="font-size:.82rem;">No receipts attached yet.</td></tr>');
+            return;
+        }
+        var html = '';
+        list.forEach(function (a, i) {
+            var name     = a.FileName || '';
+            var safeName = $('<s>').text(name).html();
+            var fullUrl  = cdnUrl + (a.FilePath || '');
+            var encUrl   = encodeURIComponent(fullUrl);
+            var ftype    = _docFileType(a.FileType || '', name);
+            var iconCls  = _docFileIcon(a.FileType || '', name);
+            html += '<tr>';
+            html += '<td class="text-center" style="font-size:.78rem;color:#a4afc5;">' + (i + 1) + '</td>';
+            html += '<td><div class="d-flex align-items-center gap-2">';
+            html += '<i class="bx ' + iconCls + ' exp-receipt-preview-btn flex-shrink-0" data-enc="' + encUrl + '" data-ftype="' + ftype + '" data-fname="' + safeName + '" style="font-size:1.2rem;cursor:pointer;"></i>';
+            html += '<span class="text-truncate exp-receipt-preview-btn" data-enc="' + encUrl + '" data-ftype="' + ftype + '" data-fname="' + safeName + '" style="cursor:pointer;font-size:.82rem;max-width:170px;" title="' + safeName + '">' + safeName + '</span>';
+            html += '</div></td>';
+            html += '<td class="text-end" style="font-size:.78rem;color:#6c757d;">' + (_docFormatSize(a.FileSize) || '—') + '</td>';
+            html += '<td class="text-center"><button type="button" class="btn btn-icon btn-sm text-danger exp-receipt-delete-btn" data-uid="' + a.AttachUID + '" title="Delete"><i class="bx bx-trash"></i></button></td>';
+            html += '</tr>';
+        });
+        $('#expReceiptTbody').html(html);
+    }
+
+    function _renderExpPendingFiles() {
+        var $wrap = $('#expReceiptQueue').empty();
+        _expReceiptFiles.forEach(function (f, idx) {
+            var iconCls  = _docFileIcon(f.type, f.name);
+            var safeName = $('<s>').text(f.name).html();
+            $wrap.append(
+                '<div class="d-flex align-items-center gap-2 border rounded px-2 py-1 mb-1 bg-light" style="font-size:.8rem;">' +
+                '<i class="bx ' + iconCls + ' flex-shrink-0" style="font-size:1.1rem;"></i>' +
+                '<div style="flex:1;min-width:0;">' +
+                '<div class="text-truncate fw-medium">' + safeName + '</div>' +
+                '<div style="font-size:.7rem;color:#a4afc5;">' + (_docFormatSize(f.size) || '') + '</div>' +
+                '</div>' +
+                '<span class="badge bg-label-warning" style="font-size:.68rem;">New</span>' +
+                '<button type="button" class="btn btn-icon btn-sm text-muted exp-pending-remove ms-1" data-idx="' + idx + '" style="width:18px;height:18px;padding:0;"><i class="bx bx-x" style="font-size:.9rem;"></i></button>' +
+                '</div>'
+            );
+        });
+    }
+
+    // File input
+    $('#expReceiptInput').on('change', function () {
+        Array.from(this.files || []).forEach(function (f) {
+            if (f.size > 5 * 1024 * 1024) { showToastNotification(f.name + ': exceeds 5 MB.', 'error'); return; }
+            _expReceiptFiles.push(f);
+        });
+        this.value = '';
+        _renderExpPendingFiles();
+    });
+
+    // Drag & drop on receipt zone
+    $('#expReceiptZone')
+        .on('dragover dragenter', function (e) { e.preventDefault(); $(this).addClass('dz-over'); })
+        .on('dragleave',          function (e) { e.preventDefault(); $(this).removeClass('dz-over'); })
+        .on('drop',               function (e) {
+            e.preventDefault(); $(this).removeClass('dz-over');
+            Array.from(e.originalEvent.dataTransfer.files || []).forEach(function (f) {
+                if (f.size > 5 * 1024 * 1024) { showToastNotification(f.name + ': exceeds 5 MB.', 'error'); return; }
+                _expReceiptFiles.push(f);
+            });
+            _renderExpPendingFiles();
+        });
+
+    // Remove a pending (not-yet-saved) file
+    $(document).on('click', '.exp-pending-remove', function () {
+        _expReceiptFiles.splice(parseInt($(this).data('idx')), 1);
+        _renderExpPendingFiles();
+    });
+
+    // Preview receipt
+    $(document).on('click', '.exp-receipt-preview-btn', function () {
+        _openProfileAttachPreview($(this).data('enc'), $(this).data('ftype'), $(this).data('fname'));
+    });
+
+    // Delete receipt
+    $(document).on('click', '.exp-receipt-delete-btn', function () {
+        var uid    = parseInt($(this).data('uid'))    || 0;
+        if (!uid || !confirm('Delete this receipt? This cannot be undone.')) return;
+        $.post('/settings/profile/deleteExpenseAttachment', { AttachUID: uid, ExpenseUID: _expEditUID, [CsrfName]: CsrfToken }, function (resp) {
+            CsrfToken = resp.NewCsrfToken || CsrfToken;
+            if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
+            _renderExpReceiptTable(Array.isArray(resp.Attachments) ? resp.Attachments : []);
+            showToastNotification('Receipt deleted.', 'success');
+        });
+    });
+
+    function _fmtExpDate(d) {
+        if (!d) return '—';
+        var s = d.split(' ')[0].split('-');
+        return s.length === 3 ? s[2] + '-' + s[1] + '-' + s[0] : d;
+    }
+
+    function _loadExpenses() {
+        $('#expTableBody').html('<tr id="expLoadingRow"><td colspan="6" class="text-center py-4"><span class="spinner-border spinner-border-sm text-primary"></span></td></tr>');
+        ajaxLoading(0);
+        $.post('/settings/profile/getExpenses', { [CsrfName]: CsrfToken }, function (resp) {
+            CsrfToken = resp.NewCsrfToken || CsrfToken;
+            if (!resp.Error) {
+                _renderExpenseTable(resp.Data || []);
+            } else {
+                showToastNotification('Failed to load expenses.', 'error');
+                $('#expTableBody').html('<tr><td colspan="6" class="text-center text-danger py-4">Failed to load expenses.</td></tr>');
+            }
+        }).fail(function () {
+            showToastNotification('Failed to load expenses.', 'error');
+            $('#expTableBody').html('<tr><td colspan="6" class="text-center text-danger py-4">Failed to load expenses.</td></tr>');
+        }).always(function () {
+            ajaxLoading(1);
+        });
+    }
+
+    function _renderExpenseTable(data) {
+        _expList = data || [];
+        if (!_expList.length) {
+            $('#expTableBody').html('<tr><td colspan="6" class="text-center text-muted py-5"><i class="bx bx-receipt d-block mx-auto mb-2" style="font-size:2.5rem;color:#c0c9d5;"></i><span style="font-size:.88rem;">No expense records yet. Click <strong>Add Expense</strong> to get started.</span></td></tr>');
+            return;
+        }
+        var html = '';
+        _expList.forEach(function (r) {
+            var amt = r.Amount ? (typeof currencySymbol !== 'undefined' ? currencySymbol : '₹') + ' ' + parseFloat(r.Amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—';
+            html += '<tr>';
+            html += '<td style="white-space:nowrap;">' + _fmtExpDate(r.ExpenseDate) + '</td>';
+            html += '<td>' + (r.ReimbursementType || '—') + '</td>';
+            html += '<td>' + (r.Category || '—') + '</td>';
+            html += '<td>' + (r.Merchant || '—') + '</td>';
+            html += '<td class="text-end" style="white-space:nowrap;">' + amt + '</td>';
+            html += '<td class="text-center"><div class="d-flex gap-1 justify-content-center">';
+            html += '<button type="button" class="btn btn-icon btn-sm text-warning editExpBtn" data-uid="' + r.ExpenseUID + '" title="Edit"><i class="bx bx-edit"></i></button>';
+            html += '<button type="button" class="btn btn-icon btn-sm text-danger delExpBtn" data-uid="' + r.ExpenseUID + '" title="Delete"><i class="bx bx-trash"></i></button>';
+            html += '</div></td></tr>';
+        });
+        $('#expTableBody').html(html);
+    }
+
+    function _expOpenModal(uid) {
+        var isEdit = uid > 0;
+        _expEditUID      = isEdit ? uid : 0;
+        _expReceiptFiles = [];
+        $('#expModalTitle').text(isEdit ? 'Edit Expense' : 'Add Expense');
+        $('#expModalMeta').text(isEdit ? 'Update your expense details' : 'Fill in your expense details below');
+        $('#expUID').val(uid);
+        $('#expReimType').val('');
+        $('#expCategory').val('');
+        $('#expMerchant').val('');
+        $('#expAmount').val('');
+        _expPendingDate = null;
+        if (_fpExpDate) _fpExpDate.clear();
+        $('#expReference').val('');
+        $('#expDescription').val('');
+        $('#expReceiptQueue').empty();
+        $('#expReceiptTableWrap').toggle(isEdit);
+
+        if (isEdit) {
+            var row = _expList.find(function (r) { return parseInt(r.ExpenseUID) === uid; });
+            if (row) {
+                $('#expReimType').val(row.ReimbursementType || '');
+                $('#expCategory').val(row.Category          || '');
+                $('#expMerchant').val(row.Merchant          || '');
+                $('#expAmount').val(row.Amount ? smartDecimal(row.Amount) : '');
+                if (row.ExpenseDate) {
+                    var d = row.ExpenseDate.split(' ')[0];
+                    if (_fpExpDate) { _fpExpDate.setDate(d); } else { _expPendingDate = d; }
+                }
+                $('#expReference').val(row.Reference    || '');
+                $('#expDescription').val(row.Description || '');
+            }
+            $.post('/settings/profile/getExpenseAttachments', { ExpenseUID: uid, [CsrfName]: CsrfToken }, function (resp) {
+                CsrfToken = resp.NewCsrfToken || CsrfToken;
+                _renderExpReceiptTable(resp.Error ? [] : (resp.Attachments || []));
+            });
+        }
+        $('#expenseModal').modal('show');
+    }
+
+    function _expSave() {
+        var reimType = $.trim($('#expReimType').val());
+        var category = $.trim($('#expCategory').val());
+        var amount   = $.trim($('#expAmount').val());
+        var expDate  = $.trim($('#expDate').val());
+
+        if (!reimType) { showToastNotification('Please select a reimbursement type.', 'warning'); $('#expReimType').focus(); return; }
+        if (!category) { showToastNotification('Category is required.', 'warning'); $('#expCategory').focus(); return; }
+        if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) { showToastNotification('Please enter a valid amount.', 'warning'); $('#expAmount').focus(); return; }
+        if (!expDate) { showToastNotification('Date of expense is required.', 'warning'); return; }
+
+        var $submitBtn = $('#btnSubmitExp');
+        var $spinner   = $('#spinnerExpSubmit');
+        var $icon      = $('#iconExpSubmit');
+        $submitBtn.prop('disabled', true);
+        $spinner.removeClass('d-none'); $icon.addClass('d-none');
+
+        var formData = new FormData();
+        formData.append('ExpenseUID',        $('#expUID').val());
+        formData.append('ReimbursementType', reimType);
+        formData.append('Category',          category);
+        formData.append('Merchant',          $.trim($('#expMerchant').val()));
+        formData.append('Amount',            amount);
+        formData.append('ExpenseDate',       expDate);
+        formData.append('Reference',         $.trim($('#expReference').val()));
+        formData.append('Description',       $.trim($('#expDescription').val()));
+        formData.append(CsrfName,            CsrfToken);
+        _expReceiptFiles.forEach(function (f) { formData.append('Receipts[]', f); });
+
+        $.ajax({
+            url: '/settings/profile/saveExpense',
+            method: 'POST',
+            data: formData,
+            contentType: false,
+            processData: false,
+            success: function (resp) {
+                CsrfToken = resp.NewCsrfToken || CsrfToken;
+                if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
+                $('#expenseModal').modal('hide');
+                _renderExpenseTable(resp.Data || []);
+                showToastNotification(resp.Message || 'Expense saved.', 'success');
+            },
+            error: function () {
+                showToastNotification('Request failed. Please try again.', 'error');
+            }
+        }).always(function () {
+            $spinner.addClass('d-none'); $icon.removeClass('d-none');
+            $submitBtn.prop('disabled', false);
+        });
+    }
+
+    $('#btnAddExpense').on('click', function () { _expOpenModal(0); });
+    $('#btnSubmitExp').on('click',  function () { _expSave(); });
+
+    $(document).on('click', '.editExpBtn', function () {
+        var uid = parseInt($(this).data('uid')) || 0;
+        if (uid) _expOpenModal(uid);
+    });
+
+    $(document).on('click', '.delExpBtn', function () {
+        var uid  = parseInt($(this).data('uid')) || 0;
+        if (!uid) return;
+        if (!confirm('Delete this expense record?')) return;
+        var $btn = $(this);
+        $btn.prop('disabled', true);
+        $.post('/settings/profile/deleteExpense', { ExpenseUID: uid, [CsrfName]: CsrfToken }, function (resp) {
+            CsrfToken = resp.NewCsrfToken || CsrfToken;
+            if (resp.Error) {
+                showToastNotification(resp.Message, 'error');
+                $btn.prop('disabled', false);
+                return;
+            }
+            _renderExpenseTable(resp.Data || []);
+            showToastNotification('Expense deleted.', 'success');
+        }).fail(function () {
+            $btn.prop('disabled', false);
+            showToastNotification('Request failed. Please try again.', 'error');
         });
     });
 

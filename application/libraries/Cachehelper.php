@@ -127,7 +127,9 @@ class Cachehelper {
     }
 
     /**
-     * Stamp LastTransactionAt on a customer entry (no DB round-trip).
+     * Stamp LastTransactionAt on a customer entry in the Upstash hash (no DB round-trip).
+     * Reads the existing entry, updates only the timestamp, writes it back.
+     * If the customer is not in cache, does nothing (avoids creating a stale partial entry).
      * Call after every transaction create / update.
      */
     public function touchCustomer($customerUID) {
@@ -135,8 +137,17 @@ class Cachehelper {
             $CI       =& get_instance();
             $uid      = (int)$customerUID;
             $cacheKey = $CI->redisservice->orgKey('customers');
+
+            // Read the current entry — HGET returns decoded array or null on MISS
+            $entry = $CI->upstashservice->hget($cacheKey, (string)$uid);
+            if (!is_array($entry) || empty($entry)) return; // not in cache, nothing to do
+
+            // Update only the timestamp field in-place
+            $entry['LastTransactionAt'] = date('c');
+
+            // Write the updated entry back and invalidate the individual modal key
             $CI->upstashservice->pipeline([
-                ['HDEL', $cacheKey, (string)$uid],
+                ['HSET', $cacheKey, (string)$uid, json_encode($entry, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)],
                 ['DEL',  Upstashservice::keyCustomer($uid)],
             ]);
         } catch (Exception $e) {}
@@ -238,8 +249,17 @@ class Cachehelper {
             $CI       =& get_instance();
             $uid      = (int)$vendorUID;
             $cacheKey = $CI->redisservice->orgKey('vendors');
+
+            // Read the current entry — HGET returns decoded array or null on MISS
+            $entry = $CI->upstashservice->hget($cacheKey, (string)$uid);
+            if (!is_array($entry) || empty($entry)) return; // not in cache, nothing to do
+
+            // Update only the timestamp field in-place
+            $entry['LastTransactionAt'] = date('c');
+
+            // Write the updated entry back and invalidate the individual modal key
             $CI->upstashservice->pipeline([
-                ['HDEL', $cacheKey, (string)$uid],
+                ['HSET', $cacheKey, (string)$uid, json_encode($entry, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)],
                 ['DEL',  Upstashservice::keyVendor($uid)],
             ]);
         } catch (Exception $e) {}

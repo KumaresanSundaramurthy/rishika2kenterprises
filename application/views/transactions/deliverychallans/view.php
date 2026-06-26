@@ -62,6 +62,9 @@ $this->load->view('common/transactions/header'); ?>
                                 <input type="text" id="searchTransactionData" placeholder="Challan # or customer...">
                                 <i class="bx bx-x r2k-clear d-none"></i>
                             </div>
+                            <a href="javascript:void(0);" id="dcPartyFilterTrigger" class="apex-filter-btn" title="Filter by Customer">
+                                <i class="bx bx-store me-1"></i>Customer
+                            </a>
                             <?php $this->load->view('common/transactions/date_filter_btn'); ?>
                             <div class="apex-filter-spacer"></div>
                             <a href="javascript:void(0);" class="apex-filter-btn pageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
@@ -100,14 +103,7 @@ $this->load->view('common/transactions/header'); ?>
                                         </th>
                                         <th>Status</th>
                                         <th>Type</th>
-                                        <th>
-                                            Customer
-                                            <a href="javascript:void(0);" id="dcPartyFilterTrigger" class="text-body ms-1"
-                                               data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Filter by Customer"
-                                               style="font-size:.85rem;">
-                                                <i class="bx bx-filter-alt align-middle"></i>
-                                            </a>
-                                        </th>
+                                        <th>Customer</th>
                                         <th class="col-sortable cursor-pointer user-select-none" data-sort="Date">
                                             Expected Return <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Date"></i>
                                         </th>

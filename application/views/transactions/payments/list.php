@@ -199,7 +199,7 @@ if (!function_exists('_allPmtModeBadge')) {
                     <?php echo $initials ?: '?'; ?>
                 </div>
                 <div>
-                    <div style="font-size:.82rem;font-weight:600;"><?php echo htmlspecialchars($row->PartyName ?? '—'); ?></div>
+                    <div style="font-size:.82rem;font-weight:600;"><?php echo r2k_party_name($row->PartyName ?? '', $row->PartyMobile ?? '', $row->PartyCountryCode ?? '', $row->PartyArea ?? ''); ?></div>
                     <?php if ($hasParty): ?>
                     <span style="font-size:.62rem;font-weight:600;padding:1px 5px;border-radius:6px;
                                  background:<?php echo $partyTypeBg; ?>;color:<?php echo $partyTypeClr; ?>;">

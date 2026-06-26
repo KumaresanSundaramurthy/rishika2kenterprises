@@ -78,7 +78,12 @@ if (!empty($DispatchAddress)) {
 
                     <div class="card mb-3">
 
-                        <?php if (!$isEdit): ?>
+                        <?php
+                        $_hideNav   = (int)($JwtData->TransSettings->HideNavOnTransForm ?? 0);
+                        $_pfStatusMap = ['Draft' => 'warning', 'Sent' => 'info', 'Converted' => 'success', 'Cancelled' => 'danger'];
+                        $_pfStatus    = $isEdit ? ($PFData->DocStatus ?? '') : '';
+                        $_pfStatusClr = $_pfStatusMap[$_pfStatus] ?? 'secondary';
+                        ?>
                         <div class="card-header bg-white border-bottom d-flex align-items-center justify-content-between px-3 py-2 trans-header-static trans-theme modal-header-center-sticky">
                             <div class="d-flex align-items-center gap-3" id="transHeaderInfo">
                                 <div class="trans-doc-icon" style="background:#ede9fe;">
@@ -86,146 +91,155 @@ if (!empty($DispatchAddress)) {
                                 </div>
                                 <div>
                                     <div class="d-flex align-items-center flex-wrap gap-2">
-                                        <span class="fw-bold" style="font-size:.92rem;">Create Pro Forma Invoice</span>
-                                        <?php $this->load->view('transactions/partials/form_prefix_add'); ?>
+                                        <?php if (!$isEdit): ?>
+                                            <span class="fw-bold" style="font-size:.92rem;">Create Pro Forma Invoice</span>
+                                            <?php $this->load->view('transactions/partials/form_prefix_add'); ?>
+                                        <?php else: ?>
+                                            <span class="fw-bold" style="font-size:.92rem;"><?php echo $isDraftEdit ? '' : 'Edit'; ?> Pro Forma Invoice</span>
+                                            <?php if (!$isDraftEdit && !empty($PFData->UniqueNumber)): ?>
+                                                <span class="trans-form-doc-number"><?php echo htmlspecialchars($PFData->UniqueNumber); ?></span>
+                                                <span class="badge bg-label-<?php echo $_pfStatusClr; ?>" style="font-size:.7rem;"><?php echo htmlspecialchars($_pfStatus); ?></span>
+                                            <?php endif; ?>
+                                            <div class="d-flex align-items-center gap-1 <?php echo (!$isDraftEdit ? 'd-none' : ''); ?>">
+                                                <div class="input-group w-auto">
+                                                    <select id="transPrefixSelect" name="transPrefixSelect" class="select2 form-select form-select-sm" <?php echo (!$isDraftEdit ? 'disabled' : 'required'); ?>>
+                                                        <?php try {
+                                                            if (empty($PrefixData)) throw new Exception('No prefix data');
+                                                            foreach ($PrefixData as $preData) {
+                                                                $sel = (int)$preData->PrefixUID === (int)$PFData->PrefixUID ? 'selected' : ''; ?>
+                                                                <option value="<?php echo (int)$preData->PrefixUID; ?>"
+                                                                    data-sep="<?php echo htmlspecialchars($preData->Separator ?? '-'); ?>"
+                                                                    data-fiscal="<?php echo !empty($preData->IncludeFiscalYear) ? '1' : '0'; ?>"
+                                                                    data-fiscal-format="<?php echo htmlspecialchars($preData->FiscalYearFormat ?? 'SHORT'); ?>"
+                                                                    data-inc-short="<?php echo !empty($preData->IncludeShortName) ? '1' : '0'; ?>"
+                                                                    data-short-name="<?php echo htmlspecialchars($preData->ShortName ?? ''); ?>"
+                                                                    data-padding="<?php echo (int)($preData->NumberPadding ?? 3); ?>"
+                                                                    data-next-number="<?php echo (int)($NextNumberMap[(int)$preData->PrefixUID] ?? 1); ?>"
+                                                                    <?php echo $sel; ?>
+                                                                ><?php echo htmlspecialchars($preData->Name); ?></option>
+                                                            <?php }
+                                                        } catch (Exception $e) { ?><option value="">Error loading prefixes</option><?php } ?>
+                                                    </select>
+                                                    <?php if ($isDraftEdit): ?>
+                                                    <button type="button" class="btn btn-outline-secondary" id="addTransPrefixBtn" title="Configure Prefix"><i class="bx bx-cog"></i></button>
+                                                    <?php endif; ?>
+                                                </div>
+                                                <div class="input-group input-group-sm w-auto">
+                                                    <span class="input-group-text cursor-pointer fw-semibold text-primary" id="appendPrefixVal"><?php echo htmlspecialchars($editPrefixSeg); ?></span>
+                                                    <input type="number" id="transNumber" name="transNumber" class="form-control transAutoGenNumber stop-incre-indicator" maxLength="20"
+                                                        onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))"
+                                                        oninput="this.value=this.value.slice(0,this.maxLength)"
+                                                        pattern="[0-9]*" value="<?php echo $editTransNumber; ?>"
+                                                        <?php echo (!$isDraftEdit ? 'disabled' : 'required'); ?> />
+                                                </div>
+                                            </div>
+                                            <?php if (!$isDraftEdit): ?>
+                                            <input type="hidden" name="transPrefixSelect" value="<?php echo (int)$PFData->PrefixUID; ?>" />
+                                            <input type="hidden" name="transNumber"       value="<?php echo (int)$PFData->TransNumber; ?>" />
+                                            <?php endif; ?>
+                                        <?php endif; ?>
                                     </div>
+                                    <?php if ($isEdit && !$isDraftEdit): ?>
+                                    <div class="d-flex align-items-center gap-3 mt-1">
+                                        <?php if (!empty($PFData->TransDate)): ?>
+                                        <div class="d-flex align-items-center gap-1">
+                                            <span style="font-size:.7rem;color:#8592a3;">Date</span>
+                                            <span style="font-size:.78rem;color:#566a7f;"><?php echo htmlspecialchars(format_datedisplay($PFData->TransDate)); ?></span>
+                                        </div>
+                                        <?php endif; ?>
+                                        <?php if (!empty($PFData->PartyName)): ?>
+                                        <div class="d-flex align-items-center gap-1">
+                                            <span style="font-size:.7rem;color:#8592a3;">Customer</span>
+                                            <span style="font-size:.78rem;color:#566a7f;"><?php echo htmlspecialchars($PFData->PartyName); ?></span>
+                                        </div>
+                                        <?php endif; ?>
+                                    </div>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                             <div class="d-flex align-items-center gap-2">
+                                <?php if (!$isEdit || $isDraftEdit): ?>
                                 <button type="submit" name="action" value="draft" class="btn btn-sm btn-outline-secondary"><i class="bx bx-save me-1"></i>Draft</button>
+                                <?php endif; ?>
                                 <div class="btn-group">
-                                    <button type="submit" name="action" value="save" class="btn btn-sm btn-primary px-3"><i class="bx bx-send me-1"></i>Send Pro Forma</button>
+                                    <button type="submit" name="action" value="save" class="btn btn-sm btn-primary px-3">
+                                        <i class="bx bx-check me-1"></i><?php echo ($isEdit && !$isDraftEdit) ? 'Update' : 'Save'; ?>
+                                    </button>
                                     <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split ps-2 pe-2" data-bs-toggle="dropdown" aria-expanded="false">
                                         <span class="visually-hidden">Save options</span>
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-end shadow" style="min-width:195px;font-size:.82rem;">
-                                        <li><span class="dropdown-header py-1" style="font-size:.65rem;letter-spacing:.4px;">SEND &amp; PRINT</span></li>
-                                        <li><button type="submit" class="dropdown-item py-1" name="action" value="save_a4"><i class="bx bx-file text-primary me-2"></i>Send &amp; Print A4</button></li>
-                                        <li><button type="submit" class="dropdown-item py-1" name="action" value="save_a5"><i class="bx bx-file-blank text-info me-2"></i>Send &amp; Print A5</button></li>
-                                        <li><button type="submit" class="dropdown-item py-1" name="action" value="save_thermal"><i class="bx bx-receipt text-success me-2"></i>Send &amp; Print Thermal</button></li>
+                                        <li><span class="dropdown-header py-1" style="font-size:.65rem;letter-spacing:.4px;">SAVE &amp; PRINT</span></li>
+                                        <li><button type="submit" class="dropdown-item py-1" name="action" value="save_a4"><i class="bx bx-file text-primary me-2"></i>Save &amp; Print A4</button></li>
+                                        <li><button type="submit" class="dropdown-item py-1" name="action" value="save_a5"><i class="bx bx-file-blank text-info me-2"></i>Save &amp; Print A5</button></li>
+                                        <li><button type="submit" class="dropdown-item py-1" name="action" value="save_thermal"><i class="bx bx-receipt text-success me-2"></i>Save &amp; Print Thermal</button></li>
                                     </ul>
                                 </div>
-                                <?php $_hideNav = (int)($JwtData->TransSettings->HideNavOnTransForm ?? 0); ?>
                                 <a href="/proforma" class="btn btn-sm btn-outline-danger px-3<?php echo $_hideNav ? ' d-none' : ''; ?>"><i class="bx bx-x me-1"></i>Close</a>
                             </div>
                         </div>
-                        <?php else: ?>
-                        <div class="card-header bg-body-tertiary trans-header-static trans-theme modal-header-center-sticky d-flex justify-content-between align-items-center pb-3">
-                            <div class="d-flex flex-wrap align-items-center gap-3" id="transHeaderInfo">
-                                <h5 class="modal-title mb-0 ms-2"><?php echo $isDraftEdit ? '' : 'Edit'; ?> Pro Forma Invoice</h5>
-                                <?php if (!$isDraftEdit && !empty($PFData->UniqueNumber)): ?>
-                                    <span class="trans-form-doc-number"><?php echo htmlspecialchars($PFData->UniqueNumber); ?></span>
-                                <?php endif; ?>
-                                <div class="d-flex align-items-center gap-1">
-                                    <div class="input-group w-auto <?php echo (!$isDraftEdit ? 'd-none' : ''); ?>">
-                                        <select id="transPrefixSelect" name="transPrefixSelect" class="select2 form-select form-select-sm" <?php echo (!$isDraftEdit ? 'disabled' : 'required'); ?>>
-                                            <?php try {
-                                                if (empty($PrefixData)) throw new Exception('No prefix data');
-                                                foreach ($PrefixData as $preData) {
-                                                    $sel = (int)$preData->PrefixUID === (int)$PFData->PrefixUID ? 'selected' : '';
-                                                    ?>
-                                                    <option value="<?php echo (int)$preData->PrefixUID; ?>"
-                                                        data-sep="<?php echo htmlspecialchars($preData->Separator ?? '-'); ?>"
-                                                        data-fiscal="<?php echo !empty($preData->IncludeFiscalYear) ? '1' : '0'; ?>"
-                                                        data-fiscal-format="<?php echo htmlspecialchars($preData->FiscalYearFormat ?? 'SHORT'); ?>"
-                                                        data-inc-short="<?php echo !empty($preData->IncludeShortName) ? '1' : '0'; ?>"
-                                                        data-short-name="<?php echo htmlspecialchars($preData->ShortName ?? ''); ?>"
-                                                        data-padding="<?php echo (int)($preData->NumberPadding ?? 3); ?>"
-                                                        data-next-number="<?php echo (int)($NextNumberMap[(int)$preData->PrefixUID] ?? 1); ?>"
-                                                        <?php echo $sel; ?>
-                                                    ><?php echo htmlspecialchars($preData->Name); ?></option>
-                                                <?php }
-                                            } catch (Exception $e) { ?><option value="">Error loading prefixes</option><?php } ?>
-                                        </select>
-                                        <?php if ($isDraftEdit): ?>
-                                        <button type="button" class="btn btn-outline-secondary" id="addTransPrefixBtn" title="Configure Prefix"><i class="bx bx-cog"></i></button>
-                                        <?php endif; ?>
-                                    </div>
-                                    <div class="input-group input-group-sm w-auto <?php echo (!$isDraftEdit ? 'd-none' : ''); ?>">
-                                        <span class="input-group-text cursor-pointer fw-semibold text-primary" id="appendPrefixVal"><?php echo htmlspecialchars($editPrefixSeg); ?></span>
-                                        <input type="number" id="transNumber" name="transNumber" class="form-control transAutoGenNumber stop-incre-indicator" maxLength="20"
-                                            onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))"
-                                            oninput="this.value=this.value.slice(0,this.maxLength)"
-                                            pattern="[0-9]*" value="<?php echo $editTransNumber; ?>"
-                                            <?php echo (!$isDraftEdit ? 'disabled' : 'required'); ?> />
-                                    </div>
-                                    <?php if (!$isDraftEdit): ?>
-                                    <input type="hidden" name="transPrefixSelect" value="<?php echo (int)$PFData->PrefixUID; ?>" />
-                                    <input type="hidden" name="transNumber" value="<?php echo (int)$PFData->TransNumber; ?>" />
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                            <div class="d-flex align-items-center gap-2">
-                                <button type="submit" name="action" value="save" class="btn btn-primary"><?php echo $isDraftEdit ? 'Send Pro Forma' : 'Update'; ?></button>
-                                <?php if ($isDraftEdit): ?>
-                                <button type="submit" name="action" value="draft" class="btn btn-outline-secondary">Save as Draft</button>
-                                <?php endif; ?>
-                                <a href="/proforma" class="btn btn-label-danger<?php echo $_hideNav ? ' d-none' : ''; ?>">Close</a>
-                            </div>
-                        </div>
-                        <?php endif; ?>
 
                         <div class="card-body card-body-form-static p-4">
 
-                            <div class="card-header modal-header-center-sticky p-1 mb-3">
-                                <h5 class="modal-title mb-0"><i class="bx bx-user me-1"></i> Customer Details</h5>
+                            <!-- ── Toolbar: Type & Dispatch From ───────────────── -->
+                            <div class="d-flex align-items-center gap-4 mb-3 pb-2 border-bottom">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="text-muted" style="font-size:.78rem;white-space:nowrap;">Type</span>
+                                    <select class="form-select form-select-sm border-0 bg-transparent fw-semibold"
+                                            id="invoiceType" name="invoiceType" style="min-width:130px;cursor:pointer;" required>
+                                        <option value="Regular"     <?php echo $_invoiceType === 'Regular'     ? 'selected' : ''; ?>>Regular</option>
+                                        <option value="Without_GST" <?php echo $_invoiceType === 'Without_GST' ? 'selected' : ''; ?>>Without GST</option>
+                                    </select>
+                                </div>
+                                <?php if (!empty($DispatchAddresses)): ?>
+                                <div class="d-flex align-items-center gap-2 dispatch-from-grp" style="max-width:360px;">
+                                    <span class="text-muted" style="font-size:.78rem;white-space:nowrap;">Dispatch From</span>
+                                    <?php $this->load->view('common/transactions/_dispatch_from'); ?>
+                                </div>
+                                <?php endif; ?>
+                                <div class="ms-auto d-flex align-items-center gap-2">
+                                    <div id="custTypeIndicator" class="d-none"></div>
+                                </div>
                             </div>
 
-                            <div class="row">
-                                <div class="col-md-3 trans-right-border">
-                                    <div class="mb-2">
-                                        <label for="invoiceType" class="form-label small fw-semibold">Invoice Type <span style="color:red">*</span></label>
-                                        <select id="invoiceType" name="invoiceType" class="form-select form-select-sm" required>
-                                            <option value="Regular"     <?php echo $_invoiceType === 'Regular'     ? 'selected' : ''; ?>>Regular (With GST)</option>
-                                            <option value="Without_GST" <?php echo $_invoiceType === 'Without_GST' ? 'selected' : ''; ?>>Without GST</option>
-                                        </select>
-                                    </div>
-                                    <?php if (!empty($DispatchAddresses)): ?>
-                                    <div class="mb-2">
-                                        <label class="form-label small fw-semibold">Dispatch From</label>
-                                        <?php $this->load->view('common/transactions/_dispatch_from'); ?>
-                                    </div>
-                                    <?php endif; ?>
-                                    <div id="custTypeIndicator" class="mt-2 d-none"></div>
-                                </div>
-
-                                <div class="col-md-6 border-end pe-3">
-                                    <div class="d-flex align-items-center gap-2 mb-1">
+                            <!-- ── Customer + fields row ── -->
+                            <div class="row g-2 align-items-end mb-2">
+                                <div class="col-md-4">
+                                    <div class="d-flex align-items-center justify-content-between mb-1">
                                         <label for="customerSearch" class="trans-field-label mb-0">Select Customer <span class="text-danger">*</span></label>
                                         <?php if (!$isEdit): ?>
-                                        <button type="button" id="addTransCustomer" class="trans-add-btn btn btn-outline-primary btn-sm" style="white-space:nowrap;"><i class="bx bx-plus-circle me-1"></i>Add Customer</button>
+                                        <button type="button" id="addTransCustomer" class="trans-add-btn btn btn-outline-primary btn-sm" style="font-size:.72rem;white-space:nowrap;"><i class="bx bx-plus-circle me-1"></i>Add Customer</button>
                                         <?php endif; ?>
                                     </div>
-                                    <div class="flex-grow-1">
-                                        <select id="customerSearch" name="customerSearch" class="form-select form-select-sm"></select>
-                                    </div>
-                                    <div id="customerAddressBox" class="mt-2 p-2 border border-secondary trans-border-dotted rounded small d-none"></div>
+                                    <select id="customerSearch" name="customerSearch" class="form-select form-select-sm"></select>
                                 </div>
-
-                                <div class="col-md-3">
-                                    <div class="mb-2">
-                                        <label for="transDate" class="form-label small fw-semibold">Pro Forma Date <span class="text-danger">*</span></label>
-                                        <div class="input-group input-group-merge">
-                                            <span class="input-group-text"><i class="icon-base bx bx-calendar"></i></span>
-                                            <input type="text" class="form-control form-control-sm" id="transDate" name="transDate" readonly="readonly"
-                                                value="<?php echo $isEdit ? htmlspecialchars(format_datedisplay($PFData->TransDate, 'Y-m-d')) : format_datedisplay(time(), 'Y-m-d'); ?>"
-                                                required />
-                                        </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small fw-semibold">Pro Forma Date <span class="text-danger">*</span></label>
+                                    <div class="input-group input-group-merge">
+                                        <span class="input-group-text"><i class="icon-base bx bx-calendar"></i></span>
+                                        <input type="text" class="form-control form-control-sm" id="transDate" name="transDate" readonly="readonly"
+                                            value="<?php echo $isEdit ? htmlspecialchars(format_datedisplay($PFData->TransDate, 'Y-m-d')) : format_datedisplay(time(), 'Y-m-d'); ?>"
+                                            required />
                                     </div>
-                                    <div class="mb-2">
-                                        <label for="validityDate" class="form-label small fw-semibold">Valid Until</label>
-                                        <div class="input-group input-group-merge">
-                                            <span class="input-group-text"><i class="icon-base bx bx-calendar"></i></span>
-                                            <input type="text" class="form-control form-control-sm" id="validityDate" name="validityDate" readonly="readonly"
-                                                value="<?php echo $_validityDate; ?>" />
-                                        </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small fw-semibold">Valid Until</label>
+                                    <div class="input-group input-group-merge">
+                                        <span class="input-group-text"><i class="icon-base bx bx-calendar"></i></span>
+                                        <input type="text" class="form-control form-control-sm" id="validityDate" name="validityDate" readonly="readonly"
+                                            value="<?php echo $_validityDate; ?>" />
                                     </div>
-                                    <div>
-                                        <label for="referenceDetails" class="form-label small fw-semibold">Reference</label>
-                                        <input type="text" id="referenceDetails" name="referenceDetails" class="form-control form-control-sm"
-                                            placeholder="PO Number, Enquiry Ref..." maxlength="100"
-                                            value="<?php echo $isEdit ? htmlspecialchars($PFData->Reference ?? '') : ''; ?>" />
-                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small fw-semibold">Reference</label>
+                                    <input type="text" id="referenceDetails" name="referenceDetails" class="form-control form-control-sm"
+                                        placeholder="PO Number, Enquiry Ref..." maxlength="100"
+                                        value="<?php echo $isEdit ? htmlspecialchars($PFData->Reference ?? '') : ''; ?>" />
+                                </div>
+                            </div>
+                            <div class="row g-2 mb-3">
+                                <div class="col-md-4">
+                                    <div id="customerAddressBox" class="p-2 border border-secondary trans-border-dotted rounded small d-none"></div>
                                 </div>
                             </div>
                             <hr/>

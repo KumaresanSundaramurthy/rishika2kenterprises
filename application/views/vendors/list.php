@@ -47,7 +47,7 @@ if (!empty($DataLists)):
                     <?php endif; ?>
                 </div>
                 <div>
-                    <div class="fw-semibold"><?php echo $name; ?></div>
+                    <div class="fw-semibold"><?php echo r2k_party_name($list->Name ?? '', $list->MobileNumber ?? '', $list->CountryCode ?? '', $list->Area ?? '', !empty($list->Image) ? $cdnUrl . $list->Image : ''); ?></div>
                     <?php $isActive = (int)($list->IsActive ?? 1); ?>
                     <div class="mt-1">
                         <div class="dropdown d-inline-block">

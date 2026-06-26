@@ -226,5 +226,75 @@ $(function() {
 
     }
 
+
+    // ── Party hover card ──────────────────────────────────────────────────
+    (function () {
+        var $pop   = null;
+        var _timer = null;
+
+        function _esc(str) { return $('<s>').text(str).html(); }
+
+        function _getOrCreate() {
+            if (!$pop) $pop = $('<div class="chc-pop"><div class="chc-card"></div></div>').appendTo('body');
+            return $pop;
+        }
+
+        $(document).on('mouseenter', '.chc-trigger', function () {
+            clearTimeout(_timer);
+            var el     = this;
+            var $el    = $(el);
+            var name   = $el.data('name')   || '';
+            var mobile = String($el.data('mobile') || '');
+            var code   = String($el.data('code')   || '');
+            var area   = $el.data('area')   || '';
+            var img    = $el.data('img')    || '';
+
+            var words    = name.trim().split(/\s+/);
+            var initials = ((words[0] || '')[0] || '') + ((words[1] || '')[0] || '');
+            initials = initials.toUpperCase();
+
+            var avatarHtml = img
+                ? '<img class="chc-img" src="' + img + '" alt="">'
+                : '<div class="chc-avatar">' + _esc(initials || '?') + '</div>';
+
+            var mobileHtml = '';
+            if (mobile) {
+                var display = (code ? code + ' ' : '') + mobile;
+                var waNum   = (code + mobile).replace(/\D/g, '');
+                mobileHtml  = '<div class="chc-mobile">' + _esc(display) +
+                    ' <a href="https://wa.me/' + waNum + '?text=Hi" target="_blank" rel="noopener" onclick="event.stopPropagation()">' +
+                    '<i class="bx bxl-whatsapp chc-wa"></i></a></div>';
+            }
+
+            var areaHtml = area ? '<div class="chc-area">' + _esc(area) + '</div>' : '';
+
+            var html = '<div class="chc-inner">' + avatarHtml +
+                '<div><div class="chc-name">' + _esc(name) + '</div>' + mobileHtml + areaHtml + '</div>' +
+                '</div>';
+
+            var $card = _getOrCreate();
+            $card.find('.chc-card').html(html);
+            $card.css({ display:'block', top:-999, left:-999 });
+
+            var rect  = el.getBoundingClientRect();
+            var cardW = $card.outerWidth();
+            var cardH = $card.outerHeight();
+            var vpW   = $(window).width();
+            var vpH   = $(window).height();
+            // position:fixed — viewport-relative coords, no scrollY offset
+            var top  = rect.bottom + 6;
+            var left = rect.left;
+
+            if (left + cardW > vpW - 8) left = vpW - cardW - 8;
+            if (top  + cardH > vpH - 8) top  = rect.top - cardH - 6;
+
+            $card.css({ top: top, left: left });
+        });
+
+        $(document).on('mouseleave', '.chc-trigger', function () {
+            _timer = setTimeout(function () { if ($pop) $pop.hide(); }, 150);
+        });
+    }());
+
 });
 </script>

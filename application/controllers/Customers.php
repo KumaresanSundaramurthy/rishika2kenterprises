@@ -803,7 +803,13 @@ class Customers extends MY_Controller {
                 ['CustomerUID' => $CustomerUID]
             );
             if ($resp->Error) throw new Exception($resp->Message);
-            $this->cachehelper->upsertCustomer($CustomerUID);
+
+            // Sync Upstash: active → add/update in cache; inactive → remove from cache
+            if ($newStatus === 1) {
+                $this->cachehelper->upsertCustomer($CustomerUID);
+            } else {
+                $this->cachehelper->removeCustomer($CustomerUID);
+            }
 
             $pageNo = (int) ($this->input->post('PageNo') ?: 1);
             $this->_initModule();

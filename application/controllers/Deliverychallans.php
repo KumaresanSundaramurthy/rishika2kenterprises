@@ -1,9 +1,18 @@
 <?php defined('BASEPATH') OR exit('No direct script access allowed');
 
+/**
+ * @property object $transactions_model
+ * @property object $dbwrite_model
+ * @property object $formvalidation_model
+ * @property object $globalservice
+ * @property object $redisservice
+ */
 class Deliverychallans extends MY_Controller {
 
-    public $pageData = array();
+    public  $pageData     = [];
+    /** @var object|null */
     private $EndReturnData;
+    /** @var int */
     private $pageModuleUID;
 
     public function __construct() {
@@ -196,6 +205,35 @@ class Deliverychallans extends MY_Controller {
             $returnDate             =         getPostValue($PostData, 'returnDate');
             $items                  = json_decode($itemsJson, true);
             $totalQty               = (float) array_sum(array_column($items, 'quantity'));
+
+            // ── SO-linked DC: enforce customer lock + item/qty restrictions ──
+            $fromSOUID = (int) getPostValue($PostData, 'fromSOUID');
+            if ($fromSOUID > 0) {
+                $this->load->model('transactions_model');
+                $soData  = $this->transactions_model->getTransactionById($fromSOUID, $orgUID, 102);
+                $soItems = $soData ? $this->transactions_model->getTransactionItems($fromSOUID, $orgUID) : [];
+
+                if ($soData && (int)$soData->PartyUID !== $customerUID) {
+                    throw new Exception('Customer cannot be changed on a challan linked to a Sales Order.');
+                }
+
+                $soQtyMap = [];
+                foreach ($soItems as $si) {
+                    $soQtyMap[(int)$si->ProductUID] = (float)$si->Quantity;
+                }
+
+                foreach ($items as $item) {
+                    $pid = (int)($item['productUID'] ?? $item['id'] ?? 0);
+                    if (!isset($soQtyMap[$pid])) {
+                        throw new Exception('Item "' . ($item['itemName'] ?? 'Unknown') . '" is not part of the Sales Order and cannot be dispatched.');
+                    }
+                    $dispatchedQty = (float)($item['quantity'] ?? 0);
+                    if ($dispatchedQty > $soQtyMap[$pid]) {
+                        throw new Exception('Quantity for "' . ($item['itemName'] ?? 'Unknown') . '" (' . $dispatchedQty . ') exceeds the Sales Order quantity (' . $soQtyMap[$pid] . ').');
+                    }
+                }
+            }
+
             $netAmount              = (float) getPostValue($PostData, 'NetAmount',              'Array', 0);
             $subTotal               = (float) getPostValue($PostData, 'SubTotal',               'Array', 0);
             $discountAmount         = (float) getPostValue($PostData, 'DiscountAmount',         'Array', 0);
@@ -306,7 +344,7 @@ class Deliverychallans extends MY_Controller {
             if ($fromSOUID > 0 && !$isDraft) {
                 $this->dbwrite_model->updateTransDocStatus($fromSOUID, $orgUID, 'Converted', $userUID);
                 $this->dbwrite_model->insertConversionRecord(
-                    $orgUID, $fromSOUID, 102, $transUID, $this->pageModuleUID, 'SOToDeliveryChallan', $userUID
+                    $orgUID, $fromSOUID, 102, $transUID, $this->pageModuleUID, 'OrderToChallan', $userUID
                 );
             }
 

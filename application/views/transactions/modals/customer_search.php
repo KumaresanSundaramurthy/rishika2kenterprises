@@ -10,7 +10,7 @@
                 <div class="vtm-banner-inner">
                     <div class="vtm-banner-left">
                         <div class="vtm-banner-icon">
-                            <i class="bx bx-user-search" style="font-size:1.7rem;color:var(--vtm-color);display:block;"></i>
+                            <i class="bx bxs-user-detail"></i>
                         </div>
                         <div>
                             <div style="font-size:.95rem;font-weight:700;color:var(--vtm-color);">Search Customers</div>
@@ -109,6 +109,16 @@
     border-radius: 50%;
     font-size: .72rem;
     font-weight: 700;
+}
+.cust-avatar-ini {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+    background: #ede9ff; color: #7367f0;
+    font-size: .7rem; font-weight: 700;
+}
+.cust-avatar-img {
+    width: 30px; height: 30px; border-radius: 50%;
+    object-fit: cover; flex-shrink: 0;
 }
 .cust-name     { font-size: .88rem; font-weight: 600; color: #566a7f; }
 .cust-meta     { font-size: .75rem; color: #8592a3; }

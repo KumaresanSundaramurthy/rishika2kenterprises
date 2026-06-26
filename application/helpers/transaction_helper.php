@@ -1,5 +1,27 @@
 <?php if (!defined('BASEPATH')) exit('No direct script access allowed');
 
+/**
+ * Render a party name element with the global hover-card trigger.
+ * The popup JS/CSS is defined globally in footer_script.php + apex-theme.css.
+ * Call this once per list row wherever a customer/vendor name is displayed.
+ *
+ * @param string $name    Full party name
+ * @param string $mobile  Mobile number (digits only, no country code)
+ * @param string $code    Country dial code e.g. "+91"
+ * @param string $area    Area / location string (optional)
+ * @param string $img     CDN URL of party photo (optional)
+ */
+if (!function_exists('r2k_party_name')) {
+    function r2k_party_name(string $name, string $mobile = '', string $code = '', string $area = '', string $img = ''): string {
+        $attr  = ' class="chc-trigger" style="cursor:default;"';
+        $attr .= ' data-name="'   . htmlspecialchars($name,   ENT_QUOTES) . '"';
+        $attr .= ' data-mobile="' . htmlspecialchars($mobile, ENT_QUOTES) . '"';
+        $attr .= ' data-code="'   . htmlspecialchars($code,   ENT_QUOTES) . '"';
+        if ($area)  $attr .= ' data-area="'  . htmlspecialchars($area,  ENT_QUOTES) . '"';
+        if ($img)   $attr .= ' data-img="'   . htmlspecialchars($img,   ENT_QUOTES) . '"';
+        return '<span' . $attr . '>' . htmlspecialchars($name, ENT_QUOTES) . '</span>';
+    }
+}
 
 if (!function_exists('smart_dec_amount')) {
     /**

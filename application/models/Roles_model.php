@@ -116,102 +116,103 @@ class Roles_model extends CI_Model {
 
     public function saveRolePermissions($RoleUID, $PostData, $UserUID) {
 
-        $this->load->model('dbwrite_model');
         $WriteDb = $this->load->database('WriteDB', TRUE);
-        $now = date('Y-m-d H:i:s');
+        $now     = date('Y-m-d H:i:s');
 
-        // ── Main menus ──────────────────────────────────────────
-        // PostData['MainMenus'] is an array of:
-        // { MainMenuUID, CanView, CanCreate, CanEdit, CanDelete, Sorting }
+        // ── Main menus ──────────────────────────────────────────────────────────
         $mainMenus = $PostData['MainMenus'] ?? [];
-        if (!empty($mainMenus) && is_string($mainMenus)) {
-            $mainMenus = json_decode($mainMenus, true) ?? [];
-        }
+        if (is_string($mainMenus)) $mainMenus = json_decode($mainMenus, true) ?? [];
 
-        $mainMenuUIDs = [];
-        foreach ($mainMenus as $mm) {
-            $MainMenuUID = (int)$mm['MainMenuUID'];
-            if (!$MainMenuUID) continue;
-            $mainMenuUIDs[] = $MainMenuUID;
-
-            // Check if row exists
-            $this->ReadDb->select('RoleMainMenuUID');
-            $this->ReadDb->from('UserRole.RoleMainMenusTbl');
-            $this->ReadDb->where('RoleUID', $RoleUID);
-            $this->ReadDb->where('MainMenuUID', $MainMenuUID);
-            $this->ReadDb->limit(1);
-            $existing = $this->ReadDb->get()->row();
-
-            $row = [
-                'RoleUID'    => $RoleUID,
-                'MainMenuUID'=> $MainMenuUID,
-                'CanView'    => (int)($mm['CanView']   ?? 0),
-                'CanCreate'  => (int)($mm['CanCreate'] ?? 0),
-                'CanEdit'    => (int)($mm['CanEdit']   ?? 0),
-                'CanDelete'  => (int)($mm['CanDelete'] ?? 0),
-                'Sorting'    => (int)($mm['Sorting']   ?? 0),
-                'IsActive'   => 1,
-                'IsDeleted'  => 0,
-                'UpdatedBy'  => $UserUID,
-            ];
-
-            if ($existing) {
-                $WriteDb->where('RoleUID', $RoleUID)->where('MainMenuUID', $MainMenuUID)
-                    ->update('UserRole.RoleMainMenusTbl', $row);
-            } else {
-                $row['CreatedBy'] = $UserUID;
-                $WriteDb->insert('UserRole.RoleMainMenusTbl', $row);
+        if (!empty($mainMenus)) {
+            // One bulk upsert — replaces N SELECT + N INSERT/UPDATE queries
+            $mmVals  = [];
+            $mmBinds = [];
+            foreach ($mainMenus as $mm) {
+                $MainMenuUID = (int)($mm['MainMenuUID'] ?? 0);
+                if (!$MainMenuUID) continue;
+                $mmVals[]  = '(?,?,?,?,?,?,?,1,0,?,?,?,?)';
+                $mmBinds[] = $RoleUID;
+                $mmBinds[] = $MainMenuUID;
+                $mmBinds[] = (int)($mm['CanView']   ?? 0);
+                $mmBinds[] = (int)($mm['CanCreate'] ?? 0);
+                $mmBinds[] = (int)($mm['CanEdit']   ?? 0);
+                $mmBinds[] = (int)($mm['CanDelete'] ?? 0);
+                $mmBinds[] = (int)($mm['Sorting']   ?? 0);
+                $mmBinds[] = $UserUID; // UpdatedBy
+                $mmBinds[] = $now;     // UpdatedOn
+                $mmBinds[] = $UserUID; // CreatedBy
+                $mmBinds[] = $now;     // CreatedOn
+            }
+            if (!empty($mmVals)) {
+                $WriteDb->query(
+                    "INSERT INTO UserRole.RoleMainMenusTbl
+                        (RoleUID, MainMenuUID, CanView, CanCreate, CanEdit, CanDelete, Sorting, IsActive, IsDeleted, UpdatedBy, UpdatedOn, CreatedBy, CreatedOn)
+                     VALUES " . implode(',', $mmVals) . "
+                     ON DUPLICATE KEY UPDATE
+                        CanView   = VALUES(CanView),   CanCreate = VALUES(CanCreate),
+                        CanEdit   = VALUES(CanEdit),   CanDelete = VALUES(CanDelete),
+                        Sorting   = VALUES(Sorting),   IsActive  = 1, IsDeleted = 0,
+                        UpdatedBy = VALUES(UpdatedBy), UpdatedOn = VALUES(UpdatedOn)",
+                    $mmBinds
+                );
             }
         }
 
-        // ── Sub menus ───────────────────────────────────────────
+        // ── Sub menus ───────────────────────────────────────────────────────────
         $subMenus = $PostData['SubMenus'] ?? [];
-        if (!empty($subMenus) && is_string($subMenus)) {
-            $subMenus = json_decode($subMenus, true) ?? [];
-        }
+        if (is_string($subMenus)) $subMenus = json_decode($subMenus, true) ?? [];
 
-        foreach ($subMenus as $sm) {
-            $SubMenuUID = (int)$sm['SubMenuUID'];
-            if (!$SubMenuUID) continue;
+        if (!empty($subMenus)) {
+            // Batch-resolve SubMenuUID → RoleMainMenuUID in ONE query
+            $subUIDs = array_values(array_filter(array_map(
+                fn($sm) => (int)($sm['SubMenuUID'] ?? 0), $subMenus
+            )));
 
-            // Resolve RoleMainMenuUID for this sub menu's parent main menu
-            $this->ReadDb->select('RoleMainMenuUID');
-            $this->ReadDb->from('UserRole.RoleMainMenusTbl AS RMM');
-            $this->ReadDb->join('Modules.SubMenusTbl AS SM', 'SM.MainMenuUID = RMM.MainMenuUID', 'inner');
-            $this->ReadDb->where('RMM.RoleUID', $RoleUID);
-            $this->ReadDb->where('SM.SubMenuUID', $SubMenuUID);
-            $this->ReadDb->limit(1);
-            $rmmRow = $this->ReadDb->get()->row();
-            $RoleMainMenuUID = $rmmRow ? $rmmRow->RoleMainMenuUID : 0;
+            $in = implode(',', array_fill(0, count($subUIDs), '?'));
+            $rmmRows = $this->ReadDb->query(
+                "SELECT SM.SubMenuUID, RMM.RoleMainMenuUID
+                   FROM UserRole.RoleMainMenusTbl AS RMM
+                   JOIN Modules.SubMenusTbl AS SM ON SM.MainMenuUID = RMM.MainMenuUID
+                  WHERE RMM.RoleUID = ? AND SM.SubMenuUID IN ($in)",
+                array_merge([$RoleUID], $subUIDs)
+            )->result();
 
-            // Check if row exists
-            $this->ReadDb->select('RoleSubMenuUID');
-            $this->ReadDb->from('UserRole.RoleSubMenusTbl');
-            $this->ReadDb->where('RoleUID', $RoleUID);
-            $this->ReadDb->where('SubMenuUID', $SubMenuUID);
-            $this->ReadDb->limit(1);
-            $existing = $this->ReadDb->get()->row();
+            $rmmMap = []; // SubMenuUID => RoleMainMenuUID
+            foreach ($rmmRows as $r) $rmmMap[(int)$r->SubMenuUID] = (int)$r->RoleMainMenuUID;
 
-            $row = [
-                'RoleUID'        => $RoleUID,
-                'RoleMainMenuUID'=> $RoleMainMenuUID,
-                'SubMenuUID'     => $SubMenuUID,
-                'CanView'        => (int)($sm['CanView']   ?? 0),
-                'CanCreate'      => (int)($sm['CanCreate'] ?? 0),
-                'CanEdit'        => (int)($sm['CanEdit']   ?? 0),
-                'CanDelete'      => (int)($sm['CanDelete'] ?? 0),
-                'Sorting'        => (int)($sm['Sorting']   ?? 0),
-                'IsActive'       => 1,
-                'IsDeleted'      => 0,
-                'UpdatedBy'      => $UserUID,
-            ];
-
-            if ($existing) {
-                $WriteDb->where('RoleUID', $RoleUID)->where('SubMenuUID', $SubMenuUID)
-                    ->update('UserRole.RoleSubMenusTbl', $row);
-            } else {
-                $row['CreatedBy'] = $UserUID;
-                $WriteDb->insert('UserRole.RoleSubMenusTbl', $row);
+            // One bulk upsert for all sub menus
+            $smVals  = [];
+            $smBinds = [];
+            foreach ($subMenus as $sm) {
+                $SubMenuUID = (int)($sm['SubMenuUID'] ?? 0);
+                if (!$SubMenuUID) continue;
+                $smVals[]  = '(?,?,?,?,?,?,?,?,1,0,?,?,?,?)';
+                $smBinds[] = $RoleUID;
+                $smBinds[] = $rmmMap[$SubMenuUID] ?? 0; // RoleMainMenuUID
+                $smBinds[] = $SubMenuUID;
+                $smBinds[] = (int)($sm['CanView']   ?? 0);
+                $smBinds[] = (int)($sm['CanCreate'] ?? 0);
+                $smBinds[] = (int)($sm['CanEdit']   ?? 0);
+                $smBinds[] = (int)($sm['CanDelete'] ?? 0);
+                $smBinds[] = (int)($sm['Sorting']   ?? 0);
+                $smBinds[] = $UserUID; // UpdatedBy
+                $smBinds[] = $now;     // UpdatedOn
+                $smBinds[] = $UserUID; // CreatedBy
+                $smBinds[] = $now;     // CreatedOn
+            }
+            if (!empty($smVals)) {
+                $WriteDb->query(
+                    "INSERT INTO UserRole.RoleSubMenusTbl
+                        (RoleUID, RoleMainMenuUID, SubMenuUID, CanView, CanCreate, CanEdit, CanDelete, Sorting, IsActive, IsDeleted, UpdatedBy, UpdatedOn, CreatedBy, CreatedOn)
+                     VALUES " . implode(',', $smVals) . "
+                     ON DUPLICATE KEY UPDATE
+                        RoleMainMenuUID = VALUES(RoleMainMenuUID),
+                        CanView   = VALUES(CanView),   CanCreate = VALUES(CanCreate),
+                        CanEdit   = VALUES(CanEdit),   CanDelete = VALUES(CanDelete),
+                        Sorting   = VALUES(Sorting),   IsActive  = 1, IsDeleted = 0,
+                        UpdatedBy = VALUES(UpdatedBy), UpdatedOn = VALUES(UpdatedOn)",
+                    $smBinds
+                );
             }
         }
 

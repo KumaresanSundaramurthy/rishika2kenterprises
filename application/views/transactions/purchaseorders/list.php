@@ -126,7 +126,7 @@ if (!empty($DataLists)) {
                     <div class="d-flex align-items-center gap-2">
                         <?php partyAvatar($list->PartyName, $list->PartyImage ?? null, $cdnUrl); ?>
                         <div class="apex-party-info">
-                            <div class="apex-party-name"><?php echo htmlspecialchars($list->PartyName ?? '—'); ?></div>
+                            <div class="apex-party-name"><?php echo r2k_party_name($list->PartyName ?? '', $list->MobileNumber ?? '', $list->CountryCode ?? '', $list->PartyArea ?? '', !empty($list->PartyImage) ? $cdnUrl . $list->PartyImage : ''); ?></div>
                             <?php if (!empty($list->PartyArea)): ?>
                             <div class="apex-party-sub">
                                 <i class="bx bx-map-pin text-muted"></i>

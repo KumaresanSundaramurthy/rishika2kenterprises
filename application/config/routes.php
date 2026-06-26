@@ -116,6 +116,12 @@ $route['settings/profile/getEmergencyContacts']      = 'profile/getEmergencyCont
 $route['settings/profile/saveEmergencyContact']      = 'profile/saveEmergencyContact';
 $route['settings/profile/deleteEmergencyContact']    = 'profile/deleteEmergencyContact';
 $route['settings/profile/setPrimaryContact']         = 'profile/setPrimaryContact';
+$route['settings/profile/getExpenses']                  = 'profile/getExpenses';
+$route['settings/profile/saveExpense']                  = 'profile/saveExpense';
+$route['settings/profile/deleteExpense']                = 'profile/deleteExpense';
+$route['settings/profile/getExpenseAttachments']        = 'profile/getExpenseAttachments';
+$route['settings/profile/saveExpenseAttachment']        = 'profile/saveExpenseAttachment';
+$route['settings/profile/deleteExpenseAttachment']      = 'profile/deleteExpenseAttachment';
 $route['settings/organisation']      = 'organisation';
 $route['setpassword/submit']   = 'setpassword/submit';
 $route['setpassword/(:any)']   = 'setpassword/index/$1';
@@ -435,6 +441,8 @@ $route['attendance/getDashboardStats']            = 'attendance/getDashboardStat
 $route['salaryadvances']                          = 'salaryadvances/index';
 $route['salaryadvances/getPageDetails/(:num)']    = 'salaryadvances/getPageDetails/$1';
 $route['salaryadvances/save']                     = 'salaryadvances/save';
+$route['salaryadvances/approve']                  = 'salaryadvances/approve';
+$route['salaryadvances/reject']                   = 'salaryadvances/reject';
 $route['salaryadvances/delete']                   = 'salaryadvances/delete';
 
 // ── HRMS — Payroll ────────────────────────────────────────────────────────────

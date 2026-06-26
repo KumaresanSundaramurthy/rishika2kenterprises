@@ -43,6 +43,10 @@ foreach ($_qaMenus as $_qaMM) {
         </div>
     </div>
     <div class="apex-page-header-right">
+        <?php if (!empty($pageHeaderActions)): ?>
+            <?php echo $pageHeaderActions; ?>
+            <div class="apex-nav-divider"></div>
+        <?php endif; ?>
         <!-- Quick Access trigger -->
         <button class="apex-header-search-btn" id="apexHeaderSearch" type="button">
             <i class="bx bx-search"></i>

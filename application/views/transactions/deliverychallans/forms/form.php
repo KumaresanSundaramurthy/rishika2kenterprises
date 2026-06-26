@@ -1,4 +1,11 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed');
+/** @var object|null $DCData */      $DCData      = $DCData      ?? null;
+/** @var object      $JwtData */
+/** @var array       $DCItems */     $DCItems      = $DCItems      ?? [];
+/** @var int         $FromSOUID */   $FromSOUID    = $FromSOUID    ?? 0;
+/** @var object|null $SOSourceData */$SOSourceData = $SOSourceData ?? null;
+/** @var array       $SOSourceItems*/$SOSourceItems= $SOSourceItems?? [];
+?>
 <?php
 $isEdit      = isset($DCData);
 $isDraftEdit = $isEdit && ($DCData->DocStatus === 'Draft');
@@ -7,7 +14,7 @@ $formId      = 'dcForm';
 $formAction  = $isEdit ? 'deliverychallan/updateDeliveryChallan' : 'deliverychallan/addDeliveryChallan';
 
 if ($isEdit && !function_exists('buildDCPrefixSegment')) {
-    function buildDCPrefixSegment($cfg) {
+    function buildDCPrefixSegment(?object $cfg): string {
         if (!$cfg) return '';
         $sep   = $cfg->Separator ?? '-';
         $parts = [$cfg->Name];
@@ -123,7 +130,12 @@ if (!empty($DispatchAddress)) {
 
                     <div class="card mb-3">
 
-                        <?php if (!$isEdit): ?>
+                        <?php
+                        $_hideNav    = (int)($JwtData->TransSettings->HideNavOnTransForm ?? 0);
+                        $_dcStatusMap = ['Draft' => 'warning', 'Dispatched' => 'success', 'Cancelled' => 'danger'];
+                        $_dcStatus    = $isEdit ? ($DCData->DocStatus ?? '') : '';
+                        $_dcStatusClr = $_dcStatusMap[$_dcStatus] ?? 'secondary';
+                        ?>
                         <div class="card-header bg-white border-bottom d-flex align-items-center justify-content-between px-3 py-2 trans-header-static trans-theme modal-header-center-sticky">
                             <div class="d-flex align-items-center gap-3" id="transHeaderInfo">
                                 <div class="trans-doc-icon" style="background:#dcfce7;">
@@ -131,18 +143,86 @@ if (!empty($DispatchAddress)) {
                                 </div>
                                 <div>
                                     <div class="d-flex align-items-center flex-wrap gap-2">
-                                        <span class="fw-bold" style="font-size:.92rem;">Create Delivery Challan</span>
-                                        <?php if (!empty($SOSourceData)): ?>
-                                            <span class="badge text-bg-info" style="font-size:.65rem;"><i class="bx bx-transfer-alt me-1"></i>From SO: <?php echo htmlspecialchars($SOSourceData->UniqueNumber ?? ''); ?></span>
+                                        <?php if (!$isEdit): ?>
+                                            <span class="fw-bold" style="font-size:.92rem;">Create Delivery Challan</span>
+                                            <?php if (!empty($SOSourceData)): ?>
+                                                <span class="badge text-bg-info" style="font-size:.65rem;"><i class="bx bx-transfer-alt me-1"></i>From SO: <?php echo htmlspecialchars($SOSourceData->UniqueNumber ?? ''); ?></span>
+                                            <?php endif; ?>
+                                            <?php $this->load->view('transactions/partials/form_prefix_add'); ?>
+                                        <?php else: ?>
+                                            <span class="fw-bold" style="font-size:.92rem;"><?php echo $isDraftEdit ? '' : 'Edit'; ?> Delivery Challan</span>
+                                            <?php if (!$isDraftEdit && !empty($DCData->UniqueNumber)): ?>
+                                                <span class="trans-form-doc-number"><?php echo htmlspecialchars($DCData->UniqueNumber); ?></span>
+                                                <span class="badge bg-label-<?php echo $_dcStatusClr; ?>" style="font-size:.7rem;"><?php echo htmlspecialchars($_dcStatus); ?></span>
+                                            <?php endif; ?>
+                                            <div class="d-flex align-items-center gap-1 <?php echo (!$isDraftEdit ? 'd-none' : ''); ?>">
+                                                <div class="input-group w-auto">
+                                                    <select id="transPrefixSelect" name="transPrefixSelect" class="select2 form-select form-select-sm" <?php echo (!$isDraftEdit ? 'disabled' : 'required'); ?>>
+                                                        <?php try {
+                                                            if (empty($PrefixData)) throw new Exception('Prefix data not loaded');
+                                                            foreach ($PrefixData as $preData) {
+                                                                $isSelected = (int)$preData->PrefixUID === (int)$DCData->PrefixUID ? 'selected' : '';
+                                                            ?>
+                                                            <option value="<?php echo (int)$preData->PrefixUID; ?>"
+                                                                data-sep="<?php echo htmlspecialchars($preData->Separator ?? '-'); ?>"
+                                                                data-fiscal="<?php echo !empty($preData->IncludeFiscalYear) ? '1' : '0'; ?>"
+                                                                data-fiscal-format="<?php echo htmlspecialchars($preData->FiscalYearFormat ?? 'SHORT'); ?>"
+                                                                data-inc-short="<?php echo !empty($preData->IncludeShortName) ? '1' : '0'; ?>"
+                                                                data-short-name="<?php echo htmlspecialchars($preData->ShortName ?? ''); ?>"
+                                                                data-padding="<?php echo (int)($preData->NumberPadding ?? 3); ?>"
+                                                                data-next-number="<?php echo (int)($NextNumberMap[(int)$preData->PrefixUID] ?? 1); ?>"
+                                                                <?php echo $isSelected; ?>
+                                                            ><?php echo htmlspecialchars($preData->Name); ?></option>
+                                                        <?php }
+                                                        } catch (Exception $e) { ?>
+                                                            <option value="">Error loading prefixes</option>
+                                                        <?php } ?>
+                                                    </select>
+                                                    <?php if ($isDraftEdit): ?>
+                                                    <button type="button" class="btn btn-outline-secondary" id="addTransPrefixBtn" title="Configure Prefix"><i class="bx bx-cog"></i></button>
+                                                    <?php endif; ?>
+                                                </div>
+                                                <div class="input-group input-group-sm w-auto">
+                                                    <span class="input-group-text cursor-pointer fw-semibold text-primary" id="appendPrefixVal"><?php echo htmlspecialchars($editPrefixSeg); ?></span>
+                                                    <input type="number" id="transNumber" name="transNumber" class="form-control transAutoGenNumber stop-incre-indicator" maxLength="20"
+                                                        onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))"
+                                                        oninput="this.value=this.value.slice(0,this.maxLength)"
+                                                        pattern="[0-9]*" value="<?php echo $editTransNumber; ?>"
+                                                        <?php echo (!$isDraftEdit ? 'disabled' : 'required'); ?> />
+                                                </div>
+                                            </div>
+                                            <?php if (!$isDraftEdit): ?>
+                                            <input type="hidden" name="transPrefixSelect" value="<?php echo (int)$DCData->PrefixUID; ?>" />
+                                            <input type="hidden" name="transNumber" value="<?php echo (int)$DCData->TransNumber; ?>" />
+                                            <?php endif; ?>
                                         <?php endif; ?>
-                                        <?php $this->load->view('transactions/partials/form_prefix_add'); ?>
                                     </div>
+                                    <?php if ($isEdit && !$isDraftEdit): ?>
+                                    <div class="d-flex align-items-center gap-3 mt-1">
+                                        <?php if (!empty($DCData->TransDate)): ?>
+                                        <div class="d-flex align-items-center gap-1">
+                                            <span style="font-size:.7rem;color:#8592a3;">Date</span>
+                                            <span style="font-size:.78rem;color:#566a7f;"><?php echo htmlspecialchars(format_datedisplay($DCData->TransDate)); ?></span>
+                                        </div>
+                                        <?php endif; ?>
+                                        <?php if (!empty($DCData->PartyName)): ?>
+                                        <div class="d-flex align-items-center gap-1">
+                                            <span style="font-size:.7rem;color:#8592a3;">Customer</span>
+                                            <span style="font-size:.78rem;color:#566a7f;"><?php echo htmlspecialchars($DCData->PartyName); ?></span>
+                                        </div>
+                                        <?php endif; ?>
+                                    </div>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                             <div class="d-flex align-items-center gap-2">
+                                <?php if (!$isEdit || $isDraftEdit): ?>
                                 <button type="submit" name="action" value="draft" class="btn btn-sm btn-outline-secondary"><i class="bx bx-save me-1"></i>Draft</button>
+                                <?php endif; ?>
                                 <div class="btn-group">
-                                    <button type="submit" name="action" value="save" class="btn btn-sm btn-primary px-3"><i class="bx bx-check me-1"></i>Dispatch</button>
+                                    <button type="submit" name="action" value="save" class="btn btn-sm btn-primary px-3">
+                                        <i class="bx bx-check me-1"></i><?php echo ($isEdit && !$isDraftEdit) ? 'Update' : 'Save'; ?>
+                                    </button>
                                     <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split ps-2 pe-2" data-bs-toggle="dropdown" aria-expanded="false">
                                         <span class="visually-hidden">Save options</span>
                                     </button>
@@ -153,141 +233,94 @@ if (!empty($DispatchAddress)) {
                                         <li><button type="submit" class="dropdown-item py-1" name="action" value="save_thermal"><i class="bx bx-receipt text-success me-2"></i>Save &amp; Print Thermal</button></li>
                                     </ul>
                                 </div>
-                                <?php $_hideNav = (int)($JwtData->TransSettings->HideNavOnTransForm ?? 0); ?>
                                 <a href="/deliverychallan" class="btn btn-sm btn-outline-danger px-3<?php echo $_hideNav ? ' d-none' : ''; ?>"><i class="bx bx-x me-1"></i>Close</a>
                             </div>
                         </div>
-                        <?php else: ?>
-                        <div class="card-header bg-body-tertiary trans-header-static trans-theme modal-header-center-sticky d-flex justify-content-between align-items-center pb-3">
-                            <div class="d-flex flex-wrap align-items-center gap-3" id="transHeaderInfo">
-                                <h5 class="modal-title mb-0 ms-2"><?php echo $isDraftEdit ? '' : 'Edit'; ?> Delivery Challan</h5>
-                                <?php if (!$isDraftEdit && !empty($DCData->UniqueNumber)): ?>
-                                    <span class="trans-form-doc-number"><?php echo htmlspecialchars($DCData->UniqueNumber); ?></span>
-                                <?php endif; ?>
-                                <div class="d-flex align-items-center gap-1">
-                                    <div class="input-group w-auto <?php echo (!$isDraftEdit ? 'd-none' : ''); ?>">
-                                        <select id="transPrefixSelect" name="transPrefixSelect" class="select2 form-select form-select-sm" <?php echo (!$isDraftEdit ? 'disabled' : 'required'); ?>>
-                                            <?php try {
-                                                if (empty($PrefixData)) throw new Exception('Prefix data not loaded');
-                                                foreach ($PrefixData as $preData) {
-                                                    $isSelected = (int)$preData->PrefixUID === (int)$DCData->PrefixUID ? 'selected' : '';
-                                                ?>
-                                                <option value="<?php echo (int)$preData->PrefixUID; ?>"
-                                                    data-sep="<?php echo htmlspecialchars($preData->Separator ?? '-'); ?>"
-                                                    data-fiscal="<?php echo !empty($preData->IncludeFiscalYear) ? '1' : '0'; ?>"
-                                                    data-fiscal-format="<?php echo htmlspecialchars($preData->FiscalYearFormat ?? 'SHORT'); ?>"
-                                                    data-inc-short="<?php echo !empty($preData->IncludeShortName) ? '1' : '0'; ?>"
-                                                    data-short-name="<?php echo htmlspecialchars($preData->ShortName ?? ''); ?>"
-                                                    data-padding="<?php echo (int)($preData->NumberPadding ?? 3); ?>"
-                                                    data-next-number="<?php echo (int)($NextNumberMap[(int)$preData->PrefixUID] ?? 1); ?>"
-                                                    <?php echo $isSelected; ?>
-                                                ><?php echo htmlspecialchars($preData->Name); ?></option>
-                                            <?php }
-                                            } catch (Exception $e) { ?>
-                                                <option value="">Error loading prefixes</option>
-                                            <?php } ?>
-                                        </select>
-                                        <?php if ($isDraftEdit): ?>
-                                        <button type="button" class="btn btn-outline-secondary" id="addTransPrefixBtn" title="Configure Prefix"><i class="bx bx-cog"></i></button>
-                                        <?php endif; ?>
-                                    </div>
-                                    <div class="input-group input-group-sm w-auto <?php echo (!$isDraftEdit ? 'd-none' : ''); ?>">
-                                        <span class="input-group-text cursor-pointer fw-semibold text-primary" id="appendPrefixVal"><?php echo htmlspecialchars($editPrefixSeg); ?></span>
-                                        <input type="number" id="transNumber" name="transNumber" class="form-control transAutoGenNumber stop-incre-indicator" maxLength="20"
-                                            onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))"
-                                            oninput="this.value=this.value.slice(0,this.maxLength)"
-                                            pattern="[0-9]*" value="<?php echo $editTransNumber; ?>"
-                                            <?php echo (!$isDraftEdit ? 'disabled' : 'required'); ?> />
-                                    </div>
-                                    <?php if (!$isDraftEdit): ?>
-                                    <input type="hidden" name="transPrefixSelect" value="<?php echo (int)$DCData->PrefixUID; ?>" />
-                                    <input type="hidden" name="transNumber" value="<?php echo (int)$DCData->TransNumber; ?>" />
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                            <div class="d-flex align-items-center gap-2">
-                                <button type="submit" name="action" value="save" class="btn btn-primary"><?php echo $isDraftEdit ? 'Dispatch' : 'Update'; ?></button>
-                                <?php if ($isDraftEdit): ?>
-                                <button type="submit" name="action" value="draft" class="btn btn-outline-secondary">Save as Draft</button>
-                                <?php endif; ?>
-                                <a href="/deliverychallan" class="btn btn-label-danger<?php echo $_hideNav ? ' d-none' : ''; ?>">Close</a>
-                            </div>
-                        </div>
-                        <?php endif; ?>
 
                         <div class="card-body card-body-form-static p-4">
 
-                            <div class="card-header modal-header-center-sticky p-1 mb-3">
-                                <h5 class="modal-title mb-0"><i class="bx bx-user me-1"></i> Customer Details</h5>
+                            <!-- ── Toolbar: Type · Mode · Dispatch From ───────────────── -->
+                            <div class="d-flex align-items-center gap-4 mb-3 pb-2 border-bottom">
+                                <!-- Type: Regular / Without GST -->
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="text-muted" style="font-size:.78rem;white-space:nowrap;">Type</span>
+                                    <select class="form-select form-select-sm border-0 bg-transparent fw-semibold"
+                                            id="dcInvoiceType" name="invoiceType" style="min-width:110px;cursor:pointer;">
+                                        <?php $_dcInvType = $isEdit ? ($DCData->InvoiceType ?? 'Regular') : 'Regular'; ?>
+                                        <option value="Regular"      <?php echo $_dcInvType === 'Regular'      ? 'selected' : ''; ?>>Regular</option>
+                                        <option value="Without_GST"  <?php echo $_dcInvType === 'Without_GST'  ? 'selected' : ''; ?>>Without GST</option>
+                                    </select>
+                                </div>
+                                <!-- Mode: dispatch mode -->
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="text-muted" style="font-size:.78rem;white-space:nowrap;">Mode</span>
+                                    <select class="form-select form-select-sm border-0 bg-transparent fw-semibold"
+                                            id="challanType" name="challanType" style="min-width:130px;cursor:pointer;" required>
+                                        <option value="Non-Returnable" <?php echo $_challanType === 'Non-Returnable' ? 'selected' : ''; ?>>Non-Returnable</option>
+                                        <option value="Returnable"     <?php echo $_challanType === 'Returnable'     ? 'selected' : ''; ?>>Returnable</option>
+                                        <option value="Job Work"       <?php echo $_challanType === 'Job Work'       ? 'selected' : ''; ?>>Job Work</option>
+                                    </select>
+                                </div>
+                                <?php if (!empty($DispatchAddresses)): ?>
+                                <div class="d-flex align-items-center gap-2 dispatch-from-grp" style="max-width:360px;">
+                                    <span class="text-muted" style="font-size:.78rem;white-space:nowrap;">Dispatch From</span>
+                                    <?php $this->load->view('common/transactions/_dispatch_from'); ?>
+                                </div>
+                                <?php endif; ?>
+                                <div class="ms-auto d-flex align-items-center gap-2">
+                                    <div id="custTypeIndicator" class="d-none"></div>
+                                </div>
                             </div>
 
-                            <div class="row">
-                                <div class="col-md-3 trans-right-border">
-
-                                    <!-- Challan Type -->
-                                    <div class="mb-2">
-                                        <label for="challanType" class="form-label small fw-semibold">Challan Type <span style="color:red">*</span></label>
-                                        <select id="challanType" name="challanType" class="form-select form-select-sm" required>
-                                            <option value="Non-Returnable" <?php echo $_challanType === 'Non-Returnable' ? 'selected' : ''; ?>>Non-Returnable</option>
-                                            <option value="Returnable"     <?php echo $_challanType === 'Returnable'     ? 'selected' : ''; ?>>Returnable</option>
-                                            <option value="Job Work"       <?php echo $_challanType === 'Job Work'       ? 'selected' : ''; ?>>Job Work</option>
-                                        </select>
-                                    </div>
-
-                                    <!-- Vehicle Number -->
-                                    <div class="mb-2">
-                                        <label for="vehicleNumber" class="form-label small fw-semibold">Vehicle No.</label>
-                                        <input type="text" id="vehicleNumber" name="vehicleNumber" class="form-control form-control-sm"
-                                               placeholder="e.g. TN 12 AB 3456" maxlength="30"
-                                               value="<?php echo htmlspecialchars($_vehicleNo); ?>" />
-                                    </div>
-
-                                    <?php if (!empty($DispatchAddresses)): ?>
-                                    <div class="mb-2">
-                                        <label class="form-label small fw-semibold">Dispatch From</label>
-                                        <?php $this->load->view('common/transactions/_dispatch_from'); ?>
-                                    </div>
-                                    <?php endif; ?>
-                                    <div id="custTypeIndicator" class="mt-2 d-none"></div>
-
-                                </div>
-
-                                <div class="col-md-6 border-end pe-3">
-                                    <div class="d-flex align-items-center gap-2 mb-1">
+                            <!-- ── Customer + fields row (matches quotation layout) ── -->
+                            <div class="row g-2 align-items-end mb-2">
+                                <div class="col-md-4">
+                                    <div class="d-flex align-items-center justify-content-between mb-1">
                                         <label for="customerSearch" class="trans-field-label mb-0">Select Customer <span class="text-danger">*</span></label>
                                         <?php if (!$isEdit): ?>
-                                        <button type="button" id="addTransCustomer" class="trans-add-btn btn btn-outline-primary btn-sm" aria-label="Add new customer" style="white-space:nowrap;"><i class="bx bx-plus-circle me-1"></i>Add Customer</button>
+                                        <button type="button" id="addTransCustomer" class="trans-add-btn btn btn-outline-primary btn-sm" style="font-size:.72rem;white-space:nowrap;"><i class="bx bx-plus-circle me-1"></i>Add Customer</button>
                                         <?php endif; ?>
                                     </div>
-                                    <div class="flex-grow-1">
-                                        <select id="customerSearch" name="customerSearch" class="form-select form-select-sm"></select>
-                                    </div>
-                                    <div id="customerAddressBox" class="mt-2 p-2 border border-secondary trans-border-dotted rounded small d-none"></div>
+                                    <select id="customerSearch" name="customerSearch" class="form-select form-select-sm"></select>
                                 </div>
-
-                                <div class="col-md-3">
-                                    <div class="mb-2">
-                                        <label for="transDate" class="form-label small fw-semibold">Dispatch Date <span class="text-danger">*</span></label>
-                                        <div class="input-group input-group-merge">
-                                            <span class="input-group-text"><i class="icon-base bx bx-calendar"></i></span>
-                                            <input type="text" class="form-control form-control-sm" id="transDate" name="transDate" readonly="readonly"
-                                                value="<?php echo $isEdit ? htmlspecialchars(format_datedisplay($DCData->TransDate, 'Y-m-d')) : format_datedisplay(time(), 'Y-m-d'); ?>"
-                                                required />
-                                        </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small fw-semibold">Dispatch Date <span class="text-danger">*</span></label>
+                                    <div class="input-group input-group-merge">
+                                        <span class="input-group-text"><i class="icon-base bx bx-calendar"></i></span>
+                                        <input type="text" class="form-control form-control-sm" id="transDate" name="transDate" readonly="readonly"
+                                            value="<?php echo $isEdit ? htmlspecialchars(format_datedisplay($DCData->TransDate, 'Y-m-d')) : format_datedisplay(time(), 'Y-m-d'); ?>"
+                                            required />
                                     </div>
-
-                                    <!-- Expected Return Date — shown only for Returnable -->
-                                    <div class="mb-2" id="returnDateWrap" style="<?php echo $_challanType !== 'Returnable' ? 'display:none;' : ''; ?>">
-                                        <label for="returnDate" class="form-label small fw-semibold">Expected Return Date</label>
-                                        <div class="input-group input-group-merge">
-                                            <span class="input-group-text"><i class="icon-base bx bx-calendar"></i></span>
-                                            <input type="text" class="form-control form-control-sm" id="returnDate" name="returnDate" readonly="readonly"
-                                                value="<?php echo $_returnDate; ?>" />
-                                        </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small fw-semibold">Delivery By</label>
+                                    <div class="input-group input-group-merge">
+                                        <span class="input-group-text"><i class="icon-base bx bx-calendar-check"></i></span>
+                                        <input type="text" class="form-control form-control-sm" id="deliveryByDate" name="deliveryBy"
+                                            value="<?php echo $isEdit ? htmlspecialchars(format_datedisplay($DCData->DeliveryByDate ?? '', 'Y-m-d')) : ''; ?>" />
                                     </div>
-
+                                </div>
+                                <div class="col-md-2" id="returnDateWrap" style="<?php echo $_challanType !== 'Returnable' ? 'display:none;' : ''; ?>">
+                                    <label class="form-label small fw-semibold">Expected Return Date</label>
+                                    <div class="input-group input-group-merge">
+                                        <span class="input-group-text"><i class="icon-base bx bx-calendar"></i></span>
+                                        <input type="text" class="form-control form-control-sm" id="returnDate" name="returnDate" readonly="readonly"
+                                            value="<?php echo $_returnDate; ?>" />
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small fw-semibold">Reference</label>
+                                    <input type="text" id="vehicleNumber" name="vehicleNumber" class="form-control form-control-sm"
+                                           placeholder="Vehicle / PO / Ref No." maxlength="50"
+                                           value="<?php echo htmlspecialchars($_vehicleNo); ?>" />
                                 </div>
                             </div>
+                            <div class="row g-2 mb-3">
+                                <div class="col-md-4">
+                                    <div id="customerAddressBox" class="p-2 border border-secondary trans-border-dotted rounded small d-none"></div>
+                                </div>
+                            </div>
+
                             <hr/>
 
                             <?php $this->load->view('transactions/partials/form_products_add', [
@@ -396,6 +429,16 @@ if (!empty($DispatchAddress)) {
 <script src="/js/common/product_form.js"></script>
 <script src="/js/transactions/attachments.js"></script>
 
+<style>
+/* SO-linked DC: hide interactive elements that must be locked */
+#<?php echo $formId; ?>.so-linked-dc #openCustomerSearchModal { display:none !important; }
+#<?php echo $formId; ?>.so-linked-dc #addTransCustomer        { display:none !important; }
+#<?php echo $formId; ?>.so-linked-dc #addTransProduct         { display:none !important; }
+#<?php echo $formId; ?>.so-linked-dc .prod-header-static      { display:none !important; }
+#<?php echo $formId; ?>.so-linked-dc .deleteBillItem          { display:none !important; }
+#<?php echo $formId; ?>.so-linked-dc #btnClearCart            { display:none !important; }
+</style>
+
 <script>
 const EnableStorage = <?php echo $JwtData->GenSettings->EnableStorage; ?>;
 var _isEdit    = <?php echo $isEdit ? 'true' : 'false'; ?>;
@@ -440,7 +483,12 @@ var _editItems = <?php echo json_encode(array_map(function($item) {
 }, $DCItems)); ?>;
 <?php else: ?>
 <?php if (!empty($SOSourceData)): ?>
-var _fromSO = <?php echo json_encode(['uid' => (int)$FromSOUID, 'customer' => (int)$SOSourceData->PartyUID, 'customerName' => $SOSourceData->PartyName ?? '']); ?>;
+var _fromSO = <?php echo json_encode([
+    'uid'          => (int)$FromSOUID,
+    'customer'     => (int)$SOSourceData->PartyUID,
+    'customerName' => $SOSourceData->PartyName ?? '',
+    'soNumber'     => $SOSourceData->UniqueNumber ?? '',
+]); ?>;
 var _fromSOItems = <?php echo json_encode(array_map(function($item) {
     return [
         'id'               => (int)   $item->ProductUID,
@@ -480,8 +528,9 @@ $(function() {
     'use strict';
 
     searchCustomers('customerSearch');
-    transDatePickr('#transDate', false, 'Y-m-d', false, true, true, true, 'd-m-Y');
-    transDatePickr('#returnDate', false, 'Y-m-d', false, false, <?php echo $isEdit ? 'false' : 'true'; ?>, true, 'd-m-Y', '#transDate');
+    transDatePickr('#transDate',       false, 'Y-m-d', false, true,  true,  true, 'd-m-Y');
+    transDatePickr('#returnDate',      false, 'Y-m-d', false, false, <?php echo $isEdit ? 'false' : 'true'; ?>, true, 'd-m-Y', '#transDate');
+    transDatePickr('#deliveryByDate',  false, 'Y-m-d', false, false, true,  true, 'd-m-Y');
 
     // Show/hide Expected Return Date based on Challan Type
     $('#challanType').on('change', function () {
@@ -525,21 +574,81 @@ $(function() {
     }
     <?php else: ?>
     if (_fromSO && _fromSO.uid > 0) {
+        // ── Pre-fill customer ────────────────────────────────────────────────
         if (_fromSO.customer > 0) {
             $('#customerSearch').append(new Option(_fromSO.customerName, _fromSO.customer, true, true)).trigger('change');
         }
+
+        var _soNum = _fromSO.soNumber || 'SO';
+
+        // ── Apply CSS class to form — handles static + dynamically created elements ─
+        // CSS rules in the <style> block above cover:
+        //   #openCustomerSearchModal, #addTransCustomer, #addTransProduct,
+        //   .prod-header-static (entire search row), .deleteBillItem (per-row delete)
+        document.getElementById('<?php echo $formId; ?>').classList.add('so-linked-dc');
+
+        // ── Restriction 1: Lock customer select ──────────────────────────────
+        $('#customerSearch').prop('disabled', true);
+        if ($('#customerSearch').data('select2')) {
+            $('#customerSearch').select2('destroy');
+            $('#customerSearch').select2({ disabled: true });
+        }
+        $('label[for="customerSearch"]').append(
+            ' <span class="badge bg-label-warning ms-1" style="font-size:.65rem;">' +
+            '<i class="bx bx-lock-alt me-1"></i>Locked to ' + _soNum + '</span>'
+        );
+
+        // ── Pre-fill SO items ─────────────────────────────────────────────────
         if (typeof billManager !== 'undefined' && typeof formationTableBillItems === 'function'
                 && Array.isArray(_fromSOItems) && _fromSOItems.length > 0) {
             $('#billTableBody').empty();
             _fromSOItems.forEach(function(item) {
                 var added = billManager.addItem(item, item.quantity);
-                if (added !== false) {
-                    formationTableBillItems(billManager.getItemById(item.id));
-                }
+                if (added !== false) formationTableBillItems(billManager.getItemById(item.id));
             });
             if (typeof updateItemTaxBreakdown === 'function') updateItemTaxBreakdown();
             billManager.updateSummary();
         }
+
+        // ── Restriction 2: Block adding non-SO products via billManager ───────
+        var _soProductIds = {};
+        _fromSOItems.forEach(function(item) { _soProductIds[item.id] = true; });
+
+        if (typeof billManager !== 'undefined') {
+            var _origAddItem = billManager.addItem.bind(billManager);
+            billManager.addItem = function(item, qty) {
+                if (item && item.id && !_soProductIds[item.id]) {
+                    showToastNotification('Only items from ' + _soNum + ' can be dispatched on this challan.', 'warning');
+                    return false;
+                }
+                return _origAddItem(item, qty);
+            };
+        }
+
+        // Show info notice below the product section header
+        $('#addTransProduct').closest('.card-header').after(
+            '<div class="alert alert-info d-flex align-items-center gap-2 py-2 px-3 mx-3 mt-2" style="font-size:.8rem;">' +
+            '<i class="bx bx-info-circle flex-shrink-0"></i>' +
+            '<span>Linked to <strong>' + _soNum + '</strong>. You may adjust quantities or remove items for a partial dispatch. Adding new products is not allowed.</span>' +
+            '</div>'
+        );
+
+        // ── Restriction 3: Cap quantity to SO ordered quantity ────────────────
+        var _soQtyMap = {};
+        _fromSOItems.forEach(function(item) { _soQtyMap[item.id] = item.quantity; });
+
+        $(document).on('change blur', '#billTableBody input[type="number"]', function () {
+            var $row   = $(this).closest('tr[data-item-id]');
+            var itemId = parseInt($row.data('item-id')) || 0;
+            if (!itemId || !_soQtyMap.hasOwnProperty(itemId)) return;
+            var maxQty = _soQtyMap[itemId];
+            var entered = parseFloat($(this).val()) || 0;
+            if (entered > maxQty) {
+                $(this).val(maxQty);
+                showToastNotification('Quantity cannot exceed SO ordered qty (' + maxQty + ').', 'warning');
+                $(this).trigger('input');
+            }
+        });
     }
     <?php endif; ?>
 
@@ -602,8 +711,10 @@ $(function() {
                 transDate              : transDate,
                 returnDate             : $.trim($('#returnDate').val()),
                 customerSearch         : customerUID,
+                invoiceType            : $('#dcInvoiceType').val() || 'Regular',
                 challanType            : $('#challanType').val() || 'Non-Returnable',
                 vehicleNumber          : $.trim($('#vehicleNumber').val()),
+                deliveryBy             : $.trim($('#deliveryByDate').val()),
                 dispatchFrom           : $('#dispatchFrom').val() || '',
                 transNotes             : $.trim($('#transNotes').val()),
                 transTermsCond         : $.trim($('#transTermsCond').val()),
@@ -750,7 +861,7 @@ $(function() {
         _delegate(t.dataset.stickyAction || t.dataset.inlineAction);
     });
 
-    var _totEl = document.getElementById('bill_tot_amt');
+    var _totEl = document.querySelector('.bill_tot_amt');
     if (_totEl) new MutationObserver(_sync).observe(_totEl, { childList: true, subtree: true, characterData: true });
     _sync();
 })();

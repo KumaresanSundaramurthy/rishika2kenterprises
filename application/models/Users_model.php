@@ -31,7 +31,7 @@ class Users_model extends CI_Model {
     public function getEmployeeDropdownList($orgUID) {
         try {
             $this->ReadDb->db_debug = FALSE;
-            $this->ReadDb->select("UserUID AS EmployeeUID, EmployeeCode, CONCAT(FirstName, ' ', LastName) AS EmployeeName, HasLoginAccess, SalaryType, BasicSalary, Allowances, Incentives, FixedDeductions");
+            $this->ReadDb->select("UserUID AS EmployeeUID, UserCode AS EmployeeCode, CONCAT(FirstName, ' ', LastName) AS EmployeeName, HasLoginAccess, SalaryType, BasicSalary, Allowances, Incentives, FixedDeductions");
             $this->ReadDb->from('Users.UserTbl');
             $this->ReadDb->where(['OrgUID' => (int)$orgUID, 'IsDeleted' => 0, 'IsActive' => 1]);
             $this->ReadDb->where("EmployeeStatus !=", 'Terminated');
@@ -455,11 +455,27 @@ class Users_model extends CI_Model {
             $this->ReadDb->select('AttachUID, FileName, FilePath, FileType, FileSize, DocType, CreatedOn');
             $this->ReadDb->from('Users.UserAttachmentTbl');
             $this->ReadDb->where(['UserUID' => (int)$userUID, 'OrgUID' => (int)$orgUID, 'IsDeleted' => 0]);
+            $this->ReadDb->where("(RefType = 'Profile' OR RefType IS NULL)");
             $this->ReadDb->order_by('AttachUID', 'ASC');
             $q = $this->ReadDb->get();
             return $q ? $q->result() : [];
         } catch (Exception $e) {
             log_message('error', 'Users_model::getUserAttachments — ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    public function getExpenseAttachments($expenseUID, $userUID, $orgUID) {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('AttachUID, FileName, FilePath, FileType, FileSize, CreatedOn');
+            $this->ReadDb->from('Users.UserAttachmentTbl');
+            $this->ReadDb->where(['RefType' => 'Expense', 'RefUID' => (int)$expenseUID, 'UserUID' => (int)$userUID, 'OrgUID' => (int)$orgUID, 'IsDeleted' => 0]);
+            $this->ReadDb->order_by('AttachUID', 'ASC');
+            $q = $this->ReadDb->get();
+            return $q ? $q->result() : [];
+        } catch (Exception $e) {
+            log_message('error', 'Users_model::getExpenseAttachments — ' . $e->getMessage());
             return [];
         }
     }
@@ -526,6 +542,22 @@ class Users_model extends CI_Model {
         } catch (Exception $e) {
             log_message('error', 'Users_model::getBankDetails — ' . $e->getMessage());
             return null;
+        }
+    }
+
+    // ── Expenses & Reimbursements ─────────────────────────────────────────────
+    public function getExpenseList($userUID, $orgUID) {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('ExpenseUID, ReimbursementType, Category, Merchant, Amount, ExpenseDate, Reference, Description, ReceiptPath');
+            $this->ReadDb->from('Users.UserExpenseTbl');
+            $this->ReadDb->where(['UserUID' => (int)$userUID, 'OrgUID' => (int)$orgUID, 'IsDeleted' => 0]);
+            $this->ReadDb->order_by('ExpenseDate', 'DESC');
+            $q = $this->ReadDb->get();
+            return ($q && $q->num_rows() > 0) ? $q->result() : [];
+        } catch (Exception $e) {
+            log_message('error', 'Users_model::getExpenseList — ' . $e->getMessage());
+            return [];
         }
     }
 

@@ -188,6 +188,8 @@ class Profile extends MY_Controller {
             $res = $this->dbwrite_model->insertData('Users', 'UserAttachmentTbl', [
                 'UserUID'   => $userUID,
                 'OrgUID'    => $orgUID,
+                'RefType'   => 'Profile',
+                'RefUID'    => $userUID,
                 'FileName'  => $origName,
                 'FilePath'  => $filePath,
                 'FileType'  => $file['type'],
@@ -234,6 +236,111 @@ class Profile extends MY_Controller {
             $this->EndReturnData->Error       = FALSE;
             $this->EndReturnData->Message     = 'Deleted.';
             $this->EndReturnData->Attachments = $this->users_model->getUserAttachments($userUID, $orgUID);
+
+        } catch (Throwable $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    // ── Get expense attachments ───────────────────────────────────────────────
+    public function getExpenseAttachments() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $JwtData    = $this->pageData['JwtData'];
+            $userUID    = (int)$JwtData->User->UserUID;
+            $orgUID     = (int)$JwtData->Org->OrgUID;
+            $expenseUID = (int)($this->input->post('ExpenseUID') ?: 0);
+            if ($expenseUID <= 0) throw new Exception('Invalid expense.');
+            $this->load->model('users_model');
+            $this->EndReturnData->Error       = FALSE;
+            $this->EndReturnData->Attachments = $this->users_model->getExpenseAttachments($expenseUID, $userUID, $orgUID);
+        } catch (Throwable $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    // ── Upload expense receipt ────────────────────────────────────────────────
+    public function saveExpenseAttachment() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $JwtData    = $this->pageData['JwtData'];
+            $userUID    = (int)$JwtData->User->UserUID;
+            $orgUID     = (int)$JwtData->Org->OrgUID;
+            $expenseUID = (int)($this->input->post('ExpenseUID') ?: 0);
+            if ($expenseUID <= 0) throw new Exception('Invalid expense.');
+
+            $file = $_FILES['AttachFile'] ?? null;
+            if (empty($file) || ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK)
+                throw new Exception('No file received or upload error.');
+            if ($file['size'] > 5 * 1024 * 1024) throw new Exception('File size must be under 5 MB.');
+
+            $origName    = basename($file['name']);
+            $safeName    = time() . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $origName);
+            $storagePath = 'employees/' . $userUID . '/expenses/' . $safeName;
+
+            $this->load->library('fileupload');
+            $uploadResult = $this->fileupload->fileUpload('file', $storagePath, $file['tmp_name']);
+            if ($uploadResult->Error) throw new Exception('Upload failed: ' . $uploadResult->Message);
+
+            $filePath = '/' . ltrim($uploadResult->Path, '/');
+
+            $this->load->model('dbwrite_model');
+            $res = $this->dbwrite_model->insertData('Users', 'UserAttachmentTbl', [
+                'UserUID'   => $userUID,
+                'OrgUID'    => $orgUID,
+                'RefType'   => 'Expense',
+                'RefUID'    => $expenseUID,
+                'FileName'  => $origName,
+                'FilePath'  => $filePath,
+                'FileType'  => $file['type'],
+                'FileSize'  => (int)$file['size'],
+                'DocType'   => 'Receipt',
+                'IsActive'  => 1,
+                'IsDeleted' => 0,
+                'CreatedBy' => $userUID,
+                'CreatedOn' => date('Y-m-d H:i:s'),
+            ]);
+            if ($res->Error) throw new Exception($res->Message);
+
+            $this->load->model('users_model');
+            $this->EndReturnData->Error       = FALSE;
+            $this->EndReturnData->Message     = 'Receipt uploaded.';
+            $this->EndReturnData->Attachments = $this->users_model->getExpenseAttachments($expenseUID, $userUID, $orgUID);
+
+        } catch (Throwable $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    // ── Delete expense receipt ────────────────────────────────────────────────
+    public function deleteExpenseAttachment() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $JwtData    = $this->pageData['JwtData'];
+            $userUID    = (int)$JwtData->User->UserUID;
+            $orgUID     = (int)$JwtData->Org->OrgUID;
+            $attachUID  = (int)($this->input->post('AttachUID')  ?: 0);
+            $expenseUID = (int)($this->input->post('ExpenseUID') ?: 0);
+            if ($attachUID  <= 0) throw new Exception('Invalid attachment.');
+            if ($expenseUID <= 0) throw new Exception('Invalid expense.');
+
+            $this->load->model('dbwrite_model');
+            $res = $this->dbwrite_model->updateData('Users', 'UserAttachmentTbl',
+                ['IsDeleted' => 1, 'IsActive' => 0],
+                ['AttachUID' => $attachUID, 'RefType' => 'Expense', 'RefUID' => $expenseUID, 'UserUID' => $userUID, 'OrgUID' => $orgUID]
+            );
+            if ($res->Error) throw new Exception($res->Message);
+
+            $this->load->model('users_model');
+            $this->EndReturnData->Error       = FALSE;
+            $this->EndReturnData->Message     = 'Receipt deleted.';
+            $this->EndReturnData->Attachments = $this->users_model->getExpenseAttachments($expenseUID, $userUID, $orgUID);
 
         } catch (Throwable $e) {
             $this->EndReturnData->Error   = TRUE;
@@ -994,6 +1101,143 @@ class Profile extends MY_Controller {
             $this->EndReturnData->Error      = FALSE;
             $this->EndReturnData->Message    = 'Deleted.';
             $this->EndReturnData->Experience = $this->users_model->getExperienceList($userUID);
+        } catch (Throwable $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    // ── Expenses & Reimbursements ─────────────────────────────────────────────
+    public function getExpenses() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $userUID = (int)$this->pageData['JwtData']->User->UserUID;
+            $orgUID  = (int)$this->pageData['JwtData']->Org->OrgUID;
+            $this->load->model('users_model');
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Data  = $this->users_model->getExpenseList($userUID, $orgUID);
+        } catch (Throwable $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+            $this->EndReturnData->Data    = [];
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    public function saveExpense() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $userUID    = (int)$this->pageData['JwtData']->User->UserUID;
+            $orgUID     = (int)$this->pageData['JwtData']->Org->OrgUID;
+            $p          = $this->input->post();
+            $expenseUID = (int)($p['ExpenseUID'] ?? 0);
+            $now        = date('Y-m-d H:i:s');
+
+            $reimType = trim($p['ReimbursementType'] ?? '');
+            if (!$reimType) throw new Exception('Reimbursement type is required.');
+
+            $amount = trim($p['Amount'] ?? '');
+            if ($amount === '' || !is_numeric($amount) || (float)$amount <= 0)
+                throw new Exception('Please enter a valid amount greater than zero.');
+
+            $expDate = trim($p['ExpenseDate'] ?? '');
+            if (!$expDate || !strtotime($expDate))
+                throw new Exception('Expense date is required.');
+
+            $validTypes = ['Travel', 'Medical', 'Food & Entertainment', 'Accommodation', 'Communication', 'Office Supplies', 'Others'];
+            if (!in_array($reimType, $validTypes)) throw new Exception('Invalid reimbursement type.');
+
+            $data = [
+                'ReimbursementType' => $reimType,
+                'Category'          => substr(trim($p['Category']    ?? ''), 0, 100) ?: null,
+                'Merchant'          => substr(trim($p['Merchant']    ?? ''), 0, 100) ?: null,
+                'Amount'            => round((float)$amount, 2),
+                'ExpenseDate'       => date('Y-m-d', strtotime($expDate)),
+                'Reference'         => substr(trim($p['Reference']   ?? ''), 0, 200) ?: null,
+                'Description'       => trim($p['Description'] ?? '') ?: null,
+                'UpdatedBy'         => $userUID,
+                'UpdatedOn'         => $now,
+            ];
+
+            $this->load->model('dbwrite_model');
+
+            if ($expenseUID > 0) {
+                $res = $this->dbwrite_model->updateData('Users', 'UserExpenseTbl', $data,
+                    ['ExpenseUID' => $expenseUID, 'UserUID' => $userUID]);
+                if ($res->Error) throw new Exception($res->Message);
+            } else {
+                $data['UserUID']   = $userUID;
+                $data['OrgUID']    = $orgUID;
+                $data['IsActive']  = 1;
+                $data['IsDeleted'] = 0;
+                $data['CreatedBy'] = $userUID;
+                $data['CreatedOn'] = $now;
+                $res = $this->dbwrite_model->insertData('Users', 'UserExpenseTbl', $data);
+                if ($res->Error) throw new Exception($res->Message);
+                $expenseUID = (int)$res->ID;
+            }
+
+            // Save receipt attachments (sent with the same form submission)
+            if (!empty($_FILES['Receipts']['name'][0])) {
+                $this->load->library('fileupload');
+                $files = $_FILES['Receipts'];
+                $count = count($files['name']);
+                for ($i = 0; $i < $count; $i++) {
+                    if (($files['error'][$i] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) continue;
+                    if (($files['size'][$i]  ?? 0) > 5 * 1024 * 1024)                  continue;
+                    $origName = basename($files['name'][$i]);
+                    $safeName = time() . '_' . $i . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $origName);
+                    $result   = $this->fileupload->fileUpload('file', 'employees/' . $userUID . '/expenses/' . $safeName, $files['tmp_name'][$i]);
+                    if ($result->Error) continue;
+                    $this->dbwrite_model->insertData('Users', 'UserAttachmentTbl', [
+                        'UserUID'   => $userUID,
+                        'OrgUID'    => $orgUID,
+                        'RefType'   => 'Expense',
+                        'RefUID'    => $expenseUID,
+                        'FileName'  => $origName,
+                        'FilePath'  => '/' . ltrim($result->Path, '/'),
+                        'FileType'  => $files['type'][$i],
+                        'FileSize'  => (int)$files['size'][$i],
+                        'DocType'   => 'Receipt',
+                        'IsActive'  => 1,
+                        'IsDeleted' => 0,
+                        'CreatedBy' => $userUID,
+                        'CreatedOn' => $now,
+                    ]);
+                }
+            }
+
+            $this->load->model('users_model');
+            $this->EndReturnData->Error      = FALSE;
+            $this->EndReturnData->Message    = 'Expense saved successfully.';
+            $this->EndReturnData->ExpenseUID = $expenseUID;
+            $this->EndReturnData->Data       = $this->users_model->getExpenseList($userUID, $orgUID);
+
+        } catch (Throwable $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    public function deleteExpense() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $userUID    = (int)$this->pageData['JwtData']->User->UserUID;
+            $orgUID     = (int)$this->pageData['JwtData']->Org->OrgUID;
+            $expenseUID = (int)($this->input->post('ExpenseUID') ?? 0);
+            if ($expenseUID <= 0) throw new Exception('Invalid record.');
+            $this->load->model('dbwrite_model');
+            $res = $this->dbwrite_model->updateData('Users', 'UserExpenseTbl',
+                ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID, 'UpdatedOn' => date('Y-m-d H:i:s')],
+                ['ExpenseUID' => $expenseUID, 'UserUID' => $userUID]
+            );
+            if ($res->Error) throw new Exception($res->Message);
+            $this->load->model('users_model');
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Expense deleted.';
+            $this->EndReturnData->Data    = $this->users_model->getExpenseList($userUID, $orgUID);
         } catch (Throwable $e) {
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();

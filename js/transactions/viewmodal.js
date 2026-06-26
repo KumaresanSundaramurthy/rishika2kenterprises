@@ -463,6 +463,28 @@
             typeBg     : '#fff8e1',
             hasPayments: false,
         },
+        'deliverychallan': {
+            title      : 'Delivery Challan Details',
+            editPath   : '/deliverychallan/edit/',
+            dataKey    : '_dcLastPrintData',
+            partyLabel : 'Customer',
+            typeIcon   : 'bx-package',
+            typeColor  : '#16a34a',
+            typeBg     : '#dcfce7',
+            hasPayments: false,
+            validLabel : 'Expected Return',
+        },
+        'proformainvoice': {
+            title      : 'Pro Forma Invoice Details',
+            editPath   : '/proforma/edit/',
+            dataKey    : '_pfLastPrintData',
+            partyLabel : 'Customer',
+            typeIcon   : 'bx-file-blank',
+            typeColor  : '#7c3aed',
+            typeBg     : '#ede9fe',
+            hasPayments: false,
+            validLabel : 'Valid Until',
+        },
     };
 
     // ── Attachment section ─────────────────────────────────────────────────────

@@ -799,7 +799,13 @@ class Vendors extends MY_Controller {
                 ['VendorUID' => $VendorUID]
             );
             if ($resp->Error) throw new Exception($resp->Message);
-            $this->cachehelper->upsertVendor($VendorUID);
+
+            // Sync Upstash: active → add/update in cache; inactive → remove from cache
+            if ($newStatus === 1) {
+                $this->cachehelper->upsertVendor($VendorUID);
+            } else {
+                $this->cachehelper->removeVendor($VendorUID);
+            }
 
             $pageNo = (int) ($this->input->post('PageNo') ?: 1);
             $this->_initModule();

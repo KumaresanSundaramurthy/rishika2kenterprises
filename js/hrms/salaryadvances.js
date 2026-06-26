@@ -3,106 +3,232 @@
 
   var currentPage = 1;
   var filterData  = {};
+  var _fpAdvDate  = null;
+  var _advFpCfg   = {
+    dateFormat : 'Y-m-d',
+    altInput   : true,
+    altFormat  : (typeof _transFormDateFormat !== 'undefined') ? _transFormDateFormat : 'd-m-Y',
+    allowInput : false,
+    static     : true,
+    position   : 'below left',
+  };
+
+  // ── Apply fresh table data from any AJAX response ─────────────────────────
+  function _applyResponse(r) {
+    currentPage = 1;
+    $('#AdvTableBody').html(r.RecordHtmlData);
+    $('#SalaryadvancesPagination').html(r.Pagination);
+    if (r.Stats) _updateStats(r.Stats);
+  }
+
+  function _updateStats(s) {
+    $('.adv-s-total').text(s.TotalCount       || 0);
+    $('.adv-s-requested').text(s.RequestedCount  || 0);
+    $('.adv-s-approved').text(s.ApprovedCount   || 0);
+    $('.adv-s-settled').text(s.SettledCount    || 0);
+  }
 
   function loadPage(page, filter) {
     currentPage = page || 1;
     filterData  = filter || filterData;
-    $.post('/salaryadvances/getPageDetails/' + currentPage, { Filter: filterData }, function (r) {
+    $.post('/salaryadvances/getPageDetails/' + currentPage, { Filter: filterData, [CsrfName]: CsrfToken }, function (r) {
+      CsrfToken = r.NewCsrfToken || CsrfToken;
       if (!r.Error) {
         $('#AdvTableBody').html(r.RecordHtmlData);
         $('#SalaryadvancesPagination').html(r.Pagination);
+        if (r.Stats) _updateStats(r.Stats);
       }
     });
   }
 
-  // Flatpickr
-  if (typeof flatpickr !== 'undefined') {
-    flatpickr('#advDate', { dateFormat: 'Y-m-d', allowInput: true });
-  }
+  // ── Flatpickr init on modal open (once) ───────────────────────────────────
+  $('#advanceModal').on('shown.bs.modal', function () {
+    if (!_fpAdvDate) {
+      _fpAdvDate = flatpickr('#advDate', _advFpCfg);
+    }
+  });
 
-  // Stat card filter
+  // ── Stat strip clicks ──────────────────────────────────────────────────────
   $(document).on('click', '.adv-stat-clickable', function () {
-    $('.adv-stat-clickable').removeClass('stat-selected');
-    $(this).addClass('stat-selected');
+    $('.adv-stat-clickable').removeClass('active');
+    $(this).addClass('active');
     var f = $(this).data('filter');
-    filterData.IsSettled = f === 'Settled' ? 1 : (f === 'Pending' ? 0 : '');
+    $('.adv-tab').removeClass('active');
+    $('.adv-tab[data-filter="' + f + '"]').addClass('active');
+    delete filterData.AdvanceStatus;
+    if (f !== 'All') filterData.AdvanceStatus = f;
     loadPage(1, filterData);
   });
 
-  // Tab filter
+  // ── Tab clicks ────────────────────────────────────────────────────────────
   $(document).on('click', '.adv-tab', function (e) {
     e.preventDefault();
     $('.adv-tab').removeClass('active');
     $(this).addClass('active');
-    filterData.IsSettled = $(this).data('filter') === 'Settled' ? 1 : ($(this).data('filter') === 'Pending' ? 0 : '');
+    var f = $(this).data('filter');
+    $('.adv-stat-clickable').removeClass('active');
+    $('.adv-stat-clickable[data-filter="' + f + '"]').addClass('active');
+    delete filterData.AdvanceStatus;
+    if (f !== 'All') filterData.AdvanceStatus = f;
     loadPage(1, filterData);
   });
 
+  // ── New Advance ───────────────────────────────────────────────────────────
   $(document).on('click', '#btnNewAdvance', function () {
     $('#advUID').val(0);
     $('#advEmployee').val('');
-    $('#advDate').val('');
+    if (_fpAdvDate) _fpAdvDate.clear(); else $('#advDate').val('');
     $('#advAmount').val('');
     $('#advRemarks').val('');
     $('#advModalTitle').text('New Salary Advance');
+    $('#advModalMeta').text('Submit a new advance request');
     $('#advanceModal').modal('show');
   });
 
+  // ── Edit Advance ──────────────────────────────────────────────────────────
   $(document).on('click', '.adv-edit-btn', function () {
     $('#advUID').val($(this).data('uid'));
     $('#advEmployee').val($(this).data('employee'));
-    $('#advDate').val($(this).data('date'));
+    var d = $(this).data('date');
+    if (_fpAdvDate) _fpAdvDate.setDate(d); else $('#advDate').val(d);
     $('#advAmount').val($(this).data('amount'));
     $('#advRemarks').val($(this).data('remarks'));
-    $('#advModalTitle').text('Edit Advance');
+    $('#advModalTitle').text('Edit Advance Request');
+    $('#advModalMeta').text('Update the advance details');
     $('#advanceModal').modal('show');
   });
 
+  // ── Save Advance ──────────────────────────────────────────────────────────
   $(document).on('click', '#btnSaveAdvance', function () {
     var emp    = $('#advEmployee').val();
     var date   = $.trim($('#advDate').val());
     var amount = parseFloat($('#advAmount').val()) || 0;
-    if (!emp)         { toastr.warning('Select an employee.'); return; }
-    if (!date)        { toastr.warning('Date is required.'); return; }
-    if (amount <= 0)  { toastr.warning('Enter a valid amount.'); return; }
-    var payload = {
-      AdvanceUID:  $('#advUID').val(),
-      EmployeeUID: emp,
-      AdvanceDate: date,
+    if (!emp)        { showToastNotification('Select an employee.', 'warning'); return; }
+    if (!date)       { showToastNotification('Date is required.', 'warning'); return; }
+    if (amount <= 0) { showToastNotification('Enter a valid amount.', 'warning'); return; }
+
+    var $btn     = $(this).prop('disabled', true);
+    var $spinner = $('#spinnerAdv').removeClass('d-none');
+    var $icon    = $('#iconAdv').addClass('d-none');
+
+    $.post('/salaryadvances/save', {
+      AdvanceUID:    $('#advUID').val(),
+      EmployeeUID:   emp,
+      AdvanceDate:   date,
       AdvanceAmount: amount,
-      Remarks:     $.trim($('#advRemarks').val())
-    };
-    $(this).prop('disabled', true);
-    var self = this;
-    $.post('/salaryadvances/save', payload, function (r) {
-      $(self).prop('disabled', false);
+      Remarks:       $.trim($('#advRemarks').val()),
+      Filter:        filterData,
+      [CsrfName]:    CsrfToken,
+    }, function (r) {
+      CsrfToken = r.NewCsrfToken || CsrfToken;
+      $btn.prop('disabled', false);
+      $spinner.addClass('d-none'); $icon.removeClass('d-none');
       if (!r.Error) {
-        toastr.success(r.Message || 'Saved.');
         $('#advanceModal').modal('hide');
-        loadPage(currentPage);
+        _applyResponse(r);
+        showToastNotification(r.Message || 'Saved.', 'success');
       } else {
-        toastr.error(r.Message || 'Error saving.');
+        showToastNotification(r.Message || 'Error saving.', 'error');
       }
+    }).fail(function () {
+      $btn.prop('disabled', false);
+      $spinner.addClass('d-none'); $icon.removeClass('d-none');
+      showToastNotification('Request failed. Please try again.', 'error');
     });
   });
 
+  // ── Approve ───────────────────────────────────────────────────────────────
+  $(document).on('click', '.adv-approve-btn', function () {
+    var uid = $(this).data('uid');
+    Swal.fire({
+      title: 'Approve this advance?',
+      text: 'The advance will be marked as approved and ready for disbursement.',
+      icon: 'question', showCancelButton: true,
+      confirmButtonColor: '#10b981', cancelButtonColor: '#64748b',
+      confirmButtonText: 'Yes, approve',
+    }).then(function (res) {
+      if (!res.isConfirmed) return;
+      $.post('/salaryadvances/approve', { AdvanceUID: uid, Filter: filterData, [CsrfName]: CsrfToken }, function (r) {
+        CsrfToken = r.NewCsrfToken || CsrfToken;
+        if (!r.Error) {
+          _applyResponse(r);
+          showToastNotification(r.Message || 'Advance approved.', 'success');
+        } else {
+          showToastNotification(r.Message || 'Failed to approve.', 'error');
+        }
+      });
+    });
+  });
+
+  // ── Reject ────────────────────────────────────────────────────────────────
+  $(document).on('click', '.adv-reject-btn', function () {
+    var uid = $(this).data('uid');
+    Swal.fire({
+      title: 'Reject this advance?',
+      text: 'The request will be marked as rejected.',
+      icon: 'warning', showCancelButton: true,
+      confirmButtonColor: '#dc2626', cancelButtonColor: '#64748b',
+      confirmButtonText: 'Yes, reject',
+    }).then(function (res) {
+      if (!res.isConfirmed) return;
+      $.post('/salaryadvances/reject', { AdvanceUID: uid, Filter: filterData, [CsrfName]: CsrfToken }, function (r) {
+        CsrfToken = r.NewCsrfToken || CsrfToken;
+        if (!r.Error) {
+          _applyResponse(r);
+          showToastNotification(r.Message || 'Advance rejected.', 'success');
+        } else {
+          showToastNotification(r.Message || 'Failed to reject.', 'error');
+        }
+      });
+    });
+  });
+
+  // ── Delete ────────────────────────────────────────────────────────────────
   $(document).on('click', '.adv-delete-btn', function () {
-    if (!confirm('Delete this advance?')) return;
-    $.post('/salaryadvances/delete', { AdvanceUID: $(this).data('uid') }, function (r) {
-      if (!r.Error) { toastr.success('Deleted.'); loadPage(currentPage); }
-      else toastr.error(r.Message || 'Cannot delete a settled advance.');
+    var uid = $(this).data('uid');
+    Swal.fire({
+      title: 'Delete this advance?',
+      text: 'This cannot be undone.',
+      icon: 'warning', showCancelButton: true,
+      confirmButtonColor: '#dc2626', cancelButtonColor: '#64748b',
+      confirmButtonText: 'Yes, delete',
+    }).then(function (res) {
+      if (!res.isConfirmed) return;
+      $.post('/salaryadvances/delete', { AdvanceUID: uid, Filter: filterData, [CsrfName]: CsrfToken }, function (r) {
+        CsrfToken = r.NewCsrfToken || CsrfToken;
+        if (!r.Error) {
+          _applyResponse(r);
+          showToastNotification(r.Message || 'Advance deleted.', 'success');
+        } else {
+          showToastNotification(r.Message || 'Cannot delete this advance.', 'error');
+        }
+      });
     });
   });
 
-  var searchTimer;
+  // ── Search ────────────────────────────────────────────────────────────────
+  var _searchTimer;
   $(document).on('input', '#SearchDetails', function () {
-    clearTimeout(searchTimer);
-    filterData.SearchAllData = $.trim($(this).val());
-    $('#clearSearch').toggleClass('d-none', !filterData.SearchAllData);
-    searchTimer = setTimeout(function () { loadPage(1, filterData); }, 350);
+    clearTimeout(_searchTimer);
+    var val = $.trim($(this).val());
+    $('#clearSearch').toggleClass('d-none', !val);
+    if (val) filterData.SearchAllData = val; else delete filterData.SearchAllData;
+    _searchTimer = setTimeout(function () { loadPage(1, filterData); }, 400);
   });
-  $(document).on('click', '#clearSearch', function () { $('#SearchDetails').val(''); $(this).addClass('d-none'); delete filterData.SearchAllData; loadPage(1, filterData); });
+
+  $(document).on('click', '#clearSearch', function () {
+    $('#SearchDetails').val('');
+    $(this).addClass('d-none');
+    delete filterData.SearchAllData;
+    loadPage(1, filterData);
+  });
+
+  // ── Refresh & Pagination ──────────────────────────────────────────────────
   $(document).on('click', '.PageRefresh', function (e) { e.preventDefault(); loadPage(currentPage); });
-  $(document).on('click', '.page-link', function (e) { e.preventDefault(); var pg = $(this).data('page'); if (pg) loadPage(pg); });
+  $(document).on('click', '#SalaryadvancesPagination .page-link', function (e) {
+    e.preventDefault();
+    var pg = parseInt($(this).data('page'));
+    if (pg && pg !== currentPage) loadPage(pg);
+  });
 
 })();

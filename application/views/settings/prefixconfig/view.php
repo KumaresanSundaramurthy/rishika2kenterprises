@@ -380,7 +380,7 @@ window.addEventListener('load', function () {
     /* ── Open Add ────────────────────────────────────────────────── */
     $('#btnAddPrefixConfig').on('click', function () {
         resetModal();
-        $('#pcModalTitle').html('<i class="bx bx-plus-circle me-2" style="color:#7c3aed;"></i>Add Prefix Configuration');
+        $('#pcModalTitle').html('Add Prefix Configuration');
 
         // Populate module dropdown from cached module map
         var $sel = $('#pcModuleUID').empty().append('<option value="">— Select Module —</option>');

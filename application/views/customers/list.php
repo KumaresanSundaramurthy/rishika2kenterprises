@@ -1,4 +1,7 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
+<?php defined('BASEPATH') or exit('No direct script access allowed');
+/** @var int $SerialNumber */ $SerialNumber = $SerialNumber ?? 0;
+/** @var object $JwtData */
+?>
 
 <?php
 $cdnUrl     = getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv('CFLARE_R2_CDN');
@@ -47,7 +50,7 @@ if (!empty($DataLists)):
                     <?php endif; ?>
                 </div>
                 <div>
-                    <div class="fw-semibold"><?php echo $name; ?></div>
+                    <div class="fw-semibold"><?php echo r2k_party_name($list->Name ?? '', $list->MobileNumber ?? '', $list->CountryCode ?? '', $list->Area ?? '', $imgSrc ?: ''); ?></div>
                     <?php $isActive = (int)($list->IsActive ?? 1); ?>
                     <div class="mt-1">
                         <div class="dropdown d-inline-block">

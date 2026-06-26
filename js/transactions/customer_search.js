@@ -265,9 +265,15 @@
             var oaBalAttr   = ' data-oa-balance="' + (cust.OnAccountBalance || 0) + '"';
             var oaRecAttr   = " data-oa-records='" + JSON.stringify(cust.OnAccountRecords || []).replace(/'/g, '&#39;') + "'";
 
+            var _w = (cust.Name || '').trim().split(/\s+/);
+            var _ini = ((_w[0]||'')[0]||'') + ((_w[1]||'')[0]||'');
+            _ini = _ini.toUpperCase() || '?';
+            var _av = cust.Image
+                ? '<img src="' + (CDN_URL||'') + cust.Image + '" class="cust-avatar-img" alt="">'
+                : '<span class="cust-avatar-ini">' + _ini + '</span>';
             rows += '<tr class="cust-search-row" data-uid="' + cust.CustomerUID + '" data-name="' + _esc(cust.Name) + '"' + addrAttr + stateAttr + countryAttr + areaAttr + mobileAttr + oaBalAttr + oaRecAttr + '>';
             rows +=   '<td class="text-center"><span class="cust-serial">' + serial + '</span></td>';
-            rows +=   '<td><div class="cust-name">' + _esc(cust.Name) + '</div></td>';
+            rows +=   '<td><div class="d-flex align-items-center gap-2">' + _av + '<div class="cust-name">' + _esc(cust.Name) + '</div></div></td>';
             rows +=   '<td><span class="cust-meta">' + _esc(cust.Area || '—') + '</span></td>';
             rows +=   '<td><span class="cust-meta">' + _esc(cust.MobileNumber || '—') + '</span></td>';
             rows +=   '<td class="text-end"><div class="' + balCls + '">' + currency + ' ' + _fmt(cust.Balance) + '</div>' +
@@ -335,9 +341,15 @@
                     var areaAttr    = ' data-area="'    + _esc(cust.Area         || '') + '"';
                     var mobileAttr  = ' data-mobile="'  + _esc(cust.MobileNumber || '') + '"';
 
+                    var _w2 = (cust.Name || '').trim().split(/\s+/);
+                    var _ini2 = ((_w2[0]||'')[0]||'') + ((_w2[1]||'')[0]||'');
+                    _ini2 = _ini2.toUpperCase() || '?';
+                    var _av2 = cust.Image
+                        ? '<img src="' + (CDN_URL||'') + cust.Image + '" class="cust-avatar-img" alt="">'
+                        : '<span class="cust-avatar-ini">' + _ini2 + '</span>';
                     rows += '<tr class="cust-search-row" data-uid="' + cust.CustomerUID + '" data-name="' + _esc(cust.Name) + '"' + addrAttr + stateAttr + countryAttr + areaAttr + mobileAttr + ' data-oa-balance="0" data-oa-records=\'[]\'' + '>';
                     rows +=   '<td class="text-center"><span class="cust-serial">' + serial + '</span></td>';
-                    rows +=   '<td><div class="cust-name">' + _esc(cust.Name) + '</div></td>';
+                    rows +=   '<td><div class="d-flex align-items-center gap-2">' + _av2 + '<div class="cust-name">' + _esc(cust.Name) + '</div></div></td>';
                     rows +=   '<td><span class="cust-meta">' + _esc(cust.Area || '—') + '</span></td>';
                     rows +=   '<td><span class="cust-meta">' + _esc(cust.MobileNumber || '—') + '</span></td>';
                     rows +=   '<td class="text-end"><div class="' + balCls + '">' + currency + ' ' + _fmt(parseFloat(cust.Balance || 0)) + '</div>' +

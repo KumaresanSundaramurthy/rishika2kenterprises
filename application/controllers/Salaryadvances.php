@@ -21,6 +21,7 @@ class Salaryadvances extends MY_Controller {
         $r->RecordHtmlData = $rowHtml;
         $r->Pagination     = $this->globalservice->buildPagePaginationHtml('/salaryadvances/getPageDetails', $result->totalCount, $pageNo, $limit);
         $r->TotalCount     = $result->totalCount;
+        $r->Stats          = $this->attendance_model->getAdvanceStats($this->_orgUID());
         return $r;
     }
 
@@ -30,8 +31,9 @@ class Salaryadvances extends MY_Controller {
             $pd = $this->_fetchTableData(1, $this->_limit());
             $this->pageData['ModRowData']    = $pd->RecordHtmlData;
             $this->pageData['ModPagination'] = $pd->Pagination;
+            $this->pageData['AdvanceStats']  = $pd->Stats;
             $this->load->model('users_model');
-            $this->pageData['EmployeeList'] = $this->users_model->getEmployeeDropdownList($this->_orgUID());
+            $this->pageData['EmployeeList']  = $this->users_model->getEmployeeDropdownList($this->_orgUID());
             $this->load->view('hrms/salaryadvances/view', $this->pageData);
         } catch (Exception $e) { redirect('dashboard', 'refresh'); }
     }
@@ -44,6 +46,7 @@ class Salaryadvances extends MY_Controller {
             $this->EndReturnData->RecordHtmlData = $pd->RecordHtmlData;
             $this->EndReturnData->Pagination     = $pd->Pagination;
             $this->EndReturnData->TotalCount     = $pd->TotalCount;
+            $this->EndReturnData->Stats          = $pd->Stats;
         } catch (Exception $e) { $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
@@ -53,21 +56,83 @@ class Salaryadvances extends MY_Controller {
         try {
             $p   = $this->input->post();
             $uid = (int)($p['AdvanceUID'] ?? 0);
-            if (empty($p['EmployeeUID']))   throw new Exception('Employee is required.');
-            if (empty($p['AdvanceDate']))   throw new Exception('Date is required.');
+            if (empty($p['EmployeeUID'])) throw new Exception('Employee is required.');
+            if (empty($p['AdvanceDate'])) throw new Exception('Date is required.');
             $amt = (float)($p['AdvanceAmount'] ?? 0);
             if ($amt <= 0) throw new Exception('Amount must be greater than 0.');
+
             $this->load->model('dbwrite_model');
-            $data = ['OrgUID' => $this->_orgUID(), 'BranchUID' => $this->_branchUID(), 'UserUID' => (int)$p['EmployeeUID'], 'AdvanceDate' => $p['AdvanceDate'], 'AdvanceAmount' => $amt, 'Reason' => trim($p['Reason'] ?? ''), 'BalancePending' => $amt, 'IsSettled' => 0, 'UpdatedBy' => $this->_userUID()];
+            $data = [
+                'OrgUID'        => $this->_orgUID(),
+                'BranchUID'     => $this->_branchUID(),
+                'UserUID'       => (int)$p['EmployeeUID'],
+                'AdvanceDate'   => $p['AdvanceDate'],
+                'AdvanceAmount' => $amt,
+                'Reason'        => trim($p['Remarks'] ?? $p['Reason'] ?? ''),
+                'UpdatedBy'     => $this->_userUID(),
+            ];
+
             if ($uid === 0) {
-                $data['CreatedBy'] = $this->_userUID();
+                $data['BalancePending'] = $amt;
+                $data['IsSettled']      = 0;
+                $data['AdvanceStatus']  = 'Requested';
+                $data['CreatedBy']      = $this->_userUID();
                 $res = $this->dbwrite_model->insertData('Transaction', 'SalaryAdvanceTbl', $data);
             } else {
-                unset($data['BalancePending']);
-                $res = $this->dbwrite_model->updateData('Transaction', 'SalaryAdvanceTbl', $data, ['AdvanceUID' => $uid, 'OrgUID' => $this->_orgUID()]);
+                // Only allow editing Requested advances
+                $res = $this->dbwrite_model->updateData('Transaction', 'SalaryAdvanceTbl', $data,
+                    ['AdvanceUID' => $uid, 'OrgUID' => $this->_orgUID(), 'AdvanceStatus' => 'Requested']);
             }
             if ($res->Error) throw new Exception($res->Message);
-            $this->EndReturnData->Error = FALSE; $this->EndReturnData->Message = $uid ? 'Updated.' : 'Advance recorded.';
+
+            $pd = $this->_fetchTableData(1, $this->_limit(), $this->input->post('Filter') ?: []);
+            $this->EndReturnData->Error          = FALSE;
+            $this->EndReturnData->Message        = $uid ? 'Advance request updated.' : 'Advance request submitted.';
+            $this->EndReturnData->RecordHtmlData = $pd->RecordHtmlData;
+            $this->EndReturnData->Pagination     = $pd->Pagination;
+            $this->EndReturnData->Stats          = $pd->Stats;
+        } catch (Exception $e) { $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    public function approve() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $uid = (int)$this->input->post('AdvanceUID');
+            if (!$uid) throw new Exception('Invalid advance.');
+            $this->load->model('dbwrite_model');
+            $res = $this->dbwrite_model->updateData('Transaction', 'SalaryAdvanceTbl',
+                ['AdvanceStatus' => 'Approved', 'UpdatedBy' => $this->_userUID()],
+                ['AdvanceUID' => $uid, 'OrgUID' => $this->_orgUID(), 'AdvanceStatus' => 'Requested']
+            );
+            if ($res->Error) throw new Exception($res->Message);
+            $pd = $this->_fetchTableData(1, $this->_limit(), $this->input->post('Filter') ?: []);
+            $this->EndReturnData->Error          = FALSE;
+            $this->EndReturnData->Message        = 'Advance approved.';
+            $this->EndReturnData->RecordHtmlData = $pd->RecordHtmlData;
+            $this->EndReturnData->Pagination     = $pd->Pagination;
+            $this->EndReturnData->Stats          = $pd->Stats;
+        } catch (Exception $e) { $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    public function reject() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $uid = (int)$this->input->post('AdvanceUID');
+            if (!$uid) throw new Exception('Invalid advance.');
+            $this->load->model('dbwrite_model');
+            $res = $this->dbwrite_model->updateData('Transaction', 'SalaryAdvanceTbl',
+                ['AdvanceStatus' => 'Rejected', 'UpdatedBy' => $this->_userUID()],
+                ['AdvanceUID' => $uid, 'OrgUID' => $this->_orgUID(), 'AdvanceStatus' => 'Requested']
+            );
+            if ($res->Error) throw new Exception($res->Message);
+            $pd = $this->_fetchTableData(1, $this->_limit(), $this->input->post('Filter') ?: []);
+            $this->EndReturnData->Error          = FALSE;
+            $this->EndReturnData->Message        = 'Advance rejected.';
+            $this->EndReturnData->RecordHtmlData = $pd->RecordHtmlData;
+            $this->EndReturnData->Pagination     = $pd->Pagination;
+            $this->EndReturnData->Stats          = $pd->Stats;
         } catch (Exception $e) { $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
@@ -78,9 +143,17 @@ class Salaryadvances extends MY_Controller {
             $uid = (int)$this->input->post('AdvanceUID');
             if (!$uid) throw new Exception('Invalid.');
             $this->load->model('dbwrite_model');
-            $res = $this->dbwrite_model->updateData('Transaction', 'SalaryAdvanceTbl', ['IsDeleted' => 1, 'UpdatedBy' => $this->_userUID()], ['AdvanceUID' => $uid, 'OrgUID' => $this->_orgUID()]);
+            $res = $this->dbwrite_model->updateData('Transaction', 'SalaryAdvanceTbl',
+                ['IsDeleted' => 1, 'UpdatedBy' => $this->_userUID()],
+                ['AdvanceUID' => $uid, 'OrgUID' => $this->_orgUID()]
+            );
             if ($res->Error) throw new Exception($res->Message);
-            $this->EndReturnData->Error = FALSE; $this->EndReturnData->Message = 'Deleted.';
+            $pd = $this->_fetchTableData(1, $this->_limit(), $this->input->post('Filter') ?: []);
+            $this->EndReturnData->Error          = FALSE;
+            $this->EndReturnData->Message        = 'Advance deleted.';
+            $this->EndReturnData->RecordHtmlData = $pd->RecordHtmlData;
+            $this->EndReturnData->Pagination     = $pd->Pagination;
+            $this->EndReturnData->Stats          = $pd->Stats;
         } catch (Exception $e) { $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }

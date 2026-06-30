@@ -323,14 +323,16 @@
 
 <?php $this->load->view('common/footer'); ?>
 
-<script src="/js/common/address.js"></script>
-<script src="/js/common/bankdetails.js"></script>
-<script src="/js/common/gstin_fetch.js"></script>
-<script src="/js/common/customer_form.js"></script>
-<script src="/js/common/customer_group_form.js"></script>
-<script src="/js/transactions/col_filter.js"></script>
-<script src="/js/customers.js"></script>
-<script src="/js/common/pagecheckbox.js"></script>
+<script src="<?php echo _assetV('/js/common/address.js'); ?>"></script>
+<script src="<?php echo _assetV('/js/common/bankdetails.js'); ?>"></script>
+<script src="<?php echo _assetV('/js/common/gstin_fetch.js'); ?>"></script>
+<link rel="stylesheet" href="<?php echo _assetV('/assets/vendor/css/attachments.css'); ?>">
+<script src="<?php echo _assetV('/js/common/attachments.js'); ?>"></script>
+<script src="<?php echo _assetV('/js/common/customer_form.js'); ?>"></script>
+<script src="<?php echo _assetV('/js/common/customer_group_form.js'); ?>"></script>
+<script src="<?php echo _assetV('/js/transactions/col_filter.js'); ?>"></script>
+<script src="<?php echo _assetV('/js/customers.js'); ?>"></script>
+<script src="<?php echo _assetV('/js/common/pagecheckbox.js'); ?>"></script>
 <script src="/js/common/communication.js"></script>
 
 <script>
@@ -770,6 +772,22 @@ $(function () {
         _updateGrpStats(res.Stats);
         var cnt = res.TotalCount || 0;
         $('#grpTabCount').text(cnt > 0 ? cnt : '').toggleClass('d-none', cnt === 0);
+
+        // Refresh the Customer Group dropdown in the customer form so newly created/updated groups appear
+        _refreshCustomerGroupDropdown();
+    }
+
+    function _refreshCustomerGroupDropdown() {
+        $.get('/customers/getGroupsForDropdown', function (res) {
+            if (res && !res.Error && res.Groups && res.Groups.length) {
+                var $sel = $('#CM_GroupUID');
+                var selected = $sel.val();
+                $sel.find('option:not([value=""])').remove();
+                $.each(res.Groups, function (_, g) {
+                    $sel.append(new Option(g.GroupName, g.GroupUID, false, String(g.GroupUID) === String(selected)));
+                });
+            }
+        });
     }
 
     // ── Groups AJAX reload ──

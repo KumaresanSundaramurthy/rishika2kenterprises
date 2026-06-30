@@ -380,6 +380,7 @@ class Dbwrite_model extends CI_Model {
         106 => 'IN',    // Sales Returns
         107 => 'IN',    // Credit Notes
         108 => 'OUT',   // Purchase Returns
+        112 => 'OUT',   // Delivery Challans (all modes: Non-Returnable / Returnable / Job Work — goods leave warehouse on dispatch)
     ];
 
     /**
@@ -680,14 +681,33 @@ class Dbwrite_model extends CI_Model {
      */
     /**
      * Insert the initial ProductStockTbl row when a new product is created.
+     * Pass $openingQty to seed with the product's opening stock quantity.
      */
-    public function initProductStock($productUID, $orgUID) {
+    public function initProductStock($productUID, $orgUID, $openingQty = 0.0) {
         $this->WriteDB->db_debug = FALSE;
         $this->WriteDB->insert('Products.ProductStockTbl', [
-            'ProductUID'   => (int) $productUID,
-            'OrgUID'       => (int) $orgUID,
-            'AvailableQty' => 0,
+            'ProductUID'   => (int)$productUID,
+            'OrgUID'       => (int)$orgUID,
+            'AvailableQty' => (float)$openingQty,
         ]);
+    }
+
+    /**
+     * Apply a delta (positive or negative) to ProductStockTbl.AvailableQty.
+     * Used when a product's OpeningQuantity is changed on edit.
+     * delta = newOpeningQty - oldOpeningQty
+     */
+    public function applyOpeningQtyDelta(int $productUID, int $orgUID, float $delta) {
+        if ($delta == 0.0) return;
+        $this->WriteDB->db_debug = FALSE;
+        $abs  = abs($delta);
+        $expr = $delta > 0
+            ? 'CAST(AvailableQty AS SIGNED) + ' . $abs
+            : 'CAST(AvailableQty AS SIGNED) - ' . $abs;
+        $this->WriteDB->query(
+            "UPDATE Products.ProductStockTbl SET AvailableQty = {$expr} WHERE ProductUID = ? AND OrgUID = ?",
+            [$productUID, $orgUID]
+        );
     }
 
     public function applyManualStockAdjustment($adjUID, $orgUID, $userUID, $productUID, $qty, $unitCost, $adjType) {

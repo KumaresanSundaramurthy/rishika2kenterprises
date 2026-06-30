@@ -435,6 +435,19 @@ class Rental extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
+            // Post rental income journal (non-fatal — payment is already committed)
+            try {
+                $this->load->library('accountledger');
+                $pmtUID = (int)$pmtResp->ID;
+                $pmtFY  = (int)date('Y', strtotime($paymentDate));
+                $rentalNo = $rental->RentalNumber ?? ('RNT-' . $rentalUID);
+                $this->accountledger->postIndirectIncomeJournal(
+                    $pmtUID, $paymentDate, $rentalNo, $pmtFY, round($amount, 2), $userUID
+                );
+            } catch (Exception $ledgerEx) {
+                log_message('error', 'Ledger failed after rental payment #' . $rentalUID . ': ' . $ledgerEx->getMessage());
+            }
+
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Payment recorded successfully.';
 

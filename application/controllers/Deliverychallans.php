@@ -351,6 +351,12 @@ class Deliverychallans extends MY_Controller {
             $this->dbwrite_model->commitTransaction();
             $this->cachehelper->touchCustomer($customerUID);
 
+            // Reduce AvailableQty for all modes (Non-Returnable / Returnable / Job Work)
+            if (!$isDraft) {
+                $this->dbwrite_model->saveStockMovements($transUID, $this->pageModuleUID, $orgUID, $userUID, $items);
+                $this->_syncProductCacheFromItems($items);
+            }
+
             $this->EndReturnData->Error    = FALSE;
             $this->EndReturnData->Message  = 'Delivery challan created successfully.';
             $this->EndReturnData->TransUID = $transUID;
@@ -569,6 +575,20 @@ class Deliverychallans extends MY_Controller {
             $this->cachehelper->touchCustomer($customerUID);
             $this->transactions_model->generateAndStorePdf(isset($newTransUID) ? $newTransUID : $transUID, $orgUID, $this->pageModuleUID);
 
+            // Stock movement after commit — handle 3 transitions:
+            // Draft → Draft     : no stock change
+            // Draft → Dispatched: save new stock movements (OUT)
+            // Dispatched → Dispatched: reverse old items then save new items (item qty may have changed)
+            if (!$isDraft) {
+                $wasDispatched = ($existing->DocStatus === 'Dispatched');
+                if ($wasDispatched) {
+                    $this->dbwrite_model->reverseStockMovements($transUID, $orgUID, $userUID);
+                    $this->_syncProductCacheByTransUID($transUID);
+                }
+                $this->dbwrite_model->saveStockMovements($transUID, $this->pageModuleUID, $orgUID, $userUID, $items);
+                $this->_syncProductCacheFromItems($items);
+            }
+
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Delivery challan updated successfully.';
         } catch (Exception $e) {
@@ -595,6 +615,7 @@ class Deliverychallans extends MY_Controller {
             $this->load->model('transactions_model');
             $existing = $this->transactions_model->getTransactionPageList(1, 0, $this->pageModuleUID, ['TransUID' => $transUID, 'OrgUID' => $orgUID]);
             if (empty($existing)) throw new Exception('Delivery Challan not found.');
+            $wasDispatched = ($existing[0]->DocStatus ?? '') === 'Dispatched';
 
             $now = time();
             $this->dbwrite_model->updateData('Transaction', 'TransProductsTbl',
@@ -610,6 +631,12 @@ class Deliverychallans extends MY_Controller {
             if ($deleteResp->Error) throw new Exception($deleteResp->Message);
 
             $this->dbwrite_model->commitTransaction();
+
+            // Restore AvailableQty — only if the challan was Dispatched (Draft had no stock deducted)
+            if ($wasDispatched) {
+                $this->dbwrite_model->reverseStockMovements($transUID, $orgUID, $userUID);
+                $this->_syncProductCacheByTransUID($transUID);
+            }
 
             $pageNo  = max(1, (int) $this->input->post('PageNo'));
             $limit   = (int) $this->input->post('RowLimit') ?: 10;
@@ -765,19 +792,27 @@ class Deliverychallans extends MY_Controller {
             $orgUID    = $this->pageData['JwtData']->Org->OrgUID;
             if ($transUID <= 0) throw new Exception('Invalid delivery challan.');
 
-            $validTransitions = [
-                'Draft'      => ['Dispatched'],
-                'Dispatched' => ['Delivered', 'Cancelled'],
-                'Delivered'  => [],
-                'Converted'  => [],
-                'Cancelled'  => [],
-            ];
-
             $this->load->model('transactions_model');
             $existing = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
             if (!$existing) throw new Exception('Delivery Challan not found.');
 
-            $current = $existing->DocStatus;
+            $current    = $existing->DocStatus;
+            $challanMode = $existing->QuotationType ?? 'Non-Returnable';
+            $isReturnable = in_array($challanMode, ['Returnable', 'Job Work']);
+
+            // Mode-aware transitions:
+            // Non-Returnable: Dispatched → Delivered (then → Converted to invoice)
+            // Returnable / Job Work: Dispatched → Returned (stock comes back)
+            // All modes: Dispatched → Cancelled
+            $validTransitions = [
+                'Draft'      => ['Dispatched'],
+                'Dispatched' => $isReturnable ? ['Returned', 'Cancelled'] : ['Delivered', 'Cancelled'],
+                'Delivered'  => [],
+                'Returned'   => [],
+                'Converted'  => [],
+                'Cancelled'  => [],
+            ];
+
             if (!in_array($newStatus, $validTransitions[$current] ?? [])) {
                 throw new Exception("Cannot change status from {$current} to {$newStatus}.");
             }
@@ -790,6 +825,12 @@ class Deliverychallans extends MY_Controller {
             );
             if ($resp->Error) throw new Exception($resp->Message);
             $this->dbwrite_model->commitTransaction();
+
+            // Restore AvailableQty when goods come back (Returned) or are cancelled before delivery
+            if (in_array($newStatus, ['Returned', 'Cancelled']) && $current === 'Dispatched') {
+                $this->dbwrite_model->reverseStockMovements($transUID, $orgUID, $userUID);
+                $this->_syncProductCacheByTransUID($transUID);
+            }
 
             $pageNo  = max(1, (int) $this->input->post('PageNo'));
             $limit   = (int) $this->input->post('RowLimit') ?: 10;

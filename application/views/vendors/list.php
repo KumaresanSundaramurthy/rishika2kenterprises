@@ -11,7 +11,9 @@ if (!empty($DataLists)):
         $uid    = (int)$list->TablePrimaryUID;
         $_sal   = !empty($list->SalutationName) ? htmlspecialchars($list->SalutationName) . '. ' : '';
         $name   = $_sal . htmlspecialchars($list->Name ?? '—');
-        $imgSrc = !empty($list->Image) ? $cdnUrl . $list->Image : null;
+        $imgSrc     = !empty($list->PrimaryImageUrl) ? $list->PrimaryImageUrl
+                    : (!empty($list->Image) ? $cdnUrl . $list->Image : null);
+        $imagesJson = htmlspecialchars($list->AttachmentsJson ?? '[]', ENT_QUOTES, 'UTF-8');
 
         // 2-letter initials
         $_words    = preg_split('/\s+/', trim($list->Name ?? ''));
@@ -39,8 +41,8 @@ if (!empty($DataLists)):
                     <?php if ($imgSrc): ?>
                         <img src="<?php echo htmlspecialchars($imgSrc); ?>"
                              alt="<?php echo $name; ?>"
-                             class="rounded-circle cursor-pointer preview-image"
-                             data-src="<?php echo htmlspecialchars($imgSrc); ?>"
+                             class="rounded-circle cursor-pointer vend-list-img"
+                             data-images="<?php echo $imagesJson; ?>"
                              style="width:36px;height:36px;object-fit:cover;" />
                     <?php else: ?>
                         <span class="avatar-initial rounded-circle bg-label-warning"><?php echo $_initials; ?></span>

@@ -1,18 +1,21 @@
 <?php defined('BASEPATH') OR exit('No direct script access allowed');
 
+/**
+ * @property object $attendance_model
+ * @property object $users_model
+ * @property object $dbwrite_model
+ * @property object $globalservice
+ * @property object $input
+ */
 class Salaryadvances extends MY_Controller {
 
-    public  $pageData = [];
+    public  $pageData     = [];
+    /** @var object|null */
     private $EndReturnData;
 
     public function __construct() { parent::__construct(); }
 
-    private function _orgUID()    { return (int)$this->pageData['JwtData']->Org->OrgUID; }
-    private function _branchUID() { return (int)($this->pageData['JwtData']->Org->BranchUID ?? 1); }
-    private function _userUID()   { return (int)$this->pageData['JwtData']->User->UserUID; }
-    private function _limit()     { return (int)($this->pageData['JwtData']->GenSettings->RowLimit ?? 10); }
-
-    private function _fetchTableData($pageNo, $limit, $filter = []) {
+    private function _fetchTableData(int $pageNo, int $limit, array $filter = []): object {
         $offset = max(0, ($pageNo - 1) * $limit);
         $this->load->model('attendance_model');
         $result  = $this->attendance_model->getAdvanceListPaginated($this->_orgUID(), $limit, $offset, $filter);
@@ -28,20 +31,20 @@ class Salaryadvances extends MY_Controller {
     public function index() {
         if (!$this->_loadPageTitle()) { $this->load->view('common/module_error', $this->pageData); return; }
         try {
-            $pd = $this->_fetchTableData(1, $this->_limit());
+            $pd = $this->_fetchTableData(1, $this->_rowLimit());
             $this->pageData['ModRowData']    = $pd->RecordHtmlData;
             $this->pageData['ModPagination'] = $pd->Pagination;
             $this->pageData['AdvanceStats']  = $pd->Stats;
             $this->load->model('users_model');
             $this->pageData['EmployeeList']  = $this->users_model->getEmployeeDropdownList($this->_orgUID());
             $this->load->view('hrms/salaryadvances/view', $this->pageData);
-        } catch (Exception $e) { redirect('dashboard', 'refresh'); }
+        } catch (Exception $_) { redirect('dashboard', 'refresh'); }
     }
 
     public function getPageDetails($pageNo = 0) {
         $this->EndReturnData = new stdClass();
         try {
-            $pd = $this->_fetchTableData(max(1, (int)$pageNo), $this->_limit(), $this->input->post('Filter') ?: []);
+            $pd = $this->_fetchTableData(max(1, (int)$pageNo), $this->_rowLimit(), $this->input->post('Filter') ?: []);
             $this->EndReturnData->Error          = FALSE;
             $this->EndReturnData->RecordHtmlData = $pd->RecordHtmlData;
             $this->EndReturnData->Pagination     = $pd->Pagination;
@@ -85,7 +88,7 @@ class Salaryadvances extends MY_Controller {
             }
             if ($res->Error) throw new Exception($res->Message);
 
-            $pd = $this->_fetchTableData(1, $this->_limit(), $this->input->post('Filter') ?: []);
+            $pd = $this->_fetchTableData(1, $this->_rowLimit(), $this->input->post('Filter') ?: []);
             $this->EndReturnData->Error          = FALSE;
             $this->EndReturnData->Message        = $uid ? 'Advance request updated.' : 'Advance request submitted.';
             $this->EndReturnData->RecordHtmlData = $pd->RecordHtmlData;
@@ -101,12 +104,35 @@ class Salaryadvances extends MY_Controller {
             $uid = (int)$this->input->post('AdvanceUID');
             if (!$uid) throw new Exception('Invalid advance.');
             $this->load->model('dbwrite_model');
+
+            // Fetch advance details before status change (need date + amount for journal)
+            $this->load->model('attendance_model');
+            $advances = $this->attendance_model->getAdvanceListPaginated($this->_orgUID(), 1, 0, ['AdvanceUID' => $uid]);
+            $advance  = !empty($advances->rows) ? $advances->rows[0] : null;
+
             $res = $this->dbwrite_model->updateData('Transaction', 'SalaryAdvanceTbl',
                 ['AdvanceStatus' => 'Approved', 'UpdatedBy' => $this->_userUID()],
                 ['AdvanceUID' => $uid, 'OrgUID' => $this->_orgUID(), 'AdvanceStatus' => 'Requested']
             );
             if ($res->Error) throw new Exception($res->Message);
-            $pd = $this->_fetchTableData(1, $this->_limit(), $this->input->post('Filter') ?: []);
+
+            // ── Post advance journal entry ─────────────────────────────────
+            if ($advance) {
+                try {
+                    $this->load->library('accountledger');
+                    $advDate = $advance->AdvanceDate ?? date('Y-m-d');
+                    $advFY   = (int)date('Y', strtotime($advDate));
+                    $this->accountledger->postAdvanceJournal(
+                        $uid, $advDate, $advFY,
+                        (float)($advance->AdvanceAmount ?? 0),
+                        $this->_userUID()
+                    );
+                } catch (Exception $ledgerEx) {
+                    log_message('error', 'Ledger failed after advance approval: ' . $ledgerEx->getMessage());
+                }
+            }
+
+            $pd = $this->_fetchTableData(1, $this->_rowLimit(), $this->input->post('Filter') ?: []);
             $this->EndReturnData->Error          = FALSE;
             $this->EndReturnData->Message        = 'Advance approved.';
             $this->EndReturnData->RecordHtmlData = $pd->RecordHtmlData;
@@ -127,7 +153,7 @@ class Salaryadvances extends MY_Controller {
                 ['AdvanceUID' => $uid, 'OrgUID' => $this->_orgUID(), 'AdvanceStatus' => 'Requested']
             );
             if ($res->Error) throw new Exception($res->Message);
-            $pd = $this->_fetchTableData(1, $this->_limit(), $this->input->post('Filter') ?: []);
+            $pd = $this->_fetchTableData(1, $this->_rowLimit(), $this->input->post('Filter') ?: []);
             $this->EndReturnData->Error          = FALSE;
             $this->EndReturnData->Message        = 'Advance rejected.';
             $this->EndReturnData->RecordHtmlData = $pd->RecordHtmlData;
@@ -142,13 +168,31 @@ class Salaryadvances extends MY_Controller {
         try {
             $uid = (int)$this->input->post('AdvanceUID');
             if (!$uid) throw new Exception('Invalid.');
+
+            // Check current status before deleting (need it for journal reversal decision)
+            $this->load->model('attendance_model');
+            $advances   = $this->attendance_model->getAdvanceListPaginated($this->_orgUID(), 1, 0, ['AdvanceUID' => $uid]);
+            $advance    = !empty($advances->rows) ? $advances->rows[0] : null;
+            $wasApproved = $advance && ($advance->AdvanceStatus ?? '') === 'Approved';
+
             $this->load->model('dbwrite_model');
             $res = $this->dbwrite_model->updateData('Transaction', 'SalaryAdvanceTbl',
                 ['IsDeleted' => 1, 'UpdatedBy' => $this->_userUID()],
                 ['AdvanceUID' => $uid, 'OrgUID' => $this->_orgUID()]
             );
             if ($res->Error) throw new Exception($res->Message);
-            $pd = $this->_fetchTableData(1, $this->_limit(), $this->input->post('Filter') ?: []);
+
+            // ── Reverse journal only if advance was already Approved ───────
+            if ($wasApproved) {
+                try {
+                    $this->load->library('accountledger');
+                    $this->accountledger->reverseJournal('SalaryAdvance', $uid, $this->_userUID());
+                } catch (Exception $ledgerEx) {
+                    log_message('error', 'Ledger reverse failed after advance delete: ' . $ledgerEx->getMessage());
+                }
+            }
+
+            $pd = $this->_fetchTableData(1, $this->_rowLimit(), $this->input->post('Filter') ?: []);
             $this->EndReturnData->Error          = FALSE;
             $this->EndReturnData->Message        = 'Advance deleted.';
             $this->EndReturnData->RecordHtmlData = $pd->RecordHtmlData;

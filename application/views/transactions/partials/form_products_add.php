@@ -197,32 +197,30 @@ $_paymentVars    = isset($transPaymentVars) ? $transPaymentVars : null;
         </div>
         <?php endif; ?>
         <?php if ($_dropzone): ?>
-        <div class="accordion transAccordion" id="dropZoneAccordion">
-            <div class="accordion-item">
-                <h2 class="accordion-header text-body d-flex justify-content-between">
-                    <button type="button" class="accordion-button" data-bs-toggle="collapse" data-bs-target="#accordionUploadFiles" aria-controls="accordionUploadFiles" aria-expanded="true">
-                        <i class="icon-base bx bx-paperclip me-2"></i> Attach Files <span class="ms-2 text-muted">(Max 5, 3 MB each)</span>
-                        <span id="existingAttachCount" class="badge bg-label-primary ms-2 d-none" style="font-size:.7rem;"></span>
-                    </button>
-                </h2>
-                <div id="accordionUploadFiles" class="accordion-collapse show" data-bs-parent="#dropZoneAccordion">
-                    <div class="accordion-body">
-                        <div id="existingAttachList" class="mb-3 d-none">
-                            <div class="d-flex align-items-center gap-1 mb-2">
-                                <i class="bx bx-link-alt text-primary" style="font-size:.85rem;"></i>
-                                <span style="font-size:.75rem;font-weight:700;color:#566a7f;text-transform:uppercase;letter-spacing:.5px;">Saved Files</span>
-                            </div>
-                            <div id="existingAttachItems" class="d-flex flex-wrap gap-2"></div>
-                        </div>
-                        <div class="dropzone needsclick p-3 dz-clickable w-100" id="multipleDropzone">
-                            <div class="dz-message needsclick text-center">
-                                <i class="upload-icon mb-3"></i>
-                                <p class="h5 needsclick mb-2">Drag and drop files here</p>
-                                <p class="h4 text-body-secondary fw-normal mb-0">or click to browse (max 3 MB per file)</p>
-                            </div>
-                        </div>
+        <div class="card border-0 shadow-sm mt-3" style="border-left:3px solid #6366f1 !important;">
+            <div class="card-header bg-transparent border-0 py-2 px-3 d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="d-flex align-items-center justify-content-center rounded-2"
+                          style="width:28px;height:28px;background:#ede9fe;">
+                        <i class="bx bx-paperclip" style="color:#6366f1;font-size:1rem;"></i>
+                    </span>
+                    <span style="font-weight:600;font-size:.875rem;color:#374151;">Attach Files</span>
+                    <span id="transAttachBadge" class="badge rounded-pill d-none"
+                          style="background:#ede9fe;color:#6366f1;font-size:.7rem;font-weight:600;"></span>
+                </div>
+                <!-- id="transAttachHint" is updated by _attachResetState on DOM ready -->
+                <span id="transAttachHint" style="font-size:.72rem;color:#9ca3af;"></span>
+            </div>
+            <div class="card-body px-3 pt-0 pb-3">
+                <div id="transAttachZone" class="prod-attach-zone" onclick="_attachZoneTrigger('Transaction', event)">
+                    <div id="transAttachEmpty" class="prod-attach-empty">
+                        <i class="bx bx-upload" id="transAttachIcon" style="font-size:2rem;color:#9ca3af;display:block;margin-bottom:6px;"></i>
+                        <div id="transAttachLabel" style="font-size:.78rem;font-weight:600;color:#6b7280;">Drag &amp; drop files here</div>
                     </div>
                 </div>
+                <div id="transAttachList" class="prod-attach-list mt-2" style="display:none;"></div>
+                <input type="file" id="transAttachInput" multiple style="display:none;">
+                <input type="hidden" id="RemovedAttachIDs" name="RemovedAttachIDs" value="">
             </div>
         </div>
         <?php endif; ?>

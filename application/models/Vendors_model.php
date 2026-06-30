@@ -1,122 +1,15 @@
 <?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Vendors_model extends CI_Model {
-    
+
     private $EndReturnData;
     private $ReadDb;
+    private $WriteDb;
 
-	function __construct() {
+    function __construct() {
         parent::__construct();
-
-        $this->ReadDb = $this->load->database('ReadDB', TRUE);
-
-    }
-
-    public function vendFilterFormation($ModuleInfoData, $Filter) {
-
-        $this->EndReturnData = new StdClass();
-        try {
-
-            $SearchDirectQuery = '';
-            $SearchFilter = [];
-            $sortOperation = [];
-            if(!empty($Filter)) {
-                if (array_key_exists('SearchAllData', $Filter)) {
-                    $SearchDirectQuery .= "((". $ModuleInfoData->TableAliasName.".Name LIKE '%".$Filter['SearchAllData']."%' ) OR (".$ModuleInfoData->TableAliasName.".Area LIKE '%".$Filter['SearchAllData']."%') OR (".$ModuleInfoData->TableAliasName.".MobileNumber LIKE '%".$Filter['SearchAllData']."%') OR (".$ModuleInfoData->TableAliasName.".ContactPerson LIKE '%".$Filter['SearchAllData']."%'))";
-                }
-                if (array_key_exists('NameSorting', $Filter)) {
-                    $sortOperation[$ModuleInfoData->TableAliasName . '.Name'] = $Filter['NameSorting'] == 1 ? 'ASC' : 'DESC';
-                }
-            }
-
-            $this->EndReturnData->Error = FALSE;
-            $this->EndReturnData->SearchDirectQuery = $SearchDirectQuery;
-            $this->EndReturnData->SearchFilter = $SearchFilter;
-            $this->EndReturnData->sortOperation = $sortOperation;
-
-        } catch (Exception $e) {
-            $this->EndReturnData->Error = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-            $this->EndReturnData->SearchDirectQuery = '';
-            $this->EndReturnData->SearchFilter = [];
-            $this->EndReturnData->sortOperation = [];
-        }
-
-        return $this->EndReturnData;
-
-    }
-
-    public function getVendorsList($limit, $offset, $Filter, $Flag = 0) {
-
-        $this->EndReturnData = new StdClass();
-        try {
-
-            $this->ReadDb->db_debug = FALSE;
-            if($Flag == 0) {
-                $select_ary = array(
-                    'Vendors.VendorUID AS VendorUID',
-                    'Vendors.OrgUID AS OrgUID',
-                    'Vendors.Name AS Name',
-                    'Vendors.Area AS Area',
-                    'Vendors.CountryISO2 as CountryISO2',
-                    'Vendors.CountryCode as CountryCode',
-                    'Vendors.MobileNumber as MobileNumber',
-                    'Vendors.EmailAddress as EmailAddress',
-                    'Vendors.GSTIN as GSTIN',
-                    'Vendors.CompanyName as CompanyName',
-                    'Vendors.DebitCreditType as DebitCreditType',
-                    'Vendors.DebitCreditAmount as DebitCreditAmount',
-                    'Vendors.Image as Image',
-                    'Vendors.PANNumber as PANNumber',
-                    'Vendors.DebitLimit as DebitLimit',
-                    'Vendors.Notes as Notes',
-                    'Vendors.Tags as Tags',
-                    'Vendors.CCEmails as CCEmails',
-                    'Vendors.CreatedOn as CreatedOn',
-                    'Vendors.UpdatedOn as UpdatedOn',
-                );
-            } else {
-                $select_ary = array(
-                    'Vendors.VendorUID AS VendorUID',
-                );
-            }
-            $WhereCondition = array(
-                'Vendors.IsDeleted' => 0,
-                'Vendors.IsActive' => 1,
-            );
-            $this->ReadDb->select($select_ary);
-            $this->ReadDb->from('Vendors.VendorTbl as Vendors');
-            $this->ReadDb->where($WhereCondition);
-            if (!empty($Filter)) {
-                if (array_key_exists('Name', $Filter)) {
-                    $this->ReadDb->like("Vendors.Name", $Filter['Name'], 'Both');
-                }
-            }
-            $this->ReadDb->group_by('Vendors.VendorUID');
-            if($Flag == 0) {
-                $this->ReadDb->order_by('Vendors.VendorUID', 'DESC');
-                $this->ReadDb->limit($limit, $offset);
-            }
-            
-            $query = $this->ReadDb->get();
-            $error = $this->ReadDb->error();
-            if ($error['code']) {
-                throw new Exception($error['message']);
-            } else {
-                if($Flag == 0) {
-                    $this->EndReturnData->Data = $query->result();
-                } else {
-                    $this->EndReturnData->Data = $query->num_rows();
-                }
-            }
-            return $this->EndReturnData->Data;
-
-        } catch (Exception $e) {
-            $this->EndReturnData->Error = TRUE;
-            $this->EndReturnData->Message = $e->getMessage();
-            throw new Exception($this->EndReturnData->Message);
-        }
-
+        $this->ReadDb  = $this->load->database('ReadDB',  TRUE);
+        $this->WriteDb = $this->load->database('WriteDB', TRUE);
     }
 
     public function getVendors($FilterArray) {
@@ -128,6 +21,7 @@ class Vendors_model extends CI_Model {
 
             $select_ary = array(
                 'Vendors.VendorUID AS VendorUID',
+                'Vendors.SalutationUID AS SalutationUID',
                 'Vendors.OrgUID AS OrgUID',
                 'Vendors.Name AS Name',
                 'Vendors.Area AS Area',
@@ -400,8 +294,38 @@ class Vendors_model extends CI_Model {
             $dataQuery = $this->ReadDb->get();
             if (!$dataQuery) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
 
+            $rows = $dataQuery->result();
+
+            // Batch-fetch first attachment + full gallery per vendor for list view
+            if (!empty($rows)) {
+                $vendUIDs = array_column((array)$rows, 'VendorUID');
+                $cdnUrl   = rtrim(getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv('CFLARE_R2_CDN'), '/');
+                $ph       = implode(',', array_fill(0, count($vendUIDs), '?'));
+                $attQ     = $this->ReadDb->query(
+                    "SELECT VendorUID, FilePath, FileName FROM Vendors.VendorAttachmentsTbl
+                      WHERE VendorUID IN ({$ph}) AND IsDeleted = 0
+                      ORDER BY VendorUID, SortOrder ASC",
+                    $vendUIDs
+                );
+                $primaryMap = [];
+                $galleryMap = [];
+                if ($attQ) {
+                    foreach ($attQ->result() as $att) {
+                        $uid = (int)$att->VendorUID;
+                        $entry = ['url' => $cdnUrl . '/' . ltrim($att->FilePath, '/'), 'name' => $att->FileName];
+                        if (!isset($primaryMap[$uid])) $primaryMap[$uid] = $entry;
+                        $galleryMap[$uid][] = $entry;
+                    }
+                }
+                foreach ($rows as $row) {
+                    $uid = (int)$row->VendorUID;
+                    $row->PrimaryImageUrl = isset($primaryMap[$uid]) ? $primaryMap[$uid]['url'] : null;
+                    $row->AttachmentsJson = json_encode($galleryMap[$uid] ?? [], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                }
+            }
+
             $result             = new stdClass();
-            $result->rows       = $dataQuery->result();
+            $result->rows       = $rows;
             $result->totalCount = $totalCount;
             return $result;
 
@@ -541,15 +465,82 @@ class Vendors_model extends CI_Model {
 
     public function updateVendorPendingBalance($orgUID, $vendorUID, $pendingBalance, $pendingBalType, $userUID) {
         try {
-            $this->ReadDb->db_debug = FALSE;
-            $this->ReadDb->where(['OrgUID' => (int)$orgUID, 'VendorUID' => (int)$vendorUID, 'IsDeleted' => 0]);
-            $this->ReadDb->update('Vendors.VendOpeningBalanceTbl', [
+            $this->WriteDb->db_debug = FALSE;
+            $this->WriteDb->where(['OrgUID' => (int)$orgUID, 'VendorUID' => (int)$vendorUID, 'IsDeleted' => 0]);
+            $this->WriteDb->update('Vendors.VendOpeningBalanceTbl', [
                 'PendingBalance' => (float)$pendingBalance,
                 'PendingBalType' => $pendingBalType,
                 'UpdatedBy'      => (int)$userUID,
             ]);
         } catch (Exception $e) {
             throw new Exception($e->getMessage());
+        }
+    }
+
+    // Purchase Returns already covered by a pending/applied debit note — excluded from effectiveReturned to avoid double-counting.
+    public function getVendorPRCoveredByDebitNote($orgUID, $vendorUID) {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('COALESCE(SUM(COALESCE(T.BalanceAmount, T.NetAmount)), 0) AS total');
+            $this->ReadDb->from('`Transaction`.TransactionsTbl T');
+            $this->ReadDb->join(
+                '`Transaction`.TransDebitNoteTbl DN',
+                'DN.SourceTransUID = T.TransUID AND DN.SourceModuleUID = 108 AND DN.IsDeleted = 0 AND DN.OrgUID = ' . (int)$orgUID,
+                'inner'
+            );
+            $this->ReadDb->where([
+                'T.OrgUID'    => (int)$orgUID,
+                'T.PartyUID'  => (int)$vendorUID,
+                'T.PartyType' => 'V',
+                'T.IsDeleted' => 0,
+                'T.ModuleUID' => 108,
+            ]);
+            $this->ReadDb->where_not_in('T.DocStatus', ['Cancelled', 'Rejected']);
+            $this->ReadDb->where('DN.IsCancelled', 0);
+            $query = $this->ReadDb->get();
+            if (!$query) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
+            return (float)$query->row()->total;
+        } catch (Exception $e) {
+            log_message('error', 'Vendors_model::getVendorPRCoveredByDebitNote failed: ' . $e->getMessage());
+            return 0.0;
+        }
+    }
+
+    // Returns [pendingDebitNotes, pendingCreditNotes] totals for a vendor.
+    // Debit notes  (TransDebitNoteTbl, PartyType='S') = vendor owes us  → reduces our payable
+    // Credit notes (TransCreditNoteTbl, PartyType='S') = we owe vendor  → increases our payable
+    public function getVendorPendingNoteTotals($orgUID, $vendorUID) {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+
+            $this->ReadDb->select('COALESCE(SUM(Amount), 0) AS total');
+            $this->ReadDb->from('Transaction.TransDebitNoteTbl');
+            $this->ReadDb->where([
+                'OrgUID'    => (int)$orgUID,
+                'PartyUID'  => (int)$vendorUID,
+                'PartyType' => 'S',
+                'Status'    => 'Pending',
+                'IsDeleted' => 0,
+            ]);
+            $dnRow          = $this->ReadDb->get()->row();
+            $pendingDebit   = $dnRow ? (float)$dnRow->total : 0.0;
+
+            $this->ReadDb->select('COALESCE(SUM(Amount), 0) AS total');
+            $this->ReadDb->from('Transaction.TransCreditNoteTbl');
+            $this->ReadDb->where([
+                'OrgUID'    => (int)$orgUID,
+                'PartyUID'  => (int)$vendorUID,
+                'PartyType' => 'S',
+                'Status'    => 'Pending',
+                'IsDeleted' => 0,
+            ]);
+            $cnRow          = $this->ReadDb->get()->row();
+            $pendingCredit  = $cnRow ? (float)$cnRow->total : 0.0;
+
+            return [$pendingDebit, $pendingCredit];
+        } catch (Exception $e) {
+            log_message('error', 'Vendors_model::getVendorPendingNoteTotals failed: ' . $e->getMessage());
+            return [0.0, 0.0];
         }
     }
 
@@ -576,19 +567,6 @@ class Vendors_model extends CI_Model {
 
     // Applies a signed numeric delta (+/-) to the vendor running opening balance.
     // Returns ['balance' => float, 'type' => 'Debit'|'Credit'].
-    public function applyVendorOpeningBalanceDelta($orgUID, $vendorUID, $delta, $userUID) {
-        $row           = $this->getVendorOpeningBalance($orgUID, $vendorUID);
-        $currentSigned = 0.0;
-        if ($row) {
-            $currentSigned = ($row->OpeningBalType === 'Credit') ? (float)$row->OpeningBalance : -(float)$row->OpeningBalance;
-        }
-        $newSigned  = round($currentSigned + $delta, 2);
-        $newBalance = abs($newSigned);
-        $newType    = ($newSigned >= 0) ? 'Credit' : 'Debit';
-        $this->saveVendorOpeningBalance($orgUID, $vendorUID, $newBalance, $newType, null, $userUID);
-        return ['balance' => $newBalance, 'type' => $newType];
-    }
-
     // ── VendYearOpeningBalanceTbl (year-wise opening balance snapshot) ─────────
 
     // $onlyIfNew=true: insert-only, preserving the year-start snapshot.
@@ -760,14 +738,14 @@ class Vendors_model extends CI_Model {
 
     public function updateVendorBalanceInLedger($ledgerUID, $balance, $balanceType, $userUID) {
         try {
-            $this->ReadDb->db_debug = FALSE;
-            $this->ReadDb->where('LedgerUID', (int)$ledgerUID);
-            $this->ReadDb->update('Accounting.ChartOfAccounts', [
+            $this->WriteDb->db_debug = FALSE;
+            $this->WriteDb->where('LedgerUID', (int)$ledgerUID);
+            $this->WriteDb->update('Accounting.ChartOfAccounts', [
                 'CurrentBalance'     => $balance,
                 'CurrentBalanceType' => $balanceType,
                 'UpdatedBy'          => (int)$userUID,
             ]);
-            if ($this->ReadDb->affected_rows() === false) throw new Exception('Ledger update failed.');
+            if ($this->WriteDb->affected_rows() === false) throw new Exception('Ledger update failed.');
         } catch (Exception $e) {
             throw new Exception($e->getMessage());
         }
@@ -972,4 +950,33 @@ class Vendors_model extends CI_Model {
         ]);
     }
 
+    // ── Vendor Attachments ────────────────────────────────────────────────────
+
+    public function getVendorAttachments(int $vendorUID, int $orgUID): array {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('AttachUID, FileName, FilePath, FileSize, SortOrder, CreatedOn');
+            $this->ReadDb->from('Vendors.VendorAttachmentsTbl');
+            $this->ReadDb->where(['VendorUID' => $vendorUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
+            $this->ReadDb->order_by('SortOrder', 'ASC');
+            $query = $this->ReadDb->get();
+            return $query ? $query->result_array() : [];
+        } catch (Exception $e) {
+            log_message('error', 'getVendorAttachments failed: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    public function getVendorPrimaryImage(int $vendorUID, int $orgUID): ?string {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('FilePath');
+            $this->ReadDb->from('Vendors.VendorAttachmentsTbl');
+            $this->ReadDb->where(['VendorUID' => $vendorUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
+            $this->ReadDb->order_by('SortOrder', 'ASC');
+            $this->ReadDb->limit(1);
+            $row = $this->ReadDb->get()->row();
+            return $row ? $row->FilePath : null;
+        } catch (Exception $e) { return null; }
+    }
 }

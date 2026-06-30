@@ -1,12 +1,25 @@
 <?php defined('BASEPATH') OR exit('No direct script access allowed');
 
+/**
+ * @property object $accountledger_model
+ * @property object $dbwrite_model
+ * @property array  $pageData
+ * @property object $input
+ */
 Class Accountledger {
 
+    /** @var object */
     protected $CI;
-    private   $_sysLedgerCache = [];
+    /** @var array */
+    private $_sysLedgerCache = [];
 
     public function __construct() {
         $this->CI =& get_instance();
+    }
+
+    /** Returns the current org UID from JWT — used in every Accounting insert/query */
+    private function _orgUID(): int {
+        return (int)($this->CI->pageData['JwtData']->Org->OrgUID ?? 0);
     }
 
     public function createLedgerAccountingInfo($entityId, $postData, $entityType = 'Customer') {
@@ -29,16 +42,17 @@ Class Accountledger {
             // Create ledger account
             $ledgerCode = $this->generateLedgerCode($entityId, $entityType);
             $ledgerData = [
-                'LedgerCode' => $ledgerCode,
-                'LedgerName' => $postData['Name'],
-                'LedgerType' => $entityType,
-                'ParentLedgerUID' => $ledgerConfig['parent_id'],
-                'OpeningBalance' => $postData['OpeningBalance'],
+                'OrgUID'             => $this->_orgUID(),
+                'LedgerCode'         => $ledgerCode,
+                'LedgerName'         => $postData['Name'],
+                'LedgerType'         => $entityType,
+                'ParentLedgerUID'    => $ledgerConfig['parent_id'],
+                'OpeningBalance'     => $postData['OpeningBalance'],
                 'OpeningBalanceType' => $postData['OpeningBalanceType'],
-                'CurrentBalance' => (float)$postData['OpeningBalance'],
+                'CurrentBalance'     => (float)$postData['OpeningBalance'],
                 'CurrentBalanceType' => $postData['OpeningBalanceType'],
-                'CreatedBy' => $this->CI->pageData['JwtData']->User->UserUID,
-                'UpdatedBy' => $this->CI->pageData['JwtData']->User->UserUID,
+                'CreatedBy'          => $this->CI->pageData['JwtData']->User->UserUID,
+                'UpdatedBy'          => $this->CI->pageData['JwtData']->User->UserUID,
             ];
             $ledgerResp = $this->CI->dbwrite_model->insertData('Accounting', 'ChartOfAccounts', $ledgerData);
             if ($ledgerResp->Error) throw new Exception($ledgerResp->Message);
@@ -52,10 +66,13 @@ Class Accountledger {
             */
             $financialYear = $this->getFinancialYear();
             $yearOpeningData = [
-                'LedgerUID' => $ledgerId,
-                'FinancialYear' => $financialYear,
-                'OpeningBalance' => (float) $postData['OpeningBalance'],
-                'OpeningBalanceType' => $postData['OpeningBalanceType'],
+                'OrgUID'            => $this->_orgUID(),
+                'LedgerUID'         => $ledgerId,
+                'FinancialYear'     => $financialYear,
+                'OpeningBalance'    => (float) $postData['OpeningBalance'],
+                'OpeningBalanceType'=> $postData['OpeningBalanceType'],
+                'CreatedBy'         => $this->CI->pageData['JwtData']->User->UserUID,
+                'UpdatedBy'         => $this->CI->pageData['JwtData']->User->UserUID,
             ];
             $yearResp = $this->CI->dbwrite_model->insertData('Accounting', 'LedgerYearOpening', $yearOpeningData);
             if ($yearResp->Error) {
@@ -135,10 +152,11 @@ Class Accountledger {
 
             // Determine which column to set based on entity type
             $mapData = [
-                'LedgerUID' => $ledgerId,
+                'OrgUID'     => $this->_orgUID(),
+                'LedgerUID'  => $ledgerId,
                 'EntityType' => $entityType,
-                'CreatedBy' => $this->CI->pageData['JwtData']->User->UserUID,
-                'UpdatedBy' => $this->CI->pageData['JwtData']->User->UserUID,
+                'CreatedBy'  => $this->CI->pageData['JwtData']->User->UserUID,
+                'UpdatedBy'  => $this->CI->pageData['JwtData']->User->UserUID,
             ];
             
             // Set the appropriate entity column
@@ -216,23 +234,24 @@ Class Accountledger {
             $entityColumns = $this->getEntityColumns($entityType, $entityId);
             
             $auditData = [
-                'LedgerUID' => $ledgerId,
-                'EntityType' => $entityType,
-                'ChangeType' => $changeType,
+                'OrgUID'       => $this->_orgUID(),
+                'LedgerUID'    => $ledgerId,
+                'EntityType'   => $entityType,
+                'ChangeType'   => $changeType,
                 'FieldChanged' => $details['field'] ?? NULL,
-                'OldValue' => $details['old_value'] ?? NULL,
-                'NewValue' => $details['new_value'] ?? NULL,
-                'ChangeDetails' => json_encode([
-                    'AmountChange' => $details['amount_change'] ?? 0,
+                'OldValue'     => $details['old_value'] ?? NULL,
+                'NewValue'     => $details['new_value'] ?? NULL,
+                'ChangeDetails'=> json_encode([
+                    'AmountChange'      => $details['amount_change'] ?? 0,
                     'BalanceTypeChange' => $details['balance_type_change'] ?? NULL,
-                    'Reason' => $details['reason'] ?? 'Ledger update',
-                    'ReferenceId' => $details['reference_id'] ?? NULL,
-                    'EntityType' => $entityType
+                    'Reason'            => $details['reason'] ?? 'Ledger update',
+                    'ReferenceId'       => $details['reference_id'] ?? NULL,
+                    'EntityType'        => $entityType,
                 ]),
                 'CreatedBy' => $this->CI->pageData['JwtData']->User->UserUID,
                 'UpdatedBy' => $this->CI->pageData['JwtData']->User->UserUID,
                 'IPAddress' => $this->CI->input->ip_address(),
-                'UserAgent' => $this->CI->input->user_agent()
+                'UserAgent' => $this->CI->input->user_agent(),
             ];
             
             // Merge entity columns
@@ -350,13 +369,13 @@ Class Accountledger {
 
                 // Update yearly opening balance
                 $financialYear = $this->getFinancialYear();
-                $this->CI->dbwrite_model->updateData('Accounting', 'LedgerYearOpening', ['OpeningBalance' => $newBalance, 'OpeningBalanceType' => $newType], ['LedgerUID' => $ledgerUID, 'FinancialYear' => $financialYear]);
+                $this->CI->dbwrite_model->updateData('Accounting', 'LedgerYearOpening', ['OpeningBalance' => $newBalance, 'OpeningBalanceType' => $newType], ['OrgUID' => $this->_orgUID(), 'LedgerUID' => $ledgerUID, 'FinancialYear' => $financialYear]);
 
             }
             
             /** ---------------- Persist Changes ---------------- */
             if (!empty($ledgerUpdateData)) {
-                $updateResp = $this->CI->dbwrite_model->updateData('Accounting', 'ChartOfAccounts', $ledgerUpdateData, ['LedgerUID' => $entityLedger->LedgerUID]);
+                $updateResp = $this->CI->dbwrite_model->updateData('Accounting', 'ChartOfAccounts', $ledgerUpdateData, ['OrgUID' => $this->_orgUID(), 'LedgerUID' => $entityLedger->LedgerUID]);
                 if ($updateResp->Error) {
                     throw new Exception('Failed to update ledger: ' . $updateResp->Message);
                 }
@@ -388,11 +407,11 @@ Class Accountledger {
             // 1. Update ledger status (soft delete)
             $ledgerData = ['IsDeleted' => 1, 'IsActive' => 0];
             
-            $updateResp = $this->CI->dbwrite_model->updateData('Accounting', 'ChartOfAccounts', $ledgerData, ['LedgerUID' => $ledgerId]);
+            $updateResp = $this->CI->dbwrite_model->updateData('Accounting', 'ChartOfAccounts', $ledgerData, ['OrgUID' => $this->_orgUID(), 'LedgerUID' => $ledgerId]);
             if ($updateResp->Error) throw new Exception($updateResp->Message);
 
             // Soft deactivate entity-ledger mapping
-            $this->CI->dbwrite_model->updateData('Accounting', 'EntityLedgerMap', ['IsDeleted' => 1], ['LedgerUID' => $ledgerId, 'EntityType' => $entityType]);
+            $this->CI->dbwrite_model->updateData('Accounting', 'EntityLedgerMap', ['IsDeleted' => 1], ['OrgUID' => $this->_orgUID(), 'LedgerUID' => $ledgerId, 'EntityType' => $entityType]);
             
             // 4Audit log
             $this->logLedgerAudit(
@@ -452,7 +471,7 @@ Class Accountledger {
                 'CurrentBalanceType' => $newType,
                 'UpdatedBy'          => $this->CI->pageData['JwtData']->User->UserUID,
             ],
-            ['LedgerUID' => $ledgerUID]
+            ['OrgUID' => $this->_orgUID(), 'LedgerUID' => $ledgerUID]
         );
         if ($updateResp->Error) {
             throw new Exception('Failed to update ledger balance: ' . $updateResp->Message);
@@ -488,14 +507,24 @@ Class Accountledger {
         }
 
         $codeMap = [
-            'sales_revenue' => 'SYS-SALES',
-            'purchase_cost' => 'SYS-PURCH',
-            'cgst_output'   => 'SYS-CGST-OUT',
-            'sgst_output'   => 'SYS-SGST-OUT',
-            'igst_output'   => 'SYS-IGST-OUT',
-            'cgst_input'    => 'SYS-CGST-IN',
-            'sgst_input'    => 'SYS-SGST-IN',
-            'igst_input'    => 'SYS-IGST-IN',
+            'sales_revenue'   => 'SYS-SALES',
+            'purchase_cost'   => 'SYS-PURCH',
+            'cgst_output'     => 'SYS-CGST-OUT',
+            'sgst_output'     => 'SYS-SGST-OUT',
+            'igst_output'     => 'SYS-IGST-OUT',
+            'cgst_input'      => 'SYS-CGST-IN',
+            'sgst_input'      => 'SYS-SGST-IN',
+            'igst_input'      => 'SYS-IGST-IN',
+            'expense_account' => 'SYS-EXPENSE',
+            'income_account'  => 'SYS-IND-INC',
+            'accounts_payable'=> 'SYS-AP',
+            'accounts_receiv' => 'SYS-AR',
+            'salary_expense'  => 'SYS-SALARY-EXP',
+            'salary_payable'  => 'SYS-SALARY-PAY',
+            'advance_clearing'=> 'SYS-EMP-ADV',   // Employee Advances (Asset) — Dr on advance, Cr on payroll recovery
+            'employee_advance'=> 'SYS-EMP-ADV',
+            'stock_in_hand'   => 'SYS-STOCK',
+            'stock_adj_loss'  => 'SYS-STOCK-ADJ',
         ];
 
         $code = $codeMap[$purpose] ?? null;
@@ -504,7 +533,7 @@ Class Accountledger {
         }
 
         $this->CI->load->model('accountledger_model');
-        $row = $this->CI->accountledger_model->getSystemLedgerByCode($code);
+        $row = $this->CI->accountledger_model->getSystemLedgerByCode($code, $this->_orgUID());
         return $this->_sysLedgerCache[$purpose] = ($row ? (int) $row->LedgerUID : null);
     }
 
@@ -513,8 +542,10 @@ Class Accountledger {
     // -------------------------------------------------------------------------
 
     private function _createJournalHeader($journalDate, $fy, $refType, $refID, $refNo, $narration, $createdBy) {
-        $tmpNo = 'TMP-' . microtime(true) . '-' . $refID;
-        $resp  = $this->CI->dbwrite_model->insertData('Accounting', 'GeneralJournal', [
+        $orgUID = $this->_orgUID();
+        $tmpNo  = 'TMP-' . $orgUID . '-' . microtime(true) . '-' . $refID;
+        $resp   = $this->CI->dbwrite_model->insertData('Accounting', 'GeneralJournal', [
+            'OrgUID'        => $orgUID,
             'JournalNo'     => $tmpNo,
             'JournalDate'   => $journalDate,
             'FinancialYear' => (int) $fy,
@@ -524,15 +555,17 @@ Class Accountledger {
             'Narration'     => $narration,
             'IsDeleted'     => 0,
             'CreatedBy'     => (int) $createdBy,
+            'UpdatedBy'     => (int) $createdBy,
         ]);
         if ($resp->Error) throw new Exception('GeneralJournal insert failed: ' . $resp->Message);
 
         $jUID      = (int) $resp->ID;
+        // JournalNo is per-org unique: ORG1-JRN-2026-0000001
         $journalNo = 'JRN-' . $fy . '-' . str_pad($jUID, 7, '0', STR_PAD_LEFT);
         $this->CI->dbwrite_model->updateData(
             'Accounting', 'GeneralJournal',
             ['JournalNo' => $journalNo],
-            ['JournalUID' => $jUID]
+            ['JournalUID' => $jUID, 'OrgUID' => $orgUID]
         );
 
         return $jUID;
@@ -542,7 +575,11 @@ Class Accountledger {
         $amount = round((float) $amount, 2);
         if ($amount <= 0 || !$ledgerUID) return;
 
-        $this->CI->dbwrite_model->insertData('Accounting', 'JournalEntries', [
+        $orgUID = $this->_orgUID();
+
+        // Insert journal entry line — capture EntryUID for LedgerBalances FK
+        $entryResp = $this->CI->dbwrite_model->insertData('Accounting', 'JournalEntries', [
+            'OrgUID'          => $orgUID,
             'JournalUID'      => (int) $journalUID,
             'LedgerUID'       => (int) $ledgerUID,
             'TransactionType' => $type,
@@ -552,11 +589,12 @@ Class Accountledger {
             'CreatedBy'       => (int) $createdBy,
             'UpdatedBy'       => (int) $createdBy,
         ]);
+        $entryUID = $entryResp->Error ? 0 : (int)$entryResp->ID;
 
-        // Update running balance in LedgerBalances
+        // Compute running balance for this ledger
         $this->CI->load->model('accountledger_model');
-        $last     = $this->CI->accountledger_model->getLastLedgerBalance((int) $ledgerUID, (int) $fy);
-        $prevBal  = $last ? (float) $last->RunningBalance : 0.0;
+        $last     = $this->CI->accountledger_model->getLastLedgerBalance((int)$ledgerUID, (int)$fy, $orgUID);
+        $prevBal  = $last ? (float)$last->RunningBalance : 0.0;
         $prevType = $last ? $last->BalanceType : 'Debit';
 
         if ($type === $prevType) {
@@ -572,11 +610,15 @@ Class Accountledger {
             }
         }
 
+        // One LedgerBalances row per journal ENTRY (EntryUID), not per journal
+        // This allows the same ledger to appear in multiple lines of one journal
         $this->CI->dbwrite_model->insertData('Accounting', 'LedgerBalances', [
-            'LedgerUID'       => (int) $ledgerUID,
-            'FinancialYear'   => (int) $fy,
+            'OrgUID'          => $orgUID,
+            'LedgerUID'       => (int)$ledgerUID,
+            'EntryUID'        => $entryUID,
+            'FinancialYear'   => (int)$fy,
             'TransactionDate' => $journalDate,
-            'JournalUID'      => (int) $journalUID,
+            'JournalUID'      => (int)$journalUID,
             'DebitAmount'     => $type === 'Debit'  ? $amount : 0.00,
             'CreditAmount'    => $type === 'Credit' ? $amount : 0.00,
             'RunningBalance'  => $newBal,
@@ -706,6 +748,348 @@ Class Accountledger {
         }
     }
 
+    // Sales Return: Dr Sales Revenue + Dr Output Tax, Cr Customer (reversal of a sale)
+    public function postSaleReturnJournal($transUID, $transDate, $uniqueNumber, $fy, $netAmount, $taxableAmount, $cgst, $sgst, $igst, $customerUID, $createdBy) {
+        $netAmount     = round((float) $netAmount, 2);
+        $taxableAmount = round((float) $taxableAmount, 2);
+        $cgst          = round((float) $cgst, 2);
+        $sgst          = round((float) $sgst, 2);
+        $igst          = round((float) $igst, 2);
+        if ($netAmount <= 0) return;
+
+        $mapping = $this->getEntityLedgerMapping($customerUID, 'Customer');
+        if (!$mapping || empty($mapping->LedgerUID)) return;
+        $custLedgerUID = (int) $mapping->LedgerUID;
+
+        $jUID = $this->_createJournalHeader(
+            $transDate, $fy, 'SalesReturn', $transUID, $uniqueNumber ?: null,
+            'Sales Return ' . ($uniqueNumber ?: 'Draft') . ' — Customer #' . $customerUID,
+            $createdBy
+        );
+
+        $salesUID = $this->_getSystemLedgerUID('sales_revenue');
+        if ($salesUID) {
+            $this->_addJournalLine($jUID, $salesUID, 'Debit', $taxableAmount,
+                'Sales return — goods/services reversed ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
+        }
+        if ($cgst > 0) {
+            $uid = $this->_getSystemLedgerUID('cgst_output');
+            if ($uid) $this->_addJournalLine($jUID, $uid, 'Debit', $cgst,
+                'Output CGST reversed — ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
+        }
+        if ($sgst > 0) {
+            $uid = $this->_getSystemLedgerUID('sgst_output');
+            if ($uid) $this->_addJournalLine($jUID, $uid, 'Debit', $sgst,
+                'Output SGST reversed — ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
+        }
+        if ($igst > 0) {
+            $uid = $this->_getSystemLedgerUID('igst_output');
+            if ($uid) $this->_addJournalLine($jUID, $uid, 'Debit', $igst,
+                'Output IGST reversed — ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
+        }
+        $this->_addJournalLine($jUID, $custLedgerUID, 'Credit', $netAmount,
+            'Sales return credit — ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
+    }
+
+    // Purchase Return: Dr Vendor, Cr Purchase Cost + Cr Input Tax (reversal of a purchase)
+    public function postPurchaseReturnJournal($transUID, $transDate, $uniqueNumber, $fy, $netAmount, $taxableAmount, $cgst, $sgst, $igst, $vendorUID, $createdBy) {
+        $netAmount     = round((float) $netAmount, 2);
+        $taxableAmount = round((float) $taxableAmount, 2);
+        $cgst          = round((float) $cgst, 2);
+        $sgst          = round((float) $sgst, 2);
+        $igst          = round((float) $igst, 2);
+        if ($netAmount <= 0) return;
+
+        $mapping = $this->getEntityLedgerMapping($vendorUID, 'Vendor');
+        if (!$mapping || empty($mapping->LedgerUID)) return;
+        $vendLedgerUID = (int) $mapping->LedgerUID;
+
+        $jUID = $this->_createJournalHeader(
+            $transDate, $fy, 'PurchaseReturn', $transUID, $uniqueNumber ?: null,
+            'Purchase Return ' . ($uniqueNumber ?: 'Draft') . ' — Vendor #' . $vendorUID,
+            $createdBy
+        );
+
+        $this->_addJournalLine($jUID, $vendLedgerUID, 'Debit', $netAmount,
+            'Purchase return debit — ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
+
+        $purchUID = $this->_getSystemLedgerUID('purchase_cost');
+        if ($purchUID) {
+            $this->_addJournalLine($jUID, $purchUID, 'Credit', $taxableAmount,
+                'Purchase return — goods/services reversed ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
+        }
+        if ($cgst > 0) {
+            $uid = $this->_getSystemLedgerUID('cgst_input');
+            if ($uid) $this->_addJournalLine($jUID, $uid, 'Credit', $cgst,
+                'Input CGST reversed — ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
+        }
+        if ($sgst > 0) {
+            $uid = $this->_getSystemLedgerUID('sgst_input');
+            if ($uid) $this->_addJournalLine($jUID, $uid, 'Credit', $sgst,
+                'Input SGST reversed — ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
+        }
+        if ($igst > 0) {
+            $uid = $this->_getSystemLedgerUID('igst_input');
+            if ($uid) $this->_addJournalLine($jUID, $uid, 'Credit', $igst,
+                'Input IGST reversed — ' . ($uniqueNumber ?: ''), $transDate, $fy, $createdBy);
+        }
+    }
+
+    // Expense: Dr Expense Account, Cr Accounts Payable
+    public function postExpenseJournal($expenseUID, $expenseDate, $expenseNumber, $fy, $netAmount, $createdBy) {
+        $netAmount = round((float) $netAmount, 2);
+        if ($netAmount <= 0) return;
+
+        $jUID = $this->_createJournalHeader(
+            $expenseDate, $fy, 'Expense', $expenseUID, $expenseNumber ?: null,
+            'Expense ' . ($expenseNumber ?: '#' . $expenseUID),
+            $createdBy
+        );
+
+        $expUID = $this->_getSystemLedgerUID('expense_account');
+        if ($expUID) {
+            $this->_addJournalLine($jUID, $expUID, 'Debit', $netAmount,
+                'Expense recorded — ' . ($expenseNumber ?: '#' . $expenseUID), $expenseDate, $fy, $createdBy);
+        }
+        $apUID = $this->_getSystemLedgerUID('accounts_payable');
+        if ($apUID) {
+            $this->_addJournalLine($jUID, $apUID, 'Credit', $netAmount,
+                'Payable for expense — ' . ($expenseNumber ?: '#' . $expenseUID), $expenseDate, $fy, $createdBy);
+        }
+    }
+
+    // Indirect Income: Dr Accounts Receivable, Cr Income Account
+    public function postIndirectIncomeJournal($incomeUID, $incomeDate, $incomeNumber, $fy, $netAmount, $createdBy) {
+        $netAmount = round((float) $netAmount, 2);
+        if ($netAmount <= 0) return;
+
+        $jUID = $this->_createJournalHeader(
+            $incomeDate, $fy, 'IndirectIncome', $incomeUID, $incomeNumber ?: null,
+            'Indirect Income ' . ($incomeNumber ?: '#' . $incomeUID),
+            $createdBy
+        );
+
+        $arUID = $this->_getSystemLedgerUID('accounts_receiv');
+        if ($arUID) {
+            $this->_addJournalLine($jUID, $arUID, 'Debit', $netAmount,
+                'Income receivable — ' . ($incomeNumber ?: '#' . $incomeUID), $incomeDate, $fy, $createdBy);
+        }
+        $incUID = $this->_getSystemLedgerUID('income_account');
+        if ($incUID) {
+            $this->_addJournalLine($jUID, $incUID, 'Credit', $netAmount,
+                'Indirect income recorded — ' . ($incomeNumber ?: '#' . $incomeUID), $incomeDate, $fy, $createdBy);
+        }
+    }
+
+    // Salary Advance approved: Dr Employee Advances (Asset), Cr Accounts Payable (cash out)
+    public function postAdvanceJournal(int $advanceUID, string $advanceDate, int $fy, float $amount, int $createdBy) {
+        $amount = round($amount, 2);
+        if ($amount <= 0) return;
+
+        $jUID = $this->_createJournalHeader(
+            $advanceDate, $fy, 'SalaryAdvance', $advanceUID, 'ADV-' . $advanceUID,
+            'Salary advance approved — Advance #' . $advanceUID,
+            $createdBy
+        );
+
+        // Dr: Employee Advances (our asset — employee owes us this amount)
+        $advUID = $this->_getSystemLedgerUID('employee_advance');
+        if ($advUID) {
+            $this->_addJournalLine($jUID, $advUID, 'Debit', $amount,
+                'Advance given to employee — #' . $advanceUID, $advanceDate, $fy, $createdBy);
+        }
+
+        // Cr: Accounts Payable (represents cash/bank outflow)
+        $apUID = $this->_getSystemLedgerUID('accounts_payable');
+        if ($apUID) {
+            $this->_addJournalLine($jUID, $apUID, 'Credit', $amount,
+                'Cash/bank paid for advance #' . $advanceUID, $advanceDate, $fy, $createdBy);
+        }
+    }
+
+    // Payroll: Dr Salary & Wages Expense, Cr Salary Payable
+    public function postPayrollJournal(int $payrollUID, string $payrollDate, int $fy, float $grossAmount, float $netAmount, float $deductions, float $advanceRecovery, int $createdBy) {
+        $grossAmount    = round($grossAmount, 2);
+        $netAmount      = round($netAmount, 2);
+        $deductions     = round($deductions, 2);
+        $advanceRecovery= round($advanceRecovery, 2);
+        if ($grossAmount <= 0) return;
+
+        $jUID = $this->_createJournalHeader(
+            $payrollDate, $fy, 'Payroll', $payrollUID, 'PAY-' . $payrollUID,
+            'Payroll processed for ' . date('F Y', mktime(0,0,0,1,1,$fy)),
+            $createdBy
+        );
+
+        // Dr: Salary & Wages Expense (full gross)
+        $salExpUID = $this->_getSystemLedgerUID('salary_expense');
+        if ($salExpUID) {
+            $this->_addJournalLine($jUID, $salExpUID, 'Debit', $grossAmount,
+                'Salary expense for payroll #' . $payrollUID, $payrollDate, $fy, $createdBy);
+        }
+
+        // Cr: Salary Payable (net take-home)
+        $salPayUID = $this->_getSystemLedgerUID('salary_payable');
+        if ($salPayUID && $netAmount > 0) {
+            $this->_addJournalLine($jUID, $salPayUID, 'Credit', $netAmount,
+                'Net salary payable — payroll #' . $payrollUID, $payrollDate, $fy, $createdBy);
+        }
+
+        // Cr: Advance Recovery Clearing (reduces employee advance balance)
+        $advUID = $this->_getSystemLedgerUID('advance_clearing');
+        if ($advUID && $advanceRecovery > 0) {
+            $this->_addJournalLine($jUID, $advUID, 'Credit', $advanceRecovery,
+                'Advance recovery — payroll #' . $payrollUID, $payrollDate, $fy, $createdBy);
+        }
+
+        // Cr: Other deductions (PF, ESI, TDS etc. — goes to a clearing/deductions account)
+        $otherDed = round($deductions - $advanceRecovery, 2);
+        $apUID    = $this->_getSystemLedgerUID('accounts_payable');
+        if ($apUID && $otherDed > 0) {
+            $this->_addJournalLine($jUID, $apUID, 'Credit', $otherDed,
+                'Salary deductions (PF/ESI/TDS) — payroll #' . $payrollUID, $payrollDate, $fy, $createdBy);
+        }
+    }
+
+    // Fund Transfer (Contra): Dr Destination Bank, Cr Source Bank
+    public function postFundTransferJournal(int $transferUID, string $transferDate, int $fy, float $amount, int $fromBankUID, int $toBankUID, int $createdBy) {
+        $amount = round($amount, 2);
+        if ($amount <= 0) return;
+
+        $fromLedgerUID = $this->_getOrCreateBankLedgerUID($fromBankUID, $createdBy);
+        $toLedgerUID   = $this->_getOrCreateBankLedgerUID($toBankUID,   $createdBy);
+
+        if (!$fromLedgerUID || !$toLedgerUID) {
+            log_message('error', 'Fund transfer journal skipped — bank ledger(s) could not be resolved. FromBank=' . $fromBankUID . ' ToBank=' . $toBankUID);
+            return;
+        }
+
+        $jUID = $this->_createJournalHeader(
+            $transferDate, $fy, 'FundTransfer', $transferUID, 'FT-' . $transferUID,
+            'Fund transfer between bank accounts — Ref #' . $transferUID,
+            $createdBy
+        );
+
+        // Dr: Destination bank (receives funds)
+        $this->_addJournalLine($jUID, $toLedgerUID, 'Debit', $amount,
+            'Transfer in — bank account #' . $toBankUID, $transferDate, $fy, $createdBy);
+
+        // Cr: Source bank (pays out funds)
+        $this->_addJournalLine($jUID, $fromLedgerUID, 'Credit', $amount,
+            'Transfer out — bank account #' . $fromBankUID, $transferDate, $fy, $createdBy);
+    }
+
+    // Public entry point — called from Settings when a new bank account is saved.
+    public function createBankLedger(int $bankUID, int $createdBy): void {
+        $this->_getOrCreateBankLedgerUID($bankUID, $createdBy);
+    }
+
+    // Returns the LedgerUID for a bank account — creates one on-the-fly if it doesn't exist yet.
+    private function _getOrCreateBankLedgerUID(int $bankUID, int $createdBy): ?int {
+        $this->CI->load->model('accountledger_model');
+        $orgUID = $this->_orgUID();
+
+        // 1. Try existing mapping
+        $existing = $this->CI->accountledger_model->getEntityLedgerByColumn('BankUID', $bankUID, 'Bank');
+        if ($existing) return (int)$existing->LedgerUID;
+
+        // 2. Fetch bank account details from OrgBankAccountsTbl
+        $readDb = $this->CI->load->database('ReadDB', TRUE);
+        $readDb->db_debug = FALSE;
+        $readDb->select('BankAccountUID, AccountName, BankName, IsCash');
+        $readDb->from('Organisation.OrgBankAccountsTbl');
+        $readDb->where(['BankAccountUID' => $bankUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
+        $bankRow = $readDb->get()->row();
+        if (!$bankRow) return null;
+
+        // 3. Find the BANK_ACCOUNTS account group for this org
+        $readDb->select('GroupUID');
+        $readDb->from('Accounting.AccountGroupTbl');
+        $readDb->where(['OrgUID' => $orgUID, 'GroupCode' => ($bankRow->IsCash ? 'CASH_IN_HAND' : 'BANK_ACCOUNTS'), 'IsDeleted' => 0]);
+        $groupRow = $readDb->get()->row();
+        if (!$groupRow) return null;
+
+        // 4. Create a ChartOfAccounts ledger for this bank account
+        $ledgerCode = ($bankRow->IsCash ? 'CASH' : 'BNK') . '-' . str_pad($bankUID, 5, '0', STR_PAD_LEFT);
+        $ledgerName = $bankRow->AccountName . ($bankRow->BankName ? ' (' . $bankRow->BankName . ')' : '');
+        $ledgerResp = $this->CI->dbwrite_model->insertData('Accounting', 'ChartOfAccounts', [
+            'OrgUID'          => $orgUID,
+            'GroupUID'        => (int)$groupRow->GroupUID,
+            'LedgerCode'      => $ledgerCode,
+            'LedgerName'      => $ledgerName,
+            'Nature'          => 'Asset',
+            'NatureSign'      => 'Dr',
+            'IsContra'        => 0,
+            'IsPostable'      => 1,
+            'IsSystem'        => 0,
+            'IsBankAccount'   => $bankRow->IsCash ? 0 : 1,
+            'CreatedBy'       => $createdBy,
+            'UpdatedBy'       => $createdBy,
+        ]);
+        if ($ledgerResp->Error) {
+            log_message('error', 'Failed to auto-create bank ledger for BankUID=' . $bankUID . ': ' . $ledgerResp->Message);
+            return null;
+        }
+        $ledgerUID = (int)$ledgerResp->ID;
+
+        // 5. Map the bank account to its new ledger in EntityLedgerMap
+        $mapResp = $this->CI->dbwrite_model->insertData('Accounting', 'EntityLedgerMap', [
+            'OrgUID'     => $orgUID,
+            'LedgerUID'  => $ledgerUID,
+            'BankUID'    => $bankUID,
+            'EntityType' => 'Bank',
+            'CreatedBy'  => $createdBy,
+            'UpdatedBy'  => $createdBy,
+        ]);
+        if ($mapResp->Error) {
+            log_message('error', 'Failed to map bank ledger for BankUID=' . $bankUID . ': ' . $mapResp->Message);
+            return null;
+        }
+
+        return $ledgerUID;
+    }
+
+    // Manual Stock Adjustment: Stock IN → Dr Stock-in-Hand / Cr Purchase Cost
+    //                          Stock OUT → Dr Stock Adjustment Loss / Cr Stock-in-Hand
+    public function postStockAdjustmentJournal(int $adjUID, string $adjDate, int $fy, string $adjType, float $stockValue, int $createdBy) {
+        $stockValue = round($stockValue, 2);
+        if ($stockValue <= 0) return;
+
+        $jUID = $this->_createJournalHeader(
+            $adjDate, $fy, 'StockAdjustment', $adjUID, 'ADJ-' . $adjUID,
+            'Manual stock ' . strtolower($adjType) . ' adjustment — Adj #' . $adjUID,
+            $createdBy
+        );
+
+        $stockUID = $this->_getSystemLedgerUID('stock_in_hand');
+
+        if ($adjType === 'IN') {
+            // Dr: Stock-in-Hand (inventory asset increases)
+            if ($stockUID) {
+                $this->_addJournalLine($jUID, $stockUID, 'Debit', $stockValue,
+                    'Stock received — Adj #' . $adjUID, $adjDate, $fy, $createdBy);
+            }
+            // Cr: Purchase Cost (cost of goods received without invoice)
+            $purchUID = $this->_getSystemLedgerUID('purchase_cost');
+            if ($purchUID) {
+                $this->_addJournalLine($jUID, $purchUID, 'Credit', $stockValue,
+                    'Stock addition cost — Adj #' . $adjUID, $adjDate, $fy, $createdBy);
+            }
+        } else {
+            // Dr: Stock Adjustment Loss (expense for stock written off / consumed)
+            $adjLossUID = $this->_getSystemLedgerUID('stock_adj_loss');
+            if ($adjLossUID) {
+                $this->_addJournalLine($jUID, $adjLossUID, 'Debit', $stockValue,
+                    'Stock removed/written off — Adj #' . $adjUID, $adjDate, $fy, $createdBy);
+            }
+            // Cr: Stock-in-Hand (inventory asset decreases)
+            if ($stockUID) {
+                $this->_addJournalLine($jUID, $stockUID, 'Credit', $stockValue,
+                    'Stock reduction — Adj #' . $adjUID, $adjDate, $fy, $createdBy);
+            }
+        }
+    }
+
     // Reverse all non-deleted journals for a given reference — creates counter-entry journals
     public function reverseJournal($refType, $transUID, $createdBy) {
         $this->CI->load->model('accountledger_model');
@@ -718,11 +1102,11 @@ Class Accountledger {
 
             $entries = $this->CI->accountledger_model->getJournalEntries($jUID);
 
-            // Soft-delete original journal header + lines
+            // Soft-delete original journal header + lines (scoped to this org)
             $this->CI->dbwrite_model->updateData('Accounting', 'GeneralJournal',
-                ['IsDeleted' => 1], ['JournalUID' => $jUID]);
+                ['IsDeleted' => 1], ['OrgUID' => $this->_orgUID(), 'JournalUID' => $jUID]);
             $this->CI->dbwrite_model->updateData('Accounting', 'JournalEntries',
-                ['IsDeleted' => 1], ['JournalUID' => $jUID, 'IsDeleted' => 0]);
+                ['IsDeleted' => 1], ['OrgUID' => $this->_orgUID(), 'JournalUID' => $jUID, 'IsDeleted' => 0]);
 
             if (empty($entries)) continue;
 

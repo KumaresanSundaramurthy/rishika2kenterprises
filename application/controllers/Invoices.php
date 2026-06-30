@@ -249,6 +249,7 @@ class Invoices extends MY_Controller {
 
             if (!$isDraft) {
                 $this->dbwrite_model->saveStockMovements($transUID, $this->pageModuleUID, $orgUID, $userUID, $items);
+                $this->_syncProductCacheFromItems($items);
             }
 
             // Record payment DB rows inside the transaction; ledger entries applied after commit
@@ -547,6 +548,7 @@ class Invoices extends MY_Controller {
             // Reverse stock if existing doc was already non-draft (edit of live invoice)
             if ($wasNonDraft) {
                 $this->dbwrite_model->reverseStockMovements($transUID, $orgUID, $userUID);
+                $this->_syncProductCacheByTransUID($transUID);
             }
 
             if ($existing->DocStatus === 'Draft' && !$isDraft
@@ -580,6 +582,7 @@ class Invoices extends MY_Controller {
 
                 if (!$isDraft) {
                     $this->dbwrite_model->saveStockMovements($newTransUID, $this->pageModuleUID, $orgUID, $userUID, $items);
+                    $this->_syncProductCacheFromItems($items);
                 }
 
                 $this->dbwrite_model->deleteInTransaction('Transaction', 'TransactionsTbl', ['TransUID' => $transUID]);
@@ -689,6 +692,7 @@ class Invoices extends MY_Controller {
 
                 if (!$isDraft) {
                     $this->dbwrite_model->saveStockMovements($transUID, $this->pageModuleUID, $orgUID, $userUID, $items);
+                    $this->_syncProductCacheFromItems($items);
                 }
             }
 
@@ -866,6 +870,13 @@ class Invoices extends MY_Controller {
                 log_message('error', 'Ledger credit failed after invoice payment: ' . $ledgerEx->getMessage());
             }
 
+            $this->_writeBankLedgerEntry(
+                $orgUID, $bankAccountUID, 'CR', $amount,
+                'Invoice', $transUID, $this->pageModuleUID,
+                $referenceNo, 'Payment received — ' . ($payUniqueNum ?? $existing->UniqueNumber ?? '#' . $transUID),
+                $paymentDate, $userUID
+            );
+
             $this->EndReturnData->Error      = FALSE;
             $this->EndReturnData->Message    = 'Payment of ' . $amount . ' recorded successfully.';
             $this->EndReturnData->IsFullyPaid = $isFullyPaid;
@@ -928,6 +939,7 @@ class Invoices extends MY_Controller {
 
             // Reverse stock movements (no-op if it was a draft)
             $this->dbwrite_model->reverseStockMovements($transUID, $orgUID, $userUID);
+            $this->_syncProductCacheByTransUID($transUID);
 
             $this->dbwrite_model->softDeleteTransactionItems($transUID, $userUID);
 
@@ -1467,6 +1479,13 @@ class Invoices extends MY_Controller {
             $resp = $this->dbwrite_model->insertBatchInTransaction('Transaction', 'PaymentsTbl', [$paymentData]);
             if ($resp->Error) throw new Exception('Payment save failed: ' . $resp->Message);
             if ($idx === 0) $firstPaymentUID = $resp->ID ?? null;
+
+            $this->_writeBankLedgerEntry(
+                $orgUID, $bankAccountUID, 'CR', $amount,
+                'Invoice', $transUID, $this->pageModuleUID,
+                $referenceNo, 'Payment received — ' . ($payUniqueNum ?? '#' . $transUID),
+                $paymentDate, $userUID
+            );
         }
 
         return ['totalPaid' => $totalPaid, 'firstPaymentUID' => $firstPaymentUID ?? null];
@@ -1886,9 +1905,5 @@ class Invoices extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    private function _recalcCustomerBalance($orgUID, $custUID, $userUID) {
-        $this->load->library('customerbalance');
-        return $this->customerbalance->recalcAndSync($orgUID, $custUID, $userUID);
-    }
 
 }

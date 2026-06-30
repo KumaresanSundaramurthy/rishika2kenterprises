@@ -15,6 +15,7 @@
  */
 class Vendorbalance {
 
+    /** @var object */
     private $CI;
 
     public function __construct() {
@@ -23,7 +24,7 @@ class Vendorbalance {
 
     // ── Debit Note: create when PR is saved without full cash refund received ──
 
-    public function createPurchaseReturnDebitNote($orgUID, $vendorUID, $prTransUID, $prUniqueNumber, $amount, $userUID, $transDate = null) {
+    public function createPurchaseReturnDebitNote(int $orgUID, int $vendorUID, int $prTransUID, string $prUniqueNumber, float $amount, int $userUID, ?string $_transDate = null) {
         try {
             if ($amount <= 0) return null;
 
@@ -70,7 +71,7 @@ class Vendorbalance {
     // ── Credit Note: create when PR is cancelled with 'recover' action ─────────
     // Tracks: we owe vendor back the refund they had already given us.
 
-    public function createVendorCreditNote($orgUID, $vendorUID, $sourceTransUID, $sourceTransNumber, $amount, $userUID, $writeDb = null) {
+    public function createVendorCreditNote(int $orgUID, int $vendorUID, int $sourceTransUID, string $sourceTransNumber, float $amount, int $userUID, $writeDb = null) {
         try {
             if ($amount <= 0) return null;
 
@@ -107,9 +108,86 @@ class Vendorbalance {
         }
     }
 
-    // ── Stub: recalc vendor balance (future implementation) ───────────────────
+    // ── Balance recalculation — mirrors Customerbalance::recalcAndSync ────────
+    //
+    // Formula (Credit = we owe vendor, Debit = vendor owes us):
+    //   SignedBalance = signedOpening
+    //                + TotalPurchased        (increases what we owe)
+    //                − TotalPaid             (decreases what we owe)
+    //                − EffectivePRReturned   (PRs not already covered by a debit note)
+    //                − PendingDebitNotes     (vendor owes us — reduces payable)
+    //                + PendingCreditNotes    (we owe vendor back — increases payable)
+    //
+    // Syncs to:
+    //   1. Vendors.VendOpeningBalanceTbl  → PendingBalance / PendingBalType
+    //   2. Accounting.ChartOfAccounts     → CurrentBalance / CurrentBalanceType
+    //   3. Upstash cache                  → via cachehelper->upsertVendor()
 
-    public function recalcAndSync($orgUID, $vendorUID, $userUID) {
-        return null;
+    public function recalcAndSync(int $orgUID, int $vendorUID, int $userUID): ?array {
+        try {
+            $this->CI->load->model('vendors_model');
+
+            $vendRows = $this->CI->vendors_model->getVendorsWithLedgerForBalance(
+                (int)$orgUID, (int)$vendorUID
+            );
+            if (empty($vendRows)) {
+                log_message('debug', '[VendBalanceRecalc] VendorUID=' . $vendorUID . ' — vendor not found or inactive, recalc skipped');
+                return null;
+            }
+
+            $vend = $vendRows[0];
+
+            $totalPurchased   = $this->CI->vendors_model->getVendorTotalPurchased($orgUID, $vendorUID);
+            $totalPaid        = $this->CI->vendors_model->getVendorTotalPaid($orgUID, $vendorUID);
+            $totalReturned    = $this->CI->vendors_model->getVendorTotalReturned($orgUID, $vendorUID);
+            $prCoveredByDN    = $this->CI->vendors_model->getVendorPRCoveredByDebitNote($orgUID, $vendorUID);
+            $effectiveReturned = max(0.0, $totalReturned - $prCoveredByDN);
+            [$pendingDebitNotes, $pendingCreditNotes] = $this->CI->vendors_model->getVendorPendingNoteTotals($orgUID, $vendorUID);
+
+            // Vendor opening: Credit = positive (we owe them), Debit = negative
+            $signedOpening = ($vend->OpeningBalType === 'Credit')
+                ?  (float)$vend->OpeningBalance
+                : -(float)$vend->OpeningBalance;
+
+            $signedBalance = round(
+                $signedOpening + $totalPurchased - $totalPaid - $effectiveReturned - $pendingDebitNotes + $pendingCreditNotes,
+                2
+            );
+            $newBalance  = abs($signedBalance);
+            $newBalType  = ($signedBalance >= 0) ? 'Credit' : 'Debit';
+
+            log_message('debug', '[VendBalanceRecalc] VendorUID=' . $vendorUID
+                . ' Opening=' . $vend->OpeningBalance . '(' . $vend->OpeningBalType . ')'
+                . ' Purchased=' . $totalPurchased
+                . ' Paid=' . $totalPaid
+                . ' ReturnedRaw=' . $totalReturned
+                . ' PRCoveredByDN=' . $prCoveredByDN
+                . ' EffectiveReturned=' . $effectiveReturned
+                . ' PendingDN=' . $pendingDebitNotes
+                . ' PendingCN=' . $pendingCreditNotes
+                . ' Signed=' . $signedBalance
+                . ' => NEW=' . $newBalance . '(' . $newBalType . ')');
+
+            // 1. Update VendOpeningBalanceTbl → PendingBalance
+            $this->CI->vendors_model->updateVendorPendingBalance(
+                $orgUID, $vendorUID, $newBalance, $newBalType, $userUID
+            );
+
+            // 2. Update Accounting.ChartOfAccounts → CurrentBalance
+            if (!empty($vend->LedgerUID)) {
+                $this->CI->vendors_model->updateVendorBalanceInLedger(
+                    $vend->LedgerUID, $newBalance, $newBalType, $userUID
+                );
+            }
+
+            // 3. Sync Upstash cache
+            $this->CI->cachehelper->upsertVendor((int)$vendorUID);
+
+            return ['balance' => $newBalance, 'type' => $newBalType];
+
+        } catch (Exception $e) {
+            log_message('error', 'Vendorbalance::recalcAndSync failed for VendorUID=' . $vendorUID . ': ' . $e->getMessage());
+            return null;
+        }
     }
 }

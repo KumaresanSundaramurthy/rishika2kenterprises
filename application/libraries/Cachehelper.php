@@ -87,6 +87,7 @@ class Cachehelper {
                 'CCEmails'        => $cust->CCEmails        ?? '',
                 'GSTIN'           => $cust->GSTIN           ?? '',
                 'PANNumber'       => $cust->PANNumber       ?? '',
+                'SalutationUID'   => (int)($cust->SalutationUID    ?? 0) ?: null,
                 'CustomerTypeUID' => (int)($cust->CustomerTypeUID  ?? 0),
                 'DiscountPercent' => (float)($cust->DiscountPercent ?? 0),
                 'CreditPeriod'    => (int)($cust->CreditPeriod     ?? 0),

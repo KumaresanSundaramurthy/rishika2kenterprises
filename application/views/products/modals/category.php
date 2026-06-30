@@ -44,13 +44,19 @@
                             <textarea class="form-control" rows="3" name="CategoryDescription" id="CategoryDescription" placeholder="Description"></textarea>
                         </div>
                         <div class="mb-3 col-12">
-                            <div class="dropzone dropzone-main-form needsclick p-3 dz-clickable w-100" id="DropzoneTwoBasic">
-                                <div class="dz-message needsclick text-center">
-                                    <i class="upload-icon mb-3"></i>
-                                    <p class="h5 needsclick mb-2">Drag and drop category here</p>
-                                    <p class="h4 text-body-secondary fw-normal mb-0">JPG, GIF or PNG of 1 MB</p>
+                            <label class="form-label" style="font-size:.82rem;font-weight:600;color:#374151;">Images <span class="text-muted fw-normal">(max 3 · 3 MB total)</span></label>
+                            <!-- Drop zone — always visible, click or drag to add images -->
+                            <div id="catgAttachZone" class="prod-attach-zone" onclick="catgAttachTrigger(event)">
+                                <div id="catgAttachEmpty" class="prod-attach-empty">
+                                    <i class="bx bx-image-add" id="catgAttachIcon" style="font-size:2rem;color:#9ca3af;display:block;margin-bottom:6px;"></i>
+                                    <div id="catgAttachLabel" style="font-size:.78rem;font-weight:600;color:#6b7280;">Drag &amp; drop images</div>
+                                    <div id="catgAttachHint" style="font-size:.7rem;color:#9ca3af;margin-top:3px;">JPG, GIF or PNG · Max 3 · 3 MB total</div>
                                 </div>
                             </div>
+                            <!-- Preview list — outside drop zone so thumbnail clicks don't trigger file input -->
+                            <div id="catgAttachList" class="prod-attach-list mt-2" style="display:none;"></div>
+                            <input type="file" id="catgAttachInput" multiple accept="image/jpeg,image/png,image/gif" style="display:none;">
+                            <input type="hidden" id="catgAttachDeleteUIDs" name="CatgAttachDeleteUIDs" value="">
                         </div>
                     </div>
                     

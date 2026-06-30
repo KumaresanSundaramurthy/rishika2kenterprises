@@ -200,9 +200,9 @@ function _smartDecimalV(val) {
 
 function _populateSalVendor(list) {
     var $sel = $('#VM_SalutationUID');
-    var html = '<option value=””>—</option>';
+    var html = '<option value="">—</option>';
     $.each(list, function (_, s) {
-        html += '<option value=”' + parseInt(s.SalutationUID, 10) + '”>' + $('<span>').text(s.SalutationName).html() + '</option>';
+        html += '<option value="' + parseInt(s.SalutationUID, 10) + '">' + $('<span>').text(s.SalutationName).html() + '</option>';
     });
     $sel.html(html);
 }
@@ -214,7 +214,8 @@ function _applyDefaultSalutationVendor() {
     if (defaultUID > 0) {
         $sel.val(defaultUID);
     } else {
-        $sel.find('option:not([value=””])').first().prop('selected', true);
+        var $first = $sel.find('option:not([value=""])').first();
+        if ($first.length) $sel.val($first.val());
     }
 }
 
@@ -282,7 +283,7 @@ function openVendorModal(type, uid) {
 }
 
 function _resetVendorModal() {
-    _editVendorUID = 0; delBankDataFlag = 0; delBankData = []; hasRemovedStoredImage = false;
+    _editVendorUID = 0; delBankDataFlag = 0; delBankData = [];
     $('#VendorModalForm')[0].reset();
     $('#VendorUID').val('');
     $('#bankDetailsBody').empty();
@@ -294,13 +295,23 @@ function _resetVendorModal() {
     $('#CustomerDiv').addClass('d-none');
     $('#ResetCustomerLinking').addClass('d-none');
     $('input[name="CustomerLinkingCheck"]').prop('checked', false);
-    reinitDropzoneOne('#VendorFormModalBody #DropzoneOneBasic');
+    // Reset attachment zone state (listeners stay bound via _initVendorPlugins)
+    if (typeof _attachResetState === 'function') _attachResetState('Vendor');
     initializeFlatPickr('#VM_CPDateOfBirth', '#VendorFormModal');
 }
 
 function _populateVendorModal(type, response) {
     var d = response.Data; var isClone = (type === 'clone');
     _editVendorUID = isClone ? 0 : (d.VendorUID || 0);
+
+    // Load existing vendor attachments from response — no AJAX
+    if (!isClone && typeof _attachResetState === 'function') {
+        _attachResetState('Vendor');
+        if (response.Attachments && response.Attachments.length && _attachState['Vendor']) {
+            _attachState['Vendor'].existing = response.Attachments;
+            if (typeof _attachRender === 'function') _attachRender('Vendor');
+        }
+    }
     $('#VM_SalutationUID').val(d.SalutationUID || '');
     $('#VM_Name').val(d.Name || '');
     $('#VM_Area').val(d.Area || '');
@@ -317,7 +328,6 @@ function _populateVendorModal(type, response) {
     $('#VM_CompanyName').val(d.CompanyName || '');
     $('#VM_Notes').val(d.Notes || '');
     $('#CustomerLinkingDiv').addClass('d-none');
-    if (d.Image && !isClone) commonSetDropzoneImageOne(CDN_URL + d.Image);
     if (response.BankDetails && response.BankDetails.length) {
         response.BankDetails.forEach(function (b) { appendBankRowToTable(b); });
         $('#bankEmptyState').addClass('d-none');
@@ -361,14 +371,15 @@ $(document).on('submit', '#VendorModalForm', function (e) {
 
     var formData = new FormData($('#VendorModalForm')[0]);
     if (mode === 'edit') { formData.set('VendorUID', _editVendorUID || 0); }
+    // Explicitly read the current select value — FormData from reset+programmatic .val() can be unreliable
+    formData.set('SalutationUID', $('#VM_SalutationUID').val() || '');
 
-    if (mode === 'edit' && hasRemovedStoredImage && myOneDropzone && myOneDropzone.files.length === 0) {
-        formData.append('ImageRemoved', 1);
+    // Append new attachment files (multi-image zone replaces old Dropzone)
+    if (typeof _attachState !== 'undefined' && _attachState['Vendor']) {
+        (_attachState['Vendor'].newFiles || []).forEach(function(f) {
+            formData.append('VendAttachFiles[]', f, f.name);
+        });
     }
-    if (myOneDropzone && myOneDropzone.files.length > 0 && !myOneDropzone.files[0].isStored) {
-        formData.append('UploadImage', myOneDropzone.files[0]);
-    }
-
     var bankRecords = getBankRecordsFromTable();
     var bankValid   = validateBankRecords(bankRecords);
     if (!bankValid.ok) { showAlertMessageSwal('error', '', bankValid.msg); return; }
@@ -413,6 +424,18 @@ $(document).on('submit', '#VendorModalForm', function (e) {
     } else {
         addVendorData(formData);
     }
+});
+
+// ── Vendor list image → open gallery from data-images (no AJAX) ──────────────
+$(document).on('click', '.vend-list-img', function(e) {
+    e.stopPropagation();
+    var raw = $(this).data('images');
+    try {
+        var imgs = typeof raw === 'string' ? JSON.parse(raw) : raw;
+        if (imgs && imgs.length) { openImageGallery(imgs, 0); return; }
+    } catch(err) {}
+    var src = this.src;
+    if (src) openImageGallery([{ url: src, name: '' }], 0);
 });
 
 // ── Open modal triggers ───────────────────────────────────────────────────
@@ -508,5 +531,6 @@ $(document).on('click', '#btnBulkEmail', function () {
 // ── Init vendor modal plugins once on page load ───────────────────────────────
 $(function () {
     initializeFlatPickr('#VM_CPDateOfBirth', '#VendorFormModal');
-    reinitDropzoneOne('#VendorFormModalBody #DropzoneOneBasic');
+    // Bind attachment zone listeners once (shared attachments.js)
+    if (typeof _attachBindListeners === 'function') _attachBindListeners('Vendor');
 });

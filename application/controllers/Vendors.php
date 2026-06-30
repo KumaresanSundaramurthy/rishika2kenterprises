@@ -176,12 +176,11 @@ class Vendors extends MY_Controller {
             'GSTIN'             => getPostValue($postData, 'GSTIN'),
             'CompanyName'       => getPostValue($postData, 'CompanyName'),
             'Notes'             => getPostValue($postData, 'Notes'),
-            'SalutationUID'     => (int) getPostValue($postData, 'SalutationUID') ?: null,
+            'SalutationUID'     => (int) trim(getPostValue($postData, 'SalutationUID') ?? '', '"\'') ?: null,
             'UpdatedBy'         => $this->pageData['JwtData']->User->UserUID,
         ];
         if ($isCreate) {
-            $this->load->model('transactions_model');
-            $data['VendToken'] = $this->transactions_model->_generateUniqueToken('Vendors.VendorTbl', 'VendToken');
+            $data['VendToken'] = generate_uuid4();
             $data['CreatedBy'] = $this->pageData['JwtData']->User->UserUID;
         }
         return $data;
@@ -230,6 +229,7 @@ class Vendors extends MY_Controller {
                 'Vendor'
             );
 
+            $this->load->model('vendors_model');
             $initAmt  = (float) getPostValue($PostData, 'DebitCreditAmount', '', 0);
             $initType = getPostValue($PostData, 'DebitCreditCheck', '', 'Credit');
             if ($initAmt > 0) {
@@ -268,6 +268,12 @@ class Vendors extends MY_Controller {
             }
 
             $this->dbwrite_model->commitTransaction();
+
+            // Handle attachment uploads after commit
+            $orgUID  = (int)$this->pageData['JwtData']->Org->OrgUID;
+            $userUID = (int)$this->pageData['JwtData']->User->UserUID;
+            $this->_handleVendorAttachments((int)$VendorUID, $orgUID, $userUID, '');
+
             $this->cachehelper->upsertVendor($VendorUID);
 
             $this->_initModule();
@@ -491,46 +497,35 @@ class Vendors extends MY_Controller {
     public function getVendorForModal($uid = 0) {
         $this->EndReturnData = new stdClass();
         try {
-            $uid = (int) $uid;
+            $uid    = (int) $uid;
+            $orgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
             if ($uid <= 0) throw new Exception('Invalid vendor ID.');
 
-            // Cache-Aside READ
-            $cacheKey = Upstashservice::keyVendor($uid);
-            $cached   = $this->upstashservice->get($cacheKey);
+            // Always fetch attachments fresh
+            $this->load->model('vendors_model');
+            $attachments = $this->vendors_model->getVendorAttachments($uid, $orgUID);
+            $cdnUrl = rtrim(getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv('CFLARE_R2_CDN'), '/');
+            foreach ($attachments as &$a) { $a['Url'] = $cdnUrl . '/' . ltrim($a['FilePath'], '/'); }
+            unset($a);
 
-            if ($cached !== null) {
-                $this->EndReturnData->Error        = FALSE;
-                $this->EndReturnData->Data         = (object)$cached['Data'];
-                $this->EndReturnData->BankDetails  = $cached['BankDetails'] ?? [];
-                $this->EndReturnData->BillingAddr  = isset($cached['BillingAddr'])  ? (object)$cached['BillingAddr']  : null;
-                $this->EndReturnData->ShippingAddr = isset($cached['ShippingAddr']) ? (object)$cached['ShippingAddr'] : null;
-            } else {
-                $this->load->model('vendors_model');
-                $getVendData = $this->vendors_model->getVendors(['Vendors.VendorUID' => $uid]);
-                if (empty($getVendData)) throw new Exception('Vendor not found.');
+            $getVendData = $this->vendors_model->getVendors(['Vendors.VendorUID' => $uid]);
+            if (empty($getVendData)) throw new Exception('Vendor not found.');
 
-                $bankDetails = $this->vendors_model->getVendorBankInfo(['VendBankDetails.VendorUID' => $uid]);
-                $addrInfo    = $this->vendors_model->getVendorAddress(['VendAddress.VendorUID' => $uid]);
+            $bankDetails = $this->vendors_model->getVendorBankInfo(['VendBankDetails.VendorUID' => $uid]);
+            $addrInfo    = $this->vendors_model->getVendorAddress(['VendAddress.VendorUID' => $uid]);
 
-                $billingAddr = null; $shippingAddr = null;
-                foreach ($addrInfo as $addr) {
-                    if ($addr->AddressType === 'Billing')  $billingAddr  = $addr;
-                    if ($addr->AddressType === 'Shipping') $shippingAddr = $addr;
-                }
-
-                $this->EndReturnData->Error        = FALSE;
-                $this->EndReturnData->Data         = $getVendData[0];
-                $this->EndReturnData->BankDetails  = $bankDetails;
-                $this->EndReturnData->BillingAddr  = $billingAddr;
-                $this->EndReturnData->ShippingAddr = $shippingAddr;
-
-                $this->upstashservice->set($cacheKey, [
-                    'Data'         => $getVendData[0],
-                    'BankDetails'  => $bankDetails,
-                    'BillingAddr'  => $billingAddr,
-                    'ShippingAddr' => $shippingAddr,
-                ], Upstashservice::TTL_VENDOR);
+            $billingAddr = null; $shippingAddr = null;
+            foreach ($addrInfo as $addr) {
+                if ($addr->AddressType === 'Billing')  $billingAddr  = $addr;
+                if ($addr->AddressType === 'Shipping') $shippingAddr = $addr;
             }
+
+            $this->EndReturnData->Error        = FALSE;
+            $this->EndReturnData->Data         = $getVendData[0];
+            $this->EndReturnData->BankDetails  = $bankDetails;
+            $this->EndReturnData->BillingAddr  = $billingAddr;
+            $this->EndReturnData->ShippingAddr = $shippingAddr;
+            $this->EndReturnData->Attachments  = $attachments;
 
         } catch (Exception $e) {
             $this->EndReturnData->Error   = TRUE;
@@ -553,6 +548,7 @@ class Vendors extends MY_Controller {
             $ErrorInForm = $this->formvalidation_model->vendorValidateForm($PostData);
             if (!empty($ErrorInForm)) throw new InvalidArgumentException('VALIDATION_ERROR');
 
+            $this->load->model('vendors_model');
             $VendorUID   = getPostValue($PostData, 'VendorUID', 0);
             $oldDCRow    = $this->vendors_model->getVendorDebitCreditRaw((int)$VendorUID);
             $oldDCAmount = $oldDCRow ? (float)$oldDCRow->DebitCreditAmount : 0.0;
@@ -563,11 +559,6 @@ class Vendors extends MY_Controller {
 
             $UpdateDataResp = $this->dbwrite_model->updateData('Vendors', 'VendorTbl', $vendorFormData, ['VendorUID' => $VendorUID]);
             if ($UpdateDataResp->Error) throw new Exception($UpdateDataResp->Message);
-
-            if (isset($_FILES['UploadImage'])) {
-                $UploadResp = $this->globalservice->fileUploadService($_FILES['UploadImage'], 'vendors/images/', 'Image', ['Vendors', 'VendorTbl', ['VendorUID' => $VendorUID]]);
-                if ($UploadResp->Error) throw new Exception($UploadResp->Message);
-            }
 
             $delBnkFlag = getPostValue($PostData, 'delBankDataFlag');
             if ($delBnkFlag == 1) {
@@ -662,9 +653,14 @@ class Vendors extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
-            // Refresh vendor in bulk search cache with live data
+            // Handle attachment uploads + deletes after commit
+            $orgUID  = (int)$this->pageData['JwtData']->Org->OrgUID;
+            $userUID = (int)$this->pageData['JwtData']->User->UserUID;
+            $deleteUIDs = $this->input->post('VendAttachDeleteUIDs') ?: '';
+            $this->_handleVendorAttachments((int)$VendorUID, $orgUID, $userUID, $deleteUIDs);
+
+            // Refresh org-level vendor cache + invalidate vendor-products cache
             $this->cachehelper->upsertVendor((int)$VendorUID);
-            // Still invalidate vendor-products cache (separate key, separate data)
             $this->upstashservice->del(Upstashservice::keyVendorProducts((int)$VendorUID));
 
             $pageNo = (int) ($this->input->post('PageNo') ?: 1);
@@ -1583,6 +1579,120 @@ class Vendors extends MY_Controller {
 
         $this->globalservice->sendJsonResponse($this->EndReturnData);
 
+    }
+
+    // ── Vendor Attachments ────────────────────────────────────────────────────
+
+    public function getVendorAttachments() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $vendorUID = (int)$this->input->get_post('VendorUID');
+            $orgUID    = (int)$this->pageData['JwtData']->Org->OrgUID;
+            if ($vendorUID <= 0) throw new Exception('Invalid vendor.');
+            $this->load->model('vendors_model');
+            $attachments = $this->vendors_model->getVendorAttachments($vendorUID, $orgUID);
+            $cdnUrl = rtrim(getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv('CFLARE_R2_CDN'), '/');
+            foreach ($attachments as &$a) { $a['Url'] = $cdnUrl . '/' . ltrim($a['FilePath'], '/'); }
+            $this->EndReturnData->Error       = false;
+            $this->EndReturnData->Attachments = $attachments;
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    public function deleteVendorAttachment() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $attachUID = (int)$this->input->post('AttachUID');
+            $vendorUID = (int)$this->input->post('VendorUID');
+            $orgUID    = (int)$this->pageData['JwtData']->Org->OrgUID;
+            $userUID   = (int)$this->pageData['JwtData']->User->UserUID;
+            if ($attachUID <= 0) throw new Exception('Invalid attachment.');
+            $this->load->model('dbwrite_model');
+            $this->dbwrite_model->updateData('Vendors', 'VendorAttachmentsTbl',
+                ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
+                ['AttachUID' => $attachUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
+            );
+            if ($vendorUID > 0) $this->_syncVendorPrimaryImage($vendorUID, $orgUID, $userUID);
+            $this->EndReturnData->Error   = false;
+            $this->EndReturnData->Message = 'Attachment deleted.';
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    private function _handleVendorAttachments(int $vendorUID, int $orgUID, int $userUID, string $deleteUIDs): void {
+        $this->load->model('dbwrite_model');
+        $this->load->library('fileupload');
+        $maxFiles = 3; $maxMB = 3;
+        $allowed  = ['image/jpeg','image/jpg','image/png','image/gif'];
+        $folder   = 'vendors/attachments/' . $vendorUID;
+
+        if ($deleteUIDs) {
+            foreach (array_filter(array_map('intval', explode(',', $deleteUIDs))) as $uid) {
+                $this->dbwrite_model->updateData('Vendors', 'VendorAttachmentsTbl',
+                    ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
+                    ['AttachUID' => $uid, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
+                );
+            }
+        }
+
+        $files = $_FILES['VendAttachFiles'] ?? null;
+        if (!empty($files) && !empty($files['name'][0])) {
+            $wdb = $this->dbwrite_model->getWriteDb();
+            $wdb->db_debug = FALSE;
+            $maxSortQ = $wdb->query(
+                "SELECT COALESCE(MAX(SortOrder),0) AS ms, COUNT(*) AS cnt, COALESCE(SUM(FileSize),0) AS ts
+                   FROM Vendors.VendorAttachmentsTbl WHERE VendorUID=? AND OrgUID=? AND IsDeleted=0",
+                [$vendorUID, $orgUID]
+            );
+            $msr  = $maxSortQ ? $maxSortQ->row() : null;
+            $sort = (int)($msr->ms ?? 0) + 1;
+            $slots = $maxFiles - (int)($msr->cnt ?? 0);
+            $used  = (float)($msr->ts ?? 0);
+            $count = is_array($files['name']) ? count($files['name']) : 1;
+            for ($i = 0; $i < $count && $slots > 0; $i++, $slots--) {
+                $err  = is_array($files['error'])    ? $files['error'][$i]    : $files['error'];
+                $name = is_array($files['name'])     ? $files['name'][$i]     : $files['name'];
+                $type = is_array($files['type'])     ? $files['type'][$i]     : $files['type'];
+                $size = is_array($files['size'])     ? $files['size'][$i]     : $files['size'];
+                $tmp  = is_array($files['tmp_name']) ? $files['tmp_name'][$i] : $files['tmp_name'];
+                if ($err !== UPLOAD_ERR_OK || !$name || empty($tmp)) continue;
+                if (!in_array($type, $allowed)) continue;
+                if ($used + $size > $maxMB * 1024 * 1024) break;
+                $used += $size;
+                $safe   = time() . '_' . $i . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $name);
+                $result = $this->fileupload->fileUpload('file', $folder . '/' . $safe, $tmp);
+                if ($result->Error) continue;
+                $wdb->insert('Vendors.VendorAttachmentsTbl', [
+                    'OrgUID'    => $orgUID, 'VendorUID' => $vendorUID,
+                    'FileName'  => $name,   'FilePath'  => '/' . ltrim($result->Path, '/'),
+                    'FileSize'  => (int)$size, 'SortOrder' => $sort++,
+                    'IsDeleted' => 0, 'IsActive' => 1,
+                    'CreatedBy' => $userUID, 'UpdatedBy' => $userUID,
+                ]);
+            }
+        }
+        $this->_syncVendorPrimaryImage($vendorUID, $orgUID, $userUID);
+    }
+
+    private function _syncVendorPrimaryImage(int $vendorUID, int $orgUID, int $userUID): void {
+        try {
+            $this->load->model('vendors_model');
+            $primary = $this->vendors_model->getVendorPrimaryImage($vendorUID, $orgUID);
+            $this->load->model('dbwrite_model');
+            $this->dbwrite_model->updateData('Vendors', 'VendorTbl',
+                ['Image' => $primary, 'UpdatedBy' => $userUID],
+                ['VendorUID' => $vendorUID, 'OrgUID' => $orgUID]
+            );
+            $this->cachehelper->upsertVendor($vendorUID);
+        } catch (Exception $e) {
+            log_message('error', '_syncVendorPrimaryImage failed: ' . $e->getMessage());
+        }
     }
 
 }

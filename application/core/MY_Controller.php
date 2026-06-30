@@ -4,6 +4,110 @@ class MY_Controller extends CI_Controller {
 
     public $pageData = [];
 
+    // ── Bank / Cash ledger entry (available in every controller) ─────────────
+    // Writes a single CR or DR row to AccountLedgerTbl for a given bank account.
+    // Non-fatal — logs and returns on failure so callers are never blocked.
+    // Skip entirely when $bankAccountUID is 0/null (cash payment with no account linked).
+    protected function _writeBankLedgerEntry(
+        int    $orgUID,
+        ?int   $bankAccountUID,
+        string $entryType,      // 'CR' or 'DR'
+        float  $amount,
+        string $sourceType,     // 'Invoice' | 'Purchase' | 'Expense' | 'IndirectIncome' | 'FundTransfer' | 'Payment' | ...
+        ?int   $sourceUID,
+        ?int   $moduleUID,
+        ?string $referenceNo,
+        string $narration,
+        string $entryDate,
+        int    $userUID
+    ): void {
+        if (!$bankAccountUID || $amount <= 0) return;
+        try {
+            $this->load->model('dbwrite_model');
+            $this->dbwrite_model->insertData('Transaction', 'AccountLedgerTbl', [
+                'OrgUID'         => $orgUID,
+                'BankAccountUID' => $bankAccountUID,
+                'EntryDate'      => $entryDate,
+                'EntryType'      => $entryType,
+                'Amount'         => round($amount, 4),
+                'SourceType'     => $sourceType,
+                'SourceUID'      => $sourceUID,
+                'ModuleUID'      => $moduleUID,
+                'ReferenceNo'    => $referenceNo ?: null,
+                'Narration'      => $narration,
+                'IsActive'       => 1,
+                'IsDeleted'      => 0,
+                'CreatedBy'      => $userUID,
+                'UpdatedBy'      => $userUID,
+            ]);
+        } catch (Exception $e) {
+            log_message('error', 'Bank ledger entry failed [' . $sourceType . '#' . $sourceUID . ']: ' . $e->getMessage());
+        }
+    }
+
+    // ── Product cache sync helpers (available in every controller) ───────────
+
+    // Call after saveStockMovements — syncs AvailableQty from ProductStockTbl into Upstash for each item.
+    protected function _syncProductCacheFromItems(array $items): void {
+        $seen = [];
+        foreach ($items as $item) {
+            $uid = (int)($item['id'] ?? 0);
+            if ($uid > 0 && !isset($seen[$uid])) {
+                $seen[$uid] = true;
+                $this->cachehelper->upsertProduct($uid);
+            }
+        }
+    }
+
+    // Call after reverseStockMovements — looks up affected products from TransProductsTbl and syncs each.
+    protected function _syncProductCacheByTransUID(int $transUID): void {
+        try {
+            $readDb = $this->load->database('ReadDB', TRUE);
+            $readDb->db_debug = FALSE;
+            $readDb->select('DISTINCT ProductUID');
+            $readDb->from('Transaction.TransProductsTbl');
+            $readDb->where(['TransUID' => $transUID, 'IsDeleted' => 0]);
+            $rows = $readDb->get()->result();
+            foreach ($rows as $row) {
+                if ((int)$row->ProductUID > 0) {
+                    $this->cachehelper->upsertProduct((int)$row->ProductUID);
+                }
+            }
+        } catch (Exception $e) {
+            log_message('error', 'Product cache sync failed for TransUID=' . $transUID . ': ' . $e->getMessage());
+        }
+    }
+
+    // ── Balance recalc helpers (available in every controller) ──────────────
+
+    protected function _recalcVendorBalance(int $orgUID, int $vendorUID, int $userUID): void {
+        try {
+            $this->load->library('vendorbalance');
+            $this->vendorbalance->recalcAndSync($orgUID, $vendorUID, $userUID);
+        } catch (Exception $e) {
+            log_message('error', 'Vendor balance recalc failed for VendorUID=' . $vendorUID . ': ' . $e->getMessage());
+        }
+    }
+
+    protected function _recalcCustomerBalance(int $orgUID, int $customerUID, int $userUID): void {
+        try {
+            $this->load->library('customerbalance');
+            $this->customerbalance->recalcAndSync($orgUID, $customerUID, $userUID);
+        } catch (Exception $e) {
+            log_message('error', 'Customer balance recalc failed for CustomerUID=' . $customerUID . ': ' . $e->getMessage());
+        }
+    }
+
+    // ── JWT shorthand accessors (available in every controller) ──────────────
+
+    protected function _orgUID(): int        { return (int)($this->pageData['JwtData']->Org->OrgUID              ?? 0); }
+    protected function _userUID(): int       { return (int)($this->pageData['JwtData']->User->UserUID             ?? 0); }
+    protected function _branchUID(): int     { return (int)($this->pageData['JwtData']->Org->BranchUID            ?? 1); }
+    protected function _rowLimit(): int      { return (int)($this->pageData['JwtData']->GenSettings->RowLimit      ?? 25); }
+    protected function _dateFormat(): string { return       $this->pageData['JwtData']->GenSettings->ListDateFormat ?? 'd M Y'; }
+    protected function _currency(): string   { return       $this->pageData['JwtData']->GenSettings->CurrenySymbol  ?? '₹'; }
+    protected function _decimals(): int      { return (int)($this->pageData['JwtData']->GenSettings->DecimalPoints  ?? 2); }
+
     /**
      * Looks up the module record from the Redis module cache and sets:
      *   $this->pageData['PageTitle']  — DisplayName (falls back to Name)
@@ -41,6 +145,10 @@ class MY_Controller extends CI_Controller {
         $this->pageData['PageIconBg']      = $found->IconBg    ?? '';
         $this->pageData['PageIconColor']   = $found->IconColor ?? '';
         $this->pageData['PageDescription'] = $found->Description ?? '';
+
+        // Load attachment config for all slots — 1-year Upstash cache, negligible overhead
+        $this->pageData['AttachCfg'] = $this->_loadAttachCfg();
+
         return true;
     }
 
@@ -449,7 +557,13 @@ class MY_Controller extends CI_Controller {
 
     protected function _softDeleteAttachments($removedJson) {
         if (empty($removedJson)) return;
-        $uids = json_decode($removedJson, true);
+        // Accept both JSON array (old Dropzone format) and comma-separated string (new zone format)
+        $trimmed = trim($removedJson);
+        if ($trimmed[0] === '[') {
+            $uids = json_decode($trimmed, true);
+        } else {
+            $uids = array_filter(array_map('intval', explode(',', $trimmed)));
+        }
         if (empty($uids) || !is_array($uids)) return;
         $orgUID  = $this->pageData['JwtData']->Org->OrgUID;
         $userUID = $this->pageData['JwtData']->User->UserUID;
@@ -473,6 +587,22 @@ class MY_Controller extends CI_Controller {
             if ($amt > 0) $charges[] = ['type' => $type, 'amount' => $amt, 'tax' => $tax];
         }
         return !empty($charges) ? json_encode($charges) : NULL;
+    }
+
+    // ── Attachment config loader ──────────────────────────────────────────────
+
+    /**
+     * Loads attachment config for all slots from Global.ModuleAttachmentCfgTbl.
+     * Result is cached in Upstash under 'global:attach_cfg' with a 1-year TTL.
+     * To force reload after a DB change: DEL the key from Upstash.
+     * Returns array keyed by SlotKey.
+     */
+    protected function _loadAttachCfg(): array {
+        // AttachCfg is loaded at login and stored in the JWT/Redis session.
+        // It's already in JwtData — no extra DB or cache query needed.
+        $cfg = $this->pageData['JwtData']->AttachCfg ?? null;
+        if (!empty($cfg)) return (array)$cfg;
+        return [];
     }
 
     // ── Date filter preference helper ─────────────────────────────────────────

@@ -445,17 +445,19 @@
 
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="/js/common/address.js"></script>
-<script src="/js/common/bankdetails.js"></script>
-<script src="/js/common/gstin_fetch.js"></script>
-<script src="/js/common/customer_form.js"></script>
-<script src="/js/common/category_form.js"></script>
-<script src="/js/common/product_form.js"></script>
-<script src="/js/transactions/col_filter.js"></script>
-<script src="/js/products.js"></script>
-<script src="/js/combinemodules/combo.js"></script>
-<script src="/js/common/pagecheckbox.js"></script>
-<script src="/js/products/barcodeprint.js"></script>
+<script src="<?php echo _assetV('/js/common/address.js'); ?>"></script>
+<script src="<?php echo _assetV('/js/common/bankdetails.js'); ?>"></script>
+<script src="<?php echo _assetV('/js/common/gstin_fetch.js'); ?>"></script>
+<link rel="stylesheet" href="<?php echo _assetV('/assets/vendor/css/attachments.css'); ?>">
+<script src="<?php echo _assetV('/js/common/attachments.js'); ?>"></script>
+<script src="<?php echo _assetV('/js/common/customer_form.js'); ?>"></script>
+<script src="<?php echo _assetV('/js/common/category_form.js'); ?>"></script>
+<script src="<?php echo _assetV('/js/common/product_form.js'); ?>"></script>
+<script src="<?php echo _assetV('/js/transactions/col_filter.js'); ?>"></script>
+<script src="<?php echo _assetV('/js/products.js'); ?>"></script>
+<script src="<?php echo _assetV('/js/combinemodules/combo.js'); ?>"></script>
+<script src="<?php echo _assetV('/js/common/pagecheckbox.js'); ?>"></script>
+<script src="<?php echo _assetV('/js/products/barcodeprint.js'); ?>"></script>
 
 <script>
 
@@ -845,6 +847,31 @@ $(function() {
         }
     });
 
+    // Category list image click → read data-images from DOM → open gallery instantly (no AJAX)
+    $(document).on('click', '.catg-list-img', function(e) {
+        e.stopPropagation();
+        var raw = $(this).data('images');
+        try {
+            var imgs = typeof raw === 'string' ? JSON.parse(raw) : raw;
+            if (imgs && imgs.length) { openImageGallery(imgs, 0); return; }
+        } catch(err) {}
+        var src = this.src || $(this).attr('src');
+        if (src) openImageGallery([{ url: src, name: '' }], 0);
+    });
+
+    // Product list image click → read data-images from DOM → open gallery instantly (no AJAX)
+    $(document).on('click', '.prod-list-img', function(e) {
+        e.stopPropagation();
+        var raw = $(this).data('images');
+        try {
+            var imgs = typeof raw === 'string' ? JSON.parse(raw) : raw;
+            if (imgs && imgs.length) { openImageGallery(imgs, 0); return; }
+        } catch(err) {}
+        // Fallback: use the src already on the img tag
+        var src = this.src || $(this).attr('src');
+        if (src) openImageGallery([{ url: src, name: '' }], 0);
+    });
+
     $(document).on('click', '.prod-status-toggle', function(e) {
         e.preventDefault();
         var uid       = $(this).data('uid');
@@ -968,7 +995,17 @@ $(function() {
     // Categories Page Coding Starts Here
     $(document).on('click', '.addCategory', function(e) {
         e.preventDefault();
-        formOpenCloseDefActions();
+        // Explicitly reset all fields for Add mode
+        $('#categoryForm').trigger('reset');
+        $('#CatgModalTitle').text('Add Category');
+        $('.CatgSaveButton').text('Save');
+        $('#CategoryUID').val(0);
+        $('#CategoryName').val('');
+        $('#CategoryDescription').val('');
+        $('.catgFormAlert').addClass('d-none');
+        // Bind listeners once (no-op if already bound), then reset attachment state
+        if (typeof _attachBindListeners === 'function') _attachBindListeners('Category');
+        if (typeof _attachResetState    === 'function') _attachResetState('Category');
         $('#categoryModal').modal('show');
     });
 
@@ -994,86 +1031,109 @@ $(function() {
 
     $(document).on('click', '.editCategory', function(e) {
         e.preventDefault();
-        var getVal = $(this).data('uid');
-        if (getVal) {
+        var getVal   = $(this).data('uid');
+        if (!getVal) return;
 
-            var getName = $(this).data('name');
-            var getDesc = $(this).data('description');
-            var getImage = $(this).data('image');
+        var getName       = $(this).data('name');
+        var getDesc       = $(this).data('description');
+        var getAttachRaw  = $(this).data('attachments');   // already in DOM — no AJAX needed
 
-            $('#categoryForm').trigger('reset');
-            $('#CatgModalTitle').text('Edit Category');
-            $('#CatgSaveButton').text('Update');
-            myTwoDropzone.removeAllFiles(true);
-            $('#categoryModal').modal('show');
+        $('#categoryForm').trigger('reset');
+        $('#CatgModalTitle').text('Edit Category');
+        $('#CatgSaveButton').text('Update');
 
-            $('#CategoryUID').val(getVal);
-            $('#CategoryName').val(getName ? atob(getName) : '');
-            $('#CategoryDescription').val(getDesc ? atob(getDesc) : '');
-            if(hasValue(getImage)) {
-                var ImageUrl = CDN_URL + atob(getImage);
-                commonSetDropzoneImageTwo(ImageUrl);
-                imgData = ImageUrl;
+        $('#CategoryUID').val(getVal);
+        $('#CategoryName').val(getName ? atob(getName) : '');
+        $('#CategoryDescription').val(getDesc ? atob(getDesc) : '');
+
+        // Bind listeners once, reset state, then load existing from DOM data — no AJAX
+        if (typeof _attachBindListeners === 'function') _attachBindListeners('Category');
+        if (typeof _attachResetState    === 'function') _attachResetState('Category');
+
+        try {
+            var attachments = typeof getAttachRaw === 'string' ? JSON.parse(getAttachRaw) : (getAttachRaw || []);
+            if (attachments.length && _attachState['Category']) {
+                // Map to the shape _attachRender expects: AttachUID, FileName, FileSize, Url
+                _attachState['Category'].existing = attachments.map(function(a, i) {
+                    return {
+                        AttachUID : a.AttachUID || (1000 + i),
+                        FileName  : a.name  || a.FileName  || '',
+                        FilePath  : a.url   || a.FilePath  || '',
+                        FileSize  : a.FileSize || 0,
+                        Url       : a.url   || a.Url       || '',
+                    };
+                });
+                if (typeof _attachRender === 'function') _attachRender('Category');
             }
+        } catch(err) {}
 
-            // retrieveCategoryDetails(getVal);
-        }
+        $('#categoryModal').modal('show');
     });
 
     $('#categoryForm').submit(function(e) {
         e.preventDefault();
 
-        var formData = new FormData($('#categoryForm')[0]);
-        var CategoryUID = $('#categoryForm').find('#CategoryUID').val();
+        var formData    = new FormData($('#categoryForm')[0]);
+        var CategoryUID = parseInt($('#CategoryUID').val() || 0);
 
-        if(CategoryUID && hasValue(imgData) && myTwoDropzone.files.length == 0) {
-            formData.append('ImageRemoved', 1);
+        formData.append('PageNo',    PageNo);
+        formData.append('RowLimit',  RowLimit);
+        formData.append('ModuleId',  CategoryModuleId);
+        if (Object.keys(Filter).length > 0) formData.append('Filter', JSON.stringify(Filter));
+
+        // Append new attachment files directly into this request — no separate upload round trip
+        if (typeof _attachState !== 'undefined' && _attachState['Category']) {
+            (_attachState['Category'].newFiles || []).forEach(function(f) {
+                formData.append('CatgAttachFiles[]', f, f.name);
+            });
         }
-        if (myTwoDropzone.files.length > 0) {
-            const file = myTwoDropzone.files[0];
-            if (!file.isStored) {
-                formData.append('UploadImage', myTwoDropzone.files[0]);
-            }
-        }
-        formData.append('PageNo', PageNo);
-        formData.append('RowLimit', RowLimit);
-        formData.append('ModuleId', CategoryModuleId);
-        if (Object.keys(Filter).length > 0) {
-            formData.append('Filter', JSON.stringify(Filter));
-        }
-        
-        if (CategoryUID == 0) {
-            addCategoryDetails(formData);
+
+        var $btn = $('#CatgSaveButton');
+        $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
+
+        var onDone = function() {
+            $btn.prop('disabled', false).text(CategoryUID ? 'Update' : 'Save');
+            $('#categoryModal').modal('hide');
+        };
+
+        if (CategoryUID === 0) {
+            addCategoryDetails(formData, onDone);
         } else {
-            editCategoryDetails(formData);
+            editCategoryDetails(formData, onDone);
         }
 
     });
 
     $(document).on('click', '.DeleteCategory', function(e) {
         e.preventDefault();
-        var GetId = $(this).data('categoryuid');
-        if (GetId) {
-            var ProductUID = $(this).data('productuid');
-            if (ProductUID && ProductUID !== undefined && ProductUID !== null && ProductUID !== '') {
-                Swal.fire("Category is linked to Product.", "", "error");
-                return false;
-            } else {
-                Swal.fire({
-                    title: "Do you want to delete the category?",
-                    text: "You won't be able to revert this!",
-                    icon: "warning",
-                    showCancelButton: true,
-                    confirmButtonColor: "#d33",
-                    confirmButtonText: "Yes, delete it!",
-                    cancelButtonColor: "#3085d6",
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        deleteCategory(GetId);
-                    }
-                });
-            }
+        var GetId        = $(this).data('categoryuid');
+        var productCount = parseInt($(this).data('productcount') || 0, 10);
+        var catName      = $(this).data('categoryname') || 'this category';
+
+        if (!GetId) return;
+
+        // Block immediately — no server call needed, count is already in the DOM
+        if (productCount > 0) {
+            showToastNotification(
+                '"' + catName + '" has ' + productCount + ' linked product' + (productCount > 1 ? 's' : '') + '. Remove the product link first before deleting.',
+                'error'
+            );
+            return false;
         }
+
+        Swal.fire({
+            title: "Delete category?",
+            text: "You won't be able to revert this!",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#d33",
+            confirmButtonText: "Yes, delete it!",
+            cancelButtonColor: "#3085d6",
+        }).then((result) => {
+            if (result.isConfirmed) {
+                deleteCategory(GetId);
+            }
+        });
     });
 
     // Sizes Page Coding Starts Here

@@ -704,7 +704,18 @@ class Settings extends MY_Controller {
                 $data['IsActive']  = 1;
                 $data['IsDeleted'] = 0;
                 $data['CreatedBy'] = $userUID;
-                $this->dbwrite_model->insertData('Organisation', 'OrgBankAccountsTbl', $data);
+                $insertResp = $this->dbwrite_model->insertData('Organisation', 'OrgBankAccountsTbl', $data);
+
+                // Auto-create the bank's ChartOfAccounts ledger so fund transfer journals work immediately
+                if (!$insertResp->Error && (int)$insertResp->ID > 0) {
+                    try {
+                        $this->load->library('accountledger');
+                        $this->accountledger->createBankLedger((int)$insertResp->ID, (int)$userUID);
+                    } catch (Exception $ledgerEx) {
+                        log_message('error', 'Bank ledger auto-create failed for BankUID=' . $insertResp->ID . ': ' . $ledgerEx->getMessage());
+                    }
+                }
+
                 $this->EndReturnData->Message = 'Bank account added successfully.';
             }
 
@@ -815,7 +826,7 @@ class Settings extends MY_Controller {
             if ($amount <= 0)  throw new Exception('Transfer amount must be greater than zero.');
 
             $this->load->model('dbwrite_model');
-            $this->dbwrite_model->insertData('Transaction', 'FundTransfersTbl', [
+            $insertResp = $this->dbwrite_model->insertData('Transaction', 'FundTransfersTbl', [
                 'OrgUID'       => $orgUID,
                 'FromBankUID'  => $fromUID,
                 'ToBankUID'    => $toUID,
@@ -828,6 +839,35 @@ class Settings extends MY_Controller {
                 'CreatedBy'    => $userUID,
                 'UpdatedBy'    => $userUID,
             ]);
+            if ($insertResp->Error) throw new Exception($insertResp->Message);
+
+            $transferUID = (int)$insertResp->ID;
+
+            // Post contra journal entry (non-fatal — transfer is already committed)
+            if ($transferUID > 0) {
+                try {
+                    $this->load->library('accountledger');
+                    $transferFY = (int)date('Y', strtotime($transDate));
+                    $this->accountledger->postFundTransferJournal(
+                        $transferUID, $transDate, $transferFY, $amount, $fromUID, $toUID, (int)$userUID
+                    );
+                } catch (Exception $ledgerEx) {
+                    log_message('error', 'Ledger failed after fund transfer #' . $transferUID . ': ' . $ledgerEx->getMessage());
+                }
+            }
+
+            // DR from source bank, CR to destination bank
+            $transferLabel = 'Fund transfer — Ref #' . $transferUID . ($referenceNo ? ' / ' . $referenceNo : '');
+            $this->_writeBankLedgerEntry(
+                $orgUID, $fromUID, 'DR', $amount,
+                'FundTransfer', $transferUID, null,
+                $referenceNo, $transferLabel . ' (out)', $transDate, (int)$userUID
+            );
+            $this->_writeBankLedgerEntry(
+                $orgUID, $toUID, 'CR', $amount,
+                'FundTransfer', $transferUID, null,
+                $referenceNo, $transferLabel . ' (in)', $transDate, (int)$userUID
+            );
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Funds transferred successfully.';

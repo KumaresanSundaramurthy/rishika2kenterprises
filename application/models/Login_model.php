@@ -82,7 +82,10 @@ class Login_model extends CI_Model {
                 }
             }
 
-            $jwtPayload = array('User' => $JwtUserData, 'Org' => $JwtOrgData, 'UserMainModule' => $MainModule, 'UserSubModule' => $SubModule, 'Permissions' => $Permissions, 'GenSettings' => $GeneralSettings, 'ProdSettings' => $ProductSettings, 'TransSettings' => $TransSettings, 'ModuleInfo' => $ModuleInfo);
+            // Attachment config — loaded once at login, lives in JWT/Redis for session lifetime
+            $AttachCfg = $this->getAttachCfg();
+
+            $jwtPayload = array('User' => $JwtUserData, 'Org' => $JwtOrgData, 'UserMainModule' => $MainModule, 'UserSubModule' => $SubModule, 'Permissions' => $Permissions, 'GenSettings' => $GeneralSettings, 'ProdSettings' => $ProductSettings, 'TransSettings' => $TransSettings, 'ModuleInfo' => $ModuleInfo, 'AttachCfg' => $AttachCfg);
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Message = 'Success';
@@ -385,6 +388,32 @@ class Login_model extends CI_Model {
                 ];
             }
             return $list;
+        } catch (Exception $e) {
+            return [];
+        }
+    }
+
+    // ── Attachment config ─────────────────────────────────────────────────────
+
+    private function getAttachCfg(): array {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('SlotKey, IsEnabled, MaxFiles, MaxFileSizeMB, MaxTotalSizeMB, AllowMultiple, AcceptedTypes');
+            $this->ReadDb->from('Modules.ModuleAttachmentCfgTbl');
+            $rows = $this->ReadDb->get();
+            if (!$rows) return [];
+            $cfg = [];
+            foreach ($rows->result() as $row) {
+                $cfg[$row->SlotKey] = [
+                    'IsEnabled'      => (bool)(int)$row->IsEnabled,
+                    'MaxFiles'       => (int)$row->MaxFiles,
+                    'MaxFileSizeMB'  => (float)$row->MaxFileSizeMB,
+                    'MaxTotalSizeMB' => (float)$row->MaxTotalSizeMB,
+                    'AllowMultiple'  => (bool)(int)$row->AllowMultiple,
+                    'AcceptedTypes'  => $row->AcceptedTypes,
+                ];
+            }
+            return $cfg;
         } catch (Exception $e) {
             return [];
         }

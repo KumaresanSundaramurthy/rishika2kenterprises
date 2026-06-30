@@ -122,6 +122,18 @@ function _custPageSaveSuccess(response) {
 }
 _custPageSaveSuccess._needsList = true; // signals backend to return List/Pagination/Stats
 
+// ── Customer list image → open gallery from data-images (no AJAX) ────────────
+$(document).on('click', '.cust-list-img', function(e) {
+    e.stopPropagation();
+    var raw = $(this).data('images');
+    try {
+        var imgs = typeof raw === 'string' ? JSON.parse(raw) : raw;
+        if (imgs && imgs.length) { openImageGallery(imgs, 0); return; }
+    } catch(err) {}
+    var src = this.src;
+    if (src) openImageGallery([{ url: src, name: '' }], 0);
+});
+
 // ── Open modal triggers ───────────────────────────────────────────────────
 $(document).on('click', '.cust-edit-btn', function () {
     CustomerForm.open('edit', $(this).data('uid'), { onSaveSuccess: _custPageSaveSuccess });

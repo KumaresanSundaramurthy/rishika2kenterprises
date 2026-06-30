@@ -347,7 +347,10 @@ class Purchases extends MY_Controller {
 
             $this->_saveAttachments($transUID);
             $this->_touchVendorCache($vendorUID);
-            if (!$isDraft) { $this->_refreshProductCache($items); }
+            if (!$isDraft) {
+                $this->_syncProductCacheFromItems($items);
+                $this->_recalcVendorBalance($orgUID, $vendorUID, $userUID);
+            }
 
             $this->EndReturnData->Error    = FALSE;
             $this->EndReturnData->Message  = 'Purchase bill recorded successfully.';
@@ -665,6 +668,7 @@ class Purchases extends MY_Controller {
             if (!$isDraft) {
                 foreach ($items as $_item) { $u = (int)($_item['id'] ?? 0); if ($u > 0) $_cacheUIDs[$u] = true; }
                 foreach (array_keys($_cacheUIDs) as $_uid) { $this->cachehelper->upsertProduct($_uid); }
+                $this->_recalcVendorBalance($orgUID, $vendorUID, $userUID);
             }
             $this->transactions_model->generateAndStorePdf(isset($newTransUID) ? $newTransUID : $transUID, $orgUID, $this->pageModuleUID);
 
@@ -730,6 +734,7 @@ class Purchases extends MY_Controller {
                 } catch (Exception $ledgerEx) {
                     log_message('error', 'Ledger reversal failed after purchase delete: ' . $ledgerEx->getMessage());
                 }
+                $this->_recalcVendorBalance($orgUID, $existing->PartyUID, $userUID);
             }
 
             $this->EndReturnData->Error   = FALSE;
@@ -1141,6 +1146,13 @@ class Purchases extends MY_Controller {
             ];
 
             $this->dbwrite_model->insertData('Transaction', 'PaymentsTbl', $paymentData);
+
+            $this->_writeBankLedgerEntry(
+                $orgUID, $bankAccountUID, 'DR', $amount,
+                'Purchase', $transUID, 110,
+                $referenceNo, 'Payment made to vendor — ' . ($payUniqueNum ?? '#' . $transUID),
+                $paymentDate, $userUID
+            );
         }
 
         return $totalPaid;
@@ -1369,6 +1381,15 @@ class Purchases extends MY_Controller {
             } catch (Exception $ledgerEx) {
                 log_message('error', 'Ledger debit failed after purchase payment: ' . $ledgerEx->getMessage());
             }
+
+            $this->_recalcVendorBalance($orgUID, $existing->PartyUID, $userUID);
+
+            $this->_writeBankLedgerEntry(
+                $orgUID, $bankAccountUID, 'DR', $amount,
+                'Purchase', $transUID, 111,
+                $referenceNo, 'Payment made to vendor — ' . ($payUniqueNum ?? $existing->UniqueNumber ?? '#' . $transUID),
+                $paymentDate, $userUID
+            );
 
             $this->EndReturnData->Error      = FALSE;
             $this->EndReturnData->Message    = 'Payment of ' . $amount . ' recorded successfully.';

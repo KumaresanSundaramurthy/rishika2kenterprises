@@ -122,7 +122,21 @@ $route['settings/profile/deleteExpense']                = 'profile/deleteExpense
 $route['settings/profile/getExpenseAttachments']        = 'profile/getExpenseAttachments';
 $route['settings/profile/saveExpenseAttachment']        = 'profile/saveExpenseAttachment';
 $route['settings/profile/deleteExpenseAttachment']      = 'profile/deleteExpenseAttachment';
-$route['settings/organisation']      = 'organisation';
+$route['settings/organisation']                          = 'organisation';
+
+// ── Accounting ────────────────────────────────────────────────────────────
+$route['accounting/chartofaccounts']                     = 'accounting/chartofaccounts';
+$route['accounting/getChartOfAccountsPage/(:num)']       = 'accounting/getChartOfAccountsPage/$1';
+$route['accounting/saveLedger']                          = 'accounting/saveLedger';
+$route['accounting/toggleLedgerStatus']                  = 'accounting/toggleLedgerStatus';
+$route['accounting/deleteLedger']                        = 'accounting/deleteLedger';
+$route['accounting/generalledger']                       = 'accounting/generalledger';
+$route['accounting/getLedgerStatementAjax']              = 'accounting/getLedgerStatementAjax';
+$route['accounting/journallist']                         = 'accounting/journallist';
+$route['accounting/getJournalListPage/(:num)']           = 'accounting/getJournalListPage/$1';
+$route['accounting/getJournalDetail']                    = 'accounting/getJournalDetail';
+$route['accounting/trialbalance']                        = 'accounting/trialbalance';
+$route['accounting/getTrialBalanceAjax']                 = 'accounting/getTrialBalanceAjax';
 $route['setpassword/submit']   = 'setpassword/submit';
 $route['setpassword/(:any)']   = 'setpassword/index/$1';
 $route['setpassword']          = 'setpassword/index';
@@ -351,9 +365,12 @@ $route['customers/(:num)/clone'] = 'customers/clonecustomer/$1';
 $route['customers/modal/(:any)/(:num)'] = 'customers/loadModalForm/$1/$2';
 $route['customers/modal/(:any)']        = 'customers/loadModalForm/$1';
 $route['customers/getCustomerForModal/(:num)'] = 'customers/getCustomerForModal/$1';
-$route['customers/getCustomerBalance']    = 'customers/getCustomerBalance';
-$route['customers/updateCustomerBalance'] = 'customers/updateCustomerBalance';
-$route['customers/exportCustomers']       = 'customers/exportCustomers';
+$route['customers/getCustomerBalance']          = 'customers/getCustomerBalance';
+$route['customers/updateCustomerBalance']       = 'customers/updateCustomerBalance';
+$route['customers/exportCustomers']             = 'customers/exportCustomers';
+$route['customers/getCustomerAttachments']      = 'customers/getCustomerAttachments';
+$route['customers/saveCustomerAttachments']     = 'customers/saveCustomerAttachments';
+$route['customers/deleteCustomerAttachment']    = 'customers/deleteCustomerAttachment';
 $route['globally/getCommTemplate'] = 'globally/getCommTemplate';
 
 // Vendors
@@ -361,14 +378,19 @@ $route['vendors/(:num)/edit'] = 'vendors/edit/$1';
 $route['vendors/(:num)/clone'] = 'vendors/clonevendor/$1';
 $route['vendors/modal/(:any)/(:num)'] = 'vendors/loadModalForm/$1/$2';
 $route['vendors/modal/(:any)']        = 'vendors/loadModalForm/$1';
-$route['vendors/saveVendorOpeningBalance'] = 'vendors/saveVendorOpeningBalance';
-$route['vendors/getVendorOpeningBalance']  = 'vendors/getVendorOpeningBalance';
-$route['vendors/updateVendorBalance']      = 'vendors/updateVendorBalance';
-$route['vendors/exportVendors']            = 'vendors/exportVendors';
+$route['vendors/saveVendorOpeningBalance']      = 'vendors/saveVendorOpeningBalance';
+$route['vendors/getVendorOpeningBalance']       = 'vendors/getVendorOpeningBalance';
+$route['vendors/updateVendorBalance']           = 'vendors/updateVendorBalance';
+$route['vendors/exportVendors']                 = 'vendors/exportVendors';
+$route['vendors/getVendorAttachments']          = 'vendors/getVendorAttachments';
+$route['vendors/deleteVendorAttachment']        = 'vendors/deleteVendorAttachment';
 
 // Products
 $route['products/(:num)/edit'] = 'products/edit/$1';
 $route['products/(:num)/clone'] = 'products/clone/$1';
+$route['products/getAttachments']  = 'products/getAttachments';
+$route['products/saveAttachments'] = 'products/saveAttachments';
+$route['products/deleteAttachment'] = 'products/deleteAttachment';
 
 // Inventory
 $route['inventory']                              = 'inventory/index';
@@ -384,6 +406,7 @@ $route['inventory/searchProducts']               = 'inventory/searchProducts';
 $route['inventory/export']                       = 'inventory/export';
 $route['inventory/exportTimeline']               = 'inventory/exportTimeline';
 $route['inventory/updateAdj']                    = 'inventory/updateAdj';
+$route['inventory/deleteAdj']                    = 'inventory/deleteAdj';
 $route['inventory/updateLedgerRemarks']          = 'inventory/updateLedgerRemarks';
 
 // Machine Rental

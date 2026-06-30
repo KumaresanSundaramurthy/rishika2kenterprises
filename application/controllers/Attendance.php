@@ -7,11 +7,6 @@ class Attendance extends MY_Controller {
 
     public function __construct() { parent::__construct(); }
 
-    private function _orgUID()    { return (int)$this->pageData['JwtData']->Org->OrgUID; }
-    private function _branchUID() { return (int)($this->pageData['JwtData']->Org->BranchUID ?? 1); }
-    private function _userUID()   { return (int)$this->pageData['JwtData']->User->UserUID; }
-    private function _limit()     { return (int)($this->pageData['JwtData']->GenSettings->RowLimit ?? 10); }
-
     private function _fetchTableData($pageNo, $limit, $filter = []) {
         $offset = max(0, ($pageNo - 1) * $limit);
         $this->load->model('attendance_model');
@@ -31,7 +26,7 @@ class Attendance extends MY_Controller {
         try {
             $today  = date('Y-m-d');
             $filter = ['DateFrom' => $today, 'DateTo' => $today];
-            $pd     = $this->_fetchTableData(1, $this->_limit(), $filter);
+            $pd     = $this->_fetchTableData(1, $this->_rowLimit(), $filter);
             $this->pageData['ModRowData']    = $pd->RecordHtmlData;
             $this->pageData['ModPagination'] = $pd->Pagination;
 
@@ -69,7 +64,7 @@ class Attendance extends MY_Controller {
         $this->EndReturnData = new stdClass();
         try {
             $filter = $this->input->post('Filter') ?: [];
-            $pd = $this->_fetchTableData(max(1, (int)$pageNo), $this->_limit(), $filter);
+            $pd = $this->_fetchTableData(max(1, (int)$pageNo), $this->_rowLimit(), $filter);
             $this->EndReturnData->Error          = FALSE;
             $this->EndReturnData->RecordHtmlData = $pd->RecordHtmlData;
             $this->EndReturnData->Pagination     = $pd->Pagination;

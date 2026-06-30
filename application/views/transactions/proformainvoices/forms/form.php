@@ -513,12 +513,7 @@ $(function() {
 
             var formData = new FormData();
             $.each(postData, function(k, v) { formData.append(k, v); });
-            if (typeof multiDropzone !== 'undefined' && multiDropzone.files.length > 0) {
-                multiDropzone.files.forEach(function(f) { formData.append('AttachFiles[]', f); });
-            }
-            if (_isEdit) {
-                formData.append('RemovedAttachIDs', JSON.stringify(typeof _removedAttachIDs !== 'undefined' ? _removedAttachIDs : []));
-            }
+            collectTransAttachData(formData);
 
             setFormLoading('#<?php echo $formId; ?>', true, action);
 

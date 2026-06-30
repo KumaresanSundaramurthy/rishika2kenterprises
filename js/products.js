@@ -237,18 +237,26 @@ function getCategoriesDetails(PageNo, RowLimit, Filter) {
                 $(CatgTable + ' tbody').html('');
                 $(CatgPag).html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');
             } else {
-                $(CatgPag).html(response.Pagination);
+                var total = response.TotalCount || 0;
+                var from  = Math.min((PageNo - 1) * RowLimit + 1, total);
+                var to    = Math.min(PageNo * RowLimit, total);
+                var showingHtml = total > 0
+                    ? '<div class="col-auto text-muted" style="font-size:.82rem;">Showing <strong>' + from + '</strong> – <strong>' + to + '</strong> of <strong>' + total + '</strong> Results</div>'
+                    : '';
+                $(CatgPag).html(showingHtml + '<div class="col-auto">' + response.Pagination + '</div>');
                 $(CatgTable + ' tbody').html(response.List);
                 if (typeof response.TotalCount !== 'undefined') {
                     updateCategoryCount(response.TotalCount);
                 }
             }
             executeCatgPagnFunc(response, false);
+            // Refresh sticky pagination bar after content loads
+            $(window).trigger('scroll');
         },
     });
 }
 
-function addCategoryDetails(formdata) {
+function addCategoryDetails(formdata, onSuccess) {
     formdata.append('returnList', 1);
     $.ajax({
         url: '/products/addCategoryDetails',
@@ -262,28 +270,25 @@ function addCategoryDetails(formdata) {
             if (response.Error) {
                 $('.catgFormAlert').removeClass('d-none');
                 inlineMessageAlert('.catgFormAlert', 'danger', response.Message, false, false);
+                $('#CatgSaveButton').prop('disabled', false).text('Save');
             } else {
-                myTwoDropzone.removeAllFiles(true);
                 $('#categoryForm').trigger('reset');
-                $('#categoryModal').modal('hide');
                 if (!$('#categoryModal').data('calledFromItemForm')) {
                     executeCatgPagnFunc(response, true);
                 }
-                if(response.InsertId) {
-                    var formObj = {};
-                    formObj.InsertId = response.InsertId;
-                    formObj.CategoryName = formdata.get('CategoryName');
+                if (response.InsertId) {
+                    var formObj = { InsertId: response.InsertId, CategoryName: formdata.get('CategoryName') };
                     updateCategoryOptions(formObj, 'insert');
                     showToastNotification(response.Message, 'success');
                     if ($('#categoryModal').data('calledFromItemForm')) {
                         $('#categoryModal').data('calledFromItemForm', false);
                         $(document).trigger('catgSavedFromItemForm', [{ id: response.InsertId, name: formdata.get('CategoryName') }]);
                     }
+                    if (typeof onSuccess === 'function') onSuccess(response.InsertId);
                 }
             }
         }
     });
-
 }
 
 function retrieveCategoryDetails(CategoryUID) {
@@ -318,7 +323,7 @@ function retrieveCategoryDetails(CategoryUID) {
     });
 }
 
-function editCategoryDetails(formdata) {
+function editCategoryDetails(formdata, onSuccess) {
     $.ajax({
         url: '/products/updateCategoryDetails',
         method: 'POST',
@@ -331,21 +336,21 @@ function editCategoryDetails(formdata) {
             if (response.Error) {
                 $('.catgFormAlert').removeClass('d-none');
                 inlineMessageAlert('.catgFormAlert', 'danger', response.Message, false, false);
+                $('#CatgSaveButton').prop('disabled', false).text('Update');
             } else {
-                myTwoDropzone.removeAllFiles(true);
                 $('#categoryForm').trigger('reset');
-                $('#categoryModal').modal('hide');
                 executeCatgPagnFunc(response, true);
-                if(formdata.get('CategoryUID')) {
-                    var formObj = {};
-                    formObj.UpdateId = formdata.get('CategoryUID');
-                    formObj.CategoryName = formdata.get('CategoryName');
-                    updateCategoryOptions(formObj, 'update');
+                if (formdata.get('CategoryUID')) {
+                    updateCategoryOptions({ UpdateId: formdata.get('CategoryUID'), CategoryName: formdata.get('CategoryName') }, 'update');
                 }
+                showToastNotification(response.Message || 'Category updated.', 'success');
+                if (typeof onSuccess === 'function') onSuccess();
             }
         }
     });
 }
+
+function catgAttachTrigger(e) { _attachZoneTrigger('Category', e); }
 
 function deleteCategory(CategoryUID) {
     $.ajax({
@@ -361,13 +366,14 @@ function deleteCategory(CategoryUID) {
         },
         success: function (response) {
             if (response.Error) {
-                Swal.fire(response.Message, "", "error");
+                showToastNotification(response.Message, 'error');
             } else {
                 if (SelectedUIDs.length > 0) {
                     SelectedUIDs = SelectedUIDs.filter(function (item) {
                         return item !== CategoryUID;
                     });
                 }
+                showToastNotification(response.Message, 'success');
                 executeCatgPagnFunc(response, true);
                 var formObj = {};
                 formObj.UpdateId = [CategoryUID]
@@ -397,6 +403,7 @@ function deleteMultipleCategory() {
                 formObj.UpdateId = SelectedUIDs;
                 updateCategoryOptions(formObj, 'delete');
                 SelectedUIDs = [];
+                showToastNotification(response.Message, 'success');
                 executeCatgPagnFunc(response, true);
             }
         },
@@ -405,12 +412,16 @@ function deleteMultipleCategory() {
 
 function executeCatgPagnFunc(response, tableinfo = false) {
     if (tableinfo) {
-        $(CatgPag).html(response.Pagination);
+        var total = response.TotalCount || 0;
+        var showingHtml = total > 0
+            ? '<div class="col-auto text-muted" style="font-size:.82rem;">Showing <strong>1</strong> – <strong>' + Math.min(RowLimit, total) + '</strong> of <strong>' + total + '</strong> Results</div>'
+            : '';
+        $(CatgPag).html(showingHtml + '<div class="col-auto">' + response.Pagination + '</div>');
         $(CatgTable + ' tbody').html(response.List);
         if (typeof response.TotalCount !== 'undefined') {
             updateCategoryCount(response.TotalCount);
         }
-        showToastNotification(response.Message, 'success');
+        $(window).trigger('scroll');
     }
     headerCheckboxTrueFalse(CatgTable, CatgHeader, CatgRow);
     MultipleDeleteOption();
@@ -945,7 +956,8 @@ function formOpenCloseDefActions() {
         $('#CatgModalTitle').text('Add Category');
         $('.CatgSaveButton').text('Save');
         $('#categoryForm').find('#CategoryUID').val(0);
-        myTwoDropzone.removeAllFiles(true);
+        // Replaced old dropzone with attachment zone — reset state instead
+        if (typeof _attachResetState === 'function') _attachResetState('Category');
     } else if (ActiveTabId == 'Sizes') {
         $('#SizesForm').trigger('reset');
         $('#SizeModalTitle').text('Add Size');
@@ -1307,3 +1319,181 @@ function loadTaxDetailOptions() {
         '</style>').appendTo('head');
     }
 }
+// ── Product & Category Attachment Zone ───────────────────────────────────────
+// Core logic is in js/common/attachments.js (shared with Customers & Vendors).
+// _attachCfg, _attachState, _attachBlobUrls and all generic functions live there.
+// Product/Category-specific trigger helpers are below.
+
+
+
+
+
+
+
+function prodAttachTrigger(e) { _attachZoneTrigger('Product', e); }
+
+
+
+
+
+function _attachRender(entityType) {
+    var cfg   = _attachCfg[entityType];
+    var state = _attachState[entityType];
+    if (!cfg || !state) return;
+
+    var list  = document.getElementById(cfg.listId);
+    var label = document.getElementById(cfg.emptyId.replace('Empty','Label')) || document.getElementById(entityType === 'Product' ? 'prodAttachLabel' : 'catgAttachLabel');
+    var hint  = document.getElementById(entityType === 'Product' ? 'prodAttachHint' : 'catgAttachHint');
+    var icon  = document.getElementById(entityType === 'Product' ? 'prodAttachIcon' : 'catgAttachIcon');
+    if (!list) return;
+
+    list.innerHTML = '';
+    var activeEx = (state.existing||[]).filter(function(x){ return !(state.toDelete||[]).includes(x.AttachUID); });
+    var total = activeEx.length + (state.newFiles||[]).length;
+    var remaining = cfg.maxFiles - total;
+
+    // Zone text changes contextually — zone itself never hides
+    if (total === 0) {
+        if (icon)  { icon.className = 'bx bx-image-add'; icon.style.color = '#9ca3af'; }
+        if (label) label.textContent = 'Drag & drop images';
+        if (hint)  hint.textContent  = 'JPG, GIF or PNG · Max ' + cfg.maxFiles + ' · ' + cfg.maxTotalMB + ' MB total';
+        list.style.display = 'none';
+        return;
+    } else if (remaining > 0) {
+        if (icon)  { icon.className = 'bx bx-plus'; icon.style.color = '#6366f1'; }
+        if (label) label.textContent = 'Add more images';
+        if (hint)  hint.textContent  = remaining + ' slot' + (remaining > 1 ? 's' : '') + ' remaining';
+    } else {
+        if (icon)  { icon.className = 'bx bx-check-circle'; icon.style.color = '#10b981'; }
+        if (label) label.textContent = 'Maximum reached';
+        if (hint)  hint.textContent  = cfg.maxFiles + ' of ' + cfg.maxFiles + ' images added';
+    }
+    list.style.display = '';
+
+    // Build gallery arrays once for this render pass
+    var existingGallery = (state.existing||[]).map(function(a){
+        return { url: a.Url || a.FilePath, name: a.FileName };
+    });
+
+    // Ensure stable blob URLs for new files (don't re-create on every render)
+    if (!_attachBlobUrls[entityType]) _attachBlobUrls[entityType] = [];
+    var blobUrls = _attachBlobUrls[entityType];
+    (state.newFiles||[]).forEach(function(f, i){
+        if (!blobUrls[i]) blobUrls[i] = URL.createObjectURL(f);
+    });
+    // Trim stale entries if files were removed
+    blobUrls.length = (state.newFiles||[]).length;
+
+    var newGallery = (state.newFiles||[]).map(function(f, i){
+        return { url: blobUrls[i], name: f.name };
+    });
+
+    // ── Render existing saved attachments ─────────────────────────────────
+    (state.existing||[]).forEach(function(att, exIdx) {
+        var deleted = (state.toDelete||[]).includes(att.AttachUID);
+
+        var item = document.createElement('div');
+        item.className = 'prod-attach-item is-existing' + (deleted ? ' pending-delete' : '');
+
+        // Thumbnail — set src via JS property (safe for any URL type)
+        var thumb = document.createElement('img');
+        thumb.alt   = att.FileName || '';
+        thumb.title = 'Click to preview';
+        thumb.src   = att.Url || att.FilePath || '';
+        (function(gallery, idx){ thumb.addEventListener('click', function(e){ e.stopPropagation(); openImageGallery(gallery, idx); }); })(existingGallery, exIdx);
+        item.appendChild(thumb);
+
+        // Name
+        var name = document.createElement('span');
+        name.className = 'attach-name';
+        name.title     = att.FileName || '';
+        name.textContent = att.FileName || '';
+        item.appendChild(name);
+
+        // Size
+        var size = document.createElement('span');
+        size.className = 'attach-size';
+        size.textContent = _attachFmtSize(att.FileSize || 0);
+        item.appendChild(size);
+
+        // Remove / Undo button
+        var btn = document.createElement('button');
+        btn.className = 'attach-remove';
+        btn.type  = 'button';
+        btn.title = deleted ? 'Undo remove' : 'Remove';
+        btn.innerHTML = deleted ? '<i class="bx bx-undo"></i>' : '<i class="bx bx-x"></i>';
+        if (deleted) {
+            (function(et, uid){ btn.addEventListener('click', function(e){ e.stopPropagation(); _attachUndoDelete(et, uid); }); })(entityType, att.AttachUID);
+        } else {
+            (function(et, uid){ btn.addEventListener('click', function(e){ e.stopPropagation(); _attachRemoveExisting(et, uid); }); })(entityType, att.AttachUID);
+        }
+        item.appendChild(btn);
+        list.appendChild(item);
+    });
+
+    // ── Render new (not yet uploaded) files ───────────────────────────────
+    (state.newFiles||[]).forEach(function(file, idx) {
+        var item = document.createElement('div');
+        item.className = 'prod-attach-item';
+
+        var thumb = document.createElement('img');
+        thumb.alt   = file.name;
+        thumb.title = 'Click to preview';
+        thumb.src   = blobUrls[idx];   // set via property — safe for blob: URLs
+        (function(gallery, i){ thumb.addEventListener('click', function(e){ e.stopPropagation(); openImageGallery(gallery, i); }); })(newGallery, idx);
+        item.appendChild(thumb);
+
+        var name = document.createElement('span');
+        name.className = 'attach-name';
+        name.title     = file.name;
+        name.textContent = file.name;
+        item.appendChild(name);
+
+        var size = document.createElement('span');
+        size.className = 'attach-size';
+        size.textContent = _attachFmtSize(file.size);
+        item.appendChild(size);
+
+        var btn = document.createElement('button');
+        btn.className = 'attach-remove';
+        btn.type  = 'button';
+        btn.title = 'Remove';
+        btn.innerHTML = '<i class="bx bx-x"></i>';
+        (function(et, i){ btn.addEventListener('click', function(e){ e.stopPropagation(); _attachRemoveNew(et, i); }); })(entityType, idx);
+        item.appendChild(btn);
+        list.appendChild(item);
+    });
+}
+
+
+
+function _attachRemoveExisting(entityType, attachUID) {
+    Swal.fire({ title: 'Remove this image?', text: 'It will be deleted when you save.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#ef4444', confirmButtonText: 'Yes, remove', cancelButtonColor: '#6b7280' })
+    .then(function(r) {
+        if (!r.isConfirmed) return;
+        var state = _attachState[entityType];
+        if (!(state.toDelete||[]).includes(attachUID)) state.toDelete.push(attachUID);
+        _attachRender(entityType);
+        var cfg = _attachCfg[entityType];
+        if (cfg) document.getElementById(cfg.deleteField).value = state.toDelete.join(',');
+    });
+}
+function _attachUndoDelete(entityType, attachUID) {
+    var state = _attachState[entityType];
+    state.toDelete = (state.toDelete||[]).filter(function(id){ return id !== attachUID; });
+    _attachRender(entityType);
+    var cfg = _attachCfg[entityType];
+    if (cfg) document.getElementById(cfg.deleteField).value = state.toDelete.join(',');
+}
+function _attachRemoveNew(entityType, idx) { _attachState[entityType].newFiles.splice(idx,1); _attachRender(entityType); }
+function _attachFmtSize(b){ if(!b) return ''; if(b<1024) return b+' B'; if(b<1048576) return (b/1024).toFixed(1)+' KB'; return (b/1048576).toFixed(1)+' MB'; }
+function _escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function _attachLoadExisting(entityType, entityUID) {
+    if (!entityUID) return;
+    $.get('/products/getAttachments', { EntityType: entityType, EntityUID: entityUID }, function(resp) {
+        if (resp && !resp.Error) { _attachState[entityType].existing = resp.Attachments||[]; _attachRender(entityType); }
+    });
+}
+
+

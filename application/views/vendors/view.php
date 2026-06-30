@@ -353,13 +353,15 @@
 
 <?php $this->load->view('common/footer'); ?>
 
-<script src="/js/transactions/col_filter.js"></script>
-<script src="/js/vendors.js"></script>
-<script src="/js/common/pagecheckbox.js"></script>
-<script src="/js/common/communication.js"></script>
-<script src="/js/common/gstin_fetch.js"></script>
-<script src="/js/common/bankdetails.js"></script>
-<script src="/js/common/address.js"></script>
+<script src="<?php echo _assetV('/js/transactions/col_filter.js'); ?>"></script>
+<link rel="stylesheet" href="<?php echo _assetV('/assets/vendor/css/attachments.css'); ?>">
+<script src="<?php echo _assetV('/js/common/attachments.js'); ?>"></script>
+<script src="<?php echo _assetV('/js/vendors.js'); ?>"></script>
+<script src="<?php echo _assetV('/js/common/pagecheckbox.js'); ?>"></script>
+<script src="<?php echo _assetV('/js/common/communication.js'); ?>"></script>
+<script src="<?php echo _assetV('/js/common/gstin_fetch.js'); ?>"></script>
+<script src="<?php echo _assetV('/js/common/bankdetails.js'); ?>"></script>
+<script src="<?php echo _assetV('/js/common/address.js'); ?>"></script>
 <script src="/js/common/vendor_group_form.js"></script>
 
 <script>

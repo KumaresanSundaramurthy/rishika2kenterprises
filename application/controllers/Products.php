@@ -224,8 +224,7 @@ class Products extends MY_Controller {
             $data['StorageUID'] = getPostValue($postData, 'StorageUID');
         }
         if ($isCreate) {
-            $this->load->model('transactions_model');
-            $data['ProdToken'] = $this->transactions_model->_generateUniqueToken('Products.ProductTbl', 'ProdToken');
+            $data['ProdToken'] = generate_uuid4();
             $data['CreatedBy'] = $this->pageData['JwtData']->User->UserUID;
         }
 
@@ -502,14 +501,19 @@ class Products extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
-            // Create initial stock row in ProductStockTbl
-            $this->dbwrite_model->initProductStock($ProductUID, (int) $this->pageData['JwtData']->Org->OrgUID);
+            // Create initial stock row in ProductStockTbl — seed with OpeningQuantity
+            $openingQty = (float)($prodFormData['OpeningQuantity'] ?? 0);
+            $this->dbwrite_model->initProductStock($ProductUID, (int) $this->pageData['JwtData']->Org->OrgUID, $openingQty);
 
             // Sync new product into the Upstash bulk cache
             $this->cachehelper->upsertProduct($ProductUID);
 
-            $this->EndReturnData->Error   = FALSE;
-            $this->EndReturnData->Message = 'Created Successfully';
+            // Handle attachment uploads + deletes (part of this request, after commit)
+            $this->_handleAttachments('Product', $ProductUID, (int)$this->pageData['JwtData']->Org->OrgUID, (int)$this->pageData['JwtData']->User->UserUID, 'ProdAttachFiles', 'ProdAttachDeleteUIDs');
+
+            $this->EndReturnData->Error      = FALSE;
+            $this->EndReturnData->Message    = 'Created Successfully';
+            $this->EndReturnData->ProductUID = $ProductUID;
 
             // Build product data object from POST + TaxDetails — no extra DB query needed
             $sellingPrice  = (float) getPostValue($PostData, 'SellingPrice', '', 0);
@@ -587,12 +591,17 @@ class Products extends MY_Controller {
             $cacheKey = Upstashservice::keyProduct($ProductUID);
             $cached   = $this->upstashservice->get($cacheKey);
 
+            $orgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
+            // Always fetch attachments fresh — not cached (they change independently)
+            $attachments = $this->_getAttachmentsWithUrl('Product', $ProductUID, $orgUID);
+
             if ($cached !== null) {
                 $this->EndReturnData->Error           = FALSE;
                 $this->EndReturnData->Message         = 'Retrieved Successfully';
                 $this->EndReturnData->Data            = (object)$cached['Data'];
                 $this->EndReturnData->CustomerPricing = $cached['CustomerPricing'] ?? [];
                 $this->EndReturnData->RentalConfig    = isset($cached['RentalConfig']) ? (object)$cached['RentalConfig'] : null;
+                $this->EndReturnData->Attachments     = $attachments;
             } else {
                 $this->load->model('products_model');
                 $GetProductData = $this->products_model->getProductsDetails(['Products.ProductUID' => $ProductUID]);
@@ -600,7 +609,6 @@ class Products extends MY_Controller {
                     throw new Exception('Product not found');
                 }
                 $customerPricing = $this->products_model->getCustomerTypePricing($ProductUID);
-                $orgUID          = (int) $this->pageData['JwtData']->Org->OrgUID;
                 $rentalConfig    = $this->products_model->getRentalConfig($ProductUID, $orgUID);
 
                 $this->EndReturnData->Error           = FALSE;
@@ -608,6 +616,7 @@ class Products extends MY_Controller {
                 $this->EndReturnData->Data            = $GetProductData[0];
                 $this->EndReturnData->CustomerPricing = $customerPricing;
                 $this->EndReturnData->RentalConfig    = $rentalConfig;
+                $this->EndReturnData->Attachments     = $attachments;
 
                 // Populate cache for next request
                 $this->upstashservice->set($cacheKey, [
@@ -649,13 +658,33 @@ class Products extends MY_Controller {
             $TaxDetails = $this->global_model->getTaxPercentageDetailsInfo(['TaxDetail.TaxDetailsUID' => $PostData['TaxPercentage']])->Data[0] ?? null;
 
             $ProductUID = (int) getPostValue($PostData, 'ProductUID');
-            
+            $orgUID     = (int) $this->pageData['JwtData']->Org->OrgUID;
+
+            // Read current OpeningQuantity BEFORE update to compute delta later
+            $readDb = $this->load->database('ReadDB', TRUE);
+            $readDb->db_debug = FALSE;
+            $readDb->select('OpeningQuantity, ProductType');
+            $readDb->from('Products.ProductTbl');
+            $readDb->where('ProductUID', $ProductUID);
+            $currentProd    = $readDb->get()->row();
+            $oldOpeningQty  = (float)($currentProd->OpeningQuantity ?? 0);
+            $isPhysicalItem = ($currentProd->ProductType ?? 'Product') === 'Product';
+
             $prodFormData = $this->buildProductFormData($PostData, $TaxDetails, false);
             if (!empty($PostData['ImageRemoved'])) $prodFormData['Image'] = NULL;
 
             $UpdateDataResp = $this->dbwrite_model->updateData('Products', 'ProductTbl', $prodFormData, array('ProductUID' => $ProductUID));
             if($UpdateDataResp->Error) {
                 throw new Exception($UpdateDataResp->Message);
+            }
+
+            // Apply opening qty delta to ProductStockTbl inside the same transaction
+            if ($isPhysicalItem) {
+                $newOpeningQty = (float)($prodFormData['OpeningQuantity'] ?? 0);
+                $delta         = round($newOpeningQty - $oldOpeningQty, 4);
+                if ($delta != 0.0) {
+                    $this->dbwrite_model->applyOpeningQtyDelta($ProductUID, $orgUID, $delta);
+                }
             }
 
             // Image Upload
@@ -680,8 +709,12 @@ class Products extends MY_Controller {
             $pageNo  = (int) $this->input->post('PageNo');
             $getResp = $this->fetchProductTableData($pageNo, 0, 0); // updateProductData — always items
 
+            // Handle attachment uploads + deletes (same request, after commit)
+            $this->_handleAttachments('Product', $ProductUID, (int)$this->pageData['JwtData']->Org->OrgUID, (int)$this->pageData['JwtData']->User->UserUID, 'ProdAttachFiles', 'ProdAttachDeleteUIDs');
+
             $this->EndReturnData->Error      = FALSE;
             $this->EndReturnData->Message    = 'Updated Successfully';
+            $this->EndReturnData->ProductUID = $ProductUID;
             $this->EndReturnData->List       = $getResp->RecordHtmlData;
             $this->EndReturnData->Pagination = $getResp->Pagination;
             $this->EndReturnData->Stats      = $this->fetchProductStats();
@@ -1391,6 +1424,11 @@ class Products extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
+            // Handle attachment uploads + deletes (same request, after commit)
+            $orgUID  = (int)$this->pageData['JwtData']->Org->OrgUID;
+            $userUID = (int)$this->pageData['JwtData']->User->UserUID;
+            $this->_handleAttachments('Category', $CategoryUID, $orgUID, $userUID, 'CatgAttachFiles', 'CatgAttachDeleteUIDs');
+
             // Cache update must be after commit so ReadDB can see the new row
             $this->cachehelper->upsertCategory($CategoryUID);
 
@@ -1503,6 +1541,11 @@ class Products extends MY_Controller {
             }
 
             $this->dbwrite_model->commitTransaction();
+
+            // Handle attachment uploads + deletes (same request, after commit)
+            $orgUID  = (int)$this->pageData['JwtData']->Org->OrgUID;
+            $userUID = (int)$this->pageData['JwtData']->User->UserUID;
+            $this->_handleAttachments('Category', $CategoryUID, $orgUID, $userUID, 'CatgAttachFiles', 'CatgAttachDeleteUIDs');
 
             // Sync updated category into the Upstash bulk cache
             $this->cachehelper->upsertCategory($CategoryUID);
@@ -2298,6 +2341,319 @@ class Products extends MY_Controller {
 
         $this->globalservice->sendJsonResponse($this->EndReturnData);
 
+    }
+
+    // ── Product / Category Attachments ────────────────────────────────────────
+
+    /**
+     * Handles new file uploads and pending deletes in one call.
+     * Called inside addProductData / updateProductData / addCategoryDetails / updateCategoryDetails
+     * right after commitTransaction — runs outside the main transaction (non-fatal).
+     *
+     * Files key   : ProdAttachFiles[] for products, CatgAttachFiles[] for categories
+     * Deletes key : ProdAttachDeleteUIDs (comma list) / CatgAttachDeleteUIDs
+     */
+    private function _handleAttachments(string $entityType, int $entityUID, int $orgUID, int $userUID, string $filesKey, string $deleteKey): void {
+        $this->load->model('dbwrite_model');
+        $this->load->library('fileupload');
+
+        $maxFiles   = $entityType === 'Category' ? 3 : 5;
+        $maxTotalMB = $entityType === 'Category' ? 3 : 5;
+        $allowed    = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+        $folder     = $entityType === 'Category'
+            ? 'categories/attachments/' . $entityUID
+            : 'products/attachments/'   . $entityUID;
+
+        // Use WriteDb directly — avoids ReadDb replication lag
+        $wdb = $this->dbwrite_model->getWriteDb();
+        $wdb->db_debug = FALSE;
+
+        // 1. Auto-migrate legacy Image field into the attachment table (once per entity)
+        //    Prevents the old single image from being silently replaced on first new upload.
+        $legacyTbl   = $entityType === 'Product' ? 'ProductTbl'  : 'CategoryTbl';
+        $legacyPkCol = $entityType === 'Product' ? 'ProductUID'  : 'CategoryUID';
+        $existCountQ = $wdb->query(
+            "SELECT COUNT(*) AS cnt FROM Products.ProductCategoryAttachmentsTbl
+              WHERE EntityType = ? AND EntityUID = ? AND OrgUID = ? AND IsDeleted = 0",
+            [$entityType, $entityUID, $orgUID]
+        );
+        $existCount = $existCountQ ? (int)($existCountQ->row()->cnt ?? 0) : 0;
+
+        if ($existCount === 0) {
+            // Check if entity has a legacy Image value not yet migrated
+            $legacyQ = $wdb->query(
+                "SELECT Image FROM Products.{$legacyTbl} WHERE {$legacyPkCol} = ? AND OrgUID = ? AND IsDeleted = 0 LIMIT 1",
+                [$entityUID, $orgUID]
+            );
+            $legacyRow = $legacyQ ? $legacyQ->row() : null;
+            if ($legacyRow && !empty($legacyRow->Image)) {
+                $wdb->insert('Products.ProductCategoryAttachmentsTbl', [
+                    'OrgUID'     => $orgUID,
+                    'EntityType' => $entityType,
+                    'EntityUID'  => $entityUID,
+                    'FileName'   => basename($legacyRow->Image),
+                    'FilePath'   => $legacyRow->Image,
+                    'FileSize'   => 0,
+                    'SortOrder'  => 1,
+                    'IsDeleted'  => 0,
+                    'IsActive'   => 1,
+                    'CreatedBy'  => $userUID,
+                    'UpdatedBy'  => $userUID,
+                ]);
+                $existCount = 1;
+            }
+        }
+
+        // 2. Process pending deletions
+        $deleteRaw = $this->input->post($deleteKey) ?: '';
+        if ($deleteRaw) {
+            foreach (array_filter(array_map('intval', explode(',', $deleteRaw))) as $attachUID) {
+                $wdb->query(
+                    "UPDATE Products.ProductCategoryAttachmentsTbl SET IsDeleted=1, IsActive=0, UpdatedBy=? WHERE AttachUID=? AND OrgUID=? AND IsDeleted=0",
+                    [$userUID, $attachUID, $orgUID]
+                );
+            }
+        }
+
+        // 3. Upload new files — determine next SortOrder from WriteDb (not ReadDb)
+        $files = $_FILES[$filesKey] ?? null;
+        if (empty($files) || !isset($files['name']) || (is_array($files['name']) ? empty($files['name'][0]) : empty($files['name']))) {
+            $this->_syncPrimaryImage($entityType, $entityUID, $orgUID, $userUID);
+            return;
+        }
+
+        // MAX(SortOrder) via WriteDb — the only reliable source after a just-committed write
+        $maxSortQ  = $wdb->query(
+            "SELECT COALESCE(MAX(SortOrder), 0) AS maxSort, COUNT(*) AS cnt, COALESCE(SUM(FileSize), 0) AS totalSize
+               FROM Products.ProductCategoryAttachmentsTbl
+              WHERE EntityType = ? AND EntityUID = ? AND OrgUID = ? AND IsDeleted = 0",
+            [$entityType, $entityUID, $orgUID]
+        );
+        $maxSortRow = $maxSortQ ? $maxSortQ->row() : null;
+        $sortStart  = (int)($maxSortRow->maxSort ?? 0) + 1;
+        $existSlots = (int)($maxSortRow->cnt      ?? 0);
+        $totalSize  = (float)($maxSortRow->totalSize ?? 0);
+
+        $count = is_array($files['name']) ? count($files['name']) : 1;
+        $added = 0;
+
+        for ($i = 0; $i < $count; $i++) {
+            $err  = is_array($files['error'])    ? $files['error'][$i]    : $files['error'];
+            $name = is_array($files['name'])     ? $files['name'][$i]     : $files['name'];
+            $type = is_array($files['type'])     ? $files['type'][$i]     : $files['type'];
+            $size = is_array($files['size'])     ? $files['size'][$i]     : $files['size'];
+            $tmp  = is_array($files['tmp_name']) ? $files['tmp_name'][$i] : $files['tmp_name'];
+
+            if ($err !== UPLOAD_ERR_OK || !$name || empty($tmp)) continue;
+            if (!in_array($type, $allowed)) continue;
+            if (($existSlots + $added) >= $maxFiles) break;
+            if (($totalSize + $size) > $maxTotalMB * 1024 * 1024) break;
+
+            $totalSize += $size;
+
+            $safe   = time() . '_' . $i . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $name);
+            $result = $this->fileupload->fileUpload('file', $folder . '/' . $safe, $tmp);
+            if ($result->Error) continue;
+
+            $wdb->insert('Products.ProductCategoryAttachmentsTbl', [
+                'OrgUID'     => $orgUID,
+                'EntityType' => $entityType,
+                'EntityUID'  => $entityUID,
+                'FileName'   => $name,
+                'FilePath'   => '/' . ltrim($result->Path, '/'),
+                'FileSize'   => (int)$size,
+                'SortOrder'  => $sortStart + $added,
+                'IsDeleted'  => 0,
+                'IsActive'   => 1,
+                'CreatedBy'  => $userUID,
+                'UpdatedBy'  => $userUID,
+            ]);
+            $added++;
+        }
+
+        $this->_syncPrimaryImage($entityType, $entityUID, $orgUID, $userUID);
+    }
+
+    /**
+     * Returns CDN-prefixed attachment array for a given entity.
+     * Used by retrieve endpoints to embed attachments in the edit response.
+     */
+    private function _getAttachmentsWithUrl(string $entityType, int $entityUID, int $orgUID): array {
+        $this->load->model('products_model');
+        $cdnUrl = rtrim(getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv('CFLARE_R2_CDN'), '/');
+        $rows   = $this->products_model->getEntityAttachments($entityType, $entityUID, $orgUID);
+        foreach ($rows as &$r) {
+            $r['Url'] = $cdnUrl . '/' . ltrim($r['FilePath'], '/');
+        }
+        return $rows;
+    }
+
+    /** GET: fetch all attachments for a product or category */
+    public function getAttachments() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $entityType = $this->input->get_post('EntityType');
+            $entityUID  = (int) $this->input->get_post('EntityUID');
+            $orgUID     = (int) $this->pageData['JwtData']->Org->OrgUID;
+
+            if (!in_array($entityType, ['Product', 'Category'])) throw new Exception('Invalid entity type.');
+            if ($entityUID <= 0) throw new Exception('Invalid entity ID.');
+
+            $this->load->model('products_model');
+            $attachments = $this->products_model->getEntityAttachments($entityType, $entityUID, $orgUID);
+
+            $cdnUrl = getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv('CFLARE_R2_CDN');
+            foreach ($attachments as &$att) {
+                $att['Url'] = rtrim($cdnUrl, '/') . '/' . ltrim($att['FilePath'], '/');
+            }
+
+            $this->EndReturnData->Error       = false;
+            $this->EndReturnData->Attachments = $attachments;
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    /** POST: upload one or more images for a product or category */
+    public function saveAttachments() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $entityType   = $this->input->post('EntityType');
+            $entityUID    = (int) $this->input->post('EntityUID');
+            $orgUID       = (int) $this->pageData['JwtData']->Org->OrgUID;
+            $userUID      = (int) $this->pageData['JwtData']->User->UserUID;
+            $maxFiles     = $entityType === 'Category' ? 3 : 5;
+            $maxTotalMB   = $entityType === 'Category' ? 3 : 5;
+
+            if (!in_array($entityType, ['Product', 'Category'])) throw new Exception('Invalid entity type.');
+            if ($entityUID <= 0) throw new Exception('Invalid entity ID.');
+
+            $files = $_FILES['Attachments'] ?? null;
+            if (empty($files) || empty($files['name'][0])) {
+                $this->EndReturnData->Error   = false;
+                $this->EndReturnData->Message = 'No files uploaded.';
+                $this->globalservice->sendJsonResponse($this->EndReturnData);
+                return;
+            }
+
+            $this->load->model('products_model');
+            $existing = $this->products_model->getEntityAttachments($entityType, $entityUID, $orgUID);
+            $existingCount = count($existing);
+
+            $count     = count($files['name']);
+            $allowed   = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+            $totalSize = 0;
+            $saved     = [];
+
+            $this->load->model('dbwrite_model');
+            $this->load->library('fileupload');
+
+            $folder    = $entityType === 'Category' ? 'categories/attachments/' . $entityUID : 'products/attachments/' . $entityUID;
+            $sortStart = $existingCount + 1;
+
+            for ($i = 0; $i < min($count, $maxFiles); $i++) {
+                if ($files['error'][$i] !== UPLOAD_ERR_OK || empty($files['name'][$i])) continue;
+                if (!in_array($files['type'][$i], $allowed)) continue;
+                if (($existingCount + count($saved) + 1) > $maxFiles) break;
+
+                $totalSize += $files['size'][$i];
+                if ($totalSize > $maxTotalMB * 1024 * 1024) break;
+
+                $origName   = basename($files['name'][$i]);
+                $safeName   = time() . '_' . $i . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $origName);
+                $storagePath = $folder . '/' . $safeName;
+
+                $uploadResult = $this->fileupload->fileUpload('file', $storagePath, $files['tmp_name'][$i]);
+                if ($uploadResult->Error) continue;
+
+                $resp = $this->dbwrite_model->insertData('Products', 'ProductCategoryAttachmentsTbl', [
+                    'OrgUID'     => $orgUID,
+                    'EntityType' => $entityType,
+                    'EntityUID'  => $entityUID,
+                    'FileName'   => $origName,
+                    'FilePath'   => '/' . ltrim($uploadResult->Path, '/'),
+                    'FileSize'   => $files['size'][$i],
+                    'SortOrder'  => $sortStart + count($saved),
+                    'IsDeleted'  => 0,
+                    'IsActive'   => 1,
+                    'CreatedBy'  => $userUID,
+                    'UpdatedBy'  => $userUID,
+                ]);
+
+                if (!$resp->Error) {
+                    $saved[] = ['AttachUID' => (int)$resp->ID, 'FileName' => $origName, 'FilePath' => '/' . ltrim($uploadResult->Path, '/')];
+                }
+            }
+
+            // Sync primary image to EntityTbl.Image
+            $this->_syncPrimaryImage($entityType, $entityUID, $orgUID, $userUID);
+
+            $this->EndReturnData->Error   = false;
+            $this->EndReturnData->Message = count($saved) . ' image(s) saved.';
+            $this->EndReturnData->Saved   = $saved;
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    /** POST: soft-delete one attachment */
+    public function deleteAttachment() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $attachUID  = (int) $this->input->post('AttachUID');
+            $entityType = $this->input->post('EntityType');
+            $entityUID  = (int) $this->input->post('EntityUID');
+            $orgUID     = (int) $this->pageData['JwtData']->Org->OrgUID;
+            $userUID    = (int) $this->pageData['JwtData']->User->UserUID;
+
+            if ($attachUID <= 0) throw new Exception('Invalid attachment.');
+
+            $this->load->model('dbwrite_model');
+            $resp = $this->dbwrite_model->updateData('Products', 'ProductCategoryAttachmentsTbl',
+                ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
+                ['AttachUID' => $attachUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
+            );
+            if ($resp->Error) throw new Exception($resp->Message);
+
+            // Sync primary image after deletion
+            if (in_array($entityType, ['Product', 'Category']) && $entityUID > 0) {
+                $this->_syncPrimaryImage($entityType, $entityUID, $orgUID, $userUID);
+            }
+
+            $this->EndReturnData->Error   = false;
+            $this->EndReturnData->Message = 'Attachment deleted.';
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    /** Syncs EntityTbl.Image with the first remaining attachment's FilePath */
+    private function _syncPrimaryImage(string $entityType, int $entityUID, int $orgUID, int $userUID): void {
+        try {
+            $this->load->model('products_model');
+            $primary = $this->products_model->getEntityPrimaryImage($entityType, $entityUID, $orgUID);
+            $this->load->model('dbwrite_model');
+            if ($entityType === 'Product') {
+                $this->dbwrite_model->updateData('Products', 'ProductTbl',
+                    ['Image' => $primary, 'UpdatedBy' => $userUID],
+                    ['ProductUID' => $entityUID, 'OrgUID' => $orgUID]
+                );
+                $this->cachehelper->upsertProduct($entityUID);
+            } else {
+                $this->dbwrite_model->updateData('Products', 'CategoryTbl',
+                    ['Image' => $primary, 'UpdatedBy' => $userUID],
+                    ['CategoryUID' => $entityUID, 'OrgUID' => $orgUID]
+                );
+            }
+        } catch (Exception $e) {
+            log_message('error', '_syncPrimaryImage failed: ' . $e->getMessage());
+        }
     }
 
 }

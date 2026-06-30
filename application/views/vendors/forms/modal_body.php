@@ -102,13 +102,17 @@ $d       = $FormData;
         </div>
         <div class="row">
             <div class="col-md-3">
-                <div class="dropzone dropzone-main-form needsclick dz-clickable w-100" id="DropzoneOneBasic">
-                    <div class="dz-message needsclick text-center">
-                        <i class="upload-icon mb-3"></i>
-                        <p class="h5 needsclick mb-2">Drag and drop logo here</p>
-                        <p class="h4 text-body-secondary fw-normal mb-0">JPG, GIF or PNG of 1 MB</p>
+                <!-- Multi-image attachment zone (max 3 images · 3 MB total) -->
+                <div id="vendAttachZone" class="prod-attach-zone" onclick="_attachZoneTrigger('Vendor', event)">
+                    <div id="vendAttachEmpty" class="prod-attach-empty">
+                        <i class="bx bx-image-add" id="vendAttachIcon" style="font-size:2rem;color:#9ca3af;display:block;margin-bottom:6px;"></i>
+                        <div id="vendAttachLabel" style="font-size:.78rem;font-weight:600;color:#6b7280;">Drag &amp; drop images</div>
+                        <div id="vendAttachHint" style="font-size:.7rem;color:#9ca3af;margin-top:3px;">JPG, GIF or PNG · Max 3 · 3 MB total</div>
                     </div>
                 </div>
+                <div id="vendAttachList" class="prod-attach-list mt-2" style="display:none;"></div>
+                <input type="file" id="vendAttachInput" multiple accept="image/jpeg,image/png,image/gif" style="display:none;">
+                <input type="hidden" id="vendAttachDeleteUIDs" name="VendAttachDeleteUIDs" value="">
             </div>
             <div class="col-md-9">
                 <div class="mb-3">

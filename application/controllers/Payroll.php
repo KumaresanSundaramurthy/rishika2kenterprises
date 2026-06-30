@@ -7,12 +7,6 @@ class Payroll extends MY_Controller {
 
     public function __construct() { parent::__construct(); }
 
-    private function _orgUID()    { return (int)$this->pageData['JwtData']->Org->OrgUID; }
-    private function _branchUID() { return (int)($this->pageData['JwtData']->Org->BranchUID ?? 1); }
-    private function _userUID()   { return (int)$this->pageData['JwtData']->User->UserUID; }
-    private function _limit()     { return (int)($this->pageData['JwtData']->GenSettings->RowLimit ?? 10); }
-    private function _cur()       { return $this->pageData['JwtData']->GenSettings->CurrenySymbol ?? '₹'; }
-
     private function _fetchTableData($pageNo, $limit, $filter = []) {
         $offset = max(0, ($pageNo - 1) * $limit);
         $this->load->model('payroll_model');
@@ -30,7 +24,7 @@ class Payroll extends MY_Controller {
     public function index() {
         if (!$this->_loadPageTitle()) { $this->load->view('common/module_error', $this->pageData); return; }
         try {
-            $pd = $this->_fetchTableData(1, $this->_limit());
+            $pd = $this->_fetchTableData(1, $this->_rowLimit());
             $this->pageData['ModRowData']    = $pd->RecordHtmlData;
             $this->pageData['ModPagination'] = $pd->Pagination;
             $this->load->model('payroll_model');
@@ -42,7 +36,7 @@ class Payroll extends MY_Controller {
     public function getPageDetails($pageNo = 0) {
         $this->EndReturnData = new stdClass();
         try {
-            $pd = $this->_fetchTableData(max(1, (int)$pageNo), $this->_limit(), $this->input->post('Filter') ?: []);
+            $pd = $this->_fetchTableData(max(1, (int)$pageNo), $this->_rowLimit(), $this->input->post('Filter') ?: []);
             $this->EndReturnData->Error          = FALSE;
             $this->EndReturnData->RecordHtmlData = $pd->RecordHtmlData;
             $this->EndReturnData->Pagination     = $pd->Pagination;
@@ -209,6 +203,25 @@ class Payroll extends MY_Controller {
                 }
             }
 
+            // ── Post payroll journal entry ────────────────────────────────
+            try {
+                $this->load->library('accountledger');
+                $payrollDate = date('Y-m-d', mktime(0, 0, 0, $month, date('t', mktime(0,0,0,$month,1,$year)), $year));
+                $payrollFY   = (int)date('Y', strtotime($payrollDate));
+                $totalAdv    = 0;
+                foreach ($lines as $l) { $totalAdv += (float)($l['AdvanceRecovery'] ?? 0); }
+                // If reprocessing, reverse the previous journal first
+                if ($existing) {
+                    $this->accountledger->reverseJournal('Payroll', $payrollUID, $userUID);
+                }
+                $this->accountledger->postPayrollJournal(
+                    $payrollUID, $payrollDate, $payrollFY,
+                    $totalGross, $totalNet, $totalDed, $totalAdv, $userUID
+                );
+            } catch (Exception $ledgerEx) {
+                log_message('error', 'Ledger update failed after payroll save: ' . $ledgerEx->getMessage());
+            }
+
             $this->EndReturnData->Error      = FALSE;
             $this->EndReturnData->PayrollUID = $payrollUID;
             $this->EndReturnData->Message    = 'Payroll processed successfully.';
@@ -243,6 +256,17 @@ class Payroll extends MY_Controller {
             $this->load->model('dbwrite_model');
             $res = $this->dbwrite_model->updateData('Transaction', 'PayrollTbl', ['PayrollStatus' => $status, 'UpdatedBy' => $this->_userUID()], ['PayrollUID' => $uid, 'OrgUID' => $this->_orgUID()]);
             if ($res->Error) throw new Exception($res->Message);
+
+            // ── Reverse journal when payroll is cancelled ─────────────────
+            if ($status === 'Cancelled') {
+                try {
+                    $this->load->library('accountledger');
+                    $this->accountledger->reverseJournal('Payroll', $uid, $this->_userUID());
+                } catch (Exception $ledgerEx) {
+                    log_message('error', 'Ledger reverse failed after payroll cancel: ' . $ledgerEx->getMessage());
+                }
+            }
+
             $this->EndReturnData->Error = FALSE; $this->EndReturnData->Message = 'Status updated to ' . $status . '.';
         } catch (Exception $e) { $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
@@ -261,6 +285,15 @@ class Payroll extends MY_Controller {
             $this->dbwrite_model->updateData('Transaction', 'PayrollLineTbl', ['IsDeleted' => 1], ['PayrollUID' => $uid]);
             $res = $this->dbwrite_model->updateData('Transaction', 'PayrollTbl', ['IsDeleted' => 1, 'UpdatedBy' => $this->_userUID()], ['PayrollUID' => $uid, 'OrgUID' => $this->_orgUID()]);
             if ($res->Error) throw new Exception($res->Message);
+
+            // ── Reverse payroll journal entry ─────────────────────────────
+            try {
+                $this->load->library('accountledger');
+                $this->accountledger->reverseJournal('Payroll', $uid, $this->_userUID());
+            } catch (Exception $ledgerEx) {
+                log_message('error', 'Ledger reverse failed after payroll delete: ' . $ledgerEx->getMessage());
+            }
+
             $this->EndReturnData->Error = FALSE; $this->EndReturnData->Message = 'Deleted.';
         } catch (Exception $e) { $this->EndReturnData->Error = TRUE; $this->EndReturnData->Message = $e->getMessage(); }
         $this->globalservice->sendJsonResponse($this->EndReturnData);

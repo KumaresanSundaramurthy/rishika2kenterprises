@@ -183,6 +183,18 @@ class Payments extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
+            // CR if customer paying us; DR if we paying vendor
+            $ledgerDirection = ($partyType === 'C') ? 'CR' : 'DR';
+            $ledgerNarration = ($partyType === 'C')
+                ? 'Payment received from customer — #' . (int)$resp->ID
+                : 'Payment made to vendor — #' . (int)$resp->ID;
+            $this->_writeBankLedgerEntry(
+                $orgUID, $bankAccountUID, $ledgerDirection, $amount,
+                'Payment', (int)$resp->ID, $moduleUID ?: $this->pageModuleUID,
+                $referenceNo, $ledgerNarration,
+                date('Y-m-d'), $userUID
+            );
+
             $this->EndReturnData->Error      = FALSE;
             $this->EndReturnData->Message    = 'Payment recorded successfully.';
             $this->EndReturnData->PaymentUID = $resp->ID;

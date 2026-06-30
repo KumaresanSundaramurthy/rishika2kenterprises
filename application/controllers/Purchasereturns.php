@@ -212,12 +212,29 @@ class Purchasereturns extends MY_Controller {
 
             if (!$isDraft) {
                 $this->dbwrite_model->saveStockMovements($transUID, $this->pageModuleUID, $orgUID, $userUID, $items);
+                $this->_syncProductCacheFromItems($items);
             }
 
             $this->dbwrite_model->commitTransaction();
 
+            if (!$isDraft) {
+                try {
+                    $this->load->library('accountledger');
+                    $this->accountledger->postPurchaseReturnJournal(
+                        $transUID, $transDate, $uniqueNumber, $financialYear,
+                        $netAmount, $subTotal, $cgstAmount, $sgstAmount, $igstAmount,
+                        $vendorUID, $userUID
+                    );
+                } catch (Exception $ledgerEx) {
+                    log_message('error', 'Ledger update failed after purchase return creation: ' . $ledgerEx->getMessage());
+                }
+            }
+
             $this->_saveAttachments($transUID);
             $this->_touchVendorCache($vendorUID);
+            if (!$isDraft) {
+                $this->_recalcVendorBalance($orgUID, $vendorUID, $userUID);
+            }
 
             $hasPayment    = false;
             $balanceAmount = $netAmount;
@@ -381,6 +398,7 @@ class Purchasereturns extends MY_Controller {
             $wasNonDraft = ($existing->DocStatus !== 'Draft');
             if ($wasNonDraft) {
                 $this->dbwrite_model->reverseStockMovements($transUID, $orgUID, $userUID);
+                $this->_syncProductCacheByTransUID($transUID);
             }
 
             if ($existing->DocStatus === 'Draft' && !$isDraft
@@ -403,6 +421,7 @@ class Purchasereturns extends MY_Controller {
                 $this->saveTransactionItems($newTransUID, $financialYear, $orgUID, $userUID, $items);
                 if (!$isDraft) {
                     $this->dbwrite_model->saveStockMovements($newTransUID, $this->pageModuleUID, $orgUID, $userUID, $items);
+                    $this->_syncProductCacheFromItems($items);
                 }
                 $this->dbwrite_model->deleteInTransaction('Transaction', 'TransactionsTbl', ['TransUID' => $transUID]);
                 $this->dbwrite_model->deleteInTransaction('Transaction', 'TransDetailTbl',  ['TransUID' => $transUID]);
@@ -479,6 +498,7 @@ class Purchasereturns extends MY_Controller {
                 }
                 if (!$isDraft) {
                     $this->dbwrite_model->saveStockMovements($transUID, $this->pageModuleUID, $orgUID, $userUID, $items);
+                    $this->_syncProductCacheFromItems($items);
                 }
             }
 
@@ -512,6 +532,7 @@ class Purchasereturns extends MY_Controller {
             if (empty($existing)) throw new Exception('Purchase Return not found.');
 
             $this->dbwrite_model->reverseStockMovements($transUID, $orgUID, $userUID);
+            $this->_syncProductCacheByTransUID($transUID);
 
             $now = time();
             $this->dbwrite_model->updateData('Transaction', 'TransProductsTbl', ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID], ['TransUID' => $transUID, 'IsDeleted' => 0]);
@@ -520,6 +541,19 @@ class Purchasereturns extends MY_Controller {
             $deleteResp = $this->dbwrite_model->updateData('Transaction', 'TransactionsTbl', $deleteData, ['TransUID' => $transUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
             if ($deleteResp->Error) throw new Exception($deleteResp->Message);
             $this->dbwrite_model->commitTransaction();
+
+            // Reverse journal entry for the purchase return (non-fatal)
+            try {
+                $this->load->library('accountledger');
+                $this->accountledger->reverseJournal('PurchaseReturn', $transUID, $userUID);
+            } catch (Exception $ledgerEx) {
+                log_message('error', 'Ledger reverse failed after purchase return delete #' . $transUID . ': ' . $ledgerEx->getMessage());
+            }
+
+            if (!empty($existing->PartyUID)) {
+                $this->_recalcVendorBalance($orgUID, (int)$existing->PartyUID, $userUID);
+            }
+
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Purchase Return deleted successfully.';
         } catch (Exception $e) {
@@ -755,6 +789,7 @@ class Purchasereturns extends MY_Controller {
 
                 // Reverse stock that went out when PR was approved
                 $this->dbwrite_model->reverseStockMovements($transUID, $orgUID, $userUID);
+                $this->_syncProductCacheByTransUID($transUID);
 
                 // Reset PR payment counters
                 $this->dbwrite_model->updateTransIsFullyPaid($transUID, 0, 0, 0, $userUID);

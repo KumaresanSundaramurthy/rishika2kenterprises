@@ -47,7 +47,8 @@
             initializeSelect2Tags('#CM_Tags',     'Type and press enter...');
             initializeSelect2Tags('#CM_CCEmails', 'Type and press enter...');
         }
-        if (typeof reinitDropzoneOne === 'function') reinitDropzoneOne('#CustomerFormModalBody #DropzoneOneBasic');
+        // Bind attachment zone listeners once (shared attachments.js)
+        if (typeof _attachBindListeners === 'function') _attachBindListeners('Customer');
     }
 
     // ── Salutation helpers ────────────────────────────────────────────────────
@@ -68,7 +69,8 @@
         if (defaultUID > 0) {
             $sel.val(defaultUID);
         } else {
-            $sel.find('option:not([value=""])').first().prop('selected', true);
+            var $first = $sel.find('option:not([value=""])').first();
+            if ($first.length) $sel.val($first.val());
         }
     }
 
@@ -144,9 +146,8 @@
     // ── Reset modal to a clean add state ──────────────────────────────────────
     function _resetCustomerModal() {
         _editUID = 0;
-        if (typeof delBankDataFlag       !== 'undefined') delBankDataFlag       = 0;
-        if (typeof delBankData           !== 'undefined') delBankData           = [];
-        if (typeof hasRemovedStoredImage !== 'undefined') hasRemovedStoredImage = false;
+        if (typeof delBankDataFlag !== 'undefined') delBankDataFlag = 0;
+        if (typeof delBankData     !== 'undefined') delBankData     = [];
 
         var $form = $('#CustomerModalForm');
         if ($form.length) $form[0].reset();
@@ -161,8 +162,9 @@
         // Reset address
         if (typeof resetAddrData === 'function') resetAddrData();
 
-        // Re-init plugins
-        if (typeof reinitDropzoneOne    === 'function') reinitDropzoneOne('#CustomerFormModalBody #DropzoneOneBasic');
+        // Reset attachment zone state (listeners stay bound)
+        if (typeof _attachResetState === 'function') _attachResetState('Customer');
+
         if (typeof initializeFlatPickr  === 'function') initializeFlatPickr('#CM_CPDateOfBirth', '#CustomerFormModal');
         if (typeof initializeSelect2Tags === 'function') {
             initializeSelect2Tags('#CM_Tags',     'Type and press enter...');
@@ -177,6 +179,15 @@
 
         _editUID = isClone ? 0 : (d.CustomerUID || 0);
 
+        // Load existing attachments from response (no AJAX — already in response)
+        if (!isClone && typeof _attachResetState === 'function') {
+            _attachResetState('Customer');
+            if (response.Attachments && response.Attachments.length && _attachState['Customer']) {
+                _attachState['Customer'].existing = response.Attachments;
+                if (typeof _attachRender === 'function') _attachRender('Customer');
+            }
+        }
+
         $('#CM_SalutationUID').val(d.SalutationUID || '');
         $('#CM_Name').val(d.Name || '');
         $('#CM_Area').val(d.Area || '');
@@ -184,12 +195,15 @@
         $('#CM_CountryCode').val(d.CountryCode || '');
         $('#CM_CountryISO2').val(d.CountryISO2 || '');
         $('#CM_EmailAddress').val(d.EmailAddress || '');
-        $('#CM_DebitCreditAmount').val(_smartDecimal(d.DebitCreditAmount));
-        $('#CM_DebitCreditCheck').val(d.DebitCreditType || 'Debit').trigger('change');
+        // Use OpeningBalance from CustOpeningBalanceTbl (source of truth),
+        // fallback to DebitCreditAmount from CustomerTbl for legacy compatibility
+        $('#CM_DebitCreditAmount').val(_smartDecimal(d.OpeningBalance ?? d.DebitCreditAmount));
+        $('#CM_DebitCreditCheck').val(d.OpeningBalType || d.DebitCreditType || 'Debit').trigger('change');
         $('#CM_PANNumber').val(d.PANNumber || '');
         $('#CM_ContactPerson').val(d.ContactPerson || '');
         $('#CM_CPDateOfBirth').val(d.DateOfBirth || '');
         $('#CM_CustomerTypeUID').val(d.CustomerTypeUID || '').trigger('change');
+        $('#CM_GroupUID').val(d.GroupUID || '');
         $('#CM_GSTIN').val(d.GSTIN || '');
         $('#CM_CompanyName').val(d.CompanyName || '');
         $('#CM_DiscountPercent').val(_smartDecimal(d.DiscountPercent));
@@ -217,13 +231,6 @@
                 if (e) $cc.append(new Option(e, e, true, true));
             });
             $cc.trigger('change');
-        }
-
-        // Image
-        if (d.Image && !isClone) {
-            if (typeof commonSetDropzoneImageOne === 'function' && typeof CDN_URL !== 'undefined') {
-                commonSetDropzoneImageOne(CDN_URL + d.Image);
-            }
         }
 
         // Bank details
@@ -302,13 +309,14 @@
         if (mode === 'edit') {
             formData.set('CustomerUID', _editUID || 0);
         }
+        // Explicitly read the current select value — FormData from reset+programmatic .val() can be unreliable
+        formData.set('SalutationUID', $('#CM_SalutationUID').val() || '');
 
-        if (mode === 'edit' && typeof hasRemovedStoredImage !== 'undefined' && hasRemovedStoredImage
-            && typeof myOneDropzone !== 'undefined' && myOneDropzone && myOneDropzone.files.length === 0) {
-            formData.append('ImageRemoved', 1);
-        }
-        if (typeof myOneDropzone !== 'undefined' && myOneDropzone && myOneDropzone.files.length > 0 && !myOneDropzone.files[0].isStored) {
-            formData.append('UploadImage', myOneDropzone.files[0]);
+        // Append new attachment files (multi-image zone replaces old single Dropzone)
+        if (typeof _attachState !== 'undefined' && _attachState['Customer']) {
+            (_attachState['Customer'].newFiles || []).forEach(function(f) {
+                formData.append('CustAttachFiles[]', f, f.name);
+            });
         }
 
         // Bank details

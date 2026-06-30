@@ -54,9 +54,11 @@ class Customers extends MY_Controller {
             $this->pageData['ModPagination'] = $pageData->Pagination;
 
             $this->load->model('customers_model');
-            $this->pageData['CustStats']        = $this->customers_model->getCustomerStats($this->pageData['JwtData']->Org->OrgUID);
-            $this->pageData['CustomerTypeList'] = $this->customers_model->getCustomerTypeList($this->pageData['JwtData']->Org->OrgUID);
-            $this->pageData['Tags']             = $this->customers_model->getCustomerTags($this->pageData['JwtData']->Org->OrgUID);
+            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
+            $this->pageData['CustStats']        = $this->customers_model->getCustomerStats($orgUID);
+            $this->pageData['CustomerTypeList'] = $this->customers_model->getCustomerTypeList($orgUID);
+            $this->pageData['CustomerGroupList']= $this->customers_model->getActiveGroupsForDropdown($orgUID);
+            $this->pageData['Tags']             = $this->customers_model->getCustomerTags($orgUID);
             $this->pageData['GroupTypes']       = $this->_groupTypesList();
 
             // Resolve org phone country code from JwtData (sourced from OrganisationTbl at login)
@@ -154,7 +156,7 @@ class Customers extends MY_Controller {
             'CustomerTypeUID'   => (int) getPostValue($postData, 'CustomerTypeUID', '', 0),
             'GroupUID'          => (int) getPostValue($postData, 'GroupUID', '', 0) ?: null,
             'IsGroupPrimary'    => 0,
-            'SalutationUID'     => (int) getPostValue($postData, 'SalutationUID') ?: null,
+            'SalutationUID'     => (int) trim(getPostValue($postData, 'SalutationUID') ?? '', '"\'') ?: null,
             'UpdatedBy'         => $this->pageData['JwtData']->User->UserUID,
         ];
         if ($isCreate) {
@@ -183,11 +185,6 @@ class Customers extends MY_Controller {
             $InsertDataResp = $this->dbwrite_model->insertData('Customers', 'CustomerTbl', $customerFormData);
             if ($InsertDataResp->Error) throw new Exception($InsertDataResp->Message);
             $CustomerUID = $InsertDataResp->ID;
-
-            if (isset($_FILES['UploadImage'])) {
-                $UploadResp = $this->globalservice->fileUploadService($_FILES['UploadImage'], 'customers/images/', 'Image', ['Customers', 'CustomerTbl', ['CustomerUID' => $CustomerUID]]);
-                if ($UploadResp->Error) throw new Exception($UploadResp->Message);
-            }
 
             $this->globalservice->saveBankDetails($CustomerUID, $this->input->post('BankDetailsJSON'), 'Customers', 'CustBankDetailsTbl', [], 'CustBankDetUID');
 
@@ -243,9 +240,9 @@ class Customers extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
-            // Cache update is a Redis write — not a DB operation, safe after commit.
-            // Must be after commit so ReadDB can see the now-committed customer row.
-            $this->cachehelper->upsertCustomer($CustomerUID);
+            // Handle attachment uploads after commit
+            $deleteUIDs = $this->input->post('CustAttachDeleteUIDs') ?: '';
+            $this->_handleCustomerAttachments((int)$CustomerUID, (int)$this->pageData['JwtData']->Org->OrgUID, (int)$this->pageData['JwtData']->User->UserUID, $deleteUIDs);
 
             // Success is confirmed — customer is saved
             $this->EndReturnData->Error   = FALSE;
@@ -406,6 +403,7 @@ class Customers extends MY_Controller {
                     'CCEmails'         => $cust->CCEmails        ?? '',
                     'GSTIN'            => $cust->GSTIN           ?? '',
                     'PANNumber'        => $cust->PANNumber       ?? '',
+                    'SalutationUID'    => (int)($cust->SalutationUID   ?? 0) ?: null,
                     'CustomerTypeUID'  => (int)($cust->CustomerTypeUID  ?? 0),
                     'DiscountPercent'  => (float)($cust->DiscountPercent ?? 0),
                     'CreditPeriod'     => (int)($cust->CreditPeriod     ?? 0),
@@ -442,46 +440,35 @@ class Customers extends MY_Controller {
     public function getCustomerForModal($uid = 0) {
         $this->EndReturnData = new stdClass();
         try {
-            $uid = (int) $uid;
+            $uid    = (int) $uid;
+            $orgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
             if ($uid <= 0) throw new Exception('Invalid customer ID.');
 
-            // Cache-Aside READ
-            $cacheKey = Upstashservice::keyCustomer($uid);
-            $cached   = $this->upstashservice->get($cacheKey);
+            // Always fetch attachments fresh (they change independently of customer cache)
+            $this->load->model('customers_model');
+            $attachments = $this->customers_model->getCustomerAttachments($uid, $orgUID);
+            $cdnUrl = rtrim(getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv('CFLARE_R2_CDN'), '/');
+            foreach ($attachments as &$a) { $a['Url'] = $cdnUrl . '/' . ltrim($a['FilePath'], '/'); }
+            unset($a);
 
-            if ($cached !== null) {
-                $this->EndReturnData->Error        = FALSE;
-                $this->EndReturnData->Data         = (object)$cached['Data'];
-                $this->EndReturnData->BankDetails  = $cached['BankDetails'] ?? [];
-                $this->EndReturnData->BillingAddr  = isset($cached['BillingAddr'])  ? (object)$cached['BillingAddr']  : null;
-                $this->EndReturnData->ShippingAddr = isset($cached['ShippingAddr']) ? (object)$cached['ShippingAddr'] : null;
-            } else {
-                $this->load->model('customers_model');
-                $getCustData = $this->customers_model->getCustomers(['Customers.CustomerUID' => $uid]);
-                if (empty($getCustData)) throw new Exception('Customer not found.');
+            $getCustData = $this->customers_model->getCustomers(['Customers.CustomerUID' => $uid]);
+            if (empty($getCustData)) throw new Exception('Customer not found.');
 
-                $bankDetails = $this->customers_model->getCustomerBankInfo(['CustBankDetails.CustomerUID' => $uid]);
-                $addrInfo    = $this->customers_model->getCustomerAddress(['CustAddress.CustomerUID' => $uid]);
+            $bankDetails = $this->customers_model->getCustomerBankInfo(['CustBankDetails.CustomerUID' => $uid]);
+            $addrInfo    = $this->customers_model->getCustomerAddress(['CustAddress.CustomerUID' => $uid]);
 
-                $billingAddr = null; $shippingAddr = null;
-                foreach ($addrInfo as $addr) {
-                    if ($addr->AddressType === 'Billing')  $billingAddr  = $addr;
-                    if ($addr->AddressType === 'Shipping') $shippingAddr = $addr;
-                }
-
-                $this->EndReturnData->Error        = FALSE;
-                $this->EndReturnData->Data         = $getCustData[0];
-                $this->EndReturnData->BankDetails  = $bankDetails;
-                $this->EndReturnData->BillingAddr  = $billingAddr;
-                $this->EndReturnData->ShippingAddr = $shippingAddr;
-
-                $this->upstashservice->set($cacheKey, [
-                    'Data'         => $getCustData[0],
-                    'BankDetails'  => $bankDetails,
-                    'BillingAddr'  => $billingAddr,
-                    'ShippingAddr' => $shippingAddr,
-                ], Upstashservice::TTL_CUSTOMER);
+            $billingAddr = null; $shippingAddr = null;
+            foreach ($addrInfo as $addr) {
+                if ($addr->AddressType === 'Billing')  $billingAddr  = $addr;
+                if ($addr->AddressType === 'Shipping') $shippingAddr = $addr;
             }
+
+            $this->EndReturnData->Error        = FALSE;
+            $this->EndReturnData->Data         = $getCustData[0];
+            $this->EndReturnData->BankDetails  = $bankDetails;
+            $this->EndReturnData->BillingAddr  = $billingAddr;
+            $this->EndReturnData->ShippingAddr = $shippingAddr;
+            $this->EndReturnData->Attachments  = $attachments;
 
         } catch (Exception $e) {
             $this->EndReturnData->Error   = TRUE;
@@ -507,27 +494,32 @@ class Customers extends MY_Controller {
             $customerFormData = $this->buildCustomerFormData($PostData, false);
             if (!empty($PostData['ImageRemoved'])) $customerFormData['Image'] = NULL;
 
-            // Capture old DebitCredit values BEFORE the row is overwritten
             $this->load->model('customers_model');
-            $oldDCRow    = $this->customers_model->getCustomerDebitCreditRaw((int)$CustomerUID);
-            $oldDCAmount = $oldDCRow ? (float)($oldDCRow->DebitCreditAmount ?? 0) : 0.0;
-            $oldDCType   = $oldDCRow ? ($oldDCRow->DebitCreditType ?? 'Debit') : 'Debit';
+            $orgUID  = $this->pageData['JwtData']->Org->OrgUID;
+            $userUID = $this->pageData['JwtData']->User->UserUID;
 
-            // Compute delta once — used to gate both the ledger update and the opening balance update
+            // New values from the form
             $newAmt  = (float) getPostValue($PostData, 'DebitCreditAmount', '', 0);
             $newType = getPostValue($PostData, 'DebitCreditCheck', '', 'Debit');
             $newName = getPostValue($PostData, 'Name');
-            $oldSgn  = ($oldDCType === 'Debit') ?  $oldDCAmount : -$oldDCAmount;
-            $newSgn  = ($newType   === 'Debit') ?  $newAmt      : -$newAmt;
-            $delta   = round($newSgn - $oldSgn, 2);
+            $newSgn  = ($newType === 'Debit') ? $newAmt : -$newAmt;
+
+            // Compare against CustOpeningBalanceTbl — the source of truth for opening balance.
+            // CustomerTbl.DebitCreditAmount can be stale/out-of-sync with the actual opening balance.
+            $obRowPre = $this->customers_model->getCustomerOpeningBalance($orgUID, (int)$CustomerUID);
+            $oldOpeningSigned = 0.0;
+            if ($obRowPre) {
+                $oldOpeningSigned = ($obRowPre->OpeningBalType === 'Debit')
+                    ? (float)$obRowPre->OpeningBalance
+                    : -(float)$obRowPre->OpeningBalance;
+            }
+            $delta = round($newSgn - $oldOpeningSigned, 2);
+
+            // Also read CustomerTbl values for name-change detection only
+            $oldDCRow = $this->customers_model->getCustomerDebitCreditRaw((int)$CustomerUID);
 
             $UpdateDataResp = $this->dbwrite_model->updateData('Customers', 'CustomerTbl', $customerFormData, ['CustomerUID' => $CustomerUID]);
             if ($UpdateDataResp->Error) throw new Exception($UpdateDataResp->Message);
-
-            if (isset($_FILES['UploadImage'])) {
-                $UploadResp = $this->globalservice->fileUploadService($_FILES['UploadImage'], 'customers/images/', 'Image', ['Customers', 'CustomerTbl', ['CustomerUID' => $CustomerUID]]);
-                if ($UploadResp->Error) throw new Exception($UploadResp->Message);
-            }
 
             $delBnkFlag = getPostValue($PostData, 'delBankDataFlag');
             if ($delBnkFlag == 1) {
@@ -543,8 +535,7 @@ class Customers extends MY_Controller {
                 $this->globalservice->saveAddressInfo($PostData, $CustomerUID, $prefix, $type, 'Customers', 'CustAddressTbl', 'CustAddressUID', 'CustomerUID');
             }
 
-            // Only call ledger update when name or balance actually changed
-            $nameChanged    = ($newName !== ($oldDCRow->Name ?? $newName));
+            $nameChanged    = ($oldDCRow && $newName !== ($oldDCRow->Name ?? $newName));
             $balanceChanged = ($delta != 0.0);
             if ($nameChanged || $balanceChanged) {
                 $this->load->library('accountledger');
@@ -560,25 +551,18 @@ class Customers extends MY_Controller {
             }
 
             if ($balanceChanged) {
-                $orgUID  = $this->pageData['JwtData']->Org->OrgUID;
-                $userUID = $this->pageData['JwtData']->User->UserUID;
+                // Set opening balance to exactly what user entered (signed by Debit/Credit)
+                $newBalance = abs($newSgn);
+                $newBalType = ($newSgn >= 0) ? 'Debit' : 'Credit';
 
-                // Read current balance via ReadDb (no lock conflict)
-                $obRow         = $this->customers_model->getCustomerOpeningBalance($orgUID, (int)$CustomerUID);
-                $currentSigned = 0.0;
-                if ($obRow) {
-                    $currentSigned = ($obRow->OpeningBalType === 'Debit')
-                        ? (float)$obRow->OpeningBalance : -(float)$obRow->OpeningBalance;
-                }
-                $newSigned  = round($currentSigned + $delta, 2);
-                $newBalance = abs($newSigned);
-                $newType    = ($newSigned >= 0) ? 'Debit' : 'Credit';
+                // Use the already-fetched $obRowPre for existence check
+                $obRow = $obRowPre;
 
-                // Write via dbwrite_model (C1 — same connection as this transaction, no FK deadlock)
+
                 if ($obRow) {
                     $this->dbwrite_model->updateData('Customers', 'CustOpeningBalanceTbl', [
                         'OpeningBalance' => $newBalance,
-                        'OpeningBalType' => $newType,
+                        'OpeningBalType' => $newBalType,
                         'UpdatedBy'      => (int)$userUID,
                     ], ['OpeningBalUID' => (int)$obRow->OpeningBalUID]);
                 } else {
@@ -586,9 +570,9 @@ class Customers extends MY_Controller {
                         'OrgUID'         => (int)$orgUID,
                         'CustomerUID'    => (int)$CustomerUID,
                         'OpeningBalance' => $newBalance,
-                        'OpeningBalType' => $newType,
+                        'OpeningBalType' => $newBalType,
                         'PendingBalance' => $newBalance,
-                        'PendingBalType' => $newType,
+                        'PendingBalType' => $newBalType,
                         'IsActive'       => 1,
                         'IsDeleted'      => 0,
                         'CreatedBy'      => (int)$userUID,
@@ -601,7 +585,7 @@ class Customers extends MY_Controller {
                 if ($yrRow) {
                     $this->dbwrite_model->updateData('Customers', 'CustYearOpeningBalanceTbl', [
                         'OpeningBalance' => $newBalance,
-                        'OpeningBalType' => $newType,
+                        'OpeningBalType' => $newBalType,
                         'UpdatedBy'      => (int)$userUID,
                     ], ['OrgUID' => (int)$orgUID, 'CustomerUID' => (int)$CustomerUID, 'FinancialYear' => (int)$this->_currentFinancialYear()]);
                 } else {
@@ -610,23 +594,30 @@ class Customers extends MY_Controller {
                         'CustomerUID'    => (int)$CustomerUID,
                         'FinancialYear'  => (int)$this->_currentFinancialYear(),
                         'OpeningBalance' => $newBalance,
-                        'OpeningBalType' => $newType,
+                        'OpeningBalType' => $newBalType,
                         'IsActive'       => 1,
                         'IsDeleted'      => 0,
                         'CreatedBy'      => (int)$userUID,
                         'UpdatedBy'      => (int)$userUID,
                     ]);
                 }
+            }
 
-                // Recalculate closing balance and sync all tables + cache
+            $this->dbwrite_model->commitTransaction();
+
+            // Post-commit: recalcAndSync reads CustOpeningBalanceTbl via ReadDb.
+            // Must run AFTER commit so ReadDb sees the newly written OpeningBalance.
+            if ($balanceChanged) {
                 $this->load->library('customerbalance');
                 $this->customerbalance->recalcAndSync($orgUID, (int)$CustomerUID, $userUID);
             }
 
-            // Refresh customer in bulk search cache with live data
-            $this->cachehelper->upsertCustomer((int)$CustomerUID);
+            // Handle attachment uploads + deletes after commit
+            $deleteUIDs = $this->input->post('CustAttachDeleteUIDs') ?: '';
+            $this->_handleCustomerAttachments((int)$CustomerUID, $orgUID, $userUID, $deleteUIDs);
 
-            $this->dbwrite_model->commitTransaction();
+            // Refresh org-level customer cache
+            $this->cachehelper->upsertCustomer((int)$CustomerUID);
 
             $pageNo = (int) ($this->input->post('PageNo') ?: 1);
             $this->_initModule();
@@ -760,34 +751,6 @@ class Customers extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
-    public function getCustomerTypesList() {
-        $this->EndReturnData = new stdClass();
-        try {
-            $this->load->model('customers_model');
-            $types = $this->customers_model->getCustomerTypeList($this->pageData['JwtData']->Org->OrgUID);
-            $this->EndReturnData->Error = false;
-            $this->EndReturnData->Types = $types;
-        } catch (Exception $e) {
-            $this->EndReturnData->Error   = true;
-            $this->EndReturnData->Message = $e->getMessage();
-        }
-        $this->globalservice->sendJsonResponse($this->EndReturnData);
-    }
-
-
-    public function getStats() {
-        $this->EndReturnData = new stdClass();
-        try {
-            $this->load->model('customers_model');
-            $stats = $this->customers_model->getCustomerStats($this->pageData['JwtData']->Org->OrgUID);
-            $this->EndReturnData->Error = false;
-            $this->EndReturnData->Stats = $stats;
-        } catch (Exception $e) {
-            $this->EndReturnData->Error   = true;
-            $this->EndReturnData->Message = $e->getMessage();
-        }
-        $this->globalservice->sendJsonResponse($this->EndReturnData);
-    }
     public function toggleCustomerStatus() {
         $this->EndReturnData = new stdClass();
         try {
@@ -1442,9 +1405,18 @@ class Customers extends MY_Controller {
                 $this->customers_model->assignGroupMembers($orgUID, $groupUID, $memberUIDs, $primaryUID, $userUID);
             }
             $this->dbwrite_model->commitTransaction();
-            $this->EndReturnData->Error    = false;
-            $this->EndReturnData->Message  = 'Customer Group created successfully.';
-            $this->EndReturnData->GroupUID = $groupUID;
+            $this->EndReturnData->Error     = false;
+            $this->EndReturnData->Message   = 'Customer Group created successfully.';
+            $this->EndReturnData->GroupUID  = $groupUID;
+            $this->EndReturnData->GroupName = $groupName;
+
+            // Customer form context: return only what's needed to update the dropdown
+            if (($this->input->post('context') ?? '') === 'customer_form') {
+                $this->globalservice->sendJsonResponse($this->EndReturnData);
+                return;
+            }
+
+            // Groups tab context: return full list + stats for table refresh
             $limit    = isset($this->pageData['Limit']) ? (int)$this->pageData['Limit'] : 25;
             $pageData = $this->_fetchGroupsTableData(1, $limit);
             $this->load->model('customers_model');
@@ -1521,9 +1493,18 @@ class Customers extends MY_Controller {
             $this->load->model('customers_model');
             $this->customers_model->syncGroupMembers($orgUID, $groupUID, $memberUIDs, $primaryUID, $userUID);
             $this->dbwrite_model->commitTransaction();
-            $this->EndReturnData->Error    = false;
-            $this->EndReturnData->Message  = 'Customer Group updated successfully.';
-            $this->EndReturnData->GroupUID = $groupUID;
+            $this->EndReturnData->Error     = false;
+            $this->EndReturnData->Message   = 'Customer Group updated successfully.';
+            $this->EndReturnData->GroupUID  = $groupUID;
+            $this->EndReturnData->GroupName = $groupName;
+
+            // Customer form context: slim response only
+            if (($this->input->post('context') ?? '') === 'customer_form') {
+                $this->globalservice->sendJsonResponse($this->EndReturnData);
+                return;
+            }
+
+            // Groups tab context: full list + stats
             $limit    = isset($this->pageData['Limit']) ? (int)$this->pageData['Limit'] : 25;
             $pageData = $this->_fetchGroupsTableData(1, $limit);
             $this->EndReturnData->RecordHtmlData = $pageData->RecordHtmlData;
@@ -1652,5 +1633,143 @@ class Customers extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
+    // ── Customer Attachments ──────────────────────────────────────────────────
+
+    public function getCustomerAttachments() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $customerUID = (int)$this->input->get_post('CustomerUID');
+            $orgUID      = (int)$this->pageData['JwtData']->Org->OrgUID;
+            if ($customerUID <= 0) throw new Exception('Invalid customer.');
+            $this->load->model('customers_model');
+            $attachments = $this->customers_model->getCustomerAttachments($customerUID, $orgUID);
+            $cdnUrl = rtrim(getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv('CFLARE_R2_CDN'), '/');
+            foreach ($attachments as &$a) { $a['Url'] = $cdnUrl . '/' . ltrim($a['FilePath'], '/'); }
+            $this->EndReturnData->Error       = false;
+            $this->EndReturnData->Attachments = $attachments;
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    public function saveCustomerAttachments() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $customerUID = (int)$this->input->post('CustomerUID');
+            $orgUID      = (int)$this->pageData['JwtData']->Org->OrgUID;
+            $userUID     = (int)$this->pageData['JwtData']->User->UserUID;
+            if ($customerUID <= 0) throw new Exception('Invalid customer.');
+            $saved = $this->_handleCustomerAttachments($customerUID, $orgUID, $userUID, '', false);
+            $this->EndReturnData->Error   = false;
+            $this->EndReturnData->Message = count($saved) . ' image(s) saved.';
+            $this->EndReturnData->Saved   = $saved;
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    public function deleteCustomerAttachment() {
+        $this->EndReturnData = new stdClass();
+        try {
+            $attachUID   = (int)$this->input->post('AttachUID');
+            $customerUID = (int)$this->input->post('CustomerUID');
+            $orgUID      = (int)$this->pageData['JwtData']->Org->OrgUID;
+            $userUID     = (int)$this->pageData['JwtData']->User->UserUID;
+            if ($attachUID <= 0) throw new Exception('Invalid attachment.');
+            $this->load->model('dbwrite_model');
+            $this->dbwrite_model->updateData('Customers', 'CustomerAttachmentsTbl',
+                ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
+                ['AttachUID' => $attachUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
+            );
+            if ($customerUID > 0) $this->_syncCustomerPrimaryImage($customerUID, $orgUID, $userUID);
+            $this->EndReturnData->Error   = false;
+            $this->EndReturnData->Message = 'Attachment deleted.';
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    private function _handleCustomerAttachments(int $customerUID, int $orgUID, int $userUID, string $deleteUIDs, bool $fromForm = true): array {
+        $this->load->model('dbwrite_model');
+        $this->load->model('customers_model');
+        $this->load->library('fileupload');
+        $maxFiles = 3; $maxMB = 3;
+        $allowed  = ['image/jpeg','image/jpg','image/png','image/gif'];
+        $folder   = 'customers/attachments/' . $customerUID;
+
+        // Process deletions
+        if ($deleteUIDs) {
+            foreach (array_filter(array_map('intval', explode(',', $deleteUIDs))) as $uid) {
+                $this->dbwrite_model->updateData('Customers', 'CustomerAttachmentsTbl',
+                    ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
+                    ['AttachUID' => $uid, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
+                );
+            }
+        }
+
+        // Upload new files
+        $filesKey = 'CustAttachFiles';
+        $files    = $_FILES[$filesKey] ?? null;
+        $saved    = [];
+        if (!empty($files) && !empty($files['name'][0])) {
+            $wdb = $this->dbwrite_model->getWriteDb();
+            $wdb->db_debug = FALSE;
+            $maxSortQ = $wdb->query(
+                "SELECT COALESCE(MAX(SortOrder),0) AS ms, COUNT(*) AS cnt, COALESCE(SUM(FileSize),0) AS ts
+                   FROM Customers.CustomerAttachmentsTbl WHERE CustomerUID=? AND OrgUID=? AND IsDeleted=0",
+                [$customerUID, $orgUID]
+            );
+            $msr  = $maxSortQ ? $maxSortQ->row() : null;
+            $sort = (int)($msr->ms ?? 0) + 1;
+            $slots = $maxFiles - (int)($msr->cnt ?? 0);
+            $used  = (float)($msr->ts ?? 0);
+            $count = is_array($files['name']) ? count($files['name']) : 1;
+            for ($i = 0; $i < $count && count($saved) < $slots; $i++) {
+                $err  = is_array($files['error'])    ? $files['error'][$i]    : $files['error'];
+                $name = is_array($files['name'])     ? $files['name'][$i]     : $files['name'];
+                $type = is_array($files['type'])     ? $files['type'][$i]     : $files['type'];
+                $size = is_array($files['size'])     ? $files['size'][$i]     : $files['size'];
+                $tmp  = is_array($files['tmp_name']) ? $files['tmp_name'][$i] : $files['tmp_name'];
+                if ($err !== UPLOAD_ERR_OK || !$name || empty($tmp)) continue;
+                if (!in_array($type, $allowed)) continue;
+                if ($used + $size > $maxMB * 1024 * 1024) break;
+                $used += $size;
+                $safe   = time() . '_' . $i . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $name);
+                $result = $this->fileupload->fileUpload('file', $folder . '/' . $safe, $tmp);
+                if ($result->Error) continue;
+                $wdb->insert('Customers.CustomerAttachmentsTbl', [
+                    'OrgUID'      => $orgUID, 'CustomerUID' => $customerUID,
+                    'FileName'    => $name,   'FilePath'    => '/' . ltrim($result->Path, '/'),
+                    'FileSize'    => (int)$size, 'SortOrder' => $sort + count($saved),
+                    'IsDeleted'   => 0, 'IsActive' => 1,
+                    'CreatedBy'   => $userUID, 'UpdatedBy' => $userUID,
+                ]);
+                $saved[] = ['FileName' => $name, 'FilePath' => '/' . ltrim($result->Path, '/')];
+            }
+        }
+        $this->_syncCustomerPrimaryImage($customerUID, $orgUID, $userUID);
+        return $saved;
+    }
+
+    private function _syncCustomerPrimaryImage(int $customerUID, int $orgUID, int $userUID): void {
+        try {
+            $this->load->model('customers_model');
+            $primary = $this->customers_model->getCustomerPrimaryImage($customerUID, $orgUID);
+            $this->load->model('dbwrite_model');
+            $this->dbwrite_model->updateData('Customers', 'CustomerTbl',
+                ['Image' => $primary, 'UpdatedBy' => $userUID],
+                ['CustomerUID' => $customerUID, 'OrgUID' => $orgUID]
+            );
+            $this->cachehelper->upsertCustomer($customerUID);
+        } catch (Exception $e) {
+            log_message('error', '_syncCustomerPrimaryImage failed: ' . $e->getMessage());
+        }
+    }
 
 }

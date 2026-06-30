@@ -1,8 +1,17 @@
 <?php defined('BASEPATH') OR exit('No direct script access allowed');
 
+/**
+ * @property object $inventory_model
+ * @property object $dbwrite_model
+ * @property object $cachehelper
+ * @property object $globalservice
+ * @property object $input
+ * @property object $redisservice
+ */
 class Inventory extends MY_Controller {
 
     public  $pageData      = [];
+    /** @var object|null */
     private $EndReturnData;
     private $pageModuleUID = 117;
 
@@ -140,6 +149,15 @@ class Inventory extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
+            // Post inventory journal entry (non-fatal — stock is already committed)
+            try {
+                $this->load->library('accountledger');
+                $adjFY = (int)date('Y', strtotime($recordDate));
+                $this->accountledger->postStockAdjustmentJournal($adjUID, $recordDate, $adjFY, 'IN', $stockValue, $userUID);
+            } catch (Exception $ledgerEx) {
+                log_message('error', 'Ledger failed after stock-in #' . $adjUID . ': ' . $ledgerEx->getMessage());
+            }
+
             // Sync updated AvailableQuantity into the Upstash bulk cache
             $this->cachehelper->upsertProduct($productUID);
 
@@ -207,6 +225,15 @@ class Inventory extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
+            // Post inventory journal entry (non-fatal — stock is already committed)
+            try {
+                $this->load->library('accountledger');
+                $adjFY = (int)date('Y', strtotime($recordDate));
+                $this->accountledger->postStockAdjustmentJournal($adjUID, $recordDate, $adjFY, 'OUT', $stockValue, $userUID);
+            } catch (Exception $ledgerEx) {
+                log_message('error', 'Ledger failed after stock-out #' . $adjUID . ': ' . $ledgerEx->getMessage());
+            }
+
             // Sync updated AvailableQuantity into the Upstash bulk cache
             $this->cachehelper->upsertProduct($productUID);
 
@@ -251,6 +278,64 @@ class Inventory extends MY_Controller {
             $this->EndReturnData->Message = 'Remarks updated successfully.';
 
         } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+
+    }
+
+    // Delete a manual stock adjustment — reverses stock movement + accounting journal
+
+    public function deleteAdj() {
+
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID  = (int) $this->pageData['JwtData']->Org->OrgUID;
+            $userUID = (int) $this->pageData['JwtData']->User->UserUID;
+            $adjUID  = (int) $this->input->post('AdjUID');
+
+            if ($adjUID <= 0) throw new Exception('Invalid adjustment.');
+
+            $existing = $this->inventory_model->getAdjustmentById($adjUID, $orgUID);
+            if (!$existing) throw new Exception('Adjustment not found or access denied.');
+
+            $productUID = (int)$existing->ProductUID;
+
+            $this->dbwrite_model->startTransaction();
+
+            // Reverse the stock ledger entry + restore product quantity
+            $this->dbwrite_model->reverseStockMovements($adjUID, $orgUID, $userUID);
+
+            // Soft-delete the adjustment record
+            $resp = $this->dbwrite_model->updateData(
+                'Products', 'StockAdjustmentTbl',
+                ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
+                ['AdjUID' => $adjUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
+            );
+            if ($resp->Error) throw new Exception($resp->Message);
+
+            $this->dbwrite_model->commitTransaction();
+
+            // Reverse accounting journal (non-fatal)
+            try {
+                $this->load->library('accountledger');
+                $this->accountledger->reverseJournal('StockAdjustment', $adjUID, $userUID);
+            } catch (Exception $ledgerEx) {
+                log_message('error', 'Ledger reverse failed after adj delete #' . $adjUID . ': ' . $ledgerEx->getMessage());
+            }
+
+            // Sync updated AvailableQuantity into Upstash cache
+            $this->cachehelper->upsertProduct($productUID);
+
+            $stats = $this->inventory_model->getInventoryStats($orgUID);
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->Message = 'Stock adjustment deleted successfully.';
+            $this->EndReturnData->Stats   = $stats;
+
+        } catch (Exception $e) {
+            $this->dbwrite_model->rollbackTransaction();
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }

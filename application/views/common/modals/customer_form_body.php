@@ -11,15 +11,17 @@ $_orgUID      = $CI->pageData['JwtData']->Org->OrgUID  ?? 0;
 $_orgCCode    = $CI->pageData['JwtData']->Org->OrgCCode  ?? '';
 $_orgCISO2    = $CI->pageData['JwtData']->Org->OrgCISO2  ?? '';
 $_typeList    = $CI->customers_model->getCustomerTypeList($_orgUID);
+$_groupList   = $CI->customers_model->getActiveGroupsForDropdown($_orgUID);
 
 $CI->load->view('customers/forms/modal_body', [
-    'FormMode'         => 'add',
-    'FormData'         => null,
-    'BankDetails'      => [],
-    'BillingAddr'      => null,
-    'ShippingAddr'     => null,
-    'CustomerTypeList' => $_typeList,
-    'OrgCCode'         => $_orgCCode,
-    'OrgCISO2'         => $_orgCISO2,
-    'JwtData'          => $CI->pageData['JwtData'],
+    'FormMode'          => 'add',
+    'FormData'          => null,
+    'BankDetails'       => [],
+    'BillingAddr'       => null,
+    'ShippingAddr'      => null,
+    'CustomerTypeList'  => $_typeList,
+    'CustomerGroupList' => $_groupList,
+    'OrgCCode'          => $_orgCCode,
+    'OrgCISO2'          => $_orgCISO2,
+    'JwtData'           => $CI->pageData['JwtData'],
 ]);

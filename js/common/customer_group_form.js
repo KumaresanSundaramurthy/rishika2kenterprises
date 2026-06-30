@@ -39,6 +39,15 @@
 
         _reset();
 
+        // Hide Group Members section when opened from customer form context
+        // Also store the context so the save handler can send a slim response flag
+        $('#CGroupModalForm').data('context', opts.hideMembers ? 'customer_form' : 'groups_tab');
+        if (opts.hideMembers) {
+            $('#cgGroupMembersSection').hide();
+        } else {
+            $('#cgGroupMembersSection').show();
+        }
+
         if (type === 'add') {
             var iso2 = $('#CG_CountryISO2').val() || 'IN';
             _initCC(iso2);
@@ -590,10 +599,12 @@
 
         if (!_validateForm()) return;
 
-        var mode = $form.data('mode');
+        var mode    = $form.data('mode');
+        var context = $form.data('context') || 'groups_tab';
         var url  = (mode === 'edit') ? '/customers/updateGroupData' : '/customers/addGroupData';
         var data = $form.serializeArray();
-        data.push({ name: CsrfName, value: CsrfToken });
+        data.push({ name: CsrfName,    value: CsrfToken });
+        data.push({ name: 'context',   value: context   });
 
         var $btn     = $(this).prop('disabled', true);
         var $spinner = $('<span class="spinner-border spinner-border-sm me-1" role="status"></span>');

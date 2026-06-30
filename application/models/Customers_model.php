@@ -35,36 +35,6 @@ class Customers_model extends CI_Model {
         }
     }
 
-    public function custFilterFormation($moduleInfo, array $filter = []) {
-
-        $result = new stdClass();
-        $result->SearchDirectQuery = [];
-        $result->SearchFilter = [];
-        $result->sortOperation = [];
-
-        $alias = $moduleInfo->TableAliasName;
-        
-        if (!empty($filter['SearchAllData'])) {
-
-            $searchValue = $filter['SearchAllData'];
-
-            $result->SearchDirectQuery = [
-                "{$alias}.Name LIKE"          => "%{$searchValue}%",
-                "{$alias}.Area LIKE"          => "%{$searchValue}%",
-                "{$alias}.MobileNumber LIKE"  => "%{$searchValue}%",
-                "{$alias}.ContactPerson LIKE" => "%{$searchValue}%"
-            ];
-        }
-        
-        if (isset($filter['NameSorting'])) {
-            $result->sortOperation["{$alias}.Name"] = ((int)$filter['NameSorting'] === 1) ? 'ASC' : 'DESC';
-        }
-
-        return $result;
-
-    }
-
-
     public function getCustomers($FilterArray) {
 
         try {
@@ -73,6 +43,7 @@ class Customers_model extends CI_Model {
             $this->ReadDb->select([
                 'Customers.CustomerUID AS CustomerUID',
                 'Customers.OrgUID AS OrgUID',
+                'Customers.SalutationUID AS SalutationUID',
                 'Customers.Name AS Name',
                 'Customers.Area AS Area',
                 'Customers.CountryISO2 as CountryISO2',
@@ -94,10 +65,19 @@ class Customers_model extends CI_Model {
                 'Customers.Tags as Tags',
                 'Customers.CCEmails as CCEmails',
                 'Customers.CustomerTypeUID as CustomerTypeUID',
+                'Customers.GroupUID as GroupUID',
                 'Customers.CreatedOn as CreatedOn',
                 'Customers.UpdatedOn as UpdatedOn',
+                // Actual opening balance from CustOpeningBalanceTbl (source of truth)
+                'COALESCE(COB.OpeningBalance, Customers.DebitCreditAmount) as OpeningBalance',
+                'COALESCE(COB.OpeningBalType, Customers.DebitCreditType, \'Debit\') as OpeningBalType',
             ]);
             $this->ReadDb->from('Customers.CustomerTbl as Customers');
+            $this->ReadDb->join(
+                'Customers.CustOpeningBalanceTbl as COB',
+                'COB.CustomerUID = Customers.CustomerUID AND COB.OrgUID = Customers.OrgUID AND COB.IsDeleted = 0',
+                'left'
+            );
             $this->ReadDb->where(['Customers.IsDeleted' => 0, 'Customers.IsActive' => 1]);
             if(sizeof($FilterArray) > 0) {
                 $this->ReadDb->where($FilterArray);
@@ -430,8 +410,54 @@ class Customers_model extends CI_Model {
             $dataQuery = $this->ReadDb->get();
             if (!$dataQuery) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
 
+            $rows = $dataQuery->result();
+
+            // Batch-fetch first attachment per customer for thumbnail in list view
+            if (!empty($rows)) {
+                $custUIDs = array_column((array)$rows, 'CustomerUID');
+                $cdnUrl   = rtrim(getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv('CFLARE_R2_CDN'), '/');
+                $ph       = implode(',', array_fill(0, count($custUIDs), '?'));
+                $attQ     = $this->ReadDb->query(
+                    "SELECT CustomerUID, FilePath, FileName FROM Customers.CustomerAttachmentsTbl
+                      WHERE CustomerUID IN ({$ph}) AND IsDeleted = 0
+                      ORDER BY CustomerUID, SortOrder ASC",
+                    $custUIDs
+                );
+                $attMap = [];
+                if ($attQ) {
+                    foreach ($attQ->result() as $att) {
+                        $uid = (int)$att->CustomerUID;
+                        if (!isset($attMap[$uid])) {
+                            $attMap[$uid] = ['url' => $cdnUrl . '/' . ltrim($att->FilePath, '/'), 'name' => $att->FileName];
+                        }
+                    }
+                }
+                // Full gallery per customer for data-images attribute
+                $galleryMap = [];
+                if ($attQ) {
+                    $this->ReadDb->query("SELECT 1"); // reset
+                    $attQ2 = $this->ReadDb->query(
+                        "SELECT CustomerUID, FilePath, FileName FROM Customers.CustomerAttachmentsTbl
+                          WHERE CustomerUID IN ({$ph}) AND IsDeleted = 0
+                          ORDER BY CustomerUID, SortOrder ASC",
+                        $custUIDs
+                    );
+                    if ($attQ2) {
+                        foreach ($attQ2->result() as $att) {
+                            $uid = (int)$att->CustomerUID;
+                            $galleryMap[$uid][] = ['url' => $cdnUrl . '/' . ltrim($att->FilePath, '/'), 'name' => $att->FileName];
+                        }
+                    }
+                }
+                foreach ($rows as $row) {
+                    $uid = (int)$row->CustomerUID;
+                    $row->PrimaryImageUrl  = isset($attMap[$uid]) ? $attMap[$uid]['url'] : null;
+                    $row->AttachmentsJson  = json_encode($galleryMap[$uid] ?? [], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                }
+            }
+
             $result             = new stdClass();
-            $result->rows       = $dataQuery->result();
+            $result->rows       = $rows;
             $result->totalCount = $totalCount;
             return $result;
 
@@ -626,26 +652,6 @@ class Customers_model extends CI_Model {
         }
     }
 
-    public function getCustomerTotalPendingCreditNotes($orgUID, $customerUID) {
-        try {
-            $this->ReadDb->db_debug = FALSE;
-            $this->ReadDb->select('COALESCE(SUM(Amount), 0) AS total');
-            $this->ReadDb->from('Transaction.TransCreditNoteTbl');
-            $this->ReadDb->where([
-                'OrgUID'     => (int)$orgUID,
-                'PartyUID'   => (int)$customerUID,
-                'PartyType'  => 'C',
-                'Status'     => 'Pending',
-                'IsDeleted'  => 0,
-            ]);
-            $query = $this->ReadDb->get();
-            if (!$query) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
-            return (float) $query->row()->total;
-        } catch (Exception $e) {
-            throw new Exception($e->getMessage());
-        }
-    }
-
     public function updateCustomerBalanceInLedger($ledgerUID, $balance, $balanceType, $userUID) {
         try {
             $this->WriteDb->db_debug = FALSE;
@@ -797,19 +803,6 @@ class Customers_model extends CI_Model {
 
     // Applies a signed numeric delta (+/-) to the customer running opening balance.
     // Returns ['balance' => float, 'type' => 'Debit'|'Credit'].
-    public function applyOpeningBalanceDelta($orgUID, $customerUID, $delta, $userUID) {
-        $row           = $this->getCustomerOpeningBalance($orgUID, $customerUID);
-        $currentSigned = 0.0;
-        if ($row) {
-            $currentSigned = ($row->OpeningBalType === 'Debit') ? (float)$row->OpeningBalance : -(float)$row->OpeningBalance;
-        }
-        $newSigned  = round($currentSigned + $delta, 2);
-        $newBalance = abs($newSigned);
-        $newType    = ($newSigned >= 0) ? 'Debit' : 'Credit';
-        $this->saveCustomerOpeningBalance($orgUID, $customerUID, $newBalance, $newType, null, $userUID);
-        return ['balance' => $newBalance, 'type' => $newType];
-    }
-
     // ── CustYearOpeningBalanceTbl (year-wise opening balance snapshot) ─────────
 
     // $onlyIfNew=true: insert-only, preserving the year-start snapshot.
@@ -882,66 +875,6 @@ class Customers_model extends CI_Model {
 
     // â”€â”€ CustBalanceHistoryTbl (year-wise snapshots) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-    public function getCustomerBalanceHistory($orgUID, $customerUID) {
-        try {
-            $this->ReadDb->db_debug = FALSE;
-            $this->ReadDb->select([
-                'BalHistoryUID', 'FinancialYear',
-                'OpeningBalance', 'OpeningBalType',
-                'TotalInvoiced',  'TotalReceived', 'TotalReturned',
-                'ClosingBalance', 'ClosingBalType',
-                'SnapshotOn',
-            ]);
-            $this->ReadDb->from('Customers.CustBalanceHistoryTbl');
-            $this->ReadDb->where(['OrgUID' => (int)$orgUID, 'CustomerUID' => (int)$customerUID]);
-            $this->ReadDb->order_by('FinancialYear', 'DESC');
-            $query = $this->ReadDb->get();
-            if (!$query) throw new Exception($this->ReadDb->error()['message'] ?? 'DB error');
-            return $query->result();
-        } catch (Exception $e) {
-            throw new Exception($e->getMessage());
-        }
-    }
-
-    public function saveCustomerBalanceHistory($orgUID, $customerUID, $financialYear, $openingBalance, $openingBalType, $totalInvoiced, $totalReceived, $totalReturned, $closingBalance, $closingBalType, $userUID) {
-        try {
-            $this->ReadDb->db_debug = FALSE;
-            $this->ReadDb->select('BalHistoryUID');
-            $this->ReadDb->from('Customers.CustBalanceHistoryTbl');
-            $this->ReadDb->where(['OrgUID' => (int)$orgUID, 'CustomerUID' => (int)$customerUID, 'FinancialYear' => (int)$financialYear]);
-            $existing = $this->ReadDb->get()->row();
-
-            $data = [
-                'OpeningBalance' => (float)$openingBalance,
-                'OpeningBalType' => $openingBalType,
-                'TotalInvoiced'  => (float)$totalInvoiced,
-                'TotalReceived'  => (float)$totalReceived,
-                'TotalReturned'  => (float)$totalReturned,
-                'ClosingBalance' => (float)$closingBalance,
-                'ClosingBalType' => $closingBalType,
-                'SnapshotOn'     => date('Y-m-d H:i:s'),
-                'UpdatedBy'      => (int)$userUID,
-            ];
-
-            $this->WriteDb->db_debug = FALSE;
-            if ($existing) {
-                $this->WriteDb->where('BalHistoryUID', (int)$existing->BalHistoryUID);
-                $this->WriteDb->update('Customers.CustBalanceHistoryTbl', $data);
-                return (int)$existing->BalHistoryUID;
-            }
-
-            $this->WriteDb->insert('Customers.CustBalanceHistoryTbl', array_merge($data, [
-                'OrgUID'        => (int)$orgUID,
-                'CustomerUID'   => (int)$customerUID,
-                'FinancialYear' => (int)$financialYear,
-                'CreatedBy'     => (int)$userUID,
-            ]));
-            return (int)$this->WriteDb->insert_id();
-
-        } catch (Exception $e) {
-            throw new Exception($e->getMessage());
-        }
-    }
 
     public function getCustomerOnAccountPayments($orgUID, $customerUID) {
         try {
@@ -1015,7 +948,7 @@ class Customers_model extends CI_Model {
             // ── Data ──
             $this->ReadDb->select(
                 'CG.GroupUID, CG.GroupCode, CG.GroupName, CG.GroupType,
-                 CG.ContactPerson, CG.Mobile, CG.Email, CG.IsActive, CG.CreatedAt,
+                 CG.ContactPerson, CG.Mobile, CG.Email, CG.IsActive, CG.CreatedOn,
                  COUNT(C.CustomerUID) AS MemberCount,
                  COALESCE(SUM(CASE WHEN COB.PendingBalType = \'Debit\'  AND COB.PendingBalance > 0 THEN COB.PendingBalance ELSE 0 END), 0) AS TotalReceivable,
                  COALESCE(SUM(CASE WHEN COB.PendingBalType = \'Credit\' AND COB.PendingBalance > 0 THEN COB.PendingBalance ELSE 0 END), 0) AS TotalPayable,
@@ -1186,5 +1119,35 @@ class Customers_model extends CI_Model {
         $this->WriteDb->update('Customers.CustomerTbl', [
             'GroupUID' => null, 'IsGroupPrimary' => 0, 'UpdatedBy' => (int)$userUID,
         ]);
+    }
+
+    // ── Customer Attachments ──────────────────────────────────────────────────
+
+    public function getCustomerAttachments(int $customerUID, int $orgUID): array {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('AttachUID, FileName, FilePath, FileSize, SortOrder, CreatedOn');
+            $this->ReadDb->from('Customers.CustomerAttachmentsTbl');
+            $this->ReadDb->where(['CustomerUID' => $customerUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
+            $this->ReadDb->order_by('SortOrder', 'ASC');
+            $query = $this->ReadDb->get();
+            return $query ? $query->result_array() : [];
+        } catch (Exception $e) {
+            log_message('error', 'getCustomerAttachments failed: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    public function getCustomerPrimaryImage(int $customerUID, int $orgUID): ?string {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('FilePath');
+            $this->ReadDb->from('Customers.CustomerAttachmentsTbl');
+            $this->ReadDb->where(['CustomerUID' => $customerUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
+            $this->ReadDb->order_by('SortOrder', 'ASC');
+            $this->ReadDb->limit(1);
+            $row = $this->ReadDb->get()->row();
+            return $row ? $row->FilePath : null;
+        } catch (Exception $e) { return null; }
     }
 }

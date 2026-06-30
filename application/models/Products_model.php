@@ -606,8 +606,35 @@ class Products_model extends CI_Model {
             $dataError = $this->ReadDb->error();
             if ($dataError['code']) throw new Exception($dataError['message']);
 
+            $rows = $dataQuery->result();
+
+            // Batch-fetch all attachments for this page of products in one query
+            if (!empty($rows)) {
+                $productUIDs = array_column((array)$rows, 'ProductUID');
+                $cdnUrl = rtrim(getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv('CFLARE_R2_CDN'), '/');
+                $placeholders = implode(',', array_fill(0, count($productUIDs), '?'));
+                $attQuery = $this->ReadDb->query(
+                    "SELECT EntityUID, FilePath, FileName FROM Products.ProductCategoryAttachmentsTbl
+                      WHERE EntityType = 'Product' AND EntityUID IN ({$placeholders}) AND IsDeleted = 0
+                      ORDER BY EntityUID, SortOrder ASC",
+                    $productUIDs
+                );
+                $attMap = [];
+                if ($attQuery) {
+                    foreach ($attQuery->result() as $att) {
+                        $attMap[(int)$att->EntityUID][] = [
+                            'url'  => $cdnUrl . '/' . ltrim($att->FilePath, '/'),
+                            'name' => $att->FileName,
+                        ];
+                    }
+                }
+                foreach ($rows as $row) {
+                    $row->AttachmentsJson = json_encode($attMap[(int)$row->ProductUID] ?? [], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                }
+            }
+
             $result             = new stdClass();
-            $result->rows       = $dataQuery->result();
+            $result->rows       = $rows;
             $result->totalCount = $totalCount;
             return $result;
 
@@ -663,8 +690,35 @@ class Products_model extends CI_Model {
             $dataError = $this->ReadDb->error();
             if ($dataError['code']) throw new Exception($dataError['message']);
 
+            $rows = $dataQuery->result();
+
+            // Batch-fetch all attachments for this page of categories in one query
+            if (!empty($rows)) {
+                $categoryUIDs = array_column((array)$rows, 'CategoryUID');
+                $cdnUrl = rtrim(getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv('CFLARE_R2_CDN'), '/');
+                $placeholders = implode(',', array_fill(0, count($categoryUIDs), '?'));
+                $attQuery = $this->ReadDb->query(
+                    "SELECT EntityUID, FilePath, FileName FROM Products.ProductCategoryAttachmentsTbl
+                      WHERE EntityType = 'Category' AND EntityUID IN ({$placeholders}) AND IsDeleted = 0
+                      ORDER BY EntityUID, SortOrder ASC",
+                    $categoryUIDs
+                );
+                $attMap = [];
+                if ($attQuery) {
+                    foreach ($attQuery->result() as $att) {
+                        $attMap[(int)$att->EntityUID][] = [
+                            'url'  => $cdnUrl . '/' . ltrim($att->FilePath, '/'),
+                            'name' => $att->FileName,
+                        ];
+                    }
+                }
+                foreach ($rows as $row) {
+                    $row->AttachmentsJson = json_encode($attMap[(int)$row->CategoryUID] ?? [], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                }
+            }
+
             $result             = new stdClass();
-            $result->rows       = $dataQuery->result();
+            $result->rows       = $rows;
             $result->totalCount = $totalCount;
             return $result;
 
@@ -963,6 +1017,50 @@ class Products_model extends CI_Model {
             throw new Exception($e->getMessage());
         }
 
+    }
+
+    // ── Product / Category Attachments ────────────────────────────────────────
+
+    /** Get all non-deleted attachments for an entity, ordered by SortOrder */
+    public function getEntityAttachments(string $entityType, int $entityUID, int $orgUID): array {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('AttachUID, FileName, FilePath, FileSize, SortOrder, CreatedOn');
+            $this->ReadDb->from('Products.ProductCategoryAttachmentsTbl');
+            $this->ReadDb->where([
+                'EntityType' => $entityType,
+                'EntityUID'  => $entityUID,
+                'OrgUID'     => $orgUID,
+                'IsDeleted'  => 0,
+            ]);
+            $this->ReadDb->order_by('SortOrder', 'ASC');
+            $query = $this->ReadDb->get();
+            return $query ? $query->result_array() : [];
+        } catch (Exception $e) {
+            log_message('error', 'getEntityAttachments failed: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /** Get the primary (first) attachment FilePath for an entity — used for list thumbnail */
+    public function getEntityPrimaryImage(string $entityType, int $entityUID, int $orgUID): ?string {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('FilePath');
+            $this->ReadDb->from('Products.ProductCategoryAttachmentsTbl');
+            $this->ReadDb->where([
+                'EntityType' => $entityType,
+                'EntityUID'  => $entityUID,
+                'OrgUID'     => $orgUID,
+                'IsDeleted'  => 0,
+            ]);
+            $this->ReadDb->order_by('SortOrder', 'ASC');
+            $this->ReadDb->limit(1);
+            $row = $this->ReadDb->get()->row();
+            return $row ? $row->FilePath : null;
+        } catch (Exception $e) {
+            return null;
+        }
     }
 
 }

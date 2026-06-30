@@ -550,12 +550,7 @@ $(function () {
         var formData = new FormData(this);
         formData.append(CsrfName, CsrfToken);
 
-        // Append new attachment files from multiDropzone
-        if (typeof multiDropzone !== 'undefined' && multiDropzone && multiDropzone.files.length > 0) {
-            multiDropzone.files.forEach(function (f) { formData.append('AttachFiles[]', f); });
-        }
-        // Append removed attachment IDs (edit mode)
-        formData.append('RemovedAttachIDs', JSON.stringify(typeof _removedAttachIDs !== 'undefined' ? _removedAttachIDs : []));
+        collectTransAttachData(formData);
 
         $.ajax({
             url         : $(this).attr('action'),

@@ -182,6 +182,16 @@ if (!empty($DataLists)):
                         <?php endif; ?>
 
                         <?php if ($status === 'Dispatched'): ?>
+                        <?php if (in_array($challanType, ['Returnable', 'Job Work'])): ?>
+                        <li>
+                            <button class="dropdown-item dc-status-update"
+                                    data-uid="<?php echo (int)$list->TransUID; ?>"
+                                    data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
+                                    data-status="Returned">
+                                <i class="bx bx-undo me-2 text-info"></i>Mark as Returned
+                            </button>
+                        </li>
+                        <?php else: ?>
                         <li>
                             <button class="dropdown-item dc-status-update"
                                     data-uid="<?php echo (int)$list->TransUID; ?>"
@@ -190,6 +200,7 @@ if (!empty($DataLists)):
                                 <i class="bx bx-check-circle me-2 text-success"></i>Mark as Delivered
                             </button>
                         </li>
+                        <?php endif; ?>
                         <?php endif; ?>
 
                         <?php if ($status === 'Delivered'): ?>

@@ -886,9 +886,7 @@ $(function() {
             fd.append('SignatureUID',           parseInt($('#transSignatureUID').val(), 10) || 0);
             fd.append('action',                 action);
             $.each(charges, function(k, v) { fd.append(k, v); });
-            if (typeof multiDropzone !== 'undefined' && multiDropzone) {
-                multiDropzone.files.forEach(function(f) { fd.append('AttachFiles[]', f); });
-            }
+            collectTransAttachData(fd);
             if (!_isEdit) {
                 fd.append('PaymentRows',       $('#PaymentRowsJson').val()    || '');
                 fd.append('IsFullyPaid',       $('#isFullyPaid').is(':checked') ? 1 : 0);
@@ -903,8 +901,6 @@ $(function() {
                         });
                     }
                 }
-            } else {
-                fd.append('RemovedAttachIDs', JSON.stringify(_removedAttachIDs || []));
             }
 
             setFormLoading('#<?php echo $formId; ?>', true, action);

@@ -120,6 +120,17 @@ class Indirectincome extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
+            try {
+                $this->load->library('accountledger');
+                $incFY = (int) date('Y', strtotime($data['IncomeDate']));
+                $this->accountledger->postIndirectIncomeJournal(
+                    $incomeUID, $data['IncomeDate'], $incomeNumber, $incFY,
+                    (float) $data['NetAmount'], $userUID
+                );
+            } catch (Exception $ledgerEx) {
+                log_message('error', 'Ledger update failed after indirect income creation: ' . $ledgerEx->getMessage());
+            }
+
             $this->_saveAttachments($incomeUID, 'IndirectIncome');
 
             $this->EndReturnData->Error        = FALSE;
@@ -172,6 +183,19 @@ class Indirectincome extends MY_Controller {
 
             $this->_saveAttachments($incomeUID, 'IndirectIncome');
 
+            // Reverse old journal and re-post with updated amount/date (non-fatal)
+            try {
+                $this->load->library('accountledger');
+                $this->accountledger->reverseJournal('IndirectIncome', $incomeUID, $userUID);
+                $incFY = (int)date('Y', strtotime($data['IncomeDate']));
+                $this->accountledger->postIndirectIncomeJournal(
+                    $incomeUID, $data['IncomeDate'], $existing->IncomeNumber, $incFY,
+                    (float)$data['NetAmount'], $userUID
+                );
+            } catch (Exception $ledgerEx) {
+                log_message('error', 'Ledger update failed after income edit #' . $incomeUID . ': ' . $ledgerEx->getMessage());
+            }
+
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Income updated successfully.';
 
@@ -218,6 +242,14 @@ class Indirectincome extends MY_Controller {
                     ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID, 'UpdatedOn' => date('Y-m-d H:i:s')],
                     ['PaymentUID' => (int)$existing->PaymentUID, 'OrgUID' => $orgUID]
                 );
+            }
+
+            // Reverse journal entry (non-fatal)
+            try {
+                $this->load->library('accountledger');
+                $this->accountledger->reverseJournal('IndirectIncome', $incomeUID, $userUID);
+            } catch (Exception $ledgerEx) {
+                log_message('error', 'Ledger reverse failed after income delete #' . $incomeUID . ': ' . $ledgerEx->getMessage());
             }
 
             $this->EndReturnData->Error   = FALSE;
@@ -553,6 +585,16 @@ class Indirectincome extends MY_Controller {
             }
 
             $this->dbwrite_model->commitTransaction();
+
+            // Journal handling for status transitions (non-fatal)
+            try {
+                $this->load->library('accountledger');
+                if ($newStatus === 'Cancelled') {
+                    $this->accountledger->reverseJournal('IndirectIncome', $incomeUID, $userUID);
+                }
+            } catch (Exception $ledgerEx) {
+                log_message('error', 'Ledger failed on income status change #' . $incomeUID . ': ' . $ledgerEx->getMessage());
+            }
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Status updated to ' . $newStatus . '.';

@@ -26,11 +26,17 @@ if (!empty($DataLists)) {
             <td>
                 <div class="d-flex align-items-center gap-2">
                     <div class="avatar avatar-sm me-2">
-                        <?php if ($imgSrc) { ?>
-                            <img src="<?php echo htmlspecialchars($imgSrc); ?>" alt="<?php echo htmlspecialchars($row->Name); ?>" class="rounded cursor-pointer preview-image" data-src="<?php echo htmlspecialchars($imgSrc); ?>" style="width: 40px; height: 40px; object-fit: cover;" />
-                        <?php } else { ?>
+                        <?php if ($imgSrc):
+                            $imagesJson = htmlspecialchars($row->AttachmentsJson ?? '[]', ENT_QUOTES, 'UTF-8');
+                        ?>
+                            <img src="<?php echo htmlspecialchars($imgSrc); ?>"
+                                 alt="<?php echo htmlspecialchars($row->Name); ?>"
+                                 class="rounded cursor-pointer catg-list-img"
+                                 data-images="<?php echo $imagesJson; ?>"
+                                 style="width:40px;height:40px;object-fit:cover;" />
+                        <?php else: ?>
                             <span class="avatar-initial rounded bg-label-secondary"><?php echo $_initials; ?></span>
-                        <?php } ?>
+                        <?php endif; ?>
                     </div>
                     <span class="fw-medium"><?php echo htmlspecialchars($row->Name); ?></span>
                 </div>
@@ -65,13 +71,14 @@ if (!empty($DataLists)) {
                 <?php endif; ?>
                 <div class="text-muted" style="font-size: 0.75rem;">by <?php echo htmlspecialchars($row->UpdatedBy ?? '—'); ?></div>
             </td>
-            <td>
-                <div class="d-flex align-items-center justify-content-end gap-1">
+            <td class="text-center align-middle">
+                <div class="d-flex align-items-center justify-content-center gap-1">
                     <a href="javascript:void(0);" class="btn btn-icon btn-sm text-warning editCategory"
                        data-uid="<?php echo htmlspecialchars($row->CategoryUID); ?>"
                        data-name="<?php echo base64_encode($row->Name); ?>"
                        data-description="<?php echo base64_encode($row->Description ?? ''); ?>"
                        data-image="<?php echo base64_encode($row->Image ?? ''); ?>"
+                       data-attachments="<?php echo htmlspecialchars($row->AttachmentsJson ?? '[]', ENT_QUOTES, 'UTF-8'); ?>"
                        title="Edit">
                         <i class="bx bx-edit"></i>
                     </a>
@@ -82,7 +89,9 @@ if (!empty($DataLists)) {
                         <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:.82rem;min-width:160px;">
                             <li>
                                 <button class="dropdown-item text-danger DeleteCategory"
-                                        data-categoryuid="<?php echo htmlspecialchars($row->CategoryUID); ?>">
+                                        data-categoryuid="<?php echo htmlspecialchars($row->CategoryUID); ?>"
+                                        data-productcount="<?php echo (int)($row->ProductCount ?? 0); ?>"
+                                        data-categoryname="<?php echo htmlspecialchars($row->Name); ?>">
                                     <i class="bx bx-trash me-2"></i>Delete
                                 </button>
                             </li>

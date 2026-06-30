@@ -263,19 +263,64 @@ $(document).ready(function () {
         if (m) $(document).trigger('samePageTabSwitch', [m[1].toLowerCase()]);
     });
 
+    // Single-image click — opens gallery with one image
     $(document).on('click', '.preview-image', function() {
-        var imageSrc = $(this).data('src');
-        if (imageSrc) {
-            $('#imagePreviewTarget').attr('src', imageSrc);
-            $('#imagePreviewModal').modal('show');
-        }
+        var src  = $(this).data('src');
+        var name = $(this).data('name') || $(this).attr('alt') || 'Image';
+        if (src) openImageGallery([{ url: src, name: name }], 0);
+    });
+
+    // Keyboard navigation for gallery
+    $(document).on('keydown', function(e) {
+        if (!$('#imagePreviewModal').hasClass('show')) return;
+        if (e.key === 'ArrowLeft')  imgGalleryNav(-1);
+        if (e.key === 'ArrowRight') imgGalleryNav(1);
     });
 
     $('#imagePreviewModal').on('hidden.bs.modal', function () {
         $('#imagePreviewTarget').attr('src', '');
+        $('#imgPreviewTitle').text('Image Preview');
+        $('#imgPreviewCounter').text('');
+        window._imgGallery = null;
     });
 
 });
+
+// ── Common Image Gallery ──────────────────────────────────────────────────────
+// images: [{url, name}]  startIndex: 0-based
+window._imgGallery = null;
+
+function openImageGallery(images, startIndex) {
+    if (!images || !images.length) return;
+    window._imgGallery = { images: images, idx: startIndex || 0 };
+    _imgGalleryRender();
+    var modal = document.getElementById('imagePreviewModal');
+    if (!modal) return;
+    // Force above any open modal (Bootstrap default z-index is 1055)
+    modal.style.zIndex = '2000';
+    bootstrap.Modal.getOrCreateInstance(modal, { backdrop: false, keyboard: true }).show();
+}
+
+function _imgGalleryRender() {
+    var g = window._imgGallery;
+    if (!g) return;
+    var img  = g.images[g.idx];
+    var total = g.images.length;
+    $('#imagePreviewTarget').attr('src', img.url).attr('alt', img.name || '');
+    $('#imgPreviewTitle').text(img.name || 'Image');
+    $('#imgPreviewCounter').text(total > 1 ? (g.idx + 1) + ' / ' + total : '');
+    $('#imgPreviewPrev').toggle(total > 1 && g.idx > 0);
+    $('#imgPreviewNext').toggle(total > 1 && g.idx < total - 1);
+}
+
+function imgGalleryNav(dir) {
+    var g = window._imgGallery;
+    if (!g) return;
+    var next = g.idx + dir;
+    if (next < 0 || next >= g.images.length) return;
+    g.idx = next;
+    _imgGalleryRender();
+}
 
 function exportURLDynamic(Url) {
     console.log(Url)
@@ -913,9 +958,19 @@ $(document).on('select2:open', function(e) {
 
 function initializeFlatPickr(FieldName, IsModal) {
     var altFmt = (typeof _transFormDateFormat !== 'undefined') ? _transFormDateFormat : 'd-m-Y';
-    var opts = { dateFormat: "Y-m-d", altInput: true, altFormat: altFmt, clickOpens: true };
-    if (IsModal) { opts.appendTo = document.querySelector(IsModal + " .modal-body"); }
-    flatpickr(FieldName, opts);
+    var el = document.querySelector(FieldName);
+    if (!el) return;
+    // Destroy any existing instance so re-init always reflects the current altFormat
+    if (el._flatpickr) el._flatpickr.destroy();
+    var opts = {
+        dateFormat:  'Y-m-d',
+        altInput:    true,
+        altFormat:   altFmt,
+        allowInput:  false,
+        static:      !!IsModal,
+        position:    IsModal ? 'below left' : 'auto',
+    };
+    flatpickr(el, opts);
 }
 
 function updatePageSettings(formdata) {

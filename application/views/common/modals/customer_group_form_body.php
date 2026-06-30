@@ -115,9 +115,11 @@ $_orgCISO2 = $CI->pageData['JwtData']->Org->OrgCISO2 ?? 'IN';
 
         </div>
 
+        <!-- ── Group Members — hidden when opened from customer form context ── -->
+        <div id="cgGroupMembersSection">
+
         <hr>
 
-        <!-- ── Group Members ──────────────────────────────────── -->
         <div class="card-header modal-header-center-sticky p-1 mb-3 d-flex align-items-center justify-content-between">
             <h5 class="modal-title mb-0">Group Members</h5>
             <small class="text-muted">
@@ -152,6 +154,8 @@ $_orgCISO2 = $CI->pageData['JwtData']->Org->OrgCISO2 ?? 'IN';
                 <div style="font-size:.85rem;">No members yet. Search and add customers above.</div>
             </div>
         </div>
+
+        </div><!-- /#cgGroupMembersSection -->
 
     </div><!-- /p-4 -->
 

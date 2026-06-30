@@ -152,11 +152,12 @@
         // Quill
         QuillEditor('.ql-toolbar', 'Enter product description...');
 
-        // Dropzone — initialise on first modal show if not already
+        // Bind attachment zone listeners once (immediately — zone HTML is already in the DOM)
+        if (typeof _attachBindListeners === 'function') _attachBindListeners('Product');
+
         $modal.one('shown.bs.modal', function () {
-            if (typeof Dropzone !== 'undefined' && !Dropzone.instances.some(function(d){ return d.element.id === 'DropzoneOneBasic'; })) {
-                commonDropzoneOne('DropzoneOneBasic');
-            }
+            // Focus first field — listeners are already bound above
+            setTimeout(function () { $('#ItemName').focus(); }, 100);
         });
     }
 
@@ -241,6 +242,8 @@
 
         if (typeof myOneDropzone !== 'undefined') { myOneDropzone.removeAllFiles(true); }
         if (typeof quill        !== 'undefined') { quill.setContents([]); }
+        // Reset state only — listeners are already bound from _pfInit, never re-bind
+        if (typeof _attachResetState === 'function') _attachResetState('Product');
         if (typeof loadCustomerPricingRows === 'function') { loadCustomerPricingRows([]); }
         $('#CustomerTypeSelect').val('').trigger('change');
         $('#CustomerTypePrice').val('');
@@ -312,10 +315,13 @@
         if (typeof loadCustomerPricingRows === 'function') {
             loadCustomerPricingRows(response.CustomerPricing || []);
         }
-        if (hasValue(d.Image)) {
-            var imgUrl = CDN_URL + d.Image;
-            commonSetDropzoneImageOne(imgUrl);
-            _pfImgData = imgUrl;
+        // Reset state, load existing attachments from response (no AJAX — already in response)
+        if (!isClone) {
+            if (typeof _attachResetState === 'function') _attachResetState('Product');
+            if (response.Attachments && response.Attachments.length && _attachState['Product']) {
+                _attachState['Product'].existing = response.Attachments;
+                if (typeof _attachRender === 'function') _attachRender('Product');
+            }
         }
         if (d.Description) { appendToQuill(d.Description, true); }
 
@@ -443,13 +449,13 @@
         var formData   = new FormData(this);
         var productUID = parseInt($('#HProductUID').val()) || 0;
 
-        if (typeof myOneDropzone !== 'undefined' && myOneDropzone.files.length > 0) {
-            var file = myOneDropzone.files[0];
-            if (!file.isStored) { formData.append('UploadImage', file); }
+        // Append new attachment files directly into this request — no separate upload round trip
+        if (typeof _attachState !== 'undefined' && _attachState['Product']) {
+            (_attachState['Product'].newFiles || []).forEach(function(f) {
+                formData.append('ProdAttachFiles[]', f, f.name);
+            });
         }
-        if (productUID && hasValue(_pfImgData) && (typeof myOneDropzone === 'undefined' || myOneDropzone.files.length === 0)) {
-            formData.append('ImageRemoved', 1);
-        }
+
         if (typeof quill !== 'undefined') {
             var desc = quill.getText().trim();
             if (desc) { formData.append('Description', $('#Description .ql-editor').html()); }
@@ -528,11 +534,10 @@
                     Swal.fire({ icon: 'error', title: 'Oops...', text: response.Message });
                     return;
                 }
+                // Attachments were uploaded as part of this same request — no extra round trip
                 showToastNotification(response.Message, 'success');
                 $('#ProductFormModal').modal('hide');
-                if (typeof _onSaveSuccess === 'function') {
-                    _onSaveSuccess(response);
-                }
+                if (typeof _onSaveSuccess === 'function') _onSaveSuccess(response);
             },
             error: function () {
                 $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i>Save');

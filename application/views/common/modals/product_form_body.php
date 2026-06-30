@@ -140,14 +140,19 @@ if (!empty($_JwtData->GenSettings->EnableStorage)) {
                 <h5 class="modal-title mb-0">Additional Information</h5>
             </div>
             <div class="row d-flex">
-                <div class="col-md-3 d-flex justify-content-center align-items-center">
-                    <div class="dropzone dropzone-main-form needsclick p-3 dz-clickable w-100" id="DropzoneOneBasic">
-                        <div class="dz-message needsclick text-center">
-                            <i class="upload-icon mb-3"></i>
-                            <p class="h5 needsclick mb-2">Drag and drop product here</p>
-                            <p class="h4 text-body-secondary fw-normal mb-0">JPG, GIF or PNG of 1 MB</p>
+                <div class="col-md-3">
+                    <!-- Drop zone — always visible, click or drag to add images -->
+                    <div id="prodAttachZone" class="prod-attach-zone" onclick="prodAttachTrigger(event)">
+                        <div id="prodAttachEmpty" class="prod-attach-empty">
+                            <i class="bx bx-image-add" id="prodAttachIcon" style="font-size:2rem;color:#9ca3af;display:block;margin-bottom:6px;"></i>
+                            <div id="prodAttachLabel" style="font-size:.78rem;font-weight:600;color:#6b7280;">Drag &amp; drop images</div>
+                            <div id="prodAttachHint" style="font-size:.7rem;color:#9ca3af;margin-top:3px;">JPG, GIF or PNG · Max 5 · 5 MB total</div>
                         </div>
                     </div>
+                    <!-- Preview list — outside the drop zone so thumbnail clicks don't trigger file input -->
+                    <div id="prodAttachList" class="prod-attach-list mt-2" style="display:none;"></div>
+                    <input type="file" id="prodAttachInput" multiple accept="image/jpeg,image/png,image/gif" style="display:none;">
+                    <input type="hidden" id="prodAttachDeleteUIDs" name="ProdAttachDeleteUIDs" value="">
                 </div>
                 <div class="col-md-9">
                     <div class="row">

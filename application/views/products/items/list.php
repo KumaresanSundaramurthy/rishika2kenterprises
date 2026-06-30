@@ -83,10 +83,14 @@ if (!empty($DataLists)) {
 
                     <div class="avatar avatar-sm me-2">
                     <?php if ($imgSrc): ?>
+                        <?php
+                        // Attachments already fetched in the model — embed as JSON, open gallery instantly from DOM
+                        $imagesJson = htmlspecialchars($row->AttachmentsJson ?? '[]', ENT_QUOTES, 'UTF-8');
+                        ?>
                         <img src="<?php echo htmlspecialchars($imgSrc); ?>"
                              alt="<?php echo htmlspecialchars($row->ItemName); ?>"
-                             class="rounded cursor-pointer preview-image"
-                             data-src="<?php echo htmlspecialchars($imgSrc); ?>"
+                             class="rounded cursor-pointer prod-list-img"
+                             data-images="<?php echo $imagesJson; ?>"
                              style="width:40px;height:40px;object-fit:cover;" />
                     <?php else: ?>
                         <span class="avatar-initial rounded <?php echo $row->IsComposite ? 'bg-label-warning' : 'bg-label-secondary'; ?>">

@@ -1,0 +1,90 @@
+/* ── Shared Attachment Zone CSS ─────────────────────────────────────────────
+   Used by: Products, Categories, Customers, Vendors
+   ────────────────────────────────────────────────────────────────────────── */
+
+.prod-attach-zone {
+    border: 2px dashed #d1d5db;
+    border-radius: 10px;
+    height: 130px;          /* fixed height — never collapses */
+    padding: 10px;
+    cursor: pointer;
+    transition: border-color .2s, background .2s;
+    background: #fafafa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+.prod-attach-zone:hover,
+.prod-attach-zone.drag-over {
+    border-color: #6366f1;
+    background: #f5f3ff;
+}
+.prod-attach-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 8px;
+    text-align: center;
+}
+/* Preview list lives OUTSIDE the drop zone */
+.prod-attach-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.prod-attach-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 6px 8px;
+    font-size: .78rem;
+}
+.prod-attach-item img {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+    border-radius: 5px;
+    cursor: pointer;
+    flex-shrink: 0;
+    border: 1px solid #e5e7eb;
+}
+.prod-attach-item .attach-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #374151;
+    font-weight: 500;
+}
+.prod-attach-item .attach-size {
+    color: #9ca3af;
+    font-size: .7rem;
+    flex-shrink: 0;
+}
+.prod-attach-item .attach-remove {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    color: #ef4444;
+    cursor: pointer;
+    padding: 2px 4px;
+    font-size: .9rem;
+    line-height: 1;
+    border-radius: 4px;
+    transition: background .15s;
+}
+.prod-attach-item .attach-remove:hover { background: #fee2e2; }
+.prod-attach-item.is-existing  { border-color: #a5b4fc; background: #f5f3ff; }
+.prod-attach-item.pending-delete { opacity: .45; text-decoration: line-through; }
+/* Non-image file icon placeholder (same size as the img thumbnail) */
+.prod-attach-item .attach-file-icon {
+    width: 40px; height: 40px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: #f3f4f6; border-radius: 5px; border: 1px solid #e5e7eb;
+}

@@ -123,6 +123,17 @@ class Expenses extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
+            try {
+                $this->load->library('accountledger');
+                $expFY = (int) date('Y', strtotime($data['ExpenseDate']));
+                $this->accountledger->postExpenseJournal(
+                    $expenseUID, $data['ExpenseDate'], $expenseNumber, $expFY,
+                    (float) $data['NetAmount'], $userUID
+                );
+            } catch (Exception $ledgerEx) {
+                log_message('error', 'Ledger update failed after expense creation: ' . $ledgerEx->getMessage());
+            }
+
             $this->_saveAttachments($expenseUID, 'Expense');
 
             $this->EndReturnData->Error         = FALSE;
@@ -175,6 +186,19 @@ class Expenses extends MY_Controller {
 
             $this->_saveAttachments($expenseUID, 'Expense');
 
+            // Reverse old journal and re-post with new amount/date (non-fatal)
+            try {
+                $this->load->library('accountledger');
+                $this->accountledger->reverseJournal('Expense', $expenseUID, $userUID);
+                $expFY = (int)date('Y', strtotime($data['ExpenseDate']));
+                $this->accountledger->postExpenseJournal(
+                    $expenseUID, $data['ExpenseDate'], $existing->ExpenseNumber, $expFY,
+                    (float)$data['NetAmount'], $userUID
+                );
+            } catch (Exception $ledgerEx) {
+                log_message('error', 'Ledger update failed after expense edit #' . $expenseUID . ': ' . $ledgerEx->getMessage());
+            }
+
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Expense updated successfully.';
 
@@ -221,6 +245,14 @@ class Expenses extends MY_Controller {
                     ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID, 'UpdatedOn' => date('Y-m-d H:i:s')],
                     ['PaymentUID' => (int)$existing->PaymentUID, 'OrgUID' => $orgUID]
                 );
+            }
+
+            // Reverse journal entry (non-fatal)
+            try {
+                $this->load->library('accountledger');
+                $this->accountledger->reverseJournal('Expense', $expenseUID, $userUID);
+            } catch (Exception $ledgerEx) {
+                log_message('error', 'Ledger reverse failed after expense delete #' . $expenseUID . ': ' . $ledgerEx->getMessage());
             }
 
             $this->EndReturnData->Error   = FALSE;
@@ -561,6 +593,17 @@ class Expenses extends MY_Controller {
             }
 
             $this->dbwrite_model->commitTransaction();
+
+            // Journal handling for status transitions (non-fatal)
+            try {
+                $this->load->library('accountledger');
+                if ($newStatus === 'Cancelled') {
+                    // Reverse the journal that was posted when the expense was created
+                    $this->accountledger->reverseJournal('Expense', $expenseUID, $userUID);
+                }
+            } catch (Exception $ledgerEx) {
+                log_message('error', 'Ledger failed on expense status change #' . $expenseUID . ': ' . $ledgerEx->getMessage());
+            }
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Status updated to ' . $newStatus . '.';

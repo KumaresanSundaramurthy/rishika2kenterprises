@@ -7,10 +7,6 @@ class Holidays extends MY_Controller {
 
     public function __construct() { parent::__construct(); }
 
-    private function _orgUID()  { return (int)$this->pageData['JwtData']->Org->OrgUID; }
-    private function _userUID() { return (int)$this->pageData['JwtData']->User->UserUID; }
-    private function _limit()   { return (int)($this->pageData['JwtData']->GenSettings->RowLimit ?? 10); }
-
     private function _fetchTableData($pageNo, $limit, $filter = []) {
         $offset = max(0, ($pageNo - 1) * $limit);
         $this->load->model('users_model');
@@ -26,7 +22,7 @@ class Holidays extends MY_Controller {
     public function index() {
         if (!$this->_loadPageTitle()) { $this->load->view('common/module_error', $this->pageData); return; }
         try {
-            $pd = $this->_fetchTableData(1, $this->_limit(), ['Year' => date('Y')]);
+            $pd = $this->_fetchTableData(1, $this->_rowLimit(), ['Year' => date('Y')]);
             $this->pageData['ModRowData']    = $pd->RecordHtmlData;
             $this->pageData['ModPagination'] = $pd->Pagination;
             $this->pageData['CurrentYear']   = date('Y');
@@ -39,7 +35,7 @@ class Holidays extends MY_Controller {
         try {
             $filter = $this->input->post('Filter') ?: [];
             if (empty($filter['Year'])) $filter['Year'] = date('Y');
-            $pd = $this->_fetchTableData(max(1, (int)$pageNo), $this->_limit(), $filter);
+            $pd = $this->_fetchTableData(max(1, (int)$pageNo), $this->_rowLimit(), $filter);
             $this->EndReturnData->Error          = FALSE;
             $this->EndReturnData->RecordHtmlData = $pd->RecordHtmlData;
             $this->EndReturnData->Pagination     = $pd->Pagination;
@@ -67,7 +63,7 @@ class Holidays extends MY_Controller {
                 $res = $this->dbwrite_model->updateData('Organisation', 'HolidayTbl', $data, ['HolidayUID' => $uid, 'OrgUID' => $this->_orgUID()]);
             }
             if ($res->Error) throw new Exception($res->Message);
-            $pd = $this->_fetchTableData($pageNo, $this->_limit(), $filter);
+            $pd = $this->_fetchTableData($pageNo, $this->_rowLimit(), $filter);
             $this->EndReturnData->Error          = FALSE;
             $this->EndReturnData->Message        = $uid ? 'Updated.' : 'Holiday added.';
             $this->EndReturnData->RecordHtmlData = $pd->RecordHtmlData;
@@ -89,7 +85,7 @@ class Holidays extends MY_Controller {
             $this->load->model('dbwrite_model');
             $res = $this->dbwrite_model->updateData('Organisation', 'HolidayTbl', ['IsDeleted' => 1, 'UpdatedBy' => $this->_userUID()], ['HolidayUID' => $uid, 'OrgUID' => $this->_orgUID()]);
             if ($res->Error) throw new Exception($res->Message);
-            $pd = $this->_fetchTableData($pageNo, $this->_limit(), $filter);
+            $pd = $this->_fetchTableData($pageNo, $this->_rowLimit(), $filter);
             $this->EndReturnData->Error          = FALSE;
             $this->EndReturnData->Message        = 'Deleted.';
             $this->EndReturnData->RecordHtmlData = $pd->RecordHtmlData;

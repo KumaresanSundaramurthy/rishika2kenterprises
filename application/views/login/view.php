@@ -335,6 +335,18 @@
 
 .lr-input-wrap input::placeholder { color: #334155; }
 
+/* Fix browser autofill — forces dark background + light text so autofilled values are readable */
+.lr-input-wrap input:-webkit-autofill,
+.lr-input-wrap input:-webkit-autofill:hover,
+.lr-input-wrap input:-webkit-autofill:focus,
+.lr-input-wrap input:-webkit-autofill:active {
+    -webkit-text-fill-color: #f1f5f9;
+    -webkit-box-shadow: 0 0 0px 1000px #0d1829 inset;
+    transition: background-color 5000s ease-in-out 0s;
+    caret-color: #f1f5f9;
+    border-color: rgba(245,158,11,0.3) !important;
+}
+
 /* Password toggle */
 .lr-pw-toggle {
     position: absolute;
@@ -365,26 +377,6 @@
     justify-content: space-between;
     margin-bottom: 28px;
     margin-top: -8px;
-}
-
-.lr-remember {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    cursor: pointer;
-    user-select: none;
-}
-
-.lr-remember input[type="checkbox"] {
-    width: 16px; height: 16px;
-    border-radius: 5px;
-    accent-color: #f59e0b;
-    cursor: pointer;
-}
-
-.lr-remember span {
-    font-size: 13px;
-    color: #64748b;
 }
 
 .lr-forgot {
@@ -443,6 +435,11 @@
 
 @keyframes ripple {
     to { transform: scale(4); opacity: 0; }
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
 }
 
 /* Alert */
@@ -661,11 +658,7 @@
                 </div>
             </div>
 
-            <div class="lr-bottom-row">
-                <label class="lr-remember">
-                    <input type="checkbox" id="remember-me" name="RememberMe" value="1">
-                    <span>Remember me</span>
-                </label>
+            <div class="lr-bottom-row" style="justify-content:flex-end;">
                 <a href="/forgot-password" class="lr-forgot">Forgot password?</a>
             </div>
 
@@ -747,6 +740,49 @@
             setTimeout(function () { r.remove(); }, 700);
         });
     }
+
+    // ── Prevent double-submit: lock the entire form on first submit ───────────
+    var loginForm = document.getElementById('doLoginForm');
+    if (loginForm) {
+        loginForm.addEventListener('submit', function () {
+            // 1. Disable & show spinner on Sign In button
+            if (lrBtn) {
+                lrBtn.disabled = true;
+                lrBtn.innerHTML =
+                    '<span style="display:flex;align-items:center;justify-content:center;gap:10px;">' +
+                        '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 0.8s linear infinite;flex-shrink:0;">' +
+                            '<path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>' +
+                        '</svg>' +
+                        'Signing in...' +
+                    '</span>';
+                lrBtn.style.opacity = '0.75';
+                lrBtn.style.cursor  = 'not-allowed';
+            }
+
+            // 2. Disable social login buttons so they can't be clicked mid-request
+            document.querySelectorAll('.lr-social-btn').forEach(function (btn) {
+                btn.style.pointerEvents = 'none';
+                btn.style.opacity       = '0.4';
+            });
+        });
+    }
+
+    // Re-enable everything if user presses browser Back button (bfcache restore)
+    window.addEventListener('pageshow', function (e) {
+        if (e.persisted) {
+            if (lrBtn) {
+                lrBtn.disabled = false;
+                lrBtn.style.opacity = '';
+                lrBtn.style.cursor  = '';
+                lrBtn.innerHTML =
+                    '<span><i class="bx bx-log-in-circle" style="font-size:18px"></i> Sign In</span>';
+            }
+            document.querySelectorAll('.lr-social-btn').forEach(function (btn) {
+                btn.style.pointerEvents = '';
+                btn.style.opacity       = '';
+            });
+        }
+    });
 
     // Auto-focus username
     var un = document.getElementById('UserName');

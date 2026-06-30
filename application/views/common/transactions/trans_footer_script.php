@@ -159,71 +159,9 @@ $(function() {
 
     }
 
-    let dzMultElement = document.querySelector("#multipleDropzone");
-    if (dzMultElement) {
-        multiDropzone = new Dropzone(dzMultElement, {
-            url: "#",
-            autoProcessQueue: false,
-            previewTemplate: `
-                <div class="dz-preview dz-file-preview">
-                    <div class="dz-details">
-                        <div class="dz-thumbnail">
-                            <img data-dz-thumbnail>
-                            <span class="dz-nopreview">No preview</span>
-                            <div class="dz-success-mark"></div>
-                            <div class="dz-error-mark"></div>
-                            <div class="dz-error-message"><span data-dz-errormessage></span></div>
-                            <div class="progress">
-                                <div class="progress-bar progress-bar-primary" role="progressbar" aria-valuemin="0" aria-valuemax="100" data-dz-uploadprogress></div>
-                            </div>
-                        </div>
-                        <div class="dz-filename" data-dz-name></div>
-                        <div class="dz-size" data-dz-size></div>
-                    </div>
-                </div>
-            `,
-            parallelUploads: 1,
-            maxFilesize: 3, // In MB
-            addRemoveLinks: true,
-            maxFiles: 5,
-            init: function() {
-                this.on("addedfile", function(file) {
-                    var totalSize = 0;
-                    this.files.forEach(function(f) {
-                        totalSize += f.size;
-                    });
-                    if (totalSize > (15 * 1024 * 1024)) {
-                        this.removeFile(file);
-                        Swal.fire({icon: "error", title: "File too large", text: "Total upload size cannot exceed 15 MB (5 files × 3 MB)."});
-                    }
-                });
-                this.on("error", function(file, message) {
-                    if (file.size > this.options.maxFilesize * 1024 * 1024) {
-                        Swal.fire({icon: "error", title: "File too large", text: "Each file must be 3 MB or smaller."});
-                        this.removeFile(file);
-                    }
-                });
-                this.on("removedfile", function(file) {
-                    if (file.isStored) {
-                        hasRemovedStoredImage = true;
-                    }
-                });
-                this.on("maxfilesexceeded", function(file) {
-                    this.removeFile(file);
-                    Swal.fire({icon: "error", title: "Limit Reached", text: "You can only upload up to 5 files in total. Delete an existing file to upload a new one."});
-                });
-            }
-        });
-        dzMultElement.addEventListener("click", function(e) {
-            var existingCount = $('#existingAttachItems .existing-attach-item').length;
-            var newCount      = multiDropzone.files.length;
-            if (existingCount + newCount >= 5) {
-                e.preventDefault();
-                e.stopPropagation();
-                Swal.fire({icon: "error", title: "Limit Reached", text: "You can only upload up to 5 files in total. Delete an existing file to upload a new one."});
-            }
-        });
-
+    // Transaction attachment zone — powered by js/common/attachments.js
+    if (document.getElementById('transAttachZone') && typeof _attachInit === 'function') {
+        _attachInit('Transaction');
     }
 
 

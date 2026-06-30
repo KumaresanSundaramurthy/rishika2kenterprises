@@ -221,9 +221,23 @@ class Salesreturns extends MY_Controller {
 
             if (!$isDraft) {
                 $this->dbwrite_model->saveStockMovements($transUID, $this->pageModuleUID, $orgUID, $userUID, $items);
+                $this->_syncProductCacheFromItems($items);
             }
 
             $this->dbwrite_model->commitTransaction();
+
+            if (!$isDraft) {
+                try {
+                    $this->load->library('accountledger');
+                    $this->accountledger->postSaleReturnJournal(
+                        $transUID, $transDate, $uniqueNumber, $financialYear,
+                        $netAmount, $subTotal, $cgstAmount, $sgstAmount, $igstAmount,
+                        $customerUID, $userUID
+                    );
+                } catch (Exception $ledgerEx) {
+                    log_message('error', 'Ledger update failed after sales return creation: ' . $ledgerEx->getMessage());
+                }
+            }
 
             $this->_saveAttachments($transUID);
             if ($isDraft) $this->cachehelper->touchCustomer($customerUID);
@@ -428,6 +442,7 @@ class Salesreturns extends MY_Controller {
             $wasNonDraft = ($existing->DocStatus !== 'Draft');
             if ($wasNonDraft) {
                 $this->dbwrite_model->reverseStockMovements($transUID, $orgUID, $userUID);
+                $this->_syncProductCacheByTransUID($transUID);
             }
 
             if ($existing->DocStatus === 'Draft' && !$isDraft
@@ -450,6 +465,7 @@ class Salesreturns extends MY_Controller {
                 $this->saveTransactionItems($newTransUID, $financialYear, $orgUID, $userUID, $items);
                 if (!$isDraft) {
                     $this->dbwrite_model->saveStockMovements($newTransUID, $this->pageModuleUID, $orgUID, $userUID, $items);
+                    $this->_syncProductCacheFromItems($items);
                 }
                 $this->dbwrite_model->deleteInTransaction('Transaction', 'TransactionsTbl', ['TransUID' => $transUID]);
                 $this->dbwrite_model->deleteInTransaction('Transaction', 'TransDetailTbl',  ['TransUID' => $transUID]);
@@ -527,6 +543,7 @@ class Salesreturns extends MY_Controller {
                 }
                 if (!$isDraft) {
                     $this->dbwrite_model->saveStockMovements($transUID, $this->pageModuleUID, $orgUID, $userUID, $items);
+                    $this->_syncProductCacheFromItems($items);
                 }
             }
 
@@ -592,6 +609,7 @@ class Salesreturns extends MY_Controller {
             $this->dbwrite_model->startTransaction();
 
             $this->dbwrite_model->reverseStockMovements($transUID, $orgUID, $userUID);
+            $this->_syncProductCacheByTransUID($transUID);
 
             $this->dbwrite_model->updateData(
                 'Transaction', 'PaymentsTbl',
@@ -623,6 +641,14 @@ class Salesreturns extends MY_Controller {
             $this->dbwrite_model->commitTransaction();
 
             $this->_recalcCustomerBalance($orgUID, (int)$existing->PartyUID, $userUID);
+
+            // Reverse journal entry for the sales return (non-fatal)
+            try {
+                $this->load->library('accountledger');
+                $this->accountledger->reverseJournal('SalesReturn', $transUID, $userUID);
+            } catch (Exception $ledgerEx) {
+                log_message('error', 'Ledger reverse failed after sales return delete #' . $transUID . ': ' . $ledgerEx->getMessage());
+            }
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Sales Return deleted successfully.';
@@ -874,6 +900,7 @@ class Salesreturns extends MY_Controller {
 
                 // Reverse stock that came in when the SR was approved
                 $this->dbwrite_model->reverseStockMovements($transUID, $orgUID, $userUID);
+                $this->_syncProductCacheByTransUID($transUID);
 
                 // Reset SR payment counters
                 $this->dbwrite_model->updateTransIsFullyPaid($transUID, 0, 0, 0, $userUID);
@@ -1662,9 +1689,5 @@ class Salesreturns extends MY_Controller {
         }
     }
 
-    private function _recalcCustomerBalance($orgUID, $custUID, $userUID) {
-        $this->load->library('customerbalance');
-        return $this->customerbalance->recalcAndSync($orgUID, $custUID, $userUID);
-    }
 
 }

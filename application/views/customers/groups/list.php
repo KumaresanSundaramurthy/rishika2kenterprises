@@ -102,10 +102,12 @@ if (!empty($DataLists)):
 else:
 ?>
     <tr>
-        <td colspan="9" class="text-center py-5 text-muted">
-            <i class="bx bxs-layer fs-1 d-block mb-2" style="color:#e2e8f0;"></i>
-            <div style="font-size:.9rem;">No customer groups found.</div>
-            <button type="button" class="btn btn-sm btn-primary mt-2 btn-new-group"><i class="bx bx-plus me-1"></i>Create First Group</button>
+        <td colspan="9">
+            <div class="d-flex flex-column align-items-center justify-content-center py-5 text-muted">
+                <i class="bx bxs-layer mb-2" style="font-size:3rem;color:#e2e8f0;"></i>
+                <div style="font-size:.9rem;">No customer groups found.</div>
+                <button type="button" class="btn btn-sm btn-primary mt-2 btn-new-group"><i class="bx bx-plus me-1"></i>Create First Group</button>
+            </div>
         </td>
     </tr>
 <?php endif; ?>

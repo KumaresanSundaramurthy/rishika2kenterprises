@@ -30,6 +30,7 @@ $statusBadgeClass = [
     'Fulfilled' => 'trans-badge-Fulfilled',
     'Received'  => 'trans-badge-Paid',
     'Approved'  => 'trans-badge-Confirmed',
+    'Returned'  => 'trans-badge-Fulfilled',
 ];
 
 // ── Boxicon per status ──────────────────────────────────────────
@@ -53,10 +54,11 @@ $statusIcon = [
     'Fulfilled' => 'bx-package',
     'Received'  => 'bx-check-circle',
     'Approved'  => 'bx-check-double',
+    'Returned'  => 'bx-undo',
 ];
 
 // ── Terminal states (no more transitions) ───────────────────────
-$terminalStatuses = ['Paid', 'Cancelled', 'Completed', 'Converted', 'Fulfilled', 'Rejected', 'Received', 'Delivered'];
+$terminalStatuses = ['Paid', 'Cancelled', 'Completed', 'Converted', 'Fulfilled', 'Rejected', 'Received', 'Delivered', 'Returned'];
 
 // ── Status transitions per module ───────────────────────────────
 $statusTransitions = [

@@ -7,10 +7,6 @@ class Departments extends MY_Controller {
 
     public function __construct() { parent::__construct(); }
 
-    private function _orgUID()  { return (int)$this->pageData['JwtData']->Org->OrgUID; }
-    private function _userUID() { return (int)$this->pageData['JwtData']->User->UserUID; }
-    private function _limit()   { return (int)($this->pageData['JwtData']->GenSettings->RowLimit ?? 10); }
-
     private function _fetchTableData($pageNo, $limit, $filter = []) {
         $offset = max(0, ($pageNo - 1) * $limit);
         $this->load->model('users_model');
@@ -26,7 +22,7 @@ class Departments extends MY_Controller {
     public function index() {
         if (!$this->_loadPageTitle()) { $this->load->view('common/module_error', $this->pageData); return; }
         try {
-            $limit = $this->_limit();
+            $limit = $this->_rowLimit();
             $pd    = $this->_fetchTableData(1, $limit);
             $this->pageData['ModRowData']    = $pd->RecordHtmlData;
             $this->pageData['ModPagination'] = $pd->Pagination;
@@ -37,7 +33,7 @@ class Departments extends MY_Controller {
     public function getPageDetails($pageNo = 0) {
         $this->EndReturnData = new stdClass();
         try {
-            $pd = $this->_fetchTableData(max(1, (int)$pageNo), $this->_limit(), $this->input->post('Filter') ?: []);
+            $pd = $this->_fetchTableData(max(1, (int)$pageNo), $this->_rowLimit(), $this->input->post('Filter') ?: []);
             $this->EndReturnData->Error          = FALSE;
             $this->EndReturnData->RecordHtmlData = $pd->RecordHtmlData;
             $this->EndReturnData->Pagination     = $pd->Pagination;
@@ -75,7 +71,7 @@ class Departments extends MY_Controller {
                 $this->EndReturnData->Message = $uid ? 'Updated.' : 'Created.';
             }
 
-            $pd = $this->_fetchTableData($pageNo, $this->_limit(), $filter);
+            $pd = $this->_fetchTableData($pageNo, $this->_rowLimit(), $filter);
             $this->EndReturnData->Error          = FALSE;
             $this->EndReturnData->RecordHtmlData = $pd->RecordHtmlData;
             $this->EndReturnData->Pagination     = $pd->Pagination;

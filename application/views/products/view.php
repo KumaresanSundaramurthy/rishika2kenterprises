@@ -118,12 +118,12 @@
                                         data-bs-toggle="dropdown" data-bs-auto-close="true" aria-expanded="false" title="Export">
                                     <i class="bx bx-export me-1"></i>Export
                                 </button>
-                                <ul class="dropdown-menu dropdown-menu-end shadow" style="min-width:160px;font-size:.83rem;">
-                                    <li><a class="dropdown-item" href="javascript:void(0);" id="btnExportPrint"><i class="bx bx-printer me-2 text-secondary"></i>Print Preview</a></li>
+                                <ul class="dropdown-menu dropdown-menu-end shadow" style="min-width:260px;font-size:.83rem;">
+                                    <li><a class="dropdown-item" href="javascript:void(0);" id="btnExportPrint"><i class="bx bx-printer me-2 text-secondary"></i>Print Preview<small class="text-muted ms-1">(Preview before printing)</small></a></li>
                                     <li><hr class="dropdown-divider my-1"></li>
-                                    <li><a class="dropdown-item" href="javascript:void(0);" id="btnExportCSV"><i class="bx bx-file me-2 text-success"></i>CSV</a></li>
-                                    <li><a class="dropdown-item" href="javascript:void(0);" id="btnExportExcel"><i class="bx bxs-file-export me-2 text-success"></i>Excel</a></li>
-                                    <li><a class="dropdown-item" href="javascript:void(0);" id="btnExportPDF"><i class="bx bxs-file-pdf me-2 text-danger"></i>PDF</a></li>
+                                    <li><a class="dropdown-item" href="javascript:void(0);" id="btnExportCSV"><i class="bx bx-file me-2 text-success"></i>CSV<small class="text-muted ms-1">(Comma Separated, opens in any spreadsheet)</small></a></li>
+                                    <li><a class="dropdown-item" href="javascript:void(0);" id="btnExportExcel"><i class="bx bxs-file-export me-2 text-success"></i>Excel<small class="text-muted ms-1">(Microsoft Excel .xlsx format)</small></a></li>
+                                    <li><a class="dropdown-item" href="javascript:void(0);" id="btnExportPDF"><i class="bx bxs-file-pdf me-2 text-danger"></i>PDF<small class="text-muted ms-1">(Fixed layout, best for sharing)</small></a></li>
                                 </ul>
                             </div>
                             <a href="javascript:void(0);" class="btn btn-primary btn-sm addItem <?php echo $ActiveTabData == 'item' ? '' : 'd-none'; ?>" id="NewItem"><i class="bx bx-plus me-1"></i> Create Item</a>
@@ -288,7 +288,7 @@
                                             </table>
                                         </div>
                                         <hr class="my-0" />
-                                        <div class="row mx-3 justify-content-between CategoriesPagination" id="CategoriesPagination">
+                                        <div class="d-flex align-items-center justify-content-between mx-3 CategoriesPagination" id="CategoriesPagination">
                                             <?php echo $ActiveTabData == 'category' ? $ModPagination : ''; ?>
                                         </div>
 
@@ -364,7 +364,7 @@
                     <!-- Sticky pagination (products page — one bar, content swaps per active tab) -->
                     <div class="card mb-0 cust-sticky-pag" id="prodStickyPagination" style="display:none;">
                         <div class="card-body p-0">
-                            <div class="row mx-3 my-2 justify-content-between align-items-center" id="prodStickyPagInner"></div>
+                            <div class="d-flex align-items-center justify-content-between px-3 py-2" id="prodStickyPagInner"></div>
                         </div>
                     </div>
 

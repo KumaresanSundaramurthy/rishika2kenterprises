@@ -4,7 +4,7 @@ class Purchasereturns extends MY_Controller {
 
     public $pageData = array();
     private $EndReturnData;
-    private $pageModuleUID;
+    protected $pageModuleUID;
 
     public function __construct() {
         parent::__construct();

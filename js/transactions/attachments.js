@@ -58,28 +58,48 @@ function collectTransAttachData(fd) {
 function openTransAttachModal(uid, num, fetchUrl, accentColor, title, moduleUID) {
     var $modal = $('#transAttachModal');
     if (!$modal.length) return;
-    $modal.find('.modal-title').text((title || 'Attachments') + (num ? ' — ' + num : ''));
-    if (accentColor) $modal.find('.modal-header').css('background', accentColor);
-    var $body = $modal.find('.trans-attach-modal-body').html(
-        '<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>'
-    );
+
+    // Banner — neutral slate header that works on every page
+    var $banner = $modal.find('#transAttachModalBanner');
+    $banner.css({ background: 'linear-gradient(135deg, #334155 0%, #475569 100%)', padding: '14px 20px' });
+    $modal.find('#transAttachModalIconWrap').css({ background: 'rgba(255,255,255,.15)', borderRadius: '10px', padding: '9px 11px' });
+
+    // Update title
+    var $title = $modal.find('#transAttachModalTitle');
+    $title.text((title || 'Attachments') + (num ? ' — ' + num : '')).css('color', '#fff');
+    $modal.find('#transAttachModalBanner .bx-paperclip').css('color', '#fff');
+
+    // Show loading spinner in gallery
+    var $gallery = $modal.find('#transAttachGallery');
+    $gallery.html('<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>');
+
     $modal.modal('show');
+
     $.ajax({
         url   : fetchUrl,
         method: 'POST',
         data  : { TransUID: uid, ModuleUID: moduleUID, [CsrfName]: CsrfToken },
         success: function (resp) {
             if (resp.Error || !resp.Attachments || !resp.Attachments.length) {
-                $body.html('<p class="text-muted text-center py-3">No attachments found.</p>');
+                $gallery.html('<p class="text-muted text-center py-3">No attachments found.</p>');
                 return;
             }
-            $body.html(_buildAttachGalleryHtml(resp.Attachments));
+            $gallery.html(_buildAttachGalleryHtml(resp.Attachments));
         },
         error: function () {
-            $body.html('<p class="text-danger text-center py-3">Failed to load attachments.</p>');
+            $gallery.html('<p class="text-danger text-center py-3">Failed to load attachments.</p>');
         }
     });
 }
+
+// ── Delegated click handler for the paperclip button on all list pages ────────
+$(document).on('click', '.transAttachBtn', function () {
+    var uid       = $(this).data('uid');
+    var num       = $(this).data('num')        || '';
+    var url       = $(this).data('url')        || '/transactions/getAttachments';
+    var moduleUID = $(this).data('module-uid') || 0;
+    openTransAttachModal(uid, num, url, null, 'Attachments', moduleUID);
+});
 
 function _buildAttachGalleryHtml(attachments) {
     var cdnUrl = (typeof CDN_URL !== 'undefined' && CDN_URL) ? CDN_URL : '';
@@ -105,14 +125,22 @@ function _openAttachPreview(encUrl, type, name) {
     var url    = decodeURIComponent(encUrl);
     var $prev  = $('#attachPreviewModal');
     if (!$prev.length) return;
-    $prev.find('.modal-title').text(name || 'Preview');
-    var $body = $prev.find('.attach-preview-body').empty();
+    $prev.find('#attachPreviewTitle').text(name || 'Preview');
+    var $body = $prev.find('#attachPreviewBody').empty();
     if (type === 'img') {
-        $body.html('<img src="' + url + '" class="img-fluid rounded" style="max-height:70vh;">');
+        $body.html(
+            '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;">' +
+                '<img src="' + url + '" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:8px;box-shadow:0 4px 24px rgba(0,0,0,.5);">' +
+            '</div>'
+        );
     } else if (type === 'pdf') {
-        $body.html('<iframe src="' + url + '" width="100%" height="500px" style="border:none;"></iframe>');
+        $body.html('<iframe src="' + url + '" width="100%" height="100%" style="border:none;display:block;"></iframe>');
     } else {
-        $body.html('<div class="text-center py-4"><a href="' + url + '" target="_blank" class="btn btn-primary"><i class="bx bx-download me-1"></i>Download ' + (name || 'File') + '</a></div>');
+        $body.html(
+            '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;">' +
+                '<a href="' + url + '" target="_blank" class="btn btn-primary btn-lg"><i class="bx bx-download me-2"></i>Download ' + (name || 'File') + '</a>' +
+            '</div>'
+        );
     }
     $('#transAttachModal').modal('hide');
     $prev.modal('show');

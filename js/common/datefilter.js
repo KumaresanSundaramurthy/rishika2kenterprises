@@ -176,25 +176,49 @@ $(document).ready(function () {
     }
     if (!savedLabel || savedLabel === 'All Dates') savedLabel = 'This Month';
 
-    $('.date-option').removeClass('active');
-    $('.date-option[data-range="' + savedRange + '"]').addClass('active');
-    if (savedLabel) $('#dateFilterLabel').text(savedLabel);
+    var _initFrom = '', _initTo = '';
 
-    // Mark button as active (has an active date filter)
-    var _initDr = getDateRange(savedRange);
-    if (_initDr.from) {
-        $btn.addClass('r2k-date-active');
-        if (!$('#dateFilterDates').text()) {
-            var _if = formatDateDisplay(_initDr.from);
-            var _it = formatDateDisplay(_initDr.to);
-            $('#dateFilterDates').text(_if === _it ? _if : _if + ' – ' + _it).show();
+    // ── Custom range restore ──────────────────────────────────────────────────
+    if (savedRange.indexOf('custom|') === 0) {
+        var _parts = savedRange.split('|');
+        if (_parts.length === 3 && _parts[1] && _parts[2]) {
+            _initFrom = _parts[1];
+            _initTo   = _parts[2];
+            var _cf = formatDateDisplay(_initFrom);
+            var _ct = formatDateDisplay(_initTo);
+            $('#dateFilterLabel').text('Custom');
+            $('#dateFilterDates').text(_initFrom === _initTo ? _cf : _cf + ' – ' + _ct).show();
+            $btn.addClass('r2k-date-active');
+            $('.date-option').removeClass('active');
+            $('.date-option[data-range="custom"]').addClass('active');
+            // Pre-fill the custom date inputs so the picker shows saved dates
+            $('#customDateFrom').val(_initFrom);
+            $('#customDateTo').val(_initTo);
+        }
+    } else {
+        // ── Preset range restore ──────────────────────────────────────────────
+        $('.date-option').removeClass('active');
+        $('.date-option[data-range="' + savedRange + '"]').addClass('active');
+        if (savedLabel) $('#dateFilterLabel').text(savedLabel);
+
+        var _initDr = getDateRange(savedRange);
+        _initFrom = _initDr.from;
+        _initTo   = _initDr.to;
+
+        if (_initFrom) {
+            $btn.addClass('r2k-date-active');
+            if (!$('#dateFilterDates').text()) {
+                var _if = formatDateDisplay(_initFrom);
+                var _it = formatDateDisplay(_initTo);
+                $('#dateFilterDates').text(_if === _it ? _if : _if + ' – ' + _it).show();
+            }
         }
     }
 
     // Seed the global Filter object so tab / sort / search AJAX calls carry the date range.
     if (typeof Filter !== 'undefined') {
-        Filter.DateFrom = _initDr.from;
-        Filter.DateTo   = _initDr.to;
+        Filter.DateFrom = _initFrom;
+        Filter.DateTo   = _initTo;
     }
 });
 
@@ -273,6 +297,14 @@ $(document).on('click', '#r2k-custom-apply', function () {
 
     var _ddInst = bootstrap.Dropdown.getInstance($('#dateFilterBtn')[0]);
     if (_ddInst) _ddInst.hide();
+
+    // Persist custom range as 'custom|YYYY-MM-DD|YYYY-MM-DD'
+    var _pageKey = location.pathname.split('/').filter(Boolean)[0] || '';
+    if (_pageKey) {
+        var _pd = { PreferenceKey: 'df_' + _pageKey, PreferenceValue: 'custom|' + from + '|' + to };
+        if (typeof CsrfName !== 'undefined') _pd[CsrfName] = CsrfToken;
+        $.post('/userpreferences/save', _pd);
+    }
 
     $(document).trigger('r2k:datechange', [{ range: 'custom', from: from, to: to }]);
 });

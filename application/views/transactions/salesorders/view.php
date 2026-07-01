@@ -167,6 +167,7 @@ $this->load->view('common/transactions/header'); ?>
 
 <script src="/js/common/communication.js"></script>
 <script src="/js/common/party_filter.js"></script>
+<script src="<?php echo _assetV('/js/transactions/attachments.js'); ?>"></script>
 <script src="/js/transactions/viewmodal.js"></script>
 <script src="/js/transactions/a4_print.js"></script>
 <script src="/js/transactions/filter_bar.js"></script>

@@ -209,7 +209,14 @@ $route['deliverychallan/duplicateDeliveryChallan']                 = 'deliverych
 $route['deliverychallan/updateDeliveryChallanStatus']              = 'deliverychallans/updateDeliveryChallanStatus';
 $route['deliverychallan/getChallanDetail']                         = 'deliverychallans/getChallanDetail';
 $route['deliverychallan/convertChallanToInvoice']                  = 'deliverychallans/convertChallanToInvoice';
-$route['deliverychallan/packingList/(:num)']                       = 'deliverychallans/packingList/$1';
+$route['deliverychallan/getPartialReturnData']                     = 'deliverychallans/getPartialReturnData';
+$route['deliverychallan/partialReturn']                            = 'deliverychallans/partialReturn';
+
+// Packing Lists (cross-module — DC, Invoice, and future modules all share this)
+$route['packing-list']                                             = 'packinglists/index';
+$route['packing-list/(:num)']                                      = 'packinglists/form/$1';
+$route['packing-list/(:num)/print']                                = 'packinglists/printPL/$1';
+$route['packing-list/save']                                        = 'packinglists/save';
 
 // Expenses
 $route['expenses']                                                 = 'expenses/index';
@@ -374,8 +381,6 @@ $route['customers/deleteCustomerAttachment']    = 'customers/deleteCustomerAttac
 $route['globally/getCommTemplate'] = 'globally/getCommTemplate';
 
 // Vendors
-$route['vendors/(:num)/edit'] = 'vendors/edit/$1';
-$route['vendors/(:num)/clone'] = 'vendors/clonevendor/$1';
 $route['vendors/modal/(:any)/(:num)'] = 'vendors/loadModalForm/$1/$2';
 $route['vendors/modal/(:any)']        = 'vendors/loadModalForm/$1';
 $route['vendors/saveVendorOpeningBalance']      = 'vendors/saveVendorOpeningBalance';

@@ -4,7 +4,7 @@ class Salesorders extends MY_Controller {
 
     public $pageData = array();
     private $EndReturnData;
-    private $pageModuleUID;
+    protected $pageModuleUID;
 
     public function __construct() {
         parent::__construct();
@@ -1026,10 +1026,17 @@ class Salesorders extends MY_Controller {
             $this->pageData['QuotationData']    = null;
             $this->pageData['QuotationItems']   = [];
             if ($fromQuotationUID > 0) {
-                $quotData  = $this->transactions_model->getTransactionById($fromQuotationUID, $orgUID, 101);
-                $quotItems = $quotData ? $this->transactions_model->getTransactionItems($fromQuotationUID, $orgUID) : [];
-                $this->pageData['QuotationData']  = $quotData;
-                $this->pageData['QuotationItems'] = $quotItems;
+                $quotData        = $this->transactions_model->getTransactionById($fromQuotationUID, $orgUID, 101);
+                $quotItems       = $quotData ? $this->transactions_model->getTransactionItems($fromQuotationUID, $orgUID) : [];
+                $quotAttachments = $this->transactions_model->getTransactionAttachments($fromQuotationUID, $orgUID);
+                $cdnUrl = rtrim(getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv('CFLARE_R2_CDN'), '/');
+                foreach ($quotAttachments as &$a) {
+                    $a->Url = $cdnUrl . '/' . ltrim($a->FilePath ?? '', '/');
+                }
+                unset($a);
+                $this->pageData['QuotationData']        = $quotData;
+                $this->pageData['QuotationItems']       = $quotItems;
+                $this->pageData['QuotationAttachments'] = $quotAttachments;
             }
 
             $this->_getDispatchAddresses($orgUID);

@@ -296,18 +296,20 @@ if ($isEdit) {
                                            data-bs-toggle="tooltip" data-bs-placement="top"
                                            title="The date printed on the supplier's invoice. Used for GST reporting and payment tracking."></i>
                                     </label>
+                                    <?php $_fmt = $JwtData->GenSettings->FormDateFormat ?? 'd-m-Y'; ?>
                                     <?php if ($isEdit && !$isDraftEdit): ?>
                                         <input type="hidden" name="transDate" value="<?php echo htmlspecialchars(format_datedisplay($PurchData->TransDate, 'Y-m-d')); ?>" />
                                         <div class="input-group input-group-sm input-group-merge">
                                             <span class="input-group-text bg-white"><i class="icon-base bx bx-calendar"></i></span>
-                                            <input type="text" class="form-control form-control-sm bg-white text-muted" style="cursor:default;" value="<?php echo htmlspecialchars(format_datedisplay($PurchData->TransDate, 'd-m-Y')); ?>" readonly tabindex="-1" />
+                                            <input type="text" class="form-control form-control-sm bg-white text-muted" style="cursor:default;" value="<?php echo htmlspecialchars(format_datedisplay($PurchData->TransDate, $_fmt)); ?>" readonly tabindex="-1" />
                                         </div>
                                     <?php else: ?>
                                         <div class="input-group input-group-sm input-group-merge">
                                             <span class="input-group-text bg-white"><i class="icon-base bx bx-calendar"></i></span>
-                                            <input type="text" class="form-control form-control-sm bg-white" id="transDate" name="transDate" readonly="readonly"
-                                                value="<?php echo $isEdit ? htmlspecialchars(format_datedisplay($PurchData->TransDate, 'Y-m-d')) : format_datedisplay(time(), 'Y-m-d'); ?>"
+                                            <input type="text" class="form-control form-control-sm bg-white" id="transDate_disp" readonly="readonly"
+                                                value="<?php echo $isEdit ? format_datedisplay($PurchData->TransDate, $_fmt) : format_datedisplay(time(), $_fmt); ?>"
                                                 required />
+                                            <input type="hidden" id="transDate" name="transDate" value="<?php echo $isEdit ? htmlspecialchars(format_datedisplay($PurchData->TransDate, 'Y-m-d')) : format_datedisplay(time(), 'Y-m-d'); ?>" />
                                         </div>
                                     <?php endif; ?>
                                 </div>
@@ -322,8 +324,9 @@ if ($isEdit) {
                                     </label>
                                     <div class="input-group input-group-sm input-group-merge">
                                         <span class="input-group-text bg-white"><i class="icon-base bx bx-calendar"></i></span>
-                                        <input type="text" class="form-control form-control-sm bg-white" id="billDueDate" name="billDueDate" readonly="readonly"
-                                            value="<?php echo ($isEdit && !empty($PurchData->ValidityDate)) ? htmlspecialchars(format_datedisplay($PurchData->ValidityDate, 'Y-m-d')) : ''; ?>" />
+                                        <input type="text" class="form-control form-control-sm bg-white" id="billDueDate_disp" readonly="readonly"
+                                            value="<?php echo ($isEdit && !empty($PurchData->ValidityDate)) ? format_datedisplay($PurchData->ValidityDate, $_fmt) : ''; ?>" />
+                                        <input type="hidden" id="billDueDate" name="billDueDate" value="<?php echo ($isEdit && !empty($PurchData->ValidityDate)) ? htmlspecialchars(format_datedisplay($PurchData->ValidityDate, 'Y-m-d')) : ''; ?>" />
                                     </div>
                                 </div>
 
@@ -604,8 +607,8 @@ $(function() {
     <?php if (!$isEdit): ?>
     searchVendors('vendorSearch');
     <?php endif; ?>
-    transDatePickr('#transDate', false, 'Y-m-d', false, true, true, true, 'd-m-Y');
-    transDatePickr('#billDueDate', false, 'Y-m-d', false, false, <?php echo $isEdit ? 'false' : 'true'; ?>, true, 'd-m-Y', '#transDate');
+    transDatePickr('#transDate_disp',    '#transDate',   false, false, true,  true,  '');
+    transDatePickr('#billDueDate_disp',  '#billDueDate', false, false, false, <?php echo $isEdit ? 'false' : 'true'; ?>, '#transDate');
 
     // Keep billDueDate minDate in sync whenever supplier invoice date changes
     (function () {

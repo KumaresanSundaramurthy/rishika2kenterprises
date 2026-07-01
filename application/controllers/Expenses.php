@@ -4,7 +4,7 @@ class Expenses extends MY_Controller {
 
     public  $pageData      = [];
     private $EndReturnData;
-    private $pageModuleUID = 114;
+    protected $pageModuleUID = 114;
 
     public function __construct() {
         parent::__construct();

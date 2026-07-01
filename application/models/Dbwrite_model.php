@@ -1055,11 +1055,11 @@ class Dbwrite_model extends CI_Model {
         return true;
     }
 
-    public function upsertTransactionSettings($orgUID, $invoiceCancelAction, $srCancelAction, $srItemMethod, $termsAndConditions, $hideNav, $purchaseShowSignature, $purchaseShowTerms, $prCancelAction, $prItemMethod, $showProductDescription, $userUID) {
+    public function upsertTransactionSettings($orgUID, $invoiceCancelAction, $srCancelAction, $srItemMethod, $termsAndConditions, $hideNav, $purchaseShowSignature, $purchaseShowTerms, $prCancelAction, $prItemMethod, $showProductDescription, $userUID, $dcDefaultReturnDays = 7) {
         $this->WriteDB->db_debug = FALSE;
         $sql = "INSERT INTO Settings.TransactionSettingsTbl
-                    (OrgUID, InvoiceCancelAction, SalesReturnCancelAction, SalesReturnItemMethod, TermsAndConditions, HideNavOnTransForm, PurchaseShowSignature, PurchaseShowTerms, PurchaseReturnCancelAction, PurchaseReturnItemMethod, ShowProductDescription, UpdatedBy)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    (OrgUID, InvoiceCancelAction, SalesReturnCancelAction, SalesReturnItemMethod, TermsAndConditions, HideNavOnTransForm, PurchaseShowSignature, PurchaseShowTerms, PurchaseReturnCancelAction, PurchaseReturnItemMethod, ShowProductDescription, DCDefaultReturnDays, UpdatedBy)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON DUPLICATE KEY UPDATE
                     InvoiceCancelAction        = VALUES(InvoiceCancelAction),
                     SalesReturnCancelAction    = VALUES(SalesReturnCancelAction),
@@ -1071,11 +1071,12 @@ class Dbwrite_model extends CI_Model {
                     PurchaseReturnCancelAction = VALUES(PurchaseReturnCancelAction),
                     PurchaseReturnItemMethod   = VALUES(PurchaseReturnItemMethod),
                     ShowProductDescription     = VALUES(ShowProductDescription),
+                    DCDefaultReturnDays        = VALUES(DCDefaultReturnDays),
                     UpdatedBy                  = VALUES(UpdatedBy)";
         $ok = $this->WriteDB->query($sql, [
             (int)$orgUID, $invoiceCancelAction, $srCancelAction,
             $srItemMethod, $termsAndConditions, (int)$hideNav, (int)$purchaseShowSignature, (int)$purchaseShowTerms,
-            $prCancelAction, $prItemMethod, (int)$showProductDescription, (int)$userUID,
+            $prCancelAction, $prItemMethod, (int)$showProductDescription, (int)$dcDefaultReturnDays, (int)$userUID,
         ]);
         if (!$ok) {
             $err = $this->WriteDB->error();

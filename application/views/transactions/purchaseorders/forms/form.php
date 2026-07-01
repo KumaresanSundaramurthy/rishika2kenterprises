@@ -227,9 +227,11 @@ $editPrefixSeg = ($isEdit && $isDraftEdit) ? buildPOPrefixSegment($editPrefixCon
                                     <label for="transDate" class="trans-field-label">PO Date <span class="text-danger">*</span></label>
                                     <div class="input-group input-group-sm input-group-merge">
                                         <span class="input-group-text bg-white"><i class="icon-base bx bx-calendar"></i></span>
-                                        <input type="text" class="form-control form-control-sm bg-white" id="transDate" name="transDate" readonly="readonly"
-                                            value="<?php echo $isEdit ? htmlspecialchars(format_datedisplay($POData->TransDate, 'Y-m-d')) : format_datedisplay(time(), 'Y-m-d'); ?>"
+                                        <?php $_fmt = $JwtData->GenSettings->FormDateFormat ?? 'd-m-Y'; ?>
+                                        <input type="text" class="form-control form-control-sm bg-white" id="transDate_disp" readonly="readonly"
+                                            value="<?php echo $isEdit ? format_datedisplay($POData->TransDate, $_fmt) : format_datedisplay(time(), $_fmt); ?>"
                                             required />
+                                        <input type="hidden" id="transDate" name="transDate" value="<?php echo $isEdit ? htmlspecialchars(format_datedisplay($POData->TransDate, 'Y-m-d')) : format_datedisplay(time(), 'Y-m-d'); ?>" />
                                     </div>
                                 </div>
 
@@ -238,8 +240,9 @@ $editPrefixSeg = ($isEdit && $isDraftEdit) ? buildPOPrefixSegment($editPrefixCon
                                     <label for="expectedDate" class="trans-field-label">Expected Delivery Date</label>
                                     <div class="input-group input-group-sm input-group-merge">
                                         <span class="input-group-text bg-white"><i class="icon-base bx bx-calendar"></i></span>
-                                        <input type="text" class="form-control form-control-sm bg-white" id="expectedDate" name="expectedDate" readonly="readonly"
-                                            value="<?php echo ($isEdit && !empty($POData->ValidityDate)) ? htmlspecialchars(format_datedisplay($POData->ValidityDate, 'Y-m-d')) : ''; ?>" />
+                                        <input type="text" class="form-control form-control-sm bg-white" id="expectedDate_disp" readonly="readonly"
+                                            value="<?php echo ($isEdit && !empty($POData->ValidityDate)) ? format_datedisplay($POData->ValidityDate, $_fmt) : ''; ?>" />
+                                        <input type="hidden" id="expectedDate" name="expectedDate" value="<?php echo ($isEdit && !empty($POData->ValidityDate)) ? htmlspecialchars(format_datedisplay($POData->ValidityDate, 'Y-m-d')) : ''; ?>" />
                                     </div>
                                 </div>
 
@@ -421,8 +424,8 @@ $(function() {
     $('#vendorSearch').append(new Option('<?php echo addslashes($POData->PartyName ?? ''); ?>', <?php echo (int)$POData->PartyUID; ?>, true, true)).trigger('change');
     <?php endif; ?>
 
-    transDatePickr('#transDate', false, 'Y-m-d', false, true, true, true, 'd-m-Y');
-    transDatePickr('#expectedDate', false, 'Y-m-d', false, false, true, true, 'd-m-Y', '#transDate');
+    transDatePickr('#transDate_disp',    '#transDate',    false, false, true,  true, '');
+    transDatePickr('#expectedDate_disp', '#expectedDate', false, false, false, true, '#transDate');
 
     <?php if ($isEdit): ?>
     if (typeof billManager !== 'undefined' && _orgState && _vendorState) {

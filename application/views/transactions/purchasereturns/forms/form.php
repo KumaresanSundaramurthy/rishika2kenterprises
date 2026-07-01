@@ -255,18 +255,20 @@ if ($isEdit) {
                                     <label for="transDate" class="trans-field-label">
                                         Return Date <span class="text-danger">*</span>
                                     </label>
+                                    <?php $_fmt = $JwtData->GenSettings->FormDateFormat ?? 'd-m-Y'; ?>
                                     <?php if ($isEdit && !$isDraftEdit): ?>
                                         <input type="hidden" name="transDate" value="<?php echo htmlspecialchars(format_datedisplay($PRData->TransDate, 'Y-m-d')); ?>" />
                                         <div class="input-group input-group-sm input-group-merge">
                                             <span class="input-group-text bg-white"><i class="icon-base bx bx-calendar"></i></span>
-                                            <input type="text" class="form-control form-control-sm bg-white text-muted" style="cursor:default;" value="<?php echo htmlspecialchars(format_datedisplay($PRData->TransDate, 'd-m-Y')); ?>" readonly tabindex="-1" />
+                                            <input type="text" class="form-control form-control-sm bg-white text-muted" style="cursor:default;" value="<?php echo htmlspecialchars(format_datedisplay($PRData->TransDate, $_fmt)); ?>" readonly tabindex="-1" />
                                         </div>
                                     <?php else: ?>
                                         <div class="input-group input-group-sm input-group-merge">
                                             <span class="input-group-text bg-white"><i class="icon-base bx bx-calendar"></i></span>
-                                            <input type="text" class="form-control form-control-sm bg-white" id="transDate" name="transDate" readonly="readonly"
-                                                value="<?php echo $isEdit ? htmlspecialchars(format_datedisplay($PRData->TransDate, 'Y-m-d')) : format_datedisplay(time(), 'Y-m-d'); ?>"
+                                            <input type="text" class="form-control form-control-sm bg-white" id="transDate_disp" readonly="readonly"
+                                                value="<?php echo $isEdit ? format_datedisplay($PRData->TransDate, $_fmt) : format_datedisplay(time(), $_fmt); ?>"
                                                 required />
+                                            <input type="hidden" id="transDate" name="transDate" value="<?php echo $isEdit ? htmlspecialchars(format_datedisplay($PRData->TransDate, 'Y-m-d')) : format_datedisplay(time(), 'Y-m-d'); ?>" />
                                         </div>
                                     <?php endif; ?>
                                 </div>
@@ -496,7 +498,7 @@ $(function() {
     <?php endif; ?>
     <?php endif; ?>
 
-    transDatePickr('#transDate', false, 'Y-m-d', false, true, true, true, 'd-m-Y');
+    transDatePickr('#transDate_disp', '#transDate', false, false, true, true, '');
 
     // ── Purchase From: load vendor purchases on vendor change ──────────────────
     <?php if ($_prMethod !== 'Manual'): ?>

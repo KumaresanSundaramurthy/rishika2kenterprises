@@ -2291,14 +2291,16 @@ $(document).ready(function () {
     $('#extDiscountType').on('change', function() {
         const type = $(this).val();
         const extraDiscountInput = $('#extraDiscount');
-        
+
+        if (!type) return; // no value — nothing to do
+
         if (billManager) {
             // Get current value
             const currentValue = parseFloat(extraDiscountInput.val()) || 0;
-            
+
             // Store current value before conversion
             billManager.summary.extra.discountValue = currentValue;
-            
+
             // Change type (this handles conversion internally)
             billManager.setExtraDiscountType(type.toLowerCase());
             
@@ -2879,58 +2881,78 @@ function _showCustTypeIndicator(data) {
     $box.html('<span class="cust-type-badge ' + typeClass + '"><i class="bx ' + typeIcon + '"></i> ' + typeLabel + '</span>').removeClass('d-none');
 }
 
-function transDatePickr(FieldName, IsModal = '', dateFormat = 'Y-m-d', restrictPastDate = false, restrictFutureDate = false, setTodaysDate = false, useAltInput = true,
-altFormat = 'd-m-Y', minDateField = '') {
+/**
+ * Initialise a date-picker on a visible display input while keeping a
+ * separate hidden input in Y-m-d format for form submission.
+ *
+ * @param {string}       displayFieldId  - CSS selector for the visible text input
+ * @param {string|null}  hiddenFieldId   - CSS selector for the hidden Y-m-d input
+ * @param {boolean}      IsModal         - selector string of parent modal (or false)
+ * @param {boolean}      restrictPastDate  - block past dates
+ * @param {boolean}      restrictFutureDate - block future dates
+ * @param {boolean}      setTodaysDate   - default to today when no value exists
+ * @param {string}       minDateField    - selector of hidden field whose Y-m-d value
+ *                                        is used as the minimum selectable date
+ * @returns {void}
+ */
+function transDatePickr(displayFieldId, hiddenFieldId = null, IsModal = false, restrictPastDate = false, restrictFutureDate = false, setTodaysDate = false, minDateField = '') {
 
-    // Use the organisation's FormDateFormat from JWT settings when the default 'd-m-Y' is in use
-    var _fmt = (altFormat === 'd-m-Y' && typeof _transFormDateFormat !== 'undefined')
+    var displayEl = document.querySelector(displayFieldId);
+    if (!displayEl) return;
+
+    var hiddenEl = hiddenFieldId ? document.querySelector(hiddenFieldId) : null;
+
+    // Always use the org's display format from settings
+    var _fmt = (typeof _transFormDateFormat !== 'undefined' && _transFormDateFormat)
         ? _transFormDateFormat
-        : altFormat;
+        : 'd-m-Y';
 
-    const el = document.querySelector(FieldName);
-    if (!el) return;
-
-    const existingVal = el.value?.trim() || '';
-
-    const options = {
-        dateFormat,
-        altInput: useAltInput,
-        altFormat: _fmt,
-        allowInput: false,
-        clickOpens: true
+    // Helper: JS Date → 'Y-m-d' string for hidden field
+    var _toRaw = function (d) {
+        var y   = d.getFullYear();
+        var m   = String(d.getMonth() + 1).padStart(2, '0');
+        var day = String(d.getDate()).padStart(2, '0');
+        return y + '-' + m + '-' + day;
     };
-    if (IsModal) {
-        const container = document.querySelector(IsModal + ' .modal-body');
-        if (container) options.appendTo = container;
-    }
-    if (restrictPastDate) options.minDate = 'today';
+
+    var options = {
+        dateFormat:  _fmt,
+        allowInput:  false,
+        clickOpens:  true,
+        static:      !!IsModal,
+        position:    IsModal ? 'below left' : 'auto',
+        onChange: function (selectedDates) {
+            if (hiddenEl && selectedDates.length) {
+                hiddenEl.value = _toRaw(selectedDates[0]);
+            }
+        }
+    };
+
+    if (restrictPastDate)   options.minDate = 'today';
     if (restrictFutureDate) options.maxDate = 'today';
 
-    if (existingVal) {
-        options.defaultDate = existingVal;
+    // Read existing machine value from hidden input (Y-m-d)
+    var rawVal = hiddenEl ? (hiddenEl.value?.trim() || '') : '';
+    if (rawVal) {
+        options.defaultDate = new Date(rawVal + 'T00:00:00');
     } else if (setTodaysDate) {
-        const today = new Date();
-        const pad = n => String(n).padStart(2, '0');
-        const yyyy = today.getFullYear();
-        const mm = pad(today.getMonth() + 1);
-        const dd = pad(today.getDate());
-        options.defaultDate =
-        dateFormat === 'Y-m-d' ? `${yyyy}-${mm}-${dd}` :
-        dateFormat === 'd-m-Y' ? `${dd}-${mm}-${yyyy}` :
-        dateFormat === 'm/d/Y' ? `${mm}/${dd}/${yyyy}` :
-        today;
+        options.defaultDate = 'today';
     }
+
+    // Minimum date from another hidden field (holds Y-m-d)
     if (minDateField) {
-        const refEl = document.querySelector(minDateField);
-        const refVal = refEl?.value?.trim();
+        var refEl  = document.querySelector(minDateField);
+        var refVal = refEl ? (refEl.value?.trim() || '') : '';
         if (refVal) options.minDate = refVal;
     }
-    if (el._flatpickr) {
-        el._flatpickr.destroy();
+
+    if (displayEl._flatpickr) displayEl._flatpickr.destroy();
+    var fp = flatpickr(displayEl, options);
+
+    // Sync hidden field immediately if today was set (onChange fires, but belt-and-braces)
+    if (hiddenEl && fp && fp.selectedDates.length && !rawVal) {
+        hiddenEl.value = _toRaw(fp.selectedDates[0]);
     }
-
-    flatpickr(FieldName, options);
-
 }
 
 function setupTransactionValidity(quotationSel, validityDaysSel, validityDateSel) {

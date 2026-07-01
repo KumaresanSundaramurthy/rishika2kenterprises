@@ -29,25 +29,26 @@
                 <a class="dropdown-item" href="javascript: void(0);">
                     <i class="bx bx-export me-1"></i> Export
                 </a>
-                <ul class="dropdown-menu">
+                <ul class="dropdown-menu shadow" style="min-width:260px;font-size:.83rem;">
                     <li>
                         <a class="dropdown-item" href="javascript: void(0);" id="btnExportPrint">
-                            <i class="bx bx-printer me-1"></i> Print
+                            <i class="bx bx-printer me-2 text-secondary"></i>Print<small class="text-muted ms-1">(Preview before printing)</small>
                         </a>
                     </li>
+                    <li><hr class="dropdown-divider my-1"></li>
                     <li>
                         <a class="dropdown-item" href="javascript: void(0);" id="btnExportCSV">
-                            <i class="bx bx-file me-1"></i> CSV
+                            <i class="bx bx-file me-2 text-success"></i>CSV<small class="text-muted ms-1">(Comma Separated, opens in any spreadsheet)</small>
                         </a>
                     </li>
                     <li>
                         <a class="dropdown-item" href="javascript: void(0);" id="btnExportExcel">
-                            <i class="bx bxs-file-export me-1"></i> Excel
+                            <i class="bx bxs-file-export me-2 text-success"></i>Excel<small class="text-muted ms-1">(Microsoft Excel .xlsx format)</small>
                         </a>
                     </li>
                     <li>
                         <a class="dropdown-item" href="javascript: void(0);" id="btnExportPDF">
-                            <i class="bx bxs-file-pdf me-1"></i> PDF
+                            <i class="bx bxs-file-pdf me-2 text-danger"></i>PDF<small class="text-muted ms-1">(Fixed layout, best for sharing)</small>
                         </a>
                     </li>
                 </ul>

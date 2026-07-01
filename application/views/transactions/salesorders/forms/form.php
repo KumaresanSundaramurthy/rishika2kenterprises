@@ -40,8 +40,9 @@ $editTransNumber = $isEdit ? ($isDraftEdit ? (int)($NextNumberMap[(int)($editPre
 $editPrefixSeg   = ($isEdit && $isDraftEdit) ? buildSOPrefixSegment($editPrefixConfig) : '';
 
 $_deliveryDate = '';
-if (!$isEdit && !empty($QuotationData->ValidityDate)) {
-    $_deliveryDate = htmlspecialchars(format_datedisplay($QuotationData->ValidityDate, 'Y-m-d'));
+if (!$isEdit) {
+    // New / conversion: Order Date = today (set by transDatePickr), Delivery Date = today + 7 days
+    $_deliveryDate = date('Y-m-d', strtotime('+7 days'));
 } elseif ($isEdit && !empty($SOData->ValidityDate)) {
     $_deliveryDate = htmlspecialchars(format_datedisplay($SOData->ValidityDate, 'Y-m-d'));
 }
@@ -244,16 +245,21 @@ if (!empty($DispatchAddress)) {
                                     <label for="transDate" class="trans-field-label">Order Date <span class="text-danger">*</span></label>
                                     <div class="input-group input-group-sm input-group-merge">
                                         <span class="input-group-text bg-white"><i class="icon-base bx bx-calendar"></i></span>
-                                        <input type="text" class="form-control form-control-sm bg-white" id="transDate" name="transDate" readonly="readonly"
-                                            value="<?php echo $isEdit ? htmlspecialchars(format_datedisplay($SOData->TransDate, 'Y-m-d')) : format_datedisplay(time(), 'Y-m-d'); ?>"
+                                        <?php $_fmt = $JwtData->GenSettings->FormDateFormat ?? 'd-m-Y'; ?>
+                                        <input type="text" class="form-control form-control-sm bg-white" id="transDate_disp" readonly="readonly"
+                                            value="<?php echo $isEdit ? format_datedisplay($SOData->TransDate, $_fmt) : format_datedisplay(time(), $_fmt); ?>"
                                             required />
+                                        <input type="hidden" id="transDate" name="transDate"
+                                            value="<?php echo $isEdit ? htmlspecialchars(format_datedisplay($SOData->TransDate, 'Y-m-d')) : format_datedisplay(time(), 'Y-m-d'); ?>" />
                                     </div>
                                 </div>
                                 <div class="col-auto" style="min-width:155px;">
                                     <label for="deliveryDate" class="trans-field-label">Expected Delivery Date</label>
                                     <div class="input-group input-group-sm input-group-merge">
                                         <span class="input-group-text bg-white"><i class="icon-base bx bx-calendar"></i></span>
-                                        <input type="text" class="form-control form-control-sm bg-white" id="deliveryDate" name="deliveryDate" readonly="readonly"
+                                        <input type="text" class="form-control form-control-sm bg-white" id="deliveryDate_disp" readonly="readonly"
+                                            value="<?php echo $_deliveryDate ? format_datedisplay($_deliveryDate, $_fmt) : ''; ?>" />
+                                        <input type="hidden" id="deliveryDate" name="deliveryDate"
                                             value="<?php echo $_deliveryDate; ?>" />
                                     </div>
                                 </div>
@@ -423,7 +429,21 @@ var _editItems = <?php echo json_encode(array_map(function($item) {
 }, $SOItems)); ?>;
 <?php else: ?>
 <?php if (!empty($QuotationData)): ?>
-var _fromQuotation = <?php echo json_encode(['uid' => (int)$FromQuotationUID, 'customer' => (int)$QuotationData->PartyUID, 'customerName' => $QuotationData->PartyName ?? '']); ?>;
+var _fromQuotation = <?php echo json_encode([
+    'uid'          => (int)$FromQuotationUID,
+    'customer'     => (int)$QuotationData->PartyUID,
+    'customerName' => $QuotationData->PartyName ?? '',
+]); ?>;
+var _fromQuotAttachments = <?php echo json_encode(array_map(function($a) {
+    return [
+        'AttachUID' => (int)$a->AttachUID,
+        'FileName'  => $a->FileName ?? '',
+        'FilePath'  => $a->FilePath ?? '',
+        'FileSize'  => (int)($a->FileSize ?? 0),
+        'FileType'  => $a->FileType ?? '',
+        'Url'       => $a->Url ?? '',
+    ];
+}, $QuotationAttachments ?? [])); ?>;
 var _fromQuotItems = <?php echo json_encode(array_map(function($item) {
     return [
         'id'               => (int)   $item->ProductUID,
@@ -463,8 +483,8 @@ $(function() {
     'use strict'
 
     searchCustomers('customerSearch');
-    transDatePickr('#transDate', false, 'Y-m-d', false, true, true, true, 'd-m-Y');
-    transDatePickr('#deliveryDate', false, 'Y-m-d', false, false, <?php echo $isEdit ? 'false' : 'true'; ?>, true, 'd-m-Y', '#transDate');
+    transDatePickr('#transDate_disp',   '#transDate',    false, false, true,  true,  '');
+    transDatePickr('#deliveryDate_disp','#deliveryDate', false, false, false, <?php echo $isEdit ? 'false' : 'true'; ?>, '#transDate');
 
     <?php if ($isEdit): ?>
     initTransAttachments(<?php echo $transUID; ?>, '/transactions/getAttachments', 102);
@@ -498,20 +518,61 @@ $(function() {
     }
     <?php else: ?>
     if (_fromQuotation && _fromQuotation.uid > 0) {
+
+        // 1. Auto-select customer and lock — conversion must use the same customer
         if (_fromQuotation.customer > 0) {
-            $('#customerSearch').append(new Option(_fromQuotation.customerName, _fromQuotation.customer, true, true)).trigger('change');
+            $('#customerSearch')
+                .append(new Option(_fromQuotation.customerName, _fromQuotation.customer, true, true))
+                .trigger('change')
+                .prop('disabled', true);
         }
+        // Hide Add Customer button and the search-modal icon (not applicable on conversion)
+        $('#addTransCustomer').hide();
+        $('#openCustomerSearchModal').hide();
+
+        // 2. Delivery date = today + 7 days, pre-set by PHP in the value attribute.
+        //    transDatePickr reads it via existingVal on init — nothing needed here.
+
+        // 3. Load quotation items into bill
         if (typeof billManager !== 'undefined' && typeof formationTableBillItems === 'function'
                 && Array.isArray(_fromQuotItems) && _fromQuotItems.length > 0) {
             $('#billTableBody').empty();
+            var _convIds = []; // track conversion item IDs to lock their delete buttons
             _fromQuotItems.forEach(function(item) {
                 var added = billManager.addItem(item, item.quantity);
                 if (added !== false) {
                     formationTableBillItems(billManager.getItemById(item.id));
+                    _convIds.push(item.id);
                 }
+            });
+
+            // Hide delete icon for every conversion item row (they are locked)
+            _convIds.forEach(function(id) {
+                $('button.deleteBillItem[data-id="' + id + '"]').addClass('d-none');
             });
             if (typeof updateItemTaxBreakdown === 'function') updateItemTaxBreakdown();
             billManager.updateSummary();
+
+            // Lock Clear All — conversion items must stay in the cart
+            var _clearBtn = document.getElementById('btnClearCart');
+            if (_clearBtn) _clearBtn.setAttribute('style', 'display:none!important');
+
+            // 4. Sync grand-total display (the sticky IIFE _sync ran before items loaded)
+            var _grand   = (billManager.summary && billManager.summary.totals)   ? (billManager.summary.totals.grandTotal   || 0) : 0;
+            var _tax     = (billManager.summary && billManager.summary.taxTotals) ? (billManager.summary.taxTotals.totalTax  || 0) : 0;
+            var _cur     = '<?php echo addslashes($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>';
+            var _fmtAmt  = function(n) { return _cur + ' ' + parseFloat(n).toFixed(2); };
+            ['stickyGrandTotal', 'inlineGrandTotal'].forEach(function(id) {
+                var el = document.getElementById(id); if (el) el.textContent = _fmtAmt(_grand);
+            });
+            ['stickyTotalTax', 'inlineTotalTax'].forEach(function(id) {
+                var el = document.getElementById(id); if (el) el.textContent = parseFloat(_tax).toFixed(2);
+            });
+        }
+
+        // 5. Load quotation attachments from controller-passed data (no AJAX)
+        if (typeof renderTransAttachmentsFromData === 'function' && Array.isArray(_fromQuotAttachments)) {
+            renderTransAttachmentsFromData(_fromQuotAttachments);
         }
     }
     <?php endif; ?>

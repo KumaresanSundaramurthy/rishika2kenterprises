@@ -9,7 +9,9 @@ $formAction = $isEdit ? '/expenses/updateExpense' : '/expenses/addExpense';
 $pageTitle  = $isEdit ? ('Edit Expense — ' . htmlspecialchars($expense->ExpenseNumber ?? '')) : 'Add Expense';
 
 // Pre-fill values
+$_fmt         = $JwtData->GenSettings->FormDateFormat ?? 'd-m-Y';
 $expDate      = $isEdit ? htmlspecialchars($expense->ExpenseDate  ?? date('Y-m-d')) : date('Y-m-d');
+$expDateDisp  = format_datedisplay($expDate, $_fmt);
 $amount       = $isEdit ? (float)$expense->Amount       : '';
 $taxApplicable= $isEdit ? (int)$expense->TaxApplicable  : 0;
 $taxPct       = $isEdit ? (float)$expense->TaxPercentage: 0;
@@ -21,6 +23,7 @@ $isPaid       = $isEdit ? (int)$expense->IsPaid         : 0;
 $pmtTypeUID   = $isEdit ? (int)$expense->PaymentTypeUID : 0;
 $bankUID      = $isEdit ? (int)$expense->BankAccountUID : 0;
 $pmtDate      = $isEdit ? htmlspecialchars($expense->PaymentDate ?? date('Y-m-d')) : date('Y-m-d');
+$pmtDateDisp  = format_datedisplay($pmtDate, $_fmt);
 $pmtNotes     = $isEdit ? htmlspecialchars($expense->PaymentNotes ?? '') : '';
 
 $categories   = $Categories   ?? [];
@@ -100,8 +103,9 @@ $noBankTypes  = ['Cash'];
                                                 <label class="form-label fw-semibold">Expense Date</label>
                                                 <div class="input-group input-group-merge">
                                                     <span class="input-group-text"><i class="icon-base bx bx-calendar"></i></span>
-                                                    <input type="text" class="form-control" id="expDate"
-                                                           name="ExpenseDate" value="<?php echo $expDate; ?>" required readonly>
+                                                    <input type="text" class="form-control" id="expDate_disp"
+                                                           value="<?php echo $expDateDisp; ?>" required readonly>
+                                                    <input type="hidden" id="expDate" name="ExpenseDate" value="<?php echo $expDate; ?>">
                                                 </div>
                                             </div>
                                             <div class="col-md-6">
@@ -280,8 +284,9 @@ $noBankTypes  = ['Cash'];
                                                 <label class="form-label fw-semibold" style="font-size:.85rem;">Payment Date</label>
                                                 <div class="input-group input-group-merge">
                                                     <span class="input-group-text"><i class="icon-base bx bx-calendar"></i></span>
-                                                    <input type="text" class="form-control" id="pmtDate"
-                                                           name="PaymentDate" value="<?php echo $pmtDate; ?>" readonly>
+                                                    <input type="text" class="form-control" id="pmtDate_disp"
+                                                           value="<?php echo $pmtDateDisp; ?>" readonly>
+                                                    <input type="hidden" id="pmtDate" name="PaymentDate" value="<?php echo $pmtDate; ?>">
                                                 </div>
                                             </div>
 
@@ -578,24 +583,22 @@ $(function () {
     if (typeof _syncDropzoneLimit === 'function') _syncDropzoneLimit(0);
     <?php endif; ?>
 
-    // ── Flatpickr date pickers ───────────────────────────────
-    flatpickr('#expDate', {
-        dateFormat   : 'Y-m-d',
-        altInput     : true,
-        altFormat    : 'd-m-Y',
+    // ── Flatpickr date pickers — display field shows user format; hidden field stores Y-m-d ──
+    var _ef = function(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
+    var _ef2 = typeof _transFormDateFormat !== 'undefined' ? _transFormDateFormat : 'd-m-Y';
+    flatpickr('#expDate_disp', {
+        dateFormat   : _ef2,
         allowInput   : false,
         clickOpens   : true,
-        appendTo     : document.body,
-        defaultDate  : '<?php echo $expDate; ?>'
+        defaultDate  : '<?php echo $expDate; ?>',
+        onChange     : function(dates){ if(dates.length){ document.getElementById('expDate').value = _ef(dates[0]); } }
     });
-    flatpickr('#pmtDate', {
-        dateFormat   : 'Y-m-d',
-        altInput     : true,
-        altFormat    : 'd-m-Y',
+    flatpickr('#pmtDate_disp', {
+        dateFormat   : _ef2,
         allowInput   : false,
         clickOpens   : true,
-        appendTo     : document.body,
-        defaultDate  : '<?php echo $pmtDate; ?>'
+        defaultDate  : '<?php echo $pmtDate; ?>',
+        onChange     : function(dates){ if(dates.length){ document.getElementById('pmtDate').value = _ef(dates[0]); } }
     });
 
 });

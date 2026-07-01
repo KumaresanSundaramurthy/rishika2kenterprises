@@ -237,13 +237,10 @@ function getCategoriesDetails(PageNo, RowLimit, Filter) {
                 $(CatgTable + ' tbody').html('');
                 $(CatgPag).html('<div class="alert alert-danger" role="alert"><strong>' + response.Message + '</strong></div>');
             } else {
-                var total = response.TotalCount || 0;
-                var from  = Math.min((PageNo - 1) * RowLimit + 1, total);
-                var to    = Math.min(PageNo * RowLimit, total);
-                var showingHtml = total > 0
-                    ? '<div class="col-auto text-muted" style="font-size:.82rem;">Showing <strong>' + from + '</strong> – <strong>' + to + '</strong> of <strong>' + total + '</strong> Results</div>'
-                    : '';
-                $(CatgPag).html(showingHtml + '<div class="col-auto">' + response.Pagination + '</div>');
+                // response.Pagination already contains the "Showing X-Y of Z" text (left)
+                // and pagination links (right) as two direct children — place them straight
+                // into the d-flex container so justify-content-between puts them left & right.
+                $(CatgPag).html(response.Pagination);
                 $(CatgTable + ' tbody').html(response.List);
                 if (typeof response.TotalCount !== 'undefined') {
                     updateCategoryCount(response.TotalCount);

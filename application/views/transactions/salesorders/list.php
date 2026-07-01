@@ -23,6 +23,8 @@ if (!empty($DataLists)):
         $icon        = $statusIcon[$status]         ?? 'bx-circle';
         $transitions = $moduleTransitions[$status]  ?? [];
 
+        $hasAttach = !empty($list->AttachmentCount) && (int)$list->AttachmentCount > 0;
+
         $dueClass = 'trans-due-normal';
         $dueTag   = '';
         if (!$isDraft && !$isTerminal && !empty($list->ValidityDate)) {
@@ -124,7 +126,20 @@ if (!empty($DataLists)):
                 <a href="javascript:void(0)" class="trans-doc-number viewTransaction" data-uid="<?php echo (int)$list->TransUID; ?>" data-module="<?php echo (int)$list->ModuleUID; ?>" data-type="salesorder" data-number="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>" data-date="<?php echo htmlspecialchars($list->TransDate ?? ''); ?>" data-status="<?php echo htmlspecialchars($list->Status ?? ''); ?>">
                     <?php echo htmlspecialchars($list->UniqueNumber); ?>
                 </a>
-                <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars(format_datedisplay($list->TransDate)); ?></div>
+                <div class="d-flex align-items-center gap-2 mt-1">
+                    <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars(format_datedisplay($list->TransDate)); ?></div>
+                    <?php if ($hasAttach): ?>
+                    <button type="button" class="btn btn-link p-0 transAttachBtn"
+                            data-uid="<?php echo (int)$list->TransUID; ?>"
+                            data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
+                            data-url="/transactions/getAttachments"
+                            data-module-uid="<?php echo (int)$list->ModuleUID; ?>"
+                            title="<?php echo (int)$list->AttachmentCount; ?> attachment(s)"
+                            style="font-size:.82rem;line-height:1;color:#0d6efd;">
+                        <i class="bx bx-paperclip"></i>
+                    </button>
+                    <?php endif; ?>
+                </div>
             <?php endif; ?>
         </td>
 

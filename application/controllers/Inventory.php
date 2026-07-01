@@ -13,7 +13,7 @@ class Inventory extends MY_Controller {
     public  $pageData      = [];
     /** @var object|null */
     private $EndReturnData;
-    private $pageModuleUID = 117;
+    protected $pageModuleUID = 117;
 
     public function __construct() {
         parent::__construct();

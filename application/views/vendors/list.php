@@ -231,9 +231,9 @@ else:
             <div class="d-flex flex-column align-items-center py-5">
                 <img src="/assets/img/elements/no-record-found.png" alt="No Records" class="img-fluid mb-3" style="max-height:150px;object-fit:contain;">
                 <span class="text-muted mb-3" style="font-size:.9rem;">No vendors found</span>
-                <a href="/vendors/create" class="btn btn-primary btn-sm px-4">
+                <button type="button" class="btn btn-primary btn-sm px-4" onclick="openVendorModal('add')">
                     <i class="bx bx-plus me-1"></i>Create Vendor
-                </a>
+                </button>
             </div>
         </td>
     </tr>

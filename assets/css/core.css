@@ -408,10 +408,19 @@
 }
 
 /* Result count text inside the sticky bar */
-.cust-sticky-pag .col-sm-6:first-child {
+.cust-sticky-pag .col-sm-6:first-child,
+.cust-sticky-pag .col-md-auto:first-child,
+#CategoriesPagination > div:first-child,
+#prodStickyPagInner > div:first-child {
   font-size: .78rem;
   color: var(--r2k-violet-accent);
   font-weight: 500;
+}
+
+/* Ensure col-md-auto children of d-flex containers don't collapse */
+#CategoriesPagination > div,
+#prodStickyPagInner > div {
+  flex-shrink: 0;
 }
 
 /* ── Page header (shared list pages — Customers, Vendors, etc.) ──────────── */
@@ -535,4 +544,26 @@
     max-height: 260px;
     overflow-y: auto;
     overflow-x: hidden;
+}
+
+/* ── Sidebar menu: hide scrollbars on both nav panels ───────────────────
+   Keeps overflow:auto so wheel/touch scroll still works internally;
+   only the visible scrollbar track is suppressed.                       */
+#ModulesMenuBar,
+#SettingsMenuBar {
+    scrollbar-width: none;       /* Firefox */
+    -ms-overflow-style: none;    /* IE / Edge */
+}
+#ModulesMenuBar::-webkit-scrollbar,
+#SettingsMenuBar::-webkit-scrollbar {
+    display: none;               /* Chrome, Safari, Opera */
+}
+
+/* ── Pinned Settings button at the bottom of the sidebar ────────────────
+   .menu-settings-pinned sits outside the scrollable UL so it is always
+   visible. flex-shrink:0 prevents the aside's flex layout from squashing
+   it; the border-top gives a subtle separator line.                     */
+.menu-settings-pinned {
+    flex-shrink: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
 }

@@ -32,9 +32,12 @@ if ($isEdit && !empty($PrefixData)) {
 $editTransNumber = $isEdit ? ($isDraftEdit ? (int)($NextNumberMap[(int)($editPrefixConfig->PrefixUID ?? 0)] ?? 1) : (int)$PFData->TransNumber) : 0;
 $editPrefixSeg   = ($isEdit && $isDraftEdit) ? buildPFPrefixSegment($editPrefixConfig) : '';
 
-$_validityDate = '';
+$_fmt           = $JwtData->GenSettings->FormDateFormat ?? 'd-m-Y';
+$_validityDate  = '';
+$_validityDisp  = '';
 if ($isEdit && !empty($PFData->ValidityDate)) {
     $_validityDate = htmlspecialchars(format_datedisplay($PFData->ValidityDate, 'Y-m-d'));
+    $_validityDisp = format_datedisplay($PFData->ValidityDate, $_fmt);
 }
 
 $_invoiceType = $isEdit ? ($PFData->QuotationType ?? 'Regular') : 'Regular';
@@ -217,17 +220,19 @@ if (!empty($DispatchAddress)) {
                                     <label class="form-label small fw-semibold">Pro Forma Date <span class="text-danger">*</span></label>
                                     <div class="input-group input-group-merge">
                                         <span class="input-group-text"><i class="icon-base bx bx-calendar"></i></span>
-                                        <input type="text" class="form-control form-control-sm" id="transDate" name="transDate" readonly="readonly"
-                                            value="<?php echo $isEdit ? htmlspecialchars(format_datedisplay($PFData->TransDate, 'Y-m-d')) : format_datedisplay(time(), 'Y-m-d'); ?>"
+                                        <input type="text" class="form-control form-control-sm" id="transDate_disp" readonly="readonly"
+                                            value="<?php echo $isEdit ? format_datedisplay($PFData->TransDate, $_fmt) : format_datedisplay(time(), $_fmt); ?>"
                                             required />
+                                        <input type="hidden" id="transDate" name="transDate" value="<?php echo $isEdit ? htmlspecialchars(format_datedisplay($PFData->TransDate, 'Y-m-d')) : format_datedisplay(time(), 'Y-m-d'); ?>" />
                                     </div>
                                 </div>
                                 <div class="col-md-2">
                                     <label class="form-label small fw-semibold">Valid Until</label>
                                     <div class="input-group input-group-merge">
                                         <span class="input-group-text"><i class="icon-base bx bx-calendar"></i></span>
-                                        <input type="text" class="form-control form-control-sm" id="validityDate" name="validityDate" readonly="readonly"
-                                            value="<?php echo $_validityDate; ?>" />
+                                        <input type="text" class="form-control form-control-sm" id="validityDate_disp" readonly="readonly"
+                                            value="<?php echo $_validityDisp; ?>" />
+                                        <input type="hidden" id="validityDate" name="validityDate" value="<?php echo $_validityDate; ?>" />
                                     </div>
                                 </div>
                                 <div class="col-md-4">
@@ -396,8 +401,8 @@ $(function() {
     'use strict';
 
     searchCustomers('customerSearch');
-    transDatePickr('#transDate', false, 'Y-m-d', false, true, true, true, 'd-m-Y');
-    transDatePickr('#validityDate', false, 'Y-m-d', false, false, <?php echo $isEdit ? 'false' : 'true'; ?>, true, 'd-m-Y', '#transDate');
+    transDatePickr('#transDate_disp',    '#transDate',    false, false, true,  true,  '');
+    transDatePickr('#validityDate_disp', '#validityDate', false, false, false, <?php echo $isEdit ? 'false' : 'true'; ?>, '#transDate');
 
     <?php if ($isEdit): ?>
     initTransAttachments(<?php echo $transUID; ?>, '/transactions/getAttachments', 113);

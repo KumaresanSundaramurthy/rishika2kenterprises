@@ -95,12 +95,6 @@
         <?php }
         } ?>
 
-        <li class="menu-item menu-item-static mt-auto">
-            <a href="javascript: void(0);" id="SettingsMenuBarBtn" class="menu-link">
-                <i class="menu-icon tf-icons bx bx-cog"></i>
-                <div data-i18n="Settings">Settings</div>
-            </a>
-        </li>
 
     </ul>
 
@@ -154,6 +148,20 @@
     ?>
 
     </ul>
+
+    <!-- Pinned Settings button — lives outside the scrollable UL so it is
+         always visible at the bottom. Hidden on Settings pages because the
+         SettingsMenuBar already shows a Back button there.                -->
+    <div class="menu-settings-pinned py-1 <?php echo $isSettingsPage ? 'd-none' : ''; ?>">
+        <ul class="menu-inner" style="flex-direction:column; block-size:auto; flex:0 0 auto;">
+            <li class="menu-item">
+                <a href="javascript:void(0);" id="SettingsMenuBarBtn" class="menu-link">
+                    <i class="menu-icon tf-icons bx bx-cog"></i>
+                    <div data-i18n="Settings">Settings</div>
+                </a>
+            </li>
+        </ul>
+    </div>
 
 </aside>
 <!-- / Menu -->

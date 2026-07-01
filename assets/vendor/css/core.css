@@ -29498,7 +29498,15 @@ body:not(.modal-open) .layout-content-navbar .layout-navbar {
 }
 .trans-table tbody tr:last-child td { border-bottom: none; }
 .trans-table tbody tr:hover td { background: rgba(105,108,255,.025); }
-.trans-row-overdue td { background: rgba(220,53,69,.03) !important; }
+.trans-row-overdue td { background: rgba(220,53,69,.08) !important; }
+.trans-row-overdue td:first-child { border-left: 3px solid #dc3545 !important; }
+.trans-row-due-soon td { background: rgba(255,193,7,.07) !important; }
+.trans-row-due-soon td:first-child { border-left: 3px solid #ffc107 !important; }
+
+/* ── DC Partial Return modal – no spinner on qty input ── */
+.dc-pr-qty::-webkit-inner-spin-button,
+.dc-pr-qty::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.dc-pr-qty { -moz-appearance: textfield; }
 
 /* ── r2k gradient table header ── */
 .r2k-thead tr {

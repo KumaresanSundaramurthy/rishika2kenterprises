@@ -381,7 +381,7 @@ if (!empty($DataLists)):
 
                         <?php if (!$isTerminal): ?>
                         <?php if (!$isDraft): ?>
-                        <?php if (in_array($status, ['Pending', 'Accepted'])): ?>
+                        <?php if ($status === 'Accepted'): ?>
                         <li>
                             <button class="dropdown-item quot-status-update"
                                     data-uid="<?php echo (int)$list->TransUID; ?>"

@@ -60,10 +60,21 @@ if ($isEdit) {
     $_vehicleNo = $DCData->Reference ?? '';
 }
 
-// Expected return date (stored in ValidityDate)
+$_fmt = $JwtData->GenSettings->FormDateFormat ?? 'd-m-Y';
+// Expected return date → now stored in ExpectedDeliveryDate
 $_returnDate = '';
-if ($isEdit && !empty($DCData->ValidityDate)) {
-    $_returnDate = htmlspecialchars(format_datedisplay($DCData->ValidityDate, 'Y-m-d'));
+$_returnDisp = '';
+if ($isEdit && !empty($DCData->ExpectedDeliveryDate)) {
+    $_returnDate = htmlspecialchars(format_datedisplay($DCData->ExpectedDeliveryDate, 'Y-m-d'));
+    $_returnDisp = format_datedisplay($DCData->ExpectedDeliveryDate, $_fmt);
+}
+
+// Delivery By date → now stored in DeliveryByDate
+$_deliveryByDate = '';
+$_deliveryByDisp = '';
+if ($isEdit && !empty($DCData->DeliveryByDate)) {
+    $_deliveryByDate = htmlspecialchars(format_datedisplay($DCData->DeliveryByDate, 'Y-m-d'));
+    $_deliveryByDisp = format_datedisplay($DCData->DeliveryByDate, $_fmt);
 }
 
 // Notes / Terms
@@ -197,22 +208,6 @@ if (!empty($DispatchAddress)) {
                                             <?php endif; ?>
                                         <?php endif; ?>
                                     </div>
-                                    <?php if ($isEdit && !$isDraftEdit): ?>
-                                    <div class="d-flex align-items-center gap-3 mt-1">
-                                        <?php if (!empty($DCData->TransDate)): ?>
-                                        <div class="d-flex align-items-center gap-1">
-                                            <span style="font-size:.7rem;color:#8592a3;">Date</span>
-                                            <span style="font-size:.78rem;color:#566a7f;"><?php echo htmlspecialchars(format_datedisplay($DCData->TransDate)); ?></span>
-                                        </div>
-                                        <?php endif; ?>
-                                        <?php if (!empty($DCData->PartyName)): ?>
-                                        <div class="d-flex align-items-center gap-1">
-                                            <span style="font-size:.7rem;color:#8592a3;">Customer</span>
-                                            <span style="font-size:.78rem;color:#566a7f;"><?php echo htmlspecialchars($DCData->PartyName); ?></span>
-                                        </div>
-                                        <?php endif; ?>
-                                    </div>
-                                    <?php endif; ?>
                                 </div>
                             </div>
                             <div class="d-flex align-items-center gap-2">
@@ -240,18 +235,74 @@ if (!empty($DispatchAddress)) {
                         <div class="card-body card-body-form-static p-4">
 
                             <!-- ── Toolbar: Type · Mode · Dispatch From ───────────────── -->
+                            <?php
+                            $_dcInvType = $isEdit ? ($DCData->InvoiceType ?? 'Regular') : 'Regular';
+                            $_dcInvTypeLabel = $_dcInvType === 'Without_GST' ? 'Without GST' : 'Regular';
+                            $_modeLabel = $_challanType;
+                            // Find saved dispatch address for display
+                            $_editDispAddr = null;
+                            if ($isEdit && !empty($DCData->DispatchFrom) && !empty($DispatchAddresses)) {
+                                foreach ($DispatchAddresses as $_da) {
+                                    if ((int)$_da->OrgAddressUID === (int)$DCData->DispatchFrom) {
+                                        $_editDispAddr = $_da; break;
+                                    }
+                                }
+                            }
+                            if (!$_editDispAddr && !empty($DispatchAddresses)) $_editDispAddr = $DispatchAddresses[0];
+                            $_dispAddrText = '';
+                            if ($_editDispAddr) {
+                                $_dispAddrText = implode(', ', array_filter([
+                                    $_editDispAddr->Line1 ?? '',
+                                    $_editDispAddr->CityText ?? '',
+                                    $_editDispAddr->StateText ?? '',
+                                ]));
+                            }
+                            ?>
                             <div class="d-flex align-items-center gap-4 mb-3 pb-2 border-bottom">
-                                <!-- Type: Regular / Without GST -->
+                                <?php if ($isEdit): ?>
+                                <!-- Edit mode: all three as read-only text chips, same style -->
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="text-muted" style="font-size:.75rem;white-space:nowrap;">Type</span>
+                                    <span class="badge fw-semibold" style="background:#eef0f3;color:#344563;font-size:.8rem;padding:5px 10px;border:1px solid #d5dae0;">
+                                        <?php echo htmlspecialchars($_dcInvTypeLabel); ?>
+                                    </span>
+                                    <input type="hidden" id="dcInvoiceType" name="invoiceType" value="<?php echo htmlspecialchars($_dcInvType); ?>" />
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="text-muted" style="font-size:.75rem;white-space:nowrap;">Mode</span>
+                                    <span class="badge fw-semibold" style="background:#eef0f3;color:#344563;font-size:.8rem;padding:5px 10px;border:1px solid #d5dae0;">
+                                        <?php echo htmlspecialchars($_modeLabel); ?>
+                                    </span>
+                                    <input type="hidden" id="challanType" name="challanType" value="<?php echo htmlspecialchars($_challanType); ?>" />
+                                </div>
+                                <?php if ($_editDispAddr): ?>
+                                <?php
+                                $_fullAddr = implode(', ', array_filter([
+                                    $_editDispAddr->Line1     ?? '',
+                                    $_editDispAddr->Line2     ?? '',
+                                    $_editDispAddr->CityText  ?? '',
+                                    $_editDispAddr->StateText ?? '',
+                                    $_editDispAddr->Pincode   ?? '',
+                                ]));
+                                ?>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="text-muted" style="font-size:.75rem;white-space:nowrap;">Dispatch From</span>
+                                    <span class="badge fw-semibold" style="background:#eef0f3;color:#344563;font-size:.8rem;padding:5px 10px;border:1px solid #d5dae0;white-space:normal;text-align:left;line-height:1.4;">
+                                        <?php echo htmlspecialchars($_fullAddr); ?>
+                                    </span>
+                                    <input type="hidden" id="dispatchFrom" name="dispatchFrom" value="<?php echo (int)$_editDispAddr->OrgAddressUID; ?>" />
+                                </div>
+                                <?php endif; ?>
+                                <?php else: ?>
+                                <!-- Create mode: interactive selects -->
                                 <div class="d-flex align-items-center gap-2">
                                     <span class="text-muted" style="font-size:.78rem;white-space:nowrap;">Type</span>
                                     <select class="form-select form-select-sm border-0 bg-transparent fw-semibold"
                                             id="dcInvoiceType" name="invoiceType" style="min-width:110px;cursor:pointer;">
-                                        <?php $_dcInvType = $isEdit ? ($DCData->InvoiceType ?? 'Regular') : 'Regular'; ?>
-                                        <option value="Regular"      <?php echo $_dcInvType === 'Regular'      ? 'selected' : ''; ?>>Regular</option>
-                                        <option value="Without_GST"  <?php echo $_dcInvType === 'Without_GST'  ? 'selected' : ''; ?>>Without GST</option>
+                                        <option value="Regular"     <?php echo $_dcInvType === 'Regular'     ? 'selected' : ''; ?>>Regular</option>
+                                        <option value="Without_GST" <?php echo $_dcInvType === 'Without_GST' ? 'selected' : ''; ?>>Without GST</option>
                                     </select>
                                 </div>
-                                <!-- Mode: dispatch mode -->
                                 <div class="d-flex align-items-center gap-2">
                                     <span class="text-muted" style="font-size:.78rem;white-space:nowrap;">Mode</span>
                                     <select class="form-select form-select-sm border-0 bg-transparent fw-semibold"
@@ -267,6 +318,7 @@ if (!empty($DispatchAddress)) {
                                     <?php $this->load->view('common/transactions/_dispatch_from'); ?>
                                 </div>
                                 <?php endif; ?>
+                                <?php endif; ?>
                                 <div class="ms-auto d-flex align-items-center gap-2">
                                     <div id="custTypeIndicator" class="d-none"></div>
                                 </div>
@@ -275,38 +327,59 @@ if (!empty($DispatchAddress)) {
                             <!-- ── Customer + fields row (matches quotation layout) ── -->
                             <div class="row g-2 align-items-end mb-2">
                                 <div class="col-md-4">
+                                    <?php if ($isEdit): ?>
+                                    <label class="trans-field-label mb-1">Customer</label>
+                                    <div class="d-flex align-items-center gap-2 border rounded px-2 py-1" style="background:#f8f9fa;min-height:34px;">
+                                        <i class="bx bx-user-circle text-muted" style="font-size:1.15rem;flex-shrink:0;"></i>
+                                        <div style="flex:1;min-width:0;">
+                                            <div class="fw-semibold text-truncate" style="font-size:.88rem;line-height:1.3;"><?php echo htmlspecialchars($DCData->PartyName ?? ''); ?></div>
+                                            <?php
+                                            $_custMeta = array_filter([
+                                                !empty($DCData->PartyArea)   ? htmlspecialchars($DCData->PartyArea)   : '',
+                                                !empty($DCData->PartyMobile) ? htmlspecialchars($DCData->PartyMobile) : '',
+                                            ]);
+                                            if ($_custMeta): ?>
+                                            <div class="text-muted" style="font-size:.72rem;line-height:1.3;"><?php echo implode(' &middot; ', $_custMeta); ?></div>
+                                            <?php endif; ?>
+                                        </div>
+                                        <i class="bx bx-lock-alt text-muted" style="font-size:.8rem;flex-shrink:0;" title="Cannot change customer on edit"></i>
+                                    </div>
+                                    <input type="hidden" id="customerSearch" name="customerSearch" value="<?php echo (int)($DCData->PartyUID ?? 0); ?>" />
+                                    <?php else: ?>
                                     <div class="d-flex align-items-center justify-content-between mb-1">
                                         <label for="customerSearch" class="trans-field-label mb-0">Select Customer <span class="text-danger">*</span></label>
-                                        <?php if (!$isEdit): ?>
                                         <button type="button" id="addTransCustomer" class="trans-add-btn btn btn-outline-primary btn-sm" style="font-size:.72rem;white-space:nowrap;"><i class="bx bx-plus-circle me-1"></i>Add Customer</button>
-                                        <?php endif; ?>
                                     </div>
                                     <select id="customerSearch" name="customerSearch" class="form-select form-select-sm"></select>
+                                    <?php endif; ?>
                                 </div>
                                 <div class="col-md-2">
                                     <label class="form-label small fw-semibold">Dispatch Date <span class="text-danger">*</span></label>
-                                    <div class="input-group input-group-merge">
-                                        <span class="input-group-text"><i class="icon-base bx bx-calendar"></i></span>
-                                        <input type="text" class="form-control form-control-sm" id="transDate" name="transDate" readonly="readonly"
-                                            value="<?php echo $isEdit ? htmlspecialchars(format_datedisplay($DCData->TransDate, 'Y-m-d')) : format_datedisplay(time(), 'Y-m-d'); ?>"
+                                    <div class="input-group input-group-sm input-group-merge">
+                                        <span class="input-group-text bg-white"><i class="icon-base bx bx-calendar"></i></span>
+                                        <input type="text" class="form-control form-control-sm bg-white" id="transDate_disp" readonly="readonly"
+                                            value="<?php echo $isEdit ? format_datedisplay($DCData->TransDate, $_fmt) : format_datedisplay(time(), $_fmt); ?>"
                                             required />
                                     </div>
+                                    <input type="hidden" id="transDate" name="transDate" value="<?php echo $isEdit ? htmlspecialchars(format_datedisplay($DCData->TransDate, 'Y-m-d')) : format_datedisplay(time(), 'Y-m-d'); ?>" />
                                 </div>
                                 <div class="col-md-2">
                                     <label class="form-label small fw-semibold">Delivery By</label>
-                                    <div class="input-group input-group-merge">
-                                        <span class="input-group-text"><i class="icon-base bx bx-calendar-check"></i></span>
-                                        <input type="text" class="form-control form-control-sm" id="deliveryByDate" name="deliveryBy"
-                                            value="<?php echo $isEdit ? htmlspecialchars(format_datedisplay($DCData->DeliveryByDate ?? '', 'Y-m-d')) : ''; ?>" />
+                                    <div class="input-group input-group-sm input-group-merge">
+                                        <span class="input-group-text bg-white"><i class="icon-base bx bx-calendar-check"></i></span>
+                                        <input type="text" class="form-control form-control-sm bg-white" id="deliveryByDate_disp"
+                                            value="<?php echo $_deliveryByDisp; ?>" />
                                     </div>
+                                    <input type="hidden" id="deliveryByDate" name="deliveryBy" value="<?php echo $_deliveryByDate; ?>" />
                                 </div>
-                                <div class="col-md-2" id="returnDateWrap" style="<?php echo $_challanType !== 'Returnable' ? 'display:none;' : ''; ?>">
+                                <div class="col-md-2" id="returnDateWrap" style="<?php echo !in_array($_challanType, ['Returnable', 'Job Work']) ? 'display:none;' : ''; ?>">
                                     <label class="form-label small fw-semibold">Expected Return Date</label>
-                                    <div class="input-group input-group-merge">
-                                        <span class="input-group-text"><i class="icon-base bx bx-calendar"></i></span>
-                                        <input type="text" class="form-control form-control-sm" id="returnDate" name="returnDate" readonly="readonly"
-                                            value="<?php echo $_returnDate; ?>" />
+                                    <div class="input-group input-group-sm input-group-merge">
+                                        <span class="input-group-text bg-white"><i class="icon-base bx bx-calendar"></i></span>
+                                        <input type="text" class="form-control form-control-sm bg-white" id="returnDate_disp" readonly="readonly"
+                                            value="<?php echo $_returnDisp; ?>" />
                                     </div>
+                                    <input type="hidden" id="returnDate" name="returnDate" value="<?php echo $_returnDate; ?>" />
                                 </div>
                                 <div class="col-md-2">
                                     <label class="form-label small fw-semibold">Reference</label>
@@ -522,35 +595,174 @@ var _fromSOItems = <?php echo json_encode(array_map(function($item) {
 var _fromSO = null;
 var _fromSOItems = [];
 <?php endif; ?>
+
+<?php if (!empty($CloneData)): ?>
+var _fromClone = <?php echo json_encode([
+    'uid'         => (int)($FromCloneUID ?? 0),
+    'challanType' => $CloneData->QuotationType ?? 'Non-Returnable',
+    'invoiceType' => $CloneData->InvoiceType   ?? 'Regular',
+    'dispatchFrom'=> (int)($CloneData->DispatchFrom ?? 0),
+    'notes'       => $CloneData->Notes           ?? '',
+    'terms'       => $CloneData->TermsConditions ?? '',
+    'reference'   => $CloneData->Reference       ?? '',
+]); ?>;
+var _fromCloneItems = <?php echo json_encode(array_map(function($item) {
+    return [
+        'id'               => (int)   $item->ProductUID,
+        'text'             => $item->ProductName,
+        'itemName'         => $item->ProductName,
+        'unitPrice'        => (float) $item->UnitPrice,
+        'sellingPrice'     => (float) $item->SellingPrice,
+        'taxAmount'        => (float) $item->TaxAmount,
+        'purchasePrice'    => 0,
+        'availableQuantity'=> 0,
+        'hsnCode'          => '',
+        'categoryUID'      => $item->CategoryUID ? (int)$item->CategoryUID : null,
+        'storageUID'       => $item->StorageUID  ? (int)$item->StorageUID  : null,
+        'taxPercent'       => (float) $item->TaxPercentage,
+        'cgstPercent'      => (float) $item->CGST,
+        'sgstPercent'      => (float) $item->SGST,
+        'igstPercent'      => (float) $item->IGST,
+        'taxDetailsUID'    => (int)   $item->TaxDetailsUID,
+        'quantity'         => (float) $item->Quantity,
+        'partNumber'       => $item->PartNumber      ?? '',
+        'primaryUnit'      => $item->PrimaryUnitName ?? '',
+        'discount'         => (float) $item->Discount,
+        'discountType'     => 'Percentage',
+        'discountTypeUID'  => $item->DiscountTypeUID ? (int)$item->DiscountTypeUID : null,
+        'discount_amount'  => (float) $item->DiscountAmount,
+        'line_total'       => (float) $item->TaxableAmount,
+        'net_total'        => (float) $item->NetAmount,
+    ];
+}, $CloneItems ?? [])); ?>;
+<?php else: ?>
+var _fromClone = null;
+var _fromCloneItems = [];
+<?php endif; ?>
 <?php endif; ?>
 
 $(function() {
     'use strict';
 
+    <?php if (!$isEdit): ?>
     searchCustomers('customerSearch');
-    transDatePickr('#transDate',       false, 'Y-m-d', false, true,  true,  true, 'd-m-Y');
-    transDatePickr('#returnDate',      false, 'Y-m-d', false, false, <?php echo $isEdit ? 'false' : 'true'; ?>, true, 'd-m-Y', '#transDate');
-    transDatePickr('#deliveryByDate',  false, 'Y-m-d', false, false, true,  true, 'd-m-Y');
+    <?php endif; ?>
+    transDatePickr('#transDate_disp',      '#transDate',      false, false, true,  true,  '');
+    transDatePickr('#returnDate_disp',     '#returnDate',     false, false, false, false, '#transDate');
+    transDatePickr('#deliveryByDate_disp', '#deliveryByDate', false, false, false, true,  '');
 
-    // Show/hide Expected Return Date based on Challan Type
+    // ── DC Expected Return Date auto-fill ─────────────────────────────────────
+    // Reads DCDefaultReturnDays from user's settings.
+    // Only auto-sets when the field is empty (new DC, not edit mode).
+    // Tracks whether the date was auto-set so dispatch-date changes can recalculate it.
+    // User manually picking a date marks it as manual — no further auto-recalculation.
+
+    var _dcReturnAutoSet  = false; // true = currently holding an auto-calculated date
+    var _dcReturnLocking  = false; // guard: prevents our own setDate triggering the "manual" flag
+
+    var _dcGetReturnDays  = function () {
+        var days = (typeof JwtData !== 'undefined' && JwtData.TransSettings && JwtData.TransSettings.DCDefaultReturnDays !== undefined)
+            ? parseInt(JwtData.TransSettings.DCDefaultReturnDays, 10)
+            : 7;
+        return isNaN(days) ? 7 : days;
+    };
+
+    var _dcCalcReturnDate = function () {
+        var days = _dcGetReturnDays();
+        if (days <= 0) return; // 0 = no default, leave blank
+
+        var rawDispatch = $('#transDate').val(); // Y-m-d from hidden field
+        if (!rawDispatch) return;
+
+        var dispatchDate = new Date(rawDispatch + 'T00:00:00');
+        dispatchDate.setDate(dispatchDate.getDate() + days);
+
+        var fp = document.getElementById('returnDate_disp')?._flatpickr;
+        if (!fp) return;
+
+        _dcReturnLocking = true;
+        _dcReturnAutoSet = true;
+        fp.setDate(dispatchDate, true); // triggers onChange → updates #returnDate hidden field
+        _dcReturnLocking = false;
+    };
+
+    // Hook onto returnDate flatpickr: mark as manual when user picks a date
+    (function () {
+        var fpEl = document.getElementById('returnDate_disp');
+        if (fpEl && fpEl._flatpickr && Array.isArray(fpEl._flatpickr.config.onChange)) {
+            fpEl._flatpickr.config.onChange.push(function () {
+                if (!_dcReturnLocking) {
+                    _dcReturnAutoSet = false; // user manually selected — stop auto-recalculating
+                }
+            });
+        }
+    })();
+
+    // Hook onto transDate flatpickr: update return date minDate + recalculate auto-set date
+    (function () {
+        var fpEl = document.getElementById('transDate_disp');
+        if (fpEl && fpEl._flatpickr && Array.isArray(fpEl._flatpickr.config.onChange)) {
+            fpEl._flatpickr.config.onChange.push(function (selectedDates) {
+                // Always update the minDate of returnDate picker to match dispatch date
+                var returnFp = document.getElementById('returnDate_disp')?._flatpickr;
+                if (returnFp && selectedDates.length) {
+                    returnFp.set('minDate', selectedDates[0]);
+
+                    // If current return date is now before the new dispatch date, clear it
+                    var currentReturn = returnFp.selectedDates[0];
+                    if (currentReturn && currentReturn < selectedDates[0]) {
+                        _dcReturnLocking = true;
+                        returnFp.clear();
+                        $('#returnDate').val('');
+                        _dcReturnAutoSet = false;
+                        _dcReturnLocking = false;
+                    }
+                }
+
+                // Recalculate auto-set return date if it was auto-set (not manually picked)
+                var type = $('#challanType').val();
+                if ((type === 'Returnable' || type === 'Job Work') && _dcReturnAutoSet) {
+                    _dcCalcReturnDate();
+                }
+            });
+        }
+    })();
+
+    // Show/hide Expected Return Date + auto-fill on type change
     $('#challanType').on('change', function () {
-        if ($(this).val() === 'Returnable') {
+        var type = $(this).val();
+        if (type === 'Returnable' || type === 'Job Work') {
             $('#returnDateWrap').show();
+            // Auto-set only if field is currently empty (create mode, not edit)
+            if (!$('#returnDate').val()) {
+                _dcCalcReturnDate();
+            }
         } else {
             $('#returnDateWrap').hide();
+            var fp = document.getElementById('returnDate_disp')?._flatpickr;
+            if (fp) fp.clear();
             $('#returnDate').val('');
+            _dcReturnAutoSet = false;
         }
     });
 
     <?php if ($isEdit): ?>
-    initTransAttachments(<?php echo $transUID; ?>, '/transactions/getAttachments', 112);
+    // dispatchFrom on edit is a hidden input — destroy any Select2 that transactions.js applied to it
+    if ($('#dispatchFrom').data('select2')) {
+        $('#dispatchFrom').select2('destroy');
+    }
 
-    <?php if (!empty($DCData->PartyUID)): ?>
-    $('#customerSearch').append(new Option(
-        '<?php echo addslashes($DCData->PartyName ?? ''); ?>',
-        <?php echo (int)$DCData->PartyUID; ?>, true, true
-    )).trigger('change');
-    <?php endif; ?>
+    // Attachments pre-loaded by controller — no AJAX needed
+    renderTransAttachmentsFromData(<?php echo json_encode(array_map(function($a) {
+        return [
+            'AttachUID' => (int)$a->AttachUID,
+            'FileName'  => $a->FileName  ?? '',
+            'FilePath'  => $a->FilePath  ?? '',
+            'FileSize'  => (int)($a->FileSize ?? 0),
+            'FileType'  => $a->FileType  ?? '',
+            'Url'       => $a->Url       ?? '',
+        ];
+    }, $DCAttachments ?? [])); ?>);
 
     $('#extraDiscount').val('<?php echo smartDecimal($DCData->ExtraDiscAmount ?? 0); ?>');
     $('#extDiscountType').val('<?php echo addslashes($DCData->ExtraDiscType ?? ''); ?>').trigger('change');
@@ -649,6 +861,38 @@ $(function() {
                 $(this).trigger('input');
             }
         });
+    } else if (_fromClone && _fromClone.uid > 0) {
+
+        // ── Pre-fill Type (invoiceType select) ───────────────────────────────
+        if (_fromClone.invoiceType) {
+            $('#dcInvoiceType').val(_fromClone.invoiceType).trigger('change');
+        }
+
+        // ── Pre-fill Mode (challanType select) — triggers return-date visibility
+        if (_fromClone.challanType) {
+            $('#challanType').val(_fromClone.challanType).trigger('change');
+        }
+
+        // ── Pre-fill Dispatch From (Select2) ─────────────────────────────────
+        if (_fromClone.dispatchFrom > 0) {
+            $('#dispatchFrom').val(_fromClone.dispatchFrom).trigger('change');
+        }
+
+        // ── Pre-fill Notes / Reference ────────────────────────────────────────
+        if (_fromClone.notes)     $('#transNotes').val(_fromClone.notes);
+        if (_fromClone.reference) $('#vehicleNumber').val(_fromClone.reference);
+
+        // ── Pre-fill items ────────────────────────────────────────────────────
+        if (typeof billManager !== 'undefined' && typeof formationTableBillItems === 'function'
+                && Array.isArray(_fromCloneItems) && _fromCloneItems.length > 0) {
+            $('#billTableBody').empty();
+            _fromCloneItems.forEach(function(item) {
+                var added = billManager.addItem(item, item.quantity);
+                if (added !== false) formationTableBillItems(billManager.getItemById(item.id));
+            });
+            if (typeof updateItemTaxBreakdown === 'function') updateItemTaxBreakdown();
+            billManager.updateSummary();
+        }
     }
     <?php endif; ?>
 

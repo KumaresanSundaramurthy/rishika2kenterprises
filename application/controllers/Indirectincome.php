@@ -4,7 +4,7 @@ class Indirectincome extends MY_Controller {
 
     public  $pageData      = [];
     private $EndReturnData;
-    private $pageModuleUID = 115;
+    protected $pageModuleUID = 115;
 
     public function __construct() {
         parent::__construct();

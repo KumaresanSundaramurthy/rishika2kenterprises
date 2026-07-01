@@ -1056,7 +1056,8 @@ class Products_model extends CI_Model {
             ]);
             $this->ReadDb->order_by('SortOrder', 'ASC');
             $this->ReadDb->limit(1);
-            $row = $this->ReadDb->get()->row();
+            $q   = $this->ReadDb->get();
+            $row = $q ? $q->row() : null;
             return $row ? $row->FilePath : null;
         } catch (Exception $e) {
             return null;

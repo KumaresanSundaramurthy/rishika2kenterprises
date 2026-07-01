@@ -30,11 +30,19 @@ if (!empty($DataLists)):
         $challanType  = $list->QuotationType ?? 'Non-Returnable';
         $typeBadge    = $challanTypeBadge[$challanType] ?? 'badge text-bg-secondary';
 
+        // Contact fields
+        $mobileNum   = trim($list->MobileNumber  ?? '');
+        $countryCode = trim($list->CountryCode   ?? '');
+        $partyEmail  = trim($list->EmailAddress  ?? '');
+        $waNum       = $mobileNum ? preg_replace('/[^0-9]/', '', ($countryCode ?: '91') . $mobileNum) : '';
+        $hasMobile   = $mobileNum !== '';
+        $hasEmail    = $partyEmail !== '';
+
         // Overdue logic for Returnable challans
         $dueClass = 'trans-due-normal';
         $dueTag   = '';
-        if ($challanType === 'Returnable' && !$isDraft && !$isTerminal && !empty($list->ValidityDate)) {
-            $dueTs = strtotime($list->ValidityDate);
+        if (in_array($challanType, ['Returnable', 'Job Work']) && !$isDraft && !$isTerminal && !empty($list->ExpectedDeliveryDate)) {
+            $dueTs = strtotime($list->ExpectedDeliveryDate);
             if ($dueTs < $today) {
                 $dueClass = 'trans-due-overdue';
                 $dueTag   = '<br><span style="font-size:.68rem;">Overdue</span>';
@@ -42,9 +50,19 @@ if (!empty($DataLists)):
                 $dueClass = 'trans-due-soon';
             }
         }
-        $isOverdueRow = ($dueClass === 'trans-due-overdue');
+        $isOverdueRow  = ($dueClass === 'trans-due-overdue');
+        $isDueSoonRow  = ($dueClass === 'trans-due-soon');
+        $hasAttach     = !empty($list->AttachmentCount) && (int)$list->AttachmentCount > 0;
+
+        // Days Out — only for Returnable/Job Work (goods expected to come back)
+        // Not applicable for Non-Returnable (goods go out permanently)
+        $daysOut = null;
+        if (!$isDraft && in_array($challanType, ['Returnable', 'Job Work'])
+            && in_array($status, ['Dispatched', 'Partially Returned']) && !empty($list->TransDate)) {
+            $daysOut = (int) floor((time() - strtotime($list->TransDate)) / 86400);
+        }
 ?>
-    <tr class="<?php echo $isOverdueRow ? 'trans-row-overdue' : ''; ?>">
+    <tr class="<?php echo $isOverdueRow ? 'trans-row-overdue' : ($isDueSoonRow ? 'trans-row-due-soon' : ''); ?>">
 
         <td style="width:36px">
             <div class="form-check mb-0">
@@ -73,7 +91,23 @@ if (!empty($DataLists)):
                    data-status="<?php echo htmlspecialchars($list->Status ?? ''); ?>">
                     <?php echo htmlspecialchars($list->UniqueNumber); ?>
                 </a>
-                <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars(format_datedisplay($list->TransDate)); ?></div>
+                <div class="d-flex align-items-center gap-2 mt-1">
+                    <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars(format_datedisplay($list->TransDate)); ?></div>
+                    <?php if ($hasAttach): ?>
+                    <button type="button" class="btn btn-link p-0 transAttachBtn"
+                            data-uid="<?php echo (int)$list->TransUID; ?>"
+                            data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
+                            data-url="/transactions/getAttachments"
+                            data-module-uid="<?php echo (int)$list->ModuleUID; ?>"
+                            title="<?php echo (int)$list->AttachmentCount; ?> attachment(s)"
+                            style="font-size:.82rem;line-height:1;color:#0d6efd;">
+                        <i class="bx bx-paperclip"></i>
+                    </button>
+                    <?php endif; ?>
+                </div>
+                <?php if (!empty($list->CreatedBy)): ?>
+                <div style="font-size:.68rem;color:#bbb;">by <?php echo htmlspecialchars($list->CreatedBy); ?></div>
+                <?php endif; ?>
             <?php endif; ?>
         </td>
 
@@ -102,33 +136,84 @@ if (!empty($DataLists)):
         </td>
 
         <!-- Customer -->
-        <td>
+        <td class="inv-party-td">
             <div class="d-flex align-items-center gap-2">
                 <?php partyAvatar($list->PartyName, $list->PartyImage ?? null, $cdnUrl); ?>
                 <div>
-                    <div class="trans-party-name"><?php echo r2k_party_name($list->PartyName ?? '', $list->MobileNumber ?? '', $list->CountryCode ?? '', '', !empty($list->PartyImage) ? $cdnUrl . $list->PartyImage : ''); ?></div>
-                    <?php if (!empty($list->MobileNumber)): ?>
-                    <div class="trans-party-mobile d-flex align-items-center gap-1 mt-1">
-                        <span class="copy-mobile cursor-pointer" data-mobile="<?php echo htmlspecialchars($list->MobileNumber); ?>" title="Click to copy">
-                            <?php echo ($list->CountryCode ? htmlspecialchars($list->CountryCode) . ' ' : '') . htmlspecialchars($list->MobileNumber); ?>
-                        </span>
-                        <a href="https://wa.me/<?php echo preg_replace('/[^0-9]/', '', ($list->CountryCode ?? '') . $list->MobileNumber); ?>?text=Hi"
-                           target="_blank" class="text-success" title="WhatsApp" style="line-height:1;">
-                            <i class="bx bxl-whatsapp fs-6"></i>
-                        </a>
+                    <div class="trans-party-name"><?php echo r2k_party_name($list->PartyName ?? '', $list->MobileNumber ?? '', $list->CountryCode ?? '', $list->PartyArea ?? '', !empty($list->PartyImage) ? $cdnUrl . $list->PartyImage : ''); ?></div>
+                    <?php if (!empty($list->PartyArea)): ?>
+                    <div style="font-size:.7rem;color:#888;margin-top:1px;">
+                        <i class="bx bx-map" style="font-size:.72rem;"></i> <?php echo htmlspecialchars($list->PartyArea); ?>
+                    </div>
+                    <?php endif; ?>
+                    <?php if ($hasMobile): ?>
+                    <div class="trans-party-mobile" style="font-size:.72rem;color:#666;margin-top:1px;">
+                        <?php echo ($countryCode ? htmlspecialchars($countryCode) . ' ' : '') . htmlspecialchars($mobileNum); ?>
                     </div>
                     <?php endif; ?>
                 </div>
             </div>
+            <?php if ($hasMobile || $hasEmail): ?>
+            <div class="inv-contact-icons">
+                <?php if ($hasMobile): ?>
+                <a href="javascript:void(0)" class="wa inv-wa-link"
+                   data-wa-url="https://wa.me/<?php echo $waNum; ?>?text=Hi"
+                   data-bs-toggle="tooltip" data-bs-trigger="hover" title="WhatsApp">
+                    <i class="bx bxl-whatsapp"></i>
+                </a>
+                <button class="comm-send-single sms"
+                    data-commtype="SMS"
+                    data-recipienttype="Customer"
+                    data-uid="<?php echo (int)$list->PartyUID; ?>"
+                    data-name="<?php echo htmlspecialchars($list->PartyName ?? ''); ?>"
+                    data-mobile="<?php echo htmlspecialchars($mobileNum); ?>"
+                    data-email="<?php echo htmlspecialchars($partyEmail); ?>"
+                    data-module-uid="<?php echo (int)$list->ModuleUID; ?>"
+                    data-bs-toggle="tooltip" data-bs-trigger="hover" title="Send SMS">
+                    <i class="bx bx-message-dots"></i>
+                </button>
+                <?php endif; ?>
+                <?php if ($hasEmail): ?>
+                <button class="comm-send-single em"
+                    data-commtype="Email"
+                    data-recipienttype="Customer"
+                    data-uid="<?php echo (int)$list->PartyUID; ?>"
+                    data-trans-uid="<?php echo (int)$list->TransUID; ?>"
+                    data-name="<?php echo htmlspecialchars($list->PartyName ?? ''); ?>"
+                    data-mobile="<?php echo htmlspecialchars($mobileNum); ?>"
+                    data-email="<?php echo htmlspecialchars($partyEmail); ?>"
+                    data-module-uid="<?php echo (int)$list->ModuleUID; ?>"
+                    data-bs-toggle="tooltip" data-bs-trigger="hover" title="Send Email">
+                    <i class="bx bx-envelope"></i>
+                </button>
+                <?php endif; ?>
+            </div>
+            <?php endif; ?>
         </td>
 
-        <!-- Expected Return Date -->
+        <!-- Expected Return Date + Days Out -->
         <td class="<?php echo $dueClass; ?>">
-            <?php if (!$isDraft && $challanType === 'Returnable' && !empty($list->ValidityDate)): ?>
-                <?php echo format_datedisplay($list->ValidityDate); ?>
+            <?php if (!$isDraft && in_array($challanType, ['Returnable', 'Job Work']) && !empty($list->ExpectedDeliveryDate)): ?>
+                <?php echo format_datedisplay($list->ExpectedDeliveryDate); ?>
                 <?php echo $dueTag; ?>
             <?php else: ?>
                 <span class="text-muted">—</span>
+            <?php endif; ?>
+            <?php if ($daysOut !== null): ?>
+                <div style="margin-top:3px;">
+                    <?php
+                        if ($daysOut > 7) {
+                            $pillColor  = '#dc3545'; $pillBg = '#fde8ea'; $pillBorder = '#f5c2c7';
+                        } elseif ($daysOut > 3) {
+                            $pillColor  = '#cc5500'; $pillBg = '#ffe8cc'; $pillBorder = '#ffbb80';
+                        } else {
+                            $pillColor  = '#495057'; $pillBg = '#dee2e6'; $pillBorder = '#ced4da';
+                        }
+                    ?>
+                    <span style="font-size:.68rem;font-weight:600;color:<?php echo $pillColor; ?>;background:<?php echo $pillBg; ?>;border:1px solid <?php echo $pillBorder; ?>;padding:1px 7px;border-radius:10px;display:inline-block;">
+                        <?php echo $daysOut === 0 ? 'Today' : $daysOut . ' day' . ($daysOut > 1 ? 's' : '') . ' out'; ?>
+                    </span>
+                </div>
             <?php endif; ?>
         </td>
 
@@ -165,33 +250,90 @@ if (!empty($DataLists)):
                     <button class="trans-actions-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="bx bx-dots-vertical-rounded fs-5"></i>
                     </button>
-                    <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:.82rem;min-width:170px;">
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:.82rem;min-width:175px;">
 
+                        <!-- § Print -->
                         <?php if (!$isDraft): ?>
-                        <li>
-                            <button class="dropdown-item thermalPrintTransaction" data-uid="<?php echo (int)$list->TransUID; ?>" data-module="<?php echo (int)$list->ModuleUID; ?>">
-                                <i class="bx bx-receipt me-2 text-dark"></i>Thermal Print
-                            </button>
-                        </li>
                         <li>
                             <button class="dropdown-item a4PrintTransaction" data-uid="<?php echo (int)$list->TransUID; ?>" data-module="<?php echo (int)$list->ModuleUID; ?>">
                                 <i class="bx bx-printer me-2 text-primary"></i>Print / Download
                             </button>
                         </li>
-                        <li><hr class="dropdown-divider my-1"></li>
-                        <?php endif; ?>
-
-                        <?php if ($status === 'Dispatched'): ?>
-                        <?php if (in_array($challanType, ['Returnable', 'Job Work'])): ?>
                         <li>
-                            <button class="dropdown-item dc-status-update"
-                                    data-uid="<?php echo (int)$list->TransUID; ?>"
-                                    data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>"
-                                    data-status="Returned">
-                                <i class="bx bx-undo me-2 text-info"></i>Mark as Returned
+                            <button class="dropdown-item downloadPdfTransaction" data-uid="<?php echo (int)$list->TransUID; ?>" data-module="<?php echo (int)$list->ModuleUID; ?>">
+                                <i class="bx bx-download me-2 text-success"></i>Download PDF
                             </button>
                         </li>
-                        <?php else: ?>
+                        <li>
+                            <button class="dropdown-item thermalPrintTransaction" data-uid="<?php echo (int)$list->TransUID; ?>" data-module="<?php echo (int)$list->ModuleUID; ?>">
+                                <i class="bx bx-receipt me-2 text-dark"></i>Thermal Print
+                            </button>
+                        </li>
+                        <?php endif; ?>
+
+                        <!-- § Communication (owns top divider; hidden when no mobile + no email) -->
+                        <?php if (!$isDraft && ($hasMobile || $hasEmail)): ?>
+                        <li><hr class="dropdown-divider my-1"></li>
+                        <?php if ($hasMobile): ?>
+                        <li>
+                            <a class="dropdown-item inv-wa-link" href="javascript:void(0)"
+                               data-wa-url="https://wa.me/<?php echo $waNum; ?>?text=Hi"
+                               style="color:#25d366;">
+                                <i class="bx bxl-whatsapp me-2"></i>Share via WhatsApp
+                            </a>
+                        </li>
+                        <li>
+                            <button class="dropdown-item comm-send-single"
+                                    data-commtype="SMS"
+                                    data-recipienttype="Customer"
+                                    data-uid="<?php echo (int)$list->PartyUID; ?>"
+                                    data-name="<?php echo htmlspecialchars($list->PartyName ?? ''); ?>"
+                                    data-mobile="<?php echo htmlspecialchars($mobileNum); ?>"
+                                    data-email="<?php echo htmlspecialchars($partyEmail); ?>"
+                                    data-module-uid="<?php echo (int)$list->ModuleUID; ?>"
+                                    style="color:#0097a7;">
+                                <i class="bx bx-message-dots me-2"></i>Send SMS
+                            </button>
+                        </li>
+                        <?php endif; ?>
+                        <?php if ($hasEmail): ?>
+                        <li>
+                            <button class="dropdown-item comm-send-single"
+                                    data-commtype="Email"
+                                    data-recipienttype="Customer"
+                                    data-uid="<?php echo (int)$list->PartyUID; ?>"
+                                    data-trans-uid="<?php echo (int)$list->TransUID; ?>"
+                                    data-name="<?php echo htmlspecialchars($list->PartyName ?? ''); ?>"
+                                    data-mobile="<?php echo htmlspecialchars($mobileNum); ?>"
+                                    data-email="<?php echo htmlspecialchars($partyEmail); ?>"
+                                    data-module-uid="<?php echo (int)$list->ModuleUID; ?>"
+                                    style="color:#1565c0;">
+                                <i class="bx bx-envelope me-2"></i>Send Email
+                            </button>
+                        </li>
+                        <?php endif; ?>
+                        <?php endif; ?>
+
+                        <!-- § Row actions (owns top divider; hidden when draft) -->
+                        <?php if (!$isDraft): ?>
+                        <li><hr class="dropdown-divider my-1"></li>
+                        <?php if ($status !== 'Cancelled'): ?>
+                        <li>
+                            <a class="dropdown-item" href="/packing-list/<?php echo (int)$list->TransUID; ?>">
+                                <i class="bx bx-list-ul me-2 text-secondary"></i>Packing List
+                            </a>
+                        </li>
+                        <?php endif; ?>
+                        <?php if (in_array($status, ['Dispatched', 'Partially Returned']) && in_array($challanType, ['Returnable', 'Job Work'])): ?>
+                        <li>
+                            <button class="dropdown-item dc-partial-return-btn"
+                                    data-uid="<?php echo (int)$list->TransUID; ?>"
+                                    data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>">
+                                <i class="bx bx-adjust me-2 text-info"></i>Partial / Full Return
+                            </button>
+                        </li>
+                        <?php endif; ?>
+                        <?php if ($status === 'Dispatched' && !in_array($challanType, ['Returnable', 'Job Work'])): ?>
                         <li>
                             <button class="dropdown-item dc-status-update"
                                     data-uid="<?php echo (int)$list->TransUID; ?>"
@@ -201,8 +343,6 @@ if (!empty($DataLists)):
                             </button>
                         </li>
                         <?php endif; ?>
-                        <?php endif; ?>
-
                         <?php if ($status === 'Delivered'): ?>
                         <li>
                             <button class="dropdown-item convertChallanToInvoice"
@@ -212,9 +352,23 @@ if (!empty($DataLists)):
                             </button>
                         </li>
                         <?php endif; ?>
+                        <?php endif; ?>
 
-                        <?php if (!$isTerminal): ?>
+                        <!-- § Clone (owns top divider; hidden when draft) -->
+                        <?php if (!$isDraft): ?>
                         <li><hr class="dropdown-divider my-1"></li>
+                        <li>
+                            <button class="dropdown-item duplicateDeliveryChallan"
+                                    data-uid="<?php echo (int)$list->TransUID; ?>"
+                                    data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>">
+                                <i class="bx bx-copy me-2 text-info"></i>Clone
+                            </button>
+                        </li>
+                        <?php endif; ?>
+
+                        <!-- § Danger (owns top divider; hidden when terminal) -->
+                        <?php if (!$isTerminal): ?>
+                        <?php if (!$isDraft): ?><li><hr class="dropdown-divider my-1"></li><?php endif; ?>
                         <?php if (!$isDraft): ?>
                         <li>
                             <button class="dropdown-item text-warning dc-status-update"
@@ -230,22 +384,6 @@ if (!empty($DataLists)):
                                     data-uid="<?php echo (int)$list->TransUID; ?>"
                                     data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? 'Draft'); ?>">
                                 <i class="bx bx-trash me-2"></i>Delete
-                            </button>
-                        </li>
-                        <?php endif; ?>
-
-                        <?php if (!$isDraft): ?>
-                        <li><hr class="dropdown-divider my-1"></li>
-                        <li>
-                            <a class="dropdown-item" href="/deliverychallan/packingList/<?php echo (int)$list->TransUID; ?>" target="_blank">
-                                <i class="bx bx-list-ul me-2 text-secondary"></i>Packing List
-                            </a>
-                        </li>
-                        <li>
-                            <button class="dropdown-item duplicateDeliveryChallan"
-                                    data-uid="<?php echo (int)$list->TransUID; ?>"
-                                    data-num="<?php echo htmlspecialchars($list->UniqueNumber ?? ''); ?>">
-                                <i class="bx bx-copy me-2 text-info"></i>Duplicate
                             </button>
                         </li>
                         <?php endif; ?>

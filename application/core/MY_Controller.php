@@ -2,7 +2,8 @@
 
 class MY_Controller extends CI_Controller {
 
-    public $pageData = [];
+    public    $pageData      = [];
+    protected $pageModuleUID = 0;
 
     // ── Bank / Cash ledger entry (available in every controller) ─────────────
     // Writes a single CR or DR row to AccountLedgerTbl for a given bank account.
@@ -62,19 +63,14 @@ class MY_Controller extends CI_Controller {
     // Call after reverseStockMovements — looks up affected products from TransProductsTbl and syncs each.
     protected function _syncProductCacheByTransUID(int $transUID): void {
         try {
-            $readDb = $this->load->database('ReadDB', TRUE);
-            $readDb->db_debug = FALSE;
-            $readDb->select('DISTINCT ProductUID');
-            $readDb->from('Transaction.TransProductsTbl');
-            $readDb->where(['TransUID' => $transUID, 'IsDeleted' => 0]);
-            $rows = $readDb->get()->result();
-            foreach ($rows as $row) {
-                if ((int)$row->ProductUID > 0) {
-                    $this->cachehelper->upsertProduct((int)$row->ProductUID);
-                }
+            // DB query lives in MY_Model — controller only orchestrates
+            $this->load->model('transactions_model');
+            $uids = $this->transactions_model->getProductUIDsByTransUID($transUID);
+            foreach ($uids as $uid) {
+                $this->cachehelper->upsertProduct($uid);
             }
-        } catch (Exception $e) {
-            log_message('error', 'Product cache sync failed for TransUID=' . $transUID . ': ' . $e->getMessage());
+        } catch (Throwable $e) {
+            log_message('error', '_syncProductCacheByTransUID failed for TransUID=' . $transUID . ': ' . $e->getMessage());
         }
     }
 
@@ -453,6 +449,9 @@ class MY_Controller extends CI_Controller {
             $folder = $folderMap[(int)($this->pageModuleUID ?? 0)] ?? 'transactions';
         }
 
+        $this->load->model('transactions_model');
+        $sortOffset = $this->transactions_model->getMaxAttachmentSortOrder((int)$uid, (int)$orgUID, $sourceType) + 1;
+
         $count = count($files['name']);
         for ($i = 0; $i < $count; $i++) {
             if ($files['error'][$i] !== UPLOAD_ERR_OK || empty($files['name'][$i])) continue;
@@ -476,7 +475,7 @@ class MY_Controller extends CI_Controller {
                     'FilePath'   => $filePath,
                     'FileType'   => $files['type'][$i],
                     'FileSize'   => $files['size'][$i],
-                    'SortOrder'  => $i,
+                    'SortOrder'  => $sortOffset + $i,
                     'IsActive'   => 1,
                     'IsDeleted'  => 0,
                     'CreatedBy'  => $userUID,
@@ -491,7 +490,7 @@ class MY_Controller extends CI_Controller {
                     'FilePath'  => $filePath,
                     'FileType'  => $files['type'][$i],
                     'FileSize'  => $files['size'][$i],
-                    'SortOrder' => $i,
+                    'SortOrder' => $sortOffset + $i,
                     'IsActive'  => 1,
                     'IsDeleted' => 0,
                     'CreatedBy' => $userUID,
@@ -639,13 +638,26 @@ class MY_Controller extends CI_Controller {
         return $result;
     }
 
-    protected function _buildDateRange($range) {
+    protected function _buildDateRange(string $range): array {
         $today = date('Y-m-d');
         $y     = (int)date('Y');
         $m     = (int)date('m');
         $from  = '';
         $to    = $today;
         $label = 'This Month';
+
+        // Handle custom range stored as 'custom|YYYY-MM-DD|YYYY-MM-DD'
+        if (strncmp($range, 'custom|', 7) === 0) {
+            $parts = explode('|', $range);
+            if (count($parts) === 3 && $parts[1] && $parts[2]) {
+                return [
+                    'range' => $range,
+                    'from'  => $parts[1],
+                    'to'    => $parts[2],
+                    'label' => 'Custom',
+                ];
+            }
+        }
 
         switch ($range) {
             case 'today':
@@ -699,6 +711,9 @@ class MY_Controller extends CI_Controller {
                 $from   = $fyYear . '-04-01';
                 $to     = ($fyYear + 1) . '-03-31';
                 $label  = 'Previous FY'; break;
+            case 'custom':
+                // Stored as 'custom' without dates — treat as no range
+                $from = ''; $to = ''; $label = 'This Month'; $range = 'this_month'; break;
             case '':
             case 'all':
                 $from = ''; $to = ''; $label = 'All Dates'; $range = ''; break;

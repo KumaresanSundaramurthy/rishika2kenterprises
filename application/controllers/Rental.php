@@ -4,7 +4,7 @@ class Rental extends MY_Controller {
 
     public  $pageData      = [];
     private $EndReturnData;
-    private $pageModuleUID = 116;
+    protected $pageModuleUID = 116;
 
     public function __construct() {
         parent::__construct();

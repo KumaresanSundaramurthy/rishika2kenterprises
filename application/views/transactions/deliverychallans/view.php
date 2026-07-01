@@ -127,6 +127,55 @@ $this->load->view('common/transactions/header'); ?>
 
                     <?php $this->load->view('common/transactions/print_modals'); ?>
 
+                    <!-- ── Partial Return Modal ───────────────────────────────── -->
+                    <div class="modal fade" id="dcPartialReturnModal" tabindex="-1" data-bs-backdrop="static" aria-hidden="true">
+                        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                            <div class="modal-content">
+                                <div class="modal-header" style="background:linear-gradient(135deg,#0f766e,#0d9488);padding:14px 20px;">
+                                    <div class="d-flex align-items-center gap-3 flex-grow-1 min-w-0">
+                                        <div style="background:rgba(255,255,255,.18);border-radius:8px;padding:8px 10px;flex-shrink:0;">
+                                            <i class="bx bx-undo" style="font-size:1.4rem;color:#fff;display:block;"></i>
+                                        </div>
+                                        <div class="min-w-0">
+                                            <div style="font-size:.95rem;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" id="dcPRModalTitle">Partial / Full Return</div>
+                                            <div style="font-size:.72rem;color:rgba(255,255,255,.75);">Enter qty to return for each item</div>
+                                        </div>
+                                    </div>
+                                    <button type="button" class="btn-close btn-close-white ms-3" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body p-0">
+                                    <div id="dcPRLoadingState" class="text-center py-5">
+                                        <div class="spinner-border text-primary"></div>
+                                    </div>
+                                    <div id="dcPRContent" style="display:none;">
+                                        <table class="table table-sm table-hover mb-0">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th class="px-3">Product</th>
+                                                    <th class="text-center" style="width:110px;">Dispatched</th>
+                                                    <th class="text-center" style="width:110px;">Returned</th>
+                                                    <th class="text-center" style="width:110px;">Still Out</th>
+                                                    <th class="text-center" style="width:130px;">Return Now</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="dcPRTableBody"></tbody>
+                                        </table>
+                                        <div class="px-3 pt-3 pb-3">
+                                            <label class="form-label small fw-semibold">Notes <span class="text-muted fw-normal">(optional)</span></label>
+                                            <textarea id="dcPRNotes" class="form-control form-control-sm" rows="2" placeholder="Reason for return, condition of goods, etc."></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer" style="border-top:1px solid #dee2e6;padding:10px 16px;justify-content:flex-end;">
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="button" class="btn btn-sm px-4" id="dcPRSubmitBtn" style="background:#0f766e;color:#fff;border:none;" disabled>
+                                        <i class="bx bx-undo me-1"></i>Confirm Return
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Sticky pagination -->
                     <div class="card mb-0 cust-sticky-pag" id="dcStickyPagination" style="display:none;">
                         <div class="card-body p-0">
@@ -153,6 +202,8 @@ $this->load->view('common/transactions/header'); ?>
 <?php $this->load->view('common/transactions/footer'); ?>
 
 <script src="/js/common/party_filter.js"></script>
+<script src="/js/common/communication.js"></script>
+<script src="<?php echo _assetV('/js/transactions/attachments.js'); ?>"></script>
 <script src="/js/transactions/viewmodal.js"></script>
 <script src="/js/transactions/a4_print.js"></script>
 <script src="/js/transactions/deliverychallans.js"></script>
@@ -331,9 +382,9 @@ $(function () {
                 method: 'POST',
                 data  : _actionPostData({ TransUID: uid }),
                 success: function (resp) {
-                    if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); return; }
+                    if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
                     _renderListResponse(resp);
-                    Swal.fire({ icon: 'success', text: resp.Message, timer: 1500, showConfirmButton: false });
+                    showToastNotification(resp.Message, 'success');
                 }
             });
         });
@@ -355,43 +406,194 @@ $(function () {
                 method: 'POST',
                 data  : { TransUID: uid, [CsrfName]: CsrfToken },
                 success: function (resp) {
-                    if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); return; }
+                    if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
                     window.location.href = resp.RedirectURL;
                 }
             });
         });
     });
 
-    // ── Duplicate ────────────────────────────────────────────
+    // ── Clone ────────────────────────────────────────────
     $(document).on('click', '.duplicateDeliveryChallan', function () {
         var uid = $(this).data('uid'), num = $(this).data('num') || '';
         Swal.fire({
-            title: 'Duplicate Challan?',
-            html : num ? 'Create a copy of <strong>' + num + '</strong>?' : 'Duplicate this delivery challan?',
+            title: 'Clone Challan?',
+            html : num ? 'Create a copy of <strong>' + num + '</strong>?' : 'Clone this delivery challan?',
             icon : 'question', showCancelButton: true,
             confirmButtonColor: '#0dcaf0', cancelButtonColor: '#6c757d',
-            confirmButtonText: 'Yes, Duplicate', cancelButtonText: 'Cancel'
+            confirmButtonText: 'Yes, Clone', cancelButtonText: 'Cancel'
         }).then(function (r) {
             if (!r.isConfirmed) return;
-            $.ajax({
-                url   : '/deliverychallan/duplicateDeliveryChallan',
-                method: 'POST',
-                data  : { TransUID: uid, [CsrfName]: CsrfToken },
-                success: function (resp) {
-                    if (resp.Error) { Swal.fire({ icon: 'error', text: resp.Message }); return; }
-                    Swal.fire({
-                        icon: 'success', text: resp.Message, timer: 2000, showConfirmButton: false
-                    }).then(function () {
-                        if (resp.EditURL) window.location.href = resp.EditURL;
-                        else getDeliveryChallansDetails();
-                    });
-                }
-            });
+            window.location.href = '/deliverychallan/create?fromClone=' + uid;
         });
     });
 
     $(document).on('change', '.dcHeaderCheck', function () {
         $('.dcCheck').prop('checked', $(this).is(':checked'));
+    });
+
+    // ── Partial / Full Return ─────────────────────────────────────
+
+    /**
+     * Returns true if the unit name is a weight/volume/measurement type
+     * that requires decimal input.
+     * @param {string} unitName
+     * @returns {boolean}
+     */
+    function _isDecimalUnit(unitName) {
+        var u = (unitName || '').toLowerCase().trim();
+        var decimalKeywords = ['gram', 'gm', 'kg', 'kilogram', 'litre', 'liter', 'l',
+            'ml', 'milliliter', 'millilitre', 'tonne', 'ton', 'mg', 'milligram',
+            'oz', 'ounce', 'pound', 'lb', 'meter', 'metre', 'cm', 'mm', 'ft',
+            'inch', 'km', 'kilometer', 'kilometre'];
+        return decimalKeywords.some(function(k) { return u === k || u.startsWith(k + 's'); });
+    }
+
+    var _dcPRTransUID = 0;
+    var $dcPRModal    = $('#dcPartialReturnModal');
+
+    $(document).on('click', '.dc-partial-return-btn', function () {
+        _dcPRTransUID = $(this).data('uid');
+        var num       = $(this).data('num') || '';
+        $('#dcPRModalTitle').text('Partial / Full Return' + (num ? ' — ' + num : ''));
+        $('#dcPRContent').hide();
+        $('#dcPRLoadingState').show();
+        $('#dcPRSubmitBtn').prop('disabled', true);
+        $dcPRModal.modal('show');
+
+        $.ajax({
+            url   : '/deliverychallan/getPartialReturnData',
+            method: 'POST',
+            data  : { TransUID: _dcPRTransUID, [CsrfName]: CsrfToken },
+            success: function (resp) {
+                $('#dcPRLoadingState').hide();
+                if (resp.Error) {
+                    $('#dcPRContent').html('<p class="text-danger text-center py-3 px-3">' + resp.Message + '</p>').show();
+                    return;
+                }
+                // Build rows
+                var rows = '';
+                $.each(resp.Items, function (_, item) {
+                    var stillOut   = item.StillOut;
+                    var disabled   = stillOut <= 0 ? 'disabled' : '';
+                    var rowClass   = stillOut <= 0 ? 'table-success' : '';
+                    var unit       = $('<span>').text(item.UnitName || '').html();
+                    var allowDec   = _isDecimalUnit(item.UnitName);
+                    var step       = allowDec ? '0.001' : '1';
+                    var unitSpan   = unit ? '<span class="text-muted ms-1" style="font-size:.72rem;font-weight:400;">' + unit + '</span>' : '';
+                    var stillColor = stillOut > 0 ? '#0f766e' : '#6c757d';
+                    rows += '<tr class="' + rowClass + '">' +
+                        '<td class="px-3" style="font-size:.83rem;">' +
+                            '<div class="fw-semibold">' + $('<span>').text(item.ProductName).html() + '</div>' +
+                        '</td>' +
+                        '<td class="text-center" style="font-size:.83rem;">' + item.DispatchedQty + unitSpan + '</td>' +
+                        '<td class="text-center" style="font-size:.83rem;">' + item.ReturnedQty + unitSpan + '</td>' +
+                        '<td class="text-center fw-semibold" style="font-size:.83rem;color:' + stillColor + ';">' + stillOut + unitSpan + '</td>' +
+                        '<td class="text-center">' +
+                            '<div class="d-flex align-items-center justify-content-center gap-1">' +
+                                '<input type="number" class="form-control form-control-sm text-center dc-pr-qty" ' +
+                                    'data-trans-prod-uid="' + item.TransProdUID + '" ' +
+                                    'data-product-uid="' + item.ProductUID + '" ' +
+                                    'data-max="' + stillOut + '" ' +
+                                    'data-allow-decimal="' + (allowDec ? '1' : '0') + '" ' +
+                                    'min="0" max="' + stillOut + '" step="' + step + '" ' +
+                                    'value="0" ' + disabled + ' ' +
+                                    'style="width:75px;">' +
+                                (unit ? '<span class="text-muted" style="font-size:.72rem;white-space:nowrap;">' + unit + '</span>' : '') +
+                            '</div>' +
+                        '</td>' +
+                    '</tr>';
+                });
+                $('#dcPRTableBody').html(rows);
+                $('#dcPRNotes').val('');
+                $('#dcPRContent').show();
+                _dcPRCheckSubmit();
+            },
+            error: function () {
+                $('#dcPRLoadingState').hide();
+                $('#dcPRContent').html('<p class="text-danger text-center py-3 px-3">Failed to load return data.</p>').show();
+            }
+        });
+    });
+
+    // Enable submit only when at least one qty > 0 and all within range
+    function _dcPRCheckSubmit() {
+        var valid = false, hasError = false;
+        $('.dc-pr-qty').each(function () {
+            var v   = parseFloat($(this).val()) || 0;
+            var max = parseFloat($(this).data('max')) || 0;
+            if (v > 0) valid = true;
+            if (v < 0 || v > max + 0.001) hasError = true;
+        });
+        $('#dcPRSubmitBtn').prop('disabled', !valid || hasError);
+    }
+    $(document).on('keydown', '.dc-pr-qty', function (e) {
+        var allowDecimal = $(this).data('allow-decimal') === '1' || $(this).data('allow-decimal') === 1;
+        if (!allowDecimal && (e.key === '.' || e.key === ',')) {
+            e.preventDefault();
+        }
+    });
+
+    $(document).on('input', '.dc-pr-qty', function () {
+        var allowDecimal = $(this).data('allow-decimal') === '1' || $(this).data('allow-decimal') === 1;
+        var max = parseFloat($(this).data('max')) || 0;
+        var raw = $(this).val();
+
+        if (!allowDecimal && raw !== '' && raw.indexOf('.') !== -1) {
+            raw = String(Math.floor(parseFloat(raw) || 0));
+            $(this).val(raw);
+        }
+
+        var v = parseFloat(raw) || 0;
+        if (v > max) {
+            v = allowDecimal ? max : Math.floor(max);
+            $(this).val(v);
+        }
+
+        $(this).toggleClass('is-invalid', v < 0 || v > max + 0.001);
+        _dcPRCheckSubmit();
+    });
+
+    $('#dcPRSubmitBtn').on('click', function () {
+        var returnItems = [];
+        $('.dc-pr-qty').each(function () {
+            var qty = parseFloat($(this).val()) || 0;
+            if (qty > 0) {
+                returnItems.push({
+                    TransProdUID: $(this).data('trans-prod-uid'),
+                    ProductUID  : $(this).data('product-uid'),
+                    ReturnQty   : qty,
+                });
+            }
+        });
+        if (!returnItems.length) return;
+
+        $('#dcPRSubmitBtn').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Processing...');
+
+        $.ajax({
+            url   : '/deliverychallan/partialReturn',
+            method: 'POST',
+            data  : {
+                TransUID   : _dcPRTransUID,
+                ReturnItems: JSON.stringify(returnItems),
+                Notes      : $('#dcPRNotes').val().trim(),
+                PageNo     : PageNo,
+                RowLimit   : RowLimit,
+                Filter     : Filter,
+                [CsrfName] : CsrfToken,
+            },
+            success: function (resp) {
+                $('#dcPRSubmitBtn').prop('disabled', false).html('<i class="bx bx-undo me-1"></i>Confirm Return');
+                if (resp.Error) { showToastNotification(resp.Message, 'error'); return; }
+                $dcPRModal.modal('hide');
+                _renderListResponse(resp);
+                showToastNotification(resp.Message, 'success');
+            },
+            error: function () {
+                $('#dcPRSubmitBtn').prop('disabled', false).html('<i class="bx bx-undo me-1"></i>Confirm Return');
+                showToastNotification('Request failed. Please try again.', 'error');
+            }
+        });
     });
 
 });

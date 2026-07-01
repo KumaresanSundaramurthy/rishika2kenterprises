@@ -149,15 +149,6 @@ class Vendors extends MY_Controller {
         }
     }
 
-    public function create() {
-        try {
-            $this->loadCountryStateCityData();
-            $this->load->view('vendors/forms/add', $this->pageData);
-        } catch (Exception $e) {
-            redirect('vendors', 'refresh');
-        }
-    }
-
     private function buildVendorFormData($postData, $isCreate = false) {
         $data = [
             'Name'              => getPostValue($postData, 'Name'),
@@ -303,66 +294,6 @@ class Vendors extends MY_Controller {
         }
 
         $this->globalservice->sendJsonResponse($this->EndReturnData);
-    }
-
-    public function edit($VendorUID) {
-        try {
-
-            $VendorUID = (int) $VendorUID;
-            if ($VendorUID <= 0) { redirect('vendors', 'refresh'); return; }
-
-            $this->load->model('vendors_model');
-            $getVendorData = $this->vendors_model->getVendors(['Vendors.VendorUID' => $VendorUID]);
-            if (empty($getVendorData) || count($getVendorData) !== 1) { redirect('vendors', 'refresh'); return; }
-
-            $this->pageData['EditData']   = $getVendorData[0];
-            $this->pageData['BankDetails'] = $this->vendors_model->getVendorBankInfo(['VendBankDetails.VendorUID' => $getVendorData[0]->VendorUID]);
-
-            $this->loadCountryStateCityData();
-
-            $AddressInfo = $this->vendors_model->getVendorAddress(['VendAddress.VendorUID' => $getVendorData[0]->VendorUID]);
-            $this->pageData['BillingAddr']  = null;
-            $this->pageData['ShippingAddr'] = null;
-            foreach ($AddressInfo as $addr) {
-                if ($addr->AddressType === 'Billing')  $this->pageData['BillingAddr']  = $addr;
-                if ($addr->AddressType === 'Shipping') $this->pageData['ShippingAddr'] = $addr;
-            }
-
-            $this->load->view('vendors/forms/edit', $this->pageData);
-
-        } catch (Exception $e) {
-            redirect('vendors', 'refresh');
-        }
-    }
-
-    public function cloneVendor($VendorUID) {
-        try {
-
-            $VendorUID = (int) $VendorUID;
-            if ($VendorUID <= 0) { redirect('vendors', 'refresh'); return; }
-
-            $this->load->model('vendors_model');
-            $vendorData = $this->vendors_model->getVendors(['Vendors.VendorUID' => $VendorUID]);
-            if (empty($vendorData) || count($vendorData) !== 1) { redirect('vendors', 'refresh'); return; }
-
-            $this->pageData['EditData']   = $vendorData[0];
-            $this->pageData['BankDetails'] = $this->vendors_model->getVendorBankInfo(['VendBankDetails.VendorUID' => $vendorData[0]->VendorUID]);
-
-            $this->loadCountryStateCityData();
-
-            $AddressInfo = $this->vendors_model->getVendorAddress(['VendAddress.VendorUID' => $vendorData[0]->VendorUID]);
-            $this->pageData['BillingAddr']  = null;
-            $this->pageData['ShippingAddr'] = null;
-            foreach ($AddressInfo as $addr) {
-                if ($addr->AddressType === 'Billing')  $this->pageData['BillingAddr']  = $addr;
-                if ($addr->AddressType === 'Shipping') $this->pageData['ShippingAddr'] = $addr;
-            }
-
-            $this->load->view('vendors/forms/clone', $this->pageData);
-
-        } catch (Exception $e) {
-            redirect('vendors', 'refresh');
-        }
     }
 
     public function loadModalForm($type = 'add', $uid = 0) {

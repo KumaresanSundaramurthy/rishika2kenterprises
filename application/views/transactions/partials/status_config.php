@@ -30,7 +30,8 @@ $statusBadgeClass = [
     'Fulfilled' => 'trans-badge-Fulfilled',
     'Received'  => 'trans-badge-Paid',
     'Approved'  => 'trans-badge-Confirmed',
-    'Returned'  => 'trans-badge-Fulfilled',
+    'Returned'           => 'trans-badge-Fulfilled',
+    'Partially Returned' => 'trans-badge-Partial',
 ];
 
 // ── Boxicon per status ──────────────────────────────────────────
@@ -54,7 +55,8 @@ $statusIcon = [
     'Fulfilled' => 'bx-package',
     'Received'  => 'bx-check-circle',
     'Approved'  => 'bx-check-double',
-    'Returned'  => 'bx-undo',
+    'Returned'           => 'bx-undo',
+    'Partially Returned' => 'bx-adjust',
 ];
 
 // ── Terminal states (no more transitions) ───────────────────────

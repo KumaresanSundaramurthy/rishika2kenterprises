@@ -105,6 +105,7 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
 
                     <div class="card mb-3">
 
+                        <?php $_hideNav = (int)($JwtData->TransSettings->HideNavOnTransForm ?? 0); ?>
                         <?php if (!$isEdit): ?>
                         <div class="card-header bg-white border-bottom d-flex align-items-center justify-content-between px-3 py-2 trans-header-static trans-theme modal-header-center-sticky">
                             <div class="d-flex align-items-center gap-3" id="transHeaderInfo">
@@ -135,7 +136,6 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
                                         <li><button type="submit" class="dropdown-item py-1" name="action" value="save_thermal"><i class="bx bx-receipt text-success me-2"></i>Save &amp; Print Thermal</button></li>
                                     </ul>
                                 </div>
-                                <?php $_hideNav = (int)($JwtData->TransSettings->HideNavOnTransForm ?? 0); ?>
                                 <a href="/quotations" class="btn btn-sm btn-outline-danger px-3<?php echo $_hideNav ? ' d-none' : ''; ?>"><i class="bx bx-x me-1"></i>Close</a>
                             </div>
                         </div>
@@ -242,9 +242,12 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
                                     <label for="transDate" class="trans-field-label">Quotation Date <span class="text-danger">*</span></label>
                                     <div class="input-group input-group-sm input-group-merge">
                                         <span class="input-group-text bg-white"><i class="icon-base bx bx-calendar"></i></span>
-                                        <input type="text" class="form-control form-control-sm bg-white" id="transDate" name="transDate" readonly="readonly"
-                                            value="<?php echo $isEdit ? htmlspecialchars($QuotData->TransDate ?? '') : format_datedisplay(time(), 'Y-m-d'); ?>"
+                                        <?php $_fmt = $JwtData->GenSettings->FormDateFormat ?? 'd-m-Y'; ?>
+                                        <input type="text" class="form-control form-control-sm bg-white" id="transDate_disp" readonly="readonly"
+                                            value="<?php echo $isEdit ? format_datedisplay($QuotData->TransDate ?? '', $_fmt) : format_datedisplay(time(), $_fmt); ?>"
                                             required />
+                                        <input type="hidden" id="transDate" name="transDate"
+                                            value="<?php echo $isEdit ? htmlspecialchars(format_datedisplay($QuotData->TransDate ?? '', 'Y-m-d')) : format_datedisplay(time(), 'Y-m-d'); ?>" />
                                     </div>
                                 </div>
                                 <div class="col-auto" style="min-width:120px;">
@@ -257,9 +260,11 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
                                     <label for="validityDate" class="trans-field-label">Validity Date</label>
                                     <div class="input-group input-group-sm input-group-merge">
                                         <span class="input-group-text bg-white"><i class="icon-base bx bx-calendar"></i></span>
-                                        <input type="text" class="form-control form-control-sm bg-white" id="validityDate" name="validityDate" readonly="readonly"
-                                            value="<?php echo $isEdit ? htmlspecialchars($QuotData->ValidityDate ?? '') : format_datedisplay(time(), 'Y-m-d', '', null, '+7'); ?>"
+                                        <input type="text" class="form-control form-control-sm bg-white" id="validityDate_disp" readonly="readonly"
+                                            value="<?php echo $isEdit ? format_datedisplay($QuotData->ValidityDate ?? '', $_fmt) : format_datedisplay(time(), $_fmt, '', null, '+7'); ?>"
                                             required />
+                                        <input type="hidden" id="validityDate" name="validityDate"
+                                            value="<?php echo $isEdit ? htmlspecialchars(format_datedisplay($QuotData->ValidityDate ?? '', 'Y-m-d')) : format_datedisplay(time(), 'Y-m-d', '', null, '+7'); ?>" />
                                     </div>
                                 </div>
                                 <div class="col">
@@ -484,8 +489,8 @@ $(function() {
         if (!parseInt($(this).val(), 10)) $('#onAccountIndicator').addClass('d-none');
     });
 
-    transDatePickr('#transDate', false, 'Y-m-d', false, true, true, true, 'd-m-Y');
-    transDatePickr('#validityDate', false, 'Y-m-d', false, false, false, true, 'd-m-Y', '#transDate');
+    transDatePickr('#transDate_disp',    '#transDate',    false, false, true,  true,  '');
+    transDatePickr('#validityDate_disp', '#validityDate', false, false, false, false, '#transDate');
     setupTransactionValidity('#transDate', '#validityDays', '#validityDate');
 
     <?php if ($isEdit): ?>

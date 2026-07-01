@@ -158,7 +158,9 @@ class Products extends MY_Controller {
             $OrgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
             
             $this->pageData['ActiveTabData']  = $activeTab;
-            $this->pageData['ActiveTabName']  = ucfirst($activeTab);
+            // Must match the data-id attribute values on the tab nav links in view.php
+            $tabNameMap = ['item' => 'Item', 'group' => 'Groups', 'category' => 'Categories', 'sizes' => 'Sizes', 'brands' => 'Brands'];
+            $this->pageData['ActiveTabName']  = $tabNameMap[$activeTab] ?? ucfirst($activeTab);
             $this->pageData['ActiveModuleId'] = 4;
 
             $this->pageData['ProductStats'] = $this->products_model->getProductStats($OrgUID);

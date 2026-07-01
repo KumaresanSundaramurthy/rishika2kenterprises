@@ -1,6 +1,6 @@
 <?php defined('BASEPATH') OR exit('No direct script access allowed');
 
-class Transactions_model extends CI_Model {
+class Transactions_model extends MY_Model {
 
     private $EndReturnData;
     private $ReadDb;
@@ -53,6 +53,8 @@ class Transactions_model extends CI_Model {
                 'COALESCE(Cust.EmailAddress, Vend.EmailAddress) AS EmailAddress',
                 'COALESCE(Cust.Image, Vend.Image) AS PartyImage',
                 'Td.ValidityDate AS ValidityDate',
+                'Td.ExpectedDeliveryDate AS ExpectedDeliveryDate',
+                'Td.DeliveryByDate AS DeliveryByDate',
                 'Ts.UpdatedOn AS UpdatedOn',
                 "CONCAT(User.FirstName, ' ', User.LastName) AS UpdatedBy",
                 'IFNULL(PaidSum.PaidAmount, 0) AS PaidAmount',
@@ -64,6 +66,7 @@ class Transactions_model extends CI_Model {
                 'IFNULL(PayInfo.PaymentAttachmentCount, 0) AS PaymentAttachmentCount',
                 '(SELECT COUNT(*) FROM Transaction.TransAttachmentsTbl AT WHERE AT.TransUID = Ts.TransUID AND AT.IsDeleted = 0 AND AT.IsActive = 1) AS AttachmentCount',
                 'Ts.PdfPath AS PdfPath',
+                'Ts.QuotationType AS QuotationType',
             ]);
             $this->ReadDb->from('Transaction.TransactionsTbl as Ts');
             $this->ReadDb->join('Customers.CustomerTbl as Cust', 'Cust.CustomerUID = Ts.PartyUID AND Ts.PartyType = \'C\'', 'LEFT');
@@ -337,8 +340,8 @@ class Transactions_model extends CI_Model {
         return $row ?: null;
     }
 
-    /** Full transaction header row by TransUID + OrgUID. */
-    public function getTransactionById($transUID, $orgUID, $moduleUID) {
+    /** Full transaction header row by TransUID + OrgUID. Pass null for $moduleUID to skip the module filter (cross-module lookups). */
+    public function getTransactionById($transUID, $orgUID, $moduleUID = null) {
         $this->ReadDb->select([
             'Ts.*',
             'COALESCE(Cust.Name, Vend.Name) AS PartyName',
@@ -353,6 +356,7 @@ class Transactions_model extends CI_Model {
             'Td.ValidityDays', 'Td.ValidityDate', 'Td.Reference', 'Td.SupplierInvoiceNo',
             'Td.Notes', 'Td.TermsConditions', 'Td.AdditionalCharges AS AdditionalChargesJson',
             'Td.PlaceOfSupplyCode', 'Td.PlaceOfSupplyName', 'Td.SignatureUID',
+            'Td.ExpectedDeliveryDate', 'Td.DeliveryByDate',
         ]);
         $this->ReadDb->from('Transaction.TransactionsTbl AS Ts');
         $this->ReadDb->join('Customers.CustomerTbl AS Cust', 'Cust.CustomerUID = Ts.PartyUID AND Ts.PartyType = \'C\'', 'LEFT');
@@ -360,9 +364,10 @@ class Transactions_model extends CI_Model {
         $this->ReadDb->join('Transaction.TransDetailTbl AS Td', 'Td.TransUID = Ts.TransUID AND Td.FinancialYear = YEAR(Ts.TransDate)', 'LEFT');
         $this->ReadDb->join('Customers.CustAddressTbl AS BillAddr', "BillAddr.CustomerUID = Ts.PartyUID AND BillAddr.AddressType = 'Billing' AND BillAddr.IsDeleted = 0 AND BillAddr.IsActive = 1", 'LEFT');
         $this->ReadDb->join('Customers.CustAddressTbl AS ShipAddr', "ShipAddr.CustomerUID = Ts.PartyUID AND ShipAddr.AddressType = 'Shipping' AND ShipAddr.IsDeleted = 0 AND ShipAddr.IsActive = 1", 'LEFT');
-        $this->ReadDb->where(['Ts.TransUID' => $transUID, 'Ts.OrgUID' => $orgUID, 'Ts.ModuleUID' => $moduleUID, 'Ts.IsDeleted' => 0]);
+        $where = ['Ts.TransUID' => $transUID, 'Ts.OrgUID' => $orgUID, 'Ts.IsDeleted' => 0];
+        if ($moduleUID !== null) $where['Ts.ModuleUID'] = $moduleUID;
+        $this->ReadDb->where($where);
         return $this->ReadDb->get()->row();
-
     }
 
     /** Returns true if any active transaction with a higher TransUID exists for this org+module. */
@@ -383,6 +388,21 @@ class Transactions_model extends CI_Model {
         $this->ReadDb->where('TransUID', $transUID);
         $row = $this->ReadDb->get()->row();
         return $row ? (int) $row->MaxSeq : 0;
+    }
+
+    /** Max SortOrder already saved for a transaction's attachments (0 if none). */
+    public function getMaxAttachmentSortOrder(int $uid, int $orgUID, ?string $sourceType = null): int {
+        if ($sourceType !== null) {
+            $this->ReadDb->select_max('SortOrder', 'MaxOrder');
+            $this->ReadDb->from('Transaction.ExpenseIncomeAttachmentsTbl');
+            $this->ReadDb->where(['SourceUID' => $uid, 'OrgUID' => $orgUID, 'SourceType' => $sourceType]);
+        } else {
+            $this->ReadDb->select_max('SortOrder', 'MaxOrder');
+            $this->ReadDb->from('Transaction.TransAttachmentsTbl');
+            $this->ReadDb->where(['TransUID' => $uid, 'OrgUID' => $orgUID]);
+        }
+        $row = $this->ReadDb->get()->row();
+        return $row ? (int) $row->MaxOrder : -1;
     }
 
     /** All active line items for a transaction. */
@@ -2747,6 +2767,35 @@ class Transactions_model extends CI_Model {
         ";
         $query = $this->ReadDb->query($sql, [(int)$vendorUID, (int)$orgUID]);
         return $query ? $query->result() : [];
+    }
+
+    // ── DC Partial Return helpers ─────────────────────────────────────────────
+
+    /**
+     * Returns total already-returned qty per TransProdUID for a DC.
+     * Keyed by TransProdUID (int) → total returned (float).
+     *
+     * @param int $transUID
+     * @param int $orgUID
+     * @return array<int,float>
+     */
+    public function getDCReturnedQty(int $transUID, int $orgUID): array {
+        try {
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('TransProdUID, SUM(ReturnedQty) AS TotalReturned');
+            $this->ReadDb->from('Transaction.DCReturnItemsTbl');
+            $this->ReadDb->where(['TransUID' => $transUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
+            $this->ReadDb->group_by('TransProdUID');
+            $rows = $this->ReadDb->get();
+            if (!$rows) return [];
+            $result = [];
+            foreach ($rows->result() as $row) {
+                $result[(int)$row->TransProdUID] = (float)$row->TotalReturned;
+            }
+            return $result;
+        } catch (Exception $e) {
+            return [];
+        }
     }
 
 }

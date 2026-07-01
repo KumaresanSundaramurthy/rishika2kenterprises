@@ -13,7 +13,7 @@ class Deliverychallans extends MY_Controller {
     /** @var object|null */
     private $EndReturnData;
     /** @var int */
-    private $pageModuleUID;
+    protected $pageModuleUID;
 
     public function __construct() {
         parent::__construct();
@@ -33,7 +33,7 @@ class Deliverychallans extends MY_Controller {
             $limit = $GeneralSettings->RowLimit ?? 10;
 
             $this->load->model('transactions_model');
-            $datePref   = $this->getDateFilterPreference('deliverychallans');
+            $datePref   = $this->getDateFilterPreference('deliverychallan'); // matches URL path /deliverychallan
             $initFilter = $datePref['from'] ? ['DateFrom' => $datePref['from'], 'DateTo' => $datePref['to']] : [];
             $allData      = $this->transactions_model->getTransactionPageList($limit, 0, $this->pageModuleUID, $initFilter, 0);
             $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, $initFilter);
@@ -112,6 +112,18 @@ class Deliverychallans extends MY_Controller {
                 $this->pageData['SOSourceItems'] = $soItems;
             }
 
+            // Pre-fill from Clone (clone opens create form, not edit)
+            $fromCloneUID = (int) $this->input->get('fromClone');
+            $this->pageData['FromCloneUID'] = $fromCloneUID;
+            $this->pageData['CloneData']    = null;
+            $this->pageData['CloneItems']   = [];
+            if ($fromCloneUID > 0) {
+                $cloneData  = $this->transactions_model->getTransactionById($fromCloneUID, $orgUID, $this->pageModuleUID);
+                $cloneItems = $cloneData ? $this->transactions_model->getTransactionItems($fromCloneUID, $orgUID) : [];
+                $this->pageData['CloneData']  = $cloneData;
+                $this->pageData['CloneItems'] = $cloneItems;
+            }
+
             $this->_getDispatchAddresses($orgUID);
 
             $this->load->model('products_model');
@@ -150,8 +162,17 @@ class Deliverychallans extends MY_Controller {
             $billing  = current(array_filter($custAddr, fn($a) => $a->AddressType === 'Billing'));
             $this->pageData['CustAddr'] = $shipping ?: ($billing ?: ($custAddr[0] ?? null));
 
-            $this->pageData['DCData']  = $dcData;
-            $this->pageData['DCItems'] = $dcItems;
+            // Pre-fetch attachments — eliminates the AJAX call on the edit form
+            $attachments = $this->transactions_model->getTransactionAttachments($transUID, $orgUID);
+            $cdnUrl = rtrim(getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv('CFLARE_R2_CDN'), '/');
+            foreach ($attachments as &$a) {
+                $a->Url = $cdnUrl . '/' . ltrim($a->FilePath ?? '', '/');
+            }
+            unset($a);
+
+            $this->pageData['DCData']        = $dcData;
+            $this->pageData['DCItems']       = $dcItems;
+            $this->pageData['DCAttachments'] = $attachments;
 
             $prefixResult                    = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.OrgUID' => $orgUID, 'Prefix.ModuleUID' => $this->pageModuleUID]);
             $this->pageData['PrefixData']    = $prefixResult->Data ?? [];
@@ -202,7 +223,8 @@ class Deliverychallans extends MY_Controller {
             $prefixUID              = (int)   getPostValue($PostData, 'transPrefixSelect');
             $transNumber            = (int)   getPostValue($PostData, 'transNumber');
             $transDate              =         getPostValue($PostData, 'transDate');
-            $returnDate             =         getPostValue($PostData, 'returnDate');
+            $returnDate             =         getPostValue($PostData, 'returnDate');    // → ExpectedDeliveryDate
+            $deliveryByDate         =         getPostValue($PostData, 'deliveryBy');    // → DeliveryByDate
             $items                  = json_decode($itemsJson, true);
             $totalQty               = (float) array_sum(array_column($items, 'quantity'));
 
@@ -323,8 +345,10 @@ class Deliverychallans extends MY_Controller {
             $detailData = [
                 'FinancialYear'     => $financialYear,
                 'TransUID'          => $transUID,
-                'ValidityDays'      => NULL,
-                'ValidityDate'      => $returnDate ?: NULL,
+                'ValidityDays'        => NULL,
+                'ValidityDate'        => NULL,
+                'ExpectedDeliveryDate'=> $returnDate    ?: NULL,
+                'DeliveryByDate'      => $deliveryByDate ?: NULL,
                 'Reference'         => getPostValue($PostData, 'vehicleNumber') ?: NULL,
                 'Notes'             => getPostValue($PostData, 'transNotes') ?: NULL,
                 'TermsConditions'   => getPostValue($PostData, 'transTermsCond') ?: NULL,
@@ -350,6 +374,7 @@ class Deliverychallans extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
             $this->cachehelper->touchCustomer($customerUID);
+            $this->_saveAttachments($transUID);
 
             // Reduce AvailableQty for all modes (Non-Returnable / Returnable / Job Work)
             if (!$isDraft) {
@@ -394,7 +419,8 @@ class Deliverychallans extends MY_Controller {
             $prefixUID              = (int)   getPostValue($PostData, 'transPrefixSelect');
             $transNumber            = (int)   getPostValue($PostData, 'transNumber');
             $transDate              =         getPostValue($PostData, 'transDate');
-            $returnDate             =         getPostValue($PostData, 'returnDate');
+            $returnDate             =         getPostValue($PostData, 'returnDate');    // → ExpectedDeliveryDate
+            $deliveryByDate         =         getPostValue($PostData, 'deliveryBy');    // → DeliveryByDate
             $items                  = json_decode($itemsJson, true);
             $totalQty               = (float) array_sum(array_column($items, 'quantity'));
             $netAmount              = (float) getPostValue($PostData, 'NetAmount',              'Array', 0);
@@ -483,8 +509,10 @@ class Deliverychallans extends MY_Controller {
             ];
 
             $commonDetail = [
-                'ValidityDays'      => NULL,
-                'ValidityDate'      => $returnDate ?: NULL,
+                'ValidityDays'        => NULL,
+                'ValidityDate'        => NULL,
+                'ExpectedDeliveryDate'=> $returnDate    ?: NULL,
+                'DeliveryByDate'      => $deliveryByDate ?: NULL,
                 'Reference'         => getPostValue($PostData, 'vehicleNumber') ?: NULL,
                 'Notes'             => getPostValue($PostData, 'transNotes') ?: NULL,
                 'TermsConditions'   => getPostValue($PostData, 'transTermsCond') ?: NULL,
@@ -573,6 +601,7 @@ class Deliverychallans extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
             $this->cachehelper->touchCustomer($customerUID);
+            $this->_saveAttachments($transUID);
             $this->transactions_model->generateAndStorePdf(isset($newTransUID) ? $newTransUID : $transUID, $orgUID, $this->pageModuleUID);
 
             // Stock movement after commit — handle 3 transitions:
@@ -615,7 +644,9 @@ class Deliverychallans extends MY_Controller {
             $this->load->model('transactions_model');
             $existing = $this->transactions_model->getTransactionPageList(1, 0, $this->pageModuleUID, ['TransUID' => $transUID, 'OrgUID' => $orgUID]);
             if (empty($existing)) throw new Exception('Delivery Challan not found.');
-            $wasDispatched = ($existing[0]->DocStatus ?? '') === 'Dispatched';
+            // getTransactionPageList aliases DocStatus as 'Status'; also reverse stock for Delivered/Partially Returned
+            $currentStatus      = $existing[0]->Status ?? '';
+            $needsStockReversal = in_array($currentStatus, ['Dispatched', 'Delivered', 'Partially Returned', 'Converted']);
 
             $now = time();
             $this->dbwrite_model->updateData('Transaction', 'TransProductsTbl',
@@ -632,8 +663,8 @@ class Deliverychallans extends MY_Controller {
 
             $this->dbwrite_model->commitTransaction();
 
-            // Restore AvailableQty — only if the challan was Dispatched (Draft had no stock deducted)
-            if ($wasDispatched) {
+            // Restore AvailableQty for any status that had stock deducted
+            if ($needsStockReversal) {
                 $this->dbwrite_model->reverseStockMovements($transUID, $orgUID, $userUID);
                 $this->_syncProductCacheByTransUID($transUID);
             }
@@ -719,11 +750,12 @@ class Deliverychallans extends MY_Controller {
                 'IgstAmount'        => $src->IgstAmount,
                 'RoundOff'          => $src->RoundOff,
                 'GlobalDiscPercent' => (float) $src->GlobalDiscPercent,
-                'ExtraDiscApplied'  => $src->ExtraDiscApplied,
+                'ExtraDiscApplied'  => ($src->ExtraDiscAmount ?? 0) > 0 ? 1 : 0,
                 'ExtraDiscAmount'   => $src->ExtraDiscAmount,
                 'ExtraDiscType'     => $src->ExtraDiscType,
                 'NetAmount'         => $src->NetAmount,
                 'DocStatus'         => 'Draft',
+                'TransToken'        => generate_uuid4(),
                 'IsActive'          => 1, 'IsDeleted' => 0, 'CreatedBy' => $userUID, 'UpdatedBy' => $userUID,
             ];
             $insertResp = $this->dbwrite_model->insertData('Transaction', 'TransactionsTbl', $headerData);
@@ -769,7 +801,7 @@ class Deliverychallans extends MY_Controller {
             $this->dbwrite_model->commitTransaction();
 
             $this->EndReturnData->Error    = FALSE;
-            $this->EndReturnData->Message  = 'Delivery challan duplicated as ' . $uniqueNumber . '.';
+            $this->EndReturnData->Message  = 'Delivery challan cloned as ' . $uniqueNumber . '.';
             $this->EndReturnData->TransUID = $newTransUID;
             $this->EndReturnData->EditURL  = '/deliverychallan/' . $newTransUID . '/edit';
         } catch (Exception $e) {
@@ -854,6 +886,198 @@ class Deliverychallans extends MY_Controller {
         $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
+    // ── Partial Return: fetch data for the modal ─────────────────
+    public function getPartialReturnData(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $transUID = (int) $this->input->post('TransUID');
+            $orgUID   = (int) $this->pageData['JwtData']->Org->OrgUID;
+            if ($transUID <= 0) throw new Exception('Invalid DC.');
+
+            $this->load->model('transactions_model');
+            $dc    = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
+            if (!$dc) throw new Exception('Delivery Challan not found.');
+
+            $allowedStatuses = ['Dispatched', 'Partially Returned'];
+            if (!in_array($dc->DocStatus, $allowedStatuses)) {
+                throw new Exception('Partial return is only allowed for Dispatched or Partially Returned challans.');
+            }
+
+            $items      = $this->transactions_model->getTransactionItems($transUID, $orgUID);
+            $returnedMap = $this->transactions_model->getDCReturnedQty($transUID, $orgUID);
+
+            $itemData = [];
+            foreach ($items as $item) {
+                $dispatched      = (float)$item->Quantity;
+                $alreadyReturned = (float)($returnedMap[(int)$item->TransProdUID] ?? 0);
+                $stillOut        = max(0, $dispatched - $alreadyReturned);
+                $itemData[] = [
+                    'TransProdUID'   => (int)$item->TransProdUID,
+                    'ProductUID'     => (int)$item->ProductUID,
+                    'ProductName'    => $item->ProductName,
+                    'UnitName'       => $item->PrimaryUnitName ?? '',
+                    'DispatchedQty'  => $dispatched,
+                    'ReturnedQty'    => $alreadyReturned,
+                    'StillOut'       => $stillOut,
+                ];
+            }
+
+            $this->EndReturnData->Error   = FALSE;
+            $this->EndReturnData->DC      = ['UniqueNumber' => $dc->UniqueNumber, 'DocStatus' => $dc->DocStatus];
+            $this->EndReturnData->Items   = $itemData;
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    // ── Partial Return: save return event ────────────────────────
+    public function partialReturn(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $this->load->model('dbwrite_model');
+            $this->dbwrite_model->startTransaction();
+
+            $transUID   = (int) $this->input->post('TransUID');
+            $orgUID     = (int) $this->pageData['JwtData']->Org->OrgUID;
+            $userUID    = (int) $this->pageData['JwtData']->User->UserUID;
+            $returnJson = $this->input->post('ReturnItems');
+            $notes      = trim($this->input->post('Notes') ?? '');
+            if ($transUID <= 0) throw new Exception('Invalid DC.');
+
+            $returnItems = json_decode($returnJson, true);
+            if (empty($returnItems) || !is_array($returnItems)) {
+                throw new Exception('No items to return.');
+            }
+
+            $this->load->model('transactions_model');
+            $dc = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
+            if (!$dc) throw new Exception('Delivery Challan not found.');
+
+            $allowedStatuses = ['Dispatched', 'Partially Returned'];
+            if (!in_array($dc->DocStatus, $allowedStatuses)) {
+                throw new Exception('Cannot process return for status: ' . $dc->DocStatus);
+            }
+
+            // Load dispatched items and already-returned map
+            $dcItems     = $this->transactions_model->getTransactionItems($transUID, $orgUID);
+            $returnedMap = $this->transactions_model->getDCReturnedQty($transUID, $orgUID);
+            $dcItemMap   = [];
+            foreach ($dcItems as $item) {
+                $dcItemMap[(int)$item->TransProdUID] = $item;
+            }
+
+            $wdb = $this->dbwrite_model->getWriteDb();
+            $now = date('Y-m-d H:i:s');
+            $totalStillOut = 0;
+            $anyReturn     = false;
+
+            foreach ($returnItems as $r) {
+                $transProdUID = (int)($r['TransProdUID'] ?? 0);
+                $returnQty    = (float)($r['ReturnQty']    ?? 0);
+                if ($returnQty <= 0) continue;
+
+                $item = $dcItemMap[$transProdUID] ?? null;
+                if (!$item) throw new Exception('Invalid item reference: TransProdUID=' . $transProdUID);
+
+                $dispatched      = (float)$item->Quantity;
+                $alreadyReturned = (float)($returnedMap[$transProdUID] ?? 0);
+                $stillOut        = $dispatched - $alreadyReturned;
+
+                if ($returnQty > $stillOut + 0.001) {
+                    throw new Exception('"' . $item->ProductName . '": return qty (' . $returnQty . ') exceeds quantity still out (' . $stillOut . ').');
+                }
+
+                // Insert DCReturnItemsTbl row
+                $wdb->db_debug = FALSE;
+                $insOk = $wdb->insert('Transaction.DCReturnItemsTbl', [
+                    'TransUID'    => $transUID,
+                    'TransProdUID'=> $transProdUID,
+                    'ProductUID'  => (int)$item->ProductUID,
+                    'OrgUID'      => $orgUID,
+                    'ReturnedQty' => $returnQty,
+                    'ReturnedOn'  => $now,
+                    'Notes'       => $notes ?: null,
+                    'IsDeleted'   => 0,
+                    'CreatedBy'   => $userUID,
+                ]);
+                if (!$insOk) throw new Exception('Failed to record return for ' . $item->ProductName);
+
+                // Add stock back (IN movement) for the returned qty
+                $wdb->db_debug = FALSE;
+                $wdb->query(
+                    "UPDATE Products.ProductStockTbl
+                        SET AvailableQty = CAST(AvailableQty AS SIGNED) + ?
+                      WHERE ProductUID = ? AND OrgUID = ?",
+                    [$returnQty, (int)$item->ProductUID, $orgUID]
+                );
+
+                $anyReturn = true;
+                $totalStillOut += max(0, $stillOut - $returnQty);
+            }
+
+            if (!$anyReturn) throw new Exception('No valid return quantities provided.');
+
+            // Recalculate remaining still-out across ALL items (including those not in this batch)
+            foreach ($dcItems as $item) {
+                $transProdUID    = (int)$item->TransProdUID;
+                $dispatched      = (float)$item->Quantity;
+                $alreadyReturned = (float)($returnedMap[$transProdUID] ?? 0);
+
+                // Add this batch's return qty
+                $batchReturn = 0;
+                foreach ($returnItems as $r) {
+                    if ((int)$r['TransProdUID'] === $transProdUID) {
+                        $batchReturn = (float)($r['ReturnQty'] ?? 0);
+                        break;
+                    }
+                }
+                $newTotalReturned = $alreadyReturned + $batchReturn;
+                if ($newTotalReturned < $dispatched - 0.001) {
+                    $totalStillOut = 1; // at least one item still out — force Partially Returned
+                    break;
+                }
+            }
+
+            $newStatus = ($totalStillOut <= 0) ? 'Returned' : 'Partially Returned';
+            $updOk = $wdb->query(
+                "UPDATE Transaction.TransactionsTbl
+                    SET DocStatus = ?, UpdatedBy = ?, UpdatedOn = ?
+                  WHERE TransUID = ? AND OrgUID = ? AND IsDeleted = 0",
+                [$newStatus, $userUID, $now, $transUID, $orgUID]
+            );
+            if (!$updOk) throw new Exception('Failed to update DC status.');
+
+            $this->dbwrite_model->commitTransaction();
+
+            // Sync product cache for returned items
+            $this->_syncProductCacheByTransUID($transUID);
+
+            // Return updated list
+            $pageNo  = max(1, (int) $this->input->post('PageNo'));
+            $limit   = (int) $this->input->post('RowLimit') ?: 10;
+            $filter  = $this->input->post('Filter') ?: [];
+            $offset  = ($pageNo - 1) * $limit;
+
+            $allData      = $this->transactions_model->getTransactionPageList($limit, $offset, $this->pageModuleUID, $filter, 0);
+            $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, $filter);
+
+            $this->EndReturnData->Error          = FALSE;
+            $this->EndReturnData->Message        = 'Return recorded. Status updated to ' . $newStatus . '.';
+            $this->EndReturnData->NewStatus      = $newStatus;
+            $this->EndReturnData->RecordHtmlData = $this->load->view('transactions/deliverychallans/list', ['DataLists' => $allData, 'SerialNumber' => $offset, 'JwtData' => $this->pageData['JwtData']], true);
+            $this->EndReturnData->Pagination     = $this->globalservice->buildPagePaginationHtml('/deliverychallan/getPageDetails', $allDataCount, $pageNo, $limit);
+            $this->EndReturnData->TotalCount     = $allDataCount;
+
+        } catch (Exception $e) {
+            $this->dbwrite_model->rollbackTransaction();
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
     // ── Convert to Invoice ───────────────────────────────────────
     public function convertChallanToInvoice() {
         $this->EndReturnData = new stdClass();
@@ -919,33 +1143,6 @@ class Deliverychallans extends MY_Controller {
             $this->EndReturnData->Message = $e->getMessage();
         }
         $this->globalservice->sendJsonResponse($this->EndReturnData);
-    }
-
-    // ── Packing List (standalone print page) ────────────────────
-    public function packingList($transUID = 0) {
-        try {
-            $transUID = (int) $transUID;
-            if ($transUID <= 0) redirect('deliverychallan', 'refresh');
-
-            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
-
-            $this->load->model('transactions_model');
-            $header = $this->transactions_model->getTransactionById($transUID, $orgUID, $this->pageModuleUID);
-            if (!$header) redirect('deliverychallan', 'refresh');
-
-            $items = $this->transactions_model->getTransactionItems($transUID, $orgUID);
-
-            $this->load->model('organisation_model');
-            $orgInfo = $this->organisation_model->getOrgInfoCached($orgUID);
-
-            $this->pageData['PackingHeader'] = $header;
-            $this->pageData['PackingItems']  = $items;
-            $this->pageData['OrgInfo']       = $orgInfo->Data ?? null;
-
-            $this->load->view('transactions/deliverychallans/packing_list', $this->pageData);
-        } catch (Exception $e) {
-            redirect('deliverychallan', 'refresh');
-        }
     }
 
     // ── Private helpers ──────────────────────────────────────────

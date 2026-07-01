@@ -59,8 +59,10 @@ $_termsVal = $_jwtTerms;
 if (!$isEdit) {
     if (!empty($SalesOrderData->Notes)) $_notesVal = $SalesOrderData->Notes;
     elseif (!empty($QuotationData->Notes)) $_notesVal = $QuotationData->Notes;
+    elseif (!empty($ChallanData->Notes)) $_notesVal = $ChallanData->Notes;
     if (!empty($SalesOrderData->TermsConditions)) $_termsVal = $SalesOrderData->TermsConditions;
     elseif (!empty($QuotationData->TermsConditions)) $_termsVal = $QuotationData->TermsConditions;
+    elseif (!empty($ChallanData->TermsConditions)) $_termsVal = $ChallanData->TermsConditions;
 } else {
     $_notesVal = $InvData->Notes ?? '';
     $_termsVal = $InvData->TermsConditions ?? '';
@@ -105,6 +107,7 @@ if ($isEdit) {
                     <?php else: ?>
                     <input type="hidden" name="fromSalesOrderUID" id="fromSalesOrderUID" value="<?php echo (int)($FromSalesOrderUID ?? 0); ?>" />
                     <input type="hidden" name="fromQuotationUID" id="fromQuotationUID" value="<?php echo (int)($FromQuotationUID ?? 0); ?>" />
+                    <input type="hidden" name="fromChallanUID" id="fromChallanUID" value="<?php echo (int)($FromChallanUID ?? 0); ?>" />
                     <?php endif; ?>
                     <input type="hidden" id="placeOfSupplyCode" name="placeOfSupplyCode" value="<?php echo !$isEdit ? htmlspecialchars($JwtData->Org->StateCode ?? '', ENT_QUOTES) : ''; ?>" />
                     <input type="hidden" id="placeOfSupplyName" name="placeOfSupplyName" value="<?php echo !$isEdit ? htmlspecialchars($JwtData->Org->StateName ?? '', ENT_QUOTES) : ''; ?>" />
@@ -297,16 +300,18 @@ if ($isEdit) {
                                 <!-- Invoice Date — narrow (date width only) -->
                                 <div class="col-auto" style="min-width:155px;">
                                     <label for="transDate" class="trans-field-label">Invoice Date <span class="text-danger">*</span></label>
+                                    <?php $_fmt = $JwtData->GenSettings->FormDateFormat ?? 'd-m-Y'; ?>
                                     <?php if ($isEdit && !$isDraftEdit): ?>
                                         <input type="hidden" name="transDate" value="<?php echo htmlspecialchars(format_datedisplay($InvData->TransDate, 'Y-m-d')); ?>" />
                                         <div class="input-group input-group-sm input-group-merge">
                                             <span class="input-group-text bg-white"><i class="icon-base bx bx-calendar"></i></span>
-                                            <input type="text" class="form-control form-control-sm bg-white text-muted" style="cursor:default;" value="<?php echo htmlspecialchars(format_datedisplay($InvData->TransDate, 'd-m-Y')); ?>" readonly tabindex="-1" />
+                                            <input type="text" class="form-control form-control-sm bg-white text-muted" style="cursor:default;" value="<?php echo htmlspecialchars(format_datedisplay($InvData->TransDate, $_fmt)); ?>" readonly tabindex="-1" />
                                         </div>
                                     <?php else: ?>
                                         <div class="input-group input-group-sm input-group-merge">
                                             <span class="input-group-text bg-white"><i class="icon-base bx bx-calendar"></i></span>
-                                            <input type="text" class="form-control form-control-sm bg-white" id="transDate" name="transDate" readonly="readonly" value="<?php echo format_datedisplay(time(), 'Y-m-d'); ?>" required />
+                                            <input type="text" class="form-control form-control-sm bg-white" id="transDate_disp" readonly="readonly" value="<?php echo $isEdit ? format_datedisplay($InvData->TransDate, $_fmt) : format_datedisplay(time(), $_fmt); ?>" required />
+                                            <input type="hidden" id="transDate" name="transDate" value="<?php echo $isEdit ? htmlspecialchars(format_datedisplay($InvData->TransDate, 'Y-m-d')) : format_datedisplay(time(), 'Y-m-d'); ?>" />
                                         </div>
                                     <?php endif; ?>
                                 </div>
@@ -316,7 +321,8 @@ if ($isEdit) {
                                     <label for="dueDate" class="trans-field-label">Due Date</label>
                                     <div class="input-group input-group-sm input-group-merge">
                                         <span class="input-group-text bg-white"><i class="icon-base bx bx-calendar"></i></span>
-                                        <input type="text" class="form-control form-control-sm bg-white" id="dueDate" name="dueDate" readonly="readonly" value="<?php echo ($isEdit && !empty($InvData->ValidityDate)) ? htmlspecialchars(format_datedisplay($InvData->ValidityDate, 'Y-m-d')) : ''; ?>" />
+                                        <input type="text" class="form-control form-control-sm bg-white" id="dueDate_disp" readonly="readonly" value="<?php echo ($isEdit && !empty($InvData->ValidityDate)) ? format_datedisplay($InvData->ValidityDate, $_fmt) : ''; ?>" />
+                                        <input type="hidden" id="dueDate" name="dueDate" value="<?php echo ($isEdit && !empty($InvData->ValidityDate)) ? htmlspecialchars(format_datedisplay($InvData->ValidityDate, 'Y-m-d')) : ''; ?>" />
                                     </div>
                                 </div>
 
@@ -672,6 +678,42 @@ var _fromQuotItems = <?php echo json_encode(array_map(function($item) {
 var _fromQuotation = null;
 var _fromQuotItems = [];
 <?php endif; ?>
+<?php if (!empty($ChallanData)): ?>
+var _fromChallan      = <?php echo json_encode(['uid' => (int)$FromChallanUID, 'customer' => (int)$ChallanData->PartyUID, 'customerName' => $ChallanData->PartyName ?? '', 'reference' => $ChallanData->UniqueNumber ?? '']); ?>;
+var _fromChallanItems = <?php echo json_encode(array_map(function($item) {
+    return [
+        'id'               => (int)   $item->ProductUID,
+        'text'             => $item->ProductName,
+        'itemName'         => $item->ProductName,
+        'unitPrice'        => (float) $item->UnitPrice,
+        'sellingPrice'     => (float) $item->SellingPrice,
+        'taxAmount'        => (float) $item->TaxAmount,
+        'purchasePrice'    => (float) ($item->PurchasePrice ?? 0),
+        'availableQuantity'=> 0,
+        'hsnCode'          => $item->HSNCode ?? '',
+        'categoryUID'      => $item->CategoryUID ? (int)$item->CategoryUID : null,
+        'categoryName'     => $item->CategoryName  ?? '',
+        'storageUID'       => $item->StorageUID  ? (int)$item->StorageUID  : null,
+        'taxPercent'       => (float) $item->TaxPercentage,
+        'cgstPercent'      => (float) $item->CGST,
+        'sgstPercent'      => (float) $item->SGST,
+        'igstPercent'      => (float) $item->IGST,
+        'taxDetailsUID'    => (int)   $item->TaxDetailsUID,
+        'quantity'         => (float) $item->Quantity,
+        'partNumber'       => $item->PartNumber      ?? '',
+        'primaryUnit'      => $item->PrimaryUnitName ?? '',
+        'discount'         => (float) $item->Discount,
+        'discountType'     => 'Percentage',
+        'discountTypeUID'  => $item->DiscountTypeUID ? (int)$item->DiscountTypeUID : null,
+        'discount_amount'  => (float) $item->DiscountAmount,
+        'line_total'       => (float) $item->TaxableAmount,
+        'net_total'        => (float) $item->NetAmount,
+    ];
+}, $ChallanItems ?? [])); ?>;
+<?php else: ?>
+var _fromChallan      = null;
+var _fromChallanItems = [];
+<?php endif; ?>
 <?php endif; ?>
 
 $(function() {
@@ -711,9 +753,9 @@ $(function() {
     });
     <?php endif; ?>
     <?php if (!$isEdit || $isDraftEdit): ?>
-    transDatePickr('#transDate', false, 'Y-m-d', false, true, true, true, 'd-m-Y');
+    transDatePickr('#transDate_disp', '#transDate', false, false, true, true, '');
     <?php endif; ?>
-    transDatePickr('#dueDate', false, 'Y-m-d', false, false, <?php echo $isEdit ? 'false' : 'true'; ?>, true, 'd-m-Y', '<?php echo ($isEdit && !$isDraftEdit) ? '' : '#transDate'; ?>');
+    transDatePickr('#dueDate_disp', '#dueDate', false, false, false, <?php echo $isEdit ? 'false' : 'true'; ?>, '<?php echo ($isEdit && !$isDraftEdit) ? '' : '#transDate'; ?>');
 
     <?php if (!$isEdit): ?>
     var _dueDatePicker   = document.querySelector('#dueDate') ? document.querySelector('#dueDate')._flatpickr : null;
@@ -753,12 +795,18 @@ $(function() {
     }
 
     <?php else: ?>
-    var _sourceData  = _fromSO || _fromQuotation;
-    var _sourceItems = _fromSO ? _fromSOItems : _fromQuotItems;
+    var _sourceData  = _fromSO || _fromQuotation || _fromChallan;
+    var _sourceItems = _fromSO ? _fromSOItems : (_fromQuotation ? _fromQuotItems : _fromChallanItems);
 
     if (_sourceData && _sourceData.uid > 0) {
         if (_sourceData.customer > 0) {
             $('#customerSearch').append(new Option(_sourceData.customerName, _sourceData.customer, true, true)).trigger('change');
+        }
+        if (_fromChallan && _fromChallan.reference) {
+            var $refField = $('#referenceDetails');
+            if ($refField.length && !$refField.val()) {
+                $refField.val(_fromChallan.reference);
+            }
         }
         if (typeof billManager !== 'undefined' && typeof formationTableBillItems === 'function'
                 && Array.isArray(_sourceItems) && _sourceItems.length > 0) {

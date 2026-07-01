@@ -519,6 +519,13 @@
                                                 <i class="bx bx-cart me-2"></i>Purchase
                                             </a>
 
+                                            <a class="nav-link gs-tab-link px-4 py-3" id="tab-dc-settings-tab"
+                                                data-bs-toggle="pill" data-bs-target="#tab-dc-settings"
+                                                role="tab" aria-controls="tab-dc-settings" aria-selected="false"
+                                                href="javascript:void(0);">
+                                                <i class="bx bx-package me-2"></i>Delivery Challans
+                                            </a>
+
                                         </div>
                                     </div>
                                     <!-- / Left Side -->
@@ -927,6 +934,59 @@
                                             </div>
                                             <!-- / Sub-Tab: Purchase -->
 
+                                            <!-- Sub-Tab: Delivery Challans -->
+                                            <?php
+                                            $dcDefaultReturnDays = (int)($ts->DCDefaultReturnDays ?? 7);
+                                            ?>
+                                            <div class="tab-pane fade" id="tab-dc-settings" role="tabpanel" aria-labelledby="tab-dc-settings-tab">
+
+                                                <h6 class="fw-semibold mb-1">Delivery Challans</h6>
+                                                <p class="text-muted small mb-4">Configure default behaviours for delivery challan operations.</p>
+
+                                                <div class="row g-3">
+
+                                                    <div class="col-12">
+                                                        <label class="form-label fw-semibold">Return Period Defaults</label>
+                                                        <div class="p-3 border rounded">
+                                                            <div class="row align-items-center g-3">
+                                                                <div class="col-md-8">
+                                                                    <label class="fw-semibold mb-1" for="dc_DefaultReturnDays">
+                                                                        Default Expected Return Days
+                                                                    </label>
+                                                                    <div class="form-text mt-0 mb-2">
+                                                                        When a Returnable or Job Work challan is created, the <strong>Expected Return Date</strong> is automatically pre-filled
+                                                                        to today's date plus this many days. The user can always change the date manually before saving.
+                                                                        Select <strong>"No default"</strong> to leave the field blank.
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-md-4">
+                                                                    <select class="form-select" id="dc_DefaultReturnDays" name="DCDefaultReturnDays">
+                                                                        <option value="0"  <?php echo $dcDefaultReturnDays === 0  ? 'selected' : ''; ?>>No default (leave blank)</option>
+                                                                        <option value="3"  <?php echo $dcDefaultReturnDays === 3  ? 'selected' : ''; ?>>3 days</option>
+                                                                        <option value="5"  <?php echo $dcDefaultReturnDays === 5  ? 'selected' : ''; ?>>5 days</option>
+                                                                        <option value="7"  <?php echo $dcDefaultReturnDays === 7  ? 'selected' : ''; ?>>7 days (1 week)</option>
+                                                                        <option value="10" <?php echo $dcDefaultReturnDays === 10 ? 'selected' : ''; ?>>10 days</option>
+                                                                        <option value="14" <?php echo $dcDefaultReturnDays === 14 ? 'selected' : ''; ?>>14 days (2 weeks)</option>
+                                                                        <option value="21" <?php echo $dcDefaultReturnDays === 21 ? 'selected' : ''; ?>>21 days (3 weeks)</option>
+                                                                        <option value="30" <?php echo $dcDefaultReturnDays === 30 ? 'selected' : ''; ?>>30 days (1 month)</option>
+                                                                    </select>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                </div>
+
+                                                <div class="mt-4 d-flex gap-2">
+                                                    <button type="button" class="btn btn-primary" id="btnSaveDCSettings">
+                                                        <span class="spinner-border spinner-border-sm me-1 d-none" id="dcSettingsSpinner"></span>
+                                                        Save Changes
+                                                    </button>
+                                                </div>
+
+                                            </div>
+                                            <!-- / Sub-Tab: Delivery Challans -->
+
                                         </div>
                                     </div>
                                     <!-- / Right Side -->
@@ -1260,6 +1320,45 @@ $(document).ready(function () {
                 SalesReturnItemMethod      : $('input[name="SalesReturnItemMethod"]:checked').val()      || 'Manual',
                 PurchaseReturnCancelAction : $('input[name="PurchaseReturnCancelAction"]:checked').val() || 'ask',
                 PurchaseReturnItemMethod   : $('input[name="PurchaseReturnItemMethod"]:checked').val()   || 'Manual',
+                TermsAndConditions         : $('#txn_TermsAndConditions').val(),
+                HideNavOnTransForm         : $('#txn_HideNavOnTransForm').is(':checked') ? 1 : 0,
+                ShowProductDescription     : $('#txn_ShowProductDescription').is(':checked') ? 1 : 0,
+                [CsrfName]                 : CsrfToken,
+            },
+            success: function (resp) {
+                showToastNotification(resp.Message, resp.Error ? 'error' : 'success');
+            },
+            error: function () {
+                showToastNotification('Request failed. Please try again.', 'error');
+            },
+            complete: function () {
+                $btn.prop('disabled', false);
+                $spinner.addClass('d-none');
+            }
+        });
+    });
+
+    // ── Save Delivery Challan Settings ──────────────────────────────────────
+    $('#btnSaveDCSettings').on('click', function () {
+        var $btn     = $(this);
+        var $spinner = $('#dcSettingsSpinner');
+
+        $btn.prop('disabled', true);
+        $spinner.removeClass('d-none');
+
+        $.ajax({
+            url    : '/settings/updateTransactionSettings',
+            method : 'POST',
+            data   : {
+                DCDefaultReturnDays        : $('#dc_DefaultReturnDays').val(),
+                // carry existing values unchanged
+                InvoiceCancelAction        : $('input[name="InvoiceCancelAction"]:checked').val()        || 'ask',
+                SalesReturnCancelAction    : $('input[name="SalesReturnCancelAction"]:checked').val()    || 'ask',
+                SalesReturnItemMethod      : $('input[name="SalesReturnItemMethod"]:checked').val()      || 'Manual',
+                PurchaseReturnCancelAction : $('input[name="PurchaseReturnCancelAction"]:checked').val() || 'ask',
+                PurchaseReturnItemMethod   : $('input[name="PurchaseReturnItemMethod"]:checked').val()   || 'Manual',
+                PurchaseShowSignature      : $('#purch_ShowSignature').is(':checked') ? 1 : 0,
+                PurchaseShowTerms          : $('#purch_ShowTerms').is(':checked')    ? 1 : 0,
                 TermsAndConditions         : $('#txn_TermsAndConditions').val(),
                 HideNavOnTransForm         : $('#txn_HideNavOnTransForm').is(':checked') ? 1 : 0,
                 ShowProductDescription     : $('#txn_ShowProductDescription').is(':checked') ? 1 : 0,

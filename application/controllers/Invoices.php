@@ -4,7 +4,7 @@ class Invoices extends MY_Controller {
 
     public $pageData = array();
     private $EndReturnData;
-    private $pageModuleUID;
+    protected $pageModuleUID;
 
     public function __construct() {
         parent::__construct();
@@ -1647,6 +1647,18 @@ class Invoices extends MY_Controller {
                 $pfItems = $pfData ? $this->transactions_model->getTransactionItems($fromProFormaUID, $orgUID) : [];
                 $this->pageData['ProFormaData']  = $pfData;
                 $this->pageData['ProFormaItems'] = $pfItems;
+            }
+
+            // Pre-fill from Delivery Challan if converting
+            $fromChallanUID = (int) $this->input->get('fromChallan');
+            $this->pageData['FromChallanUID'] = $fromChallanUID;
+            $this->pageData['ChallanData']    = null;
+            $this->pageData['ChallanItems']   = [];
+            if ($fromChallanUID > 0) {
+                $challanData  = $this->transactions_model->getTransactionById($fromChallanUID, $orgUID, 112);
+                $challanItems = $challanData ? $this->transactions_model->getTransactionItems($fromChallanUID, $orgUID) : [];
+                $this->pageData['ChallanData']  = $challanData;
+                $this->pageData['ChallanItems'] = $challanItems;
             }
 
             $this->_getDispatchAddresses($orgUID);

@@ -3,7 +3,6 @@
 class Inventory_model extends CI_Model {
 
     private $ReadDb;
-    private $EndReturnData;
 
     public function __construct() {
         parent::__construct();
@@ -12,7 +11,7 @@ class Inventory_model extends CI_Model {
 
     // ── Stat cards ────────────────────────────────────────────────────────────
 
-    public function getInventoryStats($orgUID) {
+    public function getInventoryStats(int $orgUID): ?object {
 
         $this->ReadDb->db_debug = FALSE;
         $sql = "
@@ -42,7 +41,7 @@ class Inventory_model extends CI_Model {
 
     // ── Paginated inventory list ──────────────────────────────────────────────
 
-    public function getInventoryList($orgUID, $filter, $limit, $offset) {
+    public function getInventoryList(int $orgUID, array $filter, int $limit, int $offset): array {
 
         $this->ReadDb->db_debug = FALSE;
 
@@ -86,7 +85,7 @@ class Inventory_model extends CI_Model {
 
     }
 
-    public function getInventoryCount($orgUID, $filter) {
+    public function getInventoryCount(int $orgUID, array $filter): int {
 
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->select('COUNT(*) AS cnt');
@@ -103,7 +102,7 @@ class Inventory_model extends CI_Model {
 
     }
 
-    private function _applyFilter($filter) {
+    private function _applyFilter(array $filter): void {
 
         if (!empty($filter['Search'])) {
             $term = $this->ReadDb->escape_like_str($filter['Search']);
@@ -152,7 +151,7 @@ class Inventory_model extends CI_Model {
 
     }
 
-    private function _applySort($filter) {
+    private function _applySort(array $filter): void {
 
         $allowed = [
             'ItemName'      => 'p.ItemName',
@@ -170,7 +169,7 @@ class Inventory_model extends CI_Model {
 
     // ── Full stock timeline for a product ────────────────────────────────────
 
-    public function getStockTimeline($productUID, $orgUID) {
+    public function getStockTimeline(int $productUID, int $orgUID): array {
 
         $this->ReadDb->db_debug = FALSE;
         $sql = "
@@ -235,7 +234,7 @@ class Inventory_model extends CI_Model {
 
     // ── Global timeline (all products, all movements) ────────────────────────
 
-    public function getGlobalTimeline($orgUID, $filter, $limit, $offset) {
+    public function getGlobalTimeline(int $orgUID, array $filter, int $limit, int $offset): array {
 
         $this->ReadDb->db_debug = FALSE;
         $params = [(int)$orgUID];
@@ -321,7 +320,7 @@ class Inventory_model extends CI_Model {
 
     }
 
-    public function getGlobalTimelineCount($orgUID, $filter) {
+    public function getGlobalTimelineCount(int $orgUID, array $filter): int {
 
         $this->ReadDb->db_debug = FALSE;
         $params = [(int)$orgUID];
@@ -353,7 +352,7 @@ class Inventory_model extends CI_Model {
     }
 
     // ── Global timeline export (no limit) ───────────────────────────────────
-    public function getGlobalTimelineExport($orgUID, $filter) {
+    public function getGlobalTimelineExport(int $orgUID, array $filter): array {
 
         $this->ReadDb->db_debug = FALSE;
         $params = [(int)$orgUID];
@@ -426,7 +425,7 @@ class Inventory_model extends CI_Model {
 
     }
 
-    private function _buildTimelineWhere($filter, &$params) {
+    private function _buildTimelineWhere(array $filter, array &$params): string {
 
         $where = '';
         if (!empty($filter['ProductUID'])) {
@@ -477,7 +476,7 @@ class Inventory_model extends CI_Model {
 
     }
 
-    private function _buildTimelineSort($filter) {
+    private function _buildTimelineSort(array $filter): string {
 
         $colMap = [
             'ItemName'  => 'p.ItemName',
@@ -493,7 +492,7 @@ class Inventory_model extends CI_Model {
 
     // ── Product search (for timeline filter) ─────────────────────────────────
 
-    public function searchProducts($orgUID, $term = '') {
+    public function searchProducts(int $orgUID, string $term = ''): array {
 
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->select('p.ProductUID, p.ItemName, cat.Name AS CategoryName');
@@ -512,7 +511,7 @@ class Inventory_model extends CI_Model {
 
     // ── Category list (for filter dropdown) ──────────────────────────────────
 
-    public function getCategories($orgUID) {
+    public function getCategories(int $orgUID): array {
 
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->select('CategoryUID, Name');
@@ -526,7 +525,7 @@ class Inventory_model extends CI_Model {
 
     // ── Fetch a single manual adjustment (for update) ─────────────────────────
 
-    public function getAdjustmentById($adjUID, $orgUID) {
+    public function getAdjustmentById(int $adjUID, int $orgUID): ?object {
 
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->select('AdjUID, ProductUID, AdjType, Qty, Price, Notes, RecordDate');
@@ -539,7 +538,7 @@ class Inventory_model extends CI_Model {
 
     // ── Fetch a single ledger row (for remarks update) ────────────────────────
 
-    public function getLedgerById($ledgerUID, $orgUID) {
+    public function getLedgerById(int $ledgerUID, int $orgUID): ?object {
 
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->select('LedgerUID, ProductUID, ModuleUID');

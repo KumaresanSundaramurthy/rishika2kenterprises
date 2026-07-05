@@ -487,14 +487,6 @@ class Products extends MY_Controller {
 
             $ProductUID = $InsertDataResp->ID;
 
-            // Image Upload
-            if(isset($_FILES['UploadImage'])) {
-                $UploadResp = $this->globalservice->fileUploadService($_FILES['UploadImage'], 'products/items/images/', 'Image', ['Products', 'ProductTbl', array('ProductUID' => $ProductUID)]);
-                if($UploadResp->Error === TRUE) {
-                    throw new Exception($UploadResp->Message);
-                }
-            }
-
             // Customer type pricing
             $this->saveCustomerTypePricing($ProductUID, $PostData);
 
@@ -673,7 +665,6 @@ class Products extends MY_Controller {
             $isPhysicalItem = ($currentProd->ProductType ?? 'Product') === 'Product';
 
             $prodFormData = $this->buildProductFormData($PostData, $TaxDetails, false);
-            if (!empty($PostData['ImageRemoved'])) $prodFormData['Image'] = NULL;
 
             $UpdateDataResp = $this->dbwrite_model->updateData('Products', 'ProductTbl', $prodFormData, array('ProductUID' => $ProductUID));
             if($UpdateDataResp->Error) {
@@ -686,14 +677,6 @@ class Products extends MY_Controller {
                 $delta         = round($newOpeningQty - $oldOpeningQty, 4);
                 if ($delta != 0.0) {
                     $this->dbwrite_model->applyOpeningQtyDelta($ProductUID, $orgUID, $delta);
-                }
-            }
-
-            // Image Upload
-            if(isset($_FILES['UploadImage'])) {
-                $UploadResp = $this->globalservice->fileUploadService($_FILES['UploadImage'], 'products/items/images/', 'Image', ['Products', 'ProductTbl', array('ProductUID' => $ProductUID)]);
-                if($UploadResp->Error === TRUE) {
-                    throw new Exception($UploadResp->Message);
                 }
             }
 
@@ -1416,14 +1399,6 @@ class Products extends MY_Controller {
             
             $CategoryUID = $insDataResp->ID;
 
-            // Image Upload
-            if(isset($_FILES['UploadImage'])) {
-                $UploadResp = $this->globalservice->fileUploadService($_FILES['UploadImage'], 'products/category/images/', 'Image', ['Products', 'CategoryTbl', array('CategoryUID' => $CategoryUID)]);
-                if($UploadResp->Error === TRUE) {
-                    throw new Exception($UploadResp->Message);
-                }
-            }
-
             $this->dbwrite_model->commitTransaction();
 
             // Handle attachment uploads + deletes (same request, after commit)
@@ -1525,21 +1500,10 @@ class Products extends MY_Controller {
             $CategoryUID = (int) getPostValue($PostData, 'CategoryUID');
 
             $catgFormData = $this->buildCategoryFormData($PostData, false);
-            if(isset($PostData['RemovedImage']) && $PostData['RemovedImage'] == TRUE) {
-                $catgFormData['Image'] = NULL;
-            }
 
             $UpdateDataResp = $this->dbwrite_model->updateData('Products', 'CategoryTbl', $catgFormData, array('CategoryUID' => $CategoryUID));
             if($UpdateDataResp->Error) {
                 throw new Exception($UpdateDataResp->Message);
-            }
-
-            // Image Upload
-            if(isset($_FILES['UploadImage'])) {
-                $UploadResp = $this->globalservice->fileUploadService($_FILES['UploadImage'], 'products/category/images/', 'Image', ['Products', 'CategoryTbl', array('CategoryUID' => $CategoryUID)]);
-                if($UploadResp->Error === TRUE) {
-                    throw new Exception($UploadResp->Message);
-                }
             }
 
             $this->dbwrite_model->commitTransaction();
@@ -2285,7 +2249,6 @@ class Products extends MY_Controller {
                     'IsComboItem'                 => (int)($prod->IsComboItem          ?? 0),
                     'IsComposite'                 => (int)($prod->IsComposite          ?? 0),
                     'IsSerialTracked'             => (int)($prod->IsSerialTracked      ?? 0),
-                    'Image'                       => $prod->Image                      ?? '',
                 ];
             }
 
@@ -2327,7 +2290,6 @@ class Products extends MY_Controller {
                     'CategoryUID' => $uid,
                     'Name'        => $cat->Name        ?? '',
                     'Description' => $cat->Description ?? '',
-                    'Image'       => $cat->Image       ?? '',
                 ];
             }
             $this->upstashservice->hmset($cacheKey, $newMap);
@@ -2380,31 +2342,6 @@ class Products extends MY_Controller {
             [$entityType, $entityUID, $orgUID]
         );
         $existCount = $existCountQ ? (int)($existCountQ->row()->cnt ?? 0) : 0;
-
-        if ($existCount === 0) {
-            // Check if entity has a legacy Image value not yet migrated
-            $legacyQ = $wdb->query(
-                "SELECT Image FROM Products.{$legacyTbl} WHERE {$legacyPkCol} = ? AND OrgUID = ? AND IsDeleted = 0 LIMIT 1",
-                [$entityUID, $orgUID]
-            );
-            $legacyRow = $legacyQ ? $legacyQ->row() : null;
-            if ($legacyRow && !empty($legacyRow->Image)) {
-                $wdb->insert('Products.ProductCategoryAttachmentsTbl', [
-                    'OrgUID'     => $orgUID,
-                    'EntityType' => $entityType,
-                    'EntityUID'  => $entityUID,
-                    'FileName'   => basename($legacyRow->Image),
-                    'FilePath'   => $legacyRow->Image,
-                    'FileSize'   => 0,
-                    'SortOrder'  => 1,
-                    'IsDeleted'  => 0,
-                    'IsActive'   => 1,
-                    'CreatedBy'  => $userUID,
-                    'UpdatedBy'  => $userUID,
-                ]);
-                $existCount = 1;
-            }
-        }
 
         // 2. Process pending deletions
         $deleteRaw = $this->input->post($deleteKey) ?: '';

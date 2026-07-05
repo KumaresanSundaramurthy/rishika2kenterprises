@@ -18,13 +18,14 @@ $(document).ready(function () {
                 $select.trigger({ type: 'select2:select', params: { data: { id: c.id, text: c.text } } });
                 if (c.address) {
                     var a = c.address;
-                    var addrHtml = '<div><strong>Shipping Address:</strong></div>'
-                        + '<div>' + (a.Line1 || '') + '</div>'
-                        + '<div>' + (a.Line2 || '') + '</div>'
-                        + '<div>' + [a.City, a.State].filter(Boolean).join(', ') + (a.Pincode ? ' - ' + a.Pincode : '') + '</div>';
-                    $('#customerAddressBox').html(addrHtml).removeClass('d-none');
+                    var _lines = [a.Line1, a.Line2].filter(Boolean).join(', ');
+                    var _loc   = [a.City, a.State].filter(Boolean).join(', ');
+                    if (a.Pincode) _loc += ' – ' + a.Pincode;
+                    var _addrText = [_lines, _loc].filter(Boolean).join(' · ');
+                    $('#customerAddressBox').find('span').text(_addrText);
+                    $('#customerAddressBox').removeClass('d-none');
                 } else {
-                    $('#customerAddressBox').addClass('d-none').empty();
+                    $('#customerAddressBox').addClass('d-none').find('span').text('');
                 }
             }
         });

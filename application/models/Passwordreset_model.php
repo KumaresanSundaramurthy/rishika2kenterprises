@@ -9,7 +9,7 @@ class Passwordreset_model extends CI_Model {
         $this->ReadDb = $this->load->database('ReadDB', TRUE);
     }
 
-    public function getUserByEmail(string $email) {
+    public function getUserByEmail(string $email): ?object {
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->select('UserUID, FirstName, LastName, EmailAddress, UserName');
         $this->ReadDb->from('Users.UserTbl');
@@ -26,7 +26,7 @@ class Passwordreset_model extends CI_Model {
      *   - not yet used
      *   - not expired (ExpiresAt > NOW())
      */
-    public function getValidToken(string $token) {
+    public function getValidToken(string $token): ?object {
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->select('r.ResetUID, r.UserUID, r.ExpiresAt, u.FirstName, u.EmailAddress');
         $this->ReadDb->from('Users.PasswordResetTbl r');
@@ -42,7 +42,7 @@ class Passwordreset_model extends CI_Model {
     /**
      * Check whether the token exists at all (for expired vs. invalid distinction).
      */
-    public function tokenExists(string $token) {
+    public function tokenExists(string $token): ?object {
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->select('ResetUID, IsUsed, ExpiresAt');
         $this->ReadDb->from('Users.PasswordResetTbl');

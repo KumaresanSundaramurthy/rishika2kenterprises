@@ -10,7 +10,7 @@ class Subscription_model extends CI_Model {
     }
 
     // ── User subscription info (UserTbl) ──────────────────────────────────────
-    public function getUserSubscription($userUID) {
+    public function getUserSubscription(int $userUID): object {
         $result = new stdClass();
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -32,7 +32,7 @@ class Subscription_model extends CI_Model {
     }
 
     // ── User email info for notifications ─────────────────────────────────────
-    public function getUserEmailInfo($userUID) {
+    public function getUserEmailInfo(int $userUID): object {
         $result = new stdClass();
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -53,7 +53,7 @@ class Subscription_model extends CI_Model {
     }
 
     // ── Check if an expiry-warning notification was already sent today ─────────
-    public function isNotificationSentToday($userUID, $notificationType, $today) {
+    public function isNotificationSentToday(int $userUID, string $notificationType, string $today): object {
         $result = new stdClass();
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -77,7 +77,7 @@ class Subscription_model extends CI_Model {
     }
 
     // ── All subscription plans ────────────────────────────────────────────────
-    public function getSubscriptionPlans($activeOnly = true) {
+    public function getSubscriptionPlans(bool $activeOnly = true): object {
         $result = new stdClass();
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -99,7 +99,7 @@ class Subscription_model extends CI_Model {
         return $result;
     }
 
-    public function getUserSubscriptionHistory($userUID, $limit = 50) {
+    public function getUserSubscriptionHistory(int $userUID, int $limit = 50): array {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('*');
@@ -116,7 +116,7 @@ class Subscription_model extends CI_Model {
     }
 
     // ── Single active plan by plan code ──────────────────────────────────────
-    public function getPlanByCode($planCode) {
+    public function getPlanByCode(string $planCode): object {
         $result = new stdClass();
         try {
             $this->ReadDb->db_debug = FALSE;

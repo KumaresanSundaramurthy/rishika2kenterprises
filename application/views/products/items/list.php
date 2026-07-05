@@ -1,13 +1,12 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php
-$cdnUrl = getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv('CFLARE_R2_CDN');
-
 if (!empty($DataLists)) {
     foreach ($DataLists as $i => $row) {
 
-        $sno    = $StartFrom + $i + 1;
-        $imgSrc = !empty($row->Image) ? $cdnUrl . $row->Image : null;
+        $sno     = $StartFrom + $i + 1;
+        $_atts   = json_decode($row->AttachmentsJson ?? '[]', true);
+        $imgSrc  = !empty($_atts[0]['url']) ? $_atts[0]['url'] : null;
 
         // Avatar initials: up to 2 letters from first 2 words
         $_words   = preg_split('/\s+/', trim($row->ItemName));

@@ -310,10 +310,6 @@ function retrieveCategoryDetails(CategoryUID) {
                 $('#CategoryUID').val(response.Data.CategoryUID);
                 $('#CategoryName').val(response.Data.Name);
                 $('#CategoryDescription').val(response.Data.Description);
-                if (hasValue(response.Data.Image)) {
-                    var ImageUrl = CDN_URL + response.Data.Image;
-                    commonSetDropzoneImageTwo(ImageUrl);
-                }
 
             }
         },

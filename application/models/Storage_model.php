@@ -12,7 +12,7 @@ class Storage_model extends CI_Model {
 
     }
 
-    public function storageFilterFormation($ModuleInfoData, $Filter) {
+    public function storageFilterFormation(object $ModuleInfoData, array $Filter): object {
 
         $this->EndReturnData = new StdClass();
         try {
@@ -29,12 +29,12 @@ class Storage_model extends CI_Model {
                 }
                 if (array_key_exists('StorageType', $Filter)) {
                     if($SearchDirectQuery != '') {
-                        $SearchDirectQuery .= ' AND ';    
+                        $SearchDirectQuery .= ' AND ';
                     }
                     $SearchDirectQuery .= $ModuleInfoData->TableAliasName.'.StorageTypeUID IN ('.implode(',', $Filter['StorageType']).')';
                 }
             }
-            
+
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->SearchDirectQuery = $SearchDirectQuery;
             $this->EndReturnData->SearchFilter = $SearchFilter;
@@ -52,7 +52,7 @@ class Storage_model extends CI_Model {
 
     }
 
-    public function getStorageDetails($FilterArray) {
+    public function getStorageDetails(array $FilterArray): array {
 
         $this->EndReturnData = new StdClass();
         try {

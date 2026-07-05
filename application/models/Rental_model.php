@@ -11,7 +11,7 @@ class Rental_model extends CI_Model {
 
     // ── Stat cards ────────────────────────────────────────────────────────────
 
-    public function getRentalStats($orgUID) {
+    public function getRentalStats(int $orgUID): ?object {
         $this->ReadDb->db_debug = FALSE;
         $sql = "
             SELECT
@@ -31,7 +31,7 @@ class Rental_model extends CI_Model {
 
     // ── Paginated list ────────────────────────────────────────────────────────
 
-    public function getRentalList($orgUID, $filter, $limit, $offset) {
+    public function getRentalList(int $orgUID, array $filter, int $limit, int $offset): array {
         $this->ReadDb->db_debug = FALSE;
 
         $this->ReadDb->select([
@@ -73,7 +73,7 @@ class Rental_model extends CI_Model {
         return $rows;
     }
 
-    public function getRentalCount($orgUID, $filter) {
+    public function getRentalCount(int $orgUID, array $filter): int {
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->select('COUNT(*) AS cnt');
         $this->ReadDb->from('Transaction.RentalMasterTbl r');
@@ -84,7 +84,7 @@ class Rental_model extends CI_Model {
         return $row ? (int)$row->cnt : 0;
     }
 
-    private function _applyFilter($filter) {
+    private function _applyFilter(array $filter): void {
         if (!empty($filter['Status']) && $filter['Status'] !== 'All') {
             if ($filter['Status'] === 'Active') {
                 $this->ReadDb->where_in('r.RentalStatus', ['Active', 'PartiallyReturned', 'Overdue']);
@@ -102,7 +102,7 @@ class Rental_model extends CI_Model {
         }
     }
 
-    private function _getMachineSummary($rentalUID) {
+    private function _getMachineSummary(int $rentalUID): array {
         $this->ReadDb->db_debug = FALSE;
         $sql = "
             SELECT ri.RentalItemUID, p.ItemName, ri.Qty, ri.RentalType,
@@ -122,7 +122,7 @@ class Rental_model extends CI_Model {
 
     // ── Single rental detail ──────────────────────────────────────────────────
 
-    public function getRentalById($rentalUID, $orgUID) {
+    public function getRentalById(int $rentalUID, int $orgUID): ?object {
         $this->ReadDb->db_debug = FALSE;
         $sql = "
             SELECT r.*, c.Name AS CustomerName, c.MobileNumber AS CustomerMobile,
@@ -142,7 +142,7 @@ class Rental_model extends CI_Model {
 
     // ── Payments ──────────────────────────────────────────────────────────────
 
-    public function getRentalPayments($rentalUID, $orgUID) {
+    public function getRentalPayments(int $rentalUID, int $orgUID): array {
         $this->ReadDb->db_debug = FALSE;
         $sql = "
             SELECT rp.*, pt.Name AS PaymentTypeName
@@ -156,7 +156,7 @@ class Rental_model extends CI_Model {
 
     // ── Rentable products (for create modal) ──────────────────────────────────
 
-    public function searchRentableProducts($orgUID, $term = '') {
+    public function searchRentableProducts(int $orgUID, string $term = ''): array {
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->select([
             'p.ProductUID', 'p.ItemName', 'p.PartNumber', 'COALESCE(ps.AvailableQty, 0) AS AvailableQuantity',
@@ -186,7 +186,7 @@ class Rental_model extends CI_Model {
 
     // ── Payment types & bank accounts ─────────────────────────────────────────
 
-    public function getPaymentTypes() {
+    public function getPaymentTypes(): array {
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->select('PaymentTypeUID, Name AS PaymentTypeName, IsCash');
         $this->ReadDb->from('Global.PaymentTypesTbl');
@@ -196,7 +196,7 @@ class Rental_model extends CI_Model {
         return $query ? $query->result() : [];
     }
 
-    public function getBankAccounts($orgUID) {
+    public function getBankAccounts(int $orgUID): array {
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->select('BankAccountUID, AccountName, BankName, IsDefault');
         $this->ReadDb->from('Organisation.OrgBankAccountsTbl');
@@ -211,7 +211,7 @@ class Rental_model extends CI_Model {
 
     // ── Rental items (for return modal) ──────────────────────────────────────
 
-    public function getRentalItems($rentalUID, $orgUID) {
+    public function getRentalItems(int $rentalUID, int $orgUID): array {
         return $this->_getMachineSummary($rentalUID);
     }
 

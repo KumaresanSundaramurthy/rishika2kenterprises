@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>New Delivery Challan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+<style>
+/* ── RESET ── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:'Inter',system-ui,sans-serif;background:#eef0f5;color:#1e293b;font-size:14px;-webkit-font-smoothing:antialiased}
+button{cursor:pointer;font-family:inherit;border:none;background:none}
+input,textarea,select{font-family:inherit;font-size:inherit;color:inherit}
+
+/* ── PAGE SHELL ── */
+.page{padding:14px 18px 60px;max-width:1180px;margin:0 auto}
+
+/* ── MAIN CARD ── */
+.form-card{background:#fff;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.08),0 0 0 1px rgba(0,0,0,.04);overflow:visible}
+
+/* ══════════════════════════════════════════
+   CARD HEADER / TOPBAR
+══════════════════════════════════════════ */
+.card-header{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 16px;
+  background:#fff;
+  border-bottom:1px solid #e8eaf0;
+  border-radius:10px 10px 0 0;
+  flex-wrap:wrap;gap:8px;
+}
+.hdr-left{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
+.btn-back{
+  width:30px;height:30px;border-radius:7px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  color:#64748b;transition:.12s;
+}
+.btn-back:hover{background:#f1f5f9;color:#1e293b}
+.hdr-icon{
+  width:34px;height:34px;border-radius:8px;flex-shrink:0;
+  background:linear-gradient(135deg,#6ee7b7,#34d399);
+  display:flex;align-items:center;justify-content:center;
+}
+.hdr-icon i{font-size:16px;color:#065f46}
+.hdr-title{font-size:14px;font-weight:700;color:#1e293b}
+.doc-pill{
+  display:inline-flex;align-items:center;gap:6px;
+  background:#f1f5f9;border:1px solid #e2e8f0;
+  border-radius:6px;padding:3px 10px;
+  font-size:12px;font-weight:700;color:#475569;
+}
+.status-badge{
+  font-size:9px;font-weight:800;letter-spacing:.05em;
+  text-transform:uppercase;padding:2px 6px;border-radius:4px;
+}
+.sb-new{background:#dbeafe;color:#1d4ed8}
+.sb-draft{background:#fef9c3;color:#854d0e}
+
+.hdr-right{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:7px;font-size:13px;font-weight:500;transition:.12s;white-space:nowrap}
+.btn i{font-size:14px}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn-ghost{color:#64748b}.btn-ghost:hover{background:#f1f5f9;color:#1e293b}
+.btn-outline{border:1px solid #cbd5e1;color:#475569;background:#fff}.btn-outline:hover{background:#f8fafc;border-color:#94a3b8}
+.btn-primary{background:#4f46e5;color:#fff}.btn-primary:hover{background:#4338ca}
+.btn-danger-ghost{color:#94a3b8}.btn-danger-ghost:hover{background:#fef2f2;color:#dc2626}
+
+.split-wrap{display:inline-flex;position:relative}
+.split-main{border-radius:7px 0 0 7px}
+.split-caret{
+  border-left:1px solid rgba(255,255,255,.25);padding:6px 8px;
+  background:#4f46e5;color:#fff;border-radius:0 7px 7px 0;
+  display:flex;align-items:center;transition:.12s;font-size:13px;
+}
+.split-caret:hover{background:#4338ca}
+.split-dd{
+  position:absolute;top:calc(100% + 5px);right:0;z-index:400;
+  background:#fff;border:1px solid #e2e8f0;border-radius:10px;
+  padding:5px;box-shadow:0 8px 28px rgba(0,0,0,.1),0 2px 6px rgba(0,0,0,.05);
+  min-width:185px;
+  opacity:0;pointer-events:none;transform:translateY(-4px);
+  transition:opacity .13s,transform .13s;
+}
+.split-dd.open{opacity:1;pointer-events:auto;transform:translateY(0)}
+.split-dd-lbl{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#94a3b8;padding:4px 10px 2px}
+.split-dd-item{display:flex;align-items:center;gap:7px;padding:7px 10px;border-radius:7px;font-size:12px;color:#374151;width:100%;transition:.1s}
+.split-dd-item:hover{background:#f5f5ff;color:#4f46e5}
+.split-dd-item i{color:#94a3b8;font-size:14px}
+
+/* ══════════════════════════════════════════
+   CONTROLS BAR (Type / Mode / Dispatch From)
+══════════════════════════════════════════ */
+.controls-bar{
+  display:flex;align-items:center;flex-wrap:wrap;
+  padding:8px 16px;gap:0;
+  background:#f8f9fd;
+  border-bottom:1px solid #eceef5;
+}
+.ctrl-item{
+  display:flex;align-items:center;gap:5px;
+  padding:4px 14px 4px 0;margin-right:14px;
+  border-right:1px solid #e2e8f0;
+}
+.ctrl-item:last-child{border-right:none;margin-right:0;padding-right:0}
+.ctrl-lbl{font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#94a3b8}
+.ctrl-select{
+  border:none;background:transparent;
+  font-size:12px;font-weight:600;color:#334155;
+  padding:2px 4px;border-radius:5px;cursor:pointer;
+  outline:none;
+}
+.ctrl-select:hover{background:#eef2ff;color:#4f46e5}
+.ctrl-chip{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:11px;font-weight:700;
+  background:#e0e7ff;color:#4338ca;
+  border-radius:999px;padding:2px 10px;
+}
+.ctrl-addr-btn{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:12px;font-weight:600;color:#334155;
+  padding:3px 6px;border-radius:5px;transition:.12s;max-width:320px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.ctrl-addr-btn i{font-size:12px;color:#94a3b8;flex-shrink:0}
+.ctrl-addr-btn:hover{background:#eef2ff;color:#4f46e5}
+
+/* inline mini dropdown */
+.mini-dd{position:relative;display:inline-flex}
+.mini-dd-panel{
+  position:absolute;top:calc(100% + 4px);left:0;z-index:300;
+  background:#fff;border:1px solid #e2e8f0;border-radius:9px;
+  padding:4px;box-shadow:0 6px 22px rgba(0,0,0,.08),0 2px 6px rgba(0,0,0,.04);
+  min-width:170px;white-space:nowrap;
+  opacity:0;pointer-events:none;transform:translateY(-4px);
+  transition:opacity .13s,transform .13s;
+}
+.mini-dd-panel.open{opacity:1;pointer-events:auto;transform:translateY(0)}
+.mdi-item{
+  display:flex;align-items:center;gap:7px;
+  padding:7px 9px;border-radius:6px;cursor:pointer;
+  font-size:12px;font-weight:500;color:#374151;transition:.1s;
+}
+.mdi-item:hover,.mdi-item.active{background:#f5f5ff;color:#4f46e5}
+.mdi-item.active{font-weight:700}
+.mdi-chk{color:#4f46e5;margin-left:auto;font-size:13px;display:none}
+.mdi-item.active .mdi-chk{display:block}
+
+/* ══════════════════════════════════════════
+   FROM → TO SECTION
+══════════════════════════════════════════ */
+.from-to{
+  display:grid;grid-template-columns:1fr 24px 1fr;
+  gap:0;padding:16px 16px 0;
+  align-items:stretch;
+}
+.ft-arrow{
+  display:flex;align-items:center;justify-content:center;
+  color:#cbd5e1;font-size:20px;padding-top:24px;
+}
+
+/* FROM box */
+.from-box{
+  background:linear-gradient(135deg,#f8faff 0%,#f1f5ff 100%);
+  border:1px solid #e0e7ff;border-radius:10px;
+  padding:14px 16px;
+}
+.ft-label{font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#94a3b8;margin-bottom:10px}
+.from-org-row{display:flex;align-items:center;gap:10px}
+.org-avatar{
+  width:36px;height:36px;border-radius:9px;flex-shrink:0;
+  background:linear-gradient(135deg,#4f46e5,#7c3aed);
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:800;color:#fff;letter-spacing:-.5px;
+}
+.from-org-name{font-size:14px;font-weight:800;color:#1e293b;margin-bottom:2px;letter-spacing:-.02em}
+.from-org-addr{font-size:11px;color:#64748b;line-height:1.5}
+.from-org-gst{font-size:10px;color:#94a3b8;margin-top:4px;font-family:'SF Mono',monospace}
+
+/* TO box */
+.to-box{border-radius:10px;position:relative}
+
+/* customer search */
+.cust-search-wrap{
+  border:2px dashed #c7d2fe;border-radius:10px;
+  padding:14px 16px;height:100%;
+  display:flex;flex-direction:column;justify-content:center;
+  transition:.15s;
+}
+.cust-search-wrap:focus-within{border-color:#4f46e5;background:#fafbff}
+.to-label{font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#94a3b8;margin-bottom:8px}
+.cust-inp-row{display:flex;align-items:center;gap:8px}
+.cust-inp-row i{font-size:17px;color:#c7d2fe;flex-shrink:0}
+.cust-inp{
+  flex:1;border:none;background:none;outline:none;
+  font-size:16px;font-weight:600;color:#1e293b;
+  padding:0;
+}
+.cust-inp::placeholder{color:#cbd5e1;font-weight:400;font-size:14px}
+.cust-clear{
+  width:24px;height:24px;border-radius:5px;flex-shrink:0;
+  display:none;align-items:center;justify-content:center;
+  color:#94a3b8;font-size:14px;transition:.1s;
+}
+.cust-clear.vis{display:flex}.cust-clear:hover{background:#fee2e2;color:#dc2626}
+.cust-recent{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px}
+.cust-recent-pill{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:11px;font-weight:600;color:#64748b;
+  background:#f1f5f9;border:1px solid #e2e8f0;
+  border-radius:999px;padding:3px 10px;cursor:pointer;transition:.12s;
+}
+.cust-recent-pill:hover{background:#eef2ff;color:#4f46e5;border-color:#c7d2fe}
+.cust-recent-dot{width:7px;height:7px;border-radius:50%}
+
+/* customer filled */
+.cust-filled-box{
+  border:1px solid #c7d2fe;border-radius:10px;
+  padding:14px 16px;height:100%;
+  background:linear-gradient(135deg,#f5f3ff 0%,#eef2ff 100%);
+  position:relative;
+}
+.cust-filled-row{display:flex;align-items:center;gap:10px}
+.cust-avatar{
+  width:36px;height:36px;border-radius:9px;flex-shrink:0;
+  font-size:13px;font-weight:800;color:#fff;
+  display:flex;align-items:center;justify-content:center;
+}
+.cust-name{font-size:14px;font-weight:800;color:#1e293b;margin-bottom:1px;letter-spacing:-.02em}
+.cust-meta{font-size:11px;color:#6b7280;line-height:1.5}
+.cust-gst{font-size:10px;color:#94a3b8;margin-top:3px;font-family:'SF Mono',monospace}
+.cust-edit-btn{
+  position:absolute;top:10px;right:10px;
+  width:26px;height:26px;border-radius:6px;
+  display:flex;align-items:center;justify-content:center;
+  color:#4f46e5;background:#e0e7ff;font-size:13px;transition:.12s;
+}
+.cust-edit-btn:hover{background:#c7d2fe}
+
+/* autocomplete dropdown */
+.ac-dd{
+  position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:300;
+  background:#fff;border:1px solid #e2e8f0;border-radius:10px;
+  padding:5px;box-shadow:0 8px 28px rgba(0,0,0,.1),0 2px 6px rgba(0,0,0,.04);
+  max-height:240px;overflow-y:auto;
+  opacity:0;pointer-events:none;transform:translateY(-5px);
+  transition:opacity .14s,transform .14s;
+}
+.ac-dd.open{opacity:1;pointer-events:auto;transform:translateY(0)}
+.ac-item{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 10px;border-radius:7px;cursor:pointer;transition:.1s;
+}
+.ac-item:hover,.ac-item.focused{background:#f5f5ff}
+.ac-av{
+  width:32px;height:32px;border-radius:8px;flex-shrink:0;
+  font-size:11px;font-weight:800;color:#fff;
+  display:flex;align-items:center;justify-content:center;
+}
+.ac-name{font-size:13px;font-weight:600;color:#1e293b}
+.ac-meta{font-size:11px;color:#9ca3af;margin-top:1px}
+.ac-no-res{padding:18px 12px;text-align:center;font-size:12px;color:#9ca3af}
+
+/* ══════════════════════════════════════════
+   DATE ROW
+══════════════════════════════════════════ */
+.date-row{
+  display:grid;grid-template-columns:1fr 1fr 1fr;
+  gap:10px;padding:12px 16px 0;
+}
+.date-row.has-return{grid-template-columns:1fr 1fr 1fr 1fr}
+.form-field{display:flex;flex-direction:column;gap:4px}
+.field-lbl{
+  font-size:10px;font-weight:700;letter-spacing:.05em;
+  text-transform:uppercase;color:#94a3b8;
+}
+.field-lbl .req{color:#ef4444;margin-left:2px}
+.field-input{
+  border:1px solid #e2e8f0;border-radius:7px;
+  padding:7px 10px;font-size:13px;font-weight:500;color:#1e293b;
+  background:#fff;outline:none;transition:.13s;
+  display:flex;align-items:center;gap:6px;
+}
+.field-input:focus-within{border-color:#4f46e5;box-shadow:0 0 0 3px rgba(79,70,229,.1)}
+.field-input input{border:none;background:none;outline:none;flex:1;font-size:13px;font-weight:500;color:#1e293b}
+.field-input i{color:#cbd5e1;font-size:14px;flex-shrink:0}
+.field-input input::placeholder{color:#d1d5db;font-weight:400}
+
+/* ══════════════════════════════════════════
+   ITEMS SECTION
+══════════════════════════════════════════ */
+.items-section{margin-top:14px;border-top:1px solid #eceef5}
+.items-hdr{
+  display:flex;align-items:center;gap:8px;
+  padding:10px 16px;
+}
+.items-title{font-size:13px;font-weight:700;color:#1e293b}
+.items-count{
+  font-size:11px;font-weight:700;
+  background:#eef2ff;color:#4f46e5;
+  border-radius:999px;padding:1px 8px;min-width:22px;text-align:center;
+}
+.items-hdr-right{display:flex;align-items:center;gap:6px;margin-left:auto}
+.btn-clear-all{font-size:12px;color:#94a3b8;padding:4px 8px;border-radius:5px;transition:.1s}
+.btn-clear-all:hover{background:#fef2f2;color:#dc2626}
+
+.btn-add-product{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:6px 14px;border-radius:7px;
+  background:#4f46e5;color:#fff;font-size:13px;font-weight:600;
+  transition:.12s;
+}
+.btn-add-product:hover{background:#4338ca}
+.btn-add-product .ks{
+  font-size:10px;font-weight:700;font-family:monospace;
+  background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.25);
+  border-radius:4px;padding:1px 5px;
+}
+
+/* table */
+.tbl-wrap{border-top:1px solid #f1f3f8}
+.items-tbl{width:100%;border-collapse:collapse}
+.items-tbl thead th{
+  font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
+  color:#6d60d4;background:#f5f3ff;padding:9px 12px;text-align:left;
+}
+.th-r{text-align:right}
+.th-c{text-align:center}
+.items-tbl tbody tr{border-bottom:1px solid #f8f9fc;transition:background .1s}
+.items-tbl tbody tr:hover{background:#fafaff}
+.items-tbl tbody tr:last-child{border-bottom:none}
+
+.td-sno{padding:12px 12px;font-size:11px;font-weight:700;color:#94a3b8;width:36px}
+.td-prod{padding:10px 12px}
+.td-num{padding:10px 12px;text-align:right}
+.td-ctr{padding:10px 12px;text-align:center}
+.td-act{padding:10px 8px;text-align:center;width:36px}
+
+.prod-name{font-size:13px;font-weight:600;color:#1e293b}
+.prod-sku{font-size:11px;color:#9ca3af;margin-top:1px}
+.gst-badge{
+  font-size:11px;font-weight:700;padding:2px 8px;border-radius:5px;
+  background:#dcfce7;color:#15803d;display:inline-flex;align-items:center;
+}
+.row-total{font-size:13px;font-weight:800;color:#1e293b;font-variant-numeric:tabular-nums}
+
+/* editable cells */
+.cell-edit{
+  width:80px;border:none;background:transparent;
+  text-align:right;font-size:13px;font-weight:600;
+  color:#374151;outline:none;padding:5px 7px;border-radius:6px;
+  transition:.12s;font-variant-numeric:tabular-nums;
+}
+.cell-edit:hover{background:#f1f5f9}
+.cell-edit:focus{background:#eef2ff;color:#4f46e5;box-shadow:0 0 0 2px rgba(79,70,229,.2)}
+
+.del-btn{
+  width:26px;height:26px;border-radius:6px;
+  display:inline-flex;align-items:center;justify-content:center;
+  color:#d1d5db;font-size:13px;transition:.12s;
+}
+.del-btn:hover{background:#fee2e2;color:#dc2626}
+
+/* empty state */
+.tbl-empty{
+  padding:32px 0;text-align:center;
+  border-top:1px dashed #e2e8f0;
+}
+.tbl-empty-icon{font-size:32px;color:#e2e8f0;margin-bottom:8px}
+.tbl-empty-text{font-size:13px;font-weight:600;color:#94a3b8;margin-bottom:4px}
+.tbl-empty-sub{font-size:12px;color:#cbd5e1;margin-bottom:16px}
+
+/* subtotals row (inline under table) */
+.subtotals-row{
+  display:flex;justify-content:flex-end;
+  padding:8px 12px;
+  border-top:1px solid #f1f3f8;
+  gap:24px;
+}
+.sub-item{display:flex;align-items:center;gap:8px;font-size:12px}
+.sub-k{color:#6b7280;font-weight:500}
+.sub-v{font-weight:700;color:#1e293b;font-variant-numeric:tabular-nums}
+
+/* add product row */
+.tbl-add-row{
+  display:flex;align-items:center;gap:7px;
+  padding:10px 12px;
+  border-top:1px solid #f1f3f8;
+  cursor:pointer;transition:.12s;color:#94a3b8;font-size:13px;
+}
+.tbl-add-row:hover{background:#f5f5ff;color:#4f46e5}
+.tbl-add-row i{font-size:14px}
+
+/* ══════════════════════════════════════════
+   FOOTER (Notes + Totals)
+══════════════════════════════════════════ */
+.form-footer{
+  display:grid;grid-template-columns:1fr 280px;
+  gap:20px;padding:14px 16px 16px;
+  border-top:1px solid #eceef5;
+  margin-top:12px;
+}
+.footer-lbl{font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#94a3b8;margin-bottom:5px}
+.notes-ta{
+  width:100%;border:1px solid #e2e8f0;border-radius:7px;
+  padding:9px 11px;font-size:13px;color:#374151;
+  background:#fafafa;outline:none;resize:vertical;min-height:72px;
+  transition:.13s;
+}
+.notes-ta:focus{border-color:#4f46e5;background:#fff;box-shadow:0 0 0 3px rgba(79,70,229,.1)}
+.notes-ta::placeholder{color:#d1d5db}
+.attach-hint{font-size:11px;color:#94a3b8;margin-top:5px}
+.attach-hint a{color:#4f46e5;text-decoration:none;font-weight:600}
+
+.totals-block{border-left:1px solid #eceef5;padding-left:20px}
+.tot-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:13px}
+.tot-k{color:#64748b;font-weight:500}
+.tot-v{font-weight:600;color:#374151;font-variant-numeric:tabular-nums}
+.tot-disc-v{color:#059669;font-weight:600}
+.tot-rule{height:1px;background:#e2e8f0;margin:8px 0}
+.tot-grand{padding:6px 0}
+.tot-grand .tot-k{font-size:15px;font-weight:800;color:#1e293b}
+.tot-grand .tot-v{font-size:22px;font-weight:900;color:#4f46e5;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.tot-actions{display:flex;gap:6px;margin-top:12px}
+.tot-actions .btn-outline{flex:1;justify-content:center}
+
+/* ══════════════════════════════════════════
+   STICKY BOTTOM BAR
+══════════════════════════════════════════ */
+.sticky-bar{
+  position:fixed;bottom:0;inset-inline:0;z-index:100;
+  background:rgba(255,255,255,.95);backdrop-filter:blur(10px);
+  border-top:1px solid #e2e8f0;
+  padding:0 20px;height:50px;
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+}
+.sb-total-wrap .sb-lbl{font-size:10px;font-weight:700;color:#9ca3af;letter-spacing:.05em;text-transform:uppercase}
+.sb-total-inner{display:flex;align-items:baseline;gap:8px}
+.sb-total-val{font-size:18px;font-weight:900;color:#1e293b;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.sb-tax-note{font-size:11px;color:#9ca3af;font-variant-numeric:tabular-nums}
+.sb-right{display:flex;align-items:center;gap:6px}
+
+/* ══════════════════════════════════════════
+   PRODUCT PALETTE
+══════════════════════════════════════════ */
+.pp-overlay{
+  position:fixed;inset:0;z-index:600;
+  background:rgba(15,20,35,.4);backdrop-filter:blur(3px);
+  opacity:0;pointer-events:none;transition:opacity .16s;
+}
+.pp-overlay.open{opacity:1;pointer-events:auto}
+.pp-modal{
+  position:fixed;top:60px;left:50%;transform:translateX(-50%) translateY(-10px);
+  width:540px;max-width:calc(100vw - 24px);z-index:700;
+  background:#fff;border:1px solid #e2e8f0;border-radius:14px;
+  box-shadow:0 20px 60px rgba(0,0,0,.14),0 4px 14px rgba(0,0,0,.07);
+  opacity:0;pointer-events:none;transition:opacity .16s,transform .18s;
+}
+.pp-modal.open{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0)}
+.pp-head{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid #f1f3f8}
+.pp-head i{font-size:17px;color:#9ca3af;flex-shrink:0}
+.pp-head input{flex:1;border:none;background:none;font-size:15px;font-weight:500;color:#1e293b;outline:none}
+.pp-head input::placeholder{color:#d1d5db}
+.pp-esc{font-size:10px;font-weight:700;font-family:monospace;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:4px;padding:2px 6px;color:#9ca3af}
+.pp-body{max-height:320px;overflow-y:auto}
+.pp-section-lbl{font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#94a3b8;padding:8px 16px 3px}
+.pp-item{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 16px;cursor:pointer;transition:.1s;
+}
+.pp-item:hover,.pp-item.focused{background:#f5f5ff}
+.pp-item-icon{
+  width:34px;height:34px;border-radius:8px;flex-shrink:0;
+  background:#f1f5f9;display:flex;align-items:center;justify-content:center;
+  font-size:15px;color:#9ca3af;
+}
+.pp-item-main{flex:1;min-width:0}
+.pp-item-name{font-size:13px;font-weight:600;color:#1e293b}
+.pp-item-sku{font-size:11px;color:#9ca3af;margin-top:1px}
+.pp-item-right{text-align:right;flex-shrink:0}
+.pp-item-price{font-size:13px;font-weight:700;color:#1e293b;font-variant-numeric:tabular-nums}
+.pp-item-tax{font-size:11px;color:#059669;font-weight:600}
+.pp-empty{padding:28px;text-align:center;font-size:13px;color:#9ca3af}
+.pp-foot{
+  display:flex;gap:12px;padding:7px 16px;
+  border-top:1px solid #f1f3f8;font-size:11px;color:#9ca3af;
+}
+.pp-kbd{background:#f1f5f9;border:1px solid #e2e8f0;border-radius:4px;padding:1px 5px;font-family:monospace;font-size:10px;font-weight:700}
+
+/* ══════════════════════════════════════════
+   ANIMATIONS
+══════════════════════════════════════════ */
+@keyframes rowSlide{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
+@keyframes numPop{0%{transform:scale(1)}50%{transform:scale(1.06)}100%{transform:scale(1)}}
+.row-anim{animation:rowSlide .2s ease}
+.num-pop{animation:numPop .22s ease}
+
+/* ══════════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════════ */
+@media(max-width:900px){
+  .from-to{grid-template-columns:1fr;gap:10px}
+  .ft-arrow{display:none}
+  .date-row{grid-template-columns:1fr 1fr}
+  .form-footer{grid-template-columns:1fr;gap:12px}
+  .totals-block{border-left:none;padding-left:0;border-top:1px solid #eceef5;padding-top:14px}
+}
+@media(max-width:600px){
+  .page{padding:8px 8px 56px}
+  .controls-bar{gap:4px;padding:6px 10px}
+  .ctrl-item{padding-right:8px;margin-right:8px}
+  .date-row{grid-template-columns:1fr}
+  .from-to{padding:10px 10px 0}
+  .items-hdr,.date-row,.form-footer{padding-left:10px;padding-right:10px}
+}
+</style>
+</head>
+<body>
+
+<div class="page">
+<div class="form-card">
+
+<!-- ══ CARD HEADER ══ -->
+<div class="card-header">
+  <div class="hdr-left">
+    <button class="btn-back btn-ghost"><i class='bx bx-arrow-back' style="font-size:16px"></i></button>
+    <div class="hdr-icon"><i class='bx bx-package'></i></div>
+    <span class="hdr-title">Create Delivery Challan</span>
+    <div class="doc-pill">
+      <i class='bx bx-package' style="font-size:12px;color:#16a34a"></i>
+      DC-0042
+      <span class="status-badge sb-new">NEW</span>
+    </div>
+  </div>
+  <div class="hdr-right">
+    <button class="btn btn-outline btn-sm" onclick="doDraft()">
+      <i class='bx bx-save'></i> Draft
+      <span style="font-size:10px;font-family:monospace;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:3px;padding:1px 4px;color:#94a3b8">⌘D</span>
+    </button>
+    <div class="split-wrap">
+      <button class="btn btn-primary split-main btn-sm" onclick="doSave()">
+        <i class='bx bx-check'></i> Save Challan
+        <span style="font-size:10px;font-family:monospace;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.25);border-radius:3px;padding:1px 4px">⌘S</span>
+      </button>
+      <button class="split-caret btn-sm" id="hdrCaret"><i class='bx bx-chevron-down'></i></button>
+      <div class="split-dd" id="hdrDD">
+        <div class="split-dd-lbl">Print &amp; Save</div>
+        <button class="split-dd-item"><i class='bx bx-file'></i> Save &amp; Print A4</button>
+        <button class="split-dd-item"><i class='bx bx-file-blank'></i> Save &amp; Print A5</button>
+        <button class="split-dd-item"><i class='bx bx-receipt'></i> Save &amp; Print Thermal</button>
+      </div>
+    </div>
+    <button class="btn btn-danger-ghost btn-sm"><i class='bx bx-x' style="font-size:16px"></i></button>
+  </div>
+</div>
+
+<!-- ══ CONTROLS BAR (Type / Mode / Dispatch From) ══ -->
+<div class="controls-bar">
+  <div class="ctrl-item">
+    <span class="ctrl-lbl">Type</span>
+    <div class="mini-dd" id="typeDD">
+      <button class="ctrl-addr-btn" id="typeTrigger">
+        <span id="typeLabel">Regular</span>
+        <i class='bx bx-chevron-down'></i>
+      </button>
+      <div class="mini-dd-panel" id="typeDDPanel">
+        <div class="mdi-item active" data-val="Regular"><i class='bx bx-file-blank'></i>Regular<i class='bx bx-check mdi-chk'></i></div>
+        <div class="mdi-item" data-val="Without GST"><i class='bx bx-x-circle'></i>Without GST<i class='bx bx-check mdi-chk'></i></div>
+      </div>
+    </div>
+  </div>
+  <div class="ctrl-item">
+    <span class="ctrl-lbl">Mode</span>
+    <div class="mini-dd" id="modeDD">
+      <button class="ctrl-addr-btn" id="modeTrigger">
+        <span id="modeLabel">Non-Returnable</span>
+        <i class='bx bx-chevron-down'></i>
+      </button>
+      <div class="mini-dd-panel" id="modeDDPanel">
+        <div class="mdi-item active" data-val="Non-Returnable"><i class='bx bx-package'></i>Non-Returnable<i class='bx bx-check mdi-chk'></i></div>
+        <div class="mdi-item" data-val="Returnable"><i class='bx bx-undo'></i>Returnable<i class='bx bx-check mdi-chk'></i></div>
+        <div class="mdi-item" data-val="Job Work"><i class='bx bx-wrench'></i>Job Work<i class='bx bx-check mdi-chk'></i></div>
+      </div>
+    </div>
+  </div>
+  <div class="ctrl-item">
+    <span class="ctrl-lbl">Dispatch From</span>
+    <div class="mini-dd" id="dfDD">
+      <button class="ctrl-addr-btn" id="dfTrigger" style="max-width:280px">
+        <i class='bx bx-map-pin' style="font-size:11px;color:#4f46e5"></i>
+        <span id="dfLabel">Warehouse — 12 Industrial Area, Ch...</span>
+        <i class='bx bx-chevron-down'></i>
+      </button>
+      <div class="mini-dd-panel" id="dfDDPanel" style="min-width:280px">
+        <div class="mdi-item active" data-uid="1" data-text="Warehouse — 12 Industrial Area, Chennai">
+          <i class='bx bx-buildings'></i>Warehouse, Chennai<i class='bx bx-check mdi-chk'></i>
+        </div>
+        <div class="mdi-item" data-uid="2" data-text="Head Office — Anna Nagar, Chennai">
+          <i class='bx bx-building'></i>Head Office, Chennai<i class='bx bx-check mdi-chk'></i>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="ctrl-item" style="margin-left:auto;border-right:none">
+    <span class="ctrl-chip"><i class='bx bx-buildings' style="font-size:11px"></i> B2B</span>
+  </div>
+</div>
+
+<!-- ══ FROM → TO ══ -->
+<div class="from-to">
+
+  <!-- FROM -->
+  <div class="from-box">
+    <div class="ft-label">From</div>
+    <div class="from-org-row">
+      <div class="org-avatar">R2</div>
+      <div>
+        <div class="from-org-name">Rishika 2K Enterprises</div>
+        <div class="from-org-addr">12 Industrial Area, Ambattur<br>Chennai, Tamil Nadu 600058</div>
+        <div class="from-org-gst">GSTIN: 33RRRR1234R1Z5</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ft-arrow"><i class='bx bx-right-arrow-alt'></i></div>
+
+  <!-- TO: customer search -->
+  <div class="to-box">
+    <div style="position:relative">
+
+      <!-- Empty state: search -->
+      <div id="custSearchWrap" class="cust-search-wrap">
+        <div class="to-label">To (Customer)</div>
+        <div class="cust-inp-row">
+          <i class='bx bx-search'></i>
+          <input type="text" class="cust-inp" id="custInp"
+                 placeholder="Search by name, phone or GSTIN…"
+                 autocomplete="off">
+          <button class="cust-clear" id="custClear"><i class='bx bx-x'></i></button>
+        </div>
+        <div class="cust-recent" id="custRecent">
+          <!-- recent pills -->
+        </div>
+        <div class="ac-dd" id="acDD"></div>
+      </div>
+
+      <!-- Filled state: customer card -->
+      <div id="custFilledBox" class="cust-filled-box" style="display:none">
+        <div class="to-label">To (Customer)</div>
+        <div class="cust-filled-row">
+          <div class="cust-avatar" id="cfAvatar">AB</div>
+          <div>
+            <div class="cust-name" id="cfName">—</div>
+            <div class="cust-meta" id="cfMeta">—</div>
+            <div class="cust-gst" id="cfGst">—</div>
+          </div>
+        </div>
+        <button class="cust-edit-btn" id="custEditBtn"><i class='bx bx-edit-alt'></i></button>
+      </div>
+
+      <input type="hidden" id="customerId" name="customerSearch" value="">
+    </div>
+  </div>
+
+</div><!-- /from-to -->
+
+<!-- ══ DATE ROW ══ -->
+<div class="date-row" id="dateRow">
+  <div class="form-field">
+    <label class="field-lbl">Dispatch Date <span class="req">*</span></label>
+    <div class="field-input">
+      <i class='bx bx-calendar'></i>
+      <input type="text" id="transDate" value="01 Jul 2026" placeholder="Select date">
+    </div>
+  </div>
+  <div class="form-field">
+    <label class="field-lbl">Delivery By</label>
+    <div class="field-input">
+      <i class='bx bx-calendar-check'></i>
+      <input type="text" id="deliveryByDate" placeholder="Optional">
+    </div>
+  </div>
+  <div class="form-field">
+    <label class="field-lbl">Vehicle / Reference</label>
+    <div class="field-input">
+      <i class='bx bx-car'></i>
+      <input type="text" id="vehicleNo" placeholder="TN01AB1234" maxlength="50">
+    </div>
+  </div>
+  <!-- Return by — only for Returnable/Job Work -->
+  <div class="form-field" id="returnByField" style="display:none">
+    <label class="field-lbl">Expected Return</label>
+    <div class="field-input">
+      <i class='bx bx-revision'></i>
+      <input type="text" id="returnDate" placeholder="Return date">
+    </div>
+  </div>
+</div>
+
+<!-- ══ ITEMS ══ -->
+<div class="items-section">
+  <div class="items-hdr">
+    <span class="items-title">Items</span>
+    <span class="items-count" id="itemsCount">0</span>
+    <div class="items-hdr-right">
+      <button class="btn-clear-all" id="clearAllBtn" style="display:none" onclick="clearAll()">
+        <i class='bx bx-trash' style="font-size:13px"></i> Clear all
+      </button>
+      <button class="btn-add-product" id="addProductBtn">
+        <i class='bx bx-plus'></i> Add Product
+        <span class="ks">⌘/</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="tbl-wrap">
+    <!-- Empty -->
+    <div class="tbl-empty" id="tblEmpty">
+      <div class="tbl-empty-icon"><i class='bx bx-cube'></i></div>
+      <div class="tbl-empty-text">No products added yet</div>
+      <div class="tbl-empty-sub">Use the button above or press <strong>⌘/</strong> to add items</div>
+      <button class="btn btn-primary btn-sm" id="addFirstBtn">
+        <i class='bx bx-plus'></i> Add First Item
+      </button>
+    </div>
+
+    <!-- Table -->
+    <table class="items-tbl" id="itemsTbl" style="display:none">
+      <thead>
+        <tr>
+          <th style="width:36px;padding-left:16px">#</th>
+          <th>Product</th>
+          <th class="th-r" style="width:82px">Qty</th>
+          <th class="th-r" style="width:100px">Unit Price</th>
+          <th class="th-r" style="width:68px">Disc%</th>
+          <th class="th-c" style="width:62px">Tax</th>
+          <th class="th-r" style="width:110px">Amount</th>
+          <th style="width:36px"></th>
+        </tr>
+      </thead>
+      <tbody id="itemsBody"></tbody>
+    </table>
+
+    <!-- Subtotals -->
+    <div class="subtotals-row" id="subtotalsRow" style="display:none">
+      <div class="sub-item"><span class="sub-k">Subtotal</span><span class="sub-v" id="sSubtotal">₹0.00</span></div>
+      <div class="sub-item"><span class="sub-k">Tax (GST)</span><span class="sub-v" id="sTax">₹0.00</span></div>
+    </div>
+
+    <!-- Add item row -->
+    <div class="tbl-add-row" id="tblAddRow" style="display:none" onclick="openPP()">
+      <i class='bx bx-plus'></i>
+      <span>Add another item</span>
+    </div>
+  </div>
+</div><!-- /items-section -->
+
+<!-- ══ FOOTER ══ -->
+<div class="form-footer" id="formFooter" style="display:none">
+  <div>
+    <div class="footer-lbl">Notes</div>
+    <textarea class="notes-ta" placeholder="Add any notes or terms for this delivery challan…" rows="3"></textarea>
+    <div class="attach-hint"><a href="#">+ Attach file</a> &nbsp; <a href="#">+ Signature</a></div>
+  </div>
+  <div class="totals-block">
+    <div class="tot-row"><span class="tot-k">Subtotal</span><span class="tot-v" id="tSubtotal">₹0.00</span></div>
+    <div class="tot-row"><span class="tot-k">Discount</span><span class="tot-v tot-disc-v" id="tDiscount">—</span></div>
+    <div class="tot-row"><span class="tot-k">Tax (GST)</span><span class="tot-v" id="tTax">₹0.00</span></div>
+    <div class="tot-rule"></div>
+    <div class="tot-row tot-grand">
+      <span class="tot-k">Grand Total</span>
+      <span class="tot-v" id="tTotal">₹0.00</span>
+    </div>
+    <div class="tot-actions">
+      <button class="btn btn-outline btn-sm" onclick="doDraft()">
+        <i class='bx bx-save'></i> Draft
+      </button>
+      <div class="split-wrap">
+        <button class="btn btn-primary split-main btn-sm" onclick="doSave()">
+          <i class='bx bx-check'></i> Save
+        </button>
+        <button class="split-caret btn-sm" id="ftCaret"><i class='bx bx-chevron-down'></i></button>
+        <div class="split-dd" id="ftDD" style="bottom:calc(100% + 5px);top:auto">
+          <div class="split-dd-lbl">Save &amp; Print</div>
+          <button class="split-dd-item"><i class='bx bx-file'></i> Print A4</button>
+          <button class="split-dd-item"><i class='bx bx-file-blank'></i> Print A5</button>
+          <button class="split-dd-item"><i class='bx bx-receipt'></i> Print Thermal</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /form-card -->
+</div><!-- /page -->
+
+<!-- ══ STICKY BAR ══ -->
+<div class="sticky-bar">
+  <div class="sb-total-wrap">
+    <div class="sb-lbl">Grand Total</div>
+    <div class="sb-total-inner">
+      <span class="sb-total-val" id="sbTotal">₹0.00</span>
+      <span class="sb-tax-note" id="sbTax">incl. ₹0.00 GST</span>
+    </div>
+  </div>
+  <div class="sb-right">
+    <button class="btn btn-ghost btn-sm" onclick="doDraft()"><i class='bx bx-save'></i> Draft</button>
+    <div class="split-wrap">
+      <button class="btn btn-primary split-main btn-sm" onclick="doSave()">
+        <i class='bx bx-check'></i> Save Challan
+      </button>
+      <button class="split-caret btn-sm" id="sbCaret"><i class='bx bx-chevron-down'></i></button>
+      <div class="split-dd" id="sbDD" style="bottom:calc(100% + 5px);top:auto;right:0">
+        <div class="split-dd-lbl">Save &amp; Print</div>
+        <button class="split-dd-item"><i class='bx bx-file'></i> Print A4</button>
+        <button class="split-dd-item"><i class='bx bx-file-blank'></i> Print A5</button>
+        <button class="split-dd-item"><i class='bx bx-receipt'></i> Print Thermal</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ PRODUCT PALETTE ══ -->
+<div class="pp-overlay" id="ppOverlay"></div>
+<div class="pp-modal" id="ppModal">
+  <div class="pp-head">
+    <i class='bx bx-search'></i>
+    <input type="text" id="ppInp" placeholder="Search products by name or SKU…" autocomplete="off">
+    <span class="pp-esc">Esc</span>
+  </div>
+  <div class="pp-body" id="ppBody"></div>
+  <div class="pp-foot">
+    <span><span class="pp-kbd">↑↓</span> navigate</span>
+    <span><span class="pp-kbd">↵</span> add to list</span>
+    <span><span class="pp-kbd">Esc</span> close</span>
+  </div>
+</div>
+
+<script>
+/* ── DATA ────────────────────────────── */
+const CUSTS=[
+  {id:1,name:'Acme Builders Ltd',area:'Ambattur',gst:'33AABCA1234A1Z5',phone:'+91 98765 43210',addr:'15/A Anna Nagar, Chennai 600040',init:'AB',bg:'#4f46e5'},
+  {id:2,name:'BlueStar Constructions',area:'T. Nagar',gst:'33BBBST5678B2Z3',phone:'+91 87654 32109',addr:'22 Pondy Bazaar, Chennai 600017',init:'BC',bg:'#059669'},
+  {id:3,name:'Chennai Steel Works',area:'Guindy',gst:'33CCCST9012C3Z1',phone:'+91 76543 21098',addr:'8 Industrial Estate, Guindy 600032',init:'CS',bg:'#d97706'},
+  {id:4,name:'Delta Infra Projects',area:'Porur',gst:'33DDDIP1122D4Z8',phone:'+91 65432 10987',addr:'45 Ramapuram Main Rd, Porur 600116',init:'DI',bg:'#dc2626'},
+  {id:5,name:'Elite Roads & Infra',area:'OMR',gst:'33EEROI9876E5Z2',phone:'+91 54321 09876',addr:'78 Sholinganallur, OMR 600119',init:'ER',bg:'#0891b2'},
+];
+const PRODS=[
+  {id:1,name:'OPC 53 Grade Cement',sku:'CEM-OPC-53',unit:'Bag',price:420,tax:18},
+  {id:2,name:'TMT Steel Bars Fe500D 12mm',sku:'STL-TMT-12',unit:'MT',price:68500,tax:18},
+  {id:3,name:'AAC Blocks 600×200×200mm',sku:'BLK-AAC-200',unit:'Nos',price:55,tax:12},
+  {id:4,name:'River Sand (M-Sand Washed)',sku:'SND-MSW',unit:'Cft',price:1800,tax:5},
+  {id:5,name:'Ready Mix Concrete M25',sku:'RMC-M25',unit:'CuM',price:5500,tax:18},
+  {id:6,name:'Fly Ash Bricks 230×110×75mm',sku:'BRK-FAB',unit:'Nos',price:8,tax:12},
+  {id:7,name:'Structural Steel Plate 20mm',sku:'STL-PLT-20',unit:'MT',price:72000,tax:18},
+];
+
+const G=id=>document.getElementById(id);
+const INR=n=>'₹'+Number(n).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+let cart=[],rowId=0,ppFocus=-1,acFocus=-1;
+
+/* ── CUSTOMER RECENT PILLS ─────────────── */
+G('custRecent').innerHTML=CUSTS.slice(0,4).map(c=>`
+  <div class="cust-recent-pill" data-cid="${c.id}">
+    <div class="cust-recent-dot" style="background:${c.bg}"></div>${c.name}
+  </div>`).join('');
+G('custRecent').addEventListener('click',e=>{
+  const el=e.target.closest('[data-cid]');
+  if(el) selectCust(CUSTS.find(c=>c.id==el.dataset.cid));
+});
+
+/* ── CUSTOMER SEARCH ───────────────────── */
+G('custInp').addEventListener('input',e=>{acFocus=-1;renderAc(e.target.value.trim());});
+G('custInp').addEventListener('focus',e=>{if(!G('customerId').value)renderAc(e.target.value.trim());});
+G('custInp').addEventListener('keydown',e=>{
+  const items=[...G('acDD').querySelectorAll('.ac-item')];
+  if(e.key==='ArrowDown'){e.preventDefault();acFocus=Math.min(acFocus+1,items.length-1);acFocusSet(items);}
+  else if(e.key==='ArrowUp'){e.preventDefault();acFocus=Math.max(acFocus-1,0);acFocusSet(items);}
+  else if(e.key==='Enter'&&acFocus>=0){e.preventDefault();const it=items[acFocus];if(it)selectCust(CUSTS.find(c=>c.id==it.dataset.cid));}
+  else if(e.key==='Escape'){G('acDD').classList.remove('open');}
+});
+function acFocusSet(items){items.forEach((el,i)=>el.classList.toggle('focused',i===acFocus));if(items[acFocus])items[acFocus].scrollIntoView({block:'nearest'});}
+
+function renderAc(q){
+  const dd=G('acDD');
+  const hits=q?CUSTS.filter(c=>c.name.toLowerCase().includes(q.toLowerCase())||c.gst.includes(q)||c.phone.includes(q)):CUSTS;
+  if(!hits.length){dd.innerHTML='<div class="ac-no-res">No customers found</div>';dd.classList.add('open');return;}
+  dd.innerHTML=hits.map(c=>`
+    <div class="ac-item" data-cid="${c.id}">
+      <div class="ac-av" style="background:${c.bg}">${c.init}</div>
+      <div>
+        <div class="ac-name">${c.name}</div>
+        <div class="ac-meta">${c.area} · ${c.phone}</div>
+      </div>
+    </div>`).join('');
+  dd.classList.add('open');
+}
+G('acDD').addEventListener('click',e=>{
+  const it=e.target.closest('.ac-item');
+  if(it) selectCust(CUSTS.find(c=>c.id==it.dataset.cid));
+});
+
+function selectCust(c){
+  if(!c)return;
+  G('customerId').value=c.id;
+  G('custSearchWrap').style.display='none';
+  const fb=G('custFilledBox');fb.style.display='';
+  G('cfAvatar').textContent=c.init;G('cfAvatar').style.background=c.bg;
+  G('cfName').textContent=c.name;
+  G('cfMeta').textContent=c.addr+' · '+c.phone;
+  G('cfGst').textContent='GSTIN: '+c.gst;
+  G('acDD').classList.remove('open');
+}
+G('custEditBtn').addEventListener('click',()=>{
+  G('customerId').value='';
+  G('custFilledBox').style.display='none';
+  G('custSearchWrap').style.display='';
+  G('custInp').value='';G('custInp').focus();
+});
+
+document.addEventListener('click',e=>{
+  if(!G('custInp')?.contains(e.target)&&!G('acDD')?.contains(e.target))
+    G('acDD')?.classList.remove('open');
+});
+
+/* ── CONTROLS BAR DROPDOWNS ────────────── */
+function setupMiniDD(triggerId,panelId,labelId,onSel){
+  const trigger=G(triggerId),panel=G(panelId);
+  trigger.addEventListener('click',e=>{e.stopPropagation();closeAllMenus();panel.classList.toggle('open');});
+  panel.querySelectorAll('.mdi-item').forEach(item=>{
+    item.addEventListener('click',()=>{
+      panel.querySelectorAll('.mdi-item').forEach(i=>i.classList.remove('active'));
+      item.classList.add('active');
+      G(labelId).textContent=item.dataset.text||item.dataset.val||item.textContent.trim().replace('✓','').trim();
+      panel.classList.remove('open');
+      if(onSel)onSel(item);
+    });
+  });
+}
+setupMiniDD('typeTrigger','typeDDPanel','typeLabel');
+setupMiniDD('modeTrigger','modeDDPanel','modeLabel',item=>{
+  const val=item.dataset.val||item.textContent.trim();
+  G('returnByField').style.display=val.includes('Returnable')||val.includes('Job')?'':'none';
+  if(val.includes('Returnable')||val.includes('Job')){
+    G('dateRow').classList.add('has-return');
+  }else{
+    G('dateRow').classList.remove('has-return');
+  }
+});
+setupMiniDD('dfTrigger','dfDDPanel','dfLabel');
+
+/* ── SPLIT CARETS ──────────────────────── */
+['hdrCaret:hdrDD','ftCaret:ftDD','sbCaret:sbDD'].forEach(p=>{
+  const [ci,di]=p.split(':');const el=G(ci);if(!el)return;
+  el.addEventListener('click',e=>{e.stopPropagation();const dd=G(di);const op=dd.classList.contains('open');closeAllMenus();if(!op)dd.classList.add('open');});
+});
+
+function closeAllMenus(){
+  document.querySelectorAll('.split-dd,.mini-dd-panel').forEach(el=>el.classList.remove('open'));
+}
+document.addEventListener('click',closeAllMenus);
+
+/* ── PRODUCT PALETTE ───────────────────── */
+function openPP(){
+  G('ppInp').value='';renderPP('');
+  G('ppModal').classList.add('open');G('ppOverlay').classList.add('open');
+  setTimeout(()=>G('ppInp').focus(),40);ppFocus=-1;
+}
+function closePP(){G('ppModal').classList.remove('open');G('ppOverlay').classList.remove('open');}
+G('ppOverlay').addEventListener('click',closePP);
+
+G('ppInp').addEventListener('input',e=>renderPP(e.target.value.trim()));
+G('ppInp').addEventListener('keydown',e=>{
+  const items=[...G('ppBody').querySelectorAll('.pp-item')];
+  if(e.key==='ArrowDown'){e.preventDefault();ppFocus=Math.min(ppFocus+1,items.length-1);ppFocusSet(items);}
+  else if(e.key==='ArrowUp'){e.preventDefault();ppFocus=Math.max(ppFocus-1,0);ppFocusSet(items);}
+  else if(e.key==='Enter'){e.preventDefault();const it=ppFocus>=0?items[ppFocus]:items[0];if(it)addProduct(PRODS.find(p=>p.id==it.dataset.pid));}
+  else if(e.key==='Escape')closePP();
+});
+function ppFocusSet(items){items.forEach((el,i)=>el.classList.toggle('focused',i===ppFocus));if(items[ppFocus])items[ppFocus].scrollIntoView({block:'nearest'});}
+
+function renderPP(q){
+  const body=G('ppBody');
+  const hits=q?PRODS.filter(p=>p.name.toLowerCase().includes(q.toLowerCase())||p.sku.toLowerCase().includes(q.toLowerCase())):PRODS;
+  if(!hits.length){body.innerHTML='<div class="pp-empty">No products found for "'+q+'"</div>';return;}
+  body.innerHTML=`<div class="pp-section-lbl">Products</div>`+hits.map(p=>`
+    <div class="pp-item" data-pid="${p.id}">
+      <div class="pp-item-icon"><i class='bx bx-cube'></i></div>
+      <div class="pp-item-main">
+        <div class="pp-item-name">${p.name}</div>
+        <div class="pp-item-sku">${p.sku} · Per ${p.unit}</div>
+      </div>
+      <div class="pp-item-right">
+        <div class="pp-item-price">${INR(p.price)}</div>
+        <div class="pp-item-tax">+${p.tax}% GST</div>
+      </div>
+    </div>`).join('');
+}
+G('ppBody').addEventListener('click',e=>{
+  const it=e.target.closest('.pp-item');
+  if(it)addProduct(PRODS.find(p=>p.id==it.dataset.pid));
+});
+
+/* ── CART ──────────────────────────────── */
+function addProduct(p){
+  if(!p)return;
+  const ex=cart.find(r=>r.pid===p.id);
+  if(ex){ex.qty++;refreshRow(ex.rid);}
+  else{const r={rid:++rowId,pid:p.id,p,qty:1,rate:p.price,disc:0};cart.push(r);}
+  renderTable();closePP();
+  requestAnimationFrame(()=>{
+    const el=G('row-'+rowId);
+    if(el){el.classList.add('row-anim');setTimeout(()=>el.classList.remove('row-anim'),300);}
+  });
+}
+
+function calc(r){
+  const base=r.qty*r.rate,disc=base*(r.disc/100),net=base-disc,tax=net*(r.p.tax/100);
+  return{base,disc,net,tax,total:net+tax};
+}
+
+function renderTable(){
+  const empty=!cart.length;
+  G('tblEmpty').style.display=empty?'':'none';
+  G('itemsTbl').style.display=empty?'none':'table';
+  G('subtotalsRow').style.display=empty?'none':'flex';
+  G('tblAddRow').style.display=empty?'none':'flex';
+  G('formFooter').style.display=empty?'none':'grid';
+  G('clearAllBtn').style.display=empty?'none':'inline-flex';
+  G('itemsCount').textContent=cart.length;
+
+  if(!empty){
+    G('itemsBody').innerHTML=cart.map((r,i)=>{
+      const{total}=calc(r);
+      return`<tr id="row-${r.rid}">
+        <td class="td-sno" style="padding-left:16px">${i+1}</td>
+        <td class="td-prod">
+          <div class="prod-name">${r.p.name}</div>
+          <div class="prod-sku">${r.p.sku} · ${r.p.unit}</div>
+        </td>
+        <td class="td-num"><input class="cell-edit" data-rid="${r.rid}" data-f="qty" value="${r.qty}" inputmode="decimal"></td>
+        <td class="td-num"><input class="cell-edit" data-rid="${r.rid}" data-f="rate" value="${r.rate}" inputmode="decimal"></td>
+        <td class="td-num"><input class="cell-edit" data-rid="${r.rid}" data-f="disc" value="${r.disc}" inputmode="decimal"></td>
+        <td class="td-ctr"><span class="gst-badge">${r.p.tax}%</span></td>
+        <td class="td-num"><span class="row-total" id="rt-${r.rid}">${INR(total)}</span></td>
+        <td class="td-act"><button class="del-btn" data-rid="${r.rid}"><i class='bx bx-trash'></i></button></td>
+      </tr>`;
+    }).join('');
+  }
+  recalc();
+}
+
+function refreshRow(rid){
+  const r=cart.find(x=>x.rid==rid);if(!r)return;
+  const{total}=calc(r);
+  const el=G('rt-'+rid);
+  if(el){el.textContent=INR(total);el.classList.remove('num-pop');void el.offsetWidth;el.classList.add('num-pop');}
+  recalc();
+}
+
+G('itemsBody').addEventListener('input',e=>{
+  const el=e.target;if(!el.dataset.rid)return;
+  const r=cart.find(x=>x.rid==el.dataset.rid);if(!r)return;
+  r[el.dataset.f]=parseFloat(el.value)||0;
+  refreshRow(el.dataset.rid);
+});
+G('itemsBody').addEventListener('click',e=>{
+  const btn=e.target.closest('.del-btn');if(!btn)return;
+  const row=G('row-'+btn.dataset.rid);
+  if(row){row.style.opacity='0';row.style.transition='opacity .15s';
+    setTimeout(()=>{cart=cart.filter(r=>r.rid!=btn.dataset.rid);renderTable();},150);}
+});
+
+function clearAll(){if(confirm('Remove all items?')){cart=[];renderTable();}}
+
+function recalc(){
+  let subRaw=0,disc=0,tax=0;
+  cart.forEach(r=>{const c=calc(r);subRaw+=c.base;disc+=c.disc;tax+=c.tax;});
+  const grand=subRaw-disc+tax;
+  const fmt=(id,v)=>{const el=G(id);if(el){el.textContent=INR(v);el.classList.remove('num-pop');void el.offsetWidth;el.classList.add('num-pop');}};
+  fmt('sSubtotal',subRaw-disc);fmt('sTax',tax);
+  fmt('tSubtotal',subRaw);
+  G('tDiscount').textContent=disc>0?'—'+INR(disc):'—';
+  fmt('tTax',tax);fmt('tTotal',grand);
+  fmt('sbTotal',grand);
+  G('sbTax').textContent='incl. '+INR(tax)+' GST';
+}
+
+/* ── ADD BUTTONS ────────────────────────── */
+G('addProductBtn').addEventListener('click',openPP);
+G('addFirstBtn').addEventListener('click',openPP);
+G('tblAddRow').addEventListener('click',openPP);
+
+/* ── KEYBOARD ───────────────────────────── */
+document.addEventListener('keydown',e=>{
+  if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)){
+    if(e.key==='Escape'){document.activeElement.blur();closePP();}return;
+  }
+  const mod=e.ctrlKey||e.metaKey;
+  if(mod&&e.key==='/')  {e.preventDefault();openPP();}
+  if(mod&&e.key==='s')  {e.preventDefault();doSave();}
+  if(mod&&e.key==='d')  {e.preventDefault();doDraft();}
+  if(e.key==='Escape')  {closePP();closeAllMenus();}
+});
+
+/* ── SAVE / DRAFT ───────────────────────── */
+function doSave(){
+  if(!G('customerId').value){alert('Please select a customer first.');G('custInp').focus();return;}
+  if(!cart.length){alert('Please add at least one product.');openPP();return;}
+  alert('✓ Delivery Challan DC-0042 saved!\n(Demo — not connected to backend)');
+}
+function doDraft(){
+  const sb=G('sbTax');const old=sb.textContent;
+  sb.textContent='✓ Draft saved';sb.style.color='#059669';
+  setTimeout(()=>{sb.textContent=old;sb.style.color='';},2500);
+}
+
+/* ── INIT ───────────────────────────────── */
+renderPP('');
+renderTable();
+</script>
+</body>
+</html>

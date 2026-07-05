@@ -40,7 +40,7 @@ if ($isEdit && !empty($PFData->ValidityDate)) {
     $_validityDisp = format_datedisplay($PFData->ValidityDate, $_fmt);
 }
 
-$_invoiceType = $isEdit ? ($PFData->QuotationType ?? 'Regular') : 'Regular';
+$_invoiceType = $isEdit ? ($PFData->DocType ?? 'Regular') : 'Regular';
 $_notesVal    = $isEdit ? ($PFData->Notes ?? '') : '';
 $_termsVal    = $isEdit ? ($PFData->TermsConditions ?? '') : ($JwtData->TransSettings->TermsAndConditions ?? '');
 
@@ -162,11 +162,11 @@ if (!empty($DispatchAddress)) {
                             </div>
                             <div class="d-flex align-items-center gap-2">
                                 <?php if (!$isEdit || $isDraftEdit): ?>
-                                <button type="submit" name="action" value="draft" class="btn btn-sm btn-outline-secondary"><i class="bx bx-save me-1"></i>Draft</button>
+                                <button type="submit" name="action" value="draft" class="btn btn-sm btn-outline-secondary"><i class="bx bx-save me-1"></i>Save as Draft</button>
                                 <?php endif; ?>
                                 <div class="btn-group">
                                     <button type="submit" name="action" value="save" class="btn btn-sm btn-primary px-3">
-                                        <i class="bx bx-check me-1"></i><?php echo ($isEdit && !$isDraftEdit) ? 'Update' : 'Save'; ?>
+                                        <i class="bx bx-check me-1"></i>Save
                                     </button>
                                     <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split ps-2 pe-2" data-bs-toggle="dropdown" aria-expanded="false">
                                         <span class="visually-hidden">Save options</span>
@@ -188,7 +188,7 @@ if (!empty($DispatchAddress)) {
                             <div class="d-flex align-items-center gap-4 mb-3 pb-2 border-bottom">
                                 <div class="d-flex align-items-center gap-2">
                                     <span class="text-muted" style="font-size:.78rem;white-space:nowrap;">Type</span>
-                                    <select class="form-select form-select-sm border-0 bg-transparent fw-semibold"
+                                    <select class="form-select form-select-sm border-0 bg-transparent fw-semibold trans-gst-type-select"
                                             id="invoiceType" name="invoiceType" style="min-width:130px;cursor:pointer;" required>
                                         <option value="Regular"     <?php echo $_invoiceType === 'Regular'     ? 'selected' : ''; ?>>Regular</option>
                                         <option value="Without_GST" <?php echo $_invoiceType === 'Without_GST' ? 'selected' : ''; ?>>Without GST</option>
@@ -202,6 +202,11 @@ if (!empty($DispatchAddress)) {
                                 <?php endif; ?>
                                 <div class="ms-auto d-flex align-items-center gap-2">
                                     <div id="custTypeIndicator" class="d-none"></div>
+                                    <div id="onAccountIndicator" class="d-none d-flex align-items-center gap-1"
+                                         style="font-size:.78rem;color:#856404;background:#fff8e1;border:1px solid #ffc107;padding:3px 12px;border-radius:20px;white-space:nowrap;">
+                                        <i class="bx bx-wallet" style="font-size:.88rem;"></i>
+                                        On Account: <strong id="onAccountTotal" style="margin-left:3px;"></strong>
+                                    </div>
                                 </div>
                             </div>
 
@@ -214,7 +219,10 @@ if (!empty($DispatchAddress)) {
                                         <button type="button" id="addTransCustomer" class="trans-add-btn btn btn-outline-primary btn-sm" style="font-size:.72rem;white-space:nowrap;"><i class="bx bx-plus-circle me-1"></i>Add Customer</button>
                                         <?php endif; ?>
                                     </div>
-                                    <select id="customerSearch" name="customerSearch" class="form-select form-select-sm"></select>
+                                    <div class="input-group input-group-sm input-group-merge customer-search-group" id="customerGroup_customerSearch">
+                                        <span class="input-group-text p-2 cursor-pointer" id="openCustomerSearchModal" style="background:#f0efff;border-color:#d9d8ff;color:#696cff;"><i class="icon-base bx bx-search"></i></span>
+                                        <select id="customerSearch" name="customerSearch" class="form-select form-select-sm"></select>
+                                    </div>
                                 </div>
                                 <div class="col-md-2">
                                     <label class="form-label small fw-semibold">Pro Forma Date <span class="text-danger">*</span></label>
@@ -242,12 +250,8 @@ if (!empty($DispatchAddress)) {
                                         value="<?php echo $isEdit ? htmlspecialchars($PFData->Reference ?? '') : ''; ?>" />
                                 </div>
                             </div>
-                            <div class="row g-2 mb-3">
-                                <div class="col-md-4">
-                                    <div id="customerAddressBox" class="p-2 border border-secondary trans-border-dotted rounded small d-none"></div>
-                                </div>
-                            </div>
-                            <hr/>
+                            <div id="customerAddressBox" class="trans-addr-strip d-none"><i class="bx bx-map-pin"></i><span></span></div>
+                            <hr class="mt-3"/>
 
                             <?php $this->load->view('transactions/partials/form_products_add', [
                                 'transNotesPlaceholder' => 'Enter notes or anything else',
@@ -269,11 +273,11 @@ if (!empty($DispatchAddress)) {
                                 </div>
                                 <div class="d-flex align-items-center gap-2">
                                     <?php if (!$isEdit || $isDraftEdit): ?>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="inlineDraftBtn"><i class="bx bx-save me-1"></i>Draft</button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="inlineDraftBtn"><i class="bx bx-save me-1"></i>Save as Draft</button>
                                     <?php endif; ?>
                                     <div class="btn-group">
                                         <button type="button" class="btn btn-sm btn-primary px-3" id="inlineSaveBtn">
-                                            <i class="bx bx-check me-1"></i><?php echo ($isEdit && !$isDraftEdit) ? 'Update' : 'Save'; ?>
+                                            <i class="bx bx-check me-1"></i>Save
                                         </button>
                                         <?php if (!$isEdit || $isDraftEdit): ?>
                                         <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split ps-2 pe-2" data-bs-toggle="dropdown" aria-expanded="false">
@@ -303,11 +307,11 @@ if (!empty($DispatchAddress)) {
                         </div>
                         <div class="d-flex align-items-center gap-2">
                             <?php if (!$isEdit || $isDraftEdit): ?>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" id="stickyDraftBtn"><i class="bx bx-save me-1"></i>Draft</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="stickyDraftBtn"><i class="bx bx-save me-1"></i>Save as Draft</button>
                             <?php endif; ?>
                             <div class="btn-group">
                                 <button type="button" class="btn btn-sm btn-primary px-3" id="stickySaveBtn">
-                                    <i class="bx bx-check me-1"></i><?php echo ($isEdit && !$isDraftEdit) ? 'Update' : 'Save'; ?>
+                                    <i class="bx bx-check me-1"></i>Save
                                 </button>
                                 <?php if (!$isEdit || $isDraftEdit): ?>
                                 <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split ps-2 pe-2" data-bs-toggle="dropdown" aria-expanded="false">
@@ -340,6 +344,7 @@ if (!empty($DispatchAddress)) {
     </div>
 </div>
 
+<?php $this->load->view('transactions/partials/additional_charges_modal'); ?>
 <?php $this->load->view('common/transactions/footer'); ?>
 
 <script src="/js/common/address.js"></script>
@@ -353,6 +358,12 @@ if (!empty($DispatchAddress)) {
 <script src="/js/common/category_form.js"></script>
 <script src="/js/common/product_form.js"></script>
 <script src="/js/transactions/attachments.js"></script>
+<script>
+var _transAdditionalCharges  = <?php echo json_encode(array_values($AdditionalCharges   ?? [])); ?>;
+var _transAdditionalTaxOpts  = <?php echo json_encode(array_values($TaxList             ?? [])); ?>;
+var _transTransactionCharges = <?php echo json_encode(array_values($TransactionCharges  ?? [])); ?>;
+</script>
+<script src="/js/transactions/additional_charges.js"></script>
 
 <script>
 const EnableStorage = <?php echo $JwtData->GenSettings->EnableStorage; ?>;
@@ -403,6 +414,21 @@ $(function() {
     searchCustomers('customerSearch');
     transDatePickr('#transDate_disp',    '#transDate',    false, false, true,  true,  '');
     transDatePickr('#validityDate_disp', '#validityDate', false, false, false, <?php echo $isEdit ? 'false' : 'true'; ?>, '#transDate');
+
+    <?php if (!$isEdit): ?>
+    var _pfCur = '<?php echo addslashes($JwtData->GenSettings->CurrenySymbol ?? "₹"); ?>';
+    window._showOnAccountBanner = function(total) {
+        if ((parseFloat(total) || 0) > 0) {
+            $('#onAccountTotal').text(_pfCur + ' ' + parseFloat(total).toFixed(2));
+            $('#onAccountIndicator').removeClass('d-none');
+        } else {
+            $('#onAccountIndicator').addClass('d-none');
+        }
+    };
+    $('#customerSearch').on('select2:clear change', function() {
+        if (!parseInt($(this).val(), 10)) $('#onAccountIndicator').addClass('d-none');
+    });
+    <?php endif; ?>
 
     <?php if ($isEdit): ?>
     initTransAttachments(<?php echo $transUID; ?>, '/transactions/getAttachments', 113);
@@ -475,13 +501,7 @@ $(function() {
             var roundOff    = summary.extra ? (summary.extra.roundOff || 0) : 0;
             var extraDisc   = parseFloat($('#extraDiscount').val()) || 0;
 
-            var charges = {};
-            if (summary.additionalCharges) {
-                ['shipping', 'handling', 'packing', 'other'].forEach(function(t) {
-                    var c = summary.additionalCharges[t];
-                    if (c && c.grossAmount > 0) { charges[t + 'Amount'] = c.grossAmount; charges[t + 'Tax'] = c.taxPercent || 0; }
-                });
-            }
+            var charges = { AdditionalCharges: JSON.stringify(typeof collectAdditionalCharges === 'function' ? collectAdditionalCharges() : []) };
 
             var postData = $.extend({
                 transPrefixSelect      : parseInt($('#transPrefixSelect').val(), 10) || 0,

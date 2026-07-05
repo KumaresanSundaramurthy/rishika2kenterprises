@@ -214,7 +214,7 @@
     padding: 40px 32px;
     background: #060e20;
     position: relative;
-    overflow-y: auto;
+    overflow: hidden;
 }
 
 .lr-form-panel::before {

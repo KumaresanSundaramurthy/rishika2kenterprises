@@ -52,6 +52,7 @@
 
     <?php $this->load->view('common/transactions/remove_cart_modal'); ?>
     <?php $this->load->view('common/transactions/trans_footer_script'); ?>
+    <script type="text/javascript" src="<?php echo _assetV('/js/common/additional_charge_form.js'); ?>"></script>
 
 </body>
 

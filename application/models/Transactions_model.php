@@ -12,9 +12,9 @@ class Transactions_model extends MY_Model {
 
     }
 
-    public function getReadDb() { return $this->ReadDb; }
+    public function getReadDb(): object { return $this->ReadDb; }
 
-    public function getTransactionPageList($limit, $offset, $ModuleUID, $filter, $isCount = false) {
+    public function getTransactionPageList(int $limit, int $offset, int $ModuleUID, array $filter, bool $isCount = false): mixed {
 
         try {
 
@@ -66,7 +66,7 @@ class Transactions_model extends MY_Model {
                 'IFNULL(PayInfo.PaymentAttachmentCount, 0) AS PaymentAttachmentCount',
                 '(SELECT COUNT(*) FROM Transaction.TransAttachmentsTbl AT WHERE AT.TransUID = Ts.TransUID AND AT.IsDeleted = 0 AND AT.IsActive = 1) AS AttachmentCount',
                 'Ts.PdfPath AS PdfPath',
-                'Ts.QuotationType AS QuotationType',
+                'Ts.DocType AS DocType',
             ]);
             $this->ReadDb->from('Transaction.TransactionsTbl as Ts');
             $this->ReadDb->join('Customers.CustomerTbl as Cust', 'Cust.CustomerUID = Ts.PartyUID AND Ts.PartyType = \'C\'', 'LEFT');
@@ -108,7 +108,7 @@ class Transactions_model extends MY_Model {
 
     }
 
-    public function getTransactionCount($ModuleUID, $filter = []) {
+    public function getTransactionCount(int $ModuleUID, array $filter = []): int {
         return $this->getTransactionPageList(0, 0, $ModuleUID, $filter, true);
     }
 
@@ -116,7 +116,7 @@ class Transactions_model extends MY_Model {
      * Returns per-status summary (count + total amount) for the stat cards.
      * Used by all module index() methods.
      */
-    public function getTransactionSummaryStats($moduleUID, $orgUID) {
+    public function getTransactionSummaryStats(int $moduleUID, int $orgUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
 
@@ -174,7 +174,7 @@ class Transactions_model extends MY_Model {
      * Simple per-status count + amount for Apex stats strip.
      * Respects DateFrom/DateTo filter. No payment computation.
      */
-    public function getSimpleTransactionStats($moduleUID, $orgUID, $filter = []) {
+    public function getSimpleTransactionStats(int $moduleUID, int $orgUID, array $filter = []): array {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('DocStatus, COUNT(*) AS cnt, COALESCE(SUM(NetAmount), 0) AS amt');
@@ -200,7 +200,7 @@ class Transactions_model extends MY_Model {
      * 'All' (or empty) excludes Draft.
      * Any other tab filters to a specific DocStatus.
      */
-    private function applyFilters($filter, $isCountQuery = false) {
+    private function applyFilters(array $filter, bool $isCountQuery = false): void {
 
         if (empty($filter)) {
             $this->ReadDb->where_not_in('Ts.DocStatus', ['Draft', 'Rejected', 'Cancelled']);
@@ -313,7 +313,7 @@ class Transactions_model extends MY_Model {
     }
 
     /** Full transaction header row by TransToken + OrgUID (token-based edit URL). */
-    public function getTransactionByToken($token, $orgUID, $moduleUID) {
+    public function getTransactionByToken(string $token, int $orgUID, int $moduleUID): ?object {
         $this->ReadDb->select([
             'Ts.*',
             'COALESCE(Cust.Name, Vend.Name) AS PartyName',
@@ -326,7 +326,7 @@ class Transactions_model extends MY_Model {
             'ShipAddr.Line1 AS ShipLine1', 'ShipAddr.Line2 AS ShipLine2',
             'ShipAddr.CityText AS ShipCity', 'ShipAddr.StateText AS ShipState', 'ShipAddr.Pincode AS ShipPincode',
             'Td.ValidityDays', 'Td.ValidityDate', 'Td.Reference', 'Td.SupplierInvoiceNo',
-            'Td.Notes', 'Td.TermsConditions', 'Td.AdditionalCharges AS AdditionalChargesJson',
+            'Td.Notes', 'Td.TermsConditions',
             'Td.PlaceOfSupplyCode', 'Td.PlaceOfSupplyName',
         ]);
         $this->ReadDb->from('Transaction.TransactionsTbl AS Ts');
@@ -341,7 +341,7 @@ class Transactions_model extends MY_Model {
     }
 
     /** Full transaction header row by TransUID + OrgUID. Pass null for $moduleUID to skip the module filter (cross-module lookups). */
-    public function getTransactionById($transUID, $orgUID, $moduleUID = null) {
+    public function getTransactionById(int $transUID, int $orgUID, ?int $moduleUID = null): ?object {
         $this->ReadDb->select([
             'Ts.*',
             'COALESCE(Cust.Name, Vend.Name) AS PartyName',
@@ -354,7 +354,7 @@ class Transactions_model extends MY_Model {
             'ShipAddr.Line1 AS ShipLine1', 'ShipAddr.Line2 AS ShipLine2',
             'ShipAddr.CityText AS ShipCity', 'ShipAddr.StateText AS ShipState', 'ShipAddr.Pincode AS ShipPincode',
             'Td.ValidityDays', 'Td.ValidityDate', 'Td.Reference', 'Td.SupplierInvoiceNo',
-            'Td.Notes', 'Td.TermsConditions', 'Td.AdditionalCharges AS AdditionalChargesJson',
+            'Td.Notes', 'Td.TermsConditions',
             'Td.PlaceOfSupplyCode', 'Td.PlaceOfSupplyName', 'Td.SignatureUID',
             'Td.ExpectedDeliveryDate', 'Td.DeliveryByDate',
         ]);
@@ -371,7 +371,7 @@ class Transactions_model extends MY_Model {
     }
 
     /** Returns true if any active transaction with a higher TransUID exists for this org+module. */
-    public function hasNewerTransactions($transUID, $orgUID, $moduleUID) {
+    public function hasNewerTransactions(int $transUID, int $orgUID, int $moduleUID): bool {
         $this->ReadDb->select('TransUID');
         $this->ReadDb->from('Transaction.TransactionsTbl');
         $this->ReadDb->where(['OrgUID' => $orgUID, 'ModuleUID' => $moduleUID, 'IsDeleted' => 0]);
@@ -382,7 +382,7 @@ class Transactions_model extends MY_Model {
     }
 
     /** Max ItemSequence ever used for a transaction (including soft-deleted rows). */
-    public function getMaxItemSequence($transUID) {
+    public function getMaxItemSequence(int $transUID): int {
         $this->ReadDb->select_max('ItemSequence', 'MaxSeq');
         $this->ReadDb->from('Transaction.TransProductsTbl');
         $this->ReadDb->where('TransUID', $transUID);
@@ -406,7 +406,7 @@ class Transactions_model extends MY_Model {
     }
 
     /** All active line items for a transaction. */
-    public function getTransactionItems($transUID, $orgUID) {
+    public function getTransactionItems(int $transUID, int $orgUID): array {
 
         $this->ReadDb->select([
             'Tprod.*',
@@ -421,7 +421,7 @@ class Transactions_model extends MY_Model {
     }
 
     /** All tax rows for a transaction's items. */
-    public function getTransactionItemTaxes($transUID) {
+    public function getTransactionItemTaxes(int $transUID): array {
 
         $this->ReadDb->from('Transaction.TransProdTaxesTbl');
         $this->ReadDb->where(['TransUID' => $transUID, 'IsDeleted' => 0]);
@@ -438,7 +438,7 @@ class Transactions_model extends MY_Model {
      * For a specific prefix by PK, pass:
      *   ['Prefix.PrefixUID' => $prefixUID]
      */
-    public function getTransactionsPrefixDetails($FilterArray) {
+    public function getTransactionsPrefixDetails(array $FilterArray): object {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -486,7 +486,7 @@ class Transactions_model extends MY_Model {
     /**
      * Returns active locations for an org, default first.
      */
-    public function getOrgLocations($orgUID) {
+    public function getOrgLocations(int $orgUID): object {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -526,7 +526,7 @@ class Transactions_model extends MY_Model {
      * Returns the next sequential TransNumber for a given prefix + org + module.
      * Result = MAX(TransNumber) + 1, or 1 if no records exist yet.
      */
-    public function getNextTransactionNumber($prefixUID, $orgUID, $moduleUID = 0) {
+    public function getNextTransactionNumber(int $prefixUID, int $orgUID, int $moduleUID = 0): int {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select_max('TransNumber', 'MaxNumber');
@@ -537,7 +537,8 @@ class Transactions_model extends MY_Model {
                 'PrefixUID' => (int) $prefixUID,
             ]);
             $result = $this->ReadDb->get()->row();
-            return $result ? ((int)($result->MaxNumber ?? 0) + 1) : 1;
+            $next   = $result ? ((int)($result->MaxNumber ?? 0) + 1) : 1;
+            return ($next > 2147483647) ? -1 : $next;
         } catch (Exception $e) {
             return 1;
         }
@@ -548,7 +549,7 @@ class Transactions_model extends MY_Model {
      * Scans ALL rows (including soft-deleted) so a previously-used number is
      * never re-issued.
      */
-    public function getNextPaymentNumber($prefixUID, $orgUID, $transYear) {
+    public function getNextPaymentNumber(int $prefixUID, int $orgUID, int $transYear): int {
 
         try {
 
@@ -596,7 +597,7 @@ class Transactions_model extends MY_Model {
      * Returns the next CreditNoteSeq for a given org.
      * Scans ALL rows (including soft-deleted) so a previously-used seq is never re-issued.
      */
-    public function getNextCreditNoteNumber($orgUID) {
+    public function getNextCreditNoteNumber(int $orgUID): int {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select_max('CreditNoteSeq', 'MaxSeq');
@@ -613,7 +614,7 @@ class Transactions_model extends MY_Model {
      * Returns the next DebitNoteSeq for a given org.
      * Scans ALL rows (including soft-deleted) so a previously-used seq is never re-issued.
      */
-    public function getNextDebitNoteNumber($orgUID) {
+    public function getNextDebitNoteNumber(int $orgUID): int {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select_max('DebitNoteSeq', 'MaxSeq');
@@ -630,7 +631,7 @@ class Transactions_model extends MY_Model {
      * Checks whether a TransNumber already exists for a given prefix within
      * the same org+module.  Returns the matching row or NULL.
      */
-    public function getTransactionByPrefixAndNumber($prefixUID, $transNumber, $orgUID, $moduleUID) {
+    public function getTransactionByPrefixAndNumber(int $prefixUID, int $transNumber, int $orgUID, int $moduleUID): ?object {
 
         try {
 
@@ -654,7 +655,7 @@ class Transactions_model extends MY_Model {
 
     }
 
-    public function getCustomersDetails(string $Term = '', $WhereCondition = []) {
+    public function getCustomersDetails(string $Term = '', array $WhereCondition = []): array {
         
         $this->EndReturnData = new StdClass();
         try {
@@ -720,7 +721,7 @@ class Transactions_model extends MY_Model {
 
     // Returns the ISO-2 country code for a customer (e.g. 'IN', 'US'). NULL if not found.
     // Uses CountryISO2 — CountryCode stores the full country name, not the ISO code.
-    public function getCustomerCountryCode(int $customerUID) {
+    public function getCustomerCountryCode(int $customerUID): ?string {
         if ($customerUID <= 0) return NULL;
         $this->ReadDb->select('CountryISO2');
         $this->ReadDb->from('Customers.CustomerTbl');
@@ -747,7 +748,7 @@ class Transactions_model extends MY_Model {
         return $row ? ($row->StateText ?: NULL) : NULL;
     }
 
-    public function getTransProductsDetails(string $Term = '', $WhereCondition = []) {
+    public function getTransProductsDetails(string $Term = '', array $WhereCondition = []): array {
 
         $this->EndReturnData = new StdClass();
         try {
@@ -819,7 +820,7 @@ class Transactions_model extends MY_Model {
 
     }
 
-    public function getEntityInvoices($entityId, $entityType) {
+    public function getEntityInvoices(int $entityId, string $entityType): array {
 
         try {
 
@@ -842,7 +843,7 @@ class Transactions_model extends MY_Model {
 
     }
 
-    public function getCustomerPayments($customerId) {
+    public function getCustomerPayments(int $customerId): array {
 
         try {
 
@@ -860,7 +861,7 @@ class Transactions_model extends MY_Model {
 
     }
 
-    public function getCustomerOrders($customerId) {
+    public function getCustomerOrders(int $customerId): array {
 
         try {
 
@@ -880,7 +881,7 @@ class Transactions_model extends MY_Model {
 
     // ── Payment Methods ──────────────────────────────────────────
 
-    public function getPaymentTypesList() {
+    public function getPaymentTypesList(): array {
         try {
             $key    = $this->redisservice->orgKey('payment-types');
             $cached = $this->upstashservice->get($key);
@@ -903,7 +904,7 @@ class Transactions_model extends MY_Model {
 
     // Returns ONE bank account for print templates.
     // Priority: IsDefault=1 & IsCash=0  →  any IsCash=0  →  NULL
-    public function getPrintBankAccount($orgUID) {
+    public function getPrintBankAccount(int $orgUID): ?object {
         try {
             $this->ReadDb->db_debug = FALSE;
             $base = ['OrgUID' => $orgUID, 'IsDeleted' => 0, 'IsActive' => 1, 'IsCash' => 0];
@@ -930,7 +931,7 @@ class Transactions_model extends MY_Model {
         }
     }
 
-    public function getOrgBankAccounts($orgUID) {
+    public function getOrgBankAccounts(int $orgUID): array {
         try {
             $key    = $this->redisservice->orgKey('org-bank-accounts');
             $cached = $this->upstashservice->get($key);
@@ -952,7 +953,7 @@ class Transactions_model extends MY_Model {
         }
     }
 
-    public function getTransactionPayments($transUID, $orgUID) {
+    public function getTransactionPayments(int $transUID, int $orgUID): array {
 
         try {
 
@@ -987,7 +988,7 @@ class Transactions_model extends MY_Model {
     }
 
     /** Single payment row for pre-deletion checks (no joins). */
-    public function getPaymentRow($paymentUID, $orgUID) {
+    public function getPaymentRow(int $paymentUID, int $orgUID): ?object {
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->select('PaymentUID, TransUID, ModuleUID, Amount, PartyType, PartyUID, IsOnAccount, OnAccountAppliedTransUID, OnAccountSourcePaymentUID');
         $this->ReadDb->from('Transaction.PaymentsTbl');
@@ -997,7 +998,7 @@ class Transactions_model extends MY_Model {
     }
 
     /** SUM of active (IsDeleted=0, IsActive=1) payments for a transaction. */
-    public function getSumPaidForTransaction($transUID, $orgUID) {
+    public function getSumPaidForTransaction(int $transUID, int $orgUID): float {
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->select('COALESCE(SUM(Amount), 0) AS TotalPaid');
         $this->ReadDb->from('Transaction.PaymentsTbl');
@@ -1008,7 +1009,7 @@ class Transactions_model extends MY_Model {
     }
 
     /** Minimal transaction header: NetAmount + DocStatus + UniqueNumber + ModuleUID (for balance recalculation). */
-    public function getTransactionBasicInfo($transUID, $orgUID) {
+    public function getTransactionBasicInfo(int $transUID, int $orgUID): ?object {
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->select('TransUID, ModuleUID, NetAmount, DocStatus, UniqueNumber');
         $this->ReadDb->from('Transaction.TransactionsTbl');
@@ -1018,7 +1019,7 @@ class Transactions_model extends MY_Model {
     }
 
     /** Full payment detail with all joins for the view modal. */
-    public function getPaymentDetailById($paymentUID, $orgUID) {
+    public function getPaymentDetailById(int $paymentUID, int $orgUID): ?object {
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->select([
             'P.PaymentUID', 'P.TransUID', 'P.PartyType', 'P.Amount', 'P.ExcessAmount',
@@ -1043,7 +1044,7 @@ class Transactions_model extends MY_Model {
         return ($query && $query->num_rows() > 0) ? $query->row() : null;
     }
 
-    public function getTransactionExportData($moduleUID, $orgUID, $filter = []) {
+    public function getTransactionExportData(int $moduleUID, int $orgUID, array $filter = []): array {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select([
@@ -1085,7 +1086,7 @@ class Transactions_model extends MY_Model {
         }
     }
 
-    public function getTransactionAttachments($transUID, $orgUID) {
+    public function getTransactionAttachments(int $transUID, int $orgUID): array {
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->select('AttachUID, FileName, FilePath, FileType, FileSize, CreatedOn');
         $this->ReadDb->from('Transaction.TransAttachmentsTbl');
@@ -1097,7 +1098,7 @@ class Transactions_model extends MY_Model {
     }
 
     // Shared for Expenses and Indirect Income — both use ExpenseIncomeAttachmentsTbl, SourceType differentiates them
-    public function getExpenseIncomeAttachments($uid, $orgUID, $sourceType) {
+    public function getExpenseIncomeAttachments(int $uid, int $orgUID, string $sourceType): array {
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->select('AttachUID, FileName, FilePath, FileType, FileSize, SortOrder');
         $this->ReadDb->from('Transaction.ExpenseIncomeAttachmentsTbl');
@@ -1107,7 +1108,7 @@ class Transactions_model extends MY_Model {
         return ($query && $query->num_rows() > 0) ? $query->result() : [];
     }
 
-    public function getPaymentAttachments($paymentUID, $orgUID) {
+    public function getPaymentAttachments(int $paymentUID, int $orgUID): array {
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->select('AttachUID, FileName, FilePath, FileType, FileSize, CreatedOn');
         $this->ReadDb->from('Transaction.PaymentAttachmentsTbl');
@@ -1118,7 +1119,7 @@ class Transactions_model extends MY_Model {
         return ($query && $query->num_rows() > 0) ? $query->result() : [];
     }
 
-    public function getPaymentsList($limit, $offset, $orgUID, $filter) {
+    public function getPaymentsList(int $limit, int $offset, int $orgUID, array $filter): array {
 
         try {
 
@@ -1224,7 +1225,7 @@ class Transactions_model extends MY_Model {
 
     }
 
-    public function getPaymentsCount($orgUID, $filter) {
+    public function getPaymentsCount(int $orgUID, array $filter): int {
 
         try {
 
@@ -1289,7 +1290,7 @@ class Transactions_model extends MY_Model {
 
     }
 
-    public function getPaymentMethodSummary($orgUID, $filter = []) {
+    public function getPaymentMethodSummary(int $orgUID, array $filter = []): array {
 
         try {
 
@@ -1333,7 +1334,7 @@ class Transactions_model extends MY_Model {
 
     }
 
-    public function getPaymentsTotals($orgUID, $filter = []) {
+    public function getPaymentsTotals(int $orgUID, array $filter = []): object {
 
         try {
 
@@ -1362,7 +1363,7 @@ class Transactions_model extends MY_Model {
 
     }
 
-    public function getPaymentsBalanceStats($orgUID, $filter = []) {
+    public function getPaymentsBalanceStats(int $orgUID, array $filter = []): object {
 
         try {
 
@@ -1401,7 +1402,7 @@ class Transactions_model extends MY_Model {
     // Server-side A4 HTML renderer
     // Reads the template file, replaces {{}} tokens, returns HTML string
     // ----------------------------------------------------------------
-    public function _renderA4Html($modId, $h, $items, $org, $theme, $bankAccount = null) {
+    public function _renderA4Html(int $modId, object $h, array $items, ?object $org, ?object $theme, ?object $bankAccount = null): string {
 
         $org   = $org   ?? new stdClass();
         $theme = $theme ?? new stdClass();
@@ -1670,7 +1671,7 @@ class Transactions_model extends MY_Model {
 
     }
 
-    private function _processLoops($html, $items) {
+    private function _processLoops(string $html, array $items): string {
         $cur = '₹ ';
         $dec = 2;
         $e   = fn($v) => htmlspecialchars((string)($v ?? ''), ENT_QUOTES);
@@ -1713,7 +1714,7 @@ class Transactions_model extends MY_Model {
         );
     }
 
-    private function _processHsnSummary($html, $items) {
+    private function _processHsnSummary(string $html, array $items): string {
         $cur = '₹ ';
         $dec = 2;
         $e   = fn($v) => htmlspecialchars((string)($v ?? ''), ENT_QUOTES);
@@ -1779,7 +1780,7 @@ class Transactions_model extends MY_Model {
         );
     }
 
-    private function _processConditionals($html, $tokens) {
+    private function _processConditionals(string $html, array $tokens): string {
         return preg_replace_callback(
             '/\{\{IF:([A-Z0-9_]+)\}\}(.*?)\{\{\/IF:\1\}\}/s',
             function ($m) use ($tokens) {
@@ -1790,7 +1791,7 @@ class Transactions_model extends MY_Model {
         );
     }
 
-    private function _renderGenericA4Html($h, $items, $org) {
+    private function _renderGenericA4Html(object $h, array $items, object $org): string {
         $cur   = '₹ ';
         $dec   = 2;
         $e     = fn($v) => htmlspecialchars((string)($v ?? ''), ENT_QUOTES);
@@ -1842,7 +1843,7 @@ class Transactions_model extends MY_Model {
         '</div></body></html>';
     }
 
-    public function _renderPaymentReceiptHtml($p, $org, $theme, $bankAccount = null) {
+    public function _renderPaymentReceiptHtml(object $p, ?object $org, ?object $theme, ?object $bankAccount = null): string {
         
         $org   = $org   ?? new stdClass();
         $theme = $theme ?? new stdClass();
@@ -1974,7 +1975,7 @@ class Transactions_model extends MY_Model {
 
     }
 
-    private function _getStaticPaymentReceiptTemplate($p, $org, $theme, $logoHtml, $direction, $partyLabel, $orgAddr, $fmt, $fmtAmt, $bankLine, $bankQrHtml, $signatureSpaceHtml) {
+    private function _getStaticPaymentReceiptTemplate(object $p, ?object $org, ?object $theme, string $logoHtml, string $direction, string $partyLabel, string $orgAddr, callable $fmt, callable $fmtAmt, string $bankLine, string $bankQrHtml, string $signatureSpaceHtml): string {
 
         $e = fn($v) => htmlspecialchars((string)($v ?? ''), ENT_QUOTES);
 
@@ -2055,7 +2056,7 @@ class Transactions_model extends MY_Model {
     }
 
     // ── Shared PDF generation ─────────────────────────────────────────────────
-    public function generatePaymentReceiptPdfBytes($paymentUID, $orgUID, $paperSize = 'A4') {
+    public function generatePaymentReceiptPdfBytes(int $paymentUID, int $orgUID, string $paperSize = 'A4'): ?string {
 
         $payment = $this->getPaymentDetailById($paymentUID, $orgUID);
         if (!$payment) return null;
@@ -2084,7 +2085,7 @@ class Transactions_model extends MY_Model {
     }
 
     // ── Invoice PDF generation (used by getInvoicePdfBase64 for email attachment) ─
-    public function generateInvoicePdfBytes($transUID, $orgUID, $paperSize = 'A4') {
+    public function generateInvoicePdfBytes(int $transUID, int $orgUID, string $paperSize = 'A4'): ?string {
 
         $paperSize = strtoupper(trim($paperSize));
         $moduleUID = 103; // Sales Invoice
@@ -2093,7 +2094,7 @@ class Transactions_model extends MY_Model {
     }
 
     // ── Generic transaction PDF generation (works for any moduleUID) ──────────
-    public function generateTransactionPdfBytes($transUID, $orgUID, $moduleUID, $paperSize = 'A4') {
+    public function generateTransactionPdfBytes(int $transUID, int $orgUID, int $moduleUID, string $paperSize = 'A4'): ?string {
 
         $paperSize = strtoupper(trim($paperSize));
 
@@ -2177,7 +2178,7 @@ class Transactions_model extends MY_Model {
     // ── Eager PDF generation: called on every create/update ───────────────────
     // Generates a fresh PDF, uploads to R2, and saves the path in TransactionsTbl.
     // Does nothing when PDF_STORAGE_MODE is not 'r2'.
-    public function generateAndStorePdf($transUID, $orgUID, $moduleUID) {
+    public function generateAndStorePdf(int $transUID, int $orgUID, int $moduleUID): void {
         if (getenv('PDF_STORAGE_MODE') !== 'r2') return;
 
         $bytes = $this->generateTransactionPdfBytes((int)$transUID, (int)$orgUID, (int)$moduleUID, 'A4');
@@ -2201,7 +2202,7 @@ class Transactions_model extends MY_Model {
     // PDF_STORAGE_MODE=r2  → serve from Cloudflare R2 (generate + upload on first access,
     //                         A4 only; non-A4 always generated live)
     // PDF_STORAGE_MODE=live → generate fresh on every request (default)
-    public function getOrGeneratePdfBytes($transUID, $orgUID, $moduleUID, $paperSize = 'A4') {
+    public function getOrGeneratePdfBytes(int $transUID, int $orgUID, int $moduleUID, string $paperSize = 'A4'): ?string {
         $paperSize = strtoupper(trim($paperSize));
 
         if (getenv('PDF_STORAGE_MODE') === 'r2' && $paperSize === 'A4') {
@@ -2238,7 +2239,7 @@ class Transactions_model extends MY_Model {
         return $this->generateTransactionPdfBytes($transUID, $orgUID, $moduleUID, $paperSize);
     }
 
-    private function _getModuleFolder($moduleUID) {
+    private function _getModuleFolder(int $moduleUID): string {
         $map = [
             101 => 'quotations',
             102 => 'salesorders',
@@ -2256,7 +2257,7 @@ class Transactions_model extends MY_Model {
         return $map[(int)$moduleUID] ?? 'transactions';
     }
 
-    private function _uploadPdfToR2($relPath, $pdfBytes) {
+    private function _uploadPdfToR2(string $relPath, string $pdfBytes): ?string {
         try {
             require_once FCPATH . 'vendor/autoload.php';
             $s3 = new \Aws\S3\S3Client([
@@ -2282,7 +2283,7 @@ class Transactions_model extends MY_Model {
         }
     }
 
-    private function _fetchPdfFromR2($storedPath) {
+    private function _fetchPdfFromR2(string $storedPath): ?string {
         try {
             $cdnBase = rtrim(getenv('CFLARE_R2_CDN') ?: getenv('CDN_URL'), '/');
             if (empty($cdnBase)) return null;
@@ -2402,7 +2403,7 @@ class Transactions_model extends MY_Model {
         }, $html);
     }
 
-    private function _applyPaymentPdfCssFixes($html, $paperSize) {
+    private function _applyPaymentPdfCssFixes(string $html, string $paperSize): string {
         // Strip Google Fonts — dompdf cannot load WOFF2/web fonts
         $html = preg_replace('/<link[^>]*fonts\.googleapis\.com[^>]*>/i', '', $html);
         // Override body padding — @page margin handles spacing in PDF
@@ -2424,7 +2425,7 @@ class Transactions_model extends MY_Model {
         return $html;
     }
 
-    public function _generateUniqueToken($table, $column) {
+    public function _generateUniqueToken(string $table, string $column): string {
 
         $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
         do {
@@ -2443,7 +2444,7 @@ class Transactions_model extends MY_Model {
         
     }
 
-    public function _generateReceiptToken() {
+    public function _generateReceiptToken(): string {
         return generate_uuid4();
     }
 
@@ -2451,7 +2452,7 @@ class Transactions_model extends MY_Model {
     // Returns the actual signature (image + label) if SignatureUID is set,
     // otherwise returns an empty space div (same as before).
 
-    private function _buildSignatureHtml($signatureUID) {
+    private function _buildSignatureHtml(int $signatureUID): string {
         if ($signatureUID <= 0) {
             return '<div style="min-height:65px;"></div>';
         }
@@ -2501,7 +2502,7 @@ class Transactions_model extends MY_Model {
     // ─────────────────────────────────────────────────────────────────────────
     // SR / Sales Return query helpers
 
-    public function getSRCreditApplied($srUniqueNumber) {
+    public function getSRCreditApplied(string $srUniqueNumber): float {
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->select('COALESCE(SUM(Amount), 0) AS Total');
         $this->ReadDb->from('Transaction.PaymentsTbl');
@@ -2515,7 +2516,7 @@ class Transactions_model extends MY_Model {
         return (float)($row->Total ?? 0);
     }
 
-    public function getSRTotalRefunded($transUID) {
+    public function getSRTotalRefunded(int $transUID): float {
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->select('COALESCE(SUM(Amount), 0) AS Total');
         $this->ReadDb->from('Transaction.PaymentsTbl');
@@ -2526,7 +2527,7 @@ class Transactions_model extends MY_Model {
         return (float)($row->Total ?? 0);
     }
 
-    public function getSRCancelDepsMap(array $transUIDs, array $uniqueNumbers) {
+    public function getSRCancelDepsMap(array $transUIDs, array $uniqueNumbers): array {
         $this->ReadDb->db_debug = FALSE;
         $cashMap = [];
         if (!empty($transUIDs)) {
@@ -2555,7 +2556,7 @@ class Transactions_model extends MY_Model {
         return ['cashMap' => $cashMap, 'creditMap' => $creditMap];
     }
 
-    public function getSRCreditPayments($srUniqueNumber) {
+    public function getSRCreditPayments(string $srUniqueNumber): array {
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->select('PaymentUID, TransUID, Amount');
         $this->ReadDb->from('Transaction.PaymentsTbl');
@@ -2568,7 +2569,7 @@ class Transactions_model extends MY_Model {
         return $this->ReadDb->get()->result();
     }
 
-    public function getReturnedQtyMapForItems(array $transProdUIDs, $orgUID) {
+    public function getReturnedQtyMapForItems(array $transProdUIDs, int $orgUID): array {
         if (empty($transProdUIDs)) return [];
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->select('SourceTransProdUID, SUM(Quantity) AS ReturnedQty');
@@ -2583,7 +2584,7 @@ class Transactions_model extends MY_Model {
         return $map;
     }
 
-    public function getCustomerInvoicesWithReturnableItems($customerUID, $orgUID) {
+    public function getCustomerInvoicesWithReturnableItems(int $customerUID, int $orgUID): array {
         $this->ReadDb->db_debug = FALSE;
         $sql = "
             SELECT Ts.TransUID, Ts.UniqueNumber, Ts.TransDate, Ts.NetAmount, Ts.DocStatus
@@ -2617,7 +2618,7 @@ class Transactions_model extends MY_Model {
         return $query ? $query->result() : [];
     }
 
-    public function getPendingInvoicesForCustomer($customerUID, $orgUID) {
+    public function getPendingInvoicesForCustomer(int $customerUID, int $orgUID): array {
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->select([
             'Ts.TransUID',
@@ -2642,7 +2643,7 @@ class Transactions_model extends MY_Model {
         return $this->ReadDb->get()->result();
     }
 
-    public function getVendorPendingPurchases($vendorUID, $orgUID) {
+    public function getVendorPendingPurchases(int $vendorUID, int $orgUID): array {
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->select([
             'Ts.TransUID',
@@ -2667,7 +2668,7 @@ class Transactions_model extends MY_Model {
         return $this->ReadDb->get()->result();
     }
 
-    public function getTransactionStubByToken($token) {
+    public function getTransactionStubByToken(string $token): ?object {
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->select('TransUID, OrgUID, ModuleUID, DocStatus, TransType, UniqueNumber, NetAmount, PaidAmount, BalanceAmount, PartyType');
         $this->ReadDb->from('Transaction.TransactionsTbl');
@@ -2676,7 +2677,7 @@ class Transactions_model extends MY_Model {
         return $this->ReadDb->get()->row();
     }
 
-    public function getPaymentByReceiptToken($token) {
+    public function getPaymentByReceiptToken(string $token): ?object {
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->select([
             'P.PaymentUID', 'P.OrgUID', 'P.TransUID', 'P.PartyType',
@@ -2706,7 +2707,7 @@ class Transactions_model extends MY_Model {
     // ─────────────────────────────────────────────────────────────────────────
     // PR / Purchase Return query helpers
 
-    public function getPRTotalRefunded($transUID) {
+    public function getPRTotalRefunded(int $transUID): float {
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->select('COALESCE(SUM(Amount), 0) AS Total');
         $this->ReadDb->from('Transaction.PaymentsTbl');
@@ -2717,7 +2718,7 @@ class Transactions_model extends MY_Model {
         return (float)($row->Total ?? 0);
     }
 
-    public function getPRCancelDepsMap(array $transUIDs) {
+    public function getPRCancelDepsMap(array $transUIDs): array {
         $this->ReadDb->db_debug = FALSE;
         $cashMap = [];
         if (!empty($transUIDs)) {
@@ -2735,7 +2736,7 @@ class Transactions_model extends MY_Model {
         return ['cashMap' => $cashMap];
     }
 
-    public function getVendorPurchasesWithReturnableItems($vendorUID, $orgUID) {
+    public function getVendorPurchasesWithReturnableItems(int $vendorUID, int $orgUID): array {
         $this->ReadDb->db_debug = FALSE;
         $sql = "
             SELECT Ts.TransUID, Ts.UniqueNumber, Ts.TransDate, Ts.NetAmount, Ts.DocStatus
@@ -2795,6 +2796,91 @@ class Transactions_model extends MY_Model {
             return $result;
         } catch (Exception $e) {
             return [];
+        }
+    }
+
+    // ── Transaction Additional Charges ─────────────────────────────────────────
+
+    /**
+     * Load all charge rows saved for a given transaction.
+     * @param int $transactionUID
+     * @param int $orgUID
+     * @return array
+     */
+    public function getTransactionCharges(int $transactionUID, int $orgUID): array {
+        try {
+            $this->ReadDb->select([
+                'TC.TransChargeUID', 'TC.ChargeUID', 'TC.ChargeName', 'TC.ChargeDisplayName',
+                'TC.InPercent', 'TC.WithoutTaxAmount', 'TC.TaxUID', 'TC.TaxPercent',
+                'TC.TaxAmount', 'TC.WithTaxAmount', 'TC.SortOrder',
+            ]);
+            $this->ReadDb->from('Transaction.TransactionChargesTbl TC');
+            $this->ReadDb->where(['TC.TransactionUID' => $transactionUID, 'TC.OrgUID' => $orgUID, 'TC.IsActive' => 1]);
+            $this->ReadDb->order_by('TC.SortOrder ASC, TC.TransChargeUID ASC');
+            $query = $this->ReadDb->get();
+            return $query ? $query->result() : [];
+        } catch (Exception $e) {
+            log_message('error', 'Transactions_model::getTransactionCharges — ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Replace all charge rows for a transaction (delete-then-insert within a transaction).
+     * Caller must manage DB transaction boundaries.
+     * @param int   $transactionUID
+     * @param int   $orgUID
+     * @param int   $userUID
+     * @param array $charges  Each element: [chargeUID, chargeName, chargeDisplayName, inPercent, withoutTaxAmount, taxUID, taxPercent, taxAmount, withTaxAmount, sortOrder]
+     * @return void
+     */
+    public function saveTransactionCharges(int $transactionUID, int $orgUID, int $userUID, array $charges): void {
+        $delResp = $this->dbwrite_model->deleteData('Transaction', 'TransactionChargesTbl', [
+            'TransactionUID' => $transactionUID,
+            'OrgUID'         => $orgUID,
+        ]);
+        if ($delResp->Error) throw new Exception('Failed to clear existing charges: ' . $delResp->Message);
+
+        foreach ($charges as $c) {
+            $withoutTax = (float)($c['withoutTaxAmount'] ?? 0);
+            $withTax    = (float)($c['withTaxAmount']    ?? 0);
+            if ($withoutTax <= 0 && $withTax <= 0) continue;
+
+            $insResp = $this->dbwrite_model->insertData('Transaction', 'TransactionChargesTbl', [
+                'OrgUID'            => $orgUID,
+                'TransactionUID'    => $transactionUID,
+                'ChargeUID'         => (int)($c['chargeUID']            ?? 0),
+                'ChargeName'        => (string)($c['chargeName']        ?? ''),
+                'ChargeDisplayName' => (string)($c['chargeDisplayName'] ?? ''),
+                'InPercent'         => (float)($c['inPercent']          ?? 0),
+                'WithoutTaxAmount'  => $withoutTax,
+                'TaxUID'            => ((int)($c['taxUID'] ?? 0)) ?: null,
+                'TaxPercent'        => (float)($c['taxPercent']         ?? 0),
+                'TaxAmount'         => (float)($c['taxAmount']          ?? 0),
+                'WithTaxAmount'     => $withTax,
+                'SortOrder'         => (int)($c['sortOrder']            ?? 0),
+                'IsActive'          => 1,
+                'CreatedBy'         => $userUID,
+                'UpdatedBy'         => $userUID,
+            ]);
+            if ($insResp->Error) throw new Exception('Failed to save charge: ' . $insResp->Message);
+        }
+    }
+
+    /**
+     * Check whether a charge definition is used in any transaction charge row.
+     * Used by Settings to block deletion of an in-use charge.
+     * @param int $chargeUID
+     * @param int $orgUID
+     * @return bool
+     */
+    public function chargeIsUsedInAnyTransaction(int $chargeUID, int $orgUID): bool {
+        try {
+            $this->ReadDb->from('Transaction.TransactionChargesTbl');
+            $this->ReadDb->where(['ChargeUID' => $chargeUID, 'OrgUID' => $orgUID, 'IsActive' => 1]);
+            return $this->ReadDb->count_all_results() > 0;
+        } catch (Exception $e) {
+            return false;
         }
     }
 

@@ -3,15 +3,13 @@
 class Attendance_model extends CI_Model {
 
     private $ReadDb;
-    private $WriteDb;
 
     public function __construct() {
         parent::__construct();
-        $this->ReadDb  = $this->load->database('ReadDB',  TRUE);
-        $this->WriteDb = $this->load->database('WriteDB', TRUE);
+        $this->ReadDb = $this->load->database('ReadDB', TRUE);
     }
 
-    public function getAttendanceListPaginated($orgUID, $limit, $offset, $filter = []) {
+    public function getAttendanceListPaginated(int $orgUID, int $limit, int $offset, array $filter = []): object {
         $this->ReadDb->db_debug = FALSE;
         $where = ['A.IsDeleted' => 0, 'A.OrgUID' => $orgUID];
 
@@ -47,7 +45,7 @@ class Attendance_model extends CI_Model {
         return $r;
     }
 
-    private function _applyAttFilter($filter) {
+    private function _applyAttFilter(array $filter): void {
         if (!empty($filter['EmployeeUID']))   $this->ReadDb->where('A.UserUID',          (int)$filter['EmployeeUID']);
         if (!empty($filter['Status']))        $this->ReadDb->where('A.Status',            $filter['Status']);
         if (!empty($filter['DateFrom']))      $this->ReadDb->where('A.AttendanceDate >=', $filter['DateFrom']);
@@ -56,7 +54,7 @@ class Attendance_model extends CI_Model {
         if (!empty($filter['Year']))          $this->ReadDb->where('YEAR(A.AttendanceDate)',  (int)$filter['Year']);
     }
 
-    public function getMonthlyAttendance($orgUID, $year, $month) {
+    public function getMonthlyAttendance(int $orgUID, int $year, int $month): array {
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->select([
             'A.AttendanceUID', 'A.UserUID AS EmployeeUID', 'A.AttendanceDate', 'A.Status',
@@ -71,7 +69,7 @@ class Attendance_model extends CI_Model {
         return $this->ReadDb->get()->result();
     }
 
-    public function getDailyStats($orgUID, $date) {
+    public function getDailyStats(int $orgUID, string $date): object {
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->select([
             'SUM(CASE WHEN A.Status = \'Present\'  THEN 1 ELSE 0 END) AS PresentCount',
@@ -85,7 +83,7 @@ class Attendance_model extends CI_Model {
         return $this->ReadDb->get()->row() ?? new stdClass();
     }
 
-    public function getAttendanceSummaryForPayroll($orgUID, $year, $month) {
+    public function getAttendanceSummaryForPayroll(int $orgUID, int $year, int $month): array {
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->select([
             'A.UserUID AS EmployeeUID',
@@ -102,14 +100,14 @@ class Attendance_model extends CI_Model {
         return $this->ReadDb->get()->result();
     }
 
-    public function getAttendanceByUID($uid, $orgUID) {
+    public function getAttendanceByUID(int $uid, int $orgUID): ?object {
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->from('Transaction.AttendanceTbl');
         $this->ReadDb->where(['AttendanceUID' => $uid, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
         return $this->ReadDb->get()->row();
     }
 
-    public function getHolidayDatesForMonth($orgUID, $year, $month) {
+    public function getHolidayDatesForMonth(int $orgUID, int $year, int $month): array {
         $firstDay = sprintf('%04d-%02d-01', $year, $month);
         $lastDay  = date('Y-m-t', strtotime($firstDay));
         $this->ReadDb->db_debug = FALSE;
@@ -123,7 +121,7 @@ class Attendance_model extends CI_Model {
     }
 
     // Salary Advances
-    public function getAdvanceListPaginated($orgUID, $limit, $offset, $filter = []) {
+    public function getAdvanceListPaginated(int $orgUID, int $limit, int $offset, array $filter = []): object {
         $this->ReadDb->db_debug = FALSE;
         $where = ['SA.OrgUID' => $orgUID, 'SA.IsDeleted' => 0];
 
@@ -165,7 +163,7 @@ class Attendance_model extends CI_Model {
         return $r;
     }
 
-    public function getAdvanceStats($orgUID) {
+    public function getAdvanceStats(int $orgUID): object {
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->select("
             COUNT(*) AS TotalCount,
@@ -183,7 +181,7 @@ class Attendance_model extends CI_Model {
         return $this->ReadDb->get()->row() ?? new stdClass();
     }
 
-    public function getPendingAdvanceBalance($employeeUID, $orgUID) {
+    public function getPendingAdvanceBalance(int $employeeUID, int $orgUID): float {
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->select('IFNULL(SUM(BalancePending), 0) AS TotalPending');
         $this->ReadDb->from('Transaction.SalaryAdvanceTbl');

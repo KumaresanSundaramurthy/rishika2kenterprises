@@ -156,16 +156,7 @@ $_defTaxDetailUID = (int)($_ps->DefaultTaxDetailUID    ?? 0); // null → no def
                         <h5 class="modal-title mb-0">Additional Information</h5>
                     </div>
                     <div class="row d-flex">
-                        <div class="col-md-3 d-flex justify-content-center align-items-center">
-                            <div class="dropzone dropzone-main-form needsclick p-3 dz-clickable w-100" id="DropzoneOneBasic">
-                                <div class="dz-message needsclick text-center">
-                                    <i class="upload-icon mb-3"></i>
-                                    <p class="h5 needsclick mb-2">Drag and drop product here</p>
-                                    <p class="h4 text-body-secondary fw-normal mb-0">JPG, GIF or PNG of 1 MB</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-9">
+                        <div class="col-md-12">
                             <div class="row">
                                 <div class="mb-3 col-md-6">
                                     <label for="HSNCode" class="form-label">HSN/ SAC</label>

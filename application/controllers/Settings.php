@@ -258,6 +258,20 @@ class Settings extends MY_Controller {
 
     }
 
+    /** AJAX GET: return all org additional charges (unfiltered) — used as Upstash cache-miss fallback */
+    public function getAdditionalChargesCache(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID = (int)($this->JwtData->OrgUID ?? 0);
+            $this->EndReturnData->Error = false;
+            $this->EndReturnData->Data  = $this->_getAdditionalChargesForOrg($orgUID, false);
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = true;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
     /** AJAX GET: return salutation list — cache in Upstash on first call */
     public function getSalutationList() {
         $this->EndReturnData = new stdClass();
@@ -333,8 +347,13 @@ class Settings extends MY_Controller {
                 $dcDefaultReturnDays = 7;
             }
 
+            $quotValidityDays = (int) $this->input->post('QuotValidityDays');
+            if ($quotValidityDays < 1 || $quotValidityDays > 365) {
+                $quotValidityDays = 7;
+            }
+
             $this->load->model('dbwrite_model');
-            $this->dbwrite_model->upsertTransactionSettings($orgUID, $invoiceCancelAction, $srCancelAction, $salesReturnItemMethod, $termsAndConditions, $hideNavOnTransForm, $purchaseShowSignature, $purchaseShowTerms, $prCancelAction, $purchaseReturnItemMethod, $showProductDescription, $userUID, $dcDefaultReturnDays);
+            $this->dbwrite_model->upsertTransactionSettings($orgUID, $invoiceCancelAction, $srCancelAction, $salesReturnItemMethod, $termsAndConditions, $hideNavOnTransForm, $purchaseShowSignature, $purchaseShowTerms, $prCancelAction, $purchaseReturnItemMethod, $showProductDescription, $userUID, $dcDefaultReturnDays, $quotValidityDays);
 
             // Patch only TransSettings in JWT payload
             $this->load->model('login_model');
@@ -1268,6 +1287,279 @@ class Settings extends MY_Controller {
 
         $this->globalservice->sendJsonResponse($this->EndReturnData);
 
+    }
+
+    // ── Additional Charges ───────────────────────────────────────────────────
+
+    private const CHARGE_LIMIT = 5;
+
+    public function additionalcharges(): void {
+        $this->pageData['PageTitle']       = 'Additional Charges';
+        $this->pageData['PageDescription'] = 'Manage charge types that appear in transaction forms, such as delivery and packaging fees.';
+        try {
+            $orgUID  = (int) $this->pageData['JwtData']->Org->OrgUID;
+            $userUID = (int) $this->pageData['JwtData']->User->UserUID;
+
+            $this->load->model(['organisation_model', 'global_model', 'dbwrite_model']);
+            $this->_seedSystemCharges($orgUID, $userUID);
+
+            $chargeLimit = (int)($this->pageData['JwtData']->TransSettings->MaxAdditionalCharges ?? self::CHARGE_LIMIT);
+            $taxList     = $this->global_model->getTaxDetailsInfo()->Data ?? [];
+            $result      = $this->organisation_model->getAdditionalChargesList($orgUID);
+            $rows        = $result->Error === FALSE ? $result->Data : [];
+            $maxSort     = 0;
+            foreach ($rows as $r) { if ((int)($r->SortOrder ?? 0) > $maxSort) $maxSort = (int)$r->SortOrder; }
+
+            $this->pageData['TaxList']       = $taxList;
+            $this->pageData['ChargeCount']   = count($rows);
+            $this->pageData['ChargeLimit']   = $chargeLimit;
+            $this->pageData['NextSortOrder'] = $maxSort + 1;
+            $this->pageData['ModRowData']    = $this->load->view('settings/additionalcharges/list', [
+                'DataLists' => $rows,
+                'JwtData'   => $this->pageData['JwtData'],
+            ], TRUE);
+
+            $this->load->view('settings/additionalcharges/view', $this->pageData);
+        } catch (Exception $e) {
+            redirect('dashboard', 'refresh');
+        }
+    }
+
+    private function _seedSystemCharges(int $orgUID, int $userUID): void {
+        $systemDefs = [
+            ['Name' => 'Delivery_Shipping', 'DisplayName' => 'Delivery / Shipping Charges', 'SortOrder' => 1],
+            ['Name' => 'Packaging',         'DisplayName' => 'Packaging Charges',            'SortOrder' => 2],
+        ];
+        foreach ($systemDefs as $def) {
+            if ($this->organisation_model->additionalChargeNameExists($orgUID, $def['Name'])) continue;
+            $this->dbwrite_model->insertData('Settings', 'AdditionalChargesTbl', [
+                'OrgUID'        => $orgUID,
+                'Name'          => $def['Name'],
+                'DisplayName'   => $def['DisplayName'],
+                'DefaultTaxUID' => null,
+                'Description'   => null,
+                'ShowByDefault' => 1,
+                'IsSystem'      => 1,
+                'SortOrder'     => $def['SortOrder'],
+                'IsActive'      => 1,
+                'IsDeleted'     => 0,
+                'CreatedBy'     => $userUID,
+                'UpdatedBy'     => $userUID,
+            ]);
+        }
+    }
+
+    private function _slugifyChargeName(string $displayName): string {
+        $slug = preg_replace('/[^A-Za-z0-9]+/', '_', trim($displayName));
+        return substr(trim($slug, '_'), 0, 100);
+    }
+
+    private function _validateChargeName(string $name): string {
+        $clean = preg_replace('/[^A-Za-z0-9_]/', '_', trim($name));
+        $clean = trim($clean, '_');
+        if (!$clean) throw new Exception('Name must contain at least one alphanumeric character.');
+        return substr($clean, 0, 100);
+    }
+
+    /** AJAX POST: return current list HTML + counts */
+    public function getAdditionalChargesList(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $orgUID      = (int) $this->pageData['JwtData']->Org->OrgUID;
+            $chargeLimit = (int)($this->pageData['JwtData']->TransSettings->MaxAdditionalCharges ?? self::CHARGE_LIMIT);
+            $this->load->model('organisation_model');
+            $result      = $this->organisation_model->getAdditionalChargesList($orgUID);
+            $rows        = $result->Error === FALSE ? $result->Data : [];
+            $maxSort = 0;
+            foreach ($rows as $r) { if ((int)($r->SortOrder ?? 0) > $maxSort) $maxSort = (int)$r->SortOrder; }
+
+            $this->EndReturnData->Error          = FALSE;
+            $this->EndReturnData->RecordHtmlData = $this->load->view('settings/additionalcharges/list', [
+                'DataLists' => $rows,
+                'JwtData'   => $this->pageData['JwtData'],
+            ], TRUE);
+            $this->EndReturnData->ChargeCount    = count($rows);
+            $this->EndReturnData->ChargeLimit    = $chargeLimit;
+            $this->EndReturnData->NextSortOrder  = $maxSort + 1;
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    /** AJAX POST: insert or update an additional charge */
+    public function saveAdditionalCharge(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $post        = $this->input->post();
+            $orgUID      = (int) $this->pageData['JwtData']->Org->OrgUID;
+            $userUID     = (int) $this->pageData['JwtData']->User->UserUID;
+            $chargeLimit = (int)($this->pageData['JwtData']->TransSettings->MaxAdditionalCharges ?? self::CHARGE_LIMIT);
+            $chargeUID   = (int) getPostValue($post, 'acChargeUID');
+
+            $rawName     = trim(getPostValue($post, 'acName')        ?: '');
+            $displayName = trim(getPostValue($post, 'acDisplayName') ?: '');
+            $description = trim(getPostValue($post, 'acDescription') ?: '') ?: null;
+            $taxUID      = ((int) getPostValue($post, 'acDefaultTaxUID')) ?: null;
+            $showDefault = getPostValue($post, 'acShowByDefault') ? 1 : 0;
+            $sortOrder   = max(0, (int) getPostValue($post, 'acSortOrder'));
+
+            if (!$displayName) throw new Exception('Display name is required.');
+            if (mb_strlen($displayName) > 150) throw new Exception('Display name must not exceed 150 characters.');
+
+            $this->load->model(['organisation_model', 'dbwrite_model']);
+
+            if ($chargeUID > 0) {
+                $existing = $this->organisation_model->getAdditionalChargeByUID($chargeUID, $orgUID);
+                if (!$existing->Data) throw new Exception('Charge not found.');
+
+                if ((int) $existing->Data->IsSystem === 1) {
+                    // System charge: only Description + DefaultTaxUID are editable
+                    $data = ['Description' => $description, 'DefaultTaxUID' => $taxUID, 'UpdatedBy' => $userUID];
+                } else {
+                    $name = $rawName ? $this->_validateChargeName($rawName) : $this->_slugifyChargeName($displayName);
+                    if ($this->organisation_model->additionalChargeNameExists($orgUID, $name, $chargeUID)) {
+                        throw new Exception('A charge with this name already exists.');
+                    }
+                    $data = [
+                        'Name'          => $name,
+                        'DisplayName'   => $displayName,
+                        'DefaultTaxUID' => $taxUID,
+                        'Description'   => $description,
+                        'ShowByDefault' => $showDefault,
+                        'SortOrder'     => $sortOrder,
+                        'UpdatedBy'     => $userUID,
+                    ];
+                }
+
+                $resp = $this->dbwrite_model->updateData(
+                    'Settings', 'AdditionalChargesTbl', $data,
+                    ['ChargeUID' => $chargeUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]
+                );
+                if ($resp->Error) throw new Exception($resp->Message);
+                $this->EndReturnData->Message = 'Charge updated successfully.';
+            } else {
+                $customCount = $this->organisation_model->getCustomChargesCount($orgUID);
+                if ($customCount >= $chargeLimit) {
+                    throw new Exception('You have reached the maximum of ' . $chargeLimit . ' charges. Delete one to add another.');
+                }
+
+                $name = $rawName ? $this->_validateChargeName($rawName) : $this->_slugifyChargeName($displayName);
+                if ($this->organisation_model->additionalChargeNameExists($orgUID, $name)) {
+                    throw new Exception('A charge with this name already exists.');
+                }
+
+                $resp = $this->dbwrite_model->insertData('Settings', 'AdditionalChargesTbl', [
+                    'OrgUID'        => $orgUID,
+                    'Name'          => $name,
+                    'DisplayName'   => $displayName,
+                    'DefaultTaxUID' => $taxUID,
+                    'Description'   => $description,
+                    'ShowByDefault' => $showDefault,
+                    'IsSystem'      => 0,
+                    'SortOrder'     => $sortOrder,
+                    'IsActive'      => 1,
+                    'IsDeleted'     => 0,
+                    'CreatedBy'     => $userUID,
+                    'UpdatedBy'     => $userUID,
+                ]);
+                if ($resp->Error) throw new Exception($resp->Message);
+                $this->EndReturnData->Message = 'Charge added successfully.';
+            }
+
+            $result      = $this->organisation_model->getAdditionalChargesList($orgUID);
+            $rows        = $result->Error === FALSE ? $result->Data : [];
+            $cacheKey    = $this->redisservice->orgKey('additional-charges');
+            if ($result->Error === FALSE) {
+                $this->upstashservice->set($cacheKey, $rows, 0);
+            } else {
+                $this->upstashservice->del($cacheKey);
+            }
+            $maxSort = 0;
+            foreach ($rows as $r) { if ((int)($r->SortOrder ?? 0) > $maxSort) $maxSort = (int)$r->SortOrder; }
+
+            $this->EndReturnData->Error          = FALSE;
+            $this->EndReturnData->RecordHtmlData = $this->load->view('settings/additionalcharges/list', [
+                'DataLists' => $rows,
+                'JwtData'   => $this->pageData['JwtData'],
+            ], TRUE);
+            $this->EndReturnData->ChargeCount   = count($rows);
+            $this->EndReturnData->ChargeLimit   = $chargeLimit;
+            $this->EndReturnData->NextSortOrder = $maxSort + 1;
+            $this->EndReturnData->AllCharges    = array_values($rows);
+
+            // On create: return the newly inserted charge so the transaction form
+            // can auto-append the row without a second fetch
+            if ($chargeUID === 0) {
+                $newUID = (int)($resp->ID ?? 0);
+                foreach ($rows as $r) {
+                    $rUID = is_object($r) ? (int)($r->ChargeUID ?? 0) : (int)($r['ChargeUID'] ?? 0);
+                    if ($rUID === $newUID) {
+                        $this->EndReturnData->NewCharge = $r;
+                        break;
+                    }
+                }
+            }
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
+    }
+
+    /** AJAX POST: soft-delete a user-defined additional charge */
+    public function deleteAdditionalCharge(): void {
+        $this->EndReturnData = new stdClass();
+        try {
+            $post      = $this->input->post();
+            $orgUID    = (int) $this->pageData['JwtData']->Org->OrgUID;
+            $userUID   = (int) $this->pageData['JwtData']->User->UserUID;
+            $chargeUID = (int) getPostValue($post, 'acChargeUID');
+
+            if ($chargeUID <= 0) throw new Exception('Invalid charge ID.');
+
+            $this->load->model(['organisation_model', 'dbwrite_model', 'transactions_model']);
+            $existing = $this->organisation_model->getAdditionalChargeByUID($chargeUID, $orgUID);
+            if (!$existing->Data) throw new Exception('Charge not found.');
+            if ((int) $existing->Data->IsSystem === 1) throw new Exception('System charges cannot be deleted.');
+            if ($this->transactions_model->chargeIsUsedInAnyTransaction($chargeUID, $orgUID)) {
+                throw new Exception('This charge is used in one or more transactions and cannot be deleted. Remove it from all transactions first.');
+            }
+
+            $resp = $this->dbwrite_model->updateData(
+                'Settings', 'AdditionalChargesTbl',
+                ['IsDeleted' => 1, 'IsActive' => 0, 'UpdatedBy' => $userUID],
+                ['ChargeUID' => $chargeUID, 'OrgUID' => $orgUID]
+            );
+            if ($resp->Error) throw new Exception($resp->Message);
+
+            $chargeLimit = (int)($this->pageData['JwtData']->TransSettings->MaxAdditionalCharges ?? self::CHARGE_LIMIT);
+            $result      = $this->organisation_model->getAdditionalChargesList($orgUID);
+            $rows        = $result->Error === FALSE ? $result->Data : [];
+            $cacheKey    = $this->redisservice->orgKey('additional-charges');
+            if ($result->Error === FALSE) {
+                $this->upstashservice->set($cacheKey, $rows, 0);
+            } else {
+                $this->upstashservice->del($cacheKey);
+            }
+            $maxSort = 0;
+            foreach ($rows as $r) { if ((int)($r->SortOrder ?? 0) > $maxSort) $maxSort = (int)$r->SortOrder; }
+
+            $this->EndReturnData->Error          = FALSE;
+            $this->EndReturnData->Message        = 'Charge deleted successfully.';
+            $this->EndReturnData->RecordHtmlData = $this->load->view('settings/additionalcharges/list', [
+                'DataLists' => $rows,
+                'JwtData'   => $this->pageData['JwtData'],
+            ], TRUE);
+            $this->EndReturnData->ChargeCount   = count($rows);
+            $this->EndReturnData->ChargeLimit   = $chargeLimit;
+            $this->EndReturnData->NextSortOrder = $maxSort + 1;
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+        }
+        $this->globalservice->sendJsonResponse($this->EndReturnData);
     }
 
 }

@@ -235,8 +235,9 @@ Route: `/deliverychallan`
 
 | # | Action | Expected |
 |---|--------|----------|
-| 1 | DC (non-Draft) → More Options → Packing List | Opens in new tab |
-| 2 | Verify content | Shows all items + quantities |
+| 1 | DC (non-Draft, non-Cancelled) → More Options → Packing List | Navigates to packing list form in **same window** |
+| 2 | DC with status Cancelled | Packing List option **not shown** in More Options |
+| 3 | Verify content | Shows all DC items with quantities, vehicle, transporter fields |
 
 **Pass / Fail:** ___  **Bug Ref:** ___
 
@@ -268,12 +269,154 @@ Route: `/deliverychallan`
 
 ---
 
+## TC-DC-21 | Edit — Draft DC
+
+**Pre-condition:** A Draft DC exists (saved without products, or saved mid-way)
+
+| # | Action | Expected |
+|---|--------|----------|
+| 1 | DC list → Draft DC row | Pencil (edit) icon visible in the row actions |
+| 2 | Click pencil icon | Edit form opens with all previously saved data pre-filled |
+| 3 | Change a product qty or add a new product line | Field accepts input normally |
+| 4 | Save | DC updated; status remains **Draft**; **stock unchanged** (Draft never deducts stock) |
+
+**Pass / Fail:** ___  **Bug Ref:** ___
+
+---
+
+## TC-DC-22 | Edit — Dispatched DC (Stock Re-adjustment)
+
+**Pre-condition:** Dispatched DC exists with Product A qty = 10 (stock was deducted by 10)
+
+| # | Action | Expected |
+|---|--------|----------|
+| 1 | DC list → Dispatched DC row | Pencil (edit) icon visible |
+| 2 | Click pencil icon | Edit form opens with pre-filled data |
+| 3 | Change Product A qty from 10 to 7 | Field accepts the new value |
+| 4 | Save | DC updated with qty = 7 |
+| 5 | Check Product A stock | Stock corrected: previous 10 reversed then 7 deducted → net stock **+3 vs post-dispatch level** |
+| 6 | Confirm no double-deduction | Stock = (pre-dispatch stock − 7), not (pre-dispatch stock − 17) |
+
+**Pass / Fail:** ___  **Bug Ref:** ___
+
+---
+
+## TC-DC-23 | Delete — Draft DC
+
+| # | Action | Expected |
+|---|--------|----------|
+| 1 | DC list → Draft DC → More Options | **Delete** option visible |
+| 2 | Click Delete | Confirmation dialog appears with DC number |
+| 3 | Confirm | DC removed from list; **no stock change** (Draft never deducted stock) |
+| 4 | Verify stock | Product stock identical to before the Draft was created |
+
+**Pass / Fail:** ___  **Bug Ref:** ___
+
+---
+
+## TC-DC-24 | Delete — Dispatched DC (Stock Restored)
+
+**Pre-condition:** Dispatched DC with Product A qty = 5 (stock was deducted by 5)
+
+| # | Action | Expected |
+|---|--------|----------|
+| 1 | DC list → Dispatched DC → More Options | **Delete** option visible |
+| 2 | Click Delete | Confirmation dialog appears |
+| 3 | Confirm | DC removed from list; stock **+5 restored** |
+| 4 | Verify stock | Product A stock = pre-dispatch level |
+| 5 | Terminal DCs (Cancelled, Returned, Converted, Delivered) | Delete option **not shown** |
+
+**Pass / Fail:** ___  **Bug Ref:** ___
+
+---
+
+## TC-DC-25 | Cancel — Partially Returned DC (UI / Backend Mismatch)
+
+**Pre-condition:** DC in "Partially Returned" status (some items returned, remainder still out)
+
+> ⚠️ This test case documents a known gap — the Cancel button appears in the UI but the backend rejects it.
+
+| # | Action | Expected | Actual |
+|---|--------|----------|--------|
+| 1 | DC (Partially Returned) → More Options | Cancel option is **visible** | Visible (UI does not guard this) |
+| 2 | Click Cancel | Should show confirmation and cancel | Server returns error: *"Cannot change status from Partially Returned to Cancelled"* |
+| 3 | Correct behaviour | Cancel button should be **hidden** for Partially Returned DCs | Bug: hidden guard missing in the dropdown |
+
+**Resolution needed:** Either (a) add `'Partially Returned' => ['Cancelled']` to `validTransitions` in `updateDeliveryChallanStatus()` with stock reversal for remaining-out qty, or (b) hide the Cancel button in `list.php` when `$status === 'Partially Returned'`.
+
+**Pass / Fail:** ___  **Bug Ref:** DC-BUG-02
+
+---
+
+## TC-DC-26 | Print — A4 and Download PDF
+
+**Pre-condition:** A non-Draft DC exists
+
+| # | Action | Expected |
+|---|--------|----------|
+| 1 | DC (non-Draft) → More Options | **"Print / Download"** and **"Download PDF"** both visible |
+| 2 | Click **Print / Download** | Browser print dialog (or preview modal) opens with A4-formatted DC |
+| 3 | Check printed content | DC number, party name, items, quantities, amounts, totals all correct |
+| 4 | Click **Download PDF** | PDF file downloaded to browser with correct DC data |
+| 5 | Draft DC → More Options | Print and Download options **not shown** |
+
+**Pass / Fail:** ___  **Bug Ref:** ___
+
+---
+
+## TC-DC-27 | Thermal Print
+
+**Pre-condition:** A non-Draft DC exists; thermal print theme configured in Settings
+
+| # | Action | Expected |
+|---|--------|----------|
+| 1 | DC (non-Draft) → More Options → **Thermal Print** | Thermal receipt preview opens |
+| 2 | Check content | Items, quantities, amounts formatted for thermal paper width |
+| 3 | Check header/footer | Org name, DC number, date visible |
+| 4 | Draft DC → More Options | Thermal Print **not shown** |
+
+**Pass / Fail:** ___  **Bug Ref:** ___
+
+---
+
+## TC-DC-28 | Share via WhatsApp
+
+**Pre-condition:** Customer has a mobile number; DC is non-Draft
+
+| # | Action | Expected |
+|---|--------|----------|
+| 1 | DC (non-Draft, customer has mobile) → More Options | **"Share via WhatsApp"** visible |
+| 2 | Click Share via WhatsApp | Opens `wa.me/` link with customer's number pre-filled |
+| 3 | Customer has no mobile number | WhatsApp option **not shown** |
+| 4 | Draft DC | WhatsApp option **not shown** |
+
+**Pass / Fail:** ___  **Bug Ref:** ___
+
+---
+
+## TC-DC-29 | Send SMS
+
+**Pre-condition:** Customer has a mobile number; DC is non-Draft
+
+| # | Action | Expected |
+|---|--------|----------|
+| 1 | DC (non-Draft, customer has mobile) → More Options | **"Send SMS"** visible |
+| 2 | Click Send SMS | SMS modal / confirmation dialog opens with customer number |
+| 3 | Confirm | SMS dispatched; success toast shown |
+| 4 | Customer has no mobile | SMS option **not shown** |
+| 5 | Draft DC | SMS option **not shown** |
+
+**Pass / Fail:** ___  **Bug Ref:** ___
+
+---
+
 ## Bug Log
 
 | Bug Ref | TC | Description | Status |
 |---------|----|-------------|--------|
 | DC-BUG-01 | | | Open |
+| DC-BUG-02 | TC-DC-25 | Cancel button visible for Partially Returned DCs but backend rejects the transition — UI guard missing | Open |
 
 ---
 
-*Last updated: 2026-07-01*
+*Last updated: 2026-07-02*

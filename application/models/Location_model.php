@@ -13,7 +13,7 @@ class Location_model extends CI_Model {
     // ── Countries ─────────────────────────────────────────────────────────────
     // Single key holds the full countries list — no sub-map needed.
 
-    public function getCountriesFromDB() {
+    public function getCountriesFromDB(): object {
         $this->EndReturnData = new stdClass();
         try {
             $key    = $this->redisservice->orgKey('loc-countries');
@@ -53,7 +53,7 @@ class Location_model extends CI_Model {
     // Single key  loc-states  holds a map: { "in": [...], "lk": [...], ... }
     // Each country's states are merged in on first request, then served from cache.
 
-    public function getStatesFromDB($countryISO2) {
+    public function getStatesFromDB(string $countryISO2): object {
         $this->EndReturnData = new stdClass();
         try {
             $iso2 = strtolower(trim($countryISO2));
@@ -97,7 +97,7 @@ class Location_model extends CI_Model {
     // Single key  loc-cities-by-state  holds a map: { "in-mh": [...], "lk-cp": [...], ... }
     // Sub-key is  {country}-{state}  (both lowercase).
 
-    public function getCitiesOfStateFromDB($countryISO2, $stateISO2) {
+    public function getCitiesOfStateFromDB(string $countryISO2, string $stateISO2): object {
         $this->EndReturnData = new stdClass();
         try {
             $cISO2  = strtolower(trim($countryISO2));
@@ -143,7 +143,7 @@ class Location_model extends CI_Model {
     // Single key  loc-all-cities  holds a map: { "in": [...], "lk": [...], ... }
     // Each country's full city list is merged in on first request.
 
-    public function getAllCitiesOfCountryFromDB($countryISO2) {
+    public function getAllCitiesOfCountryFromDB(string $countryISO2): object {
         $this->EndReturnData = new stdClass();
         try {
             $iso2 = strtolower(trim($countryISO2));

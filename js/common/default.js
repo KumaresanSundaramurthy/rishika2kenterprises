@@ -180,6 +180,8 @@ $(document).ready(function () {
 
     $('#SettingsMenuBarBtn').on('click', function(e) {
         e.preventDefault();
+        var modBar = document.getElementById('ModulesMenuBar');
+        modBar.scrollTop = 0;
         $('#ModulesMenuBar').addClass('d-none');
         $('#SettingsMenuBar').removeClass('d-none');
     });
@@ -189,6 +191,18 @@ $(document).ready(function () {
         $('#SettingsMenuBar').addClass('d-none');
         $('#ModulesMenuBar').removeClass('d-none');
     });
+
+    // Bug 2 fix: reset ModulesMenuBar scroll when sidebar collapses to icon-only
+    // so items scrolled off-screen reappear as icons in the collapsed view.
+    var _layoutMenu = document.getElementById('layout-menu');
+    if (_layoutMenu) {
+        _layoutMenu.addEventListener('mouseleave', function () {
+            if (document.documentElement.classList.contains('layout-menu-collapsed')) {
+                var modBar = document.getElementById('ModulesMenuBar');
+                if (modBar) modBar.scrollTop = 0;
+            }
+        });
+    }
 
     document.addEventListener('show.bs.modal', function (event) {
         const openedModal = event.target;

@@ -32,6 +32,7 @@ $this->load->view('common/transactions/header'); ?>
                 $amtAccepted  = $stats['Accepted']['amount']  ?? 0;
                 $cntConverted = $stats['Converted']['count']  ?? 0;
                 $amtConverted = $stats['Converted']['amount'] ?? 0;
+                $cntCancelled = ($stats['Cancelled']['count'] ?? 0) + ($stats['Rejected']['count'] ?? 0);
                 $cntDraft     = $stats['Draft']['count']      ?? 0;
 
                 $statsItems = [
@@ -71,7 +72,6 @@ $this->load->view('common/transactions/header'); ?>
                                 <input type="text" id="searchTransactionData" placeholder="Quot. # or customer...">
                                 <i class="bx bx-x r2k-clear d-none" id="clearQuotSearch"></i>
                             </div>
-                            <a href="javascript:void(0);" id="quotStatusFilter" class="apex-filter-btn" title="Filter by Status"><i class="bx bx-transfer-alt me-1"></i>Status</a>
                             <?php if (count($OrgUsers ?? []) > 1): ?>
                             <a href="javascript:void(0);" id="quotCreatedByFilter" class="apex-filter-btn" title="Filter by User"><i class="bx bx-user me-1"></i>Updated By</a>
                             <?php endif; ?>
@@ -87,8 +87,11 @@ $this->load->view('common/transactions/header'); ?>
                         <div class="apex-tabs-row">
                             <ul class="nav trans-status-tabs" id="quotStatusTabs" role="tablist">
                                 <li class="nav-item"><a class="nav-link active quot-status-tab" data-status="All" href="javascript:void(0);">All <span class="trans-tab-count"><?php echo $ModAllCount; ?></span></a></li>
-                                <li class="nav-item"><a class="nav-link quot-status-tab" data-status="Cancelled" href="javascript:void(0);">Cancelled <span class="trans-tab-count d-none"></span></a></li>
-                                <li class="nav-item"><a class="nav-link quot-status-tab" data-status="Draft" href="javascript:void(0);">Draft <span class="trans-tab-count d-none"></span></a></li>
+                                <li class="nav-item"><a class="nav-link quot-status-tab" data-status="Open" href="javascript:void(0);">Pending <span class="trans-tab-count<?php echo $cntOpen > 0 ? '' : ' d-none'; ?>"><?php echo $cntOpen > 0 ? $cntOpen : ''; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link quot-status-tab" data-status="Accepted" href="javascript:void(0);">Accepted <span class="trans-tab-count<?php echo $cntAccepted > 0 ? '' : ' d-none'; ?>"><?php echo $cntAccepted > 0 ? $cntAccepted : ''; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link quot-status-tab" data-status="Converted" href="javascript:void(0);">Converted <span class="trans-tab-count<?php echo $cntConverted > 0 ? '' : ' d-none'; ?>"><?php echo $cntConverted > 0 ? $cntConverted : ''; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link quot-status-tab" data-status="Cancelled" href="javascript:void(0);">Cancelled <span class="trans-tab-count<?php echo $cntCancelled > 0 ? '' : ' d-none'; ?>"><?php echo $cntCancelled > 0 ? $cntCancelled : ''; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link quot-status-tab" data-status="Draft" href="javascript:void(0);">Drafts <span class="trans-tab-count<?php echo $cntDraft > 0 ? '' : ' d-none'; ?>"><?php echo $cntDraft > 0 ? $cntDraft : ''; ?></span></a></li>
                             </ul>
                         </div>
                     </div>
@@ -154,22 +157,6 @@ $this->load->view('common/transactions/header'); ?>
         </div>
     </div>
 </div>
-
-<?php $this->load->view('common/transactions/col_filter_box', [
-    'ColFilterConfig' => [
-        'id'         => 'quotStatusFilterBox',
-        'triggerId'  => 'quotStatusFilter',
-        'title'      => 'Status',
-        'icon'       => 'bx-transfer-alt',
-        'filterKey'  => 'StatusList',
-        'checkClass' => 'quot-status-chk',
-        'items'      => [
-            ['value' => 'Pending',   'label' => 'Pending'],
-            ['value' => 'Accepted',  'label' => 'Accepted'],
-            ['value' => 'Converted', 'label' => 'Converted'],
-        ],
-    ],
-]); ?>
 
 <?php if (count($OrgUsers ?? []) > 1): ?>
 <?php $this->load->view('common/partials/col_user_filter_box', [
@@ -241,19 +228,6 @@ $(function () {
         ? new TransFilterBar({ onChange: function () { PageNo = 1; getQuotationsDetails(); } })
         : null;
 
-    var quotStatusFilter = new TransColFilter({
-        boxId       : 'quotStatusFilterBox',
-        triggerId   : 'quotStatusFilter',
-        filterKey   : 'StatusList',
-        activeClass : 'has-filter',
-        onApply     : function () {
-            var vals = quotStatusFilter.getState()['StatusList'] || [];
-            if (vals.length) Filter['StatusList'] = vals; else delete Filter['StatusList'];
-            PageNo = 1;
-            getQuotationsDetails();
-        }
-    });
-
     var quotCreatedByFilter = (document.getElementById('quotCreatedByFilterBox'))
         ? new TransColFilter({
             boxId       : 'quotCreatedByFilterBox',
@@ -276,7 +250,6 @@ $(function () {
     getQuotationsDetails = function (pageNo, rowLimit, filter) {
         var f = $.extend({}, filter || Filter,
             tfb                 ? tfb.getState()                 : {},
-            quotStatusFilter    ? quotStatusFilter.getState()    : {},
             quotCreatedByFilter ? quotCreatedByFilter.getState() : {},
             quotPartyFilter     ? quotPartyFilter.getState()     : {}
         );
@@ -302,23 +275,9 @@ $(function () {
         var statFilter = $(this).data('stat-filter') || 'All';
         $('.apex-stat-item').removeClass('active');
         $(this).addClass('active');
-        delete Filter['StatusList'];
-        Filter.Status = 'All';
+        Filter.Status = statFilter;
         $('.quot-status-tab').removeClass('active');
-        if (statFilter === 'Cancelled' || statFilter === 'Draft') {
-            Filter.Status = statFilter;
-            quotStatusFilter.reset();
-            $('.quot-status-tab[data-status="' + statFilter + '"]').addClass('active');
-        } else if (statFilter === 'Open') {
-            quotStatusFilter.setState(['Pending']);
-            $('.quot-status-tab[data-status="All"]').addClass('active');
-        } else if (statFilter === 'Accepted' || statFilter === 'Converted') {
-            quotStatusFilter.setState([statFilter]);
-            $('.quot-status-tab[data-status="All"]').addClass('active');
-        } else {
-            quotStatusFilter.reset();
-            $('.quot-status-tab[data-status="All"]').addClass('active');
-        }
+        $('.quot-status-tab[data-status="' + statFilter + '"]').addClass('active');
         PageNo = 1;
         getQuotationsDetails();
     });
@@ -332,7 +291,6 @@ $(function () {
         var status = $(this).data('status') || 'All';
         $('.apex-stat-item[data-stat-filter="' + status + '"]').addClass('active');
         Filter.Status = status;
-        quotStatusFilter.reset();
         PageNo = 1;
         getQuotationsDetails();
     });

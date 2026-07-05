@@ -150,6 +150,8 @@ class Invoices extends MY_Controller {
             $roundOff               = (float) getPostValue($PostData, 'RoundOff',               'Array', 0);
             $globalDiscPercent      = (float) getPostValue($PostData, 'GlobalDiscPercent',      'Array', 0);
             $extraDiscount          = (float) getPostValue($PostData, 'extraDiscount',          'Array', 0);
+            $additionalChargesJson  = getPostValue($PostData, 'AdditionalCharges') ?: '[]';
+            $additionalChargesList  = json_decode($additionalChargesJson, true) ?: [];
             $isDraft                = getPostValue($PostData, 'action') === 'draft';
             $status                 = $isDraft ? 'Draft' : 'Issued';
 
@@ -188,7 +190,7 @@ class Invoices extends MY_Controller {
                 'PartyUID'              => $customerUID,
                 'TransDate'             => $transDate,
                 'TransYear'             => $financialYear,
-                'QuotationType'         => getPostValue($PostData, 'invoiceType') ?: NULL,
+                'DocType'         => getPostValue($PostData, 'invoiceType') ?: NULL,
                 'DispatchFrom'          => getPostValue($PostData, 'dispatchFrom') ?: NULL,
                 'TotalQuantity'         => $totalQty,
                 'TotalItems'            => count($items),
@@ -223,7 +225,10 @@ class Invoices extends MY_Controller {
             $transNumber  = $headerData['TransNumber'];
             $uniqueNumber = $headerData['UniqueNumber'];
 
-            $additionalChargesJson = $this->buildAdditionalChargesJson($PostData);
+            if (!empty($additionalChargesList)) {
+                $this->transactions_model->saveTransactionCharges($transUID, (int)$orgUID, (int)$userUID, $additionalChargesList);
+            }
+
             $isInterState          = $igstAmount > 0 ? 1 : ($cgstAmount > 0 || $sgstAmount > 0 ? 0 : NULL);
             $_cc                   = $this->transactions_model->getCustomerCountryCode($customerUID);
             $isForeignCustomer     = $_cc !== NULL ? ($_cc === 'IN' ? 0 : 1) : NULL;
@@ -236,7 +241,6 @@ class Invoices extends MY_Controller {
                 'Notes'              => getPostValue($PostData, 'transNotes') ?: NULL,
                 'TermsConditions'    => getPostValue($PostData, 'transTermsCond') ?: NULL,
                 'SignatureUID'       => (int)getPostValue($PostData, 'SignatureUID') ?: NULL,
-                'AdditionalCharges'  => $additionalChargesJson,
                 'PlaceOfSupplyCode'  => getPostValue($PostData, 'placeOfSupplyCode') ?: NULL,
                 'PlaceOfSupplyName'  => getPostValue($PostData, 'placeOfSupplyName') ?: NULL,
                 'IsInterState'       => $isInterState,
@@ -435,6 +439,8 @@ class Invoices extends MY_Controller {
             $roundOff               = (float) getPostValue($PostData, 'RoundOff',               'Array', 0);
             $globalDiscPercent      = (float) getPostValue($PostData, 'GlobalDiscPercent',      'Array', 0);
             $extraDiscount          = (float) getPostValue($PostData, 'extraDiscount',          'Array', 0);
+            $additionalChargesJson2 = getPostValue($PostData, 'AdditionalCharges') ?: '[]';
+            $additionalChargesList2 = json_decode($additionalChargesJson2, true) ?: [];
             $isDraft                = getPostValue($PostData, 'action') === 'draft';
             $status                 = $isDraft ? 'Draft' : 'Issued';
 
@@ -495,8 +501,6 @@ class Invoices extends MY_Controller {
                 $uniqueNumber = implode($sep, $parts);
             }
 
-            $additionalChargesJson = $this->buildAdditionalChargesJson($PostData);
-
             $activeTransUID = $transUID; // tracks the final transUID (may change for draftâ†’issued with newer transactions)
 
             $commonHeader = [
@@ -507,7 +511,7 @@ class Invoices extends MY_Controller {
                 'TransDate'         => $transDate,
                 'TransYear'         => $financialYear,
                 'TransType'         => 'Invoice',
-                'QuotationType'     => getPostValue($PostData, 'invoiceType') ?: NULL,
+                'DocType'     => getPostValue($PostData, 'invoiceType') ?: NULL,
                 'GrossAmount'       => $subTotal + $discountAmount,
                 'SubTotal'          => $subTotal,
                 'TaxableAmount'     => $subTotal,
@@ -540,7 +544,6 @@ class Invoices extends MY_Controller {
                 'Notes'             => getPostValue($PostData, 'transNotes') ?: NULL,
                 'TermsConditions'   => getPostValue($PostData, 'transTermsCond') ?: NULL,
                 'SignatureUID'      => (int)getPostValue($PostData, 'SignatureUID') ?: NULL,
-                'AdditionalCharges' => $additionalChargesJson,
                 'IsInterState'      => $isInterState,
                 'IsForeignCustomer' => $isForeignCustomer,
             ];
@@ -695,6 +698,9 @@ class Invoices extends MY_Controller {
                     $this->_syncProductCacheFromItems($items);
                 }
             }
+
+            // Save additional charges (replace-all pattern)
+            $this->transactions_model->saveTransactionCharges($activeTransUID, (int)$orgUID, (int)$userUID, $additionalChargesList2);
 
             // Record payment DB rows inside the transaction; ledger entries applied after commit
             $paidAmountForLedger = 0;
@@ -1070,7 +1076,7 @@ class Invoices extends MY_Controller {
                 'PartyType'         => $src->PartyType,
                 'PartyUID'          => $src->PartyUID,
                 'TransDate'         => $today,
-                'QuotationType'     => $src->QuotationType,
+                'DocType'     => $src->DocType,
                 'DispatchFrom'      => $src->DispatchFrom ?? NULL,
                 'TotalQuantity'     => (float)($src->TotalQuantity ?? 0),
                 'TotalItems'        => (int)($src->TotalItems ?? 0),
@@ -1662,9 +1668,13 @@ class Invoices extends MY_Controller {
             }
 
             $this->_getDispatchAddresses($orgUID);
-            
-            $this->pageData['PaymentTypes']  = $this->transactions_model->getPaymentTypesList();
-            $this->pageData['BankAccounts']  = $this->transactions_model->getOrgBankAccounts($orgUID);
+
+            $this->pageData['PaymentTypes']       = $this->transactions_model->getPaymentTypesList();
+            $this->pageData['BankAccounts']       = $this->transactions_model->getOrgBankAccounts($orgUID);
+            $this->pageData['AdditionalCharges']  = $this->_getAdditionalChargesForOrg((int)$orgUID, true);
+            $this->pageData['TaxList']            = $this->_getTaxList();
+            $this->pageData['TransactionCharges'] = [];
+            $this->pageData['IsEditMode']         = false;
 
             $this->load->view('transactions/invoices/forms/form', $this->pageData);
 
@@ -1715,9 +1725,12 @@ class Invoices extends MY_Controller {
 
             $this->_getDispatchAddresses($orgUID);
 
-            $this->pageData['PaymentTypes']    = $this->transactions_model->getPaymentTypesList();
-            $this->pageData['BankAccounts']     = $this->transactions_model->getOrgBankAccounts($orgUID);
-            $this->pageData['InvAttachments']   = $this->transactions_model->getTransactionAttachments($transUID, $orgUID);
+            $this->pageData['PaymentTypes']       = $this->transactions_model->getPaymentTypesList();
+            $this->pageData['BankAccounts']       = $this->transactions_model->getOrgBankAccounts($orgUID);
+            $this->pageData['InvAttachments']     = $this->transactions_model->getTransactionAttachments($transUID, $orgUID);
+            $this->pageData['AdditionalCharges']  = $this->_getAdditionalChargesForOrg((int)$orgUID, true);
+            $this->pageData['TransactionCharges'] = $this->transactions_model->getTransactionCharges($transUID, (int)$orgUID);
+            $this->pageData['IsEditMode']         = true;
 
             $this->load->view('transactions/invoices/forms/form', $this->pageData);
 

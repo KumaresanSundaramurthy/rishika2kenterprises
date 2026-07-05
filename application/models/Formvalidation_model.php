@@ -4,13 +4,13 @@ class Formvalidation_model extends CI_Model {
 
 	function __construct() {
         parent::__construct();
-		
+
 		$this->load->library('form_validation');
         $this->load->helper('security');
-		
+
     }
 
-    public function validateForm($data) {
+    public function validateForm(array $data): string {
 
         $this->form_validation->set_data($data);
 
@@ -42,7 +42,7 @@ class Formvalidation_model extends CI_Model {
 
     }
 
-    public function orgValidateForm($data) {
+    public function orgValidateForm(array $data): string {
 
         $this->form_validation->set_data($data);
 
@@ -58,10 +58,10 @@ class Formvalidation_model extends CI_Model {
         $dd['MobileNumber'] = array('field' => 'MobileNumber', 'label' => 'Mobile Number', 'rules' => ['trim', 'xss_clean', ['validate_mobile_number', [$this, 'validate_mobile_number']]]);
 
         $dd['EmailAddress'] = array('field' => 'EmailAddress', 'label' => 'Email Address', 'rules' => 'trim|required|xss_clean|min_length[6]|max_length[100]');
-        
+
         // GSTIN validation
         $dd['GSTIN'] = array('field' => 'GSTIN', 'label' => 'GSTIN', 'rules' => ['trim', 'xss_clean', 'max_length[15]', ['validate_gstin_number', [$this, 'validate_gstin_number']]]);
-        
+
         // Upload Image
         $dd['UploadImage'] = array('field' => 'UploadImage', 'label' => 'Upload Image', 'rules' => [['checkImageType', [$this, 'checkImageType']]]);
 
@@ -71,7 +71,7 @@ class Formvalidation_model extends CI_Model {
 
         // PAN validation
         $dd['PANNumber'] = array('field' => 'PANNumber', 'label' => 'PAN Number', 'rules' => ['trim', 'xss_clean', ['validate_pan_number', [$this, 'validate_pan_number']]]);
-        
+
         $dd['Website'] = array('field' => 'Website', 'label' => 'Website', 'rules' => 'trim|xss_clean|max_length[255]');
 
         $config = array();
@@ -91,7 +91,7 @@ class Formvalidation_model extends CI_Model {
 
     }
 
-    public function custValidateForm($data) {
+    public function custValidateForm(array $data): string {
 
         $this->form_validation->set_data($data);
 
@@ -101,7 +101,7 @@ class Formvalidation_model extends CI_Model {
         $dd['Area'] = array('field' => 'Area', 'label' => 'Area', 'rules' => 'trim|xss_clean|min_length[3]|max_length[100]');
         $dd['CountryCode'] = array('field' => 'CountryCode', 'label' => 'Country', 'rules' => 'trim|required|xss_clean');
         $dd['CountryISO2'] = array('field' => 'CountryISO2', 'label' => 'Country ISO2', 'rules' => 'trim|xss_clean');
-        
+
         // Mobile validation
         $dd['MobileNumber'] = array('field' => 'MobileNumber', 'label' => 'Mobile Number', 'rules' => ['trim', 'xss_clean', ['validate_mobile_number', [$this, 'validate_mobile_number']]]);
 
@@ -115,7 +115,7 @@ class Formvalidation_model extends CI_Model {
         $dd['ContactPerson'] = array('field' => 'ContactPerson', 'label' => 'Contact Person', 'rules' => 'trim|xss_clean|min_length[3]|max_length[100]');
         // Validate Date Format
         $dd['CPDateOfBirth'] = array('field' => 'CPDateOfBirth', 'label' => 'Date of Birth', 'rules' => ['trim', 'xss_clean', 'regex_match[/^\d{4}-\d{2}-\d{2}$/]', ['validateDateofBirthFormat', [$this, 'validateDateofBirthFormat']]]);
-        
+
         // GSTIN validation
         $dd['GSTIN'] = array('field' => 'GSTIN', 'label' => 'GSTIN', 'rules' => ['trim', 'xss_clean', 'max_length[15]', ['validate_gstin_number', [$this, 'validate_gstin_number']]]);
         $dd['CompanyName'] = array('field' => 'CompanyName', 'label' => 'Company Name', 'rules' => 'trim|xss_clean|min_length[6]|max_length[100]');
@@ -147,7 +147,7 @@ class Formvalidation_model extends CI_Model {
 
     }
 
-    public function vendorValidateForm($data) {
+    public function vendorValidateForm(array $data): string {
 
         $this->form_validation->set_data($data);
 
@@ -179,7 +179,7 @@ class Formvalidation_model extends CI_Model {
 
         // Upload Image
         $dd['UploadImage'] = array('field' => 'UploadImage', 'label' => 'Upload Image', 'rules' => [['checkImageType', [$this, 'checkImageType']]]);
-        
+
         $dd['Notes'] = array('field' => 'Notes', 'label' => 'Notes', 'rules' => 'trim|xss_clean|max_length[250]');
 
         $config = array();
@@ -199,7 +199,7 @@ class Formvalidation_model extends CI_Model {
 
     }
 
-    public function productValidateForm($data) {
+    public function productValidateForm(array $data): string {
 
         $this->form_validation->set_data($data);
 
@@ -220,10 +220,7 @@ class Formvalidation_model extends CI_Model {
         $dd['OpeningQuantity'] = array('field' => 'OpeningQuantity', 'label' => 'Opening Quantity', 'rules' => 'trim|xss_clean|numeric');
         $dd['OpeningPurchasePrice'] = array('field' => 'OpeningPurchasePrice', 'label' => 'Opening Purchase Price', 'rules' => 'trim|xss_clean|numeric');
         $dd['OpeningStockValue'] = array('field' => 'OpeningStockValue', 'label' => 'Opening Stock Value', 'rules' => 'trim|xss_clean|numeric');
-        
-        // Upload Image
-        $dd['UploadImage'] = array('field' => 'UploadImage', 'label' => 'Upload Image', 'rules' => [['checkImageType', [$this, 'checkImageType']]]);
-        
+
         $dd['Discount'] = array('field' => 'Discount', 'label' => 'Discount', 'rules' => 'trim|xss_clean|numeric');
         $dd['DiscountOption'] = array('field' => 'DiscountOption', 'label' => 'Discount Option', 'rules' => 'trim|required|xss_clean|numeric');
         $dd['LowStockAlert'] = array('field' => 'LowStockAlert', 'label' => 'Low Stock Alert at', 'rules' => 'trim|xss_clean|numeric');
@@ -257,15 +254,13 @@ class Formvalidation_model extends CI_Model {
 
     }
 
-    public function categoryValidateForm($data) {
+    public function categoryValidateForm(array $data): string {
 
         $this->form_validation->set_data($data);
 
         $dd['CategoryUID'] = array('field' => 'CategoryUID', 'label' => 'Category UID', 'rules' => 'required|xss_clean|trim|numeric');
         $dd['Name'] = array('field' => 'Name', 'label' => 'Name', 'rules' => 'trim|required|xss_clean|min_length[3]|max_length[100]');
         $dd['Description'] = array('field' => 'Description', 'label' => 'Description', 'rules' => 'trim|xss_clean|max_length[250]');
-        // Upload Image
-        $dd['UploadImage'] = array('field' => 'UploadImage', 'label' => 'Upload Image', 'rules' => [['checkImageType', [$this, 'checkImageType']]]);
 
         $config = array();
 
@@ -284,7 +279,7 @@ class Formvalidation_model extends CI_Model {
 
     }
 
-    public function sizesValidateForm($data) {
+    public function sizesValidateForm(array $data): string {
 
         $this->form_validation->set_data($data);
 
@@ -309,7 +304,7 @@ class Formvalidation_model extends CI_Model {
 
     }
 
-    public function brandsValidateForm($data) {
+    public function brandsValidateForm(array $data): string {
 
         $this->form_validation->set_data($data);
 
@@ -334,7 +329,7 @@ class Formvalidation_model extends CI_Model {
 
     }
 
-    public function storageValidateForm($data) {
+    public function storageValidateForm(array $data): string {
 
         $this->form_validation->set_data($data);
 
@@ -362,7 +357,7 @@ class Formvalidation_model extends CI_Model {
 
     }
 
-    public function profValidateForm($data) {
+    public function profValidateForm(array $data): string {
 
         $this->form_validation->set_data($data);
 
@@ -379,7 +374,7 @@ class Formvalidation_model extends CI_Model {
         $dd['confirmPassword'] = array('field' => 'confirmPassword', 'label' => 'Confirm Password', 'rules' => 'trim|xss_clean|matches[newPassword]');
 
         $config = array();
-        
+
         foreach($data as $key) {
             if (array_key_exists($key, $dd)) {
                 array_push($config, $dd[$key]);
@@ -404,7 +399,7 @@ class Formvalidation_model extends CI_Model {
 
     }
 
-    public function transactionValidateForm($data) {
+    public function transactionValidateForm(array $data): string {
 
         $this->form_validation->set_data($data);
 
@@ -437,7 +432,7 @@ class Formvalidation_model extends CI_Model {
 
     }
 
-    public function validateQuotationItems($itemsJson) {
+    public function validateQuotationItems(string $itemsJson): string {
 
         if (empty($itemsJson)) return 'Items are required.';
 
@@ -514,7 +509,7 @@ class Formvalidation_model extends CI_Model {
     }
 
     /* ===== QUOTATION CUSTOM RULES ===== */
-    public function validateGlobalDiscount($value) {
+    public function validateGlobalDiscount(mixed $value): bool {
         if (empty($value) || (float) $value == 0) return true;
 
         $discount = (float) $value;
@@ -525,7 +520,7 @@ class Formvalidation_model extends CI_Model {
         return true;
     }
 
-    public function transPrefixValidateForm($data) {
+    public function transPrefixValidateForm(array $data): string {
 
         $this->form_validation->set_data($data);
 
@@ -567,7 +562,7 @@ class Formvalidation_model extends CI_Model {
     }
 
     /* ================= MOBILE ================= */
-    public function validate_mobile_number($mobile) {
+    public function validate_mobile_number(mixed $mobile): bool {
 
         if (empty($mobile)) return true;
 
@@ -602,7 +597,7 @@ class Formvalidation_model extends CI_Model {
     }
 
     /* ================= PAN ================= */
-    public function validate_pan_number($pan) {
+    public function validate_pan_number(mixed $pan): bool {
         if (empty($pan)) return true;
 
         $pan = strtoupper(trim($pan));
@@ -614,7 +609,7 @@ class Formvalidation_model extends CI_Model {
     }
 
     /* ================= GSTIN ================= */
-    public function validate_gstin_number($gstin) {
+    public function validate_gstin_number(mixed $gstin): bool {
         if (empty($gstin)) return true;
 
         $gstin = strtoupper(trim($gstin));
@@ -627,7 +622,7 @@ class Formvalidation_model extends CI_Model {
     }
 
     /* ================= DATE ================= */
-    public function validateDateofBirthFormat($date) {
+    public function validateDateofBirthFormat(mixed $date): bool {
         if (empty($date)) return true;
 
         $d = DateTime::createFromFormat('Y-m-d', $date);
@@ -638,12 +633,12 @@ class Formvalidation_model extends CI_Model {
     }
 
     /* ================= IMAGE ================= */
-    public function checkImageType($str = '') {
+    public function checkImageType(mixed $str = ''): bool {
         return $this->globalservice->checkImageType($str);
     }
 
     /* ================= PASSWORD ================= */
-    public function check_new_password($password) {
+    public function check_new_password(mixed $password): bool {
         $oldPassword = $this->input->post('oldPassword');
         if ($oldPassword === $password) {
             $this->form_validation->set_message('check_new_password', 'Old Password and New Password cannot be the same');
@@ -657,7 +652,7 @@ class Formvalidation_model extends CI_Model {
     }
 
     /* ================= CHECK SIZE ================= */
-    public function checkSizeRequired($IsSizeApplicable) {
+    public function checkSizeRequired(mixed $IsSizeApplicable): bool {
         $SizeUID = $this->input->post('SizeUID', true) ?? NULL;
         if ($IsSizeApplicable && empty($SizeUID)) {
             $this->form_validation->set_message('checkSizeRequired', 'The Size field is required when Size Applicable is checked.');

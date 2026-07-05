@@ -12,7 +12,7 @@ class Products_model extends CI_Model {
 
     }
 
-    public function itemFilterFormation($ModuleInfoData, $Filter) {
+    public function itemFilterFormation(object $ModuleInfoData, array $Filter): object {
 
         $this->EndReturnData = new StdClass();
         try {
@@ -92,7 +92,7 @@ class Products_model extends CI_Model {
 
     }
 
-    public function getProductsDetails($FilterArray = [], $OrderBy = 'ASC', $whereInCondition = []) {
+    public function getProductsDetails(array $FilterArray = [], string $OrderBy = 'ASC', array $whereInCondition = []): array {
 
         $this->EndReturnData = new StdClass();
         try {
@@ -122,7 +122,6 @@ class Products_model extends CI_Model {
                 'Products.PartNumber AS PartNumber',
                 'Products.SKU AS SKU',
                 'Products.Description AS Description',
-                'Products.Image AS Image',
                 'Products.OpeningQuantity AS OpeningQuantity',
                 'COALESCE(ProductStock.AvailableQty, 0) AS AvailableQuantity',
                 'Products.OpeningPurchasePrice AS OpeningPurchasePrice',
@@ -175,7 +174,7 @@ class Products_model extends CI_Model {
         }
     }
 
-    public function catgFilterFormation($ModuleInfoData, $Filter) {
+    public function catgFilterFormation(object $ModuleInfoData, array $Filter): object {
 
         $this->EndReturnData = new StdClass();
         try {
@@ -209,7 +208,7 @@ class Products_model extends CI_Model {
 
     }
 
-    public function getCategoriesDetails1($FilterArray = [], $OrderBy = 'ASC', $whereInCondition = []) {
+    public function getCategoriesDetails1(array $FilterArray = [], string $OrderBy = 'ASC', array $whereInCondition = []): array {
 
         $this->EndReturnData = new StdClass();
         try {
@@ -221,7 +220,6 @@ class Products_model extends CI_Model {
                 'Category.OrgUID AS OrgUID',
                 'Category.Name AS Name',
                 'Category.Description AS Description',
-                'Category.Image AS Image',
                 'Category.CreatedOn as CreatedOn',
                 'Category.UpdatedOn as UpdatedOn',
             );
@@ -268,7 +266,7 @@ class Products_model extends CI_Model {
 
     }
 
-    public function getCategoriesDetails($FilterArray) {
+    public function getCategoriesDetails(array $FilterArray): array {
 
         $this->EndReturnData = new StdClass();
         try {
@@ -293,7 +291,6 @@ class Products_model extends CI_Model {
                 'Category.OrgUID AS OrgUID',
                 'Category.Name AS Name',
                 'Category.Description AS Description',
-                'Category.Image AS Image',
                 'Category.CreatedOn as CreatedOn',
                 'Category.UpdatedOn as UpdatedOn',
             );
@@ -326,7 +323,6 @@ class Products_model extends CI_Model {
                             'CategoryUID' => $uid,
                             'Name'        => $cat->Name        ?? '',
                             'Description' => $cat->Description ?? '',
-                            'Image'       => $cat->Image       ?? '',
                         ];
                     }
                 }
@@ -344,7 +340,7 @@ class Products_model extends CI_Model {
 
     }
 
-    public function sizeFilterFormation($ModuleInfoData, $Filter) {
+    public function sizeFilterFormation(object $ModuleInfoData, array $Filter): object {
 
         $this->EndReturnData = new StdClass();
         try {
@@ -378,7 +374,7 @@ class Products_model extends CI_Model {
 
     }
 
-    public function getSizeDetails($Filter) {
+    public function getSizeDetails(array $Filter): array {
 
         $this->EndReturnData = new StdClass();
         try {
@@ -421,7 +417,7 @@ class Products_model extends CI_Model {
 
     }
 
-    public function brandFilterFormation($ModuleInfoData, $Filter) {
+    public function brandFilterFormation(object $ModuleInfoData, array $Filter): object {
 
         $this->EndReturnData = new StdClass();
         try {
@@ -455,7 +451,7 @@ class Products_model extends CI_Model {
 
     }
 
-    public function getProductBOM($ParentProductUID) {
+    public function getProductBOM(int $ParentProductUID): array {
 
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -485,7 +481,7 @@ class Products_model extends CI_Model {
 
     }
 
-    public function getItemsForBOM($OrgUID, $search = '', $excludeUID = 0) {
+    public function getItemsForBOM(int $OrgUID, string $search = '', int $excludeUID = 0): array {
 
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -515,7 +511,7 @@ class Products_model extends CI_Model {
 
     }
 
-    public function getCustomerTypePricing($ProductUID) {
+    public function getCustomerTypePricing(int $ProductUID): array {
 
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -545,7 +541,7 @@ class Products_model extends CI_Model {
     // ─────────────────────────────────────────────────────────
     // Dedicated paginated list queries (replacing generic service)
     // ─────────────────────────────────────────────────────────
-    public function getProductListPaginated($OrgUID, $limit, $offset, $searchQuery = '', $sortArr = []) {
+    public function getProductListPaginated(int $OrgUID, int $limit, int $offset, string $searchQuery = '', array $sortArr = []): object {
 
         try {
             
@@ -576,7 +572,6 @@ class Products_model extends CI_Model {
                 'Products.PurchasePrice AS PurchasePrice',
                 'Products.HSNSACCode AS HSNSACCode',
                 'Products.PartNumber AS PartNumber',
-                'Products.Image AS Image',
                 'Products.IsComposite AS IsComposite',
                 'COALESCE(ProductStock.AvailableQty, 0) AS AvailableQuantity',
                 'Products.UpdatedOn AS UpdatedOn',
@@ -644,7 +639,7 @@ class Products_model extends CI_Model {
 
     }
 
-    public function getCategoryListPaginated($OrgUID, $limit, $offset, $searchQuery = '', $sortArr = []) {
+    public function getCategoryListPaginated(int $OrgUID, int $limit, int $offset, string $searchQuery = '', array $sortArr = []): object {
 
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -669,7 +664,6 @@ class Products_model extends CI_Model {
                 'Category.CategoryUID AS CategoryUID',
                 'Category.Name AS Name',
                 'Category.Description AS Description',
-                'Category.Image AS Image',
                 'Category.UpdatedOn AS UpdatedOn',
                 "CONCAT(User.FirstName, ' ', User.LastName) AS UpdatedBy",
                 'COUNT(CASE WHEN Products.IsDeleted = 0 AND Products.IsActive = 1 THEN 1 END) AS ProductCount',
@@ -728,7 +722,7 @@ class Products_model extends CI_Model {
 
     }
 
-    public function getProductsByCategoryUID($CategoryUID, $OrgUID) {
+    public function getProductsByCategoryUID(int $CategoryUID, int $OrgUID): array {
 
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -761,7 +755,7 @@ class Products_model extends CI_Model {
 
     }
 
-    public function getProductStats($OrgUID) {
+    public function getProductStats(int $OrgUID): ?object {
 
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -800,7 +794,7 @@ class Products_model extends CI_Model {
 
     }
 
-    public function getRentalConfig($productUID, $orgUID) {
+    public function getRentalConfig(int $productUID, int $orgUID): ?object {
 
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->select('*');
@@ -819,7 +813,7 @@ class Products_model extends CI_Model {
 
     }
 
-    public function getBrandDetails($FilterArray) {
+    public function getBrandDetails(array $FilterArray): array {
 
         $this->EndReturnData = new StdClass();
         try {
@@ -867,7 +861,7 @@ class Products_model extends CI_Model {
      * Fetch all active products for org-level cache rebuild.
      * Joins CategoryTbl and PrimaryUnitTbl so entries are self-contained.
      */
-    public function getProductsForCache($orgUID) {
+    public function getProductsForCache(int $orgUID): array {
 
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -901,7 +895,6 @@ class Products_model extends CI_Model {
                 'p.IsComboItem',
                 'p.IsComposite',
                 'p.IsSerialTracked',
-                'p.Image',
             ]);
             $this->ReadDb->from('Products.ProductTbl p');
             $this->ReadDb->join('Products.CategoryTbl cat',  'cat.CategoryUID = p.CategoryUID',      'left');
@@ -929,7 +922,7 @@ class Products_model extends CI_Model {
      * Fetch a single active product for Upstash HSET (avoids loading the full catalogue).
      * Same columns as getProductsForCache but scoped to one ProductUID.
      */
-    public function getProductForCache($orgUID, $productUID) {
+    public function getProductForCache(int $orgUID, int $productUID): ?object {
 
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -963,7 +956,6 @@ class Products_model extends CI_Model {
                 'p.IsComboItem',
                 'p.IsComposite',
                 'p.IsSerialTracked',
-                'p.Image',
             ]);
             $this->ReadDb->from('Products.ProductTbl p');
             $this->ReadDb->join('Products.CategoryTbl cat',    'cat.CategoryUID = p.CategoryUID',      'left');
@@ -990,7 +982,7 @@ class Products_model extends CI_Model {
     /**
      * Fetch all active categories for org-level cache rebuild.
      */
-    public function getCategoriesForCache($orgUID) {
+    public function getCategoriesForCache(int $orgUID): array {
 
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -998,7 +990,6 @@ class Products_model extends CI_Model {
                 'CategoryUID',
                 'Name',
                 'Description',
-                'Image',
             ]);
             $this->ReadDb->from('Products.CategoryTbl');
             $this->ReadDb->where([

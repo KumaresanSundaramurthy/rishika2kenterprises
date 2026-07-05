@@ -94,17 +94,13 @@
         $select.trigger('change');
 
         if (address) {
-            var addrHtml = '<div><strong>Shipping Address:</strong></div>'
-                + '<div>' + _esc(address.Line1 || '') + '</div>'
-                + '<div>' + _esc(address.Line2 || '') + '</div>'
-                + '<div>' + [address.City, address.State].filter(Boolean).map(_esc).join(', ')
-                + (address.Pincode ? ' – ' + _esc(address.Pincode) : '') + '</div>';
-            $('#customerAddressBox').html(addrHtml).removeClass('d-none');
+            $('#customerAddressBox').find('span').text(_buildAddrLine(address));
+            $('#customerAddressBox').removeClass('d-none');
             if (typeof window._onCustStateSelected === 'function') {
                 window._onCustStateSelected((state || (address && address.State) || '').trim());
             }
         } else {
-            $('#customerAddressBox').addClass('d-none').empty();
+            $('#customerAddressBox').addClass('d-none').find('span').text('');
         }
 
         if (typeof _showCustTypeIndicator === 'function') {
@@ -428,15 +424,10 @@
                     $sel.trigger('change');
                     $sel.trigger({ type: 'select2:select', params: { data: { id: c.id, text: c.text } } });
                     if (c.address) {
-                        var a = c.address;
-                        var aHtml = '<div><strong>Shipping Address:</strong></div>'
-                            + '<div>' + (a.Line1 || '') + '</div>'
-                            + '<div>' + (a.Line2 || '') + '</div>'
-                            + '<div>' + [a.City, a.State].filter(Boolean).join(', ')
-                            + (a.Pincode ? ' – ' + a.Pincode : '') + '</div>';
-                        $('#customerAddressBox').html(aHtml).removeClass('d-none');
+                        $('#customerAddressBox').find('span').text(_buildAddrLine(c.address));
+                        $('#customerAddressBox').removeClass('d-none');
                     } else {
-                        $('#customerAddressBox').addClass('d-none').empty();
+                        $('#customerAddressBox').addClass('d-none').find('span').text('');
                     }
                     // Invalidate cache so next modal open re-fetches the new customer
                     _cacheAttempted = false;
@@ -456,6 +447,13 @@
 
     function _fmt(n) {
         return parseFloat(n || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    }
+
+    function _buildAddrLine(a) {
+        var lines = [a.Line1, a.Line2].filter(Boolean).join(', ');
+        var loc   = [a.City, a.State].filter(Boolean).join(', ');
+        if (a.Pincode) loc += ' – ' + a.Pincode;
+        return [lines, loc].filter(Boolean).join(' · ');
     }
 
 }(jQuery));

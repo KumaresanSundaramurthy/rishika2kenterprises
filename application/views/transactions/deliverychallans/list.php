@@ -27,7 +27,7 @@ if (!empty($DataLists)):
         $badgeClass  = $statusBadgeClass[$status]  ?? 'trans-badge-Draft';
         $icon        = $statusIcon[$status]         ?? 'bx-circle';
 
-        $challanType  = $list->QuotationType ?? 'Non-Returnable';
+        $challanType  = $list->DocType ?? 'Non-Returnable';
         $typeBadge    = $challanTypeBadge[$challanType] ?? 'badge text-bg-secondary';
 
         // Contact fields
@@ -369,7 +369,7 @@ if (!empty($DataLists)):
                         <!-- § Danger (owns top divider; hidden when terminal) -->
                         <?php if (!$isTerminal): ?>
                         <?php if (!$isDraft): ?><li><hr class="dropdown-divider my-1"></li><?php endif; ?>
-                        <?php if (!$isDraft): ?>
+                        <?php if (!$isDraft && $status !== 'Partially Returned'): ?>
                         <li>
                             <button class="dropdown-item text-warning dc-status-update"
                                     data-uid="<?php echo (int)$list->TransUID; ?>"

@@ -526,6 +526,13 @@
                                                 <i class="bx bx-package me-2"></i>Delivery Challans
                                             </a>
 
+                                            <a class="nav-link gs-tab-link px-4 py-3" id="tab-quotation-settings-tab"
+                                                data-bs-toggle="pill" data-bs-target="#tab-quotation-settings"
+                                                role="tab" aria-controls="tab-quotation-settings" aria-selected="false"
+                                                href="javascript:void(0);">
+                                                <i class="bx bx-file me-2"></i>Quotation
+                                            </a>
+
                                         </div>
                                     </div>
                                     <!-- / Left Side -->
@@ -987,6 +994,51 @@
                                             </div>
                                             <!-- / Sub-Tab: Delivery Challans -->
 
+                                            <!-- Sub-Tab: Quotation -->
+                                            <?php
+                                            $quotValidityDays = (int)($ts->QuotValidityDays ?? 7);
+                                            ?>
+                                            <div class="tab-pane fade" id="tab-quotation-settings" role="tabpanel" aria-labelledby="tab-quotation-settings-tab">
+
+                                                <h6 class="fw-semibold mb-1">Quotation</h6>
+                                                <p class="text-muted small mb-4">Configure default behaviours for quotation creation.</p>
+
+                                                <div class="row g-3">
+
+                                                    <div class="col-12">
+                                                        <label class="form-label fw-semibold">Validity Period</label>
+                                                        <div class="p-3 border rounded">
+                                                            <div class="row align-items-center g-3">
+                                                                <div class="col-md-8">
+                                                                    <label class="fw-semibold mb-1" for="quot_ValidityDays">
+                                                                        Default Validity Days
+                                                                    </label>
+                                                                    <div class="form-text mt-0 mb-2">
+                                                                        When a quotation is created, the <strong>Validity Date</strong> is automatically pre-filled
+                                                                        to today's date plus this many days. Enter a value between <strong>1</strong> and <strong>365</strong>.
+                                                                        The user can always change the date manually before saving.
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-md-4">
+                                                                    <input type="number" class="form-control" id="quot_ValidityDays" name="QuotValidityDays"
+                                                                           min="1" max="365" value="<?php echo $quotValidityDays; ?>">
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                </div>
+
+                                                <div class="mt-4 d-flex gap-2">
+                                                    <button type="button" class="btn btn-primary" id="btnSaveQuotationSettings">
+                                                        <span class="spinner-border spinner-border-sm me-1 d-none" id="quotSettingsSpinner"></span>
+                                                        Save Changes
+                                                    </button>
+                                                </div>
+
+                                            </div>
+                                            <!-- / Sub-Tab: Quotation -->
+
                                         </div>
                                     </div>
                                     <!-- / Right Side -->
@@ -1148,6 +1200,8 @@ $(document).ready(function () {
                 PurchaseReturnItemMethod   : $('input[name="PurchaseReturnItemMethod"]:checked').val()   || 'Manual',
                 PurchaseShowSignature      : $('#purch_ShowSignature').is(':checked') ? 1 : 0,
                 PurchaseShowTerms          : $('#purch_ShowTerms').is(':checked')    ? 1 : 0,
+                DCDefaultReturnDays        : $('#dc_DefaultReturnDays').val(),
+                QuotValidityDays           : $('#quot_ValidityDays').val(),
                 [CsrfName]                 : CsrfToken,
             },
             success: function (resp) {
@@ -1241,6 +1295,8 @@ $(document).ready(function () {
                 ShowProductDescription     : $('#txn_ShowProductDescription').is(':checked') ? 1 : 0,
                 PurchaseShowSignature      : $('#purch_ShowSignature').is(':checked') ? 1 : 0,
                 PurchaseShowTerms          : $('#purch_ShowTerms').is(':checked')    ? 1 : 0,
+                DCDefaultReturnDays        : $('#dc_DefaultReturnDays').val(),
+                QuotValidityDays           : $('#quot_ValidityDays').val(),
                 [CsrfName]                 : CsrfToken,
             },
             success: function (resp) {
@@ -1286,6 +1342,8 @@ $(document).ready(function () {
                 ShowProductDescription     : $('#txn_ShowProductDescription').is(':checked') ? 1 : 0,
                 PurchaseShowSignature      : $('#purch_ShowSignature').is(':checked') ? 1 : 0,
                 PurchaseShowTerms          : $('#purch_ShowTerms').is(':checked')    ? 1 : 0,
+                DCDefaultReturnDays        : $('#dc_DefaultReturnDays').val(),
+                QuotValidityDays           : $('#quot_ValidityDays').val(),
                 [CsrfName]                 : CsrfToken,
             },
             success: function (resp) {
@@ -1323,6 +1381,8 @@ $(document).ready(function () {
                 TermsAndConditions         : $('#txn_TermsAndConditions').val(),
                 HideNavOnTransForm         : $('#txn_HideNavOnTransForm').is(':checked') ? 1 : 0,
                 ShowProductDescription     : $('#txn_ShowProductDescription').is(':checked') ? 1 : 0,
+                DCDefaultReturnDays        : $('#dc_DefaultReturnDays').val(),
+                QuotValidityDays           : $('#quot_ValidityDays').val(),
                 [CsrfName]                 : CsrfToken,
             },
             success: function (resp) {
@@ -1351,6 +1411,7 @@ $(document).ready(function () {
             method : 'POST',
             data   : {
                 DCDefaultReturnDays        : $('#dc_DefaultReturnDays').val(),
+                QuotValidityDays           : $('#quot_ValidityDays').val(),
                 // carry existing values unchanged
                 InvoiceCancelAction        : $('input[name="InvoiceCancelAction"]:checked').val()        || 'ask',
                 SalesReturnCancelAction    : $('input[name="SalesReturnCancelAction"]:checked').val()    || 'ask',
@@ -1405,6 +1466,53 @@ $(document).ready(function () {
                 ShowProductDescription     : $('#txn_ShowProductDescription').is(':checked') ? 1 : 0,
                 PurchaseShowSignature      : $('#purch_ShowSignature').is(':checked') ? 1 : 0,
                 PurchaseShowTerms          : $('#purch_ShowTerms').is(':checked')    ? 1 : 0,
+                DCDefaultReturnDays        : $('#dc_DefaultReturnDays').val(),
+                QuotValidityDays           : $('#quot_ValidityDays').val(),
+                [CsrfName]                 : CsrfToken,
+            },
+            success: function (resp) {
+                showToastNotification(resp.Message, resp.Error ? 'error' : 'success');
+            },
+            error: function () {
+                showToastNotification('Request failed. Please try again.', 'error');
+            },
+            complete: function () {
+                $btn.prop('disabled', false);
+                $spinner.addClass('d-none');
+            }
+        });
+    });
+
+    // ── Save Quotation Settings ──────────────────────────────────────────────
+    $('#btnSaveQuotationSettings').on('click', function () {
+        var $btn     = $(this);
+        var $spinner = $('#quotSettingsSpinner');
+        var days     = parseInt($('#quot_ValidityDays').val(), 10);
+
+        if (isNaN(days) || days < 1 || days > 365) {
+            showToastNotification('Validity days must be between 1 and 365.', 'error');
+            return;
+        }
+
+        $btn.prop('disabled', true);
+        $spinner.removeClass('d-none');
+
+        $.ajax({
+            url    : '/settings/updateTransactionSettings',
+            method : 'POST',
+            data   : {
+                QuotValidityDays           : days,
+                DCDefaultReturnDays        : $('#dc_DefaultReturnDays').val(),
+                InvoiceCancelAction        : $('input[name="InvoiceCancelAction"]:checked').val()        || 'ask',
+                SalesReturnCancelAction    : $('input[name="SalesReturnCancelAction"]:checked').val()    || 'ask',
+                SalesReturnItemMethod      : $('input[name="SalesReturnItemMethod"]:checked').val()      || 'Manual',
+                PurchaseReturnCancelAction : $('input[name="PurchaseReturnCancelAction"]:checked').val() || 'ask',
+                PurchaseReturnItemMethod   : $('input[name="PurchaseReturnItemMethod"]:checked').val()   || 'Manual',
+                PurchaseShowSignature      : $('#purch_ShowSignature').is(':checked') ? 1 : 0,
+                PurchaseShowTerms          : $('#purch_ShowTerms').is(':checked')    ? 1 : 0,
+                TermsAndConditions         : $('#txn_TermsAndConditions').val(),
+                HideNavOnTransForm         : $('#txn_HideNavOnTransForm').is(':checked') ? 1 : 0,
+                ShowProductDescription     : $('#txn_ShowProductDescription').is(':checked') ? 1 : 0,
                 [CsrfName]                 : CsrfToken,
             },
             success: function (resp) {

@@ -64,35 +64,9 @@
 }
 
 /* ── Dispatch From / Dispatch To select ─────────────────────────────────── */
-#dispatchFrom option,
 #dispatchTo option {
     white-space: normal;
     word-break: break-word;
-}
-/* Remove Sneat's excess right padding so text fills ~95% of the field width.
-   Arrow stays visible because rendered padding-right (28px) keeps text clear of it. */
-.dispatch-from-grp .select2-container--default .select2-selection--single {
-    padding-right: 0 !important;
-}
-.dispatch-from-grp .select2-selection--single .select2-selection__rendered {
-    font-size: 0.8125rem !important;
-    padding-right: 28px !important;
-}
-/* Make the dropdown chevron visible.
-   Sneat's select2.css uses background-image SVG on the b element but omits
-   position:absolute and display:block, so the b tag stays inline and the
-   SVG never renders. Force those properties here. */
-.dispatch-from-grp .select2-selection--single .select2-selection__arrow {
-    right: 4px !important;
-    margin-right: 0 !important;
-}
-.dispatch-from-grp .select2-selection--single .select2-selection__arrow b {
-    display: block !important;
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
 }
 
 /* ── Product search field — slightly taller than other fields ───────────── */
@@ -110,7 +84,6 @@
 /* Sneat core.css forces all Select2 to 39px; override here for form fields  */
 .customer-search-group .select2-container--default .select2-selection--single,
 .category-search-group .select2-container--default .select2-selection--single,
-.dispatch-from-grp     .select2-container--default .select2-selection--single,
 .input-group-sm        .select2-container--default .select2-selection--single {
     height: 36px !important;
     padding-top:    0.3rem !important;
@@ -118,13 +91,11 @@
 }
 .customer-search-group .select2-selection--single .select2-selection__rendered,
 .category-search-group .select2-selection--single .select2-selection__rendered,
-.dispatch-from-grp     .select2-selection--single .select2-selection__rendered,
 .input-group-sm        .select2-selection--single .select2-selection__rendered {
     line-height: 32px !important;
 }
 .customer-search-group .select2-selection--single .select2-selection__arrow,
 .category-search-group .select2-selection--single .select2-selection__arrow,
-.dispatch-from-grp     .select2-selection--single .select2-selection__arrow,
 .input-group-sm        .select2-selection--single .select2-selection__arrow {
     height: 30px !important;
 }
@@ -350,3 +321,89 @@
 .cust-type-interstate     { background: #fff3e0; color: #e65100; border: 1px solid #ffcc80; }
 .cust-type-foreign        { background: #e3f2fd; color: #0d47a1; border: 1px solid #90caf9; }
 #viewTransModalBody             { flex: 1; overflow-y: auto; }
+
+/* ── Fix: hidden input as last child inside .input-group-merge strips right border ──────
+   Root cause: core.css rule ".input-group-merge .form-control:not(:last-child) { border-inline-end:0 }"
+   fires on the visible text input when an <input type="hidden"> sits after it inside the same
+   .input-group div (date pickers on every transaction form).
+   This selector restores the right border + radius for that exact case.              ── */
+.input-group.input-group-merge:has(> input[type="hidden"]:last-child) > .form-control,
+.input-group.input-group-merge:has(> input[type="hidden"]:last-child) > .form-select {
+    border-inline-end: var(--bs-border-width) solid var(--bs-border-color) !important;
+    border-top-right-radius: calc(var(--bs-border-radius-sm) - 1px) !important;
+    border-bottom-right-radius: calc(var(--bs-border-radius-sm) - 1px) !important;
+}
+
+/* ── Bill table: thead vertical-center + tfoot bottom border ─────────────── */
+#billTable > thead > tr > th {
+    vertical-align: middle;
+}
+#billTable > tfoot > tr > td {
+    border-bottom: var(--bs-border-width) solid var(--bs-border-color);
+}
+
+/* ── DC Form ──────────────────────────────────────────────────────────────── */
+
+/* Document header icon */
+.dc-doc-icon          { background: #dcfce7; }
+.dc-doc-icon > .bx   { color: #16a34a; font-size: 1.1rem; }
+
+/* Header title + badges */
+.dc-form-title        { font-size: .92rem; }
+.dc-from-so-badge     { font-size: .65rem; }
+.dc-status-badge      { font-size: .7rem; }
+
+/* Save / print dropdown menus */
+.dc-save-menu                  { min-width: 195px; font-size: .82rem; }
+.dc-save-menu .dropdown-header { font-size: .65rem; letter-spacing: .4px; }
+
+/* Toolbar: edit-mode read-only chips */
+.dc-toolbar-label    { font-size: .76rem; white-space: nowrap; }
+.dc-chip-badge       { background: #eef0f3; color: #344563; font-size: .8rem; padding: 5px 10px; border: 1px solid #d5dae0; }
+.dc-chip-badge-addr  { white-space: normal; text-align: left; line-height: 1.4; }
+
+/* Toolbar: create-mode selects + dispatch from group */
+.dc-type-sel         { min-width: 110px; cursor: pointer; }
+.dc-mode-sel         { min-width: 130px; cursor: pointer; }
+.dc-dispatch-grp     { max-width: 360px; }
+
+/* Customer read-only display (edit mode + SO conversion mode) */
+.dc-cust-readonly    { background: #f8f9fa; min-height: 34px; }
+.dc-cust-icon        { font-size: 1.15rem; flex-shrink: 0; }
+.dc-cust-body        { flex: 1; min-width: 0; }
+.dc-cust-name        { font-size: .88rem; line-height: 1.3; }
+.dc-cust-meta        { font-size: .72rem; line-height: 1.3; }
+.dc-cust-lock        { font-size: .8rem; flex-shrink: 0; }
+.dc-cust-so-badge    { font-size: .65rem; white-space: nowrap; }
+
+/* Customer search icon span (create mode) */
+.dc-cust-search-icon {
+    background: #f0efff;
+    border-color: #d9d8ff;
+    color: #696cff;
+    border-inline-start: 1px solid #d9d8ff;
+}
+
+/* Summary bars: shared flex layout */
+.dc-summary-bar { padding: 10px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+/* Inline summary bar (inside card): all corners rounded */
+#inlineSummaryBar { border-radius: 8px; }
+/* Sticky bar (fixed bottom): position + stacking */
+.dc-sticky-bar  { position: fixed; bottom: 0; right: 0; z-index: 1040; }
+/* Bar internals */
+.dc-bar-left    { padding-right: 20px; }
+.dc-bar-total   { font-size: .95rem; }
+.dc-bar-grand   { color: #0d6efd; }
+.dc-bar-tax     { font-size: .74rem; }
+
+/* SO conversion notice alert */
+.dc-so-notice        { font-size: .8rem; background: #fff3cd; border: 1px solid #ffc107; color: #7d4e00; }
+.dc-so-notice-icon   { font-size: 1rem; color: #e6a817; }
+
+/* SO-linked DC: hide interactive elements that must be locked */
+#dcForm.so-linked-dc #openCustomerSearchModal,
+#dcForm.so-linked-dc #addTransCustomer,
+#dcForm.so-linked-dc #addTransProduct,
+#dcForm.so-linked-dc .prod-header-static,
+#dcForm.so-linked-dc .deleteBillItem,
+#dcForm.so-linked-dc #btnClearCart { display: none !important; }

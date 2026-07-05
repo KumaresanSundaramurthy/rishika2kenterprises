@@ -249,7 +249,7 @@ class Purchases extends MY_Controller {
                 'PartyUID'              => $vendorUID,
                 'TransDate'             => $transDate,
                 'TransYear'             => $financialYear,
-                'QuotationType'         => getPostValue($PostData, 'purchaseType') ?: NULL,
+                'DocType'         => getPostValue($PostData, 'purchaseType') ?: NULL,
                 'DispatchFrom'          => getPostValue($PostData, 'dispatchTo') ?: NULL,
                 'TotalQuantity'         => $totalQty,
                 'TotalItems'            => count($items),
@@ -286,7 +286,11 @@ class Purchases extends MY_Controller {
             $transNumber  = $headerData['TransNumber'];
             $uniqueNumber = $headerData['UniqueNumber'];
 
-            $additionalChargesJson = $this->buildAdditionalChargesJson($PostData);
+            $additionalChargesJson  = getPostValue($PostData, 'AdditionalCharges') ?: '[]';
+            $additionalChargesList  = json_decode($additionalChargesJson, true) ?: [];
+            if (!empty($additionalChargesList)) {
+                $this->transactions_model->saveTransactionCharges($transUID, (int)$orgUID, (int)$userUID, $additionalChargesList);
+            }
             $isInterState          = $igstAmount > 0 ? 1 : ($cgstAmount > 0 || $sgstAmount > 0 ? 0 : NULL);
 
             $detailData = [
@@ -299,7 +303,6 @@ class Purchases extends MY_Controller {
                 'Notes'             => getPostValue($PostData, 'transNotes') ?: NULL,
                 'TermsConditions'   => getPostValue($PostData, 'transTermsCond') ?: NULL,
                 'SignatureUID'      => (int)getPostValue($PostData, 'SignatureUID') ?: NULL,
-                'AdditionalCharges' => $additionalChargesJson,
                 'PlaceOfSupplyCode' => getPostValue($PostData, 'placeOfSupplyCode') ?: NULL,
                 'PlaceOfSupplyName' => getPostValue($PostData, 'placeOfSupplyName') ?: NULL,
                 'IsInterState'      => $isInterState,
@@ -449,7 +452,8 @@ class Purchases extends MY_Controller {
                 $uniqueNumber = implode($sep, $parts);
             }
 
-            $additionalChargesJson = $this->buildAdditionalChargesJson($PostData);
+            $additionalChargesJson  = getPostValue($PostData, 'AdditionalCharges') ?: '[]';
+            $additionalChargesList  = json_decode($additionalChargesJson, true) ?: [];
 
             $commonHeader = [
                 'OrgUID'            => $orgUID,
@@ -459,7 +463,7 @@ class Purchases extends MY_Controller {
                 'TransDate'         => $transDate,
                 'TransYear'         => $financialYear,
                 'TransType'         => 'Purchase',
-                'QuotationType'     => getPostValue($PostData, 'purchaseType') ?: NULL,
+                'DocType'     => getPostValue($PostData, 'purchaseType') ?: NULL,
                 'DispatchFrom'      => getPostValue($PostData, 'dispatchTo') ?: NULL,
                 'GrossAmount'       => $subTotal + $discountAmount,
                 'SubTotal'          => $subTotal,
@@ -492,7 +496,6 @@ class Purchases extends MY_Controller {
                 'Notes'             => getPostValue($PostData, 'transNotes') ?: NULL,
                 'TermsConditions'   => getPostValue($PostData, 'transTermsCond') ?: NULL,
                 'SignatureUID'      => (int)getPostValue($PostData, 'SignatureUID') ?: NULL,
-                'AdditionalCharges' => $additionalChargesJson,
                 'IsInterState'      => $isInterState,
                 'IsForeignCustomer' => NULL,
             ];
@@ -663,6 +666,9 @@ class Purchases extends MY_Controller {
             $this->_saveAttachments($activeTransUID);
             $this->_softDeleteAttachments($this->input->post('RemovedAttachIDs') ?? '');
 
+            if (!empty($additionalChargesList)) {
+                $this->transactions_model->saveTransactionCharges($activeTransUID, (int)$orgUID, (int)$userUID, $additionalChargesList);
+            }
             $this->dbwrite_model->commitTransaction();
             $this->_touchVendorCache($vendorUID);
             if (!$isDraft) {
@@ -804,7 +810,7 @@ class Purchases extends MY_Controller {
                 'PartyUID'          => $src->PartyUID,
                 'TransDate'         => $today,
                 'TransYear'         => (int) date('Y'),
-                'QuotationType'     => $src->QuotationType,
+                'DocType'     => $src->DocType,
                 'GrossAmount'       => $src->GrossAmount,
                 'SubTotal'          => $src->SubTotal,
                 'DiscountAmount'    => $src->DiscountAmount,
@@ -1184,6 +1190,10 @@ class Purchases extends MY_Controller {
             $this->pageData['FromPOUID'] = $fromPOUID;
             $this->pageData['POData']    = null;
             $this->pageData['POItems']   = [];
+            $this->pageData['AdditionalCharges']  = $this->_getAdditionalChargesForOrg((int)$orgUID, true);
+            $this->pageData['TaxList']            = $this->_getTaxList();
+            $this->pageData['TransactionCharges'] = [];
+            $this->pageData['IsEditMode']         = false;
             if ($fromPOUID > 0) {
                 $poData  = $this->transactions_model->getTransactionById($fromPOUID, $orgUID, 104);
                 $poItems = $poData ? $this->transactions_model->getTransactionItems($fromPOUID, $orgUID) : [];
@@ -1241,6 +1251,10 @@ class Purchases extends MY_Controller {
             $this->load->model('vendors_model');
             $vendorAddrArr                = $this->vendors_model->getVendorAddress(['VendAddress.VendorUID' => (int)$purchData->PartyUID, 'VendAddress.OrgUID' => $orgUID]);
             $this->pageData['VendorAddr'] = !empty($vendorAddrArr) ? $vendorAddrArr[0] : null;
+
+            $this->pageData['AdditionalCharges']  = $this->_getAdditionalChargesForOrg((int)$orgUID, true);
+            $this->pageData['TransactionCharges'] = $this->transactions_model->getTransactionCharges($transUID, (int)$orgUID);
+            $this->pageData['IsEditMode']         = true;
 
             $this->pageData['PaymentTypes'] = $this->transactions_model->getPaymentTypesList();
             $this->pageData['BankAccounts'] = $this->transactions_model->getOrgBankAccounts($orgUID);

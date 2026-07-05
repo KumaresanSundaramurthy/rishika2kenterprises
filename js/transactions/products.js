@@ -91,16 +91,6 @@ $(document).ready(function () {
         e.preventDefault();
 
         var formData = new FormData($('#AddEditItemForm')[0]);
-        if (myOneDropzone.files.length > 0) {
-            const file = myOneDropzone.files[0];
-            if (!file.isStored) {
-                formData.append('UploadImage', myOneDropzone.files[0]);
-            }
-        }
-        var getProdHiddenId = $('#AddEditItemForm').find('#HProductUID').val();
-        if(getProdHiddenId && hasValue(imgData) && myOneDropzone.files.length == 0) {
-            formData.append('ImageRemoved', 1);
-        }
         const Description = quill.getText().trim(); // quill.root.innerHTML;
         if ($.trim(Description) != '') {
             formData.append('Description', $('#Description .ql-editor').html());
@@ -144,7 +134,6 @@ function prodOpenCloseDefActions() {
     $('#TaxPercentage,#PrimaryUnit,#Category,#StorageUID,#BrandUID,#PSizeUID').val(null).trigger('change');
     $('#IsSizeApplicable,#NotForSale,#IsRentable').prop('checked', false).trigger('change');
     $('#SizeDiv,#rentalConfigSection').addClass('d-none');
-    myOneDropzone.removeAllFiles(true);
     quill.setContents([]);
 }
 
@@ -259,11 +248,6 @@ function retrieveProductDetails(ItemUID, CloneFlag = false) {
                     $('#PSizeUID').val(response.Data.SizeUID).trigger('change').prop('required', true);
                 }
                 
-                if (hasValue(response.Data.Image)) {
-                    var ImageUrl = CDN_URL + response.Data.Image;
-                    commonSetDropzoneImageOne(ImageUrl);
-                    imgData = ImageUrl;
-                }
                 if (response.Data.Description != null && response.Data.Description != undefined) {
                     appendToQuill(response.Data.Description, true);
                 }
@@ -313,7 +297,6 @@ function editProductData(formdata) {
                 $('.addEditFormAlert').removeClass('d-none');
                 inlineMessageAlert('.addEditFormAlert', 'danger', response.Message, false, false);
             } else {
-                myOneDropzone.removeAllFiles(true);
                 quill.setContents([]);
                 $('#AddEditItemForm').trigger('reset');
                 $('#itemsModal').modal('hide');

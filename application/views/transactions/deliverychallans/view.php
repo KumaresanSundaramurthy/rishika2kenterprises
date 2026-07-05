@@ -461,11 +461,14 @@ $(function () {
         $('#dcPRSubmitBtn').prop('disabled', true);
         $dcPRModal.modal('show');
 
+        ajaxLoading(0);
+
         $.ajax({
             url   : '/deliverychallan/getPartialReturnData',
             method: 'POST',
             data  : { TransUID: _dcPRTransUID, [CsrfName]: CsrfToken },
             success: function (resp) {
+                ajaxLoading(1);
                 $('#dcPRLoadingState').hide();
                 if (resp.Error) {
                     $('#dcPRContent').html('<p class="text-danger text-center py-3 px-3">' + resp.Message + '</p>').show();
@@ -510,6 +513,7 @@ $(function () {
                 _dcPRCheckSubmit();
             },
             error: function () {
+                ajaxLoading(1);
                 $('#dcPRLoadingState').hide();
                 $('#dcPRContent').html('<p class="text-danger text-center py-3 px-3">Failed to load return data.</p>').show();
             }

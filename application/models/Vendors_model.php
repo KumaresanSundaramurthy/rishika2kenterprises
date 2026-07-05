@@ -4,15 +4,13 @@ class Vendors_model extends CI_Model {
 
     private $EndReturnData;
     private $ReadDb;
-    private $WriteDb;
 
     function __construct() {
         parent::__construct();
-        $this->ReadDb  = $this->load->database('ReadDB',  TRUE);
-        $this->WriteDb = $this->load->database('WriteDB', TRUE);
+        $this->ReadDb = $this->load->database('ReadDB', TRUE);
     }
 
-    public function getVendors($FilterArray) {
+    public function getVendors(array $FilterArray): array {
 
         $this->EndReturnData = new StdClass();
         try {
@@ -74,7 +72,7 @@ class Vendors_model extends CI_Model {
 
     }
 
-    public function getVendorBankInfo($FilterArray) {
+    public function getVendorBankInfo(array $FilterArray): array {
 
         $this->EndReturnData = new StdClass();
         try {
@@ -120,7 +118,7 @@ class Vendors_model extends CI_Model {
 
     }
 
-    public function getVendorAddress($FilterArray) {
+    public function getVendorAddress(array $FilterArray): array {
 
         $this->EndReturnData = new StdClass();
         try {
@@ -171,7 +169,7 @@ class Vendors_model extends CI_Model {
     }
 
 
-    public function getVendorListPaginated($orgUID, $limit, $offset, $filter = []) {
+    public function getVendorListPaginated(int $orgUID, int $limit, int $offset, array $filter = []): object {
 
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -335,7 +333,7 @@ class Vendors_model extends CI_Model {
 
     }
 
-    public function getVendorStats($OrgUID) {
+    public function getVendorStats(int $OrgUID): object {
 
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -377,7 +375,7 @@ class Vendors_model extends CI_Model {
 
     }
 
-    public function getVendorTags($OrgUID) {
+    public function getVendorTags(int $OrgUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('Vendors.Tags AS Tags');
@@ -402,7 +400,7 @@ class Vendors_model extends CI_Model {
 
     // ── VendOpeningBalanceTbl (one row per vendor, no year) ───────────────────
 
-    public function getVendorOpeningBalance($orgUID, $vendorUID) {
+    public function getVendorOpeningBalance(int $orgUID, int $vendorUID): ?object {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select([
@@ -424,7 +422,7 @@ class Vendors_model extends CI_Model {
         }
     }
 
-    public function saveVendorOpeningBalance($orgUID, $vendorUID, $openingBalance, $openingBalType, $notes, $userUID) {
+    public function saveVendorOpeningBalance(int $orgUID, int $vendorUID, float $openingBalance, string $openingBalType, ?string $notes, int $userUID): int {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('VendBalUID');
@@ -433,17 +431,16 @@ class Vendors_model extends CI_Model {
             $existing = $this->ReadDb->get()->row();
 
             if ($existing) {
-                $this->ReadDb->where('VendBalUID', (int)$existing->VendBalUID);
-                $this->ReadDb->update('Vendors.VendOpeningBalanceTbl', [
+                $this->dbwrite_model->updateData('Vendors', 'VendOpeningBalanceTbl', [
                     'OpeningBalance' => (float)$openingBalance,
                     'OpeningBalType' => $openingBalType,
                     'Notes'          => $notes ?: NULL,
                     'UpdatedBy'      => (int)$userUID,
-                ]);
+                ], ['VendBalUID' => (int)$existing->VendBalUID]);
                 return (int)$existing->VendBalUID;
             }
 
-            $this->ReadDb->insert('Vendors.VendOpeningBalanceTbl', [
+            $res = $this->dbwrite_model->insertData('Vendors', 'VendOpeningBalanceTbl', [
                 'OrgUID'         => (int)$orgUID,
                 'VendorUID'      => (int)$vendorUID,
                 'OpeningBalance' => (float)$openingBalance,
@@ -456,29 +453,29 @@ class Vendors_model extends CI_Model {
                 'CreatedBy'      => (int)$userUID,
                 'UpdatedBy'      => (int)$userUID,
             ]);
-            return (int)$this->ReadDb->insert_id();
+            if ($res->Error) throw new Exception($res->Message ?? 'Vendor opening balance insert failed.');
+            return (int)$res->ID;
 
         } catch (Exception $e) {
             throw new Exception($e->getMessage());
         }
     }
 
-    public function updateVendorPendingBalance($orgUID, $vendorUID, $pendingBalance, $pendingBalType, $userUID) {
+    public function updateVendorPendingBalance(int $orgUID, int $vendorUID, float $pendingBalance, string $pendingBalType, int $userUID): void {
         try {
-            $this->WriteDb->db_debug = FALSE;
-            $this->WriteDb->where(['OrgUID' => (int)$orgUID, 'VendorUID' => (int)$vendorUID, 'IsDeleted' => 0]);
-            $this->WriteDb->update('Vendors.VendOpeningBalanceTbl', [
+            $res = $this->dbwrite_model->updateData('Vendors', 'VendOpeningBalanceTbl', [
                 'PendingBalance' => (float)$pendingBalance,
                 'PendingBalType' => $pendingBalType,
                 'UpdatedBy'      => (int)$userUID,
-            ]);
+            ], ['OrgUID' => (int)$orgUID, 'VendorUID' => (int)$vendorUID, 'IsDeleted' => 0]);
+            if ($res->Error) throw new Exception($res->Message ?? 'Vendor pending balance update failed.');
         } catch (Exception $e) {
             throw new Exception($e->getMessage());
         }
     }
 
     // Purchase Returns already covered by a pending/applied debit note — excluded from effectiveReturned to avoid double-counting.
-    public function getVendorPRCoveredByDebitNote($orgUID, $vendorUID) {
+    public function getVendorPRCoveredByDebitNote(int $orgUID, int $vendorUID): float {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('COALESCE(SUM(COALESCE(T.BalanceAmount, T.NetAmount)), 0) AS total');
@@ -509,7 +506,7 @@ class Vendors_model extends CI_Model {
     // Returns [pendingDebitNotes, pendingCreditNotes] totals for a vendor.
     // Debit notes  (TransDebitNoteTbl, PartyType='S') = vendor owes us  → reduces our payable
     // Credit notes (TransCreditNoteTbl, PartyType='S') = we owe vendor  → increases our payable
-    public function getVendorPendingNoteTotals($orgUID, $vendorUID) {
+    public function getVendorPendingNoteTotals(int $orgUID, int $vendorUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
 
@@ -545,14 +542,14 @@ class Vendors_model extends CI_Model {
     }
 
     // Returns opening balance as signed float: Credit=+, Debit=-.
-    public function getVendorOpeningBalanceSigned($orgUID, $vendorUID) {
+    public function getVendorOpeningBalanceSigned(int $orgUID, int $vendorUID): float {
         $row = $this->getVendorOpeningBalance($orgUID, $vendorUID);
         if (!$row) return 0.0;
         $amt = (float)$row->OpeningBalance;
         return ($row->OpeningBalType === 'Credit') ? $amt : -$amt;
     }
 
-    public function getVendorDebitCreditRaw($vendorUID) {
+    public function getVendorDebitCreditRaw(int $vendorUID): ?object {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select(['DebitCreditAmount', 'DebitCreditType']);
@@ -570,7 +567,7 @@ class Vendors_model extends CI_Model {
     // ── VendYearOpeningBalanceTbl (year-wise opening balance snapshot) ─────────
 
     // $onlyIfNew=true: insert-only, preserving the year-start snapshot.
-    public function saveVendorYearOpening($orgUID, $vendorUID, $financialYear, $openingBalance, $openingBalType, $userUID, $onlyIfNew = false) {
+    public function saveVendorYearOpening(int $orgUID, int $vendorUID, int $financialYear, float $openingBalance, string $openingBalType, int $userUID, bool $onlyIfNew = false): int {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('YearBalUID');
@@ -585,16 +582,15 @@ class Vendors_model extends CI_Model {
 
             if ($existing) {
                 if ($onlyIfNew) return (int)$existing->YearBalUID;
-                $this->ReadDb->where('YearBalUID', (int)$existing->YearBalUID);
-                $this->ReadDb->update('Vendors.VendYearOpeningBalanceTbl', [
+                $this->dbwrite_model->updateData('Vendors', 'VendYearOpeningBalanceTbl', [
                     'OpeningBalance' => (float)$openingBalance,
                     'OpeningBalType' => $openingBalType,
                     'UpdatedBy'      => (int)$userUID,
-                ]);
+                ], ['YearBalUID' => (int)$existing->YearBalUID]);
                 return (int)$existing->YearBalUID;
             }
 
-            $this->ReadDb->insert('Vendors.VendYearOpeningBalanceTbl', [
+            $res = $this->dbwrite_model->insertData('Vendors', 'VendYearOpeningBalanceTbl', [
                 'OrgUID'         => (int)$orgUID,
                 'VendorUID'      => (int)$vendorUID,
                 'FinancialYear'  => (int)$financialYear,
@@ -605,13 +601,14 @@ class Vendors_model extends CI_Model {
                 'CreatedBy'      => (int)$userUID,
                 'UpdatedBy'      => (int)$userUID,
             ]);
-            return (int)$this->ReadDb->insert_id();
+            if ($res->Error) throw new Exception($res->Message ?? 'Vendor year opening balance insert failed.');
+            return (int)$res->ID;
         } catch (Exception $e) {
             throw new Exception($e->getMessage());
         }
     }
 
-    public function getVendorYearOpening($orgUID, $vendorUID, $financialYear) {
+    public function getVendorYearOpening(int $orgUID, int $vendorUID, int $financialYear): ?object {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select(['YearBalUID', 'FinancialYear', 'OpeningBalance', 'OpeningBalType']);
@@ -633,7 +630,7 @@ class Vendors_model extends CI_Model {
 
     // ── Balance recalculation helpers ─────────────────────────────────────────
 
-    public function getVendorsWithLedgerForBalance($orgUID, $vendorUID = 0) {
+    public function getVendorsWithLedgerForBalance(int $orgUID, int $vendorUID = 0): array {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select([
@@ -673,7 +670,7 @@ class Vendors_model extends CI_Model {
     }
 
     // Total net amount billed by vendor (Purchases, ModuleUID=105).
-    public function getVendorTotalPurchased($orgUID, $vendorUID) {
+    public function getVendorTotalPurchased(int $orgUID, int $vendorUID): float {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('COALESCE(SUM(NetAmount), 0) AS total');
@@ -695,7 +692,7 @@ class Vendors_model extends CI_Model {
     }
 
     // Total amount paid out to vendor.
-    public function getVendorTotalPaid($orgUID, $vendorUID) {
+    public function getVendorTotalPaid(int $orgUID, int $vendorUID): float {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('COALESCE(SUM(Amount), 0) AS total');
@@ -715,7 +712,7 @@ class Vendors_model extends CI_Model {
     }
 
     // Total net amount returned to vendor (Purchase Returns=108, Debit Notes=109).
-    public function getVendorTotalReturned($orgUID, $vendorUID) {
+    public function getVendorTotalReturned(int $orgUID, int $vendorUID): float {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('COALESCE(SUM(NetAmount), 0) AS total');
@@ -736,16 +733,14 @@ class Vendors_model extends CI_Model {
         }
     }
 
-    public function updateVendorBalanceInLedger($ledgerUID, $balance, $balanceType, $userUID) {
+    public function updateVendorBalanceInLedger(int $ledgerUID, float $balance, string $balanceType, int $userUID): void {
         try {
-            $this->WriteDb->db_debug = FALSE;
-            $this->WriteDb->where('LedgerUID', (int)$ledgerUID);
-            $this->WriteDb->update('Accounting.ChartOfAccounts', [
+            $res = $this->dbwrite_model->updateData('Accounting', 'ChartOfAccounts', [
                 'CurrentBalance'     => $balance,
                 'CurrentBalanceType' => $balanceType,
                 'UpdatedBy'          => (int)$userUID,
-            ]);
-            if ($this->WriteDb->affected_rows() === false) throw new Exception('Ledger update failed.');
+            ], ['LedgerUID' => (int)$ledgerUID]);
+            if ($res->Error) throw new Exception($res->Message ?? 'Ledger update failed.');
         } catch (Exception $e) {
             throw new Exception($e->getMessage());
         }
@@ -755,7 +750,7 @@ class Vendors_model extends CI_Model {
     // Vendor Group model methods
     // ══════════════════════════════════════════════════════════════════
 
-    public function searchVendorsForGroup(string $term) {
+    public function searchVendorsForGroup(string $term): array {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select(['VendorUID', 'Name', 'Area']);
@@ -774,7 +769,7 @@ class Vendors_model extends CI_Model {
         }
     }
 
-    public function getVendorGroupListPaginated($orgUID, $limit, $offset, $filter = []) {
+    public function getVendorGroupListPaginated(int $orgUID, int $limit, int $offset, array $filter = []): object {
         try {
             $this->ReadDb->db_debug = FALSE;
 
@@ -841,7 +836,7 @@ class Vendors_model extends CI_Model {
         }
     }
 
-    public function getVendorGroupStats($orgUID) {
+    public function getVendorGroupStats(int $orgUID): object {
         try {
             $this->ReadDb->db_debug = FALSE;
             $query = $this->ReadDb->query(
@@ -856,7 +851,7 @@ class Vendors_model extends CI_Model {
         }
     }
 
-    public function getGroupTypes($module = 'vendors') {
+    public function getGroupTypes(string $module = 'vendors'): array {
         try {
             $query = $this->ReadDb->query(
                 "SELECT TypeName FROM Global.GroupTypesTbl WHERE Module=? AND IsActive=1 ORDER BY SortOrder",
@@ -869,7 +864,7 @@ class Vendors_model extends CI_Model {
                 'Corporate Group', 'Dealer Network', 'Franchise Group', 'Custom'];
     }
 
-    public function getVendorGroupByUID($orgUID, $groupUID) {
+    public function getVendorGroupByUID(int $orgUID, int $groupUID): ?object {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('VG.*');
@@ -882,7 +877,7 @@ class Vendors_model extends CI_Model {
         }
     }
 
-    public function getVendorGroupMembers($orgUID, $groupUID) {
+    public function getVendorGroupMembers(int $orgUID, int $groupUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select([
@@ -902,7 +897,7 @@ class Vendors_model extends CI_Model {
         }
     }
 
-    public function getActiveVendorGroupsForDropdown($orgUID) {
+    public function getActiveVendorGroupsForDropdown(int $orgUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select(['GroupUID', 'GroupName', 'GroupCode', 'GroupType']);
@@ -916,26 +911,26 @@ class Vendors_model extends CI_Model {
         }
     }
 
-    public function assignVendorGroupMembers($orgUID, $groupUID, array $memberUIDs, $primaryUID, $userUID) {
+    public function assignVendorGroupMembers(int $orgUID, int $groupUID, array $memberUIDs, int $primaryUID, int $userUID): void {
         if (empty($memberUIDs)) return;
         foreach ($memberUIDs as $vendUID) {
-            $this->ReadDb->where(['VendorUID' => (int)$vendUID, 'OrgUID' => (int)$orgUID]);
-            $this->ReadDb->update('Vendors.VendorTbl', [
+            $this->dbwrite_model->updateData('Vendors', 'VendorTbl', [
                 'GroupUID'       => (int)$groupUID,
                 'IsGroupPrimary' => ((int)$vendUID === (int)$primaryUID) ? 1 : 0,
                 'UpdatedBy'      => (int)$userUID,
-            ]);
+            ], ['VendorUID' => (int)$vendUID, 'OrgUID' => (int)$orgUID]);
         }
     }
 
-    public function syncVendorGroupMembers($orgUID, $groupUID, array $newMemberUIDs, $primaryUID, $userUID) {
-        $this->ReadDb->where('OrgUID', (int)$orgUID);
-        $this->ReadDb->where('GroupUID', (int)$groupUID);
-        $this->ReadDb->where('IsDeleted', 0);
+    public function syncVendorGroupMembers(int $orgUID, int $groupUID, array $newMemberUIDs, int $primaryUID, int $userUID): void {
+        $db = $this->dbwrite_model->getWriteDb();
+        $db->where('OrgUID', (int)$orgUID);
+        $db->where('GroupUID', (int)$groupUID);
+        $db->where('IsDeleted', 0);
         if (!empty($newMemberUIDs)) {
-            $this->ReadDb->where_not_in('VendorUID', array_map('intval', $newMemberUIDs));
+            $db->where_not_in('VendorUID', array_map('intval', $newMemberUIDs));
         }
-        $this->ReadDb->update('Vendors.VendorTbl', [
+        $db->update('Vendors.VendorTbl', [
             'GroupUID' => null, 'IsGroupPrimary' => 0, 'UpdatedBy' => (int)$userUID,
         ]);
         if (!empty($newMemberUIDs)) {
@@ -943,11 +938,10 @@ class Vendors_model extends CI_Model {
         }
     }
 
-    public function unlinkAllVendorGroupMembers($orgUID, $groupUID, $userUID) {
-        $this->ReadDb->where(['OrgUID' => (int)$orgUID, 'GroupUID' => (int)$groupUID]);
-        $this->ReadDb->update('Vendors.VendorTbl', [
+    public function unlinkAllVendorGroupMembers(int $orgUID, int $groupUID, int $userUID): void {
+        $this->dbwrite_model->updateData('Vendors', 'VendorTbl', [
             'GroupUID' => null, 'IsGroupPrimary' => 0, 'UpdatedBy' => (int)$userUID,
-        ]);
+        ], ['OrgUID' => (int)$orgUID, 'GroupUID' => (int)$groupUID]);
     }
 
     // ── Vendor Attachments ────────────────────────────────────────────────────

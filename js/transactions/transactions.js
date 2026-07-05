@@ -5,9 +5,8 @@ class BillManager {
         this.map = {};
         this.globalDiscountPercent = 0;
         this.roundOffEnabled = true;
-        this.chargeTypes = ['shipping', 'handling', 'packing', 'other'];
         this.isInterState = false; // true = IGST only; false = CGST+SGST
-        
+
         // THREE-TIER SUMMARY STRUCTURE
         this.summary = {
             // TIER 1: ITEM AGGREGATIONS
@@ -31,64 +30,9 @@ class BillManager {
                 totalTax: 0
             },
             
-            // TIER 4: ADDITIONAL CHARGES
+            // TIER 4: ADDITIONAL CHARGES — keyed by ChargeUID (string); populated dynamically
             additionalCharges: {
-                shipping: { 
-                    netAmount: 0, 
-                    taxPercent: 0, 
-                    cgstPercent: 0,
-                    sgstPercent: 0,
-                    igstPercent: 0,
-                    cgstAmount: 0,
-                    sgstAmount: 0,
-                    igstAmount: 0,
-                    taxAmount: 0, 
-                    grossAmount: 0 
-                },
-                handling: { 
-                    netAmount: 0, 
-                    taxPercent: 0, 
-                    cgstPercent: 0,
-                    sgstPercent: 0,
-                    igstPercent: 0,
-                    cgstAmount: 0,
-                    sgstAmount: 0,
-                    igstAmount: 0,
-                    taxAmount: 0, 
-                    grossAmount: 0 
-                },
-                packing: { 
-                    netAmount: 0, 
-                    taxPercent: 0, 
-                    cgstPercent: 0,
-                    sgstPercent: 0,
-                    igstPercent: 0,
-                    cgstAmount: 0,
-                    sgstAmount: 0,
-                    igstAmount: 0,
-                    taxAmount: 0, 
-                    grossAmount: 0 
-                },
-                other: { 
-                    netAmount: 0, 
-                    taxPercent: 0, 
-                    cgstPercent: 0,
-                    sgstPercent: 0,
-                    igstPercent: 0,
-                    cgstAmount: 0,
-                    sgstAmount: 0,
-                    igstAmount: 0,
-                    taxAmount: 0, 
-                    grossAmount: 0 
-                },
-                total: { 
-                    netAmount: 0, 
-                    cgstAmount: 0,
-                    sgstAmount: 0,
-                    igstAmount: 0,
-                    taxAmount: 0, 
-                    grossAmount: 0 
-                }
+                total: { netAmount: 0, cgstAmount: 0, sgstAmount: 0, igstAmount: 0, taxAmount: 0, grossAmount: 0 }
             },
             
             // TIER 5: EXTRA DISCOUNT & FINAL
@@ -259,15 +203,6 @@ class BillManager {
         this.summary.subtotalAfterDiscount = this.summary.subtotalBeforeDiscount - baseDiscount - extraDiscountAmount;
 
         return this.summary;
-    }
-
-    getItemById(id) {
-        id = parseInt(id, 10);
-        return this.map[id] || null;
-    }
-
-    getAllItems() {
-        return this.items;
     }
 
     // =============================================
@@ -941,36 +876,12 @@ class BillManager {
 
     }
 
-    // Add this method inside BillManager class:
     resetAdditionalChargesOnEmptyItems() {
-        
-        this.chargeTypes.forEach(type => {
-            // Reset the charge in summary
-            this.summary.additionalCharges[type] = {
-                netAmount: 0,
-                taxPercent: 0,
-                cgstPercent: 0,
-                sgstPercent: 0,
-                igstPercent: 0,
-                cgstAmount: 0,
-                sgstAmount: 0,
-                igstAmount: 0,
-                taxAmount: 0,
-                grossAmount: 0
-            };
-            
-            // Reset the input fields in UI
-            $(`#${type}Percent`).val('0');
-            $(`#${type}ChargeWOutTax`).val('0');
-            $(`#${type}ChargeWithTax`).val('0');
-            $(`#${type}Charges`).prop('selectedIndex', 0); // Reset tax dropdown
+        // Clear all dynamic charge keys; keep the total sentinel
+        Object.keys(this.summary.additionalCharges).forEach(k => {
+            if (k !== 'total') delete this.summary.additionalCharges[k];
         });
-        
-        // Also update the totals
         this.updateAdditionalChargesTotal();
-        
-        // Update UI visibility
-        this.updateAdditionalChargesUI();
     }
 
     /** show item summary info */
@@ -1024,7 +935,7 @@ class BillManager {
                 taxSummary: {},
                 taxRates: [],
                 taxTotals: { cgstTotal: 0, sgstTotal: 0, igstTotal: 0, totalTax: 0 },
-                additionalCharges: { shipping: 0, handling: 0, packing: 0, other: 0, total: 0 },
+                additionalCharges: { total: { netAmount: 0, cgstAmount: 0, sgstAmount: 0, igstAmount: 0, taxAmount: 0, grossAmount: 0 } },
                 extra: { discountType: 'percentage', discountValue: 0, discountAmount: 0, amountBeforeRoundOff: 0, roundOff: 0, finalAmount: 0 },
                 totals: { subtotal: 0, totalAfterExtra: 0, grandTotal: 0 }
             };
@@ -1242,56 +1153,8 @@ class BillManager {
     }
 
     updateAdditionalChargesUI() {
-
-        const charges = this.summary.additionalCharges;
-        
-        // Update shipping charges display
-        if (charges.shipping && charges.shipping.grossAmount > 0) {
-            const shippingCharge = charges.shipping;
-            const displayText = this.getChargeDisplayText('Shipping Charges', shippingCharge);
-            $('#shippingChargeAmt').text(smartDecimal(shippingCharge.grossAmount, genSettings.DecimalPoints, true));
-            $('#shippingChargeLabel').html(displayText);
-            $('#shippingRow').removeClass('d-none');
-        } else {
-            $('#shippingRow').addClass('d-none');
-        }
-        
-        // Update packing charges display
-        if (charges.packing && charges.packing.grossAmount > 0) {
-            const packingCharge = charges.packing;
-            const displayText = this.getChargeDisplayText('Packing Charges', packingCharge);
-            $('#packingChargeAmt').text(smartDecimal(packingCharge.grossAmount, genSettings.DecimalPoints, true));
-            $('#packingChargeLabel').html(displayText);
-            $('#packingRow').removeClass('d-none');
-        } else {
-            $('#packingRow').addClass('d-none');
-        }
-
-        // Update handling charges if you have it
-        if (charges.handling && charges.handling.grossAmount > 0) {
-            const handlingCharge = charges.handling;
-            const displayText = this.getChargeDisplayText('Handling Charges', handlingCharge);
-            $('#handlingChargeAmt').text(smartDecimal(handlingCharge.grossAmount, genSettings.DecimalPoints, true));
-            $('#handlingChargeLabel').html(displayText);
-            $('#handlingRow').removeClass('d-none');
-        } else {
-            $('#handlingRow').addClass('d-none');
-        }
-        
-        // Update other charges if you have it
-        if (charges.other && charges.other.grossAmount > 0) {
-            const otherCharge = charges.other;
-            const displayText = this.getChargeDisplayText('Other Charges', otherCharge);
-            $('#otherChargeAmt').text(smartDecimal(otherCharge.grossAmount, genSettings.DecimalPoints, true));
-            $('#otherChargeLabel').html(displayText);
-            $('#otherRow').removeClass('d-none');
-        } else {
-            $('#otherRow').addClass('d-none');
-        }
-        
-        // Update totals in bill manager
-        billManager.updateSummary();
-
+        // Charge row UI is managed by additional_charges.js; just refresh totals
+        this.updateSummary();
     }
 
     updateTaxSummaryTable() {
@@ -1377,59 +1240,38 @@ class BillManager {
     }
 
     // =============================================
-    // ADDITIONAL CHARGES METHODS
+    // ADDITIONAL CHARGES METHODS (dynamic, keyed by ChargeUID)
     // =============================================
-    setAdditionalCharge(type, amount) {
-        if (this.summary.additionalCharges.hasOwnProperty(type)) {
-            // Convert to object structure
-            this.summary.additionalCharges[type] = {
-                netAmount: parseFloat(amount) || 0,
-                taxPercent: 0,
-                taxAmount: 0,
-                grossAmount: parseFloat(amount) || 0
-            };
-            this.updateAdditionalChargesTotal();
-            this.updateSummary();
-        }
+
+    /**
+     * Set or update a dynamic charge in the summary.
+     * @param {number} chargeUID
+     * @param {{inPercent:number, withoutTaxAmount:number, taxUID:number, taxPercent:number, taxAmount:number, withTaxAmount:number}} data
+     */
+    setAdditionalChargeDynamic(chargeUID, data) {
+        const key = String(chargeUID);
+        this.summary.additionalCharges[key] = {
+            netAmount:   parseFloat(data.withoutTaxAmount) || 0,
+            taxPercent:  parseFloat(data.taxPercent)       || 0,
+            taxAmount:   parseFloat(data.taxAmount)        || 0,
+            grossAmount: parseFloat(data.withTaxAmount)    || 0,
+            inPercent:   parseFloat(data.inPercent)        || 0,
+        };
+        this.updateAdditionalChargesTotal();
+        this.updateSummary();
         return this;
     }
 
-    updateAdditionalChargesTotal() {
-        
-        let netTotal = 0;
-        let taxTotal = 0;
-        let grossTotal = 0;
-        
-        this.chargeTypes.forEach(type => {
-            const charge = this.summary.additionalCharges[type];
-            
-            // Make sure charge is an object
-            if (!charge || typeof charge !== 'object') {
-                this.summary.additionalCharges[type] = {
-                    netAmount: 0,
-                    taxPercent: 0,
-                    taxAmount: 0,
-                    grossAmount: 0
-                };
-                return; // Skip to next
-            }
-            
-            // Add to totals
-            const net = parseFloat(charge.netAmount) || 0;
-            const tax = parseFloat(charge.taxAmount) || 0;
-            const gross = parseFloat(charge.grossAmount) || 0;
-            
-            netTotal += net;
-            taxTotal += tax;
-            grossTotal += gross;
-            
-        });
-        
-        this.summary.additionalCharges.total = {
-            netAmount: netTotal,
-            taxAmount: taxTotal,
-            grossAmount: grossTotal
-        };
+    /**
+     * Remove a dynamic charge from the summary.
+     * @param {number} chargeUID
+     */
+    removeAdditionalChargeDynamic(chargeUID) {
+        const key = String(chargeUID);
+        delete this.summary.additionalCharges[key];
+        this.updateAdditionalChargesTotal();
+        this.updateSummary();
+        return this;
     }
 
     // =============================================
@@ -1524,45 +1366,6 @@ class BillManager {
         this.updateSummary();
     }
 
-    // Add tax to additional charges
-    setAdditionalChargeWithTax(type, netAmount, taxPercent = 0) {
-        
-        const chargeAmount = parseFloat(netAmount) || 0;
-        const taxRate = parseFloat(taxPercent) || 0;
-
-        // Calculate tax amounts based on customerInterState
-        let cgstPercent = 0, sgstPercent = 0, igstPercent = 0;
-        let cgstAmount = 0, sgstAmount = 0, igstAmount = 0;
-
-        cgstPercent = taxRate / 2;
-        sgstPercent = taxRate / 2;
-        igstPercent = taxRate;
-        cgstAmount = this.roundValue((chargeAmount * cgstPercent / 100));
-        sgstAmount = this.roundValue((chargeAmount * sgstPercent / 100));
-        igstAmount = this.roundValue((chargeAmount * igstPercent / 100));
-        
-        // Calculate tax and gross
-        const taxAmount = this.roundValue((chargeAmount * taxRate / 100));
-        const grossAmount = this.roundValue((chargeAmount * (1 + taxRate / 100)));
-        
-        // Always create object structure
-        this.summary.additionalCharges[type] = {
-            netAmount: chargeAmount,
-            taxPercent: taxRate,
-            cgstPercent: cgstPercent,
-            sgstPercent: sgstPercent,
-            igstPercent: igstPercent,
-            cgstAmount: cgstAmount,
-            sgstAmount: sgstAmount,
-            igstAmount: igstAmount,
-            taxAmount: taxAmount,
-            grossAmount: grossAmount
-        };
-        
-        this.updateAdditionalChargesTotal();
-        this.updateSummary();
-        return this;
-    }
 
     // Update totals calculation
     updateAdditionalChargesTotal() {
@@ -1632,6 +1435,9 @@ $(document).ready(function () {
     'use strict'
 
     $('#billTableBody').html(emptyTableTrInfo);
+
+    // Signal additional_charges.js that BillingManager is ready
+    $(document).trigger('billManagerReady');
 
     // ── Cart controls visibility (called on every add / remove / clear) ───────
     function _syncCartControls() {
@@ -1740,67 +1546,41 @@ $(document).ready(function () {
         });
     }());
 
-    // ── Dispatch From — rich address card dropdown ─────────────────────────────
+
+    // ── Dispatch From — custom dropdown (no Select2) ──────────────────────────
     (function () {
-        var $sel = $('#dispatchFrom');
-        if (!$sel.length) return;
+        var $grp = $('.dispatch-from-grp');
+        if (!$grp.length || !$grp.find('.r2k-dispatch-from').length) return;
 
-        $sel.select2({
-            allowClear     : false,
-            width          : '100%',
-            dropdownParent : $sel.closest('.modal-content').length
-                ? $sel.closest('.modal-content')
-                : $('body'),
+        /**
+         * Select a dispatch address by UID, updating the hidden input,
+         * trigger text, and checkmarks.
+         * @param {number|string} uid
+         */
+        window._setDispatchFrom = function (uid) {
+            uid = parseInt(uid, 10);
+            var $item = $grp.find('.r2k-dispatch-item[data-uid="' + uid + '"]');
+            if (!$item.length) return;
 
-            templateResult: function (data) {
-                if (!data.id || !data.element) return data.text;
-                var el       = data.element;
-                var orgName  = $(el).data('orgname')  || '';
-                var line1    = $(el).data('line1')     || '';
-                var line2    = $(el).data('line2')     || '';
-                var city     = $(el).data('city')      || '';
-                var state    = $(el).data('state')     || '';
-                var pin      = $(el).data('pin')       || '';
-                var type     = $(el).data('type')      || '';
-                var cityState = [city, state + (pin ? ' ' + pin : '')].filter(Boolean).join(', ');
-                var isSelected = $sel.val() == data.id;
+            $('#dispatchFrom').val(uid);
+            $grp.find('.r2k-dispatch-val').text($item.data('trig'));
+            $grp.find('.r2k-dispatch-item').each(function () {
+                var $i    = $(this);
+                var isSel = parseInt($i.data('uid'), 10) === uid;
+                $i.toggleClass('selected', isSel);
+                $i.find('.bx').removeClass('bx-check-circle bx-circle')
+                              .addClass(isSel ? 'bx-check-circle' : 'bx-circle');
+            });
+        };
 
-                return $('<div style="padding:8px 4px;display:flex;align-items:flex-start;gap:10px;">' +
-                    '<div style="flex-shrink:0;margin-top:3px;">' +
-                        (isSelected
-                            ? '<i class="bx bx-check-circle" style="font-size:1.1rem;color:#696cff;"></i>'
-                            : '<i class="bx bx-circle" style="font-size:1.1rem;color:#d0d3d4;"></i>') +
-                    '</div>' +
-                    '<div style="flex:1;min-width:0;">' +
-                        (orgName ? '<div style="font-weight:600;font-size:.875rem;color:#444;margin-bottom:2px;">' + $('<span>').text(orgName).html() + '</div>' : '') +
-                        (line1   ? '<div style="font-size:.8rem;color:#555;">' + $('<span>').text(line1).html() + '</div>' : '') +
-                        (line2   ? '<div style="font-size:.8rem;color:#555;">' + $('<span>').text(line2).html() + '</div>' : '') +
-                        (cityState ? '<div style="font-size:.78rem;color:#777;">' + $('<span>').text(cityState).html() + '</div>' : '') +
-                        (type    ? '<span style="display:inline-block;margin-top:4px;font-size:.68rem;font-weight:600;letter-spacing:.4px;padding:1px 7px;border-radius:4px;background:#f0edff;color:#696cff;">' + $('<span>').text(type).html() + '</span>' : '') +
-                    '</div>' +
-                '</div>');
-            },
-
-            templateSelection: function (data) {
-                if (!data.id || !data.element) return data.text;
-                var el    = data.element;
-                var line1 = $(el).data('line1') || '';
-                var city  = $(el).data('city')  || '';
-                var state = $(el).data('state') || '';
-                var pin   = $(el).data('pin')   || '';
-                var parts = [line1, [city, state].filter(Boolean).join(', '), pin].filter(Boolean);
-                return $('<span style="display:flex;align-items:center;min-width:0;">' +
-                    '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' +
-                        $('<span>').text(parts.join(' · ')).html() +
-                    '</span>' +
-                '</span>');
-            }
+        $grp.on('click', '.r2k-dispatch-item', function () {
+            window._setDispatchFrom($(this).data('uid'));
+            var $btn     = $grp.find('.r2k-dispatch-btn')[0];
+            var dropdown = $btn ? bootstrap.Dropdown.getInstance($btn) : null;
+            if (dropdown) dropdown.hide();
         });
-
-        // Update checkmarks when selection changes
-        $sel.on('change', function () { $sel.select2('close').select2('open').select2('close'); });
     }());
-    
+
     (function () {
         var $el         = $('#prodCategory');
         var wrapId      = 'categoryGroup_prodCategory';
@@ -1979,6 +1759,7 @@ $(document).ready(function () {
         } else {
             icon.removeClass('bx-plus-circle').addClass('bx-minus-circle');
             $(this).text(' Hide Charges').prepend(icon);
+            if (typeof DropdownCache !== 'undefined') { DropdownCache.ready(); }
         }
     });
 
@@ -2236,55 +2017,6 @@ $(document).ready(function () {
 
     $('#clearGlobalDiscount').on('click', function() {
         $('#globalDiscount').val('0').trigger('input');
-    });
-
-    // Handle extra discount with proper validation
-    $('#extraDiscount').on('input', function() {
-        let value = $(this).val().trim();
-        const type = $('#extDiscountType').find('option:selected').val();
-        
-        // Clean input
-        if (value === '' || value === '.' || value === null) {
-            value = '0';
-            $(this).val('0');
-        }
-        
-        // Validate based on type
-        if (type === 'Percentage') {
-            // Remove non-numeric except decimal
-            value = value.replace(/[^0-9.]/g, '');
-            
-            // Ensure only one decimal point
-            const parts = value.split('.');
-            if (parts.length > 2) {
-                value = parts[0] + '.' + parts.slice(1).join('');
-            }
-            
-            // Limit to 2 decimal places for percentage
-            if (parts.length === 2) {
-                parts[1] = parts[1].slice(0, 2);
-                value = parts[0] + '.' + parts[1];
-            }
-            
-            // Cap at 50%
-            const parsedValue = parseFloat(value) || 0;
-            if (parsedValue > 50) {
-                value = '50';
-                $(this).val('50');
-            }
-        }
-        
-        if (billManager) {
-            if (type === 'Percentage') {
-                billManager.setExtraDiscountValue(value);
-                billManager.setExtraDiscountType('percentage');
-            } else {
-                billManager.setExtraDiscountValue(value);
-                billManager.setExtraDiscountType('amount');
-            }
-            
-            billManager.updateSummary();
-        }
     });
 
     // Handle extra discount type change with conversion
@@ -2590,18 +2322,6 @@ function searchCustomers(key) {
     var custCache = null;
 
 
-    if (!$el.closest('.customer-search-group').length) {
-        $el.wrap('<div class="input-group input-group-sm input-group-merge customer-search-group" id="' + wrapId + '"></div>');
-        $('<span class="input-group-text p-2 cursor-pointer" id="openCustomerSearchModal" style="background:#f0efff;border-color:#d9d8ff;color:#696cff;"><i class="icon-base bx bx-search"></i></span>').insertBefore($el);
-    }
-    // Ensure the Select2 rendered text never wraps to 2 lines
-    if (!document.getElementById('_custSelect2Style')) {
-        var s = document.createElement('style');
-        s.id  = '_custSelect2Style';
-        s.textContent = '.customer-search-group .select2-selection__rendered { white-space:nowrap !important; overflow:hidden !important; text-overflow:ellipsis !important; }';
-        document.head.appendChild(s);
-    }
-
     $el.select2({
         placeholder: "Search customer...",
         minimumInputLength: 0,
@@ -2798,13 +2518,13 @@ function searchCustomers(key) {
                                  $select.trigger({ type: 'select2:select', params: { data: { id: c.id, text: c.text } } });
                                  if (c.address) {
                                      var a = c.address;
-                                     var addrHtml = '<div><strong>Shipping Address:</strong></div>'
-                                         + '<div>' + (a.Line1 || '') + '</div>'
-                                         + '<div>' + (a.Line2 || '') + '</div>'
-                                         + '<div>' + [a.City, a.State].filter(Boolean).join(', ') + (a.Pincode ? ' - ' + a.Pincode : '') + '</div>';
-                                     $('#customerAddressBox').html(addrHtml).removeClass('d-none');
+                                     var _tLines = [a.Line1, a.Line2].filter(Boolean).join(', ');
+                                     var _tLoc   = [a.City, a.State].filter(Boolean).join(', ');
+                                     if (a.Pincode) _tLoc += ' – ' + a.Pincode;
+                                     $('#customerAddressBox').find('span').text([_tLines, _tLoc].filter(Boolean).join(' · '));
+                                     $('#customerAddressBox').removeClass('d-none');
                                  } else {
-                                     $('#customerAddressBox').addClass('d-none').empty();
+                                     $('#customerAddressBox').addClass('d-none').find('span').text('');
                                  }
                              }
                          });
@@ -2830,19 +2550,17 @@ function searchCustomers(key) {
         }
 
         if (data.address) {
-            var addrHtml = `
-                <div><strong>Shipping Address:</strong></div>
-                <div>${data.address.Line1 || ''}</div>
-                <div>${data.address.Line2 || ''}</div>
-                <div>${data.address.City || ''}, ${data.address.State || ''} - ${data.address.Pincode || ''}</div>
-            `;
-            $("#customerAddressBox").html(addrHtml).removeClass('d-none');
+            var _sLines = [data.address.Line1, data.address.Line2].filter(Boolean).join(', ');
+            var _sLoc   = [data.address.City, data.address.State].filter(Boolean).join(', ');
+            if (data.address.Pincode) _sLoc += ' – ' + data.address.Pincode;
+            $("#customerAddressBox").find('span').text([_sLines, _sLoc].filter(Boolean).join(' · '));
+            $("#customerAddressBox").removeClass('d-none');
         } else {
-            $("#customerAddressBox").addClass('d-none').empty();
+            $("#customerAddressBox").addClass('d-none').find('span').text('');
         }
         _showCustTypeIndicator(data);
     }).on('select2:clear', function () {
-        $("#customerAddressBox").addClass('d-none').empty();
+        $("#customerAddressBox").addClass('d-none').find('span').text('');
         $("#custTypeIndicator").addClass('d-none').empty();
         if (typeof billManager !== 'undefined') billManager.setInterState(false);
         if (typeof _showOnAccountBanner === 'function') _showOnAccountBanner(0, [], 0);
@@ -2955,17 +2673,17 @@ function transDatePickr(displayFieldId, hiddenFieldId = null, IsModal = false, r
     }
 }
 
-function setupTransactionValidity(quotationSel, validityDaysSel, validityDateSel) {
+function setupTransactionValidity(quotationDispSel, validityDaysSel, validityDateDispSel) {
 
-    const quotationEl    = document.querySelector(quotationSel);
-    const validityDaysEl = document.querySelector(validityDaysSel);
-    const validityDateEl = document.querySelector(validityDateSel);
+    const quotationDispEl    = document.querySelector(quotationDispSel);
+    const validityDaysEl     = document.querySelector(validityDaysSel);
+    const validityDateDispEl = document.querySelector(validityDateDispSel);
 
-    if (!quotationEl || !validityDaysEl || !validityDateEl) return;
-    if (!quotationEl._flatpickr || !validityDateEl._flatpickr) return;
+    if (!quotationDispEl || !validityDaysEl || !validityDateDispEl) return;
+    if (!quotationDispEl._flatpickr || !validityDateDispEl._flatpickr) return;
 
-    const qPicker = quotationEl._flatpickr;
-    const vPicker = validityDateEl._flatpickr;
+    const qPicker = quotationDispEl._flatpickr;
+    const vPicker = validityDateDispEl._flatpickr;
 
     // Ensure validityDate can't be before quotationDate
     function enforceMinDate() {
@@ -2994,23 +2712,20 @@ function setupTransactionValidity(quotationSel, validityDaysSel, validityDateSel
 
         const diff = Math.round((vDate - qDate) / (1000 * 60 * 60 * 24));
 
-        // Positive-only rule: clamp at 0
         validityDaysEl.value = Math.max(diff, 0);
 
-        // If user picked a date before quotation date, snap back to minDate
         if (diff < 0) {
-        vPicker.setDate(qDate, true);
+            vPicker.setDate(qDate, true);
         }
     }
 
-    // Events
-    qPicker.set('onChange', updateValidityDateFromDays);
-    vPicker.set('onChange', updateDaysFromValidityDate);
+    // Push onto existing onChange arrays so hidden-field sync handlers are preserved
+    qPicker.config.onChange.push(updateValidityDateFromDays);
+    vPicker.config.onChange.push(updateDaysFromValidityDate);
     validityDaysEl.addEventListener('input', updateValidityDateFromDays);
 
-    // Initial sync
+    // Set initial min-date constraint (values are already pre-filled by PHP)
     enforceMinDate();
-    updateValidityDateFromDays();
 
 }
 
@@ -3098,7 +2813,7 @@ function searchProductInfo() {
 
             const priceHtml = `
                 <div class="text-end ms-3 flex-shrink-0">
-                    <div class="fw-semibold" style="color:#696cff;">${genSettings.CurrenySymbol} ${smartDecimal(data.sellingPrice, genSettings.DecimalPoints, true)}</div>
+                    <div class="fw-semibold" style="color:#696cff;">${genSettings.CurrenySymbol} ${smartDecimal(window._withoutGstMode ? data.unitPrice : data.sellingPrice, genSettings.DecimalPoints, true)}</div>
                     <div class="prod-info-tax transtext-small">incl tax: ${data.taxPercent || '0'}%</div>
                 </div>`;
 
@@ -3220,6 +2935,16 @@ function searchProductInfo() {
 }
 
 function pushBillItems(productData, qty) {
+    if (window._withoutGstMode) {
+        productData = Object.assign({}, productData, {
+            _origTaxPercent:    parseFloat(productData.taxPercent)    || 0,
+            _origCgstPercent:   parseFloat(productData.cgstPercent)   || 0,
+            _origSgstPercent:   parseFloat(productData.sgstPercent)   || 0,
+            _origIgstPercent:   parseFloat(productData.igstPercent)   || 0,
+            _origTaxDetailsUID: productData.taxDetailsUID             || 0,
+            taxPercent: 0, cgstPercent: 0, sgstPercent: 0, igstPercent: 0, taxDetailsUID: 0,
+        });
+    }
     let existingItem = billManager.getItemById(productData.id);
     if (existingItem) {
         Swal.fire({icon: "error", title: "Oops...", text: "Item already moved to cart."});
@@ -3354,9 +3079,9 @@ function formationTableBillItems(productRow) {
     const getPrimUnit = productRow.primaryUnit;
     let qtyHtml;
     if (INTEGER_ONLY_UOMS.includes(getPrimUnit)) {
-        qtyHtml = `<input type="text" class="form-control form-control-sm updateAllBillAmounts" name="bm_${productRow.id}_qty" id="bm_${productRow.id}_qty" min="0" placeholder="Quantity" onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))" oninput="this.value=this.value.slice(0,this.maxLength); handleOnlyNumbers(this)" maxLength="${genSettings.QtyMaxLength}" pattern="[0-9]*" value="${productRow.quantity}" onpaste="pasteOnlyNumbers(event)" ondrop="dropOnlyNumbers(event)" />`;
+        qtyHtml = `<input type="text" inputmode="numeric" class="form-control form-control-sm updateAllBillAmounts" name="bm_${productRow.id}_qty" id="bm_${productRow.id}_qty" min="0" placeholder="Quantity" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); handleOnlyNumbers(this)" maxLength="${genSettings.QtyMaxLength}" pattern="[0-9]*" value="${productRow.quantity}" onpaste="pasteOnlyNumbers(event)" ondrop="dropOnlyNumbers(event)" />`;
     } else {
-        qtyHtml = `<input type="text" class="form-control form-control-sm updateAllBillAmounts" name="bm_${productRow.id}_qty" id="bm_${productRow.id}_qty" min="0" placeholder="Quantity" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, ${genSettings.QtyMaxLength}, ${genSettings.DecimalPoints})" maxLength="${genSettings.QtyMaxLength}" pattern="^\\d{1,${genSettings.QtyMaxLength}}(\\.\\d{0,${genSettings.DecimalPoints}})?$" onpaste="handlePricePaste(event, ${genSettings.QtyMaxLength}, ${genSettings.DecimalPoints})" ondrop="handlePriceDrop(event, ${genSettings.QtyMaxLength}, ${genSettings.DecimalPoints})" value="${productRow.quantity}" />`;
+        qtyHtml = `<input type="text" inputmode="decimal" class="form-control form-control-sm updateAllBillAmounts" name="bm_${productRow.id}_qty" id="bm_${productRow.id}_qty" min="0" placeholder="Quantity" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, ${genSettings.QtyMaxLength}, ${genSettings.DecimalPoints})" maxLength="${genSettings.QtyMaxLength}" pattern="^\\d{1,${genSettings.QtyMaxLength}}(\\.\\d{0,${genSettings.DecimalPoints}})?$" onpaste="handlePricePaste(event, ${genSettings.QtyMaxLength}, ${genSettings.DecimalPoints})" ondrop="handlePriceDrop(event, ${genSettings.QtyMaxLength}, ${genSettings.DecimalPoints})" value="${productRow.quantity}" />`;
     }
 
     let discBfrPrice = parseInt(productRow.discount, 10) ? '' : 'd-none';
@@ -3371,7 +3096,7 @@ function formationTableBillItems(productRow) {
 
     let tableData = `
         <tr data-id="${productRow.id}">
-            <td class="drag-handle" style="width:30px;vertical-align:middle;text-align:center;cursor:grab;" title="Drag to reorder">
+            <td class="drag-handle" style="width:20px;padding:4px 2px;vertical-align:middle;text-align:center;cursor:grab;" title="Drag to reorder">
                 <i class="bx bx-grid-vertical" style="font-size:1.1rem;color:#c0c7cf;"></i>
             </td>
             <td>
@@ -3398,21 +3123,20 @@ function formationTableBillItems(productRow) {
             <td>
                 <div class="input-group input-group-merge">
                     <span class="input-group-text">${genSettings.CurrenySymbol}</span>
-                    <input type="text" class="form-control form-control-sm updateAllBillAmounts" name="bm_${productRow.id}_unitPrice" id="bm_${productRow.id}_unitPrice" min="0" placeholder="Unit Price" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, ${genSettings.PriceMaxLength}, 8)" maxLength="${genSettings.PriceMaxLength + 9}" pattern="^\\d{1,${genSettings.PriceMaxLength}}(\\.\\d{0,8})?$" onpaste="handlePricePaste(event, ${genSettings.PriceMaxLength}, 8)" ondrop="handlePriceDrop(event, ${genSettings.PriceMaxLength}, 8)" value="${smartDecimal(productRow.orgunitprice, 8)}" />
+                    <input type="text" inputmode="decimal" class="form-control form-control-sm updateAllBillAmounts" name="bm_${productRow.id}_unitPrice" id="bm_${productRow.id}_unitPrice" min="0" placeholder="Unit Price" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, ${genSettings.PriceMaxLength}, 8)" maxLength="${genSettings.PriceMaxLength + 9}" pattern="^\\d{1,${genSettings.PriceMaxLength}}(\\.\\d{0,8})?$" onpaste="handlePricePaste(event, ${genSettings.PriceMaxLength}, 8)" ondrop="handlePriceDrop(event, ${genSettings.PriceMaxLength}, 8)" value="${smartDecimal(productRow.orgunitprice, 8)}" />
                 </div>
                 <div class="transtext-small text-muted text-warning bm_efft_${productRow.id}_price ${discBfrPrice}">aft disc: <span id="bm_${productRow.id}_aftdisc_unitPrice">${smartDecimal(productRow.unitPrice, 8)}</span></div>
             </td>
             <td>
                 <div class="input-group input-group-merge">
                     <span class="input-group-text">${genSettings.CurrenySymbol}</span>
-                    <input type="text" class="form-control form-control-sm updateAllBillAmounts" name="bm_${productRow.id}_sellingPrice" id="bm_${productRow.id}_sellingPrice" min="0" placeholder="Tax Price" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, ${genSettings.PriceMaxLength}, ${genSettings.DecimalPoints})" maxLength="${genSettings.PriceMaxLength}" pattern="^\\d{1,${genSettings.PriceMaxLength}}(\\.\\d{0,${genSettings.DecimalPoints}})?$" onpaste="handlePricePaste(event, ${genSettings.PriceMaxLength}, ${genSettings.DecimalPoints})" ondrop="handlePriceDrop(event, ${genSettings.PriceMaxLength}, ${genSettings.DecimalPoints})" value="${smartDecimal(productRow.orgselngprice, genSettings.DecimalPoints)}" />
+                    <input type="text" inputmode="decimal" class="form-control form-control-sm updateAllBillAmounts" name="bm_${productRow.id}_sellingPrice" id="bm_${productRow.id}_sellingPrice" min="0" placeholder="Tax Price" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, ${genSettings.PriceMaxLength}, ${genSettings.DecimalPoints})" maxLength="${genSettings.PriceMaxLength}" pattern="^\\d{1,${genSettings.PriceMaxLength}}(\\.\\d{0,${genSettings.DecimalPoints}})?$" onpaste="handlePricePaste(event, ${genSettings.PriceMaxLength}, ${genSettings.DecimalPoints})" ondrop="handlePriceDrop(event, ${genSettings.PriceMaxLength}, ${genSettings.DecimalPoints})" value="${smartDecimal(productRow.orgselngprice, genSettings.DecimalPoints)}" />
                 </div>
                 <div class="transtext-small text-muted text-warning bm_efft_${productRow.id}_price ${discBfrPrice}">aft disc: <span id="bm_${productRow.id}_aftdisc_sellingPrice">${smartDecimal(productRow.sellingPrice, genSettings.DecimalPoints)}</span></div>
             </td>
-            <input type="text" class="form-control" name="SellingPrice" id="SellingPrice" min="0" placeholder="Enter Selling Price" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, 12, 2)" maxlength="12" pattern="^\\d{1,12}(\\.\\d{0,2})?$" onpaste="handlePricePaste(event, 12, 2)" ondrop="handlePriceDrop(event, 12, 2)" required="">
             <td>
                 <div class="input-group input-group-merge w-75">
-                    <input class="form-control form-control-sm updateAllBillAmounts" type="text" id="bm_${productRow.id}_discount" name="bm_${productRow.id}_discount" min="0" step="0.01" placeholder="Discount" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, ${genSettings.PriceMaxLength}, ${genSettings.DecimalPoints})" maxLength="${genSettings.PriceMaxLength}" pattern="^\\d{1,${genSettings.PriceMaxLength}}(\\.\\d{0,${genSettings.DecimalPoints}})?$" onpaste="handlePricePaste(event, ${genSettings.PriceMaxLength}, ${genSettings.DecimalPoints})" ondrop="handlePriceDrop(event, ${genSettings.PriceMaxLength}, ${genSettings.DecimalPoints})" value="${productRow.discount || 0}" title="${productRow.discount_is_global ? 'Global discount applied' : ''}" />
+                    <input class="form-control form-control-sm updateAllBillAmounts" type="text" inputmode="decimal" id="bm_${productRow.id}_discount" name="bm_${productRow.id}_discount" min="0" step="0.01" placeholder="Discount" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, ${genSettings.PriceMaxLength}, ${genSettings.DecimalPoints})" maxLength="${genSettings.PriceMaxLength}" pattern="^\\d{1,${genSettings.PriceMaxLength}}(\\.\\d{0,${genSettings.DecimalPoints}})?$" onpaste="handlePricePaste(event, ${genSettings.PriceMaxLength}, ${genSettings.DecimalPoints})" ondrop="handlePriceDrop(event, ${genSettings.PriceMaxLength}, ${genSettings.DecimalPoints})" value="${productRow.discount || 0}" title="${productRow.discount_is_global ? 'Global discount applied' : ''}" />
                     <select class="form-select form-select-sm px-2 w-auto discTypeActionBillAmounts" id="bm_${productRow.id}_discountType" name="bm_${productRow.id}_discountType">${discTypeHtml}</select>
                 </div>
             </td>
@@ -3617,188 +3341,6 @@ function getTotalUnitPrice() {
         });
     }
     return total > 0 ? total : 1; // Return 1 if no items to avoid division by zero
-}
-
-// Helper function to get field suffix
-function getFieldSuffix(fieldType) {
-    switch(fieldType) {
-        case 'tax': return 'Charges';
-        case 'percent': return 'Percent';
-        case 'withoutTax': return 'ChargeWOutTax';
-        case 'withTax': return 'ChargeWithTax';
-        default: return '';
-    }
-}
-
-// Update all related fields when any field changes
-function updateAdditionalChargeFields(chargeType, changedField, changedValue) {
-
-    // Only process if billManager exists AND has items
-    if (!billManager || !billManager.items || billManager.items.length === 0) {
-
-        // Reset this charge to 0
-        $(`#${chargeType}Percent`).val('0');
-        $(`#${chargeType}ChargeWOutTax`).val('0');
-        $(`#${chargeType}ChargeWithTax`).val('0');
-        $(`#${chargeType}Charges`).prop('selectedIndex', 0);
-
-        // Also reset in billManager
-        if (billManager) {
-            billManager.summary.additionalCharges[chargeType] = {
-                netAmount: 0,
-                taxPercent: 0,
-                cgstPercent: 0,
-                sgstPercent: 0,
-                igstPercent: 0,
-                cgstAmount: 0,
-                sgstAmount: 0,
-                igstAmount: 0,
-                taxAmount: 0,
-                grossAmount: 0
-            };
-            billManager.updateAdditionalChargesTotal();
-            billManager.updateAdditionalChargesUI();
-        }
-
-        Swal.fire({icon: 'info', title: 'No Items', text: 'Please add items to bill before setting additional charges', timer: 1000});
-        $(`#${chargeType}${getFieldSuffix(changedField)}`).val('0');
-        return;
-        
-    }
-    
-    // Get the tax percent from dropdown
-    const taxSelect = $(`#${chargeType}Charges`);
-    const selectedOption = taxSelect.find('option:selected');
-    const taxPercent = parseFloat(selectedOption.data('percent')) || 0;
-    
-    // Get current values from ALL fields
-    let percent = parseFloat($(`#${chargeType}Percent`).val()) || 0;
-    let withoutTax = parseFloat($(`#${chargeType}ChargeWOutTax`).val()) || 0;
-    let withTax = parseFloat($(`#${chargeType}ChargeWithTax`).val()) || 0;
-    
-    // Get total taxable amount (sum of line_total from all items)
-    const totalUnitPrice = billManager?.summary?.items?.taxableAmount || 0;
-    
-    // Based on which field changed, recalculate ALL THREE fields
-    switch(changedField) {
-        case 'tax':
-            // Tax changed - recalculate withTax based on withoutTax and new tax %
-            if (withoutTax > 0) {
-                withTax = withoutTax * (1 + taxPercent / 100);
-                // Percent stays same (based on withoutTax)
-                percent = totalUnitPrice > 0 ? (withoutTax / totalUnitPrice) * 100 : 0;
-            } else if (withTax > 0) {
-                // If withTax has value, recalculate withoutTax
-                withoutTax = withTax / (1 + taxPercent / 100);
-                percent = totalUnitPrice > 0 ? (withoutTax / totalUnitPrice) * 100 : 0;
-            }
-            break;
-            
-        case 'percent':
-            // Percentage changed - calculate withoutTax, then withTax
-            percent = parseFloat(changedValue) || 0;
-            withoutTax = (percent * totalUnitPrice) / 100;
-            withTax = withoutTax * (1 + taxPercent / 100);
-            break;
-            
-        case 'withoutTax':
-            // Without tax changed - calculate percent and withTax
-            withoutTax = parseFloat(changedValue) || 0;
-            percent = totalUnitPrice > 0 ? (withoutTax / totalUnitPrice) * 100 : 0;
-            withTax = withoutTax * (1 + taxPercent / 100);
-            break;
-            
-        case 'withTax':
-            // With tax changed - calculate withoutTax and percent
-            withTax = parseFloat(changedValue) || 0;
-            if (taxPercent > 0) {
-                withoutTax = withTax / (1 + taxPercent / 100);
-            } else {
-                withoutTax = withTax;
-            }
-            percent = totalUnitPrice > 0 ? (withoutTax / totalUnitPrice) * 100 : 0;
-            break;
-    }
-    
-    // Update ALL THREE fields
-    if (changedField !== 'percent') {
-        updateFieldWithoutTrigger(`${chargeType}Percent`, smartDecimal(percent, 2));
-    }
-    if (changedField !== 'withoutTax') {
-        updateFieldWithoutTrigger(`${chargeType}ChargeWOutTax`, smartDecimal(withoutTax, genSettings.DecimalPoints));
-    }
-    if (changedField !== 'withTax') {
-        updateFieldWithoutTrigger(`${chargeType}ChargeWithTax`, smartDecimal(withTax, genSettings.DecimalPoints));
-    }
-    
-    // Update bill manager
-    updateBillManagerAdditionalCharge(chargeType, withoutTax, withTax, taxPercent);
-    
-    // Update UI visibility
-    billManager.updateAdditionalChargesUI();
-
-}
-
-// Helper: Update field without triggering change event
-function updateFieldWithoutTrigger(fieldId, value) {
-
-    const $field = $(`#${fieldId}`);
-    if (!$field.length) return;
-    
-    // Convert both to strings for comparison (to handle decimal precision)
-    const currentValue = $field.val().trim();
-    const newValue = value.toString().trim();
-    
-    // Always update, even if values appear equal (they might have different decimal places)
-    $field.off('input change').val(newValue);
-    
-    // Reattach the appropriate event handler
-    if ($field.hasClass('additional-charge-percent')) {
-        $field.on('input', function() {
-            const chargeType = $(this).data('type');
-            updateAdditionalChargeFields(chargeType, 'percent', $(this).val());
-        });
-    } 
-    else if ($field.hasClass('additional-charge-withouttax')) {
-        $field.on('input', function() {
-            const chargeType = $(this).data('type');
-            updateAdditionalChargeFields(chargeType, 'withoutTax', $(this).val());
-        });
-    }
-    else if ($field.hasClass('additional-charge-withtax')) {
-        $field.on('input', function() {
-            const chargeType = $(this).data('type');
-            updateAdditionalChargeFields(chargeType, 'withTax', $(this).val());
-        });
-    }
-    else if ($field.hasClass('additional-charge-tax')) {
-        $field.on('change', function() {
-            const chargeType = $(this).data('type');
-            const $selected = $(this).find('option:selected');
-            const taxValue = $selected.data('percent') || '0';
-            updateAdditionalChargeFields(chargeType, 'tax', taxValue);
-        });
-    }
-
-}
-
-// Update BillManager with charge data
-function updateBillManagerAdditionalCharge(chargeType, withoutTax, withTax, taxPercent) {
-
-    if (!billManager) return;
-    
-    const netAmount = parseFloat(withoutTax) || 0;
-    const grossAmount = parseFloat(withTax) || 0;
-    const taxRate = parseFloat(taxPercent) || 0;
-    
-    // Update in bill manager
-    if (billManager.setAdditionalChargeWithTax) {
-        billManager.setAdditionalChargeWithTax(chargeType, netAmount, taxRate);
-    }
-
-    // Update the charges tax breakdown display
-    updateChargeTaxBreakdown();
-    
 }
 
 // Helper function for discount input validation on type change
@@ -4362,4 +3904,83 @@ $(document).on('click', '#comboBOMSubmitBtn', function() {
 
     var modalEl = document.getElementById('comboBOMModal');
     if (modalEl) bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+});
+
+// ── Without GST mode — common for all transaction forms ──────────────────────
+var _gstModeStyle = null;
+
+/**
+ * @param {string} mode - 'Regular' or 'Without_GST'
+ * @returns {void}
+ */
+function _applyGstMode(mode) {
+    var isWithoutGst = mode === 'Without_GST';
+    window._withoutGstMode = isWithoutGst;
+    if (isWithoutGst) {
+        if (!_gstModeStyle) {
+            _gstModeStyle = document.createElement('style');
+            _gstModeStyle.id = 'transWithoutGstStyle';
+            _gstModeStyle.textContent = [
+                '#billTable th:nth-child(5), #billTable td:nth-child(5) { display: none !important; }',
+                '.prod-info-tax { display: none !important; }',
+                '#billTable tbody td:last-child .transtext-small.text-muted { display: none !important; }',
+                '#inlineSummaryBar .text-muted, #stickyBottomBar .text-muted { display: none !important; }',
+                '#totalTaxSummaryRow { display: none !important; }',
+                '#taxBreakupPanel { display: none !important; }',
+                '#additionalChargesBox th:nth-child(2), #additionalChargesBox td:nth-child(2) { display: none !important; }',
+                '#additionalChargesBox th:nth-child(3), #additionalChargesBox td:nth-child(3) { display: none !important; }',
+            ].join('\n');
+            document.head.appendChild(_gstModeStyle);
+        }
+        $('#billTable tfoot tr td:nth-child(2)').attr('colspan', 3);
+        if (typeof billManager !== 'undefined') {
+            billManager.getAllItems().forEach(function (item) {
+                var taxSave = {};
+                if (item._origTaxPercent === undefined) {
+                    taxSave._origTaxPercent    = parseFloat(item.taxPercent)    || 0;
+                    taxSave._origCgstPercent   = parseFloat(item.cgstPercent)   || 0;
+                    taxSave._origSgstPercent   = parseFloat(item.sgstPercent)   || 0;
+                    taxSave._origIgstPercent   = parseFloat(item.igstPercent)   || 0;
+                    taxSave._origTaxDetailsUID = item.taxDetailsUID             || 0;
+                }
+                var recalc = billManager.calculateRowItem($.extend({}, item, taxSave, {
+                    taxPercent: 0, cgstPercent: 0, sgstPercent: 0, igstPercent: 0,
+                    taxDetailsUID: 0, _lastChanged: 'unitPrice',
+                }));
+                billManager.updateItemInStorage(parseInt(item.id, 10), recalc);
+                if (typeof updateTableRow === 'function') updateTableRow(recalc);
+            });
+            billManager.updateSummary();
+            if (typeof updateItemTaxBreakdown === 'function') updateItemTaxBreakdown();
+        }
+    } else {
+        if (_gstModeStyle) { _gstModeStyle.parentNode.removeChild(_gstModeStyle); _gstModeStyle = null; }
+        $('#billTable tfoot tr td:nth-child(2)').attr('colspan', 4);
+        if (typeof billManager !== 'undefined') {
+            billManager.getAllItems().forEach(function (item) {
+                var recalc = billManager.calculateRowItem($.extend({}, item, {
+                    taxPercent:    parseFloat(item._origTaxPercent)    || 0,
+                    cgstPercent:   parseFloat(item._origCgstPercent)   || 0,
+                    sgstPercent:   parseFloat(item._origSgstPercent)   || 0,
+                    igstPercent:   parseFloat(item._origIgstPercent)   || 0,
+                    taxDetailsUID: item._origTaxDetailsUID             || 0,
+                    _lastChanged:  'unitPrice',
+                }));
+                billManager.updateItemInStorage(parseInt(item.id, 10), recalc);
+                if (typeof updateTableRow === 'function') updateTableRow(recalc);
+            });
+            billManager.updateSummary();
+            if (typeof updateItemTaxBreakdown === 'function') updateItemTaxBreakdown();
+        }
+    }
+}
+
+$(function () {
+    $(document).on('change', '.trans-gst-type-select', function () {
+        _applyGstMode($(this).val());
+    });
+    var $sel = $('.trans-gst-type-select');
+    if ($sel.length && $sel.val() === 'Without_GST') {
+        _applyGstMode('Without_GST');
+    }
 });

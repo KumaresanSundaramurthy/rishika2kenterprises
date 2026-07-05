@@ -151,16 +151,6 @@ $(document).ready(function () {
         e.preventDefault();
 
         var formData = new FormData($('#AddEditItemForm')[0]);
-        if (myOneDropzone.files.length > 0) {
-            const file = myOneDropzone.files[0];
-            if (!file.isStored) {
-                formData.append('UploadImage', myOneDropzone.files[0]);
-            }
-        }
-        var getProdHiddenId = $('#AddEditItemForm').find('#HProductUID').val();
-        if (getProdHiddenId && hasValue(imgData) && myOneDropzone.files.length == 0) {
-            formData.append('ImageRemoved', 1);
-        }
         const Description = quill.getText().trim();
         if ($.trim(Description) != '') {
             formData.append('Description', $('#Description .ql-editor').html());

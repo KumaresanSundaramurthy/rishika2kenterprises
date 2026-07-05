@@ -124,4 +124,21 @@ function updateQuotStatCards(stats) {
     $('[data-stat-filter="Converted"] .trans-stat-count').text(cnt('Converted').toLocaleString('en-IN'));
     $('[data-stat-filter="Converted"] .trans-stat-amount').text(fmt(amt('Converted')));
     $('[data-stat-filter="Draft"] .trans-stat-count').text(cnt('Draft').toLocaleString('en-IN'));
+
+    // Update inactive tab badges — active tab badge is set by loadTransactionList
+    var tabCounts = {
+        'All'      : cntAll,
+        'Open'     : cnt('Pending'),
+        'Accepted' : cnt('Accepted'),
+        'Converted': cnt('Converted'),
+        'Cancelled': cnt('Cancelled') + cnt('Rejected'),
+        'Draft'    : cnt('Draft'),
+    };
+    $.each(tabCounts, function (dataStatus, count) {
+        var $tab = $('.quot-status-tab[data-status="' + dataStatus + '"]');
+        if ($tab.hasClass('active')) { return; }
+        var $badge = $tab.find('.trans-tab-count');
+        if (count > 0) { $badge.text(count).removeClass('d-none'); }
+        else           { $badge.text('').addClass('d-none'); }
+    });
 }

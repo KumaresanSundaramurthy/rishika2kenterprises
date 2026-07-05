@@ -202,7 +202,7 @@ if ($isEdit) {
                             </div>
                             <div class="d-flex align-items-center gap-2">
                                 <?php if (!$isEdit): ?>
-                                    <button type="submit" name="action" value="draft" class="btn btn-sm btn-outline-secondary"><i class="bx bx-save me-1"></i>Draft</button>
+                                    <button type="submit" name="action" value="draft" class="btn btn-sm btn-outline-secondary"><i class="bx bx-save me-1"></i>Save as Draft</button>
                                     <div class="btn-group">
                                         <button type="submit" name="action" value="save" class="btn btn-sm btn-primary px-3"><i class="bx bx-check me-1"></i>Save</button>
                                         <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split ps-2 pe-2" data-bs-toggle="dropdown" aria-expanded="false">
@@ -217,9 +217,9 @@ if ($isEdit) {
                                     </div>
                                 <?php else: ?>
                                     <?php if ($isDraftEdit): ?>
-                                    <button type="submit" name="action" value="draft" class="btn btn-sm btn-outline-secondary"><i class="bx bx-save me-1"></i>Draft</button>
+                                    <button type="submit" name="action" value="draft" class="btn btn-sm btn-outline-secondary"><i class="bx bx-save me-1"></i>Save as Draft</button>
                                     <?php endif; ?>
-                                    <button type="submit" name="action" value="save" class="btn btn-sm btn-primary px-3"><i class="bx bx-check me-1"></i><?php echo $isDraftEdit ? 'Save' : 'Update'; ?></button>
+                                    <button type="submit" name="action" value="save" class="btn btn-sm btn-primary px-3"><i class="bx bx-check me-1"></i>Save</button>
                                 <?php endif; ?>
                                 <?php $_hideNav = (int)($JwtData->TransSettings->HideNavOnTransForm ?? 0); ?>
                                 <a href="/invoices" class="btn btn-sm btn-outline-danger px-3<?php echo $_hideNav ? ' d-none' : ''; ?>"><i class="bx bx-x me-1"></i>Close</a>
@@ -229,14 +229,14 @@ if ($isEdit) {
                         <div class="card-body card-body-form-static p-3">
 
                             <?php
-                            $_invType  = $InvData->QuotationType ?? 'Regular';
+                            $_invType  = $InvData->DocType ?? 'Regular';
                             ?>
 
                             <!-- ── Toolbar: Type & Dispatch From ─────────────────────────────── -->
                             <div class="d-flex align-items-center gap-4 mb-3 pb-2 border-bottom">
                                 <div class="d-flex align-items-center gap-2">
                                     <span class="text-muted" style="font-size:.78rem;white-space:nowrap;">Type</span>
-                                    <select class="form-select form-select-sm border-0 bg-transparent fw-semibold"
+                                    <select class="form-select form-select-sm border-0 bg-transparent fw-semibold trans-gst-type-select"
                                             id="invoiceType" name="invoiceType" style="min-width:110px;cursor:pointer;"
                                             <?php echo ($isEdit && !$isDraftEdit) ? 'disabled' : 'required'; ?>>
                                         <option value="Regular"     <?php echo $_invType !== 'Without_GST' ? 'selected' : ''; ?>>Regular</option>
@@ -293,7 +293,10 @@ if ($isEdit) {
                                                 <i class="bx bx-plus-circle me-1"></i>Add Customer
                                             </button>
                                         </div>
-                                        <select id="customerSearch" name="customerSearch" class="form-select form-select-sm"></select>
+                                        <div class="input-group input-group-sm input-group-merge customer-search-group" id="customerGroup_customerSearch">
+                                            <span class="input-group-text p-2 cursor-pointer" id="openCustomerSearchModal" style="background:#f0efff;border-color:#d9d8ff;color:#696cff;"><i class="icon-base bx bx-search"></i></span>
+                                            <select id="customerSearch" name="customerSearch" class="form-select form-select-sm"></select>
+                                        </div>
                                     <?php endif; ?>
                                 </div>
 
@@ -336,13 +339,8 @@ if ($isEdit) {
 
                             </div>
 
-                            <!-- Address box (below customer column) -->
-                            <div class="row g-2 mb-3">
-                                <div class="col-md-4">
-                                    <div id="customerAddressBox" class="p-2 border border-secondary trans-border-dotted rounded small d-none"></div>
-                                </div>
-                            </div>
-                            <hr class="mt-2 mb-3"/>
+                            <div id="customerAddressBox" class="trans-addr-strip d-none"><i class="bx bx-map-pin"></i><span></span></div>
+                            <hr class="mt-3"/>
 
                             <?php $this->load->view('transactions/partials/form_products_add', [
                                 'transNotesPlaceholder' => 'Enter notes or anything else',
@@ -419,12 +417,12 @@ if ($isEdit) {
                                 <div class="d-flex align-items-center gap-2">
                                     <?php if (!$isEdit || $isDraftEdit): ?>
                                     <button type="button" class="btn btn-sm btn-outline-secondary" id="inlineDraftBtn">
-                                        <i class="bx bx-save me-1"></i>Draft
+                                        <i class="bx bx-save me-1"></i>Save as Draft
                                     </button>
                                     <?php endif; ?>
                                     <div class="btn-group">
                                         <button type="button" class="btn btn-sm btn-primary px-3" id="inlineSaveBtn">
-                                            <i class="bx bx-check me-1"></i><?php echo ($isEdit && !$isDraftEdit) ? 'Update' : 'Save'; ?>
+                                            <i class="bx bx-check me-1"></i>Save
                                         </button>
                                         <?php if (!$isEdit || $isDraftEdit): ?>
                                         <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split ps-2 pe-2"
@@ -505,13 +503,13 @@ if ($isEdit) {
                         <div class="d-flex align-items-center gap-2">
                             <?php if (!$isEdit || $isDraftEdit): ?>
                             <button type="button" class="btn btn-sm btn-outline-secondary" id="stickyDraftBtn">
-                                <i class="bx bx-save me-1"></i>Draft
+                                <i class="bx bx-save me-1"></i>Save as Draft
                             </button>
                             <?php endif; ?>
 
                             <div class="btn-group">
                                 <button type="button" class="btn btn-sm btn-primary px-3" id="stickySaveBtn">
-                                    <i class="bx bx-check me-1"></i><?php echo ($isEdit && !$isDraftEdit) ? 'Update' : 'Save'; ?>
+                                    <i class="bx bx-check me-1"></i>Save
                                 </button>
                                 <?php if (!$isEdit || $isDraftEdit): ?>
                                 <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split ps-2 pe-2"
@@ -546,6 +544,7 @@ if ($isEdit) {
     </div>
 </div>
 
+<?php $this->load->view('transactions/partials/additional_charges_modal'); ?>
 <?php $this->load->view('common/transactions/footer'); ?>
 
 <script src="/js/common/address.js"></script>
@@ -562,6 +561,12 @@ if ($isEdit) {
 <script src="/js/transactions/payment_section.js"></script>
 <?php endif; ?>
 <script src="/js/transactions/attachments.js"></script>
+<script>
+var _transAdditionalCharges  = <?php echo json_encode(array_values($AdditionalCharges   ?? [])); ?>;
+var _transAdditionalTaxOpts  = <?php echo json_encode(array_values($TaxList             ?? [])); ?>;
+var _transTransactionCharges = <?php echo json_encode(array_values($TransactionCharges  ?? [])); ?>;
+</script>
+<script src="/js/transactions/additional_charges.js"></script>
 
 <script>
 const EnableStorage = <?php echo $JwtData->GenSettings->EnableStorage; ?>;
@@ -607,7 +612,7 @@ var _editItems = <?php echo json_encode(array_map(function($item) {
 }, $InvItems)); ?>;
 <?php else: ?>
 <?php if (!empty($SalesOrderData)): ?>
-var _fromSO      = <?php echo json_encode(['uid' => (int)$FromSalesOrderUID, 'customer' => (int)$SalesOrderData->PartyUID, 'customerName' => $SalesOrderData->PartyName ?? '']); ?>;
+var _fromSO      = <?php echo json_encode(['uid' => (int)$FromSalesOrderUID, 'customer' => (int)$SalesOrderData->PartyUID, 'customerName' => $SalesOrderData->PartyName ?? '', 'customerArea' => $SalesOrderData->PartyArea ?? '', 'customerMobile' => $SalesOrderData->PartyMobile ?? '']); ?>;
 var _fromSOItems = <?php echo json_encode(array_map(function($item) {
     return [
         'id'               => (int)   $item->ProductUID,
@@ -643,7 +648,7 @@ var _fromSO      = null;
 var _fromSOItems = [];
 <?php endif; ?>
 <?php if (!empty($QuotationData)): ?>
-var _fromQuotation = <?php echo json_encode(['uid' => (int)$FromQuotationUID, 'customer' => (int)$QuotationData->PartyUID, 'customerName' => $QuotationData->PartyName ?? '']); ?>;
+var _fromQuotation = <?php echo json_encode(['uid' => (int)$FromQuotationUID, 'customer' => (int)$QuotationData->PartyUID, 'customerName' => $QuotationData->PartyName ?? '', 'customerArea' => $QuotationData->PartyArea ?? '', 'customerMobile' => $QuotationData->PartyMobile ?? '']); ?>;
 var _fromQuotItems = <?php echo json_encode(array_map(function($item) {
     return [
         'id'               => (int)   $item->ProductUID,
@@ -679,7 +684,7 @@ var _fromQuotation = null;
 var _fromQuotItems = [];
 <?php endif; ?>
 <?php if (!empty($ChallanData)): ?>
-var _fromChallan      = <?php echo json_encode(['uid' => (int)$FromChallanUID, 'customer' => (int)$ChallanData->PartyUID, 'customerName' => $ChallanData->PartyName ?? '', 'reference' => $ChallanData->UniqueNumber ?? '']); ?>;
+var _fromChallan      = <?php echo json_encode(['uid' => (int)$FromChallanUID, 'customer' => (int)$ChallanData->PartyUID, 'customerName' => $ChallanData->PartyName ?? '', 'customerArea' => $ChallanData->PartyArea ?? '', 'customerMobile' => $ChallanData->PartyMobile ?? '', 'reference' => $ChallanData->UniqueNumber ?? '']); ?>;
 var _fromChallanItems = <?php echo json_encode(array_map(function($item) {
     return [
         'id'               => (int)   $item->ProductUID,
@@ -800,7 +805,10 @@ $(function() {
 
     if (_sourceData && _sourceData.uid > 0) {
         if (_sourceData.customer > 0) {
-            $('#customerSearch').append(new Option(_sourceData.customerName, _sourceData.customer, true, true)).trigger('change');
+            var _invCustLabel = _sourceData.customerName;
+            if (_sourceData.customerArea)   _invCustLabel += ', ' + _sourceData.customerArea;
+            if (_sourceData.customerMobile) _invCustLabel += ' (' + _sourceData.customerMobile + ')';
+            $('#customerSearch').append(new Option(_invCustLabel, _sourceData.customer, true, true)).trigger('change');
         }
         if (_fromChallan && _fromChallan.reference) {
             var $refField = $('#referenceDetails');
@@ -927,6 +935,7 @@ $(function() {
             fd.append('SgstAmount',             sgstAmt);
             fd.append('IgstAmount',             igstAmt);
             fd.append('AdditionalChargesTotal', addCharges);
+            fd.append('AdditionalCharges', JSON.stringify(typeof collectAdditionalCharges === 'function' ? collectAdditionalCharges() : []));
             fd.append('GlobalDiscPercent',      globalDiscPct);
             fd.append('RoundOff',               roundOff);
             fd.append('NetAmount',              netAmount);

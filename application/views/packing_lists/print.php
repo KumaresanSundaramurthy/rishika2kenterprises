@@ -12,7 +12,7 @@ $_fmt       = $JwtData->GenSettings->PrintDateFormat ?? 'd M Y';
 $dcNum      = htmlspecialchars($dc->UniqueNumber     ?? '—');
 $dcDate     = !empty($dc->TransDate)  ? format_datedisplay($dc->TransDate,  $_fmt) : '—';
 $customer   = htmlspecialchars($dc->PartyName        ?? '—');
-$challanType= htmlspecialchars($dc->QuotationType    ?? 'Non-Returnable');
+$challanType= htmlspecialchars($dc->DocType    ?? 'Non-Returnable');
 
 $plNum      = $pl ? htmlspecialchars($pl->UniqueNumber)    : '—';
 $plDate     = $pl && !empty($pl->PLDate) ? format_datedisplay($pl->PLDate, $_fmt) : $dcDate;

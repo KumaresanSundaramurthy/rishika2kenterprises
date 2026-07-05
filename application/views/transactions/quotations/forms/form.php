@@ -123,7 +123,7 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
                                 </div>
                             </div>
                             <div class="d-flex align-items-center gap-2">
-                                <button type="submit" name="action" value="draft" class="btn btn-sm btn-outline-secondary"><i class="bx bx-save me-1"></i>Draft</button>
+                                <button type="submit" name="action" value="draft" class="btn btn-sm btn-outline-secondary"><i class="bx bx-save me-1"></i>Save as Draft</button>
                                 <div class="btn-group">
                                     <button type="submit" name="action" value="save" class="btn btn-sm btn-primary px-3"><i class="bx bx-check me-1"></i>Save</button>
                                     <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split ps-2 pe-2" data-bs-toggle="dropdown" aria-expanded="false">
@@ -188,10 +188,10 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
                                 </div>
                             </div>
                             <div class="d-flex align-items-center gap-2">
-                                <button type="submit" name="action" value="save" class="btn btn-primary"><?php echo $isDraftEdit ? 'Save' : 'Update'; ?></button>
                                 <?php if ($isDraftEdit): ?>
-                                <button type="submit" name="action" value="draft" class="btn btn-outline-secondary">Save as Draft</button>
+                                <button type="submit" name="action" value="draft" class="btn btn-outline-secondary"><i class="bx bx-save me-1"></i>Save as Draft</button>
                                 <?php endif; ?>
+                                <button type="submit" name="action" value="save" class="btn btn-primary"><i class="bx bx-check me-1"></i>Save</button>
                                 <a href="/quotations" class="btn btn-label-danger<?php echo $_hideNav ? ' d-none' : ''; ?>">Close</a>
                             </div>
                         </div>
@@ -203,9 +203,9 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
                             <div class="d-flex align-items-center gap-4 mb-3 pb-2 border-bottom">
                                 <div class="d-flex align-items-center gap-2">
                                     <span class="text-muted" style="font-size:.78rem;white-space:nowrap;">Type</span>
-                                    <select id="quotationType" name="quotationType" class="form-select form-select-sm border-0 bg-transparent fw-semibold" style="min-width:110px;cursor:pointer;" required>
-                                        <option value="Regular" <?php echo ($isEdit && ($QuotData->QuotationType === 'Regular' || empty($QuotData->QuotationType))) || !$isEdit ? 'selected' : ''; ?>>Regular</option>
-                                        <option value="Without_GST" <?php echo $isEdit && $QuotData->QuotationType === 'Without_GST' ? 'selected' : ''; ?>>Without GST</option>
+                                    <select id="quotationType" name="quotationType" class="form-select form-select-sm border-0 bg-transparent fw-semibold trans-gst-type-select" style="min-width:110px;cursor:pointer;" required>
+                                        <option value="Regular" <?php echo ($isEdit && ($QuotData->DocType === 'Regular' || empty($QuotData->DocType))) || !$isEdit ? 'selected' : ''; ?>>Regular</option>
+                                        <option value="Without_GST" <?php echo $isEdit && $QuotData->DocType === 'Without_GST' ? 'selected' : ''; ?>>Without GST</option>
                                     </select>
                                 </div>
                                 <?php if (!empty($DispatchAddresses)): ?>
@@ -232,11 +232,14 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
                                         <label for="customerSearch" class="trans-field-label mb-0">Select Customer <span class="text-danger">*</span></label>
                                         <button type="button" id="addTransCustomer" class="trans-add-btn btn btn-outline-primary btn-sm" aria-label="Add new customer" style="font-size:.72rem;white-space:nowrap;"><i class="bx bx-plus-circle me-1"></i>Add Customer</button>
                                     </div>
-                                    <select id="customerSearch" name="customerSearch" class="form-select form-select-sm">
-                                        <?php if ($isEdit && !empty($QuotData->PartyUID)): ?>
-                                        <option value="<?php echo (int)$QuotData->PartyUID; ?>" selected><?php echo htmlspecialchars($QuotData->PartyName ?? ''); ?></option>
-                                        <?php endif; ?>
-                                    </select>
+                                    <div class="input-group input-group-sm input-group-merge customer-search-group" id="customerGroup_customerSearch">
+                                        <span class="input-group-text p-2 cursor-pointer" id="openCustomerSearchModal" style="background:#f0efff;border-color:#d9d8ff;color:#696cff;"><i class="icon-base bx bx-search"></i></span>
+                                        <select id="customerSearch" name="customerSearch" class="form-select form-select-sm">
+                                            <?php if ($isEdit && !empty($QuotData->PartyUID)): ?>
+                                            <option value="<?php echo (int)$QuotData->PartyUID; ?>" selected><?php echo htmlspecialchars($QuotData->PartyName ?? ''); ?></option>
+                                            <?php endif; ?>
+                                        </select>
+                                    </div>
                                 </div>
                                 <div class="col-auto" style="min-width:155px;">
                                     <label for="transDate" class="trans-field-label">Quotation Date <span class="text-danger">*</span></label>
@@ -254,17 +257,17 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
                                     <label for="validityDays" class="trans-field-label">Validity (Days)</label>
                                     <input type="number" id="validityDays" name="validityDays" class="form-control form-control-sm" min="0" step="1"
                                         oninput="this.value = this.value.replace(/[^0-9]/g, '')"
-                                        value="<?php echo $isEdit ? (int)($QuotData->ValidityDays ?? 7) : 7; ?>" />
+                                        value="<?php echo $isEdit ? (int)($QuotData->ValidityDays ?? $DefaultValidityDays) : (int)$DefaultValidityDays; ?>" />
                                 </div>
                                 <div class="col-auto" style="min-width:145px;">
                                     <label for="validityDate" class="trans-field-label">Validity Date</label>
                                     <div class="input-group input-group-sm input-group-merge">
                                         <span class="input-group-text bg-white"><i class="icon-base bx bx-calendar"></i></span>
                                         <input type="text" class="form-control form-control-sm bg-white" id="validityDate_disp" readonly="readonly"
-                                            value="<?php echo $isEdit ? format_datedisplay($QuotData->ValidityDate ?? '', $_fmt) : format_datedisplay(time(), $_fmt, '', null, '+7'); ?>"
+                                            value="<?php echo $isEdit ? format_datedisplay($QuotData->ValidityDate ?? '', $_fmt) : format_datedisplay($DefaultValidityDate, $_fmt); ?>"
                                             required />
                                         <input type="hidden" id="validityDate" name="validityDate"
-                                            value="<?php echo $isEdit ? htmlspecialchars(format_datedisplay($QuotData->ValidityDate ?? '', 'Y-m-d')) : format_datedisplay(time(), 'Y-m-d', '', null, '+7'); ?>" />
+                                            value="<?php echo $isEdit ? htmlspecialchars(format_datedisplay($QuotData->ValidityDate ?? '', 'Y-m-d')) : htmlspecialchars($DefaultValidityDate); ?>" />
                                     </div>
                                 </div>
                                 <div class="col">
@@ -275,20 +278,22 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
                                 </div>
                             </div>
 
-                            <!-- Address box below customer -->
-                            <div class="row g-2 mb-3">
-                                <div class="col-md-4">
-                                    <div id="customerAddressBox" class="p-2 border border-secondary trans-border-dotted rounded small <?php echo ($isEdit && isset($CustAddr) && !empty($CustAddr)) ? '' : 'd-none'; ?>">
-                                        <?php if ($isEdit && isset($CustAddr) && !empty($CustAddr)): ?>
-                                        <div><strong>Shipping Address:</strong></div>
-                                        <div><?php echo htmlspecialchars($CustAddr->Line1 ?? ''); ?></div>
-                                        <div><?php echo htmlspecialchars($CustAddr->Line2 ?? ''); ?></div>
-                                        <div><?php echo trim(implode(' - ', array_filter([htmlspecialchars($CustAddr->CityText ?? ''), htmlspecialchars($CustAddr->Pincode ?? '')]))); ?></div>
-                                        <div><?php echo htmlspecialchars($CustAddr->StateText ?? ''); ?></div>
-                                        <?php endif; ?>
-                                    </div>
-                                </div>
+                            <?php
+                            $_addrText = '';
+                            if ($isEdit && isset($CustAddr) && !empty($CustAddr)) {
+                                $_lineParts = array_filter([trim($CustAddr->Line1 ?? ''), trim($CustAddr->Line2 ?? '')]);
+                                $_locParts  = array_filter([trim($CustAddr->CityText ?? ''), trim($CustAddr->StateText ?? '')]);
+                                $_loc = implode(', ', $_locParts);
+                                if (!empty(trim($CustAddr->Pincode ?? ''))) $_loc .= ' – ' . trim($CustAddr->Pincode);
+                                $_addrParts = array_filter([implode(', ', $_lineParts), $_loc]);
+                                $_addrText  = implode(' · ', $_addrParts);
+                            }
+                            ?>
+                            <div id="customerAddressBox" class="trans-addr-strip <?php echo !empty($_addrText) ? '' : 'd-none'; ?>">
+                                <i class="bx bx-map-pin"></i>
+                                <span><?php echo htmlspecialchars($_addrText); ?></span>
                             </div>
+
                             <hr class="mt-3"/>
 
                             <?php $this->load->view('transactions/partials/form_products_add', [
@@ -311,12 +316,12 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
                                     </div>
                                 </div>
                                 <div class="d-flex align-items-center gap-2">
-                                    <?php if (!$isEdit): ?>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="inlineDraftBtn"><i class="bx bx-save me-1"></i>Draft</button>
+                                    <?php if (!$isEdit || $isDraftEdit): ?>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="inlineDraftBtn"><i class="bx bx-save me-1"></i>Save as Draft</button>
                                     <?php endif; ?>
                                     <div class="btn-group">
                                         <button type="button" class="btn btn-sm btn-primary px-3" id="inlineSaveBtn">
-                                            <i class="bx bx-check me-1"></i><?php echo $isEdit ? 'Update' : 'Save'; ?>
+                                            <i class="bx bx-check me-1"></i>Save
                                         </button>
                                         <?php if (!$isEdit): ?>
                                         <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split ps-2 pe-2" data-bs-toggle="dropdown" aria-expanded="false"><span class="visually-hidden">Save options</span></button>
@@ -343,12 +348,12 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
                             </div>
                         </div>
                         <div class="d-flex align-items-center gap-2">
-                            <?php if (!$isEdit): ?>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" id="stickyDraftBtn"><i class="bx bx-save me-1"></i>Draft</button>
+                            <?php if (!$isEdit || $isDraftEdit): ?>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="stickyDraftBtn"><i class="bx bx-save me-1"></i>Save as Draft</button>
                             <?php endif; ?>
                             <div class="btn-group">
                                 <button type="button" class="btn btn-sm btn-primary px-3" id="stickySaveBtn">
-                                    <i class="bx bx-check me-1"></i><?php echo $isEdit ? 'Update' : 'Save'; ?>
+                                    <i class="bx bx-check me-1"></i>Save
                                 </button>
                                 <?php if (!$isEdit): ?>
                                 <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split ps-2 pe-2" data-bs-toggle="dropdown" aria-expanded="false"><span class="visually-hidden">Save options</span></button>
@@ -380,6 +385,7 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
     </div>
 </div>
 
+<?php $this->load->view('transactions/partials/additional_charges_modal'); ?>
 <?php $this->load->view('common/transactions/footer'); ?>
 
 <script src="/js/common/address.js"></script>
@@ -393,6 +399,12 @@ if ($isEdit && !empty($QuotData->AdditionalChargesJson)) {
 <script src="/js/common/category_form.js"></script>
 <script src="/js/common/product_form.js"></script>
 <script src="/js/transactions/attachments.js"></script>
+<script>
+var _transAdditionalCharges  = <?php echo json_encode(array_values($AdditionalCharges   ?? [])); ?>;
+var _transAdditionalTaxOpts  = <?php echo json_encode(array_values($TaxList             ?? [])); ?>;
+var _transTransactionCharges = <?php echo json_encode(array_values($TransactionCharges  ?? [])); ?>;
+</script>
+<script src="/js/transactions/additional_charges.js"></script>
 
 <script>
 const EnableStorage = <?php echo $JwtData->GenSettings->EnableStorage; ?>;
@@ -491,7 +503,7 @@ $(function() {
 
     transDatePickr('#transDate_disp',    '#transDate',    false, false, true,  true,  '');
     transDatePickr('#validityDate_disp', '#validityDate', false, false, false, false, '#transDate');
-    setupTransactionValidity('#transDate', '#validityDays', '#validityDate');
+    setupTransactionValidity('#transDate_disp', '#validityDays', '#validityDate_disp');
 
     <?php if ($isEdit): ?>
     renderTransAttachmentsFromData(<?php echo json_encode($QuotAttachments ?? []); ?>);
@@ -574,6 +586,7 @@ $(function() {
 
                 var transNumber = $.trim($('#transNumber').val());
                 if (!transNumber || parseInt(transNumber, 10) <= 0) return showFormError('Transaction number must be greater than 0.');
+                if (parseInt(transNumber, 10) > 2147483647) return showFormError('Transaction number exceeds the maximum allowed value of 2,147,483,647. Please use a smaller number or create a new prefix series.');
             }
 
             var transDate = $.trim($('#transDate').val());
@@ -612,16 +625,7 @@ $(function() {
             var globalDiscPct  = bm ? (bm.globalDiscountPercent || 0) : 0;
             var roundOff       = summary.extra     ? (summary.extra.roundOff              || 0) : 0;
 
-            var charges = {};
-            if (summary.additionalCharges) {
-                ['shipping', 'handling', 'packing', 'other'].forEach(function(t) {
-                    var c = summary.additionalCharges[t];
-                    if (c && c.grossAmount > 0) {
-                        charges[t + 'Amount'] = c.grossAmount;
-                        charges[t + 'Tax']    = c.taxPercent || 0;
-                    }
-                });
-            }
+            var charges = { AdditionalCharges: JSON.stringify(typeof collectAdditionalCharges === 'function' ? collectAdditionalCharges() : []) };
 
             var postData = $.extend({
                 transPrefixSelect      : parseInt($('#transPrefixSelect').val(), 10) || 0,
@@ -702,6 +706,7 @@ $(function() {
         });
 
     }
+
 
 });
 

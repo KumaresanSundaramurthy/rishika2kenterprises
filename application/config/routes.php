@@ -172,6 +172,11 @@ $route['settings/getMsgTemplateList']     = 'settings/getMsgTemplateList';
 $route['settings/getMsgTemplateDetail']   = 'settings/getMsgTemplateDetail';
 $route['settings/saveMsgTemplate']        = 'settings/saveMsgTemplate';
 $route['settings/deleteMsgTemplate']      = 'settings/deleteMsgTemplate';
+$route['settings/additionalcharges']            = 'settings/additionalcharges';
+$route['settings/getAdditionalChargesList']     = 'settings/getAdditionalChargesList';
+$route['settings/saveAdditionalCharge']         = 'settings/saveAdditionalCharge';
+$route['settings/deleteAdditionalCharge']       = 'settings/deleteAdditionalCharge';
+$route['settings/getAdditionalChargesCache']    = 'settings/getAdditionalChargesCache';
 
 // Roles
 $route['settings/roles']                         = 'roles/index';
@@ -259,6 +264,19 @@ $route['indirectincome/recordPayment']                             = 'indirectin
 $route['indirectincome/getPaymentHistory']                         = 'indirectincome/getPaymentHistory';
 $route['indirectincome/getPaymentAttachments']                     = 'indirectincome/getPaymentAttachments';
 $route['indirectincome/getAttachments']                            = 'indirectincome/getAttachments';
+
+// Quotations
+$route['quotations']                                           = 'quotations/index';
+$route['quotations/create']                                    = 'quotations/create';
+$route['quotations/(:num)/edit']                               = 'quotations/edit/$1';
+$route['quotations/getQuotationsPageDetails/(:num)']           = 'quotations/getQuotationsPageDetails/$1';
+$route['quotations/getQuotationsPageDetails']                  = 'quotations/getQuotationsPageDetails';
+$route['quotations/exportQuotations']                          = 'quotations/exportQuotations';
+$route['quotations/addQuotation']                              = 'quotations/addQuotation';
+$route['quotations/updateQuotation']                           = 'quotations/updateQuotation';
+$route['quotations/deleteQuotation']                           = 'quotations/deleteQuotation';
+$route['quotations/convertQuotationToInvoice']                 = 'quotations/convertQuotationToInvoice';
+$route['quotations/updateQuotationStatus']                     = 'quotations/updateQuotationStatus';
 
 // Sales Orders
 $route['salesorders']                                      = 'salesorders/index';

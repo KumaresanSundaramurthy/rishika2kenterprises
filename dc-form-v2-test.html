@@ -1,0 +1,1337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DC · New Challan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════
+   TOKEN SYSTEM
+═══════════════════════════════════════════════ */
+:root{
+  --bg:#eceef4;
+  --canvas:#fff;
+  --panel:#f7f8fb;
+  --panel-border:#eaecf0;
+  --border:#e5e7eb;
+  --border-md:#d1d5db;
+
+  --t1:#0d1117;
+  --t2:#1f2937;
+  --t3:#6b7280;
+  --t4:#9ca3af;
+  --t5:#d1d5db;
+
+  --a:#4f46e5;
+  --a-h:#4338ca;
+  --a-bg:#eef2ff;
+  --a-bd:#c7d2fe;
+
+  --green:#059669;   --green-bg:#ecfdf5;
+  --red:#dc2626;     --red-bg:#fef2f2;
+  --amber:#b45309;   --amber-bg:#fffbeb;
+
+  --sh-canvas:0 2px 8px rgba(0,0,0,.06),0 0 1px rgba(0,0,0,.08);
+  --sh-md:0 4px 20px rgba(0,0,0,.09),0 1px 4px rgba(0,0,0,.05);
+  --sh-lg:0 16px 60px rgba(0,0,0,.13),0 4px 16px rgba(0,0,0,.07);
+  --sh-palette:0 28px 90px rgba(0,0,0,.18),0 8px 28px rgba(0,0,0,.10);
+
+  --topbar:48px;
+  --floatbar:60px;
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:'Inter',system-ui,sans-serif;
+  background:var(--bg);
+  color:var(--t1);
+  font-size:14px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+button{cursor:pointer;font-family:inherit;font-size:inherit;border:none;background:none}
+input,textarea,select{font-family:inherit;font-size:inherit}
+:focus-visible{outline:2px solid var(--a);outline-offset:2px}
+
+/* ═══════════════════════════════════════════════
+   TOPBAR
+═══════════════════════════════════════════════ */
+.topbar{
+  position:fixed;inset:0 0 auto 0;z-index:80;
+  height:var(--topbar);
+  background:rgba(255,255,255,.88);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 20px;gap:12px;
+}
+.tb-back{
+  display:flex;align-items:center;justify-content:center;
+  width:32px;height:32px;border-radius:8px;
+  color:var(--t3);transition:.14s;
+}
+.tb-back:hover{background:var(--panel);color:var(--t1)}
+.tb-crumb{display:flex;align-items:center;gap:5px;font-size:13px;color:var(--t3)}
+.tb-crumb a{color:var(--t3);text-decoration:none;transition:.12s}
+.tb-crumb a:hover{color:var(--a)}
+.tb-crumb .sep{color:var(--border-md)}
+.tb-crumb .cur{color:var(--t1);font-weight:600}
+
+.tb-center{
+  position:absolute;left:50%;transform:translateX(-50%);
+  display:flex;align-items:center;gap:8px;
+}
+.doc-chip{
+  display:flex;align-items:center;gap:6px;
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:999px;padding:3px 12px 3px 8px;
+  font-size:12px;
+}
+.doc-chip-icon{color:var(--green);font-size:14px}
+.doc-chip-num{font-weight:800;letter-spacing:-.01em;color:var(--t1)}
+.status-pill{
+  font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  padding:2px 7px;border-radius:999px;
+}
+.sp-new{background:var(--a-bg);color:var(--a)}
+.sp-draft{background:#fef9c3;color:#854d0e}
+
+.tb-right{margin-left:auto;display:flex;align-items:center;gap:6px}
+.kbd-hint{
+  display:inline-flex;align-items:center;
+  font-size:10px;font-weight:600;color:var(--t4);
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:5px;padding:2px 6px;font-family:'SF Mono',monospace;
+}
+.kbd-hint-light{color:rgba(255,255,255,.65);background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.2)}
+
+/* ═══════════════════════════════════════════════
+   BUTTONS
+═══════════════════════════════════════════════ */
+.btn{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:6px 14px;border-radius:8px;
+  font-weight:500;font-size:13px;transition:.14s;white-space:nowrap;
+}
+.btn-ghost{color:var(--t2)}
+.btn-ghost:hover{background:var(--panel)}
+.btn-outline{border:1px solid var(--border-md);color:var(--t2);background:var(--canvas)}
+.btn-outline:hover{background:var(--panel)}
+.btn-primary{background:var(--a);color:#fff}
+.btn-primary:hover{background:var(--a-h)}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn-danger-ghost{color:var(--t3)}
+.btn-danger-ghost:hover{background:var(--red-bg);color:var(--red)}
+
+.split-wrap{position:relative;display:flex}
+.split-main{border-radius:8px 0 0 8px}
+.split-caret{
+  border-radius:0 8px 8px 0;
+  border-left:1px solid rgba(255,255,255,.25);
+  padding:6px 9px;
+  background:var(--a);color:#fff;
+  display:flex;align-items:center;transition:.14s;
+}
+.split-caret:hover{background:var(--a-h)}
+
+/* ═══════════════════════════════════════════════
+   DROPDOWN
+═══════════════════════════════════════════════ */
+.dd{
+  position:absolute;top:calc(100% + 6px);right:0;z-index:200;
+  background:var(--canvas);border:1px solid var(--border);
+  border-radius:12px;padding:6px;
+  box-shadow:var(--sh-lg);min-width:200px;
+  pointer-events:none;opacity:0;transform:translateY(-6px);
+  transition:opacity .15s,transform .15s;
+}
+.dd.up{top:auto;bottom:calc(100% + 6px)}
+.dd.open{pointer-events:auto;opacity:1;transform:translateY(0)}
+.dd-hdr{font-size:10px;font-weight:700;letter-spacing:.07em;color:var(--t4);padding:4px 8px 6px;text-transform:uppercase}
+.dd-item{
+  display:flex;align-items:center;gap:8px;
+  padding:7px 10px;border-radius:8px;width:100%;
+  font-size:13px;color:var(--t2);transition:.11s;
+}
+.dd-item:hover{background:var(--panel)}
+.dd-item i{color:var(--t3);font-size:15px}
+
+/* ═══════════════════════════════════════════════
+   WORKSPACE
+═══════════════════════════════════════════════ */
+.workspace{
+  display:flex;
+  padding-top:var(--topbar);
+  height:100vh;
+}
+.canvas-scroll{
+  flex:1;min-width:0;
+  overflow-y:auto;
+  padding:32px 24px 80px;
+  display:flex;flex-direction:column;align-items:center;
+}
+
+/* ═══════════════════════════════════════════════
+   DOCUMENT CANVAS
+═══════════════════════════════════════════════ */
+.canvas{
+  width:100%;max-width:820px;
+  background:var(--canvas);
+  border-radius:4px;
+  box-shadow:var(--sh-canvas);
+  padding:52px 60px;
+  position:relative;
+}
+
+/* doc header */
+.doc-header{
+  display:flex;align-items:flex-start;justify-content:space-between;
+  margin-bottom:6px;
+}
+.doc-title{
+  font-size:10px;font-weight:800;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--t4);
+}
+.doc-num-block{text-align:right}
+.doc-num-label{font-size:9px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--t4)}
+.doc-num{font-size:20px;font-weight:900;letter-spacing:-.03em;color:var(--t1);line-height:1.1}
+
+.doc-meta-strip{
+  display:flex;align-items:center;gap:16px;
+  margin-bottom:28px;
+}
+.meta-field{display:flex;align-items:center;gap:6px}
+.meta-key{font-size:11px;font-weight:500;color:var(--t4)}
+.meta-val{font-size:12px;font-weight:600;color:var(--t2)}
+.meta-date-btn{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:12px;font-weight:600;color:var(--t2);
+  padding:2px 8px;border-radius:6px;transition:.12s;
+}
+.meta-date-btn:hover{background:var(--a-bg);color:var(--a)}
+.mode-chip{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:11px;font-weight:700;padding:3px 10px;
+  border-radius:999px;border:1px solid var(--border);
+  color:var(--t2);transition:.12s;cursor:pointer;
+}
+.mode-chip:hover{border-color:var(--a-bd);background:var(--a-bg);color:var(--a)}
+
+.canvas-rule{height:1px;background:var(--border);margin:0 0 28px}
+
+/* FROM / TO */
+.from-to{display:grid;grid-template-columns:1fr 1fr;gap:0;margin-bottom:28px}
+.ft-col{padding:0}
+.ft-col:first-child{padding-right:32px;border-right:1px solid var(--border)}
+.ft-col:last-child{padding-left:32px}
+.ft-label{
+  font-size:9px;font-weight:800;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--t4);margin-bottom:10px;
+}
+.from-org-name{font-size:17px;font-weight:800;color:var(--t1);margin-bottom:4px;letter-spacing:-.02em}
+.from-org-addr{font-size:12px;color:var(--t3);line-height:1.6}
+.from-org-gst{font-size:11px;color:var(--t4);margin-top:6px;font-family:'SF Mono',monospace}
+
+/* Customer selector */
+.cust-select-btn{
+  display:flex;align-items:center;gap:8px;
+  padding:10px 14px;
+  border:2px dashed var(--border-md);
+  border-radius:10px;width:100%;
+  color:var(--t3);font-size:13px;font-weight:500;
+  transition:.15s;
+}
+.cust-select-btn:hover{border-color:var(--a);color:var(--a);background:var(--a-bg)}
+.cust-select-btn i{font-size:15px}
+.cust-select-ks{margin-left:auto;font-size:10px;font-weight:600;font-family:monospace;
+  background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:1px 5px;color:var(--t4)}
+
+.cust-filled{
+  background:linear-gradient(135deg,#f5f3ff 0%,#ede9fe 100%);
+  border:1px solid var(--a-bd);border-radius:10px;padding:14px;
+  position:relative;
+}
+.cust-filled-name{font-size:17px;font-weight:800;color:var(--t1);letter-spacing:-.02em;margin-bottom:3px}
+.cust-filled-addr{font-size:12px;color:var(--t3);line-height:1.6}
+.cust-filled-gst{font-size:11px;color:var(--t4);margin-top:6px;font-family:'SF Mono',monospace}
+.cust-change-btn{
+  position:absolute;top:10px;right:10px;
+  width:28px;height:28px;border-radius:7px;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--a);background:rgba(79,70,229,.1);font-size:14px;
+  transition:.12s;
+}
+.cust-change-btn:hover{background:rgba(79,70,229,.2)}
+
+/* ── Details strip ── */
+.details-strip{
+  display:flex;align-items:center;flex-wrap:wrap;gap:0;
+  padding:10px 0;border-top:1px solid var(--border);
+  border-bottom:1px solid var(--border);
+  margin-bottom:28px;
+}
+.ds-item{display:flex;align-items:center;gap:6px;padding:4px 14px 4px 0;position:relative}
+.ds-item:not(:last-child)::after{content:'·';color:var(--t5);margin-left:14px;position:absolute;right:-2px}
+.ds-key{font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--t4)}
+.ds-val-btn{
+  font-size:12px;font-weight:600;color:var(--t2);
+  padding:2px 6px;border-radius:5px;transition:.12s;display:flex;align-items:center;gap:3px;
+}
+.ds-val-btn:hover{background:var(--a-bg);color:var(--a)}
+.ds-val-btn i{font-size:12px;color:var(--t4)}
+.ds-input{
+  font-size:12px;font-weight:600;color:var(--t2);
+  border:none;background:none;outline:none;width:120px;
+  padding:2px 6px;border-radius:5px;transition:.12s;
+}
+.ds-input::placeholder{color:var(--t5);font-weight:400}
+.ds-input:hover{background:var(--panel)}
+.ds-input:focus{background:var(--a-bg);color:var(--t1)}
+
+/* ═══════════════════════════════════════════════
+   ITEMS TABLE
+═══════════════════════════════════════════════ */
+.items-wrap{margin-bottom:24px}
+.items-table{width:100%;border-collapse:collapse}
+.items-table thead th{
+  font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--t4);padding:0 10px 10px;text-align:left;border-bottom:1px solid var(--border);
+}
+.items-table thead .num-col{text-align:right}
+.items-table tfoot td{padding:0}
+
+/* item rows */
+.item-row td{padding:0;border-bottom:1px solid var(--border)}
+.item-row:last-child td{border-bottom:none}
+.item-row{transition:background .1s}
+.item-row:hover{background:#fafbff}
+
+.cell-sno{width:32px;padding:14px 10px;font-size:12px;font-weight:700;color:var(--t4)}
+.cell-product{padding:14px 10px}
+.prod-name{font-size:13px;font-weight:600;color:var(--t1)}
+.prod-sku{font-size:11px;color:var(--t4);margin-top:1px}
+.cell-num{padding:14px 10px;text-align:right;vertical-align:middle}
+.cell-action{width:32px;padding:14px 8px;text-align:center;vertical-align:middle}
+
+.inline-inp{
+  width:100%;border:none;background:transparent;
+  font-size:13px;font-weight:600;color:var(--t1);
+  text-align:right;outline:none;padding:4px 8px;
+  border-radius:6px;transition:.13s;
+  font-variant-numeric:tabular-nums;
+}
+.inline-inp:hover{background:var(--panel)}
+.inline-inp:focus{background:var(--a-bg);box-shadow:0 0 0 2px var(--a-bd)}
+
+.gst-tag{
+  display:inline-flex;align-items:center;font-size:11px;font-weight:600;
+  padding:2px 8px;border-radius:999px;
+  background:var(--green-bg);color:var(--green);
+}
+.row-total{font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--t1)}
+
+.del-btn{
+  width:26px;height:26px;border-radius:6px;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--t5);font-size:15px;transition:.12s;
+}
+.del-btn:hover{background:var(--red-bg);color:var(--red)}
+
+/* add item row */
+.add-row td{padding:0;border-bottom:none}
+.add-item-btn{
+  display:flex;align-items:center;gap:8px;
+  padding:12px 10px;width:100%;
+  color:var(--t4);font-size:13px;font-weight:500;
+  transition:.13s;border-radius:0 0 4px 4px;
+}
+.add-item-btn:hover{background:var(--a-bg);color:var(--a)}
+.add-item-btn .ks{font-size:10px;font-weight:600;font-family:monospace;
+  background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:1px 5px;color:var(--t4);margin-left:auto}
+.add-item-btn:hover .ks{color:var(--a);border-color:var(--a-bd);background:var(--a-bg)}
+
+/* ── Summary block ── */
+.doc-summary{
+  display:flex;justify-content:flex-end;
+  padding-top:20px;border-top:1px solid var(--border);
+  margin-top:4px;
+}
+.sum-inner{min-width:240px}
+.sum-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:13px}
+.sum-k{color:var(--t3)}
+.sum-v{font-weight:600;color:var(--t1);font-variant-numeric:tabular-nums}
+.sum-rule{height:1px;background:var(--border);margin:8px 0}
+.sum-grand{padding:8px 0 0}
+.sum-grand .sum-k{font-size:15px;font-weight:800;color:var(--t1)}
+.sum-grand .sum-v{font-size:22px;font-weight:900;color:var(--a);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+
+/* ── Notes ── */
+.notes-toggle{
+  display:flex;align-items:center;gap:8px;
+  padding:16px 0 0;width:100%;color:var(--t3);font-size:13px;font-weight:500;
+  transition:.12s;
+}
+.notes-toggle:hover{color:var(--t1)}
+.notes-toggle i.icon{font-size:15px}
+.notes-arr{font-size:16px;margin-left:auto;transition:transform .2s}
+.notes-toggle[aria-expanded=true] .notes-arr{transform:rotate(180deg)}
+.notes-body{
+  display:none;
+  padding:16px 0 0;
+  grid-template-columns:1fr 1fr;gap:16px;
+}
+.notes-body.open{display:grid}
+.notes-lbl{font-size:11px;font-weight:600;color:var(--t3);margin-bottom:6px;display:block}
+.notes-ta{
+  width:100%;border:1px solid var(--border);border-radius:8px;
+  padding:10px 12px;font-size:13px;color:var(--t1);
+  background:var(--panel);outline:none;resize:vertical;min-height:80px;
+  transition:.13s;
+}
+.notes-ta:focus{border-color:var(--a);background:var(--canvas);box-shadow:0 0 0 3px var(--a-bg)}
+.attach-row{display:flex;gap:8px;padding-top:10px}
+
+/* ═══════════════════════════════════════════════
+   CONTEXT PANEL
+═══════════════════════════════════════════════ */
+.ctx-panel{
+  width:288px;flex-shrink:0;
+  background:var(--panel);
+  border-left:1px solid var(--panel-border);
+  overflow-y:auto;
+  display:flex;flex-direction:column;
+}
+.ctx-section{padding:20px;border-bottom:1px solid var(--panel-border)}
+.ctx-section:last-child{border-bottom:none}
+.ctx-label{font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--t4);margin-bottom:12px}
+
+/* no customer state */
+.ctx-empty{text-align:center;padding:24px 20px}
+.ctx-empty-icon{
+  width:52px;height:52px;border-radius:14px;
+  background:var(--canvas);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;color:var(--t4);margin:0 auto 12px;
+}
+.ctx-empty-title{font-size:13px;font-weight:700;color:var(--t1);margin-bottom:4px}
+.ctx-empty-sub{font-size:12px;color:var(--t3);line-height:1.5}
+
+/* recent customers */
+.recent-item{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 10px;border-radius:8px;cursor:pointer;transition:.12s;
+}
+.recent-item:hover{background:var(--canvas)}
+.r-avatar{
+  width:30px;height:30px;border-radius:8px;
+  font-size:11px;font-weight:800;color:#fff;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.r-name{font-size:12px;font-weight:600;color:var(--t1)}
+.r-area{font-size:11px;color:var(--t3)}
+
+/* customer filled state */
+.ctx-cust-avatar{
+  width:44px;height:44px;border-radius:10px;
+  font-size:15px;font-weight:800;color:#fff;
+  display:flex;align-items:center;justify-content:center;margin-bottom:10px;
+}
+.ctx-cust-name{font-size:15px;font-weight:800;color:var(--t1);margin-bottom:2px;letter-spacing:-.01em}
+.ctx-cust-meta{font-size:11px;color:var(--t3)}
+.ctx-detail{margin-top:12px}
+.ctx-detail-row{display:flex;flex-direction:column;padding:6px 0;border-bottom:1px solid var(--panel-border)}
+.ctx-detail-row:last-child{border-bottom:none}
+.ctx-dk{font-size:10px;font-weight:600;color:var(--t4);text-transform:uppercase;letter-spacing:.04em}
+.ctx-dv{font-size:12px;font-weight:500;color:var(--t2);margin-top:2px}
+
+/* summary state */
+.ctx-sum-row{display:flex;justify-content:space-between;padding:6px 0;font-size:13px}
+.ctx-sk{color:var(--t3)}
+.ctx-sv{font-weight:600;color:var(--t1);font-variant-numeric:tabular-nums}
+.ctx-sum-rule{height:1px;background:var(--panel-border);margin:6px 0}
+.ctx-grand-k{font-size:14px;font-weight:800;color:var(--t1)}
+.ctx-grand-v{font-size:20px;font-weight:900;color:var(--a);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+
+/* kbd guide */
+.kbd-row{display:flex;align-items:center;gap:8px;padding:3px 0;font-size:12px;color:var(--t3)}
+.kbd-row .kbd-hint{min-width:40px;justify-content:center;display:inline-flex}
+
+/* ═══════════════════════════════════════════════
+   COMMAND PALETTE
+═══════════════════════════════════════════════ */
+.palette-overlay{
+  position:fixed;inset:0;z-index:900;
+  background:rgba(15,17,25,.45);
+  backdrop-filter:blur(6px);
+  -webkit-backdrop-filter:blur(6px);
+  display:flex;align-items:flex-start;justify-content:center;
+  padding-top:12vh;
+  opacity:0;pointer-events:none;
+  transition:opacity .18s;
+}
+.palette-overlay.open{opacity:1;pointer-events:auto}
+
+.palette{
+  width:560px;max-width:calc(100vw - 32px);
+  background:var(--canvas);
+  border:1px solid var(--border);
+  border-radius:16px;
+  box-shadow:var(--sh-palette);
+  overflow:hidden;
+  transform:translateY(-12px) scale(.97);
+  transition:transform .2s cubic-bezier(.34,1.56,.64,1), opacity .18s;
+}
+.palette-overlay.open .palette{transform:translateY(0) scale(1)}
+
+.palette-search{
+  display:flex;align-items:center;gap:10px;
+  padding:14px 18px;
+  border-bottom:1px solid var(--border);
+}
+.palette-search i{font-size:18px;color:var(--t3);flex-shrink:0}
+.palette-inp{
+  flex:1;border:none;background:none;
+  font-size:16px;font-weight:500;color:var(--t1);
+  outline:none;
+}
+.palette-inp::placeholder{color:var(--t4)}
+.palette-esc{font-size:11px;font-weight:600;color:var(--t4);font-family:monospace;
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:5px;padding:2px 7px;flex-shrink:0}
+
+.palette-body{max-height:360px;overflow-y:auto}
+.palette-group-label{
+  font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--t4);padding:10px 18px 4px;
+}
+.palette-item{
+  display:flex;align-items:center;gap:12px;
+  padding:10px 18px;cursor:pointer;transition:.1s;
+}
+.palette-item:hover,.palette-item.focused{background:var(--a-bg)}
+.pi-icon{
+  width:34px;height:34px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;flex-shrink:0;
+  background:var(--panel);color:var(--t3);
+}
+.pi-icon.colored{color:#fff}
+.pi-main{flex:1;min-width:0}
+.pi-name{font-size:13px;font-weight:600;color:var(--t1)}
+.pi-sub{font-size:11px;color:var(--t3);margin-top:1px}
+.pi-right{text-align:right;flex-shrink:0}
+.pi-price{font-size:13px;font-weight:700;color:var(--t1);font-variant-numeric:tabular-nums}
+.pi-tax{font-size:11px;color:var(--t3)}
+
+.palette-footer{
+  padding:8px 18px;border-top:1px solid var(--border);
+  display:flex;align-items:center;gap:12px;font-size:11px;color:var(--t4);
+}
+.pf-key{display:inline-flex;align-items:center;gap:4px}
+.pf-kbd{
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:4px;padding:1px 5px;font-family:monospace;font-size:10px;font-weight:600;
+}
+
+.palette-empty{
+  padding:32px 18px;text-align:center;
+  font-size:13px;color:var(--t3);
+}
+
+/* ═══════════════════════════════════════════════
+   FLOATING ACTION BAR
+═══════════════════════════════════════════════ */
+.float-bar{
+  position:fixed;bottom:0;left:0;right:0;z-index:80;
+  height:var(--floatbar);
+  background:rgba(255,255,255,.9);
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+  border-top:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 24px;gap:16px;
+}
+.fb-totals{}
+.fb-total-label{font-size:10px;font-weight:600;color:var(--t4);text-transform:uppercase;letter-spacing:.05em}
+.fb-total-val{font-size:18px;font-weight:900;color:var(--t1);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.fb-total-tax{font-size:11px;color:var(--t3);margin-left:6px;font-variant-numeric:tabular-nums}
+.fb-actions{display:flex;align-items:center;gap:8px}
+
+/* ═══════════════════════════════════════════════
+   MINI DROPDOWN for mode/dispatch
+═══════════════════════════════════════════════ */
+.inline-dd{position:relative;display:inline-flex}
+.inline-dd-panel{
+  position:absolute;top:calc(100% + 6px);left:0;z-index:300;
+  background:var(--canvas);border:1px solid var(--border);
+  border-radius:10px;padding:5px;
+  box-shadow:var(--sh-md);min-width:170px;
+  opacity:0;pointer-events:none;transform:translateY(-6px);
+  transition:opacity .14s,transform .14s;
+}
+.inline-dd-panel.open{opacity:1;pointer-events:auto;transform:translateY(0)}
+.idp-item{
+  display:flex;align-items:center;gap:8px;
+  padding:7px 10px;border-radius:7px;cursor:pointer;
+  font-size:13px;font-weight:500;color:var(--t2);transition:.1s;
+}
+.idp-item:hover,.idp-item.active{background:var(--a-bg);color:var(--a)}
+.idp-item.active{font-weight:700}
+.idp-item .chk{color:var(--a);font-size:14px;margin-left:auto}
+
+/* ═══════════════════════════════════════════════
+   ANIMATIONS
+═══════════════════════════════════════════════ */
+@keyframes fadeRowIn{
+  from{opacity:0;transform:translateX(-10px)}
+  to{opacity:1;transform:translateX(0)}
+}
+@keyframes popVal{
+  0%{transform:scale(1)}50%{transform:scale(1.07)}100%{transform:scale(1)}
+}
+.row-anim{animation:fadeRowIn .22s ease}
+.pop{animation:popVal .25s ease}
+
+/* ═══════════════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════════════ */
+@media(max-width:960px){
+  .ctx-panel{display:none}
+}
+@media(max-width:640px){
+  .tb-center{display:none}
+  .canvas{padding:28px 20px}
+  .from-to{grid-template-columns:1fr}
+  .ft-col:first-child{padding-right:0;border-right:none;border-bottom:1px solid var(--border);padding-bottom:20px;margin-bottom:20px}
+  .ft-col:last-child{padding-left:0}
+  .details-strip{flex-direction:column;align-items:flex-start;gap:8px}
+  .ds-item::after{display:none}
+  .notes-body{grid-template-columns:1fr}
+  .canvas-scroll{padding:16px 12px 80px}
+  .palette{width:calc(100vw - 24px)}
+}
+</style>
+</head>
+<body>
+
+<!-- ─── TOPBAR ───────────────────────────────── -->
+<header class="topbar">
+  <div style="display:flex;align-items:center;gap:10px">
+    <button class="tb-back" onclick="history.back()"><i class='bx bx-arrow-back' style="font-size:17px"></i></button>
+    <nav class="tb-crumb">
+      <a href="#">Delivery Challans</a>
+      <span class="sep"><i class='bx bx-chevron-right'></i></span>
+      <span class="cur">New Challan</span>
+    </nav>
+  </div>
+
+  <div class="tb-center">
+    <div class="doc-chip">
+      <i class='bx bx-package doc-chip-icon'></i>
+      <span class="doc-chip-num" id="topDocNum">DC-0042</span>
+      <span class="status-pill sp-new" id="topStatus">New</span>
+    </div>
+  </div>
+
+  <div class="tb-right">
+    <button class="btn btn-ghost btn-sm" onclick="doDraft()">
+      <i class='bx bx-save'></i> Draft <span class="kbd-hint">⌘D</span>
+    </button>
+    <div class="split-wrap">
+      <button class="btn btn-primary split-main btn-sm" onclick="doSave()">
+        <i class='bx bx-check'></i> Save Challan <span class="kbd-hint kbd-hint-light">⌘S</span>
+      </button>
+      <button class="split-caret btn-sm" id="topSaveCaret"><i class='bx bx-chevron-down'></i></button>
+      <div class="dd" id="topSaveDD">
+        <div class="dd-hdr">Save &amp; Print</div>
+        <button class="dd-item"><i class='bx bx-file'></i>Save &amp; Print A4</button>
+        <button class="dd-item"><i class='bx bx-file-blank'></i>Save &amp; Print A5</button>
+        <button class="dd-item"><i class='bx bx-receipt'></i>Save &amp; Print Thermal</button>
+      </div>
+    </div>
+    <button class="btn btn-danger-ghost btn-sm"><i class='bx bx-x' style="font-size:17px"></i></button>
+  </div>
+</header>
+
+<!-- ─── WORKSPACE ────────────────────────────── -->
+<div class="workspace">
+
+  <!-- DOCUMENT CANVAS -->
+  <div class="canvas-scroll">
+    <div class="canvas" id="mainCanvas">
+
+      <!-- Document header -->
+      <div class="doc-header">
+        <div class="doc-title">Delivery Challan</div>
+        <div class="doc-num-block">
+          <div class="doc-num-label">Document No.</div>
+          <div class="doc-num" id="canvasDocNum">DC-0042</div>
+        </div>
+      </div>
+
+      <!-- Meta strip: date + mode -->
+      <div class="doc-meta-strip">
+        <div class="meta-field">
+          <span class="meta-key">Date</span>
+          <button class="meta-date-btn" id="dateBtn">
+            <i class='bx bx-calendar' style="font-size:12px"></i>
+            <span id="dateBtnText">01 Jul 2026</span>
+          </button>
+          <input type="hidden" id="transDate" value="2026-07-01">
+        </div>
+
+        <!-- Mode chip with inline dropdown -->
+        <div class="inline-dd" id="modeDD">
+          <button class="mode-chip" id="modeTrigger">
+            <i class='bx bx-transfer-alt' style="font-size:12px"></i>
+            <span id="modeLabel">Non-Returnable</span>
+            <i class='bx bx-chevron-down' style="font-size:12px;color:var(--t4)"></i>
+          </button>
+          <div class="inline-dd-panel" id="modeDDPanel">
+            <div class="idp-item active" data-val="Non-Returnable"><i class='bx bx-package'></i> Non-Returnable <i class='bx bx-check chk'></i></div>
+            <div class="idp-item" data-val="Returnable"><i class='bx bx-undo'></i> Returnable</div>
+            <div class="idp-item" data-val="Job Work"><i class='bx bx-wrench'></i> Job Work</div>
+          </div>
+        </div>
+
+        <!-- Type chip -->
+        <div class="inline-dd" id="typeDD">
+          <button class="mode-chip" id="typeTrigger">
+            <i class='bx bx-receipt' style="font-size:12px"></i>
+            <span id="typeLabel">Regular</span>
+            <i class='bx bx-chevron-down' style="font-size:12px;color:var(--t4)"></i>
+          </button>
+          <div class="inline-dd-panel" id="typeDDPanel">
+            <div class="idp-item active" data-val="Regular"><i class='bx bx-check-circle'></i> Regular <i class='bx bx-check chk'></i></div>
+            <div class="idp-item" data-val="Without_GST"><i class='bx bx-x-circle'></i> Without GST</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="canvas-rule"></div>
+
+      <!-- FROM / TO -->
+      <div class="from-to" style="margin-bottom:28px">
+        <div class="ft-col">
+          <div class="ft-label">From</div>
+          <div class="from-org-name">Rishika 2K Enterprises</div>
+          <div class="from-org-addr">12 Industrial Area, Ambattur<br>Chennai, Tamil Nadu 600058</div>
+          <div class="from-org-gst">GSTIN: 33RRRR1234R1Z5</div>
+        </div>
+        <div class="ft-col">
+          <div class="ft-label">To</div>
+          <!-- Empty -->
+          <div id="custEmpty">
+            <button class="cust-select-btn" id="custSelectBtn">
+              <i class='bx bx-search'></i>
+              <span>Select customer…</span>
+              <span class="cust-select-ks">⌘K</span>
+            </button>
+          </div>
+          <!-- Filled -->
+          <div id="custFilled" style="display:none">
+            <div class="cust-filled">
+              <div class="cust-filled-name" id="cfName">—</div>
+              <div class="cust-filled-addr" id="cfAddr">—</div>
+              <div class="cust-filled-gst" id="cfGst">—</div>
+              <button class="cust-change-btn" id="custChangeBtn"><i class='bx bx-edit-alt'></i></button>
+            </div>
+          </div>
+          <input type="hidden" id="customerSearch" name="customerSearch" value="">
+        </div>
+      </div>
+
+      <div class="canvas-rule"></div>
+
+      <!-- Details strip -->
+      <div class="details-strip">
+        <div class="ds-item">
+          <span class="ds-key">Dispatch From</span>
+          <div class="inline-dd" id="dfDD">
+            <button class="ds-val-btn" id="dfTrigger">
+              <span id="dfLabel">Warehouse, Chennai</span>
+              <i class='bx bx-chevron-down'></i>
+            </button>
+            <div class="inline-dd-panel" id="dfDDPanel" style="min-width:260px">
+              <div class="idp-item active" data-uid="1" data-text="Warehouse, Chennai">
+                <i class='bx bx-buildings'></i>Warehouse, Chennai<i class='bx bx-check chk'></i>
+              </div>
+              <div class="idp-item" data-uid="2" data-text="Head Office, Chennai">
+                <i class='bx bx-building'></i>Head Office, Chennai
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ds-item">
+          <span class="ds-key">Delivery By</span>
+          <button class="ds-val-btn" id="delByBtn">
+            <span id="delByText">—</span>
+            <i class='bx bx-chevron-down'></i>
+          </button>
+          <input type="hidden" id="deliveryByDate" value="">
+        </div>
+
+        <div class="ds-item" id="returnDateItem" style="display:none">
+          <span class="ds-key">Return By</span>
+          <button class="ds-val-btn" id="retByBtn">
+            <span id="retByText">—</span>
+            <i class='bx bx-chevron-down'></i>
+          </button>
+          <input type="hidden" id="returnDate" value="">
+        </div>
+
+        <div class="ds-item">
+          <span class="ds-key">Vehicle / Ref</span>
+          <input type="text" class="ds-input" id="vehicleNumber" name="vehicleNumber"
+                 placeholder="TN01AB1234" maxlength="50">
+        </div>
+      </div>
+
+      <!-- Items table -->
+      <div class="items-wrap">
+        <!-- Empty state (shown when no items) -->
+        <div id="itemsEmpty" style="padding:40px 0;text-align:center;border-top:1px solid var(--border)">
+          <div style="font-size:32px;color:var(--t5);margin-bottom:10px"><i class='bx bx-cube'></i></div>
+          <div style="font-size:14px;font-weight:700;color:var(--t1);margin-bottom:4px">No items added yet</div>
+          <div style="font-size:12px;color:var(--t3);margin-bottom:20px">Add the products being dispatched in this challan</div>
+          <button class="btn btn-primary btn-sm" id="addFirstItemBtn">
+            <i class='bx bx-plus'></i> Add First Item
+            <span class="kbd-hint kbd-hint-light">⌘/</span>
+          </button>
+        </div>
+
+        <table class="items-table" id="itemsTable" style="display:none">
+          <thead>
+            <tr>
+              <th class="col-sno">#</th>
+              <th>Item</th>
+              <th class="num-col" style="width:70px">Qty</th>
+              <th class="num-col" style="width:100px">Rate</th>
+              <th class="num-col" style="width:70px">Disc%</th>
+              <th style="width:65px;text-align:center">GST</th>
+              <th class="num-col" style="width:110px">Amount</th>
+              <th style="width:32px"></th>
+            </tr>
+          </thead>
+          <tbody id="itemsBody"></tbody>
+          <tfoot>
+            <tr class="add-row">
+              <td colspan="8">
+                <button class="add-item-btn" id="addItemInlineBtn">
+                  <i class='bx bx-plus'></i>
+                  <span>Add an item</span>
+                  <span class="ks">⌘/</span>
+                </button>
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <!-- Summary -->
+      <div class="doc-summary" id="docSummary" style="display:none">
+        <div class="sum-inner">
+          <div class="sum-row"><span class="sum-k">Subtotal</span><span class="sum-v" id="sumSubtotal">₹0.00</span></div>
+          <div class="sum-row"><span class="sum-k">Tax (GST)</span><span class="sum-v" id="sumTax">₹0.00</span></div>
+          <div class="sum-rule"></div>
+          <div class="sum-row sum-grand">
+            <span class="sum-k">Total</span>
+            <span class="sum-v" id="sumTotal">₹0.00</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notes -->
+      <div class="canvas-rule" style="margin-top:24px"></div>
+      <button class="notes-toggle" id="notesToggle" aria-expanded="false">
+        <i class='bx bx-note icon'></i>
+        <span>Notes &amp; Terms</span>
+        <i class='bx bx-chevron-down notes-arr'></i>
+      </button>
+      <div class="notes-body" id="notesBody">
+        <div>
+          <label class="notes-lbl">Notes</label>
+          <textarea class="notes-ta" placeholder="Add any notes for this delivery challan…"></textarea>
+        </div>
+        <div>
+          <label class="notes-lbl">Terms &amp; Conditions</label>
+          <textarea class="notes-ta" placeholder="Payment terms, delivery instructions…"></textarea>
+        </div>
+        <div class="attach-row" style="grid-column:1/-1">
+          <button class="btn btn-ghost btn-sm"><i class='bx bx-paperclip'></i>Attach files</button>
+          <button class="btn btn-ghost btn-sm"><i class='bx bx-pen'></i>Add signature</button>
+        </div>
+      </div>
+
+    </div><!-- /canvas -->
+  </div><!-- /canvas-scroll -->
+
+  <!-- CONTEXT PANEL -->
+  <aside class="ctx-panel" id="ctxPanel">
+
+    <!-- STATE 0: no customer -->
+    <div id="ctxNoCust">
+      <div class="ctx-empty">
+        <div class="ctx-empty-icon"><i class='bx bx-user'></i></div>
+        <div class="ctx-empty-title">Select a customer</div>
+        <div class="ctx-empty-sub">Start by choosing a customer to dispatch to</div>
+      </div>
+      <div class="ctx-section">
+        <div class="ctx-label">Recent Customers</div>
+        <div id="recentList"></div>
+      </div>
+      <div class="ctx-section">
+        <div class="ctx-label">Keyboard Shortcuts</div>
+        <div class="kbd-row"><span class="kbd-hint">⌘ K</span><span>Search customer</span></div>
+        <div class="kbd-row"><span class="kbd-hint">⌘ /</span><span>Add product</span></div>
+        <div class="kbd-row"><span class="kbd-hint">⌘ S</span><span>Save challan</span></div>
+        <div class="kbd-row"><span class="kbd-hint">⌘ D</span><span>Save as draft</span></div>
+        <div class="kbd-row"><span class="kbd-hint">Esc</span><span>Close palette</span></div>
+      </div>
+    </div>
+
+    <!-- STATE 1: customer selected, no items -->
+    <div id="ctxCust" style="display:none">
+      <div class="ctx-section">
+        <div class="ctx-cust-avatar" id="ctxAvatar" style="background:#4f46e5">AB</div>
+        <div class="ctx-cust-name" id="ctxCustName">Acme Builders</div>
+        <div class="ctx-cust-meta" id="ctxCustMeta">Ambattur · B2B</div>
+        <div class="ctx-detail">
+          <div class="ctx-detail-row">
+            <span class="ctx-dk">Billing Address</span>
+            <span class="ctx-dv" id="ctxCustAddr">—</span>
+          </div>
+          <div class="ctx-detail-row">
+            <span class="ctx-dk">GSTIN</span>
+            <span class="ctx-dv" id="ctxCustGst" style="font-family:'SF Mono',monospace;font-size:11px">—</span>
+          </div>
+          <div class="ctx-detail-row">
+            <span class="ctx-dk">Phone</span>
+            <span class="ctx-dv" id="ctxCustPhone">—</span>
+          </div>
+        </div>
+      </div>
+      <div class="ctx-section">
+        <div class="ctx-label">Add Items</div>
+        <button class="btn btn-primary btn-sm btn-full" id="ctxAddItemBtn">
+          <i class='bx bx-plus'></i> Add Product <span class="kbd-hint kbd-hint-light">⌘/</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- STATE 2: has items — summary -->
+    <div id="ctxSummary" style="display:none">
+      <div class="ctx-section">
+        <div class="ctx-label">Order Summary</div>
+        <div class="ctx-sum-row"><span class="ctx-sk">Items</span><span class="ctx-sv" id="ctxItems">0</span></div>
+        <div class="ctx-sum-row"><span class="ctx-sk">Subtotal</span><span class="ctx-sv" id="ctxSubtotal">₹0.00</span></div>
+        <div class="ctx-sum-row"><span class="ctx-sk">Tax (GST)</span><span class="ctx-sv" id="ctxTax">₹0.00</span></div>
+        <div class="ctx-sum-rule"></div>
+        <div class="ctx-sum-row">
+          <span class="ctx-grand-k">Total</span>
+          <span class="ctx-grand-v" id="ctxTotal">₹0.00</span>
+        </div>
+      </div>
+      <div class="ctx-section">
+        <div class="split-wrap" style="width:100%">
+          <button class="btn btn-primary split-main" style="flex:1;justify-content:center" onclick="doSave()">
+            <i class='bx bx-check'></i> Save Challan
+          </button>
+          <button class="split-caret" id="ctxSaveCaret"><i class='bx bx-chevron-down'></i></button>
+          <div class="dd up" id="ctxSaveDD" style="left:0;right:0;min-width:0">
+            <div class="dd-hdr">Save &amp; Print</div>
+            <button class="dd-item"><i class='bx bx-file'></i>Print A4</button>
+            <button class="dd-item"><i class='bx bx-file-blank'></i>Print A5</button>
+            <button class="dd-item"><i class='bx bx-receipt'></i>Print Thermal</button>
+          </div>
+        </div>
+        <button class="btn btn-outline btn-full" style="margin-top:8px" onclick="doDraft()">
+          <i class='bx bx-save'></i> Save as Draft <span class="kbd-hint">⌘D</span>
+        </button>
+        <button class="btn btn-ghost btn-sm" style="margin-top:4px;color:var(--t3);width:100%;justify-content:center" id="ctxAddMoreBtn">
+          <i class='bx bx-plus'></i> Add more items
+        </button>
+      </div>
+    </div>
+
+  </aside>
+</div><!-- /workspace -->
+
+<!-- ─── COMMAND PALETTE ──────────────────────── -->
+<div class="palette-overlay" id="paletteOverlay">
+  <div class="palette" id="palette">
+    <div class="palette-search">
+      <i class='bx bx-search'></i>
+      <input type="text" class="palette-inp" id="paletteInp" placeholder="Search customers and products…" autocomplete="off">
+      <span class="palette-esc">Esc</span>
+    </div>
+    <div class="palette-body" id="paletteBody"></div>
+    <div class="palette-footer">
+      <span class="pf-key"><span class="pf-kbd">↑↓</span> navigate</span>
+      <span class="pf-key"><span class="pf-kbd">↵</span> select</span>
+      <span class="pf-key"><span class="pf-kbd">Esc</span> close</span>
+    </div>
+  </div>
+</div>
+
+<!-- ─── FLOATING ACTION BAR ──────────────────── -->
+<div class="float-bar">
+  <div class="fb-totals">
+    <div class="fb-total-label">Grand Total</div>
+    <div>
+      <span class="fb-total-val" id="fbTotal">₹0.00</span>
+      <span class="fb-total-tax" id="fbTax">incl. ₹0.00 GST</span>
+    </div>
+  </div>
+  <div class="fb-actions">
+    <button class="btn btn-ghost" onclick="doDraft()"><i class='bx bx-save'></i> Draft</button>
+    <div class="split-wrap">
+      <button class="btn btn-primary split-main" onclick="doSave()">
+        <i class='bx bx-check'></i> Save Challan
+      </button>
+      <button class="split-caret" id="fbSaveCaret"><i class='bx bx-chevron-down'></i></button>
+      <div class="dd up" id="fbSaveDD">
+        <div class="dd-hdr">Save &amp; Print</div>
+        <button class="dd-item"><i class='bx bx-file'></i>Print A4</button>
+        <button class="dd-item"><i class='bx bx-file-blank'></i>Print A5</button>
+        <button class="dd-item"><i class='bx bx-receipt'></i>Print Thermal</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ─── DEMO DATA ──────────────────────────────── */
+const CUSTS=[
+  {id:1,name:'Acme Builders Ltd',area:'Ambattur',gst:'33AABCA1234A1Z5',phone:'+91 98765 43210',addr:'15/A Anna Nagar, Chennai 600040',init:'AB',color:'#4f46e5'},
+  {id:2,name:'BlueStar Constructions',area:'T. Nagar',gst:'33BBBST5678B2Z3',phone:'+91 87654 32109',addr:'22 Pondy Bazaar, Chennai 600017',init:'BC',color:'#059669'},
+  {id:3,name:'Chennai Steel Works',area:'Guindy',gst:'33CCCST9012C3Z1',phone:'+91 76543 21098',addr:'8 Industrial Estate, Guindy 600032',init:'CS',color:'#d97706'},
+  {id:4,name:'Delta Infra Projects',area:'Porur',gst:'33DDDIP1122D4Z8',phone:'+91 65432 10987',addr:'45 Ramapuram Main Rd, Porur 600116',init:'DI',color:'#dc2626'},
+];
+const PRODS=[
+  {id:1,name:'OPC 53 Grade Cement',sku:'CEM-OPC-53',unit:'Bag',price:420,tax:18},
+  {id:2,name:'TMT Steel Bars Fe500D 12mm',sku:'STL-TMT-12',unit:'MT',price:68500,tax:18},
+  {id:3,name:'AAC Blocks 600×200×200mm',sku:'BLK-AAC-200',unit:'Nos',price:55,tax:12},
+  {id:4,name:'River Sand (M-Sand Washed)',sku:'SND-MSW',unit:'Cft',price:1800,tax:5},
+  {id:5,name:'Ready Mix Concrete M25',sku:'RMC-M25',unit:'CuM',price:5500,tax:18},
+  {id:6,name:'Fly Ash Bricks 230×110×75mm',sku:'BRK-FAB',unit:'Nos',price:8,tax:12},
+];
+
+/* ─── STATE ──────────────────────────────────── */
+let cart=[], rowId=0, palMode='all', palFocus=-1;
+const INR=n=>'₹'+Number(n).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+const G=id=>document.getElementById(id);
+const QA=sel=>document.querySelectorAll(sel);
+
+/* ─── POPULATE RECENT ────────────────────────── */
+G('recentList').innerHTML=CUSTS.slice(0,3).map(c=>`
+  <div class="recent-item" data-cid="${c.id}">
+    <div class="r-avatar" style="background:${c.color}">${c.init}</div>
+    <div><div class="r-name">${c.name}</div><div class="r-area">${c.area}</div></div>
+  </div>`).join('');
+G('recentList').addEventListener('click',e=>{
+  const el=e.target.closest('[data-cid]');
+  if(el) selectCust(CUSTS.find(c=>c.id==el.dataset.cid));
+});
+
+/* ─── CUSTOMER SELECT ────────────────────────── */
+function selectCust(c){
+  G('cfName').textContent=c.name;
+  G('cfAddr').textContent=c.addr;
+  G('cfGst').textContent='GSTIN: '+c.gst;
+  G('custEmpty').style.display='none';
+  G('custFilled').style.display='block';
+  G('customerSearch').value=c.id;
+  // context panel
+  G('ctxNoCust').style.display='none';
+  G('ctxCust').style.display='block';
+  G('ctxAvatar').textContent=c.init;
+  G('ctxAvatar').style.background=c.color;
+  G('ctxCustName').textContent=c.name;
+  G('ctxCustMeta').textContent=c.area+(c.gst?' · B2B':' · B2C');
+  G('ctxCustAddr').textContent=c.addr;
+  G('ctxCustGst').textContent=c.gst||'—';
+  G('ctxCustPhone').textContent=c.phone;
+  closePalette();
+  updateCtx();
+}
+G('custChangeBtn').addEventListener('click',()=>{
+  G('custFilled').style.display='none';
+  G('custEmpty').style.display='block';
+  G('customerSearch').value='';
+  openPalette('cust');
+});
+G('custSelectBtn').addEventListener('click',()=>openPalette('cust'));
+
+/* ─── PALETTE ────────────────────────────────── */
+function openPalette(mode='all'){
+  palMode=mode;palFocus=-1;
+  G('paletteInp').value='';
+  renderPalette('');
+  G('paletteOverlay').classList.add('open');
+  setTimeout(()=>G('paletteInp').focus(),50);
+}
+function closePalette(){
+  G('paletteOverlay').classList.remove('open');
+}
+
+G('paletteInp').addEventListener('input',e=>renderPalette(e.target.value.trim().toLowerCase()));
+
+function renderPalette(q){
+  const body=G('paletteBody');
+  let html='';
+
+  if(palMode==='cust'||palMode==='all'){
+    const hits=CUSTS.filter(c=>!q||c.name.toLowerCase().includes(q)||c.gst.toLowerCase().includes(q)||c.phone.includes(q));
+    if(hits.length){
+      html+=`<div class="palette-group-label">Customers</div>`;
+      html+=hits.map(c=>`
+        <div class="palette-item" data-type="cust" data-id="${c.id}" tabindex="-1">
+          <div class="pi-icon colored" style="background:${c.color}">${c.init}</div>
+          <div class="pi-main">
+            <div class="pi-name">${c.name}</div>
+            <div class="pi-sub">${c.area} · ${c.gst}</div>
+          </div>
+        </div>`).join('');
+    }
+  }
+
+  if(palMode==='prod'||palMode==='all'){
+    const hits=PRODS.filter(p=>!q||p.name.toLowerCase().includes(q)||p.sku.toLowerCase().includes(q));
+    if(hits.length){
+      html+=`<div class="palette-group-label">${palMode==='all'?'Products':'Add Product'}</div>`;
+      html+=hits.map(p=>`
+        <div class="palette-item" data-type="prod" data-id="${p.id}" tabindex="-1">
+          <div class="pi-icon"><i class='bx bx-cube'></i></div>
+          <div class="pi-main">
+            <div class="pi-name">${p.name}</div>
+            <div class="pi-sub">${p.sku} · ${p.unit}</div>
+          </div>
+          <div class="pi-right">
+            <div class="pi-price">${INR(p.price)}</div>
+            <div class="pi-tax">GST ${p.tax}%</div>
+          </div>
+        </div>`).join('');
+    }
+  }
+
+  if(!html) html=`<div class="palette-empty">No results for "${q}"</div>`;
+  body.innerHTML=html;
+  palFocus=-1;
+}
+
+G('paletteBody').addEventListener('click',e=>{
+  const item=e.target.closest('.palette-item');
+  if(!item)return;
+  handlePaletteSelect(item);
+});
+
+function handlePaletteSelect(item){
+  if(item.dataset.type==='cust') selectCust(CUSTS.find(c=>c.id==item.dataset.id));
+  if(item.dataset.type==='prod') addCartItem(PRODS.find(p=>p.id==item.dataset.id));
+  closePalette();
+}
+
+// Keyboard nav inside palette
+G('paletteInp').addEventListener('keydown',e=>{
+  const items=[...G('paletteBody').querySelectorAll('.palette-item')];
+  if(e.key==='ArrowDown'){e.preventDefault();palFocus=Math.min(palFocus+1,items.length-1);focus(items);}
+  else if(e.key==='ArrowUp'){e.preventDefault();palFocus=Math.max(palFocus-1,0);focus(items);}
+  else if(e.key==='Enter'&&palFocus>=0){e.preventDefault();handlePaletteSelect(items[palFocus]);}
+  else if(e.key==='Escape'){closePalette();}
+});
+function focus(items){
+  items.forEach((el,i)=>el.classList.toggle('focused',i===palFocus));
+  if(items[palFocus]) items[palFocus].scrollIntoView({block:'nearest'});
+}
+G('paletteOverlay').addEventListener('click',e=>{if(e.target===G('paletteOverlay'))closePalette();});
+
+/* ─── CART ───────────────────────────────────── */
+function addCartItem(p){
+  cart.push({rid:++rowId,p,qty:1,rate:p.price,disc:0});
+  renderTable();
+  animateRow(rowId);
+  updateCtx();
+}
+
+function renderTable(){
+  const empty=!cart.length;
+  G('itemsEmpty').style.display=empty?'':'none';
+  G('itemsTable').style.display=empty?'none':'table';
+  G('docSummary').style.display=empty?'none':'flex';
+
+  if(!empty){
+    G('itemsBody').innerHTML=cart.map((r,i)=>{
+      const {net,tax,total}=calc(r);
+      return `<tr class="item-row" id="row-${r.rid}">
+        <td class="cell-sno">${i+1}</td>
+        <td class="cell-product">
+          <div class="prod-name">${r.p.name}</div>
+          <div class="prod-sku">${r.p.sku} · ${r.p.unit}</div>
+        </td>
+        <td class="cell-num">
+          <input class="inline-inp" data-rid="${r.rid}" data-f="qty" value="${r.qty}" inputmode="decimal">
+        </td>
+        <td class="cell-num">
+          <input class="inline-inp" data-rid="${r.rid}" data-f="rate" value="${r.rate}" inputmode="decimal">
+        </td>
+        <td class="cell-num">
+          <input class="inline-inp" data-rid="${r.rid}" data-f="disc" value="${r.disc}" inputmode="decimal">
+        </td>
+        <td style="text-align:center;padding:14px 10px">
+          <span class="gst-tag">${r.p.tax}%</span>
+        </td>
+        <td class="cell-num">
+          <span class="row-total" id="rt-${r.rid}">${INR(total)}</span>
+        </td>
+        <td class="cell-action">
+          <button class="del-btn" data-rid="${r.rid}"><i class='bx bx-trash'></i></button>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+  recalc();
+}
+
+function calc(r){
+  const base=r.qty*r.rate;
+  const disc=base*(r.disc/100);
+  const net=base-disc;
+  const tax=net*(r.p.tax/100);
+  return {net,tax,total:net+tax};
+}
+
+G('itemsBody').addEventListener('input',e=>{
+  const el=e.target;if(!el.dataset.rid)return;
+  const r=cart.find(x=>x.rid==el.dataset.rid);if(!r)return;
+  r[el.dataset.f]=parseFloat(el.value)||0;
+  const {total}=calc(r);
+  const rt=G('rt-'+r.rid);
+  if(rt){rt.textContent=INR(total);rt.classList.remove('pop');void rt.offsetWidth;rt.classList.add('pop');}
+  recalc();
+});
+
+G('itemsBody').addEventListener('click',e=>{
+  const btn=e.target.closest('.del-btn');if(!btn)return;
+  const row=G('row-'+btn.dataset.rid);
+  if(row){row.style.opacity='0';row.style.transition='opacity .18s';setTimeout(()=>{cart=cart.filter(r=>r.rid!=btn.dataset.rid);renderTable();updateCtx();},180);}
+});
+
+function animateRow(rid){
+  requestAnimationFrame(()=>{
+    const row=G('row-'+rid);
+    if(row){row.classList.add('row-anim');setTimeout(()=>row.classList.remove('row-anim'),300);}
+  });
+}
+
+function recalc(){
+  let sub=0,tax=0;
+  cart.forEach(r=>{const c=calc(r);sub+=c.net;tax+=c.tax;});
+  const grand=sub+tax;
+  G('sumSubtotal').textContent=INR(sub);
+  G('sumTax').textContent=INR(tax);
+  G('sumTotal').textContent=INR(grand);
+  G('ctxSubtotal').textContent=INR(sub);
+  G('ctxTax').textContent=INR(tax);
+  G('ctxTotal').textContent=INR(grand);
+  G('ctxItems').textContent=cart.length;
+  G('fbTotal').textContent=INR(grand);
+  G('fbTax').textContent='incl. '+INR(tax)+' GST';
+  const el=G('ctxTotal');el.classList.remove('pop');void el.offsetWidth;el.classList.add('pop');
+}
+
+function updateCtx(){
+  const hasCust=!!G('customerSearch').value;
+  const hasItems=cart.length>0;
+  if(!hasCust){G('ctxNoCust').style.display='';G('ctxCust').style.display='none';G('ctxSummary').style.display='none';}
+  else if(!hasItems){G('ctxNoCust').style.display='none';G('ctxCust').style.display='';G('ctxSummary').style.display='none';}
+  else{G('ctxNoCust').style.display='none';G('ctxCust').style.display='none';G('ctxSummary').style.display='';}
+}
+
+/* ─── ADD ITEM BUTTONS ───────────────────────── */
+['addFirstItemBtn','addItemInlineBtn','ctxAddItemBtn','ctxAddMoreBtn'].forEach(id=>{
+  const el=G(id);if(el)el.addEventListener('click',()=>openPalette('prod'));
+});
+
+/* ─── MODE / TYPE dropdowns ──────────────────── */
+function setupInlineDd(triggerId,panelId,onSelect){
+  const trigger=G(triggerId),panel=G(panelId);
+  trigger.addEventListener('click',e=>{e.stopPropagation();closeAllDds();panel.classList.toggle('open');});
+  panel.querySelectorAll('.idp-item').forEach(item=>{
+    item.addEventListener('click',()=>{
+      panel.querySelectorAll('.idp-item').forEach(i=>{i.classList.remove('active');i.querySelector('.chk')&&(i.querySelector('.chk').remove());});
+      item.classList.add('active');
+      if(!item.querySelector('.chk')) item.insertAdjacentHTML('beforeend','<i class="bx bx-check chk"></i>');
+      onSelect(item.dataset.val||item.dataset.uid||item.dataset.text,item);
+      panel.classList.remove('open');
+    });
+  });
+}
+setupInlineDd('modeTrigger','modeDDPanel',(val)=>{
+  G('modeLabel').textContent=val;
+  G('returnDateItem').style.display=['Returnable','Job Work'].includes(val)?'':'none';
+});
+setupInlineDd('typeTrigger','typeDDPanel',(val)=>{
+  G('typeLabel').textContent=val==='Without_GST'?'Without GST':val;
+});
+setupInlineDd('dfTrigger','dfDDPanel',(val,item)=>{
+  G('dfLabel').textContent=item.dataset.text||val;
+});
+
+/* ─── TOPBAR / CTX / FB split carets ─────────── */
+function toggleDd(caretId,ddId){
+  G(caretId).addEventListener('click',e=>{
+    e.stopPropagation();
+    const dd=G(ddId);
+    const open=dd.classList.contains('open');
+    closeAllDds();
+    if(!open)dd.classList.add('open');
+  });
+}
+toggleDd('topSaveCaret','topSaveDD');
+toggleDd('ctxSaveCaret','ctxSaveDD');
+toggleDd('fbSaveCaret','fbSaveDD');
+
+function closeAllDds(){
+  QA('.dd').forEach(d=>d.classList.remove('open'));
+  QA('.inline-dd-panel').forEach(d=>d.classList.remove('open'));
+}
+document.addEventListener('click',closeAllDds);
+
+/* ─── NOTES collapse ─────────────────────────── */
+G('notesToggle').addEventListener('click',function(){
+  const open=this.getAttribute('aria-expanded')==='true';
+  this.setAttribute('aria-expanded',String(!open));
+  G('notesBody').classList.toggle('open',!open);
+});
+
+/* ─── KEYBOARD SHORTCUTS ─────────────────────── */
+document.addEventListener('keydown',e=>{
+  const mod=e.ctrlKey||e.metaKey;
+  if(mod&&e.key==='k'){e.preventDefault();openPalette('all');}
+  if(mod&&e.key==='/'){e.preventDefault();openPalette('prod');}
+  if(mod&&e.key==='s'){e.preventDefault();doSave();}
+  if(mod&&e.key==='d'){e.preventDefault();doDraft();}
+  if(e.key==='Escape'){closePalette();closeAllDds();}
+});
+
+/* ─── SAVE / DRAFT ───────────────────────────── */
+function doSave(){
+  if(!G('customerSearch').value){alert('Please select a customer first.');return;}
+  if(!cart.length){alert('Please add at least one item.');return;}
+  alert('✓ Delivery Challan DC-0042 saved!\n\n(Demo — backend not connected)');
+}
+function doDraft(){
+  alert('✓ Saved as Draft\n\n(Demo — backend not connected)');
+}
+
+/* ─── INIT ───────────────────────────────────── */
+updateCtx();
+</script>
+</body>
+</html>

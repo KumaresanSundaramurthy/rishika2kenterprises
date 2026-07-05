@@ -10,7 +10,7 @@ class Expenses_model extends CI_Model {
     }
 
     // ── Paginated list ───────────────────────────────────────────────────────
-    public function getExpenseList($orgUID, $filter, $limit, $offset) {
+    public function getExpenseList(int $orgUID, array $filter, int $limit, int $offset): array {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select(
@@ -65,7 +65,7 @@ class Expenses_model extends CI_Model {
     }
 
     // ── Count ────────────────────────────────────────────────────────────────
-    public function getExpenseCount($orgUID, $filter) {
+    public function getExpenseCount(int $orgUID, array $filter): int {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('COUNT(*) AS cnt');
@@ -84,7 +84,7 @@ class Expenses_model extends CI_Model {
     }
 
     // ── Single record ────────────────────────────────────────────────────────
-    public function getExpenseById($expenseUID, $orgUID) {
+    public function getExpenseById(int $expenseUID, int $orgUID): ?object {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select(
@@ -118,7 +118,7 @@ class Expenses_model extends CI_Model {
     }
 
     // ── Summary stats for stat cards ─────────────────────────────────────────
-    public function getExpenseSummaryStats($orgUID) {
+    public function getExpenseSummaryStats(int $orgUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('e.DocStatus, COUNT(*) AS cnt, SUM(e.NetAmount) AS total');
@@ -140,7 +140,7 @@ class Expenses_model extends CI_Model {
     }
 
     // ── Categories (org-specific + system defaults) ──────────────────────────
-    public function getCategories($orgUID) {
+    public function getCategories(int $orgUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('CategoryUID, CategoryName');
@@ -161,7 +161,7 @@ class Expenses_model extends CI_Model {
     }
 
     // ── Payment types ────────────────────────────────────────────────────────
-    public function getPaymentTypes() {
+    public function getPaymentTypes(): array {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('PaymentTypeUID, Name AS PaymentTypeName, IsCash');
@@ -177,7 +177,7 @@ class Expenses_model extends CI_Model {
     }
 
     // ── Bank accounts for org (excludes cash accounts) ────────────────────────
-    public function getBankAccounts($orgUID) {
+    public function getBankAccounts(int $orgUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('BankAccountUID, AccountName, BankName, IsDefault');
@@ -196,7 +196,7 @@ class Expenses_model extends CI_Model {
     }
 
     // ── Default cash account for ledger entries ──────────────────────────────
-    public function getCashAccount($orgUID) {
+    public function getCashAccount(int $orgUID): ?object {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('BankAccountUID');
@@ -215,7 +215,7 @@ class Expenses_model extends CI_Model {
     }
 
     // ── Category list (paginated, for manager modal) ─────────────────────────
-    public function getCategoryList($orgUID, $search, $limit, $offset) {
+    public function getCategoryList(int $orgUID, string $search, int $limit, int $offset): array {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('CategoryUID, CategoryName, OrgUID, IsDefault');
@@ -241,7 +241,7 @@ class Expenses_model extends CI_Model {
     }
 
     // ── Category count ───────────────────────────────────────────────────────
-    public function getCategoryCount($orgUID, $search) {
+    public function getCategoryCount(int $orgUID, string $search): int {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('COUNT(*) AS cnt');
@@ -266,7 +266,7 @@ class Expenses_model extends CI_Model {
 
 
     // ── Count existing payment rows for an expense (for UniqueNumber suffix) ───
-    public function getPaymentCount($transUID, $sourceType, $orgUID) {
+    public function getPaymentCount(int $transUID, string $sourceType, int $orgUID): int {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('COUNT(*) AS cnt');
@@ -285,7 +285,7 @@ class Expenses_model extends CI_Model {
     }
 
     // ── Check if any active expense uses this category ────────────────────────
-    public function isCategoryLinked($categoryUID, $orgUID) {
+    public function isCategoryLinked(int $categoryUID, int $orgUID): bool {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('COUNT(*) AS cnt');
@@ -303,7 +303,7 @@ class Expenses_model extends CI_Model {
     }
 
     // ── Private filter helper ────────────────────────────────────────────────
-    private function _applyFilters($filter) {
+    private function _applyFilters(array $filter): void {
         // StatusList (multi-select) overrides single Status tab
         $statusList = (!empty($filter['StatusList']) && is_array($filter['StatusList']))
             ? array_values(array_filter($filter['StatusList'], function($s) { return !empty(trim($s)); }))

@@ -3,16 +3,14 @@
 class Users_model extends CI_Model {
 
     private $ReadDb;
-    private $WriteDb;
 
     public function __construct() {
         parent::__construct();
-        $this->ReadDb  = $this->load->database('ReadDB',  TRUE);
-        $this->WriteDb = $this->load->database('WriteDB', TRUE);
+        $this->ReadDb = $this->load->database('ReadDB', TRUE);
     }
 
     // ── Login-users cache (HasLoginAccess=1 only) ─────────────────────────────
-    public function getOrgUsersForCache($orgUID) {
+    public function getOrgUsersForCache(int $orgUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select("UserUID, FirstName, LastName, CONCAT(FirstName, ' ', LastName) AS FullName");
@@ -28,7 +26,7 @@ class Users_model extends CI_Model {
     }
 
     // ── All staff dropdown (includes non-login employees) ────────────────────
-    public function getEmployeeDropdownList($orgUID) {
+    public function getEmployeeDropdownList(int $orgUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select("UserUID AS EmployeeUID, UserCode AS EmployeeCode, CONCAT(FirstName, ' ', LastName) AS EmployeeName, HasLoginAccess, SalaryType, BasicSalary, Allowances, Incentives, FixedDeductions");
@@ -45,7 +43,7 @@ class Users_model extends CI_Model {
     }
 
     // ── Staff stats (for header cards) ───────────────────────────────────────
-    public function getUserStats($orgUID) {
+    public function getUserStats(int $orgUID): ?object {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select("
@@ -67,7 +65,7 @@ class Users_model extends CI_Model {
     }
 
     // ── Paginated list ────────────────────────────────────────────────────────
-    public function getUsersList($orgUID, $filter, $limit, $offset) {
+    public function getUsersList(int $orgUID, array $filter, int $limit, int $offset): array {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select(
@@ -102,7 +100,7 @@ class Users_model extends CI_Model {
     }
 
     // ── Count ─────────────────────────────────────────────────────────────────
-    public function getUsersCount($orgUID, $filter) {
+    public function getUsersCount(int $orgUID, array $filter): int {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('COUNT(*) AS cnt');
@@ -120,7 +118,7 @@ class Users_model extends CI_Model {
     }
 
     // ── Single record + addresses + HR fields ─────────────────────────────────
-    public function getUserById($userUID, $orgUID) {
+    public function getUserById(int $userUID, int $orgUID): ?object {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select(
@@ -159,7 +157,7 @@ class Users_model extends CI_Model {
     }
 
     // ── Org users for reporting-manager dropdown ──────────────────────────────
-    public function getOrgUsersForDropdown($orgUID) {
+    public function getOrgUsersForDropdown(int $orgUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select("UserUID, CONCAT(FirstName, ' ', IFNULL(LastName,'')) AS FullName");
@@ -175,7 +173,7 @@ class Users_model extends CI_Model {
     }
 
     // ── User addresses ────────────────────────────────────────────────────────
-    public function getUserAddresses($userUID) {
+    public function getUserAddresses(int $userUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('AddressUID, AddressType, AddressLine1, AddressLine2, City, State, PinCode, Country');
@@ -195,7 +193,7 @@ class Users_model extends CI_Model {
         }
     }
 
-    public function getUserAddressForType($userUID, $addressType) {
+    public function getUserAddressForType(int $userUID, string $addressType): ?object {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('AddressUID');
@@ -212,7 +210,7 @@ class Users_model extends CI_Model {
     }
 
     // ── Next employee code ────────────────────────────────────────────────────
-    public function getNextEmployeeCode($orgUID) {
+    public function getNextEmployeeCode(int $orgUID): string {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('MAX(CAST(SUBSTRING_INDEX(EmployeeCode, \'-\', -1) AS UNSIGNED)) AS MaxNum');
@@ -229,7 +227,7 @@ class Users_model extends CI_Model {
     }
 
     // ── Department paginated list ─────────────────────────────────────────────
-    public function getDepartmentListPaginated($orgUID, $limit, $offset, $filter = []) {
+    public function getDepartmentListPaginated(int $orgUID, int $limit, int $offset, array $filter = []): object {
         try {
             $this->ReadDb->db_debug = FALSE;
             $search = trim($filter['SearchAllData'] ?? '');
@@ -280,7 +278,7 @@ class Users_model extends CI_Model {
     }
 
     // ── Designation paginated list ────────────────────────────────────────────
-    public function getDesignationListPaginated($orgUID, $limit, $offset, $filter = []) {
+    public function getDesignationListPaginated(int $orgUID, int $limit, int $offset, array $filter = []): object {
         try {
             $this->ReadDb->db_debug = FALSE;
             $search = trim($filter['SearchAllData'] ?? '');
@@ -331,7 +329,7 @@ class Users_model extends CI_Model {
     }
 
     // ── Holiday paginated list ────────────────────────────────────────────────
-    public function getHolidayListPaginated($orgUID, $limit, $offset, $filter = []) {
+    public function getHolidayListPaginated(int $orgUID, int $limit, int $offset, array $filter = []): object {
         try {
             $this->ReadDb->db_debug = FALSE;
             $search = trim($filter['SearchAllData'] ?? '');
@@ -385,7 +383,7 @@ class Users_model extends CI_Model {
     }
 
     // ── Departments ───────────────────────────────────────────────────────────
-    public function getDepartmentList($orgUID) {
+    public function getDepartmentList(int $orgUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('DepartmentUID, DepartmentName');
@@ -404,7 +402,7 @@ class Users_model extends CI_Model {
     }
 
     // ── Designations ──────────────────────────────────────────────────────────
-    public function getDesignationList($orgUID) {
+    public function getDesignationList(int $orgUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('DesignationUID, DesignationName');
@@ -423,33 +421,31 @@ class Users_model extends CI_Model {
     }
 
     // ── Password helpers ──────────────────────────────────────────────────────
-    public function getUserByPasswordToken($token) {
+    public function getUserByPasswordToken(string $token): ?object {
         try {
-            $this->WriteDb->db_debug = FALSE;
-            $this->WriteDb->select('UserUID, FirstName, EmailAddress, IsPasswordSet');
-            $this->WriteDb->from('Users.UserTbl');
-            $this->WriteDb->where('PasswordSetToken', $token);
-            $this->WriteDb->where('IsDeleted', 0);
-            $this->WriteDb->limit(1);
-            return $this->WriteDb->get()->row();
+            $this->ReadDb->db_debug = FALSE;
+            $this->ReadDb->select('UserUID, FirstName, EmailAddress, IsPasswordSet');
+            $this->ReadDb->from('Users.UserTbl');
+            $this->ReadDb->where('PasswordSetToken', $token);
+            $this->ReadDb->where('IsDeleted', 0);
+            $this->ReadDb->limit(1);
+            return $this->ReadDb->get()->row();
         } catch (Throwable $e) {
             log_message('error', 'Users_model::getUserByPasswordToken — ' . $e->getMessage());
             return null;
         }
     }
 
-    public function updateUserPassword($userUID, $password) {
-        $this->WriteDb->db_debug = FALSE;
-        $this->WriteDb->where('UserUID', (int)$userUID);
-        $this->WriteDb->update('Users.UserTbl', [
+    public function updateUserPassword(int $userUID, string $password): void {
+        $this->dbwrite_model->updateData('Users', 'UserTbl', [
             'Password'      => base64_encode($password),
             'IsPasswordSet' => 1,
             'UpdatedOn'     => date('Y-m-d H:i:s'),
-        ]);
+        ], ['UserUID' => (int)$userUID]);
     }
 
     // ── User attachments ──────────────────────────────────────────────────────
-    public function getUserAttachments($userUID, $orgUID) {
+    public function getUserAttachments(int $userUID, int $orgUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('AttachUID, FileName, FilePath, FileType, FileSize, DocType, CreatedOn');
@@ -465,7 +461,7 @@ class Users_model extends CI_Model {
         }
     }
 
-    public function getExpenseAttachments($expenseUID, $userUID, $orgUID) {
+    public function getExpenseAttachments(int $expenseUID, int $userUID, int $orgUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('AttachUID, FileName, FilePath, FileType, FileSize, CreatedOn');
@@ -481,7 +477,7 @@ class Users_model extends CI_Model {
     }
 
     // ── Emergency contacts ────────────────────────────────────────────────────
-    public function getEmergencyContacts($userUID) {
+    public function getEmergencyContacts(int $userUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('EmgContactUID, Name, Relationship, PhoneNumber, EmailAddress, AddressLine1, AddressLine2, City, State, Country, IsPrimary');
@@ -498,7 +494,7 @@ class Users_model extends CI_Model {
     }
 
     // ── Education list ────────────────────────────────────────────────────────
-    public function getEducationList($userUID) {
+    public function getEducationList(int $userUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('EduUID, Institution, Degree, FieldOfStudy, CGPA, DateOfCompletion');
@@ -514,7 +510,7 @@ class Users_model extends CI_Model {
     }
 
     // ── Experience list ───────────────────────────────────────────────────────
-    public function getExperienceList($userUID) {
+    public function getExperienceList(int $userUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('ExpUID, EmployerName, JobTitle, StartDate, EndDate, JobDescription');
@@ -530,7 +526,7 @@ class Users_model extends CI_Model {
     }
 
     // ── Bank details ──────────────────────────────────────────────────────────
-    public function getBankDetails($userUID) {
+    public function getBankDetails(int $userUID): ?object {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('BankDetailUID, BankName, BranchName, IFSCCode, AccountNumber, AccountType, AccountHolder, UpiId, UpiNumber');
@@ -546,7 +542,7 @@ class Users_model extends CI_Model {
     }
 
     // ── Expenses & Reimbursements ─────────────────────────────────────────────
-    public function getExpenseList($userUID, $orgUID) {
+    public function getExpenseList(int $userUID, int $orgUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('ExpenseUID, ReimbursementType, Category, Merchant, Amount, ExpenseDate, Reference, Description, ReceiptPath');
@@ -562,7 +558,7 @@ class Users_model extends CI_Model {
     }
 
     // ── Private filter helper ─────────────────────────────────────────────────
-    private function _applyFilters($filter) {
+    private function _applyFilters(array $filter): void {
         if (!empty($filter['EmpStatus']) && $filter['EmpStatus'] !== 'All') {
             $this->ReadDb->where('u.EmployeeStatus', $filter['EmpStatus']);
         }

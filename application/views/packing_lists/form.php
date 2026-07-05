@@ -39,7 +39,7 @@ $lrNum       = $isEdit ? ($PL->LRNumber        ?? '') : '';
 $transporter = $isEdit ? ($PL->TransporterName ?? '') : '';
 $notes       = $isEdit ? ($PL->Notes           ?? '') : '';
 
-$challanType = htmlspecialchars($dc->QuotationType ?? '');
+$challanType = htmlspecialchars($dc->DocType ?? '');
 $partyName   = htmlspecialchars($dc->PartyName     ?? '—');
 $dcDate      = !empty($dc->TransDate) ? date($_fmt, strtotime($dc->TransDate)) : '—';
 ?>

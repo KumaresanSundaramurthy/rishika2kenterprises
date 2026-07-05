@@ -10,7 +10,7 @@ class Organisation_model extends CI_Model {
         $this->ReadDb = $this->load->database('ReadDB', TRUE);
     }
 
-    public function getOrganisationDetails($FilterArray) {
+    public function getOrganisationDetails(array $FilterArray): object {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -39,7 +39,7 @@ class Organisation_model extends CI_Model {
 
     }
 
-    public function getAllOrganisationAddressDetails($FilterArray) {
+    public function getAllOrganisationAddressDetails(array $FilterArray): object {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -70,7 +70,7 @@ class Organisation_model extends CI_Model {
 
     }
 
-    public function getOrgShippingAddresses($OrgUID) {
+    public function getOrgShippingAddresses(int $OrgUID): object {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -100,7 +100,7 @@ class Organisation_model extends CI_Model {
 
     }
 
-    public function getOrgBusinessTypeDetails() {
+    public function getOrgBusinessTypeDetails(): object {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -138,7 +138,7 @@ class Organisation_model extends CI_Model {
 
     }
 
-    public function getOrgIndustryTypeDetails() {
+    public function getOrgIndustryTypeDetails(): object {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -176,7 +176,7 @@ class Organisation_model extends CI_Model {
 
     }
 
-    public function getOrgBusRegTypeDetails() {
+    public function getOrgBusRegTypeDetails(): object {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -214,7 +214,7 @@ class Organisation_model extends CI_Model {
 
     }
 
-    public function getOrgAddressDetails($FilterArray) {
+    public function getOrgAddressDetails(array $FilterArray): object {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -253,7 +253,7 @@ class Organisation_model extends CI_Model {
      * @return object|null  Single row with OrgAddressUID, AddressType, Line1, Line2,
      *                      Pincode, CityText, StateText — or NULL if no address found.
      */
-    public function getAllOrgDispatchAddresses($orgUID) {
+    public function getAllOrgDispatchAddresses(int $orgUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('a.OrgAddressUID, a.OrgUID, a.AddressType, a.Line1, a.Line2, a.Pincode, a.CityText, a.StateText, o.Name AS OrgName');
@@ -270,7 +270,7 @@ class Organisation_model extends CI_Model {
         }
     }
 
-    public function getOrgDispatchAddress($orgUID) {
+    public function getOrgDispatchAddress(int $orgUID): object {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -309,7 +309,7 @@ class Organisation_model extends CI_Model {
     }
 
     /** Get org details (name, GSTIN, mobile, billing address) for thermal receipt. */
-    public function getOrgForReceipt($orgUID) {
+    public function getOrgForReceipt(int $orgUID): object {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -344,7 +344,7 @@ class Organisation_model extends CI_Model {
 
     }
 
-    public function getDevPassword($orgUID) {
+    public function getDevPassword(int $orgUID): string {
         try {
             $this->ReadDb->select('DevPassword');
             $this->ReadDb->from('Organisation.OrganisationTbl');
@@ -358,7 +358,7 @@ class Organisation_model extends CI_Model {
         }
     }
 
-    public function getDefaultOrgLogo() {
+    public function getDefaultOrgLogo(): string {
         try {
             $this->ReadDb->select('Logo');
             $this->ReadDb->from('Organisation.OrganisationTbl');
@@ -378,7 +378,7 @@ class Organisation_model extends CI_Model {
      * On cache miss, fetches from DB, resolves the Logo to a full CDN URL,
      * stores in Redis, and returns. Return type matches getOrgForReceipt().
      */
-    public function getOrgInfoCached($orgUID, $shortCode = '', $token = '') {
+    public function getOrgInfoCached(int $orgUID, string $shortCode = '', string $token = ''): object {
         $this->EndReturnData = new stdClass();
         try {
             $CI       =& get_instance();
@@ -411,7 +411,7 @@ class Organisation_model extends CI_Model {
     }
 
     /** Get all print theme configs for an org. */
-    public function getPrintThemeConfigs($orgUID) {
+    public function getPrintThemeConfigs(int $orgUID): object {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -434,7 +434,7 @@ class Organisation_model extends CI_Model {
     }
 
     /** Get print theme config for a specific transaction type, joined with template HTML. */
-    public function getPrintThemeByType($orgUID, $transactionType) {
+    public function getPrintThemeByType(int $orgUID, string $transactionType): object {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -464,7 +464,7 @@ class Organisation_model extends CI_Model {
     }
 
     /** Look up a print theme config by ModuleUID — avoids string-matching on TransType. */
-    public function getPrintThemeByModule($orgUID, $moduleUID) {
+    public function getPrintThemeByModule(int $orgUID, int $moduleUID): object {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -494,7 +494,7 @@ class Organisation_model extends CI_Model {
     }
 
     /** Paginated list of print theme configs for an org. */
-    public function getPrintThemeConfigsPaginated($orgUID, $limit, $offset, $search = '') {
+    public function getPrintThemeConfigsPaginated(int $orgUID, int $limit, int $offset, string $search = ''): object {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -534,7 +534,7 @@ class Organisation_model extends CI_Model {
     }
 
     /** Paginated list of global print templates. */
-    public function getPrintTemplatesPaginated($limit, $offset, $search = '') {
+    public function getPrintTemplatesPaginated(int $limit, int $offset, string $search = ''): object {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -570,7 +570,7 @@ class Organisation_model extends CI_Model {
     }
 
     /** Get all active print templates (for carousel / dropdown). */
-    public function getPrintTemplatesAll() {
+    public function getPrintTemplatesAll(): object {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -594,7 +594,7 @@ class Organisation_model extends CI_Model {
     }
 
     /** Get a single print template by UID (full row including HtmlContent). */
-    public function getPrintTemplateByUID($templateUID) {
+    public function getPrintTemplateByUID(int $templateUID): object {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -617,7 +617,7 @@ class Organisation_model extends CI_Model {
     }
 
     /** Get thermal print config for an org. Returns NULL if not configured yet. */
-    public function getThermalPrintConfig($orgUID) {
+    public function getThermalPrintConfig(int $orgUID): object {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -642,7 +642,7 @@ class Organisation_model extends CI_Model {
     }
 
     /** Get thermal print config for a specific module (by ModuleUID). */
-    public function getThermalPrintConfigByModule($orgUID, $moduleUID) {
+    public function getThermalPrintConfigByModule(int $orgUID, int $moduleUID): object {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -669,7 +669,7 @@ class Organisation_model extends CI_Model {
     // ── Bank Accounts ────────────────────────────────────────────────────────
 
     /** Get all active bank accounts (including Cash) for an org. */
-    public function getBankAccountList($orgUID) {
+    public function getBankAccountList(int $orgUID): object {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -698,7 +698,7 @@ class Organisation_model extends CI_Model {
     }
 
     /** Get a single bank account by UID + OrgUID. */
-    public function getBankAccountByUID($bankUID, $orgUID) {
+    public function getBankAccountByUID(int $bankUID, int $orgUID): object {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -721,7 +721,7 @@ class Organisation_model extends CI_Model {
     }
 
     /** Calculate current balance for a single bank/cash account. */
-    public function getBankBalance($bankUID, $orgUID) {
+    public function getBankBalance(int $bankUID, int $orgUID): object {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -763,7 +763,7 @@ class Organisation_model extends CI_Model {
     }
 
     /** Get all message templates for an org, joined with module name. */
-    public function getMessageTemplates($orgUID) {
+    public function getMessageTemplates(int $orgUID): object {
         $this->EndReturnData = new stdClass();
         try {
             $this->ReadDb->select(['T.*', 'M.Name AS ModuleName', "CONCAT(U.FirstName,' ',U.LastName) AS UpdatedByName"]);
@@ -784,7 +784,7 @@ class Organisation_model extends CI_Model {
     /** Fetch all message templates for a module in ONE query, keyed by Channel.
      *  Returns: ['Email' => obj, 'WhatsApp' => obj, 'SMS' => obj]  (only configured channels)
      */
-    public function getModuleMessageTemplates($orgUID, $moduleUID) {
+    public function getModuleMessageTemplates(int $orgUID, int $moduleUID): array {
         try {
             $this->ReadDb->from('Settings.MessageTemplatesTbl');
             $this->ReadDb->where(['OrgUID' => $orgUID, 'ModuleUID' => (int)$moduleUID, 'IsDeleted' => 0]);
@@ -800,7 +800,7 @@ class Organisation_model extends CI_Model {
     }
 
     /** Get a single message template by org + module + channel. */
-    public function getMessageTemplate($orgUID, $moduleUID, $channel) {
+    public function getMessageTemplate(int $orgUID, int $moduleUID, string $channel): object {
         $this->EndReturnData = new stdClass();
         try {
             $this->ReadDb->from('Settings.MessageTemplatesTbl');
@@ -815,7 +815,7 @@ class Organisation_model extends CI_Model {
         return $this->EndReturnData;
     }
 
-    public function getMessageTemplateByUID($templateUID, $orgUID) {
+    public function getMessageTemplateByUID(int $templateUID, int $orgUID): object {
         $this->EndReturnData = new stdClass();
         try {
             $this->ReadDb->from('Settings.MessageTemplatesTbl');
@@ -831,7 +831,7 @@ class Organisation_model extends CI_Model {
     }
 
     /** Get all thermal print configs for an org (one per module), joined with module name. */
-    public function getThermalPrintConfigList($orgUID) {
+    public function getThermalPrintConfigList(int $orgUID): object {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -859,7 +859,7 @@ class Organisation_model extends CI_Model {
     }
 
     /** Get all modules that support thermal print (IsThermalPrint = 1). */
-    public function getThermalPrintModules() {
+    public function getThermalPrintModules(): object {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -885,7 +885,7 @@ class Organisation_model extends CI_Model {
     // ── Prefix Configuration ─────────────────────────────────────────────────
 
     /** Get all modules that support prefix numbering (IsPrefix = 1). */
-    public function getPrefixModules() {
+    public function getPrefixModules(): object {
         $this->EndReturnData = new stdClass();
         try {
             $this->ReadDb->select('ModuleUID, Name');
@@ -903,7 +903,7 @@ class Organisation_model extends CI_Model {
     }
 
     /** Get all modules that support print templates (IsPrintTemplate = 1). */
-    public function getPrintTemplateModules() {
+    public function getPrintTemplateModules(): object {
         $this->EndReturnData = new stdClass();
         try {
             $this->ReadDb->select('ModuleUID, Name, DisplayName');
@@ -921,7 +921,7 @@ class Organisation_model extends CI_Model {
     }
 
     /** Get all prefix configurations for an org, joined with module name and updated-by user. */
-    public function getPrefixConfigList($orgUID) {
+    public function getPrefixConfigList(int $orgUID): object {
         $this->EndReturnData = new stdClass();
         try {
             $this->ReadDb->select([
@@ -945,7 +945,7 @@ class Organisation_model extends CI_Model {
     }
 
     /** Get a single prefix row by PrefixUID (for validation before delete). */
-    public function getPrefixByUID($prefixUID, $orgUID) {
+    public function getPrefixByUID(int $prefixUID, int $orgUID): object {
         $this->EndReturnData = new stdClass();
         try {
             $this->ReadDb->select('P.*, M.Name AS ModuleName');
@@ -960,6 +960,77 @@ class Organisation_model extends CI_Model {
             $this->EndReturnData->Message = $e->getMessage();
         }
         return $this->EndReturnData;
+    }
+
+    // ── Additional Charges ────────────────────────────────────────────────────
+
+    /** Get all active additional charges for an org, joined with default tax info. */
+    public function getAdditionalChargesList(int $orgUID): object {
+        $this->EndReturnData = new stdClass();
+        try {
+            $this->ReadDb->select([
+                'C.ChargeUID', 'C.Name', 'C.DisplayName', 'C.DefaultTaxUID',
+                'C.Description', 'C.ShowByDefault', 'C.IsSystem', 'C.SortOrder',
+                'C.IsActive', 'C.CreatedAt', 'C.UpdatedAt',
+                'T.TaxName AS TaxName', 'T.Percentage AS TaxPercentage',
+            ]);
+            $this->ReadDb->from('Settings.AdditionalChargesTbl C');
+            $this->ReadDb->join('Global.TaxDetailsTbl T', 'T.TaxDetailsUID = C.DefaultTaxUID AND T.IsDeleted = 0', 'left');
+            $this->ReadDb->where(['C.OrgUID' => $orgUID, 'C.IsDeleted' => 0]);
+            $this->ReadDb->order_by('C.IsSystem DESC, C.SortOrder ASC, C.ChargeUID ASC');
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Data  = $this->ReadDb->get()->result();
+        } catch (Exception $e) {
+            log_message('error', 'Organisation_model::getAdditionalChargesList — ' . $e->getMessage());
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+            $this->EndReturnData->Data    = [];
+        }
+        return $this->EndReturnData;
+    }
+
+    /** Get a single additional charge row (for edit/delete validation). */
+    public function getAdditionalChargeByUID(int $chargeUID, int $orgUID): object {
+        $this->EndReturnData = new stdClass();
+        try {
+            $this->ReadDb->select('C.*, T.TaxName, T.Percentage AS TaxPercentage');
+            $this->ReadDb->from('Settings.AdditionalChargesTbl C');
+            $this->ReadDb->join('Global.TaxDetailsTbl T', 'T.TaxDetailsUID = C.DefaultTaxUID AND T.IsDeleted = 0', 'left');
+            $this->ReadDb->where(['C.ChargeUID' => $chargeUID, 'C.OrgUID' => $orgUID, 'C.IsDeleted' => 0]);
+            $this->EndReturnData->Error = FALSE;
+            $this->EndReturnData->Data  = $this->ReadDb->get()->row();
+        } catch (Exception $e) {
+            log_message('error', 'Organisation_model::getAdditionalChargeByUID — ' . $e->getMessage());
+            $this->EndReturnData->Error   = TRUE;
+            $this->EndReturnData->Message = $e->getMessage();
+            $this->EndReturnData->Data    = null;
+        }
+        return $this->EndReturnData;
+    }
+
+    /** Count all active charges (system + custom) — used for the per-org limit check. */
+    public function getCustomChargesCount(int $orgUID): int {
+        try {
+            $this->ReadDb->from('Settings.AdditionalChargesTbl');
+            $this->ReadDb->where(['OrgUID' => $orgUID, 'IsDeleted' => 0]);
+            return (int) $this->ReadDb->count_all_results();
+        } catch (Exception $e) {
+            return 0;
+        }
+    }
+
+    /** Check if a charge Name already exists for this org (unique per org). */
+    public function additionalChargeNameExists(int $orgUID, string $name, int $excludeUID = 0): bool {
+        try {
+            $this->ReadDb->from('Settings.AdditionalChargesTbl');
+            $this->ReadDb->where(['OrgUID' => $orgUID, 'Name' => $name, 'IsDeleted' => 0]);
+            if ($excludeUID > 0) {
+                $this->ReadDb->where('ChargeUID !=', $excludeUID);
+            }
+            return $this->ReadDb->count_all_results() > 0;
+        } catch (Exception $e) {
+            return false;
+        }
     }
 
 }

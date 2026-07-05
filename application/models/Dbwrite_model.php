@@ -347,7 +347,7 @@ class Dbwrite_model extends CI_Model {
         return $this->WriteDB->get()->row();
     }
 
-    public function getNextAvailableTransNumber($prefixUID, $orgUID) {
+    public function getNextAvailableTransNumber($prefixUID, $orgUID): int {
         $this->WriteDB->db_debug = FALSE;
         $this->WriteDB->select_max('TransNumber', 'MaxNumber');
         $this->WriteDB->from('Transaction.TransactionsTbl');
@@ -355,8 +355,11 @@ class Dbwrite_model extends CI_Model {
         $result = $this->WriteDB->get()->row();
         $next   = $result ? ((int)($result->MaxNumber ?? 0) + 1) : 1;
 
+        if ($next > 2147483647) return -1;
+
         $maxAttempts = 100;
         while ($maxAttempts-- > 0) {
+            if ($next > 2147483647) return -1;
             $this->WriteDB->select('TransUID');
             $this->WriteDB->from('Transaction.TransactionsTbl');
             $this->WriteDB->where(['PrefixUID' => (int)$prefixUID, 'TransNumber' => $next, 'OrgUID' => (int)$orgUID, 'IsDeleted' => 0]);
@@ -443,7 +446,7 @@ class Dbwrite_model extends CI_Model {
                 "SELECT p.ProductUID, p.IsComposite,
                         p.ItemName, p.MRP, p.CGST, p.SGST, p.IGST, p.TaxPercentage,
                         p.CategoryUID, c.Name AS CategoryName,
-                        p.PurchasePrice, p.PartNumber, p.Description, p.Image
+                        p.PurchasePrice, p.PartNumber, p.Description
                  FROM Products.ProductTbl p
                  LEFT JOIN Products.CategoryTbl c
                         ON c.CategoryUID = p.CategoryUID AND c.IsDeleted = 0
@@ -607,7 +610,7 @@ class Dbwrite_model extends CI_Model {
             $snap = $this->WriteDB->query(
                 "SELECT p.ItemName, p.MRP, p.CGST, p.SGST, p.IGST, p.TaxPercentage,
                         p.CategoryUID, c.Name AS CategoryName,
-                        p.PurchasePrice, p.PartNumber, p.Description, p.Image
+                        p.PurchasePrice, p.PartNumber, p.Description
                  FROM Products.ProductTbl p
                  LEFT JOIN Products.CategoryTbl c
                         ON c.CategoryUID = p.CategoryUID AND c.IsDeleted = 0
@@ -641,7 +644,6 @@ class Dbwrite_model extends CI_Model {
             'SnapPurchasePrice'  => $snap->PurchasePrice ?? null,
             'SnapPartNumber'     => $snap->PartNumber    ?? null,
             'SnapDescription'    => $snap->Description   ?? null,
-            'SnapImage'          => $snap->Image         ?? null,
             'IsDeleted'          => 0,
             'CreatedBy'          => $userUID,
             'UpdatedBy'          => $userUID,
@@ -715,6 +717,23 @@ class Dbwrite_model extends CI_Model {
         $movementType = ($adjType === 'IN') ? 'IN' : 'OUT';
         $this->_applyStockMovement((int)$adjUID, 118, (int)$orgUID, (int)$userUID, (int)$productUID, (float)$qty, (float)$unitCost, $movementType);
 
+    }
+
+    /**
+     * Record a partial-return IN movement for a DC line item.
+     * Writes to StockLedgerTbl under the original DC's TransUID so that
+     * reverseStockMovements correctly nets the return against the dispatch on DC delete.
+     *
+     * @param int   $transUID     DC TransUID
+     * @param int   $moduleUID    Module UID (112 for Delivery Challans)
+     * @param int   $orgUID
+     * @param int   $userUID
+     * @param int   $productUID
+     * @param float $qty          Quantity being returned (positive)
+     * @param int   $transProdUID FK into TransProductsTbl
+     */
+    public function applyDCReturnStockMovement(int $transUID, int $moduleUID, int $orgUID, int $userUID, int $productUID, float $qty, int $transProdUID): void {
+        $this->_applyStockMovement($transUID, $moduleUID, $orgUID, $userUID, $productUID, $qty, 0.0, 'IN', $transProdUID);
     }
 
     /**
@@ -1055,11 +1074,11 @@ class Dbwrite_model extends CI_Model {
         return true;
     }
 
-    public function upsertTransactionSettings($orgUID, $invoiceCancelAction, $srCancelAction, $srItemMethod, $termsAndConditions, $hideNav, $purchaseShowSignature, $purchaseShowTerms, $prCancelAction, $prItemMethod, $showProductDescription, $userUID, $dcDefaultReturnDays = 7) {
+    public function upsertTransactionSettings(int $orgUID, string $invoiceCancelAction, string $srCancelAction, string $srItemMethod, string $termsAndConditions, int $hideNav, int $purchaseShowSignature, int $purchaseShowTerms, string $prCancelAction, string $prItemMethod, int $showProductDescription, int $userUID, int $dcDefaultReturnDays = 7, int $quotValidityDays = 7): bool {
         $this->WriteDB->db_debug = FALSE;
         $sql = "INSERT INTO Settings.TransactionSettingsTbl
-                    (OrgUID, InvoiceCancelAction, SalesReturnCancelAction, SalesReturnItemMethod, TermsAndConditions, HideNavOnTransForm, PurchaseShowSignature, PurchaseShowTerms, PurchaseReturnCancelAction, PurchaseReturnItemMethod, ShowProductDescription, DCDefaultReturnDays, UpdatedBy)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    (OrgUID, InvoiceCancelAction, SalesReturnCancelAction, SalesReturnItemMethod, TermsAndConditions, HideNavOnTransForm, PurchaseShowSignature, PurchaseShowTerms, PurchaseReturnCancelAction, PurchaseReturnItemMethod, ShowProductDescription, DCDefaultReturnDays, QuotValidityDays, UpdatedBy)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON DUPLICATE KEY UPDATE
                     InvoiceCancelAction        = VALUES(InvoiceCancelAction),
                     SalesReturnCancelAction    = VALUES(SalesReturnCancelAction),
@@ -1072,11 +1091,12 @@ class Dbwrite_model extends CI_Model {
                     PurchaseReturnItemMethod   = VALUES(PurchaseReturnItemMethod),
                     ShowProductDescription     = VALUES(ShowProductDescription),
                     DCDefaultReturnDays        = VALUES(DCDefaultReturnDays),
+                    QuotValidityDays           = VALUES(QuotValidityDays),
                     UpdatedBy                  = VALUES(UpdatedBy)";
         $ok = $this->WriteDB->query($sql, [
-            (int)$orgUID, $invoiceCancelAction, $srCancelAction,
-            $srItemMethod, $termsAndConditions, (int)$hideNav, (int)$purchaseShowSignature, (int)$purchaseShowTerms,
-            $prCancelAction, $prItemMethod, (int)$showProductDescription, (int)$dcDefaultReturnDays, (int)$userUID,
+            $orgUID, $invoiceCancelAction, $srCancelAction,
+            $srItemMethod, $termsAndConditions, $hideNav, $purchaseShowSignature, $purchaseShowTerms,
+            $prCancelAction, $prItemMethod, $showProductDescription, $dcDefaultReturnDays, $quotValidityDays, $userUID,
         ]);
         if (!$ok) {
             $err = $this->WriteDB->error();

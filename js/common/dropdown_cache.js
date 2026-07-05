@@ -141,11 +141,10 @@ window.DropdownCache = (function ($) {
         $.each(['#shippingCharges', '#packingCharges'], function (_, sel) {
             var $el = $(sel);
             if (!$el.length || $el.children('option').length) return;
-            var html = '';
+            var html = '<option value="">— Tax —</option>';
             $.each(taxDetails, function (_, t) {
-                var pct      = parseFloat(t.Percentage) || 0;
-                var selected = pct === 0 ? ' selected' : '';
-                html += '<option value="' + t.TaxDetailsUID + '" data-percent="' + pct + '"' + selected + '>' + pct + '</option>';
+                var pct = parseFloat(t.Percentage) || 0;
+                html += '<option value="' + t.TaxDetailsUID + '" data-percent="' + pct + '">' + pct + '%</option>';
             });
             $el.html(html);
         });

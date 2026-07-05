@@ -1,25 +1,22 @@
 <?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Customers_model extends CI_Model {
-    
+
     private $ReadDb;
-    private $WriteDb;
 
 	function __construct() {
         parent::__construct();
 
-        $this->ReadDb  = $this->load->database('ReadDB',  TRUE);
-        $this->WriteDb = $this->load->database('WriteDB', TRUE);
+        $this->ReadDb = $this->load->database('ReadDB', TRUE);
 
     }
 
-    public function getReadDb()  { return $this->ReadDb;  }
-    public function getWriteDb() { return $this->WriteDb; }
+    public function getReadDb(): object { return $this->ReadDb; }
 
-    public function getCustomerPendingNoteTotals($orgUID, $customerUID) {
+    public function getCustomerPendingNoteTotals(int $orgUID, int $customerUID): array {
         try {
-            $this->WriteDb->db_debug = FALSE;
-            $result = $this->WriteDb->query(
+            $this->ReadDb->db_debug = FALSE;
+            $result = $this->ReadDb->query(
                 "SELECT
                     COALESCE((SELECT SUM(Amount) FROM Transaction.TransCreditNoteTbl
                               WHERE OrgUID=? AND PartyUID=? AND PartyType='C' AND Status='Pending' AND IsCancelled=0 AND IsDeleted=0 AND PaymentCleared=0), 0) AS CreditTotal,
@@ -35,7 +32,7 @@ class Customers_model extends CI_Model {
         }
     }
 
-    public function getCustomers($FilterArray) {
+    public function getCustomers(array $FilterArray): array {
 
         try {
 
@@ -96,7 +93,7 @@ class Customers_model extends CI_Model {
 
     }
 
-    public function getCustomerAddress($FilterArray) {
+    public function getCustomerAddress(array $FilterArray): array {
 
         try {
 
@@ -133,7 +130,7 @@ class Customers_model extends CI_Model {
 
     }
 
-    public function getCustomerBankInfo($FilterArray) {
+    public function getCustomerBankInfo(array $FilterArray): array {
 
         try {
 
@@ -167,7 +164,7 @@ class Customers_model extends CI_Model {
 
     }
 
-    public function getCustomersDetails(string $Term, $WhereCondition = []) {
+    public function getCustomersDetails(string $Term, array $WhereCondition = []): array {
         
         try {
 
@@ -204,7 +201,7 @@ class Customers_model extends CI_Model {
 
     }
 
-    public function getCustomerStats($OrgUID) {
+    public function getCustomerStats(int $OrgUID): object {
 
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -246,7 +243,7 @@ class Customers_model extends CI_Model {
 
     }
 
-    public function getCustomerListPaginated($orgUID, $limit, $offset, $filter = []) {
+    public function getCustomerListPaginated(int $orgUID, int $limit, int $offset, array $filter = []): object {
 
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -467,7 +464,7 @@ class Customers_model extends CI_Model {
 
     }
 
-    public function getCustomerTypeList($OrgUID) {
+    public function getCustomerTypeList(int $OrgUID): array {
 
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -493,7 +490,7 @@ class Customers_model extends CI_Model {
 
     }
 
-    public function getCustomerTags($OrgUID) {
+    public function getCustomerTags(int $OrgUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('Customers.Tags AS Tags');
@@ -518,7 +515,7 @@ class Customers_model extends CI_Model {
 
     // ── Balance recalculation queries ─────────────────────────────────────────
 
-    public function getCustomersWithLedgerForBalance($orgUID, $customerUID = 0) {
+    public function getCustomersWithLedgerForBalance(int $orgUID, int $customerUID = 0): array {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select([
@@ -557,7 +554,7 @@ class Customers_model extends CI_Model {
         }
     }
 
-    public function getCustomerTotalInvoiced($orgUID, $customerUID) {
+    public function getCustomerTotalInvoiced(int $orgUID, int $customerUID): float {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('COALESCE(SUM(NetAmount), 0) AS total');
@@ -579,7 +576,7 @@ class Customers_model extends CI_Model {
         }
     }
 
-    public function getCustomerTotalReceived($orgUID, $customerUID) {
+    public function getCustomerTotalReceived(int $orgUID, int $customerUID): float {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('COALESCE(SUM(Amount), 0) AS total');
@@ -601,7 +598,7 @@ class Customers_model extends CI_Model {
         }
     }
 
-    public function getCustomerTotalReturned($orgUID, $customerUID) {
+    public function getCustomerTotalReturned(int $orgUID, int $customerUID): float {
         try {
             $this->ReadDb->db_debug = FALSE;
             // Use BalanceAmount (outstanding after partial refunds) so that paying back 100 of a 500
@@ -624,7 +621,7 @@ class Customers_model extends CI_Model {
         }
     }
 
-    public function getCustomerSRCoveredByCreditNote($orgUID, $customerUID) {
+    public function getCustomerSRCoveredByCreditNote(int $orgUID, int $customerUID): float {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('COALESCE(SUM(COALESCE(T.BalanceAmount, T.NetAmount)), 0) AS total');
@@ -652,31 +649,27 @@ class Customers_model extends CI_Model {
         }
     }
 
-    public function updateCustomerBalanceInLedger($ledgerUID, $balance, $balanceType, $userUID) {
+    public function updateCustomerBalanceInLedger(int $ledgerUID, float $balance, string $balanceType, int $userUID): void {
         try {
-            $this->WriteDb->db_debug = FALSE;
-            $this->WriteDb->where('LedgerUID', (int)$ledgerUID);
-            $res = $this->WriteDb->update('Accounting.ChartOfAccounts', [
+            $res = $this->dbwrite_model->updateData('Accounting', 'ChartOfAccounts', [
                 'CurrentBalance'     => $balance,
                 'CurrentBalanceType' => $balanceType,
                 'UpdatedBy'          => (int)$userUID,
-            ]);
-            if ($res === false) throw new Exception('Ledger update failed.');
+            ], ['LedgerUID' => (int)$ledgerUID]);
+            if ($res->Error) throw new Exception($res->Message ?? 'Ledger update failed.');
         } catch (Exception $e) {
             throw new Exception($e->getMessage());
         }
     }
 
-    public function updateCustomerBalanceInCustomerTbl($customerUID, $balance, $balanceType, $userUID) {
+    public function updateCustomerBalanceInCustomerTbl(int $customerUID, float $balance, string $balanceType, int $userUID): void {
         try {
-            $this->WriteDb->db_debug = FALSE;
-            $this->WriteDb->where('CustomerUID', (int)$customerUID);
-            $res = $this->WriteDb->update('Customers.CustomerTbl', [
+            $res = $this->dbwrite_model->updateData('Customers', 'CustomerTbl', [
                 'DebitCreditAmount' => $balance,
                 'DebitCreditType'   => $balanceType,
                 'UpdatedBy'         => (int)$userUID,
-            ]);
-            if ($res === false) throw new Exception('Customer balance update failed.');
+            ], ['CustomerUID' => (int)$customerUID]);
+            if ($res->Error) throw new Exception($res->Message ?? 'Customer balance update failed.');
         } catch (Exception $e) {
             throw new Exception($e->getMessage());
         }
@@ -685,7 +678,7 @@ class Customers_model extends CI_Model {
 
     // â”€â”€ CustOpeningBalanceTbl (one row per customer, no year) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-    public function getCustomerOpeningBalance($orgUID, $customerUID) {
+    public function getCustomerOpeningBalance(int $orgUID, int $customerUID): ?object {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select([
@@ -707,7 +700,7 @@ class Customers_model extends CI_Model {
         }
     }
 
-    public function saveCustomerOpeningBalance($orgUID, $customerUID, $openingBalance, $openingBalType, $notes, $userUID, $isNew = false) {
+    public function saveCustomerOpeningBalance(int $orgUID, int $customerUID, float $openingBalance, string $openingBalType, ?string $notes, int $userUID, bool $isNew = false): int {
         try {
             if (!$isNew) {
                 $this->ReadDb->db_debug = FALSE;
@@ -717,23 +710,20 @@ class Customers_model extends CI_Model {
                 $existing = $this->ReadDb->get()->row();
 
                 if ($existing) {
-                    $this->WriteDb->db_debug = FALSE;
-                    $this->WriteDb->where('OpeningBalUID', (int)$existing->OpeningBalUID);
-                    $this->WriteDb->update('Customers.CustOpeningBalanceTbl', [
+                    $this->dbwrite_model->updateData('Customers', 'CustOpeningBalanceTbl', [
                         'OpeningBalance' => (float)$openingBalance,
                         'OpeningBalType' => $openingBalType,
                         'Notes'          => $notes ?: NULL,
                         'UpdatedBy'      => (int)$userUID,
-                    ]);
+                    ], ['OpeningBalUID' => (int)$existing->OpeningBalUID]);
                     return (int)$existing->OpeningBalUID;
                 }
             }
 
             // CustomerUID was inserted in the caller's open transaction (different connection).
             // FK check would wait 50s for the uncommitted row → disable for this insert only.
-            $this->WriteDb->db_debug = FALSE;
-            $this->WriteDb->query('SET FOREIGN_KEY_CHECKS = 0');
-            $this->WriteDb->insert('Customers.CustOpeningBalanceTbl', [
+            $this->dbwrite_model->setForeignKeyChecks(false);
+            $res = $this->dbwrite_model->insertData('Customers', 'CustOpeningBalanceTbl', [
                 'OrgUID'         => (int)$orgUID,
                 'CustomerUID'    => (int)$customerUID,
                 'OpeningBalance' => (float)$openingBalance,
@@ -746,19 +736,19 @@ class Customers_model extends CI_Model {
                 'CreatedBy'      => (int)$userUID,
                 'UpdatedBy'      => (int)$userUID,
             ]);
-            $this->WriteDb->query('SET FOREIGN_KEY_CHECKS = 1');
-            return (int)$this->WriteDb->insert_id();
+            $this->dbwrite_model->setForeignKeyChecks(true);
+            if ($res->Error) throw new Exception($res->Message ?? 'Opening balance insert failed.');
+            return (int)$res->ID;
 
         } catch (Exception $e) {
             throw new Exception($e->getMessage());
         }
     }
 
-    public function updateCustomerPendingBalance($orgUID, $customerUID, $pendingBalance, $pendingBalType, $userUID) {
+    public function updateCustomerPendingBalance(int $orgUID, int $customerUID, float $pendingBalance, string $pendingBalType, int $userUID): void {
         try {
-            $this->WriteDb->db_debug = FALSE;
             // UPSERT: inserts if no row exists, updates if it does (handles "no change" case without duplicate key error)
-            $this->WriteDb->query(
+            $this->dbwrite_model->getWriteDb()->query(
                 "INSERT INTO Customers.CustOpeningBalanceTbl
                     (OrgUID, CustomerUID, OpeningBalance, OpeningBalType, PendingBalance, PendingBalType, IsActive, IsDeleted, CreatedBy, UpdatedBy)
                  VALUES (?, ?, 0.00, 'Debit', ?, ?, 1, 0, ?, ?)
@@ -780,7 +770,7 @@ class Customers_model extends CI_Model {
         }
     }
 
-    public function getCustomerOpeningBalanceSigned($orgUID, $customerUID) {
+    public function getCustomerOpeningBalanceSigned(int $orgUID, int $customerUID): float {
         // Returns opening balance as signed float: Debit=+, Credit=-
         $row = $this->getCustomerOpeningBalance($orgUID, $customerUID);
         if (!$row) return 0.0;
@@ -788,7 +778,7 @@ class Customers_model extends CI_Model {
         return ($row->OpeningBalType === 'Debit') ? $amt : -$amt;
     }
 
-    public function getCustomerDebitCreditRaw($customerUID) {
+    public function getCustomerDebitCreditRaw(int $customerUID): ?object {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select(['Name', 'DebitCreditAmount', 'DebitCreditType']);
@@ -806,7 +796,7 @@ class Customers_model extends CI_Model {
     // ── CustYearOpeningBalanceTbl (year-wise opening balance snapshot) ─────────
 
     // $onlyIfNew=true: insert-only, preserving the year-start snapshot.
-    public function saveCustomerYearOpening($orgUID, $customerUID, $financialYear, $openingBalance, $openingBalType, $userUID, $onlyIfNew = false, $isNew = false) {
+    public function saveCustomerYearOpening(int $orgUID, int $customerUID, int $financialYear, float $openingBalance, string $openingBalType, int $userUID, bool $onlyIfNew = false, bool $isNew = false): int {
         try {
             if (!$isNew) {
                 $this->ReadDb->db_debug = FALSE;
@@ -822,20 +812,17 @@ class Customers_model extends CI_Model {
 
                 if ($existing) {
                     if ($onlyIfNew) return (int)$existing->YearBalUID;
-                    $this->WriteDb->db_debug = FALSE;
-                    $this->WriteDb->where('YearBalUID', (int)$existing->YearBalUID);
-                    $this->WriteDb->update('Customers.CustYearOpeningBalanceTbl', [
+                    $this->dbwrite_model->updateData('Customers', 'CustYearOpeningBalanceTbl', [
                         'OpeningBalance' => (float)$openingBalance,
                         'OpeningBalType' => $openingBalType,
                         'UpdatedBy'      => (int)$userUID,
-                    ]);
+                    ], ['YearBalUID' => (int)$existing->YearBalUID]);
                     return (int)$existing->YearBalUID;
                 }
             }
 
-            $this->WriteDb->db_debug = FALSE;
-            $this->WriteDb->query('SET FOREIGN_KEY_CHECKS = 0');
-            $this->WriteDb->insert('Customers.CustYearOpeningBalanceTbl', [
+            $this->dbwrite_model->setForeignKeyChecks(false);
+            $res = $this->dbwrite_model->insertData('Customers', 'CustYearOpeningBalanceTbl', [
                 'OrgUID'         => (int)$orgUID,
                 'CustomerUID'    => (int)$customerUID,
                 'FinancialYear'  => (int)$financialYear,
@@ -846,14 +833,15 @@ class Customers_model extends CI_Model {
                 'CreatedBy'      => (int)$userUID,
                 'UpdatedBy'      => (int)$userUID,
             ]);
-            $this->WriteDb->query('SET FOREIGN_KEY_CHECKS = 1');
-            return (int)$this->WriteDb->insert_id();
+            $this->dbwrite_model->setForeignKeyChecks(true);
+            if ($res->Error) throw new Exception($res->Message ?? 'Year opening balance insert failed.');
+            return (int)$res->ID;
         } catch (Exception $e) {
             throw new Exception($e->getMessage());
         }
     }
 
-    public function getCustomerYearOpening($orgUID, $customerUID, $financialYear) {
+    public function getCustomerYearOpening(int $orgUID, int $customerUID, int $financialYear): ?object {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select(['YearBalUID', 'FinancialYear', 'OpeningBalance', 'OpeningBalType']);
@@ -876,7 +864,7 @@ class Customers_model extends CI_Model {
     // â”€â”€ CustBalanceHistoryTbl (year-wise snapshots) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
-    public function getCustomerOnAccountPayments($orgUID, $customerUID) {
+    public function getCustomerOnAccountPayments(int $orgUID, int $customerUID): array {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select('P.PaymentUID, P.Amount, P.CreatedOn, P.Notes,
@@ -906,7 +894,7 @@ class Customers_model extends CI_Model {
     // Customer Group methods
     // ══════════════════════════════════════════════════════════════════
 
-    public function getGroupTypes($module = 'customers') {
+    public function getGroupTypes(string $module = 'customers'): array {
         try {
             $query = $this->ReadDb->query(
                 "SELECT TypeName FROM Global.GroupTypesTbl WHERE Module=? AND IsActive=1 ORDER BY SortOrder",
@@ -919,7 +907,7 @@ class Customers_model extends CI_Model {
                 'Corporate Group', 'Dealer Network', 'Franchise Group', 'Custom'];
     }
 
-    public function getGroupListPaginated($orgUID, $limit, $offset, $filter = []) {
+    public function getGroupListPaginated(int $orgUID, int $limit, int $offset, array $filter = []): object {
         try {
             $this->ReadDb->db_debug = false;
 
@@ -988,7 +976,7 @@ class Customers_model extends CI_Model {
         }
     }
 
-    public function getGroupStats($orgUID) {
+    public function getGroupStats(int $orgUID): object {
         try {
             $this->ReadDb->db_debug = false;
             $query = $this->ReadDb->query(
@@ -1003,7 +991,7 @@ class Customers_model extends CI_Model {
         }
     }
 
-    public function getGroupByUID($orgUID, $groupUID) {
+    public function getGroupByUID(int $orgUID, int $groupUID): ?object {
         try {
             $this->ReadDb->db_debug = false;
             $this->ReadDb->select('CG.*');
@@ -1016,7 +1004,7 @@ class Customers_model extends CI_Model {
         }
     }
 
-    public function getGroupMembers($orgUID, $groupUID) {
+    public function getGroupMembers(int $orgUID, int $groupUID): array {
         try {
             $this->ReadDb->db_debug = false;
             $this->ReadDb->select([
@@ -1036,7 +1024,7 @@ class Customers_model extends CI_Model {
         }
     }
 
-    public function getGroupOverview($orgUID, $groupUID) {
+    public function getGroupOverview(int $orgUID, int $groupUID): object {
         try {
             $this->ReadDb->db_debug = false;
             $query = $this->ReadDb->query(
@@ -1054,7 +1042,7 @@ class Customers_model extends CI_Model {
         }
     }
 
-    public function getGroupOutstanding($orgUID, $groupUID) {
+    public function getGroupOutstanding(int $orgUID, int $groupUID): array {
         try {
             $this->ReadDb->db_debug = false;
             $query = $this->ReadDb->query(
@@ -1073,7 +1061,7 @@ class Customers_model extends CI_Model {
         }
     }
 
-    public function getActiveGroupsForDropdown($orgUID) {
+    public function getActiveGroupsForDropdown(int $orgUID): array {
         try {
             $this->ReadDb->db_debug = false;
             $this->ReadDb->select(['GroupUID', 'GroupName', 'GroupCode', 'GroupType']);
@@ -1087,26 +1075,26 @@ class Customers_model extends CI_Model {
         }
     }
 
-    public function assignGroupMembers($orgUID, $groupUID, array $memberUIDs, $primaryUID, $userUID) {
+    public function assignGroupMembers(int $orgUID, int $groupUID, array $memberUIDs, int $primaryUID, int $userUID): void {
         if (empty($memberUIDs)) return;
         foreach ($memberUIDs as $custUID) {
-            $this->WriteDb->where(['CustomerUID' => (int)$custUID, 'OrgUID' => (int)$orgUID]);
-            $this->WriteDb->update('Customers.CustomerTbl', [
+            $this->dbwrite_model->updateData('Customers', 'CustomerTbl', [
                 'GroupUID'       => (int)$groupUID,
                 'IsGroupPrimary' => ((int)$custUID === (int)$primaryUID) ? 1 : 0,
                 'UpdatedBy'      => (int)$userUID,
-            ]);
+            ], ['CustomerUID' => (int)$custUID, 'OrgUID' => (int)$orgUID]);
         }
     }
 
-    public function syncGroupMembers($orgUID, $groupUID, array $newMemberUIDs, $primaryUID, $userUID) {
-        $this->WriteDb->where('OrgUID', (int)$orgUID);
-        $this->WriteDb->where('GroupUID', (int)$groupUID);
-        $this->WriteDb->where('IsDeleted', 0);
+    public function syncGroupMembers(int $orgUID, int $groupUID, array $newMemberUIDs, int $primaryUID, int $userUID): void {
+        $db = $this->dbwrite_model->getWriteDb();
+        $db->where('OrgUID', (int)$orgUID);
+        $db->where('GroupUID', (int)$groupUID);
+        $db->where('IsDeleted', 0);
         if (!empty($newMemberUIDs)) {
-            $this->WriteDb->where_not_in('CustomerUID', array_map('intval', $newMemberUIDs));
+            $db->where_not_in('CustomerUID', array_map('intval', $newMemberUIDs));
         }
-        $this->WriteDb->update('Customers.CustomerTbl', [
+        $db->update('Customers.CustomerTbl', [
             'GroupUID' => null, 'IsGroupPrimary' => 0, 'UpdatedBy' => (int)$userUID,
         ]);
         if (!empty($newMemberUIDs)) {
@@ -1114,11 +1102,10 @@ class Customers_model extends CI_Model {
         }
     }
 
-    public function unlinkAllGroupMembers($orgUID, $groupUID, $userUID) {
-        $this->WriteDb->where(['OrgUID' => (int)$orgUID, 'GroupUID' => (int)$groupUID]);
-        $this->WriteDb->update('Customers.CustomerTbl', [
+    public function unlinkAllGroupMembers(int $orgUID, int $groupUID, int $userUID): void {
+        $this->dbwrite_model->updateData('Customers', 'CustomerTbl', [
             'GroupUID' => null, 'IsGroupPrimary' => 0, 'UpdatedBy' => (int)$userUID,
-        ]);
+        ], ['OrgUID' => (int)$orgUID, 'GroupUID' => (int)$groupUID]);
     }
 
     // ── Customer Attachments ──────────────────────────────────────────────────

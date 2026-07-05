@@ -3,15 +3,13 @@
 class Payroll_model extends CI_Model {
 
     private $ReadDb;
-    private $WriteDb;
 
     public function __construct() {
         parent::__construct();
-        $this->ReadDb  = $this->load->database('ReadDB',  TRUE);
-        $this->WriteDb = $this->load->database('WriteDB', TRUE);
+        $this->ReadDb = $this->load->database('ReadDB', TRUE);
     }
 
-    public function getPayrollListPaginated($orgUID, $limit, $offset, $filter = []) {
+    public function getPayrollListPaginated(int $orgUID, int $limit, int $offset, array $filter = []): object {
         $this->ReadDb->db_debug = FALSE;
         $where = ['P.OrgUID' => $orgUID, 'P.IsDeleted' => 0];
 
@@ -43,14 +41,14 @@ class Payroll_model extends CI_Model {
         return $r;
     }
 
-    public function getPayrollByUID($payrollUID, $orgUID) {
+    public function getPayrollByUID(int $payrollUID, int $orgUID): ?object {
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->from('Transaction.PayrollTbl');
         $this->ReadDb->where(['PayrollUID' => $payrollUID, 'OrgUID' => $orgUID, 'IsDeleted' => 0]);
         return $this->ReadDb->get()->row();
     }
 
-    public function getPayrollExists($orgUID, $branchUID, $month, $year) {
+    public function getPayrollExists(int $orgUID, int $branchUID, int $month, int $year): ?object {
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->select('PayrollUID, PayrollStatus');
         $this->ReadDb->from('Transaction.PayrollTbl');
@@ -58,7 +56,7 @@ class Payroll_model extends CI_Model {
         return $this->ReadDb->get()->row();
     }
 
-    public function getPayrollLines($payrollUID) {
+    public function getPayrollLines(int $payrollUID): array {
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->select([
             'PL.*',
@@ -75,7 +73,7 @@ class Payroll_model extends CI_Model {
         return $this->ReadDb->get()->result();
     }
 
-    public function getPayrollStats($orgUID) {
+    public function getPayrollStats(int $orgUID): object {
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->select([
             'COUNT(*) AS Total',
@@ -90,7 +88,7 @@ class Payroll_model extends CI_Model {
     }
 
     // Payslip = one PayrollLine record for one employee
-    public function getPayslipListPaginated($orgUID, $limit, $offset, $filter = []) {
+    public function getPayslipListPaginated(int $orgUID, int $limit, int $offset, array $filter = []): object {
         $this->ReadDb->db_debug = FALSE;
         $where = ['P.OrgUID' => $orgUID, 'P.IsDeleted' => 0, 'PL.IsDeleted' => 0];
 
@@ -135,7 +133,7 @@ class Payroll_model extends CI_Model {
         return $r;
     }
 
-    public function getPayslipDetail($payrollLineUID, $orgUID) {
+    public function getPayslipDetail(int $payrollLineUID, int $orgUID): ?object {
         $this->ReadDb->db_debug = FALSE;
         $this->ReadDb->select([
             'PL.*', 'P.PayrollMonth', 'P.PayrollYear', 'P.PayrollStatus',
@@ -152,17 +150,17 @@ class Payroll_model extends CI_Model {
         return $this->ReadDb->get()->row();
     }
 
-    public function getUnsettledAdvances($empUID, $orgUID) {
-        $this->WriteDb->db_debug = FALSE;
-        $this->WriteDb->select('AdvanceUID, BalancePending');
-        $this->WriteDb->from('Transaction.SalaryAdvanceTbl');
-        $this->WriteDb->where(['UserUID' => (int)$empUID, 'OrgUID' => (int)$orgUID, 'IsDeleted' => 0, 'IsSettled' => 0]);
-        $this->WriteDb->where('BalancePending >', 0);
-        $this->WriteDb->order_by('AdvanceUID', 'ASC');
-        return $this->WriteDb->get()->result();
+    public function getUnsettledAdvances(int $empUID, int $orgUID): array {
+        $this->ReadDb->db_debug = FALSE;
+        $this->ReadDb->select('AdvanceUID, BalancePending');
+        $this->ReadDb->from('Transaction.SalaryAdvanceTbl');
+        $this->ReadDb->where(['UserUID' => (int)$empUID, 'OrgUID' => (int)$orgUID, 'IsDeleted' => 0, 'IsSettled' => 0]);
+        $this->ReadDb->where('BalancePending >', 0);
+        $this->ReadDb->order_by('AdvanceUID', 'ASC');
+        return $this->ReadDb->get()->result();
     }
 
-    public function getWorkingDaysInMonth($year, $month) {
+    public function getWorkingDaysInMonth(int $year, int $month): int {
         // Count calendar days in month excluding Sundays
         $daysInMonth = (int)date('t', mktime(0, 0, 0, $month, 1, $year));
         $working = 0;

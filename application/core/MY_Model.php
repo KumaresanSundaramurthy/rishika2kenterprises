@@ -21,25 +21,21 @@ class MY_Model extends CI_Model {
      */
     public function getProductUIDsByTransUID(int $transUID): array {
         try {
-            // Use get_instance() for a direct reference — avoids CI3's __get()
-            // "Indirect modification" issue when setting db_debug on a magic property.
             $CI = &get_instance();
-            $db = $CI->ReadDb ?? null;
+            // ReadDb may not be loaded in all controller contexts (e.g. delete flow).
+            // Fall back to WriteDB so cache sync always runs regardless of which db is available.
+            $db = ($CI->ReadDb ?? null) ?: ($CI->WriteDB ?? null);
             if (!$db) return [];
 
-            $db->db_debug = FALSE;
-            $db->select('DISTINCT ProductUID');
-            $db->from('Transaction.TransProductsTbl');
-            $db->where(['TransUID' => $transUID, 'IsDeleted' => 0]);
-            $query = $db->get();
+            // Raw SQL avoids CI3 query-builder quoting DISTINCT as a column name.
+            // No IsDeleted filter — must find products even after soft-delete (delete flow).
+            $query = $db->query(
+                'SELECT DISTINCT ProductUID FROM `Transaction`.`TransProductsTbl` WHERE TransUID = ?',
+                [(int)$transUID]
+            );
             if (!$query) return [];
 
-            $uids = [];
-            foreach ($query->result() as $row) {
-                $uid = (int)$row->ProductUID;
-                if ($uid > 0) $uids[] = $uid;
-            }
-            return $uids;
+            return array_map('intval', array_column($query->result_array(), 'ProductUID'));
         } catch (Throwable $e) {
             log_message('error', 'MY_Model::getProductUIDsByTransUID failed for TransUID=' . $transUID . ': ' . $e->getMessage());
             return [];

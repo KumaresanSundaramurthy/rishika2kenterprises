@@ -1,6 +1,7 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
-<?php 
+<?php
+    /** @var CI_Controller&object{uri:CI_URI,input:CI_Input} $CI */
     $CI = &get_instance();
     $ControllerName = get_class($CI);
 
@@ -152,7 +153,7 @@
     <!-- Pinned Settings button — lives outside the scrollable UL so it is
          always visible at the bottom. Hidden on Settings pages because the
          SettingsMenuBar already shows a Back button there.                -->
-    <div class="menu-settings-pinned py-1 <?php echo $isSettingsPage ? 'd-none' : ''; ?>">
+    <div class="menu-settings-pinned">
         <ul class="menu-inner" style="flex-direction:column; block-size:auto; flex:0 0 auto;">
             <li class="menu-item">
                 <a href="javascript:void(0);" id="SettingsMenuBarBtn" class="menu-link">

@@ -1,7 +1,7 @@
 <?php defined('BASEPATH') OR exit('No direct script access allowed');
 
 class User_model extends CI_Model {
-    
+
     private $EndReturnData;
     private $ReadDb;
 
@@ -12,7 +12,7 @@ class User_model extends CI_Model {
 
     }
 
-    public function getUserByEmailOrUsername($identifier) {
+    public function getUserByEmailOrUsername(string $identifier): object {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -79,7 +79,7 @@ class User_model extends CI_Model {
 
     }
 
-    public function getCurrentSessionToken($userUID) {
+    public function getCurrentSessionToken(int $userUID): ?string {
 
         try {
 
@@ -101,7 +101,7 @@ class User_model extends CI_Model {
 
     }
 
-    public function getUserByUserInfo($FilterArray = []) {
+    public function getUserByUserInfo(array $FilterArray = []): object {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -140,7 +140,7 @@ class User_model extends CI_Model {
             $this->ReadDb->join('Organisation.OrganisationTbl as Org', 'Org.OrgUID = User.OrgUID', 'left');
             $this->ReadDb->join('Global.TimezoneTbl as Timezone', 'Timezone.TimezoneUID = Org.TimezoneUID', 'left');
             if(!empty($FilterArray)) {
-                $this->ReadDb->where($FilterArray);    
+                $this->ReadDb->where($FilterArray);
             }
             $this->ReadDb->where('User.IsActive', 1);
             $this->ReadDb->where('User.IsDeleted', 0);

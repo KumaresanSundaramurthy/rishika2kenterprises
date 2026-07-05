@@ -157,7 +157,7 @@ class Purchasereturns extends MY_Controller {
                 'PartyUID'          => $vendorUID,
                 'TransDate'         => $transDate,
                 'TransYear'         => $financialYear,
-                'QuotationType'     => $purchaseType,
+                'DocType'     => $purchaseType,
                 'DispatchFrom'      => $dispatchTo,
                 'TotalQuantity'     => $totalQty,
                 'TotalItems'        => count($items),
@@ -190,7 +190,11 @@ class Purchasereturns extends MY_Controller {
             $transNumber  = $headerData['TransNumber'];
             $uniqueNumber = $headerData['UniqueNumber'];
 
-            $additionalChargesJson = $this->buildAdditionalChargesJson($PostData);
+            $additionalChargesJson  = getPostValue($PostData, 'AdditionalCharges') ?: '[]';
+            $additionalChargesList  = json_decode($additionalChargesJson, true) ?: [];
+            if (!empty($additionalChargesList)) {
+                $this->transactions_model->saveTransactionCharges($transUID, (int)$orgUID, (int)$userUID, $additionalChargesList);
+            }
             $isInterState          = $igstAmount > 0 ? 1 : ($cgstAmount > 0 || $sgstAmount > 0 ? 0 : NULL);
             $detailData = [
                 'FinancialYear'     => $financialYear,
@@ -201,7 +205,6 @@ class Purchasereturns extends MY_Controller {
                 'Notes'             => getPostValue($PostData, 'transNotes') ?: NULL,
                 'TermsConditions'   => getPostValue($PostData, 'transTermsCond') ?: NULL,
                 'SignatureUID'      => (int)getPostValue($PostData, 'SignatureUID') ?: NULL,
-                'AdditionalCharges' => $additionalChargesJson,
                 'PlaceOfSupplyCode' => getPostValue($PostData, 'placeOfSupplyCode') ?: NULL,
                 'PlaceOfSupplyName' => getPostValue($PostData, 'placeOfSupplyName') ?: NULL,
                 'IsInterState'      => $isInterState,
@@ -350,7 +353,8 @@ class Purchasereturns extends MY_Controller {
                 $uniqueNumber = implode($sep, $parts);
             }
 
-            $additionalChargesJson = $this->buildAdditionalChargesJson($PostData);
+            $additionalChargesJson  = getPostValue($PostData, 'AdditionalCharges') ?: '[]';
+            $additionalChargesList  = json_decode($additionalChargesJson, true) ?: [];
             $commonHeader = [
                 'OrgUID'            => $orgUID,
                 'ModuleUID'         => $this->pageModuleUID,
@@ -359,7 +363,7 @@ class Purchasereturns extends MY_Controller {
                 'TransDate'         => $transDate,
                 'TransYear'         => $financialYear,
                 'TransType'         => 'Purchase Return',
-                'QuotationType'     => $purchaseType,
+                'DocType'     => $purchaseType,
                 'DispatchFrom'      => $dispatchTo,
                 'TotalQuantity'     => $totalQty,
                 'TotalItems'        => count($items),
@@ -390,7 +394,6 @@ class Purchasereturns extends MY_Controller {
                 'Notes'             => getPostValue($PostData, 'transNotes') ?: NULL,
                 'TermsConditions'   => getPostValue($PostData, 'transTermsCond') ?: NULL,
                 'SignatureUID'      => (int)getPostValue($PostData, 'SignatureUID') ?: NULL,
-                'AdditionalCharges' => $additionalChargesJson,
                 'IsInterState'      => $isInterState,
                 'IsForeignCustomer' => NULL,
             ];
@@ -502,6 +505,9 @@ class Purchasereturns extends MY_Controller {
                 }
             }
 
+            if (!empty($additionalChargesList)) {
+                $this->transactions_model->saveTransactionCharges($transUID, (int)$orgUID, (int)$userUID, $additionalChargesList);
+            }
             $this->dbwrite_model->commitTransaction();
             $this->_saveAttachments($transUID);
             $this->_softDeleteAttachments($this->input->post('RemovedAttachIDs') ?? '');
@@ -608,7 +614,7 @@ class Purchasereturns extends MY_Controller {
                 'PartyUID'          => $src->PartyUID,
                 'TransDate'         => $today,
                 'TransYear'         => (int) date('Y'),
-                'QuotationType'     => NULL,
+                'DocType'     => NULL,
                 'DispatchFrom'      => NULL,
                 'TotalQuantity'     => $totalQty,
                 'TotalItems'        => count($items),
@@ -953,6 +959,11 @@ class Purchasereturns extends MY_Controller {
             $this->_getDispatchAddresses($orgUID);
             $this->_loadUpstashConfig();
 
+            $this->pageData['AdditionalCharges']  = $this->_getAdditionalChargesForOrg((int)$orgUID, true);
+            $this->pageData['TaxList']            = $this->_getTaxList();
+            $this->pageData['TransactionCharges'] = [];
+            $this->pageData['IsEditMode']         = false;
+
             $this->load->view('transactions/purchasereturns/forms/form', $this->pageData);
         } catch (Exception $e) {
             redirect('purchasereturns', 'refresh');
@@ -981,6 +992,10 @@ class Purchasereturns extends MY_Controller {
                 $nextNumberMap[(int)$pd->PrefixUID] = $this->transactions_model->getNextTransactionNumber($pd->PrefixUID, $orgUID, $this->pageModuleUID);
             }
             $this->pageData['NextNumberMap'] = $nextNumberMap;
+
+            $this->pageData['AdditionalCharges']  = $this->_getAdditionalChargesForOrg((int)$orgUID, true);
+            $this->pageData['TransactionCharges'] = $this->transactions_model->getTransactionCharges($transUID, (int)$orgUID);
+            $this->pageData['IsEditMode']         = true;
 
             $this->_getDispatchAddresses($orgUID);
             $this->_loadUpstashConfig();

@@ -4,7 +4,7 @@ use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 
 class Login_model extends CI_Model {
-    
+
     private $EndReturnData;
     private $ReadDb;
 
@@ -15,7 +15,7 @@ class Login_model extends CI_Model {
 
     }
 
-    public function formatJWTPayload($UserData) {
+    public function formatJWTPayload(object $UserData): object {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -103,7 +103,7 @@ class Login_model extends CI_Model {
         return $this->EndReturnData;
     }
 
-    public function setJwtToken($UserData, $jwtPayload) {
+    public function setJwtToken(object $UserData, object $jwtPayload): object {
 
         $this->EndReturnData = new stdClass();
         $Expiry = getenv('LOGIN_EXPIRE_SECS');
@@ -141,11 +141,11 @@ class Login_model extends CI_Model {
         }
 
         return $this->EndReturnData;
-        
+
     }
 
     // ── Role-based menu queries ──────────────────────────────────
-    public function getRoleMainMenus($RoleUID) {
+    public function getRoleMainMenus(int $RoleUID): object {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -176,7 +176,7 @@ class Login_model extends CI_Model {
 
     }
 
-    public function getRoleSubMenus($RoleUID) {
+    public function getRoleSubMenus(int $RoleUID): object {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -190,7 +190,7 @@ class Login_model extends CI_Model {
             $this->ReadDb->where('RSM.IsDeleted', 0);
             $this->ReadDb->where('RSM.CanView', 1);
             $this->ReadDb->order_by('RSM.Sorting', 'ASC');
-            $query = $this->ReadDb->get();            
+            $query = $this->ReadDb->get();
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Success';
@@ -208,7 +208,7 @@ class Login_model extends CI_Model {
 
     }
 
-    public function getOrgGeneralSettings($OrgUID) {
+    public function getOrgGeneralSettings(int $OrgUID): object {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -235,7 +235,7 @@ class Login_model extends CI_Model {
 
     }
 
-    public function getProductSettings($OrgUID) {
+    public function getProductSettings(int $OrgUID): object {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -256,7 +256,7 @@ class Login_model extends CI_Model {
 
     }
 
-    public function getOrgTransactionSettings($OrgUID) {
+    public function getOrgTransactionSettings(int $OrgUID): object {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -276,6 +276,7 @@ class Login_model extends CI_Model {
             if (!isset($row->TermsAndConditions))      $row->TermsAndConditions      = '';
             if (!isset($row->HideNavOnTransForm))        $row->HideNavOnTransForm        = 0;
             if (!isset($row->ShowProductDescription)) $row->ShowProductDescription  = 1;
+            if (!isset($row->MaxAdditionalCharges))   $row->MaxAdditionalCharges     = 5;
 
             $this->EndReturnData->Error = FALSE;
             $this->EndReturnData->Data  = [$row];
@@ -289,7 +290,7 @@ class Login_model extends CI_Model {
 
     }
 
-    public function getModuleDetails($OrgUID) {
+    public function getModuleDetails(int $OrgUID): object {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -317,12 +318,12 @@ class Login_model extends CI_Model {
 
     }
 
-    public function getFailedAttempts($userName, $hours = 1) {
+    public function getFailedAttempts(string $userName, int $hours = 1): int {
 
         try {
 
             $this->ReadDb->db_debug = FALSE;
-            
+
             $this->ReadDb->from('Security.UserLoginAudit as ula');
             $this->ReadDb->where('ula.AttemptedUsername', $userName);
             $this->ReadDb->where('ula.LoginStatus', 'FAILED');
@@ -341,7 +342,7 @@ class Login_model extends CI_Model {
 
     }
 
-    public function getUserAuditInfo($whereCond) {
+    public function getUserAuditInfo(array $whereCond): array {
 
         try {
 
@@ -367,7 +368,7 @@ class Login_model extends CI_Model {
 
     }
 
-    private function _loadUserSignatures($userUID, $orgUID) {
+    private function _loadUserSignatures(int $userUID, int $orgUID): array {
         try {
             $this->load->model('signature_model');
             $result  = $this->signature_model->getSignatureList((int)$userUID, (int)$orgUID);

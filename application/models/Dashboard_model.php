@@ -9,18 +9,18 @@ class Dashboard_model extends CI_Model {
     }
 
     // Safe query helper — returns row or null, never throws
-    private function _row($default = null) {
+    private function _row(?object $default = null): ?object {
         $q = $this->ReadDb->get();
         return ($q !== false) ? ($q->row() ?? $default) : $default;
     }
 
-    private function _result() {
+    private function _result(): array {
         $q = $this->ReadDb->get();
         return ($q !== false) ? $q->result() : [];
     }
 
     // ── Total Receivable: customers who owe us (Debit balance) ──────────────
-    public function getTotalReceivable($orgUID) {
+    public function getTotalReceivable(int $orgUID): float {
         try {
             $this->ReadDb->select('COALESCE(SUM(PendingBalance), 0) AS total');
             $this->ReadDb->from('Customers.CustOpeningBalanceTbl');
@@ -31,7 +31,7 @@ class Dashboard_model extends CI_Model {
     }
 
     // ── Total Payable: we owe vendors (Credit balance) ───────────────────────
-    public function getTotalPayable($orgUID) {
+    public function getTotalPayable(int $orgUID): float {
         try {
             $this->ReadDb->select('COALESCE(SUM(PendingBalance), 0) AS total');
             $this->ReadDb->from('Vendors.VendOpeningBalanceTbl');
@@ -42,7 +42,7 @@ class Dashboard_model extends CI_Model {
     }
 
     // ── Today's sales total & invoice count ──────────────────────────────────
-    public function getTodaySales($orgUID) {
+    public function getTodaySales(int $orgUID): array {
         try {
             $this->ReadDb->select('COALESCE(SUM(NetAmount), 0) AS total, COUNT(*) AS count');
             $this->ReadDb->from('Transaction.TransactionsTbl');
@@ -55,7 +55,7 @@ class Dashboard_model extends CI_Model {
     }
 
     // ── This month vs last month sales ───────────────────────────────────────
-    public function getMonthlySalesComparison($orgUID) {
+    public function getMonthlySalesComparison(int $orgUID): array {
         try {
             $thisStart = date('Y-m-01');
             $lastStart = date('Y-m-01', strtotime('first day of last month'));
@@ -77,7 +77,7 @@ class Dashboard_model extends CI_Model {
     }
 
     // ── Sales chart: last 30 days grouped by date ────────────────────────────
-    public function getSalesChartData($orgUID) {
+    public function getSalesChartData(int $orgUID): array {
         try {
             $this->ReadDb->select('DATE(TransDate) AS sale_date, COALESCE(SUM(NetAmount), 0) AS total');
             $this->ReadDb->from('Transaction.TransactionsTbl');
@@ -91,7 +91,7 @@ class Dashboard_model extends CI_Model {
     }
 
     // ── Overdue invoices: past ValidityDate, still has balance ───────────────
-    public function getOverdueInvoices($orgUID) {
+    public function getOverdueInvoices(int $orgUID): array {
         try {
             $this->ReadDb->select('T.TransUID, T.UniqueNumber, T.NetAmount, T.BalanceAmount, T.TransDate, D.ValidityDate, COALESCE(C.Name,"") AS PartyName');
             $this->ReadDb->from('Transaction.TransactionsTbl T');
@@ -109,7 +109,7 @@ class Dashboard_model extends CI_Model {
     }
 
     // ── Top 5 customers by outstanding receivable ────────────────────────────
-    public function getTopCustomers($orgUID) {
+    public function getTopCustomers(int $orgUID): array {
         try {
             $this->ReadDb->select('C.Name, C.MobileNumber, COB.PendingBalance');
             $this->ReadDb->from('Customers.CustOpeningBalanceTbl COB');
@@ -123,7 +123,7 @@ class Dashboard_model extends CI_Model {
     }
 
     // ── Recent 10 transactions across all modules ────────────────────────────
-    public function getRecentTransactions($orgUID) {
+    public function getRecentTransactions(int $orgUID): array {
         try {
             $this->ReadDb->select('T.UniqueNumber, T.TransType, T.NetAmount, T.DocStatus, T.TransDate, T.ModuleUID, COALESCE(C.Name, V.Name, "") AS PartyName');
             $this->ReadDb->from('Transaction.TransactionsTbl T');

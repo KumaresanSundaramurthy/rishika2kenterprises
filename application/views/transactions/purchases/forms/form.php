@@ -205,7 +205,7 @@ if ($isEdit) {
                             </div>
                             <div class="d-flex align-items-center gap-2">
                                 <?php if (!$isEdit): ?>
-                                    <button type="submit" name="action" value="draft" class="btn btn-sm btn-outline-secondary"><i class="bx bx-save me-1"></i>Draft</button>
+                                    <button type="submit" name="action" value="draft" class="btn btn-sm btn-outline-secondary"><i class="bx bx-save me-1"></i>Save as Draft</button>
                                     <div class="btn-group">
                                         <button type="submit" name="action" value="save" class="btn btn-sm btn-primary px-3"><i class="bx bx-check me-1"></i>Save</button>
                                         <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split ps-2 pe-2" data-bs-toggle="dropdown" aria-expanded="false">
@@ -219,10 +219,10 @@ if ($isEdit) {
                                         </ul>
                                     </div>
                                 <?php elseif ($isDraftEdit): ?>
-                                    <button type="submit" name="action" value="save" class="btn btn-sm btn-primary"><i class="bx bx-check me-1"></i>Save</button>
                                     <button type="submit" name="action" value="draft" class="btn btn-sm btn-outline-secondary"><i class="bx bx-save me-1"></i>Save as Draft</button>
+                                    <button type="submit" name="action" value="save" class="btn btn-sm btn-primary"><i class="bx bx-check me-1"></i>Save</button>
                                 <?php else: ?>
-                                    <button type="submit" name="action" value="save" class="btn btn-sm btn-primary"><i class="bx bx-check me-1"></i>Update</button>
+                                    <button type="submit" name="action" value="save" class="btn btn-sm btn-primary"><i class="bx bx-check me-1"></i>Save</button>
                                 <?php endif; ?>
                                 <?php $_hideNav = (int)($JwtData->TransSettings->HideNavOnTransForm ?? 0); ?>
                                 <a href="/purchases" class="btn btn-sm btn-outline-danger px-3<?php echo $_hideNav ? ' d-none' : ''; ?>"><i class="bx bx-x me-1"></i>Close</a>
@@ -235,14 +235,14 @@ if ($isEdit) {
                             <div class="d-flex align-items-center gap-4 mb-3 pb-2 border-bottom">
                                 <div class="d-flex align-items-center gap-2">
                                     <span class="text-muted" style="font-size:.78rem;white-space:nowrap;">Type</span>
-                                    <select class="form-select form-select-sm border-0 bg-transparent fw-semibold"
+                                    <select class="form-select form-select-sm border-0 bg-transparent fw-semibold trans-gst-type-select"
                                             id="purchaseType" name="purchaseType" style="min-width:110px;cursor:pointer;"
                                             <?php echo ($isEdit && !$isDraftEdit) ? 'disabled' : 'required'; ?>>
-                                        <option value="Regular" <?php echo (!$isEdit || ($PurchData->QuotationType ?? '') === 'Regular' || empty($PurchData->QuotationType ?? '')) ? 'selected' : ''; ?>>Regular</option>
-                                        <option value="Without_GST" <?php echo ($isEdit && ($PurchData->QuotationType ?? '') === 'Without_GST') ? 'selected' : ''; ?>>Without GST</option>
+                                        <option value="Regular" <?php echo (!$isEdit || ($PurchData->DocType ?? '') === 'Regular' || empty($PurchData->DocType ?? '')) ? 'selected' : ''; ?>>Regular</option>
+                                        <option value="Without_GST" <?php echo ($isEdit && ($PurchData->DocType ?? '') === 'Without_GST') ? 'selected' : ''; ?>>Without GST</option>
                                     </select>
                                     <?php if ($isEdit && !$isDraftEdit): ?>
-                                    <input type="hidden" name="purchaseType" value="<?php echo htmlspecialchars($PurchData->QuotationType ?? 'Regular'); ?>" />
+                                    <input type="hidden" name="purchaseType" value="<?php echo htmlspecialchars($PurchData->DocType ?? 'Regular'); ?>" />
                                     <?php endif; ?>
                                 </div>
                                 <?php if (!empty($DispatchAddresses)): ?>
@@ -410,11 +410,11 @@ if ($isEdit) {
                                 </div>
                                 <div class="d-flex align-items-center gap-2">
                                     <?php if (!$isEdit || $isDraftEdit): ?>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="inlineDraftBtn"><i class="bx bx-save me-1"></i>Draft</button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="inlineDraftBtn"><i class="bx bx-save me-1"></i>Save as Draft</button>
                                     <?php endif; ?>
                                     <div class="btn-group">
                                         <button type="button" class="btn btn-sm btn-primary px-3" id="inlineSaveBtn">
-                                            <i class="bx bx-check me-1"></i><?php echo ($isEdit && !$isDraftEdit) ? 'Update' : 'Save'; ?>
+                                            <i class="bx bx-check me-1"></i>Save
                                         </button>
                                         <?php if (!$isEdit || $isDraftEdit): ?>
                                         <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split ps-2 pe-2" data-bs-toggle="dropdown" aria-expanded="false">
@@ -465,11 +465,11 @@ if ($isEdit) {
                         </div>
                         <div class="d-flex align-items-center gap-2">
                             <?php if (!$isEdit || $isDraftEdit): ?>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" id="stickyDraftBtn"><i class="bx bx-save me-1"></i>Draft</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="stickyDraftBtn"><i class="bx bx-save me-1"></i>Save as Draft</button>
                             <?php endif; ?>
                             <div class="btn-group">
                                 <button type="button" class="btn btn-sm btn-primary px-3" id="stickySaveBtn">
-                                    <i class="bx bx-check me-1"></i><?php echo ($isEdit && !$isDraftEdit) ? 'Update' : 'Save'; ?>
+                                    <i class="bx bx-check me-1"></i>Save
                                 </button>
                                 <?php if (!$isEdit || $isDraftEdit): ?>
                                 <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split ps-2 pe-2" data-bs-toggle="dropdown" aria-expanded="false">
@@ -504,6 +504,7 @@ if ($isEdit) {
     </div>
 </div>
 
+<?php $this->load->view('transactions/partials/additional_charges_modal'); ?>
 <?php $this->load->view('common/transactions/footer'); ?>
 
 <script src="/js/transactions/purchases.js"></script>
@@ -517,6 +518,12 @@ if ($isEdit) {
 <script src="/js/transactions/payment_section.js"></script>
 <?php endif; ?>
 <script src="/js/transactions/attachments.js"></script>
+<script>
+var _transAdditionalCharges  = <?php echo json_encode(array_values($AdditionalCharges   ?? [])); ?>;
+var _transAdditionalTaxOpts  = <?php echo json_encode(array_values($TaxList             ?? [])); ?>;
+var _transTransactionCharges = <?php echo json_encode(array_values($TransactionCharges  ?? [])); ?>;
+</script>
+<script src="/js/transactions/additional_charges.js"></script>
 
 <script>
 const EnableStorage = <?php echo $JwtData->GenSettings->EnableStorage; ?>;
@@ -724,16 +731,7 @@ $(function() {
             var roundOff      = summary.extra ? (summary.extra.roundOff || 0) : 0;
             var extraDisc     = parseFloat($('#extraDiscount').val()) || 0;
 
-            var charges = {};
-            if (summary.additionalCharges) {
-                ['shipping', 'handling', 'packing', 'other'].forEach(function(t) {
-                    var c = summary.additionalCharges[t];
-                    if (c && c.grossAmount > 0) {
-                        charges[t + 'Amount'] = c.grossAmount;
-                        charges[t + 'Tax']    = c.taxPercent || 0;
-                    }
-                });
-            }
+            var charges = { AdditionalCharges: JSON.stringify(typeof collectAdditionalCharges === 'function' ? collectAdditionalCharges() : []) };
 
             if (!_isEdit && action !== 'draft') {
                 if (typeof serializePaymentRows === 'function' && !serializePaymentRows()) return showFormError('Please enter a valid amount for every payment row.');

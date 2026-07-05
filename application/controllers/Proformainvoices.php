@@ -83,6 +83,10 @@ class Proformainvoices extends MY_Controller {
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
 
             $this->load->model('transactions_model');
+            $this->pageData['AdditionalCharges']  = $this->_getAdditionalChargesForOrg((int)$orgUID, true);
+            $this->pageData['TaxList']            = $this->_getTaxList();
+            $this->pageData['TransactionCharges'] = [];
+            $this->pageData['IsEditMode']         = false;
             $prefixResult                    = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.OrgUID' => $orgUID, 'Prefix.ModuleUID' => $this->pageModuleUID]);
             $this->pageData['PrefixData']    = $prefixResult->Data ?? [];
             $nextNumberMap = [];
@@ -132,6 +136,10 @@ class Proformainvoices extends MY_Controller {
 
             $this->pageData['PFData']  = $pfData;
             $this->pageData['PFItems'] = $pfItems;
+
+            $this->pageData['AdditionalCharges']  = $this->_getAdditionalChargesForOrg((int)$orgUID, true);
+            $this->pageData['TransactionCharges'] = $this->transactions_model->getTransactionCharges($transUID, (int)$orgUID);
+            $this->pageData['IsEditMode']         = true;
 
             $prefixResult                    = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.OrgUID' => $orgUID, 'Prefix.ModuleUID' => $this->pageModuleUID]);
             $this->pageData['PrefixData']    = $prefixResult->Data ?? [];
@@ -221,7 +229,8 @@ class Proformainvoices extends MY_Controller {
                 list($uniqueNumber) = $this->buildUniqueNumber($prefix, $transNumber, $transDate);
             }
 
-            $additionalChargesJson = $this->buildAdditionalChargesJson($PostData);
+            $additionalChargesJson  = getPostValue($PostData, 'AdditionalCharges') ?: '[]';
+            $additionalChargesList  = json_decode($additionalChargesJson, true) ?: [];
             $isInterState          = $igstAmount > 0 ? 1 : ($cgstAmount > 0 || $sgstAmount > 0 ? 0 : NULL);
             $_cc                   = $this->transactions_model->getCustomerCountryCode($customerUID);
             $isForeignCustomer     = $_cc !== NULL ? ($_cc === 'IN' ? 0 : 1) : NULL;
@@ -237,7 +246,7 @@ class Proformainvoices extends MY_Controller {
                 'PartyUID'          => $customerUID,
                 'TransDate'         => $transDate,
                 'TransYear'         => $financialYear,
-                'QuotationType'     => getPostValue($PostData, 'invoiceType') ?: 'Regular',
+                'DocType'     => getPostValue($PostData, 'invoiceType') ?: 'Regular',
                 'DispatchFrom'      => getPostValue($PostData, 'dispatchFrom') ?: NULL,
                 'TotalQuantity'     => $totalQty,
                 'TotalItems'        => count($items),
@@ -269,6 +278,9 @@ class Proformainvoices extends MY_Controller {
             $transUID     = $insertResp->ID;
             $transNumber  = $headerData['TransNumber'];
             $uniqueNumber = $headerData['UniqueNumber'];
+            if (!empty($additionalChargesList)) {
+                $this->transactions_model->saveTransactionCharges($transUID, (int)$orgUID, (int)$userUID, $additionalChargesList);
+            }
 
             $this->dbwrite_model->insertData('Transaction', 'TransDetailTbl', [
                 'FinancialYear'     => $financialYear,
@@ -279,7 +291,6 @@ class Proformainvoices extends MY_Controller {
                 'Notes'             => getPostValue($PostData, 'transNotes') ?: NULL,
                 'TermsConditions'   => getPostValue($PostData, 'transTermsCond') ?: NULL,
                 'SignatureUID'      => (int)getPostValue($PostData, 'SignatureUID') ?: NULL,
-                'AdditionalCharges' => $additionalChargesJson,
                 'PlaceOfSupplyCode' => getPostValue($PostData, 'placeOfSupplyCode') ?: NULL,
                 'PlaceOfSupplyName' => getPostValue($PostData, 'placeOfSupplyName') ?: NULL,
                 'IsInterState'      => $isInterState,
@@ -380,7 +391,8 @@ class Proformainvoices extends MY_Controller {
                 $uniqueNumber = implode($sep, $parts);
             }
 
-            $additionalChargesJson = $this->buildAdditionalChargesJson($PostData);
+            $additionalChargesJson  = getPostValue($PostData, 'AdditionalCharges') ?: '[]';
+            $additionalChargesList  = json_decode($additionalChargesJson, true) ?: [];
             $isInterState          = $igstAmount > 0 ? 1 : ($cgstAmount > 0 || $sgstAmount > 0 ? 0 : NULL);
             $_cc                   = $this->transactions_model->getCustomerCountryCode($customerUID);
             $isForeignCustomer     = $_cc !== NULL ? ($_cc === 'IN' ? 0 : 1) : NULL;
@@ -393,7 +405,7 @@ class Proformainvoices extends MY_Controller {
                 'TransDate'         => $transDate,
                 'TransYear'         => $financialYear,
                 'TransType'         => 'ProFormaInvoice',
-                'QuotationType'     => getPostValue($PostData, 'invoiceType') ?: 'Regular',
+                'DocType'     => getPostValue($PostData, 'invoiceType') ?: 'Regular',
                 'GrossAmount'       => $subTotal + $discountAmount,
                 'SubTotal'          => $subTotal,
                 'TaxableAmount'     => $subTotal,
@@ -421,7 +433,6 @@ class Proformainvoices extends MY_Controller {
                 'Notes'             => getPostValue($PostData, 'transNotes') ?: NULL,
                 'TermsConditions'   => getPostValue($PostData, 'transTermsCond') ?: NULL,
                 'SignatureUID'      => (int)getPostValue($PostData, 'SignatureUID') ?: NULL,
-                'AdditionalCharges' => $additionalChargesJson,
                 'IsInterState'      => $isInterState,
                 'IsForeignCustomer' => $isForeignCustomer,
             ];
@@ -503,6 +514,9 @@ class Proformainvoices extends MY_Controller {
                 if ($batchResp->Error) throw new Exception($batchResp->Message);
             }
 
+            if (!empty($additionalChargesList)) {
+                $this->transactions_model->saveTransactionCharges($transUID, (int)$orgUID, (int)$userUID, $additionalChargesList);
+            }
             $this->dbwrite_model->commitTransaction();
             $this->cachehelper->touchCustomer($customerUID);
             $this->transactions_model->generateAndStorePdf(isset($newTransUID) ? $newTransUID : $transUID, $orgUID, $this->pageModuleUID);
@@ -616,7 +630,7 @@ class Proformainvoices extends MY_Controller {
                 'PartyUID'          => $src->PartyUID,
                 'TransDate'         => date('Y-m-d'),
                 'TransYear'         => (int) date('Y'),
-                'QuotationType'     => $src->QuotationType,
+                'DocType'     => $src->DocType,
                 'DispatchFrom'      => $src->DispatchFrom ?? NULL,
                 'TotalQuantity'     => (float)($src->TotalQuantity ?? 0),
                 'TotalItems'        => (int)($src->TotalItems ?? 0),

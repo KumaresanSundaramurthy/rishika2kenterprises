@@ -548,6 +548,10 @@ class MY_Controller extends CI_Controller {
             $transNumber = $this->transactions_model->getNextTransactionNumber(
                 $prefixUID, $orgUID, (int)($this->pageModuleUID ?? 0)
             );
+            if ($transNumber === -1) {
+                $result->Message = 'This prefix series has reached its maximum (2,147,483,647). Please create a new prefix to continue.';
+                return $result;
+            }
             list($uniqueNumber) = $this->buildUniqueNumber($prefix, $transNumber, $transDate);
             $headerData['TransNumber']  = $transNumber;
             $headerData['UniqueNumber'] = $uniqueNumber;
@@ -578,15 +582,7 @@ class MY_Controller extends CI_Controller {
         }
     }
 
-    protected function buildAdditionalChargesJson($PostData) {
-        $charges = [];
-        foreach (['shipping', 'handling', 'packing', 'other'] as $type) {
-            $amt = (float) getPostValue($PostData, $type . 'Amount', 'Array', 0);
-            $tax = getPostValue($PostData, $type . 'Tax') ?: NULL;
-            if ($amt > 0) $charges[] = ['type' => $type, 'amount' => $amt, 'tax' => $tax];
-        }
-        return !empty($charges) ? json_encode($charges) : NULL;
-    }
+
 
     // ── Attachment config loader ──────────────────────────────────────────────
 
@@ -720,6 +716,46 @@ class MY_Controller extends CI_Controller {
         }
 
         return ['range' => $range, 'from' => $from, 'to' => $to, 'label' => $label];
+    }
+
+    /**
+     * Upstash read-through for org's additional charges list.
+     * Returns the raw array of charge objects (same shape as getAdditionalChargesList()->Data).
+     * @param int $orgUID
+     * @return array
+     */
+    protected function _getAdditionalChargesForOrg(int $orgUID, bool $showByDefault = false): array {
+        $key    = $this->redisservice->orgKey('additional-charges');
+        $cached = $this->upstashservice->get($key);
+        if ($cached !== null && $cached !== false) {
+            $rows = is_array($cached) ? $cached : [];
+        } else {
+            $this->load->model('organisation_model');
+            $result = $this->organisation_model->getAdditionalChargesList($orgUID);
+            $rows   = ($result->Error === FALSE) ? ($result->Data ?? []) : [];
+            if (!empty($rows)) {
+                $this->upstashservice->set($key, $rows, 0);
+            }
+        }
+        // Compute next sort order from the full (unfiltered) list and expose it to views.
+        $maxSort = 0;
+        foreach ($rows as $r) {
+            $s = (int)(is_array($r) ? ($r['SortOrder'] ?? 0) : ($r->SortOrder ?? 0));
+            if ($s > $maxSort) { $maxSort = $s; }
+        }
+        if (is_array($this->pageData)) {
+            $this->pageData['AcNextSortOrder'] = $maxSort + 1;
+        }
+        if ($showByDefault) {
+            return array_values(array_filter($rows, fn($c) => (int)(is_array($c) ? ($c['ShowByDefault'] ?? 0) : ($c->ShowByDefault ?? 0)) === 1));
+        }
+        return $rows;
+    }
+
+    protected function _getTaxList(): array {
+        $this->load->model('global_model');
+        $result = $this->global_model->getTaxDetailsInfo();
+        return ($result->Error === FALSE) ? (array)($result->Data ?? []) : [];
     }
 
 }

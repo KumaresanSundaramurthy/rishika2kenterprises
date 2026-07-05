@@ -15,7 +15,7 @@ class Accountledger_model extends CI_Model {
         return (int)(get_instance()->pageData['JwtData']->Org->OrgUID ?? 0);
     }
 
-    public function getEntityLedgerByColumn(string $column, $entityId, ?string $entityType = null) {
+    public function getEntityLedgerByColumn(string $column, mixed $entityId, ?string $entityType = null): ?object {
         try {
             $orgUID = $this->_orgUID();
             $this->ReadDb->select('el.*, ca.*');
@@ -41,7 +41,7 @@ class Accountledger_model extends CI_Model {
 
     }
     
-    public function getEntityWithLedger(int $entityId, string $entityType = 'Customer') {
+    public function getEntityWithLedger(int $entityId, string $entityType = 'Customer'): ?object {
 
         try {
 
@@ -96,7 +96,7 @@ class Accountledger_model extends CI_Model {
     }
 
     // get ledger inforamtion
-    public function getLedgerById(int $ledgerId, ?string $ledgerType = null) {
+    public function getLedgerById(int $ledgerId, ?string $ledgerType = null): ?object {
 
         try {
 
@@ -121,7 +121,7 @@ class Accountledger_model extends CI_Model {
 
     }
 
-    public function getLedgerByParentAndType(int $parentId, ?string $ledgerType = null) {
+    public function getLedgerByParentAndType(int $parentId, ?string $ledgerType = null): array {
 
         try {
 
@@ -167,7 +167,7 @@ class Accountledger_model extends CI_Model {
 
     }
 
-    public function getSystemLedgerByCode(string $code, int $orgUID = 0) {
+    public function getSystemLedgerByCode(string $code, int $orgUID = 0): ?object {
         try {
             $this->ReadDb->select('LedgerUID, LedgerCode, LedgerName, LedgerType, CurrentBalance, CurrentBalanceType');
             $this->ReadDb->from('Accounting.ChartOfAccounts');
@@ -183,7 +183,7 @@ class Accountledger_model extends CI_Model {
         }
     }
 
-    public function getLastLedgerBalance(int $ledgerUID, int $financialYear, int $orgUID = 0) {
+    public function getLastLedgerBalance(int $ledgerUID, int $financialYear, int $orgUID = 0): ?object {
         try {
             $this->ReadDb->select('RunningBalance, BalanceType');
             $this->ReadDb->from('Accounting.LedgerBalances');
@@ -350,7 +350,7 @@ class Accountledger_model extends CI_Model {
         }
     }
 
-    public function getJournalStats() {
+    public function getJournalStats(): object {
         try {
             $this->ReadDb->db_debug = FALSE;
             $orgUID = $this->_orgUID();
@@ -372,7 +372,7 @@ class Accountledger_model extends CI_Model {
         }
     }
 
-    public function getJournalWithEntries(int $journalUID) {
+    public function getJournalWithEntries(int $journalUID): ?object {
         try {
             $this->ReadDb->db_debug = FALSE;
             $orgUID = $this->_orgUID();
@@ -459,7 +459,7 @@ class Accountledger_model extends CI_Model {
         }
     }
 
-    public function getChartOfAccountsStats() {
+    public function getChartOfAccountsStats(): object {
         try {
             $this->ReadDb->db_debug = FALSE;
             $orgUID = $this->_orgUID();
@@ -510,7 +510,7 @@ class Accountledger_model extends CI_Model {
     }
 
     /** Sum of Debit/Credit before the dateFrom (for opening balance calculation) */
-    public function getLedgerActivityBefore(int $ledgerUID, ?string $dateBefore) {
+    public function getLedgerActivityBefore(int $ledgerUID, ?string $dateBefore): object {
         try {
             $this->ReadDb->db_debug = FALSE;
             $this->ReadDb->select("
@@ -530,7 +530,7 @@ class Accountledger_model extends CI_Model {
     }
 
     /** All active ledgers for the dropdown selector */
-    public function getAllActiveLedgers() {
+    public function getAllActiveLedgers(): array {
         try {
             $this->ReadDb->db_debug = FALSE;
             $orgUID = $this->_orgUID();
@@ -548,7 +548,7 @@ class Accountledger_model extends CI_Model {
         }
     }
 
-    public function getParentLedgers() {
+    public function getParentLedgers(): array {
         try {
             $this->ReadDb->db_debug = FALSE;
             $orgUID = $this->_orgUID();

@@ -215,12 +215,14 @@ class Quotations extends MY_Controller {
             $this->load->model('transactions_model');
 
             // --- Draft: no number assigned yet ---
+            $prefix = NULL;
             if ($isDraft) {
                 $uniqueNumber = NULL;
                 $transNumber  = NULL;
                 $prefixUID    = NULL;
             } else {
                 if ($transNumber <= 0) throw new Exception('Transaction number must be greater than 0.');
+                if ($transNumber > 2147483647) throw new Exception('Transaction number exceeds the maximum allowed value of 2,147,483,647. Please use a smaller number or create a new prefix series.');
 
                 // Resolve prefix & build UniqueNumber
                 $prefixData = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.PrefixUID' => $prefixUID, 'Prefix.OrgUID' => $orgUID]);
@@ -243,7 +245,7 @@ class Quotations extends MY_Controller {
                 'PartyUID'              => $customerUID,
                 'TransDate'             => $transDate,
                 'TransYear'             => $financialYear,
-                'QuotationType'         => getPostValue($PostData, 'quotationType') ?: NULL,
+                'DocType'         => getPostValue($PostData, 'quotationType') ?: NULL,
                 'DispatchFrom'          => getPostValue($PostData, 'dispatchFrom') ?: NULL,
                 'TotalQuantity'         => $totalQty,
                 'TotalItems'            => count($items),
@@ -278,7 +280,11 @@ class Quotations extends MY_Controller {
             $uniqueNumber = $headerData['UniqueNumber'];
 
             // --- Insert detail row (TransDetailTbl - notes, terms, validity, charges) ---
-            $additionalChargesJson = $this->buildAdditionalChargesJson($PostData);
+            $additionalChargesJson  = getPostValue($PostData, 'AdditionalCharges') ?: '[]';
+            $additionalChargesList  = json_decode($additionalChargesJson, true) ?: [];
+            if (!empty($additionalChargesList)) {
+                $this->transactions_model->saveTransactionCharges($transUID, (int)$orgUID, (int)$userUID, $additionalChargesList);
+            }
             $isInterState          = $igstAmount > 0 ? 1 : ($cgstAmount > 0 || $sgstAmount > 0 ? 0 : NULL);
             $_cc                   = $this->transactions_model->getCustomerCountryCode($customerUID);
             $isForeignCustomer     = $_cc !== NULL ? ($_cc === 'IN' ? 0 : 1) : NULL;
@@ -291,7 +297,6 @@ class Quotations extends MY_Controller {
                 'Notes'             => getPostValue($PostData, 'transNotes') ?: NULL,
                 'TermsConditions'   => getPostValue($PostData, 'transTermsCond') ?: NULL,
                 'SignatureUID'      => (int)getPostValue($PostData, 'SignatureUID') ?: NULL,
-                'AdditionalCharges' => $additionalChargesJson,
                 'PlaceOfSupplyCode' => getPostValue($PostData, 'placeOfSupplyCode') ?: NULL,
                 'PlaceOfSupplyName' => getPostValue($PostData, 'placeOfSupplyName') ?: NULL,
                 'IsInterState'      => $isInterState,
@@ -391,6 +396,7 @@ class Quotations extends MY_Controller {
             if ($existing->DocStatus === 'Draft' && !$isDraft) {
                 if ($prefixUID <= 0) throw new Exception('Please select a prefix to finalize this quotation.');
                 if ($transNumber <= 0) throw new Exception('Transaction number must be greater than 0.');
+                if ($transNumber > 2147483647) throw new Exception('Transaction number exceeds the maximum allowed value of 2,147,483,647. Please use a smaller number or create a new prefix series.');
 
                 $prefixData = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.PrefixUID' => $prefixUID, 'Prefix.OrgUID' => $orgUID]);
                 if (empty($prefixData->Data)) throw new Exception('Invalid prefix selected.');
@@ -399,12 +405,14 @@ class Quotations extends MY_Controller {
                 // Race condition guard for updateQuotation
                 if ($this->dbwrite_model->checkTransactionNumberExists($prefixUID, $transNumber, $orgUID)) {
                     $transNumber = $this->dbwrite_model->getNextAvailableTransNumber($prefixUID, $orgUID);
+                    if ($transNumber === -1) throw new Exception('This prefix series has reached its maximum (2,147,483,647). Please create a new prefix to continue.');
                 }
 
                 list($uniqueNumber) = $this->buildUniqueNumber($prefix, $transNumber, $transDate);
             }
 
-            $additionalChargesJson = $this->buildAdditionalChargesJson($PostData);
+            $additionalChargesJson  = getPostValue($PostData, 'AdditionalCharges') ?: '[]';
+            $additionalChargesList  = json_decode($additionalChargesJson, true) ?: [];
 
             // --- Shared header fields (used in both update and clone paths) ---
             $commonHeader = [
@@ -415,7 +423,7 @@ class Quotations extends MY_Controller {
                 'TransDate'         => $transDate,
                 'TransYear'         => $financialYear,
                 'TransType'         => 'Quotation',
-                'QuotationType'     => getPostValue($PostData, 'quotationType') ?: NULL,
+                'DocType'     => getPostValue($PostData, 'quotationType') ?: NULL,
                 'GrossAmount'       => $subTotal + $discountAmount,
                 'SubTotal'          => $subTotal,
                 'TaxableAmount'     => $subTotal,
@@ -446,7 +454,6 @@ class Quotations extends MY_Controller {
                 'Notes'             => getPostValue($PostData, 'transNotes') ?: NULL,
                 'TermsConditions'   => getPostValue($PostData, 'transTermsCond') ?: NULL,
                 'SignatureUID'      => (int)getPostValue($PostData, 'SignatureUID') ?: NULL,
-                'AdditionalCharges' => $additionalChargesJson,
                 'IsInterState'      => $isInterState,
                 'IsForeignCustomer' => $isForeignCustomer,
             ];
@@ -574,12 +581,16 @@ class Quotations extends MY_Controller {
                 }
             }
 
+            $activeTransUID = $newTransUID ?? $transUID;
+            if (!empty($additionalChargesList)) {
+                $this->transactions_model->saveTransactionCharges($activeTransUID, (int)$orgUID, (int)$userUID, $additionalChargesList);
+            }
             $this->dbwrite_model->commitTransaction();
 
             $this->_saveAttachments($transUID);
             $this->_softDeleteAttachments($this->input->post('RemovedAttachIDs') ?? '');
             $this->cachehelper->touchCustomer($customerUID);
-            $this->transactions_model->generateAndStorePdf(isset($newTransUID) ? $newTransUID : $transUID, $orgUID, $this->pageModuleUID);
+            $this->transactions_model->generateAndStorePdf($activeTransUID, $orgUID, $this->pageModuleUID);
 
             $this->EndReturnData->Error   = FALSE;
             $this->EndReturnData->Message = 'Quotation updated successfully.';
@@ -848,6 +859,16 @@ class Quotations extends MY_Controller {
                 $this->pageData['fltStorageData'] = $this->storage_model->getStorageDetails([]) ?? [];
             }
 
+            $defaultValidityDays = (int)($this->pageData['JwtData']->TransSettings->QuotValidityDays ?? 7);
+            if ($defaultValidityDays < 1) $defaultValidityDays = 7;
+            $this->pageData['DefaultValidityDays'] = $defaultValidityDays;
+            $this->pageData['DefaultValidityDate'] = date('Y-m-d', strtotime("+{$defaultValidityDays} days"));
+
+            $this->pageData['AdditionalCharges']  = $this->_getAdditionalChargesForOrg((int)$orgUID, true);
+            $this->pageData['TaxList']            = $this->_getTaxList();
+            $this->pageData['TransactionCharges'] = [];
+            $this->pageData['IsEditMode']         = false;
+
             $this->_loadUpstashConfig();
 
             $this->load->view('transactions/quotations/forms/form', $this->pageData);
@@ -914,6 +935,15 @@ class Quotations extends MY_Controller {
                 $this->load->model('storage_model');
                 $this->pageData['fltStorageData'] = $this->storage_model->getStorageDetails([]) ?? [];
             }
+
+            $defaultValidityDays = (int)($this->pageData['JwtData']->TransSettings->QuotValidityDays ?? 7);
+            if ($defaultValidityDays < 1) $defaultValidityDays = 7;
+            $this->pageData['DefaultValidityDays'] = $defaultValidityDays;
+            $this->pageData['DefaultValidityDate'] = date('Y-m-d', strtotime("+{$defaultValidityDays} days"));
+
+            $this->pageData['AdditionalCharges']  = $this->_getAdditionalChargesForOrg((int)$orgUID, true);
+            $this->pageData['TransactionCharges'] = $this->transactions_model->getTransactionCharges($transUID, (int)$orgUID);
+            $this->pageData['IsEditMode']         = true;
 
             $this->load->view('transactions/quotations/forms/form', $this->pageData);
 

@@ -1,12 +1,11 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php
-$cdnUrl = getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv('CFLARE_R2_CDN');
-
 if (!empty($DataLists)) {
     foreach ($DataLists as $i => $row) {
         $sno    = $StartFrom + $i + 1;
-        $imgSrc = !empty($row->Image) ? $cdnUrl . $row->Image : null;
+        $_atts  = json_decode($row->AttachmentsJson ?? '[]', true);
+        $imgSrc = !empty($_atts[0]['url']) ? $_atts[0]['url'] : null;
         $desc   = $row->Description ?? '';
         $shortDesc = mb_strlen($desc) > 60 ? mb_substr($desc, 0, 60) . '...' : $desc;
 
@@ -77,7 +76,6 @@ if (!empty($DataLists)) {
                        data-uid="<?php echo htmlspecialchars($row->CategoryUID); ?>"
                        data-name="<?php echo base64_encode($row->Name); ?>"
                        data-description="<?php echo base64_encode($row->Description ?? ''); ?>"
-                       data-image="<?php echo base64_encode($row->Image ?? ''); ?>"
                        data-attachments="<?php echo htmlspecialchars($row->AttachmentsJson ?? '[]', ENT_QUOTES, 'UTF-8'); ?>"
                        title="Edit">
                         <i class="bx bx-edit"></i>

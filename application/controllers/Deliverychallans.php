@@ -124,6 +124,11 @@ class Deliverychallans extends MY_Controller {
                 $this->pageData['CloneItems'] = $cloneItems;
             }
 
+            $this->pageData['AdditionalCharges']  = $this->_getAdditionalChargesForOrg((int)$orgUID, true);
+            $this->pageData['TaxList']            = $this->_getTaxList();
+            $this->pageData['TransactionCharges'] = [];
+            $this->pageData['IsEditMode']         = false;
+
             $this->_getDispatchAddresses($orgUID);
 
             $this->load->model('products_model');
@@ -181,6 +186,10 @@ class Deliverychallans extends MY_Controller {
                 $nextNumberMap[(int)$pd->PrefixUID] = $this->transactions_model->getNextTransactionNumber($pd->PrefixUID, $orgUID, $this->pageModuleUID);
             }
             $this->pageData['NextNumberMap'] = $nextNumberMap;
+
+            $this->pageData['AdditionalCharges']  = $this->_getAdditionalChargesForOrg((int)$orgUID, true);
+            $this->pageData['TransactionCharges'] = $this->transactions_model->getTransactionCharges($transUID, (int)$orgUID);
+            $this->pageData['IsEditMode']         = true;
 
             $this->_getDispatchAddresses($orgUID);
 
@@ -293,7 +302,8 @@ class Deliverychallans extends MY_Controller {
                 list($uniqueNumber) = $this->buildUniqueNumber($prefix, $transNumber, $transDate);
             }
 
-            $additionalChargesJson = $this->buildAdditionalChargesJson($PostData);
+            $additionalChargesJson  = getPostValue($PostData, 'AdditionalCharges') ?: '[]';
+            $additionalChargesList  = json_decode($additionalChargesJson, true) ?: [];
             $isInterState          = $igstAmount > 0 ? 1 : ($cgstAmount > 0 || $sgstAmount > 0 ? 0 : NULL);
             $_cc                   = $this->transactions_model->getCustomerCountryCode($customerUID);
             $isForeignCustomer     = $_cc !== NULL ? ($_cc === 'IN' ? 0 : 1) : NULL;
@@ -309,7 +319,7 @@ class Deliverychallans extends MY_Controller {
                 'PartyUID'          => $customerUID,
                 'TransDate'         => $transDate,
                 'TransYear'         => $financialYear,
-                'QuotationType'     => getPostValue($PostData, 'challanType') ?: 'Non-Returnable',
+                'DocType'     => getPostValue($PostData, 'challanType') ?: 'Non-Returnable',
                 'DispatchFrom'      => getPostValue($PostData, 'dispatchFrom') ?: NULL,
                 'TotalQuantity'     => $totalQty,
                 'TotalItems'        => count($items),
@@ -341,6 +351,9 @@ class Deliverychallans extends MY_Controller {
             $transUID     = $insertResp->ID;
             $transNumber  = $headerData['TransNumber'];
             $uniqueNumber = $headerData['UniqueNumber'];
+            if (!empty($additionalChargesList)) {
+                $this->transactions_model->saveTransactionCharges($transUID, (int)$orgUID, (int)$userUID, $additionalChargesList);
+            }
 
             $detailData = [
                 'FinancialYear'     => $financialYear,
@@ -353,7 +366,6 @@ class Deliverychallans extends MY_Controller {
                 'Notes'             => getPostValue($PostData, 'transNotes') ?: NULL,
                 'TermsConditions'   => getPostValue($PostData, 'transTermsCond') ?: NULL,
                 'SignatureUID'      => (int)getPostValue($PostData, 'SignatureUID') ?: NULL,
-                'AdditionalCharges' => $additionalChargesJson,
                 'PlaceOfSupplyCode' => getPostValue($PostData, 'placeOfSupplyCode') ?: NULL,
                 'PlaceOfSupplyName' => getPostValue($PostData, 'placeOfSupplyName') ?: NULL,
                 'IsInterState'      => $isInterState,
@@ -474,7 +486,8 @@ class Deliverychallans extends MY_Controller {
                 $uniqueNumber = implode($sep, $parts);
             }
 
-            $additionalChargesJson = $this->buildAdditionalChargesJson($PostData);
+            $additionalChargesJson  = getPostValue($PostData, 'AdditionalCharges') ?: '[]';
+            $additionalChargesList  = json_decode($additionalChargesJson, true) ?: [];
             $isInterState          = $igstAmount > 0 ? 1 : ($cgstAmount > 0 || $sgstAmount > 0 ? 0 : NULL);
             $_cc                   = $this->transactions_model->getCustomerCountryCode($customerUID);
             $isForeignCustomer     = $_cc !== NULL ? ($_cc === 'IN' ? 0 : 1) : NULL;
@@ -487,7 +500,7 @@ class Deliverychallans extends MY_Controller {
                 'TransDate'         => $transDate,
                 'TransYear'         => $financialYear,
                 'TransType'         => 'DeliveryChallan',
-                'QuotationType'     => getPostValue($PostData, 'challanType') ?: 'Non-Returnable',
+                'DocType'     => getPostValue($PostData, 'challanType') ?: 'Non-Returnable',
                 'GrossAmount'       => $subTotal + $discountAmount,
                 'SubTotal'          => $subTotal,
                 'TaxableAmount'     => $subTotal,
@@ -517,7 +530,6 @@ class Deliverychallans extends MY_Controller {
                 'Notes'             => getPostValue($PostData, 'transNotes') ?: NULL,
                 'TermsConditions'   => getPostValue($PostData, 'transTermsCond') ?: NULL,
                 'SignatureUID'      => (int)getPostValue($PostData, 'SignatureUID') ?: NULL,
-                'AdditionalCharges' => $additionalChargesJson,
                 'IsInterState'      => $isInterState,
                 'IsForeignCustomer' => $isForeignCustomer,
             ];
@@ -599,6 +611,9 @@ class Deliverychallans extends MY_Controller {
                 if ($batchResp->Error) throw new Exception($batchResp->Message);
             }
 
+            if (!empty($additionalChargesList)) {
+                $this->transactions_model->saveTransactionCharges($transUID, (int)$orgUID, (int)$userUID, $additionalChargesList);
+            }
             $this->dbwrite_model->commitTransaction();
             $this->cachehelper->touchCustomer($customerUID);
             $this->_saveAttachments($transUID);
@@ -736,7 +751,7 @@ class Deliverychallans extends MY_Controller {
                 'PartyUID'          => $src->PartyUID,
                 'TransDate'         => date('Y-m-d'),
                 'TransYear'         => (int) date('Y'),
-                'QuotationType'     => $src->QuotationType,
+                'DocType'     => $src->DocType,
                 'DispatchFrom'      => $src->DispatchFrom ?? NULL,
                 'TotalQuantity'     => (float)($src->TotalQuantity ?? 0),
                 'TotalItems'        => (int)($src->TotalItems ?? 0),
@@ -829,7 +844,7 @@ class Deliverychallans extends MY_Controller {
             if (!$existing) throw new Exception('Delivery Challan not found.');
 
             $current    = $existing->DocStatus;
-            $challanMode = $existing->QuotationType ?? 'Non-Returnable';
+            $challanMode = $existing->DocType ?? 'Non-Returnable';
             $isReturnable = in_array($challanMode, ['Returnable', 'Job Work']);
 
             // Mode-aware transitions:
@@ -1004,13 +1019,15 @@ class Deliverychallans extends MY_Controller {
                 ]);
                 if (!$insOk) throw new Exception('Failed to record return for ' . $item->ProductName);
 
-                // Add stock back (IN movement) for the returned qty
-                $wdb->db_debug = FALSE;
-                $wdb->query(
-                    "UPDATE Products.ProductStockTbl
-                        SET AvailableQty = CAST(AvailableQty AS SIGNED) + ?
-                      WHERE ProductUID = ? AND OrgUID = ?",
-                    [$returnQty, (int)$item->ProductUID, $orgUID]
+                // Add stock back via ledger so reverseStockMovements nets it on DC delete
+                $this->dbwrite_model->applyDCReturnStockMovement(
+                    $transUID,
+                    $this->pageModuleUID,
+                    $orgUID,
+                    $userUID,
+                    (int)$item->ProductUID,
+                    (float)$returnQty,
+                    $transProdUID
                 );
 
                 $anyReturn = true;

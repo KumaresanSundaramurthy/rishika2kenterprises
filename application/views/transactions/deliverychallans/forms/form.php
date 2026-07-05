@@ -49,7 +49,7 @@ $editPrefixSeg   = ($isEdit && $isDraftEdit) ? buildDCPrefixSegment($editPrefixC
 // Challan type
 $_challanType = 'Non-Returnable';
 if ($isEdit) {
-    $_challanType = $DCData->QuotationType ?? 'Non-Returnable';
+    $_challanType = $DCData->DocType ?? 'Non-Returnable';
 } elseif (!empty($SOSourceData)) {
     $_challanType = 'Non-Returnable';
 }
@@ -75,6 +75,9 @@ $_deliveryByDisp = '';
 if ($isEdit && !empty($DCData->DeliveryByDate)) {
     $_deliveryByDate = htmlspecialchars(format_datedisplay($DCData->DeliveryByDate, 'Y-m-d'));
     $_deliveryByDisp = format_datedisplay($DCData->DeliveryByDate, $_fmt);
+} elseif (!$isEdit && !empty($SOSourceData->DeliveryByDate)) {
+    $_deliveryByDate = htmlspecialchars(format_datedisplay($SOSourceData->DeliveryByDate, 'Y-m-d'));
+    $_deliveryByDisp = format_datedisplay($SOSourceData->DeliveryByDate, $_fmt);
 }
 
 // Notes / Terms
@@ -82,12 +85,7 @@ $_notesVal = '';
 $_jwtTerms = $JwtData->TransSettings->TermsAndConditions ?? '';
 $_termsVal = '';
 if (!$isEdit) {
-    if (!empty($SOSourceData)) {
-        $_notesVal = $SOSourceData->Notes ?? '';
-        $_termsVal = !empty($SOSourceData->TermsConditions) ? $SOSourceData->TermsConditions : $_jwtTerms;
-    } else {
-        $_termsVal = $_jwtTerms;
-    }
+    $_termsVal = $_jwtTerms;
 } else {
     $_notesVal = $DCData->Notes ?? '';
     $_termsVal = $DCData->TermsConditions ?? '';
@@ -149,22 +147,22 @@ if (!empty($DispatchAddress)) {
                         ?>
                         <div class="card-header bg-white border-bottom d-flex align-items-center justify-content-between px-3 py-2 trans-header-static trans-theme modal-header-center-sticky">
                             <div class="d-flex align-items-center gap-3" id="transHeaderInfo">
-                                <div class="trans-doc-icon" style="background:#dcfce7;">
-                                    <i class="bx bx-package" style="color:#16a34a;font-size:1.1rem;"></i>
+                                <div class="trans-doc-icon dc-doc-icon">
+                                    <i class="bx bx-package"></i>
                                 </div>
                                 <div>
                                     <div class="d-flex align-items-center flex-wrap gap-2">
                                         <?php if (!$isEdit): ?>
-                                            <span class="fw-bold" style="font-size:.92rem;">Create Delivery Challan</span>
+                                            <span class="fw-bold dc-form-title">Create Delivery Challan</span>
                                             <?php if (!empty($SOSourceData)): ?>
-                                                <span class="badge text-bg-info" style="font-size:.65rem;"><i class="bx bx-transfer-alt me-1"></i>From SO: <?php echo htmlspecialchars($SOSourceData->UniqueNumber ?? ''); ?></span>
+                                                <span class="badge text-bg-info dc-from-so-badge"><i class="bx bx-transfer-alt me-1"></i>From SO: <?php echo htmlspecialchars($SOSourceData->UniqueNumber ?? ''); ?></span>
                                             <?php endif; ?>
                                             <?php $this->load->view('transactions/partials/form_prefix_add'); ?>
                                         <?php else: ?>
-                                            <span class="fw-bold" style="font-size:.92rem;"><?php echo $isDraftEdit ? '' : 'Edit'; ?> Delivery Challan</span>
+                                            <span class="fw-bold dc-form-title"><?php echo $isDraftEdit ? '' : 'Edit'; ?> Delivery Challan</span>
                                             <?php if (!$isDraftEdit && !empty($DCData->UniqueNumber)): ?>
                                                 <span class="trans-form-doc-number"><?php echo htmlspecialchars($DCData->UniqueNumber); ?></span>
-                                                <span class="badge bg-label-<?php echo $_dcStatusClr; ?>" style="font-size:.7rem;"><?php echo htmlspecialchars($_dcStatus); ?></span>
+                                                <span class="badge bg-label-<?php echo $_dcStatusClr; ?> dc-status-badge"><?php echo htmlspecialchars($_dcStatus); ?></span>
                                             <?php endif; ?>
                                             <div class="d-flex align-items-center gap-1 <?php echo (!$isDraftEdit ? 'd-none' : ''); ?>">
                                                 <div class="input-group w-auto">
@@ -195,9 +193,10 @@ if (!empty($DispatchAddress)) {
                                                 </div>
                                                 <div class="input-group input-group-sm w-auto">
                                                     <span class="input-group-text cursor-pointer fw-semibold text-primary" id="appendPrefixVal"><?php echo htmlspecialchars($editPrefixSeg); ?></span>
-                                                    <input type="number" id="transNumber" name="transNumber" class="form-control transAutoGenNumber stop-incre-indicator" maxLength="20"
-                                                        onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))"
-                                                        oninput="this.value=this.value.slice(0,this.maxLength)"
+                                                    <input type="text" inputmode="numeric" id="transNumber" name="transNumber" class="form-control transAutoGenNumber stop-incre-indicator" maxLength="20"
+                                                        onkeydown="return handleDotOnly(event)"
+                                                        oninput="this.value=this.value.slice(0,this.maxLength); handleOnlyNumbers(this)"
+                                                        onpaste="pasteOnlyNumbers(event)" ondrop="dropOnlyNumbers(event)"
                                                         pattern="[0-9]*" value="<?php echo $editTransNumber; ?>"
                                                         <?php echo (!$isDraftEdit ? 'disabled' : 'required'); ?> />
                                                 </div>
@@ -212,17 +211,17 @@ if (!empty($DispatchAddress)) {
                             </div>
                             <div class="d-flex align-items-center gap-2">
                                 <?php if (!$isEdit || $isDraftEdit): ?>
-                                <button type="submit" name="action" value="draft" class="btn btn-sm btn-outline-secondary"><i class="bx bx-save me-1"></i>Draft</button>
+                                <button type="submit" name="action" value="draft" class="btn btn-sm btn-outline-secondary"><i class="bx bx-save me-1"></i>Save as Draft</button>
                                 <?php endif; ?>
                                 <div class="btn-group">
                                     <button type="submit" name="action" value="save" class="btn btn-sm btn-primary px-3">
-                                        <i class="bx bx-check me-1"></i><?php echo ($isEdit && !$isDraftEdit) ? 'Update' : 'Save'; ?>
+                                        <i class="bx bx-check me-1"></i>Save
                                     </button>
                                     <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split ps-2 pe-2" data-bs-toggle="dropdown" aria-expanded="false">
                                         <span class="visually-hidden">Save options</span>
                                     </button>
-                                    <ul class="dropdown-menu dropdown-menu-end shadow" style="min-width:195px;font-size:.82rem;">
-                                        <li><span class="dropdown-header py-1" style="font-size:.65rem;letter-spacing:.4px;">SAVE &amp; PRINT</span></li>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow dc-save-menu">
+                                        <li><span class="dropdown-header py-1">SAVE &amp; PRINT</span></li>
                                         <li><button type="submit" class="dropdown-item py-1" name="action" value="save_a4"><i class="bx bx-file text-primary me-2"></i>Save &amp; Print A4</button></li>
                                         <li><button type="submit" class="dropdown-item py-1" name="action" value="save_a5"><i class="bx bx-file-blank text-info me-2"></i>Save &amp; Print A5</button></li>
                                         <li><button type="submit" class="dropdown-item py-1" name="action" value="save_thermal"><i class="bx bx-receipt text-success me-2"></i>Save &amp; Print Thermal</button></li>
@@ -259,18 +258,18 @@ if (!empty($DispatchAddress)) {
                             }
                             ?>
                             <div class="d-flex align-items-center gap-4 mb-3 pb-2 border-bottom">
-                                <?php if ($isEdit): ?>
+                                <?php if ($isEdit && !$isDraftEdit): ?>
                                 <!-- Edit mode: all three as read-only text chips, same style -->
                                 <div class="d-flex align-items-center gap-2">
-                                    <span class="text-muted" style="font-size:.75rem;white-space:nowrap;">Type</span>
-                                    <span class="badge fw-semibold" style="background:#eef0f3;color:#344563;font-size:.8rem;padding:5px 10px;border:1px solid #d5dae0;">
+                                    <span class="text-muted dc-toolbar-label">Type</span>
+                                    <span class="badge fw-semibold dc-chip-badge">
                                         <?php echo htmlspecialchars($_dcInvTypeLabel); ?>
                                     </span>
                                     <input type="hidden" id="dcInvoiceType" name="invoiceType" value="<?php echo htmlspecialchars($_dcInvType); ?>" />
                                 </div>
                                 <div class="d-flex align-items-center gap-2">
-                                    <span class="text-muted" style="font-size:.75rem;white-space:nowrap;">Mode</span>
-                                    <span class="badge fw-semibold" style="background:#eef0f3;color:#344563;font-size:.8rem;padding:5px 10px;border:1px solid #d5dae0;">
+                                    <span class="text-muted dc-toolbar-label">Mode</span>
+                                    <span class="badge fw-semibold dc-chip-badge">
                                         <?php echo htmlspecialchars($_modeLabel); ?>
                                     </span>
                                     <input type="hidden" id="challanType" name="challanType" value="<?php echo htmlspecialchars($_challanType); ?>" />
@@ -286,8 +285,8 @@ if (!empty($DispatchAddress)) {
                                 ]));
                                 ?>
                                 <div class="d-flex align-items-center gap-2">
-                                    <span class="text-muted" style="font-size:.75rem;white-space:nowrap;">Dispatch From</span>
-                                    <span class="badge fw-semibold" style="background:#eef0f3;color:#344563;font-size:.8rem;padding:5px 10px;border:1px solid #d5dae0;white-space:normal;text-align:left;line-height:1.4;">
+                                    <span class="text-muted dc-toolbar-label">Dispatch From</span>
+                                    <span class="badge fw-semibold dc-chip-badge dc-chip-badge-addr">
                                         <?php echo htmlspecialchars($_fullAddr); ?>
                                     </span>
                                     <input type="hidden" id="dispatchFrom" name="dispatchFrom" value="<?php echo (int)$_editDispAddr->OrgAddressUID; ?>" />
@@ -296,61 +295,97 @@ if (!empty($DispatchAddress)) {
                                 <?php else: ?>
                                 <!-- Create mode: interactive selects -->
                                 <div class="d-flex align-items-center gap-2">
-                                    <span class="text-muted" style="font-size:.78rem;white-space:nowrap;">Type</span>
-                                    <select class="form-select form-select-sm border-0 bg-transparent fw-semibold"
-                                            id="dcInvoiceType" name="invoiceType" style="min-width:110px;cursor:pointer;">
+                                    <span class="text-muted dc-toolbar-label">Type</span>
+                                    <select class="form-select form-select-sm border-0 bg-transparent fw-semibold dc-type-sel trans-gst-type-select"
+                                            id="dcInvoiceType" name="invoiceType">
                                         <option value="Regular"     <?php echo $_dcInvType === 'Regular'     ? 'selected' : ''; ?>>Regular</option>
                                         <option value="Without_GST" <?php echo $_dcInvType === 'Without_GST' ? 'selected' : ''; ?>>Without GST</option>
                                     </select>
                                 </div>
                                 <div class="d-flex align-items-center gap-2">
-                                    <span class="text-muted" style="font-size:.78rem;white-space:nowrap;">Mode</span>
-                                    <select class="form-select form-select-sm border-0 bg-transparent fw-semibold"
-                                            id="challanType" name="challanType" style="min-width:130px;cursor:pointer;" required>
+                                    <span class="text-muted dc-toolbar-label">Mode</span>
+                                    <select class="form-select form-select-sm border-0 bg-transparent fw-semibold dc-mode-sel"
+                                            id="challanType" name="challanType" required>
                                         <option value="Non-Returnable" <?php echo $_challanType === 'Non-Returnable' ? 'selected' : ''; ?>>Non-Returnable</option>
                                         <option value="Returnable"     <?php echo $_challanType === 'Returnable'     ? 'selected' : ''; ?>>Returnable</option>
                                         <option value="Job Work"       <?php echo $_challanType === 'Job Work'       ? 'selected' : ''; ?>>Job Work</option>
                                     </select>
                                 </div>
                                 <?php if (!empty($DispatchAddresses)): ?>
-                                <div class="d-flex align-items-center gap-2 dispatch-from-grp" style="max-width:360px;">
-                                    <span class="text-muted" style="font-size:.78rem;white-space:nowrap;">Dispatch From</span>
+                                <div class="d-flex align-items-center gap-2 dispatch-from-grp dc-dispatch-grp">
+                                    <span class="text-muted dc-toolbar-label">Dispatch From</span>
                                     <?php $this->load->view('common/transactions/_dispatch_from'); ?>
                                 </div>
                                 <?php endif; ?>
                                 <?php endif; ?>
                                 <div class="ms-auto d-flex align-items-center gap-2">
                                     <div id="custTypeIndicator" class="d-none"></div>
+                                    <div id="onAccountIndicator" class="d-none d-flex align-items-center gap-1"
+                                         style="font-size:.78rem;color:#856404;background:#fff8e1;border:1px solid #ffc107;padding:3px 12px;border-radius:20px;white-space:nowrap;">
+                                        <i class="bx bx-wallet" style="font-size:.88rem;"></i>
+                                        On Account: <strong id="onAccountTotal" style="margin-left:3px;"></strong>
+                                    </div>
                                 </div>
                             </div>
 
                             <!-- ── Customer + fields row (matches quotation layout) ── -->
                             <div class="row g-2 align-items-end mb-2">
                                 <div class="col-md-4">
-                                    <?php if ($isEdit): ?>
+                                    <?php if ($isEdit && !$isDraftEdit): ?>
                                     <label class="trans-field-label mb-1">Customer</label>
-                                    <div class="d-flex align-items-center gap-2 border rounded px-2 py-1" style="background:#f8f9fa;min-height:34px;">
-                                        <i class="bx bx-user-circle text-muted" style="font-size:1.15rem;flex-shrink:0;"></i>
-                                        <div style="flex:1;min-width:0;">
-                                            <div class="fw-semibold text-truncate" style="font-size:.88rem;line-height:1.3;"><?php echo htmlspecialchars($DCData->PartyName ?? ''); ?></div>
+                                    <div class="d-flex align-items-center gap-2 border rounded px-2 py-1 dc-cust-readonly">
+                                        <i class="bx bx-user-circle text-muted dc-cust-icon"></i>
+                                        <div class="dc-cust-body">
+                                            <div class="fw-semibold text-truncate dc-cust-name"><?php echo htmlspecialchars($DCData->PartyName ?? ''); ?></div>
                                             <?php
                                             $_custMeta = array_filter([
                                                 !empty($DCData->PartyArea)   ? htmlspecialchars($DCData->PartyArea)   : '',
                                                 !empty($DCData->PartyMobile) ? htmlspecialchars($DCData->PartyMobile) : '',
                                             ]);
                                             if ($_custMeta): ?>
-                                            <div class="text-muted" style="font-size:.72rem;line-height:1.3;"><?php echo implode(' &middot; ', $_custMeta); ?></div>
+                                            <div class="text-muted dc-cust-meta"><?php echo implode(' &middot; ', $_custMeta); ?></div>
                                             <?php endif; ?>
                                         </div>
-                                        <i class="bx bx-lock-alt text-muted" style="font-size:.8rem;flex-shrink:0;" title="Cannot change customer on edit"></i>
+                                        <i class="bx bx-lock-alt text-muted dc-cust-lock" title="Cannot change customer on edit"></i>
                                     </div>
                                     <input type="hidden" id="customerSearch" name="customerSearch" value="<?php echo (int)($DCData->PartyUID ?? 0); ?>" />
+                                    <?php elseif (!empty($SOSourceData)): ?>
+                                    <!-- SO conversion: skip Select2 entirely, render static readonly display -->
+                                    <label class="trans-field-label mb-1">Customer <span class="text-danger">*</span></label>
+                                    <div class="d-flex align-items-center gap-2 border rounded px-2 py-1 dc-cust-readonly">
+                                        <i class="bx bx-user-circle text-muted dc-cust-icon"></i>
+                                        <div class="dc-cust-body">
+                                            <div class="fw-semibold text-truncate dc-cust-name"><?php echo htmlspecialchars($SOSourceData->PartyName ?? ''); ?></div>
+                                            <?php
+                                            $_soMeta = array_filter([
+                                                !empty($SOSourceData->PartyArea)   ? htmlspecialchars($SOSourceData->PartyArea)   : '',
+                                                !empty($SOSourceData->PartyMobile) ? htmlspecialchars($SOSourceData->PartyMobile) : '',
+                                            ]);
+                                            if ($_soMeta): ?>
+                                            <div class="text-muted dc-cust-meta"><?php echo implode(' &middot; ', $_soMeta); ?></div>
+                                            <?php endif; ?>
+                                        </div>
+                                        <span class="badge bg-label-warning ms-1 dc-cust-so-badge"><i class="bx bx-lock-alt me-1"></i>Locked to <?php echo htmlspecialchars($SOSourceData->UniqueNumber ?? 'SO'); ?></span>
+                                    </div>
+                                    <input type="hidden" id="customerSearch" name="customerSearch" value="<?php echo (int)($SOSourceData->PartyUID ?? 0); ?>" />
                                     <?php else: ?>
                                     <div class="d-flex align-items-center justify-content-between mb-1">
                                         <label for="customerSearch" class="trans-field-label mb-0">Select Customer <span class="text-danger">*</span></label>
-                                        <button type="button" id="addTransCustomer" class="trans-add-btn btn btn-outline-primary btn-sm" style="font-size:.72rem;white-space:nowrap;"><i class="bx bx-plus-circle me-1"></i>Add Customer</button>
+                                        <button type="button" id="addTransCustomer" class="trans-add-btn btn btn-outline-primary btn-sm"><i class="bx bx-plus-circle me-1"></i>Add Customer</button>
                                     </div>
-                                    <select id="customerSearch" name="customerSearch" class="form-select form-select-sm"></select>
+                                    <div class="input-group input-group-sm input-group-merge customer-search-group" id="customerGroup_customerSearch">
+                                        <span class="input-group-text p-2 cursor-pointer dc-cust-search-icon" id="openCustomerSearchModal"><i class="icon-base bx bx-search"></i></span>
+                                        <select id="customerSearch" name="customerSearch" class="form-select form-select-sm">
+                                            <?php if ($isDraftEdit && !empty($DCData->PartyUID)): ?>
+                                            <?php
+                                            $_draftCustLabel = $DCData->PartyName ?? '';
+                                            if (!empty($DCData->PartyArea))   $_draftCustLabel .= ', ' . $DCData->PartyArea;
+                                            if (!empty($DCData->PartyMobile)) $_draftCustLabel .= ' (' . $DCData->PartyMobile . ')';
+                                            ?>
+                                            <option value="<?php echo (int)$DCData->PartyUID; ?>" selected="selected"><?php echo htmlspecialchars($_draftCustLabel); ?></option>
+                                            <?php endif; ?>
+                                        </select>
+                                    </div>
                                     <?php endif; ?>
                                 </div>
                                 <div class="col-md-2">
@@ -367,7 +402,7 @@ if (!empty($DispatchAddress)) {
                                     <label class="form-label small fw-semibold">Delivery By</label>
                                     <div class="input-group input-group-sm input-group-merge">
                                         <span class="input-group-text bg-white"><i class="icon-base bx bx-calendar-check"></i></span>
-                                        <input type="text" class="form-control form-control-sm bg-white" id="deliveryByDate_disp"
+                                        <input type="text" class="form-control form-control-sm bg-white" id="deliveryByDate_disp" readonly="readonly"
                                             value="<?php echo $_deliveryByDisp; ?>" />
                                     </div>
                                     <input type="hidden" id="deliveryByDate" name="deliveryBy" value="<?php echo $_deliveryByDate; ?>" />
@@ -388,13 +423,9 @@ if (!empty($DispatchAddress)) {
                                            value="<?php echo htmlspecialchars($_vehicleNo); ?>" />
                                 </div>
                             </div>
-                            <div class="row g-2 mb-3">
-                                <div class="col-md-4">
-                                    <div id="customerAddressBox" class="p-2 border border-secondary trans-border-dotted rounded small d-none"></div>
-                                </div>
-                            </div>
+                            <div id="customerAddressBox" class="trans-addr-strip d-none"><i class="bx bx-map-pin"></i><span></span></div>
 
-                            <hr/>
+                            <hr class="mt-3"/>
 
                             <?php $this->load->view('transactions/partials/form_products_add', [
                                 'transNotesPlaceholder' => 'Enter notes or anything else',
@@ -407,27 +438,27 @@ if (!empty($DispatchAddress)) {
 
                             <!-- ── Inline full-width summary ── -->
                             <?php $cur = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>
-                            <div id="inlineSummaryBar" class="sticky-bottom-bar mt-3" style="padding:10px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;border-radius:8px;">
+                            <div id="inlineSummaryBar" class="sticky-bottom-bar mt-3 dc-summary-bar">
                                 <div class="d-flex align-items-stretch gap-0">
-                                    <div style="padding-right:20px;">
-                                        <div class="fw-bold" style="font-size:.95rem;">TOTAL &nbsp;<span style="color:#0d6efd;" id="inlineGrandTotal"><?php echo $cur; ?> 0.00</span></div>
-                                        <div class="text-muted" style="font-size:.74rem;">Includes Total Tax &nbsp;<span id="inlineTotalTax">0.00</span></div>
+                                    <div class="dc-bar-left">
+                                        <div class="fw-bold dc-bar-total">TOTAL &nbsp;<span class="dc-bar-grand" id="inlineGrandTotal"><?php echo $cur; ?> 0.00</span></div>
+                                        <div class="text-muted dc-bar-tax">Includes Total Tax &nbsp;<span id="inlineTotalTax">0.00</span></div>
                                     </div>
                                 </div>
                                 <div class="d-flex align-items-center gap-2">
                                     <?php if (!$isEdit || $isDraftEdit): ?>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="inlineDraftBtn"><i class="bx bx-save me-1"></i>Draft</button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="inlineDraftBtn"><i class="bx bx-save me-1"></i>Save as Draft</button>
                                     <?php endif; ?>
                                     <div class="btn-group">
                                         <button type="button" class="btn btn-sm btn-primary px-3" id="inlineSaveBtn">
-                                            <i class="bx bx-check me-1"></i><?php echo ($isEdit && !$isDraftEdit) ? 'Update' : 'Save'; ?>
+                                            <i class="bx bx-check me-1"></i>Save
                                         </button>
                                         <?php if (!$isEdit || $isDraftEdit): ?>
                                         <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split ps-2 pe-2" data-bs-toggle="dropdown" aria-expanded="false">
                                             <span class="visually-hidden">Save options</span>
                                         </button>
-                                        <ul class="dropdown-menu dropdown-menu-end shadow dropup" style="min-width:195px;font-size:.82rem;">
-                                            <li><span class="dropdown-header py-1" style="font-size:.65rem;letter-spacing:.4px;">SAVE &amp; PRINT</span></li>
+                                        <ul class="dropdown-menu dropdown-menu-end shadow dropup dc-save-menu">
+                                            <li><span class="dropdown-header py-1">SAVE &amp; PRINT</span></li>
                                             <li><button type="button" class="dropdown-item py-1" data-inline-action="save_a4"><i class="bx bx-file text-primary me-2"></i>Save &amp; Print A4</button></li>
                                             <li><button type="button" class="dropdown-item py-1" data-inline-action="save_a5"><i class="bx bx-file-blank text-info me-2"></i>Save &amp; Print A5</button></li>
                                             <li><button type="button" class="dropdown-item py-1" data-inline-action="save_thermal"><i class="bx bx-receipt text-success me-2"></i>Save &amp; Print Thermal</button></li>
@@ -441,27 +472,27 @@ if (!empty($DispatchAddress)) {
                     </div>
 
                     <!-- ── Sticky bottom summary bar ── -->
-                    <div id="stickyBottomBar" class="sticky-bottom-bar" style="position:fixed;bottom:0;right:0;z-index:1040;padding:10px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;">
+                    <div id="stickyBottomBar" class="sticky-bottom-bar dc-summary-bar dc-sticky-bar">
                         <div class="d-flex align-items-stretch gap-0">
-                            <div style="padding-right:20px;">
-                                <div class="fw-bold" style="font-size:.95rem;">TOTAL &nbsp;<span style="color:#0d6efd;" id="stickyGrandTotal"><?php echo $cur; ?> 0.00</span></div>
-                                <div class="text-muted" style="font-size:.74rem;">Includes Total Tax &nbsp;<span id="stickyTotalTax">0.00</span></div>
+                            <div class="dc-bar-left">
+                                <div class="fw-bold dc-bar-total">TOTAL &nbsp;<span class="dc-bar-grand" id="stickyGrandTotal"><?php echo $cur; ?> 0.00</span></div>
+                                <div class="text-muted dc-bar-tax">Includes Total Tax &nbsp;<span id="stickyTotalTax">0.00</span></div>
                             </div>
                         </div>
                         <div class="d-flex align-items-center gap-2">
                             <?php if (!$isEdit || $isDraftEdit): ?>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" id="stickyDraftBtn"><i class="bx bx-save me-1"></i>Draft</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="stickyDraftBtn"><i class="bx bx-save me-1"></i>Save as Draft</button>
                             <?php endif; ?>
                             <div class="btn-group">
                                 <button type="button" class="btn btn-sm btn-primary px-3" id="stickySaveBtn">
-                                    <i class="bx bx-check me-1"></i><?php echo ($isEdit && !$isDraftEdit) ? 'Update' : 'Save'; ?>
+                                    <i class="bx bx-check me-1"></i>Save
                                 </button>
                                 <?php if (!$isEdit || $isDraftEdit): ?>
                                 <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split ps-2 pe-2" data-bs-toggle="dropdown" aria-expanded="false">
                                     <span class="visually-hidden">Save options</span>
                                 </button>
-                                <ul class="dropdown-menu dropdown-menu-end shadow dropup" style="min-width:195px;font-size:.82rem;">
-                                    <li><span class="dropdown-header py-1" style="font-size:.65rem;letter-spacing:.4px;">SAVE &amp; PRINT</span></li>
+                                <ul class="dropdown-menu dropdown-menu-end shadow dropup dc-save-menu">
+                                    <li><span class="dropdown-header py-1">SAVE &amp; PRINT</span></li>
                                     <li><button type="button" class="dropdown-item py-1" data-sticky-action="save_a4"><i class="bx bx-file text-primary me-2"></i>Save &amp; Print A4</button></li>
                                     <li><button type="button" class="dropdown-item py-1" data-sticky-action="save_a5"><i class="bx bx-file-blank text-info me-2"></i>Save &amp; Print A5</button></li>
                                     <li><button type="button" class="dropdown-item py-1" data-sticky-action="save_thermal"><i class="bx bx-receipt text-success me-2"></i>Save &amp; Print Thermal</button></li>
@@ -488,6 +519,7 @@ if (!empty($DispatchAddress)) {
     </div>
 </div>
 
+<?php $this->load->view('transactions/partials/additional_charges_modal'); ?>
 <?php $this->load->view('common/transactions/footer'); ?>
 
 <script src="/js/common/address.js"></script>
@@ -501,16 +533,12 @@ if (!empty($DispatchAddress)) {
 <script src="/js/common/category_form.js"></script>
 <script src="/js/common/product_form.js"></script>
 <script src="/js/transactions/attachments.js"></script>
-
-<style>
-/* SO-linked DC: hide interactive elements that must be locked */
-#<?php echo $formId; ?>.so-linked-dc #openCustomerSearchModal { display:none !important; }
-#<?php echo $formId; ?>.so-linked-dc #addTransCustomer        { display:none !important; }
-#<?php echo $formId; ?>.so-linked-dc #addTransProduct         { display:none !important; }
-#<?php echo $formId; ?>.so-linked-dc .prod-header-static      { display:none !important; }
-#<?php echo $formId; ?>.so-linked-dc .deleteBillItem          { display:none !important; }
-#<?php echo $formId; ?>.so-linked-dc #btnClearCart            { display:none !important; }
-</style>
+<script>
+var _transAdditionalCharges  = <?php echo json_encode(array_values($AdditionalCharges   ?? [])); ?>;
+var _transAdditionalTaxOpts  = <?php echo json_encode(array_values($TaxList             ?? [])); ?>;
+var _transTransactionCharges = <?php echo json_encode(array_values($TransactionCharges  ?? [])); ?>;
+</script>
+<script src="/js/transactions/additional_charges.js"></script>
 
 <script>
 const EnableStorage = <?php echo $JwtData->GenSettings->EnableStorage; ?>;
@@ -557,10 +585,12 @@ var _editItems = <?php echo json_encode(array_map(function($item) {
 <?php else: ?>
 <?php if (!empty($SOSourceData)): ?>
 var _fromSO = <?php echo json_encode([
-    'uid'          => (int)$FromSOUID,
-    'customer'     => (int)$SOSourceData->PartyUID,
-    'customerName' => $SOSourceData->PartyName ?? '',
-    'soNumber'     => $SOSourceData->UniqueNumber ?? '',
+    'uid'            => (int)$FromSOUID,
+    'customer'       => (int)$SOSourceData->PartyUID,
+    'customerName'   => $SOSourceData->PartyName   ?? '',
+    'customerArea'   => $SOSourceData->PartyArea   ?? '',
+    'customerMobile' => $SOSourceData->PartyMobile ?? '',
+    'soNumber'       => $SOSourceData->UniqueNumber ?? '',
 ]); ?>;
 var _fromSOItems = <?php echo json_encode(array_map(function($item) {
     return [
@@ -583,10 +613,10 @@ var _fromSOItems = <?php echo json_encode(array_map(function($item) {
         'quantity'         => (float) $item->Quantity,
         'partNumber'       => $item->PartNumber      ?? '',
         'primaryUnit'      => $item->PrimaryUnitName ?? '',
-        'discount'         => (float) $item->Discount,
+        'discount'         => 0.0,
         'discountType'     => 'Percentage',
-        'discountTypeUID'  => $item->DiscountTypeUID ? (int)$item->DiscountTypeUID : null,
-        'discount_amount'  => (float) $item->DiscountAmount,
+        'discountTypeUID'  => null,
+        'discount_amount'  => 0.0,
         'line_total'       => (float) $item->TaxableAmount,
         'net_total'        => (float) $item->NetAmount,
     ];
@@ -599,7 +629,7 @@ var _fromSOItems = [];
 <?php if (!empty($CloneData)): ?>
 var _fromClone = <?php echo json_encode([
     'uid'         => (int)($FromCloneUID ?? 0),
-    'challanType' => $CloneData->QuotationType ?? 'Non-Returnable',
+    'challanType' => $CloneData->DocType ?? 'Non-Returnable',
     'invoiceType' => $CloneData->InvoiceType   ?? 'Regular',
     'dispatchFrom'=> (int)($CloneData->DispatchFrom ?? 0),
     'notes'       => $CloneData->Notes           ?? '',
@@ -644,8 +674,41 @@ var _fromCloneItems = [];
 $(function() {
     'use strict';
 
-    <?php if (!$isEdit): ?>
+    <?php if ((!$isEdit || $isDraftEdit) && empty($SOSourceData)): ?>
     searchCustomers('customerSearch');
+    var _dcOACur = '<?php echo addslashes($JwtData->GenSettings->CurrenySymbol ?? "₹"); ?>';
+    window._showOnAccountBanner = function(total) {
+        if ((parseFloat(total) || 0) > 0) {
+            $('#onAccountTotal').text(_dcOACur + ' ' + parseFloat(total).toFixed(2));
+            $('#onAccountIndicator').removeClass('d-none');
+        } else {
+            $('#onAccountIndicator').addClass('d-none');
+        }
+    };
+    $('#customerSearch').on('select2:clear change', function() {
+        if (!parseInt($(this).val(), 10)) $('#onAccountIndicator').addClass('d-none');
+    });
+    <?php if ($isDraftEdit && !empty($DCData->PartyUID) && !empty($CustAddr)): ?>
+    (function () {
+        var a = <?php echo json_encode([
+            'Line1'  => $CustAddr->Line1    ?? '',
+            'Line2'  => $CustAddr->Line2    ?? '',
+            'City'   => $CustAddr->CityText ?? '',
+            'State'  => $CustAddr->StateText ?? '',
+            'Pincode'=> $CustAddr->Pincode  ?? '',
+        ]); ?>;
+        if (a.Line1 || a.City || a.State) {
+            var _dcLines = [a.Line1, a.Line2].filter(Boolean).join(', ');
+            var _dcLoc   = [a.City, a.State].filter(Boolean).join(', ');
+            if (a.Pincode) _dcLoc += ' – ' + a.Pincode;
+            $('#customerAddressBox').find('span').text([_dcLines, _dcLoc].filter(Boolean).join(' · '));
+            $('#customerAddressBox').removeClass('d-none');
+        }
+        if (typeof window._onCustStateSelected === 'function' && a.State) {
+            window._onCustStateSelected(a.State.trim());
+        }
+    })();
+    <?php endif; ?>
     <?php endif; ?>
     transDatePickr('#transDate_disp',      '#transDate',      false, false, true,  true,  '');
     transDatePickr('#returnDate_disp',     '#returnDate',     false, false, false, false, '#transDate');
@@ -747,11 +810,6 @@ $(function() {
     });
 
     <?php if ($isEdit): ?>
-    // dispatchFrom on edit is a hidden input — destroy any Select2 that transactions.js applied to it
-    if ($('#dispatchFrom').data('select2')) {
-        $('#dispatchFrom').select2('destroy');
-    }
-
     // Attachments pre-loaded by controller — no AJAX needed
     renderTransAttachmentsFromData(<?php echo json_encode(array_map(function($a) {
         return [
@@ -769,7 +827,7 @@ $(function() {
     $('#globalDiscount').val('<?php echo smartDecimal($DCData->GlobalDiscPercent ?? 0); ?>').trigger('input');
 
     if (typeof billManager !== 'undefined' && _orgState && _custState) {
-        billManager.isInterState = (_custState.trim().toLowerCase() !== _orgState.trim().toLowerCase());
+        billManager.setInterState(_custState.trim().toLowerCase() !== _orgState.trim().toLowerCase());
     }
 
     if (typeof billManager !== 'undefined' && typeof formationTableBillItems === 'function'
@@ -786,11 +844,6 @@ $(function() {
     }
     <?php else: ?>
     if (_fromSO && _fromSO.uid > 0) {
-        // ── Pre-fill customer ────────────────────────────────────────────────
-        if (_fromSO.customer > 0) {
-            $('#customerSearch').append(new Option(_fromSO.customerName, _fromSO.customer, true, true)).trigger('change');
-        }
-
         var _soNum = _fromSO.soNumber || 'SO';
 
         // ── Apply CSS class to form — handles static + dynamically created elements ─
@@ -798,17 +851,6 @@ $(function() {
         //   #openCustomerSearchModal, #addTransCustomer, #addTransProduct,
         //   .prod-header-static (entire search row), .deleteBillItem (per-row delete)
         document.getElementById('<?php echo $formId; ?>').classList.add('so-linked-dc');
-
-        // ── Restriction 1: Lock customer select ──────────────────────────────
-        $('#customerSearch').prop('disabled', true);
-        if ($('#customerSearch').data('select2')) {
-            $('#customerSearch').select2('destroy');
-            $('#customerSearch').select2({ disabled: true });
-        }
-        $('label[for="customerSearch"]').append(
-            ' <span class="badge bg-label-warning ms-1" style="font-size:.65rem;">' +
-            '<i class="bx bx-lock-alt me-1"></i>Locked to ' + _soNum + '</span>'
-        );
 
         // ── Pre-fill SO items ─────────────────────────────────────────────────
         if (typeof billManager !== 'undefined' && typeof formationTableBillItems === 'function'
@@ -839,8 +881,8 @@ $(function() {
 
         // Show info notice below the product section header
         $('#addTransProduct').closest('.card-header').after(
-            '<div class="alert alert-info d-flex align-items-center gap-2 py-2 px-3 mx-3 mt-2" style="font-size:.8rem;">' +
-            '<i class="bx bx-info-circle flex-shrink-0"></i>' +
+            '<div class="alert dc-so-notice d-flex align-items-center gap-2 py-2 px-3 mx-3 mt-2">' +
+            '<i class="bx bx-link-alt flex-shrink-0 dc-so-notice-icon"></i>' +
             '<span>Linked to <strong>' + _soNum + '</strong>. You may adjust quantities or remove items for a partial dispatch. Adding new products is not allowed.</span>' +
             '</div>'
         );
@@ -849,7 +891,7 @@ $(function() {
         var _soQtyMap = {};
         _fromSOItems.forEach(function(item) { _soQtyMap[item.id] = item.quantity; });
 
-        $(document).on('change blur', '#billTableBody input[type="number"]', function () {
+        $('#<?php echo $formId; ?>').on('change blur', '#billTableBody input[type="number"]', function () {
             var $row   = $(this).closest('tr[data-item-id]');
             var itemId = parseInt($row.data('item-id')) || 0;
             if (!itemId || !_soQtyMap.hasOwnProperty(itemId)) return;
@@ -873,9 +915,9 @@ $(function() {
             $('#challanType').val(_fromClone.challanType).trigger('change');
         }
 
-        // ── Pre-fill Dispatch From (Select2) ─────────────────────────────────
-        if (_fromClone.dispatchFrom > 0) {
-            $('#dispatchFrom').val(_fromClone.dispatchFrom).trigger('change');
+        // ── Pre-fill Dispatch From ────────────────────────────────────────────
+        if (_fromClone.dispatchFrom > 0 && typeof window._setDispatchFrom === 'function') {
+            window._setDispatchFrom(_fromClone.dispatchFrom);
         }
 
         // ── Pre-fill Notes / Reference ────────────────────────────────────────
@@ -938,16 +980,7 @@ $(function() {
             var roundOff      = summary.extra ? (summary.extra.roundOff || 0) : 0;
             var extraDisc     = parseFloat($('#extraDiscount').val()) || 0;
 
-            var charges = {};
-            if (summary.additionalCharges) {
-                ['shipping', 'handling', 'packing', 'other'].forEach(function(t) {
-                    var c = summary.additionalCharges[t];
-                    if (c && c.grossAmount > 0) {
-                        charges[t + 'Amount'] = c.grossAmount;
-                        charges[t + 'Tax']    = c.taxPercent || 0;
-                    }
-                });
-            }
+            var charges = { AdditionalCharges: JSON.stringify(typeof collectAdditionalCharges === 'function' ? collectAdditionalCharges() : []) };
 
             var postData = $.extend({
                 transPrefixSelect      : parseInt($('#transPrefixSelect').val(), 10) || 0,

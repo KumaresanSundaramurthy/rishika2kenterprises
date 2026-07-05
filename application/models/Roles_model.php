@@ -12,7 +12,7 @@ class Roles_model extends CI_Model {
 
     // ── List roles for org ───────────────────────────────────────────
 
-    public function getRolesList($OrgUID) {
+    public function getRolesList(int $OrgUID): object {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -39,7 +39,7 @@ class Roles_model extends CI_Model {
 
     // ── All menus for permission matrix ─────────────────────────────
 
-    public function getAllMenusForMatrix($OrgUID) {
+    public function getAllMenusForMatrix(int $OrgUID): object {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -79,7 +79,7 @@ class Roles_model extends CI_Model {
 
     // ── Get permissions for one role ─────────────────────────────────
 
-    public function getRolePermissions($RoleUID) {
+    public function getRolePermissions(int $RoleUID): object {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -114,9 +114,9 @@ class Roles_model extends CI_Model {
 
     // ── Upsert role permissions ──────────────────────────────────────
 
-    public function saveRolePermissions($RoleUID, $PostData, $UserUID) {
+    public function saveRolePermissions(int $RoleUID, array $PostData, int $UserUID): void {
 
-        $WriteDb = $this->load->database('WriteDB', TRUE);
+        $db = $this->dbwrite_model->getWriteDb();
         $now     = date('Y-m-d H:i:s');
 
         // ── Main menus ──────────────────────────────────────────────────────────
@@ -144,7 +144,7 @@ class Roles_model extends CI_Model {
                 $mmBinds[] = $now;     // CreatedOn
             }
             if (!empty($mmVals)) {
-                $WriteDb->query(
+                $db->query(
                     "INSERT INTO UserRole.RoleMainMenusTbl
                         (RoleUID, MainMenuUID, CanView, CanCreate, CanEdit, CanDelete, Sorting, IsActive, IsDeleted, UpdatedBy, UpdatedOn, CreatedBy, CreatedOn)
                      VALUES " . implode(',', $mmVals) . "
@@ -201,7 +201,7 @@ class Roles_model extends CI_Model {
                 $smBinds[] = $now;     // CreatedOn
             }
             if (!empty($smVals)) {
-                $WriteDb->query(
+                $db->query(
                     "INSERT INTO UserRole.RoleSubMenusTbl
                         (RoleUID, RoleMainMenuUID, SubMenuUID, CanView, CanCreate, CanEdit, CanDelete, Sorting, IsActive, IsDeleted, UpdatedBy, UpdatedOn, CreatedBy, CreatedOn)
                      VALUES " . implode(',', $smVals) . "
@@ -220,7 +220,7 @@ class Roles_model extends CI_Model {
 
     // ── Check if role is a default (system) role ─────────────────────
 
-    public function isDefaultRole($RoleUID) {
+    public function isDefaultRole(int $RoleUID): bool {
 
         $this->ReadDb->select('IsDefault');
         $this->ReadDb->from('UserRole.RolesTbl');
@@ -233,7 +233,7 @@ class Roles_model extends CI_Model {
 
     // ── Check if role is assigned to any user ────────────────────────
 
-    public function isRoleInUse($RoleUID) {
+    public function isRoleInUse(int $RoleUID): bool {
 
         $this->ReadDb->from('Users.UserTbl');
         $this->ReadDb->where('RoleUID', $RoleUID);

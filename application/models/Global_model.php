@@ -10,7 +10,7 @@ class Global_model extends CI_Model {
         $this->ReadDb = $this->load->database('ReadDB', TRUE);
     }
 
-    public function getTimezoneDetails($FilterArray = []) {
+    public function getTimezoneDetails(array $FilterArray = []): object {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -60,27 +60,27 @@ class Global_model extends CI_Model {
 
     }
 
-    public function getCountryInfo() {
+    public function getCountryInfo(): object {
         $this->load->model('location_model');
         return $this->location_model->getCountriesFromDB();
     }
 
-    public function getStateofCountry($CountryCode) {
+    public function getStateofCountry(string $CountryCode): object {
         $this->load->model('location_model');
         return $this->location_model->getStatesFromDB($CountryCode);
     }
 
-    public function getCityofCountry($CountryCode) {
+    public function getCityofCountry(string $CountryCode): object {
         $this->load->model('location_model');
         return $this->location_model->getAllCitiesOfCountryFromDB($CountryCode);
     }
 
-    public function getCitiesOfState($countryISO2, $stateISO2) {
+    public function getCitiesOfState(string $countryISO2, string $stateISO2): object {
         $this->load->model('location_model');
         return $this->location_model->getCitiesOfStateFromDB($countryISO2, $stateISO2);
     }
 
-    public function getPrimaryUnitInfo() {
+    public function getPrimaryUnitInfo(): object {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -122,7 +122,7 @@ class Global_model extends CI_Model {
 
     }
 
-    public function getDiscountTypeInfo() {
+    public function getDiscountTypeInfo(): object {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -164,7 +164,7 @@ class Global_model extends CI_Model {
 
     }
 
-    public function getProductTypeInfo() {
+    public function getProductTypeInfo(): object {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -204,7 +204,7 @@ class Global_model extends CI_Model {
 
     }
 
-    public function getProductTaxInfo() {
+    public function getProductTaxInfo(): object {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -244,7 +244,7 @@ class Global_model extends CI_Model {
 
     }
 
-    public function getTaxDetailsInfo() {
+    public function getTaxDetailsInfo(): object {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -288,7 +288,7 @@ class Global_model extends CI_Model {
 
     }
 
-    public function getTaxPercentageDetailsInfo($WhereArrayCondition) {
+    public function getTaxPercentageDetailsInfo(array $WhereArrayCondition): object {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -342,7 +342,7 @@ class Global_model extends CI_Model {
 
     }
 
-    public function getSalutations() {
+    public function getSalutations(): object {
         $this->EndReturnData = new stdClass();
         try {
             $this->ReadDb->db_debug = FALSE;
@@ -362,7 +362,7 @@ class Global_model extends CI_Model {
         return $this->EndReturnData;
     }
 
-    public function getStorageTypeData() {
+    public function getStorageTypeData(): object {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -402,7 +402,7 @@ class Global_model extends CI_Model {
 
     }
 
-    public function getModuleDetails($WhereCond = [], $whereInCondition = []) {
+    public function getModuleDetails(array $WhereCond = [], array $whereInCondition = []): array {
 
         $this->EndReturnData = new StdClass();
         try {
@@ -459,7 +459,7 @@ class Global_model extends CI_Model {
 
     }
 
-    public function getModuleViewColumnDetails($WhereArrayCondition, $Sorting = false, $SortingColumn = []) {
+    public function getModuleViewColumnDetails(array $WhereArrayCondition, bool $Sorting = false, array $SortingColumn = []): array {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -537,7 +537,7 @@ class Global_model extends CI_Model {
 
     }
 
-    public function getModuleViewJoinColumnDetails($WhereArrayCondition, $Sorting = false, $SortingColumn = []) {
+    public function getModuleViewJoinColumnDetails(array $WhereArrayCondition, bool $Sorting = false, array $SortingColumn = []): array {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -594,7 +594,7 @@ class Global_model extends CI_Model {
         }
     }
 
-    public function getModuleReportDetails($ModuleInfo, $SelectColumns, $JoinDataArr = [], $FilterArray = [], $DirectQuery = '', $OrderBy = 'ASC', $whereInCondition = [], $Limit = 0, $Offset = 0, $sortOperation = []) {
+    public function getModuleReportDetails(object $ModuleInfo, array $SelectColumns, array $JoinDataArr = [], array $FilterArray = [], string $DirectQuery = '', string $OrderBy = 'ASC', array $whereInCondition = [], int $Limit = 0, int $Offset = 0, array $sortOperation = []): array {
 
         $this->EndReturnData = new StdClass();
         try {
@@ -722,7 +722,7 @@ class Global_model extends CI_Model {
 
     }
 
-    public function getModuleTotalDataRowCount($ModuleInfo, $SelectColumns, $JoinDataArr = [], $FilterArray = [], $DirectQuery = '', $whereInCondition = []) {
+    public function getModuleTotalDataRowCount(object $ModuleInfo, array $SelectColumns, array $JoinDataArr = [], array $FilterArray = [], string $DirectQuery = '', array $whereInCondition = []): int {
 
         $this->EndReturnData = new StdClass();
         try {
@@ -826,7 +826,7 @@ class Global_model extends CI_Model {
 
     }
 
-    public function getSingleRow($dbName = '', $table = '', $where = [], $select = '*') {
+    public function getSingleRow(string $dbName = '', string $table = '', array $where = [], string $select = '*'): ?object {
         $query = $this->ReadDb->select($select)
                           ->from($dbName.'.'.$table)
                           ->where($where)

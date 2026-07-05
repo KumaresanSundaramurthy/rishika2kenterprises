@@ -10,7 +10,7 @@ class Signature_model extends CI_Model {
         $this->ReadDb = $this->load->database('ReadDB', TRUE);
     }
 
-    public function getSignatureList($userUID, $orgUID) {
+    public function getSignatureList(int $userUID, int $orgUID): object {
 
         $this->EndReturnData = new stdClass();
         try {
@@ -55,7 +55,7 @@ class Signature_model extends CI_Model {
 
     }
 
-    public function getSignatureByUID($signatureUID, $userUID) {
+    public function getSignatureByUID(int $signatureUID, int $userUID): object {
 
         $this->EndReturnData = new stdClass();
         try {

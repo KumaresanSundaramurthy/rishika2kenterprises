@@ -108,7 +108,7 @@ function invCalcStockValue(type) {
     var prefix = type === 'in' ? 'si' : 'so';
     var qty   = parseFloat($('#' + prefix + 'Qty').val())   || 0;
     var price = parseFloat($('#' + prefix + 'Price').val()) || 0;
-    $('#' + prefix + 'StockValue').val((qty * price).toFixed(2));
+    $('#' + prefix + 'StockValue').val((qty * price).toFixed(InvDecimals));
 }
 
 // ── Open Stock In modal ───────────────────────────────────────────────────────
@@ -119,7 +119,7 @@ function invOpenStockIn(uid, name, unit, purchasePrice) {
     $('#siQty').val('');
     $('#siCategory').val('New');
     $('#siNotes').val('');
-    $('#siPrice').val(purchasePrice > 0 ? purchasePrice.toFixed(2) : '');
+    $('#siPrice').val(purchasePrice > 0 ? purchasePrice.toFixed(InvDecimals) : '');
     $('#siPriceType').val('PurchasePrice');
     invCalcStockValue('in');
 
@@ -147,7 +147,7 @@ function invOpenStockOut(uid, name, unit, sellingPrice) {
     $('#soQty').val('');
     $('#soCategory').val('Miscellaneous');
     $('#soNotes').val('');
-    $('#soPrice').val(sellingPrice > 0 ? sellingPrice.toFixed(2) : '');
+    $('#soPrice').val(sellingPrice > 0 ? sellingPrice.toFixed(InvDecimals) : '');
     $('#soPriceType').val('SellingPrice');
     invCalcStockValue('out');
 

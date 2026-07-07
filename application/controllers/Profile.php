@@ -1152,7 +1152,7 @@ class Profile extends MY_Controller {
                 'ReimbursementType' => $reimType,
                 'Category'          => substr(trim($p['Category']    ?? ''), 0, 100) ?: null,
                 'Merchant'          => substr(trim($p['Merchant']    ?? ''), 0, 100) ?: null,
-                'Amount'            => round((float)$amount, 2),
+                'Amount'            => round((float)$amount, $this->_decimals()),
                 'ExpenseDate'       => date('Y-m-d', strtotime($expDate)),
                 'Reference'         => substr(trim($p['Reference']   ?? ''), 0, 200) ?: null,
                 'Description'       => trim($p['Description'] ?? '') ?: null,

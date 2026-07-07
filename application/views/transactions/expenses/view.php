@@ -31,6 +31,7 @@ $this->load->view('common/transactions/header'); ?>
                 ?>
 
                 <!-- ── Stats Strip ───────────────────────────────────────────── -->
+                <?php if ($JwtData->TransSettings->ShowTransactionStats ?? 1): ?>
                 <div class="apex-stats-strip">
                     <a href="javascript:void(0);" class="apex-stat-item active" data-status="All" data-stat-filter="All" style="--stat-color:#a855f7">
                         <div class="apex-stat-icon" style="background:#fdf4ff"><i class="bx bx-receipt" style="color:#a855f7"></i></div>
@@ -73,6 +74,7 @@ $this->load->view('common/transactions/header'); ?>
                         </div>
                     </a>
                 </div>
+                <?php endif; ?>
 
                 <div class="container-xxl flex-grow-1 py-3">
 
@@ -108,7 +110,7 @@ $this->load->view('common/transactions/header'); ?>
                         <!-- Tabs Row -->
                         <div class="apex-tabs-row">
                             <ul class="nav trans-status-tabs gap-1" id="expStatusTabs" role="tablist">
-                                <li class="nav-item"><a class="nav-link active exp-status-tab" data-status="All"       href="javascript:void(0);">All       <span class="trans-tab-count ms-1"><?php echo $ModAllCount; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link active exp-status-tab" data-status="All"       href="javascript:void(0);">All       <span class="trans-tab-count ms-1<?php echo $ModAllCount > 0 ? '' : ' d-none'; ?>"><?php echo $ModAllCount > 0 ? $ModAllCount : ''; ?></span></a></li>
                                 <li class="nav-item"><a class="nav-link exp-status-tab"        data-status="Pending"   href="javascript:void(0);">Pending   <span class="exp-tab-count trans-tab-count ms-1 d-none"></span></a></li>
                                 <li class="nav-item"><a class="nav-link exp-status-tab"        data-status="Paid"      href="javascript:void(0);">Paid      <span class="exp-tab-count trans-tab-count ms-1 d-none"></span></a></li>
                                 <li class="nav-item"><a class="nav-link exp-status-tab"        data-status="Cancelled" href="javascript:void(0);">Cancelled <span class="exp-tab-count trans-tab-count ms-1 d-none"></span></a></li>
@@ -143,9 +145,9 @@ $this->load->view('common/transactions/header'); ?>
                         </div>
                     </div>
 
-                    <div class="card mb-0 cust-sticky-pag" id="expStickyPagination" style="display:none;">
+                    <div class="card mb-0 cust-sticky-pag apex-sticky-pag" id="expStickyPagination" data-static-pag="#expPagination" style="display:none;">
                         <div class="card-body p-0">
-                            <div class="row mx-3 my-2 justify-content-between align-items-center expPagination"></div>
+                            <div class="row mx-3 my-2 justify-content-between align-items-center apex-sticky-pag-inner"></div>
                         </div>
                     </div>
 
@@ -492,6 +494,7 @@ $this->load->view('common/transactions/payment_modal');
 ]); ?>
 <?php endif; ?>
 
+<script src="/js/core/sticky_paginate.js"></script>
 <script src="/js/transactions/col_filter.js"></script>
 <script src="/js/transactions/expenses.js"></script>
 
@@ -651,20 +654,6 @@ $(function () {
         _syncSticky();
     };
 
-    // ── Sticky pagination ────────────────────────────────────
-    var $staticPag = $('#expPagination');
-    var $stickyPag = $('#expStickyPagination');
-    function _syncSticky()   { $stickyPag.find('.expPagination').html($staticPag.html()); }
-    function _toggleSticky() {
-        if (!$staticPag.length) return;
-        var r = $staticPag[0].getBoundingClientRect();
-        var visible = r.top < $(window).height() && r.bottom > 0;
-        if (visible) $stickyPag.stop(true, true).fadeOut(150);
-        else { _syncSticky(); $stickyPag.stop(true, true).fadeIn(150); }
-    }
-    $(window).on('scroll resize', _toggleSticky);
-    _toggleSticky();
-
     // ── List helpers ─────────────────────────────────────────
     function _renderList(resp) {
         $(ModuleTable + ' tbody').html(resp.RecordHtmlData);
@@ -678,6 +667,7 @@ $(function () {
     }
 
     function _updateStatCards(stats) {
+        if (!document.querySelector('.apex-stats-strip')) return;
         var pending   = stats.Pending   || { count: 0, amount: 0 };
         var partial   = stats.Partial   || { count: 0, amount: 0 };
         var paid      = stats.Paid      || { count: 0, amount: 0 };

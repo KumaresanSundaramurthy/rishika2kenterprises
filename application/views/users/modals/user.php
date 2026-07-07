@@ -181,7 +181,7 @@ if (!isset($CanSeeSalary))    { $CanSeeSalary    = false; }
                                 <label class="form-label" style="font-size:.83rem;" id="lblBasicSalary">Basic Salary</label>
                                 <div class="input-group input-group-sm">
                                     <span class="input-group-text">₹</span>
-                                    <input type="number" class="form-control" id="UserBasicSalary" min="0" step="0.01" placeholder="0.00">
+                                    <input type="number" class="form-control" id="UserBasicSalary" min="0" step="any" placeholder="0.00">
                                 </div>
                             </div>
 
@@ -190,7 +190,7 @@ if (!isset($CanSeeSalary))    { $CanSeeSalary    = false; }
                                 <label class="form-label" style="font-size:.83rem;">Allowances</label>
                                 <div class="input-group input-group-sm">
                                     <span class="input-group-text">₹</span>
-                                    <input type="number" class="form-control" id="UserAllowances" min="0" step="0.01" placeholder="0.00">
+                                    <input type="number" class="form-control" id="UserAllowances" min="0" step="any" placeholder="0.00">
                                 </div>
                             </div>
 
@@ -199,7 +199,7 @@ if (!isset($CanSeeSalary))    { $CanSeeSalary    = false; }
                                 <label class="form-label" style="font-size:.83rem;">Incentives</label>
                                 <div class="input-group input-group-sm">
                                     <span class="input-group-text">₹</span>
-                                    <input type="number" class="form-control" id="UserIncentives" min="0" step="0.01" placeholder="0.00">
+                                    <input type="number" class="form-control" id="UserIncentives" min="0" step="any" placeholder="0.00">
                                 </div>
                             </div>
 
@@ -208,7 +208,7 @@ if (!isset($CanSeeSalary))    { $CanSeeSalary    = false; }
                                 <label class="form-label" style="font-size:.83rem;">Fixed Deductions</label>
                                 <div class="input-group input-group-sm">
                                     <span class="input-group-text">₹</span>
-                                    <input type="number" class="form-control" id="UserFixedDeductions" min="0" step="0.01" placeholder="0.00">
+                                    <input type="number" class="form-control" id="UserFixedDeductions" min="0" step="any" placeholder="0.00">
                                 </div>
                                 <div class="form-text" style="font-size:.72rem;">Applied every payroll cycle.</div>
                             </div>

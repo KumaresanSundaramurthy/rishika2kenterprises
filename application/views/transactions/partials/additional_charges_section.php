@@ -86,7 +86,7 @@ $hasRows = !empty($initialRows);
                         <div class="input-group input-group-sm">
                             <span class="input-group-text" style="border-right:0;"><?php echo htmlspecialchars($CurrencySymbol ?? '₹'); ?></span>
                             <input type="number" class="form-control form-control-sm text-end ac-wot-input"
-                                min="0" step="0.01"
+                                min="0" step="any"
                                 value="<?php echo $woTax > 0 ? $woTax : '0'; ?>"
                                 data-charge-uid="<?php echo $chargeUID; ?>">
                         </div>
@@ -95,7 +95,7 @@ $hasRows = !empty($initialRows);
                         <div class="input-group input-group-sm">
                             <span class="input-group-text" style="border-right:0;"><?php echo htmlspecialchars($CurrencySymbol ?? '₹'); ?></span>
                             <input type="number" class="form-control form-control-sm text-end ac-wt-input"
-                                min="0" step="0.01"
+                                min="0" step="any"
                                 value="<?php echo $withTax > 0 ? $withTax : '0'; ?>"
                                 data-charge-uid="<?php echo $chargeUID; ?>">
                         </div>

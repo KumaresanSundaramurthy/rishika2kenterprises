@@ -22,6 +22,11 @@ Class Accountledger {
         return (int)($this->CI->pageData['JwtData']->Org->OrgUID ?? 0);
     }
 
+    /** Returns configured decimal places for monetary rounding */
+    private function _dec(): int {
+        return (int)($this->CI->pageData['JwtData']->GenSettings->DecimalPoints ?? 2);
+    }
+
     public function createLedgerAccountingInfo($entityId, $postData, $entityType = 'Customer') {
 
         try {
@@ -357,7 +362,7 @@ Class Accountledger {
                     $signCur = ($curType === 'Debit') ? $curBal : -$curBal;
 
                     $signResult = $signCur + ($signNew - $signOld);
-                    $ledgerUpdateData['CurrentBalance']     = round(abs($signResult), 2);
+                    $ledgerUpdateData['CurrentBalance']     = round(abs($signResult), $this->_dec());
                     $ledgerUpdateData['CurrentBalanceType'] = ($signResult >= 0) ? 'Debit' : 'Credit';
                 }
 
@@ -438,7 +443,7 @@ Class Accountledger {
 
     public function applyLedgerEntry($entityId, $entityType, $amount, $entryType, $referenceId = NULL) {
 
-        $amount = round((float) $amount, 2);
+        $amount = round((float) $amount, $this->_dec());
         if ($amount <= 0) return;
 
         $mapping = $this->getEntityLedgerMapping($entityId, $entityType);
@@ -447,7 +452,7 @@ Class Accountledger {
         }
 
         $ledgerUID      = $mapping->LedgerUID;
-        $currentBalance = round((float) $mapping->CurrentBalance, 2);
+        $currentBalance = round((float) $mapping->CurrentBalance, $this->_dec());
         $currentType    = $mapping->CurrentBalanceType ?? 'Debit';
 
         // Standard double-entry: same side adds, opposite side nets
@@ -456,10 +461,10 @@ Class Accountledger {
             $newType    = $currentType;
         } else {
             if ($amount >= $currentBalance) {
-                $newBalance = round($amount - $currentBalance, 2);
+                $newBalance = round($amount - $currentBalance, $this->_dec());
                 $newType    = $entryType;
             } else {
-                $newBalance = round($currentBalance - $amount, 2);
+                $newBalance = round($currentBalance - $amount, $this->_dec());
                 $newType    = $currentType;
             }
         }
@@ -572,7 +577,7 @@ Class Accountledger {
     }
 
     private function _addJournalLine($journalUID, $ledgerUID, $type, $amount, $particulars, $journalDate, $fy, $createdBy) {
-        $amount = round((float) $amount, 2);
+        $amount = round((float) $amount, $this->_dec());
         if ($amount <= 0 || !$ledgerUID) return;
 
         $orgUID = $this->_orgUID();
@@ -602,10 +607,10 @@ Class Accountledger {
             $newType = $prevType;
         } else {
             if ($amount >= $prevBal) {
-                $newBal  = round($amount - $prevBal, 2);
+                $newBal  = round($amount - $prevBal, $this->_dec());
                 $newType = $type;
             } else {
-                $newBal  = round($prevBal - $amount, 2);
+                $newBal  = round($prevBal - $amount, $this->_dec());
                 $newType = $prevType;
             }
         }
@@ -632,11 +637,11 @@ Class Accountledger {
 
     // Invoice / Sale: Dr Customer, Cr Sales + Cr Output Tax
     public function postSaleJournal($transUID, $transDate, $uniqueNumber, $fy, $netAmount, $taxableAmount, $cgst, $sgst, $igst, $customerUID, $createdBy) {
-        $netAmount     = round((float) $netAmount, 2);
-        $taxableAmount = round((float) $taxableAmount, 2);
-        $cgst          = round((float) $cgst, 2);
-        $sgst          = round((float) $sgst, 2);
-        $igst          = round((float) $igst, 2);
+        $netAmount     = round((float) $netAmount, $this->_dec());
+        $taxableAmount = round((float) $taxableAmount, $this->_dec());
+        $cgst          = round((float) $cgst, $this->_dec());
+        $sgst          = round((float) $sgst, $this->_dec());
+        $igst          = round((float) $igst, $this->_dec());
         if ($netAmount <= 0) return;
 
         $mapping = $this->getEntityLedgerMapping($customerUID, 'Customer');
@@ -678,11 +683,11 @@ Class Accountledger {
 
     // Purchase Bill: Dr Purchase + Dr Input Tax, Cr Vendor
     public function postPurchaseJournal($transUID, $transDate, $uniqueNumber, $fy, $netAmount, $taxableAmount, $cgst, $sgst, $igst, $vendorUID, $createdBy) {
-        $netAmount     = round((float) $netAmount, 2);
-        $taxableAmount = round((float) $taxableAmount, 2);
-        $cgst          = round((float) $cgst, 2);
-        $sgst          = round((float) $sgst, 2);
-        $igst          = round((float) $igst, 2);
+        $netAmount     = round((float) $netAmount, $this->_dec());
+        $taxableAmount = round((float) $taxableAmount, $this->_dec());
+        $cgst          = round((float) $cgst, $this->_dec());
+        $sgst          = round((float) $sgst, $this->_dec());
+        $igst          = round((float) $igst, $this->_dec());
         if ($netAmount <= 0) return;
 
         $mapping = $this->getEntityLedgerMapping($vendorUID, 'Vendor');
@@ -724,7 +729,7 @@ Class Accountledger {
 
     // Payment journal: received = Cr Customer; made = Dr Vendor
     public function postPaymentJournal($direction, $transUID, $paymentDate, $fy, $amount, $partyUID, $entityType, $createdBy) {
-        $amount = round((float) $amount, 2);
+        $amount = round((float) $amount, $this->_dec());
         if ($amount <= 0) return;
 
         $mapping = $this->getEntityLedgerMapping($partyUID, $entityType);
@@ -750,11 +755,11 @@ Class Accountledger {
 
     // Sales Return: Dr Sales Revenue + Dr Output Tax, Cr Customer (reversal of a sale)
     public function postSaleReturnJournal($transUID, $transDate, $uniqueNumber, $fy, $netAmount, $taxableAmount, $cgst, $sgst, $igst, $customerUID, $createdBy) {
-        $netAmount     = round((float) $netAmount, 2);
-        $taxableAmount = round((float) $taxableAmount, 2);
-        $cgst          = round((float) $cgst, 2);
-        $sgst          = round((float) $sgst, 2);
-        $igst          = round((float) $igst, 2);
+        $netAmount     = round((float) $netAmount, $this->_dec());
+        $taxableAmount = round((float) $taxableAmount, $this->_dec());
+        $cgst          = round((float) $cgst, $this->_dec());
+        $sgst          = round((float) $sgst, $this->_dec());
+        $igst          = round((float) $igst, $this->_dec());
         if ($netAmount <= 0) return;
 
         $mapping = $this->getEntityLedgerMapping($customerUID, 'Customer');
@@ -793,11 +798,11 @@ Class Accountledger {
 
     // Purchase Return: Dr Vendor, Cr Purchase Cost + Cr Input Tax (reversal of a purchase)
     public function postPurchaseReturnJournal($transUID, $transDate, $uniqueNumber, $fy, $netAmount, $taxableAmount, $cgst, $sgst, $igst, $vendorUID, $createdBy) {
-        $netAmount     = round((float) $netAmount, 2);
-        $taxableAmount = round((float) $taxableAmount, 2);
-        $cgst          = round((float) $cgst, 2);
-        $sgst          = round((float) $sgst, 2);
-        $igst          = round((float) $igst, 2);
+        $netAmount     = round((float) $netAmount, $this->_dec());
+        $taxableAmount = round((float) $taxableAmount, $this->_dec());
+        $cgst          = round((float) $cgst, $this->_dec());
+        $sgst          = round((float) $sgst, $this->_dec());
+        $igst          = round((float) $igst, $this->_dec());
         if ($netAmount <= 0) return;
 
         $mapping = $this->getEntityLedgerMapping($vendorUID, 'Vendor');
@@ -837,7 +842,7 @@ Class Accountledger {
 
     // Expense: Dr Expense Account, Cr Accounts Payable
     public function postExpenseJournal($expenseUID, $expenseDate, $expenseNumber, $fy, $netAmount, $createdBy) {
-        $netAmount = round((float) $netAmount, 2);
+        $netAmount = round((float) $netAmount, $this->_dec());
         if ($netAmount <= 0) return;
 
         $jUID = $this->_createJournalHeader(
@@ -860,7 +865,7 @@ Class Accountledger {
 
     // Indirect Income: Dr Accounts Receivable, Cr Income Account
     public function postIndirectIncomeJournal($incomeUID, $incomeDate, $incomeNumber, $fy, $netAmount, $createdBy) {
-        $netAmount = round((float) $netAmount, 2);
+        $netAmount = round((float) $netAmount, $this->_dec());
         if ($netAmount <= 0) return;
 
         $jUID = $this->_createJournalHeader(
@@ -883,7 +888,7 @@ Class Accountledger {
 
     // Salary Advance approved: Dr Employee Advances (Asset), Cr Accounts Payable (cash out)
     public function postAdvanceJournal(int $advanceUID, string $advanceDate, int $fy, float $amount, int $createdBy) {
-        $amount = round($amount, 2);
+        $amount = round($amount, $this->_dec());
         if ($amount <= 0) return;
 
         $jUID = $this->_createJournalHeader(
@@ -909,10 +914,10 @@ Class Accountledger {
 
     // Payroll: Dr Salary & Wages Expense, Cr Salary Payable
     public function postPayrollJournal(int $payrollUID, string $payrollDate, int $fy, float $grossAmount, float $netAmount, float $deductions, float $advanceRecovery, int $createdBy) {
-        $grossAmount    = round($grossAmount, 2);
-        $netAmount      = round($netAmount, 2);
-        $deductions     = round($deductions, 2);
-        $advanceRecovery= round($advanceRecovery, 2);
+        $grossAmount    = round($grossAmount, $this->_dec());
+        $netAmount      = round($netAmount, $this->_dec());
+        $deductions     = round($deductions, $this->_dec());
+        $advanceRecovery= round($advanceRecovery, $this->_dec());
         if ($grossAmount <= 0) return;
 
         $jUID = $this->_createJournalHeader(
@@ -943,7 +948,7 @@ Class Accountledger {
         }
 
         // Cr: Other deductions (PF, ESI, TDS etc. — goes to a clearing/deductions account)
-        $otherDed = round($deductions - $advanceRecovery, 2);
+        $otherDed = round($deductions - $advanceRecovery, $this->_dec());
         $apUID    = $this->_getSystemLedgerUID('accounts_payable');
         if ($apUID && $otherDed > 0) {
             $this->_addJournalLine($jUID, $apUID, 'Credit', $otherDed,
@@ -953,7 +958,7 @@ Class Accountledger {
 
     // Fund Transfer (Contra): Dr Destination Bank, Cr Source Bank
     public function postFundTransferJournal(int $transferUID, string $transferDate, int $fy, float $amount, int $fromBankUID, int $toBankUID, int $createdBy) {
-        $amount = round($amount, 2);
+        $amount = round($amount, $this->_dec());
         if ($amount <= 0) return;
 
         $fromLedgerUID = $this->_getOrCreateBankLedgerUID($fromBankUID, $createdBy);
@@ -1052,7 +1057,7 @@ Class Accountledger {
     // Manual Stock Adjustment: Stock IN → Dr Stock-in-Hand / Cr Purchase Cost
     //                          Stock OUT → Dr Stock Adjustment Loss / Cr Stock-in-Hand
     public function postStockAdjustmentJournal(int $adjUID, string $adjDate, int $fy, string $adjType, float $stockValue, int $createdBy) {
-        $stockValue = round($stockValue, 2);
+        $stockValue = round($stockValue, $this->_dec());
         if ($stockValue <= 0) return;
 
         $jUID = $this->_createJournalHeader(

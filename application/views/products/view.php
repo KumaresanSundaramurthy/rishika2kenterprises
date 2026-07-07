@@ -21,6 +21,7 @@
                 <?php
                 $s   = $ProductStats ?? null;
                 $cur = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
+                $dec = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
                 ?>
 
                 <!-- ── Stats Strip ───────────────────────────────────────────── -->
@@ -44,7 +45,7 @@
                         <div class="apex-stat-body">
                             <div class="apex-stat-label">Stock Value</div>
                             <div class="apex-stat-bottom">
-                                <span class="apex-stat-count"><?php echo $cur . ' ' . number_format((float)($s->TotalStockValue ?? 0), 2); ?></span>
+                                <span class="apex-stat-count"><?php echo $cur . ' ' . number_format((float)($s->TotalStockValue ?? 0), $dec); ?></span>
                                 <span class="apex-stat-amount">&nbsp;</span>
                             </div>
                         </div>
@@ -362,9 +363,9 @@
                     </div>
 
                     <!-- Sticky pagination (products page — one bar, content swaps per active tab) -->
-                    <div class="card mb-0 cust-sticky-pag" id="prodStickyPagination" style="display:none;">
+                    <div class="card mb-0 cust-sticky-pag apex-sticky-pag" id="prodStickyPagination" style="display:none;">
                         <div class="card-body p-0">
-                            <div class="d-flex align-items-center justify-content-between px-3 py-2" id="prodStickyPagInner"></div>
+                            <div class="row mx-3 my-2 justify-content-between align-items-center apex-sticky-pag-inner"></div>
                         </div>
                     </div>
 
@@ -907,8 +908,8 @@ $(function() {
     basePageHeaderFunc(GroupHeader, GroupTable, ProdRow);
 
     // ── Sticky pagination (products) ──
-    var $prodStickyPag = $('#prodStickyPagination');
-    var $prodStickyInner = $('#prodStickyPagInner');
+    var $prodStickyPag   = $('#prodStickyPagination');
+    var $prodStickyInner = $prodStickyPag.find('.apex-sticky-pag-inner');
     function _getActiveProdPagEl() {
         if (ActiveTabId === 'Item')       return $('#ProductsPagination');
         if (ActiveTabId === 'Groups')     return $('#GroupsPagination');
@@ -1332,6 +1333,7 @@ $(document).on('click', '.catg-prod-count-btn', function () {
     var catgName = $(this).data('catgname');
     var prodCount = parseInt($(this).text()) || 0;
     var sym = (typeof currencySymbol !== 'undefined') ? currencySymbol : '\u20b9';
+    var dec = typeof JwtData !== 'undefined' && JwtData.GenSettings ? JwtData.GenSettings.DecimalPoints || 2 : 2;
 
     // Show banner + skeleton immediately — no blank page
     var skeleton =
@@ -1364,7 +1366,7 @@ $(document).on('click', '.catg-prod-count-btn', function () {
         data   : { CategoryUID: catgUID, [CsrfName]: CsrfToken },
         success: function (res) {
             AjaxLoading = 1;
-            function _amt(n) { return sym + ' ' + parseFloat(n || 0).toFixed(2); }
+            function _amt(n) { return sym + ' ' + parseFloat(n || 0).toFixed(dec); }
             function _infoCard(content, borderColor) {
                 return '<div style="background:#fafafa;border:1px solid #e9ecef;border-left:3px solid '
                     + borderColor + ';border-radius:6px;padding:10px 12px;height:100%;">' + content + '</div>';
@@ -1404,7 +1406,7 @@ $(document).on('click', '.catg-prod-count-btn', function () {
             var card1 = '<div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#6c757d;margin-bottom:5px;"><i class="bx bx-package me-1"></i>Total Items</div>'
                 + '<div style="font-size:1.3rem;font-weight:800;color:#0d6efd;">' + res.Products.length + '</div>';
             var card2 = '<div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#6c757d;margin-bottom:5px;"><i class="bx bx-rupee me-1"></i>Stock Value</div>'
-                + '<div style="font-size:1.1rem;font-weight:800;color:#198754;">' + sym + ' ' + totalStockVal.toFixed(2) + '</div>';
+                + '<div style="font-size:1.1rem;font-weight:800;color:#198754;">' + sym + ' ' + totalStockVal.toFixed(dec) + '</div>';
             html += '<div style="padding:14px 20px;border-bottom:1px solid #e9ecef;">'
                 + _secHdr('bx-bar-chart-alt-2', 'Summary', '#6c757d')
                 + '<div class="row g-2">'

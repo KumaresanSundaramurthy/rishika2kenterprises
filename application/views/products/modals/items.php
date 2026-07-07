@@ -290,56 +290,56 @@ $_defTaxDetailUID = (int)($_ps->DefaultTaxDetailUID    ?? 0); // null → no def
                                 <label class="form-label fw-semibold">Security Deposit</label>
                                 <div class="input-group input-group-sm">
                                     <span class="input-group-text"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span>
-                                    <input type="number" class="form-control" id="rc_SecurityDeposit" name="rc_SecurityDeposit" min="0" step="0.01" placeholder="0.00" value="0">
+                                    <input type="number" class="form-control" id="rc_SecurityDeposit" name="rc_SecurityDeposit" min="0" step="any" placeholder="0.00" value="0">
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label fw-semibold">Hourly Rate</label>
                                 <div class="input-group input-group-sm">
                                     <span class="input-group-text"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span>
-                                    <input type="number" class="form-control" id="rc_HourlyRate" name="rc_HourlyRate" min="0" step="0.01" placeholder="0.00" value="0">
+                                    <input type="number" class="form-control" id="rc_HourlyRate" name="rc_HourlyRate" min="0" step="any" placeholder="0.00" value="0">
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label fw-semibold">Half Day Rate <small class="text-muted">(4 hrs)</small></label>
                                 <div class="input-group input-group-sm">
                                     <span class="input-group-text"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span>
-                                    <input type="number" class="form-control" id="rc_HalfDayRate" name="rc_HalfDayRate" min="0" step="0.01" placeholder="0.00" value="0">
+                                    <input type="number" class="form-control" id="rc_HalfDayRate" name="rc_HalfDayRate" min="0" step="any" placeholder="0.00" value="0">
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label fw-semibold">Full Day Rate <small class="text-muted">(8 hrs)</small></label>
                                 <div class="input-group input-group-sm">
                                     <span class="input-group-text"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span>
-                                    <input type="number" class="form-control" id="rc_FullDayRate" name="rc_FullDayRate" min="0" step="0.01" placeholder="0.00" value="0">
+                                    <input type="number" class="form-control" id="rc_FullDayRate" name="rc_FullDayRate" min="0" step="any" placeholder="0.00" value="0">
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label fw-semibold">Fixed Package Rate</label>
                                 <div class="input-group input-group-sm">
                                     <span class="input-group-text"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span>
-                                    <input type="number" class="form-control" id="rc_FixedPackageRate" name="rc_FixedPackageRate" min="0" step="0.01" placeholder="0.00" value="0">
+                                    <input type="number" class="form-control" id="rc_FixedPackageRate" name="rc_FixedPackageRate" min="0" step="any" placeholder="0.00" value="0">
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label fw-semibold">Extra Hour Rate</label>
                                 <div class="input-group input-group-sm">
                                     <span class="input-group-text"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span>
-                                    <input type="number" class="form-control" id="rc_ExtraHourRate" name="rc_ExtraHourRate" min="0" step="0.01" placeholder="0.00" value="0">
+                                    <input type="number" class="form-control" id="rc_ExtraHourRate" name="rc_ExtraHourRate" min="0" step="any" placeholder="0.00" value="0">
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label fw-semibold">Late Return / Hour</label>
                                 <div class="input-group input-group-sm">
                                     <span class="input-group-text"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span>
-                                    <input type="number" class="form-control" id="rc_LateReturnCharge" name="rc_LateReturnCharge" min="0" step="0.01" placeholder="0.00" value="0">
+                                    <input type="number" class="form-control" id="rc_LateReturnCharge" name="rc_LateReturnCharge" min="0" step="any" placeholder="0.00" value="0">
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label fw-semibold">Damage Penalty</label>
                                 <div class="input-group input-group-sm">
                                     <span class="input-group-text"><?php echo $JwtData->GenSettings->CurrenySymbol; ?></span>
-                                    <input type="number" class="form-control" id="rc_DamagePenaltyRate" name="rc_DamagePenaltyRate" min="0" step="0.01" placeholder="0.00" value="0">
+                                    <input type="number" class="form-control" id="rc_DamagePenaltyRate" name="rc_DamagePenaltyRate" min="0" step="any" placeholder="0.00" value="0">
                                 </div>
                             </div>
                             <div class="col-md-3">

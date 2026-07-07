@@ -6,14 +6,17 @@ class Userpreferences extends MY_Controller {
 
     public function __construct() {
         parent::__construct();
+        $this->load->model('dbwrite_model');
         $this->load->model('UserPreferences_model');
     }
 
     // POST /userpreferences/save
     // Body: PreferenceKey, PreferenceValue
     public function save() {
+
         $out = new stdClass();
         try {
+            
             $jwtData   = $this->pageData['JwtData'] ?? null;
             $orgUID    = (int)($jwtData->Org->OrgUID    ?? 0);
             $branchUID = (int)($jwtData->Org->BranchUID ?? 0);
@@ -36,7 +39,7 @@ class Userpreferences extends MY_Controller {
                 return;
             }
 
-            $this->UserPreferences_model->upsertPreference($orgUID, $branchUID, $userUID, $key, $value);
+            $this->dbwrite_model->upsertPreference($orgUID, $branchUID, $userUID, $key, $value);
 
             $out->Error = false;
         } catch (Exception $e) {

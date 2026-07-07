@@ -512,7 +512,7 @@ class Products extends MY_Controller {
             // Build product data object from POST + TaxDetails — no extra DB query needed
             $sellingPrice  = (float) getPostValue($PostData, 'SellingPrice', '', 0);
             $taxPercent    = (float) ($TaxDetails->Percentage ?? 0);
-            $taxAmount     = round($sellingPrice * $taxPercent / 100, 2);
+            $taxAmount     = round($sellingPrice * $taxPercent / 100, $this->_decimals());
             $this->EndReturnData->Product = [
                 'id'               => $ProductUID,
                 'text'             => getPostValue($PostData, 'ItemName'),

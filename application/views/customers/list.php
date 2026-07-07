@@ -127,12 +127,12 @@ if (!empty($DataLists)):
         <!-- Closing Balance -->
         <td>
             <?php
-                $bal     = round((float)($list->ClosingBalance ?? 0), 2);
+                $bal     = round((float)($list->ClosingBalance ?? 0), $dec);
                 $balType = $list->ClosingBalanceType ?? 'Debit';
                 $balClass = $bal == 0 ? 'text-muted' : (($balType === 'Debit') ? 'text-success' : 'text-danger');
                 $balLabel = $bal == 0 ? '' : (($balType === 'Debit') ? 'To Collect' : 'To Pay');
             ?>
-                <div class="fw-semibold <?php echo $balClass; ?>"><?php echo $currency . ' ' . number_format($bal, 2); ?></div>
+                <div class="fw-semibold <?php echo $balClass; ?>"><?php echo $currency . ' ' . number_format($bal, (int)($JwtData->GenSettings->DecimalPoints ?? 2)); ?></div>
                 <div style="font-size:.72rem;color:#aaa;"><?php echo $balLabel; ?></div>
         </td>
 

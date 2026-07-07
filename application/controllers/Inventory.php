@@ -115,7 +115,7 @@ class Inventory extends MY_Controller {
             $price      = (float) $this->input->post('Price');
             $priceType  = in_array($this->input->post('PriceType'), ['PurchasePrice', 'SellingPrice'])
                           ? $this->input->post('PriceType') : 'PurchasePrice';
-            $stockValue = round($qty * $price, 2);
+            $stockValue = round($qty * $price, $this->_decimals());
             $recordDate = $this->input->post('RecordDate') ?: date('Y-m-d');
             $notes      = $this->input->post('Notes') ?: null;
 
@@ -191,7 +191,7 @@ class Inventory extends MY_Controller {
             $price      = (float) $this->input->post('Price');
             $priceType  = in_array($this->input->post('PriceType'), ['PurchasePrice', 'SellingPrice'])
                           ? $this->input->post('PriceType') : 'SellingPrice';
-            $stockValue = round($qty * $price, 2);
+            $stockValue = round($qty * $price, $this->_decimals());
             $recordDate = $this->input->post('RecordDate') ?: date('Y-m-d');
             $notes      = $this->input->post('Notes') ?: null;
 

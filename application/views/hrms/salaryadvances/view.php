@@ -13,7 +13,7 @@
           'pageDescription' => 'Track advance payments &amp; recoveries',
         ]); ?>
 
-        <?php $st = $AdvanceStats ?? null; $cur = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>
+        <?php $st = $AdvanceStats ?? null; $cur = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); $dec = (int)($JwtData->GenSettings->DecimalPoints ?? 2); ?>
 
         <!-- ── Stats Strip ──────────────────────────────────────────────────── -->
         <div class="apex-stats-strip">
@@ -24,7 +24,7 @@
               <div class="apex-stat-label">Total Advances</div>
               <div class="apex-stat-bottom">
                 <span class="apex-stat-count adv-s-total"><?php echo number_format((int)($st->TotalCount ?? 0)); ?></span>
-                <span class="apex-stat-amount adv-s-total-amt"><?php echo $cur . ' ' . number_format((float)($st->TotalAmount ?? 0), 2); ?></span>
+                <span class="apex-stat-amount adv-s-total-amt"><?php echo $cur . ' ' . number_format((float)($st->TotalAmount ?? 0), $dec); ?></span>
               </div>
             </div>
           </a>
@@ -35,7 +35,7 @@
               <div class="apex-stat-label">Requested</div>
               <div class="apex-stat-bottom">
                 <span class="apex-stat-count adv-s-requested"><?php echo number_format((int)($st->RequestedCount ?? 0)); ?></span>
-                <span class="apex-stat-amount adv-s-requested-amt"><?php echo $cur . ' ' . number_format((float)($st->RequestedAmount ?? 0), 2); ?></span>
+                <span class="apex-stat-amount adv-s-requested-amt"><?php echo $cur . ' ' . number_format((float)($st->RequestedAmount ?? 0), $dec); ?></span>
               </div>
             </div>
           </a>
@@ -46,7 +46,7 @@
               <div class="apex-stat-label">Approved (Pending Recovery)</div>
               <div class="apex-stat-bottom">
                 <span class="apex-stat-count adv-s-approved"><?php echo number_format((int)($st->ApprovedCount ?? 0)); ?></span>
-                <span class="apex-stat-amount adv-s-approved-amt"><?php echo $cur . ' ' . number_format((float)($st->ApprovedAmount ?? 0), 2); ?></span>
+                <span class="apex-stat-amount adv-s-approved-amt"><?php echo $cur . ' ' . number_format((float)($st->ApprovedAmount ?? 0), $dec); ?></span>
               </div>
             </div>
           </a>
@@ -57,7 +57,7 @@
               <div class="apex-stat-label">Settled</div>
               <div class="apex-stat-bottom">
                 <span class="apex-stat-count adv-s-settled"><?php echo number_format((int)($st->SettledCount ?? 0)); ?></span>
-                <span class="apex-stat-amount adv-s-settled-amt"><?php echo $cur . ' ' . number_format((float)($st->SettledAmount ?? 0), 2); ?></span>
+                <span class="apex-stat-amount adv-s-settled-amt"><?php echo $cur . ' ' . number_format((float)($st->SettledAmount ?? 0), $dec); ?></span>
               </div>
             </div>
           </a>
@@ -163,7 +163,7 @@
           </div>
           <div class="col-md-6">
             <label class="form-label">Amount (<?php echo $cur; ?>) <span class="text-danger">*</span></label>
-            <input type="number" class="form-control" id="advAmount" min="1" step="0.01" placeholder="0.00">
+            <input type="number" class="form-control" id="advAmount" min="1" step="any" placeholder="0.00">
           </div>
         </div>
         <div class="mt-3">

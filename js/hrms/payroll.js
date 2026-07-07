@@ -50,7 +50,8 @@
 
   function currFmt(v) {
     var sym = typeof PayrollCurrencySymbol !== 'undefined' ? PayrollCurrencySymbol : '₹';
-    return sym + ' ' + parseFloat(v || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    var dec = typeof JwtData !== 'undefined' && JwtData.GenSettings ? JwtData.GenSettings.DecimalPoints || 2 : 2;
+    return sym + ' ' + parseFloat(v || 0).toLocaleString('en-IN', { minimumFractionDigits: dec, maximumFractionDigits: dec });
   }
 
   function renderLines(lines) {
@@ -83,7 +84,7 @@
         + '<td class="text-warning">' + currFmt(ln.AdvanceRecovery) + '</td>'
         + '<td class="text-danger">' + currFmt(ln.OtherDeductions) + '</td>'
         + '<td class="text-success fw-semibold">' + currFmt(ln.NetPayable) + '</td>'
-        + '<td><input type="number" class="form-control form-control-sm prl-adjust" data-idx="' + i + '" value="' + parseFloat(ln.Adjustment || 0).toFixed(2) + '" style="width:80px;" step="0.01"></td>'
+        + '<td><input type="number" class="form-control form-control-sm prl-adjust" data-idx="' + i + '" value="' + parseFloat(ln.Adjustment || 0).toFixed(typeof JwtData !== 'undefined' && JwtData.GenSettings ? JwtData.GenSettings.DecimalPoints || 2 : 2) + '" style="width:80px;" step="any"></td>'
         + '</tr>';
     });
     $('#prlLinesBody').html(html);

@@ -31,6 +31,7 @@ $this->load->view('common/transactions/header'); ?>
                 ?>
 
                 <!-- ── Stats Strip ───────────────────────────────────────────── -->
+                <?php if ($JwtData->TransSettings->ShowTransactionStats ?? 1): ?>
                 <div class="apex-stats-strip">
                     <a href="javascript:void(0);" class="apex-stat-item active" data-status="All" data-stat-filter="All" style="--stat-color:#14b8a6">
                         <div class="apex-stat-icon" style="background:#f0fdfa"><i class="bx bx-trending-up" style="color:#14b8a6"></i></div>
@@ -73,6 +74,7 @@ $this->load->view('common/transactions/header'); ?>
                         </div>
                     </a>
                 </div>
+                <?php endif; ?>
 
                 <div class="container-xxl flex-grow-1 py-3">
 
@@ -105,7 +107,7 @@ $this->load->view('common/transactions/header'); ?>
                         <!-- Tabs Row -->
                         <div class="apex-tabs-row">
                             <ul class="nav trans-status-tabs gap-1" id="incStatusTabs" role="tablist">
-                                <li class="nav-item"><a class="nav-link active inc-status-tab" data-status="All"       href="javascript:void(0);">All       <span class="trans-tab-count ms-1"><?php echo $ModAllCount; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link active inc-status-tab" data-status="All"       href="javascript:void(0);">All       <span class="trans-tab-count ms-1<?php echo $ModAllCount > 0 ? '' : ' d-none'; ?>"><?php echo $ModAllCount > 0 ? $ModAllCount : ''; ?></span></a></li>
                                 <li class="nav-item"><a class="nav-link inc-status-tab"        data-status="Pending"   href="javascript:void(0);">Pending   <span class="inc-tab-count trans-tab-count ms-1 d-none"></span></a></li>
                                 <li class="nav-item"><a class="nav-link inc-status-tab"        data-status="Received"  href="javascript:void(0);">Received  <span class="inc-tab-count trans-tab-count ms-1 d-none"></span></a></li>
                                 <li class="nav-item"><a class="nav-link inc-status-tab"        data-status="Cancelled" href="javascript:void(0);">Cancelled <span class="inc-tab-count trans-tab-count ms-1 d-none"></span></a></li>
@@ -140,9 +142,9 @@ $this->load->view('common/transactions/header'); ?>
                         </div>
                     </div>
 
-                    <div class="card mb-0 cust-sticky-pag" id="incStickyPagination" style="display:none;">
+                    <div class="card mb-0 cust-sticky-pag apex-sticky-pag" id="incStickyPagination" data-static-pag="#incPagination" style="display:none;">
                         <div class="card-body p-0">
-                            <div class="row mx-3 my-2 justify-content-between align-items-center incPagination"></div>
+                            <div class="row mx-3 my-2 justify-content-between align-items-center apex-sticky-pag-inner"></div>
                         </div>
                     </div>
 
@@ -201,7 +203,7 @@ $this->load->view('common/transactions/header'); ?>
                                     <div class="input-group">
                                         <span class="input-group-text"><?php echo $cur; ?></span>
                                         <input type="number" class="form-control form-control-lg" id="imAmount"
-                                               min="0.01" step="0.01" placeholder="0.00">
+                                               min="0.01" step="any" placeholder="0.00">
                                     </div>
                                 </div>
                                 <div id="imAmountEditWrap" class="mb-3" style="display:none;">
@@ -504,6 +506,7 @@ $this->load->view('common/transactions/payment_modal');
     </div>
 </div>
 
+<script src="/js/core/sticky_paginate.js"></script>
 <script src="/js/transactions/col_filter.js"></script>
 <script src="/js/transactions/indirectincome.js"></script>
 
@@ -543,20 +546,6 @@ $(function () {
         _syncSticky();
     };
 
-    // ── Sticky pagination ────────────────────────────────────
-    var $staticPag = $('#incPagination');
-    var $stickyPag = $('#incStickyPagination');
-    function _syncSticky()   { $stickyPag.find('.incPagination').html($staticPag.html()); }
-    function _toggleSticky() {
-        if (!$staticPag.length) return;
-        var r = $staticPag[0].getBoundingClientRect();
-        var visible = r.top < $(window).height() && r.bottom > 0;
-        if (visible) $stickyPag.stop(true, true).fadeOut(150);
-        else { _syncSticky(); $stickyPag.stop(true, true).fadeIn(150); }
-    }
-    $(window).on('scroll resize', _toggleSticky);
-    _toggleSticky();
-
     // ── List helpers ─────────────────────────────────────────
     function _renderList(resp) {
         $(ModuleTable + ' tbody').html(resp.RecordHtmlData);
@@ -570,6 +559,7 @@ $(function () {
     }
 
     function _updateStatCards(stats) {
+        if (!document.querySelector('.apex-stats-strip')) return;
         var pending   = stats.Pending   || { count: 0, amount: 0 };
         var partial   = stats.Partial   || { count: 0, amount: 0 };
         var received  = stats.Received  || { count: 0, amount: 0 };

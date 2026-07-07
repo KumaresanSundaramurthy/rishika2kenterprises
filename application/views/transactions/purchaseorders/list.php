@@ -55,6 +55,17 @@ if (!empty($DataLists)) {
                 $edClass = 'text-primary';
             }
         }
+
+        $mobileNum        = trim($list->MobileNumber ?? '');
+        $countryCode      = trim($list->CountryCode ?? '');
+        $partyEmail       = trim($list->EmailAddress ?? '');
+        $waNum            = $mobileNum ? preg_replace('/[^0-9]/', '', ($countryCode ?: '91') . $mobileNum) : '';
+        $hasMobile        = $mobileNum !== '';
+        $hasEmail         = $partyEmail !== '';
+        $poPartyName      = $list->PartyName ?? 'Vendor';
+        $poDocNum         = $list->UniqueNumber ?? '';
+        $waMsg            = "Hello *{$poPartyName}*,\n\nRegarding Purchase Order *{$poDocNum}*.\n\nThanks";
+        $waMessageEncoded = rawurlencode($waMsg);
 ?>
         <tr>
             <td style="width:40px">
@@ -121,56 +132,64 @@ if (!empty($DataLists)) {
             </td>
 
             <!-- Vendor -->
-            <td>
-                <div class="apex-party-cell">
-                    <div class="d-flex align-items-center gap-2">
-                        <?php partyAvatar($list->PartyName, $list->PartyImage ?? null, $cdnUrl); ?>
-                        <div class="apex-party-info">
-                            <div class="apex-party-name"><?php echo r2k_party_name($list->PartyName ?? '', $list->MobileNumber ?? '', $list->CountryCode ?? '', $list->PartyArea ?? '', !empty($list->PartyImage) ? $cdnUrl . $list->PartyImage : ''); ?></div>
-                            <?php if (!empty($list->PartyArea)): ?>
-                            <div class="apex-party-sub">
-                                <i class="bx bx-map-pin text-muted"></i>
-                                <?php echo htmlspecialchars($list->PartyArea); ?>
-                            </div>
-                            <?php endif; ?>
-                            <?php if (!empty($list->MobileNumber)): ?>
-                            <div class="apex-party-sub">
-                                <span class="copy-mobile cursor-pointer" data-mobile="<?php echo htmlspecialchars($list->MobileNumber); ?>" title="Click to copy">
-                                    <?php echo ($list->CountryCode ? htmlspecialchars($list->CountryCode) . ' ' : '') . htmlspecialchars($list->MobileNumber); ?>
-                                </span>
-                            </div>
-                            <?php endif; ?>
+            <td class="inv-party-td">
+                <div class="d-flex align-items-center gap-2">
+                    <?php partyAvatar($list->PartyName, $list->PartyImage ?? null, $cdnUrl); ?>
+                    <div>
+                        <div class="trans-party-name"><?php echo r2k_party_name($list->PartyName ?? '', $list->MobileNumber ?? '', $list->CountryCode ?? '', $list->PartyArea ?? '', !empty($list->PartyImage) ? $cdnUrl . $list->PartyImage : ''); ?></div>
+                        <?php if (!empty($list->PartyArea)): ?>
+                        <div style="font-size:.7rem;color:#888;margin-top:1px;">
+                            <i class="bx bx-map" style="font-size:.72rem;"></i> <?php echo htmlspecialchars($list->PartyArea); ?>
                         </div>
-                    </div>
-                    <!-- Hover actions -->
-                    <?php $hasMobile = !empty($list->MobileNumber); $hasEmail = !empty($list->EmailAddress); ?>
-                    <?php if ($hasMobile || $hasEmail): ?>
-                    <div class="apex-party-actions">
+                        <?php endif; ?>
                         <?php if ($hasMobile): ?>
-                        <a href="https://wa.me/<?php echo preg_replace('/[^0-9]/', '', ($list->CountryCode ?? '') . $list->MobileNumber); ?>?text=Hi"
-                           target="_blank" class="apex-party-action wa" title="WhatsApp">
-                            <i class="bx bxl-whatsapp"></i>
-                        </a>
-                        <button class="apex-party-action sms comm-send-single"
-                                data-commtype="SMS"
-                                data-recipienttype="Vendor"
-                                data-uid="<?php echo (int) $list->PartyUID; ?>"
-                                data-name="<?php echo htmlspecialchars($list->PartyName ?? ''); ?>"
-                                data-mobile="<?php echo htmlspecialchars($list->MobileNumber); ?>"
-                                data-email="<?php echo htmlspecialchars($list->EmailAddress ?? ''); ?>"
-                                title="Send SMS">
-                            <i class="bx bx-message-rounded"></i>
-                        </button>
-                        <?php endif; ?>
-                        <?php if ($hasEmail): ?>
-                        <a href="mailto:<?php echo htmlspecialchars($list->EmailAddress); ?>"
-                           class="apex-party-action em" title="Send Email">
-                            <i class="bx bx-envelope"></i>
-                        </a>
+                        <div class="trans-party-mobile" style="font-size:.72rem;color:#666;margin-top:1px;">
+                            <?php echo ($countryCode ? htmlspecialchars($countryCode) . ' ' : '') . htmlspecialchars($mobileNum); ?>
+                        </div>
                         <?php endif; ?>
                     </div>
+                </div>
+                <?php if ($hasMobile || $hasEmail): ?>
+                <div class="inv-contact-icons">
+                    <?php if ($hasMobile): ?>
+                    <a href="javascript:void(0)" class="wa inv-wa-link"
+                       data-wa-url="https://wa.me/<?php echo $waNum; ?>?text=<?php echo $waMessageEncoded; ?>"
+                       data-bs-toggle="tooltip"
+                       data-bs-trigger="hover"
+                       title="WhatsApp">
+                        <i class="bx bxl-whatsapp"></i>
+                    </a>
+                    <button class="comm-send-single sms"
+                        data-commtype="SMS"
+                        data-recipienttype="Vendor"
+                        data-uid="<?php echo (int)$list->PartyUID; ?>"
+                        data-name="<?php echo htmlspecialchars($list->PartyName ?? ''); ?>"
+                        data-mobile="<?php echo htmlspecialchars($mobileNum); ?>"
+                        data-email="<?php echo htmlspecialchars($partyEmail); ?>"
+                        data-module-uid="<?php echo (int)$list->ModuleUID; ?>"
+                        data-bs-toggle="tooltip"
+                        data-bs-trigger="hover"
+                        title="Send SMS">
+                        <i class="bx bx-message-dots"></i>
+                    </button>
+                    <?php endif; ?>
+                    <?php if ($hasEmail): ?>
+                    <button class="comm-send-single em"
+                        data-commtype="Email"
+                        data-recipienttype="Vendor"
+                        data-uid="<?php echo (int)$list->PartyUID; ?>"
+                        data-name="<?php echo htmlspecialchars($list->PartyName ?? ''); ?>"
+                        data-mobile="<?php echo htmlspecialchars($mobileNum); ?>"
+                        data-email="<?php echo htmlspecialchars($partyEmail); ?>"
+                        data-module-uid="<?php echo (int)$list->ModuleUID; ?>"
+                        data-bs-toggle="tooltip"
+                        data-bs-trigger="hover"
+                        title="Send Email">
+                        <i class="bx bx-envelope"></i>
+                    </button>
                     <?php endif; ?>
                 </div>
+                <?php endif; ?>
             </td>
 
             <!-- PO Date -->

@@ -129,14 +129,14 @@ class Rental extends MY_Controller {
                 'ReturnDueDateTime'   => $returnDue,
                 'RentalStatus'        => 'Active',
                 'PaymentStatus'       => $depositCollected > 0 ? 'AdvancePaid' : 'Unpaid',
-                'TotalRentalAmount'   => round($totalRentalAmount, 2),
+                'TotalRentalAmount'   => round($totalRentalAmount, $this->_decimals()),
                 'ExtraCharges'        => 0,
-                'GrandTotal'          => round($totalRentalAmount, 2),
-                'DepositAmount'       => round($totalDeposit, 2),
-                'DepositCollected'    => round($depositCollected, 2),
+                'GrandTotal'          => round($totalRentalAmount, $this->_decimals()),
+                'DepositAmount'       => round($totalDeposit, $this->_decimals()),
+                'DepositCollected'    => round($depositCollected, $this->_decimals()),
                 'DepositRefunded'     => 0,
-                'TotalPaid'           => round($depositCollected, 2),
-                'BalanceAmount'       => round($totalRentalAmount - $depositCollected, 2),
+                'TotalPaid'           => round($depositCollected, $this->_decimals()),
+                'BalanceAmount'       => round($totalRentalAmount - $depositCollected, $this->_decimals()),
                 'Notes'               => $notes,
                 'IsActive'            => 1,
                 'IsDeleted'           => 0,
@@ -168,17 +168,17 @@ class Rental extends MY_Controller {
                     'ProductUID'              => (int)($item['ProductUID'] ?? 0),
                     'Qty'                     => $qty,
                     'RentalType'              => $rentalType,
-                    'SecurityDeposit'         => round((float)($item['SecurityDeposit'] ?? 0), 2),
-                    'HourlyRate'              => round((float)($item['HourlyRate'] ?? 0), 2),
-                    'HalfDayRate'             => round((float)($item['HalfDayRate'] ?? 0), 2),
-                    'FullDayRate'             => round((float)($item['FullDayRate'] ?? 0), 2),
-                    'FixedPackageRate'        => round((float)($item['FixedPackageRate'] ?? 0), 2),
-                    'ExtraHourRate'           => round((float)($item['ExtraHourRate'] ?? 0), 2),
-                    'LateReturnChargePerHour' => round((float)($item['LateReturnChargePerHour'] ?? 0), 2),
-                    'BaseRentalCharge'        => round((float)($item['BaseRentalCharge'] ?? 0) * $qty, 2),
+                    'SecurityDeposit'         => round((float)($item['SecurityDeposit'] ?? 0), $this->_decimals()),
+                    'HourlyRate'              => round((float)($item['HourlyRate'] ?? 0), $this->_decimals()),
+                    'HalfDayRate'             => round((float)($item['HalfDayRate'] ?? 0), $this->_decimals()),
+                    'FullDayRate'             => round((float)($item['FullDayRate'] ?? 0), $this->_decimals()),
+                    'FixedPackageRate'        => round((float)($item['FixedPackageRate'] ?? 0), $this->_decimals()),
+                    'ExtraHourRate'           => round((float)($item['ExtraHourRate'] ?? 0), $this->_decimals()),
+                    'LateReturnChargePerHour' => round((float)($item['LateReturnChargePerHour'] ?? 0), $this->_decimals()),
+                    'BaseRentalCharge'        => round((float)($item['BaseRentalCharge'] ?? 0) * $qty, $this->_decimals()),
                     'ReturnedQty'             => 0,
                     'DamagedQty'              => 0,
-                    'TotalCharge'             => round((float)($item['BaseRentalCharge'] ?? 0) * $qty, 2),
+                    'TotalCharge'             => round((float)($item['BaseRentalCharge'] ?? 0) * $qty, $this->_decimals()),
                     'ItemStatus'              => 'Rented',
                     'IsActive'                => 1,
                     'IsDeleted'               => 0,
@@ -196,7 +196,7 @@ class Rental extends MY_Controller {
                     'RentalUID'      => $rentalUID,
                     'OrgUID'         => $orgUID,
                     'PaymentType'    => 'Deposit',
-                    'Amount'         => round($depositCollected, 2),
+                    'Amount'         => round($depositCollected, $this->_decimals()),
                     'PaymentDate'    => date('Y-m-d', strtotime($startDateTime)),
                     'PaymentTypeUID' => $depositPayType,
                     'BankAccountUID' => $depositBankUID,
@@ -283,7 +283,7 @@ class Rental extends MY_Controller {
                 throw new Exception('This rental is already ' . $rental->RentalStatus . '.');
             }
 
-            $totalChargeForReturn = round($extraHrCharge + $lateCharge + $damageCharge, 2);
+            $totalChargeForReturn = round($extraHrCharge + $lateCharge + $damageCharge, $this->_decimals());
 
             $this->dbwrite_model->startTransaction();
 
@@ -294,9 +294,9 @@ class Rental extends MY_Controller {
                     'DamagedQty'           => $damagedQty,
                     'ActualReturnDateTime' => $actualReturn,
                     'ActualHours'          => $actualHours,
-                    'ExtraHourCharge'      => round($extraHrCharge, 2),
-                    'LateReturnCharge'     => round($lateCharge, 2),
-                    'DamageCharge'         => round($damageCharge, 2),
+                    'ExtraHourCharge'      => round($extraHrCharge, $this->_decimals()),
+                    'LateReturnCharge'     => round($lateCharge, $this->_decimals()),
+                    'DamageCharge'         => round($damageCharge, $this->_decimals()),
                     'ItemStatus'           => 'Returned',
                     'ReturnNotes'          => $returnNotes,
                     'UpdatedBy'            => $userUID,
@@ -314,9 +314,9 @@ class Rental extends MY_Controller {
                 'ActualReturnDateTime' => $actualReturn,
                 'ActualHours'          => $actualHours,
                 'BaseRentalCharge'     => 0,
-                'ExtraHourCharge'      => round($extraHrCharge, 2),
-                'LateReturnCharge'     => round($lateCharge, 2),
-                'DamageCharge'         => round($damageCharge, 2),
+                'ExtraHourCharge'      => round($extraHrCharge, $this->_decimals()),
+                'LateReturnCharge'     => round($lateCharge, $this->_decimals()),
+                'DamageCharge'         => round($damageCharge, $this->_decimals()),
                 'TotalChargeForReturn' => $totalChargeForReturn,
                 'Notes'                => $returnNotes,
                 'CreatedBy'            => $userUID,
@@ -325,9 +325,9 @@ class Rental extends MY_Controller {
                 'UpdatedOn'            => date('Y-m-d H:i:s'),
             ]);
 
-            $newExtraCharges = round((float)$rental->ExtraCharges + $totalChargeForReturn, 2);
-            $newGrandTotal   = round((float)$rental->TotalRentalAmount + $newExtraCharges, 2);
-            $newBalance      = round($newGrandTotal - (float)$rental->TotalPaid, 2);
+            $newExtraCharges = round((float)$rental->ExtraCharges + $totalChargeForReturn, $this->_decimals());
+            $newGrandTotal   = round((float)$rental->TotalRentalAmount + $newExtraCharges, $this->_decimals());
+            $newBalance      = round($newGrandTotal - (float)$rental->TotalPaid, $this->_decimals());
 
             // Check if all items are returned
             $items      = $this->rental_model->getRentalItems($rentalUID, $orgUID);
@@ -400,7 +400,7 @@ class Rental extends MY_Controller {
                 'RentalUID'      => $rentalUID,
                 'OrgUID'         => $orgUID,
                 'PaymentType'    => 'RentalCharge',
-                'Amount'         => round($amount, 2),
+                'Amount'         => round($amount, $this->_decimals()),
                 'PaymentDate'    => $paymentDate,
                 'PaymentTypeUID' => $paymentTypeUID,
                 'BankAccountUID' => $bankAccountUID,
@@ -415,8 +415,8 @@ class Rental extends MY_Controller {
             ]);
             if ($pmtResp->Error) throw new Exception($pmtResp->Message);
 
-            $newTotalPaid = round((float)$rental->TotalPaid + $amount, 2);
-            $newBalance   = round((float)$rental->GrandTotal - $newTotalPaid, 2);
+            $newTotalPaid = round((float)$rental->TotalPaid + $amount, $this->_decimals());
+            $newBalance   = round((float)$rental->GrandTotal - $newTotalPaid, $this->_decimals());
             $newPayStatus = $newBalance <= 0
                 ? 'Paid'
                 : ($newTotalPaid > 0 ? 'PartiallyPaid' : 'Unpaid');
@@ -442,7 +442,7 @@ class Rental extends MY_Controller {
                 $pmtFY  = (int)date('Y', strtotime($paymentDate));
                 $rentalNo = $rental->RentalNumber ?? ('RNT-' . $rentalUID);
                 $this->accountledger->postIndirectIncomeJournal(
-                    $pmtUID, $paymentDate, $rentalNo, $pmtFY, round($amount, 2), $userUID
+                    $pmtUID, $paymentDate, $rentalNo, $pmtFY, round($amount, $this->_decimals()), $userUID
                 );
             } catch (Exception $ledgerEx) {
                 log_message('error', 'Ledger failed after rental payment #' . $rentalUID . ': ' . $ledgerEx->getMessage());

@@ -1,5 +1,6 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed');
 $cur  = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
+$dec  = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
 $s    = $Slip ?? new stdClass();
 $org  = $OrgInfo ?? new stdClass();
 $months = ['','January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -66,27 +67,27 @@ $period = ($months[(int)($s->PayrollMonth ?? 0)] ?? '—') . ' ' . ($s->PayrollY
     <div>
       <div class="section-title">Earnings</div>
       <table class="breakdown">
-        <tr><td>Basic Salary</td><td><?php echo $cur . ' ' . number_format((float)($s->BasicSalary ?? 0), 2); ?></td></tr>
-        <tr><td>Allowances</td><td><?php echo $cur . ' ' . number_format((float)($s->Allowances ?? 0), 2); ?></td></tr>
-        <tr><td>Incentives</td><td><?php echo $cur . ' ' . number_format((float)($s->Incentives ?? 0), 2); ?></td></tr>
-        <?php if ((float)($s->OtherEarnings ?? 0) > 0): ?><tr><td>Other Earnings</td><td><?php echo $cur . ' ' . number_format((float)$s->OtherEarnings, 2); ?></td></tr><?php endif; ?>
-        <tr><td>Gross Salary</td><td style="color:#16a34a;"><?php echo $cur . ' ' . number_format((float)($s->GrossSalary ?? 0), 2); ?></td></tr>
+        <tr><td>Basic Salary</td><td><?php echo $cur . ' ' . number_format((float)($s->BasicSalary ?? 0), $dec); ?></td></tr>
+        <tr><td>Allowances</td><td><?php echo $cur . ' ' . number_format((float)($s->Allowances ?? 0), $dec); ?></td></tr>
+        <tr><td>Incentives</td><td><?php echo $cur . ' ' . number_format((float)($s->Incentives ?? 0), $dec); ?></td></tr>
+        <?php if ((float)($s->OtherEarnings ?? 0) > 0): ?><tr><td>Other Earnings</td><td><?php echo $cur . ' ' . number_format((float)$s->OtherEarnings, $dec); ?></td></tr><?php endif; ?>
+        <tr><td>Gross Salary</td><td style="color:#16a34a;"><?php echo $cur . ' ' . number_format((float)($s->GrossSalary ?? 0), $dec); ?></td></tr>
       </table>
     </div>
     <div>
       <div class="section-title">Deductions</div>
       <table class="breakdown">
-        <tr><td>Absent Deduction</td><td style="color:#dc2626;"><?php echo $cur . ' ' . number_format((float)($s->AbsentDeduction ?? 0), 2); ?></td></tr>
-        <tr><td>Fixed Deductions</td><td style="color:#dc2626;"><?php echo $cur . ' ' . number_format((float)($s->FixedDeductions ?? 0), 2); ?></td></tr>
-        <tr><td>Advance Recovery</td><td style="color:#d97706;"><?php echo $cur . ' ' . number_format((float)($s->AdvanceRecovery ?? 0), 2); ?></td></tr>
-        <?php if ((float)($s->OtherDeductions ?? 0) > 0): ?><tr><td>Other Deductions</td><td style="color:#dc2626;"><?php echo $cur . ' ' . number_format((float)$s->OtherDeductions, 2); ?></td></tr><?php endif; ?>
-        <tr><td>Total Deductions</td><td style="color:#dc2626;"><?php echo $cur . ' ' . number_format((float)($s->TotalDeductions ?? 0), 2); ?></td></tr>
+        <tr><td>Absent Deduction</td><td style="color:#dc2626;"><?php echo $cur . ' ' . number_format((float)($s->AbsentDeduction ?? 0), $dec); ?></td></tr>
+        <tr><td>Fixed Deductions</td><td style="color:#dc2626;"><?php echo $cur . ' ' . number_format((float)($s->FixedDeductions ?? 0), $dec); ?></td></tr>
+        <tr><td>Advance Recovery</td><td style="color:#d97706;"><?php echo $cur . ' ' . number_format((float)($s->AdvanceRecovery ?? 0), $dec); ?></td></tr>
+        <?php if ((float)($s->OtherDeductions ?? 0) > 0): ?><tr><td>Other Deductions</td><td style="color:#dc2626;"><?php echo $cur . ' ' . number_format((float)$s->OtherDeductions, $dec); ?></td></tr><?php endif; ?>
+        <tr><td>Total Deductions</td><td style="color:#dc2626;"><?php echo $cur . ' ' . number_format((float)($s->TotalDeductions ?? 0), $dec); ?></td></tr>
       </table>
     </div>
   </div>
   <div class="net-row">
     <div class="net-label">NET PAYABLE</div>
-    <div class="net-value"><?php echo $cur . ' ' . number_format((float)($s->NetPayable ?? 0), 2); ?></div>
+    <div class="net-value"><?php echo $cur . ' ' . number_format((float)($s->NetPayable ?? 0), $dec); ?></div>
   </div>
   <div class="footer-note">This is a computer-generated payslip and does not require a signature.</div>
 </div>

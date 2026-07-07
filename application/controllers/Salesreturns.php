@@ -12,71 +12,35 @@ class Salesreturns extends MY_Controller {
         $this->load->helper('transaction');
     }
 
-    public function index() {
+    public function index(): void {
         if (!$this->_loadPageTitle($this->pageModuleUID)) {
             $this->load->view('common/module_error', $this->pageData);
             return;
         }
         try {
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
-            $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
-            $limit = $GeneralSettings->RowLimit ?? 10;
-
-            $this->load->model('transactions_model');
-            $datePref   = $this->getDateFilterPreference('salesreturns');
-            $initFilter = $datePref['from'] ? ['DateFrom' => $datePref['from'], 'DateTo' => $datePref['to']] : [];
-            $allData      = $this->transactions_model->getTransactionPageList($limit, 0, $this->pageModuleUID, $initFilter, 0);
-            $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, $initFilter);
-            $this->pageData['SavedDateRange'] = $datePref['range'];
-            $this->pageData['SavedDateLabel'] = $datePref['label'];
-
-            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
-            $this->_annotateSRListWithCancelDeps($allData, $orgUID);
-
-            $this->pageData['ModRowData']    = $this->load->view('transactions/salesreturns/list', ['DataLists' => $allData, 'SerialNumber' => 0, 'JwtData' => $this->pageData['JwtData']], TRUE);
-            $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/salesreturns/getSalesReturnsPageDetails', $allDataCount, 1, $limit);
-            $this->pageData['ModAllCount']   = $allDataCount;
-            $this->pageData['SummaryStats']  = $this->transactions_model->getTransactionSummaryStats($this->pageModuleUID, $this->pageData['JwtData']->Org->OrgUID);
-            $this->pageData['PaymentTypes']  = $this->transactions_model->getPaymentTypesList();
-            $this->pageData['BankAccounts']  = $this->transactions_model->getOrgBankAccounts($this->pageData['JwtData']->Org->OrgUID);
-
-            $this->_loadUpstashConfig();
-
-            $this->load->model('users_model');
-            $this->pageData['OrgUsers']         = $this->users_model->getOrgUsersForCache($this->pageData['JwtData']->Org->OrgUID);
-
+            $this->_loadTransactionIndexPage([
+                'datePrefKey'  => 'salesreturns',
+                'tabSlugMap'   => ['all' => 'All', 'pending' => 'SRPending', 'paid' => 'Paid', 'cancelled' => 'Cancelled', 'drafts' => 'Draft'],
+                'listViewPath' => 'transactions/salesreturns/list',
+                'paginationUrl'=> '/salesreturns/getSalesReturnsPageDetails',
+            ]);
             $this->load->view('transactions/salesreturns/view', $this->pageData);
         } catch (Exception $e) {
             redirect('dashboard', 'refresh');
         }
     }
 
-    public function getSalesReturnsPageDetails($pageNo = 0) {
+    public function getSalesReturnsPageDetails(int $pageNo = 0): void
+    {
         $this->EndReturnData = new stdClass();
         try {
-            $pageNo = (int) $pageNo;
-            if ($pageNo < 1) $pageNo = 1;
-            $limit  = (int) $this->input->post('RowLimit') ?: 10;
-            $offset = ($pageNo - 1) * $limit;
-            $filter = $this->input->post('Filter') ?: [];
-
-            $this->load->model('transactions_model');
-            $allData      = $this->transactions_model->getTransactionPageList($limit, $offset, $this->pageModuleUID, $filter, 0);
-            $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, $filter);
-
-            $this->_annotateSRListWithCancelDeps($allData, $this->pageData['JwtData']->Org->OrgUID);
-
-            $rowHtml = $this->load->view('transactions/salesreturns/list', [
-                'DataLists'    => $allData,
-                'SerialNumber' => ($pageNo - 1) * $limit,
-                'JwtData'      => $this->pageData['JwtData'],
-            ], true);
-
-            $this->EndReturnData->Error          = FALSE;
-            $this->EndReturnData->RecordHtmlData = $rowHtml;
-            $this->EndReturnData->Pagination     = $this->globalservice->buildPagePaginationHtml('/salesreturns/getSalesReturnsPageDetails', $allDataCount, $pageNo, $limit);
-            $this->EndReturnData->TotalCount     = $allDataCount;
-            $this->EndReturnData->SummaryStats   = $this->transactions_model->getTransactionSummaryStats($this->pageModuleUID, $this->pageData['JwtData']->Org->OrgUID);
+            $this->EndReturnData = $this->_buildTransactionPageDetailsResult([
+                'pageNo'              => $pageNo,
+                'listViewPath'        => 'transactions/salesreturns/list',
+                'paginationUrl'       => '/salesreturns/getSalesReturnsPageDetails',
+                'includeSummaryStats' => true,
+            ]);
         } catch (Exception $e) {
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -252,7 +216,7 @@ class Salesreturns extends MY_Controller {
                 if ($payResult['totalPaid'] > 0) {
                     $hasPayment    = true;
                     $isFullyPaid   = ($netAmount > 0 && round($netAmount - $payResult['totalPaid'], 4) <= 0) ? 1 : 0;
-                    $balanceAmount = max(0, round($netAmount - $payResult['totalPaid'], 2));
+                    $balanceAmount = max(0, round($netAmount - $payResult['totalPaid'], $this->_decimals()));
                     $this->dbwrite_model->updateTransIsFullyPaid($transUID, $isFullyPaid, $payResult['totalPaid'], $balanceAmount, $userUID);
                     $newStatus = $isFullyPaid ? 'Paid' : 'Partial';
                     $this->dbwrite_model->updateTransDocStatus($transUID, $orgUID, $newStatus, $userUID);
@@ -1124,6 +1088,7 @@ class Salesreturns extends MY_Controller {
 
             $this->pageData['AdditionalCharges']  = $this->_getAdditionalChargesForOrg((int)$orgUID, true);
             $this->pageData['TransactionCharges'] = $this->transactions_model->getTransactionCharges($transUID, (int)$orgUID);
+            $this->pageData['TaxList']            = $this->_getTaxList();
             $this->pageData['IsEditMode']         = true;
 
             $this->load->view('transactions/salesreturns/forms/form', $this->pageData);
@@ -1248,7 +1213,7 @@ class Salesreturns extends MY_Controller {
             if (in_array($existing->DocStatus, ['Cancelled', 'Rejected'])) throw new Exception('Sales Return is cancelled.');
 
             $alreadyPaid = $this->transactions_model->getSumPaidForTransaction($transUID, $orgUID);
-            $pending     = max(0, round((float)$existing->NetAmount - $alreadyPaid, 2));
+            $pending     = max(0, round((float)$existing->NetAmount - $alreadyPaid, $this->_decimals()));
 
             if ($amount > $pending + 0.01) {
                 throw new Exception('Amount exceeds pending balance (' . $pending . ').');
@@ -1313,7 +1278,7 @@ class Salesreturns extends MY_Controller {
             if ($resp->Error) throw new Exception($resp->Message);
             $paymentUID = $resp->ID ?? null;
 
-            $balanceAmount = max(0, round((float)$existing->NetAmount - $newTotalPaid, 2));
+            $balanceAmount = max(0, round((float)$existing->NetAmount - $newTotalPaid, $this->_decimals()));
             $this->dbwrite_model->updateTransIsFullyPaid($transUID, $isFullyPaid, $newTotalPaid, $balanceAmount, $userUID);
             $this->dbwrite_model->updateTransDocStatus($transUID, $orgUID, $newStatus, $userUID);
 
@@ -1332,7 +1297,7 @@ class Salesreturns extends MY_Controller {
             ]);
             $cn = $wdb->get()->row();
             if ($cn) {
-                $newCNAmount = round(max(0, (float)$cn->Amount - $amount), 2);
+                $newCNAmount = round(max(0, (float)$cn->Amount - $amount), $this->_decimals());
                 $wdb->where('CreditNoteUID', (int)$cn->CreditNoteUID);
                 $wdb->update('Transaction.TransCreditNoteTbl', [
                     'Amount'         => $newCNAmount,
@@ -1497,7 +1462,7 @@ class Salesreturns extends MY_Controller {
             }
 
             $srPaid    = (float)($sr->PaidAmount    ?? 0);
-            $srBalance = max(0, round((float)$sr->NetAmount - $srPaid, 2));
+            $srBalance = max(0, round((float)$sr->NetAmount - $srPaid, $this->_decimals()));
             if ($srBalance <= 0) throw new Exception('No credit balance available on this Sales Return.');
 
             $invoice = $this->transactions_model->getTransactionById($invoiceUID, $orgUID, 103);
@@ -1508,7 +1473,7 @@ class Salesreturns extends MY_Controller {
             }
 
             $invPaid    = (float)($invoice->PaidAmount    ?? 0);
-            $invBalance = max(0, round((float)$invoice->NetAmount - $invPaid, 2));
+            $invBalance = max(0, round((float)$invoice->NetAmount - $invPaid, $this->_decimals()));
             if ($invBalance <= 0) throw new Exception('Invoice has no pending balance.');
 
             $maxAmount = min($srBalance, $invBalance);
@@ -1576,16 +1541,16 @@ class Salesreturns extends MY_Controller {
             if ($resp->Error) throw new Exception($resp->Message);
 
             // Update Invoice
-            $newInvPaid    = round($invPaid + $amount, 2);
-            $newInvBalance = max(0, round((float)$invoice->NetAmount - $newInvPaid, 2));
+            $newInvPaid    = round($invPaid + $amount, $this->_decimals());
+            $newInvBalance = max(0, round((float)$invoice->NetAmount - $newInvPaid, $this->_decimals()));
             $invFullyPaid  = ($invoice->NetAmount > 0 && $newInvBalance <= 0) ? 1 : 0;
             $invStatus     = $invFullyPaid ? 'Paid' : 'Partial';
             $this->dbwrite_model->updateTransIsFullyPaid($invoiceUID, $invFullyPaid, $newInvPaid, $newInvBalance, $userUID);
             $this->dbwrite_model->updateTransDocStatus($invoiceUID, $orgUID, $invStatus, $userUID);
 
             // Update Sales Return
-            $newSrPaid    = round($srPaid + $amount, 2);
-            $newSrBalance = max(0, round((float)$sr->NetAmount - $newSrPaid, 2));
+            $newSrPaid    = round($srPaid + $amount, $this->_decimals());
+            $newSrBalance = max(0, round((float)$sr->NetAmount - $newSrPaid, $this->_decimals()));
             $srFullyPaid  = ($sr->NetAmount > 0 && $newSrBalance <= 0) ? 1 : 0;
             $srNewStatus  = $srFullyPaid ? 'Paid' : ($newSrPaid > 0 ? 'Partial' : $sr->DocStatus);
             $this->dbwrite_model->updateTransIsFullyPaid($srUID, $srFullyPaid, $newSrPaid, $newSrBalance, $userUID);
@@ -1639,26 +1604,6 @@ class Salesreturns extends MY_Controller {
         }
     }
 
-    private function _annotateSRListWithCancelDeps(array &$rows, $orgUID) {
-        if (empty($rows)) return;
-
-        $transUIDs     = array_map(fn($r) => (int)$r->TransUID, $rows);
-        $uniqueNumbers = array_values(array_filter(array_map(fn($r) => $r->UniqueNumber ?? null, $rows)));
-
-        foreach ($rows as $r) {
-            $r->CancelCashRefunded  = 0;
-            $r->CancelCreditApplied = 0;
-        }
-
-        $this->load->model('transactions_model');
-        $deps = $this->transactions_model->getSRCancelDepsMap($transUIDs, $uniqueNumbers);
-
-        foreach ($rows as $r) {
-            $r->CancelCashRefunded  = $deps['cashMap'][(int)$r->TransUID]        ?? 0;
-            $r->CancelCreditApplied = $deps['creditMap'][$r->UniqueNumber ?? ''] ?? 0;
-        }
-    }
-
     private function _getSRCreditApplied($srUniqueNumber, $orgUID) {
         return $this->transactions_model->getSRCreditApplied($srUniqueNumber);
     }
@@ -1688,8 +1633,8 @@ class Salesreturns extends MY_Controller {
             $invoice = $this->transactions_model->getTransactionById($invoiceUID, $orgUID, 103);
             if (!$invoice) continue;
 
-            $newPaid     = max(0, round((float)($invoice->PaidAmount ?? 0) - $creditAmt, 2));
-            $newBalance  = max(0, round((float)$invoice->NetAmount - $newPaid, 2));
+            $newPaid     = max(0, round((float)($invoice->PaidAmount ?? 0) - $creditAmt, $this->_decimals()));
+            $newBalance  = max(0, round((float)$invoice->NetAmount - $newPaid, $this->_decimals()));
             $isFullyPaid = ($invoice->NetAmount > 0 && $newBalance <= 0) ? 1 : 0;
             if ($newBalance <= 0) {
                 $newStatus = 'Paid';

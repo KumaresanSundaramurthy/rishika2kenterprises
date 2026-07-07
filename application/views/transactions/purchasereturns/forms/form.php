@@ -39,9 +39,9 @@ $editPrefixSeg = ($isEdit && $isDraftEdit) ? buildPRPrefixSegment($editPrefixCon
 if ($isEdit) {
     $hNetAmt   = (float)($PRData->NetAmount  ?? 0);
     $hPaidAmt  = (float)($PRData->PaidAmount ?? 0);
-    $hBalAmt   = max(0, round($hNetAmt - $hPaidAmt, 2));
+    $hDecimals = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
+    $hBalAmt   = max(0, round($hNetAmt - $hPaidAmt, $hDecimals));
     $hCurrency = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '&#8377;');
-    $hDecimals = $JwtData->GenSettings->DecimalPoints ?? 2;
     $hStatus   = $PRData->DocStatus ?? '';
     $hStatusMap = ['Approved' => 'primary', 'Partial' => 'info', 'Paid' => 'success', 'Cancelled' => 'danger', 'Draft' => 'secondary'];
     $hStatusClr = $hStatusMap[$hStatus] ?? 'secondary';
@@ -865,8 +865,8 @@ $(function() {
     if (!_barEl || !_inlineEl) return;
 
     var cur = '<?php echo addslashes($JwtData->GenSettings->CurrenySymbol ?? "₹"); ?>';
-    var dec = 2;
-    function _r2(n) { return Math.round(n * 100) / 100; }
+    var dec = <?php echo (int)($JwtData->GenSettings->DecimalPoints ?? 2); ?>;
+    function _r2(n) { return parseFloat((+n || 0).toFixed(dec)); }
     function _fmt(n) { return cur + ' ' + _r2(n).toFixed(dec); }
 
     function _alignStickyBar() {

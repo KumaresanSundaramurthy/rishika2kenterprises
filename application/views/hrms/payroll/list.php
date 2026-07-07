@@ -1,5 +1,6 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed');
 $cur = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
+$dec = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
 $statusColors = ['Draft'=>'secondary','Processed'=>'primary','Paid'=>'success'];
 $months = ['','January','February','March','April','May','June','July','August','September','October','November','December'];
 if (!empty($DataLists)):
@@ -19,9 +20,9 @@ if (!empty($DataLists)):
     <div class="text-muted" style="font-size:.75rem;"><?php echo !empty($row->ProcessedOn) ? date('d M Y', strtotime($row->ProcessedOn)) : '—'; ?></div>
   </td>
   <td class="text-center fw-semibold"><?php echo (int)($row->EmployeeCount ?? 0); ?></td>
-  <td><?php echo $cur . ' ' . number_format((float)($row->TotalGross ?? 0), 2); ?></td>
-  <td class="text-danger"><?php echo $cur . ' ' . number_format((float)($row->TotalDeductions ?? 0), 2); ?></td>
-  <td class="text-success fw-semibold"><?php echo $cur . ' ' . number_format((float)($row->TotalNetPayable ?? 0), 2); ?></td>
+  <td><?php echo $cur . ' ' . number_format((float)($row->TotalGross ?? 0), $dec); ?></td>
+  <td class="text-danger"><?php echo $cur . ' ' . number_format((float)($row->TotalDeductions ?? 0), $dec); ?></td>
+  <td class="text-success fw-semibold"><?php echo $cur . ' ' . number_format((float)($row->TotalNetPayable ?? 0), $dec); ?></td>
   <td><span class="badge bg-label-<?php echo $badge; ?>"><?php echo $status; ?></span></td>
   <td class="text-muted" style="font-size:.8rem;"><?php echo htmlspecialchars($row->ProcessedByName ?? '—'); ?></td>
   <td>

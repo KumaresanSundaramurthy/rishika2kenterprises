@@ -64,15 +64,15 @@
                         <div class="row g-2">
                             <div class="col-md-4">
                                 <label class="form-label form-label-sm">Extra Hour Charge</label>
-                                <input type="number" id="rtnExtraHourCharge" class="form-control form-control-sm rtnChargeInput" value="0" min="0" step="0.01">
+                                <input type="number" id="rtnExtraHourCharge" class="form-control form-control-sm rtnChargeInput" value="0" min="0" step="any">
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label form-label-sm">Late Return Charge</label>
-                                <input type="number" id="rtnLateCharge" class="form-control form-control-sm rtnChargeInput" value="0" min="0" step="0.01">
+                                <input type="number" id="rtnLateCharge" class="form-control form-control-sm rtnChargeInput" value="0" min="0" step="any">
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label form-label-sm">Damage Charge</label>
-                                <input type="number" id="rtnDamageCharge" class="form-control form-control-sm rtnChargeInput" value="0" min="0" step="0.01">
+                                <input type="number" id="rtnDamageCharge" class="form-control form-control-sm rtnChargeInput" value="0" min="0" step="any">
                             </div>
                         </div>
                     </div>

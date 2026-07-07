@@ -22,6 +22,7 @@ $this->load->view('common/transactions/header'); ?>
                 ?>
 
                 <!-- ── Stats Strip ───────────────────────────────────────────── -->
+                <?php if ($JwtData->TransSettings->ShowTransactionStats ?? 1): ?>
                 <div class="apex-stats-strip">
                     <a href="javascript:void(0);" class="apex-stat-item active" data-status="All" data-stat-filter="All" style="--stat-color:#696cff">
                         <div class="apex-stat-icon" style="background:#eef2ff"><i class="bx bx-list-ul" style="color:#696cff"></i></div>
@@ -63,6 +64,7 @@ $this->load->view('common/transactions/header'); ?>
                         </div>
                     </div>
                 </div>
+                <?php endif; ?>
 
                 <div class="container-xxl flex-grow-1 py-3">
 
@@ -85,7 +87,7 @@ $this->load->view('common/transactions/header'); ?>
                         <!-- Tabs Row -->
                         <div class="apex-tabs-row">
                             <ul class="nav trans-status-tabs gap-1" id="rntStatusTabs" role="tablist">
-                                <li class="nav-item"><a class="nav-link active rnt-status-tab" data-status="All"               href="javascript:void(0);">All          <span class="rnt-tab-count trans-tab-count ms-1"><?php echo $ModAllCount; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link active rnt-status-tab" data-status="All"               href="javascript:void(0);">All          <span class="rnt-tab-count trans-tab-count ms-1<?php echo $ModAllCount > 0 ? '' : ' d-none'; ?>"><?php echo $ModAllCount > 0 ? $ModAllCount : ''; ?></span></a></li>
                                 <li class="nav-item"><a class="nav-link rnt-status-tab"        data-status="Active"            href="javascript:void(0);">Active        <span class="rnt-tab-count trans-tab-count ms-1 d-none"></span></a></li>
                                 <li class="nav-item"><a class="nav-link rnt-status-tab"        data-status="Overdue"           href="javascript:void(0);">Overdue       <span class="rnt-tab-count trans-tab-count ms-1 d-none"></span></a></li>
                                 <li class="nav-item"><a class="nav-link rnt-status-tab"        data-status="PartiallyReturned" href="javascript:void(0);">Partial       <span class="rnt-tab-count trans-tab-count ms-1 d-none"></span></a></li>

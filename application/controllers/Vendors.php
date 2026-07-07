@@ -520,7 +520,7 @@ class Vendors extends MY_Controller {
             $newDCType   = getPostValue($PostData, 'DebitCreditCheck', '', 'Credit');
             $oldSigned   = ($oldDCType === 'Credit') ? $oldDCAmount : -$oldDCAmount;
             $newSigned   = ($newDCType === 'Credit') ? $newDCAmount : -$newDCAmount;
-            $delta       = round($newSigned - $oldSigned, 2);
+            $delta       = round($newSigned - $oldSigned, $this->_decimals());
 
             $orgUID  = $this->pageData['JwtData']->Org->OrgUID;
             $userUID = $this->pageData['JwtData']->User->UserUID;
@@ -534,7 +534,7 @@ class Vendors extends MY_Controller {
             }
 
             if ($delta != 0.0) {
-                $balanceSigned = round($currentSigned + $delta, 2);
+                $balanceSigned = round($currentSigned + $delta, $this->_decimals());
                 $newBalance    = abs($balanceSigned);
                 $newType       = ($balanceSigned >= 0) ? 'Credit' : 'Debit';
 
@@ -1472,7 +1472,7 @@ class Vendors extends MY_Controller {
                         : -(float)$vend->OpeningBalance;
 
                     // net = opening + purchased - paid - returned
-                    $signedBalance  = round($signedOpening + $totalPurchased - $totalPaid - $totalReturned, 2);
+                    $signedBalance  = round($signedOpening + $totalPurchased - $totalPaid - $totalReturned, $this->_decimals());
                     $newBalance     = abs($signedBalance);
                     $newBalanceType = ($signedBalance >= 0) ? 'Credit' : 'Debit';
 

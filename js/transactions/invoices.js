@@ -45,7 +45,7 @@ $(document).on('comm:switchedToEmail', function (e, moduleUID, recordUID) {
 function getInvoicesDetails(pageNo, rowLimit, filter, afterLoad) {
     loadTransactionList({
         url:            '/invoices/getInvoicesPageDetails/',
-        tabCountClass:  '.inv-tab-count',
+        tabCountClass:  '.trans-tab-count',
         statusTabClass: '.inv-status-tab',
         errorMessage:   'Failed to load invoices.',
         onSuccess:      function (resp) {

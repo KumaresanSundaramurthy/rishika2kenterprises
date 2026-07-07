@@ -609,6 +609,7 @@ class MY_Controller extends CI_Controller {
      * Returns: ['range'=>string, 'from'=>string, 'to'=>string, 'label'=>string]
      */
     protected function getDateFilterPreference($pageKey, $default = 'this_month') {
+
         $jwtData   = $this->pageData['JwtData'] ?? null;
         $orgUID    = (int)($jwtData->Org->OrgUID    ?? 0);
         $branchUID = (int)($jwtData->Org->BranchUID ?? 0);
@@ -632,6 +633,7 @@ class MY_Controller extends CI_Controller {
         $this->pageData['SavedDateToDisplay']   = $result['to']   ? date($fmt, strtotime($result['to']))   : '';
 
         return $result;
+        
     }
 
     protected function _buildDateRange(string $range): array {
@@ -756,6 +758,163 @@ class MY_Controller extends CI_Controller {
         $this->load->model('global_model');
         $result = $this->global_model->getTaxDetailsInfo();
         return ($result->Error === FALSE) ? (array)($result->Data ?? []) : [];
+    }
+
+    protected function _annotatePRListWithCancelDeps(array &$rows, int $orgUID): void
+    {
+        if (empty($rows)) return;
+        $transUIDs = array_map(fn($r) => (int)$r->TransUID, $rows);
+        foreach ($rows as $r) { $r->CancelCashRefunded = 0; }
+        $this->load->model('transactions_model');
+        $deps = $this->transactions_model->getPRCancelDepsMap($transUIDs);
+        foreach ($rows as $r) {
+            $r->CancelCashRefunded = $deps['cashMap'][(int)$r->TransUID] ?? 0;
+        }
+    }
+
+    protected function _annotateSRListWithCancelDeps(array &$rows, int $orgUID): void
+    {
+        if (empty($rows)) return;
+        $transUIDs     = array_map(fn($r) => (int)$r->TransUID, $rows);
+        $uniqueNumbers = array_values(array_filter(array_map(fn($r) => $r->UniqueNumber ?? null, $rows)));
+        foreach ($rows as $r) {
+            $r->CancelCashRefunded  = 0;
+            $r->CancelCreditApplied = 0;
+        }
+        $this->load->model('transactions_model');
+        $deps = $this->transactions_model->getSRCancelDepsMap($transUIDs, $uniqueNumbers);
+        foreach ($rows as $r) {
+            $r->CancelCashRefunded  = $deps['cashMap'][(int)$r->TransUID]        ?? 0;
+            $r->CancelCreditApplied = $deps['creditMap'][$r->UniqueNumber ?? ''] ?? 0;
+        }
+    }
+
+    // ── Private helpers shared by index-page loader and AJAX pagination ─────
+
+    /**
+     * Queries the transaction list, runs any module annotation, renders the
+     * list partial, and returns the results in one call.
+     * SerialNumber == $offset so page-1 (offset=0) and subsequent AJAX pages
+     * both work correctly with the same helper.
+     */
+    private function _fetchAndRenderTransList(int $limit, int $offset, array $filter, string $viewPath, array $extraViewData = []): array
+    {
+        $this->load->model('transactions_model');
+        $data  = $this->transactions_model->getTransactionPageList($limit, $offset, $this->pageModuleUID, $filter, 0);
+        $count = $this->transactions_model->getTransactionCount($this->pageModuleUID, $filter);
+        $orgUID = (int)($this->pageData['JwtData']->Org->OrgUID);
+        if ($this->pageModuleUID === 108) { $this->_annotatePRListWithCancelDeps($data, $orgUID); }
+        if ($this->pageModuleUID === 106) { $this->_annotateSRListWithCancelDeps($data, $orgUID); }
+        $html = $this->load->view($viewPath,
+            array_merge(['DataLists' => $data, 'SerialNumber' => $offset, 'JwtData' => $this->pageData['JwtData']], $extraViewData),
+            true
+        );
+        return ['data' => $data, 'count' => $count, 'html' => $html];
+    }
+
+    /**
+     * Returns summary stats for the current module, respecting the
+     * ShowTransactionStats user setting. Always returns an array.
+     */
+    private function _computeTransSummaryStats(int $orgUID, array $filter = []): array
+    {
+        if (!($this->pageData['JwtData']->TransSettings->ShowTransactionStats ?? 1)) { return []; }
+        $this->load->model('transactions_model');
+        return $this->transactions_model->getTransactionSummaryStats($this->pageModuleUID, $orgUID, $filter);
+    }
+
+    // ── Transaction page load helpers ────────────────────────────────────
+
+    /**
+     * Populates $this->pageData for the initial transaction list page render.
+     * Controller calls $this->load->view() after this returns (Option B).
+     *
+     * Required keys: datePrefKey, tabSlugMap, listViewPath, paginationUrl
+     * Optional keys: skipListForTabs (array), listViewExtraData (array)
+     */
+    protected function _loadTransactionIndexPage(array $config): void
+    {
+        $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
+        $limit           = (int)($GeneralSettings->RowLimit ?? 10);
+        $orgUID          = (int)($this->pageData['JwtData']->Org->OrgUID);
+
+        $datePref    = $this->getDateFilterPreference($config['datePrefKey']);
+        $statsFilter = $datePref['from'] ? ['DateFrom' => $datePref['from'], 'DateTo' => $datePref['to']] : [];
+
+        $tabSlugMap = $config['tabSlugMap'];
+        $tabSlug    = strtolower(trim($this->input->get('tab') ?: 'all'));
+        $initTab    = $tabSlugMap[$tabSlug] ?? 'All';
+        $initSearch = trim($this->input->get('search') ?: '');
+        $initFilter = $statsFilter;
+        if ($initTab !== 'All') { $initFilter['Status'] = $initTab; }
+        if ($initSearch !== '') { $initFilter['Name']   = $initSearch; }
+
+        $skipTabs   = $config['skipListForTabs'] ?? [];
+        $listExtras = $config['listViewExtraData'] ?? [];
+
+        if (in_array($initTab, $skipTabs, true)) {
+            $allDataCount = 0;
+            $listHtml     = $this->load->view($config['listViewPath'],
+                array_merge(['DataLists' => [], 'SerialNumber' => 0, 'JwtData' => $this->pageData['JwtData']], $listExtras), true);
+        } else {
+            $res          = $this->_fetchAndRenderTransList($limit, 0, $initFilter, $config['listViewPath'], $listExtras);
+            $allDataCount = $res['count'];
+            $listHtml     = $res['html'];
+        }
+
+        $this->pageData['SavedDateRange'] = $datePref['range'];
+        $this->pageData['SavedDateLabel'] = $datePref['label'];
+        $this->pageData['ModRowData']     = $listHtml;
+        $this->pageData['ModPagination']  = $this->globalservice->buildPagePaginationHtml($config['paginationUrl'], $allDataCount, 1, $limit);
+        $this->pageData['ModAllCount']    = $allDataCount;
+        $this->pageData['SummaryStats']   = $this->_computeTransSummaryStats($orgUID, $statsFilter);
+
+        // PaymentTypes + BankAccounts: Invoices(103), Purchases(105), SR(106), PR(108)
+        if (in_array($this->pageModuleUID, [103, 105, 106, 108], true)) {
+            $this->load->model('transactions_model');
+            $this->pageData['PaymentTypes'] = $this->transactions_model->getPaymentTypesList();
+            $this->pageData['BankAccounts'] = $this->transactions_model->getOrgBankAccounts($orgUID);
+        }
+
+        $this->_loadUpstashConfig();
+
+        // OrgUsers: all except DC(112) and Proforma(113)
+        if (in_array($this->pageModuleUID, [101, 102, 103, 104, 105, 106, 108], true)) {
+            $this->load->model('users_model');
+            $this->pageData['OrgUsers'] = $this->users_model->getOrgUsersForCache($orgUID);
+        }
+
+        $this->pageData['InitTab']    = $initTab;
+        $this->pageData['InitSearch'] = $initSearch;
+    }
+
+    /**
+     * Builds and returns the paginated result object for a transaction AJAX request.
+     * Controller is responsible for try/catch and sending the JSON response.
+     *
+     * Required keys: pageNo, listViewPath, paginationUrl
+     * Optional keys: listViewExtraData (array), includeSummaryStats (bool)
+     */
+    protected function _buildTransactionPageDetailsResult(array $config): stdClass
+    {
+        $pageNo = max(1, (int)($config['pageNo'] ?? 1));
+        $limit  = (int)$this->input->post('RowLimit') ?: 10;
+        $offset = ($pageNo - 1) * $limit;
+        $filter = $this->input->post('Filter') ?: [];
+
+        $res = $this->_fetchAndRenderTransList($limit, $offset, $filter, $config['listViewPath'], $config['listViewExtraData'] ?? []);
+
+        $result                 = new stdClass();
+        $result->Error          = FALSE;
+        $result->RecordHtmlData = $res['html'];
+        $result->Pagination     = $this->globalservice->buildPagePaginationHtml($config['paginationUrl'], $res['count'], $pageNo, $limit);
+        $result->TotalCount     = $res['count'];
+
+        if ($config['includeSummaryStats'] ?? false) {
+            $result->SummaryStats = $this->_computeTransSummaryStats((int)$this->pageData['JwtData']->Org->OrgUID, $filter);
+        }
+
+        return $result;
     }
 
 }

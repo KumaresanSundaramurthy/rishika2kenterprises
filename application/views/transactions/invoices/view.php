@@ -1,4 +1,5 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed');
+
 $this->load->view('common/transactions/header'); ?>
 
 <div class="layout-wrapper layout-horizontal layout-content-navbar">
@@ -13,7 +14,23 @@ $this->load->view('common/transactions/header'); ?>
                     'pageTitle'       => $PageTitle       ?? 'Sales Invoices',
                     'pageDescription' => $PageDescription ?? 'Create and manage customer invoices',
                 ]); ?>
-                <?php
+
+            <?php
+
+                // ── URL tab/search state ──────────────────────────
+                $initTab    = $InitTab    ?? 'All';
+                $initSearch = $InitSearch ?? '';
+                $tabFilterMap = [
+                    'All'         => ['invPayStatusFilter', 'invPayModeFilter', 'invCreatedByFilter', 'invPartyFilterTrigger'],
+                    'InvPending'  => ['invPayModeFilter', 'invCreatedByFilter', 'invPartyFilterTrigger'],
+                    'Paid'        => ['invPayModeFilter', 'invCreatedByFilter', 'invPartyFilterTrigger'],
+                    'Cancelled'   => ['invPayStatusFilter', 'invPayModeFilter', 'invCreatedByFilter', 'invPartyFilterTrigger'],
+                    'Draft'       => ['invCreatedByFilter', 'invPartyFilterTrigger'],
+                    'CreditNotes' => ['invPartyFilterTrigger', 'invCnStatusWrap'],
+                ];
+                $visibleFilters = $tabFilterMap[$initTab] ?? $tabFilterMap['All'];
+
+                if ($JwtData->TransSettings->ShowTransactionStats ?? 1):
                 // ── Build summary numbers ─────────────────────────
                 $stats       = $SummaryStats ?? [];
                 $cur         = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
@@ -34,10 +51,11 @@ $this->load->view('common/transactions/header'); ?>
                     ['label' => 'Paid',         'status' => 'Paid',       'icon' => 'bx-check-circle', 'iconBg' => '#dcfce7', 'iconColor' => '#16a34a', 'count' => $cntPaid,    'amount' => $amtPaid],
                     ['label' => 'Drafts',       'status' => 'Draft',      'icon' => 'bx-edit',          'iconBg' => '#f1f5f9', 'iconColor' => '#64748b', 'count' => $cntDraft,   'amount' => 0],
                 ];
+
                 ?>
                 <div class="apex-stats-strip">
                     <?php foreach ($statsItems as $stat): ?>
-                    <div class="apex-stat-item <?php echo $stat['status'] === 'All' ? 'active' : ''; ?>" data-status="<?php echo $stat['status']; ?>" data-stat-filter="<?php echo $stat['status']; ?>" style="--stat-color:<?php echo $stat['iconColor']; ?>">
+                    <div class="apex-stat-item <?php echo $stat['status'] === $initTab ? 'active' : ''; ?>" data-status="<?php echo $stat['status']; ?>" data-stat-filter="<?php echo $stat['status']; ?>" style="--stat-color:<?php echo $stat['iconColor']; ?>">
                         <div class="apex-stat-icon" style="background:<?php echo $stat['iconBg']; ?>;">
                             <i class="bx <?php echo $stat['icon']; ?>" style="color:<?php echo $stat['iconColor']; ?>;"></i>
                         </div>
@@ -51,6 +69,7 @@ $this->load->view('common/transactions/header'); ?>
                     </div>
                     <?php endforeach; ?>
                 </div>
+                <?php endif; ?>
 
                 <div class="container-xxl flex-grow-1 py-3">
 
@@ -59,38 +78,46 @@ $this->load->view('common/transactions/header'); ?>
 
                         <!-- ── Filter Row ─────────────────────────────────── -->
                         <div class="apex-filter-row">
-                            <div class="r2k-search-wrap">
+                            <!-- Fixed left: search -->
+                            <div class="r2k-search-wrap<?php echo $initSearch ? ' is-expanded r2k-search-active' : ''; ?>">
                                 <i class="bx bx-search r2k-si"></i>
-                                <input type="text" id="searchTransactionData" placeholder="Invoice # or customer...">
-                                <i class="bx bx-x r2k-clear d-none"></i>
+                                <input type="text" id="searchTransactionData" placeholder="<?php echo $initTab === 'CreditNotes' ? 'CN # or customer...' : 'Invoice # or customer...'; ?>" value="<?php echo htmlspecialchars($initSearch, ENT_QUOTES); ?>">
+                                <i class="bx bx-x r2k-clear<?php echo $initSearch ? '' : ' d-none'; ?>"></i>
                             </div>
-                            <a href="javascript:void(0);" id="invPayStatusFilter" class="apex-filter-btn" title="Filter by Payment Status"><i class="bx bx-wallet-alt me-1"></i>Pay Status</a>
-                            <a href="javascript:void(0);" id="invPayModeFilter" class="apex-filter-btn" title="Filter by Payment Mode"><i class="bx bx-credit-card me-1"></i>Pay Mode</a>
+
+                            <a href="javascript:void(0);" id="invPayStatusFilter" class="apex-filter-btn<?php echo in_array('invPayStatusFilter', $visibleFilters) ? '' : ' d-none'; ?>" title="Filter by Payment Status"><i class="bx bx-wallet-alt me-1"></i>Pay Status</a>
+                            <a href="javascript:void(0);" id="invPayModeFilter" class="apex-filter-btn<?php echo in_array('invPayModeFilter', $visibleFilters) ? '' : ' d-none'; ?>" title="Filter by Payment Mode"><i class="bx bx-credit-card me-1"></i>Pay Mode</a>
                             <?php if (count($OrgUsers ?? []) > 1): ?>
-                            <a href="javascript:void(0);" id="invCreatedByFilter" class="apex-filter-btn" title="Filter by User"><i class="bx bx-user me-1"></i>Updated By</a>
+                            <a href="javascript:void(0);" id="invCreatedByFilter" class="apex-filter-btn<?php echo in_array('invCreatedByFilter', $visibleFilters) ? '' : ' d-none'; ?>" title="Filter by User"><i class="bx bx-user me-1"></i>Updated By</a>
                             <?php endif; ?>
-                            <a href="javascript:void(0);" id="invPartyFilterTrigger" class="apex-filter-btn" title="Filter by Customer"><i class="bx bx-store me-1"></i>Customer</a>
+                            <a href="javascript:void(0);" id="invPartyFilterTrigger" class="apex-filter-btn<?php echo in_array('invPartyFilterTrigger', $visibleFilters) ? '' : ' d-none'; ?>" title="Filter by Customer"><i class="bx bx-store me-1"></i>Customer</a>
+                            <div class="<?php echo in_array('invCnStatusWrap', $visibleFilters) ? '' : 'd-none'; ?>" id="invCnStatusWrap">
+                                <a href="javascript:void(0);" class="apex-filter-btn" id="invCnStatusFilter"><i class="bx bx-transfer-alt me-1"></i>CN Status</a>
+                            </div>
                             <?php $this->load->view('common/transactions/date_filter_btn'); ?>
                             <div class="apex-filter-spacer"></div>
+
+                            <!-- Fixed right: actions -->
                             <a href="javascript:void(0);" class="apex-filter-btn pageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
                             <?php $this->load->view('common/partials/export_btn'); ?>
-                            <a href="/invoices/create" class="btn btn-sm btn-primary"><i class="bx bx-plus me-1"></i>New Invoice</a>
+                            <a href="/invoices/create" class="btn btn-sm btn-primary flex-shrink-0"><i class="bx bx-plus me-1"></i>New Invoice</a>
                         </div>
 
                         <!-- ── Tabs Row ──────────────────────────────────── -->
                         <div class="apex-tabs-row">
-                            <ul class="nav trans-status-tabs" id="invStatusTabs" role="tablist">
-                                <li class="nav-item"><a class="nav-link active inv-status-tab" data-status="All" href="javascript:void(0);">All <span class="inv-tab-count ms-1"><?php echo $ModAllCount; ?></span></a></li>
-                                <li class="nav-item"><a class="nav-link inv-status-tab" data-status="InvPending" href="javascript:void(0);">Pending <span class="inv-tab-count ms-1 d-none"></span></a></li>
-                                <li class="nav-item"><a class="nav-link inv-status-tab" data-status="Paid" href="javascript:void(0);">Paid <span class="inv-tab-count ms-1 d-none"></span></a></li>
-                                <li class="nav-item"><a class="nav-link inv-status-tab" data-status="Cancelled" href="javascript:void(0);">Cancelled <span class="inv-tab-count ms-1 d-none"></span></a></li>
-                                <li class="nav-item"><a class="nav-link inv-status-tab" data-status="Draft" href="javascript:void(0);">Drafts <span class="inv-tab-count ms-1 d-none"></span></a></li>
-                                <li class="nav-item"><a class="nav-link inv-status-tab inv-cn-tab" data-status="CreditNotes" href="javascript:void(0);"><i class="bx bx-transfer-alt me-1"></i>Credit Notes <span class="inv-cn-count ms-1 d-none"></span></a></li>
+                            <ul class="nav trans-status-tabs" id="invStatusTabs" role="tablist" data-trans-path="/invoices">
+                                <li class="nav-item"><a class="nav-link <?php echo $initTab === 'All' ? 'active' : ''; ?> inv-status-tab" data-status="All" data-url-tab="all" href="javascript:void(0);">All <span class="trans-tab-count ms-1<?php echo ($initTab === 'All' && (int)$ModAllCount > 0) ? '' : ' d-none'; ?>"><?php echo ($initTab === 'All' && (int)$ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link <?php echo $initTab === 'InvPending' ? 'active' : ''; ?> inv-status-tab" data-status="InvPending" data-url-tab="pending" href="javascript:void(0);">Pending <span class="trans-tab-count ms-1<?php echo ($initTab === 'InvPending' && (int)$ModAllCount > 0) ? '' : ' d-none'; ?>"><?php echo ($initTab === 'InvPending' && (int)$ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link <?php echo $initTab === 'Paid' ? 'active' : ''; ?> inv-status-tab" data-status="Paid" data-url-tab="paid" href="javascript:void(0);">Paid <span class="trans-tab-count ms-1<?php echo ($initTab === 'Paid' && (int)$ModAllCount > 0) ? '' : ' d-none'; ?>"><?php echo ($initTab === 'Paid' && (int)$ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link <?php echo $initTab === 'Cancelled' ? 'active' : ''; ?> inv-status-tab" data-status="Cancelled" data-url-tab="cancelled" href="javascript:void(0);">Cancelled <span class="trans-tab-count ms-1<?php echo ($initTab === 'Cancelled' && (int)$ModAllCount > 0) ? '' : ' d-none'; ?>"><?php echo ($initTab === 'Cancelled' && (int)$ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link <?php echo $initTab === 'Draft' ? 'active' : ''; ?> inv-status-tab" data-status="Draft" data-url-tab="draft" href="javascript:void(0);">Drafts <span class="trans-tab-count ms-1<?php echo ($initTab === 'Draft' && (int)$ModAllCount > 0) ? '' : ' d-none'; ?>"><?php echo ($initTab === 'Draft' && (int)$ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link <?php echo $initTab === 'CreditNotes' ? 'active' : ''; ?> inv-status-tab inv-cn-tab" data-status="CreditNotes" data-url-tab="creditnotes" href="javascript:void(0);">Credit Notes <span class="trans-tab-count ms-1 d-none"></span></a></li>
                             </ul>
+                            <?php $this->load->view('common/transactions/filter_notice'); ?>
                         </div>
 
                         <!-- Invoice Table (hidden when Credit Notes tab is active) -->
-                        <div id="invTableSection">
+                        <div id="invTableSection"<?php echo $initTab === 'CreditNotes' ? ' style="display:none;"' : ''; ?>>
                             <div class="table-responsive">
                                 <table class="table trans-table table-hover MainviewTable mb-0" id="invTable">
                                     <thead class="r2k-thead">
@@ -111,7 +138,7 @@ $this->load->view('common/transactions/header'); ?>
                                             <th>Payment Mode</th>
                                             <th>Customer</th>
                                             <th>Last Updated</th>
-                                            <th style="width:50px"></th>
+                                            <th style="width:50px">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody class="r2k-tbody table-border-bottom-0">
@@ -128,21 +155,7 @@ $this->load->view('common/transactions/header'); ?>
                         </div>
 
                         <!-- Credit Notes Table (shown only when Credit Notes tab is active) -->
-                        <div id="invCNSection" style="display:none;">
-                            <div class="px-3 py-2 d-flex align-items-center gap-2 border-bottom">
-                                <div class="r2k-search-wrap">
-                                    <i class="bx bx-search r2k-si"></i>
-                                    <input type="text" id="cnSearchInput" placeholder="CN # or customer...">
-                                    <i class="bx bx-x r2k-clear d-none"></i>
-                                </div>
-                                <select id="cnStatusFilter" class="form-select form-select-sm" style="width:140px;">
-                                    <option value="All">All Status</option>
-                                    <option value="Pending">Pending</option>
-                                    <option value="Applied">Applied</option>
-                                    <option value="Refunded">Refunded</option>
-                                </select>
-                                <a href="javascript:void(0);" id="cnRefreshBtn" class="r2k-icon-btn ms-1" title="Refresh"><i class="bx bx-refresh"></i></a>
-                            </div>
+                        <div id="invCNSection"<?php echo $initTab === 'CreditNotes' ? '' : ' style="display:none;"'; ?>>
                             <div class="table-responsive">
                                 <table class="table trans-table table-hover mb-0" id="cnTable">
                                     <thead class="r2k-thead">
@@ -151,14 +164,13 @@ $this->load->view('common/transactions/header'); ?>
                                             <th>CN Number</th>
                                             <th>Customer</th>
                                             <th>Source SR</th>
-                                            <th>SR Date</th>
                                             <th>Amount</th>
                                             <th>Status</th>
                                             <th>Created On</th>
                                         </tr>
                                     </thead>
                                     <tbody id="cnTableBody" class="r2k-tbody table-border-bottom-0">
-                                        <tr><td colspan="8" class="text-center py-4 text-muted">Loading...</td></tr>
+                                        <tr><td colspan="7" class="text-center py-4 text-muted">Loading...</td></tr>
                                     </tbody>
                                 </table>
                             </div>
@@ -171,9 +183,9 @@ $this->load->view('common/transactions/header'); ?>
                     <?php $this->load->view('common/transactions/print_modals'); ?>
 
                     <!-- Sticky pagination -->
-                    <div class="card mb-0 cust-sticky-pag" id="invStickyPagination" style="display:none;">
+                    <div class="card mb-0 cust-sticky-pag apex-sticky-pag" id="invStickyPagination" data-static-pag="#invPagination" style="display:none;">
                         <div class="card-body p-0">
-                            <div class="row mx-3 my-2 justify-content-between align-items-center invPagination"></div>
+                            <div class="row mx-3 my-2 justify-content-between align-items-center apex-sticky-pag-inner"></div>
                         </div>
                     </div>
 
@@ -246,8 +258,28 @@ $this->load->view('common/transactions/header'); ?>
     ],
 ]); ?>
 
+<!-- CN Status custom filter panel (same Pay Status box style, single-select) -->
+<div id="invCnStatusBox" class="card mp-filterbox trans-col-filterbox"
+     style="z-index:9999;display:none;position:fixed;min-width:170px;">
+    <div class="catg-filter-header">
+        <span class="catg-filter-title"><i class="bx bx-transfer-alt me-1"></i>CN Status</span>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge">5</span>
+            <button type="button" class="catg-filter-close-btn tcf-close-btn" title="Close">&times;</button>
+        </div>
+    </div>
+    <div class="catg-list" style="max-height:none;">
+        <div class="catg-list-item cn-opt-active cn-status-panel-opt" data-val="All">All</div>
+        <div class="catg-list-item cn-status-panel-opt" data-val="Pending"><span class="badge bg-label-warning me-1">Pending</span></div>
+        <div class="catg-list-item cn-status-panel-opt" data-val="Applied"><span class="badge bg-label-success me-1">Applied</span></div>
+        <div class="catg-list-item cn-status-panel-opt" data-val="Refunded"><span class="badge bg-label-secondary me-1">Refunded</span></div>
+        <div class="catg-list-item cn-status-panel-opt" data-val="Cancelled"><span class="badge bg-label-danger me-1">Cancelled</span></div>
+    </div>
+</div>
+
 <?php $this->load->view('common/transactions/footer'); ?>
 
+<script src="/js/core/sticky_paginate.js"></script>
 <script src="/js/common/communication.js"></script>
 <script src="/js/common/party_filter.js"></script>
 <script src="/js/transactions/attachments.js"></script>
@@ -265,23 +297,22 @@ const ModulePag    = '.invPagination';
 const ModuleHeader = '.invHeaderCheck';
 const ModuleRow    = '.invCheck';
 
+var _invInitTab    = <?php echo json_encode($initTab    ?? 'All'); ?>;
+var _invInitSearch = <?php echo json_encode($initSearch ?? ''); ?>;
+
+// ── Tab filter visibility map ────────────────────────────────────────
+const _invTabFilterMap = <?= json_encode($tabFilterMap); ?>;
+const _allInvFilterEls = <?= json_encode(array_values(array_unique(array_merge(...array_values($tabFilterMap))))); ?>;
+
 $(function () {
     'use strict';
 
-    // Initialize Bootstrap tooltips — container:'body' prevents tooltip div from
-    // firing mouseleave on the icon, which caused the heartbeat flicker.
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl, { container: 'body' });
-    });
-
-    Filter['Status'] = 'All';
+    Filter['Status'] = _invInitTab === 'CreditNotes' ? 'All' : _invInitTab;
+    if (_invInitSearch) { Filter.Name = _invInitSearch; }
     initExport({ moduleUID: 103, getFilters: function () { return Filter; } });
 
     // ── Filter bar (mode / customer / user pills) ────────────────────────
-    var tfb = (typeof TransFilterBar !== 'undefined')
-        ? new TransFilterBar({ onChange: function () { PageNo = 1; getInvoicesDetails(); } })
-        : null;
+    var tfb = (typeof TransFilterBar !== 'undefined') ? new TransFilterBar({ onChange: function () { PageNo = 1; getInvoicesDetails(); } }) : null;
 
     // ── Column-level Payment Status filter ──────────────────────────────
     var payStatusFilter = new TransColFilter({
@@ -331,28 +362,53 @@ $(function () {
         _origGetInvoicesDetails(pageNo, rowLimit, f, afterLoad);
     };
 
-    // ── Sticky pagination ──
-    var $invStaticPag = $('#invPagination');
-    var $invStickyPag = $('#invStickyPagination');
-    function _syncInvSticky() { $invStickyPag.find('.invPagination').html($invStaticPag.html()); }
-    function _toggleInvSticky() {
-        if (!$invStaticPag.length) return;
-        var r = $invStaticPag[0].getBoundingClientRect();
-        var visible = r.top < $(window).height() && r.bottom > 0;
-        if (visible) { $invStickyPag.stop(true,true).fadeOut(150); }
-        else { _syncInvSticky(); $invStickyPag.stop(true,true).fadeIn(150); }
+    /**
+     * Clears search text and resets all column/party/filterbar instances on tab switch.
+     * Date filter is intentionally left untouched per user requirement.
+     * @returns {void}
+     */
+    function _resetInvFilters() {
+        var $wrap = $('#searchTransactionData').closest('.r2k-search-wrap');
+        $('#searchTransactionData').val('');
+        $wrap.find('.r2k-clear').addClass('d-none');
+        $wrap.removeClass('is-expanded r2k-search-active');
+        Filter.Name = '';
+        _cnSearch   = '';
+
+        if (payStatusFilter)    { payStatusFilter.reset(); }
+        if (payModeFilter)      { payModeFilter.reset(); }
+        if (invCreatedByFilter) { invCreatedByFilter.reset(); }
+        if (invPartyFilter)     { invPartyFilter.reset(); }
+        if (tfb)                { tfb.reset(); }
+
+        _cnStatus = 'All';
+        $('.cn-status-panel-opt').removeClass('cn-opt-active');
+        $('.cn-status-panel-opt[data-val="All"]').addClass('cn-opt-active');
+        $('#invCnStatusFilter').html('<i class="bx bx-transfer-alt me-1"></i>CN Status').removeClass('has-filter');
+        $('#invCnStatusBox').hide();
+        $('.trans-col-filterbox, .tpcf-box').hide();
     }
-    $(window).on('scroll resize', _toggleInvSticky);
-    _toggleInvSticky();
+
+    _applyTabFilters(_invInitTab || 'All', _invTabFilterMap, _allInvFilterEls);
+    if (_invInitTab === 'CreditNotes') {
+        _cnPageNo = 1;
+        if (_invInitSearch) { _cnSearch = _invInitSearch; }
+        loadCreditNotes(1);
+    }
 
     // ── Stat card click → filter by status ─────────────────
     $(document).on('click', '[data-stat-filter]', function () {
         var status = $(this).data('stat-filter') || 'All';
         $('.apex-stat-item').removeClass('active');
         $(this).addClass('active');
-        // Sync tabs
         $('.inv-status-tab').removeClass('active');
         $('.inv-status-tab[data-status="' + status + '"]').addClass('active');
+        _resetInvFilters();
+        _applyTabFilters(status, _invTabFilterMap, _allInvFilterEls);
+        _updateTransTabUrl(status, '');
+        $('#invCNSection').hide();
+        $('#invTableSection').show();
+        $('#searchTransactionData').attr('placeholder', 'Invoice # or customer...');
         Filter.Status = status;
         PageNo = 1;
         getInvoicesDetails();
@@ -361,28 +417,60 @@ $(function () {
     // ── Status tabs ─────────────────────────────────────────
     $(document).on('click', '.inv-status-tab', function (e) {
         e.preventDefault();
+        var status = $(this).data('status') || 'All';
         $('.inv-status-tab').removeClass('active');
         $(this).addClass('active');
         $('.apex-stat-item').removeClass('active');
-        var status = $(this).data('status') || 'All';
         $('.apex-stat-item[data-stat-filter="' + status + '"]').addClass('active');
-        Filter.Status = status;
-        PageNo = 1;
-        getInvoicesDetails();
+        _resetInvFilters();
+        _applyTabFilters(status, _invTabFilterMap, _allInvFilterEls);
+        _updateTransTabUrl(status, '');
+        if (status === 'CreditNotes') {
+            $('.trans-tab-count').addClass('d-none');
+            $('#invTableSection').hide();
+            $('#invCNSection').show();
+            $('#searchTransactionData').attr('placeholder', 'CN # or customer...');
+            _cnPageNo = 1;
+            loadCreditNotes(1);
+        } else {
+            $('#invCNSection').hide();
+            $('#invTableSection').show();
+            $('#searchTransactionData').attr('placeholder', 'Invoice # or customer...');
+            Filter.Status = status;
+            PageNo = 1;
+            getInvoicesDetails();
+        }
     });
 
     $(document).on('click', '.pageRefresh', function (e) {
         e.preventDefault();
-        PageNo = 1;
-        getInvoicesDetails();
+        if ($('.inv-cn-tab').hasClass('active')) {
+            _cnPageNo = 1;
+            loadCreditNotes(1);
+        } else {
+            PageNo = 1;
+            getInvoicesDetails();
+        }
     });
 
-    // Search
+    // Search — URL updates immediately on every keystroke; data load is debounced
+    $('#searchTransactionData').on('input', function () {
+        var curTab = $('.inv-status-tab.active').data('status') || 'All';
+        _updateTransTabUrl(curTab, $.trim($(this).val()));
+    });
+
     $('#searchTransactionData').on('input', debounce(function () {
-        Filter.Name = $.trim($(this).val());
-        PageNo = 1;
-        getInvoicesDetails();
-    }, 1500));
+        var val = $.trim($(this).val());
+        if ($('.inv-cn-tab').hasClass('active')) {
+            _cnSearch = val;
+            _cnPageNo = 1;
+            loadCreditNotes(1);
+        } else {
+            Filter.Name = val;
+            PageNo = 1;
+            getInvoicesDetails();
+        }
+    }, 1250));
 
     // Date filter
     $(document).on('r2k:datechange', function (e, dr) {
@@ -414,10 +502,6 @@ $(function () {
         var match = ($(this).attr('href') || '').match(/\/(\d+)$/);
         if (match) { PageNo = parseInt(match[1]); getInvoicesDetails(); }
     });
-
-    // View modal — handled by /js/transactions/viewmodal.js (.viewTransaction)
-
-    // ── A4 Print — handled by /js/transactions/a4_print.js ──
 
     // ── Delete ──────────────────────────────────────────────
     $(document).on('click', '.deleteInvoice', function () {
@@ -459,7 +543,7 @@ $(function () {
             desc : 'The invoice will be cancelled. The paid amount remains as a <strong>credit</strong> in the customer\'s balance. Handle payment adjustments manually.'
         }
     };
-
+    
     function _buildPaymentActionHtml(defaultAction) {
         var isAsk = (defaultAction === 'ask');
         var html  = '';
@@ -602,6 +686,7 @@ $(function () {
 });
 
 function updateSummaryStats(stats) {
+    if (!document.querySelector('.apex-stats-strip')) return;
     if (!stats) return;
     var cur = '<?php echo addslashes(htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹')); ?>';
     var dec = <?php echo (int)($JwtData->GenSettings->DecimalPoints ?? 2); ?>;
@@ -715,13 +800,65 @@ var _cnRowLimit  = 10;
 var _cnStatus    = 'All';
 var _cnSearch    = '';
 var _cnLoading   = false;
+var _cnCdnUrl    = '<?php echo addslashes(getenv("FILE_UPLOAD") == "amazonaws" ? getenv("CDN_URL") : getenv("CFLARE_R2_CDN")); ?>';
+
+/**
+ * Formats a MySQL datetime/date string using the settings list date format.
+ * @param {string} dtStr - 'YYYY-MM-DD' or 'YYYY-MM-DD HH:MM:SS'
+ * @returns {string}
+ */
+function _cnFormatDate(dtStr) {
+    if (!dtStr) return '—';
+    var datePart = String(dtStr).split(' ')[0];
+    return formatDateDisplay(datePart) || datePart;
+}
+
+/**
+ * Returns a relative time string (e.g. "2 hrs ago") from a MySQL datetime string.
+ * @param {string} dtStr - 'YYYY-MM-DD HH:MM:SS'
+ * @returns {string}
+ */
+function _cnTimeAgo(dtStr) {
+    if (!dtStr) return '';
+    var d = new Date(dtStr.replace(' ', 'T'));
+    if (isNaN(d)) return '';
+    var diff = Math.floor((Date.now() - d.getTime()) / 1000);
+    if (diff < 60)    return diff + ' sec ago';
+    if (diff < 3600)  return Math.floor(diff / 60) + ' min ago';
+    if (diff < 86400) return Math.floor(diff / 3600) + ' hr' + (Math.floor(diff / 3600) === 1 ? '' : 's') + ' ago';
+    var days = Math.floor(diff / 86400);
+    return days + ' day' + (days === 1 ? '' : 's') + ' ago';
+}
+
+/**
+ * Builds party avatar HTML matching the PHP partyAvatar() pattern.
+ * @param {string} name - Party display name
+ * @param {string|null} image - Image path (relative, appended to CDN URL)
+ * @returns {string}
+ */
+function _cnPartyAvatar(name, image) {
+    if (image) {
+        return '<div class="avatar avatar-sm flex-shrink-0">'
+             + '<img src="' + _cnCdnUrl + image + '" class="rounded-circle cursor-pointer preview-image" style="width:32px;height:32px;object-fit:cover;" />'
+             + '</div>';
+    }
+    var initials = '?';
+    if (name) {
+        var parts = String(name).trim().split(/\s+/);
+        initials  = parts[0].charAt(0).toUpperCase();
+        if (parts.length > 1) initials += parts[parts.length - 1].charAt(0).toUpperCase();
+    }
+    return '<div class="avatar avatar-sm flex-shrink-0">'
+         + '<span class="avatar-initial rounded-circle bg-label-primary" style="font-size:.72rem;">' + initials + '</span>'
+         + '</div>';
+}
 
 function loadCreditNotes(pageNo) {
     if (_cnLoading) return;
     _cnLoading = true;
     pageNo = pageNo || _cnPageNo;
     var $tbody = $('#cnTableBody');
-    $tbody.html('<tr><td colspan="8" class="text-center py-4"><i class="bx bx-loader-alt bx-spin me-1"></i> Loading...</td></tr>');
+    $tbody.html('<tr><td colspan="7" class="text-center py-4"><i class="bx bx-loader-alt bx-spin me-1"></i> Loading...</td></tr>');
 
     $.ajax({
         url  : '/invoices/getCreditNotesList',
@@ -736,16 +873,25 @@ function loadCreditNotes(pageNo) {
         success: function (resp) {
             _cnLoading = false;
             if (resp.Error) {
-                $tbody.html('<tr><td colspan="8" class="text-center py-3 text-danger">' + (resp.Message || 'Error loading credit notes') + '</td></tr>');
+                $tbody.html('<tr><td colspan="7" class="text-center py-3 text-danger">' + (resp.Message || 'Error loading credit notes') + '</td></tr>');
                 return;
             }
             _cnPageNo = resp.PageNo || pageNo;
             var rows  = resp.Data  || [];
+            var total = resp.TotalCount || 0;
             var cur   = '<?php echo addslashes($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>';
             var dec   = <?php echo (int)($JwtData->GenSettings->DecimalPoints ?? 2); ?>;
 
+            // Update tab count badge regardless of whether rows are empty
+            var $cnBadge = $('.inv-cn-tab .trans-tab-count');
+            if (total > 0) {
+                $cnBadge.text(total).removeClass('d-none');
+            } else {
+                $cnBadge.text('').addClass('d-none');
+            }
+
             if (!rows.length) {
-                $tbody.html('<tr><td colspan="8" class="text-center py-4 text-muted">No credit notes found.</td></tr>');
+                $tbody.html('<tr><td colspan="7" class="text-center py-4 text-muted">No credit notes found.</td></tr>');
                 $('#cnPagination').empty();
                 return;
             }
@@ -753,30 +899,83 @@ function loadCreditNotes(pageNo) {
             var html = '';
             $.each(rows, function (i, cn) {
                 var statusBadge = '';
-                if (cn.Status === 'Pending')  statusBadge = '<span class="badge bg-label-warning">Pending</span>';
-                if (cn.Status === 'Applied')  statusBadge = '<span class="badge bg-label-success">Applied</span>';
-                if (cn.Status === 'Refunded') statusBadge = '<span class="badge bg-label-secondary">Refunded</span>';
+                if (cn.Status === 'Pending')   statusBadge = '<span class="badge bg-label-warning">Pending</span>';
+                if (cn.Status === 'Applied')   statusBadge = '<span class="badge bg-label-success">Applied</span>';
+                if (cn.Status === 'Refunded')  statusBadge = '<span class="badge bg-label-secondary">Refunded</span>';
                 if (cn.Status === 'Cancelled') statusBadge = '<span class="badge bg-label-danger">Cancelled</span>';
 
-                var createdOn = cn.CreatedOn ? new Date(parseInt(cn.CreatedOn) * 1000).toLocaleDateString('en-IN') : '—';
-                var srcDate   = cn.SourceTransDate ? new Date(cn.SourceTransDate).toLocaleDateString('en-IN') : '—';
-                var amt       = parseFloat(cn.Amount || 0).toLocaleString('en-IN', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+                var amt         = parseFloat(cn.Amount || 0).toLocaleString('en-IN', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+                var cnDateFmt   = cn.CreatedOn      ? _cnFormatDate(cn.CreatedOn)      : '—';
+                var srcDateFmt  = cn.SourceTransDate ? _cnFormatDate(cn.SourceTransDate) : '—';
+                var creatorName = cn.CreatorName    ? cn.CreatorName                   : '';
+                var timeAgoStr  = cn.CreatedOn      ? _cnTimeAgo(cn.CreatedOn)         : '';
+
+                // ── CN Number cell ────────────────────────────────────────────
+                var cnNumHtml = '<td>';
+                cnNumHtml += '<span class="fw-semibold trans-doc-number">' + (cn.CreditNoteNumber || '—') + '</span>';
+                if (cnDateFmt !== '—') cnNumHtml += '<div class="text-muted mt-1" style="font-size:.72rem;">' + cnDateFmt + '</div>';
+                if (creatorName)       cnNumHtml += '<div style="font-size:.68rem;color:#b0b7c3;">by ' + creatorName + '</div>';
+                cnNumHtml += '</td>';
+
+                // ── Customer cell ─────────────────────────────────────────────
+                var custHtml = '<td class="inv-party-td">';
+                if (cn.CustomerName) {
+                    custHtml += '<div class="d-flex align-items-center gap-2">';
+                    custHtml += _cnPartyAvatar(cn.CustomerName, cn.CustomerImage);
+                    custHtml += '<div>';
+                    custHtml += '<div class="trans-party-name fw-semibold">' + cn.CustomerName + '</div>';
+                    if (cn.CustomerArea) custHtml += '<div style="font-size:.7rem;color:#888;margin-top:1px;"><i class="bx bx-map" style="font-size:.72rem;"></i> ' + cn.CustomerArea + '</div>';
+                    if (cn.MobileNo)     custHtml += '<div style="font-size:.72rem;color:#888;">' + cn.MobileNo + '</div>';
+                    custHtml += '</div></div>';
+                } else {
+                    custHtml += '<span class="text-muted">—</span>';
+                }
+                custHtml += '</td>';
+
+                // ── Source SR cell (number as link + date below) ───────────────
+                var srHtml = '<td>';
+                if (cn.SourceTransUID > 0 && cn.SourceTransNumber) {
+                    srHtml += '<a href="javascript:void(0)" class="fw-semibold trans-doc-number viewTransaction"'
+                            + ' data-uid="'    + cn.SourceTransUID    + '"'
+                            + ' data-module="' + (cn.SourceModuleUID || 0) + '"'
+                            + (cn.SourceTransToken ? ' data-token="' + cn.SourceTransToken + '"' : '')
+                            + '>' + cn.SourceTransNumber + '</a>';
+                } else {
+                    srHtml += '<span class="fw-semibold">' + (cn.SourceTransNumber || '—') + '</span>';
+                }
+                if (srcDateFmt !== '—') srHtml += '<div class="text-muted mt-1" style="font-size:.72rem;">' + srcDateFmt + '</div>';
+                srHtml += '</td>';
+
+                // ── Created On cell (datetime + relative + by user) ────────────
+                var createdOnHtml = '<td>';
+                if (cn.CreatedOn) {
+                    var createdD   = new Date(cn.CreatedOn.replace(' ', 'T'));
+                    var createdFmt = isNaN(createdD) ? cn.CreatedOn
+                        : cnDateFmt + ' '
+                        + ('0' + createdD.getHours()).slice(-2) + ':'
+                        + ('0' + createdD.getMinutes()).slice(-2) + ' '
+                        + (createdD.getHours() >= 12 ? 'PM' : 'AM');
+                    createdOnHtml += '<div style="font-size:.8rem;">' + createdFmt + '</div>';
+                    if (timeAgoStr) createdOnHtml += '<div class="text-muted" style="font-size:.72rem;">' + timeAgoStr + '</div>';
+                    if (creatorName) createdOnHtml += '<div style="font-size:.68rem;color:#b0b7c3;">by ' + creatorName + '</div>';
+                } else {
+                    createdOnHtml += '<span class="text-muted">—</span>';
+                }
+                createdOnHtml += '</td>';
 
                 html += '<tr>';
                 html += '<td class="text-muted">' + ((_cnPageNo - 1) * _cnRowLimit + i + 1) + '</td>';
-                html += '<td><span class="fw-semibold text-primary">' + (cn.CreditNoteNumber || '—') + '</span></td>';
-                html += '<td>' + (cn.CustomerName ? '<div class="fw-semibold">' + cn.CustomerName + '</div>' : '—') + (cn.MobileNo ? '<small class="text-muted d-block">' + cn.MobileNo + '</small>' : '') + '</td>';
-                html += '<td>' + (cn.SourceTransNumber || '—') + '</td>';
-                html += '<td>' + srcDate + '</td>';
+                html += cnNumHtml;
+                html += custHtml;
+                html += srHtml;
                 html += '<td class="fw-semibold">' + cur + ' ' + amt + '</td>';
                 html += '<td>' + statusBadge + '</td>';
-                html += '<td class="text-muted">' + createdOn + '</td>';
+                html += createdOnHtml;
                 html += '</tr>';
             });
             $tbody.html(html);
 
             // Build simple pagination
-            var total    = resp.TotalCount || 0;
             var lastPage = Math.ceil(total / _cnRowLimit) || 1;
             var pagHtml  = '';
             if (lastPage > 1) {
@@ -793,50 +992,50 @@ function loadCreditNotes(pageNo) {
             }
             $('#cnPagination').html(pagHtml);
 
-            // Update tab count badge
-            $('.inv-cn-count').removeClass('d-none').text(total);
         },
         error: function () {
             _cnLoading = false;
-            $('#cnTableBody').html('<tr><td colspan="8" class="text-center py-3 text-danger">Request failed.</td></tr>');
+            $('#cnTableBody').html('<tr><td colspan="7" class="text-center py-3 text-danger">Request failed.</td></tr>');
         }
     });
 }
 
-// Tab click — toggle invoice vs credit notes sections
-$(document).on('click', '.inv-status-tab', function () {
-    var status = $(this).data('status');
-    if (status === 'CreditNotes') {
-        $('#invTableSection').hide();
-        $('#invCNSection').show();
-        if (_cnPageNo === 1) loadCreditNotes(1);
-    } else {
-        $('#invCNSection').hide();
-        $('#invTableSection').show();
-    }
+
+// ── CN Status filter panel (Pay Status box style) ────────────────────────────
+
+// Open / close panel
+$(document).on('click', '#invCnStatusFilter', function (e) {
+    e.stopPropagation();
+    var $box = $('#invCnStatusBox');
+    if ($box.is(':visible')) { $box.hide(); return; }
+    $('.trans-col-filterbox, .tpcf-box').not($box).hide();
+    var rect = this.getBoundingClientRect();
+    var boxW = $box.outerWidth() || 170;
+    var left = rect.left;
+    var top  = rect.bottom + 4;
+    if (left + boxW + 16 > window.innerWidth) left = window.innerWidth - boxW - 16;
+    $box.css({ top: top + 'px', left: left + 'px' }).show();
 });
 
-// CN status filter
-$('#cnStatusFilter').on('change', function () {
-    _cnStatus = $(this).val();
+// Close button inside the panel
+$(document).on('click', '#invCnStatusBox .tcf-close-btn', function () {
+    $('#invCnStatusBox').hide();
+});
+
+// Option selected — single-select, auto-applies immediately
+$(document).on('click', '.cn-status-panel-opt', function (e) {
+    e.preventDefault();
+    _cnStatus = $(this).data('val') || 'All';
     _cnPageNo = 1;
+    $('.cn-status-panel-opt').removeClass('cn-opt-active');
+    $(this).addClass('cn-opt-active');
+    var btnLabel = _cnStatus !== 'All' ? _cnStatus : 'CN Status';
+    var $trigger = $('#invCnStatusFilter');
+    $trigger.html('<i class="bx bx-transfer-alt me-1"></i>' + btnLabel);
+    _cnStatus !== 'All' ? $trigger.addClass('has-filter') : $trigger.removeClass('has-filter');
+    $('#invCnStatusBox').hide();
     loadCreditNotes(1);
 });
-
-// CN search
-var _cnSearchTimer;
-$('#cnSearchInput').on('input', function () {
-    clearTimeout(_cnSearchTimer);
-    var val = $.trim($(this).val());
-    _cnSearchTimer = setTimeout(function () {
-        _cnSearch = val;
-        _cnPageNo = 1;
-        loadCreditNotes(1);
-    }, 600);
-});
-
-// CN refresh
-$('#cnRefreshBtn').on('click', function () { loadCreditNotes(_cnPageNo); });
 
 // CN pagination
 $(document).on('click', '.cn-page-link', function (e) {

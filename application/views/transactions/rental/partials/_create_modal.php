@@ -122,7 +122,7 @@
                                     <label class="form-label form-label-sm mb-1">Security Deposit Collected</label>
                                     <div class="input-group input-group-sm">
                                         <span class="input-group-text"><?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?></span>
-                                        <input type="number" id="rntDepositCollected" class="form-control" value="0" min="0" step="0.01">
+                                        <input type="number" id="rntDepositCollected" class="form-control" value="0" min="0" step="any">
                                     </div>
                                     <div id="rntDepositSuggestion" class="text-muted mt-1" style="font-size:.72rem;"></div>
                                 </div>

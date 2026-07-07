@@ -234,6 +234,7 @@ function _buildThermalHtml(resp, type) {
     var org = resp.OrgInfo     || {};
     var cfg = resp.ThermalConfig || {};
     var sym = (genSettings && genSettings.CurrenySymbol) ? genSettings.CurrenySymbol : '₹';
+    var dec = genSettings && genSettings.DecimalPoints ? genSettings.DecimalPoints : 2;
 
     var line1 = org.BrandName || org.Name || '';
     var line3 = [org.Line1, org.Line2, org.CityText, org.StateText, org.Pincode].filter(Boolean).join(', ');
@@ -304,10 +305,10 @@ function _buildThermalHtml(resp, type) {
             html += '<div style="font-size:' + (prodFontSize - 2) + 'px;font-style:italic;color:#555;">' + _stripHtml(item.Description) + '</div>';
         }
 
-        var displayPrice = showTaxable ? _esc(item.UnitPrice) : parseFloat(item.SellingPrice || item.UnitPrice).toFixed(2);
+        var displayPrice = showTaxable ? _esc(item.UnitPrice) : parseFloat(item.SellingPrice || item.UnitPrice).toFixed(dec);
         html += '<div style="display:flex;justify-content:space-between;">';
         html += '<span>' + _esc(item.Quantity) + ' (' + _esc(item.PrimaryUnitName || 'PCS') + ') x ' + displayPrice + '</span>';
-        html += '<span>' + lineAmt.toFixed(2) + '</span></div>';
+        html += '<span>' + lineAmt.toFixed(dec) + '</span></div>';
 
         if (showTaxable && showTaxBkd && parseFloat(item.TaxPercentage) > 0) {
             var cgst = parseFloat(item.CgstAmount) || 0;
@@ -315,10 +316,10 @@ function _buildThermalHtml(resp, type) {
             var igst = parseFloat(item.IgstAmount) || 0;
             html += '<div style="display:flex;justify-content:space-between;">';
             if (cgst > 0 && sgst > 0) {
-                html += '<span style="color:#555;font-size:' + taxFontSize + 'px;font-style:italic;">CGST ' + item.CGST + '% ' + cgst.toFixed(2) + '</span>';
-                html += '<span style="color:#555;font-size:' + taxFontSize + 'px;font-style:italic;">SGST ' + item.SGST + '% ' + sgst.toFixed(2) + '</span>';
+                html += '<span style="color:#555;font-size:' + taxFontSize + 'px;font-style:italic;">CGST ' + item.CGST + '% ' + cgst.toFixed(dec) + '</span>';
+                html += '<span style="color:#555;font-size:' + taxFontSize + 'px;font-style:italic;">SGST ' + item.SGST + '% ' + sgst.toFixed(dec) + '</span>';
             } else if (igst > 0) {
-                html += '<span style="color:#555;font-size:' + taxFontSize + 'px;font-style:italic;">IGST ' + item.IGST + '% ' + igst.toFixed(2) + '</span>';
+                html += '<span style="color:#555;font-size:' + taxFontSize + 'px;font-style:italic;">IGST ' + item.IGST + '% ' + igst.toFixed(dec) + '</span>';
             }
             html += '</div>';
         }
@@ -339,26 +340,26 @@ function _buildThermalHtml(resp, type) {
     // Totals
     html += '<div style="text-align:end;">';
     if (showTaxable) {
-        html += '<div style="display:flex;justify-content:space-between;font-size:' + prodFontSize + 'px;font-weight:600;"><span>Subtotal: </span><span>' + sym + ' ' + parseFloat(h.SubTotal || 0).toFixed(2) + '</span></div>';
+        html += '<div style="display:flex;justify-content:space-between;font-size:' + prodFontSize + 'px;font-weight:600;"><span>Subtotal: </span><span>' + sym + ' ' + parseFloat(h.SubTotal || 0).toFixed(dec) + '</span></div>';
         if (parseFloat(h.DiscountAmount) > 0) {
-            html += '<div style="display:flex;justify-content:space-between;font-size:' + prodFontSize + 'px;font-weight:600;"><span>Discount: </span><span>- ' + sym + ' ' + parseFloat(h.DiscountAmount).toFixed(2) + '</span></div>';
+            html += '<div style="display:flex;justify-content:space-between;font-size:' + prodFontSize + 'px;font-weight:600;"><span>Discount: </span><span>- ' + sym + ' ' + parseFloat(h.DiscountAmount).toFixed(dec) + '</span></div>';
         }
         if (parseFloat(h.TaxAmount) > 0) {
-            html += '<div style="display:flex;justify-content:space-between;font-size:' + taxFontSize + 'px;font-style:italic;font-weight:600;"><span>Total Tax: </span><span>' + sym + ' ' + parseFloat(h.TaxAmount).toFixed(2) + '</span></div>';
+            html += '<div style="display:flex;justify-content:space-between;font-size:' + taxFontSize + 'px;font-style:italic;font-weight:600;"><span>Total Tax: </span><span>' + sym + ' ' + parseFloat(h.TaxAmount).toFixed(dec) + '</span></div>';
             if (showTaxBkd) {
-                if (parseFloat(h.CgstAmount) > 0) html += '<div style="display:flex;justify-content:space-between;font-size:' + taxFontSize + 'px;font-style:italic;color:#555;"><span>  CGST: </span><span>' + sym + ' ' + parseFloat(h.CgstAmount).toFixed(2) + '</span></div>';
-                if (parseFloat(h.SgstAmount) > 0) html += '<div style="display:flex;justify-content:space-between;font-size:' + taxFontSize + 'px;font-style:italic;color:#555;"><span>  SGST: </span><span>' + sym + ' ' + parseFloat(h.SgstAmount).toFixed(2) + '</span></div>';
-                if (parseFloat(h.IgstAmount) > 0) html += '<div style="display:flex;justify-content:space-between;font-size:' + taxFontSize + 'px;font-style:italic;color:#555;"><span>  IGST: </span><span>' + sym + ' ' + parseFloat(h.IgstAmount).toFixed(2) + '</span></div>';
+                if (parseFloat(h.CgstAmount) > 0) html += '<div style="display:flex;justify-content:space-between;font-size:' + taxFontSize + 'px;font-style:italic;color:#555;"><span>  CGST: </span><span>' + sym + ' ' + parseFloat(h.CgstAmount).toFixed(dec) + '</span></div>';
+                if (parseFloat(h.SgstAmount) > 0) html += '<div style="display:flex;justify-content:space-between;font-size:' + taxFontSize + 'px;font-style:italic;color:#555;"><span>  SGST: </span><span>' + sym + ' ' + parseFloat(h.SgstAmount).toFixed(dec) + '</span></div>';
+                if (parseFloat(h.IgstAmount) > 0) html += '<div style="display:flex;justify-content:space-between;font-size:' + taxFontSize + 'px;font-style:italic;color:#555;"><span>  IGST: </span><span>' + sym + ' ' + parseFloat(h.IgstAmount).toFixed(dec) + '</span></div>';
             }
         }
     }
     if (parseFloat(h.AdditionalCharges) > 0) {
-        html += '<div style="display:flex;justify-content:space-between;font-size:' + prodFontSize + 'px;font-weight:600;"><span>Charges: </span><span>' + sym + ' ' + parseFloat(h.AdditionalCharges).toFixed(2) + '</span></div>';
+        html += '<div style="display:flex;justify-content:space-between;font-size:' + prodFontSize + 'px;font-weight:600;"><span>Charges: </span><span>' + sym + ' ' + parseFloat(h.AdditionalCharges).toFixed(dec) + '</span></div>';
     }
     if (parseFloat(h.RoundOff || 0) !== 0) {
-        html += '<div style="display:flex;justify-content:space-between;font-size:' + prodFontSize + 'px;"><span>Round Off: </span><span>' + sym + ' ' + parseFloat(h.RoundOff).toFixed(2) + '</span></div>';
+        html += '<div style="display:flex;justify-content:space-between;font-size:' + prodFontSize + 'px;"><span>Round Off: </span><span>' + sym + ' ' + parseFloat(h.RoundOff).toFixed(dec) + '</span></div>';
     }
-    html += '<div style="display:flex;justify-content:space-between;font-weight:bold;font-size:' + (prodFontSize + 2) + 'px;border-top:1px solid #000;padding-top:3px;margin-top:3px;"><span>Total Amount: </span><span>' + sym + ' ' + parseFloat(h.NetAmount || 0).toFixed(2) + '</span></div>';
+    html += '<div style="display:flex;justify-content:space-between;font-weight:bold;font-size:' + (prodFontSize + 2) + 'px;border-top:1px solid #000;padding-top:3px;margin-top:3px;"><span>Total Amount: </span><span>' + sym + ' ' + parseFloat(h.NetAmount || 0).toFixed(dec) + '</span></div>';
     html += '</div>';
 
     html += '<hr class="tp-hr my-1">';
@@ -388,6 +389,7 @@ function _buildPmtThermalHtml(resp, forPrint) {
     var org = resp.OrgInfo       || {};
     var cfg = resp.ThermalConfig || {};
     var sym = (typeof genSettings !== 'undefined' && genSettings.CurrenySymbol) ? genSettings.CurrenySymbol : '₹';
+    var dec = typeof genSettings !== 'undefined' && genSettings.DecimalPoints ? genSettings.DecimalPoints : 2;
 
     var showLogo   = cfg.ShowLogo           !== undefined ? parseInt(cfg.ShowLogo)           : 0;
     var showCo     = cfg.ShowCompanyDetails !== undefined ? parseInt(cfg.ShowCompanyDetails) : 1;
@@ -435,7 +437,7 @@ function _buildPmtThermalHtml(resp, forPrint) {
     html += '<hr class="tp-hr my-1">';
 
     // Amount
-    html += '<div style="display:flex;justify-content:space-between;font-weight:bold;font-size:' + (prodFontSize + 2) + 'px;border-bottom:1px solid #000;padding-bottom:3px;margin-bottom:3px;"><span>Amount:</span><span>' + sym + ' ' + parseFloat(p.Amount || 0).toFixed(2) + '</span></div>';
+    html += '<div style="display:flex;justify-content:space-between;font-weight:bold;font-size:' + (prodFontSize + 2) + 'px;border-bottom:1px solid #000;padding-bottom:3px;margin-bottom:3px;"><span>Amount:</span><span>' + sym + ' ' + parseFloat(p.Amount || 0).toFixed(dec) + '</span></div>';
 
     // Payment mode + reference
     html += '<div style="font-size:' + prodFontSize + 'px;">';

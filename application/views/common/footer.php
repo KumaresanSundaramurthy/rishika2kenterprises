@@ -32,7 +32,6 @@
     <script src="/assets/vendor/libs/sweetalert2/sweetalert2.js"></script>
     
     <script type="text/javascript" src="/bootstrap/js/jquery.blockUI.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
 
     <script type="text/javascript" src="<?php echo _assetV('/assets/js/services/upstash-service.js'); ?>"></script>
     <script type="text/javascript" src="<?php echo _assetV('/js/common/categoryappend.js'); ?>"></script>

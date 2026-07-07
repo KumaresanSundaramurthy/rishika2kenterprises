@@ -12,6 +12,7 @@ $(function() {
     var _bankAccounts = JSON.parse($('#bankAccountOptionsData').text()  || '[]');
     var _rowCount     = 0;
     var _currSymbol   = window._paymentCurrSymbol || '₹';
+    var _dec          = window._psDecimal || 2;
 
     /* ── helpers ─────────────────────────────────── */
     function esc(str) {
@@ -194,7 +195,7 @@ $(function() {
             var billTotal = getBillTotal();
             if (billTotal > 0) {
                 var $rows = $('#paymentRowsBody tr');
-                $rows.first().find('.pay-amount-inp').val(billTotal.toFixed(2));
+                $rows.first().find('.pay-amount-inp').val(billTotal.toFixed(_dec));
                 $rows.not(':first').find('.pay-amount-inp').val('0');
             }
         }
@@ -227,20 +228,20 @@ $(function() {
         var balance = billTotal - totalPaid;
         var excess  = totalPaid - billTotal;
 
-        $('#payBillTotal').text(_currSymbol + ' ' + billTotal.toFixed(2));
-        $('#payTotalPaid').text(_currSymbol + ' ' + totalPaid.toFixed(2));
+        $('#payBillTotal').text(_currSymbol + ' ' + billTotal.toFixed(_dec));
+        $('#payTotalPaid').text(_currSymbol + ' ' + totalPaid.toFixed(_dec));
 
         if (balance > 0.005) {
             $('#payBalanceWrap').removeClass('d-none');
-            $('#payBalance').text(_currSymbol + ' ' + balance.toFixed(2));
+            $('#payBalance').text(_currSymbol + ' ' + balance.toFixed(_dec));
             $('#payExcessWrap').addClass('d-none');
         } else if (excess > 0.005) {
             $('#payBalanceWrap').addClass('d-none');
             $('#payExcessWrap').removeClass('d-none');
-            $('#payExcess').text(_currSymbol + ' ' + excess.toFixed(2));
+            $('#payExcess').text(_currSymbol + ' ' + excess.toFixed(_dec));
         } else {
             $('#payBalanceWrap').removeClass('d-none');
-            $('#payBalance').text(_currSymbol + ' 0.00 (Fully Paid)');
+            $('#payBalance').text(_currSymbol + ' ' + (0).toFixed(_dec) + ' (Fully Paid)');
             $('#payExcessWrap').addClass('d-none');
         }
     }

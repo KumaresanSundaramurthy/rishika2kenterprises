@@ -1075,8 +1075,8 @@ $(function() {
     if (!_barEl || !_inlineEl) return;
 
     var cur = '<?php echo addslashes($JwtData->GenSettings->CurrenySymbol ?? "₹"); ?>';
-    var dec = 2;
-    function _r2(n) { return Math.round(n * 100) / 100; }
+    var dec = <?php echo (int)($JwtData->GenSettings->DecimalPoints ?? 2); ?>;
+    function _r2(n) { return parseFloat((+n || 0).toFixed(dec)); }
     function _fmt(n) { return cur + ' ' + _r2(n).toFixed(dec); }
 
     function _alignStickyBar() {

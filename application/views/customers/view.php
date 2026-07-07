@@ -237,9 +237,9 @@
                     </div>
 
                     <!-- Sticky pagination bar — mirrors static one, fades in when static scrolls out of view -->
-                    <div class="card mb-0 cust-sticky-pag" id="custStickyPagination" style="display:none;">
+                    <div class="card mb-0 cust-sticky-pag apex-sticky-pag" id="custStickyPagination" data-static-pag="#CustomersPagination" style="display:none;">
                         <div class="card-body p-0">
-                            <div class="row mx-3 my-2 justify-content-between align-items-center CustomersPagination"></div>
+                            <div class="row mx-3 my-2 justify-content-between align-items-center apex-sticky-pag-inner"></div>
                         </div>
                     </div>
 
@@ -419,8 +419,7 @@ $(function () {
     var $stickyPag = $('#custStickyPagination');
 
     function syncStickyPagination() {
-        // Copy current pagination HTML into the sticky bar so page numbers stay in sync
-        $stickyPag.find('.CustomersPagination').html($staticPag.html());
+        $stickyPag.find('.apex-sticky-pag-inner').html($staticPag.html());
     }
 
     function toggleStickyPagination() {

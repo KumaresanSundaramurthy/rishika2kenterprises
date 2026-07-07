@@ -14,6 +14,19 @@ $this->load->view('common/transactions/header'); ?>
                     'pageDescription' => $PageDescription ?? 'Manage goods delivery notes',
                 ]); ?>
                 <?php
+                $initTab    = $InitTab    ?? 'All';
+                $initSearch = $InitSearch ?? '';
+                $tabFilterMap = [
+                    'All'        => ['dcPartyFilterTrigger'],
+                    'Dispatched' => ['dcPartyFilterTrigger'],
+                    'Delivered'  => ['dcPartyFilterTrigger'],
+                    'Converted'  => ['dcPartyFilterTrigger'],
+                    'Cancelled'  => ['dcPartyFilterTrigger'],
+                    'Draft'      => ['dcPartyFilterTrigger'],
+                ];
+                $visibleFilters = $tabFilterMap[$initTab] ?? $tabFilterMap['All'];
+
+                if ($JwtData->TransSettings->ShowTransactionStats ?? 1):
                 $stats         = $SummaryStats ?? [];
                 $cur           = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
                 $dec           = $JwtData->GenSettings->DecimalPoints ?? 2;
@@ -35,7 +48,7 @@ $this->load->view('common/transactions/header'); ?>
                 ?>
                 <div class="apex-stats-strip">
                     <?php foreach ($statsItems as $stat): ?>
-                    <div class="apex-stat-item <?php echo $stat['status'] === 'All' ? 'active' : ''; ?>" data-status="<?php echo $stat['status']; ?>" data-stat-filter="<?php echo $stat['status']; ?>" style="--stat-color:<?php echo $stat['iconColor']; ?>">
+                    <div class="apex-stat-item <?php echo $stat['status'] === $initTab ? 'active' : ''; ?>" data-status="<?php echo $stat['status']; ?>" data-stat-filter="<?php echo $stat['status']; ?>" style="--stat-color:<?php echo $stat['iconColor']; ?>">
                         <div class="apex-stat-icon" style="background:<?php echo $stat['iconBg']; ?>;">
                             <i class="bx <?php echo $stat['icon']; ?>" style="color:<?php echo $stat['iconColor']; ?>;"></i>
                         </div>
@@ -49,6 +62,7 @@ $this->load->view('common/transactions/header'); ?>
                     </div>
                     <?php endforeach; ?>
                 </div>
+                <?php endif; ?>
 
                 <div class="container-xxl flex-grow-1 py-3">
 
@@ -57,12 +71,12 @@ $this->load->view('common/transactions/header'); ?>
 
                         <!-- ── Filter Row ─────────────────────────────────── -->
                         <div class="apex-filter-row">
-                            <div class="r2k-search-wrap">
+                            <div class="r2k-search-wrap<?php echo $initSearch ? ' is-expanded r2k-search-active' : ''; ?>">
                                 <i class="bx bx-search r2k-si"></i>
-                                <input type="text" id="searchTransactionData" placeholder="Challan # or customer...">
-                                <i class="bx bx-x r2k-clear d-none"></i>
+                                <input type="text" id="searchTransactionData" placeholder="Challan # or customer..." value="<?php echo htmlspecialchars($initSearch, ENT_QUOTES); ?>">
+                                <i class="bx bx-x r2k-clear<?php echo $initSearch ? '' : ' d-none'; ?>"></i>
                             </div>
-                            <a href="javascript:void(0);" id="dcPartyFilterTrigger" class="apex-filter-btn" title="Filter by Customer">
+                            <a href="javascript:void(0);" id="dcPartyFilterTrigger" class="apex-filter-btn<?php echo in_array('dcPartyFilterTrigger', $visibleFilters) ? '' : ' d-none'; ?>" title="Filter by Customer">
                                 <i class="bx bx-store me-1"></i>Customer
                             </a>
                             <?php $this->load->view('common/transactions/date_filter_btn'); ?>
@@ -74,14 +88,15 @@ $this->load->view('common/transactions/header'); ?>
 
                         <!-- ── Tabs Row ──────────────────────────────────── -->
                         <div class="apex-tabs-row">
-                            <ul class="nav trans-status-tabs" id="dcStatusTabs" role="tablist">
-                                <li class="nav-item"><a class="nav-link active dc-status-tab" data-status="All" href="javascript:void(0);">All <span class="trans-tab-count ms-1"><?php echo $ModAllCount; ?></span></a></li>
-                                <li class="nav-item"><a class="nav-link dc-status-tab" data-status="Dispatched" href="javascript:void(0);">Dispatched <span class="dc-tab-count trans-tab-count ms-1 d-none"></span></a></li>
-                                <li class="nav-item"><a class="nav-link dc-status-tab" data-status="Delivered" href="javascript:void(0);">Delivered <span class="dc-tab-count trans-tab-count ms-1 d-none"></span></a></li>
-                                <li class="nav-item"><a class="nav-link dc-status-tab" data-status="Converted" href="javascript:void(0);">Converted <span class="dc-tab-count trans-tab-count ms-1 d-none"></span></a></li>
-                                <li class="nav-item"><a class="nav-link dc-status-tab" data-status="Cancelled" href="javascript:void(0);">Cancelled <span class="dc-tab-count trans-tab-count ms-1 d-none"></span></a></li>
-                                <li class="nav-item"><a class="nav-link dc-status-tab" data-status="Draft" href="javascript:void(0);">Drafts <span class="dc-tab-count trans-tab-count ms-1 d-none"></span></a></li>
+                            <ul class="nav trans-status-tabs" id="dcStatusTabs" role="tablist" data-trans-path="/deliverychallan">
+                                <li class="nav-item"><a class="nav-link <?php echo $initTab === 'All' ? 'active' : ''; ?> dc-status-tab" data-status="All" data-url-tab="all" href="javascript:void(0);">All <span class="dc-tab-count trans-tab-count ms-1<?php echo ($initTab !== 'All' || $ModAllCount == 0) ? ' d-none' : ''; ?>"><?php echo ($initTab === 'All' && $ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link <?php echo $initTab === 'Dispatched' ? 'active' : ''; ?> dc-status-tab" data-status="Dispatched" data-url-tab="dispatched" href="javascript:void(0);">Dispatched <span class="dc-tab-count trans-tab-count ms-1<?php echo ($initTab !== 'Dispatched' || $ModAllCount == 0) ? ' d-none' : ''; ?>"><?php echo ($initTab === 'Dispatched' && $ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link <?php echo $initTab === 'Delivered' ? 'active' : ''; ?> dc-status-tab" data-status="Delivered" data-url-tab="delivered" href="javascript:void(0);">Delivered <span class="dc-tab-count trans-tab-count ms-1<?php echo ($initTab !== 'Delivered' || $ModAllCount == 0) ? ' d-none' : ''; ?>"><?php echo ($initTab === 'Delivered' && $ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link <?php echo $initTab === 'Converted' ? 'active' : ''; ?> dc-status-tab" data-status="Converted" data-url-tab="converted" href="javascript:void(0);">Converted <span class="dc-tab-count trans-tab-count ms-1<?php echo ($initTab !== 'Converted' || $ModAllCount == 0) ? ' d-none' : ''; ?>"><?php echo ($initTab === 'Converted' && $ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link <?php echo $initTab === 'Cancelled' ? 'active' : ''; ?> dc-status-tab" data-status="Cancelled" data-url-tab="cancelled" href="javascript:void(0);">Cancelled <span class="dc-tab-count trans-tab-count ms-1<?php echo ($initTab !== 'Cancelled' || $ModAllCount == 0) ? ' d-none' : ''; ?>"><?php echo ($initTab === 'Cancelled' && $ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link <?php echo $initTab === 'Draft' ? 'active' : ''; ?> dc-status-tab" data-status="Draft" data-url-tab="draft" href="javascript:void(0);">Drafts <span class="dc-tab-count trans-tab-count ms-1<?php echo ($initTab !== 'Draft' || $ModAllCount == 0) ? ' d-none' : ''; ?>"><?php echo ($initTab === 'Draft' && $ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
                             </ul>
+                            <?php $this->load->view('common/transactions/filter_notice'); ?>
                         </div>
 
                         <!-- Table -->
@@ -108,7 +123,7 @@ $this->load->view('common/transactions/header'); ?>
                                             Expected Return <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Date"></i>
                                         </th>
                                         <th>Last Updated</th>
-                                        <th style="width:50px"></th>
+                                        <th style="width:50px">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody class="r2k-tbody table-border-bottom-0">
@@ -177,9 +192,9 @@ $this->load->view('common/transactions/header'); ?>
                     </div>
 
                     <!-- Sticky pagination -->
-                    <div class="card mb-0 cust-sticky-pag" id="dcStickyPagination" style="display:none;">
+                    <div class="card mb-0 cust-sticky-pag apex-sticky-pag" id="dcStickyPagination" data-static-pag="#dcPagination" style="display:none;">
                         <div class="card-body p-0">
-                            <div class="row mx-3 my-2 justify-content-between align-items-center dcPagination"></div>
+                            <div class="row mx-3 my-2 justify-content-between align-items-center apex-sticky-pag-inner"></div>
                         </div>
                     </div>
 
@@ -201,6 +216,7 @@ $this->load->view('common/transactions/header'); ?>
 
 <?php $this->load->view('common/transactions/footer'); ?>
 
+<script src="/js/core/sticky_paginate.js"></script>
 <script src="/js/common/party_filter.js"></script>
 <script src="/js/common/communication.js"></script>
 <script src="<?php echo _assetV('/js/transactions/attachments.js'); ?>"></script>
@@ -216,11 +232,19 @@ const ModulePag    = '.dcPagination';
 const ModuleHeader = '.dcHeaderCheck';
 const ModuleRow    = '.dcCheck';
 
+var _dcInitTab    = <?php echo json_encode($InitTab    ?? 'All'); ?>;
+var _dcInitSearch = <?php echo json_encode($InitSearch ?? ''); ?>;
+
+var _dcTabFilterMap = <?= json_encode($tabFilterMap); ?>;
+var _allDcFilterEls = <?= json_encode(array_values(array_unique(array_merge(...array_values($tabFilterMap))))); ?>;
+
 $(function () {
     'use strict';
 
-    Filter['Status'] = 'All';
+    Filter['Status'] = _dcInitTab;
+    if (_dcInitSearch) { Filter.Name = _dcInitSearch; }
     initExport({ moduleUID: 112, getFilters: function () { return Filter; } });
+    _applyTabFilters(_dcInitTab, _dcTabFilterMap, _allDcFilterEls);
 
     var dcPartyFilter = new TransPartyColFilter({
         boxId     : 'dcPartyFilterBox',
@@ -238,20 +262,6 @@ $(function () {
         _origGetDeliveryChallansDetails(pageNo, rowLimit, f);
     };
 
-    // ── Sticky pagination ──
-    var $dcStaticPag = $('#dcPagination');
-    var $dcStickyPag = $('#dcStickyPagination');
-    function _syncDcSticky() { $dcStickyPag.find('.dcPagination').html($dcStaticPag.html()); }
-    function _toggleDcSticky() {
-        if (!$dcStaticPag.length) return;
-        var r = $dcStaticPag[0].getBoundingClientRect();
-        var visible = r.top < $(window).height() && r.bottom > 0;
-        if (visible) { $dcStickyPag.stop(true,true).fadeOut(150); }
-        else { _syncDcSticky(); $dcStickyPag.stop(true,true).fadeIn(150); }
-    }
-    $(window).on('scroll resize', _toggleDcSticky);
-    _toggleDcSticky();
-
     // ── Stat card click ─────────────────────────────────────
     $(document).on('click', '[data-stat-filter]', function () {
         var status = $(this).data('stat-filter') || 'All';
@@ -259,6 +269,9 @@ $(function () {
         $(this).addClass('active');
         $('.dc-status-tab').removeClass('active');
         $('.dc-status-tab[data-status="' + status + '"]').addClass('active');
+        _resetDcFilters();
+        _applyTabFilters(status, _dcTabFilterMap, _allDcFilterEls);
+        _updateTransTabUrl(status, '');
         Filter.Status = status;
         PageNo = 1;
         getDeliveryChallansDetails();
@@ -267,11 +280,14 @@ $(function () {
     // ── Status tabs ─────────────────────────────────────────
     $(document).on('click', '.dc-status-tab', function (e) {
         e.preventDefault();
+        var status = $(this).data('status') || 'All';
         $('.dc-status-tab').removeClass('active');
         $(this).addClass('active');
         $('.apex-stat-item').removeClass('active');
-        var status = $(this).data('status') || 'All';
         $('.apex-stat-item[data-stat-filter="' + status + '"]').addClass('active');
+        _resetDcFilters();
+        _applyTabFilters(status, _dcTabFilterMap, _allDcFilterEls);
+        _updateTransTabUrl(status, '');
         Filter.Status = status;
         PageNo = 1;
         getDeliveryChallansDetails();
@@ -283,6 +299,10 @@ $(function () {
         getDeliveryChallansDetails();
     });
 
+    $('#searchTransactionData').on('input', function () {
+        var curTab = $('.dc-status-tab.active').data('status') || 'All';
+        _updateTransTabUrl(curTab, $.trim($(this).val()));
+    });
     $('#searchTransactionData').on('input', debounce(function () {
         Filter.Name = $.trim($(this).val());
         PageNo = 1;
@@ -315,6 +335,16 @@ $(function () {
         var match = ($(this).attr('href') || '').match(/\/(\d+)$/);
         if (match) { PageNo = parseInt(match[1]); getDeliveryChallansDetails(); }
     });
+
+    function _resetDcFilters() {
+        var $wrap = $('#searchTransactionData').closest('.r2k-search-wrap');
+        $('#searchTransactionData').val('');
+        $wrap.find('.r2k-clear').addClass('d-none');
+        $wrap.removeClass('is-expanded r2k-search-active');
+        Filter.Name = '';
+        if (dcPartyFilter) { dcPartyFilter.reset(); }
+        $('.trans-col-filterbox, .tpcf-box').hide();
+    }
 
     function _actionPostData(extra) {
         Filter.Status = $('.dc-status-tab.active').data('status') || 'All';

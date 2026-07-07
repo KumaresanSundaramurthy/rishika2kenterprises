@@ -954,7 +954,7 @@ $(function() {
         }
     });
 
-    function _r2(v) { return Math.round(v * 100) / 100; }
+    function _r2(v) { return parseFloat((+v || 0).toFixed(dec)); }
 
     function _toggleGroup(ids, show, amtIds, amtValue) {
         ids.forEach(function(id) {

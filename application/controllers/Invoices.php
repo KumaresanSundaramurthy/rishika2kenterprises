@@ -14,101 +14,49 @@ class Invoices extends MY_Controller {
 
     }
 
-    public function index() {
-
+    public function index(): void {
         if (!$this->_loadPageTitle($this->pageModuleUID)) {
             $this->load->view('common/module_error', $this->pageData);
             return;
         }
-
         try {
-
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
-
-            $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
-            $limit = $GeneralSettings->RowLimit ?? 10;
-
-            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
-
+            $orgUID = (int) $this->pageData['JwtData']->Org->OrgUID;
             $this->load->model('organisation_model');
             $templates = $this->organisation_model->getModuleMessageTemplates($orgUID, $this->pageModuleUID);
-
-            $this->load->model('transactions_model');
-            $datePref   = $this->getDateFilterPreference('invoices');
-            $initFilter = $datePref['from'] ? ['DateFrom' => $datePref['from'], 'DateTo' => $datePref['to']] : [];
-            
-            $allData      = $this->transactions_model->getTransactionPageList($limit, 0, $this->pageModuleUID, $initFilter, 0);
-            $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, $initFilter);
-            $this->pageData['SavedDateRange'] = $datePref['range'];
-            $this->pageData['SavedDateLabel'] = $datePref['label'];
-            $summaryStats = $this->transactions_model->getTransactionSummaryStats($this->pageModuleUID, $orgUID);
-
-            $this->pageData['ModRowData']      = $this->load->view('transactions/invoices/list', 
-                    [
-                        'DataLists' => $allData, 
-                        'SerialNumber' => 0,
-                        'JwtData' => $this->pageData['JwtData'],
-                        'WhatsAppTemplate' => $templates['WhatsApp'] ?? null,
-                    ], TRUE);
-            $this->pageData['ModPagination']   = $this->globalservice->buildPagePaginationHtml('/invoices/getInvoicesPageDetails', $allDataCount, 1, $limit);
-            $this->pageData['ModAllCount']     = $allDataCount;
-            $this->pageData['SummaryStats']    = $summaryStats;
-            $this->pageData['PaymentTypes']    = $this->transactions_model->getPaymentTypesList();
-            $this->pageData['BankAccounts']    = $this->transactions_model->getOrgBankAccounts($orgUID);
-
-            $this->load->model('users_model');
-            $this->pageData['OrgUsers']        = $this->users_model->getOrgUsersForCache($orgUID);
-
-            $this->_loadUpstashConfig();
-
+            $this->_loadTransactionIndexPage([
+                'datePrefKey'       => 'invoices',
+                'tabSlugMap'        => ['all' => 'All', 'pending' => 'InvPending', 'paid' => 'Paid', 'cancelled' => 'Cancelled', 'draft' => 'Draft', 'creditnotes' => 'CreditNotes'],
+                'listViewPath'      => 'transactions/invoices/list',
+                'paginationUrl'     => '/invoices/getInvoicesPageDetails',
+                'skipListForTabs'   => ['CreditNotes'],
+                'listViewExtraData' => ['WhatsAppTemplate' => $templates['WhatsApp'] ?? null],
+            ]);
             $this->load->view('transactions/invoices/view', $this->pageData);
-
         } catch (Exception $e) {
             redirect('dashboard', 'refresh');
         }
-
     }
 
-    public function getInvoicesPageDetails($pageNo = 0) {
-
+    public function getInvoicesPageDetails(int $pageNo = 0): void
+    {
         $this->EndReturnData = new stdClass();
         try {
-
-            $pageNo = (int) $pageNo;
-            if ($pageNo < 1) $pageNo = 1;
-
-            $limit  = (int) $this->input->post('RowLimit') ?: 10;
-            $offset = ($pageNo - 1) * $limit;
-            $filter = $this->input->post('Filter') ?: [];
-
-            $orgUID   = $this->pageData['JwtData']->Org->OrgUID;
+            $orgUID    = (int)$this->pageData['JwtData']->Org->OrgUID;
             $this->load->model('organisation_model');
             $templates = $this->organisation_model->getModuleMessageTemplates($orgUID, $this->pageModuleUID);
-
-            $this->load->model('transactions_model');
-            $allData      = $this->transactions_model->getTransactionPageList($limit, $offset, $this->pageModuleUID, $filter, 0);
-            $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, $filter);
-
-            $rowHtml = $this->load->view('transactions/invoices/list', [
-                'DataLists'        => $allData,
-                'SerialNumber'     => ($pageNo - 1) * $limit,
-                'JwtData'          => $this->pageData['JwtData'],
-                'WhatsAppTemplate' => $templates['WhatsApp'] ?? null,
-            ], true);
-
-            $this->EndReturnData->Error           = FALSE;
-            $this->EndReturnData->RecordHtmlData  = $rowHtml;
-            $this->EndReturnData->Pagination      = $this->globalservice->buildPagePaginationHtml('/invoices/getInvoicesPageDetails', $allDataCount, $pageNo, $limit);
-            $this->EndReturnData->TotalCount      = $allDataCount;
-            $this->EndReturnData->SummaryStats    = $this->transactions_model->getTransactionSummaryStats($this->pageModuleUID, $this->pageData['JwtData']->Org->OrgUID);
-
+            $this->EndReturnData = $this->_buildTransactionPageDetailsResult([
+                'pageNo'              => $pageNo,
+                'listViewPath'        => 'transactions/invoices/list',
+                'paginationUrl'       => '/invoices/getInvoicesPageDetails',
+                'listViewExtraData'   => ['WhatsAppTemplate' => $templates['WhatsApp'] ?? null],
+                'includeSummaryStats' => true,
+            ]);
         } catch (Exception $e) {
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
-
         $this->globalservice->sendJsonResponse($this->EndReturnData);
-
     }
 
     public function addInvoice() {
@@ -280,13 +228,13 @@ class Invoices extends MY_Controller {
 
                         foreach ($onAccountItems as $item) {
                             $sourceUID   = (int)($item['PaymentUID']  ?? 0);
-                            $applyAmount = round((float)($item['ApplyAmount'] ?? 0), 2);
+                            $applyAmount = round((float)($item['ApplyAmount'] ?? 0), $this->_decimals());
                             if ($sourceUID <= 0 || $applyAmount <= 0) continue;
 
                             $source = $this->dbwrite_model->getOnAccountPayment($sourceUID, $orgUID);
                             if (!$source) continue;
 
-                            $sourceAmount   = round((float)$source->Amount, 2);
+                            $sourceAmount   = round((float)$source->Amount, $this->_decimals());
                             $applyAmount    = min($applyAmount, $sourceAmount);
                             $isFullyApplied = ($applyAmount >= $sourceAmount);
 
@@ -315,7 +263,7 @@ class Invoices extends MY_Controller {
                                 );
                             } else {
                                 $this->dbwrite_model->updateData('Transaction', 'PaymentsTbl',
-                                    ['Amount' => round($sourceAmount - $applyAmount, 2), 'UpdatedBy' => $userUID],
+                                    ['Amount' => round($sourceAmount - $applyAmount, $this->_decimals()), 'UpdatedBy' => $userUID],
                                     ['PaymentUID' => $sourceUID, 'OrgUID' => $orgUID]
                                 );
                             }
@@ -452,7 +400,7 @@ class Invoices extends MY_Controller {
 
             $wasNonDraft  = ($existing->DocStatus !== 'Draft');
             $existingPaid = (float)($existing->PaidAmount ?? 0);
-            $newBalance   = max(0, round($netAmount - $existingPaid, 2));
+            $newBalance   = max(0, round($netAmount - $existingPaid, $this->_decimals()));
 
             // Recalculate status based on payment state when editing a live (non-draft) invoice
             if (!$isDraft && $wasNonDraft && $existingPaid > 0) {
@@ -804,7 +752,7 @@ class Invoices extends MY_Controller {
             // Get total already paid
             $payments    = $this->transactions_model->getTransactionPayments($transUID, $orgUID);
             $alreadyPaid = array_sum(array_column((array) $payments, 'Amount'));
-            $pending     = max(0, round((float)$existing->NetAmount - $alreadyPaid, 2));
+            $pending     = max(0, round((float)$existing->NetAmount - $alreadyPaid, $this->_decimals()));
 
             if ($amount > $pending + 0.01) {
                 throw new Exception('Amount (' . $amount . ') exceeds pending balance (' . $pending . ').');
@@ -856,7 +804,7 @@ class Invoices extends MY_Controller {
             if ($resp->Error) throw new Exception($resp->Message);
 
             // Update IsFullyPaid + PaidAmount + BalanceAmount + DocStatus on the transaction
-            $balanceAmount = max(0, round((float) $existing->NetAmount - $newTotalPaid, 2));
+            $balanceAmount = max(0, round((float) $existing->NetAmount - $newTotalPaid, $this->_decimals()));
             $ok = $this->dbwrite_model->updateTransIsFullyPaid($transUID, $isFullyPaid, $newTotalPaid, $balanceAmount, $userUID);
             if ($ok === false) throw new Exception('Failed to update transaction balance.');
 
@@ -897,8 +845,8 @@ class Invoices extends MY_Controller {
             
             $allData = $this->transactions_model->getTransactionPageList($limit, $offset, $this->pageModuleUID, $filter, 0);
             $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, $filter);
-            $summaryStats = $this->transactions_model->getTransactionSummaryStats($this->pageModuleUID, $orgUID);
-            
+            $summaryStats = $this->transactions_model->getTransactionSummaryStats($this->pageModuleUID, $orgUID, $filter);
+
             $this->pageData['JwtData']->GenSettings = $GeneralSettings;
             $rowHtml = $this->load->view('transactions/invoices/list', [
                 'DataLists'    => $allData,
@@ -963,7 +911,7 @@ class Invoices extends MY_Controller {
                     // double-subtract and corrupt the customer balance.
                     $payments    = $this->transactions_model->getTransactionPayments($transUID, $orgUID);
                     $alreadyPaid = array_sum(array_column((array) $payments, 'Amount'));
-                    $remaining   = max(0, round($netAmount - $alreadyPaid, 2));
+                    $remaining   = max(0, round($netAmount - $alreadyPaid, $this->_decimals()));
 
                     try {
                         $this->load->library('accountledger');
@@ -1409,7 +1357,7 @@ class Invoices extends MY_Controller {
 
     private function updateTransactionBalance($transUID, $netAmount, $paidAmount, $userUID) {
         $isFullyPaid   = ($netAmount > 0 && round($netAmount - $paidAmount, 4) <= 0) ? 1 : 0;
-        $balanceAmount = max(0, round($netAmount - $paidAmount, 2));
+        $balanceAmount = max(0, round($netAmount - $paidAmount, $this->_decimals()));
         $ok = $this->dbwrite_model->updateTransIsFullyPaid($transUID, $isFullyPaid, $paidAmount, $balanceAmount, $userUID);
         if ($ok === false) {
             throw new Exception('Failed to update transaction balance for TransUID ' . $transUID);
@@ -1730,6 +1678,7 @@ class Invoices extends MY_Controller {
             $this->pageData['InvAttachments']     = $this->transactions_model->getTransactionAttachments($transUID, $orgUID);
             $this->pageData['AdditionalCharges']  = $this->_getAdditionalChargesForOrg((int)$orgUID, true);
             $this->pageData['TransactionCharges'] = $this->transactions_model->getTransactionCharges($transUID, (int)$orgUID);
+            $this->pageData['TaxList']            = $this->_getTaxList();
             $this->pageData['IsEditMode']         = true;
 
             $this->load->view('transactions/invoices/forms/form', $this->pageData);
@@ -1865,7 +1814,7 @@ class Invoices extends MY_Controller {
             $readDb = $this->load->database('ReadDB', TRUE);
             $readDb->db_debug = FALSE;
 
-            $baseWhere = ['CN.OrgUID' => (int)$orgUID, 'CN.IsDeleted' => 0, 'CN.PaymentCleared' => 0];
+            $baseWhere = ['CN.OrgUID' => (int)$orgUID, 'CN.IsDeleted' => 0];
             if ($status !== '' && $status !== 'All') {
                 $baseWhere['CN.Status'] = $status;
             }
@@ -1873,16 +1822,20 @@ class Invoices extends MY_Controller {
             // Count
             $readDb->select('COUNT(*) AS total');
             $readDb->from('Transaction.TransCreditNoteTbl CN');
-            $readDb->join('Customers.CustomersTbl C', 'C.CustomerUID = CN.PartyUID', 'left');
+            $readDb->join('Customers.CustomerTbl C', 'C.CustomerUID = CN.PartyUID', 'left');
             $readDb->where($baseWhere);
             if ($search !== '') {
                 $readDb->group_start();
                 $readDb->like('CN.CreditNoteNumber', $search);
-                $readDb->or_like('C.CustomerName', $search);
+                $readDb->or_like('C.Name', $search);
                 $readDb->or_like('CN.SourceTransNumber', $search);
                 $readDb->group_end();
             }
-            $totalCount = (int)($readDb->get()->row()->total ?? 0);
+            $countResult = $readDb->get();
+            if ($countResult === false) {
+                throw new RuntimeException('Credit notes count query failed: ' . ($readDb->error()['message'] ?? 'unknown error'));
+            }
+            $totalCount = (int)($countResult->row()->total ?? 0);
 
             // Data
             $readDb->select([
@@ -1898,24 +1851,33 @@ class Invoices extends MY_Controller {
                 'CN.Notes',
                 'CN.CreatedOn',
                 'C.CustomerUID',
-                'C.CustomerName',
-                'C.MobileNo',
+                'C.Name AS CustomerName',
+                'C.MobileNumber AS MobileNo',
+                'C.Area AS CustomerArea',
+                'C.Image AS CustomerImage',
                 'T.TransDate AS SourceTransDate',
+                'T.TransToken AS SourceTransToken',
+                "CONCAT(U.FirstName, ' ', U.LastName) AS CreatorName",
             ]);
             $readDb->from('Transaction.TransCreditNoteTbl CN');
-            $readDb->join('Customers.CustomersTbl C',    'C.CustomerUID = CN.PartyUID',    'left');
+            $readDb->join('Customers.CustomerTbl C',       'C.CustomerUID = CN.PartyUID',    'left');
             $readDb->join('Transaction.TransactionsTbl T', 'T.TransUID = CN.SourceTransUID AND T.IsDeleted = 0', 'left');
+            $readDb->join('Users.UserTbl U',               'U.UserUID = CN.CreatedBy',       'left');
             $readDb->where($baseWhere);
             if ($search !== '') {
                 $readDb->group_start();
                 $readDb->like('CN.CreditNoteNumber', $search);
-                $readDb->or_like('C.CustomerName', $search);
+                $readDb->or_like('C.Name', $search);
                 $readDb->or_like('CN.SourceTransNumber', $search);
                 $readDb->group_end();
             }
             $readDb->order_by('CN.CreatedOn', 'DESC');
             $readDb->limit($limit, $offset);
-            $rows = $readDb->get()->result();
+            $dataResult = $readDb->get();
+            if ($dataResult === false) {
+                throw new RuntimeException('Credit notes data query failed: ' . ($readDb->error()['message'] ?? 'unknown error'));
+            }
+            $rows = $dataResult->result();
 
             $this->EndReturnData->Error      = FALSE;
             $this->EndReturnData->Data       = $rows;

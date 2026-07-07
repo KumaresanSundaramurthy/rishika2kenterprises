@@ -604,7 +604,86 @@
     padding: 10px 16px;
     background: #fff;
     border-bottom: 1px solid #e9ecef;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+}
+.apex-filter-row .r2k-search-wrap {
+    flex-shrink: 0;
+}
+
+/* ── Filter scroll container (middle filter buttons) ── */
+.apex-filter-scroll-outer {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+}
+.apex-filter-scroll-inner {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding: 1px 0 3px;
+}
+.apex-filter-scroll-inner::-webkit-scrollbar {
+    display: none;
+}
+.apex-filter-scroll-outer:hover .apex-filter-scroll-inner {
+    scrollbar-width: thin;
+    scrollbar-color: #c4c6f8 transparent;
+}
+.apex-filter-scroll-outer:hover .apex-filter-scroll-inner::-webkit-scrollbar {
+    display: block;
+    height: 3px;
+}
+.apex-filter-scroll-outer:hover .apex-filter-scroll-inner::-webkit-scrollbar-thumb {
+    background: #c4c6f8;
+    border-radius: 3px;
+}
+
+/* Blur fade overlay — right edge of scroll area */
+.apex-filter-blur-edge {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 56px;
+    background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.97));
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    z-index: 2;
+}
+.apex-filter-blur-edge.is-hidden {
+    opacity: 0;
+}
+
+/* CN Status single-select active item */
+.catg-list-item.cn-opt-active {
+    background: rgba(105, 108, 255, 0.06);
+    color: #696cff;
+    font-weight: 600;
+}
+
+/* Active filter notice strip */
+.apex-filter-active-notice {
+    display: none;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 16px;
+    background: #fff7ed;
+    border-bottom: 1px solid #fed7aa;
+    font-size: 0.73rem;
+    color: #9a3412;
+    font-weight: 500;
+    line-height: 1.5;
+}
+.apex-filter-active-notice.show {
+    display: flex;
+}
+.apex-filter-active-notice i {
+    font-size: 0.82rem;
+    flex-shrink: 0;
 }
 .apex-filter-btn {
     display: inline-flex;
@@ -679,9 +758,30 @@
     padding: 0 16px;
     background: #fff;
     border-bottom: 1px solid #e9ecef;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
 }
 .apex-tabs-row .trans-status-tabs {
     margin-bottom: 0;
+    flex: 1;
+    min-width: 0;
+}
+.apex-tabs-row .apex-filter-active-notice {
+    padding: 3px 8px 3px 8px;
+    flex-shrink: 0;
+    border-radius: 20px;
+    font-size: 0.72rem;
+}
+.apex-tabs-row .apex-filter-active-notice .notice-dismiss {
+    cursor: pointer;
+    font-size: 0.95rem;
+    opacity: 0.7;
+    line-height: 1;
+}
+.apex-tabs-row .apex-filter-active-notice .notice-dismiss:hover {
+    opacity: 1;
 }
 
 /* ══════════════════════════════════════════════════════════════════

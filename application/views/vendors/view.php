@@ -226,9 +226,9 @@
                     </div>
 
                     <!-- Sticky pagination -->
-                    <div class="card mb-0 cust-sticky-pag" id="vendStickyPagination" style="display:none;">
+                    <div class="card mb-0 cust-sticky-pag apex-sticky-pag" id="vendStickyPagination" data-static-pag="#VendorsPagination" style="display:none;">
                         <div class="card-body p-0">
-                            <div class="row mx-3 my-2 justify-content-between align-items-center VendorsPagination"></div>
+                            <div class="row mx-3 my-2 justify-content-between align-items-center apex-sticky-pag-inner"></div>
                         </div>
                     </div>
 
@@ -437,7 +437,7 @@ $(function() {
     // ── Sticky pagination ──
     var $vStaticPag = $('#VendorsPagination');
     var $vStickyPag = $('#vendStickyPagination');
-    function _syncVendSticky() { $vStickyPag.find('.VendorsPagination').html($vStaticPag.html()); }
+    function _syncVendSticky() { $vStickyPag.find('.apex-sticky-pag-inner').html($vStaticPag.html()); }
     function _toggleVendSticky() {
         if (_inVgrpMode) { $vStickyPag.stop(true, true).hide(); return; }
         if (!$vStaticPag.length) return;

@@ -527,7 +527,7 @@
                 '<td class="fw-semibold" style="font-size:.85rem;">' + _esc(m.name) + '</td>' +
                 '<td style="font-size:.8rem;">' + _esc(m.area || '—') + '</td>' +
                 '<td style="font-size:.8rem;">' + _esc(m.mobile || '—') + '</td>' +
-                '<td class="text-end" style="font-size:.8rem;color:' + balCol + ';">' + parseFloat(m.balance).toFixed(2) + '</td>' +
+                '<td class="text-end" style="font-size:.8rem;color:' + balCol + ';">' + parseFloat(m.balance).toFixed(typeof JwtData !== 'undefined' && JwtData.GenSettings ? JwtData.GenSettings.DecimalPoints || 2 : 2) + '</td>' +
                 '<td class="text-center">' +
                     '<button type="button" class="btn btn-sm btn-icon ' + (isPri ? 'text-warning' : 'text-secondary') +
                     ' cg-set-primary" data-uid="' + m.uid + '" title="' + (isPri ? 'Primary contact' : 'Set as primary') + '">' +

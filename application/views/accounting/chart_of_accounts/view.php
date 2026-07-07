@@ -177,7 +177,7 @@ $this->load->view('common/header'); ?>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label fw-semibold">Opening Balance</label>
-                        <input type="number" id="openingBalance" class="form-control" value="0" min="0" step="0.01">
+                        <input type="number" id="openingBalance" class="form-control" value="0" min="0" step="any">
                     </div>
                     <div class="col-md-6">
                         <label class="form-label fw-semibold">Balance Type</label>

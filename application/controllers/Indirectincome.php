@@ -350,21 +350,21 @@ class Indirectincome extends MY_Controller {
             $paymentDate    = getPostValue($PostData, 'PaymentDate') ?: $existing->IncomeDate;
             $referenceNo    = getPostValue($PostData, 'ReferenceNo') ?: NULL;
             $notes          = getPostValue($PostData, 'Notes')       ?: NULL;
-            $paymentAmount  = round((float)getPostValue($PostData, 'Amount'), 2);
+            $paymentAmount  = round((float)getPostValue($PostData, 'Amount'), $this->_decimals());
 
             if (!$paymentTypeUID) throw new Exception('Please select a payment type.');
             if ($paymentAmount <= 0) throw new Exception('Payment amount must be greater than 0.');
 
-            $netAmount     = round((float)$existing->NetAmount, 2);
-            $existingPaid  = round((float)($existing->PaidAmount ?? 0), 2);
-            $newPaidAmount = round($existingPaid + $paymentAmount, 2);
+            $netAmount     = round((float)$existing->NetAmount, $this->_decimals());
+            $existingPaid  = round((float)($existing->PaidAmount ?? 0), $this->_decimals());
+            $newPaidAmount = round($existingPaid + $paymentAmount, $this->_decimals());
 
             if ($newPaidAmount > $netAmount + 0.01) {
                 throw new Exception('Total received (' . $newPaidAmount . ') cannot exceed the income amount (' . $netAmount . ').');
             }
 
             $newPaidAmount   = min($newPaidAmount, $netAmount);
-            $balanceAmount   = max(0, round($netAmount - $newPaidAmount, 2));
+            $balanceAmount   = max(0, round($netAmount - $newPaidAmount, $this->_decimals()));
             $isFullyReceived = ($balanceAmount <= 0) ? 1 : 0;
             $newStatus       = $isFullyReceived ? 'Received' : 'Partial';
 

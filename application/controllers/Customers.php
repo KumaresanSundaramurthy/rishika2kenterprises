@@ -380,7 +380,7 @@ class Customers extends MY_Controller {
 
                 // On-account = unapplied credits from cancelled invoices
                 $onAccountRows    = $this->customers_model->getCustomerOnAccountPayments($orgUID, $uid);
-                $onAccountBalance = round(array_sum(array_column($onAccountRows, 'Amount')), 2);
+                $onAccountBalance = round(array_sum(array_column($onAccountRows, 'Amount')), $this->_decimals());
                 $onAccountRecords = array_map(function ($r) {
                     return [
                         'PaymentUID'          => (int)$r['PaymentUID'],
@@ -513,7 +513,7 @@ class Customers extends MY_Controller {
                     ? (float)$obRowPre->OpeningBalance
                     : -(float)$obRowPre->OpeningBalance;
             }
-            $delta = round($newSgn - $oldOpeningSigned, 2);
+            $delta = round($newSgn - $oldOpeningSigned, $this->_decimals());
 
             // Also read CustomerTbl values for name-change detection only
             $oldDCRow = $this->customers_model->getCustomerDebitCreditRaw((int)$CustomerUID);
@@ -1042,7 +1042,7 @@ class Customers extends MY_Controller {
                         : -(float)$cust->OpeningBalance;
 
                     // net = opening + invoiced - received - returned
-                    $signedBalance  = round($signedOpening + $totalInvoiced - $totalReceived - $totalReturned, 2);
+                    $signedBalance  = round($signedOpening + $totalInvoiced - $totalReceived - $totalReturned, $this->_decimals());
                     $newBalance     = abs($signedBalance);
                     $newBalanceType = ($signedBalance >= 0) ? 'Debit' : 'Credit';
 
@@ -1105,7 +1105,7 @@ class Customers extends MY_Controller {
             $signedOpening  = ($cust->OpeningBalType === 'Debit')
                 ? (float)$cust->OpeningBalance
                 : -(float)$cust->OpeningBalance;
-            $signedBalance  = round($signedOpening + $totalInvoiced - $totalReceived - $totalReturned, 2);
+            $signedBalance  = round($signedOpening + $totalInvoiced - $totalReceived - $totalReturned, $this->_decimals());
             $balance        = abs($signedBalance);
             $balanceType    = ($signedBalance >= 0) ? 'Debit' : 'Credit';
 
@@ -1204,7 +1204,7 @@ class Customers extends MY_Controller {
             $total = array_sum(array_column($result, 'Amount'));
 
             $this->EndReturnData->Error    = false;
-            $this->EndReturnData->Total    = round((float)$total, 2);
+            $this->EndReturnData->Total    = round((float)$total, $this->_decimals());
             $this->EndReturnData->Payments = $result;
 
         } catch (Exception $e) {
@@ -1242,8 +1242,8 @@ class Customers extends MY_Controller {
             $trans        = $this->transactions_model->getTransactionBasicInfo($transUID, $orgUID);
             if ($trans) {
                 $netAmount     = (float) $trans->NetAmount;
-                $newPaid       = round($existingPaid, 2);
-                $balanceAmount = max(0, round($netAmount - $newPaid, 2));
+                $newPaid       = round($existingPaid, $this->_decimals());
+                $balanceAmount = max(0, round($netAmount - $newPaid, $this->_decimals()));
                 $isFullyPaid   = ($netAmount > 0 && $balanceAmount <= 0) ? 1 : 0;
                 $newStatus     = $isFullyPaid ? 'Paid' : ($newPaid > 0 ? 'Partial' : 'Issued');
 

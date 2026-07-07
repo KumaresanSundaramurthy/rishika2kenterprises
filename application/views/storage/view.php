@@ -82,9 +82,9 @@
                     </div>
 
                     <!-- Sticky pagination -->
-                    <div class="card mb-0 cust-sticky-pag" id="storageStickyPagination" style="display:none;">
+                    <div class="card mb-0 cust-sticky-pag apex-sticky-pag" id="storageStickyPagination" data-static-pag="#StoragePagination" style="display:none;">
                         <div class="card-body p-0">
-                            <div class="row mx-3 my-2 justify-content-between align-items-center StoragePagination"></div>
+                            <div class="row mx-3 my-2 justify-content-between align-items-center apex-sticky-pag-inner"></div>
                         </div>
                     </div>
 
@@ -110,6 +110,7 @@
 
 <?php $this->load->view('common/footer'); ?>
 
+<script src="/js/core/sticky_paginate.js"></script>
 <script src="/js/storage.js"></script>
 <script src="/js/common/pagecheckbox.js"></script>
 
@@ -134,20 +135,6 @@ $(function() {
     basePaginationFunc(ModulePag, getStorageDetails);
     baseRefreshPageFunc('.PageRefresh', getStorageDetails);
     basePageHeaderFunc(ModuleHeader, ModuleTable, ModuleRow);
-
-    // ── Sticky pagination ──
-    var $sStaticPag = $('#StoragePagination');
-    var $sStickyPag = $('#storageStickyPagination');
-    function _syncStorageSticky() { $sStickyPag.find('.StoragePagination').html($sStaticPag.html()); }
-    function _toggleStorageSticky() {
-        if (!$sStaticPag.length) return;
-        var r = $sStaticPag[0].getBoundingClientRect();
-        var visible = r.top < $(window).height() && r.bottom > 0;
-        if (visible) { $sStickyPag.stop(true,true).fadeOut(150); }
-        else { _syncStorageSticky(); $sStickyPag.stop(true,true).fadeIn(150); }
-    }
-    $(window).on('scroll resize', _toggleStorageSticky);
-    _toggleStorageSticky();
 
     $(document).on('click', ModuleRow, function() {
         onClickOfCheckbox($(this), ModuleTable, ModuleHeader, ModuleRow);

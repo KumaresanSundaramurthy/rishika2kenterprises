@@ -25,17 +25,26 @@ if (!function_exists('r2k_party_name')) {
 
 if (!function_exists('smart_dec_amount')) {
     /**
-     * Format a decimal amount with 2 decimal places, or 3 if the 3rd decimal digit is non-zero.
-     * E.g. 118.985 → "118.985", 118.500 → "118.50", 118.000 → "118.00"
+     * Format a decimal amount using the user's DecimalPoints setting.
+     * Shows one extra decimal place if the digit beyond the setting is non-zero.
+     * E.g. with dec=2: 118.985 → "118.985", 118.500 → "118.50", 118.000 → "118.00"
      */
-    function smart_dec_amount($value) {
+    function smart_dec_amount(mixed $value): string {
         if ($value === null || $value === '') return '0.00';
-        $str    = rtrim(number_format((float)$value, 3, '.', ''), '');
-        $dotPos = strpos($str, '.');
-        if ($dotPos !== false && strlen($str) >= $dotPos + 4 && $str[$dotPos + 3] !== '0') {
-            return number_format((float)$value, 3, '.', '');
+        try {
+            $CI  = &get_instance();
+            $dec = (int)($CI->pageData['JwtData']->GenSettings->DecimalPoints ?? 2);
+        } catch (Exception $_) {
+            $dec = 2;
         }
-        return number_format((float)$value, 2, '.', '');
+        $dec   = max(0, $dec);
+        $extra = $dec + 1;
+        $str   = number_format((float)$value, $extra, '.', '');
+        $dot   = strpos($str, '.');
+        if ($dot !== false && $str[$dot + $extra] !== '0') {
+            return number_format((float)$value, $extra, '.', '');
+        }
+        return number_format((float)$value, $dec, '.', '');
     }
 }
 

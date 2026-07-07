@@ -116,9 +116,17 @@ class Transactions_model extends MY_Model {
      * Returns per-status summary (count + total amount) for the stat cards.
      * Used by all module index() methods.
      */
-    public function getTransactionSummaryStats(int $moduleUID, int $orgUID): array {
+    public function getTransactionSummaryStats(int $moduleUID, int $orgUID, array $filter = []): array {
         try {
             $this->ReadDb->db_debug = FALSE;
+
+            $params    = [(int)$moduleUID, (int)$orgUID];
+            $dateWhere = '';
+            if (!empty($filter['DateFrom']) && !empty($filter['DateTo'])) {
+                $dateWhere = " AND Ts.TransDate >= ? AND Ts.TransDate <= ?";
+                $params[]  = $filter['DateFrom'];
+                $params[]  = $filter['DateTo'];
+            }
 
             // Compute payment status from actual PaymentsTbl amounts so stats
             // match the list-view badges (which also use PaidAmount vs NetAmount).
@@ -139,10 +147,10 @@ class Transactions_model extends MY_Model {
                     WHERE  IsDeleted = 0 AND IsActive = 1
                     GROUP  BY TransUID
                 ) AS PaidSum ON PaidSum.TransUID = Ts.TransUID
-                WHERE Ts.ModuleUID = ? AND Ts.OrgUID = ? AND Ts.IsDeleted = 0
+                WHERE Ts.ModuleUID = ? AND Ts.OrgUID = ? AND Ts.IsDeleted = 0 $dateWhere
                 GROUP BY ComputedStatus
             ";
-            $query = $this->ReadDb->query($sql, [(int) $moduleUID, (int) $orgUID]);
+            $query = $this->ReadDb->query($sql, $params);
             if (!$query) return [];
 
             $out = [];
@@ -224,8 +232,13 @@ class Transactions_model extends MY_Model {
         $tab = $filter['Status'] ?? 'All';
 
         if ($tab === 'InvPending') {
-            // Invoice Pending = Issued + Partial (not yet fully paid)
+            // Invoice Pending = Issued + Partial with outstanding balance (mirrors display badge logic).
+            // Correlated subquery avoids referencing PaidSum alias which is absent from the count path.
             $this->ReadDb->where_in('Ts.DocStatus', ['Issued', 'Partial']);
+            $this->ReadDb->where(
+                '(Ts.NetAmount - COALESCE((SELECT SUM(p.Amount) FROM Transaction.PaymentsTbl p WHERE p.TransUID = Ts.TransUID AND p.IsDeleted = 0 AND p.IsActive = 1), 0)) > 0.01',
+                null, false
+            );
         } elseif ($tab === 'SRPending' || $tab === 'PRPending') {
             // Sales/Purchase Return Pending = Approved + Partial (refund not yet settled)
             $this->ReadDb->where_in('Ts.DocStatus', ['Approved', 'Partial']);
@@ -243,7 +256,13 @@ class Transactions_model extends MY_Model {
         } elseif ($tab === 'Converted') {
             $this->ReadDb->where('Ts.DocStatus', 'Converted');
         } elseif ($tab === 'Paid') {
-            $this->ReadDb->where('Ts.DocStatus', 'Paid');
+            // Paid = DocStatus Paid, OR amount fully covered (mirrors stats computed logic).
+            $this->ReadDb->where_not_in('Ts.DocStatus', ['Draft', 'Cancelled', 'Rejected']);
+            $this->ReadDb->where('Ts.NetAmount >', 0);
+            $this->ReadDb->where(
+                'COALESCE((SELECT SUM(p.Amount) FROM Transaction.PaymentsTbl p WHERE p.TransUID = Ts.TransUID AND p.IsDeleted = 0 AND p.IsActive = 1), 0) >= Ts.NetAmount',
+                null, false
+            );
         } elseif ($tab === 'Cancelled') {
             $this->ReadDb->where_in('Ts.DocStatus', ['Cancelled', 'Rejected']);
         } elseif ($tab === 'Draft') {
@@ -1543,15 +1562,16 @@ class Transactions_model extends MY_Model {
         $totalIgst       = (float)($h->IgstAmount    ?? 0);
 
         // ── HSN summary totals — computed from item-level data (matches HSN loop rows) ──
+        $CI              = &get_instance();
+        $dec2            = (int)($CI->pageData['JwtData']->GenSettings->DecimalPoints ?? 2);
         $hsnTotalTaxable = array_sum(array_map(
-            fn($it) => round((float)($it->UnitPrice ?? 0) * (float)($it->Quantity ?? 0), 2),
+            fn($it) => round((float)($it->UnitPrice ?? 0) * (float)($it->Quantity ?? 0), $dec2),
             $items
         ));
         $hsnTotalCgst    = array_sum(array_map(fn($it) => (float)($it->CgstAmount ?? 0), $items));
         $hsnTotalSgst    = array_sum(array_map(fn($it) => (float)($it->SgstAmount ?? 0), $items));
         $hsnTotalIgst    = array_sum(array_map(fn($it) => (float)($it->IgstAmount ?? 0), $items));
-        $hsnTotalTax     = round($hsnTotalCgst + $hsnTotalSgst + $hsnTotalIgst, 2);
-        $dec2 = 2;
+        $hsnTotalTax     = round($hsnTotalCgst + $hsnTotalSgst + $hsnTotalIgst, $dec2);
 
         // ── Token map ────────────────────────────────────────────────
         $tokens = [
@@ -2802,7 +2822,7 @@ class Transactions_model extends MY_Model {
     // ── Transaction Additional Charges ─────────────────────────────────────────
 
     /**
-     * Load all charge rows saved for a given transaction.
+     * Load all active (non-deleted) charge rows saved for a given transaction.
      * @param int $transactionUID
      * @param int $orgUID
      * @return array
@@ -2815,7 +2835,7 @@ class Transactions_model extends MY_Model {
                 'TC.TaxAmount', 'TC.WithTaxAmount', 'TC.SortOrder',
             ]);
             $this->ReadDb->from('Transaction.TransactionChargesTbl TC');
-            $this->ReadDb->where(['TC.TransactionUID' => $transactionUID, 'TC.OrgUID' => $orgUID, 'TC.IsActive' => 1]);
+            $this->ReadDb->where(['TC.TransactionUID' => $transactionUID, 'TC.OrgUID' => $orgUID, 'TC.IsActive' => 1, 'TC.IsDeleted' => 0]);
             $this->ReadDb->order_by('TC.SortOrder ASC, TC.TransChargeUID ASC');
             $query = $this->ReadDb->get();
             return $query ? $query->result() : [];
@@ -2826,7 +2846,11 @@ class Transactions_model extends MY_Model {
     }
 
     /**
-     * Replace all charge rows for a transaction (delete-then-insert within a transaction).
+     * Soft-delete diff save for transaction charge rows (same pattern as item rows).
+     * - Charges removed by the user → soft-deleted (IsDeleted=1, IsActive=0).
+     * - Charges unchanged by the user → updated in place.
+     * - New charges added by the user → inserted.
+     * Zero-amount charges are treated as not submitted (skipped / soft-deleted if previously saved).
      * Caller must manage DB transaction boundaries.
      * @param int   $transactionUID
      * @param int   $orgUID
@@ -2835,21 +2859,54 @@ class Transactions_model extends MY_Model {
      * @return void
      */
     public function saveTransactionCharges(int $transactionUID, int $orgUID, int $userUID, array $charges): void {
-        $delResp = $this->dbwrite_model->deleteData('Transaction', 'TransactionChargesTbl', [
+
+        // Step 1: Load existing active charges → map ChargeUID => TransChargeUID
+        $this->ReadDb->select('TransChargeUID, ChargeUID');
+        $this->ReadDb->from('Transaction.TransactionChargesTbl');
+        $this->ReadDb->where([
             'TransactionUID' => $transactionUID,
             'OrgUID'         => $orgUID,
+            'IsActive'       => 1,
+            'IsDeleted'      => 0,
         ]);
-        if ($delResp->Error) throw new Exception('Failed to clear existing charges: ' . $delResp->Message);
+        $existingQuery  = $this->ReadDb->get();
+        $existingMap    = [];
+        if ($existingQuery) {
+            foreach ($existingQuery->result() as $row) {
+                $existingMap[(int)$row->ChargeUID] = (int)$row->TransChargeUID;
+            }
+        }
 
+        // Step 2: Collect ChargeUIDs that are submitted with non-zero amounts
+        $submittedActiveUIDs = [];
+        foreach ($charges as $c) {
+            $withoutTax = (float)($c['withoutTaxAmount'] ?? 0);
+            $withTax    = (float)($c['withTaxAmount']    ?? 0);
+            if ($withoutTax <= 0 && $withTax <= 0) continue;
+            $uid = (int)($c['chargeUID'] ?? 0);
+            if ($uid > 0) $submittedActiveUIDs[] = $uid;
+        }
+
+        // Step 3: Soft-delete charges that were removed by the user
+        foreach ($existingMap as $chargeUID => $transChargeUID) {
+            if (!in_array($chargeUID, $submittedActiveUIDs, true)) {
+                $softDelResp = $this->dbwrite_model->updateData(
+                    'Transaction', 'TransactionChargesTbl',
+                    ['IsActive' => 0, 'IsDeleted' => 1, 'UpdatedBy' => $userUID],
+                    ['TransChargeUID' => $transChargeUID, 'IsDeleted' => 0]
+                );
+                if ($softDelResp->Error) throw new Exception('Failed to remove charge: ' . $softDelResp->Message);
+            }
+        }
+
+        // Step 4: Insert new charges or update existing ones
         foreach ($charges as $c) {
             $withoutTax = (float)($c['withoutTaxAmount'] ?? 0);
             $withTax    = (float)($c['withTaxAmount']    ?? 0);
             if ($withoutTax <= 0 && $withTax <= 0) continue;
 
-            $insResp = $this->dbwrite_model->insertData('Transaction', 'TransactionChargesTbl', [
-                'OrgUID'            => $orgUID,
-                'TransactionUID'    => $transactionUID,
-                'ChargeUID'         => (int)($c['chargeUID']            ?? 0),
+            $chargeUID = (int)($c['chargeUID'] ?? 0);
+            $rowData   = [
                 'ChargeName'        => (string)($c['chargeName']        ?? ''),
                 'ChargeDisplayName' => (string)($c['chargeDisplayName'] ?? ''),
                 'InPercent'         => (float)($c['inPercent']          ?? 0),
@@ -2859,11 +2916,29 @@ class Transactions_model extends MY_Model {
                 'TaxAmount'         => (float)($c['taxAmount']          ?? 0),
                 'WithTaxAmount'     => $withTax,
                 'SortOrder'         => (int)($c['sortOrder']            ?? 0),
-                'IsActive'          => 1,
-                'CreatedBy'         => $userUID,
                 'UpdatedBy'         => $userUID,
-            ]);
-            if ($insResp->Error) throw new Exception('Failed to save charge: ' . $insResp->Message);
+            ];
+
+            if (isset($existingMap[$chargeUID])) {
+                // Same charge — update amounts/tax in the existing row
+                $updResp = $this->dbwrite_model->updateData(
+                    'Transaction', 'TransactionChargesTbl',
+                    $rowData,
+                    ['TransChargeUID' => $existingMap[$chargeUID], 'IsDeleted' => 0]
+                );
+                if ($updResp->Error) throw new Exception('Failed to update charge: ' . $updResp->Message);
+            } else {
+                // New charge — insert a fresh row
+                $insResp = $this->dbwrite_model->insertData('Transaction', 'TransactionChargesTbl', array_merge($rowData, [
+                    'OrgUID'         => $orgUID,
+                    'TransactionUID' => $transactionUID,
+                    'ChargeUID'      => $chargeUID,
+                    'IsActive'       => 1,
+                    'IsDeleted'      => 0,
+                    'CreatedBy'      => $userUID,
+                ]));
+                if ($insResp->Error) throw new Exception('Failed to save charge: ' . $insResp->Message);
+            }
         }
     }
 

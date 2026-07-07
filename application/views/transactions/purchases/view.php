@@ -14,6 +14,18 @@ $this->load->view('common/transactions/header'); ?>
                     'pageDescription' => $PageDescription ?? 'Record and track vendor purchase bills',
                 ]); ?>
                 <?php
+                $initTab    = $InitTab    ?? 'All';
+                $initSearch = $InitSearch ?? '';
+                $tabFilterMap = [
+                    'All'       => ['purchPayStatusFilter', 'purchPayModeFilter', 'purchCreatedByFilter', 'purchPartyFilterTrigger'],
+                    'Pending'   => ['purchPayStatusFilter', 'purchPayModeFilter', 'purchCreatedByFilter', 'purchPartyFilterTrigger'],
+                    'Paid'      => ['purchPayModeFilter', 'purchCreatedByFilter', 'purchPartyFilterTrigger'],
+                    'Cancelled' => ['purchCreatedByFilter', 'purchPartyFilterTrigger'],
+                    'Draft'     => ['purchCreatedByFilter', 'purchPartyFilterTrigger'],
+                ];
+                $visibleFilters = $tabFilterMap[$initTab] ?? $tabFilterMap['All'];
+
+                if ($JwtData->TransSettings->ShowTransactionStats ?? 1):
                 $stats       = $SummaryStats ?? [];
                 $cur         = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
                 $dec         = $JwtData->GenSettings->DecimalPoints ?? 2;
@@ -36,7 +48,7 @@ $this->load->view('common/transactions/header'); ?>
                 ?>
                 <div class="apex-stats-strip">
                     <?php foreach ($statsItems as $stat): ?>
-                    <div class="apex-stat-item <?php echo $stat['status'] === 'All' ? 'active' : ''; ?>" data-status="<?php echo $stat['status']; ?>" data-stat-filter="<?php echo $stat['status']; ?>" style="--stat-color:<?php echo $stat['iconColor']; ?>">
+                    <div class="apex-stat-item <?php echo $stat['status'] === $initTab ? 'active' : ''; ?>" data-status="<?php echo $stat['status']; ?>" data-stat-filter="<?php echo $stat['status']; ?>" style="--stat-color:<?php echo $stat['iconColor']; ?>">
                         <div class="apex-stat-icon" style="background:<?php echo $stat['iconBg']; ?>;">
                             <i class="bx <?php echo $stat['icon']; ?>" style="color:<?php echo $stat['iconColor']; ?>;"></i>
                         </div>
@@ -50,6 +62,7 @@ $this->load->view('common/transactions/header'); ?>
                     </div>
                     <?php endforeach; ?>
                 </div>
+                <?php endif; ?>
 
                 <div class="container-xxl flex-grow-1 py-3">
 
@@ -58,17 +71,17 @@ $this->load->view('common/transactions/header'); ?>
 
                         <!-- ── Filter Row ─────────────────────────────────── -->
                         <div class="apex-filter-row">
-                            <div class="r2k-search-wrap">
+                            <div class="r2k-search-wrap<?php echo $initSearch ? ' is-expanded r2k-search-active' : ''; ?>">
                                 <i class="bx bx-search r2k-si"></i>
-                                <input type="text" id="searchTransactionData" placeholder="Bill # or vendor...">
-                                <i class="bx bx-x r2k-clear d-none"></i>
+                                <input type="text" id="searchTransactionData" placeholder="Bill # or vendor..." value="<?php echo htmlspecialchars($initSearch); ?>">
+                                <i class="bx bx-x r2k-clear<?php echo $initSearch ? '' : ' d-none'; ?>"></i>
                             </div>
-                            <a href="javascript:void(0);" id="purchPayStatusFilter" class="apex-filter-btn" title="Filter by Payment Status"><i class="bx bx-wallet-alt me-1"></i>Pay Status</a>
-                            <a href="javascript:void(0);" id="purchPayModeFilter" class="apex-filter-btn" title="Filter by Payment Mode"><i class="bx bx-credit-card me-1"></i>Pay Mode</a>
+                            <a href="javascript:void(0);" id="purchPayStatusFilter" class="apex-filter-btn<?php echo in_array('purchPayStatusFilter', $visibleFilters) ? '' : ' d-none'; ?>" title="Filter by Payment Status"><i class="bx bx-wallet-alt me-1"></i>Pay Status</a>
+                            <a href="javascript:void(0);" id="purchPayModeFilter" class="apex-filter-btn<?php echo in_array('purchPayModeFilter', $visibleFilters) ? '' : ' d-none'; ?>" title="Filter by Payment Mode"><i class="bx bx-credit-card me-1"></i>Pay Mode</a>
                             <?php if (count($OrgUsers ?? []) > 1): ?>
-                            <a href="javascript:void(0);" id="purchCreatedByFilter" class="apex-filter-btn" title="Filter by User"><i class="bx bx-user me-1"></i>Updated By</a>
+                            <a href="javascript:void(0);" id="purchCreatedByFilter" class="apex-filter-btn<?php echo in_array('purchCreatedByFilter', $visibleFilters) ? '' : ' d-none'; ?>" title="Filter by User"><i class="bx bx-user me-1"></i>Updated By</a>
                             <?php endif; ?>
-                            <a href="javascript:void(0);" id="purchPartyFilterTrigger" class="apex-filter-btn" title="Filter by Vendor"><i class="bx bx-store me-1"></i>Vendor</a>
+                            <a href="javascript:void(0);" id="purchPartyFilterTrigger" class="apex-filter-btn<?php echo in_array('purchPartyFilterTrigger', $visibleFilters) ? '' : ' d-none'; ?>" title="Filter by Vendor"><i class="bx bx-store me-1"></i>Vendor</a>
                             <?php $this->load->view('common/transactions/date_filter_btn'); ?>
                             <div class="apex-filter-spacer"></div>
                             <a href="javascript:void(0);" class="apex-filter-btn pageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
@@ -78,13 +91,14 @@ $this->load->view('common/transactions/header'); ?>
 
                         <!-- ── Tabs Row ──────────────────────────────────── -->
                         <div class="apex-tabs-row">
-                            <ul class="nav trans-status-tabs" id="purchStatusTabs" role="tablist">
-                                <li class="nav-item"><a class="nav-link active purch-status-tab" data-status="All" href="javascript:void(0);">All <span class="trans-tab-count ms-1"><?php echo $ModAllCount; ?></span></a></li>
-                                <li class="nav-item"><a class="nav-link purch-status-tab" data-status="Pending" href="javascript:void(0);">Pending <span class="trans-tab-count ms-1 d-none"></span></a></li>
-                                <li class="nav-item"><a class="nav-link purch-status-tab" data-status="Paid" href="javascript:void(0);">Paid <span class="trans-tab-count ms-1 d-none"></span></a></li>
-                                <li class="nav-item"><a class="nav-link purch-status-tab" data-status="Cancelled" href="javascript:void(0);">Cancelled <span class="trans-tab-count ms-1 d-none"></span></a></li>
-                                <li class="nav-item"><a class="nav-link purch-status-tab" data-status="Draft" href="javascript:void(0);">Drafts <span class="trans-tab-count ms-1 d-none"></span></a></li>
+                            <ul class="nav trans-status-tabs" id="purchStatusTabs" role="tablist" data-trans-path="/purchases">
+                                <li class="nav-item"><a class="nav-link<?php echo $initTab === 'All' ? ' active' : ''; ?> purch-status-tab" data-status="All" data-url-tab="all" href="javascript:void(0);">All <span class="trans-tab-count ms-1<?php echo ($initTab !== 'All' || $ModAllCount == 0) ? ' d-none' : ''; ?>"><?php echo ($initTab === 'All' && $ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link<?php echo $initTab === 'Pending' ? ' active' : ''; ?> purch-status-tab" data-status="Pending" data-url-tab="pending" href="javascript:void(0);">Pending <span class="trans-tab-count ms-1<?php echo ($initTab !== 'Pending' || $ModAllCount == 0) ? ' d-none' : ''; ?>"><?php echo ($initTab === 'Pending' && $ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link<?php echo $initTab === 'Paid' ? ' active' : ''; ?> purch-status-tab" data-status="Paid" data-url-tab="paid" href="javascript:void(0);">Paid <span class="trans-tab-count ms-1<?php echo ($initTab !== 'Paid' || $ModAllCount == 0) ? ' d-none' : ''; ?>"><?php echo ($initTab === 'Paid' && $ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link<?php echo $initTab === 'Cancelled' ? ' active' : ''; ?> purch-status-tab" data-status="Cancelled" data-url-tab="cancelled" href="javascript:void(0);">Cancelled <span class="trans-tab-count ms-1<?php echo ($initTab !== 'Cancelled' || $ModAllCount == 0) ? ' d-none' : ''; ?>"><?php echo ($initTab === 'Cancelled' && $ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link<?php echo $initTab === 'Draft' ? ' active' : ''; ?> purch-status-tab" data-status="Draft" data-url-tab="draft" href="javascript:void(0);">Drafts <span class="trans-tab-count ms-1<?php echo ($initTab !== 'Draft' || $ModAllCount == 0) ? ' d-none' : ''; ?>"><?php echo ($initTab === 'Draft' && $ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
                             </ul>
+                            <?php $this->load->view('common/transactions/filter_notice'); ?>
                         </div>
 
                         <!-- Table -->
@@ -108,7 +122,7 @@ $this->load->view('common/transactions/header'); ?>
                                         <th>Payment Mode</th>
                                         <th>Vendor</th>
                                         <th>Last Updated</th>
-                                        <th style="width:50px"></th>
+                                        <th style="width:50px">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody class="r2k-tbody table-border-bottom-0">
@@ -128,9 +142,9 @@ $this->load->view('common/transactions/header'); ?>
                     <?php $this->load->view('common/transactions/print_modals'); ?>
 
                     <!-- Sticky pagination -->
-                    <div class="card mb-0 cust-sticky-pag" id="purchStickyPagination" style="display:none;">
+                    <div class="card mb-0 cust-sticky-pag apex-sticky-pag" id="purchStickyPagination" data-static-pag="#purchPagination" style="display:none;">
                         <div class="card-body p-0">
-                            <div class="row mx-3 my-2 justify-content-between align-items-center purchPagination"></div>
+                            <div class="row mx-3 my-2 justify-content-between align-items-center apex-sticky-pag-inner"></div>
                         </div>
                     </div>
 
@@ -207,6 +221,7 @@ $this->load->view('common/transactions/header'); ?>
 
 <?php $this->load->view('common/transactions/footer'); ?>
 
+<script src="/js/core/sticky_paginate.js"></script>
 <script src="/js/common/communication.js"></script>
 <script src="/js/common/party_filter.js"></script>
 <script src="/js/transactions/attachments.js"></script>
@@ -224,6 +239,9 @@ const ModulePag    = '.purchPagination';
 const ModuleHeader = '.purchHeaderCheck';
 const ModuleRow    = '.purchCheck';
 
+var _purchInitTab    = <?php echo json_encode($InitTab    ?? 'All'); ?>;
+var _purchInitSearch = <?php echo json_encode($InitSearch ?? ''); ?>;
+
 $(function () {
     'use strict';
 
@@ -232,7 +250,8 @@ $(function () {
         return new bootstrap.Tooltip(el, { container: 'body' });
     });
 
-    Filter['Status'] = 'All';
+    Filter['Status'] = _purchInitTab;
+    if (_purchInitSearch) { Filter.Name = _purchInitSearch; }
     initExport({ moduleUID: 105, getFilters: function () { return Filter; } });
 
     // ── Column-level Payment Status filter ──────────────────────────────
@@ -281,42 +300,53 @@ $(function () {
         _origGetPurchasesDetails(pageNo, rowLimit, f);
     };
 
-    // ── Sticky pagination ──
-    var $purchStaticPag = $('#purchPagination');
-    var $purchStickyPag = $('#purchStickyPagination');
-    function _syncPurchSticky() { $purchStickyPag.find('.purchPagination').html($purchStaticPag.html()); }
-    function _togglePurchSticky() {
-        if (!$purchStaticPag.length) return;
-        var r = $purchStaticPag[0].getBoundingClientRect();
-        var visible = r.top < $(window).height() && r.bottom > 0;
-        if (visible) { $purchStickyPag.stop(true,true).fadeOut(150); }
-        else { _syncPurchSticky(); $purchStickyPag.stop(true,true).fadeIn(150); }
+    // ── Tab filter visibility ────────────────────────────────────
+    var _purchTabFilterMap = <?= json_encode($tabFilterMap); ?>;
+    var _allPurchFilterEls = <?= json_encode(array_values(array_unique(array_merge(...array_values($tabFilterMap))))); ?>;
+
+    function _resetPurchFilters() {
+        var $wrap = $('#searchTransactionData').closest('.r2k-search-wrap');
+        $('#searchTransactionData').val('');
+        $wrap.find('.r2k-clear').addClass('d-none');
+        $wrap.removeClass('is-expanded r2k-search-active');
+        Filter.Name = '';
+        if (payStatusFilter)      { payStatusFilter.reset(); }
+        if (payModeFilter)        { payModeFilter.reset(); }
+        if (purchCreatedByFilter) { purchCreatedByFilter.reset(); }
+        if (purchPartyFilter)     { purchPartyFilter.reset(); }
+        $('.trans-col-filterbox, .tpcf-box').hide();
     }
-    $(window).on('scroll resize', _togglePurchSticky);
-    _togglePurchSticky();
+
+    _applyTabFilters(_purchInitTab, _purchTabFilterMap, _allPurchFilterEls);
 
     // ── Stat card → filter ──────────────────────────────────────
     $(document).on('click', '[data-stat-filter]', function () {
         var status = $(this).data('stat-filter') || 'All';
+        _resetPurchFilters();
         $('.apex-stat-item').removeClass('active');
         $(this).addClass('active');
         $('.purch-status-tab').removeClass('active');
         $('.purch-status-tab[data-status="' + status + '"]').addClass('active');
+        _applyTabFilters(status, _purchTabFilterMap, _allPurchFilterEls);
         Filter.Status = status;
         PageNo = 1;
+        _updateTransTabUrl(status, '');
         getPurchasesDetails();
     });
 
     // ── Status tabs ─────────────────────────────────────────────
     $(document).on('click', '.purch-status-tab', function (e) {
         e.preventDefault();
+        _resetPurchFilters();
         $('.purch-status-tab').removeClass('active');
         $(this).addClass('active');
         $('.apex-stat-item').removeClass('active');
         var status = $(this).data('status') || 'All';
         $('.apex-stat-item[data-stat-filter="' + status + '"]').addClass('active');
+        _applyTabFilters(status, _purchTabFilterMap, _allPurchFilterEls);
         Filter.Status = status;
         PageNo = 1;
+        _updateTransTabUrl(status, '');
         getPurchasesDetails();
     });
 
@@ -328,6 +358,10 @@ $(function () {
     });
 
     // ── Search ──────────────────────────────────────────────────
+    $('#searchTransactionData').on('input', function () {
+        var curTab = $('.purch-status-tab.active').data('status') || 'All';
+        _updateTransTabUrl(curTab, $.trim($(this).val()));
+    });
     $('#searchTransactionData').on('input', debounce(function () {
         Filter.Name = $.trim($(this).val());
         PageNo = 1;
@@ -439,6 +473,7 @@ function _buildPurchDetailHtml(resp) {
     var _fpInstance = null;
     var _rpDropzone = null;
     var _currency   = '<?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>';
+    var _vDec       = <?php echo (int)($JwtData->GenSettings->DecimalPoints ?? 2); ?>;
 
     (function () {
         var $sel = $('#rpBankAccount').empty().append('<option value="">— Select bank account —</option>');
@@ -521,10 +556,10 @@ function _buildPurchDetailHtml(resp) {
         $('#rpBillNum').text(num);
         $('#rpBillDate').text(date);
         $('#rpPartyName').text(party);
-        $('#rpTotalCard').text(_currency + ' ' + total.toFixed(2));
-        $('#rpPaidCard').text(_currency + ' ' + paid.toFixed(2));
-        $('#rpBalanceCard').text(_currency + ' ' + pending.toFixed(2));
-        $('#rpAmount').val(pending.toFixed(2)).attr('max', pending);
+        $('#rpTotalCard').text(_currency + ' ' + total.toFixed(_vDec));
+        $('#rpPaidCard').text(_currency + ' ' + paid.toFixed(_vDec));
+        $('#rpBalanceCard').text(_currency + ' ' + pending.toFixed(_vDec));
+        $('#rpAmount').val(pending.toFixed(_vDec)).attr('max', pending);
         $('#rpCurrencySymbol').text(_currency);
         $('#rpReferenceNo').val('');
         $('#rpNotes').val('');
@@ -605,6 +640,7 @@ function _buildPurchDetailHtml(resp) {
     });
 
     function updateSummaryStats(stats) {
+        if (!document.querySelector('.apex-stats-strip')) return;
         var cur = (typeof CurrencySymbol !== 'undefined' && CurrencySymbol) ? CurrencySymbol : '₹';
         var dec = 2;
         var cntAll = 0, amtAll = 0, cntPending = 0, amtPending = 0, cntPaid = 0, amtPaid = 0, cntDraft = 0;

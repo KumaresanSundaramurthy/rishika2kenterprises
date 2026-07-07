@@ -3136,7 +3136,7 @@ function formationTableBillItems(productRow) {
             </td>
             <td>
                 <div class="input-group input-group-merge w-75">
-                    <input class="form-control form-control-sm updateAllBillAmounts" type="text" inputmode="decimal" id="bm_${productRow.id}_discount" name="bm_${productRow.id}_discount" min="0" step="0.01" placeholder="Discount" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, ${genSettings.PriceMaxLength}, ${genSettings.DecimalPoints})" maxLength="${genSettings.PriceMaxLength}" pattern="^\\d{1,${genSettings.PriceMaxLength}}(\\.\\d{0,${genSettings.DecimalPoints}})?$" onpaste="handlePricePaste(event, ${genSettings.PriceMaxLength}, ${genSettings.DecimalPoints})" ondrop="handlePriceDrop(event, ${genSettings.PriceMaxLength}, ${genSettings.DecimalPoints})" value="${productRow.discount || 0}" title="${productRow.discount_is_global ? 'Global discount applied' : ''}" />
+                    <input class="form-control form-control-sm updateAllBillAmounts" type="text" inputmode="decimal" id="bm_${productRow.id}_discount" name="bm_${productRow.id}_discount" min="0" step="any" placeholder="Discount" onkeydown="return handleDotOnly(event)" oninput="this.value=this.value.slice(0,this.maxLength); validatePriceInput(this, ${genSettings.PriceMaxLength}, ${genSettings.DecimalPoints})" maxLength="${genSettings.PriceMaxLength}" pattern="^\\d{1,${genSettings.PriceMaxLength}}(\\.\\d{0,${genSettings.DecimalPoints}})?$" onpaste="handlePricePaste(event, ${genSettings.PriceMaxLength}, ${genSettings.DecimalPoints})" ondrop="handlePriceDrop(event, ${genSettings.PriceMaxLength}, ${genSettings.DecimalPoints})" value="${productRow.discount || 0}" title="${productRow.discount_is_global ? 'Global discount applied' : ''}" />
                     <select class="form-select form-select-sm px-2 w-auto discTypeActionBillAmounts" id="bm_${productRow.id}_discountType" name="bm_${productRow.id}_discountType">${discTypeHtml}</select>
                 </div>
             </td>
@@ -3548,10 +3548,11 @@ function updateItemTaxBreakdown() {
     
     // Update UI
     $('.taxBreakUpItemsCnt').text(parseInt(getTot.totalItems));
-    $('.taxBreakUpItemsCgstVal').text(parseFloat(getTot.totalCgst).toFixed(2));
-    $('.taxBreakUpItemsSgstVal').text(parseFloat(getTot.totalSgst).toFixed(2));
-    $('.taxBreakUpItemsIgstVal').text(parseFloat(getTot.totalIgst).toFixed(2));
-    $('.taxBreakUpItemsTotAmt').text(parseFloat(getTot.totalTax).toFixed(2));    
+    var _txDec = genSettings.DecimalPoints || 2;
+    $('.taxBreakUpItemsCgstVal').text(parseFloat(getTot.totalCgst).toFixed(_txDec));
+    $('.taxBreakUpItemsSgstVal').text(parseFloat(getTot.totalSgst).toFixed(_txDec));
+    $('.taxBreakUpItemsIgstVal').text(parseFloat(getTot.totalIgst).toFixed(_txDec));
+    $('.taxBreakUpItemsTotAmt').text(parseFloat(getTot.totalTax).toFixed(_txDec));    
 
 }
 
@@ -3839,7 +3840,7 @@ function _renderBOMModal(item) {
                     '<span class="input-group-text" style="background:#f0edff;border-color:#d9d0ff;color:#7c3aed;font-weight:600;font-size:.8rem;">' + _bomEscapeHtml(cur) + '</span>' +
                     '<input type="number" class="form-control text-end bom-comp-price" ' +
                         'data-idx="' + i + '" data-qty="' + qty + '" ' +
-                        'value="' + smartDecimal(price, dp) + '" min="0" step="0.01" ' +
+                        'value="' + smartDecimal(price, dp) + '" min="0" step="any" ' +
                         'style="border-color:#d9d0ff;font-size:.85rem;">' +
                 '</div>' +
             '</td>' +

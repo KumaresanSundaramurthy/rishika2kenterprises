@@ -206,7 +206,7 @@ function updateProductStats(stats) {
     $('.stat-all .trans-stat-amount .text-success').html('<i class="bx bx-check-circle"></i> ' + Number(s.ActiveCount || 0).toLocaleString() + ' Active');
     $('.stat-all .trans-stat-amount .text-danger').html('<i class="bx bx-x-circle"></i> ' + Number(s.InActiveCount || 0).toLocaleString() + ' In-Active');
     // Stock Value
-    $('.stat-paid .trans-stat-count').text(currencySymbol + ' ' + parseFloat(s.TotalStockValue || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','));
+    $('.stat-paid .trans-stat-count').text(currencySymbol + ' ' + parseFloat(s.TotalStockValue || 0).toFixed(typeof JwtData !== 'undefined' && JwtData.GenSettings ? JwtData.GenSettings.DecimalPoints || 2 : 2).replace(/\B(?=(\d{3})+(?!\d))/g, ','));
     // Added
     $('.stat-active .trans-stat-count').html(Number(s.AddedThisMonth || 0).toLocaleString() + ' <span style="font-size:.7rem;font-weight:400;">this month</span>');
     $('.stat-active .trans-stat-amount').html(Number(s.AddedThisFY || 0).toLocaleString() + ' this FY &nbsp;|&nbsp; ' + Number(s.RecentlyUpdated || 0).toLocaleString() + ' updated (7d)');

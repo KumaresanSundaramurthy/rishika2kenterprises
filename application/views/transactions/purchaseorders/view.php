@@ -17,7 +17,18 @@ $this->load->view('common/transactions/header'); ?>
 
                 <!-- ── Apex Stats Strip ──────────────────────────────────── -->
                 <?php
-                $poStats   = $POStats ?? [];
+                $initTab    = $InitTab    ?? 'All';
+                $initSearch = $InitSearch ?? '';
+                $tabFilterMap = [
+                    'All'       => ['poStatusFilterTrigger', 'poUserFilterBtn', 'poVendorFilterBtn'],
+                    'Received'  => ['poStatusFilterTrigger', 'poUserFilterBtn', 'poVendorFilterBtn'],
+                    'Closed'    => ['poStatusFilterTrigger', 'poUserFilterBtn', 'poVendorFilterBtn'],
+                    'Cancelled' => ['poStatusFilterTrigger', 'poUserFilterBtn', 'poVendorFilterBtn'],
+                    'Draft'     => ['poStatusFilterTrigger', 'poUserFilterBtn', 'poVendorFilterBtn'],
+                ];
+
+                if ($JwtData->TransSettings->ShowTransactionStats ?? 1):
+                $poStats   = $SummaryStats ?? [];
                 $allCount  = array_sum(array_column($poStats, 'count'));
                 $allAmount = array_sum(array_column($poStats, 'amount'));
                 $cur       = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
@@ -33,7 +44,7 @@ $this->load->view('common/transactions/header'); ?>
                 ?>
                 <div class="apex-stats-strip">
                     <?php foreach ($statsItems as $stat): ?>
-                    <div class="apex-stat-item <?php echo $stat['status'] === 'All' ? 'active' : ''; ?>" data-status="<?php echo $stat['status']; ?>" style="--stat-color:<?php echo $stat['iconColor']; ?>">
+                    <div class="apex-stat-item <?php echo $stat['status'] === $initTab ? 'active' : ''; ?>" data-status="<?php echo $stat['status']; ?>" style="--stat-color:<?php echo $stat['iconColor']; ?>">
                         <div class="apex-stat-icon" style="background:<?php echo $stat['iconBg']; ?>;">
                             <i class="bx <?php echo $stat['icon']; ?>" style="color:<?php echo $stat['iconColor']; ?>;"></i>
                         </div>
@@ -47,6 +58,7 @@ $this->load->view('common/transactions/header'); ?>
                     </div>
                     <?php endforeach; ?>
                 </div>
+                <?php endif; ?>
 
                 <div class="container-xxl flex-grow-1 py-3">
 
@@ -56,10 +68,10 @@ $this->load->view('common/transactions/header'); ?>
                         <div class="apex-filter-row">
 
                             <!-- Data search -->
-                            <div class="r2k-search-wrap" style="flex-shrink:0;">
+                            <div class="r2k-search-wrap<?php echo $initSearch ? ' is-expanded r2k-search-active' : ''; ?>" style="flex-shrink:0;">
                                 <i class="bx bx-search r2k-si"></i>
-                                <input type="text" id="poSearchInput" placeholder="Search PO #, vendor...">
-                                <i class="bx bx-x r2k-clear d-none"></i>
+                                <input type="text" id="searchTransactionData" placeholder="Search PO #, vendor..." value="<?php echo htmlspecialchars($initSearch, ENT_QUOTES); ?>">
+                                <i class="bx bx-x r2k-clear<?php echo $initSearch ? '' : ' d-none'; ?>"></i>
                             </div>
 
                             <a href="javascript:void(0);" id="poStatusFilterTrigger" class="apex-filter-btn" title="Filter by Status">
@@ -98,13 +110,14 @@ $this->load->view('common/transactions/header'); ?>
 
                         <!-- ── Tabs Row ──────────────────────────────────── -->
                         <div class="apex-tabs-row">
-                            <ul class="nav trans-status-tabs" id="poStatusTabs" role="tablist">
-                                <li class="nav-item"><a class="nav-link active po-status-tab" data-status="All" href="javascript:void(0);">All <span class="trans-tab-count ms-1 po-tab-count"><?php echo $ModAllCount; ?></span></a></li>
-                                <li class="nav-item"><a class="nav-link po-status-tab" data-status="Received" href="javascript:void(0);">Received <span class="trans-tab-count ms-1 po-tab-count d-none"></span></a></li>
-                                <li class="nav-item"><a class="nav-link po-status-tab" data-status="Closed" href="javascript:void(0);">Closed <span class="trans-tab-count ms-1 po-tab-count d-none"></span></a></li>
-                                <li class="nav-item"><a class="nav-link po-status-tab" data-status="Cancelled" href="javascript:void(0);">Cancelled <span class="trans-tab-count ms-1 po-tab-count d-none"></span></a></li>
-                                <li class="nav-item"><a class="nav-link po-status-tab" data-status="Draft" href="javascript:void(0);">Drafts <span class="trans-tab-count ms-1 po-tab-count d-none"></span></a></li>
+                            <ul class="nav trans-status-tabs" id="poStatusTabs" role="tablist" data-trans-path="/purchaseorders">
+                                <li class="nav-item"><a class="nav-link <?php echo $initTab === 'All' ? 'active' : ''; ?> po-status-tab" data-status="All" data-url-tab="all" href="javascript:void(0);">All <span class="trans-tab-count ms-1 po-tab-count<?php echo ($initTab !== 'All' || $ModAllCount == 0) ? ' d-none' : ''; ?>"><?php echo ($initTab === 'All' && $ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link <?php echo $initTab === 'Received' ? 'active' : ''; ?> po-status-tab" data-status="Received" data-url-tab="received" href="javascript:void(0);">Received <span class="trans-tab-count ms-1 po-tab-count<?php echo ($initTab !== 'Received' || $ModAllCount == 0) ? ' d-none' : ''; ?>"><?php echo ($initTab === 'Received' && $ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link <?php echo $initTab === 'Closed' ? 'active' : ''; ?> po-status-tab" data-status="Closed" data-url-tab="closed" href="javascript:void(0);">Closed <span class="trans-tab-count ms-1 po-tab-count<?php echo ($initTab !== 'Closed' || $ModAllCount == 0) ? ' d-none' : ''; ?>"><?php echo ($initTab === 'Closed' && $ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link <?php echo $initTab === 'Cancelled' ? 'active' : ''; ?> po-status-tab" data-status="Cancelled" data-url-tab="cancelled" href="javascript:void(0);">Cancelled <span class="trans-tab-count ms-1 po-tab-count<?php echo ($initTab !== 'Cancelled' || $ModAllCount == 0) ? ' d-none' : ''; ?>"><?php echo ($initTab === 'Cancelled' && $ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link <?php echo $initTab === 'Draft' ? 'active' : ''; ?> po-status-tab" data-status="Draft" data-url-tab="draft" href="javascript:void(0);">Drafts <span class="trans-tab-count ms-1 po-tab-count<?php echo ($initTab !== 'Draft' || $ModAllCount == 0) ? ' d-none' : ''; ?>"><?php echo ($initTab === 'Draft' && $ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
                             </ul>
+                            <?php $this->load->view('common/transactions/filter_notice'); ?>
                         </div>
 
                         <!-- ── Table ───────────────────────────────────── -->
@@ -213,11 +226,19 @@ const  ModulePag    = '.poPagination';
 const  ModuleHeader = '.poHeaderCheck';
 const  ModuleRow    = '.poCheck';
 
+var _poInitTab    = <?php echo json_encode($InitTab    ?? 'All'); ?>;
+var _poInitSearch = <?php echo json_encode($InitSearch ?? ''); ?>;
+
+var _poTabFilterMap = <?= json_encode($tabFilterMap); ?>;
+var _allPoFilterEls = <?= json_encode(array_values(array_unique(array_merge(...array_values($tabFilterMap))))); ?>;
+
 $(function () {
     'use strict'
 
-    Filter['Status'] = 'All';
+    Filter['Status'] = _poInitTab;
+    if (_poInitSearch) { Filter.Name = _poInitSearch; }
     initExport({ moduleUID: 104, getFilters: function () { return Filter; } });
+    _applyTabFilters(_poInitTab, _poTabFilterMap, _allPoFilterEls);
 
     var tfb = null; // TransFilterBar not used for PO (all options disabled)
 
@@ -269,13 +290,15 @@ $(function () {
     // ── Status tabs ─────────────────────────────────────────────────────────
     $(document).on('click', '.po-status-tab', function (e) {
         e.preventDefault();
+        var s = $(this).data('status') || 'All';
         $('.po-status-tab').removeClass('active');
         $(this).addClass('active');
-        var s = $(this).data('status') || 'All';
-        Filter.Status = s;
         $('.apex-stat-item').removeClass('active');
         $('.apex-stat-item[data-status="' + s + '"]').addClass('active');
-        poStatusFilter.reset();
+        _resetPoFilters();
+        _applyTabFilters(s, _poTabFilterMap, _allPoFilterEls);
+        _updateTransTabUrl(s, '');
+        Filter.Status = s;
         PageNo = 1;
         getPurchaseOrdersDetails();
     });
@@ -292,7 +315,11 @@ $(function () {
     });
 
     // Data search (filter row)
-    $('#poSearchInput').on('input', debounce(function () {
+    $('#searchTransactionData').on('input', function () {
+        var curTab = $('.po-status-tab.active').data('status') || 'All';
+        _updateTransTabUrl(curTab, $.trim($(this).val()));
+    });
+    $('#searchTransactionData').on('input', debounce(function () {
         Filter.Name = $.trim($(this).val());
         PageNo = 1;
         getPurchaseOrdersDetails();
@@ -332,6 +359,18 @@ $(function () {
             getPurchaseOrdersDetails();
         }
     });
+
+    function _resetPoFilters() {
+        var $wrap = $('#searchTransactionData').closest('.r2k-search-wrap');
+        $('#searchTransactionData').val('');
+        $wrap.find('.r2k-clear').addClass('d-none');
+        $wrap.removeClass('is-expanded r2k-search-active');
+        Filter.Name = '';
+        if (poStatusFilter)    { poStatusFilter.reset(); }
+        if (poCreatedByFilter) { poCreatedByFilter.reset(); }
+        if (poPartyFilter)     { poPartyFilter.reset(); }
+        $('.trans-col-filterbox, .tpcf-box').hide();
+    }
 
     // ── Inline status update ─────────────────────────────────────────────────
     $(document).on('click', '.po-status-update', function () {

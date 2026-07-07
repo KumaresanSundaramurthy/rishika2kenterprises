@@ -132,9 +132,9 @@ $stats = $StaffStats ?? null;
                     </div>
 
                     <!-- Sticky pagination -->
-                    <div class="card mb-0 cust-sticky-pag" id="staffStickyPagination" style="display:none;">
+                    <div class="card mb-0 cust-sticky-pag apex-sticky-pag" id="staffStickyPagination" data-static-pag="#staffPagination" style="display:none;">
                         <div class="card-body p-0">
-                            <div class="row mx-3 my-2 justify-content-between align-items-center staffPagination"></div>
+                            <div class="row mx-3 my-2 justify-content-between align-items-center apex-sticky-pag-inner"></div>
                         </div>
                     </div>
 
@@ -152,6 +152,7 @@ $stats = $StaffStats ?? null;
 
 <?php $this->load->view('common/footer'); ?>
 
+<script src="/js/core/sticky_paginate.js"></script>
 <script src="/js/common/address.js"></script>
 <script>
 var CsrfName        = '<?php echo $this->security->get_csrf_token_name(); ?>';
@@ -171,21 +172,6 @@ openAddressModal = function (addrType) {
 
 $(function () {
     'use strict';
-
-    // ── Sticky pagination ──────────────────────────────────────────────
-    var $staticPag = $('#staffPagination');
-    var $stickyPag = $('#staffStickyPagination');
-
-    function _syncSticky() { $stickyPag.find('.staffPagination').html($staticPag.html()); }
-    function _toggleSticky() {
-        if (!$staticPag.length) return;
-        var r = $staticPag[0].getBoundingClientRect();
-        var visible = r.top < $(window).height() && r.bottom > 0;
-        if (visible) $stickyPag.stop(true,true).fadeOut(150);
-        else { _syncSticky(); $stickyPag.stop(true,true).fadeIn(150); }
-    }
-    $(window).on('scroll resize', _toggleSticky);
-    _toggleSticky();
 
     // ── Stats update ───────────────────────────────────────────────────
     function _updateStats(s) {

@@ -343,12 +343,12 @@ class Payments extends MY_Controller {
 
             // 3. Recalculate and persist updated invoice balance
             if ($transUID > 0) {
-                $newTotalPaid = max(0, round($existingPaid - (float) $payment->Amount, 2));
+                $newTotalPaid = max(0, round($existingPaid - (float) $payment->Amount, $this->_decimals()));
 
                 $trans = $this->transactions_model->getTransactionBasicInfo($transUID, $orgUID);
                 if ($trans) {
                     $netAmount     = (float) $trans->NetAmount;
-                    $balanceAmount = max(0, round($netAmount - $newTotalPaid, 2));
+                    $balanceAmount = max(0, round($netAmount - $newTotalPaid, $this->_decimals()));
                     $isFullyPaid   = ($netAmount > 0 && $balanceAmount <= 0) ? 1 : 0;
 
                     $this->dbwrite_model->updateTransIsFullyPaid($transUID, $isFullyPaid, $newTotalPaid, $balanceAmount, $userUID);
@@ -359,7 +359,7 @@ class Payments extends MY_Controller {
 
                     $this->dbwrite_model->updateTransDocStatus($transUID, $orgUID, $newStatus, $userUID);
 
-                    $this->EndReturnData->NewPaidAmount    = round($newTotalPaid, 2);
+                    $this->EndReturnData->NewPaidAmount    = round($newTotalPaid, $this->_decimals());
                     $this->EndReturnData->NewBalanceAmount = $balanceAmount;
                     $this->EndReturnData->NewStatus        = $newStatus;
                 }
@@ -367,7 +367,7 @@ class Payments extends MY_Controller {
 
             // 3b. SR-specific: restore linked Credit Note amount when a payment is cancelled
             if ($srCN && $srCN->Status === 'Pending') {
-                $newCNAmount = round((float)$srCN->Amount + (float)$payment->Amount, 2);
+                $newCNAmount = round((float)$srCN->Amount + (float)$payment->Amount, $this->_decimals());
                 $wdb = $this->dbwrite_model->getWriteDb();
                 $wdb->db_debug = FALSE;
                 $wdb->where('CreditNoteUID', (int)$srCN->CreditNoteUID);
@@ -383,7 +383,7 @@ class Payments extends MY_Controller {
             if ($sourceOAUID > 0) {
                 $sourceOA = $this->dbwrite_model->getOnAccountSourcePayment($sourceOAUID, $orgUID);
                 if ($sourceOA) {
-                    $restoredAmount = round((float)$sourceOA->Amount + (float)$payment->Amount, 2);
+                    $restoredAmount = round((float)$sourceOA->Amount + (float)$payment->Amount, $this->_decimals());
                     $this->dbwrite_model->restoreOnAccountPayment($sourceOAUID, $orgUID, $restoredAmount, $userUID);
                 }
             }

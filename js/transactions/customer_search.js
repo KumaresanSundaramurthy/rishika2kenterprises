@@ -446,7 +446,7 @@
     }
 
     function _fmt(n) {
-        return parseFloat(n || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        return parseFloat(n || 0).toFixed(genSettings && genSettings.DecimalPoints ? genSettings.DecimalPoints : 2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     }
 
     function _buildAddrLine(a) {

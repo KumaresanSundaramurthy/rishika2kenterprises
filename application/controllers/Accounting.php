@@ -75,7 +75,7 @@ class Accounting extends MY_Controller {
             $name       = trim($p['LedgerName']  ?? '');
             $type       = trim($p['LedgerType']  ?? '');
             $parentUID  = (int)($p['ParentLedgerUID'] ?? 0) ?: null;
-            $openBal    = round((float)($p['OpeningBalance'] ?? 0), 2);
+            $openBal    = round((float)($p['OpeningBalance'] ?? 0), $this->_decimals());
             $openType   = in_array($p['OpeningBalanceType'] ?? '', ['Debit','Credit'])
                 ? $p['OpeningBalanceType'] : 'Debit';
             $userUID    = (int)$this->pageData['JwtData']->User->UserUID;

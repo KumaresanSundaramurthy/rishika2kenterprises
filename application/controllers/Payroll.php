@@ -102,21 +102,21 @@ class Payroll extends MY_Controller {
                 $deduction = 0;
                 if ($emp->SalaryType === 'Monthly') {
                     $perDay    = $workDays > 0 ? $gross / $workDays : 0;
-                    $deduction = round($absent * $perDay, 2);
-                    $net       = round($gross - $deduction - $fixed, 2);
+                    $deduction = round($absent * $perDay, $this->_decimals());
+                    $net       = round($gross - $deduction - $fixed, $this->_decimals());
                 } elseif ($emp->SalaryType === 'Daily') {
-                    $gross     = round($basic * $present, 2);
-                    $net       = round($gross - $fixed, 2);
+                    $gross     = round($basic * $present, $this->_decimals());
+                    $net       = round($gross - $fixed, $this->_decimals());
                 } else { // Hourly
-                    $gross     = round($basic * $hours, 2);
-                    $net       = round($gross - $fixed, 2);
+                    $gross     = round($basic * $hours, $this->_decimals());
+                    $net       = round($gross - $fixed, $this->_decimals());
                 }
                 if ($net < 0) $net = 0;
 
                 // Pending advance
                 $advPending = $this->attendance_model->getPendingAdvanceBalance($euid, $orgUID);
                 $advRecovery = min($advPending, $net);
-                $net = round($net - $advRecovery, 2);
+                $net = round($net - $advRecovery, $this->_decimals());
                 if ($net < 0) $net = 0;
 
                 $lines[] = [
@@ -238,7 +238,7 @@ class Payroll extends MY_Controller {
         foreach ($advances as $adv) {
             if ($remaining <= 0) break;
             $deduct  = min($remaining, (float)$adv->BalancePending);
-            $newBal  = round((float)$adv->BalancePending - $deduct, 2);
+            $newBal  = round((float)$adv->BalancePending - $deduct, $this->_decimals());
             $settled = $newBal <= 0 ? 1 : 0;
             $this->load->model('dbwrite_model');
             $this->dbwrite_model->updateData('Transaction', 'SalaryAdvanceTbl', ['BalancePending' => $newBal, 'IsSettled' => $settled, 'UpdatedBy' => $userUID], ['AdvanceUID' => $adv->AdvanceUID]);

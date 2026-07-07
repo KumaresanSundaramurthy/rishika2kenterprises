@@ -413,6 +413,7 @@ $currSymbol       = $JwtData->GenSettings->CurrenySymbol ?? '₹';
 <script>
 /* Payment section config — plain JS, no jQuery needed */
 window._paymentCurrSymbol = '<?php echo addslashes($currSymbol); ?>';
+var _psDecimal = <?php echo (int)($JwtData->GenSettings->DecimalPoints ?? 2); ?>;
 
 // ── On Account panel logic ────────────────────────────────────────────────────
 window._oaRecords      = [];
@@ -504,9 +505,9 @@ function _renderOnAccountRecords() {
         var rowStyle  = isFreeze ? 'opacity:.45;' : '';
 
         var applyCell = isPartial
-            ? '<span style="color:#0d6efd;font-weight:600;">' + _oaCur + ' ' + applyAmt.toFixed(2) + '</span>' +
-              '<div style="font-size:.7rem;color:#6c757d;">' + _oaCur + round2(oaAmt - applyAmt).toFixed(2) + ' stays On A/c</div>'
-            : '<span style="font-weight:600;">' + _oaCur + ' ' + applyAmt.toFixed(2) + '</span>';
+            ? '<span style="color:#0d6efd;font-weight:600;">' + _oaCur + ' ' + applyAmt.toFixed(_psDecimal) + '</span>' +
+              '<div style="font-size:.7rem;color:#6c757d;">' + _oaCur + round2(oaAmt - applyAmt).toFixed(_psDecimal) + ' stays On A/c</div>'
+            : '<span style="font-weight:600;">' + _oaCur + ' ' + applyAmt.toFixed(_psDecimal) + '</span>';
 
         html += '<tr style="' + rowStyle + '">' +
             '<td class="ps-3">' +
@@ -518,8 +519,8 @@ function _renderOnAccountRecords() {
             '</td>' +
             '<td style="font-size:.82rem;font-weight:600;color:#0d6efd;">' + srcInv + '</td>' +
             '<td style="font-size:.82rem;">' + invDate + '</td>' +
-            '<td style="font-size:.82rem;">' + (invAmt > 0 ? _oaCur + ' ' + invAmt.toFixed(2) : '—') + '</td>' +
-            '<td style="font-size:.82rem;font-weight:600;color:#856404;">' + _oaCur + ' ' + oaAmt.toFixed(2) + '</td>' +
+            '<td style="font-size:.82rem;">' + (invAmt > 0 ? _oaCur + ' ' + invAmt.toFixed(_psDecimal) : '—') + '</td>' +
+            '<td style="font-size:.82rem;font-weight:600;color:#856404;">' + _oaCur + ' ' + oaAmt.toFixed(_psDecimal) + '</td>' +
             '<td style="font-size:.82rem;">' + recvDate + '</td>' +
             '<td>' + applyCell + '</td>' +
         '</tr>';
@@ -544,11 +545,11 @@ function _recalcOASelected() {
     total = round2(total);
     var selEl = document.getElementById('oaSelectedTotal');
     var msgEl = document.getElementById('oaRemainingMsg');
-    if (selEl) selEl.textContent = _oaCur + ' ' + total.toFixed(2);
+    if (selEl) selEl.textContent = _oaCur + ' ' + total.toFixed(_psDecimal);
 
     var remainder = round2(billTotal - total);
     if (msgEl) {
-        if      (total > 0 && remainder > 0)  msgEl.textContent = 'Invoice balance remaining: ' + _oaCur + ' ' + remainder.toFixed(2);
+        if      (total > 0 && remainder > 0)  msgEl.textContent = 'Invoice balance remaining: ' + _oaCur + ' ' + remainder.toFixed(_psDecimal);
         else if (total > 0 && remainder <= 0) msgEl.textContent = 'Invoice fully covered by On Account.';
         else                                   msgEl.textContent = '';
     }
@@ -557,7 +558,7 @@ function _recalcOASelected() {
     if (jsonEl) jsonEl.value = items.length ? JSON.stringify(items) : '';
 }
 
-function round2(v) { return Math.round(v * 100) / 100; }
+function round2(v) { return parseFloat((+v || 0).toFixed(_psDecimal)); }
 
 function _hasItems() {
     return typeof billManager !== 'undefined' && billManager.getAllItems().length > 0;

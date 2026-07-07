@@ -75,5 +75,75 @@ function loadTransactionList(config, pageNo, rowLimit, filter) {
     });
 }
 
+/**
+ * Updates the browser URL bar to reflect the active tab and search without
+ * creating a new history entry. Reads the URL slug from data-url-tab on the
+ * tab element and the base path from data-trans-path on the .trans-status-tabs
+ * container — no hardcoded values, works on any transaction list page.
+ * @param {string} status - Internal status key (e.g. 'InvPending', 'Paid')
+ * @param {string} search - Current search text
+ * @returns {void}
+ */
+function _updateTransTabUrl(status, search) {
+    var $container = $('.trans-status-tabs[data-trans-path]');
+    var $tab       = $container.find('[data-status="' + status + '"]');
+    var slug       = $tab.data('url-tab')          || 'all';
+    var basePath   = $container.data('trans-path') || window.location.pathname;
+    var params     = new URLSearchParams();
+    if (slug !== 'all') { params.set('tab', slug); }
+    if (search)         { params.set('search', search); }
+    var qs = params.toString();
+    history.replaceState(null, '', basePath + (qs ? '?' + qs : ''));
+}
+
+/**
+ * Shows/hides #transFilterNotice whenever a filter, search, or date selection
+ * changes. No-op on pages that have no #transFilterNotice element.
+ * @returns {void}
+ */
+function _updateFilterNotice() {
+    var $notice = $('#transFilterNotice');
+    if (!$notice.length) return;
+    var hasSearch     = $.trim($('#searchTransactionData').val()).length > 0;
+    var hasFilterBtn  = $('.apex-filter-btn.has-filter').length > 0;
+    var hasDateFilter = $('#dateFilterBtn').hasClass('r2k-date-active');
+    $notice[hasSearch || hasFilterBtn || hasDateFilter ? 'addClass' : 'removeClass']('show');
+}
+
+$(document).on('click', '.apex-filter-btn, .cn-status-panel-opt', function () {
+    setTimeout(_updateFilterNotice, 60);
+});
+$(document).on('input', '#searchTransactionData', _updateFilterNotice);
+
+$(function () {
+    var dfBtn = document.getElementById('dateFilterBtn');
+    if (dfBtn && typeof MutationObserver !== 'undefined') {
+        new MutationObserver(_updateFilterNotice).observe(dfBtn, { attributes: true, attributeFilter: ['class'] });
+    }
+    _updateFilterNotice();
+});
+
+$(document).on('click', '.notice-dismiss', function () {
+    $(this).closest('.apex-filter-active-notice').removeClass('show');
+});
+
 // Note: Cancel and Delete confirmations are handled by each page's own
 // -status-update and delete* click handlers (defined in each view's <script>).
+
+/**
+ * Shows only the filter buttons relevant to the active tab; hides all others.
+ * Each page defines its own filterMap and allFilterEls, then delegates here.
+ * @param {string}   status        - Active tab status key (e.g. 'All', 'Paid')
+ * @param {Object}   filterMap     - Map of status → string[] of element IDs to show (no #)
+ * @param {string[]} allFilterEls  - Every controllable filter element ID (no #)
+ * @param {Function} [afterCb]     - Optional fn called after 50ms (e.g. blur-edge refresh)
+ * @returns {void}
+ */
+function _applyTabFilters(status, filterMap, allFilterEls, afterCb) {
+    var show = filterMap[status] || filterMap['All'];
+    allFilterEls.forEach(function (id) {
+        var $el = $('#' + id);
+        if ($el.length) { $el.toggleClass('d-none', show.indexOf(id) === -1); }
+    });
+    if (afterCb) { setTimeout(afterCb, 50); }
+}

@@ -87,20 +87,8 @@ function blankControls() {
 $(document).ready(function () {
 
     const BLUR_ID = 'modal-blur-layer';
-
-    $('[data-toggle="tooltip"]').tooltip();
-
-    // ── Bootstrap 5 tooltip lifecycle ─────────────────────────────────────────
-    // Single init function used everywhere — disposes any existing instance first
-    // to prevent the double-init bug (main.js also calls new bootstrap.Tooltip).
-    function _bsTooltipInit(el) {
-        var ex = bootstrap.Tooltip.getInstance(el);
-        if (ex) ex.dispose();
-        new bootstrap.Tooltip(el, { container: 'body', trigger: 'hover' });
-    }
-
-    // Page-load init for all static elements
-    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(_bsTooltipInit);
+    
+    initializeTooltips();
 
     // MutationObserver: auto-dispose when trigger leaves DOM (prevents stuck tooltips
     // after AJAX re-renders rows), auto-init when new trigger elements arrive.
@@ -130,7 +118,11 @@ $(document).ready(function () {
                 if (an.querySelectorAll) {
                     an.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (c) { add.push(c); });
                 }
-                add.forEach(_bsTooltipInit);
+                add.forEach(function (el) {
+                    var _t = bootstrap.Tooltip.getInstance(el);
+                    if (_t) { try { _t.dispose(); } catch (e) {} }
+                    new bootstrap.Tooltip(el, { container: 'body', trigger: 'hover' });
+                });
             }
         }
     })).observe(document.body, { childList: true, subtree: true });
@@ -1487,8 +1479,28 @@ $(document).on('mouseenter', '.copy-mobile', function () {
 function toastSuccess(msg) {
     Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: msg, showConfirmButton: false, timer: 2500, timerProgressBar: true });
 }
+
 function toastError(msg) {
     Swal.fire({ toast: true, position: 'top-end', icon: 'error', title: msg, showConfirmButton: false, timer: 3000 });
+}
+
+function initializeTooltips() {
+
+    // Remove old tooltip instances (important for AJAX pages)
+    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (element) {
+
+        let existingTooltip = bootstrap.Tooltip.getInstance(element);
+
+        if (existingTooltip) {
+            existingTooltip.dispose();
+        }
+
+        new bootstrap.Tooltip(element, {
+            container: 'body',
+            trigger: 'hover'
+        });
+
+    });
 }
 
 /* ══════════════════════════════════════════════════════════════════

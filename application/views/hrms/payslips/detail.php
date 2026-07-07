@@ -1,5 +1,6 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed');
 $cur  = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
+$dec  = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
 $s    = $Slip ?? new stdClass();
 $org  = $OrgInfo ?? new stdClass();
 $months = ['','January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -51,28 +52,28 @@ $period = ($months[(int)($s->PayrollMonth ?? 0)] ?? '—') . ' ' . ($s->PayrollY
                 <div class="col-md-6">
                   <h6 class="fw-semibold mb-2">Earnings</h6>
                   <table class="table table-sm mb-0" style="font-size:.875rem;">
-                    <tr><td>Basic Salary</td><td class="text-end"><?php echo $cur . ' ' . number_format((float)($s->BasicSalary ?? 0), 2); ?></td></tr>
-                    <tr><td>Allowances</td><td class="text-end"><?php echo $cur . ' ' . number_format((float)($s->Allowances ?? 0), 2); ?></td></tr>
-                    <tr><td>Incentives</td><td class="text-end"><?php echo $cur . ' ' . number_format((float)($s->Incentives ?? 0), 2); ?></td></tr>
-                    <?php if ((float)($s->OtherEarnings ?? 0) > 0): ?><tr><td>Other Earnings</td><td class="text-end"><?php echo $cur . ' ' . number_format((float)$s->OtherEarnings, 2); ?></td></tr><?php endif; ?>
-                    <tr class="fw-semibold table-light"><td>Gross Salary</td><td class="text-end text-success"><?php echo $cur . ' ' . number_format((float)($s->GrossSalary ?? 0), 2); ?></td></tr>
+                    <tr><td>Basic Salary</td><td class="text-end"><?php echo $cur . ' ' . number_format((float)($s->BasicSalary ?? 0), $dec); ?></td></tr>
+                    <tr><td>Allowances</td><td class="text-end"><?php echo $cur . ' ' . number_format((float)($s->Allowances ?? 0), $dec); ?></td></tr>
+                    <tr><td>Incentives</td><td class="text-end"><?php echo $cur . ' ' . number_format((float)($s->Incentives ?? 0), $dec); ?></td></tr>
+                    <?php if ((float)($s->OtherEarnings ?? 0) > 0): ?><tr><td>Other Earnings</td><td class="text-end"><?php echo $cur . ' ' . number_format((float)$s->OtherEarnings, $dec); ?></td></tr><?php endif; ?>
+                    <tr class="fw-semibold table-light"><td>Gross Salary</td><td class="text-end text-success"><?php echo $cur . ' ' . number_format((float)($s->GrossSalary ?? 0), $dec); ?></td></tr>
                   </table>
                 </div>
                 <div class="col-md-6">
                   <h6 class="fw-semibold mb-2">Deductions</h6>
                   <table class="table table-sm mb-0" style="font-size:.875rem;">
-                    <tr><td>Absent Days Deduction</td><td class="text-end text-danger"><?php echo $cur . ' ' . number_format((float)($s->AbsentDeduction ?? 0), 2); ?></td></tr>
-                    <tr><td>Fixed Deductions</td><td class="text-end text-danger"><?php echo $cur . ' ' . number_format((float)($s->FixedDeductions ?? 0), 2); ?></td></tr>
-                    <tr><td>Advance Recovery</td><td class="text-end text-warning"><?php echo $cur . ' ' . number_format((float)($s->AdvanceRecovery ?? 0), 2); ?></td></tr>
-                    <?php if ((float)($s->OtherDeductions ?? 0) > 0): ?><tr><td>Other Deductions</td><td class="text-end text-danger"><?php echo $cur . ' ' . number_format((float)$s->OtherDeductions, 2); ?></td></tr><?php endif; ?>
-                    <tr class="fw-semibold table-light"><td>Total Deductions</td><td class="text-end text-danger"><?php echo $cur . ' ' . number_format((float)($s->TotalDeductions ?? 0), 2); ?></td></tr>
+                    <tr><td>Absent Days Deduction</td><td class="text-end text-danger"><?php echo $cur . ' ' . number_format((float)($s->AbsentDeduction ?? 0), $dec); ?></td></tr>
+                    <tr><td>Fixed Deductions</td><td class="text-end text-danger"><?php echo $cur . ' ' . number_format((float)($s->FixedDeductions ?? 0), $dec); ?></td></tr>
+                    <tr><td>Advance Recovery</td><td class="text-end text-warning"><?php echo $cur . ' ' . number_format((float)($s->AdvanceRecovery ?? 0), $dec); ?></td></tr>
+                    <?php if ((float)($s->OtherDeductions ?? 0) > 0): ?><tr><td>Other Deductions</td><td class="text-end text-danger"><?php echo $cur . ' ' . number_format((float)$s->OtherDeductions, $dec); ?></td></tr><?php endif; ?>
+                    <tr class="fw-semibold table-light"><td>Total Deductions</td><td class="text-end text-danger"><?php echo $cur . ' ' . number_format((float)($s->TotalDeductions ?? 0), $dec); ?></td></tr>
                   </table>
                 </div>
               </div>
               <hr>
               <div class="d-flex justify-content-between align-items-center">
                 <span class="fw-bold" style="font-size:1.05rem;">NET PAYABLE</span>
-                <span class="fw-bold text-success" style="font-size:1.2rem;"><?php echo $cur . ' ' . number_format((float)($s->NetPayable ?? 0), 2); ?></span>
+                <span class="fw-bold text-success" style="font-size:1.2rem;"><?php echo $cur . ' ' . number_format((float)($s->NetPayable ?? 0), $dec); ?></span>
               </div>
             </div>
           </div>

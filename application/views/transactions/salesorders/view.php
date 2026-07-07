@@ -14,6 +14,18 @@ $this->load->view('common/transactions/header'); ?>
                     'pageDescription' => $PageDescription ?? 'Manage and track customer sales orders',
                 ]); ?>
                 <?php
+                $initTab    = $InitTab    ?? 'All';
+                $initSearch = $InitSearch ?? '';
+                $tabFilterMap = [
+                    'All'       => ['soCreatedByFilter', 'soPartyFilterTrigger'],
+                    'Pending'   => ['soCreatedByFilter', 'soPartyFilterTrigger'],
+                    'Completed' => ['soCreatedByFilter', 'soPartyFilterTrigger'],
+                    'Cancelled' => ['soCreatedByFilter', 'soPartyFilterTrigger'],
+                    'Draft'     => ['soCreatedByFilter', 'soPartyFilterTrigger'],
+                ];
+                $visibleFilters = $tabFilterMap[$initTab] ?? $tabFilterMap['All'];
+
+                if ($JwtData->TransSettings->ShowTransactionStats ?? 1):
                 $stats       = $SummaryStats ?? [];
                 $cur         = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
                 $dec         = $JwtData->GenSettings->DecimalPoints ?? 2;
@@ -36,7 +48,7 @@ $this->load->view('common/transactions/header'); ?>
                 ?>
                 <div class="apex-stats-strip">
                     <?php foreach ($statsItems as $stat): ?>
-                    <div class="apex-stat-item <?php echo $stat['status'] === 'All' ? 'active' : ''; ?>" data-status="<?php echo $stat['status']; ?>" data-stat-filter="<?php echo $stat['status']; ?>" style="--stat-color:<?php echo $stat['iconColor']; ?>">
+                    <div class="apex-stat-item <?php echo $stat['status'] === $initTab ? 'active' : ''; ?>" data-status="<?php echo $stat['status']; ?>" data-stat-filter="<?php echo $stat['status']; ?>" style="--stat-color:<?php echo $stat['iconColor']; ?>">
                         <div class="apex-stat-icon" style="background:<?php echo $stat['iconBg']; ?>;">
                             <i class="bx <?php echo $stat['icon']; ?>" style="color:<?php echo $stat['iconColor']; ?>;"></i>
                         </div>
@@ -50,6 +62,7 @@ $this->load->view('common/transactions/header'); ?>
                     </div>
                     <?php endforeach; ?>
                 </div>
+                <?php endif; ?>
 
                 <div class="container-xxl flex-grow-1 py-3">
 
@@ -58,15 +71,15 @@ $this->load->view('common/transactions/header'); ?>
 
                         <!-- ── Filter Row ─────────────────────────────────── -->
                         <div class="apex-filter-row">
-                            <div class="r2k-search-wrap">
+                            <div class="r2k-search-wrap<?php echo $initSearch ? ' is-expanded r2k-search-active' : ''; ?>">
                                 <i class="bx bx-search r2k-si"></i>
-                                <input type="text" id="searchTransactionData" placeholder="Order # or customer...">
-                                <i class="bx bx-x r2k-clear d-none"></i>
+                                <input type="text" id="searchTransactionData" placeholder="Order # or customer..." value="<?php echo htmlspecialchars($initSearch, ENT_QUOTES); ?>">
+                                <i class="bx bx-x r2k-clear<?php echo $initSearch ? '' : ' d-none'; ?>"></i>
                             </div>
                             <?php if (count($OrgUsers ?? []) > 1): ?>
-                            <a href="javascript:void(0);" id="soCreatedByFilter" class="apex-filter-btn" title="Filter by User"><i class="bx bx-user me-1"></i>Updated By</a>
+                            <a href="javascript:void(0);" id="soCreatedByFilter" class="apex-filter-btn<?php echo in_array('soCreatedByFilter', $visibleFilters) ? '' : ' d-none'; ?>" title="Filter by User"><i class="bx bx-user me-1"></i>Updated By</a>
                             <?php endif; ?>
-                            <a href="javascript:void(0);" id="soPartyFilterTrigger" class="apex-filter-btn" title="Filter by Customer"><i class="bx bx-store me-1"></i>Customer</a>
+                            <a href="javascript:void(0);" id="soPartyFilterTrigger" class="apex-filter-btn<?php echo in_array('soPartyFilterTrigger', $visibleFilters) ? '' : ' d-none'; ?>" title="Filter by Customer"><i class="bx bx-store me-1"></i>Customer</a>
                             <?php $this->load->view('common/transactions/date_filter_btn'); ?>
                             <div class="apex-filter-spacer"></div>
                             <a href="javascript:void(0);" class="apex-filter-btn pageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
@@ -76,13 +89,14 @@ $this->load->view('common/transactions/header'); ?>
 
                         <!-- ── Tabs Row ──────────────────────────────────── -->
                         <div class="apex-tabs-row">
-                            <ul class="nav trans-status-tabs" id="soStatusTabs" role="tablist">
-                                <li class="nav-item"><a class="nav-link active so-status-tab" data-status="All" href="javascript:void(0);">All <span class="trans-tab-count ms-1"><?php echo $ModAllCount; ?></span></a></li>
-                                <li class="nav-item"><a class="nav-link so-status-tab" data-status="Pending" href="javascript:void(0);">Pending <span class="trans-tab-count ms-1 d-none"></span></a></li>
-                                <li class="nav-item"><a class="nav-link so-status-tab" data-status="Completed" href="javascript:void(0);">Completed <span class="trans-tab-count ms-1 d-none"></span></a></li>
-                                <li class="nav-item"><a class="nav-link so-status-tab" data-status="Cancelled" href="javascript:void(0);">Cancelled <span class="trans-tab-count ms-1 d-none"></span></a></li>
-                                <li class="nav-item"><a class="nav-link so-status-tab" data-status="Draft" href="javascript:void(0);">Drafts <span class="trans-tab-count ms-1 d-none"></span></a></li>
+                            <ul class="nav trans-status-tabs" id="soStatusTabs" role="tablist" data-trans-path="/salesorders">
+                                <li class="nav-item"><a class="nav-link <?php echo $initTab === 'All' ? 'active' : ''; ?> so-status-tab" data-status="All" data-url-tab="all" href="javascript:void(0);">All <span class="trans-tab-count ms-1<?php echo ($initTab !== 'All' || $ModAllCount == 0) ? ' d-none' : ''; ?>"><?php echo ($initTab === 'All' && $ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link <?php echo $initTab === 'Pending' ? 'active' : ''; ?> so-status-tab" data-status="Pending" data-url-tab="pending" href="javascript:void(0);">Pending <span class="trans-tab-count ms-1<?php echo ($initTab !== 'Pending' || $ModAllCount == 0) ? ' d-none' : ''; ?>"><?php echo ($initTab === 'Pending' && $ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link <?php echo $initTab === 'Completed' ? 'active' : ''; ?> so-status-tab" data-status="Completed" data-url-tab="completed" href="javascript:void(0);">Completed <span class="trans-tab-count ms-1<?php echo ($initTab !== 'Completed' || $ModAllCount == 0) ? ' d-none' : ''; ?>"><?php echo ($initTab === 'Completed' && $ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link <?php echo $initTab === 'Cancelled' ? 'active' : ''; ?> so-status-tab" data-status="Cancelled" data-url-tab="cancelled" href="javascript:void(0);">Cancelled <span class="trans-tab-count ms-1<?php echo ($initTab !== 'Cancelled' || $ModAllCount == 0) ? ' d-none' : ''; ?>"><?php echo ($initTab === 'Cancelled' && $ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link <?php echo $initTab === 'Draft' ? 'active' : ''; ?> so-status-tab" data-status="Draft" data-url-tab="draft" href="javascript:void(0);">Drafts <span class="trans-tab-count ms-1<?php echo ($initTab !== 'Draft' || $ModAllCount == 0) ? ' d-none' : ''; ?>"><?php echo ($initTab === 'Draft' && $ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
                             </ul>
+                            <?php $this->load->view('common/transactions/filter_notice'); ?>
                         </div>
 
                         <!-- Table -->
@@ -108,7 +122,7 @@ $this->load->view('common/transactions/header'); ?>
                                             Expected Delivery <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Date"></i>
                                         </th>
                                         <th>Last Updated</th>
-                                        <th style="width:50px"></th>
+                                        <th style="width:50px">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody class="r2k-tbody table-border-bottom-0">
@@ -128,9 +142,9 @@ $this->load->view('common/transactions/header'); ?>
                     <?php $this->load->view('common/transactions/print_modals'); ?>
 
                     <!-- Sticky pagination -->
-                    <div class="card mb-0 cust-sticky-pag" id="soStickyPagination" style="display:none;">
+                    <div class="card mb-0 cust-sticky-pag apex-sticky-pag" id="soStickyPagination" data-static-pag="#soPagination" style="display:none;">
                         <div class="card-body p-0">
-                            <div class="row mx-3 my-2 justify-content-between align-items-center soPagination"></div>
+                            <div class="row mx-3 my-2 justify-content-between align-items-center apex-sticky-pag-inner"></div>
                         </div>
                     </div>
 
@@ -165,6 +179,7 @@ $this->load->view('common/transactions/header'); ?>
 
 <?php $this->load->view('common/transactions/footer'); ?>
 
+<script src="/js/core/sticky_paginate.js"></script>
 <script src="/js/common/communication.js"></script>
 <script src="/js/common/party_filter.js"></script>
 <script src="<?php echo _assetV('/js/transactions/attachments.js'); ?>"></script>
@@ -202,11 +217,19 @@ const ModulePag    = '.soPagination';
 const ModuleHeader = '.soHeaderCheck';
 const ModuleRow    = '.soCheck';
 
+var _soInitTab    = <?php echo json_encode($InitTab    ?? 'All'); ?>;
+var _soInitSearch = <?php echo json_encode($InitSearch ?? ''); ?>;
+
+var _soTabFilterMap = <?= json_encode($tabFilterMap); ?>;
+var _allSoFilterEls = <?= json_encode(array_values(array_unique(array_merge(...array_values($tabFilterMap))))); ?>;
+
 $(function () {
     'use strict';
 
-    Filter['Status'] = 'All';
+    Filter['Status'] = _soInitTab;
+    if (_soInitSearch) { Filter.Name = _soInitSearch; }
     initExport({ moduleUID: 102, getFilters: function () { return Filter; } });
+    _applyTabFilters(_soInitTab, _soTabFilterMap, _allSoFilterEls);
 
     // ── Filter bar ──────────────────────────────────────────────────────
     var tfb = (typeof TransFilterBar !== 'undefined')
@@ -241,20 +264,6 @@ $(function () {
         _origGetSalesOrdersDetails(pageNo, rowLimit, f);
     };
 
-    // ── Sticky pagination ──
-    var $soStaticPag = $('#soPagination');
-    var $soStickyPag = $('#soStickyPagination');
-    function _syncSoSticky() { $soStickyPag.find('.soPagination').html($soStaticPag.html()); }
-    function _toggleSoSticky() {
-        if (!$soStaticPag.length) return;
-        var r = $soStaticPag[0].getBoundingClientRect();
-        var visible = r.top < $(window).height() && r.bottom > 0;
-        if (visible) { $soStickyPag.stop(true,true).fadeOut(150); }
-        else { _syncSoSticky(); $soStickyPag.stop(true,true).fadeIn(150); }
-    }
-    $(window).on('scroll resize', _toggleSoSticky);
-    _toggleSoSticky();
-
     // ── Stat card click ─────────────────────────────────────
     $(document).on('click', '[data-stat-filter]', function () {
         var status = $(this).data('stat-filter') || 'All';
@@ -262,6 +271,9 @@ $(function () {
         $(this).addClass('active');
         $('.so-status-tab').removeClass('active');
         $('.so-status-tab[data-status="' + status + '"]').addClass('active');
+        _resetSoFilters();
+        _applyTabFilters(status, _soTabFilterMap, _allSoFilterEls);
+        _updateTransTabUrl(status, '');
         Filter.Status = status;
         PageNo = 1;
         getSalesOrdersDetails();
@@ -270,11 +282,14 @@ $(function () {
     // ── Status tabs ─────────────────────────────────────────
     $(document).on('click', '.so-status-tab', function (e) {
         e.preventDefault();
+        var status = $(this).data('status') || 'All';
         $('.so-status-tab').removeClass('active');
         $(this).addClass('active');
         $('.apex-stat-item').removeClass('active');
-        var status = $(this).data('status') || 'All';
         $('.apex-stat-item[data-stat-filter="' + status + '"]').addClass('active');
+        _resetSoFilters();
+        _applyTabFilters(status, _soTabFilterMap, _allSoFilterEls);
+        _updateTransTabUrl(status, '');
         Filter.Status = status;
         PageNo = 1;
         getSalesOrdersDetails();
@@ -286,6 +301,10 @@ $(function () {
         getSalesOrdersDetails();
     });
 
+    $('#searchTransactionData').on('input', function () {
+        var curTab = $('.so-status-tab.active').data('status') || 'All';
+        _updateTransTabUrl(curTab, $.trim($(this).val()));
+    });
     $('#searchTransactionData').on('input', debounce(function () {
         Filter.Name = $.trim($(this).val());
         PageNo = 1;
@@ -318,6 +337,18 @@ $(function () {
         var match = ($(this).attr('href') || '').match(/\/(\d+)$/);
         if (match) { PageNo = parseInt(match[1]); getSalesOrdersDetails(); }
     });
+
+    function _resetSoFilters() {
+        var $wrap = $('#searchTransactionData').closest('.r2k-search-wrap');
+        $('#searchTransactionData').val('');
+        $wrap.find('.r2k-clear').addClass('d-none');
+        $wrap.removeClass('is-expanded r2k-search-active');
+        Filter.Name = '';
+        if (soCreatedByFilter) { soCreatedByFilter.reset(); }
+        if (soPartyFilter)     { soPartyFilter.reset(); }
+        if (tfb)               { tfb.reset(); }
+        $('.trans-col-filterbox, .tpcf-box').hide();
+    }
 
     // helper: sync active tab status into Filter then build POST data
     function _actionPostData(extra) {

@@ -1,6 +1,9 @@
 <?php defined('BASEPATH') OR exit('No direct script access allowed'); ?>
 
 <?php
+$cdnUrl    = getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv('CFLARE_R2_CDN');
+include_once(APPPATH . 'views/transactions/partials/party_avatar.php');
+
 $cur = $JwtData->GenSettings->CurrenySymbol ?? '₹';
 $dec = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
 
@@ -43,15 +46,6 @@ if (!function_exists('_allPmtModeBadge')) {
         // Amount color
         $amtClass  = $isIn ? 'text-success' : 'text-danger';
 
-        // Avatar
-        $words       = preg_split('/\s+/', trim($row->PartyName ?? ''));
-        $initials    = strtoupper(substr($words[0] ?? '', 0, 1));
-        if (!empty($words[1])) $initials .= strtoupper(substr($words[1], 0, 1));
-
-        $avatarColors = $isIn
-            ? ['#4f46e5','#0891b2','#059669','#d97706','#db2777','#7c3aed']
-            : ['#f57c00','#e53935','#8e24aa','#d81b60','#6d4c41','#00838f'];
-        $avatarColor  = $avatarColors[crc32($row->PartyName ?? '') % count($avatarColors)];
 
         // Date + ago
         $createdTs   = strtotime($row->CreatedOn);
@@ -193,11 +187,7 @@ if (!function_exists('_allPmtModeBadge')) {
         <!-- Party -->
         <td class="pmt-party-td">
             <div class="d-flex align-items-center gap-2">
-                <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
-                     style="width:30px;height:30px;background:<?php echo $avatarColor; ?>1a;color:<?php echo $avatarColor; ?>;
-                            font-size:.7rem;font-weight:700;">
-                    <?php echo $initials ?: '?'; ?>
-                </div>
+                <?php partyAvatar($row->PartyName ?? '', null, $cdnUrl); ?>
                 <div>
                     <div style="font-size:.82rem;font-weight:600;"><?php echo r2k_party_name($row->PartyName ?? '', $row->PartyMobile ?? '', $row->PartyCountryCode ?? '', $row->PartyArea ?? ''); ?></div>
                     <?php if ($hasParty): ?>
@@ -219,9 +209,9 @@ if (!function_exists('_allPmtModeBadge')) {
             </div>
             <!-- Contact hover icons -->
             <?php if ($fullMobile || $partyEmail): ?>
-            <div class="pmt-contact-icons">
+            <div class="inv-contact-icons">
                 <?php if ($fullMobile): ?>
-                <a href="javascript:void(0)" class="wa pmt-wa-link" title="WhatsApp"
+                <a href="javascript:void(0)" class="wa inv-wa-link" title="WhatsApp"
                    data-wa-url="https://wa.me/<?php echo $waNum; ?>?text=<?php echo rawurlencode($shareMsg); ?>">
                     <i class="bx bxl-whatsapp"></i>
                 </a>

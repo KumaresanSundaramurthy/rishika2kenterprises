@@ -93,7 +93,7 @@ $rpBtnLabel    = $rpBtnLabel    ?? 'Record Payment';
                             <label class="rp-field-label"><span class="text-danger">*</span> Amount</label>
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text bg-white fw-semibold" id="rpCurrencySymbol">₹</span>
-                                <input type="number" class="form-control" id="rpAmount" step="0.01" min="0.01" placeholder="0.00">
+                                <input type="number" class="form-control" id="rpAmount" step="any" min="0.01" placeholder="0.00">
                             </div>
                         </div>
 
@@ -296,6 +296,7 @@ $pdtLinkedLabel = $pdtLinkedLabel ?? 'Linked Document';
     var _fpInstance = null;
     var _rpDropzone = null;
     var _currency   = '₹';
+    var _rpDec      = <?php echo (int)($JwtData->GenSettings->DecimalPoints ?? 2); ?>;
 
     function _rpEsc(s) { return $('<span>').text(s || '').html(); }
 
@@ -417,7 +418,7 @@ $pdtLinkedLabel = $pdtLinkedLabel ?? 'Linked Document';
             var max = parseFloat($(this).attr('max')) || 0;
             var val = parseFloat($(this).val())       || 0;
             if (max > 0 && val > max) {
-                $(this).val(max.toFixed(2));
+                $(this).val(max.toFixed(_rpDec));
             }
         });
 
@@ -446,8 +447,8 @@ $pdtLinkedLabel = $pdtLinkedLabel ?? 'Linked Document';
             if (!paymentTypeUID) { Swal.fire({ icon: 'warning', text: 'Please select a payment type.' }); return; }
             if (amount <= 0)     { Swal.fire({ icon: 'warning', text: 'Enter a valid amount.' }); return; }
             if (maxAmount > 0 && amount > maxAmount) {
-                Swal.fire({ icon: 'warning', text: 'Amount cannot exceed the balance due (' + _currency + ' ' + maxAmount.toFixed(2) + ').' });
-                $('#rpAmount').val(maxAmount.toFixed(2)).focus();
+                Swal.fire({ icon: 'warning', text: 'Amount cannot exceed the balance due (' + _currency + ' ' + maxAmount.toFixed(_rpDec) + ').' });
+                $('#rpAmount').val(maxAmount.toFixed(_rpDec)).focus();
                 return;
             }
             var isCash = parseInt($('#rpIsCash').val(), 10);

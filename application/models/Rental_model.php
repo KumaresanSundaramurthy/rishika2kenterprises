@@ -50,8 +50,13 @@ class Rental_model extends CI_Model {
             'r.DepositCollected',
             'r.Notes',
             'r.UpdatedOn',
-            'c.Name      AS CustomerName',
+            'r.CustomerUID  AS CustomerUID',
+            'c.Name         AS CustomerName',
             'c.MobileNumber AS CustomerMobile',
+            'c.Area         AS PartyArea',
+            'c.CountryCode  AS CountryCode',
+            'c.EmailAddress AS EmailAddress',
+            'c.Image        AS PartyImage',
         ]);
         $this->ReadDb->from('Transaction.RentalMasterTbl r');
         $this->ReadDb->join('Customers.CustomerTbl c', 'c.CustomerUID = r.CustomerUID AND c.IsDeleted = 0', 'left');

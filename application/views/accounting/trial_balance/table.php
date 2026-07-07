@@ -6,10 +6,11 @@
 /** @var float  $TotalObCr */
 /** @var int    $FinancialYear */
 $cur     = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
+$dec     = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
 
-function _tbFmt($n, $cur) {
+function _tbFmt(mixed $n, string $cur, int $dec): string {
     if (abs((float)$n) < 0.005) return '<span class="text-muted">—</span>';
-    return $cur . ' ' . number_format((float)$n, 2);
+    return $cur . ' ' . number_format((float)$n, $dec);
 }
 
 // Group rows by type
@@ -81,12 +82,12 @@ foreach (array_keys($grouped) as $t) {
                 <?php endif; ?>
             </td>
             <td><span class="badge <?php echo $badge; ?>" style="font-size:.68rem;"><?php echo htmlspecialchars($type); ?></span></td>
-            <td class="text-end text-success"><?php echo $obDr > 0 ? (_tbFmt($obDr, $cur)) : '—'; ?></td>
-            <td class="text-end text-danger"> <?php echo $obCr > 0 ? (_tbFmt($obCr, $cur)) : '—'; ?></td>
-            <td class="text-end text-success fw-semibold"><?php echo $dr > 0 ? (_tbFmt($dr, $cur)) : '—'; ?></td>
-            <td class="text-end text-danger fw-semibold"> <?php echo $cr > 0 ? (_tbFmt($cr, $cur)) : '—'; ?></td>
-            <td class="text-end text-success"><?php echo $cbDr > 0 ? (_tbFmt($cbDr, $cur)) : '—'; ?></td>
-            <td class="text-end text-danger"> <?php echo $cbCr > 0 ? (_tbFmt($cbCr, $cur)) : '—'; ?></td>
+            <td class="text-end text-success"><?php echo $obDr > 0 ? (_tbFmt($obDr, $cur, $dec)) : '—'; ?></td>
+            <td class="text-end text-danger"> <?php echo $obCr > 0 ? (_tbFmt($obCr, $cur, $dec)) : '—'; ?></td>
+            <td class="text-end text-success fw-semibold"><?php echo $dr > 0 ? (_tbFmt($dr, $cur, $dec)) : '—'; ?></td>
+            <td class="text-end text-danger fw-semibold"> <?php echo $cr > 0 ? (_tbFmt($cr, $cur, $dec)) : '—'; ?></td>
+            <td class="text-end text-success"><?php echo $cbDr > 0 ? (_tbFmt($cbDr, $cur, $dec)) : '—'; ?></td>
+            <td class="text-end text-danger"> <?php echo $cbCr > 0 ? (_tbFmt($cbCr, $cur, $dec)) : '—'; ?></td>
         </tr>
         <?php endforeach; ?>
     <?php endforeach; ?>
@@ -95,10 +96,10 @@ foreach (array_keys($grouped) as $t) {
         <!-- Grand Totals -->
         <tr style="background:#ede9ff;font-weight:700;font-size:.84rem;">
             <td colspan="4" class="text-end" style="color:#7c3aed;">Grand Totals</td>
-            <td class="text-end text-success"><?php echo $cur . ' ' . number_format($TotalObDr, 2); ?></td>
-            <td class="text-end text-danger"> <?php echo $cur . ' ' . number_format($TotalObCr, 2); ?></td>
-            <td class="text-end text-success"><?php echo $cur . ' ' . number_format($GrandDebit, 2); ?></td>
-            <td class="text-end text-danger"> <?php echo $cur . ' ' . number_format($GrandCredit, 2); ?></td>
+            <td class="text-end text-success"><?php echo $cur . ' ' . number_format($TotalObDr, $dec); ?></td>
+            <td class="text-end text-danger"> <?php echo $cur . ' ' . number_format($TotalObCr, $dec); ?></td>
+            <td class="text-end text-success"><?php echo $cur . ' ' . number_format($GrandDebit, $dec); ?></td>
+            <td class="text-end text-danger"> <?php echo $cur . ' ' . number_format($GrandCredit, $dec); ?></td>
             <td colspan="2"></td>
         </tr>
         <!-- Balance Check -->
@@ -110,7 +111,7 @@ foreach (array_keys($grouped) as $t) {
                     Trial Balance is <strong>BALANCED</strong> — Total Debit equals Total Credit
                 <?php else: ?>
                     <i class="bx bx-error me-1 text-danger"></i>
-                    Trial Balance is <strong>UNBALANCED</strong> — Difference: <?php echo $cur . ' ' . number_format($diff, 2); ?>
+                    Trial Balance is <strong>UNBALANCED</strong> — Difference: <?php echo $cur . ' ' . number_format($diff, $dec); ?>
                 <?php endif; ?>
             </td>
         </tr>

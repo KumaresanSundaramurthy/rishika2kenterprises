@@ -14,102 +14,53 @@ class Quotations extends MY_Controller {
 
     }
 
-    public function index() {
-
+    public function index(): void {
         if (!$this->_loadPageTitle($this->pageModuleUID)) {
             $this->load->view('common/module_error', $this->pageData);
             return;
         }
-
         try {
-
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
-
-            $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
-            $limit = $GeneralSettings->RowLimit ?? 10;
-
-            $this->load->model('transactions_model');
-            $datePref   = $this->getDateFilterPreference('quotations');
-            $initFilter = $datePref['from'] ? ['DateFrom' => $datePref['from'], 'DateTo' => $datePref['to']] : [];
-            $allData = $this->transactions_model->getTransactionPageList($limit, 0, $this->pageModuleUID, $initFilter, 0);
-            $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, $initFilter);
-            $this->pageData['SavedDateRange'] = $datePref['range'];
-            $this->pageData['SavedDateLabel'] = $datePref['label'];
-
-            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
-
-            // Single query fetches all channels (WhatsApp + Email) for this module
+            $orgUID = (int)$this->pageData['JwtData']->Org->OrgUID;
             $this->load->model('organisation_model');
             $orgResult = $this->organisation_model->getOrgInfoCached($orgUID);
             $this->pageData['CommOrgContext'] = $orgResult->Data ?? null;
-
-            $templates    = $this->organisation_model->getModuleMessageTemplates($orgUID, $this->pageModuleUID);
-            $whatsAppTemplate = $templates['WhatsApp'] ?? null;
+            $templates = $this->organisation_model->getModuleMessageTemplates($orgUID, $this->pageModuleUID);
             $this->pageData['CommEmailTemplate'] = isset($templates['Email'])
                 ? ['Subject' => $templates['Email']->Subject ?? '', 'Body' => $templates['Email']->Body ?? '']
                 : null;
-
-            $this->pageData['ModRowData'] = $this->load->view('transactions/quotations/list', ['DataLists' => $allData, 'SerialNumber' => 0, 'JwtData' => $this->pageData['JwtData'], 'WhatsAppTemplate' => $whatsAppTemplate], TRUE);
-            $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/quotations/getQuotationsPageDetails', $allDataCount, 1, $limit);
-            $this->pageData['ModAllCount'] = $allDataCount;
-            $this->pageData['SummaryStats'] = $this->transactions_model->getTransactionSummaryStats($this->pageModuleUID, $this->pageData['JwtData']->Org->OrgUID);
-
-            $this->load->model('users_model');
-            $this->pageData['OrgUsers']     = $this->users_model->getOrgUsersForCache($orgUID);
-
-            $this->_loadUpstashConfig();
-
+            $this->_loadTransactionIndexPage([
+                'datePrefKey'       => 'quotations',
+                'tabSlugMap'        => ['all' => 'All', 'open' => 'Open', 'accepted' => 'Accepted', 'converted' => 'Converted', 'cancelled' => 'Cancelled', 'draft' => 'Draft'],
+                'listViewPath'      => 'transactions/quotations/list',
+                'paginationUrl'     => '/quotations/getQuotationsPageDetails',
+                'listViewExtraData' => ['WhatsAppTemplate' => $templates['WhatsApp'] ?? null],
+            ]);
             $this->load->view('transactions/quotations/view', $this->pageData);
-
         } catch (Exception $e) {
             redirect('dashboard', 'refresh');
         }
-        
     }
 
-    public function getQuotationsPageDetails($pageNo = 0) {
-
+    public function getQuotationsPageDetails(int $pageNo = 0): void
+    {
         $this->EndReturnData = new stdClass();
-		try {
-
-            $pageNo = (int) $pageNo;
-            if ($pageNo < 1) {
-                $pageNo = 1;
-            }
-
-			$limit = (int) $this->input->post('RowLimit') ?: 10;
-            $offset = ($pageNo - 1) * $limit;
-            $filter = $this->input->post('Filter') ?: [];
-
-			$this->load->model('transactions_model');
-            $allData = $this->transactions_model->getTransactionPageList($limit, $offset, $this->pageModuleUID, $filter, 0);
-            $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, $filter);
-
-
-            $orgUID       = $this->pageData['JwtData']->Org->OrgUID;
+        try {
+            $orgUID    = (int)$this->pageData['JwtData']->Org->OrgUID;
             $this->load->model('organisation_model');
-            $templates    = $this->organisation_model->getModuleMessageTemplates($orgUID, $this->pageModuleUID);
-
-            $rowHtml = $this->load->view('transactions/quotations/list', [
-                'DataLists'        => $allData,
-                'SerialNumber'     => ($pageNo - 1) * $limit,
-                'JwtData'          => $this->pageData['JwtData'],
-                'WhatsAppTemplate' => $templates['WhatsApp'] ?? null,
-            ], true);
-            
-            $this->EndReturnData->Error = FALSE;
-            $this->EndReturnData->RecordHtmlData = $rowHtml;
-            $this->EndReturnData->Pagination = $this->globalservice->buildPagePaginationHtml('/quotations/getQuotationsPageDetails', $allDataCount, $pageNo, $limit);
-            $this->EndReturnData->TotalCount = $allDataCount;
-            $this->EndReturnData->SummaryStats = $this->transactions_model->getTransactionSummaryStats($this->pageModuleUID, $this->pageData['JwtData']->Org->OrgUID);
-
-		} catch (Exception $e) {
-            $this->EndReturnData->Error = TRUE;
+            $templates = $this->organisation_model->getModuleMessageTemplates($orgUID, $this->pageModuleUID);
+            $this->EndReturnData = $this->_buildTransactionPageDetailsResult([
+                'pageNo'              => $pageNo,
+                'listViewPath'        => 'transactions/quotations/list',
+                'paginationUrl'       => '/quotations/getQuotationsPageDetails',
+                'listViewExtraData'   => ['WhatsAppTemplate' => $templates['WhatsApp'] ?? null],
+                'includeSummaryStats' => true,
+            ]);
+        } catch (Exception $e) {
+            $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
         }
-
         $this->globalservice->sendJsonResponse($this->EndReturnData);
-
     }
 
     /** Export quotations as CSV / Excel / PDF / Print */
@@ -943,6 +894,7 @@ class Quotations extends MY_Controller {
 
             $this->pageData['AdditionalCharges']  = $this->_getAdditionalChargesForOrg((int)$orgUID, true);
             $this->pageData['TransactionCharges'] = $this->transactions_model->getTransactionCharges($transUID, (int)$orgUID);
+            $this->pageData['TaxList']            = $this->_getTaxList();
             $this->pageData['IsEditMode']         = true;
 
             $this->load->view('transactions/quotations/forms/form', $this->pageData);

@@ -73,7 +73,7 @@
                     <div class="row g-2">
                         <div class="col-5">
                             <label class="form-label fw-semibold mb-1" style="font-size:.8rem;">Price</label>
-                            <input type="number" class="form-control form-control-sm" id="siPrice" min="0" step="0.01"
+                            <input type="number" class="form-control form-control-sm" id="siPrice" min="0" step="any"
                                    placeholder="0.00" oninput="invCalcStockValue('in')">
                             <div class="text-muted mt-1" style="font-size:.68rem;">Includes tax</div>
                         </div>

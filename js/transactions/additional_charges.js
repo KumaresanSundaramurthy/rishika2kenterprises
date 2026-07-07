@@ -71,7 +71,7 @@
      * @returns {void}
      */
     function populateRowTax($row, selectedUID) {
-        $row.find('.ac-tax-select').html(buildTaxOptions(selectedUID || 0));
+        $row.find('.ac-tax-select').html(buildTaxOptions(selectedUID || 0)).val(selectedUID || 0);
     }
 
     // ── Row calculation ───────────────────────────────────────────────────────
@@ -191,7 +191,7 @@
               '<div class="input-group input-group-sm">' +
                 '<span class="input-group-text" style="border-right:0;">' + (genSettings && genSettings.CurrenySymbol ? genSettings.CurrenySymbol : '₹') + '</span>' +
                 '<input type="number" class="form-control form-control-sm text-end ac-wot-input"' +
-                ' min="0" step="0.01" value="0"' +
+                ' min="0" step="any" value="0"' +
                 ' data-charge-uid="' + uid + '">' +
               '</div>' +
             '</td>' +
@@ -199,7 +199,7 @@
               '<div class="input-group input-group-sm">' +
                 '<span class="input-group-text" style="border-right:0;">' + (genSettings && genSettings.CurrenySymbol ? genSettings.CurrenySymbol : '₹') + '</span>' +
                 '<input type="number" class="form-control form-control-sm text-end ac-wt-input"' +
-                ' min="0" step="0.01" value="0"' +
+                ' min="0" step="any" value="0"' +
                 ' data-charge-uid="' + uid + '">' +
               '</div>' +
             '</td>' +
@@ -406,7 +406,7 @@
             $('#acToggleChevron').removeClass('bx-chevron-down').addClass('bx-chevron-up');
         }
         var $newRow = $('#additionalChargesBody .ac-charge-row[data-charge-uid="' + charge.ChargeUID + '"]');
-        // Tax options already built in buildChargeRow; trigger recalc to prime BillingManager
+        populateRowTax($newRow, parseInt(defaultTaxUID || charge.DefaultTaxUID || 0, 10));
         recalcRow($newRow);
     };
 
@@ -633,6 +633,7 @@
             $('#additionalChargesBody').append(html);
             var $row = $('#additionalChargesBody .ac-charge-row[data-charge-uid="' + uid + '"]');
             if ($row.length) {
+                populateRowTax($row, parseInt(saved.TaxUID, 10) || 0);
                 if (parseFloat(saved.InPercent) > 0) {
                     $row.find('.ac-pct-input').val(saved.InPercent);
                 } else {

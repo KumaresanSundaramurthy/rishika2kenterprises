@@ -13,6 +13,19 @@ $this->load->view('common/transactions/header'); ?>
                     'pageDescription' => $PageDescription ?? 'Create proforma invoices for customers',
                 ]); ?>
                 <?php
+                $initTab    = $InitTab    ?? 'All';
+                $initSearch = $InitSearch ?? '';
+                $tabFilterMap = [
+                    'All'       => ['pfPartyFilterTrigger'],
+                    'Sent'      => ['pfPartyFilterTrigger'],
+                    'Converted' => ['pfPartyFilterTrigger'],
+                    'Expired'   => ['pfPartyFilterTrigger'],
+                    'Cancelled' => ['pfPartyFilterTrigger'],
+                    'Draft'     => ['pfPartyFilterTrigger'],
+                ];
+                $visibleFilters = $tabFilterMap[$initTab] ?? $tabFilterMap['All'];
+
+                if ($JwtData->TransSettings->ShowTransactionStats ?? 1):
                 $stats        = $SummaryStats ?? [];
                 $cur          = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
                 $dec          = $JwtData->GenSettings->DecimalPoints ?? 2;
@@ -39,7 +52,7 @@ $this->load->view('common/transactions/header'); ?>
                 ?>
                 <div class="apex-stats-strip">
                     <?php foreach ($statsItems as $stat): ?>
-                    <div class="apex-stat-item <?php echo $stat['status'] === 'All' ? 'active' : ''; ?>" data-status="<?php echo $stat['status']; ?>" data-stat-filter="<?php echo $stat['status']; ?>" style="--stat-color:<?php echo $stat['iconColor']; ?>">
+                    <div class="apex-stat-item <?php echo $stat['status'] === $initTab ? 'active' : ''; ?>" data-status="<?php echo $stat['status']; ?>" data-stat-filter="<?php echo $stat['status']; ?>" style="--stat-color:<?php echo $stat['iconColor']; ?>">
                         <div class="apex-stat-icon" style="background:<?php echo $stat['iconBg']; ?>;">
                             <i class="bx <?php echo $stat['icon']; ?>" style="color:<?php echo $stat['iconColor']; ?>;"></i>
                         </div>
@@ -53,6 +66,7 @@ $this->load->view('common/transactions/header'); ?>
                     </div>
                     <?php endforeach; ?>
                 </div>
+                <?php endif; ?>
 
                 <div class="container-xxl flex-grow-1 py-3">
 
@@ -61,10 +75,10 @@ $this->load->view('common/transactions/header'); ?>
 
                         <!-- ── Filter Row ─────────────────────────────────── -->
                         <div class="apex-filter-row">
-                            <div class="r2k-search-wrap">
+                            <div class="r2k-search-wrap<?php echo $initSearch ? ' is-expanded r2k-search-active' : ''; ?>">
                                 <i class="bx bx-search r2k-si"></i>
-                                <input type="text" id="searchTransactionData" placeholder="PF # or customer...">
-                                <i class="bx bx-x r2k-clear d-none"></i>
+                                <input type="text" id="searchTransactionData" placeholder="PF # or customer..." value="<?php echo htmlspecialchars($initSearch); ?>">
+                                <i class="bx bx-x r2k-clear<?php echo $initSearch ? '' : ' d-none'; ?>"></i>
                             </div>
                             <a href="javascript:void(0);" id="pfPartyFilterTrigger" class="apex-filter-btn" title="Filter by Customer">
                                 <i class="bx bx-store me-1"></i>Customer
@@ -78,14 +92,15 @@ $this->load->view('common/transactions/header'); ?>
 
                         <!-- ── Tabs Row ──────────────────────────────────── -->
                         <div class="apex-tabs-row">
-                            <ul class="nav trans-status-tabs" id="pfStatusTabs" role="tablist">
-                                <li class="nav-item"><a class="nav-link active pf-status-tab" data-status="All" href="javascript:void(0);">All <span class="trans-tab-count ms-1"><?php echo $ModAllCount; ?></span></a></li>
-                                <li class="nav-item"><a class="nav-link pf-status-tab" data-status="Sent" href="javascript:void(0);">Sent <span class="pf-tab-count trans-tab-count ms-1 d-none"></span></a></li>
-                                <li class="nav-item"><a class="nav-link pf-status-tab" data-status="Converted" href="javascript:void(0);">Converted <span class="pf-tab-count trans-tab-count ms-1 d-none"></span></a></li>
-                                <li class="nav-item"><a class="nav-link pf-status-tab" data-status="Expired" href="javascript:void(0);">Expired <span class="pf-tab-count trans-tab-count ms-1 d-none"></span></a></li>
-                                <li class="nav-item"><a class="nav-link pf-status-tab" data-status="Cancelled" href="javascript:void(0);">Cancelled <span class="pf-tab-count trans-tab-count ms-1 d-none"></span></a></li>
-                                <li class="nav-item"><a class="nav-link pf-status-tab" data-status="Draft" href="javascript:void(0);">Drafts <span class="pf-tab-count trans-tab-count ms-1 d-none"></span></a></li>
+                            <ul class="nav trans-status-tabs" id="pfStatusTabs" role="tablist" data-trans-path="/proforma">
+                                <li class="nav-item"><a class="nav-link<?php echo $initTab === 'All' ? ' active' : ''; ?> pf-status-tab" data-status="All" data-url-tab="all" href="javascript:void(0);">All <span class="pf-tab-count trans-tab-count ms-1<?php echo ($initTab !== 'All' || $ModAllCount == 0) ? ' d-none' : ''; ?>"><?php echo ($initTab === 'All' && $ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link<?php echo $initTab === 'Sent' ? ' active' : ''; ?> pf-status-tab" data-status="Sent" data-url-tab="sent" href="javascript:void(0);">Sent <span class="pf-tab-count trans-tab-count ms-1<?php echo ($initTab !== 'Sent' || $ModAllCount == 0) ? ' d-none' : ''; ?>"><?php echo ($initTab === 'Sent' && $ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link<?php echo $initTab === 'Converted' ? ' active' : ''; ?> pf-status-tab" data-status="Converted" data-url-tab="converted" href="javascript:void(0);">Converted <span class="pf-tab-count trans-tab-count ms-1<?php echo ($initTab !== 'Converted' || $ModAllCount == 0) ? ' d-none' : ''; ?>"><?php echo ($initTab === 'Converted' && $ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link<?php echo $initTab === 'Expired' ? ' active' : ''; ?> pf-status-tab" data-status="Expired" data-url-tab="expired" href="javascript:void(0);">Expired <span class="pf-tab-count trans-tab-count ms-1<?php echo ($initTab !== 'Expired' || $ModAllCount == 0) ? ' d-none' : ''; ?>"><?php echo ($initTab === 'Expired' && $ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link<?php echo $initTab === 'Cancelled' ? ' active' : ''; ?> pf-status-tab" data-status="Cancelled" data-url-tab="cancelled" href="javascript:void(0);">Cancelled <span class="pf-tab-count trans-tab-count ms-1<?php echo ($initTab !== 'Cancelled' || $ModAllCount == 0) ? ' d-none' : ''; ?>"><?php echo ($initTab === 'Cancelled' && $ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link<?php echo $initTab === 'Draft' ? ' active' : ''; ?> pf-status-tab" data-status="Draft" data-url-tab="drafts" href="javascript:void(0);">Drafts <span class="pf-tab-count trans-tab-count ms-1<?php echo ($initTab !== 'Draft' || $ModAllCount == 0) ? ' d-none' : ''; ?>"><?php echo ($initTab === 'Draft' && $ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
                             </ul>
+                            <?php $this->load->view('common/transactions/filter_notice'); ?>
                         </div>
 
                         <!-- Table -->
@@ -101,7 +116,7 @@ $this->load->view('common/transactions/header'); ?>
                                         <th>Customer</th>
                                         <th class="col-sortable cursor-pointer user-select-none" data-sort="Date">Valid Until <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Date"></i></th>
                                         <th>Last Updated</th>
-                                        <th style="width:50px"></th>
+                                        <th style="width:50px">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody class="r2k-tbody table-border-bottom-0">
@@ -118,9 +133,9 @@ $this->load->view('common/transactions/header'); ?>
 
                     <?php $this->load->view('common/transactions/print_modals'); ?>
 
-                    <div class="card mb-0 cust-sticky-pag" id="pfStickyPagination" style="display:none;">
+                    <div class="card mb-0 cust-sticky-pag apex-sticky-pag" id="pfStickyPagination" data-static-pag="#pfPagination" style="display:none;">
                         <div class="card-body p-0">
-                            <div class="row mx-3 my-2 justify-content-between align-items-center pfPagination"></div>
+                            <div class="row mx-3 my-2 justify-content-between align-items-center apex-sticky-pag-inner"></div>
                         </div>
                     </div>
 
@@ -141,6 +156,7 @@ $this->load->view('common/transactions/header'); ?>
 
 <?php $this->load->view('common/transactions/footer'); ?>
 
+<script src="/js/core/sticky_paginate.js"></script>
 <script src="/js/common/party_filter.js"></script>
 <script src="/js/transactions/viewmodal.js"></script>
 <script src="/js/transactions/a4_print.js"></script>
@@ -154,11 +170,19 @@ const ModulePag    = '.pfPagination';
 const ModuleHeader = '.pfHeaderCheck';
 const ModuleRow    = '.pfCheck';
 
+var _pfInitTab    = <?php echo json_encode($InitTab    ?? 'All'); ?>;
+var _pfInitSearch = <?php echo json_encode($InitSearch ?? ''); ?>;
+
+var _pfTabFilterMap = <?= json_encode($tabFilterMap); ?>;
+var _allPfFilterEls = <?= json_encode(array_values(array_unique(array_merge(...array_values($tabFilterMap))))); ?>;
+
 $(function () {
     'use strict';
 
-    Filter['Status'] = 'All';
+    Filter['Status'] = _pfInitTab;
+    if (_pfInitSearch) { Filter.Name = _pfInitSearch; }
     initExport({ moduleUID: 113, getFilters: function () { return Filter; } });
+    _applyTabFilters(_pfInitTab, _pfTabFilterMap, _allPfFilterEls);
 
     var pfPartyFilter = new TransPartyColFilter({
         boxId     : 'pfPartyFilterBox',
@@ -176,40 +200,49 @@ $(function () {
         _origGetProFormaInvoicesDetails(pageNo, rowLimit, f);
     };
 
-    var $pfStaticPag = $('#pfPagination');
-    var $pfStickyPag = $('#pfStickyPagination');
-    function _syncPfSticky() { $pfStickyPag.find('.pfPagination').html($pfStaticPag.html()); }
-    function _togglePfSticky() {
-        if (!$pfStaticPag.length) return;
-        var r = $pfStaticPag[0].getBoundingClientRect();
-        var visible = r.top < $(window).height() && r.bottom > 0;
-        if (visible) $pfStickyPag.stop(true,true).fadeOut(150);
-        else { _syncPfSticky(); $pfStickyPag.stop(true,true).fadeIn(150); }
+    function _resetPfFilters() {
+        var $wrap = $('#searchTransactionData').closest('.r2k-search-wrap');
+        $('#searchTransactionData').val('');
+        $wrap.find('.r2k-clear').addClass('d-none');
+        $wrap.removeClass('is-expanded r2k-search-active');
+        Filter.Name = '';
+        if (pfPartyFilter) { pfPartyFilter.reset(); }
+        $('.trans-col-filterbox, .tpcf-box').hide();
     }
-    $(window).on('scroll resize', _togglePfSticky);
-    _togglePfSticky();
 
     $(document).on('click', '[data-stat-filter]', function () {
         var status = $(this).data('stat-filter') || 'All';
+        _resetPfFilters();
         $('.apex-stat-item').removeClass('active');
         $(this).addClass('active');
         $('.pf-status-tab').removeClass('active');
         $('.pf-status-tab[data-status="' + status + '"]').addClass('active');
-        Filter.Status = status; PageNo = 1; getProFormaInvoicesDetails();
+        _applyTabFilters(status, _pfTabFilterMap, _allPfFilterEls);
+        Filter.Status = status; PageNo = 1;
+        _updateTransTabUrl(status, '');
+        getProFormaInvoicesDetails();
     });
 
     $(document).on('click', '.pf-status-tab', function (e) {
         e.preventDefault();
+        _resetPfFilters();
         $('.pf-status-tab').removeClass('active');
         $(this).addClass('active');
         $('.apex-stat-item').removeClass('active');
         var status = $(this).data('status') || 'All';
         $('.apex-stat-item[data-stat-filter="' + status + '"]').addClass('active');
-        Filter.Status = status; PageNo = 1; getProFormaInvoicesDetails();
+        _applyTabFilters(status, _pfTabFilterMap, _allPfFilterEls);
+        Filter.Status = status; PageNo = 1;
+        _updateTransTabUrl(status, '');
+        getProFormaInvoicesDetails();
     });
 
     $(document).on('click', '.pageRefresh', function (e) { e.preventDefault(); PageNo = 1; getProFormaInvoicesDetails(); });
 
+    $('#searchTransactionData').on('input', function () {
+        var curTab = $('.pf-status-tab.active').data('status') || 'All';
+        _updateTransTabUrl(curTab, $.trim($(this).val()));
+    });
     $('#searchTransactionData').on('input', debounce(function () {
         Filter.Name = $.trim($(this).val()); PageNo = 1; getProFormaInvoicesDetails();
     }, 1500));

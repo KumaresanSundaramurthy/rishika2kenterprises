@@ -33,7 +33,7 @@ if (!empty($DataLists)):
 
         $paidAmt    = (float)($list->PaidAmount ?? 0);
         $netAmt     = (float)($list->NetAmount  ?? 0);
-        $pendingAmt = max(0, round($netAmt - $paidAmt, 2));
+        $pendingAmt = max(0, round($netAmt - $paidAmt, $decimals));
 
         // Payment status badge
         if ($isDraft) {

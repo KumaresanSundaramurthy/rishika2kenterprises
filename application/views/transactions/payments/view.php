@@ -32,6 +32,7 @@
 
 
                     <!-- ── Stats Bar (apex-stats-strip = visibility controlled by StatsDefaultOpen setting) ── -->
+                    <?php if ($JwtData->TransSettings->ShowTransactionStats ?? 1): ?>
                     <div class="apex-stats-strip mb-3" style="border-radius:.5rem;border:0;box-shadow:0 1px 4px rgba(0,0,0,.07);">
                         <!-- Current Balance -->
                         <div class="d-flex align-items-center gap-3 px-4 border-end" style="flex:1;min-width:0;padding-top:14px;padding-bottom:14px;">
@@ -85,6 +86,7 @@
                             </div>
                         </div>
                     </div>
+                    <?php endif; ?>
                     <!-- /.stats -->
 
                     <!-- ── Main Card ──────────────────────────────────────── -->
@@ -115,10 +117,10 @@
                         <!-- Tabs Row -->
                         <div class="apex-tabs-row">
                             <ul class="nav trans-status-tabs" id="allPmtStatusTabs">
-                                <li class="nav-item"><a class="nav-link allpmt-status-tab active" data-status=""          href="javascript:void(0);">All       <span class="trans-tab-count ms-1" id="allPmtTabCountActive"><?php echo number_format($ModAllCount); ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link allpmt-status-tab active" data-status=""          href="javascript:void(0);">All       <span class="trans-tab-count ms-1<?php echo $ModAllCount > 0 ? '' : ' d-none'; ?>" id="allPmtTabCountActive"><?php echo $ModAllCount > 0 ? number_format($ModAllCount) : ''; ?></span></a></li>
                                 <li class="nav-item"><a class="nav-link allpmt-dir-pill"          data-dir="In"           href="javascript:void(0);"><i class="bx bx-up-arrow-alt text-success"></i> In</a></li>
                                 <li class="nav-item"><a class="nav-link allpmt-dir-pill"          data-dir="Out"          href="javascript:void(0);"><i class="bx bx-down-arrow-alt text-danger"></i> Out</a></li>
-                                <li class="nav-item"><a class="nav-link allpmt-status-tab"        data-status="Cancelled" href="javascript:void(0);">Cancelled <span class="trans-tab-count ms-1" id="allPmtTabCountCancelled">0</span></a></li>
+                                <li class="nav-item"><a class="nav-link allpmt-status-tab"        data-status="Cancelled" href="javascript:void(0);">Cancelled <span class="trans-tab-count ms-1 d-none" id="allPmtTabCountCancelled"></span></a></li>
                             </ul>
                         </div>
 

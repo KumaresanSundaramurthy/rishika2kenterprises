@@ -27,7 +27,7 @@ if (!empty($DataLists)):
 
         $paidAmt    = (float)($list->PaidAmount ?? 0);
         $netAmt     = (float)($list->NetAmount  ?? 0);
-        $pendingAmt = max(0, round($netAmt - $paidAmt, 2));
+        $pendingAmt = max(0, round($netAmt - $paidAmt, $decimals));
 
         // Payment status badge
         if ($isDraft) {
@@ -357,20 +357,6 @@ if (!empty($DataLists)):
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:.82rem;min-width:160px;">
 
-                        <?php if (!$isDraft): ?>
-                        <li>
-                            <button class="dropdown-item thermalPrintTransaction" data-uid="<?php echo (int)$list->TransUID; ?>" data-module="<?php echo (int)$list->ModuleUID; ?>">
-                                <i class="bx bx-receipt me-2 text-dark"></i>Thermal Print
-                            </button>
-                        </li>
-                        <li>
-                            <button class="dropdown-item a4PrintTransaction" data-uid="<?php echo (int)$list->TransUID; ?>" data-module="<?php echo (int)$list->ModuleUID; ?>">
-                                <i class="bx bx-printer me-2 text-primary"></i>Print / Download
-                            </button>
-                        </li>
-                        <li><hr class="dropdown-divider my-1"></li>
-                        <?php endif; ?>
-
                         <?php if ($showPending): ?>
                         <li>
                             <button class="dropdown-item invReceivePayment"
@@ -384,7 +370,23 @@ if (!empty($DataLists)):
                                 <i class="bx bx-money-withdraw me-2 text-success"></i>Receive Payment
                             </button>
                         </li>
+                        <?php endif; ?>
+
+                        <?php if ($showPending && !$isDraft): ?>
                         <li><hr class="dropdown-divider my-1"></li>
+                        <?php endif; ?>
+
+                        <?php if (!$isDraft): ?>
+                        <li>
+                            <button class="dropdown-item a4PrintTransaction" data-uid="<?php echo (int)$list->TransUID; ?>" data-module="<?php echo (int)$list->ModuleUID; ?>">
+                                <i class="bx bx-printer me-2 text-primary"></i>Print / Download
+                            </button>
+                        </li>
+                        <li>
+                            <button class="dropdown-item thermalPrintTransaction" data-uid="<?php echo (int)$list->TransUID; ?>" data-module="<?php echo (int)$list->ModuleUID; ?>">
+                                <i class="bx bx-receipt me-2 text-dark"></i>Thermal Print
+                            </button>
+                        </li>
                         <?php endif; ?>
 
                         <?php if (!$isDraft && ($hasMobile || $hasEmail)): ?>

@@ -13,32 +13,19 @@ class Proformainvoices extends MY_Controller {
     }
 
     // ── List page ────────────────────────────────────────────────
-    public function index() {
+    public function index(): void {
         if (!$this->_loadPageTitle($this->pageModuleUID)) {
             $this->load->view('common/module_error', $this->pageData);
             return;
         }
         try {
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
-            $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
-            $limit = $GeneralSettings->RowLimit ?? 10;
-
-            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
-            $this->load->model('transactions_model');
-            $datePref   = $this->getDateFilterPreference('proforma');
-            $initFilter = $datePref['from'] ? ['DateFrom' => $datePref['from'], 'DateTo' => $datePref['to']] : [];
-            $allData      = $this->transactions_model->getTransactionPageList($limit, 0, $this->pageModuleUID, $initFilter, 0);
-            $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, $initFilter);
-            $this->pageData['SavedDateRange'] = $datePref['range'];
-            $this->pageData['SavedDateLabel'] = $datePref['label'];
-
-            $this->pageData['ModRowData']    = $this->load->view('transactions/proformainvoices/list', ['DataLists' => $allData, 'SerialNumber' => 0, 'JwtData' => $this->pageData['JwtData']], TRUE);
-            $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/proforma/getPageDetails', $allDataCount, 1, $limit);
-            $this->pageData['ModAllCount']   = $allDataCount;
-            $this->pageData['SummaryStats']  = $this->transactions_model->getTransactionSummaryStats($this->pageModuleUID, $orgUID);
-
-            $this->_loadUpstashConfig();
-
+            $this->_loadTransactionIndexPage([
+                'datePrefKey'  => 'proforma',
+                'tabSlugMap'   => ['all' => 'All', 'sent' => 'Sent', 'converted' => 'Converted', 'expired' => 'Expired', 'cancelled' => 'Cancelled', 'drafts' => 'Draft'],
+                'listViewPath' => 'transactions/proformainvoices/list',
+                'paginationUrl'=> '/proforma/getPageDetails',
+            ]);
             $this->load->view('transactions/proformainvoices/view', $this->pageData);
         } catch (Exception $e) {
             redirect('dashboard', 'refresh');
@@ -46,28 +33,15 @@ class Proformainvoices extends MY_Controller {
     }
 
     // ── Paginated list (AJAX) ────────────────────────────────────
-    public function getPageDetails($pageNo = 0) {
+    public function getPageDetails(int $pageNo = 0): void
+    {
         $this->EndReturnData = new stdClass();
         try {
-            $pageNo = max(1, (int) $pageNo);
-            $limit  = (int) $this->input->post('RowLimit') ?: 10;
-            $offset = ($pageNo - 1) * $limit;
-            $filter = $this->input->post('Filter') ?: [];
-
-            $this->load->model('transactions_model');
-            $allData      = $this->transactions_model->getTransactionPageList($limit, $offset, $this->pageModuleUID, $filter, 0);
-            $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, $filter);
-
-            $rowHtml = $this->load->view('transactions/proformainvoices/list', [
-                'DataLists'    => $allData,
-                'SerialNumber' => ($pageNo - 1) * $limit,
-                'JwtData'      => $this->pageData['JwtData'],
-            ], true);
-
-            $this->EndReturnData->Error          = FALSE;
-            $this->EndReturnData->RecordHtmlData = $rowHtml;
-            $this->EndReturnData->Pagination     = $this->globalservice->buildPagePaginationHtml('/proforma/getPageDetails', $allDataCount, $pageNo, $limit);
-            $this->EndReturnData->TotalCount     = $allDataCount;
+            $this->EndReturnData = $this->_buildTransactionPageDetailsResult([
+                'pageNo'        => $pageNo,
+                'listViewPath'  => 'transactions/proformainvoices/list',
+                'paginationUrl' => '/proforma/getPageDetails',
+            ]);
         } catch (Exception $e) {
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -139,6 +113,7 @@ class Proformainvoices extends MY_Controller {
 
             $this->pageData['AdditionalCharges']  = $this->_getAdditionalChargesForOrg((int)$orgUID, true);
             $this->pageData['TransactionCharges'] = $this->transactions_model->getTransactionCharges($transUID, (int)$orgUID);
+            $this->pageData['TaxList']            = $this->_getTaxList();
             $this->pageData['IsEditMode']         = true;
 
             $prefixResult                    = $this->transactions_model->getTransactionsPrefixDetails(['Prefix.OrgUID' => $orgUID, 'Prefix.ModuleUID' => $this->pageModuleUID]);

@@ -72,7 +72,7 @@ class Doc extends CI_Controller {
 
         $paidAmt    = (float)($stub->PaidAmount ?? 0);
         $netAmt     = (float)($stub->NetAmount  ?? 0);
-        $pendingAmt = max(0, round($netAmt - $paidAmt, 2));
+        $pendingAmt = max(0, round($netAmt - $paidAmt, $this->_decimals()));
 
         if ($netAmt <= 0) {
             $payBadge = '';

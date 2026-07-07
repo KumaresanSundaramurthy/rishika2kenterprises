@@ -71,9 +71,9 @@ if (!$isEdit) {
 if ($isEdit) {
     $hNetAmt   = (float)($InvData->NetAmount  ?? 0);
     $hPaidAmt  = (float)($InvData->PaidAmount ?? 0);
-    $hBalAmt   = max(0, round($hNetAmt - $hPaidAmt, 2));
+    $hDecimals = (int)($JwtData->GenSettings->DecimalPoints ?? 2);
+    $hBalAmt   = max(0, round($hNetAmt - $hPaidAmt, $hDecimals));
     $hCurrency = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-    $hDecimals = $JwtData->GenSettings->DecimalPoints ?? 2;
     $hStatus   = $InvData->DocStatus ?? '';
     $hStatusMap = ['Issued' => 'primary', 'Partial' => 'info', 'Paid' => 'success', 'Cancelled' => 'danger', 'Rejected' => 'secondary', 'Draft' => 'secondary'];
     $hStatusClr = $hStatusMap[$hStatus] ?? 'secondary';
@@ -1027,7 +1027,7 @@ $(function() {
         }
     });
 
-    function _r2(v) { return Math.round(v * 100) / 100; }
+    function _r2(v) { return parseFloat((+v || 0).toFixed(dec)); }
 
     function _toggleGroup(ids, show, amtIds, amtValue) {
         ids.forEach(function(id) {

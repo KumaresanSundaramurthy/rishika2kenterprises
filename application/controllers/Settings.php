@@ -340,6 +340,7 @@ class Settings extends MY_Controller {
             }
 
             $showProductDescription = $this->input->post('ShowProductDescription') ? 1 : 0;
+            $showTransactionStats   = $this->input->post('ShowTransactionStats')   ? 1 : 0;
 
             $validReturnDays = [0, 3, 5, 7, 10, 14, 21, 30];
             $dcDefaultReturnDays = (int) $this->input->post('DCDefaultReturnDays');
@@ -353,7 +354,7 @@ class Settings extends MY_Controller {
             }
 
             $this->load->model('dbwrite_model');
-            $this->dbwrite_model->upsertTransactionSettings($orgUID, $invoiceCancelAction, $srCancelAction, $salesReturnItemMethod, $termsAndConditions, $hideNavOnTransForm, $purchaseShowSignature, $purchaseShowTerms, $prCancelAction, $purchaseReturnItemMethod, $showProductDescription, $userUID, $dcDefaultReturnDays, $quotValidityDays);
+            $this->dbwrite_model->upsertTransactionSettings($orgUID, $invoiceCancelAction, $srCancelAction, $salesReturnItemMethod, $termsAndConditions, $hideNavOnTransForm, $purchaseShowSignature, $purchaseShowTerms, $prCancelAction, $purchaseReturnItemMethod, $showProductDescription, $userUID, $dcDefaultReturnDays, $quotValidityDays, $showTransactionStats);
 
             // Patch only TransSettings in JWT payload
             $this->load->model('login_model');

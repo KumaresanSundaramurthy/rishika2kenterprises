@@ -14,6 +14,18 @@ $this->load->view('common/transactions/header'); ?>
                     'pageDescription' => $PageDescription ?? 'Manage goods returned to vendors',
                 ]); ?>
                 <?php
+                $initTab    = $InitTab    ?? 'All';
+                $initSearch = $InitSearch ?? '';
+                $tabFilterMap = [
+                    'All'       => ['prStatusFilterTrigger', 'prCreatedByFilter', 'prPartyFilterTrigger'],
+                    'PRPending' => ['prCreatedByFilter', 'prPartyFilterTrigger'],
+                    'Paid'      => ['prCreatedByFilter', 'prPartyFilterTrigger'],
+                    'Cancelled' => ['prCreatedByFilter', 'prPartyFilterTrigger'],
+                    'Draft'     => ['prCreatedByFilter', 'prPartyFilterTrigger'],
+                ];
+                $visibleFilters = $tabFilterMap[$initTab] ?? $tabFilterMap['All'];
+
+                if ($JwtData->TransSettings->ShowTransactionStats ?? 1):
                 $stats       = $SummaryStats ?? [];
                 $cur         = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
                 $dec         = $JwtData->GenSettings->DecimalPoints ?? 2;
@@ -34,7 +46,7 @@ $this->load->view('common/transactions/header'); ?>
                 ?>
                 <div class="apex-stats-strip">
                     <?php foreach ($statsItems as $stat): ?>
-                    <div class="apex-stat-item <?php echo $stat['status'] === 'All' ? 'active' : ''; ?>" data-status="<?php echo $stat['status']; ?>" data-stat-filter="<?php echo $stat['status']; ?>" style="--stat-color:<?php echo $stat['iconColor']; ?>">
+                    <div class="apex-stat-item <?php echo $stat['status'] === $initTab ? 'active' : ''; ?>" data-status="<?php echo $stat['status']; ?>" data-stat-filter="<?php echo $stat['status']; ?>" style="--stat-color:<?php echo $stat['iconColor']; ?>">
                         <div class="apex-stat-icon" style="background:<?php echo $stat['iconBg']; ?>;">
                             <i class="bx <?php echo $stat['icon']; ?>" style="color:<?php echo $stat['iconColor']; ?>;"></i>
                         </div>
@@ -48,6 +60,7 @@ $this->load->view('common/transactions/header'); ?>
                     </div>
                     <?php endforeach; ?>
                 </div>
+                <?php endif; ?>
 
                 <div class="container-xxl flex-grow-1 py-3">
 
@@ -56,10 +69,10 @@ $this->load->view('common/transactions/header'); ?>
 
                         <!-- ── Filter Row ─────────────────────────────────── -->
                         <div class="apex-filter-row">
-                            <div class="r2k-search-wrap">
+                            <div class="r2k-search-wrap<?php echo $initSearch ? ' is-expanded r2k-search-active' : ''; ?>">
                                 <i class="bx bx-search r2k-si"></i>
-                                <input type="text" id="searchTransactionData" placeholder="Return # or vendor...">
-                                <i class="bx bx-x r2k-clear d-none"></i>
+                                <input type="text" id="searchTransactionData" placeholder="Return # or vendor..." value="<?php echo htmlspecialchars($initSearch); ?>">
+                                <i class="bx bx-x r2k-clear<?php echo $initSearch ? '' : ' d-none'; ?>"></i>
                             </div>
                             <?php $this->load->view('common/transactions/filter_bar', [
                                 'FilterBarConfig' => [
@@ -72,10 +85,10 @@ $this->load->view('common/transactions/header'); ?>
                                 ],
                             ]); ?>
                             <?php if (count($OrgUsers ?? []) > 1): ?>
-                            <a href="javascript:void(0);" id="prCreatedByFilter" class="apex-filter-btn" title="Filter by User"><i class="bx bx-user me-1"></i>Updated By</a>
+                            <a href="javascript:void(0);" id="prCreatedByFilter" class="apex-filter-btn<?php echo in_array('prCreatedByFilter', $visibleFilters) ? '' : ' d-none'; ?>" title="Filter by User"><i class="bx bx-user me-1"></i>Updated By</a>
                             <?php endif; ?>
-                            <a href="javascript:void(0);" id="prStatusFilterTrigger" class="apex-filter-btn" title="Filter by Status"><i class="bx bx-filter-alt me-1"></i>Status</a>
-                            <a href="javascript:void(0);" id="prPartyFilterTrigger" class="apex-filter-btn" title="Filter by Vendor"><i class="bx bx-store me-1"></i>Vendor</a>
+                            <a href="javascript:void(0);" id="prStatusFilterTrigger" class="apex-filter-btn<?php echo in_array('prStatusFilterTrigger', $visibleFilters) ? '' : ' d-none'; ?>" title="Filter by Status"><i class="bx bx-filter-alt me-1"></i>Status</a>
+                            <a href="javascript:void(0);" id="prPartyFilterTrigger" class="apex-filter-btn<?php echo in_array('prPartyFilterTrigger', $visibleFilters) ? '' : ' d-none'; ?>" title="Filter by Vendor"><i class="bx bx-store me-1"></i>Vendor</a>
                             <?php $this->load->view('common/transactions/date_filter_btn'); ?>
                             <div class="apex-filter-spacer"></div>
                             <a href="javascript:void(0);" class="apex-filter-btn pageRefresh" title="Refresh"><i class="bx bx-refresh"></i></a>
@@ -85,13 +98,14 @@ $this->load->view('common/transactions/header'); ?>
 
                         <!-- ── Tabs Row ──────────────────────────────────── -->
                         <div class="apex-tabs-row">
-                            <ul class="nav trans-status-tabs" id="prStatusTabs" role="tablist">
-                                <li class="nav-item"><a class="nav-link active pr-status-tab" data-status="All" href="javascript:void(0);">All <span class="trans-tab-count ms-1"><?php echo $ModAllCount; ?></span></a></li>
-                                <li class="nav-item"><a class="nav-link pr-status-tab" data-status="PRPending" href="javascript:void(0);">Pending <span class="trans-tab-count ms-1 d-none"></span></a></li>
-                                <li class="nav-item"><a class="nav-link pr-status-tab" data-status="Paid" href="javascript:void(0);">Settled <span class="trans-tab-count ms-1 d-none"></span></a></li>
-                                <li class="nav-item"><a class="nav-link pr-status-tab" data-status="Cancelled" href="javascript:void(0);">Cancelled <span class="trans-tab-count ms-1 d-none"></span></a></li>
-                                <li class="nav-item"><a class="nav-link pr-status-tab" data-status="Draft" href="javascript:void(0);">Drafts <span class="trans-tab-count ms-1 d-none"></span></a></li>
+                            <ul class="nav trans-status-tabs" id="prStatusTabs" role="tablist" data-trans-path="/purchasereturns">
+                                <li class="nav-item"><a class="nav-link<?php echo $initTab === 'All' ? ' active' : ''; ?> pr-status-tab" data-status="All" data-url-tab="all" href="javascript:void(0);">All <span class="trans-tab-count ms-1<?php echo ($initTab !== 'All' || $ModAllCount == 0) ? ' d-none' : ''; ?>"><?php echo ($initTab === 'All' && $ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link<?php echo $initTab === 'PRPending' ? ' active' : ''; ?> pr-status-tab" data-status="PRPending" data-url-tab="pending" href="javascript:void(0);">Pending <span class="trans-tab-count ms-1<?php echo ($initTab !== 'PRPending' || $ModAllCount == 0) ? ' d-none' : ''; ?>"><?php echo ($initTab === 'PRPending' && $ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link<?php echo $initTab === 'Paid' ? ' active' : ''; ?> pr-status-tab" data-status="Paid" data-url-tab="settled" href="javascript:void(0);">Settled <span class="trans-tab-count ms-1<?php echo ($initTab !== 'Paid' || $ModAllCount == 0) ? ' d-none' : ''; ?>"><?php echo ($initTab === 'Paid' && $ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link<?php echo $initTab === 'Cancelled' ? ' active' : ''; ?> pr-status-tab" data-status="Cancelled" data-url-tab="cancelled" href="javascript:void(0);">Cancelled <span class="trans-tab-count ms-1<?php echo ($initTab !== 'Cancelled' || $ModAllCount == 0) ? ' d-none' : ''; ?>"><?php echo ($initTab === 'Cancelled' && $ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
+                                <li class="nav-item"><a class="nav-link<?php echo $initTab === 'Draft' ? ' active' : ''; ?> pr-status-tab" data-status="Draft" data-url-tab="drafts" href="javascript:void(0);">Drafts <span class="trans-tab-count ms-1<?php echo ($initTab !== 'Draft' || $ModAllCount == 0) ? ' d-none' : ''; ?>"><?php echo ($initTab === 'Draft' && $ModAllCount > 0) ? $ModAllCount : ''; ?></span></a></li>
                             </ul>
+                            <?php $this->load->view('common/transactions/filter_notice'); ?>
                         </div>
 
                         <!-- Table -->
@@ -118,7 +132,7 @@ $this->load->view('common/transactions/header'); ?>
                                             Return Date <i class="bx bx-sort-alt-2 ms-1 sort-icon" data-col="Date"></i>
                                         </th>
                                         <th>Last Updated</th>
-                                        <th style="width:110px"></th>
+                                        <th style="width:110px">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody class="r2k-tbody table-border-bottom-0">
@@ -218,7 +232,7 @@ $this->load->view('common/transactions/header'); ?>
                                 <label class="form-label" style="font-size:.82rem;font-weight:500;">Amount to Apply <span class="text-danger">*</span></label>
                                 <div class="input-group input-group-sm">
                                     <span class="input-group-text" id="adCurrencySymbol">₹</span>
-                                    <input type="number" class="form-control" id="adAmount" min="0.01" step="0.01" placeholder="0.00">
+                                    <input type="number" class="form-control" id="adAmount" min="0.01" step="any" placeholder="0.00">
                                 </div>
                             </div>
 
@@ -296,10 +310,14 @@ const ModulePag    = '.prPagination';
 const ModuleHeader = '.prHeaderCheck';
 const ModuleRow    = '.prCheck';
 
+var _prInitTab    = <?php echo json_encode($InitTab    ?? 'All'); ?>;
+var _prInitSearch = <?php echo json_encode($InitSearch ?? ''); ?>;
+
 $(function () {
     'use strict';
 
-    Filter['Status'] = 'All';
+    Filter['Status'] = _prInitTab;
+    if (_prInitSearch) { Filter.Name = _prInitSearch; }
     initExport({ moduleUID: 108, getFilters: function () { return Filter; } });
 
     // ── Filter bar ──────────────────────────────────────────────────────
@@ -352,32 +370,55 @@ $(function () {
         _origGetPurchaseReturnsDetails(pageNo, rowLimit, f);
     };
 
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl, { container: 'body' });
-    });
+    var _prTabFilterMap = <?= json_encode($tabFilterMap); ?>;
+    var _allPrFilterEls = <?= json_encode(array_values(array_unique(array_merge(...array_values($tabFilterMap))))); ?>;
+
+    function _resetPrFilters() {
+        var $wrap = $('#searchTransactionData').closest('.r2k-search-wrap');
+        $('#searchTransactionData').val('');
+        $wrap.find('.r2k-clear').addClass('d-none');
+        $wrap.removeClass('is-expanded r2k-search-active');
+        Filter.Name = '';
+        if (prStatusFilter)    { prStatusFilter.reset(); }
+        if (prCreatedByFilter) { prCreatedByFilter.reset(); }
+        if (prPartyFilter)     { prPartyFilter.reset(); }
+        if (tfb)               { tfb.reset(); }
+        $('.trans-col-filterbox, .tpcf-box').hide();
+    }
+
+    _applyTabFilters(_prInitTab, _prTabFilterMap, _allPrFilterEls);
 
     $(document).on('click', '[data-stat-filter]', function () {
         var status = $(this).data('stat-filter') || 'All';
+        _resetPrFilters();
         $('.apex-stat-item').removeClass('active'); $(this).addClass('active');
         $('.pr-status-tab').removeClass('active');
         $('.pr-status-tab[data-status="' + status + '"]').addClass('active');
-        prStatusFilter.reset();
-        Filter.Status = status; PageNo = 1; getPurchaseReturnsDetails();
+        _applyTabFilters(status, _prTabFilterMap, _allPrFilterEls);
+        Filter.Status = status; PageNo = 1;
+        _updateTransTabUrl(status, '');
+        getPurchaseReturnsDetails();
     });
 
     $(document).on('click', '.pr-status-tab', function (e) {
         e.preventDefault();
+        _resetPrFilters();
         $('.pr-status-tab').removeClass('active'); $(this).addClass('active');
         $('.apex-stat-item').removeClass('active');
         var status = $(this).data('status') || 'All';
         $('.apex-stat-item[data-stat-filter="' + status + '"]').addClass('active');
-        prStatusFilter.reset();
-        Filter.Status = status; PageNo = 1; getPurchaseReturnsDetails();
+        _applyTabFilters(status, _prTabFilterMap, _allPrFilterEls);
+        Filter.Status = status; PageNo = 1;
+        _updateTransTabUrl(status, '');
+        getPurchaseReturnsDetails();
     });
 
     $(document).on('click', '.pageRefresh', function (e) { e.preventDefault(); PageNo = 1; getPurchaseReturnsDetails(); });
 
+    $('#searchTransactionData').on('input', function () {
+        var curTab = $('.pr-status-tab.active').data('status') || 'All';
+        _updateTransTabUrl(curTab, $.trim($(this).val()));
+    });
     $('#searchTransactionData').on('input', debounce(function () {
         Filter.Name = $.trim($(this).val()); PageNo = 1; getPurchaseReturnsDetails();
     }, 1500));
@@ -577,15 +618,16 @@ $(function () {
         var paid    = parseFloat($el.data('paid'))    || 0;
         var pending = parseFloat($el.data('pending')) || 0;
         var _cur    = '<?php echo htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹'); ?>';
+        var _vDec   = <?php echo (int)($JwtData->GenSettings->DecimalPoints ?? 2); ?>;
 
         $('#rpTransUID').val(uid);
         $('#rpInvNum').text(num || '—');
         $('#rpInvDate').text(date || '—');
         $('#rpPartyName').text(party || '—');
-        $('#rpTotalCard').text(_cur + ' ' + total.toFixed(2));
-        $('#rpPaidCard').text(_cur + ' ' + paid.toFixed(2));
-        $('#rpBalanceCard').text(_cur + ' ' + pending.toFixed(2));
-        $('#rpAmount').val(pending.toFixed(2)).attr('max', pending);
+        $('#rpTotalCard').text(_cur + ' ' + total.toFixed(_vDec));
+        $('#rpPaidCard').text(_cur + ' ' + paid.toFixed(_vDec));
+        $('#rpBalanceCard').text(_cur + ' ' + pending.toFixed(_vDec));
+        $('#rpAmount').val(pending.toFixed(_vDec)).attr('max', pending);
         $('#rpCurrencySymbol').text(_cur);
         $('#rpReferenceNo').val('');
         $('#rpNotes').val('');

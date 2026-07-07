@@ -12,69 +12,34 @@ class Purchasereturns extends MY_Controller {
         $this->load->helper('transaction');
     }
 
-    public function index() {
+    public function index(): void {
         if (!$this->_loadPageTitle($this->pageModuleUID)) {
             $this->load->view('common/module_error', $this->pageData);
             return;
         }
         try {
             $this->pageData['JwtData']->ModuleUID = $this->pageModuleUID;
-            $GeneralSettings = $this->pageData['JwtData']->GenSettings ?? new stdClass();
-            $limit = $GeneralSettings->RowLimit ?? 10;
-
-            $this->load->model('transactions_model');
-            $datePref   = $this->getDateFilterPreference('purchasereturns');
-            $initFilter = $datePref['from'] ? ['DateFrom' => $datePref['from'], 'DateTo' => $datePref['to']] : [];
-            $allData      = $this->transactions_model->getTransactionPageList($limit, 0, $this->pageModuleUID, $initFilter, 0);
-            $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, $initFilter);
-            $this->pageData['SavedDateRange'] = $datePref['range'];
-            $this->pageData['SavedDateLabel'] = $datePref['label'];
-
-            $orgUID = $this->pageData['JwtData']->Org->OrgUID;
-            $this->_annotatePRListWithCancelDeps($allData, $orgUID);
-
-            $this->pageData['ModRowData']    = $this->load->view('transactions/purchasereturns/list', ['DataLists' => $allData, 'SerialNumber' => 0, 'JwtData' => $this->pageData['JwtData']], TRUE);
-            $this->pageData['ModPagination'] = $this->globalservice->buildPagePaginationHtml('/purchasereturns/getPurchaseReturnsPageDetails', $allDataCount, 1, $limit);
-            $this->pageData['ModAllCount']   = $allDataCount;
-            $this->pageData['SummaryStats']  = $this->transactions_model->getTransactionSummaryStats($this->pageModuleUID, $orgUID);
-            $this->pageData['PaymentTypes']  = $this->transactions_model->getPaymentTypesList();
-            $this->pageData['BankAccounts']  = $this->transactions_model->getOrgBankAccounts($orgUID);
-
-            $this->_loadUpstashConfig();
-
-            $this->load->model('users_model');
-            $this->pageData['OrgUsers']         = $this->users_model->getOrgUsersForCache($orgUID);
-
+            $this->_loadTransactionIndexPage([
+                'datePrefKey'  => 'purchasereturns',
+                'tabSlugMap'   => ['all' => 'All', 'pending' => 'PRPending', 'settled' => 'Paid', 'cancelled' => 'Cancelled', 'drafts' => 'Draft'],
+                'listViewPath' => 'transactions/purchasereturns/list',
+                'paginationUrl'=> '/purchasereturns/getPurchaseReturnsPageDetails',
+            ]);
             $this->load->view('transactions/purchasereturns/view', $this->pageData);
         } catch (Exception $e) {
             redirect('dashboard', 'refresh');
         }
     }
 
-    public function getPurchaseReturnsPageDetails($pageNo = 0) {
+    public function getPurchaseReturnsPageDetails(int $pageNo = 0): void
+    {
         $this->EndReturnData = new stdClass();
         try {
-            $pageNo = (int) $pageNo;
-            if ($pageNo < 1) $pageNo = 1;
-            $limit  = (int) $this->input->post('RowLimit') ?: 10;
-            $offset = ($pageNo - 1) * $limit;
-            $filter = $this->input->post('Filter') ?: [];
-
-            $this->load->model('transactions_model');
-            $allData      = $this->transactions_model->getTransactionPageList($limit, $offset, $this->pageModuleUID, $filter, 0);
-            $allDataCount = $this->transactions_model->getTransactionCount($this->pageModuleUID, $filter);
-            $this->_annotatePRListWithCancelDeps($allData, $this->pageData['JwtData']->Org->OrgUID);
-
-            $rowHtml = $this->load->view('transactions/purchasereturns/list', [
-                'DataLists'    => $allData,
-                'SerialNumber' => ($pageNo - 1) * $limit,
-                'JwtData'      => $this->pageData['JwtData'],
-            ], true);
-
-            $this->EndReturnData->Error          = FALSE;
-            $this->EndReturnData->RecordHtmlData = $rowHtml;
-            $this->EndReturnData->Pagination     = $this->globalservice->buildPagePaginationHtml('/purchasereturns/getPurchaseReturnsPageDetails', $allDataCount, $pageNo, $limit);
-            $this->EndReturnData->TotalCount     = $allDataCount;
+            $this->EndReturnData = $this->_buildTransactionPageDetailsResult([
+                'pageNo'        => $pageNo,
+                'listViewPath'  => 'transactions/purchasereturns/list',
+                'paginationUrl' => '/purchasereturns/getPurchaseReturnsPageDetails',
+            ]);
         } catch (Exception $e) {
             $this->EndReturnData->Error   = TRUE;
             $this->EndReturnData->Message = $e->getMessage();
@@ -247,7 +212,7 @@ class Purchasereturns extends MY_Controller {
                 if ($payResult['totalPaid'] > 0) {
                     $hasPayment    = true;
                     $isFullyPaid   = ($netAmount > 0 && round($netAmount - $payResult['totalPaid'], 4) <= 0) ? 1 : 0;
-                    $balanceAmount = max(0, round($netAmount - $payResult['totalPaid'], 2));
+                    $balanceAmount = max(0, round($netAmount - $payResult['totalPaid'], $this->_decimals()));
                     $this->_updateTransactionBalance($transUID, $netAmount, $payResult['totalPaid'], $userUID);
                     $newStatus = $isFullyPaid ? 'Paid' : 'Partial';
                     $this->dbwrite_model->updateTransDocStatus($transUID, $orgUID, $newStatus, $userUID);
@@ -995,6 +960,7 @@ class Purchasereturns extends MY_Controller {
 
             $this->pageData['AdditionalCharges']  = $this->_getAdditionalChargesForOrg((int)$orgUID, true);
             $this->pageData['TransactionCharges'] = $this->transactions_model->getTransactionCharges($transUID, (int)$orgUID);
+            $this->pageData['TaxList']            = $this->_getTaxList();
             $this->pageData['IsEditMode']         = true;
 
             $this->_getDispatchAddresses($orgUID);
@@ -1037,7 +1003,7 @@ class Purchasereturns extends MY_Controller {
 
             $payments    = $this->transactions_model->getTransactionPayments($transUID, $orgUID);
             $alreadyPaid = array_sum(array_column((array) $payments, 'Amount'));
-            $pending     = max(0, round((float)$existing->NetAmount - $alreadyPaid, 2));
+            $pending     = max(0, round((float)$existing->NetAmount - $alreadyPaid, $this->_decimals()));
 
             if ($amount > $pending + 0.01) {
                 throw new Exception('Amount exceeds pending balance (' . number_format($pending, 2) . ').');
@@ -1103,7 +1069,7 @@ class Purchasereturns extends MY_Controller {
             if ($resp->Error) throw new Exception($resp->Message);
             $paymentUID = $resp->ID ?? null;
 
-            $balanceAmount = max(0, round((float)$existing->NetAmount - $newTotalPaid, 2));
+            $balanceAmount = max(0, round((float)$existing->NetAmount - $newTotalPaid, $this->_decimals()));
             $this->dbwrite_model->updateTransIsFullyPaid($transUID, $isFullyPaid, $newTotalPaid, $balanceAmount, $userUID);
             $this->dbwrite_model->updateTransDocStatus($transUID, $orgUID, $newStatus, $userUID);
 
@@ -1173,7 +1139,7 @@ class Purchasereturns extends MY_Controller {
             }
 
             $prPaid    = (float)($pr->PaidAmount    ?? 0);
-            $prBalance = max(0, round((float)$pr->NetAmount - $prPaid, 2));
+            $prBalance = max(0, round((float)$pr->NetAmount - $prPaid, $this->_decimals()));
             if ($prBalance <= 0) throw new Exception('No debit balance available on this Purchase Return.');
 
             $purchase = $this->transactions_model->getTransactionById($purchUID, $orgUID, 105);
@@ -1184,7 +1150,7 @@ class Purchasereturns extends MY_Controller {
             }
 
             $purchPaid    = (float)($purchase->PaidAmount    ?? 0);
-            $purchBalance = max(0, round((float)$purchase->NetAmount - $purchPaid, 2));
+            $purchBalance = max(0, round((float)$purchase->NetAmount - $purchPaid, $this->_decimals()));
             if ($purchBalance <= 0) throw new Exception('Purchase has no pending balance.');
 
             $maxAmount = min($prBalance, $purchBalance);
@@ -1252,16 +1218,16 @@ class Purchasereturns extends MY_Controller {
             if ($resp->Error) throw new Exception($resp->Message);
 
             // Update Purchase
-            $newPurchPaid    = round($purchPaid + $amount, 2);
-            $newPurchBalance = max(0, round((float)$purchase->NetAmount - $newPurchPaid, 2));
+            $newPurchPaid    = round($purchPaid + $amount, $this->_decimals());
+            $newPurchBalance = max(0, round((float)$purchase->NetAmount - $newPurchPaid, $this->_decimals()));
             $purchFullyPaid  = ($purchase->NetAmount > 0 && $newPurchBalance <= 0) ? 1 : 0;
             $purchStatus     = $purchFullyPaid ? 'Paid' : 'Partial';
             $this->dbwrite_model->updateTransIsFullyPaid($purchUID, $purchFullyPaid, $newPurchPaid, $newPurchBalance, $userUID);
             $this->dbwrite_model->updateTransDocStatus($purchUID, $orgUID, $purchStatus, $userUID);
 
             // Update Purchase Return
-            $newPrPaid    = round($prPaid + $amount, 2);
-            $newPrBalance = max(0, round((float)$pr->NetAmount - $newPrPaid, 2));
+            $newPrPaid    = round($prPaid + $amount, $this->_decimals());
+            $newPrBalance = max(0, round((float)$pr->NetAmount - $newPrPaid, $this->_decimals()));
             $prFullyPaid  = ($pr->NetAmount > 0 && $newPrBalance <= 0) ? 1 : 0;
             $prNewStatus  = $prFullyPaid ? 'Paid' : ($newPrPaid > 0 ? 'Partial' : $pr->DocStatus);
             $this->dbwrite_model->updateTransIsFullyPaid($prUID, $prFullyPaid, $newPrPaid, $newPrBalance, $userUID);
@@ -1355,7 +1321,7 @@ class Purchasereturns extends MY_Controller {
 
     private function _updateTransactionBalance($transUID, $netAmount, $paidAmount, $userUID) {
         $isFullyPaid   = ($netAmount > 0 && round($netAmount - $paidAmount, 4) <= 0) ? 1 : 0;
-        $balanceAmount = max(0, round($netAmount - $paidAmount, 2));
+        $balanceAmount = max(0, round($netAmount - $paidAmount, $this->_decimals()));
         $this->dbwrite_model->updateTransIsFullyPaid($transUID, $isFullyPaid, $paidAmount, $balanceAmount, $userUID);
     }
 
@@ -1464,17 +1430,6 @@ class Purchasereturns extends MY_Controller {
 
     private function _touchVendorCache($vendorUID) {
         $this->cachehelper->touchVendor($vendorUID);
-    }
-
-    private function _annotatePRListWithCancelDeps(array &$rows, $orgUID) {
-        if (empty($rows)) return;
-        $transUIDs = array_map(fn($r) => (int)$r->TransUID, $rows);
-        foreach ($rows as $r) { $r->CancelCashRefunded = 0; }
-        $this->load->model('transactions_model');
-        $deps = $this->transactions_model->getPRCancelDepsMap($transUIDs);
-        foreach ($rows as $r) {
-            $r->CancelCashRefunded = $deps['cashMap'][(int)$r->TransUID] ?? 0;
-        }
     }
 
 }

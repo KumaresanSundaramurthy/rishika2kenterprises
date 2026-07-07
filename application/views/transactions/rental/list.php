@@ -1,8 +1,11 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 
 <?php
-$currency = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
-$decimals = $JwtData->GenSettings->DecimalPoints ?? 2;
+$cdnUrl     = getenv('FILE_UPLOAD') == 'amazonaws' ? getenv('CDN_URL') : getenv('CFLARE_R2_CDN');
+include_once(APPPATH . 'views/transactions/partials/party_avatar.php');
+
+$currency   = htmlspecialchars($JwtData->GenSettings->CurrenySymbol ?? '₹');
+$decimals   = $JwtData->GenSettings->DecimalPoints ?? 2;
 $showSerial = $JwtData->GenSettings->SerialNoDisplay == 1;
 
 $statusBadge = [
@@ -35,6 +38,17 @@ if (!empty($DataLists)):
         $now      = time();
         $dueTime  = strtotime($list->ReturnDueDateTime ?? '');
         $isOverdue = ($dueTime && $dueTime < $now && !in_array($status, ['Closed', 'Cancelled']));
+
+        $rntMobileNum     = trim($list->CustomerMobile ?? '');
+        $rntCountryCode   = trim($list->CountryCode ?? '');
+        $rntPartyEmail    = trim($list->EmailAddress ?? '');
+        $rntWaNum         = $rntMobileNum ? preg_replace('/[^0-9]/', '', ($rntCountryCode ?: '91') . $rntMobileNum) : '';
+        $rntHasMobile     = $rntMobileNum !== '';
+        $rntHasEmail      = $rntPartyEmail !== '';
+        $rntPartyName     = $list->CustomerName ?? '—';
+        $rntRentalNum     = $list->RentalNumber ?? '';
+        $waMsg            = "Hello *{$rntPartyName}*,\n\nRegarding your Rental *{$rntRentalNum}*.\n\nThanks";
+        $waMessageEncoded = rawurlencode($waMsg);
 ?>
     <tr>
 
@@ -57,10 +71,63 @@ if (!empty($DataLists)):
         </td>
 
         <!-- Customer -->
-        <td>
-            <div style="font-weight:500;font-size:.85rem;"><?php echo htmlspecialchars($list->CustomerName ?? '—'); ?></div>
-            <?php if (!empty($list->CustomerMobile)): ?>
-                <div class="text-muted" style="font-size:.72rem;"><?php echo htmlspecialchars($list->CustomerMobile); ?></div>
+        <td class="inv-party-td">
+            <div class="d-flex align-items-center gap-2">
+                <?php partyAvatar($list->CustomerName ?? '', $list->PartyImage ?? null, $cdnUrl); ?>
+                <div>
+                    <div class="trans-party-name"><?php echo r2k_party_name($list->CustomerName ?? '', $list->CustomerMobile ?? '', $list->CountryCode ?? '', $list->PartyArea ?? '', !empty($list->PartyImage) ? $cdnUrl . $list->PartyImage : ''); ?></div>
+                    <?php if (!empty($list->PartyArea)): ?>
+                    <div style="font-size:.7rem;color:#888;margin-top:1px;">
+                        <i class="bx bx-map" style="font-size:.72rem;"></i> <?php echo htmlspecialchars($list->PartyArea); ?>
+                    </div>
+                    <?php endif; ?>
+                    <?php if ($rntHasMobile): ?>
+                    <div class="trans-party-mobile" style="font-size:.72rem;color:#666;margin-top:1px;">
+                        <?php echo ($rntCountryCode ? htmlspecialchars($rntCountryCode) . ' ' : '') . htmlspecialchars($rntMobileNum); ?>
+                    </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <?php if ($rntHasMobile || $rntHasEmail): ?>
+            <div class="inv-contact-icons">
+                <?php if ($rntHasMobile): ?>
+                <a href="javascript:void(0)" class="wa inv-wa-link"
+                   data-wa-url="https://wa.me/<?php echo $rntWaNum; ?>?text=<?php echo $waMessageEncoded; ?>"
+                   data-bs-toggle="tooltip"
+                   data-bs-trigger="hover"
+                   title="WhatsApp">
+                    <i class="bx bxl-whatsapp"></i>
+                </a>
+                <button class="comm-send-single sms"
+                    data-commtype="SMS"
+                    data-recipienttype="Customer"
+                    data-uid="<?php echo (int)($list->CustomerUID ?? 0); ?>"
+                    data-name="<?php echo htmlspecialchars($list->CustomerName ?? ''); ?>"
+                    data-mobile="<?php echo htmlspecialchars($rntMobileNum); ?>"
+                    data-email="<?php echo htmlspecialchars($rntPartyEmail); ?>"
+                    data-module-uid="0"
+                    data-bs-toggle="tooltip"
+                    data-bs-trigger="hover"
+                    title="Send SMS">
+                    <i class="bx bx-message-dots"></i>
+                </button>
+                <?php endif; ?>
+                <?php if ($rntHasEmail): ?>
+                <button class="comm-send-single em"
+                    data-commtype="Email"
+                    data-recipienttype="Customer"
+                    data-uid="<?php echo (int)($list->CustomerUID ?? 0); ?>"
+                    data-name="<?php echo htmlspecialchars($list->CustomerName ?? ''); ?>"
+                    data-mobile="<?php echo htmlspecialchars($rntMobileNum); ?>"
+                    data-email="<?php echo htmlspecialchars($rntPartyEmail); ?>"
+                    data-module-uid="0"
+                    data-bs-toggle="tooltip"
+                    data-bs-trigger="hover"
+                    title="Send Email">
+                    <i class="bx bx-envelope"></i>
+                </button>
+                <?php endif; ?>
+            </div>
             <?php endif; ?>
         </td>
 

@@ -547,6 +547,7 @@
                                             $tgsTerms       = htmlspecialchars($tgs->TermsAndConditions ?? '', ENT_QUOTES);
                                             $tgsHideNav     = !empty($tgs->HideNavOnTransForm) ? (int)$tgs->HideNavOnTransForm : 0;
                                             $tgsShowDesc    = isset($tgs->ShowProductDescription) ? (int)$tgs->ShowProductDescription : 1;
+                                            $tgsShowStats   = isset($tgs->ShowTransactionStats)   ? (int)$tgs->ShowTransactionStats   : 1;
                                             ?>
                                             <div class="tab-pane fade show active" id="tab-txn-general" role="tabpanel" aria-labelledby="tab-txn-general-tab">
 
@@ -585,6 +586,23 @@
                                                                     Show Description checkbox on transaction forms
                                                                 </label>
                                                                 <div class="form-text mt-0">When enabled, a "Show Description" checkbox appears on all transaction create/edit pages allowing users to toggle the product description row.</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="col-12">
+                                                        <label class="form-label fw-semibold">Summary Stats on List Pages</label>
+                                                        <div class="d-flex align-items-center gap-3 p-3 border rounded">
+                                                            <div class="form-check form-switch mb-0">
+                                                                <input class="form-check-input" type="checkbox"
+                                                                       id="txn_ShowTransactionStats" name="ShowTransactionStats"
+                                                                       value="1" <?php echo $tgsShowStats ? 'checked' : ''; ?>>
+                                                            </div>
+                                                            <div>
+                                                                <label class="form-check-label fw-semibold mb-0" for="txn_ShowTransactionStats">
+                                                                    Show summary stats strip on all transaction list pages
+                                                                </label>
+                                                                <div class="form-text mt-0">When enabled, the summary cards (totals strip) appear at the top of every transaction list page — Invoices, Sales Orders, Purchases, etc. Disable globally for a cleaner, faster view.</div>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -1193,6 +1211,7 @@ $(document).ready(function () {
                 TermsAndConditions         : $('#txn_TermsAndConditions').val(),
                 HideNavOnTransForm         : $('#txn_HideNavOnTransForm').is(':checked') ? 1 : 0,
                 ShowProductDescription     : $('#txn_ShowProductDescription').is(':checked') ? 1 : 0,
+                ShowTransactionStats       : $('#txn_ShowTransactionStats').is(':checked')   ? 1 : 0,
                 InvoiceCancelAction        : $('input[name="InvoiceCancelAction"]:checked').val()        || 'ask',
                 SalesReturnCancelAction    : $('input[name="SalesReturnCancelAction"]:checked').val()    || 'ask',
                 SalesReturnItemMethod      : $('input[name="SalesReturnItemMethod"]:checked').val()      || 'Manual',
@@ -1293,6 +1312,7 @@ $(document).ready(function () {
                 TermsAndConditions         : $('#txn_TermsAndConditions').val(),
                 HideNavOnTransForm         : $('#txn_HideNavOnTransForm').is(':checked') ? 1 : 0,
                 ShowProductDescription     : $('#txn_ShowProductDescription').is(':checked') ? 1 : 0,
+                ShowTransactionStats       : $('#txn_ShowTransactionStats').is(':checked')   ? 1 : 0,
                 PurchaseShowSignature      : $('#purch_ShowSignature').is(':checked') ? 1 : 0,
                 PurchaseShowTerms          : $('#purch_ShowTerms').is(':checked')    ? 1 : 0,
                 DCDefaultReturnDays        : $('#dc_DefaultReturnDays').val(),
@@ -1340,6 +1360,7 @@ $(document).ready(function () {
                 TermsAndConditions         : $('#txn_TermsAndConditions').val(),
                 HideNavOnTransForm         : $('#txn_HideNavOnTransForm').is(':checked') ? 1 : 0,
                 ShowProductDescription     : $('#txn_ShowProductDescription').is(':checked') ? 1 : 0,
+                ShowTransactionStats       : $('#txn_ShowTransactionStats').is(':checked')   ? 1 : 0,
                 PurchaseShowSignature      : $('#purch_ShowSignature').is(':checked') ? 1 : 0,
                 PurchaseShowTerms          : $('#purch_ShowTerms').is(':checked')    ? 1 : 0,
                 DCDefaultReturnDays        : $('#dc_DefaultReturnDays').val(),
@@ -1381,6 +1402,7 @@ $(document).ready(function () {
                 TermsAndConditions         : $('#txn_TermsAndConditions').val(),
                 HideNavOnTransForm         : $('#txn_HideNavOnTransForm').is(':checked') ? 1 : 0,
                 ShowProductDescription     : $('#txn_ShowProductDescription').is(':checked') ? 1 : 0,
+                ShowTransactionStats       : $('#txn_ShowTransactionStats').is(':checked')   ? 1 : 0,
                 DCDefaultReturnDays        : $('#dc_DefaultReturnDays').val(),
                 QuotValidityDays           : $('#quot_ValidityDays').val(),
                 [CsrfName]                 : CsrfToken,
@@ -1423,6 +1445,7 @@ $(document).ready(function () {
                 TermsAndConditions         : $('#txn_TermsAndConditions').val(),
                 HideNavOnTransForm         : $('#txn_HideNavOnTransForm').is(':checked') ? 1 : 0,
                 ShowProductDescription     : $('#txn_ShowProductDescription').is(':checked') ? 1 : 0,
+                ShowTransactionStats       : $('#txn_ShowTransactionStats').is(':checked')   ? 1 : 0,
                 [CsrfName]                 : CsrfToken,
             },
             success: function (resp) {
@@ -1464,6 +1487,7 @@ $(document).ready(function () {
                 TermsAndConditions         : $('#txn_TermsAndConditions').val(),
                 HideNavOnTransForm         : $('#txn_HideNavOnTransForm').is(':checked') ? 1 : 0,
                 ShowProductDescription     : $('#txn_ShowProductDescription').is(':checked') ? 1 : 0,
+                ShowTransactionStats       : $('#txn_ShowTransactionStats').is(':checked')   ? 1 : 0,
                 PurchaseShowSignature      : $('#purch_ShowSignature').is(':checked') ? 1 : 0,
                 PurchaseShowTerms          : $('#purch_ShowTerms').is(':checked')    ? 1 : 0,
                 DCDefaultReturnDays        : $('#dc_DefaultReturnDays').val(),
@@ -1513,6 +1537,7 @@ $(document).ready(function () {
                 TermsAndConditions         : $('#txn_TermsAndConditions').val(),
                 HideNavOnTransForm         : $('#txn_HideNavOnTransForm').is(':checked') ? 1 : 0,
                 ShowProductDescription     : $('#txn_ShowProductDescription').is(':checked') ? 1 : 0,
+                ShowTransactionStats       : $('#txn_ShowTransactionStats').is(':checked')   ? 1 : 0,
                 [CsrfName]                 : CsrfToken,
             },
             success: function (resp) {

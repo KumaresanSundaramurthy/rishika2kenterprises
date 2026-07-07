@@ -217,7 +217,7 @@
 
                                 <div class="col-12">
                                     <label class="form-label">Amount <span class="text-danger">*</span></label>
-                                    <input type="number" class="form-control" id="TransferAmount" placeholder="0.00" step="0.01" min="0.01" />
+                                    <input type="number" class="form-control" id="TransferAmount" placeholder="0.00" step="any" min="0.01" />
                                 </div>
 
                                 <div class="col-12">

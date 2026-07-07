@@ -62,7 +62,7 @@ class Cachehelper {
 
             // On Account = unapplied credits from cancelled invoices (Cancel Only)
             $onAccountRows    = $CI->customers_model->getCustomerOnAccountPayments($orgUID, $uid);
-            $onAccountBalance = round(array_sum(array_column($onAccountRows, 'Amount')), 2);
+            $onAccountBalance = round(array_sum(array_column($onAccountRows, 'Amount')), (int)($CI->pageData['JwtData']->GenSettings->DecimalPoints ?? 2));
             // Cache full records for FIFO panel (no AJAX needed on invoice form)
             $onAccountRecords = array_map(function($r) {
                 return [
